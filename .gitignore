@@ -1,0 +1,104 @@
+# qbtmud
+# This is intentionally kept small and focused on this repo's actual tooling.
+# If you need to ignore additional editor/tool files, add them here with a short comment.
+
+# Build outputs
+**/bin/
+**/obj/
+artifacts/
+out/
+output/
+publish/
+TestResults/
+BenchmarkDotNet.Artifacts/
+*.binlog
+
+# NuGet package outputs
+*.nupkg
+*.snupkg
+*.trx
+
+# Coverage outputs (coverlet/VS/etc.)
+coverage/
+coverage-report/
+CodeCoverage/
+coverage*.json
+coverage*.xml
+coverage*.info
+*.coverage
+*.coveragexml
+*.dotCover
+
+# IDE/editor settings and caches
+.vs/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+!*.code-workspace
+.idea/
+.ionide/
+.localhistory/
+_ReSharper*/
+*.DotSettings.user
+_NCrunch_*
+.*crunch*.local.xml
+nCrunchTemp_*
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+*.vsix
+
+# OS cruft and temp files
+.DS_Store
+Thumbs.db
+Desktop.ini
+*~
+~$*
+*.swp
+*.log
+*.tmp
+
+# Node (occasionally used by contributors/tools)
+node_modules/
+
+# Local reference checkouts (see AGENTS.md)
+/ref/
+
+# Agent plans
+/plans/
+
+# Generated upstream i18n bundles: keep the canonical source and override files tracked.
+/src/Lantean.QBTMud/wwwroot/i18n/webui_*.json
+!/src/Lantean.QBTMud/wwwroot/i18n/webui_en.json
+!/src/Lantean.QBTMud/wwwroot/i18n/webui_aliases.json
+!/src/Lantean.QBTMud/wwwroot/i18n/webui_overrides_en.json
+
+# Local secrets / machine-specific env files
+.env
+*.env
+.env.local
+.env.*.local
+
+# Keys/certs (avoid accidental commits)
+*.pfx
+*.snk
+
+# Local dotnet install / cache (used by some bootstrap scripts)
+/.dotnet/
+/.nuget/
+
+# Local docs tooling/output
+/.venv-docs/
+/site/
+
+# Mono crash logs (may appear on Linux/macOS)
+mono_crash.*
+
+# Other
+.codex

@@ -1,0 +1,42 @@
+namespace Roslyn.Workbench.Mcp.Workspace;
+
+/// <summary>
+/// Represents the configuration options for the workspace coordinator.
+/// </summary>
+public sealed record WorkspaceCoordinatorOptions
+{
+    /// <summary>
+    /// Gets the workspace host services used when opening workspaces.
+    /// </summary>
+    public Microsoft.CodeAnalysis.Host.HostServices? WorkspaceHostServices { get; init; }
+
+    /// <summary>
+    /// Gets the code-action service used by tool execution contexts.
+    /// </summary>
+    public Plugins.ICodeActionService? CodeActionService { get; init; }
+
+    /// <summary>
+    /// Gets the maximum number of concurrent query leases.
+    /// </summary>
+    public int MaxConcurrentQueries { get; init; } = 2;
+
+    /// <summary>
+    /// Gets the effective result limit for query execution.
+    /// </summary>
+    public int DefaultMaxResults { get; init; } = 100;
+
+    /// <summary>
+    /// Gets the maximum serialized response size, in bytes, for query execution.
+    /// </summary>
+    public int MaxResponseBytes { get; init; } = 4 * 1024 * 1024;
+
+    /// <summary>
+    /// Gets the maximum number of stored transaction revisions.
+    /// </summary>
+    public int MaxTransactionRevisions { get; init; } = 20;
+
+    /// <summary>
+    /// Gets the state directory used for recovery records.
+    /// </summary>
+    public string StateDirectory { get; init; } = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-state");
+}

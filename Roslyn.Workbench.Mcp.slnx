@@ -1,0 +1,26 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path="AGENTS.md" />
+    <File Path="global.json" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/Source/">
+    <File Path="src/AGENTS.md" />
+    <Project Path="src/Roslyn.Workbench.Mcp.Contracts/Roslyn.Workbench.Mcp.Contracts.csproj" />
+    <Project Path="src/Roslyn.Workbench.Mcp.Plugins.Core/Roslyn.Workbench.Mcp.Plugins.Core.csproj" />
+    <Project Path="src/Roslyn.Workbench.Mcp.Plugins/Roslyn.Workbench.Mcp.Plugins.csproj" />
+    <Project Path="src/Roslyn.Workbench.Mcp.Workspace/Roslyn.Workbench.Mcp.Workspace.csproj" />
+    <Project Path="src/Roslyn.Workbench.Mcp/Roslyn.Workbench.Mcp.csproj" />
+  </Folder>
+  <Folder Name="/Test/">
+    <File Path="test/AGENTS.md" />
+    <Project Path="test/Roslyn.Workbench.Mcp.Contracts.Test/Roslyn.Workbench.Mcp.Contracts.Test.csproj" />
+    <Project Path="test/Roslyn.Workbench.Mcp.Plugins.Core.Test/Roslyn.Workbench.Mcp.Plugins.Core.Test.csproj" />
+    <Project Path="test/Roslyn.Workbench.Mcp.Plugins.Test/Roslyn.Workbench.Mcp.Plugins.Test.csproj" />
+    <Project Path="test/Roslyn.Workbench.Mcp.Test/Roslyn.Workbench.Mcp.Test.csproj" />
+    <Project Path="test/Roslyn.Workbench.Mcp.TestSupport/Roslyn.Workbench.Mcp.TestSupport.csproj" />
+    <Project Path="test/Roslyn.Workbench.Mcp.Workspace.Test/Roslyn.Workbench.Mcp.Workspace.Test.csproj" />
+  </Folder>
+  <Folder Name="/Tools/" />
+</Solution>

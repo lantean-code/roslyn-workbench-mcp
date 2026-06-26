@@ -1,0 +1,64 @@
+using Roslyn.Workbench.Mcp.Contracts.Inspection;
+
+namespace Roslyn.Workbench.Mcp.Plugins.Core;
+
+internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStructureRequest, SolutionStructureData>
+{
+    private static readonly ToolRegistrationMetadata _metadata = new()
+    {
+        Name = "get-solution-structure",
+        Title = "Get Solution Structure",
+        Description = "Returns solution folders, projects, target frameworks and direct project relationships.",
+    };
+
+    public static void Register(IPluginRegistry registry)
+    {
+        registry.RegisterQueryTool(_metadata, new GetSolutionStructureTool());
+    }
+
+    protected override async ValueTask<PluginExecutionResult<SolutionStructureData>> ExecuteCoreAsync(GetSolutionStructureRequest request, IQueryContext context, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var hierarchy = await ProjectFileUtilities.GetSolutionHierarchyAsync(context.WorkspaceIdentity?.LoadedPath, cancellationToken);
+
+        var projects = context.CurrentSolution.Projects
+            .OrderBy(project => context.Resolver.NormalizeProjectPath(project.FilePath ?? project.Name), StringComparer.Ordinal)
+            .Select(project => new ProjectStructureInfo
+            {
+                ProjectId = project.Id.Id.ToString(),
+                Name = project.Name,
+                Path = context.Resolver.NormalizeProjectPath(project.FilePath ?? project.Name),
+                SolutionFolderPath = hierarchy.ProjectFolderPaths.TryGetValue(context.Resolver.NormalizeProjectPath(project.FilePath ?? project.Name), out var solutionFolderPath)
+                    ? solutionFolderPath
+                    : null,
+                TargetFrameworks = ProjectFileUtilities.GetTargetFrameworks(project),
+                ProjectReferences = project.ProjectReferences
+                    .Select(reference => context.CurrentSolution.GetProject(reference.ProjectId))
+                    .Where(static project => project is not null)
+                    .Select(project => InspectionProjectionFactory.CreateProjectReferenceInfo(project!, context.Resolver))
+                    .OrderBy(static reference => reference.Path, StringComparer.Ordinal)
+                    .ToArray(),
+                Documents = request.IncludeDocuments
+                    ? project.Documents
+                        .Where(static document => !string.IsNullOrWhiteSpace(document.FilePath))
+                        .OrderBy(document => context.Resolver.NormalizeDocumentPath(document.FilePath!), StringComparer.Ordinal)
+                        .Select(document => context.Resolver.CreateDocumentReference(document)!)
+                        .ToArray()
+                    : null,
+            })
+            .ToArray();
+
+        return ToolExecutionHelpers.CreateBoundedCollectionResult(
+            context,
+            projects,
+            ToolExecutionHelpers.GetMaxResults(context, request.Limit),
+            (items, hasMore) => new SolutionStructureData
+            {
+                SolutionPath = context.WorkspaceIdentity?.LoadedPath ?? string.Empty,
+                Folders = hierarchy.Folders,
+                Projects = items,
+                ReturnedCount = items.Count,
+                HasMore = hasMore,
+            });
+    }
+}

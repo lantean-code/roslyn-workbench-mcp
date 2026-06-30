@@ -136,6 +136,20 @@ public sealed class SchemaGenerationTests
     }
 
     [Fact]
+    public void GIVEN_ListCodeActionsOutput_WHEN_GeneratingToolSchema_THEN_ShouldPublishDescriptorMetadata()
+    {
+        var method = typeof(ContractSchemaTestTools).GetMethod(nameof(ContractSchemaTestTools.ListCodeActions), BindingFlags.Public | BindingFlags.Static);
+
+        var tool = McpServerTool.Create(method!);
+        var outputSchema = tool.ProtocolTool.OutputSchema!.Value;
+
+        outputSchema.GetRawText().Should().Contain("executionMode");
+        outputSchema.GetRawText().Should().Contain("executorTool");
+        outputSchema.GetRawText().Should().Contain("describeTool");
+        outputSchema.GetRawText().Should().Contain("unsupportedReasonCode");
+    }
+
+    [Fact]
     public void GIVEN_StageCodeActionRequest_WHEN_GeneratingToolSchema_THEN_ShouldPublishActionTokenAndSnapshotProperties()
     {
         var method = typeof(ContractSchemaTestTools).GetMethod(nameof(ContractSchemaTestTools.StageCodeAction), BindingFlags.Public | BindingFlags.Static);
@@ -151,6 +165,27 @@ public sealed class SchemaGenerationTests
         snapshotProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
         outputSchema.GetRawText().Should().Contain("transaction");
         outputSchema.GetRawText().Should().Contain("preview");
+    }
+
+    [Fact]
+    public void GIVEN_DescribeCodeActionRequest_WHEN_GeneratingToolSchema_THEN_ShouldPublishActionDescriptorProperties()
+    {
+        var method = typeof(ContractSchemaTestTools).GetMethod("DescribeCodeAction", BindingFlags.Public | BindingFlags.Static);
+
+        method.Should().NotBeNull();
+
+        var tool = McpServerTool.Create(method!);
+        var requestProperties = tool.ProtocolTool.InputSchema.GetProperty("properties").GetProperty("request").GetProperty("properties");
+        var outputSchema = tool.ProtocolTool.OutputSchema!.Value;
+
+        requestProperties.TryGetProperty("actionId", out var actionIdProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("expectedSnapshot", out var snapshotProperty).Should().BeTrue();
+
+        actionIdProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        snapshotProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        outputSchema.GetRawText().Should().Contain("descriptor");
+        outputSchema.GetRawText().Should().Contain("context");
+        outputSchema.GetRawText().Should().Contain("kind");
     }
 
     [Fact]
@@ -210,6 +245,225 @@ public sealed class SchemaGenerationTests
         outputSchema.GetRawText().Should().Contain("transaction");
         outputSchema.GetRawText().Should().Contain("preview");
     }
+
+    [Fact]
+    public void GIVEN_AddMissingUsingsRequest_WHEN_GeneratingToolSchema_THEN_ShouldPublishScopeOptionAndSnapshotProperties()
+    {
+        var method = typeof(ContractSchemaTestTools).GetMethod(nameof(ContractSchemaTestTools.AddMissingUsings), BindingFlags.Public | BindingFlags.Static);
+
+        var tool = McpServerTool.Create(method!);
+        var requestProperties = tool.ProtocolTool.InputSchema.GetProperty("properties").GetProperty("request").GetProperty("properties");
+        var outputSchema = tool.ProtocolTool.OutputSchema!.Value;
+
+        requestProperties.TryGetProperty("scope", out var scopeProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("preferGlobalUsings", out var preferGlobalUsingsProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("expectedSnapshot", out var snapshotProperty).Should().BeTrue();
+
+        scopeProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        preferGlobalUsingsProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        snapshotProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        outputSchema.GetRawText().Should().Contain("transaction");
+        outputSchema.GetRawText().Should().Contain("preview");
+    }
+
+    [Fact]
+    public void GIVEN_LocationRefactoringRequest_WHEN_GeneratingToolSchema_THEN_ShouldPublishSelectionAndSnapshotProperties()
+    {
+        var method = typeof(ContractSchemaTestTools).GetMethod(nameof(ContractSchemaTestTools.AddDebuggerDisplay), BindingFlags.Public | BindingFlags.Static);
+
+        var tool = McpServerTool.Create(method!);
+        var requestProperties = tool.ProtocolTool.InputSchema.GetProperty("properties").GetProperty("request").GetProperty("properties");
+        var outputSchema = tool.ProtocolTool.OutputSchema!.Value;
+
+        requestProperties.TryGetProperty("selection", out var selectionProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("expectedSnapshot", out var snapshotProperty).Should().BeTrue();
+
+        selectionProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        snapshotProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        outputSchema.GetRawText().Should().Contain("transaction");
+        outputSchema.GetRawText().Should().Contain("preview");
+    }
+
+    [Fact]
+    public void GIVEN_AddImportRequest_WHEN_GeneratingToolSchema_THEN_ShouldPublishSelectionOptionAndSnapshotProperties()
+    {
+        var method = typeof(ContractSchemaTestTools).GetMethod(nameof(ContractSchemaTestTools.AddImport), BindingFlags.Public | BindingFlags.Static);
+
+        var tool = McpServerTool.Create(method!);
+        var requestProperties = tool.ProtocolTool.InputSchema.GetProperty("properties").GetProperty("request").GetProperty("properties");
+        var outputSchema = tool.ProtocolTool.OutputSchema!.Value;
+
+        requestProperties.TryGetProperty("selection", out var selectionProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("simplifyAllOccurrences", out var simplifyAllOccurrencesProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("expectedSnapshot", out var snapshotProperty).Should().BeTrue();
+
+        selectionProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        simplifyAllOccurrencesProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        snapshotProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        outputSchema.GetRawText().Should().Contain("transaction");
+        outputSchema.GetRawText().Should().Contain("preview");
+    }
+
+    [Fact]
+    public void GIVEN_InlineVariableRequest_WHEN_GeneratingToolSchema_THEN_ShouldPublishSymbolOptionAndSnapshotProperties()
+    {
+        var method = typeof(ContractSchemaTestTools).GetMethod(nameof(ContractSchemaTestTools.InlineVariable), BindingFlags.Public | BindingFlags.Static);
+
+        var tool = McpServerTool.Create(method!);
+        var requestProperties = tool.ProtocolTool.InputSchema.GetProperty("properties").GetProperty("request").GetProperty("properties");
+        var outputSchema = tool.ProtocolTool.OutputSchema!.Value;
+
+        requestProperties.TryGetProperty("symbol", out var symbolProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("removeDeclaration", out var removeDeclarationProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("expectedSnapshot", out var snapshotProperty).Should().BeTrue();
+
+        symbolProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        removeDeclarationProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        snapshotProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        outputSchema.GetRawText().Should().Contain("transaction");
+        outputSchema.GetRawText().Should().Contain("preview");
+    }
+
+    [Fact]
+    public void GIVEN_ConvertToInterpolatedStringRequest_WHEN_GeneratingToolSchema_THEN_ShouldPublishSelectionAndSnapshotProperties()
+    {
+        var method = typeof(ContractSchemaTestTools).GetMethod(nameof(ContractSchemaTestTools.ConvertToInterpolatedString), BindingFlags.Public | BindingFlags.Static);
+
+        var tool = McpServerTool.Create(method!);
+        var requestProperties = tool.ProtocolTool.InputSchema.GetProperty("properties").GetProperty("request").GetProperty("properties");
+        var outputSchema = tool.ProtocolTool.OutputSchema!.Value;
+
+        requestProperties.TryGetProperty("selection", out var selectionProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("expectedSnapshot", out var snapshotProperty).Should().BeTrue();
+
+        selectionProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        snapshotProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        outputSchema.GetRawText().Should().Contain("transaction");
+        outputSchema.GetRawText().Should().Contain("preview");
+    }
+
+    [Fact]
+    public void GIVEN_ConvertAnonymousTypeToClassRequest_WHEN_GeneratingToolSchema_THEN_ShouldPublishSelectionKindAndSnapshotProperties()
+    {
+        var method = typeof(ContractSchemaTestTools).GetMethod(nameof(ContractSchemaTestTools.ConvertAnonymousTypeToClass), BindingFlags.Public | BindingFlags.Static);
+
+        var tool = McpServerTool.Create(method!);
+        var requestProperties = tool.ProtocolTool.InputSchema.GetProperty("properties").GetProperty("request").GetProperty("properties");
+        var outputSchema = tool.ProtocolTool.OutputSchema!.Value;
+
+        requestProperties.TryGetProperty("selection", out var selectionProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("kind", out var kindProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("expectedSnapshot", out var snapshotProperty).Should().BeTrue();
+
+        selectionProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        kindProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        snapshotProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        outputSchema.GetRawText().Should().Contain("transaction");
+        outputSchema.GetRawText().Should().Contain("preview");
+    }
+
+    [Fact]
+    public void GIVEN_ExtractMethodRequest_WHEN_GeneratingToolSchema_THEN_ShouldPublishSelectionKindAndSnapshotProperties()
+    {
+        var method = typeof(ContractSchemaTestTools).GetMethod(nameof(ContractSchemaTestTools.ExtractMethod), BindingFlags.Public | BindingFlags.Static);
+
+        var tool = McpServerTool.Create(method!);
+        var requestProperties = tool.ProtocolTool.InputSchema.GetProperty("properties").GetProperty("request").GetProperty("properties");
+        var outputSchema = tool.ProtocolTool.OutputSchema!.Value;
+
+        requestProperties.TryGetProperty("selection", out var selectionProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("targetKind", out var targetKindProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("expectedSnapshot", out var snapshotProperty).Should().BeTrue();
+
+        selectionProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        targetKindProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        snapshotProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        outputSchema.GetRawText().Should().Contain("transaction");
+        outputSchema.GetRawText().Should().Contain("preview");
+    }
+
+    [Fact]
+    public void GIVEN_IntroduceParameterRequest_WHEN_GeneratingToolSchema_THEN_ShouldPublishSelectionStrategyAndSnapshotProperties()
+    {
+        var method = typeof(ContractSchemaTestTools).GetMethod(nameof(ContractSchemaTestTools.IntroduceParameter), BindingFlags.Public | BindingFlags.Static);
+
+        var tool = McpServerTool.Create(method!);
+        var requestProperties = tool.ProtocolTool.InputSchema.GetProperty("properties").GetProperty("request").GetProperty("properties");
+        var outputSchema = tool.ProtocolTool.OutputSchema!.Value;
+
+        requestProperties.TryGetProperty("selection", out var selectionProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("allOccurrences", out var allOccurrencesProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("strategy", out var strategyProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("expectedSnapshot", out var snapshotProperty).Should().BeTrue();
+
+        selectionProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        allOccurrencesProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        strategyProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        snapshotProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        outputSchema.GetRawText().Should().Contain("transaction");
+        outputSchema.GetRawText().Should().Contain("preview");
+    }
+
+    [Fact]
+    public void GIVEN_EncapsulateFieldRequest_WHEN_GeneratingToolSchema_THEN_ShouldPublishFieldOptionAndSnapshotProperties()
+    {
+        var method = typeof(ContractSchemaTestTools).GetMethod(nameof(ContractSchemaTestTools.EncapsulateField), BindingFlags.Public | BindingFlags.Static);
+
+        var tool = McpServerTool.Create(method!);
+        var requestProperties = tool.ProtocolTool.InputSchema.GetProperty("properties").GetProperty("request").GetProperty("properties");
+        var outputSchema = tool.ProtocolTool.OutputSchema!.Value;
+
+        requestProperties.TryGetProperty("field", out var fieldProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("updateReferences", out var updateReferencesProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("expectedSnapshot", out var snapshotProperty).Should().BeTrue();
+
+        fieldProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        updateReferencesProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        snapshotProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        outputSchema.GetRawText().Should().Contain("transaction");
+        outputSchema.GetRawText().Should().Contain("preview");
+    }
+
+    [Fact]
+    public void GIVEN_ConvertForeachLinqRequest_WHEN_GeneratingToolSchema_THEN_ShouldPublishSelectionKindAndSnapshotProperties()
+    {
+        var method = typeof(ContractSchemaTestTools).GetMethod(nameof(ContractSchemaTestTools.ConvertForeachLinq), BindingFlags.Public | BindingFlags.Static);
+
+        var tool = McpServerTool.Create(method!);
+        var requestProperties = tool.ProtocolTool.InputSchema.GetProperty("properties").GetProperty("request").GetProperty("properties");
+        var outputSchema = tool.ProtocolTool.OutputSchema!.Value;
+
+        requestProperties.TryGetProperty("selection", out var selectionProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("conversionKind", out var conversionKindProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("expectedSnapshot", out var snapshotProperty).Should().BeTrue();
+
+        selectionProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        conversionKindProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        snapshotProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        outputSchema.GetRawText().Should().Contain("transaction");
+        outputSchema.GetRawText().Should().Contain("preview");
+    }
+
+    [Fact]
+    public void GIVEN_IntroduceVariableRequest_WHEN_GeneratingToolSchema_THEN_ShouldPublishSelectionKindAndSnapshotProperties()
+    {
+        var method = typeof(ContractSchemaTestTools).GetMethod(nameof(ContractSchemaTestTools.IntroduceVariable), BindingFlags.Public | BindingFlags.Static);
+
+        var tool = McpServerTool.Create(method!);
+        var requestProperties = tool.ProtocolTool.InputSchema.GetProperty("properties").GetProperty("request").GetProperty("properties");
+        var outputSchema = tool.ProtocolTool.OutputSchema!.Value;
+
+        requestProperties.TryGetProperty("selection", out var selectionProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("kind", out var kindProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("expectedSnapshot", out var snapshotProperty).Should().BeTrue();
+
+        selectionProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        kindProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        snapshotProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        outputSchema.GetRawText().Should().Contain("transaction");
+        outputSchema.GetRawText().Should().Contain("preview");
+    }
+
 
     [Fact]
     public void GIVEN_GetTypeHierarchyRequest_WHEN_GeneratingToolSchema_THEN_ShouldPublishHierarchyProperties()

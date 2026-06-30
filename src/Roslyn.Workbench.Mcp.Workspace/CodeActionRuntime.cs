@@ -1,5 +1,6 @@
+using Microsoft.CodeAnalysis.CodeFixes;
+using Microsoft.CodeAnalysis.CodeRefactorings;
 using Microsoft.CodeAnalysis.Host;
-
 using Roslyn.Workbench.Mcp.Plugins;
 
 namespace Roslyn.Workbench.Mcp.Workspace;
@@ -18,4 +19,14 @@ public sealed record CodeActionRuntime
     /// Gets the workspace host services used when opening workspaces.
     /// </summary>
     public HostServices? WorkspaceHostServices { get; init; }
+
+    /// <summary>
+    /// Gets the composed C# refactoring providers.
+    /// </summary>
+    public IReadOnlyList<CodeRefactoringProvider> RefactoringProviders { get; init; } = [];
+
+    /// <summary>
+    /// Gets the composed C# code-fix providers.
+    /// </summary>
+    public IReadOnlyList<CodeFixProvider> CodeFixProviders { get; init; } = [];
 }

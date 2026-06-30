@@ -1,0 +1,29 @@
+using Roslyn.Workbench.Mcp.Contracts.Selectors;
+
+namespace Roslyn.Workbench.Mcp.Contracts.Refactorings;
+
+/// <summary>
+/// Requests promotion of a selected expression to a method parameter through Roslyn refactoring composition.
+/// </summary>
+public sealed record IntroduceParameterRequest
+{
+    /// <summary>
+    /// Gets the selected expression to promote.
+    /// </summary>
+    public LocationSelector? Selection { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether all matching occurrences should be promoted.
+    /// </summary>
+    public bool AllOccurrences { get; init; }
+
+    /// <summary>
+    /// Gets the introduce-parameter strategy to stage.
+    /// </summary>
+    public IntroduceParameterStrategy Strategy { get; init; }
+
+    /// <summary>
+    /// Gets the expected snapshot for the selected location.
+    /// </summary>
+    public SnapshotPrecondition? ExpectedSnapshot { get; init; }
+}

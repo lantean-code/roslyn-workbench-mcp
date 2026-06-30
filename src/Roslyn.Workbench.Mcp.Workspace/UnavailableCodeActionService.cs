@@ -32,8 +32,32 @@ internal sealed class UnavailableCodeActionService : ICodeActionService
         return ValueTask.FromResult(Rejected<CodeActionListData>());
     }
 
+    public ValueTask<PluginExecutionResult<DescribeCodeActionData>> DescribeCodeActionAsync(
+        DescribeCodeActionRequest request,
+        IQueryContext context,
+        CancellationToken cancellationToken)
+    {
+        _ = request;
+        _ = context;
+        _ = cancellationToken;
+
+        return ValueTask.FromResult(Rejected<DescribeCodeActionData>());
+    }
+
     public ValueTask<PluginExecutionResult<MutationProposal>> StageCodeActionAsync(
         StageCodeActionRequest request,
+        IMutationContext context,
+        CancellationToken cancellationToken)
+    {
+        _ = request;
+        _ = context;
+        _ = cancellationToken;
+
+        return ValueTask.FromResult(Rejected<MutationProposal>());
+    }
+
+    public ValueTask<PluginExecutionResult<MutationProposal>> StageReplayCodeActionAsync(
+        ReplayCodeActionRequest request,
         IMutationContext context,
         CancellationToken cancellationToken)
     {

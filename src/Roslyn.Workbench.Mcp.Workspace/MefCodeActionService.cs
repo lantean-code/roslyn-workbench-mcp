@@ -25,6 +25,7 @@ internal sealed class MefCodeActionService : ICodeActionService
 
     private readonly IReadOnlyList<CodeRefactoringProvider> _refactoringProviders;
     private readonly IReadOnlyList<CodeFixProvider> _codeFixProviders;
+    private readonly CodeActionDescriptorRegistry _descriptorRegistry;
     private readonly TimeSpan _tokenLifetime;
     private readonly byte[] _secret;
 
@@ -36,6 +37,7 @@ internal sealed class MefCodeActionService : ICodeActionService
     {
         _refactoringProviders = refactoringProviders;
         _codeFixProviders = codeFixProviders;
+        _descriptorRegistry = new CodeActionDescriptorRegistry();
         _tokenLifetime = tokenLifetime;
         _secret = RandomNumberGenerator.GetBytes(32);
         Status = new ComponentStatus
@@ -100,10 +102,16 @@ internal sealed class MefCodeActionService : ICodeActionService
         }
 
         var ordered = discovered
-            .OrderBy(static action => action.Title, StringComparer.Ordinal)
-            .ThenBy(static action => action.ProviderId, StringComparer.Ordinal)
-            .ThenBy(static action => action.EquivalenceKey ?? string.Empty, StringComparer.Ordinal)
-            .ThenBy(static action => string.Join(".", action.ActionPath), StringComparer.Ordinal)
+            .Select(action => new ClassifiedCodeAction
+            {
+                Action = action,
+                Descriptor = _descriptorRegistry.Classify(action.Action, action.ProviderId, action.Title),
+            })
+            .Where(static action => action.Descriptor.IsVisible)
+            .OrderBy(static action => action.Action.Title, StringComparer.Ordinal)
+            .ThenBy(static action => action.Action.ProviderId, StringComparer.Ordinal)
+            .ThenBy(static action => action.Action.EquivalenceKey ?? string.Empty, StringComparer.Ordinal)
+            .ThenBy(static action => string.Join(".", action.Action.ActionPath), StringComparer.Ordinal)
             .ToArray();
         var maxResults = request.Limit?.MaxResults ?? context.EffectiveResultLimit.MaxResults ?? 100;
 
@@ -113,10 +121,30 @@ internal sealed class MefCodeActionService : ICodeActionService
             maxResults,
             items => new CodeActionListData
             {
-                Actions = items.Select(item => CreateInfo(item, context, document, span)).ToArray(),
+                Actions = items.Select(item => CreateInfo(item.Action, context, document, span, item.Descriptor)).ToArray(),
                 ReturnedCount = items.Count,
                 HasMore = items.Count < ordered.Length,
             });
+    }
+
+    public async ValueTask<PluginExecutionResult<DescribeCodeActionData>> DescribeCodeActionAsync(
+        DescribeCodeActionRequest request,
+        IQueryContext context,
+        CancellationToken cancellationToken)
+    {
+        var resolvedAction = await ResolveActionAsync<DescribeCodeActionData>(request.ActionId, request.ExpectedSnapshot, expectedKind: null, context, cancellationToken).ConfigureAwait(false);
+        if (resolvedAction.Rejection is not null)
+        {
+            return resolvedAction.Rejection;
+        }
+
+        var data = new DescribeCodeActionData
+        {
+            Descriptor = CreateInfo(resolvedAction.Action!, context, resolvedAction.Document!, resolvedAction.Span, resolvedAction.Descriptor!),
+            Context = CreateContext(resolvedAction.Descriptor!),
+        };
+
+        return EnsureWithinSize(context, data);
     }
 
     public ValueTask<PluginExecutionResult<MutationProposal>> StageCodeActionAsync(
@@ -125,6 +153,132 @@ internal sealed class MefCodeActionService : ICodeActionService
         CancellationToken cancellationToken)
     {
         return StageAsync(request.ActionId, request.ExpectedSnapshot, DiscoveredActionKind.Refactoring, context, cancellationToken);
+    }
+
+    public async ValueTask<PluginExecutionResult<MutationProposal>> StageReplayCodeActionAsync(
+        ReplayCodeActionRequest request,
+        IMutationContext context,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var snapshotRejection = ValidateSnapshot<MutationProposal>(context.Resolver, request.ExpectedSnapshot);
+        if (snapshotRejection is not null)
+        {
+            return snapshotRejection;
+        }
+
+        if (request.Location is null)
+        {
+            return Rejected<MutationProposal>("InvalidRequest", "A location selector is required.");
+        }
+
+        var location = await context.Resolver.ResolveLocationAsync(request.Location, cancellationToken).ConfigureAwait(false);
+        if (location.Status != SelectorResolveStatus.Resolved || location.Value is null)
+        {
+            return RejectFromStatus<MutationProposal>(location.Status, "Location");
+        }
+
+        var document = context.CurrentSolution.GetDocument(location.Value.SourceTree);
+        if (document is null)
+        {
+            return Rejected<MutationProposal>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain);
+        }
+
+        var span = location.Value.SourceSpan;
+        var matchingProviders = _refactoringProviders
+            .Where(provider => string.IsNullOrWhiteSpace(request.ProviderId) || string.Equals(GetProviderId(provider), request.ProviderId, StringComparison.Ordinal))
+            .OrderBy(GetProviderId, StringComparer.Ordinal)
+            .ToArray();
+        if (matchingProviders.Length == 0)
+        {
+            return Rejected<MutationProposal>("CodeActionUnavailable", "No matching refactoring provider is available.");
+        }
+
+        var candidates = new List<ClassifiedCodeAction>();
+        foreach (var provider in matchingProviders)
+        {
+            var actions = await DiscoverRefactoringsAsync(provider, document, span, cancellationToken).ConfigureAwait(false);
+            foreach (var action in actions)
+            {
+                if (!string.IsNullOrWhiteSpace(request.Title)
+                    && !string.Equals(action.Title, request.Title, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (!string.IsNullOrWhiteSpace(request.TitleStartsWith)
+                    && !action.Title.StartsWith(request.TitleStartsWith, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (!string.IsNullOrWhiteSpace(request.TitleDoesNotContain)
+                    && action.Title.Contains(request.TitleDoesNotContain, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (!string.IsNullOrWhiteSpace(request.EquivalenceKey)
+                    && !string.Equals(action.EquivalenceKey, request.EquivalenceKey, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                if (request.ActionPath is { Count: > 0 }
+                    && !action.ActionPath.SequenceEqual(request.ActionPath))
+                {
+                    continue;
+                }
+
+                var descriptor = _descriptorRegistry.Classify(action.Action, action.ProviderId, action.Title);
+                if (!descriptor.IsVisible)
+                {
+                    continue;
+                }
+
+                candidates.Add(new ClassifiedCodeAction
+                {
+                    Action = action,
+                    Descriptor = descriptor,
+                });
+            }
+        }
+
+        var distinctCandidates = candidates
+            .GroupBy(static candidate => new ReplayCodeActionCandidateKey
+            {
+                ProviderId = candidate.Action.ProviderId,
+                Title = candidate.Action.Title,
+                EquivalenceKey = candidate.Action.EquivalenceKey,
+                ActionPath = candidate.Action.ActionPath.ToArray(),
+            })
+            .Select(static group => group.First())
+            .ToArray();
+        if (distinctCandidates.Length == 0)
+        {
+            return Rejected<MutationProposal>("CodeActionUnavailable", "No matching replayable refactoring was available at the selected location.");
+        }
+
+        if (distinctCandidates.Length > 1)
+        {
+            return PluginExecutionResult<MutationProposal>.Rejected(new ToolError
+            {
+                Code = "ActionAmbiguous",
+                Message = "The requested refactoring could not be selected uniquely.",
+            }, RequiredAction.ResolveTargetAgain);
+        }
+
+        var candidate = distinctCandidates[0];
+        return candidate.Descriptor.ExecutionMode switch
+        {
+            CodeActionExecutionMode.Replay => await CreateMutationProposalAsync(candidate.Action.Action, candidate.Action.Title, context, cancellationToken).ConfigureAwait(false),
+            CodeActionExecutionMode.Parameterised => PluginExecutionResult<MutationProposal>.Rejected(new ToolError
+            {
+                Code = "ActionRequiresParameters",
+                Message = "The selected action requires dedicated tool parameters and cannot be replayed generically.",
+            }),
+            _ => Rejected<MutationProposal>("CodeActionUnavailable", "The selected action is not replayable in this server build.", RequiredAction.ResolveTargetAgain),
+        };
     }
 
     public ValueTask<PluginExecutionResult<MutationProposal>> StageCodeFixAsync(
@@ -154,23 +308,23 @@ internal sealed class MefCodeActionService : ICodeActionService
 
         if (!TryDecode(request.ActionId, out var payload))
         {
-            return ActionExpired();
+            return ActionExpired<MutationProposal>();
         }
 
         if (!string.Equals(payload.Kind, DiscoveredActionKind.CodeFix.ToString(), StringComparison.Ordinal))
         {
-            return ActionExpired();
+            return ActionExpired<MutationProposal>();
         }
 
         if (!DateTimeOffset.TryParse(payload.ExpiresAt, out var expiresAt) || expiresAt < DateTimeOffset.UtcNow)
         {
-            return ActionExpired();
+            return ActionExpired<MutationProposal>();
         }
 
         if (payload.WorkspaceEpoch != (context.WorkspaceIdentity?.WorkspaceEpoch ?? 0)
             || payload.TransactionRevision != context.TransactionRevision)
         {
-            return ActionExpired();
+            return ActionExpired<MutationProposal>();
         }
 
         var originDocumentResolution = context.Resolver.ResolveDocument(new DocumentSelector
@@ -179,7 +333,7 @@ internal sealed class MefCodeActionService : ICodeActionService
         });
         if (originDocumentResolution.Status != SelectorResolveStatus.Resolved || originDocumentResolution.Value is null)
         {
-            return ActionExpired();
+            return ActionExpired<MutationProposal>();
         }
 
         var originDocument = originDocumentResolution.Value;
@@ -222,7 +376,7 @@ internal sealed class MefCodeActionService : ICodeActionService
                     var workingOriginDocument = workingSolution.GetDocument(originDocument.Id);
                     if (workingOriginDocument is null)
                     {
-                        return ActionExpired();
+                        return ActionExpired<MutationProposal>();
                     }
 
                     var fixAllResult = await ApplyFixAllAsync(provider, fixAllProvider, workingOriginDocument, originSpan, FixAllScope.Solution, payload.DiagnosticIds, matches[0].EquivalenceKey, syntheticDiagnosticId: null, cancellationToken);
@@ -461,17 +615,18 @@ internal sealed class MefCodeActionService : ICodeActionService
         }
 
         var candidate = distinctCandidates[0];
-        var fixAllProvider = candidate.Provider.GetFixAllProvider();
-        if (fixAllProvider is null)
-        {
-            return FixAllUnavailable("The selected code fix does not expose a fix-all provider.");
-        }
 
         var workingSolution = context.CurrentSolution;
         switch (request.Scope.Kind)
         {
             case ScopeKind.Solution:
                 {
+                    var fixAllProvider = candidate.Provider.GetFixAllProvider();
+                    if (fixAllProvider is null)
+                    {
+                        return FixAllUnavailable("The selected code fix does not expose a fix-all provider.");
+                    }
+
                     var originDocument = workingSolution.GetDocument(candidate.Document.Id);
                     if (originDocument is null)
                     {
@@ -507,6 +662,19 @@ internal sealed class MefCodeActionService : ICodeActionService
                         return Rejected<MutationProposal>("DocumentNotFound", "The document selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain);
                     }
 
+                    var fixAllProvider = candidate.Provider.GetFixAllProvider();
+                    if (fixAllProvider is null)
+                    {
+                        var directResult = await ApplyDocumentScopedCodeFixAsync(candidate, targetDocument, context, request.SyntheticDiagnosticId, cancellationToken).ConfigureAwait(false);
+                        if (directResult.Rejection is not null)
+                        {
+                            return directResult.Rejection;
+                        }
+
+                        workingSolution = directResult.CandidateSolution!;
+                        break;
+                    }
+
                     var fixAllResult = await ApplyFixAllAsync(candidate.Provider, fixAllProvider, targetDocument, candidate.DocumentSpan, FixAllScope.Document, candidate.DiagnosticIds, candidate.EquivalenceKey, request.SyntheticDiagnosticId, cancellationToken).ConfigureAwait(false);
                     if (fixAllResult.Rejection is not null)
                     {
@@ -519,6 +687,12 @@ internal sealed class MefCodeActionService : ICodeActionService
 
             case ScopeKind.Project:
                 {
+                    var fixAllProvider = candidate.Provider.GetFixAllProvider();
+                    if (fixAllProvider is null)
+                    {
+                        return FixAllUnavailable("The selected code fix does not expose a fix-all provider.");
+                    }
+
                     if (request.Scope.Project is null)
                     {
                         return Rejected<MutationProposal>("InvalidRequest", "Project scope requires a project selector.");
@@ -548,6 +722,12 @@ internal sealed class MefCodeActionService : ICodeActionService
 
             case ScopeKind.Projects:
                 {
+                    var fixAllProvider = candidate.Provider.GetFixAllProvider();
+                    if (fixAllProvider is null)
+                    {
+                        return FixAllUnavailable("The selected code fix does not expose a fix-all provider.");
+                    }
+
                     if (request.Scope.Projects is null || request.Scope.Projects.Count == 0)
                     {
                         return Rejected<MutationProposal>("InvalidRequest", "Projects scope requires at least one project selector.");
@@ -600,6 +780,61 @@ internal sealed class MefCodeActionService : ICodeActionService
         });
     }
 
+    private async ValueTask<DirectCodeFixResult> ApplyDocumentScopedCodeFixAsync(
+        ScopedCodeFixCandidate candidate,
+        Document targetDocument,
+        IMutationContext context,
+        string? syntheticDiagnosticId,
+        CancellationToken cancellationToken)
+    {
+        var diagnostics = await GetScopedCodeFixDiagnosticsAsync(targetDocument, candidate.DiagnosticIds, syntheticDiagnosticId, cancellationToken).ConfigureAwait(false);
+        if (diagnostics.IsDefaultOrEmpty)
+        {
+            return new DirectCodeFixResult
+            {
+                Rejection = Rejected<MutationProposal>("CodeFixUnavailable", "No matching code fix was available for the selected scope."),
+            };
+        }
+
+        var sourceText = await targetDocument.GetTextAsync(cancellationToken).ConfigureAwait(false);
+        var documentSpan = new TextSpan(0, sourceText.Length);
+        var discovered = await DiscoverCodeFixesAsync(candidate.Provider, targetDocument, documentSpan, diagnostics, cancellationToken).ConfigureAwait(false);
+        var matches = discovered
+            .Where(action => string.Equals(action.Title, candidate.Title, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(action.EquivalenceKey, candidate.EquivalenceKey, StringComparison.Ordinal))
+            .ToArray();
+        if (matches.Length == 0)
+        {
+            return new DirectCodeFixResult
+            {
+                Rejection = Rejected<MutationProposal>("CodeFixUnavailable", "No matching code fix was available for the selected scope."),
+            };
+        }
+
+        if (matches.Length > 1)
+        {
+            return new DirectCodeFixResult
+            {
+                Rejection = PluginExecutionResult<MutationProposal>.Rejected(new ToolError
+                {
+                    Code = "ActionAmbiguous",
+                    Message = "The requested code fix could not be selected uniquely.",
+                }),
+            };
+        }
+
+        var proposalResult = await CreateMutationProposalAsync(matches[0].Action, matches[0].Title, context, cancellationToken).ConfigureAwait(false);
+        return proposalResult.Outcome == ToolOutcome.Succeeded
+            ? new DirectCodeFixResult
+            {
+                CandidateSolution = proposalResult.Data!.CandidateSolution,
+            }
+            : new DirectCodeFixResult
+            {
+                Rejection = proposalResult,
+            };
+    }
+
     private static PluginExecutionResult<T>? ValidateSnapshot<T>(IWorkspaceResolver resolver, SnapshotPrecondition? expectedSnapshot)
     {
         var result = resolver.ValidateSnapshot(expectedSnapshot);
@@ -632,9 +867,9 @@ internal sealed class MefCodeActionService : ICodeActionService
 
     private static PluginExecutionResult<CodeActionListData> CreateBoundedCollectionResult(
         IQueryContext context,
-        IReadOnlyList<DiscoveredCodeAction> actions,
+        IReadOnlyList<ClassifiedCodeAction> actions,
         int maxResults,
-        Func<IReadOnlyList<DiscoveredCodeAction>, CodeActionListData> createData)
+        Func<IReadOnlyList<ClassifiedCodeAction>, CodeActionListData> createData)
     {
         var limitedCount = Math.Min(maxResults, actions.Count);
 
@@ -653,7 +888,15 @@ internal sealed class MefCodeActionService : ICodeActionService
         return Rejected<CodeActionListData>("ResponseLimitExceeded", "The response exceeded the configured response size limit.", RequiredAction.NarrowRequest);
     }
 
-    private CodeActionInfo CreateInfo(DiscoveredCodeAction action, IQueryContext context, Document document, TextSpan span)
+    private static PluginExecutionResult<T> EnsureWithinSize<T>(IQueryContext context, T data)
+    {
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(data, _serializerOptions);
+        return bytes.Length <= context.MaxResponseBytes
+            ? PluginExecutionResult<T>.Success(data)
+            : Rejected<T>("ResponseLimitExceeded", "The response exceeded the configured response size limit.", RequiredAction.NarrowRequest);
+    }
+
+    private CodeActionInfo CreateInfo(DiscoveredCodeAction action, IToolExecutionContext context, Document document, TextSpan span, CodeActionDescriptorEntry descriptor)
     {
         var expiresAt = DateTimeOffset.UtcNow.Add(_tokenLifetime);
         return new CodeActionInfo
@@ -682,6 +925,11 @@ internal sealed class MefCodeActionService : ICodeActionService
             WorkspaceEpoch = context.WorkspaceIdentity?.WorkspaceEpoch ?? 0,
             TransactionRevision = context.TransactionRevision,
             ExpiresAt = expiresAt.ToString("O"),
+            ExecutionMode = descriptor.ExecutionMode,
+            ExecutorTool = descriptor.ExecutorTool,
+            DescribeTool = descriptor.DescribeTool,
+            UnsupportedReasonCode = descriptor.UnsupportedReasonCode,
+            Requirements = descriptor.Requirements,
         };
     }
 
@@ -692,32 +940,89 @@ internal sealed class MefCodeActionService : ICodeActionService
         IMutationContext context,
         CancellationToken cancellationToken)
     {
+        var resolvedAction = await ResolveActionAsync<MutationProposal>(actionId, expectedSnapshot, expectedKind, context, cancellationToken).ConfigureAwait(false);
+        if (resolvedAction.Rejection is not null)
+        {
+            return resolvedAction.Rejection;
+        }
+
+        if (resolvedAction.Descriptor!.ExecutionMode == CodeActionExecutionMode.Parameterised)
+        {
+            return PluginExecutionResult<MutationProposal>.Rejected(new ToolError
+            {
+                Code = "ActionRequiresParameters",
+                Message = "The selected action requires dedicated tool parameters and cannot be replayed generically.",
+            });
+        }
+
+        return await CreateMutationProposalAsync(resolvedAction.Action!.Action, resolvedAction.Action.Title, context, cancellationToken).ConfigureAwait(false);
+    }
+
+    private CodeActionDescriptorContext CreateContext(CodeActionDescriptorEntry descriptor)
+    {
+        return new CodeActionDescriptorContext
+        {
+            Kind = descriptor.ContextKind,
+            Message = descriptor.Message,
+        };
+    }
+
+    private async ValueTask<ResolvedAction<T>> ResolveActionAsync<T>(
+        string actionId,
+        SnapshotPrecondition? expectedSnapshot,
+        DiscoveredActionKind? expectedKind,
+        IToolExecutionContext context,
+        CancellationToken cancellationToken)
+    {
         cancellationToken.ThrowIfCancellationRequested();
-        var snapshotRejection = ValidateSnapshot<MutationProposal>(context.Resolver, expectedSnapshot);
+        var snapshotRejection = ValidateSnapshot<T>(context.Resolver, expectedSnapshot);
         if (snapshotRejection is not null)
         {
-            return snapshotRejection;
+            return new ResolvedAction<T>
+            {
+                Rejection = snapshotRejection,
+            };
         }
 
         if (!TryDecode(actionId, out var payload))
         {
-            return ActionExpired();
+            return new ResolvedAction<T>
+            {
+                Rejection = ActionExpired<T>(),
+            };
         }
 
-        if (!string.Equals(payload.Kind, expectedKind.ToString(), StringComparison.Ordinal))
+        if (!Enum.TryParse<DiscoveredActionKind>(payload.Kind, ignoreCase: false, out var actualKind))
         {
-            return ActionExpired();
+            return new ResolvedAction<T>
+            {
+                Rejection = ActionExpired<T>(),
+            };
+        }
+
+        if (expectedKind is not null && actualKind != expectedKind.Value)
+        {
+            return new ResolvedAction<T>
+            {
+                Rejection = ActionExpired<T>(),
+            };
         }
 
         if (!DateTimeOffset.TryParse(payload.ExpiresAt, out var expiresAt) || expiresAt < DateTimeOffset.UtcNow)
         {
-            return ActionExpired();
+            return new ResolvedAction<T>
+            {
+                Rejection = ActionExpired<T>(),
+            };
         }
 
         if (payload.WorkspaceEpoch != (context.WorkspaceIdentity?.WorkspaceEpoch ?? 0)
             || payload.TransactionRevision != context.TransactionRevision)
         {
-            return ActionExpired();
+            return new ResolvedAction<T>
+            {
+                Rejection = ActionExpired<T>(),
+            };
         }
 
         var documentResolution = context.Resolver.ResolveDocument(new DocumentSelector
@@ -726,20 +1031,23 @@ internal sealed class MefCodeActionService : ICodeActionService
         });
         if (documentResolution.Status != SelectorResolveStatus.Resolved || documentResolution.Value is null)
         {
-            return ActionExpired();
+            return new ResolvedAction<T>
+            {
+                Rejection = ActionExpired<T>(),
+            };
         }
 
         var document = documentResolution.Value;
         var span = new TextSpan(payload.Start, payload.Length);
-        var actions = expectedKind == DiscoveredActionKind.Refactoring
-            ? await DiscoverProviderActionsAsync(_refactoringProviders, payload.ProviderId, document, span, cancellationToken)
+        var actions = actualKind == DiscoveredActionKind.Refactoring
+            ? await DiscoverProviderActionsAsync(_refactoringProviders, payload.ProviderId, document, span, cancellationToken).ConfigureAwait(false)
             : await DiscoverProviderActionsAsync(
                 _codeFixProviders,
                 payload.ProviderId,
                 document,
                 span,
-                await GetDocumentDiagnosticsAsync(document, span, payload.DiagnosticIds, cancellationToken),
-                cancellationToken);
+                await GetDocumentDiagnosticsAsync(document, span, payload.DiagnosticIds, cancellationToken).ConfigureAwait(false),
+                cancellationToken).ConfigureAwait(false);
         var matches = actions
             .Where(action =>
                 string.Equals(action.Title, payload.Title, StringComparison.Ordinal)
@@ -750,28 +1058,32 @@ internal sealed class MefCodeActionService : ICodeActionService
 
         if (matches.Length != 1)
         {
-            return PluginExecutionResult<MutationProposal>.Rejected(new ToolError
+            return new ResolvedAction<T>
             {
-                Code = "ActionAmbiguous",
-                Message = "The requested action could not be reproduced uniquely.",
-            }, RequiredAction.ResolveTargetAgain);
+                Rejection = PluginExecutionResult<T>.Rejected(new ToolError
+                {
+                    Code = "ActionAmbiguous",
+                    Message = "The requested action could not be reproduced uniquely.",
+                }, RequiredAction.ResolveTargetAgain),
+            };
         }
 
-        var operations = await matches[0].Action.GetOperationsAsync(context.CurrentSolution, new Progress<CodeAnalysisProgress>(), cancellationToken);
-        if (operations.Length != 1 || operations[0] is not ApplyChangesOperation applyChanges)
+        var descriptor = _descriptorRegistry.Classify(matches[0].Action, matches[0].ProviderId, matches[0].Title);
+        if (!descriptor.IsVisible)
         {
-            return PluginExecutionResult<MutationProposal>.Rejected(new ToolError
+            return new ResolvedAction<T>
             {
-                Code = "UnsupportedActionOperation",
-                Message = "The selected action produced unsupported operations.",
-            });
+                Rejection = Rejected<T>("ActionUnavailable", "The selected action is not available in this server build.", RequiredAction.ResolveTargetAgain),
+            };
         }
 
-        return PluginExecutionResult<MutationProposal>.Success(new MutationProposal
+        return new ResolvedAction<T>
         {
-            CandidateSolution = applyChanges.ChangedSolution,
-            Summary = matches[0].Title,
-        });
+            Action = matches[0],
+            Descriptor = descriptor,
+            Document = document,
+            Span = span,
+        };
     }
 
     private static async Task<IReadOnlyList<DiscoveredCodeAction>> DiscoverProviderActionsAsync(
@@ -1101,6 +1413,39 @@ internal sealed class MefCodeActionService : ICodeActionService
         });
     }
 
+    private async ValueTask<PluginExecutionResult<MutationProposal>> CreateMutationProposalAsync(
+        CodeAction action,
+        string summary,
+        IToolExecutionContext context,
+        CancellationToken cancellationToken)
+    {
+        var descriptor = _descriptorRegistry.Classify(action, string.Empty, action.Title);
+        if (descriptor.ExecutionMode == CodeActionExecutionMode.Parameterised)
+        {
+            return PluginExecutionResult<MutationProposal>.Rejected(new ToolError
+            {
+                Code = "ActionRequiresParameters",
+                Message = "The selected action requires dedicated tool parameters and cannot be replayed generically.",
+            });
+        }
+
+        var operations = await action.GetOperationsAsync(context.CurrentSolution, new Progress<CodeAnalysisProgress>(), cancellationToken).ConfigureAwait(false);
+        if (!TryGetSupportedApplyChangesOperation(operations, out var applyChanges))
+        {
+            return PluginExecutionResult<MutationProposal>.Rejected(new ToolError
+            {
+                Code = "UnsupportedActionOperation",
+                Message = "The selected action produced unsupported operations.",
+            });
+        }
+
+        return PluginExecutionResult<MutationProposal>.Success(new MutationProposal
+        {
+            CandidateSolution = applyChanges!.ChangedSolution,
+            Summary = summary,
+        });
+    }
+
     private static Task<FixAllApplyResult> ApplyFixAllAsync(
         CodeFixProvider provider,
         FixAllProvider fixAllProvider,
@@ -1158,7 +1503,7 @@ internal sealed class MefCodeActionService : ICodeActionService
         }
 
         var operations = await fixAllAction.GetOperationsAsync(fixAllContext.Solution, new Progress<CodeAnalysisProgress>(), cancellationToken);
-        if (operations.Length != 1 || operations[0] is not ApplyChangesOperation applyChanges)
+        if (!TryGetSupportedApplyChangesOperation(operations, out var applyChanges))
         {
             return new FixAllApplyResult
             {
@@ -1172,8 +1517,46 @@ internal sealed class MefCodeActionService : ICodeActionService
 
         return new FixAllApplyResult
         {
-            CandidateSolution = applyChanges.ChangedSolution,
+            CandidateSolution = applyChanges!.ChangedSolution,
         };
+    }
+
+    private static bool TryGetSupportedApplyChangesOperation(
+        IReadOnlyList<CodeActionOperation> operations,
+        out ApplyChangesOperation? applyChanges)
+    {
+        applyChanges = null;
+
+        foreach (var operation in operations)
+        {
+            if (operation is ApplyChangesOperation candidate)
+            {
+                if (applyChanges is not null)
+                {
+                    applyChanges = null;
+                    return false;
+                }
+
+                applyChanges = candidate;
+                continue;
+            }
+
+            if (!IsIgnorableAuxiliaryOperation(operation))
+            {
+                applyChanges = null;
+                return false;
+            }
+        }
+
+        return applyChanges is not null;
+    }
+
+    private static bool IsIgnorableAuxiliaryOperation(CodeActionOperation operation)
+    {
+        return string.Equals(
+            operation.GetType().FullName,
+            "Microsoft.CodeAnalysis.Wrapping.WrapItemsAction+RecordCodeActionOperation",
+            StringComparison.Ordinal);
     }
 
     private static IReadOnlyList<DiscoveredCodeAction> Flatten(
@@ -1286,9 +1669,9 @@ internal sealed class MefCodeActionService : ICodeActionService
         return Convert.FromBase64String(padded);
     }
 
-    private static PluginExecutionResult<MutationProposal> ActionExpired()
+    private static PluginExecutionResult<T> ActionExpired<T>()
     {
-        return PluginExecutionResult<MutationProposal>.Rejected(new ToolError
+        return PluginExecutionResult<T>.Rejected(new ToolError
         {
             Code = "ActionExpired",
             Message = "The requested action token is no longer valid.",
@@ -1346,6 +1729,13 @@ internal sealed class MefCodeActionService : ICodeActionService
         public IReadOnlyList<Document> Documents { get; init; } = [];
     }
 
+    private sealed record ClassifiedCodeAction
+    {
+        public DiscoveredCodeAction Action { get; init; } = null!;
+
+        public CodeActionDescriptorEntry Descriptor { get; init; } = null!;
+    }
+
     private sealed record ScopedCodeFixCandidate
     {
         public Document Document { get; init; } = null!;
@@ -1372,11 +1762,42 @@ internal sealed class MefCodeActionService : ICodeActionService
         public IReadOnlyList<string> DiagnosticIds { get; init; } = [];
     }
 
+    private sealed record ReplayCodeActionCandidateKey
+    {
+        public string ProviderId { get; init; } = string.Empty;
+
+        public string Title { get; init; } = string.Empty;
+
+        public string? EquivalenceKey { get; init; }
+
+        public IReadOnlyList<int> ActionPath { get; init; } = [];
+    }
+
     private sealed record FixAllApplyResult
     {
         public Solution? CandidateSolution { get; init; }
 
         public PluginExecutionResult<MutationProposal>? Rejection { get; init; }
+    }
+
+    private sealed record DirectCodeFixResult
+    {
+        public Solution? CandidateSolution { get; init; }
+
+        public PluginExecutionResult<MutationProposal>? Rejection { get; init; }
+    }
+
+    private sealed record ResolvedAction<T>
+    {
+        public PluginExecutionResult<T>? Rejection { get; init; }
+
+        public DiscoveredCodeAction? Action { get; init; }
+
+        public CodeActionDescriptorEntry? Descriptor { get; init; }
+
+        public Document? Document { get; init; }
+
+        public TextSpan Span { get; init; }
     }
 
     private sealed class WorkspaceDiagnosticProvider : FixAllContext.DiagnosticProvider

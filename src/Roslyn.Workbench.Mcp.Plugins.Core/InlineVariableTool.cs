@@ -1,0 +1,71 @@
+using Microsoft.CodeAnalysis;
+
+using Roslyn.Workbench.Mcp.Contracts.Refactorings;
+using Roslyn.Workbench.Mcp.Contracts.Results;
+using Roslyn.Workbench.Mcp.Plugins;
+
+namespace Roslyn.Workbench.Mcp.Plugins.Core;
+
+internal sealed class InlineVariableTool : MutationToolHandler<InlineVariableRequest, MutationProposal>
+{
+    private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.InlineTemporary.CSharpInlineTemporaryCodeRefactoringProvider";
+    private const string Title = "Inline temporary variable";
+    private const string EquivalenceKey = "Inline_temporary_variable";
+
+    private static readonly ToolRegistrationMetadata _metadata = new()
+    {
+        Name = "inline-variable",
+        Title = "Inline Variable",
+        Description = "Inlines a local variable through Roslyn refactoring composition.",
+        Behavior = new ToolBehaviorHints
+        {
+            Destructive = true,
+        },
+    };
+
+    public static void Register(IPluginRegistry registry)
+    {
+        registry.RegisterMutationTool(_metadata, new InlineVariableTool());
+    }
+
+    protected override async ValueTask<PluginExecutionResult<MutationProposal>> ExecuteCoreAsync(InlineVariableRequest request, IMutationContext context, CancellationToken cancellationToken)
+    {
+        if (!request.RemoveDeclaration)
+        {
+            return ToolExecutionHelpers.Rejected<MutationProposal>("UnsupportedOption", "The removeDeclaration option is not supported by the current Roslyn inline-variable backend.");
+        }
+
+        var symbolResolution = await ToolExecutionHelpers.ResolveSymbolAsync<MutationProposal>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        if (symbolResolution.HasRejection)
+        {
+            return symbolResolution.Rejection;
+        }
+
+        if (symbolResolution.Value is not ILocalSymbol localSymbol)
+        {
+            return ToolExecutionHelpers.Rejected<MutationProposal>("SymbolNotSupported", "The selected symbol is not a local variable.", RequiredAction.ResolveTargetAgain);
+        }
+
+        var sourceLocation = localSymbol.Locations.FirstOrDefault(static location => location.IsInSource);
+        if (sourceLocation is null)
+        {
+            return ToolExecutionHelpers.Rejected<MutationProposal>("SymbolNotSupported", "The selected symbol does not resolve to a source location.", RequiredAction.ResolveTargetAgain);
+        }
+
+        var resolvedLocation = context.Resolver.CreateResolvedLocation(sourceLocation);
+        var locationSelector = ToolExecutionHelpers.CreateLocationSelector(resolvedLocation);
+        if (locationSelector is null)
+        {
+            return ToolExecutionHelpers.Rejected<MutationProposal>("SymbolNotSupported", "The selected symbol does not resolve to a replayable source span.", RequiredAction.ResolveTargetAgain);
+        }
+
+        return await context.CodeActionService.StageReplayCodeActionAsync(new ReplayCodeActionRequest
+        {
+            Location = locationSelector,
+            ExpectedSnapshot = request.ExpectedSnapshot,
+            ProviderId = ProviderId,
+            Title = Title,
+            EquivalenceKey = EquivalenceKey,
+        }, context, cancellationToken).ConfigureAwait(false);
+    }
+}

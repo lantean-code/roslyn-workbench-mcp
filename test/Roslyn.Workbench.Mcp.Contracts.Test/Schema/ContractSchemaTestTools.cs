@@ -83,6 +83,14 @@ internal static class ContractSchemaTestTools
         return new CallToolResult();
     }
 
+    [McpServerTool(Name = "describe-code-action", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<DescribeCodeActionData>))]
+    public static CallToolResult DescribeCodeAction(DescribeCodeActionRequest request)
+    {
+        _ = request;
+
+        return new CallToolResult();
+    }
+
     [McpServerTool(Name = "stage-code-action", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<MutationData>))]
     public static CallToolResult StageCodeAction(StageCodeActionRequest request)
     {
@@ -114,4 +122,173 @@ internal static class ContractSchemaTestTools
 
         return new CallToolResult();
     }
+
+    [McpServerTool(Name = "add-missing-usings", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<MutationData>))]
+    public static CallToolResult AddMissingUsings(AddMissingUsingsRequest request)
+    {
+        _ = request;
+
+        return new CallToolResult();
+    }
+
+    [McpServerTool(Name = "add-debugger-display", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<MutationData>))]
+    public static CallToolResult AddDebuggerDisplay(LocationRefactoringRequest request)
+    {
+        _ = request;
+
+        return new CallToolResult();
+    }
+
+    [McpServerTool(Name = "add-import", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<MutationData>))]
+    public static CallToolResult AddImport(AddImportRequest request)
+    {
+        _ = request;
+
+        return new CallToolResult();
+    }
+
+    [McpServerTool(Name = "inline-variable", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<MutationData>))]
+    public static CallToolResult InlineVariable(InlineVariableRequest request)
+    {
+        _ = request;
+
+        return new CallToolResult();
+    }
+
+    [McpServerTool(Name = "convert-to-interpolated-string", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<MutationData>))]
+    public static CallToolResult ConvertToInterpolatedString(ConvertToInterpolatedStringRequest request)
+    {
+        _ = request;
+
+        return new CallToolResult();
+    }
+
+    [McpServerTool(Name = "convert-anonymous-type-to-class", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<MutationData>))]
+    public static CallToolResult ConvertAnonymousTypeToClass(ConvertAnonymousTypeToClassRequest request)
+    {
+        _ = request;
+
+        return new CallToolResult();
+    }
+
+    [McpServerTool(Name = "convert-between-regular-and-verbatim-interpolated-string", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<MutationData>))]
+    public static CallToolResult ConvertBetweenRegularAndVerbatimInterpolatedString(LocationRefactoringRequest request)
+    {
+        _ = request;
+
+        return new CallToolResult();
+    }
+
+    [McpServerTool(Name = "convert-between-regular-and-verbatim-string", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<MutationData>))]
+    public static CallToolResult ConvertBetweenRegularAndVerbatimString(LocationRefactoringRequest request)
+    {
+        _ = request;
+
+        return new CallToolResult();
+    }
+
+    [McpServerTool(Name = "convert-direct-cast-to-try-cast", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<MutationData>))]
+    public static CallToolResult ConvertDirectCastToTryCast(LocationRefactoringRequest request)
+    {
+        _ = request;
+
+        return new CallToolResult();
+    }
+
+    [McpServerTool(Name = "extract-method", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<MutationData>))]
+    public static CallToolResult ExtractMethod(ExtractMethodRequest request)
+    {
+        _ = request;
+
+        return new CallToolResult();
+    }
+
+    [McpServerTool(Name = "introduce-parameter", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<MutationData>))]
+    public static CallToolResult IntroduceParameter(IntroduceParameterRequest request)
+    {
+        _ = request;
+
+        return new CallToolResult();
+    }
+
+    [McpServerTool(Name = "encapsulate-field", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<MutationData>))]
+    public static CallToolResult EncapsulateField(EncapsulateFieldRequest request)
+    {
+        _ = request;
+
+        return new CallToolResult();
+    }
+
+    [McpServerTool(Name = "convert-foreach-linq", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<MutationData>))]
+    public static CallToolResult ConvertForeachLinq(ConvertForeachLinqRequest request)
+    {
+        _ = request;
+
+        return new CallToolResult();
+    }
+
+    [McpServerTool(Name = "convert-local-function-to-method", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<MutationData>))]
+    public static CallToolResult ConvertLocalFunctionToMethod(LocationRefactoringRequest request)
+    {
+        _ = request;
+
+        return new CallToolResult();
+    }
+
+    [McpServerTool(Name = "convert-primary-to-regular-constructor", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<MutationData>))]
+    public static CallToolResult ConvertPrimaryToRegularConstructor(LocationRefactoringRequest request)
+    {
+        _ = request;
+
+        return new CallToolResult();
+    }
+
+    [McpServerTool(Name = "convert-try-cast-to-direct-cast", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<MutationData>))]
+    public static CallToolResult ConvertTryCastToDirectCast(LocationRefactoringRequest request)
+    {
+        _ = request;
+
+        return new CallToolResult();
+    }
+
+    [McpServerTool(Name = "introduce-variable", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<MutationData>))]
+    public static CallToolResult IntroduceVariable(IntroduceVariableRequest request)
+    {
+        _ = request;
+
+        return new CallToolResult();
+    }
+
+    [McpServerTool(Name = "name-tuple-element", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<MutationData>))]
+    public static CallToolResult NameTupleElement(LocationRefactoringRequest request)
+    {
+        _ = request;
+
+        return new CallToolResult();
+    }
+
+    [McpServerTool(Name = "replace-conditional-with-statements", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<MutationData>))]
+    public static CallToolResult ReplaceConditionalWithStatements(LocationRefactoringRequest request)
+    {
+        _ = request;
+
+        return new CallToolResult();
+    }
+
+    [McpServerTool(Name = "replace-doc-comment-text-with-tag", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<MutationData>))]
+    public static CallToolResult ReplaceDocCommentTextWithTag(LocationRefactoringRequest request)
+    {
+        _ = request;
+
+        return new CallToolResult();
+    }
+
+    [McpServerTool(Name = "reverse-for-statement", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<MutationData>))]
+    public static CallToolResult ReverseForStatement(LocationRefactoringRequest request)
+    {
+        _ = request;
+
+        return new CallToolResult();
+    }
+
 }

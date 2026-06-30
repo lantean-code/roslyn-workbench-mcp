@@ -3,7 +3,7 @@
 ## Purpose
 
 This document defines the MCP metadata, request contracts and structured output
-shapes for all 80 planned tools. It is the contract source for plugin authors,
+shapes for all 81 planned tools. It is the contract source for plugin authors,
 the server tool adapter and generated JSON Schemas. It supersedes the request
 shapes in `JoshuaRamirez/RoslynMcpServer`; retained tool names preserve their
 intent, but use the safer workspace, selector and transaction model defined by
@@ -119,7 +119,7 @@ Roslyn `TextSpan`.
 | `ResolvedLocation` | `{ document: DocumentReference, span: { start: int, length: int }, line: int, column: int, workspaceEpoch: long, transactionRevision?: int }` |
 | `DocumentReference` | `{ documentId: string, path: string, projectId: string }` |
 | `SymbolReference` | `{ displayName: string, kind: string, documentationCommentId?: string, location?: ResolvedLocation }`. Metadata names may be returned in descriptive text, but are never accepted as identity selectors. |
-| `CodeActionInfo` | `{ actionId: string, title: string, providerId: string, kind?: string, equivalenceKey?: string, actionPath: int[], diagnosticIds: string[], workspaceEpoch: long, transactionRevision?: int, expiresAt: string, requirements?: string[] }`. `actionId` is opaque and integrity-protected; it binds these fields and is valid only for the stated snapshot and token lifetime. |
+| `CodeActionInfo` | `{ actionId: string, title: string, providerId: string, kind?: string, equivalenceKey?: string, actionPath: int[], diagnosticIds: string[], workspaceEpoch: long, transactionRevision?: int, expiresAt: string, executionMode?: Replay|Parameterised|Unsupported, executorTool?: string, describeTool?: string, unsupportedReasonCode?: string, requirements?: string[] }`. `actionId` is opaque and integrity-protected; it binds these fields and is valid only for the stated snapshot and token lifetime. |
 | `MutationPreview` | `{ summary: string }` |
 | `DocumentDiff` | `{ document: DocumentReference, hunks: DiffHunk[], truncated: boolean }` |
 | `DiffSummary` | `{ addedLines: int, removedLines: int, changedLines: int }` |
@@ -172,6 +172,10 @@ without changing its meaning is rejected with `ResponseLimitExceeded` and
 Code-action tokens are stateless revalidation recipes, not handles to cached
 provider objects. The server-side `CodeAction` cache has capacity zero; expiry
 is controlled by the startup `CodeActionTokenLifetime`, initially five minutes.
+`list-code-actions` omits action families that the current server build knows
+it cannot execute. The published `unsupported` execution mode is reserved for
+visible fallback actions that were discovered successfully but have not yet
+been implemented or explicitly hidden in that build.
 
 ## Server and Workspace Context (8)
 
@@ -255,38 +259,38 @@ explicitly and through their snapshot-bound action token.
 | `move-type-to-file` | Existing | M | **Move Type To File**. Moves a type to a target source document. The target project must include the resulting file without project-file edits. | `type: SymbolSelector`, `targetPath: ProjectRelativePath`, `createTargetFile?: boolean = true`, `preserveNamespace?: boolean = true`, `expectedSnapshot: SnapshotPrecondition`. |
 | `move-type-to-namespace` | Existing | M | **Move Type To Namespace**. Changes a type namespace and references. If relocating its file, the target project must include the file by convention. | `type: SymbolSelector`, `targetNamespace: string`, `relocateFile?: boolean = false`, `targetPath?: ProjectRelativePath`, `updateUsings?: boolean = true`, `expectedSnapshot: SnapshotPrecondition`. |
 | `rename-symbol` | Existing | M | **Rename Symbol**. Renames a resolved symbol and updates references across the effective solution. | `symbol: SymbolSelector`, `newName: string`, `renameOverloads?: boolean = false`, `renameImplementations?: boolean = true`, `renameFile?: boolean = false`. |
-| `extract-method` | Existing | M | **Extract Method**. Extracts a valid statement or expression selection into a method. | `selection: LocationSelector`, `methodName: string`, `accessibility?: Private|Internal|Protected|Public = Private`, `isStatic?: boolean`. |
-| `extract-variable` | Existing | M | **Extract Variable**. Extracts an expression into a local variable. | `selection: LocationSelector`, `variableName: string`, `useVar?: boolean = true`. |
-| `extract-constant` | Existing | M | **Extract Constant**. Extracts a literal into a named constant. | `selection: LocationSelector`, `constantName: string`, `accessibility?: Private|Internal|Protected|Public = Private`, `replaceAll?: boolean = false`. |
-| `extract-interface` | Existing | M | **Extract Interface**. Extracts selected type members into an interface. The target project must include a new interface file by convention when `targetPath` is supplied. | `type: SymbolSelector`, `interfaceName: string`, `members: SymbolSelector[]`, `targetPath?: ProjectRelativePath`. |
-| `extract-base-class` | Existing | M | **Extract Base Class**. Extracts selected members into a base type. The target project must include a new base-type file by convention when `targetPath` is supplied. | `type: SymbolSelector`, `baseClassName: string`, `members: SymbolSelector[]`, `targetPath?: ProjectRelativePath`, `makeAbstract?: boolean = false`. |
-| `introduce-parameter` | Existing | M | **Introduce Parameter**. Promotes a local or expression to a parameter and updates call sites. | `selection: LocationSelector`, `parameterName: string`, `method?: SymbolSelector`, `defaultValue?: string`. |
-| `inline-variable` | Existing | M | **Inline Variable**. Replaces local variable references with its initializer. | `symbol: SymbolSelector`, `removeDeclaration?: boolean = true`. |
-| `change-signature` | Existing | M | **Change Signature**. Adds, removes or reorders method parameters and updates call sites. | `method: SymbolSelector`, `parameters: ParameterChange[]`, `updateCallSites?: boolean = true`. |
-| `encapsulate-field` | Existing | M | **Encapsulate Field**. Replaces a field with a property and updates references. | `field: SymbolSelector`, `propertyName: string`, `propertyAccessibility?: Private|Internal|Protected|Public`, `isReadOnly?: boolean = false`. |
+| `extract-method` | Existing | M | **Extract Method**. Extracts a valid statement or expression selection through the replay-backed Roslyn backend. | `selection: LocationSelector`, `targetKind?: Method|LocalFunction = Method`. |
+| `introduce-variable` | Existing | M | **Introduce Variable**. Stages one supported Roslyn introduce-variable leaf action through the replay-backed backend. | `selection: LocationSelector`, `kind: Local|LocalAllOccurrences|LocalConstant|LocalConstantAllOccurrences|Constant|ConstantAllOccurrences|Field|FieldAllOccurrences|QueryVariable|QueryVariableAllOccurrences`. |
+| `extract-interface` | Existing | M | **Extract Interface**. Deferred from the current execution surface. In builds where the Roslyn implementation still depends on options-service interaction, this action family is omitted from `list-code-actions`. | `type: SymbolSelector`, `interfaceName: string`, `members: SymbolSelector[]`, `targetPath?: ProjectRelativePath`. |
+| `extract-base-class` | Existing | M | **Extract Base Class**. Deferred from the current execution surface. In builds where the Roslyn implementation still depends on options-service interaction, this action family is omitted from `list-code-actions`. | `type: SymbolSelector`, `baseClassName: string`, `members: SymbolSelector[]`, `targetPath?: ProjectRelativePath`, `makeAbstract?: boolean = false`. |
+| `introduce-parameter` | Existing | M | **Introduce Parameter**. Promotes a supported expression to a parameter through the replay-backed Roslyn backend. | `selection: LocationSelector`, `allOccurrences?: boolean = false`, `strategy?: UpdateCallSitesDirectly|IntoExtractedMethod|IntoNewOverload = UpdateCallSitesDirectly`. |
+| `inline-variable` | Existing | M | **Inline Variable**. Replaces local variable references with its initializer. `removeDeclaration` currently requires the default `true`; `false` is rejected by the replay-backed Roslyn backend. | `symbol: SymbolSelector`, `removeDeclaration?: boolean = true`. |
+| `change-signature` | Existing | M | **Change Signature**. Deferred from the current Batch 2 execution surface. In builds where the required Roslyn feature service is internal-only, this action family is omitted from `list-code-actions`. | `method: SymbolSelector`, `parameters: ParameterChange[]`, `updateCallSites?: boolean = true`. |
+| `encapsulate-field` | Existing | M | **Encapsulate Field**. Encapsulates one field through the replay-backed Roslyn backend. | `field: SymbolSelector`, `updateReferences?: boolean = true`. |
 | `convert-to-async` | Existing | M | **Convert To Async**. Converts a supported synchronous method to asynchronous code and reports propagation impact. | `method: SymbolSelector`, `renameToAsync?: boolean = true`, `propagate?: None|ContainingType|Solution = None`. |
 | `convert-expression-body` | Existing | M | **Convert Expression Body**. Converts a member between block and expression-bodied forms. | `member: SymbolSelector`, `direction: ToExpression|ToBlock`. |
 | `convert-property` | Existing | M | **Convert Property**. Converts an auto-property to a full property or the reverse when safe. | `property: SymbolSelector`, `direction: ToAuto|ToFull`, `backingFieldName?: string`. |
-| `convert-foreach-linq` | Existing | M | **Convert Foreach LINQ**. Converts supported behaviour-preserving loop or LINQ patterns. | `selection: LocationSelector`, `direction: ForeachToLinq|LinqToForeach`. |
-| `convert-to-interpolated-string` | Existing | M | **Convert To Interpolated String**. Converts supported concatenation or formatting expressions. | `selection: LocationSelector`. |
+| `convert-foreach-linq` | Existing | M | **Convert Foreach LINQ**. Stages one supported Roslyn foreach or LINQ conversion through the replay-backed backend. | `selection: LocationSelector`, `conversionKind: ForeachToQuery|ForeachToCallForm|LinqToForeach`. |
+| `convert-to-interpolated-string` | Existing | M | **Convert To Interpolated String**. Converts supported concatenation or formatting expressions through the replay-backed Roslyn backend. | `selection: LocationSelector`. |
 | `convert-to-pattern-matching` | Existing | M | **Convert To Pattern Matching**. Modernises supported type-test and switch patterns. | `selection: LocationSelector`. |
 | `generate-constructor` | Existing | M | **Generate Constructor**. Generates a constructor from selected fields or properties. | `type: SymbolSelector`, `members: SymbolSelector[]`, `accessibility?: Private|Internal|Protected|Public = Public`, `addNullChecks?: boolean = false`. |
-| `generate-equals-hashcode` | Existing | M | **Generate Equals And GetHashCode**. Generates equality members from selected fields or properties. | `type: SymbolSelector`, `members: SymbolSelector[]`, `implementEquatable?: boolean = false`. |
-| `generate-overrides` | Existing | M | **Generate Overrides**. Generates override implementations for selected base members. | `type: SymbolSelector`, `members: SymbolSelector[]`, `callBase?: boolean = true`. |
+| `generate-equals-hashcode` | Existing | M | **Generate Equals And GetHashCode**. Deferred from the current Batch 2 execution surface. In builds where the required Roslyn feature service is internal-only, this action family is omitted from `list-code-actions`. | `type: SymbolSelector`, `members: SymbolSelector[]`, `implementEquatable?: boolean = false`. |
+| `generate-overrides` | Existing | M | **Generate Overrides**. Deferred from the current execution surface. In builds where the Roslyn implementation still depends on internal generation APIs, this action family is omitted from `list-code-actions`. | `type: SymbolSelector`, `members: SymbolSelector[]`. |
 | `generate-tostring` | Existing | M | **Generate ToString**. Generates a `ToString` override from selected fields or properties. | `type: SymbolSelector`, `members: SymbolSelector[]`, `format?: string`. |
-| `implement-interface` | Existing | M | **Implement Interface**. Generates selected interface-member implementations. | `type: SymbolSelector`, `interface: SymbolSelector`, `members?: SymbolSelector[]`, `explicitImplementation?: boolean = false`. |
+| `implement-interface` | Existing | M | **Implement Interface**. Deferred from the current Batch 2 execution surface. In builds where the required Roslyn feature service is internal-only, this action family is omitted from `list-code-actions`. | `type: SymbolSelector`, `interface: SymbolSelector`, `members?: SymbolSelector[]`, `explicitImplementation?: boolean = false`. |
 | `add-null-checks` | Existing | M | **Add Null Checks**. Adds configurable parameter guard clauses. | `method: SymbolSelector`, `parameters?: SymbolSelector[]`, `style?: ThrowIfNull|GuardClause = ThrowIfNull`. |
-| `add-missing-usings` | Existing | M | **Add Missing Usings**. Adds imports needed to resolve unbound type references. | `scope: ScopeSelector`, `preferGlobalUsings?: boolean = false`. |
+| `add-missing-usings` | Existing | M | **Add Missing Usings**. Adds imports needed to resolve unbound type references. `preferGlobalUsings` is reserved and currently rejected when set to `true`. | `scope: ScopeSelector`, `preferGlobalUsings?: boolean = false`. |
 | `remove-unused-usings` | Existing | M | **Remove Unused Usings**. Removes unused import directives. | `scope: ScopeSelector`. |
 | `sort-usings` | Existing | M | **Sort Usings**. Orders import directives using the loaded workspace options. | `document: DocumentSelector`, `systemFirst?: boolean`. |
 | `format-document` | Existing | M | **Format Document**. Formats one source document using loaded workspace options. | `document: DocumentSelector`, `range?: TextSpanSelector`. |
 
-## Code Actions and Transaction Control (9)
+## Code Actions and Transaction Control (10)
 
 | Tool | Source | Behaviour | Title and description | Input parameters | `data` output shape |
 |---|---|---|---|---|---|
-| `list-code-actions` | New plugin | Q | **List Code Actions**. Lists applicable installed refactorings and code fixes at a target. Listed structural actions state any source-file inclusion requirement. | `location: LocationSelector`, `expectedSnapshot: SnapshotPrecondition`, `includeRefactorings?: boolean = true`, `includeCodeFixes?: boolean = true`, `diagnosticIds?: string[]`, `limit?: ResultLimit`. | `CodeActionListData { actions: CodeActionInfo[], returnedCount: int, hasMore: boolean, truncationReasons?: CollectionTruncation[] }` |
-| `stage-code-action` | New plugin | M | **Stage Code Action**. Re-runs the recorded provider and stages exactly one matching refactoring action. | `actionId: string`, `expectedSnapshot: SnapshotPrecondition`. | `MutationData` |
+| `list-code-actions` | New plugin | Q | **List Code Actions**. Lists applicable installed refactorings and code fixes at a target, but only for built-in Roslyn families that this server build has explicitly audited. Listed actions publish execution metadata that declares whether they are replayable, parameterised or unsupported. | `location: LocationSelector`, `expectedSnapshot: SnapshotPrecondition`, `includeRefactorings?: boolean = true`, `includeCodeFixes?: boolean = true`, `diagnosticIds?: string[]`, `limit?: ResultLimit`. | `CodeActionListData { actions: CodeActionInfo[], returnedCount: int, hasMore: boolean, truncationReasons?: CollectionTruncation[] }` |
+| `describe-code-action` | New plugin | Q | **Describe Code Action**. Revalidates one discovered action and returns its descriptor plus any preflight context required before dedicated execution. | `actionId: string`, `expectedSnapshot: SnapshotPrecondition`. | `DescribeCodeActionData { descriptor: CodeActionInfo, context: CodeActionDescriptorContext }` |
+| `stage-code-action` | New plugin | M | **Stage Code Action**. Re-runs the recorded provider and stages exactly one matching replayable refactoring action. Parameterised actions are rejected instead of being replayed generically. | `actionId: string`, `expectedSnapshot: SnapshotPrecondition`. | `MutationData` |
 | `stage-code-fix` | New plugin | M | **Stage Code Fix**. Re-runs the recorded provider and stages exactly one matching code fix. | `actionId: string`, `expectedSnapshot: SnapshotPrecondition`. | `MutationData` |
 | `stage-fix-all` | New plugin | M | **Stage Fix All**. Re-runs the recorded provider and stages one matching code fix across a selected scope, subject to any configured fix-all cap. | `actionId: string`, `scope: ScopeSelector`, `maxChanges?: int`, `expectedSnapshot: SnapshotPrecondition`. | `MutationData` |
 | `transaction-start` | New server | S | **Start Transaction**. Captures the immutable base solution and opens an empty staged revision journal. | None. | `TransactionStartData { transaction: TransactionInfo }` |

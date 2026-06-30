@@ -32,14 +32,20 @@ public sealed class TestRefactoringProvider : CodeRefactoringProvider
             "Apply test refactoring",
             cancellationToken => ReplaceAsync(document, "string.Empty", "\"RefactoredValue\"", cancellationToken),
             "TestRefactoring.Apply");
+        var parameterisedAction = new ParameterisedTestCodeAction(document);
+        var hiddenAction = CodeAction.Create(
+            "Extract method test refactoring",
+            cancellationToken => ReplaceAsync(document, "string.Empty", "\"HiddenValue\"", cancellationToken),
+            "TestRefactoring.Hidden");
+        var unsupportedAction = new UnsupportedOptionsTestCodeAction(document);
         var retainAction = CodeAction.Create(
             "Retain test state",
             cancellationToken => ReplaceAsync(document, "private set;", "private init;", cancellationToken),
             "TestRefactoring.Retain");
-        var unsupportedAction = new UnsupportedTestCodeAction(document);
+        var lateUnsupportedAction = new UnsupportedTestCodeAction(document);
         var groupAction = CodeAction.Create(
             "Test refactoring group",
-            [renameAction, retainAction, unsupportedAction],
+            [renameAction, parameterisedAction, hiddenAction, unsupportedAction, retainAction, lateUnsupportedAction],
             isInlinable: true);
 
         context.RegisterRefactoring(groupAction);
@@ -80,6 +86,84 @@ public sealed class TestRefactoringProvider : CodeRefactoringProvider
                 new ApplyChangesOperation(updatedSolution),
                 new ApplyChangesOperation(updatedSolution),
             ];
+        }
+    }
+
+    private sealed class UnsupportedOptionsTestCodeAction : CodeActionWithOptions
+    {
+        private readonly Document _document;
+
+        public UnsupportedOptionsTestCodeAction(Document document)
+        {
+            _document = document;
+        }
+
+        public override string Title => "Option gathering test refactoring";
+
+        public override string EquivalenceKey => "TestRefactoring.OptionGathering";
+
+        public override object? GetOptions(CancellationToken cancellationToken)
+        {
+            _ = cancellationToken;
+
+            return new ParameterisedOptions
+            {
+                Replacement = "\"UnsupportedValue\"",
+            };
+        }
+
+        protected override async Task<IEnumerable<CodeActionOperation>> ComputeOperationsAsync(object? options, CancellationToken cancellationToken)
+        {
+            var parameterisedOptions = options as ParameterisedOptions ?? new ParameterisedOptions
+            {
+                Replacement = "\"UnsupportedValue\"",
+            };
+            var updatedDocument = await ReplaceAsync(_document, "string.Empty", parameterisedOptions.Replacement, cancellationToken);
+            return [new ApplyChangesOperation(updatedDocument.Project.Solution)];
+        }
+
+        private sealed record ParameterisedOptions
+        {
+            public string Replacement { get; init; } = string.Empty;
+        }
+    }
+
+    private sealed class ParameterisedTestCodeAction : CodeActionWithOptions
+    {
+        private readonly Document _document;
+
+        public ParameterisedTestCodeAction(Document document)
+        {
+            _document = document;
+        }
+
+        public override string Title => "Change signature test refactoring";
+
+        public override string EquivalenceKey => "TestRefactoring.Parameterised";
+
+        public override object? GetOptions(CancellationToken cancellationToken)
+        {
+            _ = cancellationToken;
+
+            return new ParameterisedOptions
+            {
+                Replacement = "\"ParameterisedValue\"",
+            };
+        }
+
+        protected override async Task<IEnumerable<CodeActionOperation>> ComputeOperationsAsync(object? options, CancellationToken cancellationToken)
+        {
+            var parameterisedOptions = options as ParameterisedOptions ?? new ParameterisedOptions
+            {
+                Replacement = "\"ParameterisedValue\"",
+            };
+            var updatedDocument = await ReplaceAsync(_document, "string.Empty", parameterisedOptions.Replacement, cancellationToken);
+            return [new ApplyChangesOperation(updatedDocument.Project.Solution)];
+        }
+
+        private sealed record ParameterisedOptions
+        {
+            public string Replacement { get; init; } = string.Empty;
         }
     }
 }

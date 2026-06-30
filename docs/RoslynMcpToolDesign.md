@@ -20,7 +20,7 @@ The executable name is `roslyn-workbench-mcp`.
 
 ## Count and Scope
 
-The target surface contains **80 tools**:
+The target surface contains **81 tools**:
 
 | Group | Tool count |
 |---|---:|
@@ -28,12 +28,12 @@ The target surface contains **80 tools**:
 | Semantic inspection and navigation | 19 |
 | Analysis and architecture | 16 |
 | Specific refactorings, generation and formatting | 28 |
-| Roslyn code actions and transaction control | 9 |
-| **Total** | **80** |
+| Roslyn code actions and transaction control | 10 |
+| **Total** | **81** |
 
 The existing `JoshuaRamirez/RoslynMcpServer` registry has 41 tools. The target
 retains 40 of those operations, replaces `diagnose` with `workspace-status`,
-and adds 39 tools.
+and adds 40 tools.
 
 The planned implementation source and dependency for each tool is recorded in
 [RoslynMcpToolImplementationMatrix.md](RoslynMcpToolImplementationMatrix.md).
@@ -96,8 +96,7 @@ The existing registry contains the following 41 tools.
 | `move-type-to-namespace` | Move a type to a namespace | Retain and reimplement |
 | `rename-symbol` | Rename a resolved symbol and references | Retain and reimplement with `Renamer` |
 | `extract-method` | Extract a selection to a method | Retain |
-| `extract-variable` | Extract an expression to a local | Retain |
-| `extract-constant` | Extract a literal to a constant | Retain |
+| `introduce-variable` | Stage one Roslyn introduce-variable leaf action | Retain |
 | `extract-interface` | Extract an interface from a type | Retain |
 | `extract-base-class` | Extract selected members to a base class | Retain |
 | `introduce-parameter` | Convert an expression/local to a parameter | Retain |
@@ -218,37 +217,37 @@ bounded preview. The operation does not write to disk.
 | `move-type-to-namespace` | Existing | Stage a type namespace move. |
 | `rename-symbol` | Existing | Stage a solution-wide rename with configurable rename options. |
 | `extract-method` | Existing | Stage extraction of a valid statement or expression selection. |
-| `extract-variable` | Existing | Stage extraction of an expression into a local. |
-| `extract-constant` | Existing | Stage extraction of a literal to a constant. |
-| `extract-interface` | Existing | Stage extraction of an interface from selected members. |
-| `extract-base-class` | Existing | Stage extraction of selected members to a base type. |
+| `introduce-variable` | Existing | Stage one supported Roslyn introduce-variable leaf action. |
+| `extract-interface` | Existing | Deferred from the current execution surface. In builds where the Roslyn implementation still depends on options-service interaction, this action family is hidden from descriptor-based discovery. |
+| `extract-base-class` | Existing | Deferred from the current execution surface. In builds where the Roslyn implementation still depends on options-service interaction, this action family is hidden from descriptor-based discovery. |
 | `introduce-parameter` | Existing | Stage promotion of an expression or local to a parameter and update call sites. |
 | `inline-variable` | Existing | Stage inlining of a local variable. |
-| `change-signature` | Existing | Stage parameter additions, removals and reordering with call-site updates. |
+| `change-signature` | Existing | Deferred from the current Batch 2 execution surface. In builds where the required Roslyn feature service is internal-only, this action family is hidden from descriptor-based discovery. |
 | `encapsulate-field` | Existing | Stage field encapsulation and reference updates. |
 | `convert-to-async` | Existing | Stage a supported async conversion and report propagation impact. |
 | `convert-expression-body` | Existing | Stage expression-body or block-body conversion. |
 | `convert-property` | Existing | Stage auto-property or full-property conversion. |
-| `convert-foreach-linq` | Existing | Stage only behaviour-preserving supported loop or LINQ conversions. |
+| `convert-foreach-linq` | Existing | Stage one supported Roslyn foreach or LINQ conversion. |
 | `convert-to-interpolated-string` | Existing | Stage interpolation conversion. |
 | `convert-to-pattern-matching` | Existing | Stage supported pattern-matching modernisation. |
 | `generate-constructor` | Existing | Stage a constructor from selected members. |
-| `generate-equals-hashcode` | Existing | Stage equality generation. |
-| `generate-overrides` | Existing | Stage base-member overrides. |
+| `generate-equals-hashcode` | Existing | Deferred from the current Batch 2 execution surface. In builds where the required Roslyn feature service is internal-only, this action family is hidden from descriptor-based discovery. |
+| `generate-overrides` | Existing | Deferred from the current execution surface. In builds where the Roslyn implementation still depends on internal generation APIs, this action family is hidden from descriptor-based discovery. |
 | `generate-tostring` | Existing | Stage a `ToString` override. |
-| `implement-interface` | Existing | Stage interface implementation members. |
+| `implement-interface` | Existing | Deferred from the current Batch 2 execution surface. In builds where the required Roslyn feature service is internal-only, this action family is hidden from descriptor-based discovery. |
 | `add-null-checks` | Existing | Stage configurable guard clauses. |
 | `add-missing-usings` | Existing | Stage import additions. |
 | `remove-unused-usings` | Existing | Stage import removal. |
 | `sort-usings` | Existing | Stage import ordering. |
 | `format-document` | Existing | Stage document formatting using the loaded workspace options. |
 
-### Roslyn Code Actions and Transaction Control (9)
+### Roslyn Code Actions and Transaction Control (10)
 
 | Tool | Status | Purpose |
 |---|---|---|
-| `list-code-actions` | New | List applicable installed Roslyn refactorings and code fixes at a position or range, each with an opaque action ID. |
-| `stage-code-action` | New | Revalidate and stage a selected refactoring action into the active transaction. |
+| `list-code-actions` | New | List applicable installed Roslyn refactorings and code fixes at a position or range, but only for the built-in families that this server build has explicitly audited. Each returned action carries execution metadata describing whether it is replayable, parameterised or unsupported. |
+| `describe-code-action` | New | Revalidate one discovered action and return its descriptor plus any preflight context needed before a dedicated executor tool can run. |
+| `stage-code-action` | New | Revalidate and stage a selected replayable refactoring action into the active transaction. Parameterised actions are rejected and must use a dedicated executor when one lands. |
 | `stage-code-fix` | New | Revalidate a diagnostic and stage a selected code fix into the active transaction. |
 | `stage-fix-all` | New | Stage a selected fix across document, project or solution scope, subject to configured caps. |
 | `transaction-start` | New | Start a transaction, capture the immutable base solution, and create an empty staged revision history. |

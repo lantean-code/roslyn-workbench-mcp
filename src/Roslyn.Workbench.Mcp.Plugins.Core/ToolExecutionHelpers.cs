@@ -5,6 +5,7 @@ using Microsoft.CodeAnalysis.FindSymbols;
 using Microsoft.CodeAnalysis.Text;
 using Roslyn.Workbench.Mcp.Contracts.Results;
 using Roslyn.Workbench.Mcp.Contracts.Selectors;
+using Roslyn.Workbench.Mcp.Plugins;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core;
 
@@ -163,6 +164,36 @@ internal static class ToolExecutionHelpers
         };
     }
 
+    public static ValueTask<PluginExecutionResult<MutationProposal>> StageReplaySelectionAsync(
+        LocationSelector? selection,
+        SnapshotPrecondition? expectedSnapshot,
+        IMutationContext context,
+        CancellationToken cancellationToken,
+        string providerId,
+        string? title = null,
+        string? titleStartsWith = null,
+        string? titleDoesNotContain = null,
+        string? equivalenceKey = null,
+        IReadOnlyList<int>? actionPath = null)
+    {
+        if (selection is null)
+        {
+            return ValueTask.FromResult(Rejected<MutationProposal>("InvalidRequest", "A location selector is required."));
+        }
+
+        return context.CodeActionService.StageReplayCodeActionAsync(new ReplayCodeActionRequest
+        {
+            Location = selection,
+            ExpectedSnapshot = expectedSnapshot,
+            ProviderId = providerId,
+            Title = title,
+            TitleStartsWith = titleStartsWith,
+            TitleDoesNotContain = titleDoesNotContain,
+            EquivalenceKey = equivalenceKey,
+            ActionPath = actionPath,
+        }, context, cancellationToken);
+    }
+
     public static async ValueTask<ResolutionResult<ISymbol, T>> ResolveSymbolAsync<T>(SymbolSelector? selector, SnapshotPrecondition? expectedSnapshot, IToolExecutionContext context, CancellationToken cancellationToken)
     {
         var snapshotRejection = selector?.Location is not null ? ValidateSnapshot<T>(context, expectedSnapshot) : null;
@@ -273,6 +304,27 @@ internal static class ToolExecutionHelpers
                     Start = resolvedLocation.Span.Start,
                     Length = resolvedLocation.Span.Length,
                 },
+            },
+        };
+    }
+
+    public static LocationSelector? CreateLocationSelector(ResolvedLocation? resolvedLocation)
+    {
+        if (resolvedLocation?.Document is null || resolvedLocation.Span is null)
+        {
+            return null;
+        }
+
+        return new LocationSelector
+        {
+            Span = new TextSpanSelector
+            {
+                Document = new DocumentSelector
+                {
+                    Path = resolvedLocation.Document.Path,
+                },
+                Start = resolvedLocation.Span.Start,
+                Length = resolvedLocation.Span.Length,
             },
         };
     }

@@ -86,10 +86,224 @@ public sealed class CodeActionMcpToolTests
         result.Data!.Actions.Select(static action => action.Title).Should().ContainInOrder(
         [
             "Apply test refactoring",
+            "Change signature test refactoring",
+            "Option gathering test refactoring",
             "Retain test state",
             "Unsupported test refactoring",
         ]);
         result.Data.Actions.Should().OnlyContain(static action => !string.IsNullOrWhiteSpace(action.ActionId));
+    }
+
+    [Fact]
+    public async Task GIVEN_TestProviders_WHEN_ListingActions_THEN_ShouldPublishExecutionMetadata()
+    {
+        using var fixture = await InspectionSampleFixture.CreateAsync();
+        var coordinator = CreateCoordinator();
+        var open = await coordinator.OpenAsync(new WorkspaceOpenRequest
+        {
+            Path = fixture.ProjectPath,
+        }, CancellationToken.None);
+        var plugin = new BundledCorePlugin();
+        var registry = new PluginRegistry(plugin.Metadata);
+        var executor = new ToolExecutor(coordinator);
+
+        plugin.Register(registry);
+
+        var result = await InvokeAsync<CodeActionListData>(executor, registry, "list-code-actions", new Dictionary<string, JsonElement>
+        {
+            ["location"] = JsonSerializer.SerializeToElement(fixture.GetLocation("StateHolder")),
+            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition
+            {
+                WorkspaceEpoch = open.WorkspaceEpoch!.Value,
+            }),
+        });
+
+        var replay = result.Data!.Actions.Single(static action => action.Title == "Apply test refactoring");
+        var parameterised = result.Data.Actions.Single(static action => action.Title == "Change signature test refactoring");
+        var unsupported = result.Data.Actions.Single(static action => action.Title == "Option gathering test refactoring");
+
+        replay.ExecutionMode.Should().Be(CodeActionExecutionMode.Replay);
+        parameterised.ExecutionMode.Should().Be(CodeActionExecutionMode.Parameterised);
+        parameterised.ExecutorTool.Should().BeNull();
+        parameterised.DescribeTool.Should().Be("describe-code-action");
+        unsupported.ExecutionMode.Should().Be(CodeActionExecutionMode.Unsupported);
+        unsupported.UnsupportedReasonCode.Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task GIVEN_ParameterisedAction_WHEN_Describing_THEN_ShouldReturnDescriptorContext()
+    {
+        using var fixture = await InspectionSampleFixture.CreateAsync();
+        var coordinator = CreateCoordinator();
+        var open = await coordinator.OpenAsync(new WorkspaceOpenRequest
+        {
+            Path = fixture.ProjectPath,
+        }, CancellationToken.None);
+        var plugin = new BundledCorePlugin();
+        var registry = new PluginRegistry(plugin.Metadata);
+        var executor = new ToolExecutor(coordinator);
+
+        plugin.Register(registry);
+
+        var list = await InvokeAsync<CodeActionListData>(executor, registry, "list-code-actions", new Dictionary<string, JsonElement>
+        {
+            ["location"] = JsonSerializer.SerializeToElement(fixture.GetLocation("StateHolder")),
+            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition
+            {
+                WorkspaceEpoch = open.WorkspaceEpoch!.Value,
+            }),
+        });
+        var parameterised = list.Data!.Actions.Single(static action => action.Title == "Change signature test refactoring");
+        var describe = await InvokeAsync<DescribeCodeActionData>(executor, registry, "describe-code-action", new Dictionary<string, JsonElement>
+        {
+            ["actionId"] = JsonSerializer.SerializeToElement(parameterised.ActionId),
+            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition
+            {
+                WorkspaceEpoch = open.WorkspaceEpoch!.Value,
+            }),
+        });
+
+        describe.Outcome.Should().Be(ToolOutcome.Succeeded);
+        describe.Data!.Descriptor.Title.Should().Be("Change signature test refactoring");
+        describe.Data.Context.Kind.Should().Be(CodeActionDescriptorContextKind.SignaturePlan);
+    }
+
+    [Fact]
+    public async Task GIVEN_BuiltInProviders_WHEN_ListingOverrideAndExtractionActions_THEN_ShouldHideOptionsServiceFamilies()
+    {
+        using var fixture = await InspectionSampleFixture.CreateAsync();
+        var coordinator = CreateBuiltInCoordinator();
+        var open = await coordinator.OpenAsync(new WorkspaceOpenRequest
+        {
+            Path = fixture.ProjectPath,
+        }, CancellationToken.None);
+        var plugin = new BundledCorePlugin();
+        var registry = new PluginRegistry(plugin.Metadata);
+        var executor = new ToolExecutor(coordinator);
+
+        plugin.Register(registry);
+
+        var result = await InvokeAsync<CodeActionListData>(executor, registry, "list-code-actions", new Dictionary<string, JsonElement>
+        {
+            ["location"] = JsonSerializer.SerializeToElement(fixture.GetLocation("OverrideCandidate")),
+            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition
+            {
+                WorkspaceEpoch = open.WorkspaceEpoch!.Value,
+            }),
+        });
+
+        result.Data!.Actions.Should().NotContain(static action => action.Title == "Generate overrides");
+        result.Data.Actions.Should().NotContain(static action => action.Title == "Extract interface");
+        result.Data.Actions.Should().NotContain(static action => action.Title == "Extract base class");
+    }
+
+    [Theory]
+    [MemberData(nameof(GetPromotedDraftValidationCandidates))]
+    public async Task GIVEN_BuiltInProviders_WHEN_ListingPromotedDraftFamilies_THEN_ShouldExposeVisibleActions(BuiltInCodeActionAuditCase auditCase)
+    {
+        using var fixture = await auditCase.FixtureFactory();
+        var coordinator = CreateBuiltInCoordinator();
+        var open = await coordinator.OpenAsync(new WorkspaceOpenRequest
+        {
+            Path = fixture.ProjectPath,
+        }, CancellationToken.None);
+        var plugin = new BundledCorePlugin();
+        var registry = new PluginRegistry(plugin.Metadata);
+        var executor = new ToolExecutor(coordinator);
+
+        plugin.Register(registry);
+
+        var result = await InvokeAsync<CodeActionListData>(executor, registry, "list-code-actions", new Dictionary<string, JsonElement>
+        {
+            ["location"] = JsonSerializer.SerializeToElement(auditCase.LocationFactory(fixture)),
+            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition
+            {
+                WorkspaceEpoch = open.WorkspaceEpoch!.Value,
+            }),
+            ["includeCodeFixes"] = JsonSerializer.SerializeToElement(auditCase.Kind == BuiltInCodeActionAuditKind.CodeFix),
+            ["includeRefactorings"] = JsonSerializer.SerializeToElement(auditCase.Kind == BuiltInCodeActionAuditKind.Refactoring),
+        });
+
+        result.Data!.Actions.Should().Contain(action =>
+            string.Equals(action.ProviderId, auditCase.ProviderId, StringComparison.Ordinal)
+            && MatchesAuditCase(action, auditCase));
+    }
+
+    [Fact]
+    public void GIVEN_CurrentAuditLedger_WHEN_QueryingDeferredDraftFamilies_THEN_ShouldHaveNoResidualHiddenReplayBacklog()
+    {
+        BuiltInCodeActionAuditCases.FailedDraftValidationCandidates.Should().BeEmpty();
+    }
+
+    [Theory]
+    [MemberData(nameof(GetPendingPromotionCandidates))]
+    public async Task GIVEN_BuiltInProviders_WHEN_ListingPendingPromotionFamilies_THEN_ShouldExposeVisibleActions(BuiltInCodeActionAuditCase auditCase)
+    {
+        using var fixture = await auditCase.FixtureFactory();
+        var coordinator = CreateBuiltInCoordinator();
+        var open = await coordinator.OpenAsync(new WorkspaceOpenRequest
+        {
+            Path = fixture.ProjectPath,
+        }, CancellationToken.None);
+        var plugin = new BundledCorePlugin();
+        var registry = new PluginRegistry(plugin.Metadata);
+        var executor = new ToolExecutor(coordinator);
+
+        plugin.Register(registry);
+
+        var result = await InvokeAsync<CodeActionListData>(executor, registry, "list-code-actions", new Dictionary<string, JsonElement>
+        {
+            ["location"] = JsonSerializer.SerializeToElement(auditCase.LocationFactory(fixture)),
+            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition
+            {
+                WorkspaceEpoch = open.WorkspaceEpoch!.Value,
+            }),
+            ["includeCodeFixes"] = JsonSerializer.SerializeToElement(auditCase.Kind == BuiltInCodeActionAuditKind.CodeFix),
+            ["includeRefactorings"] = JsonSerializer.SerializeToElement(auditCase.Kind == BuiltInCodeActionAuditKind.Refactoring),
+        });
+
+        result.Data!.Actions.Should().Contain(action =>
+            string.Equals(action.ProviderId, auditCase.ProviderId, StringComparison.Ordinal)
+            && MatchesAuditCase(action, auditCase));
+    }
+
+    [Fact]
+    public async Task GIVEN_ParameterisedAction_WHEN_StagingThroughGenericReplay_THEN_ShouldRejectSafely()
+    {
+        using var fixture = await InspectionSampleFixture.CreateAsync();
+        var coordinator = CreateCoordinator();
+        var open = await coordinator.OpenAsync(new WorkspaceOpenRequest
+        {
+            Path = fixture.ProjectPath,
+        }, CancellationToken.None);
+        await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
+        var plugin = new BundledCorePlugin();
+        var registry = new PluginRegistry(plugin.Metadata);
+        var executor = new ToolExecutor(coordinator);
+
+        plugin.Register(registry);
+
+        var list = await InvokeAsync<CodeActionListData>(executor, registry, "list-code-actions", new Dictionary<string, JsonElement>
+        {
+            ["location"] = JsonSerializer.SerializeToElement(fixture.GetLocation("StateHolder")),
+            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition
+            {
+                WorkspaceEpoch = open.WorkspaceEpoch!.Value,
+                TransactionRevision = 0,
+            }),
+        });
+        var parameterised = list.Data!.Actions.Single(static action => action.Title == "Change signature test refactoring");
+        var result = await InvokeAsync<MutationData>(executor, registry, "stage-code-action", new Dictionary<string, JsonElement>
+        {
+            ["actionId"] = JsonSerializer.SerializeToElement(parameterised.ActionId),
+            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition
+            {
+                WorkspaceEpoch = open.WorkspaceEpoch!.Value,
+                TransactionRevision = 0,
+            }),
+        }, expectProtocolSuccess: false);
+
+        result.Error!.Code.Should().Be("ActionRequiresParameters");
     }
 
     [Fact]
@@ -194,12 +408,12 @@ public sealed class CodeActionMcpToolTests
         });
         var preview = await coordinator.PreviewTransactionAsync(new TransactionPreviewRequest(), CancellationToken.None);
         var previewData = preview.Data!;
-        var changedDocument = previewData.Documents.Single();
+        var changedDocument = previewData.Documents.Single(change => change.Document!.Path == "Formatting.cs");
 
         stageFixAll.Outcome.Should().Be(ToolOutcome.Succeeded);
         stageFixAll.TransactionRevision.Should().Be(1);
         stageFixAll.Data!.Summary.Should().Be("Fix all: Apply test code fix");
-        previewData.Documents.Should().ContainSingle();
+        previewData.Documents.Should().NotBeEmpty();
         changedDocument.Document!.Path.Should().Be("Formatting.cs");
         changedDocument.Preview!.ChangedLines.Should().BeGreaterThan(0);
     }
@@ -451,6 +665,43 @@ public sealed class CodeActionMcpToolTests
         result.Data!.Operation.Should().Be("remove-unused-usings");
     }
 
+    [Fact]
+    public async Task GIVEN_BuiltInCodeActions_WHEN_InvokingAddMissingUsingsWithGlobalPreference_THEN_ShouldRejectClearly()
+    {
+        using var fixture = await InspectionSampleFixture.CreateAsync();
+        var coordinator = CreateBuiltInCoordinator();
+        var open = await coordinator.OpenAsync(new WorkspaceOpenRequest
+        {
+            Path = fixture.ProjectPath,
+        }, CancellationToken.None);
+        await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
+        var plugin = new BundledCorePlugin();
+        var registry = new PluginRegistry(plugin.Metadata);
+        var executor = new ToolExecutor(coordinator);
+
+        plugin.Register(registry);
+
+        var result = await InvokeAsync<MutationData>(executor, registry, "add-missing-usings", new Dictionary<string, JsonElement>
+        {
+            ["scope"] = JsonSerializer.SerializeToElement(new ScopeSelector
+            {
+                Kind = ScopeKind.Document,
+                Document = new DocumentSelector
+                {
+                    Path = "MissingUsings.cs",
+                },
+            }),
+            ["preferGlobalUsings"] = JsonSerializer.SerializeToElement(true),
+            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition
+            {
+                WorkspaceEpoch = open.WorkspaceEpoch!.Value,
+                TransactionRevision = 0,
+            }),
+        }, expectProtocolSuccess: false);
+
+        result.Error!.Code.Should().Be("UnsupportedOption");
+    }
+
     private static IWorkspaceCoordinator CreateCoordinator(TimeSpan? tokenLifetime = null)
     {
         var runtime = CodeActionRuntimeFactory.Create(new CodeActionRuntimeOptions
@@ -488,6 +739,48 @@ public sealed class CodeActionMcpToolTests
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
         });
+    }
+
+    public static TheoryData<BuiltInCodeActionAuditCase> GetPromotedDraftValidationCandidates()
+    {
+        return CreateTheoryData(BuiltInCodeActionAuditCases.PromotedDraftValidationCandidates);
+    }
+
+    public static TheoryData<BuiltInCodeActionAuditCase> GetPendingPromotionCandidates()
+    {
+        return CreateTheoryData(BuiltInCodeActionAuditCases.PendingPromotionCandidates);
+    }
+
+    private static TheoryData<BuiltInCodeActionAuditCase> CreateTheoryData(IReadOnlyList<BuiltInCodeActionAuditCase> auditCases)
+    {
+        var data = new TheoryData<BuiltInCodeActionAuditCase>();
+
+        foreach (var auditCase in auditCases)
+        {
+            data.Add(auditCase);
+        }
+
+        return data;
+    }
+
+    private static bool MatchesAuditCase(CodeActionInfo action, BuiltInCodeActionAuditCase auditCase)
+    {
+        if (!string.Equals(action.ProviderId, auditCase.ProviderId, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(auditCase.Title))
+        {
+            return string.Equals(action.Title, auditCase.Title, StringComparison.Ordinal);
+        }
+
+        if (!string.IsNullOrWhiteSpace(auditCase.TitlePrefix))
+        {
+            return action.Title.StartsWith(auditCase.TitlePrefix, StringComparison.Ordinal);
+        }
+
+        return true;
     }
 
     private static async Task<ToolResult<TResponse>> InvokeAsync<TResponse>(

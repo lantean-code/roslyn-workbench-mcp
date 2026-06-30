@@ -75,29 +75,28 @@ validated.
 | `move-type-to-file` | Custom syntax/semantic solution edit | Custom |
 | `move-type-to-namespace` | Custom syntax/semantic solution edit | Custom |
 | `rename-symbol` | Public `Renamer.RenameSymbolAsync` | Core |
-| `extract-method` | MEF refactoring provider | MEF |
-| `extract-variable` | MEF refactoring provider | MEF |
-| `extract-constant` | MEF refactoring provider | MEF |
-| `extract-interface` | MEF refactoring provider | MEF |
-| `extract-base-class` | MEF refactoring provider | MEF |
-| `introduce-parameter` | MEF refactoring provider | MEF |
-| `inline-variable` | MEF refactoring provider | MEF |
-| `change-signature` | MEF refactoring provider | MEF |
-| `encapsulate-field` | MEF refactoring provider | MEF |
+| `extract-method` | Host wrapper over deterministic MEF refactoring replay | Batch 3 |
+| `introduce-variable` | Host wrapper over deterministic MEF refactoring replay with Roslyn leaf-action selection | Batch 3 |
+| `extract-interface` | MEF refactoring provider plus options-service interaction | Hidden in current build |
+| `extract-base-class` | MEF refactoring provider plus options-service interaction | Hidden in current build |
+| `introduce-parameter` | Host wrapper over deterministic MEF refactoring replay with nested-action selection | Batch 3 |
+| `inline-variable` | Host wrapper over deterministic MEF refactoring replay | Batch 3 |
+| `change-signature` | MEF refactoring provider plus internal Roslyn feature service wrapper | Hidden in current build |
+| `encapsulate-field` | Host wrapper over deterministic MEF refactoring replay | Batch 3 |
 | `convert-to-async` | Custom syntax/semantic implementation | Custom |
 | `convert-expression-body` | Custom syntax transformation | Custom |
 | `convert-property` | Custom syntax/semantic transformation | Custom |
-| `convert-foreach-linq` | Custom syntax/operation transformation | Custom |
-| `convert-to-interpolated-string` | Custom syntax/semantic transformation | Custom |
+| `convert-foreach-linq` | Host wrapper over deterministic MEF refactoring replay | Batch 3 |
+| `convert-to-interpolated-string` | Host wrapper over deterministic MEF refactoring replay | Batch 3 |
 | `convert-to-pattern-matching` | Custom syntax/semantic transformation | Custom |
 | `generate-constructor` | Custom syntax/semantic generation | Custom |
-| `generate-equals-hashcode` | MEF refactoring provider | MEF |
-| `generate-overrides` | MEF refactoring provider | MEF |
+| `generate-equals-hashcode` | MEF refactoring provider plus internal Roslyn feature service wrapper | Hidden in current build |
+| `generate-overrides` | MEF refactoring provider plus internal generation APIs | Hidden in current build |
 | `generate-tostring` | Custom syntax/semantic generation | Custom |
-| `implement-interface` | MEF code-fix/refactoring provider | MEF |
+| `implement-interface` | MEF code-fix/refactoring provider plus internal Roslyn feature service wrapper | Hidden in current build |
 | `add-null-checks` | Custom syntax/semantic transformation | Custom |
-| `add-missing-usings` | MEF code-fix provider | MEF |
-| `remove-unused-usings` | MEF code-fix provider | MEF |
+| `add-missing-usings` | Host wrapper over deterministic MEF code-fix selection | Batch 2 |
+| `remove-unused-usings` | Host wrapper over deterministic MEF code-fix selection | Batch 2 |
 | `sort-usings` | Public formatter/syntax transformation | Core |
 | `format-document` | Public `Formatter` APIs | Core |
 
@@ -105,8 +104,9 @@ validated.
 
 | Tool | Implementation source | Status |
 |---|---|---|
-| `list-code-actions` | MEF-composed code-fix and refactoring providers | MEF |
-| `stage-code-action` | Host action-token revalidation plus MEF provider | MEF |
+| `list-code-actions` | MEF-composed code-fix and refactoring providers plus descriptor classification | Batch 2 |
+| `describe-code-action` | Host token revalidation plus descriptor classification | Batch 2 |
+| `stage-code-action` | Host action-token revalidation plus replay-only MEF provider execution | Batch 2 |
 | `stage-code-fix` | Host action-token revalidation plus MEF provider | MEF |
 | `stage-fix-all` | Host action-token revalidation plus MEF Fix All provider | MEF |
 | `transaction-start` | Host transaction coordinator | Core |
@@ -114,6 +114,35 @@ validated.
 | `transaction-history` | Host bounded revision journal | Core |
 | `transaction-commit` | Host durable commit journal and file writer | Core |
 | `transaction-rollback` | Host transaction coordinator | Core |
+
+## Stage 7 Batch 2 split
+
+- Replay-backed or deterministic scoped-codefix wrappers that currently land: `add-missing-usings`, `remove-unused-usings`, `inline-variable`, `convert-to-interpolated-string`, `extract-method`, `introduce-parameter`, `encapsulate-field`, `convert-foreach-linq`, `introduce-variable`.
+- `list-code-actions` now uses a closed audited allowlist for built-in Roslyn families. Any family that does not yet have an approved dedicated execution path or validated replay rule is hidden from discovery by default rather than surfaced optimistically.
+- `stage-code-action` remains replay-only. Parameterised actions must describe themselves first and are rejected by generic replay.
+
+## Roslyn-source backlog status
+
+The Stage 7 Roslyn MEF catalogue audit is complete.
+
+- The authoritative ledger now covers the built-in C# `ExportCodeRefactoringProvider`
+  and `ExportCodeFixProvider` families from the checked-out Roslyn source.
+- Final completion-wave replay promotions include:
+  `AddFileBanner`, `EnableNullable`, `SyncNamespace`, `ConvertNamespace`,
+  `ConvertToProgramMain` refactoring, `ConvertToTopLevelStatements`
+  refactoring, `ConvertToExtension`, `ConvertToRawString`,
+  `AddParameterCheck`, `InitializeMemberFromPrimaryConstructorParameter`,
+  `Wrapping`, `FullyQualify` code fix, `ConvertToProgramMain` code fix,
+  `ConvertToTopLevelStatements` code fix, `RemoveUnusedVariable` code fix,
+  and `SpellCheck` code fix.
+- Families that remain hidden are hidden intentionally in the ledger because
+  they require `CodeActionWithOptions`, internal-only Roslyn services,
+  external Copilot/package/reference flows, paste-tracking host state, or
+  IDE-only diagnostics that are not available through the server’s public
+  diagnostics path.
+- There is no remaining built-in C# family backlog; refer to
+  [RoslynCodeActionsAudit.md](./RoslynCodeActionsAudit.md) for the final
+  classification rationale.
 
 ## Provider Rule
 

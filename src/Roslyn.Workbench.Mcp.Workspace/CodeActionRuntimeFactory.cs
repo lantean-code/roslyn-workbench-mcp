@@ -51,6 +51,8 @@ public static class CodeActionRuntimeFactory
             {
                 CodeActionService = new MefCodeActionService(hostServices, refactorings, codeFixes, options.TokenLifetime),
                 WorkspaceHostServices = hostServices,
+                RefactoringProviders = refactorings,
+                CodeFixProviders = codeFixes,
             };
         }
         catch (Exception exception)
@@ -113,6 +115,8 @@ public static class CodeActionRuntimeFactory
         {
             CodeActionService = new UnavailableCodeActionService(message),
             WorkspaceHostServices = null,
+            RefactoringProviders = [],
+            CodeFixProviders = [],
         };
     }
 

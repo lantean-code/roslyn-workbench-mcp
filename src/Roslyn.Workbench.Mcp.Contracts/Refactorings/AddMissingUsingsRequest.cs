@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Refactorings;
 /// <summary>
 /// Requests addition of missing using directives across a selected scope.
 /// </summary>
-public sealed record AddMissingUsingsRequest
+public sealed record AddMissingUsingsRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the scope to clean.

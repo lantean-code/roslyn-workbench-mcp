@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.CodeActions;
 /// <summary>
 /// Represents a request to list applicable code actions at a location.
 /// </summary>
-public sealed record ListCodeActionsRequest
+public sealed record ListCodeActionsRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the target location.

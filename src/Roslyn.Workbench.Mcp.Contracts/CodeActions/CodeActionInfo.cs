@@ -6,6 +6,11 @@ namespace Roslyn.Workbench.Mcp.Contracts.CodeActions;
 public sealed record CodeActionInfo
 {
     /// <summary>
+    /// Gets the workspace identifier for which the action is valid.
+    /// </summary>
+    public string? WorkspaceId { get; init; }
+
+    /// <summary>
     /// Gets the opaque action token.
     /// </summary>
     public string ActionId { get; init; } = string.Empty;

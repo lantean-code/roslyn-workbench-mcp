@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
 /// <summary>
 /// Represents a request to find overloads for a resolved callable symbol.
 /// </summary>
-public sealed record FindOverloadsRequest
+public sealed record FindOverloadsRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the symbol selector.

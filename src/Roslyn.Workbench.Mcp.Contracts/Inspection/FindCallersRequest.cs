@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
 /// <summary>
 /// Represents a request to find callers for a resolved symbol.
 /// </summary>
-public sealed record FindCallersRequest
+public sealed record FindCallersRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the symbol selector.

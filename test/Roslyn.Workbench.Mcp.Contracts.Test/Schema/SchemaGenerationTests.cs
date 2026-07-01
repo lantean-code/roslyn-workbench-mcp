@@ -5,6 +5,11 @@ using AwesomeAssertions;
 
 using ModelContextProtocol.Server;
 
+using Roslyn.Workbench.Mcp.Contracts.CodeActions;
+using Roslyn.Workbench.Mcp.Contracts.Inspection;
+using Roslyn.Workbench.Mcp.Contracts.Refactorings;
+using Roslyn.Workbench.Mcp.Contracts.Transactions;
+
 using Xunit;
 
 namespace Roslyn.Workbench.Mcp.Contracts.Test.Schema;
@@ -22,7 +27,49 @@ public sealed class SchemaGenerationTests
         var requestProperties = requestProperty.GetProperty("properties");
 
         requestProperties.TryGetProperty("path", out var pathProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("alias", out var aliasProperty).Should().BeTrue();
         pathProperty.GetProperty("type").GetString().Should().Be("string");
+        aliasProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+    }
+
+    [Fact]
+    public void GIVEN_WorkspaceStatusRequest_WHEN_GeneratingToolSchema_THEN_ShouldPublishWorkspaceSelectorProperty()
+    {
+        var method = typeof(ContractSchemaTestTools).GetMethod(nameof(ContractSchemaTestTools.WorkspaceStatus), BindingFlags.Public | BindingFlags.Static);
+
+        var tool = McpServerTool.Create(method!);
+        var requestProperties = tool.ProtocolTool.InputSchema.GetProperty("properties").GetProperty("request").GetProperty("properties");
+
+        requestProperties.TryGetProperty("workspace", out var workspaceProperty).Should().BeTrue();
+        workspaceProperty.GetRawText().Should().Contain("workspaceId");
+        workspaceProperty.GetRawText().Should().Contain("alias");
+        workspaceProperty.GetRawText().Should().Contain("path");
+    }
+
+    [Fact]
+    public void GIVEN_TransactionStartRequest_WHEN_GeneratingToolSchema_THEN_ShouldPublishWorkspaceSelectorProperty()
+    {
+        var method = typeof(ContractSchemaTestTools).GetMethod(nameof(ContractSchemaTestTools.TransactionStart), BindingFlags.Public | BindingFlags.Static);
+
+        var tool = McpServerTool.Create(method!);
+        var requestProperties = tool.ProtocolTool.InputSchema.GetProperty("properties").GetProperty("request").GetProperty("properties");
+
+        requestProperties.TryGetProperty("workspace", out var workspaceProperty).Should().BeTrue();
+        workspaceProperty.GetRawText().Should().Contain("workspaceId");
+        workspaceProperty.GetRawText().Should().Contain("alias");
+        workspaceProperty.GetRawText().Should().Contain("path");
+    }
+
+    [Fact]
+    public void GIVEN_WorkspaceListRequest_WHEN_GeneratingToolSchema_THEN_ShouldPublishStructuredWorkspaceCollectionOutput()
+    {
+        var method = typeof(ContractSchemaTestTools).GetMethod(nameof(ContractSchemaTestTools.WorkspaceList), BindingFlags.Public | BindingFlags.Static);
+
+        var tool = McpServerTool.Create(method!);
+        var outputSchema = tool.ProtocolTool.OutputSchema!.Value;
+
+        outputSchema.GetRawText().Should().Contain("workspaces");
+        outputSchema.GetRawText().Should().Contain("transactionOwnerWorkspaceId");
     }
 
     [Fact]
@@ -75,11 +122,13 @@ public sealed class SchemaGenerationTests
 
         queryProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
         metadataNameProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        requestProperties.TryGetProperty("workspace", out var workspaceProperty).Should().BeTrue();
         scopeProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
         kindsProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
         accessibilitiesProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
         @namespaceProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
         limitProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        workspaceProperty.GetRawText().Should().Contain("workspaceId");
     }
 
     [Fact]
@@ -92,9 +141,11 @@ public sealed class SchemaGenerationTests
 
         requestProperties.TryGetProperty("location", out var locationProperty).Should().BeTrue();
         requestProperties.TryGetProperty("expectedSnapshot", out var snapshotProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("workspace", out var workspaceProperty).Should().BeTrue();
 
         locationProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
         snapshotProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        workspaceProperty.GetRawText().Should().Contain("workspaceId");
     }
 
     [Fact]
@@ -122,6 +173,7 @@ public sealed class SchemaGenerationTests
 
         requestProperties.TryGetProperty("location", out var locationProperty).Should().BeTrue();
         requestProperties.TryGetProperty("expectedSnapshot", out var snapshotProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("workspace", out var workspaceProperty).Should().BeTrue();
         requestProperties.TryGetProperty("includeRefactorings", out var refactoringsProperty).Should().BeTrue();
         requestProperties.TryGetProperty("includeCodeFixes", out var codeFixesProperty).Should().BeTrue();
         requestProperties.TryGetProperty("diagnosticIds", out var diagnosticIdsProperty).Should().BeTrue();
@@ -129,6 +181,7 @@ public sealed class SchemaGenerationTests
 
         locationProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
         snapshotProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        workspaceProperty.GetRawText().Should().Contain("workspaceId");
         refactoringsProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
         codeFixesProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
         diagnosticIdsProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
@@ -244,6 +297,27 @@ public sealed class SchemaGenerationTests
         snapshotProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
         outputSchema.GetRawText().Should().Contain("transaction");
         outputSchema.GetRawText().Should().Contain("preview");
+    }
+
+    [Fact]
+    public void GIVEN_WorkspaceExecutedRequestContracts_WHEN_InspectingRequestTypes_THEN_ShouldExposeWorkspaceSelectorProperty()
+    {
+        var requestTypes =
+            typeof(SearchSymbolsRequest).Assembly.GetTypes()
+                .Where(static type => type.IsPublic && type.IsClass)
+                .Where(static type => type.Name.EndsWith("Request", StringComparison.Ordinal))
+                .Where(static type =>
+                    type.Namespace is "Roslyn.Workbench.Mcp.Contracts.Inspection"
+                    or "Roslyn.Workbench.Mcp.Contracts.CodeActions"
+                    or "Roslyn.Workbench.Mcp.Contracts.Refactorings"
+                    or "Roslyn.Workbench.Mcp.Contracts.Transactions")
+                .ToArray();
+
+        requestTypes.Should().NotBeEmpty();
+        requestTypes
+            .Select(static type => type.GetProperty("Workspace"))
+            .Should()
+            .OnlyContain(static property => property != null);
     }
 
     [Fact]

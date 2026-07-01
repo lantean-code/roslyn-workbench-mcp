@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.CodeActions;
 /// <summary>
 /// Requests a descriptor and preflight context for one discovered code action.
 /// </summary>
-public sealed record DescribeCodeActionRequest
+public sealed record DescribeCodeActionRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the opaque action token to describe.

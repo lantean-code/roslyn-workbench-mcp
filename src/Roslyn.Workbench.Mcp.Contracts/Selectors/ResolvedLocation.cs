@@ -6,6 +6,11 @@ namespace Roslyn.Workbench.Mcp.Contracts.Selectors;
 public sealed record ResolvedLocation
 {
     /// <summary>
+    /// Gets the workspace identifier associated with this location.
+    /// </summary>
+    public string? WorkspaceId { get; init; }
+
+    /// <summary>
     /// Gets the resolved document.
     /// </summary>
     public DocumentReference? Document { get; init; }

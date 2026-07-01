@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Refactorings;
 /// <summary>
 /// Requests one supported anonymous-type-to-named-type refactoring through Roslyn refactoring composition.
 /// </summary>
-public sealed record ConvertAnonymousTypeToClassRequest
+public sealed record ConvertAnonymousTypeToClassRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the selected anonymous object creation to rewrite.

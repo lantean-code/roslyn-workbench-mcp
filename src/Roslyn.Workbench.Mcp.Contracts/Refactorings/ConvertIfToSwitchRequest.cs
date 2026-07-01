@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Refactorings;
 /// <summary>
 /// Requests conversion of a supported if-chain to a switch form through Roslyn refactoring composition.
 /// </summary>
-public sealed record ConvertIfToSwitchRequest
+public sealed record ConvertIfToSwitchRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the selected if-chain to convert.

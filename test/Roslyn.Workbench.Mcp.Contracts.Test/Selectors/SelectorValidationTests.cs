@@ -58,6 +58,29 @@ public sealed class SelectorValidationTests
     }
 
     [Fact]
+    public void GIVEN_WorkspaceSelectorWithoutAnySelector_WHEN_Validated_THEN_ShouldReturnValidationError()
+    {
+        var selector = new WorkspaceSelector();
+
+        var errors = ContractValidator.Validate(selector);
+
+        errors.Should().ContainSingle(error => error.Contains("at least one"));
+    }
+
+    [Fact]
+    public void GIVEN_WorkspaceSelectorWithWorkspaceId_WHEN_Validated_THEN_ShouldReturnNoValidationErrors()
+    {
+        var selector = new WorkspaceSelector
+        {
+            WorkspaceId = "WorkspaceId",
+        };
+
+        var errors = ContractValidator.Validate(selector);
+
+        errors.Should().BeEmpty();
+    }
+
+    [Fact]
     public void GIVEN_LocationSelectorWithBothVariants_WHEN_Validated_THEN_ShouldReturnValidationError()
     {
         var selector = new LocationSelector

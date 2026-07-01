@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
 /// <summary>
 /// Represents a request to retrieve a control-flow graph for a symbol or location.
 /// </summary>
-public sealed record GetControlFlowGraphRequest
+public sealed record GetControlFlowGraphRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the optional symbol selector.

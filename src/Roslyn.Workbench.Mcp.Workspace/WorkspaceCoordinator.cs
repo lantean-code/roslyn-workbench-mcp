@@ -1,11 +1,11 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.MSBuild;
+
 using Roslyn.Workbench.Mcp.Contracts.Results;
 using Roslyn.Workbench.Mcp.Contracts.Selectors;
 using Roslyn.Workbench.Mcp.Contracts.Server;
 using Roslyn.Workbench.Mcp.Contracts.Transactions;
 using Roslyn.Workbench.Mcp.Plugins;
-using Stateless;
 
 namespace Roslyn.Workbench.Mcp.Workspace;
 
@@ -17,9 +17,14 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
     private const string _workspaceNotSupportedCode = "WorkspaceNotSupported";
     private const string _workspaceOutOfDateCode = "WorkspaceOutOfDate";
     private const string _workspaceLoadFailedCode = "WorkspaceLoadFailed";
+    private const string _workspaceSelectorRequiredCode = "WorkspaceSelectorRequired";
+    private const string _workspaceSelectorNotFoundCode = "WorkspaceSelectorNotFound";
+    private const string _workspaceSelectorMismatchCode = "WorkspaceSelectorMismatch";
+    private const string _workspaceCapacityCode = "WorkspaceCapacityReached";
     private const string _transactionRequiredCode = "NoActiveTransaction";
     private const string _transactionAlreadyActiveCode = "TransactionAlreadyActive";
     private const string _transactionConflictedCode = "TransactionConflicted";
+    private const string _transactionOwnerCode = "TransactionOwnedByWorkspace";
     private const string _transactionHistoryUnavailableCode = "TransactionHistoryUnavailable";
     private const string _transactionCapacityCode = "RevisionCapacityReached";
     private const string _transactionSnapshotMismatchCode = "SnapshotMismatch";
@@ -27,158 +32,101 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
     private readonly Lock _syncRoot;
     private readonly WorkspaceCoordinatorOptions _options;
     private readonly ICodeActionService _codeActionService;
-    private readonly WorkspaceOperationGate _operationGate;
-    private readonly StateMachine<WorkspaceLifecycleState, WorkspaceTrigger> _stateMachine;
-    private WorkspaceSnapshot _snapshot;
+    private WorkspaceHostSnapshot _snapshot;
     private long _nextWorkspaceEpoch;
+    private long _nextWorkspaceId;
 
     public WorkspaceCoordinator(WorkspaceCoordinatorOptions options)
     {
         _options = options;
         _codeActionService = options.CodeActionService ?? new UnavailableCodeActionService();
         _syncRoot = new Lock();
-        _operationGate = new WorkspaceOperationGate(options.MaxConcurrentQueries);
-        _snapshot = new WorkspaceSnapshot
-        {
-            State = WorkspaceLifecycleState.Unloaded,
-        };
-        _nextWorkspaceEpoch = 1;
-        _stateMachine = WorkspaceStateMachine.Create(
-            () => _snapshot.State,
-            value => _snapshot = _snapshot with { State = value });
+        _snapshot = new WorkspaceHostSnapshot();
+        _nextWorkspaceEpoch = 0;
+        _nextWorkspaceId = 0;
     }
 
-    public ValueTask<ToolExecutionContextLease<IMutationContext>> CreateMutationContextAsync(RegisteredTool tool, CancellationToken cancellationToken)
+    public ValueTask<ToolExecutionContextLease<IMutationContext>> CreateMutationContextAsync(RegisteredTool tool, object request, CancellationToken cancellationToken)
     {
         _ = tool;
+        ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var lease = _operationGate.TryAcquireExclusive();
-        if (lease is null)
+        var hostSnapshot = ReadSnapshot();
+        var selectionError = TryResolveWorkspaceSelection(hostSnapshot, GetWorkspaceSelector(request), out var selection);
+        if (selectionError is not null)
         {
-            return ValueTask.FromResult(ToolExecutionContextLease<IMutationContext>.Rejected(CreateBusyResult()));
+            return ValueTask.FromResult(ToolExecutionContextLease<IMutationContext>.Rejected(selectionError));
         }
 
-        var snapshot = ReadSnapshot();
-        var rejection = ValidateMutationSnapshot(snapshot, cancellationToken);
+        var lease = selection!.Session.OperationGate.TryAcquireExclusive();
+        if (lease is null)
+        {
+            return ValueTask.FromResult(ToolExecutionContextLease<IMutationContext>.Rejected(CreateBusyResult(selection.Session)));
+        }
+
+        var session = ReadSession(selection.WorkspaceId);
+        if (session is null)
+        {
+            return ValueTask.FromResult(ToolExecutionContextLease<IMutationContext>.Rejected(CreateWorkspaceRequiredResult(), lease: lease));
+        }
+
+        var rejection = ValidateMutationSession(selection.WorkspaceId, session, cancellationToken);
         if (rejection is not null)
         {
-            return ValueTask.FromResult(ToolExecutionContextLease<IMutationContext>.Rejected(rejection, CreateMutationContext(snapshot), lease));
+            return ValueTask.FromResult(ToolExecutionContextLease<IMutationContext>.Rejected(rejection, CreateMutationContext(session), lease));
         }
 
-        var context = CreateMutationContext(snapshot);
-        return ValueTask.FromResult(ToolExecutionContextLease<IMutationContext>.Acquired(context, lease));
+        return ValueTask.FromResult(ToolExecutionContextLease<IMutationContext>.Acquired(CreateMutationContext(session), lease));
     }
 
-    public ValueTask<ToolExecutionContextLease<IQueryContext>> CreateQueryContextAsync(RegisteredTool tool, CancellationToken cancellationToken)
+    public ValueTask<ToolExecutionContextLease<IQueryContext>> CreateQueryContextAsync(RegisteredTool tool, object request, CancellationToken cancellationToken)
     {
         _ = tool;
+        ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var lease = _operationGate.TryAcquireShared();
-        if (lease is null)
+        var hostSnapshot = ReadSnapshot();
+        var selectionError = TryResolveWorkspaceSelection(hostSnapshot, GetWorkspaceSelector(request), out var selection);
+        if (selectionError is not null)
         {
-            return ValueTask.FromResult(ToolExecutionContextLease<IQueryContext>.Rejected(CreateBusyResult()));
+            return ValueTask.FromResult(ToolExecutionContextLease<IQueryContext>.Rejected(selectionError));
         }
 
-        var snapshot = ReadSnapshot();
-        if (snapshot.State == WorkspaceLifecycleState.Unloaded)
+        var lease = selection!.Session.OperationGate.TryAcquireShared();
+        if (lease is null)
+        {
+            return ValueTask.FromResult(ToolExecutionContextLease<IQueryContext>.Rejected(CreateBusyResult(selection.Session)));
+        }
+
+        var session = ReadSession(selection.WorkspaceId);
+        if (session is null)
         {
             return ValueTask.FromResult(ToolExecutionContextLease<IQueryContext>.Rejected(CreateWorkspaceRequiredResult(), lease: lease));
         }
 
-        if (snapshot.State is WorkspaceLifecycleState.Ready or WorkspaceLifecycleState.TransactionActive && HasExternalChange(snapshot, cancellationToken))
+        if (session.State is WorkspaceLifecycleState.Ready or WorkspaceLifecycleState.TransactionActive && HasExternalChange(session, cancellationToken))
         {
-            MarkExternalChangeDetected();
-            snapshot = ReadSnapshot();
+            MarkExternalChangeDetected(selection.WorkspaceId);
+            session = ReadSession(selection.WorkspaceId);
         }
 
-        if (snapshot.State == WorkspaceLifecycleState.WorkspaceOutOfDate)
+        if (session is null)
         {
-            return ValueTask.FromResult(ToolExecutionContextLease<IQueryContext>.Rejected(
-                CreateWorkspaceOutOfDateResult(snapshot.Workspace?.WorkspaceEpoch),
-                CreateQueryContext(snapshot),
-                lease));
+            return ValueTask.FromResult(ToolExecutionContextLease<IQueryContext>.Rejected(CreateWorkspaceRequiredResult(), lease: lease));
         }
 
-        if (snapshot.State == WorkspaceLifecycleState.TransactionConflicted)
+        if (session.State == WorkspaceLifecycleState.WorkspaceOutOfDate)
         {
-            return ValueTask.FromResult(ToolExecutionContextLease<IQueryContext>.Rejected(
-                CreateTransactionConflictedResult(snapshot),
-                CreateQueryContext(snapshot),
-                lease));
+            return ValueTask.FromResult(ToolExecutionContextLease<IQueryContext>.Rejected(CreateWorkspaceOutOfDateResult(session), CreateQueryContext(session), lease));
         }
 
-        return ValueTask.FromResult(ToolExecutionContextLease<IQueryContext>.Acquired(CreateQueryContext(snapshot), lease));
-    }
-
-    public async ValueTask<ToolResult<WorkspaceCloseData>> CloseAsync(CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        var lease = _operationGate.TryAcquireExclusive();
-        if (lease is null)
+        if (session.State == WorkspaceLifecycleState.TransactionConflicted)
         {
-            return CreateRejectedCloseResult(CreateBusyResult());
+            return ValueTask.FromResult(ToolExecutionContextLease<IQueryContext>.Rejected(CreateTransactionConflictedResult(session), CreateQueryContext(session), lease));
         }
 
-        await using var leaseScope = lease;
-        var snapshot = ReadSnapshot();
-
-        if (snapshot.State == WorkspaceLifecycleState.Unloaded || snapshot.Workspace is null)
-        {
-            return CreateRejectedCloseResult(CreateWorkspaceRequiredResult());
-        }
-
-        if (snapshot.State is WorkspaceLifecycleState.TransactionActive or WorkspaceLifecycleState.TransactionConflicted)
-        {
-            return CreateRejectedCloseResult(CreateCommitOrRollbackRequiredResult(snapshot));
-        }
-
-        cancellationToken.ThrowIfCancellationRequested();
-
-        lock (_syncRoot)
-        {
-            snapshot.LoadedWorkspace?.Dispose();
-            _stateMachine.Fire(WorkspaceTrigger.CloseSucceeded);
-            _snapshot = new WorkspaceSnapshot
-            {
-                State = WorkspaceLifecycleState.Unloaded,
-            };
-        }
-
-        return ToolResult<WorkspaceCloseData>.Succeeded(new WorkspaceCloseData
-        {
-            ClosedPath = snapshot.Workspace.LoadedPath,
-        });
-    }
-
-    public async ValueTask<ToolResult<WorkspaceStatusData>> GetStatusAsync(CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        var lease = _operationGate.TryAcquireShared();
-        if (lease is null)
-        {
-            return ToolResult<WorkspaceStatusData>.Rejected(
-                CreateError(_workspaceBusyCode, "The workspace is busy."),
-                RequiredAction.Retry,
-                workspaceEpoch: ReadSnapshot().Workspace?.WorkspaceEpoch);
-        }
-
-        await using var leaseScope = lease;
-        var snapshot = ReadSnapshot();
-
-        if (snapshot.State is WorkspaceLifecycleState.Ready or WorkspaceLifecycleState.TransactionActive && HasExternalChange(snapshot, cancellationToken))
-        {
-            MarkExternalChangeDetected();
-            snapshot = ReadSnapshot();
-        }
-
-        return ToolResult<WorkspaceStatusData>.Succeeded(
-            CreateStatusData(snapshot),
-            workspaceEpoch: snapshot.Workspace?.WorkspaceEpoch,
-            transactionRevision: snapshot.Transaction?.CurrentRevision);
+        return ValueTask.FromResult(ToolExecutionContextLease<IQueryContext>.Acquired(CreateQueryContext(session), lease));
     }
 
     public async ValueTask<ToolResult<WorkspaceOpenData>> OpenAsync(WorkspaceOpenRequest request, CancellationToken cancellationToken)
@@ -186,26 +134,24 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
         ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var lease = _operationGate.TryAcquireExclusive();
-        if (lease is null)
-        {
-            return ToolResult<WorkspaceOpenData>.Rejected(CreateError(_workspaceBusyCode, "The workspace is busy."), RequiredAction.Retry);
-        }
-
-        await using var _ = lease.ConfigureAwait(false);
-
-        var currentSnapshot = ReadSnapshot();
-        if (currentSnapshot.State != WorkspaceLifecycleState.Unloaded)
-        {
-            return ToolResult<WorkspaceOpenData>.Rejected(
-                CreateError(_workspaceAlreadyOpenCode, "A workspace is already open."),
-                workspaceEpoch: currentSnapshot.Workspace?.WorkspaceEpoch);
-        }
-
         var normalizedPath = NormalizeOpenPath(request.Path);
         if (normalizedPath is null)
         {
             return ToolResult<WorkspaceOpenData>.Rejected(CreateError("WorkspacePathInvalid", "Workspace paths must be absolute .sln, .slnx, or .csproj files."));
+        }
+
+        var alias = NormalizeAlias(request.Alias);
+        var preflightHostSnapshot = ReadSnapshot();
+        var capacityError = ValidateOpenCapacity(preflightHostSnapshot);
+        if (capacityError is not null)
+        {
+            return CreateToolResult<WorkspaceOpenData>(capacityError);
+        }
+
+        var uniquenessError = ValidateOpenUniqueness(preflightHostSnapshot, normalizedPath, alias);
+        if (uniquenessError is not null)
+        {
+            return CreateToolResult<WorkspaceOpenData>(uniquenessError);
         }
 
         if (CommitRecoveryStore.GetStatuses(_options.StateDirectory).Any(status =>
@@ -241,10 +187,17 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
                 diagnostics: loadedWorkspace.Diagnostics);
         }
 
-        var epoch = Interlocked.Increment(ref _nextWorkspaceEpoch);
-        var snapshot = CreateSnapshot(loadedWorkspace.Workspace, loadedWorkspace.Solution, normalizedPath, epoch, loadedWorkspace.Diagnostics);
+        var session = CreateSessionSnapshot(
+            AllocateWorkspaceId(),
+            alias,
+            loadedWorkspace.Workspace,
+            loadedWorkspace.Solution,
+            normalizedPath,
+            Interlocked.Increment(ref _nextWorkspaceEpoch),
+            loadedWorkspace.Diagnostics,
+            operationGate: null);
 
-        foreach (var project in snapshot.LoadedWorkspace!.CurrentSolution.Projects
+        foreach (var project in session.LoadedWorkspace!.CurrentSolution.Projects
                      .Where(static project => string.Equals(project.Language, LanguageNames.CSharp, StringComparison.Ordinal))
                      .Where(static project => !string.IsNullOrWhiteSpace(project.FilePath)))
         {
@@ -253,7 +206,7 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
             var projectCompatibility = InspectProjectCompatibility(project.FilePath!);
             if (projectCompatibility.Diagnostics.Count > 0)
             {
-                snapshot.LoadedWorkspace.Dispose();
+                session.LoadedWorkspace.Dispose();
                 return ToolResult<WorkspaceOpenData>.Rejected(
                     CreateError(_workspaceLoadFailedCode, "The workspace could not be loaded."),
                     diagnostics: projectCompatibility.Diagnostics);
@@ -261,70 +214,213 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
 
             if (!projectCompatibility.IsSdkStyle)
             {
-                snapshot.LoadedWorkspace.Dispose();
+                session.LoadedWorkspace.Dispose();
                 return ToolResult<WorkspaceOpenData>.Rejected(CreateError(_workspaceNotSupportedCode, "Only SDK-style C# projects are supported."));
             }
         }
 
         lock (_syncRoot)
         {
-            _snapshot = _snapshot with { State = WorkspaceLifecycleState.Unloaded };
-            _snapshot = snapshot with { State = WorkspaceLifecycleState.Unloaded };
-            _stateMachine.Fire(WorkspaceTrigger.OpenSucceeded);
+            var latestSnapshot = _snapshot;
+            var latestCapacityError = ValidateOpenCapacity(latestSnapshot);
+            var latestUniquenessError = ValidateOpenUniqueness(latestSnapshot, normalizedPath, alias);
+            if (latestCapacityError is not null || latestUniquenessError is not null)
+            {
+                session.LoadedWorkspace.Dispose();
+                return CreateToolResult<WorkspaceOpenData>(latestCapacityError ?? latestUniquenessError!);
+            }
+
+            var workspaces = new Dictionary<string, WorkspaceSessionSnapshot>(latestSnapshot.Workspaces, StringComparer.Ordinal)
+            {
+                [session.Workspace.WorkspaceId] = session,
+            };
+            _snapshot = latestSnapshot with
+            {
+                Workspaces = workspaces,
+            };
         }
 
         return ToolResult<WorkspaceOpenData>.Succeeded(
             new WorkspaceOpenData
             {
-                Workspace = snapshot.Workspace,
-                ProjectCount = snapshot.ProjectCount ?? 0,
-                DocumentCount = snapshot.DocumentCount ?? 0,
-                LoadDiagnostics = snapshot.LoadDiagnostics,
+                Workspace = session.Workspace,
+                ProjectCount = session.ProjectCount,
+                DocumentCount = session.DocumentCount,
+                LoadDiagnostics = session.LoadDiagnostics,
             },
-            workspaceEpoch: snapshot.Workspace?.WorkspaceEpoch);
+            workspaceId: session.Workspace.WorkspaceId,
+            workspaceEpoch: session.Workspace.WorkspaceEpoch);
     }
 
-    public async ValueTask<ToolResult<WorkspaceReloadData>> ReloadAsync(CancellationToken cancellationToken)
+    public ValueTask<ToolResult<WorkspaceListData>> ListAsync(WorkspaceListRequest request, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var lease = _operationGate.TryAcquireExclusive();
+        var snapshot = ReadSnapshot();
+        return ValueTask.FromResult(ToolResult<WorkspaceListData>.Succeeded(
+            new WorkspaceListData
+            {
+                Workspaces = snapshot.Workspaces.Values
+                    .OrderBy(static session => session.Workspace.WorkspaceId, StringComparer.Ordinal)
+                    .Select(static session => session.Workspace)
+                    .ToArray(),
+                TransactionOwnerWorkspaceId = snapshot.TransactionOwnerWorkspaceId,
+            }));
+    }
+
+    public async ValueTask<ToolResult<WorkspaceCloseData>> CloseAsync(WorkspaceCloseRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var selectionError = TryResolveWorkspaceSelection(ReadSnapshot(), request.Workspace, out var selection);
+        if (selectionError is not null)
+        {
+            return CreateToolResult<WorkspaceCloseData>(selectionError);
+        }
+
+        var lease = selection!.Session.OperationGate.TryAcquireExclusive();
         if (lease is null)
         {
-            return ToolResult<WorkspaceReloadData>.Rejected(CreateError(_workspaceBusyCode, "The workspace is busy."), RequiredAction.Retry);
+            return CreateToolResult<WorkspaceCloseData>(CreateBusyResult(selection.Session), selection.Session);
         }
 
         await using var leaseScope = lease;
-        var currentSnapshot = ReadSnapshot();
-        if (currentSnapshot.Workspace is null)
+        var session = ReadSession(selection.WorkspaceId);
+        if (session is null)
         {
-            return ToolResult<WorkspaceReloadData>.Rejected(CreateWorkspaceRequiredError(), RequiredAction.OpenWorkspace);
+            return CreateToolResult<WorkspaceCloseData>(CreateWorkspaceRequiredResult());
         }
 
-        if (currentSnapshot.State is WorkspaceLifecycleState.TransactionActive or WorkspaceLifecycleState.TransactionConflicted)
+        if (session.State is WorkspaceLifecycleState.TransactionActive or WorkspaceLifecycleState.TransactionConflicted)
+        {
+            return CreateToolResult<WorkspaceCloseData>(CreateCommitOrRollbackRequiredResult(session), session);
+        }
+
+        lock (_syncRoot)
+        {
+            if (!_snapshot.Workspaces.TryGetValue(selection.WorkspaceId, out var currentSession))
+            {
+                return CreateToolResult<WorkspaceCloseData>(CreateWorkspaceRequiredResult());
+            }
+
+            var workspaces = new Dictionary<string, WorkspaceSessionSnapshot>(_snapshot.Workspaces, StringComparer.Ordinal);
+            workspaces.Remove(selection.WorkspaceId);
+            _snapshot = _snapshot with
+            {
+                Workspaces = workspaces,
+                TransactionOwnerWorkspaceId = string.Equals(_snapshot.TransactionOwnerWorkspaceId, selection.WorkspaceId, StringComparison.Ordinal)
+                    ? null
+                    : _snapshot.TransactionOwnerWorkspaceId,
+            };
+
+            currentSession.LoadedWorkspace?.Dispose();
+            session = currentSession;
+        }
+
+        return ToolResult<WorkspaceCloseData>.Succeeded(
+            new WorkspaceCloseData
+            {
+                ClosedPath = session.Workspace.LoadedPath,
+            },
+            workspaceId: session.Workspace.WorkspaceId,
+            workspaceEpoch: session.Workspace.WorkspaceEpoch);
+    }
+
+    public async ValueTask<ToolResult<WorkspaceStatusData>> GetStatusAsync(WorkspaceStatusRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var selectionError = TryResolveWorkspaceSelection(ReadSnapshot(), request.Workspace, out var selection);
+        if (selectionError is not null)
+        {
+            return CreateToolResult<WorkspaceStatusData>(selectionError);
+        }
+
+        var lease = selection!.Session.OperationGate.TryAcquireShared();
+        if (lease is null)
+        {
+            return CreateToolResult<WorkspaceStatusData>(CreateBusyResult(selection.Session), selection.Session);
+        }
+
+        await using var leaseScope = lease;
+        var session = ReadSession(selection.WorkspaceId);
+        if (session is null)
+        {
+            return CreateToolResult<WorkspaceStatusData>(CreateWorkspaceRequiredResult());
+        }
+
+        if (session.State is WorkspaceLifecycleState.Ready or WorkspaceLifecycleState.TransactionActive && HasExternalChange(session, cancellationToken))
+        {
+            MarkExternalChangeDetected(selection.WorkspaceId);
+            session = ReadSession(selection.WorkspaceId);
+        }
+
+        if (session is null)
+        {
+            return CreateToolResult<WorkspaceStatusData>(CreateWorkspaceRequiredResult());
+        }
+
+        return ToolResult<WorkspaceStatusData>.Succeeded(
+            CreateStatusData(session),
+            workspaceId: session.Workspace.WorkspaceId,
+            workspaceEpoch: session.Workspace.WorkspaceEpoch,
+            transactionRevision: session.Transaction?.CurrentRevision);
+    }
+
+    public async ValueTask<ToolResult<WorkspaceReloadData>> ReloadAsync(WorkspaceReloadRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var selectionError = TryResolveWorkspaceSelection(ReadSnapshot(), request.Workspace, out var selection);
+        if (selectionError is not null)
+        {
+            return CreateToolResult<WorkspaceReloadData>(selectionError);
+        }
+
+        var lease = selection!.Session.OperationGate.TryAcquireExclusive();
+        if (lease is null)
+        {
+            return CreateToolResult<WorkspaceReloadData>(CreateBusyResult(selection.Session), selection.Session);
+        }
+
+        await using var leaseScope = lease;
+        var currentSession = ReadSession(selection.WorkspaceId);
+        if (currentSession is null)
+        {
+            return CreateToolResult<WorkspaceReloadData>(CreateWorkspaceRequiredResult());
+        }
+
+        if (currentSession.State is WorkspaceLifecycleState.TransactionActive or WorkspaceLifecycleState.TransactionConflicted)
         {
             return ToolResult<WorkspaceReloadData>.Rejected(
                 CreateError("WorkspaceReloadBlocked", "Commit or roll back the active transaction before reloading."),
                 RequiredAction.CommitOrRollback,
-                workspaceEpoch: currentSnapshot.Workspace.WorkspaceEpoch,
-                transactionRevision: currentSnapshot.Transaction?.CurrentRevision);
+                workspaceId: currentSession.Workspace.WorkspaceId,
+                workspaceEpoch: currentSession.Workspace.WorkspaceEpoch,
+                transactionRevision: currentSession.Transaction?.CurrentRevision);
         }
 
-        if (currentSnapshot.State != WorkspaceLifecycleState.WorkspaceOutOfDate)
+        if (currentSession.State != WorkspaceLifecycleState.WorkspaceOutOfDate)
         {
             return ToolResult<WorkspaceReloadData>.Rejected(
                 CreateError("WorkspaceReloadNotRequired", "The workspace does not require reload."),
-                workspaceEpoch: currentSnapshot.Workspace.WorkspaceEpoch);
+                workspaceId: currentSession.Workspace.WorkspaceId,
+                workspaceEpoch: currentSession.Workspace.WorkspaceEpoch);
         }
 
-        if (string.Equals(Path.GetExtension(currentSnapshot.Workspace.LoadedPath), ".csproj", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(Path.GetExtension(currentSession.Workspace.LoadedPath), ".csproj", StringComparison.OrdinalIgnoreCase))
         {
-            var preflight = InspectProjectCompatibility(currentSnapshot.Workspace.LoadedPath);
+            var preflight = InspectProjectCompatibility(currentSession.Workspace.LoadedPath);
             if (preflight.Diagnostics.Count > 0)
             {
                 return ToolResult<WorkspaceReloadData>.Rejected(
                     CreateError(_workspaceLoadFailedCode, "The workspace could not be reloaded."),
-                    workspaceEpoch: currentSnapshot.Workspace.WorkspaceEpoch,
+                    workspaceId: currentSession.Workspace.WorkspaceId,
+                    workspaceEpoch: currentSession.Workspace.WorkspaceEpoch,
                     diagnostics: preflight.Diagnostics);
             }
 
@@ -332,38 +428,51 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
             {
                 return ToolResult<WorkspaceReloadData>.Rejected(
                     CreateError(_workspaceNotSupportedCode, "Only SDK-style C# projects are supported."),
-                    workspaceEpoch: currentSnapshot.Workspace.WorkspaceEpoch);
+                    workspaceId: currentSession.Workspace.WorkspaceId,
+                    workspaceEpoch: currentSession.Workspace.WorkspaceEpoch);
             }
         }
 
-        var loadedWorkspace = await LoadWorkspaceAsync(currentSnapshot.Workspace.LoadedPath, cancellationToken);
+        var loadedWorkspace = await LoadWorkspaceAsync(currentSession.Workspace.LoadedPath, cancellationToken);
         if (loadedWorkspace.Solution is null || loadedWorkspace.Workspace is null)
         {
             return ToolResult<WorkspaceReloadData>.Rejected(
                 CreateError(_workspaceLoadFailedCode, "The workspace could not be reloaded."),
-                workspaceEpoch: currentSnapshot.Workspace.WorkspaceEpoch,
+                workspaceId: currentSession.Workspace.WorkspaceId,
+                workspaceEpoch: currentSession.Workspace.WorkspaceEpoch,
                 diagnostics: loadedWorkspace.Diagnostics);
         }
 
-        var epoch = Interlocked.Increment(ref _nextWorkspaceEpoch);
-        var snapshot = CreateSnapshot(loadedWorkspace.Workspace, loadedWorkspace.Solution, currentSnapshot.Workspace.LoadedPath, epoch, loadedWorkspace.Diagnostics);
+        var reloadedSession = CreateSessionSnapshot(
+            currentSession.Workspace.WorkspaceId,
+            currentSession.Workspace.Alias,
+            loadedWorkspace.Workspace,
+            loadedWorkspace.Solution,
+            currentSession.Workspace.LoadedPath,
+            Interlocked.Increment(ref _nextWorkspaceEpoch),
+            loadedWorkspace.Diagnostics,
+            currentSession.OperationGate);
 
         lock (_syncRoot)
         {
-            currentSnapshot.LoadedWorkspace?.Dispose();
-            _snapshot = snapshot with { State = WorkspaceLifecycleState.WorkspaceOutOfDate };
-            _stateMachine.Fire(WorkspaceTrigger.ReloadSucceeded);
+            if (_snapshot.Workspaces.TryGetValue(selection.WorkspaceId, out var latestSession))
+            {
+                latestSession.LoadedWorkspace?.Dispose();
+            }
+
+            ReplaceSessionLocked(selection.WorkspaceId, reloadedSession);
         }
 
         return ToolResult<WorkspaceReloadData>.Succeeded(
             new WorkspaceReloadData
             {
-                Workspace = snapshot.Workspace,
-                ProjectCount = snapshot.ProjectCount ?? 0,
-                DocumentCount = snapshot.DocumentCount ?? 0,
-                LoadDiagnostics = snapshot.LoadDiagnostics,
+                Workspace = reloadedSession.Workspace,
+                ProjectCount = reloadedSession.ProjectCount,
+                DocumentCount = reloadedSession.DocumentCount,
+                LoadDiagnostics = reloadedSession.LoadDiagnostics,
             },
-            workspaceEpoch: snapshot.Workspace?.WorkspaceEpoch);
+            workspaceId: reloadedSession.Workspace.WorkspaceId,
+            workspaceEpoch: reloadedSession.Workspace.WorkspaceEpoch);
     }
 
     public async ValueTask<ToolResult<TransactionStartData>> StartTransactionAsync(TransactionStartRequest request, CancellationToken cancellationToken)
@@ -371,51 +480,76 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
         ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var lease = _operationGate.TryAcquireExclusive();
+        var selectionError = TryResolveWorkspaceSelection(ReadSnapshot(), request.Workspace, out var selection);
+        if (selectionError is not null)
+        {
+            return CreateToolResult<TransactionStartData>(selectionError);
+        }
+
+        var lease = selection!.Session.OperationGate.TryAcquireExclusive();
         if (lease is null)
         {
-            return ToolResult<TransactionStartData>.Rejected(CreateError(_workspaceBusyCode, "The workspace is busy."), RequiredAction.Retry);
+            return CreateToolResult<TransactionStartData>(CreateBusyResult(selection.Session), selection.Session);
         }
 
         await using var leaseScope = lease;
-        var snapshot = ReadSnapshot();
-        if (snapshot.State == WorkspaceLifecycleState.Unloaded || snapshot.Workspace is null || snapshot.CurrentSolution is null)
+        var session = ReadSession(selection.WorkspaceId);
+        if (session is null || session.CurrentSolution is null)
         {
-            return ToolResult<TransactionStartData>.Rejected(CreateWorkspaceRequiredError(), RequiredAction.OpenWorkspace);
+            return CreateToolResult<TransactionStartData>(CreateWorkspaceRequiredResult());
         }
 
-        if (snapshot.State == WorkspaceLifecycleState.WorkspaceOutOfDate)
+        if (session.State == WorkspaceLifecycleState.WorkspaceOutOfDate)
         {
             return ToolResult<TransactionStartData>.Conflict(
                 CreateError(_workspaceOutOfDateCode, "Reload the workspace before starting a transaction."),
                 RequiredAction.ReloadWorkspace,
-                workspaceEpoch: snapshot.Workspace.WorkspaceEpoch);
+                workspaceId: session.Workspace.WorkspaceId,
+                workspaceEpoch: session.Workspace.WorkspaceEpoch);
         }
 
-        if (snapshot.Transaction is not null)
+        var ownerWorkspaceId = ReadSnapshot().TransactionOwnerWorkspaceId;
+        if (!string.IsNullOrWhiteSpace(ownerWorkspaceId) && !string.Equals(ownerWorkspaceId, selection.WorkspaceId, StringComparison.Ordinal))
+        {
+            var ownerSession = ReadSession(ownerWorkspaceId);
+            return ToolResult<TransactionStartData>.Rejected(
+                CreateError(_transactionOwnerCode, $"Commit or roll back the transaction on workspace '{GetWorkspaceDisplayName(ownerSession)}' before starting a transaction on this workspace."),
+                RequiredAction.CommitOrRollback,
+                workspaceId: session.Workspace.WorkspaceId,
+                workspaceEpoch: session.Workspace.WorkspaceEpoch,
+                transactionRevision: session.Transaction?.CurrentRevision);
+        }
+
+        if (session.Transaction is not null)
         {
             return ToolResult<TransactionStartData>.Rejected(
                 CreateError(_transactionAlreadyActiveCode, "A transaction is already active."),
                 RequiredAction.CommitOrRollback,
-                workspaceEpoch: snapshot.Workspace.WorkspaceEpoch,
-                transactionRevision: snapshot.Transaction.CurrentRevision);
+                workspaceId: session.Workspace.WorkspaceId,
+                workspaceEpoch: session.Workspace.WorkspaceEpoch,
+                transactionRevision: session.Transaction.CurrentRevision);
         }
 
         var transaction = new WorkspaceTransaction
         {
-            BaselineSolution = snapshot.CurrentSolution,
+            BaselineSolution = session.CurrentSolution,
             CurrentRevision = 0,
             MaxRevisions = _options.MaxTransactionRevisions,
+        };
+        var updatedSession = session with
+        {
+            Transaction = transaction,
+            CurrentSolution = transaction.CurrentSolution,
+            State = WorkspaceStateMachine.Fire(session.State, WorkspaceTrigger.TransactionStarted),
         };
 
         lock (_syncRoot)
         {
+            ReplaceSessionLocked(selection.WorkspaceId, updatedSession);
             _snapshot = _snapshot with
             {
-                Transaction = transaction,
-                CurrentSolution = transaction.CurrentSolution,
+                TransactionOwnerWorkspaceId = selection.WorkspaceId,
             };
-            _stateMachine.Fire(WorkspaceTrigger.TransactionStarted);
         }
 
         return ToolResult<TransactionStartData>.Succeeded(
@@ -423,7 +557,8 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
             {
                 Transaction = transaction.ToInfo(conflicted: false),
             },
-            workspaceEpoch: snapshot.Workspace.WorkspaceEpoch,
+            workspaceId: updatedSession.Workspace.WorkspaceId,
+            workspaceEpoch: updatedSession.Workspace.WorkspaceEpoch,
             transactionRevision: transaction.CurrentRevision);
     }
 
@@ -432,26 +567,33 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
         ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var lease = _operationGate.TryAcquireShared();
+        var selectionError = TryResolveWorkspaceSelection(ReadSnapshot(), request.Workspace, out var selection);
+        if (selectionError is not null)
+        {
+            return CreateToolResult<TransactionPreviewData>(selectionError);
+        }
+
+        var lease = selection!.Session.OperationGate.TryAcquireShared();
         if (lease is null)
         {
-            return ToolResult<TransactionPreviewData>.Rejected(CreateError(_workspaceBusyCode, "The workspace is busy."), RequiredAction.Retry);
+            return CreateToolResult<TransactionPreviewData>(CreateBusyResult(selection.Session), selection.Session);
         }
 
         await using var leaseScope = lease;
-        var snapshot = ReadSnapshot();
-        if (snapshot.Transaction is null || snapshot.Workspace is null)
+        var session = ReadSession(selection.WorkspaceId);
+        if (session?.Transaction is null)
         {
             return ToolResult<TransactionPreviewData>.Rejected(
                 CreateError(_transactionRequiredCode, "Start a transaction before previewing changes."),
                 RequiredAction.StartTransaction,
-                workspaceEpoch: snapshot.Workspace?.WorkspaceEpoch);
+                workspaceId: session?.Workspace.WorkspaceId,
+                workspaceEpoch: session?.Workspace.WorkspaceEpoch);
         }
 
-        var resolver = new WorkspaceResolver(snapshot.Transaction.CurrentSolution, snapshot.Workspace, snapshot.Transaction.CurrentRevision);
+        var resolver = new WorkspaceResolver(session.Transaction.CurrentSolution, session.Workspace, session.Transaction.CurrentRevision);
         var changes = await WorkspaceDiffBuilder.CreateChangeSummaryAsync(
-            snapshot.Transaction.BaselineSolution,
-            snapshot.Transaction.CurrentSolution,
+            session.Transaction.BaselineSolution,
+            session.Transaction.CurrentSolution,
             resolver,
             cancellationToken);
         var documents = changes.Added.Concat(changes.Modified).Concat(changes.Deleted).ToArray();
@@ -466,8 +608,8 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
                 diff = reference is null
                     ? null
                     : await WorkspaceDiffBuilder.CreateDocumentDiffAsync(
-                        snapshot.Transaction.BaselineSolution,
-                        snapshot.Transaction.CurrentSolution,
+                        session.Transaction.BaselineSolution,
+                        session.Transaction.CurrentSolution,
                         reference,
                         resolver,
                         request.ContextLines,
@@ -478,12 +620,13 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
         return ToolResult<TransactionPreviewData>.Succeeded(
             new TransactionPreviewData
             {
-                Transaction = snapshot.Transaction.ToInfo(snapshot.State == WorkspaceLifecycleState.TransactionConflicted),
+                Transaction = session.Transaction.ToInfo(session.State == WorkspaceLifecycleState.TransactionConflicted),
                 Documents = documents,
                 Diff = diff,
             },
-            workspaceEpoch: snapshot.Workspace.WorkspaceEpoch,
-            transactionRevision: snapshot.Transaction.CurrentRevision);
+            workspaceId: session.Workspace.WorkspaceId,
+            workspaceEpoch: session.Workspace.WorkspaceEpoch,
+            transactionRevision: session.Transaction.CurrentRevision);
     }
 
     public async ValueTask<ToolResult<TransactionHistoryData>> MoveTransactionHistoryAsync(TransactionHistoryRequest request, CancellationToken cancellationToken)
@@ -491,37 +634,39 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
         ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var lease = _operationGate.TryAcquireExclusive();
+        var selectionError = TryResolveWorkspaceSelection(ReadSnapshot(), request.Workspace, out var selection);
+        if (selectionError is not null)
+        {
+            return CreateToolResult<TransactionHistoryData>(selectionError);
+        }
+
+        var lease = selection!.Session.OperationGate.TryAcquireExclusive();
         if (lease is null)
         {
-            return ToolResult<TransactionHistoryData>.Rejected(CreateError(_workspaceBusyCode, "The workspace is busy."), RequiredAction.Retry);
+            return CreateToolResult<TransactionHistoryData>(CreateBusyResult(selection.Session), selection.Session);
         }
 
         await using var leaseScope = lease;
-        var snapshot = ReadSnapshot();
-        var transaction = snapshot.Transaction;
-
-        if (snapshot.Workspace is null || transaction is null)
+        var session = ReadSession(selection.WorkspaceId);
+        var transaction = session?.Transaction;
+        if (session is null || transaction is null)
         {
             return ToolResult<TransactionHistoryData>.Rejected(CreateError(_transactionRequiredCode, "Start a transaction before moving history."), RequiredAction.StartTransaction);
         }
 
-        var snapshotMismatch = ValidateSnapshotPrecondition(snapshot, request.ExpectedSnapshot);
+        var snapshotMismatch = ValidateSnapshotPrecondition(session, request.ExpectedSnapshot);
         if (snapshotMismatch is not null)
         {
-            return ToolResult<TransactionHistoryData>.Conflict(
-                snapshotMismatch.Error!,
-                snapshotMismatch.RequiredAction,
-                workspaceEpoch: snapshot.Workspace.WorkspaceEpoch,
-                transactionRevision: transaction.CurrentRevision);
+            return CreateToolResult<TransactionHistoryData>(snapshotMismatch, session);
         }
 
-        if (snapshot.State == WorkspaceLifecycleState.TransactionConflicted)
+        if (session.State == WorkspaceLifecycleState.TransactionConflicted)
         {
             return ToolResult<TransactionHistoryData>.Conflict(
                 CreateError(_transactionConflictedCode, "Roll back the conflicted transaction before changing history."),
                 RequiredAction.RollbackTransaction,
-                workspaceEpoch: snapshot.Workspace.WorkspaceEpoch,
+                workspaceId: session.Workspace.WorkspaceId,
+                workspaceEpoch: session.Workspace.WorkspaceEpoch,
                 transactionRevision: transaction.CurrentRevision);
         }
 
@@ -536,7 +681,8 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
         {
             return ToolResult<TransactionHistoryData>.Rejected(
                 CreateError(_transactionHistoryUnavailableCode, "The requested transaction history move is unavailable."),
-                workspaceEpoch: snapshot.Workspace.WorkspaceEpoch,
+                workspaceId: session.Workspace.WorkspaceId,
+                workspaceEpoch: session.Workspace.WorkspaceEpoch,
                 transactionRevision: transaction.CurrentRevision);
         }
 
@@ -544,14 +690,15 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
         {
             CurrentRevision = nextRevision,
         };
+        var updatedSession = session with
+        {
+            Transaction = updatedTransaction,
+            CurrentSolution = updatedTransaction.CurrentSolution,
+        };
 
         lock (_syncRoot)
         {
-            _snapshot = _snapshot with
-            {
-                Transaction = updatedTransaction,
-                CurrentSolution = updatedTransaction.CurrentSolution,
-            };
+            ReplaceSessionLocked(selection.WorkspaceId, updatedSession);
         }
 
         return ToolResult<TransactionHistoryData>.Succeeded(
@@ -559,7 +706,8 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
             {
                 Transaction = updatedTransaction.ToInfo(conflicted: false),
             },
-            workspaceEpoch: snapshot.Workspace.WorkspaceEpoch,
+            workspaceId: updatedSession.Workspace.WorkspaceId,
+            workspaceEpoch: updatedSession.Workspace.WorkspaceEpoch,
             transactionRevision: updatedTransaction.CurrentRevision);
     }
 
@@ -568,44 +716,47 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
         ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var lease = _operationGate.TryAcquireExclusive();
+        var selectionError = TryResolveWorkspaceSelection(ReadSnapshot(), request.Workspace, out var selection);
+        if (selectionError is not null)
+        {
+            return CreateToolResult<TransactionCommitData>(selectionError);
+        }
+
+        var lease = selection!.Session.OperationGate.TryAcquireExclusive();
         if (lease is null)
         {
-            return ToolResult<TransactionCommitData>.Rejected(CreateError(_workspaceBusyCode, "The workspace is busy."), RequiredAction.Retry);
+            return CreateToolResult<TransactionCommitData>(CreateBusyResult(selection.Session), selection.Session);
         }
 
         await using var leaseScope = lease;
-        var snapshot = ReadSnapshot();
-        var transaction = snapshot.Transaction;
-
-        if (snapshot.Workspace is null || transaction is null)
+        var session = ReadSession(selection.WorkspaceId);
+        var transaction = session?.Transaction;
+        if (session is null || transaction is null)
         {
             return ToolResult<TransactionCommitData>.Rejected(CreateError(_transactionRequiredCode, "Start a transaction before committing changes."), RequiredAction.StartTransaction);
         }
 
-        var snapshotMismatch = ValidateSnapshotPrecondition(snapshot, request.ExpectedSnapshot);
+        var snapshotMismatch = ValidateSnapshotPrecondition(session, request.ExpectedSnapshot);
         if (snapshotMismatch is not null)
         {
-            return ToolResult<TransactionCommitData>.Conflict(
-                snapshotMismatch.Error!,
-                snapshotMismatch.RequiredAction,
-                workspaceEpoch: snapshot.Workspace.WorkspaceEpoch,
-                transactionRevision: transaction.CurrentRevision);
+            return CreateToolResult<TransactionCommitData>(snapshotMismatch, session);
         }
 
-        if (snapshot.State == WorkspaceLifecycleState.TransactionConflicted)
+        if (session.State == WorkspaceLifecycleState.TransactionConflicted)
         {
             return ToolResult<TransactionCommitData>.Conflict(
                 CreateError(_transactionConflictedCode, "Roll back the conflicted transaction before committing changes."),
                 RequiredAction.RollbackTransaction,
-                workspaceEpoch: snapshot.Workspace.WorkspaceEpoch,
+                workspaceId: session.Workspace.WorkspaceId,
+                workspaceEpoch: session.Workspace.WorkspaceEpoch,
                 transactionRevision: transaction.CurrentRevision);
         }
 
         if (transaction.CurrentRevision == 0)
         {
             return ToolResult<TransactionCommitData>.NoChange(
-                workspaceEpoch: snapshot.Workspace.WorkspaceEpoch,
+                workspaceId: session.Workspace.WorkspaceId,
+                workspaceEpoch: session.Workspace.WorkspaceEpoch,
                 transactionRevision: transaction.CurrentRevision,
                 data: new TransactionCommitData
                 {
@@ -614,16 +765,17 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
                 });
         }
 
-        if (HasExternalChange(snapshot, cancellationToken))
+        if (HasExternalChange(session, cancellationToken))
         {
-            MarkExternalChangeDetected();
-            snapshot = ReadSnapshot();
-            transaction = snapshot.Transaction!;
+            MarkExternalChangeDetected(selection.WorkspaceId);
+            session = ReadSession(selection.WorkspaceId);
+            transaction = session!.Transaction!;
 
             return ToolResult<TransactionCommitData>.Conflict(
                 CreateError(_transactionConflictedCode, "The transaction conflicted with external workspace changes."),
                 RequiredAction.RollbackTransaction,
-                workspaceEpoch: snapshot.Workspace!.WorkspaceEpoch,
+                workspaceId: session.Workspace.WorkspaceId,
+                workspaceEpoch: session.Workspace.WorkspaceEpoch,
                 transactionRevision: transaction.CurrentRevision);
         }
 
@@ -631,7 +783,7 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
         CommitRecoveryStore.WriteStatus(_options.StateDirectory, new RecoveryStatus
         {
             CommitId = commitId,
-            SolutionPath = snapshot.Workspace.LoadedPath,
+            SolutionPath = session.Workspace.LoadedPath,
             State = RecoveryState.Prepared,
         });
 
@@ -640,22 +792,31 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
             CommitRecoveryStore.WriteStatus(_options.StateDirectory, new RecoveryStatus
             {
                 CommitId = commitId,
-                SolutionPath = snapshot.Workspace.LoadedPath,
+                SolutionPath = session.Workspace.LoadedPath,
                 State = RecoveryState.Applying,
             });
 
             await ApplyCommittedSolutionAsync(transaction.BaselineSolution, transaction.CurrentSolution, cancellationToken);
-            TryApplyWorkspaceChanges(snapshot.LoadedWorkspace, transaction.CurrentSolution);
+            TryApplyWorkspaceChanges(session.LoadedWorkspace, transaction.CurrentSolution);
+
+            var committedSession = session with
+            {
+                Transaction = null,
+                CurrentSolution = transaction.CurrentSolution,
+                InputManifest = WorkspaceInputManifestBuilder.Build(transaction.CurrentSolution, session.Workspace.LoadedPath),
+                State = WorkspaceStateMachine.Fire(session.State, WorkspaceTrigger.TransactionCommitted),
+            };
 
             lock (_syncRoot)
             {
-                _snapshot = _snapshot with
+                ReplaceSessionLocked(selection.WorkspaceId, committedSession);
+                if (string.Equals(_snapshot.TransactionOwnerWorkspaceId, selection.WorkspaceId, StringComparison.Ordinal))
                 {
-                    Transaction = null,
-                    CurrentSolution = transaction.CurrentSolution,
-                    InputManifest = WorkspaceInputManifestBuilder.Build(transaction.CurrentSolution, snapshot.Workspace!.LoadedPath),
-                };
-                _stateMachine.Fire(WorkspaceTrigger.TransactionCommitted);
+                    _snapshot = _snapshot with
+                    {
+                        TransactionOwnerWorkspaceId = null,
+                    };
+                }
             }
 
             CommitRecoveryStore.DeleteStatus(_options.StateDirectory, commitId);
@@ -665,14 +826,15 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
                 {
                     Committed = true,
                 },
-                workspaceEpoch: snapshot.Workspace!.WorkspaceEpoch);
+                workspaceId: committedSession.Workspace.WorkspaceId,
+                workspaceEpoch: committedSession.Workspace.WorkspaceEpoch);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             CommitRecoveryStore.WriteStatus(_options.StateDirectory, new RecoveryStatus
             {
                 CommitId = commitId,
-                SolutionPath = snapshot.Workspace.LoadedPath,
+                SolutionPath = session.Workspace.LoadedPath,
                 State = RecoveryState.RecoveryIncomplete,
                 Message = exception.Message,
             });
@@ -680,7 +842,8 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
             return ToolResult<TransactionCommitData>.Faulted(
                 CreateError("CommitFailed", "The transaction commit could not be completed."),
                 RequiredAction.ResolveRecovery,
-                workspaceEpoch: snapshot.Workspace.WorkspaceEpoch,
+                workspaceId: session.Workspace.WorkspaceId,
+                workspaceEpoch: session.Workspace.WorkspaceEpoch,
                 transactionRevision: transaction.CurrentRevision);
         }
     }
@@ -690,35 +853,50 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
         ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var lease = _operationGate.TryAcquireExclusive();
+        var selectionError = TryResolveWorkspaceSelection(ReadSnapshot(), request.Workspace, out var selection);
+        if (selectionError is not null)
+        {
+            return CreateToolResult<TransactionRollbackData>(selectionError);
+        }
+
+        var lease = selection!.Session.OperationGate.TryAcquireExclusive();
         if (lease is null)
         {
-            return ToolResult<TransactionRollbackData>.Rejected(CreateError(_workspaceBusyCode, "The workspace is busy."), RequiredAction.Retry);
+            return CreateToolResult<TransactionRollbackData>(CreateBusyResult(selection.Session), selection.Session);
         }
 
         await using var leaseScope = lease;
-        var snapshot = ReadSnapshot();
-        var transaction = snapshot.Transaction;
-
-        if (snapshot.Workspace is null || transaction is null)
+        var session = ReadSession(selection.WorkspaceId);
+        var transaction = session?.Transaction;
+        if (session is null || transaction is null)
         {
             return ToolResult<TransactionRollbackData>.Rejected(CreateError(_transactionRequiredCode, "Start a transaction before rolling back changes."), RequiredAction.StartTransaction);
         }
 
-        var rollbackState = snapshot.State == WorkspaceLifecycleState.TransactionConflicted
+        var rollbackState = session.State == WorkspaceLifecycleState.TransactionConflicted
             ? TransactionRollbackState.WorkspaceOutOfDate
             : TransactionRollbackState.Ready;
+        var updatedSession = session with
+        {
+            Transaction = null,
+            CurrentSolution = transaction.BaselineSolution,
+            State = WorkspaceStateMachine.Fire(
+                session.State,
+                session.State == WorkspaceLifecycleState.TransactionConflicted
+                    ? WorkspaceTrigger.ConflictedRollbackCompleted
+                    : WorkspaceTrigger.TransactionRolledBack),
+        };
 
         lock (_syncRoot)
         {
-            _snapshot = _snapshot with
+            ReplaceSessionLocked(selection.WorkspaceId, updatedSession);
+            if (string.Equals(_snapshot.TransactionOwnerWorkspaceId, selection.WorkspaceId, StringComparison.Ordinal))
             {
-                Transaction = null,
-                CurrentSolution = transaction.BaselineSolution,
-            };
-            _stateMachine.Fire(snapshot.State == WorkspaceLifecycleState.TransactionConflicted
-                ? WorkspaceTrigger.ConflictedRollbackCompleted
-                : WorkspaceTrigger.TransactionRolledBack);
+                _snapshot = _snapshot with
+                {
+                    TransactionOwnerWorkspaceId = null,
+                };
+            }
         }
 
         return ToolResult<TransactionRollbackData>.Succeeded(
@@ -726,12 +904,8 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
             {
                 State = rollbackState,
             },
-            workspaceEpoch: snapshot.Workspace.WorkspaceEpoch);
-    }
-
-    private static ToolResult<WorkspaceCloseData> CreateRejectedCloseResult(PluginExecutionResultBox result)
-    {
-        return ToolResult<WorkspaceCloseData>.Rejected(result.Error!, result.RequiredAction);
+            workspaceId: updatedSession.Workspace.WorkspaceId,
+            workspaceEpoch: updatedSession.Workspace.WorkspaceEpoch);
     }
 
     private static ToolError CreateError(string code, string message)
@@ -755,13 +929,28 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
         return extension is ".sln" or ".slnx" or ".csproj" ? normalizedPath : null;
     }
 
-    private WorkspaceQueryContext CreateQueryContext(WorkspaceSnapshot snapshot)
+    private static string? NormalizeAlias(string? alias)
     {
-        var resolver = new WorkspaceResolver(snapshot.CurrentSolution!, snapshot.Workspace, snapshot.Transaction?.CurrentRevision);
+        return string.IsNullOrWhiteSpace(alias) ? null : alias.Trim();
+    }
+
+    private static string NormalizeSelectorPath(string path)
+    {
+        return Path.IsPathRooted(path) ? Path.GetFullPath(path) : path;
+    }
+
+    private static WorkspaceSelector? GetWorkspaceSelector(object request)
+    {
+        return request.GetType().GetProperty("Workspace")?.GetValue(request) as WorkspaceSelector;
+    }
+
+    private WorkspaceQueryContext CreateQueryContext(WorkspaceSessionSnapshot session)
+    {
+        var resolver = new WorkspaceResolver(session.CurrentSolution!, session.Workspace, session.Transaction?.CurrentRevision);
         return new WorkspaceQueryContext(
-            snapshot.CurrentSolution!,
-            snapshot.Workspace,
-            snapshot.Transaction?.CurrentRevision,
+            session.CurrentSolution!,
+            session.Workspace,
+            session.Transaction?.CurrentRevision,
             new ResultLimit
             {
                 MaxResults = _options.DefaultMaxResults,
@@ -771,13 +960,13 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
             _codeActionService);
     }
 
-    private WorkspaceMutationContext CreateMutationContext(WorkspaceSnapshot snapshot)
+    private WorkspaceMutationContext CreateMutationContext(WorkspaceSessionSnapshot session)
     {
-        var resolver = new WorkspaceResolver(snapshot.CurrentSolution!, snapshot.Workspace, snapshot.Transaction?.CurrentRevision);
+        var resolver = new WorkspaceResolver(session.CurrentSolution!, session.Workspace, session.Transaction?.CurrentRevision);
         return new WorkspaceMutationContext(
-            snapshot.CurrentSolution!,
-            snapshot.Workspace,
-            snapshot.Transaction?.CurrentRevision,
+            session.CurrentSolution!,
+            session.Workspace,
+            session.Transaction?.CurrentRevision,
             new ResultLimit
             {
                 MaxResults = _options.DefaultMaxResults,
@@ -787,27 +976,37 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
             StageMutationAsync);
     }
 
-    private WorkspaceStatusData CreateStatusData(WorkspaceSnapshot snapshot)
+    private static WorkspaceStatusData CreateStatusData(WorkspaceSessionSnapshot session)
     {
         return new WorkspaceStatusData
         {
-            State = snapshot.State,
-            Workspace = snapshot.Workspace,
-            ProjectCount = snapshot.ProjectCount,
-            DocumentCount = snapshot.DocumentCount,
-            LoadDiagnostics = snapshot.LoadDiagnostics,
-            Transaction = snapshot.Transaction?.ToInfo(snapshot.State == WorkspaceLifecycleState.TransactionConflicted),
-            ReloadRequired = snapshot.State == WorkspaceLifecycleState.WorkspaceOutOfDate,
+            State = session.State,
+            Workspace = session.Workspace,
+            ProjectCount = session.ProjectCount,
+            DocumentCount = session.DocumentCount,
+            LoadDiagnostics = session.LoadDiagnostics,
+            Transaction = session.Transaction?.ToInfo(session.State == WorkspaceLifecycleState.TransactionConflicted),
+            ReloadRequired = session.State == WorkspaceLifecycleState.WorkspaceOutOfDate,
         };
     }
 
-    private WorkspaceSnapshot CreateSnapshot(MSBuildWorkspace workspace, Solution solution, string loadedPath, long workspaceEpoch, IReadOnlyList<DiagnosticInfo> diagnostics)
+    private WorkspaceSessionSnapshot CreateSessionSnapshot(
+        string workspaceId,
+        string? alias,
+        MSBuildWorkspace workspace,
+        Solution solution,
+        string loadedPath,
+        long workspaceEpoch,
+        IReadOnlyList<DiagnosticInfo> diagnostics,
+        WorkspaceOperationGate? operationGate)
     {
-        return new WorkspaceSnapshot
+        return new WorkspaceSessionSnapshot
         {
             State = WorkspaceLifecycleState.Ready,
             Workspace = new WorkspaceIdentity
             {
+                WorkspaceId = workspaceId,
+                Alias = alias,
                 WorkspaceEpoch = workspaceEpoch,
                 LoadedPath = loadedPath,
             },
@@ -818,11 +1017,13 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
             DocumentCount = solution.Projects.Sum(static project => project.Documents.Count()),
             LoadDiagnostics = diagnostics,
             InputManifest = WorkspaceInputManifestBuilder.Build(solution, loadedPath),
+            OperationGate = operationGate ?? new WorkspaceOperationGate(_options.MaxConcurrentQueries),
         };
     }
 
-    private PluginExecutionResultBox CreateBusyResult()
+    private PluginExecutionResultBox CreateBusyResult(WorkspaceSessionSnapshot? session = null)
     {
+        _ = session;
         return new PluginExecutionResultBox
         {
             Outcome = ToolOutcome.Rejected,
@@ -856,7 +1057,7 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
         return CreateError(_workspaceNotOpenCode, "Open a workspace before invoking this tool.");
     }
 
-    private PluginExecutionResultBox CreateWorkspaceOutOfDateResult(long? workspaceEpoch)
+    private static PluginExecutionResultBox CreateWorkspaceOutOfDateResult(WorkspaceSessionSnapshot session)
     {
         return new PluginExecutionResultBox
         {
@@ -866,7 +1067,7 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
         };
     }
 
-    private PluginExecutionResultBox CreateTransactionConflictedResult(WorkspaceSnapshot snapshot)
+    private static PluginExecutionResultBox CreateTransactionConflictedResult(WorkspaceSessionSnapshot session)
     {
         return new PluginExecutionResultBox
         {
@@ -876,7 +1077,7 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
         };
     }
 
-    private PluginExecutionResultBox CreateCommitOrRollbackRequiredResult(WorkspaceSnapshot snapshot)
+    private static PluginExecutionResultBox CreateCommitOrRollbackRequiredResult(WorkspaceSessionSnapshot session)
     {
         return new PluginExecutionResultBox
         {
@@ -886,9 +1087,202 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
         };
     }
 
-    private bool HasExternalChange(WorkspaceSnapshot snapshot, CancellationToken cancellationToken)
+    private PluginExecutionResultBox? TryResolveWorkspaceSelection(
+        WorkspaceHostSnapshot hostSnapshot,
+        WorkspaceSelector? selector,
+        out WorkspaceSelection? selection)
     {
-        return WorkspaceInputManifestValidator.HasChanged(snapshot.InputManifest, cancellationToken);
+        selection = null;
+        if (hostSnapshot.Workspaces.Count == 0)
+        {
+            return CreateWorkspaceRequiredResult();
+        }
+
+        if (selector is null)
+        {
+            if (hostSnapshot.Workspaces.Count == 1)
+            {
+                var pair = hostSnapshot.Workspaces.Single();
+                selection = new WorkspaceSelection
+                {
+                    WorkspaceId = pair.Key,
+                    Session = pair.Value,
+                };
+                return null;
+            }
+
+            return new PluginExecutionResultBox
+            {
+                Outcome = ToolOutcome.Rejected,
+                Error = CreateError(_workspaceSelectorRequiredCode, "Select a workspace when more than one workspace is loaded."),
+                RequiredAction = RequiredAction.ResolveTargetAgain,
+            };
+        }
+
+        var resolvedWorkspaceId = ResolveWorkspaceId(hostSnapshot, selector);
+        if (resolvedWorkspaceId.error is not null)
+        {
+            return resolvedWorkspaceId.error;
+        }
+
+        var workspaceId = resolvedWorkspaceId.workspaceId!;
+        selection = new WorkspaceSelection
+        {
+            WorkspaceId = workspaceId,
+            Session = hostSnapshot.Workspaces[workspaceId],
+        };
+        return null;
+    }
+
+    private (string? workspaceId, PluginExecutionResultBox? error) ResolveWorkspaceId(WorkspaceHostSnapshot hostSnapshot, WorkspaceSelector selector)
+    {
+        string? resolvedWorkspaceId = null;
+
+        static bool IsProvided(string? value)
+        {
+            return !string.IsNullOrWhiteSpace(value);
+        }
+
+        void MatchWorkspaceId(string? candidateWorkspaceId)
+        {
+            if (candidateWorkspaceId is null)
+            {
+                return;
+            }
+
+            if (resolvedWorkspaceId is null)
+            {
+                resolvedWorkspaceId = candidateWorkspaceId;
+                return;
+            }
+
+            if (!string.Equals(resolvedWorkspaceId, candidateWorkspaceId, StringComparison.Ordinal))
+            {
+                resolvedWorkspaceId = string.Empty;
+            }
+        }
+
+        if (IsProvided(selector.WorkspaceId))
+        {
+            if (!hostSnapshot.Workspaces.ContainsKey(selector.WorkspaceId!))
+            {
+                return (null, new PluginExecutionResultBox
+                {
+                    Outcome = ToolOutcome.Rejected,
+                    Error = CreateError(_workspaceSelectorNotFoundCode, "The workspace selector did not match any loaded workspace."),
+                    RequiredAction = RequiredAction.ResolveTargetAgain,
+                });
+            }
+
+            MatchWorkspaceId(selector.WorkspaceId);
+        }
+
+        if (IsProvided(selector.Alias))
+        {
+            var aliasMatch = hostSnapshot.Workspaces.SingleOrDefault(pair => string.Equals(pair.Value.Workspace.Alias, selector.Alias, StringComparison.Ordinal));
+            if (string.IsNullOrEmpty(aliasMatch.Key))
+            {
+                return (null, new PluginExecutionResultBox
+                {
+                    Outcome = ToolOutcome.Rejected,
+                    Error = CreateError(_workspaceSelectorNotFoundCode, "The workspace selector did not match any loaded workspace."),
+                    RequiredAction = RequiredAction.ResolveTargetAgain,
+                });
+            }
+
+            MatchWorkspaceId(aliasMatch.Key);
+        }
+
+        if (IsProvided(selector.Path))
+        {
+            var normalizedPath = NormalizeSelectorPath(selector.Path!);
+            var pathMatch = hostSnapshot.Workspaces.SingleOrDefault(pair => string.Equals(pair.Value.Workspace.LoadedPath, normalizedPath, StringComparison.Ordinal));
+            if (string.IsNullOrEmpty(pathMatch.Key))
+            {
+                return (null, new PluginExecutionResultBox
+                {
+                    Outcome = ToolOutcome.Rejected,
+                    Error = CreateError(_workspaceSelectorNotFoundCode, "The workspace selector did not match any loaded workspace."),
+                    RequiredAction = RequiredAction.ResolveTargetAgain,
+                });
+            }
+
+            MatchWorkspaceId(pathMatch.Key);
+        }
+
+        if (resolvedWorkspaceId is null)
+        {
+            return (null, new PluginExecutionResultBox
+            {
+                Outcome = ToolOutcome.Rejected,
+                Error = CreateError(_workspaceSelectorNotFoundCode, "The workspace selector did not match any loaded workspace."),
+                RequiredAction = RequiredAction.ResolveTargetAgain,
+            });
+        }
+
+        if (resolvedWorkspaceId.Length == 0)
+        {
+            return (null, new PluginExecutionResultBox
+            {
+                Outcome = ToolOutcome.Rejected,
+                Error = CreateError(_workspaceSelectorMismatchCode, "The workspace selector fields must resolve to the same loaded workspace."),
+                RequiredAction = RequiredAction.ResolveTargetAgain,
+            });
+        }
+
+        return (resolvedWorkspaceId, null);
+    }
+
+    private PluginExecutionResultBox? ValidateOpenCapacity(WorkspaceHostSnapshot hostSnapshot)
+    {
+        return hostSnapshot.Workspaces.Count >= _options.MaxLoadedWorkspaces
+            ? new PluginExecutionResultBox
+            {
+                Outcome = ToolOutcome.Rejected,
+                Error = CreateError(_workspaceCapacityCode, "Close an existing workspace before opening another one."),
+            }
+            : null;
+    }
+
+    private PluginExecutionResultBox? ValidateOpenUniqueness(WorkspaceHostSnapshot hostSnapshot, string normalizedPath, string? alias)
+    {
+        if (hostSnapshot.Workspaces.Values.Any(session => string.Equals(session.Workspace.LoadedPath, normalizedPath, StringComparison.Ordinal)))
+        {
+            return new PluginExecutionResultBox
+            {
+                Outcome = ToolOutcome.Rejected,
+                Error = CreateError(_workspaceAlreadyOpenCode, "A workspace for this path is already open."),
+            };
+        }
+
+        if (alias is not null
+            && hostSnapshot.Workspaces.Values.Any(session => string.Equals(session.Workspace.Alias, alias, StringComparison.Ordinal)))
+        {
+            return new PluginExecutionResultBox
+            {
+                Outcome = ToolOutcome.Rejected,
+                Error = CreateError(_workspaceAlreadyOpenCode, "A workspace with this alias is already open."),
+            };
+        }
+
+        return null;
+    }
+
+    private static string GetWorkspaceDisplayName(WorkspaceSessionSnapshot? session)
+    {
+        if (session is null)
+        {
+            return "unknown";
+        }
+
+        return session.Workspace.Alias
+            ?? session.Workspace.LoadedPath
+            ?? session.Workspace.WorkspaceId;
+    }
+
+    private bool HasExternalChange(WorkspaceSessionSnapshot session, CancellationToken cancellationToken)
+    {
+        return WorkspaceInputManifestValidator.HasChanged(session.InputManifest, cancellationToken);
     }
 
     private (bool IsSdkStyle, IReadOnlyList<DiagnosticInfo> Diagnostics) InspectProjectCompatibility(string projectPath)
@@ -938,22 +1332,36 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
         }
     }
 
-    private void MarkExternalChangeDetected()
+    private void MarkExternalChangeDetected(string workspaceId)
     {
         lock (_syncRoot)
         {
-            if (_snapshot.State == WorkspaceLifecycleState.Ready)
+            if (!_snapshot.Workspaces.TryGetValue(workspaceId, out var session))
             {
-                _stateMachine.Fire(WorkspaceTrigger.ExternalChangeDetected);
+                return;
             }
-            else if (_snapshot.State == WorkspaceLifecycleState.TransactionActive)
+
+            var trigger = session.State switch
             {
-                _stateMachine.Fire(WorkspaceTrigger.TransactionConflictDetected);
+                WorkspaceLifecycleState.Ready => WorkspaceTrigger.ExternalChangeDetected,
+                WorkspaceLifecycleState.TransactionActive => WorkspaceTrigger.TransactionConflictDetected,
+                _ => (WorkspaceTrigger?)null,
+            };
+            if (trigger is null)
+            {
+                return;
             }
+
+            ReplaceSessionLocked(
+                workspaceId,
+                session with
+                {
+                    State = WorkspaceStateMachine.Fire(session.State, trigger.Value),
+                });
         }
     }
 
-    private WorkspaceSnapshot ReadSnapshot()
+    private WorkspaceHostSnapshot ReadSnapshot()
     {
         lock (_syncRoot)
         {
@@ -961,35 +1369,64 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
         }
     }
 
-    private PluginExecutionResultBox? ValidateMutationSnapshot(WorkspaceSnapshot snapshot, CancellationToken cancellationToken)
+    private WorkspaceSessionSnapshot? ReadSession(string workspaceId)
     {
-        if (snapshot.State == WorkspaceLifecycleState.Unloaded)
+        lock (_syncRoot)
         {
-            return CreateWorkspaceRequiredResult();
+            return _snapshot.Workspaces.TryGetValue(workspaceId, out var session)
+                ? session
+                : null;
+        }
+    }
+
+    private void ReplaceSessionLocked(string workspaceId, WorkspaceSessionSnapshot session)
+    {
+        var workspaces = new Dictionary<string, WorkspaceSessionSnapshot>(_snapshot.Workspaces, StringComparer.Ordinal)
+        {
+            [workspaceId] = session,
+        };
+        _snapshot = _snapshot with
+        {
+            Workspaces = workspaces,
+        };
+    }
+
+    private PluginExecutionResultBox? ValidateMutationSession(string workspaceId, WorkspaceSessionSnapshot session, CancellationToken cancellationToken)
+    {
+        var ownerWorkspaceId = ReadSnapshot().TransactionOwnerWorkspaceId;
+        if (!string.IsNullOrWhiteSpace(ownerWorkspaceId) && !string.Equals(ownerWorkspaceId, workspaceId, StringComparison.Ordinal))
+        {
+            var ownerSession = ReadSession(ownerWorkspaceId);
+            return new PluginExecutionResultBox
+            {
+                Outcome = ToolOutcome.Rejected,
+                Error = CreateError(_transactionOwnerCode, $"Commit or roll back the transaction on workspace '{GetWorkspaceDisplayName(ownerSession)}' before mutating this workspace."),
+                RequiredAction = RequiredAction.CommitOrRollback,
+            };
         }
 
-        if (snapshot.State == WorkspaceLifecycleState.WorkspaceOutOfDate)
+        if (session.State == WorkspaceLifecycleState.WorkspaceOutOfDate)
         {
-            return CreateWorkspaceOutOfDateResult(snapshot.Workspace?.WorkspaceEpoch);
+            return CreateWorkspaceOutOfDateResult(session);
         }
 
-        if (HasExternalChange(snapshot, cancellationToken))
+        if (HasExternalChange(session, cancellationToken))
         {
-            MarkExternalChangeDetected();
-            snapshot = ReadSnapshot();
+            MarkExternalChangeDetected(workspaceId);
+            session = ReadSession(workspaceId)!;
         }
 
-        if (snapshot.State == WorkspaceLifecycleState.TransactionConflicted)
+        if (session.State == WorkspaceLifecycleState.TransactionConflicted)
         {
-            return CreateTransactionConflictedResult(snapshot);
+            return CreateTransactionConflictedResult(session);
         }
 
-        if (snapshot.Transaction is null)
+        if (session.Transaction is null)
         {
             return CreateNoActiveTransactionResult();
         }
 
-        if (snapshot.Transaction.CurrentRevision >= snapshot.Transaction.MaxRevisions)
+        if (session.Transaction.CurrentRevision >= session.Transaction.MaxRevisions)
         {
             return new PluginExecutionResultBox
             {
@@ -1002,20 +1439,16 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
         return null;
     }
 
-    private PluginExecutionResultBox? ValidateSnapshotPrecondition(WorkspaceSnapshot snapshot, SnapshotPrecondition? expectedSnapshot)
+    private static PluginExecutionResultBox? ValidateSnapshotPrecondition(WorkspaceSessionSnapshot session, SnapshotPrecondition? expectedSnapshot)
     {
-        if (snapshot.Workspace is null || snapshot.Transaction is null)
+        if (session.Transaction is null || expectedSnapshot is null)
         {
             return null;
         }
 
-        if (expectedSnapshot is null)
-        {
-            return null;
-        }
-
-        if (expectedSnapshot.WorkspaceEpoch != snapshot.Workspace.WorkspaceEpoch
-            || expectedSnapshot.TransactionRevision != snapshot.Transaction.CurrentRevision)
+        if ((!string.IsNullOrWhiteSpace(expectedSnapshot.WorkspaceId) && !string.Equals(expectedSnapshot.WorkspaceId, session.Workspace.WorkspaceId, StringComparison.Ordinal))
+            || expectedSnapshot.WorkspaceEpoch != session.Workspace.WorkspaceEpoch
+            || expectedSnapshot.TransactionRevision != session.Transaction.CurrentRevision)
         {
             return new PluginExecutionResultBox
             {
@@ -1036,23 +1469,29 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var snapshot = ReadSnapshot();
-        if (snapshot.Workspace is null || snapshot.Transaction is null || snapshot.CurrentSolution is null)
+        var hostSnapshot = ReadSnapshot();
+        if (string.IsNullOrWhiteSpace(hostSnapshot.TransactionOwnerWorkspaceId))
         {
             return PluginExecutionResult<MutationData>.Rejected(CreateError(_transactionRequiredCode, "Start a transaction before invoking mutation tools."), RequiredAction.StartTransaction);
         }
 
-        var validationError = ValidateMutationProposal(snapshot.CurrentSolution, proposal);
+        var session = ReadSession(hostSnapshot.TransactionOwnerWorkspaceId!);
+        if (session?.Transaction is null || session.CurrentSolution is null)
+        {
+            return PluginExecutionResult<MutationData>.Rejected(CreateError(_transactionRequiredCode, "Start a transaction before invoking mutation tools."), RequiredAction.StartTransaction);
+        }
+
+        var validationError = ValidateMutationProposal(session.CurrentSolution, proposal);
         if (validationError is not null)
         {
             return PluginExecutionResult<MutationData>.Rejected(validationError.Value.error, validationError.Value.requiredAction, diagnostics, warnings);
         }
 
-        var transaction = snapshot.Transaction;
+        var transaction = session.Transaction;
         var stagedChanges = await WorkspaceDiffBuilder.CreateChangeSummaryAsync(
             transaction.BaselineSolution,
             proposal.CandidateSolution!,
-            new WorkspaceResolver(proposal.CandidateSolution!, snapshot.Workspace, transaction.CurrentRevision + 1),
+            new WorkspaceResolver(proposal.CandidateSolution!, session.Workspace, transaction.CurrentRevision + 1),
             cancellationToken);
         var retainedRevisions = transaction.Revisions.Take(transaction.CurrentRevision).ToArray();
         var revision = new WorkspaceTransactionRevision
@@ -1072,14 +1511,15 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
             Revisions = updatedRevisions,
             CurrentRevision = updatedRevisions.Length,
         };
+        var updatedSession = session with
+        {
+            Transaction = updatedTransaction,
+            CurrentSolution = updatedTransaction.CurrentSolution,
+        };
 
         lock (_syncRoot)
         {
-            _snapshot = _snapshot with
-            {
-                Transaction = updatedTransaction,
-                CurrentSolution = updatedTransaction.CurrentSolution,
-            };
+            ReplaceSessionLocked(hostSnapshot.TransactionOwnerWorkspaceId!, updatedSession);
         }
 
         return PluginExecutionResult<MutationData>.Success(
@@ -1284,6 +1724,50 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
             Id = "WorkspaceLoad",
             Severity = Contracts.Results.DiagnosticSeverity.Error,
             Message = message,
+        };
+    }
+
+    private string AllocateWorkspaceId()
+    {
+        var nextValue = Interlocked.Increment(ref _nextWorkspaceId);
+        return $"workspace-{nextValue}";
+    }
+
+    private static ToolResult<TData> CreateToolResult<TData>(PluginExecutionResultBox result, WorkspaceSessionSnapshot? session = null)
+    {
+        return result.Outcome switch
+        {
+            ToolOutcome.Rejected => ToolResult<TData>.Rejected(
+                result.Error!,
+                result.RequiredAction,
+                workspaceId: session?.Workspace.WorkspaceId,
+                workspaceEpoch: session?.Workspace.WorkspaceEpoch,
+                transactionRevision: session?.Transaction?.CurrentRevision,
+                diagnostics: result.Diagnostics,
+                warnings: result.Warnings),
+            ToolOutcome.Conflict => ToolResult<TData>.Conflict(
+                result.Error!,
+                result.RequiredAction,
+                workspaceId: session?.Workspace.WorkspaceId,
+                workspaceEpoch: session?.Workspace.WorkspaceEpoch,
+                transactionRevision: session?.Transaction?.CurrentRevision,
+                diagnostics: result.Diagnostics,
+                warnings: result.Warnings),
+            ToolOutcome.Faulted => ToolResult<TData>.Faulted(
+                result.Error!,
+                result.RequiredAction,
+                workspaceId: session?.Workspace.WorkspaceId,
+                workspaceEpoch: session?.Workspace.WorkspaceEpoch,
+                transactionRevision: session?.Transaction?.CurrentRevision,
+                diagnostics: result.Diagnostics,
+                warnings: result.Warnings),
+            ToolOutcome.NoChange => ToolResult<TData>.NoChange(
+                workspaceId: session?.Workspace.WorkspaceId,
+                workspaceEpoch: session?.Workspace.WorkspaceEpoch,
+                transactionRevision: session?.Transaction?.CurrentRevision,
+                diagnostics: result.Diagnostics,
+                warnings: result.Warnings),
+            _ => throw new InvalidOperationException($"Unsupported tool outcome '{result.Outcome}'."),
         };
     }
 }

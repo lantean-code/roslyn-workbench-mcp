@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Transactions;
 /// <summary>
 /// Represents a request to preview the current transaction.
 /// </summary>
-public sealed record TransactionPreviewRequest
+public sealed record TransactionPreviewRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the optional document selector for a detailed diff.

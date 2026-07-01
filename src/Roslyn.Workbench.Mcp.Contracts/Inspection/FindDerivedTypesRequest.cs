@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
 /// <summary>
 /// Represents a request to find types derived from a resolved symbol.
 /// </summary>
-public sealed record FindDerivedTypesRequest
+public sealed record FindDerivedTypesRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the symbol selector.

@@ -20,25 +20,36 @@ public interface IWorkspaceCoordinator : IToolExecutionContextFactory
     ValueTask<ToolResult<WorkspaceOpenData>> OpenAsync(WorkspaceOpenRequest request, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Closes the loaded workspace.
+    /// Lists the currently loaded workspaces.
     /// </summary>
+    /// <param name="request">The list request.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The list result.</returns>
+    ValueTask<ToolResult<WorkspaceListData>> ListAsync(WorkspaceListRequest request, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Closes the selected workspace.
+    /// </summary>
+    /// <param name="request">The close request.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The close result.</returns>
-    ValueTask<ToolResult<WorkspaceCloseData>> CloseAsync(CancellationToken cancellationToken);
+    ValueTask<ToolResult<WorkspaceCloseData>> CloseAsync(WorkspaceCloseRequest request, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Gets the current workspace status.
+    /// Gets the selected workspace status.
     /// </summary>
+    /// <param name="request">The status request.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The workspace status.</returns>
-    ValueTask<ToolResult<WorkspaceStatusData>> GetStatusAsync(CancellationToken cancellationToken);
+    ValueTask<ToolResult<WorkspaceStatusData>> GetStatusAsync(WorkspaceStatusRequest request, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Reloads the current workspace.
+    /// Reloads the selected workspace.
     /// </summary>
+    /// <param name="request">The reload request.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The reload result.</returns>
-    ValueTask<ToolResult<WorkspaceReloadData>> ReloadAsync(CancellationToken cancellationToken);
+    ValueTask<ToolResult<WorkspaceReloadData>> ReloadAsync(WorkspaceReloadRequest request, CancellationToken cancellationToken);
 
     /// <summary>
     /// Starts a new transaction.

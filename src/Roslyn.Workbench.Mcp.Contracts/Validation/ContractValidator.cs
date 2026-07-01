@@ -41,6 +41,21 @@ public static class ContractValidator
     }
 
     /// <summary>
+    /// Validates a workspace selector.
+    /// </summary>
+    /// <param name="selector">The selector to validate.</param>
+    /// <returns>The validation errors, if any.</returns>
+    public static IReadOnlyList<string> Validate(WorkspaceSelector selector)
+    {
+        if (CountProvided(selector.WorkspaceId, selector.Alias, selector.Path) >= 1)
+        {
+            return [];
+        }
+
+        return ["WorkspaceSelector must provide at least one of WorkspaceId, Alias, or Path."];
+    }
+
+    /// <summary>
     /// Validates a location selector.
     /// </summary>
     /// <param name="selector">The selector to validate.</param>

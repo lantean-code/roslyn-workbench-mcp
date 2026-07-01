@@ -155,6 +155,7 @@ public sealed class PluginDiscoveryAndMcpToolTests
     {
         var workspaceIdentity = new WorkspaceIdentity
         {
+            WorkspaceId = "workspace-7",
             WorkspaceEpoch = 7,
             LoadedPath = "/workspace",
         };
@@ -168,11 +169,11 @@ public sealed class PluginDiscoveryAndMcpToolTests
         mutationContext.SetupGet(static context => context.WorkspaceIdentity).Returns(workspaceIdentity);
         mutationContext.SetupGet(static context => context.Resolver).Returns(resolver.Object);
         factory
-            .Setup(static contextFactory => contextFactory.CreateQueryContextAsync(It.IsAny<RegisteredTool>(), It.IsAny<CancellationToken>()))
-            .Returns((RegisteredTool _, CancellationToken _) => ValueTask.FromResult(ToolExecutionContextLease<IQueryContext>.Acquired(queryContext.Object)));
+            .Setup(static contextFactory => contextFactory.CreateQueryContextAsync(It.IsAny<RegisteredTool>(), It.IsAny<object>(), It.IsAny<CancellationToken>()))
+            .Returns((RegisteredTool _, object _, CancellationToken _) => ValueTask.FromResult(ToolExecutionContextLease<IQueryContext>.Acquired(queryContext.Object)));
         factory
-            .Setup(static contextFactory => contextFactory.CreateMutationContextAsync(It.IsAny<RegisteredTool>(), It.IsAny<CancellationToken>()))
-            .Returns((RegisteredTool _, CancellationToken _) => ValueTask.FromResult(ToolExecutionContextLease<IMutationContext>.Acquired(mutationContext.Object)));
+            .Setup(static contextFactory => contextFactory.CreateMutationContextAsync(It.IsAny<RegisteredTool>(), It.IsAny<object>(), It.IsAny<CancellationToken>()))
+            .Returns((RegisteredTool _, object _, CancellationToken _) => ValueTask.FromResult(ToolExecutionContextLease<IMutationContext>.Acquired(mutationContext.Object)));
 
         return factory.Object;
     }

@@ -40,6 +40,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
 
         return new ResolvedLocation
         {
+            WorkspaceId = _workspaceIdentity.WorkspaceId,
             Document = document is null ? null : CreateDocumentReference(document),
             Span = new TextSpanRange
             {
@@ -87,7 +88,18 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
             return SnapshotMatchResult.Matched();
         }
 
-        if (_workspaceIdentity is null || precondition.WorkspaceEpoch != _workspaceIdentity.WorkspaceEpoch)
+        if (_workspaceIdentity is null)
+        {
+            return SnapshotMatchResult.WorkspaceEpochMismatch();
+        }
+
+        if (!string.IsNullOrWhiteSpace(precondition.WorkspaceId)
+            && !string.Equals(precondition.WorkspaceId, _workspaceIdentity.WorkspaceId, StringComparison.Ordinal))
+        {
+            return SnapshotMatchResult.WorkspaceEpochMismatch();
+        }
+
+        if (precondition.WorkspaceEpoch != _workspaceIdentity.WorkspaceEpoch)
         {
             return SnapshotMatchResult.WorkspaceEpochMismatch();
         }

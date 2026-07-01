@@ -14,6 +14,11 @@ public sealed record ToolResult<TData>
     public ToolOutcome Outcome { get; init; }
 
     /// <summary>
+    /// Gets the effective workspace identifier, when available.
+    /// </summary>
+    public string? WorkspaceId { get; init; }
+
+    /// <summary>
     /// Gets the current workspace epoch, when available.
     /// </summary>
     public long? WorkspaceEpoch { get; init; }
@@ -57,6 +62,7 @@ public sealed record ToolResult<TData>
     /// Creates a successful tool result.
     /// </summary>
     /// <param name="data">The tool-specific payload.</param>
+    /// <param name="workspaceId">The workspace identifier.</param>
     /// <param name="workspaceEpoch">The workspace epoch.</param>
     /// <param name="transactionRevision">The transaction revision.</param>
     /// <param name="changes">The optional change summary.</param>
@@ -65,6 +71,7 @@ public sealed record ToolResult<TData>
     /// <returns>A successful tool result.</returns>
     public static ToolResult<TData> Succeeded(
         TData data,
+        string? workspaceId = null,
         long? workspaceEpoch = null,
         int? transactionRevision = null,
         ChangeSummary? changes = null,
@@ -74,6 +81,7 @@ public sealed record ToolResult<TData>
         return new ToolResult<TData>
         {
             Outcome = ToolOutcome.Succeeded,
+            WorkspaceId = workspaceId,
             WorkspaceEpoch = workspaceEpoch,
             TransactionRevision = transactionRevision,
             Data = data,
@@ -86,6 +94,7 @@ public sealed record ToolResult<TData>
     /// <summary>
     /// Creates a no-change tool result.
     /// </summary>
+    /// <param name="workspaceId">The workspace identifier.</param>
     /// <param name="workspaceEpoch">The workspace epoch.</param>
     /// <param name="transactionRevision">The transaction revision.</param>
     /// <param name="data">The optional tool-specific payload.</param>
@@ -93,6 +102,7 @@ public sealed record ToolResult<TData>
     /// <param name="warnings">The warnings emitted by the tool.</param>
     /// <returns>A no-change tool result.</returns>
     public static ToolResult<TData> NoChange(
+        string? workspaceId = null,
         long? workspaceEpoch = null,
         int? transactionRevision = null,
         TData? data = default,
@@ -102,6 +112,7 @@ public sealed record ToolResult<TData>
         return new ToolResult<TData>
         {
             Outcome = ToolOutcome.NoChange,
+            WorkspaceId = workspaceId,
             WorkspaceEpoch = workspaceEpoch,
             TransactionRevision = transactionRevision,
             Data = data,
@@ -115,6 +126,7 @@ public sealed record ToolResult<TData>
     /// </summary>
     /// <param name="error">The structured error payload.</param>
     /// <param name="requiredAction">The continuation hint.</param>
+    /// <param name="workspaceId">The workspace identifier.</param>
     /// <param name="workspaceEpoch">The workspace epoch.</param>
     /// <param name="transactionRevision">The transaction revision.</param>
     /// <param name="diagnostics">The diagnostics emitted by the tool.</param>
@@ -123,6 +135,7 @@ public sealed record ToolResult<TData>
     public static ToolResult<TData> Rejected(
         ToolError error,
         RequiredAction? requiredAction = null,
+        string? workspaceId = null,
         long? workspaceEpoch = null,
         int? transactionRevision = null,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
@@ -131,6 +144,7 @@ public sealed record ToolResult<TData>
         return new ToolResult<TData>
         {
             Outcome = ToolOutcome.Rejected,
+            WorkspaceId = workspaceId,
             WorkspaceEpoch = workspaceEpoch,
             TransactionRevision = transactionRevision,
             Diagnostics = diagnostics ?? [],
@@ -145,6 +159,7 @@ public sealed record ToolResult<TData>
     /// </summary>
     /// <param name="error">The structured error payload.</param>
     /// <param name="requiredAction">The continuation hint.</param>
+    /// <param name="workspaceId">The workspace identifier.</param>
     /// <param name="workspaceEpoch">The workspace epoch.</param>
     /// <param name="transactionRevision">The transaction revision.</param>
     /// <param name="diagnostics">The diagnostics emitted by the tool.</param>
@@ -153,6 +168,7 @@ public sealed record ToolResult<TData>
     public static ToolResult<TData> Conflict(
         ToolError error,
         RequiredAction? requiredAction = null,
+        string? workspaceId = null,
         long? workspaceEpoch = null,
         int? transactionRevision = null,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
@@ -161,6 +177,7 @@ public sealed record ToolResult<TData>
         return new ToolResult<TData>
         {
             Outcome = ToolOutcome.Conflict,
+            WorkspaceId = workspaceId,
             WorkspaceEpoch = workspaceEpoch,
             TransactionRevision = transactionRevision,
             Diagnostics = diagnostics ?? [],
@@ -175,6 +192,7 @@ public sealed record ToolResult<TData>
     /// </summary>
     /// <param name="error">The structured error payload.</param>
     /// <param name="requiredAction">The continuation hint.</param>
+    /// <param name="workspaceId">The workspace identifier.</param>
     /// <param name="workspaceEpoch">The workspace epoch.</param>
     /// <param name="transactionRevision">The transaction revision.</param>
     /// <param name="diagnostics">The diagnostics emitted by the tool.</param>
@@ -183,6 +201,7 @@ public sealed record ToolResult<TData>
     public static ToolResult<TData> Faulted(
         ToolError error,
         RequiredAction? requiredAction = null,
+        string? workspaceId = null,
         long? workspaceEpoch = null,
         int? transactionRevision = null,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
@@ -191,6 +210,7 @@ public sealed record ToolResult<TData>
         return new ToolResult<TData>
         {
             Outcome = ToolOutcome.Faulted,
+            WorkspaceId = workspaceId,
             WorkspaceEpoch = workspaceEpoch,
             TransactionRevision = transactionRevision,
             Diagnostics = diagnostics ?? [],

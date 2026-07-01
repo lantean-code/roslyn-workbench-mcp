@@ -41,4 +41,13 @@ internal static class WorkspaceStateMachine
 
         return (await machine.GetPermittedTriggersAsync()).ToList().AsReadOnly();
     }
+
+    public static WorkspaceLifecycleState Fire(WorkspaceLifecycleState state, WorkspaceTrigger trigger)
+    {
+        var currentState = state;
+        var machine = Create(() => currentState, value => currentState = value);
+
+        machine.Fire(trigger);
+        return currentState;
+    }
 }

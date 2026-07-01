@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
 /// <summary>
 /// Represents a request to retrieve type-hierarchy information for a resolved symbol.
 /// </summary>
-public sealed record GetTypeHierarchyRequest
+public sealed record GetTypeHierarchyRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the symbol selector.

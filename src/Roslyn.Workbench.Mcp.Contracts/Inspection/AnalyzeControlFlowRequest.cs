@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
 /// <summary>
 /// Represents a request to analyze control flow for a selected region.
 /// </summary>
-public sealed record AnalyzeControlFlowRequest
+public sealed record AnalyzeControlFlowRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the selected location.

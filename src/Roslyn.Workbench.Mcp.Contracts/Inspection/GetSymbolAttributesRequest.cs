@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
 /// <summary>
 /// Represents a request to retrieve attributes for a resolved symbol.
 /// </summary>
-public sealed record GetSymbolAttributesRequest
+public sealed record GetSymbolAttributesRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the symbol selector.

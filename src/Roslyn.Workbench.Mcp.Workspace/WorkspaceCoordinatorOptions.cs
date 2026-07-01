@@ -36,6 +36,11 @@ public sealed record WorkspaceCoordinatorOptions
     public int MaxTransactionRevisions { get; init; } = 20;
 
     /// <summary>
+    /// Gets the maximum number of workspaces that may be loaded at once.
+    /// </summary>
+    public int MaxLoadedWorkspaces { get; init; } = 4;
+
+    /// <summary>
     /// Gets the state directory used for recovery records.
     /// </summary>
     public string StateDirectory { get; init; } = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-state");

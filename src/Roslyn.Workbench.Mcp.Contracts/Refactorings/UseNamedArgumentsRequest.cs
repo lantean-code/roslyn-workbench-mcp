@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Refactorings;
 /// <summary>
 /// Requests one supported use-named-arguments refactoring through Roslyn refactoring composition.
 /// </summary>
-public sealed record UseNamedArgumentsRequest
+public sealed record UseNamedArgumentsRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the selected argument location.

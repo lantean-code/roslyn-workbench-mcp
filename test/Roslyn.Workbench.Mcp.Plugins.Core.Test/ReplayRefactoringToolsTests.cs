@@ -213,7 +213,7 @@ public sealed class ReplayRefactoringToolsTests
     {
         var registeredTool = registry.RegisteredTools.Single(tool => tool.Metadata.Name == toolName);
         var request = DeserializeRequest(registeredTool.RequestType, arguments);
-        await using var mutationLease = await coordinator.CreateMutationContextAsync(registeredTool, CancellationToken.None);
+        await using var mutationLease = await coordinator.CreateMutationContextAsync(registeredTool, new object(), CancellationToken.None);
         var proposalResult = await registeredTool.Invoker.ExecuteAsync(request, mutationLease.Context!, CancellationToken.None);
 
         proposalResult.Outcome.Should().Be(ToolOutcome.Succeeded, proposalResult.Error?.Message);

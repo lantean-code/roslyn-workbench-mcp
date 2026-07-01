@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
 /// <summary>
 /// Represents a request to retrieve diagnostics for a scope.
 /// </summary>
-public sealed record GetDiagnosticsRequest
+public sealed record GetDiagnosticsRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the optional scope selector.

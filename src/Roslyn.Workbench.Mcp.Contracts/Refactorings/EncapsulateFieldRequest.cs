@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Refactorings;
 /// <summary>
 /// Requests field encapsulation through Roslyn refactoring composition.
 /// </summary>
-public sealed record EncapsulateFieldRequest
+public sealed record EncapsulateFieldRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the field to encapsulate.

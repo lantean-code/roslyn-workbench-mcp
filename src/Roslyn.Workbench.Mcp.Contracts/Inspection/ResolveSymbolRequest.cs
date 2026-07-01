@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
 /// <summary>
 /// Represents a request to resolve a symbol from a source location.
 /// </summary>
-public sealed record ResolveSymbolRequest
+public sealed record ResolveSymbolRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the location selector.

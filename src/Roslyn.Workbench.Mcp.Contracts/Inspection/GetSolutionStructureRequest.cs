@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
 /// <summary>
 /// Represents a request to retrieve solution structure.
 /// </summary>
-public sealed record GetSolutionStructureRequest
+public sealed record GetSolutionStructureRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets a value indicating whether documents should be included in project projections.

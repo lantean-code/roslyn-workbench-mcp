@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Refactorings;
 /// <summary>
 /// Requests promotion of a selected expression to a method parameter through Roslyn refactoring composition.
 /// </summary>
-public sealed record IntroduceParameterRequest
+public sealed record IntroduceParameterRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the selected expression to promote.

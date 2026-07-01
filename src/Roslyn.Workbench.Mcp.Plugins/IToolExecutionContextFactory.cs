@@ -9,15 +9,17 @@ public interface IToolExecutionContextFactory
     /// Creates the query context for a tool invocation.
     /// </summary>
     /// <param name="tool">The tool being executed.</param>
+    /// <param name="request">The deserialized request payload.</param>
     /// <param name="cancellationToken">The cancellation token for the invocation.</param>
     /// <returns>The host-owned query context lease or a short-circuit result.</returns>
-    ValueTask<ToolExecutionContextLease<IQueryContext>> CreateQueryContextAsync(RegisteredTool tool, CancellationToken cancellationToken);
+    ValueTask<ToolExecutionContextLease<IQueryContext>> CreateQueryContextAsync(RegisteredTool tool, object request, CancellationToken cancellationToken);
 
     /// <summary>
     /// Creates the mutation context for a tool invocation.
     /// </summary>
     /// <param name="tool">The tool being executed.</param>
+    /// <param name="request">The deserialized request payload.</param>
     /// <param name="cancellationToken">The cancellation token for the invocation.</param>
     /// <returns>The host-owned mutation context lease or a short-circuit result.</returns>
-    ValueTask<ToolExecutionContextLease<IMutationContext>> CreateMutationContextAsync(RegisteredTool tool, CancellationToken cancellationToken);
+    ValueTask<ToolExecutionContextLease<IMutationContext>> CreateMutationContextAsync(RegisteredTool tool, object request, CancellationToken cancellationToken);
 }

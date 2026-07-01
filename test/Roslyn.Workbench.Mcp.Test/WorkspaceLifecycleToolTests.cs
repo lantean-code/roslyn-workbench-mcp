@@ -82,6 +82,113 @@ public sealed class WorkspaceLifecycleToolTests
     }
 
     [Fact]
+    public async Task GIVEN_TwoOpenedWorkspaces_WHEN_ListingAndReadingStatusWithoutSelection_THEN_ShouldRequireExplicitWorkspaceSelection()
+    {
+        using var fixtureA = await TestWorkspaceFixture.CreateAsync();
+        using var fixtureB = await TestWorkspaceFixture.CreateAsync();
+        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions());
+        var tools = WorkspaceLifecycleToolFactory.Create(coordinator);
+        var openTool = tools.Single(tool => tool.ProtocolTool.Name == "workspace-open");
+        var listTool = tools.Single(tool => tool.ProtocolTool.Name == "workspace-list");
+        var statusTool = tools.Single(tool => tool.ProtocolTool.Name == "workspace-status");
+
+        var openA = await openTool.InvokeAsync(
+            new RequestContext<CallToolRequestParams>(
+                CreateServer(),
+                new JsonRpcRequest
+                {
+                    Method = "tools/call",
+                },
+                new CallToolRequestParams
+                {
+                    Name = "workspace-open",
+                    Arguments = new Dictionary<string, JsonElement>
+                    {
+                        ["alias"] = JsonSerializer.SerializeToElement("alpha"),
+                        ["path"] = JsonSerializer.SerializeToElement(fixtureA.ProjectPath),
+                    },
+                }),
+            CancellationToken.None);
+        var openAPayload = JsonSerializer.Deserialize<ToolResult<WorkspaceOpenData>>(openA.StructuredContent!.Value.GetRawText(), _serializerOptions);
+
+        await openTool.InvokeAsync(
+            new RequestContext<CallToolRequestParams>(
+                CreateServer(),
+                new JsonRpcRequest
+                {
+                    Method = "tools/call",
+                },
+                new CallToolRequestParams
+                {
+                    Name = "workspace-open",
+                    Arguments = new Dictionary<string, JsonElement>
+                    {
+                        ["alias"] = JsonSerializer.SerializeToElement("beta"),
+                        ["path"] = JsonSerializer.SerializeToElement(fixtureB.ProjectPath),
+                    },
+                }),
+            CancellationToken.None);
+
+        var listResult = await listTool.InvokeAsync(
+            new RequestContext<CallToolRequestParams>(
+                CreateServer(),
+                new JsonRpcRequest
+                {
+                    Method = "tools/call",
+                },
+                new CallToolRequestParams
+                {
+                    Name = "workspace-list",
+                    Arguments = new Dictionary<string, JsonElement>(),
+                }),
+            CancellationToken.None);
+        var listPayload = JsonSerializer.Deserialize<ToolResult<WorkspaceListData>>(listResult.StructuredContent!.Value.GetRawText(), _serializerOptions);
+
+        var ambiguousStatusResult = await statusTool.InvokeAsync(
+            new RequestContext<CallToolRequestParams>(
+                CreateServer(),
+                new JsonRpcRequest
+                {
+                    Method = "tools/call",
+                },
+                new CallToolRequestParams
+                {
+                    Name = "workspace-status",
+                    Arguments = new Dictionary<string, JsonElement>(),
+                }),
+            CancellationToken.None);
+        var ambiguousStatusPayload = JsonSerializer.Deserialize<ToolResult<WorkspaceStatusData>>(ambiguousStatusResult.StructuredContent!.Value.GetRawText(), _serializerOptions);
+
+        var selectedStatusResult = await statusTool.InvokeAsync(
+            new RequestContext<CallToolRequestParams>(
+                CreateServer(),
+                new JsonRpcRequest
+                {
+                    Method = "tools/call",
+                },
+                new CallToolRequestParams
+                {
+                    Name = "workspace-status",
+                    Arguments = new Dictionary<string, JsonElement>
+                    {
+                        ["workspace"] = JsonSerializer.SerializeToElement(new
+                        {
+                            workspaceId = openAPayload!.Data!.Workspace!.WorkspaceId,
+                        }),
+                    },
+                }),
+            CancellationToken.None);
+        var selectedStatusPayload = JsonSerializer.Deserialize<ToolResult<WorkspaceStatusData>>(selectedStatusResult.StructuredContent!.Value.GetRawText(), _serializerOptions);
+
+        listPayload!.Outcome.Should().Be(ToolOutcome.Succeeded);
+        listPayload.Data!.Workspaces.Should().HaveCount(2);
+        ambiguousStatusPayload!.Outcome.Should().Be(ToolOutcome.Rejected);
+        ambiguousStatusPayload.Error!.Code.Should().Be("WorkspaceSelectorRequired");
+        selectedStatusPayload!.Outcome.Should().Be(ToolOutcome.Succeeded);
+        selectedStatusPayload.Data!.Workspace!.WorkspaceId.Should().Be(openAPayload.Data!.Workspace!.WorkspaceId);
+    }
+
+    [Fact]
     public async Task GIVEN_UnloadedCoordinator_WHEN_InvokingWorkspaceCloseTool_THEN_ShouldReturnWorkspaceNotOpen()
     {
         var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions());
@@ -232,6 +339,7 @@ public sealed class WorkspaceLifecycleToolTests
         tools.Select(static tool => tool.ProtocolTool.Name).Should().Contain(
         [
             "workspace-open",
+            "workspace-list",
             "workspace-close",
             "workspace-status",
             "workspace-reload",

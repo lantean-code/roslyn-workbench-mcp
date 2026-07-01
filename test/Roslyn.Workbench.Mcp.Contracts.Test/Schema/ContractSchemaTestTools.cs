@@ -6,6 +6,7 @@ using Roslyn.Workbench.Mcp.Contracts.Inspection;
 using Roslyn.Workbench.Mcp.Contracts.Refactorings;
 using Roslyn.Workbench.Mcp.Contracts.Results;
 using Roslyn.Workbench.Mcp.Contracts.Server;
+using Roslyn.Workbench.Mcp.Contracts.Transactions;
 
 namespace Roslyn.Workbench.Mcp.Contracts.Test.Schema;
 
@@ -13,6 +14,30 @@ internal static class ContractSchemaTestTools
 {
     [McpServerTool(Name = "workspace-open", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<WorkspaceStatusData>))]
     public static CallToolResult WorkspaceOpen(WorkspaceOpenRequest request)
+    {
+        _ = request;
+
+        return new CallToolResult();
+    }
+
+    [McpServerTool(Name = "workspace-status", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<WorkspaceStatusData>))]
+    public static CallToolResult WorkspaceStatus(WorkspaceStatusRequest request)
+    {
+        _ = request;
+
+        return new CallToolResult();
+    }
+
+    [McpServerTool(Name = "workspace-list", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<WorkspaceListData>))]
+    public static CallToolResult WorkspaceList(WorkspaceListRequest request)
+    {
+        _ = request;
+
+        return new CallToolResult();
+    }
+
+    [McpServerTool(Name = "transaction-start", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<TransactionStartData>))]
+    public static CallToolResult TransactionStart(TransactionStartRequest request)
     {
         _ = request;
 

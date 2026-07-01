@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
 /// <summary>
 /// Represents a request to retrieve an operation tree for a selected region.
 /// </summary>
-public sealed record GetOperationTreeRequest
+public sealed record GetOperationTreeRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the selected location.

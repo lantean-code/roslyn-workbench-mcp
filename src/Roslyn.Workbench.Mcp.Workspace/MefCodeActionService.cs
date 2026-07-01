@@ -321,7 +321,8 @@ internal sealed class MefCodeActionService : ICodeActionService
             return ActionExpired<MutationProposal>();
         }
 
-        if (payload.WorkspaceEpoch != (context.WorkspaceIdentity?.WorkspaceEpoch ?? 0)
+        if (!string.Equals(payload.WorkspaceId, context.WorkspaceIdentity?.WorkspaceId, StringComparison.Ordinal)
+            || payload.WorkspaceEpoch != (context.WorkspaceIdentity?.WorkspaceEpoch ?? 0)
             || payload.TransactionRevision != context.TransactionRevision)
         {
             return ActionExpired<MutationProposal>();
@@ -909,6 +910,7 @@ internal sealed class MefCodeActionService : ICodeActionService
                 EquivalenceKey = action.EquivalenceKey,
                 ActionPath = action.ActionPath.ToArray(),
                 DiagnosticIds = action.DiagnosticIds.ToArray(),
+                WorkspaceId = context.WorkspaceIdentity?.WorkspaceId,
                 WorkspaceEpoch = context.WorkspaceIdentity?.WorkspaceEpoch ?? 0,
                 TransactionRevision = context.TransactionRevision,
                 ExpiresAt = expiresAt.ToString("O"),
@@ -916,6 +918,7 @@ internal sealed class MefCodeActionService : ICodeActionService
                 Start = span.Start,
                 Length = span.Length,
             }),
+            WorkspaceId = context.WorkspaceIdentity?.WorkspaceId,
             Title = action.Title,
             ProviderId = action.ProviderId,
             Kind = action.Kind == DiscoveredActionKind.Refactoring ? "Refactoring" : "CodeFix",
@@ -1016,7 +1019,8 @@ internal sealed class MefCodeActionService : ICodeActionService
             };
         }
 
-        if (payload.WorkspaceEpoch != (context.WorkspaceIdentity?.WorkspaceEpoch ?? 0)
+        if (!string.Equals(payload.WorkspaceId, context.WorkspaceIdentity?.WorkspaceId, StringComparison.Ordinal)
+            || payload.WorkspaceEpoch != (context.WorkspaceIdentity?.WorkspaceEpoch ?? 0)
             || payload.TransactionRevision != context.TransactionRevision)
         {
             return new ResolvedAction<T>
@@ -1691,6 +1695,8 @@ internal sealed class MefCodeActionService : ICodeActionService
         public IReadOnlyList<int> ActionPath { get; init; } = [];
 
         public IReadOnlyList<string> DiagnosticIds { get; init; } = [];
+
+        public string? WorkspaceId { get; init; }
 
         public long WorkspaceEpoch { get; init; }
 

@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Refactorings;
 /// <summary>
 /// Requests removal of unused using directives across a selected scope.
 /// </summary>
-public sealed record RemoveUnusedUsingsRequest
+public sealed record RemoveUnusedUsingsRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the scope to clean.

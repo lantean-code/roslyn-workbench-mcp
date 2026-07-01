@@ -6,6 +6,11 @@ namespace Roslyn.Workbench.Mcp.Contracts.Selectors;
 public sealed record SnapshotPrecondition
 {
     /// <summary>
+    /// Gets the workspace identifier associated with the expected snapshot.
+    /// </summary>
+    public string? WorkspaceId { get; init; }
+
+    /// <summary>
     /// Gets the expected workspace epoch.
     /// </summary>
     public long WorkspaceEpoch { get; init; }

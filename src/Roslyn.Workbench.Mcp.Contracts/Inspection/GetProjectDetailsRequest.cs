@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
 /// <summary>
 /// Represents a request to retrieve project details.
 /// </summary>
-public sealed record GetProjectDetailsRequest
+public sealed record GetProjectDetailsRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the project selector.

@@ -28,7 +28,7 @@ public sealed class ToolExecutor
         ArgumentNullException.ThrowIfNull(arguments);
 
         var request = DeserializeRequest(tool.RequestType, arguments);
-        var contextLease = await CreateContextAsync(tool, cancellationToken);
+        var contextLease = await CreateContextAsync(tool, request, cancellationToken);
         await using var _ = contextLease.ConfigureAwait(false);
         var context = contextLease.Context;
 
@@ -75,12 +75,12 @@ public sealed class ToolExecutor
         }
     }
 
-    private async ValueTask<ToolExecutionContextLease<IToolExecutionContext>> CreateContextAsync(RegisteredTool tool, CancellationToken cancellationToken)
+    private async ValueTask<ToolExecutionContextLease<IToolExecutionContext>> CreateContextAsync(RegisteredTool tool, object request, CancellationToken cancellationToken)
     {
         return tool.Kind switch
         {
-            ToolKind.Query => ConvertLease(await _contextFactory.CreateQueryContextAsync(tool, cancellationToken)),
-            ToolKind.Mutation => ConvertLease(await _contextFactory.CreateMutationContextAsync(tool, cancellationToken)),
+            ToolKind.Query => ConvertLease(await _contextFactory.CreateQueryContextAsync(tool, request, cancellationToken)),
+            ToolKind.Mutation => ConvertLease(await _contextFactory.CreateMutationContextAsync(tool, request, cancellationToken)),
             _ => throw new InvalidOperationException($"Unsupported tool kind '{tool.Kind}'."),
         };
     }
@@ -146,6 +146,7 @@ public sealed class ToolExecutor
 
     private static object CreateToolResult(Type toolResultType, PluginExecutionResultBox result, IToolExecutionContext? context)
     {
+        var workspaceId = context?.WorkspaceIdentity?.WorkspaceId;
         var workspaceEpoch = context?.WorkspaceIdentity?.WorkspaceEpoch;
         var transactionRevision = result.Data is Contracts.Results.MutationData mutationData
             ? mutationData.Transaction?.Revision
@@ -160,6 +161,7 @@ public sealed class ToolExecutor
                 arguments =
                 [
                     result.Data!,
+                    workspaceId,
                     workspaceEpoch,
                     transactionRevision,
                     result.Changes,
@@ -172,6 +174,7 @@ public sealed class ToolExecutor
                 methodName = nameof(ToolResult<object>.NoChange);
                 arguments =
                 [
+                    workspaceId,
                     workspaceEpoch,
                     transactionRevision,
                     result.Data,
@@ -186,6 +189,7 @@ public sealed class ToolExecutor
                 [
                     result.Error!,
                     result.RequiredAction,
+                    workspaceId,
                     workspaceEpoch,
                     transactionRevision,
                     result.Diagnostics,
@@ -199,6 +203,7 @@ public sealed class ToolExecutor
                 [
                     result.Error!,
                     result.RequiredAction,
+                    workspaceId,
                     workspaceEpoch,
                     transactionRevision,
                     result.Diagnostics,
@@ -212,6 +217,7 @@ public sealed class ToolExecutor
                 [
                     result.Error!,
                     result.RequiredAction,
+                    workspaceId,
                     workspaceEpoch,
                     transactionRevision,
                     result.Diagnostics,

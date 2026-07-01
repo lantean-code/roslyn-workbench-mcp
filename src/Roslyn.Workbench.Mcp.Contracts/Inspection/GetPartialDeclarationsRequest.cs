@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
 /// <summary>
 /// Represents a request to retrieve partial declarations for a resolved symbol.
 /// </summary>
-public sealed record GetPartialDeclarationsRequest
+public sealed record GetPartialDeclarationsRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the symbol selector.

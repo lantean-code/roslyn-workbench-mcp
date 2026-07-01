@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
 /// <summary>
 /// Represents a request to rename a resolved symbol.
 /// </summary>
-public sealed record RenameSymbolRequest
+public sealed record RenameSymbolRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the symbol selector.

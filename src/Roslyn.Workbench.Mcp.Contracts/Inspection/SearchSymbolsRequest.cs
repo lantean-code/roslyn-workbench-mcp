@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
 /// <summary>
 /// Represents a request to search for symbol declarations.
 /// </summary>
-public sealed record SearchSymbolsRequest
+public sealed record SearchSymbolsRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the source-name query.

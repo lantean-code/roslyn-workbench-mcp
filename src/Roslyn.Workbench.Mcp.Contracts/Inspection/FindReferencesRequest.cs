@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
 /// <summary>
 /// Represents a request to find references for a resolved symbol.
 /// </summary>
-public sealed record FindReferencesRequest
+public sealed record FindReferencesRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the symbol selector.

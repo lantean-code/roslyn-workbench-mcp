@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Refactorings;
 /// <summary>
 /// Requests one supported add-await refactoring through Roslyn refactoring composition.
 /// </summary>
-public sealed record AddAwaitRequest
+public sealed record AddAwaitRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the selected async expression to rewrite.

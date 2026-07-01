@@ -32,6 +32,7 @@ public sealed class ToolResultTests
                 DocumentCount = 2,
                 ReloadRequired = false,
             },
+            workspaceId: "workspace-42",
             workspaceEpoch: 42,
             diagnostics:
             [
@@ -56,11 +57,28 @@ public sealed class ToolResultTests
 
         roundTripped.Should().NotBeNull();
         roundTripped!.Outcome.Should().Be(ToolOutcome.Succeeded);
+        roundTripped.WorkspaceId.Should().Be("workspace-42");
         roundTripped.WorkspaceEpoch.Should().Be(42);
         roundTripped.Data.Should().NotBeNull();
         roundTripped.Data!.State.Should().Be(WorkspaceLifecycleState.Ready);
         roundTripped.Diagnostics.Should().ContainSingle();
         roundTripped.Warnings.Should().ContainSingle();
+    }
+
+    [Fact]
+    public void GIVEN_RejectedResult_WHEN_CreatedWithWorkspaceIdentity_THEN_ShouldExposeWorkspaceIdentity()
+    {
+        var result = ToolResult<WorkspaceStatusData>.Rejected(
+            new ToolError
+            {
+                Code = "Code",
+                Message = "Message",
+            },
+            workspaceId: "workspace-42",
+            workspaceEpoch: 42);
+
+        result.WorkspaceId.Should().Be("workspace-42");
+        result.WorkspaceEpoch.Should().Be(42);
     }
 
     [Fact]

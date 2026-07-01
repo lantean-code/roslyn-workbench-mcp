@@ -6,6 +6,16 @@ namespace Roslyn.Workbench.Mcp.Contracts.Results;
 public sealed record WorkspaceIdentity
 {
     /// <summary>
+    /// Gets the stable server-generated workspace identifier.
+    /// </summary>
+    public string WorkspaceId { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Gets the optional caller-friendly alias.
+    /// </summary>
+    public string? Alias { get; init; }
+
+    /// <summary>
     /// Gets the workspace epoch for the loaded baseline.
     /// </summary>
     public long WorkspaceEpoch { get; init; }

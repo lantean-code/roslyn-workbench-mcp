@@ -20,20 +20,20 @@ The executable name is `roslyn-workbench-mcp`.
 
 ## Count and Scope
 
-The target surface contains **81 tools**:
+The target surface contains **82 tools**:
 
 | Group | Tool count |
 |---|---:|
-| Server and workspace context | 8 |
+| Server and workspace context | 9 |
 | Semantic inspection and navigation | 19 |
 | Analysis and architecture | 16 |
 | Specific refactorings, generation and formatting | 28 |
 | Roslyn code actions and transaction control | 10 |
-| **Total** | **81** |
+| **Total** | **82** |
 
 The existing `JoshuaRamirez/RoslynMcpServer` registry has 41 tools. The target
 retains 40 of those operations, replaces `diagnose` with `workspace-status`,
-and adds 40 tools.
+and adds 41 tools.
 
 The planned implementation source and dependency for each tool is recorded in
 [RoslynMcpToolImplementationMatrix.md](RoslynMcpToolImplementationMatrix.md).
@@ -45,8 +45,8 @@ the existing host, direct-write, or incomplete rollback design.
 ## Public Surface Rules
 
 - The server runs locally over stdio and starts with no loaded solution.
-- It supports one loaded writable solution at a time. A second writable
-  `workspace-open` is rejected until the current workspace is closed.
+- It supports multiple loaded workspaces at once. Exactly one loaded workspace
+  may own an active transaction for staged mutations.
 - A writable workspace requires every loaded C# project to use the SDK-style
   project format. The server never writes project, props or targets files.
 - The enabled plugin set is discovered once at server startup. Every enabled
@@ -58,6 +58,9 @@ the existing host, direct-write, or incomplete rollback design.
 - Tool availability does not vary with workspace or transaction state. A tool
   that cannot run returns a structured state error such as
   `NoActiveTransaction`, `TransactionConflicted`, or `WorkspaceOutOfDate`.
+- Every workspace-executed request may include `workspace` selection by server
+  `workspaceId`, caller-friendly `alias`, or canonical loaded `path`. The
+  selector may be omitted only when exactly one workspace is loaded.
 - Query tools do not write files. When a transaction is active, they query its
   staged working solution; otherwise they query the loaded workspace solution.
 - Query tools may run concurrently, up to the configured query limit. A query
@@ -134,24 +137,26 @@ The existing registry contains the following 41 tools.
 
 ## Complete Planned Tool Set
 
-### Server and Workspace Context (8)
+### Server and Workspace Context (9)
 
 | Tool | Status | Purpose |
 |---|---|---|
 | `server-status` | New | Report server and MCP protocol versions, Roslyn/MSBuild availability, effective non-sensitive startup configuration, loaded tool count, plugin load diagnostics, and unfinished commit recovery state. It works without a loaded workspace. |
-| `workspace-open` | New | Load a `.sln`, `.slnx` or `.csproj`, reject non-SDK-style C# projects, report load failures, and make it the server's sole writable workspace. It does not start a transaction. |
-| `workspace-close` | New | Dispose the loaded workspace after its active transaction has been committed or rolled back. |
-| `workspace-status` | Replaces `diagnose` | Report loaded-solution and project-load status, external-change state, active transaction state, revision capacity and reload requirement. |
-| `workspace-reload` | New | Reload the workspace after external changes. It is unavailable while a transaction is active. |
+| `workspace-open` | New | Load an additional `.sln`, `.slnx` or `.csproj`, reject non-SDK-style C# projects, report load failures, and keep the resulting workspace available for selected queries or transactions. It does not start a transaction. |
+| `workspace-list` | New | Enumerate the currently loaded workspaces and identify which one, if any, owns the global transaction slot. |
+| `workspace-close` | New | Dispose one selected loaded workspace after its active transaction has been committed or rolled back. |
+| `workspace-status` | Replaces `diagnose` | Report one selected workspace's lifecycle state, project-load status, external-change state, active transaction state, revision capacity and reload requirement. |
+| `workspace-reload` | New | Reload one selected workspace after external changes. It is unavailable while that workspace owns an active transaction. |
 | `get-solution-structure` | New | Return solution folders, projects, target frameworks and direct project relationships. |
 | `get-project-details` | New | Return project properties, documents, direct references, analyzers and compilation options. |
 | `get-document-options` | New | Return parse options, nullable context, language version, analyzers and editor-config-derived options for one document. |
 
-There is intentionally no `workspace-list`: v1 has only one loaded writable
-workspace. MCP `ping` provides standard connection liveness; `server-status`
-provides server diagnostics. There is also no separate `get-project-dependencies`; direct
-relationships are available from the two inspection tools above, while scoped
-transitive analysis belongs to `get-dependency-graph`.
+`workspace-list` exists because multi-workspace loading requires an explicit
+enumeration surface. MCP `ping` still provides standard connection liveness,
+while `server-status` provides server diagnostics. There is also no separate
+`get-project-dependencies`; direct relationships are available from the two
+inspection tools above, while scoped transitive analysis belongs to
+`get-dependency-graph`.
 
 The descriptions for structural tools - `move-type-to-file`,
 `extract-interface`, `extract-base-class`, file-relocating
@@ -160,6 +165,12 @@ that they require the target project to include the resulting source files by
 its own conventions. The server does not inspect or alter compile-item globs.
 This requirement is visible through standard MCP tool descriptions, rather
 than a client-specific metadata extension.
+
+To keep `tools/list` usable for agents, the default server configuration omits
+published `outputSchema` metadata and relies on the runtime structured result,
+the contract catalogue, and concise description hints where needed. The server
+does not publish a smaller or lossy “summary schema”: it either publishes the
+real output schema in `Full` mode or omits `outputSchema` entirely.
 
 ### Semantic Inspection and Navigation (19)
 
@@ -250,7 +261,7 @@ bounded preview. The operation does not write to disk.
 | `stage-code-action` | New | Revalidate and stage a selected replayable refactoring action into the active transaction. Parameterised actions are rejected and must use a dedicated executor when one lands. |
 | `stage-code-fix` | New | Revalidate a diagnostic and stage a selected code fix into the active transaction. |
 | `stage-fix-all` | New | Stage a selected fix across document, project or solution scope, subject to configured caps. |
-| `transaction-start` | New | Start a transaction, capture the immutable base solution, and create an empty staged revision history. |
+| `transaction-start` | New | Start a transaction on one selected workspace, capture its immutable base solution, and create an empty staged revision history. It is rejected if another loaded workspace already owns the global transaction slot. |
 | `transaction-preview` | Replaces `get-change-set` | Return changed-document and affected-symbol summaries for the current staged revision; return a detailed diff only for an explicitly selected document. |
 | `transaction-history` | New | Move the current revision backward or forward using an `undo` or `redo` direction. It exposes the bounded revision count and remaining capacity. |
 | `transaction-commit` | Replaces `apply-change-set` | Recheck the final derived file manifest against the transaction baseline, then run the durable apply-and-recover protocol without compiling the solution. |
@@ -273,8 +284,11 @@ snapshot mismatch, no match, or multiple matches return `ActionExpired` or
 ## Transaction Behaviour Required by the Catalogue
 
 - A transaction has one immutable base solution and one staged working
-  solution. It is associated with the loaded writable workspace, not exposed
-  as a public transaction ID.
+  solution. It is associated with one loaded workspace session, not exposed as
+  a public transaction ID.
+- The host enforces a single global mutation owner. At most one loaded
+  workspace may be in `TransactionActive` or `TransactionConflicted` at a
+  time.
 - The baseline does not consume revision capacity. Each successful mutating
   operation adds one revision. The server exposes the configured maximum,
   current revision count and remaining count in `workspace-status` and all
@@ -340,13 +354,14 @@ workspace operation gate.
 | `TransactionConflicted` | Workspace-input manifest validation found an external change that invalidated the transaction. It can be previewed or rolled back but not mutated or committed. |
 | `WorkspaceOutOfDate` | Workspace-input manifest validation found an external change with no active transaction. Reload is required before semantic work. |
 
-`workspace-open` transitions `Unloaded` to `Ready`; `transaction-start`
-transitions `Ready` to `TransactionActive`; a detected baseline mismatch
-transitions `Ready` to `WorkspaceOutOfDate` and `TransactionActive` to
-`TransactionConflicted`. A normal rollback returns `TransactionActive` to
-`Ready`; rollback from `TransactionConflicted` transitions to
-`WorkspaceOutOfDate`. A successful commit transitions `TransactionActive` to
-`Ready`. There is no `Committing`, `Querying` or `Mutating` lifecycle state.
+For one workspace session, `workspace-open` creates it in `Ready`;
+`transaction-start` transitions `Ready` to `TransactionActive`; a detected
+baseline mismatch transitions `Ready` to `WorkspaceOutOfDate` and
+`TransactionActive` to `TransactionConflicted`. A normal rollback returns
+`TransactionActive` to `Ready`; rollback from `TransactionConflicted`
+transitions to `WorkspaceOutOfDate`. A successful commit transitions
+`TransactionActive` to `Ready`. There is no `Committing`, `Querying` or
+`Mutating` lifecycle state.
 
 The transaction maintains a current `TransactionCapabilities` snapshot rather
 than encoding every revision combination as a state. It contains revision
@@ -440,15 +455,15 @@ tool is exposed through a server-owned `PluginMcpServerTool`, built from its
 custom JSON-RPC handler.
 
 `PluginMcpServerTool` publishes the `ProtocolTool` name, description,
-annotations, input schema and output schema from `RegisteredTool`. When called,
-it deserializes the MCP argument object using the server's configured JSON
-serializer options and passes the typed request to `ToolExecutor`. The executor
-then acquires the required query or exclusive lease, performs lifecycle,
-transaction, external-change and selector checks, constructs `QueryContext` or
-`MutationContext`, invokes the plugin handler, and converts the common result
-envelope into structured `CallToolResult` content. The plugin handler is never
-an MCP endpoint and receives neither raw protocol arguments nor transport
-objects.
+annotations, input schema, and optional output schema from `RegisteredTool`.
+When called, it deserializes the MCP argument object using the server's
+configured JSON serializer options and passes the typed request to
+`ToolExecutor`. The executor then acquires the required query or exclusive
+lease, performs lifecycle, transaction, external-change and selector checks,
+constructs `QueryContext` or `MutationContext`, invokes the plugin handler, and
+converts the common result envelope into structured `CallToolResult` content.
+The plugin handler is never an MCP endpoint and receives neither raw protocol
+arguments nor transport objects.
 
 `McpServerTool.Create(MethodInfo, target, options)` is still useful for simple
 server-owned tools, provided their target is a thin server adapter that enters

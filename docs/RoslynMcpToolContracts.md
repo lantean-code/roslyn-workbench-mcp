@@ -20,15 +20,15 @@ metadata:
 | `title` | The human-readable title in this catalogue. |
 | `description` | The description in this catalogue, including any operational requirements an agent must understand. |
 | `inputSchema` | A JSON Schema generated from the named request record and shared component records below. Schema validation improves tool discovery but the server validates all inputs at runtime. |
-| `outputSchema` | The `ToolResult<TData>` structured-content schema for the named data shape. |
+| `outputSchema` | Optional. In the default agent-optimised mode the server omits it to reduce `tools/list` size. When the startup `ToolOutputSchemaMode` is `Full`, the published schema is the real `ToolResult<TData>` structured-content schema for the named data shape. |
 | `annotations.readOnlyHint` | `true` for query tools; `false` for lifecycle and staged-mutation tools. |
 | `annotations.destructiveHint` | Set from the tool's maximum effect. Any tool that can replace or remove staged source, discard staged work, or write source to disk is `true`. |
 | `annotations.idempotentHint` | `true` for queries; `false` for state-changing operations. |
 | `annotations.openWorldHint` | `false` for every tool. They operate only on the loaded local workspace. |
 | Task support | `Forbidden` in v1. The client waits for the normal tool result and may cancel it. |
 
-The official C# MCP SDK supports generated input schemas, structured output
-schemas, titles and these behavioural annotations. Plugin tools are registered
+The official C# MCP SDK supports generated input schemas, optional structured
+output schemas, titles and these behavioural annotations. Plugin tools are registered
 as server-owned `PluginMcpServerTool` instances, one per validated
 `RegisteredTool`, rather than by scanning plugin methods for MCP attributes.
 The adapter publishes the schema and metadata held by `RegisteredTool`,
@@ -40,7 +40,9 @@ and [McpServerTool API](https://csharp.sdk.modelcontextprotocol.io/api/ModelCont
 The adapter may attach plugin identity and contract version as internal metadata
 for diagnostics, but requirements that an agent must act upon are always stated
 in the standard tool description. No client-specific metadata extension is
-required for normal operation.
+required for normal operation. Tool descriptions may include a short result hint
+when it materially improves discovery, but they do not restate full response
+DTOs or JSON Schema fragments.
 
 For implementation, each input type is named by converting the tool name to
 PascalCase and appending `Request`: for example, `find-references` uses
@@ -59,6 +61,7 @@ Every successful or expected domain outcome is returned as structured JSON in
 ```text
 ToolResult<TData>
 - outcome: Succeeded | NoChange | Rejected | Conflict | Faulted
+- workspaceId?: string
 - workspaceEpoch?: long
 - transactionRevision?: int
 - data?: TData
@@ -73,21 +76,26 @@ ToolResult<TData>
 `Conflict` and `Faulted` set it to `true`. Malformed MCP requests remain
 protocol-level failures rather than `ToolResult` values.
 
-The output schema is a discriminated `oneOf` on `outcome`, not merely an
+The runtime output shape is a discriminated `oneOf` on `outcome`, not merely an
 object with optional fields. `Succeeded` query results require `data` and do
 not contain `changes`; successful staged mutations require both `data` and the
 top-level `changes`; successful lifecycle, preview, history, commit and
 rollback operations may return `data` without `changes`; `NoChange` never
 contains `changes`; `Rejected` and `Conflict` require `error` and contain
 neither `data` nor `changes`; `Faulted` requires `error` and contains no
-partially staged data or changes. `PluginMcpServerTool` publishes this explicit
-schema rather than relying on an SDK-generated generic type schema.
+partially staged data or changes. When `ToolOutputSchemaMode` is `Full`,
+`PluginMcpServerTool` publishes this explicit schema rather than relying on an
+SDK-generated generic type schema. In the default `Omit` mode, the runtime JSON
+shape remains unchanged even though `tools/list` does not carry `outputSchema`.
+Response readability is preserved because these contracts serialize enums as
+strings via `JsonStringEnumConverter<TEnum>` rather than numeric values.
 
 Common fields used by the data shapes below:
 
 | Type | Shape |
 |---|---|
-| `WorkspaceIdentity` | `{ workspaceEpoch: long, loadedPath: string }` |
+| `WorkspaceSelector` | `{ workspaceId?: string, alias?: string, path?: string }` |
+| `WorkspaceIdentity` | `{ workspaceId: string, alias?: string, workspaceEpoch: long, loadedPath: string }` |
 | `TransactionInfo` | `{ revision: int, revisionCount: int, maxRevisions: int, remainingRevisions: int, canMutate: boolean, canUndo: boolean, canRedo: boolean, canCommit: boolean, canRollback: boolean }` |
 | `ChangeSummary` | `{ added: DocumentChange[], modified: DocumentChange[], deleted: DocumentChange[], affectedSymbols: SymbolReference[] }`. This is the only public location for cross-cutting mutation change data. |
 | `DocumentChange` | `{ document: DocumentReference, changeKind: Added|Modified|Deleted, preview?: DiffSummary }` |
@@ -106,9 +114,10 @@ Roslyn `TextSpan`.
 
 | Component | Fields |
 |---|---|
+| `WorkspaceSelector` | `workspaceId?: string`, `alias?: string`, `path?: string`. At least one is required; multiple values must resolve to one loaded workspace session. |
 | `DocumentSelector` | `path?: string`, `documentId?: string`. Exactly one is required. `path` is normalised and workspace-relative. |
 | `ProjectSelector` | `projectId?: string`, `name?: string`, `path?: string`. At least one is required; multiple values must resolve to one project. |
-| `SnapshotPrecondition` | `{ workspaceEpoch: long, transactionRevision?: int }`. It asserts the effective solution snapshot on which a prior location, selection or symbol result was obtained. |
+| `SnapshotPrecondition` | `{ workspaceId?: string, workspaceEpoch: long, transactionRevision?: int }`. It asserts the effective solution snapshot on which a prior location, selection or symbol result was obtained. |
 | `TextSpanSelector` | `document: DocumentSelector`, `start: int`, `length: int`. |
 | `TextSelectionSelector` | `document: DocumentSelector`, `selectedText: string`, `contextBefore?: string`, `contextAfter?: string`. A unique match becomes a canonical `TextSpanSelector`. |
 | `LocationSelector` | `span?: TextSpanSelector`, `selection?: TextSelectionSelector`. Exactly one is required. |
@@ -116,10 +125,10 @@ Roslyn `TextSpan`.
 | `ScopeSelector` | `kind: Solution|Project|Document|Projects`, `project?: ProjectSelector`, `document?: DocumentSelector`, `projects?: ProjectSelector[]`. The additional selector must match `kind`. |
 | `ProjectRelativePath` | `value: string`. A relative path beneath the owning project's canonical directory. Absolute paths, `..` traversal, and a canonical path that escapes through a symlink are rejected. |
 | `ResultLimit` | `maxResults?: int`. Omitted means the server startup `DefaultMaxResults`, initially `100`. Must be at least `1`. There is no cursor or fixed result-count ceiling in v1; a larger request recomputes the ordered result set. The server may truncate at its configured response-byte limit. |
-| `ResolvedLocation` | `{ document: DocumentReference, span: { start: int, length: int }, line: int, column: int, workspaceEpoch: long, transactionRevision?: int }` |
+| `ResolvedLocation` | `{ workspaceId?: string, document: DocumentReference, span: { start: int, length: int }, line: int, column: int, workspaceEpoch: long, transactionRevision?: int }` |
 | `DocumentReference` | `{ documentId: string, path: string, projectId: string }` |
 | `SymbolReference` | `{ displayName: string, kind: string, documentationCommentId?: string, location?: ResolvedLocation }`. Metadata names may be returned in descriptive text, but are never accepted as identity selectors. |
-| `CodeActionInfo` | `{ actionId: string, title: string, providerId: string, kind?: string, equivalenceKey?: string, actionPath: int[], diagnosticIds: string[], workspaceEpoch: long, transactionRevision?: int, expiresAt: string, executionMode?: Replay|Parameterised|Unsupported, executorTool?: string, describeTool?: string, unsupportedReasonCode?: string, requirements?: string[] }`. `actionId` is opaque and integrity-protected; it binds these fields and is valid only for the stated snapshot and token lifetime. |
+| `CodeActionInfo` | `{ workspaceId?: string, actionId: string, title: string, providerId: string, kind?: string, equivalenceKey?: string, actionPath: int[], diagnosticIds: string[], workspaceEpoch: long, transactionRevision?: int, expiresAt: string, executionMode?: Replay|Parameterised|Unsupported, executorTool?: string, describeTool?: string, unsupportedReasonCode?: string, requirements?: string[] }`. `actionId` is opaque and integrity-protected; it binds these fields and is valid only for the stated snapshot and token lifetime. |
 | `MutationPreview` | `{ summary: string }` |
 | `DocumentDiff` | `{ document: DocumentReference, hunks: DiffHunk[], truncated: boolean }` |
 | `DiffSummary` | `{ addedLines: int, removedLines: int, changedLines: int }` |
@@ -177,15 +186,22 @@ it cannot execute. The published `unsupported` execution mode is reserved for
 visible fallback actions that were discovered successfully but have not yet
 been implemented or explicitly hidden in that build.
 
+Every request that executes against a loaded workspace may include
+`workspace?: WorkspaceSelector`. When exactly one workspace is loaded, the
+selector may be omitted and the server routes the request there. When more than
+one workspace is loaded, omitting it is rejected with
+`WorkspaceSelectorRequired`.
+
 ## Server and Workspace Context (8)
 
 | Tool | Source | Behaviour | Title and description | Input parameters | `data` output shape |
 |---|---|---|---|---|---|
 | `server-status` | New server | Q | **Server Status**. Returns server diagnostics and unfinished commit recovery state without requiring a workspace. | None. | `ServerStatusData { serverVersion, protocolVersion, roslynVersion, msBuild: ComponentStatus, configuration: ServerConfiguration, toolCount, plugins: PluginStatus[], recovery: RecoveryStatus[] }` |
-| `workspace-open` | New server | S | **Open Workspace**. Loads a `.sln`, `.slnx` or `.csproj` as the sole writable workspace. All loaded C# projects must be SDK style. | `path: string` - absolute solution or project path. | `WorkspaceOpenData { workspace: WorkspaceIdentity, projectCount, documentCount, loadDiagnostics: DiagnosticInfo[] }` |
-| `workspace-close` | New server | S | **Close Workspace**. Disposes the loaded workspace. An active transaction must first be committed or rolled back. | None. | `WorkspaceCloseData { closedPath: string }` |
-| `workspace-status` | Replaces `diagnose` | Q | **Workspace Status**. Returns the loaded workspace lifecycle state, project-load diagnostics and transaction capabilities. | None. | `WorkspaceStatusData { state: Unloaded|Ready|TransactionActive|TransactionConflicted|WorkspaceOutOfDate, workspace?: WorkspaceIdentity, projectCount?: int, documentCount?: int, loadDiagnostics: DiagnosticInfo[], transaction?: TransactionInfo, reloadRequired: boolean }` |
-| `workspace-reload` | New server | S | **Reload Workspace**. Reloads a workspace that is out of date. Unavailable while a transaction exists. | None. | `WorkspaceReloadData { workspace: WorkspaceIdentity, projectCount, documentCount, loadDiagnostics: DiagnosticInfo[] }` |
+| `workspace-open` | New server | S | **Open Workspace**. Loads an additional `.sln`, `.slnx` or `.csproj` as a writable workspace session. All loaded C# projects must be SDK style. | `path: string` - absolute solution or project path; `alias?: string` - optional caller-friendly label. | `WorkspaceOpenData { workspace: WorkspaceIdentity, projectCount, documentCount, loadDiagnostics: DiagnosticInfo[] }` |
+| `workspace-list` | New server | Q | **Workspace List**. Returns every loaded workspace plus the current global transaction owner, if any. | None. | `WorkspaceListData { workspaces: WorkspaceIdentity[], transactionOwnerWorkspaceId?: string }` |
+| `workspace-close` | New server | S | **Close Workspace**. Disposes one selected loaded workspace. An active transaction on that workspace must first be committed or rolled back. | `workspace?: WorkspaceSelector`. | `WorkspaceCloseData { closedPath: string }` |
+| `workspace-status` | Replaces `diagnose` | Q | **Workspace Status**. Returns one selected loaded workspace's lifecycle state, project-load diagnostics and transaction capabilities. | `workspace?: WorkspaceSelector`. | `WorkspaceStatusData { state: Ready|TransactionActive|TransactionConflicted|WorkspaceOutOfDate, workspace: WorkspaceIdentity, projectCount: int, documentCount: int, loadDiagnostics: DiagnosticInfo[], transaction?: TransactionInfo, reloadRequired: boolean }` |
+| `workspace-reload` | New server | S | **Reload Workspace**. Reloads one selected workspace that is out of date. Unavailable while that workspace owns an active transaction. | `workspace?: WorkspaceSelector`. | `WorkspaceReloadData { workspace: WorkspaceIdentity, projectCount, documentCount, loadDiagnostics: DiagnosticInfo[] }` |
 | `get-solution-structure` | New plugin | Q | **Get Solution Structure**. Returns solution folders, projects, target frameworks and direct project relationships. | `includeDocuments?: boolean = false`, `limit?: ResultLimit`. | `SolutionStructureData { solutionPath, folders: SolutionFolderInfo[], projects: ProjectStructureInfo[], returnedCount, hasMore }` |
 | `get-project-details` | New plugin | Q | **Get Project Details**. Returns project properties, documents, direct references, analyzers and compilation options. | `project: ProjectSelector`, `includeDocuments?: boolean = true`, `limit?: ResultLimit`. | `ProjectDetailsData { project: ProjectInfo, documents?: DocumentReference[], projectReferences: ProjectReferenceInfo[], metadataReferences: MetadataReferenceInfo[], analyzers: AnalyzerInfo[], compilationOptions: CompilationOptionsInfo, returnedCount?, hasMore? }` |
 | `get-document-options` | New plugin | Q | **Get Document Options**. Returns parse options, nullable context, language version, analyzers and editor-config-derived options. | `document: DocumentSelector`. | `DocumentOptionsData { document: DocumentReference, languageVersion, nullableContext, parseOptions: ParseOptionsInfo, analyzerConfig: AnalyzerConfigInfo }` |
@@ -293,7 +309,7 @@ explicitly and through their snapshot-bound action token.
 | `stage-code-action` | New plugin | M | **Stage Code Action**. Re-runs the recorded provider and stages exactly one matching replayable refactoring action. Parameterised actions are rejected instead of being replayed generically. | `actionId: string`, `expectedSnapshot: SnapshotPrecondition`. | `MutationData` |
 | `stage-code-fix` | New plugin | M | **Stage Code Fix**. Re-runs the recorded provider and stages exactly one matching code fix. | `actionId: string`, `expectedSnapshot: SnapshotPrecondition`. | `MutationData` |
 | `stage-fix-all` | New plugin | M | **Stage Fix All**. Re-runs the recorded provider and stages one matching code fix across a selected scope, subject to any configured fix-all cap. | `actionId: string`, `scope: ScopeSelector`, `maxChanges?: int`, `expectedSnapshot: SnapshotPrecondition`. | `MutationData` |
-| `transaction-start` | New server | S | **Start Transaction**. Captures the immutable base solution and opens an empty staged revision journal. | None. | `TransactionStartData { transaction: TransactionInfo }` |
+| `transaction-start` | New server | S | **Start Transaction**. Captures the immutable base solution for one selected workspace and opens an empty staged revision journal. It rejects if another workspace already owns the global transaction slot. | `workspace?: WorkspaceSelector`. | `TransactionStartData { transaction: TransactionInfo }` |
 | `transaction-preview` | Replaces `get-change-set` | Q | **Preview Transaction**. Returns transaction summaries, or a detailed diff for one explicitly selected document. | `document?: DocumentSelector`, `includeDiff?: boolean = false`, `contextLines?: int = 3`. | `TransactionPreviewData { transaction: TransactionInfo, documents: DocumentChange[], diff?: DocumentDiff }` |
 | `transaction-history` | New server | S | **Transaction History**. Moves the staged revision backward or forward. | `direction: Undo|Redo`, `expectedSnapshot: SnapshotPrecondition`. | `TransactionHistoryData { transaction: TransactionInfo }` |
 | `transaction-commit` | Replaces `apply-change-set` | C | **Commit Transaction**. Rechecks the final source-file manifest and durably applies the staged transaction to disk. It does not compile the solution or modify project files. | `expectedSnapshot: SnapshotPrecondition`. | `TransactionCommitData { committed: boolean, transaction?: TransactionInfo }` |

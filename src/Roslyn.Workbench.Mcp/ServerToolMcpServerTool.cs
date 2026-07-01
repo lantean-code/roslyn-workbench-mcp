@@ -5,6 +5,7 @@ using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
 using Roslyn.Workbench.Mcp.Contracts.Results;
+using Roslyn.Workbench.Mcp.Contracts.Server;
 
 using Roslyn.Workbench.Mcp.Plugins;
 
@@ -24,16 +25,23 @@ internal sealed class ServerToolMcpServerTool<TRequest, TResponse> : McpServerTo
         string description,
         bool readOnly,
         bool destructive,
+        ToolOutputSchemaMode outputSchemaMode,
+        string? resultSummary,
         Func<TRequest, RequestContext<CallToolRequestParams>, CancellationToken, ValueTask<ToolResult<TResponse>>> handler)
     {
         _handler = handler;
+        var publishedDescription = string.IsNullOrWhiteSpace(resultSummary)
+            ? description
+            : $"{description} Result: {resultSummary}";
         _protocolTool = new Tool
         {
             Name = name,
             Title = title,
-            Description = description,
+            Description = publishedDescription,
             InputSchema = ToolSchemaFactory.CreateInputSchema<TRequest>(),
-            OutputSchema = ToolSchemaFactory.CreateToolResultSchema<TResponse>(),
+            OutputSchema = outputSchemaMode == ToolOutputSchemaMode.Full
+                ? ToolSchemaFactory.CreateToolResultSchema<TResponse>()
+                : null,
             Annotations = new ToolAnnotations
             {
                 Title = title,

@@ -37,8 +37,8 @@ internal static class Program
             .Select(registeredTool => new PluginMcpServerTool(registeredTool, toolExecutor))
             .Cast<ModelContextProtocol.Server.McpServerTool>()
             .ToArray();
-        var lifecycleTools = WorkspaceLifecycleToolFactory.Create(workspaceCoordinator);
-        var transactionTools = TransactionToolFactory.Create(workspaceCoordinator);
+        var lifecycleTools = WorkspaceLifecycleToolFactory.Create(workspaceCoordinator, startupOptions.ToolOutputSchemaMode);
+        var transactionTools = TransactionToolFactory.Create(workspaceCoordinator, startupOptions.ToolOutputSchemaMode);
         var serverStatusTool = ServerStatusToolFactory.Create(startupOptions, pluginCatalogSnapshot, codeActionRuntime.CodeActionService.Status, pluginTools.Length + lifecycleTools.Count + transactionTools.Count + 1);
         var mcpTools = new[] { serverStatusTool }.Concat(pluginTools).Concat(lifecycleTools).Concat(transactionTools).ToArray();
 

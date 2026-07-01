@@ -1,14 +1,13 @@
 using ModelContextProtocol.Server;
-
+using Roslyn.Workbench.Mcp.Contracts.Server;
 using Roslyn.Workbench.Mcp.Contracts.Transactions;
-
 using Roslyn.Workbench.Mcp.Workspace;
 
 namespace Roslyn.Workbench.Mcp;
 
 internal static class TransactionToolFactory
 {
-    public static IReadOnlyList<McpServerTool> Create(IWorkspaceCoordinator coordinator)
+    public static IReadOnlyList<McpServerTool> Create(IWorkspaceCoordinator coordinator, ToolOutputSchemaMode outputSchemaMode = ToolOutputSchemaMode.Omit)
     {
         return
         [
@@ -18,6 +17,8 @@ internal static class TransactionToolFactory
                 "Starts a new staged transaction.",
                 readOnly: false,
                 destructive: false,
+                outputSchemaMode,
+                resultSummary: null,
                 (request, _, cancellationToken) => coordinator.StartTransactionAsync(request, cancellationToken)),
             new ServerToolMcpServerTool<TransactionPreviewRequest, TransactionPreviewData>(
                 "transaction-preview",
@@ -25,6 +26,8 @@ internal static class TransactionToolFactory
                 "Previews the current staged transaction.",
                 readOnly: true,
                 destructive: false,
+                outputSchemaMode,
+                resultSummary: null,
                 (request, _, cancellationToken) => coordinator.PreviewTransactionAsync(request, cancellationToken)),
             new ServerToolMcpServerTool<TransactionHistoryRequest, TransactionHistoryData>(
                 "transaction-history",
@@ -32,6 +35,8 @@ internal static class TransactionToolFactory
                 "Moves backward or forward through staged transaction history.",
                 readOnly: false,
                 destructive: true,
+                outputSchemaMode,
+                resultSummary: null,
                 (request, _, cancellationToken) => coordinator.MoveTransactionHistoryAsync(request, cancellationToken)),
             new ServerToolMcpServerTool<TransactionCommitRequest, TransactionCommitData>(
                 "transaction-commit",
@@ -39,6 +44,8 @@ internal static class TransactionToolFactory
                 "Commits the current staged transaction to disk.",
                 readOnly: false,
                 destructive: true,
+                outputSchemaMode,
+                resultSummary: null,
                 (request, _, cancellationToken) => coordinator.CommitTransactionAsync(request, cancellationToken)),
             new ServerToolMcpServerTool<TransactionRollbackRequest, TransactionRollbackData>(
                 "transaction-rollback",
@@ -46,6 +53,8 @@ internal static class TransactionToolFactory
                 "Rolls back the current staged transaction.",
                 readOnly: false,
                 destructive: true,
+                outputSchemaMode,
+                resultSummary: null,
                 (request, _, cancellationToken) => coordinator.RollbackTransactionAsync(request, cancellationToken)),
         ];
     }

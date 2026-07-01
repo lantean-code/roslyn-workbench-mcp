@@ -59,7 +59,7 @@ public sealed class PluginDiscoveryAndMcpToolTests
         serverTool.ProtocolTool.Description.Should().Be("Returns a stable host test payload.");
         serverTool.ProtocolTool.Annotations.Should().NotBeNull();
         serverTool.ProtocolTool.Annotations!.ReadOnlyHint.Should().BeTrue();
-        serverTool.ProtocolTool.OutputSchema.Should().NotBeNull();
+        serverTool.ProtocolTool.OutputSchema.Should().BeNull();
 
         var result = await serverTool.InvokeAsync(
             new RequestContext<CallToolRequestParams>(
@@ -83,6 +83,48 @@ public sealed class PluginDiscoveryAndMcpToolTests
         var payload = JsonSerializer.Deserialize<ToolResult<HostValidQueryPlugin.Response>>(result.StructuredContent!.Value.GetRawText(), _serializerOptions);
 
         result.IsError.Should().BeFalse();
+        payload!.Outcome.Should().Be(ToolOutcome.Succeeded);
+        payload.Data!.Value.Should().Be("Name");
+    }
+
+    [Fact]
+    public async Task GIVEN_FullOutputSchemaMode_WHEN_BuildingPluginMcpServerTool_THEN_ShouldPublishStructuredOutputSchema()
+    {
+        var pluginDirectory = CreatePluginDirectory(typeof(HostValidQueryPlugin).Assembly);
+        var startupOptions = new StartupOptions
+        {
+            PluginDirectories = [pluginDirectory],
+            DefaultMaxResults = 100,
+            ToolOutputSchemaMode = ToolOutputSchemaMode.Full,
+        };
+        var loader = new PluginCatalogLoader();
+        var snapshot = loader.Load(startupOptions, []);
+        var tool = snapshot.Tools.Single();
+        var executor = new ToolExecutor(CreateExecutionContextFactory());
+        var serverTool = new PluginMcpServerTool(tool, executor);
+
+        serverTool.ProtocolTool.OutputSchema.Should().NotBeNull();
+        serverTool.ProtocolTool.OutputSchema!.Value.GetProperty("oneOf").ValueKind.Should().Be(JsonValueKind.Array);
+
+        var result = await serverTool.InvokeAsync(
+            new RequestContext<CallToolRequestParams>(
+                CreateServer(),
+                new JsonRpcRequest
+                {
+                    Method = "tools/call",
+                },
+                new CallToolRequestParams
+                {
+                    Name = "host-valid-query",
+                    Arguments = new Dictionary<string, JsonElement>
+                    {
+                        ["name"] = JsonSerializer.SerializeToElement("Name"),
+                    },
+                }),
+            CancellationToken.None);
+
+        var payload = JsonSerializer.Deserialize<ToolResult<HostValidQueryPlugin.Response>>(result.StructuredContent!.Value.GetRawText(), _serializerOptions);
+
         payload!.Outcome.Should().Be(ToolOutcome.Succeeded);
         payload.Data!.Value.Should().Be("Name");
     }

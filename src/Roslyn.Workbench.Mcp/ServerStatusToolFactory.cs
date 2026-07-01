@@ -20,6 +20,8 @@ internal static class ServerStatusToolFactory
             "Returns server diagnostics without requiring a loaded workspace.",
             readOnly: true,
             destructive: false,
+            startupOptions.ToolOutputSchemaMode,
+            "server diagnostics, effective configuration, plugin status, and unfinished recovery state.",
             (_, requestContext, cancellationToken) => ValueTask.FromResult(CreateResult(startupOptions, pluginCatalogSnapshot, codeActions, toolCount, requestContext, cancellationToken)));
     }
 
@@ -50,6 +52,7 @@ internal static class ServerStatusToolFactory
                 CodeActionTokenLifetime = startupOptions.CodeActionTokenLifetime,
                 MaxTransactionRevisions = startupOptions.MaxTransactionRevisions,
                 MaxConcurrentQueries = startupOptions.MaxConcurrentQueries,
+                ToolOutputSchemaMode = startupOptions.ToolOutputSchemaMode,
             },
             ToolCount = toolCount,
             Plugins = pluginCatalogSnapshot.Plugins,

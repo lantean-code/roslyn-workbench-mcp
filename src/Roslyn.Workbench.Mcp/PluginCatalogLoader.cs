@@ -17,7 +17,7 @@ internal sealed class PluginCatalogLoader
 
         foreach (var assembly in ResolveAssemblies(startupOptions, bundledAssemblies))
         {
-            var loadResult = TryLoadAssembly(assembly, toolNames);
+            var loadResult = TryLoadAssembly(assembly, toolNames, startupOptions.ToolOutputSchemaMode);
             pluginStatuses.Add(loadResult.Status);
 
             if (loadResult.Status.Enabled)
@@ -76,7 +76,7 @@ internal sealed class PluginCatalogLoader
         return assemblies;
     }
 
-    private static PluginAssemblyLoadResult TryLoadAssembly(Assembly assembly, ISet<string> globalToolNames)
+    private static PluginAssemblyLoadResult TryLoadAssembly(Assembly assembly, ISet<string> globalToolNames, ToolOutputSchemaMode outputSchemaMode)
     {
         try
         {
@@ -98,7 +98,7 @@ internal sealed class PluginCatalogLoader
             }
 
             var plugin = (IRoslynPlugin)Activator.CreateInstance(pluginTypes[0])!;
-            var registry = new PluginRegistry(plugin.Metadata);
+            var registry = new PluginRegistry(plugin.Metadata, outputSchemaMode);
             plugin.Register(registry);
 
             if (registry.RegisteredTools.Any(tool => globalToolNames.Contains(tool.Metadata.Name)))

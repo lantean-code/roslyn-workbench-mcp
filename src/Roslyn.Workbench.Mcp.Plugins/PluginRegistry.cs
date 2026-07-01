@@ -1,18 +1,26 @@
 using System.Text.Json;
 
 using ModelContextProtocol.Protocol;
+using Roslyn.Workbench.Mcp.Contracts.Server;
 
 namespace Roslyn.Workbench.Mcp.Plugins;
 
 public sealed class PluginRegistry : IPluginRegistry
 {
     private readonly PluginMetadata _pluginMetadata;
+    private readonly ToolOutputSchemaMode _outputSchemaMode;
     private readonly List<RegisteredTool> _registeredTools;
     private readonly HashSet<string> _toolNames;
 
     public PluginRegistry(PluginMetadata pluginMetadata)
+        : this(pluginMetadata, ToolOutputSchemaMode.Omit)
+    {
+    }
+
+    public PluginRegistry(PluginMetadata pluginMetadata, ToolOutputSchemaMode outputSchemaMode)
     {
         _pluginMetadata = pluginMetadata;
+        _outputSchemaMode = outputSchemaMode;
         _registeredTools = [];
         _toolNames = new HashSet<string>(StringComparer.Ordinal);
 
@@ -66,9 +74,11 @@ public sealed class PluginRegistry : IPluginRegistry
             RequestType = requestType,
             ResponseType = kind == ToolKind.Mutation ? typeof(Contracts.Results.MutationData) : responseType,
             InputSchema = ToolSchemaFactory.CreateInputSchema<TRequest>(),
-            OutputSchema = kind == ToolKind.Mutation
-                ? ToolSchemaFactory.CreateToolResultSchema<Contracts.Results.MutationData>()
-                : ToolSchemaFactory.CreateToolResultSchema<TResponse>(),
+            OutputSchema = _outputSchemaMode == ToolOutputSchemaMode.Full
+                ? kind == ToolKind.Mutation
+                    ? ToolSchemaFactory.CreateToolResultSchema<Contracts.Results.MutationData>()
+                    : ToolSchemaFactory.CreateToolResultSchema<TResponse>()
+                : null,
             Annotations = CreateAnnotations(kind, metadata),
             Invoker = invoker,
         });

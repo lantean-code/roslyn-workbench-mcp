@@ -17,11 +17,14 @@ internal sealed class PluginMcpServerTool : McpServerTool
     {
         _registeredTool = registeredTool;
         _toolExecutor = toolExecutor;
+        var description = string.IsNullOrWhiteSpace(registeredTool.Metadata.ResultSummary)
+            ? registeredTool.Metadata.Description
+            : $"{registeredTool.Metadata.Description} Result: {registeredTool.Metadata.ResultSummary}";
         _protocolTool = new Tool
         {
             Name = registeredTool.Metadata.Name,
             Title = registeredTool.Metadata.Title,
-            Description = registeredTool.Metadata.Description,
+            Description = description,
             InputSchema = registeredTool.InputSchema,
             OutputSchema = registeredTool.OutputSchema,
             Annotations = registeredTool.Annotations,

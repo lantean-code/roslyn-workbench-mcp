@@ -21,6 +21,11 @@ public sealed record ToolRegistrationMetadata
     public string Description { get; init; } = string.Empty;
 
     /// <summary>
+    /// Gets the optional concise result summary displayed to users.
+    /// </summary>
+    public string? ResultSummary { get; init; }
+
+    /// <summary>
     /// Gets the published behavioural hints for the tool.
     /// </summary>
     public ToolBehaviorHints Behavior { get; init; } = new();

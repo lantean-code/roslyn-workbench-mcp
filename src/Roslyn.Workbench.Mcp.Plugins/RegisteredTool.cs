@@ -42,7 +42,7 @@ public sealed record RegisteredTool
     /// <summary>
     /// Gets the generated MCP output schema.
     /// </summary>
-    public JsonElement OutputSchema { get; init; }
+    public JsonElement? OutputSchema { get; init; }
 
     /// <summary>
     /// Gets the generated MCP tool annotations.

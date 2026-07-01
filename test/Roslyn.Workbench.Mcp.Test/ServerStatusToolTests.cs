@@ -75,6 +75,33 @@ public sealed class ServerStatusToolTests
     }
 
     [Fact]
+    public void GIVEN_DefaultOutputSchemaMode_WHEN_CreatingServerStatusTool_THEN_ShouldOmitOutputSchemaAndAppendResultHint()
+    {
+        var startupOptions = new StartupOptions();
+        var pluginSnapshot = new PluginCatalogSnapshot();
+
+        var tool = ServerStatusToolFactory.Create(startupOptions, pluginSnapshot, new ComponentStatus { IsAvailable = true }, 14);
+
+        tool.ProtocolTool.OutputSchema.Should().BeNull();
+        tool.ProtocolTool.Description.Should().Be("Returns server diagnostics without requiring a loaded workspace. Result: server diagnostics, effective configuration, plugin status, and unfinished recovery state.");
+    }
+
+    [Fact]
+    public void GIVEN_FullOutputSchemaMode_WHEN_CreatingServerStatusTool_THEN_ShouldPublishOutputSchema()
+    {
+        var startupOptions = new StartupOptions
+        {
+            ToolOutputSchemaMode = ToolOutputSchemaMode.Full,
+        };
+        var pluginSnapshot = new PluginCatalogSnapshot();
+
+        var tool = ServerStatusToolFactory.Create(startupOptions, pluginSnapshot, new ComponentStatus { IsAvailable = true }, 14);
+
+        tool.ProtocolTool.OutputSchema.Should().NotBeNull();
+        tool.ProtocolTool.OutputSchema!.Value.GetProperty("oneOf").ValueKind.Should().Be(JsonValueKind.Array);
+    }
+
+    [Fact]
     public async Task GIVEN_UnfinishedRecoveryRecord_WHEN_InvokingServerStatusTool_THEN_ShouldReturnRecoveryDiagnostics()
     {
         var stateDirectory = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-status-tests", Guid.NewGuid().ToString("n"));

@@ -8,7 +8,7 @@ namespace Roslyn.Workbench.Mcp;
 
 internal static class WorkspaceLifecycleToolFactory
 {
-    public static IReadOnlyList<McpServerTool> Create(IWorkspaceCoordinator coordinator)
+    public static IReadOnlyList<McpServerTool> Create(IWorkspaceCoordinator coordinator, ToolOutputSchemaMode outputSchemaMode = ToolOutputSchemaMode.Omit)
     {
         return
         [
@@ -18,6 +18,8 @@ internal static class WorkspaceLifecycleToolFactory
                 "Loads a writable workspace.",
                 readOnly: false,
                 destructive: false,
+                outputSchemaMode,
+                resultSummary: null,
                 (request, _, cancellationToken) => coordinator.OpenAsync(request, cancellationToken)),
             new ServerToolMcpServerTool<EmptyRequest, WorkspaceCloseData>(
                 "workspace-close",
@@ -25,6 +27,8 @@ internal static class WorkspaceLifecycleToolFactory
                 "Closes the loaded workspace.",
                 readOnly: false,
                 destructive: false,
+                outputSchemaMode,
+                resultSummary: null,
                 (_, _, cancellationToken) => coordinator.CloseAsync(cancellationToken)),
             new ServerToolMcpServerTool<EmptyRequest, WorkspaceStatusData>(
                 "workspace-status",
@@ -32,6 +36,8 @@ internal static class WorkspaceLifecycleToolFactory
                 "Reports the current workspace lifecycle state.",
                 readOnly: true,
                 destructive: false,
+                outputSchemaMode,
+                resultSummary: null,
                 (_, _, cancellationToken) => coordinator.GetStatusAsync(cancellationToken)),
             new ServerToolMcpServerTool<EmptyRequest, WorkspaceReloadData>(
                 "workspace-reload",
@@ -39,6 +45,8 @@ internal static class WorkspaceLifecycleToolFactory
                 "Reloads the loaded workspace when it is out of date.",
                 readOnly: false,
                 destructive: false,
+                outputSchemaMode,
+                resultSummary: null,
                 (_, _, cancellationToken) => coordinator.ReloadAsync(cancellationToken)),
         ];
     }

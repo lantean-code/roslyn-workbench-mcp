@@ -1,3 +1,5 @@
+using Roslyn.Workbench.Mcp.Contracts.Server;
+
 namespace Roslyn.Workbench.Mcp;
 
 internal static class StartupOptionsParser
@@ -18,6 +20,7 @@ internal static class StartupOptionsParser
             CodeActionTokenLifetime = ReadTimeSpan(optionMap, "code-action-token-lifetime", "ROSLYN_WORKBENCH_MCP_CODE_ACTION_TOKEN_LIFETIME", TimeSpan.FromMinutes(5)),
             MaxTransactionRevisions = ReadInt(optionMap, "max-transaction-revisions", "ROSLYN_WORKBENCH_MCP_MAX_TRANSACTION_REVISIONS", 20),
             MaxConcurrentQueries = ReadInt(optionMap, "max-concurrent-queries", "ROSLYN_WORKBENCH_MCP_MAX_CONCURRENT_QUERIES", 2),
+            ToolOutputSchemaMode = ReadToolOutputSchemaMode(optionMap, "tool-output-schema-mode", "ROSLYN_WORKBENCH_MCP_TOOL_OUTPUT_SCHEMA_MODE", ToolOutputSchemaMode.Omit),
             StateDirectory = ReadString(optionMap, "state-directory", "ROSLYN_WORKBENCH_MCP_STATE_DIRECTORY")
                 ?? Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-state"),
         };
@@ -97,6 +100,18 @@ internal static class StartupOptionsParser
     {
         var value = ReadString(optionMap, key, environmentVariable);
         return TimeSpan.TryParse(value, out var parsedValue) ? parsedValue : defaultValue;
+    }
+
+    private static ToolOutputSchemaMode ReadToolOutputSchemaMode(
+        Dictionary<string, List<string>> optionMap,
+        string key,
+        string environmentVariable,
+        ToolOutputSchemaMode defaultValue)
+    {
+        var value = ReadString(optionMap, key, environmentVariable);
+        return Enum.TryParse<ToolOutputSchemaMode>(value, ignoreCase: true, out var parsedValue)
+            ? parsedValue
+            : defaultValue;
     }
 
     private static string? ReadString(Dictionary<string, List<string>> optionMap, string key, string environmentVariable)

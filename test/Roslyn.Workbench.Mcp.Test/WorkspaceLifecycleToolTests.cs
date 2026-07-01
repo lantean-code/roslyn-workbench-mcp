@@ -276,6 +276,8 @@ public sealed class WorkspaceLifecycleToolTests
             "Throws for testing.",
             readOnly: true,
             destructive: false,
+            ToolOutputSchemaMode.Omit,
+            resultSummary: null,
             (_, _, _) => throw new InvalidOperationException("Boom"));
 
         var result = await tool.InvokeAsync(
@@ -308,6 +310,8 @@ public sealed class WorkspaceLifecycleToolTests
             "Deserializes request for testing.",
             readOnly: false,
             destructive: false,
+            ToolOutputSchemaMode.Omit,
+            resultSummary: null,
             (_, _, _) => ValueTask.FromResult(ToolResult<WorkspaceOpenData>.Rejected(new ToolError
             {
                 Code = "Unreachable",

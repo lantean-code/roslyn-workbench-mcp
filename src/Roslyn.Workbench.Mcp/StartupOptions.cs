@@ -1,3 +1,5 @@
+using Roslyn.Workbench.Mcp.Contracts.Server;
+
 namespace Roslyn.Workbench.Mcp;
 
 internal sealed class StartupOptions
@@ -13,6 +15,8 @@ internal sealed class StartupOptions
     public int MaxTransactionRevisions { get; init; } = 20;
 
     public int MaxConcurrentQueries { get; init; } = 2;
+
+    public ToolOutputSchemaMode ToolOutputSchemaMode { get; init; } = ToolOutputSchemaMode.Omit;
 
     public string StateDirectory { get; init; } = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-state");
 }

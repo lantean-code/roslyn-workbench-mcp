@@ -29,4 +29,9 @@ public sealed record ServerConfiguration
     /// Gets the configured maximum concurrent query count.
     /// </summary>
     public int MaxConcurrentQueries { get; init; }
+
+    /// <summary>
+    /// Gets the configured output schema publication mode.
+    /// </summary>
+    public ToolOutputSchemaMode ToolOutputSchemaMode { get; init; }
 }

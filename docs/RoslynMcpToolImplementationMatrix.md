@@ -72,8 +72,8 @@ validated.
 
 | Tool | Implementation source | Status |
 |---|---|---|
-| `move-type-to-file` | Custom syntax/semantic solution edit | Custom |
-| `move-type-to-namespace` | Custom syntax/semantic solution edit | Custom |
+| `move-type-to-file` | Future host wrapper over Roslyn move-type support using the narrowed Roslyn-chosen own-file contract | Planned with narrowed contract |
+| `move-type-to-namespace` | Roslyn move-to-namespace support still depends on internal service and options seams | Not planned with current public Roslyn APIs |
 | `rename-symbol` | Public `Renamer.RenameSymbolAsync` | Core |
 | `extract-method` | Host wrapper over deterministic MEF refactoring replay | Batch 3 |
 | `introduce-variable` | Host wrapper over deterministic MEF refactoring replay with Roslyn leaf-action selection | Batch 3 |
@@ -83,18 +83,18 @@ validated.
 | `inline-variable` | Host wrapper over deterministic MEF refactoring replay | Batch 3 |
 | `change-signature` | MEF refactoring provider plus internal Roslyn feature service wrapper | Not planned with current public Roslyn APIs |
 | `encapsulate-field` | Host wrapper over deterministic MEF refactoring replay | Batch 3 |
-| `convert-to-async` | Custom syntax/semantic implementation | Custom |
-| `convert-expression-body` | Custom syntax transformation | Custom |
-| `convert-property` | Custom syntax/semantic transformation | Custom |
+| `convert-to-async` | Public Roslyn surface does not expose the documented end-state synchronous-to-asynchronous conversion workflow | Not planned with current public Roslyn APIs |
+| `convert-expression-body` | Host wrapper over deterministic MEF refactoring replay | Batch 4 |
+| `convert-property` | Future narrowed or split contract around Roslyn-backed auto-property and full-property conversions; current build ships the dedicated auto-property-to-full-property split | Planned with narrowed contract |
 | `convert-foreach-linq` | Host wrapper over deterministic MEF refactoring replay | Batch 3 |
 | `convert-to-interpolated-string` | Host wrapper over deterministic MEF refactoring replay | Batch 3 |
-| `convert-to-pattern-matching` | Custom syntax/semantic transformation | Custom |
-| `generate-constructor` | Custom syntax/semantic generation | Custom |
+| `convert-to-pattern-matching` | Roslyn fixes depend on diagnostics not surfaced through the server's current public compilation and analyzer diagnostics path | Not planned with current public Roslyn diagnostics path |
+| `generate-constructor` | Dialog-backed Roslyn member-pick flow | Not planned with current public Roslyn APIs |
 | `generate-equals-hashcode` | MEF refactoring provider plus internal Roslyn feature service wrapper | Not planned with current public Roslyn APIs |
 | `generate-overrides` | MEF refactoring provider plus internal generation APIs | Not planned with current public Roslyn APIs |
-| `generate-tostring` | Custom syntax/semantic generation | Custom |
+| `generate-tostring` | No supported public Roslyn generation seam identified in the current build | Not planned with current public Roslyn APIs |
 | `implement-interface` | MEF code-fix/refactoring provider plus internal Roslyn feature service wrapper | Not planned with current public Roslyn APIs |
-| `add-null-checks` | Custom syntax/semantic transformation | Custom |
+| `add-null-checks` | Host wrapper over deterministic MEF refactoring replay | Batch 4 |
 | `add-missing-usings` | Host wrapper over deterministic MEF code-fix selection | Batch 2 |
 | `remove-unused-usings` | Host wrapper over deterministic MEF code-fix selection | Batch 2 |
 | `sort-usings` | Public formatter/syntax transformation | Core |

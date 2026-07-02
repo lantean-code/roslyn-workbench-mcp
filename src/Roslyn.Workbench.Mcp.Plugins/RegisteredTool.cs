@@ -1,7 +1,5 @@
 using System.Text.Json;
 
-using ModelContextProtocol.Protocol;
-
 namespace Roslyn.Workbench.Mcp.Plugins;
 
 /// <summary>

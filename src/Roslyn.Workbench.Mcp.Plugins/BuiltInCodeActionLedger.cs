@@ -126,6 +126,15 @@ internal static class BuiltInCodeActionLedger
         },
         new()
         {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.UseAutoProperty.CSharpUseAutoPropertyCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "convert-property",
+            ExecutorTool = "convert-property",
+            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
+            State = BuiltInCodeActionSupportState.SupportedParameterised,
+        },
+        new()
+        {
             Kind = BuiltInCodeActionFamilyKind.CodeFix,
             ToolName = "remove-unused-usings",
             AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
@@ -205,6 +214,13 @@ internal static class BuiltInCodeActionLedger
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.MoveDeclarationNearReference.CSharpMoveDeclarationNearReferenceCodeRefactoringProvider",
             ToolName = "move-declaration-near-reference",
+            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
+            State = BuiltInCodeActionSupportState.SupportedReplay,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.CodeRefactorings.MoveType.MoveTypeCodeRefactoringProvider",
+            ToolName = "move-type-to-file",
             AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
             State = BuiltInCodeActionSupportState.SupportedReplay,
         },
@@ -435,6 +451,7 @@ internal static class BuiltInCodeActionLedger
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.InitializeParameter.CSharpAddParameterCheckCodeRefactoringProvider",
+            ToolName = "add-null-checks",
             AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
             State = BuiltInCodeActionSupportState.SupportedReplay,
         },
@@ -477,12 +494,14 @@ internal static class BuiltInCodeActionLedger
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.UseExpressionBody.UseExpressionBodyCodeRefactoringProvider",
+            ToolName = "convert-expression-body",
             AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
             State = BuiltInCodeActionSupportState.SupportedReplay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.UseExpressionBodyForLambda.UseExpressionBodyForLambdaCodeRefactoringProvider",
+            ToolName = "convert-expression-body",
             AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
             State = BuiltInCodeActionSupportState.SupportedReplay,
         },

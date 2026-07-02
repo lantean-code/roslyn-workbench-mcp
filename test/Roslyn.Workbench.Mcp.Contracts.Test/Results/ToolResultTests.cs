@@ -1,12 +1,8 @@
 using System.Text.Json;
 
-using AwesomeAssertions;
-
 using Roslyn.Workbench.Mcp.Contracts.Results;
 using Roslyn.Workbench.Mcp.Contracts.Server;
 using Roslyn.Workbench.Mcp.Contracts.Validation;
-
-using Xunit;
 
 namespace Roslyn.Workbench.Mcp.Contracts.Test.Results;
 

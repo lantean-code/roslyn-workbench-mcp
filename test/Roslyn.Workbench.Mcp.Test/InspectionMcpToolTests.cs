@@ -1,24 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
-
-using AwesomeAssertions;
-
-using ModelContextProtocol.Protocol;
-using ModelContextProtocol.Server;
-
-using Moq;
-
-using Roslyn.Workbench.Mcp.Contracts.Inspection;
-using Roslyn.Workbench.Mcp.Contracts.Results;
-using Roslyn.Workbench.Mcp.Contracts.Selectors;
-using Roslyn.Workbench.Mcp.Contracts.Server;
-using Roslyn.Workbench.Mcp.Contracts.Transactions;
-using Roslyn.Workbench.Mcp.Plugins;
-using Roslyn.Workbench.Mcp.Plugins.Core;
 using Roslyn.Workbench.Mcp.TestSupport;
-using Roslyn.Workbench.Mcp.Workspace;
-
-using Xunit;
 
 namespace Roslyn.Workbench.Mcp.Test;
 

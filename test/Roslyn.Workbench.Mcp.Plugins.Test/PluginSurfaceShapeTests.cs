@@ -1,7 +1,3 @@
-using AwesomeAssertions;
-
-using Xunit;
-
 namespace Roslyn.Workbench.Mcp.Plugins.Test;
 
 public sealed class PluginSurfaceShapeTests

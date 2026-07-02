@@ -1,5 +1,3 @@
-using Roslyn.Workbench.Mcp.Plugins;
-
 namespace Roslyn.Workbench.Mcp.Plugins.Core;
 
 internal abstract class MutationToolHandler<TRequest, TResponse> : IMutationToolHandler<TRequest, TResponse>

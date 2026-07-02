@@ -1,5 +1,3 @@
-using Microsoft.CodeAnalysis;
-
 using Roslyn.Workbench.Mcp.Contracts.Results;
 
 namespace Roslyn.Workbench.Mcp.Workspace;

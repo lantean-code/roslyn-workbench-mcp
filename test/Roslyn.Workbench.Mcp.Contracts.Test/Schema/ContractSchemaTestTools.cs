@@ -1,6 +1,3 @@
-using ModelContextProtocol.Protocol;
-using ModelContextProtocol.Server;
-
 using Roslyn.Workbench.Mcp.Contracts.CodeActions;
 using Roslyn.Workbench.Mcp.Contracts.Inspection;
 using Roslyn.Workbench.Mcp.Contracts.Refactorings;
@@ -196,6 +193,14 @@ internal static class ContractSchemaTestTools
         return new CallToolResult();
     }
 
+    [McpServerTool(Name = "convert-auto-property-to-full-property", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<MutationData>))]
+    public static CallToolResult ConvertAutoPropertyToFullProperty(ConvertAutoPropertyToFullPropertyRequest request)
+    {
+        _ = request;
+
+        return new CallToolResult();
+    }
+
     [McpServerTool(Name = "convert-between-regular-and-verbatim-interpolated-string", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<MutationData>))]
     public static CallToolResult ConvertBetweenRegularAndVerbatimInterpolatedString(LocationRefactoringRequest request)
     {
@@ -316,4 +321,19 @@ internal static class ContractSchemaTestTools
         return new CallToolResult();
     }
 
+    [McpServerTool(Name = "move-type-to-file", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<MutationData>))]
+    public static CallToolResult MoveTypeToFile(MoveTypeToFileRequest request)
+    {
+        _ = request;
+
+        return new CallToolResult();
+    }
+
+    [McpServerTool(Name = "convert-property", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<MutationData>))]
+    public static CallToolResult ConvertProperty(ConvertPropertyRequest request)
+    {
+        _ = request;
+
+        return new CallToolResult();
+    }
 }

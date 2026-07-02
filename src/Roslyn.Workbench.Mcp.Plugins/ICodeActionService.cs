@@ -96,4 +96,16 @@ public interface ICodeActionService
         ScopedCodeFixRequest request,
         IMutationContext context,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Resolves one deterministic location-scoped code fix and stages it directly.
+    /// </summary>
+    /// <param name="request">The location-scoped code-fix request.</param>
+    /// <param name="context">The host-owned mutation context.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The normalized mutation proposal result.</returns>
+    ValueTask<PluginExecutionResult<MutationProposal>> StageLocationCodeFixAsync(
+        LocationCodeFixRequest request,
+        IMutationContext context,
+        CancellationToken cancellationToken);
 }

@@ -1,5 +1,3 @@
-using ModelContextProtocol.Protocol;
-using ModelContextProtocol.Server;
 using Roslyn.Workbench.Mcp.Contracts.Results;
 using Roslyn.Workbench.Mcp.Contracts.Server;
 using Roslyn.Workbench.Mcp.Workspace;

@@ -493,12 +493,30 @@ public static class BuiltInCodeActionAuditCases
         },
         new()
         {
+            ToolName = "add-null-checks",
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.InitializeParameter.CSharpAddParameterCheckCodeRefactoringProvider",
+            Title = "Add null check",
+            SourceNote = "AddParameterCheck.cs constructor parameter",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetCursorInDocument("AddParameterCheck.cs", "object value"),
+        },
+        new()
+        {
             ToolName = "convert-if-to-switch",
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertIfToSwitch.CSharpConvertIfToSwitchCodeRefactoringProvider",
             Title = "Convert to 'switch' statement",
             SourceNote = "ConditionalSamples.DescribeValue leading if statement",
             ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
             LocationFactory = static fixture => fixture.GetLocation("if (value == 0)"),
+        },
+        new()
+        {
+            ToolName = "convert-expression-body",
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.UseExpressionBody.UseExpressionBodyCodeRefactoringProvider",
+            TitlePrefix = "Use expression body",
+            SourceNote = "ExpressionBodySamples.Square method",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocation("Square"),
         },
         new()
         {

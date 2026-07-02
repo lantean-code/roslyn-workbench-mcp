@@ -1,70 +1,59 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
-
-using AwesomeAssertions;
-
-using Roslyn.Workbench.Mcp.Contracts.Refactorings;
-using Roslyn.Workbench.Mcp.Contracts.Results;
-using Roslyn.Workbench.Mcp.Contracts.Selectors;
-using Roslyn.Workbench.Mcp.Contracts.Server;
-using Roslyn.Workbench.Mcp.Contracts.Transactions;
-using Roslyn.Workbench.Mcp.Plugins;
-using Roslyn.Workbench.Mcp.Plugins.Core;
 using Roslyn.Workbench.Mcp.TestSupport;
-using Roslyn.Workbench.Mcp.Workspace;
-
-using Xunit;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test;
 
 public sealed class ReplayRefactoringToolsTests
 {
-    public static TheoryData<string, Func<InspectionSampleFixture, ToolResult<WorkspaceOpenData>, Dictionary<string, JsonElement>>> ReplayMutationCases
+    public static TheoryData<string, ReplayMutationCaseDefinition> ReplayMutationCases
     {
         get
         {
-            var allCases = new Dictionary<string, Func<InspectionSampleFixture, ToolResult<WorkspaceOpenData>, Dictionary<string, JsonElement>>>(StringComparer.Ordinal)
+            var allCases = new Dictionary<string, ReplayMutationCaseDefinition>(StringComparer.Ordinal)
             {
-                { "convert-between-regular-and-verbatim-interpolated-string", static (fixture, open) => CreateLocationRequest(fixture.GetLocation("$\"C:\\\\temp\\\\{value}\""), open) },
-                { "convert-between-regular-and-verbatim-string", static (fixture, open) => CreateLocationRequest(fixture.GetLocation("\"C:\\\\temp\\\\logs\""), open) },
-                { "convert-foreach-to-for", static (fixture, open) => CreateLocationRequest(fixture.GetLocation("foreach (var value in values)"), open) },
-                { "convert-for-to-foreach", static (fixture, open) => CreateLocationRequest(fixture.GetLocation("for (var i = 0; i < values.Length; i++)", 0), open) },
-                { "convert-anonymous-type-to-tuple", static (fixture, open) => CreateLocationRequest(fixture.GetLocation("new { Name = \"Alpha\", Count = 1 }"), open) },
-                { "convert-anonymous-type-to-class", static (fixture, open) => CreateAnonymousTypeToClassRequest(fixture.GetLocation("new { Name = \"Alpha\", Count = 1 }"), open, ConvertAnonymousTypeToClassKind.Class) },
-                { "convert-auto-property-to-full-property", static (fixture, open) => CreateLocationRequest(fixture.GetLocation("Goo"), open) },
-                { "convert-to-record", static (fixture, open) => CreateLocationRequest(fixture.GetLocation("ConvertibleToRecord"), open) },
-                { "convert-direct-cast-to-try-cast", static (fixture, open) => CreateLocationRequest(fixture.GetLocation("(object)1"), open) },
-                { "convert-local-function-to-method", static (fixture, open) => CreateLocationRequest(fixture.GetLocation("Local", 0), open) },
-                { "convert-primary-to-regular-constructor", static (fixture, open) => CreateLocationRequest(fixture.GetSelection("PrimaryConstructorSamples(int value)"), open) },
-                { "convert-try-cast-to-direct-cast", static (fixture, open) => CreateLocationRequest(fixture.GetSelection("value as string"), open) },
-                { "invert-conditional", static (fixture, open) => CreateLocationRequest(fixture.GetSelection("count == 0 ? \"zero\" : \"non-zero\""), open) },
-                { "invert-if", static (fixture, open) => CreateLocationRequest(fixture.GetLocation("if (left > 0)"), open) },
-                { "make-local-function-static", static (fixture, open) => CreateLocationRequest(fixture.GetLocation("Local", 0), open) },
-                { "move-declaration-near-reference", static (fixture, open) => CreateLocationRequest(fixture.GetLocation("int moved;"), open) },
-                { "name-tuple-element", static (fixture, open) => CreateLocationRequest(fixture.GetCursor("return (1 + 1, 2);", 0, "return (".Length), open) },
-                { "replace-doc-comment-text-with-tag", static (fixture, open) => CreateLocationRequest(fixture.GetLocation("System.IDisposable"), open) },
-                { "reverse-for-statement", static (fixture, open) => CreateLocationRequest(fixture.GetLocation("for (var i = 0; i < values.Length; i++)", 0), open) },
-                { "use-explicit-type", static (fixture, open) => CreateLocationRequest(fixture.GetCursor("var explicitBuilder", 0, "var".Length), open) },
-                { "use-implicit-type", static (fixture, open) => CreateLocationRequest(fixture.GetCursor("StringBuilder implicitBuilder", 0, "StringBuilder".Length), open) },
-                { "use-named-arguments", static (fixture, open) => CreateUseNamedArgumentsRequest(fixture.GetCursor("Sum(1, 2)", 0, 4), open, includeTrailingArguments: false) },
-                { "use-recursive-patterns", static (fixture, open) => CreateLocationRequest(fixture.GetCursor("cf != null && cf.C != 0", 0, "cf != null ".Length), open) },
-                { "add-await", static (fixture, open) => CreateAddAwaitRequest(fixture.GetCursorAfter("GetValueAsync()", 2), open, AddAwaitKind.Await) },
-                { "add-debugger-display", static (fixture, open) => CreateLocationRequest(fixture.GetLocation("GreetingFormatter", 0), open) },
-                { "add-import", static (fixture, open) => CreateAddImportRequest(fixture.GetCursor("System.Net.Http.HttpClient"), open, simplifyAllOccurrences: false) },
-                { "convert-if-to-switch", static (fixture, open) => CreateConvertIfToSwitchRequest(fixture.GetLocation("if (value == 0)"), open, ConvertIfToSwitchKind.Statement) },
-                { "invert-logical", static (fixture, open) => CreateLocationRequest(fixture.GetLocation("&&"), open) },
-                { "introduce-using-statement", static (fixture, open) => CreateLocationRequest(fixture.GetSelection("var stream = new MemoryStream();"), open) },
-                { "replace-conditional-with-statements", static (fixture, open) => CreateLocationRequest(fixture.GetLocation("value = enabled ? 1 : 2;"), open) },
+                { "convert-between-regular-and-verbatim-interpolated-string", new(static (fixture, open) => CreateLocationRequest(fixture.GetLocation("$\"C:\\\\temp\\\\{value}\""), open), "Formatting.cs") },
+                { "convert-between-regular-and-verbatim-string", new(static (fixture, open) => CreateLocationRequest(fixture.GetLocation("\"C:\\\\temp\\\\logs\""), open), "Formatting.cs") },
+                { "convert-foreach-to-for", new(static (fixture, open) => CreateLocationRequest(fixture.GetLocation("foreach (var value in values)"), open), "Formatting.cs") },
+                { "convert-for-to-foreach", new(static (fixture, open) => CreateLocationRequest(fixture.GetLocation("for (var i = 0; i < values.Length; i++)", 0), open), "Formatting.cs") },
+                { "convert-anonymous-type-to-tuple", new(static (fixture, open) => CreateLocationRequest(fixture.GetLocation("new { Name = \"Alpha\", Count = 1 }"), open), "Formatting.cs") },
+                { "convert-anonymous-type-to-class", new(static (fixture, open) => CreateAnonymousTypeToClassRequest(fixture.GetLocation("new { Name = \"Alpha\", Count = 1 }"), open, ConvertAnonymousTypeToClassKind.Class), "Formatting.cs") },
+                { "convert-auto-property-to-full-property", new(static (fixture, open) => CreateLocationRequest(fixture.GetLocation("Goo"), open), "Formatting.cs") },
+                { "convert-to-record", new(static (fixture, open) => CreateLocationRequest(fixture.GetLocation("ConvertibleToRecord"), open), "Formatting.cs") },
+                { "convert-direct-cast-to-try-cast", new(static (fixture, open) => CreateLocationRequest(fixture.GetLocation("(object)1"), open), "Formatting.cs") },
+                { "convert-expression-body", new(static (fixture, open) => CreateLocationRequest(fixture.GetLocation("Square"), open), "Formatting.cs") },
+                { "convert-local-function-to-method", new(static (fixture, open) => CreateLocationRequest(fixture.GetLocation("Local", 0), open), "Formatting.cs") },
+                { "convert-primary-to-regular-constructor", new(static (fixture, open) => CreateLocationRequest(fixture.GetSelection("PrimaryConstructorSamples(int value)"), open), "Formatting.cs") },
+                { "convert-try-cast-to-direct-cast", new(static (fixture, open) => CreateLocationRequest(fixture.GetSelection("value as string"), open), "Formatting.cs") },
+                { "invert-conditional", new(static (fixture, open) => CreateLocationRequest(fixture.GetSelection("count == 0 ? \"zero\" : \"non-zero\""), open), "Formatting.cs") },
+                { "invert-if", new(static (fixture, open) => CreateLocationRequest(fixture.GetLocation("if (left > 0)"), open), "Formatting.cs") },
+                { "make-local-function-static", new(static (fixture, open) => CreateLocationRequest(fixture.GetLocation("Local", 0), open), "Formatting.cs") },
+                { "move-declaration-near-reference", new(static (fixture, open) => CreateLocationRequest(fixture.GetLocation("int moved;"), open), "Formatting.cs") },
+                { "name-tuple-element", new(static (fixture, open) => CreateLocationRequest(fixture.GetCursor("return (1 + 1, 2);", 0, "return (".Length), open), "Formatting.cs") },
+                { "replace-doc-comment-text-with-tag", new(static (fixture, open) => CreateLocationRequest(fixture.GetLocation("System.IDisposable"), open), "Formatting.cs") },
+                { "reverse-for-statement", new(static (fixture, open) => CreateLocationRequest(fixture.GetLocation("for (var i = 0; i < values.Length; i++)", 0), open), "Formatting.cs") },
+                { "use-explicit-type", new(static (fixture, open) => CreateLocationRequest(fixture.GetCursor("var explicitBuilder", 0, "var".Length), open), "Formatting.cs") },
+                { "use-implicit-type", new(static (fixture, open) => CreateLocationRequest(fixture.GetCursor("StringBuilder implicitBuilder", 0, "StringBuilder".Length), open), "Formatting.cs") },
+                { "use-named-arguments", new(static (fixture, open) => CreateUseNamedArgumentsRequest(fixture.GetCursor("Sum(1, 2)", 0, 4), open, includeTrailingArguments: false), "Formatting.cs") },
+                { "use-recursive-patterns", new(static (fixture, open) => CreateLocationRequest(fixture.GetCursor("cf != null && cf.C != 0", 0, "cf != null ".Length), open), "Formatting.cs") },
+                { "add-await", new(static (fixture, open) => CreateAddAwaitRequest(fixture.GetCursorAfter("GetValueAsync()", 2), open, AddAwaitKind.Await), "Formatting.cs") },
+                { "add-debugger-display", new(static (fixture, open) => CreateLocationRequest(fixture.GetLocation("GreetingFormatter", 0), open), "Formatting.cs") },
+                { "add-import", new(static (fixture, open) => CreateAddImportRequest(fixture.GetCursor("System.Net.Http.HttpClient"), open, simplifyAllOccurrences: false), "Formatting.cs") },
+                { "add-null-checks", new(static (fixture, open) => CreateLocationRequest(fixture.GetCursorInDocument("AddParameterCheck.cs", "object value"), open), "AddParameterCheck.cs") },
+                { "convert-if-to-switch", new(static (fixture, open) => CreateConvertIfToSwitchRequest(fixture.GetLocation("if (value == 0)"), open, ConvertIfToSwitchKind.Statement), "Formatting.cs") },
+                { "invert-logical", new(static (fixture, open) => CreateLocationRequest(fixture.GetLocation("&&"), open), "Formatting.cs") },
+                { "introduce-using-statement", new(static (fixture, open) => CreateLocationRequest(fixture.GetSelection("var stream = new MemoryStream();"), open), "Formatting.cs") },
+                { "replace-conditional-with-statements", new(static (fixture, open) => CreateLocationRequest(fixture.GetLocation("value = enabled ? 1 : 2;"), open), "Formatting.cs") },
             };
-            var cases = new TheoryData<string, Func<InspectionSampleFixture, ToolResult<WorkspaceOpenData>, Dictionary<string, JsonElement>>>();
+            var cases = new TheoryData<string, ReplayMutationCaseDefinition>();
 
             foreach (var toolName in BuiltInCodeActionAuditCases.PromotedDraftValidationCandidates
                 .Select(static auditCase => auditCase.ToolName)
                 .Where(static toolName => !string.IsNullOrWhiteSpace(toolName)))
             {
-                if (allCases.TryGetValue(toolName!, out var requestFactory))
+                if (allCases.TryGetValue(toolName!, out var testCase))
                 {
-                    cases.Add(toolName!, requestFactory);
+                    cases.Add(toolName!, testCase);
                 }
             }
 
@@ -72,9 +61,9 @@ public sealed class ReplayRefactoringToolsTests
                 .Select(static auditCase => auditCase.ToolName)
                 .Where(static toolName => !string.IsNullOrWhiteSpace(toolName)))
             {
-                if (allCases.TryGetValue(toolName!, out var requestFactory))
+                if (allCases.TryGetValue(toolName!, out var testCase))
                 {
-                    cases.Add(toolName!, requestFactory);
+                    cases.Add(toolName!, testCase);
                 }
             }
 
@@ -86,7 +75,49 @@ public sealed class ReplayRefactoringToolsTests
     [MemberData(nameof(ReplayMutationCases))]
     public async Task GIVEN_ActiveTransactionAndBuiltInCodeActions_WHEN_ExecutingReplayWrapper_THEN_ShouldStageStructuredMutation(
         string toolName,
-        Func<InspectionSampleFixture, ToolResult<WorkspaceOpenData>, Dictionary<string, JsonElement>> requestFactory)
+        ReplayMutationCaseDefinition testCase)
+    {
+        using var fixture = await (testCase.FixtureFactory?.Invoke() ?? InspectionSampleFixture.CreateAsync());
+        var runtime = CodeActionRuntimeFactory.Create(new CodeActionRuntimeOptions
+        {
+            IncludeBuiltInAssemblies = true,
+        });
+        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
+        {
+            CodeActionService = runtime.CodeActionService,
+            WorkspaceHostServices = runtime.WorkspaceHostServices,
+            DefaultMaxResults = 100,
+            MaxConcurrentQueries = 2,
+            MaxResponseBytes = 65536,
+        });
+        var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
+        {
+            Path = fixture.ProjectPath,
+        }, CancellationToken.None);
+        await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
+        var plugin = new BundledCorePlugin();
+        var registry = new PluginRegistry(plugin.Metadata);
+
+        plugin.Register(registry);
+
+        var result = await ExecuteAsync(coordinator, registry, toolName, testCase.RequestFactory(fixture, openResult));
+        var preview = await coordinator.PreviewTransactionAsync(new TransactionPreviewRequest(), CancellationToken.None);
+
+        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Data!.Transaction!.Revision.Should().Be(1);
+        result.Data.Operation.Should().Be(toolName);
+        preview.Data!.Documents.Should().ContainSingle(change => change.Document!.Path == testCase.ExpectedDocumentPath);
+        var documentPreview = preview.Data.Documents.Single(change => change.Document!.Path == testCase.ExpectedDocumentPath).Preview!;
+        (documentPreview.AddedLines + documentPreview.RemovedLines + documentPreview.ChangedLines).Should().BeGreaterThan(0);
+    }
+
+    public sealed record ReplayMutationCaseDefinition(
+        Func<InspectionSampleFixture, ToolResult<WorkspaceOpenData>, Dictionary<string, JsonElement>> RequestFactory,
+        string ExpectedDocumentPath,
+        Func<Task<InspectionSampleFixture>>? FixtureFactory = null);
+
+    [Fact]
+    public async Task GIVEN_ActiveTransactionAndBuiltInCodeActions_WHEN_ExecutingMoveTypeToFile_THEN_ShouldStageNewDocumentAndSourceUpdate()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
         var runtime = CodeActionRuntimeFactory.Create(new CodeActionRuntimeOptions
@@ -111,15 +142,84 @@ public sealed class ReplayRefactoringToolsTests
 
         plugin.Register(registry);
 
-        var result = await ExecuteAsync(coordinator, registry, toolName, requestFactory(fixture, openResult));
+        var result = await ExecuteAsync(coordinator, registry, "move-type-to-file", CreateMoveTypeToFileRequest(fixture.GetLocation("AutoPropertySamples"), openResult));
         var preview = await coordinator.PreviewTransactionAsync(new TransactionPreviewRequest(), CancellationToken.None);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data!.Transaction!.Revision.Should().Be(1);
-        result.Data.Operation.Should().Be(toolName);
+        result.Data!.Operation.Should().Be("move-type-to-file");
+        preview.Data!.Documents.Should().Contain(change => change.Document!.Path == "Formatting.cs");
+        preview.Data.Documents.Should().Contain(change => change.Document!.Path == "AutoPropertySamples.cs");
+    }
+
+    [Fact]
+    public async Task GIVEN_ActiveTransactionAndBuiltInCodeActions_WHEN_ExecutingConvertPropertyToFull_THEN_ShouldStageStructuredMutation()
+    {
+        using var fixture = await InspectionSampleFixture.CreateAsync();
+        var runtime = CodeActionRuntimeFactory.Create(new CodeActionRuntimeOptions
+        {
+            IncludeBuiltInAssemblies = true,
+        });
+        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
+        {
+            CodeActionService = runtime.CodeActionService,
+            WorkspaceHostServices = runtime.WorkspaceHostServices,
+            DefaultMaxResults = 100,
+            MaxConcurrentQueries = 2,
+            MaxResponseBytes = 65536,
+        });
+        var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
+        {
+            Path = fixture.ProjectPath,
+        }, CancellationToken.None);
+        await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
+        var plugin = new BundledCorePlugin();
+        var registry = new PluginRegistry(plugin.Metadata);
+
+        plugin.Register(registry);
+
+        var result = await ExecuteAsync(coordinator, registry, "convert-property", CreateConvertPropertyRequest(fixture.GetLocation("Goo"), openResult, ConvertPropertyDirection.ToFull));
+        var preview = await coordinator.PreviewTransactionAsync(new TransactionPreviewRequest(), CancellationToken.None);
+
+        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Data!.Operation.Should().Be("convert-property");
         preview.Data!.Documents.Should().ContainSingle(static change => change.Document!.Path == "Formatting.cs");
-        var documentPreview = preview.Data.Documents.Single(static change => change.Document!.Path == "Formatting.cs").Preview!;
-        (documentPreview.AddedLines + documentPreview.RemovedLines + documentPreview.ChangedLines).Should().BeGreaterThan(0);
+    }
+
+    [Fact]
+    public async Task GIVEN_ActiveTransactionAndBuiltInCodeActions_WHEN_ExecutingConvertPropertyToAutoWhenSafe_THEN_ShouldStageStructuredMutation()
+    {
+        using var fixture = await InspectionSampleFixture.CreateAsync(new InspectionSampleFixtureOptions
+        {
+            AdditionalEditorConfigText = "dotnet_style_prefer_auto_properties = true:suggestion",
+        });
+        var runtime = CodeActionRuntimeFactory.Create(new CodeActionRuntimeOptions
+        {
+            IncludeBuiltInAssemblies = true,
+        });
+        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
+        {
+            CodeActionService = runtime.CodeActionService,
+            WorkspaceHostServices = runtime.WorkspaceHostServices,
+            DefaultMaxResults = 100,
+            MaxConcurrentQueries = 2,
+            MaxResponseBytes = 65536,
+        });
+        var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
+        {
+            Path = fixture.ProjectPath,
+        }, CancellationToken.None);
+        await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
+        var plugin = new BundledCorePlugin();
+        var registry = new PluginRegistry(plugin.Metadata);
+
+        plugin.Register(registry);
+
+        var result = await ExecuteAsync(coordinator, registry, "convert-property", CreateConvertPropertyRequest(fixture.GetLocation("Score"), openResult, ConvertPropertyDirection.ToAutoWhenSafe));
+        var preview = await coordinator.PreviewTransactionAsync(new TransactionPreviewRequest(), CancellationToken.None);
+
+        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Data!.Operation.Should().Be("convert-property");
+        preview.Data!.Documents.Should().ContainSingle(static change => change.Document!.Path == "Formatting.cs");
     }
 
     private static Dictionary<string, JsonElement> CreateLocationRequest(LocationSelector selection, ToolResult<WorkspaceOpenData> openResult)
@@ -192,6 +292,32 @@ public sealed class ReplayRefactoringToolsTests
         {
             ["selection"] = JsonSerializer.SerializeToElement(selection),
             ["includeTrailingArguments"] = JsonSerializer.SerializeToElement(includeTrailingArguments),
+            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(CreateSnapshot(openResult)),
+        };
+    }
+
+    private static Dictionary<string, JsonElement> CreateMoveTypeToFileRequest(LocationSelector selection, ToolResult<WorkspaceOpenData> openResult)
+    {
+        return new Dictionary<string, JsonElement>
+        {
+            ["type"] = JsonSerializer.SerializeToElement(new SymbolSelector
+            {
+                Location = selection,
+            }),
+            ["preserveNamespace"] = JsonSerializer.SerializeToElement(true),
+            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(CreateSnapshot(openResult)),
+        };
+    }
+
+    private static Dictionary<string, JsonElement> CreateConvertPropertyRequest(
+        LocationSelector selection,
+        ToolResult<WorkspaceOpenData> openResult,
+        ConvertPropertyDirection direction)
+    {
+        return new Dictionary<string, JsonElement>
+        {
+            ["selection"] = JsonSerializer.SerializeToElement(selection),
+            ["direction"] = JsonSerializer.SerializeToElement(direction),
             ["expectedSnapshot"] = JsonSerializer.SerializeToElement(CreateSnapshot(openResult)),
         };
     }

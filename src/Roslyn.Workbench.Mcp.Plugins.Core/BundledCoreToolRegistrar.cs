@@ -1,5 +1,3 @@
-using Roslyn.Workbench.Mcp.Plugins;
-
 namespace Roslyn.Workbench.Mcp.Plugins.Core;
 
 internal static class BundledCoreToolRegistrar
@@ -47,6 +45,7 @@ internal static class BundledCoreToolRegistrar
         RenameSymbolTool.Register(registry);
         RegisterBuiltInCodeActionTool(registry, "add-debugger-display", AddDebuggerDisplayTool.Register);
         RegisterBuiltInCodeActionTool(registry, "add-import", AddImportTool.Register);
+        RegisterBuiltInCodeActionTool(registry, "add-null-checks", AddNullChecksTool.Register);
         RegisterBuiltInCodeActionTool(registry, "extract-method", ExtractMethodTool.Register);
         RegisterBuiltInCodeActionTool(registry, "add-await", AddAwaitTool.Register);
         RegisterBuiltInCodeActionTool(registry, "convert-anonymous-type-to-class", ConvertAnonymousTypeToClassTool.Register);
@@ -55,6 +54,7 @@ internal static class BundledCoreToolRegistrar
         RegisterBuiltInCodeActionTool(registry, "convert-between-regular-and-verbatim-interpolated-string", ConvertBetweenRegularAndVerbatimInterpolatedStringTool.Register);
         RegisterBuiltInCodeActionTool(registry, "convert-between-regular-and-verbatim-string", ConvertBetweenRegularAndVerbatimStringTool.Register);
         RegisterBuiltInCodeActionTool(registry, "convert-direct-cast-to-try-cast", ConvertDirectCastToTryCastTool.Register);
+        RegisterBuiltInCodeActionTool(registry, "convert-expression-body", ConvertExpressionBodyTool.Register);
         RegisterBuiltInCodeActionTool(registry, "convert-foreach-to-for", ConvertForEachToForTool.Register);
         RegisterBuiltInCodeActionTool(registry, "convert-for-to-foreach", ConvertForToForeachTool.Register);
         RegisterBuiltInCodeActionTool(registry, "convert-if-to-switch", ConvertIfToSwitchTool.Register);
@@ -66,6 +66,7 @@ internal static class BundledCoreToolRegistrar
         RegisterBuiltInCodeActionTool(registry, "invert-if", InvertIfTool.Register);
         RegisterBuiltInCodeActionTool(registry, "invert-logical", InvertLogicalTool.Register);
         RegisterBuiltInCodeActionTool(registry, "move-declaration-near-reference", MoveDeclarationNearReferenceTool.Register);
+        RegisterBuiltInCodeActionTool(registry, "move-type-to-file", MoveTypeToFileTool.Register);
         RegisterBuiltInCodeActionTool(registry, "name-tuple-element", NameTupleElementTool.Register);
         RegisterBuiltInCodeActionTool(registry, "replace-conditional-with-statements", ReplaceConditionalWithStatementsTool.Register);
         RegisterBuiltInCodeActionTool(registry, "replace-doc-comment-text-with-tag", ReplaceDocCommentTextWithTagTool.Register);
@@ -82,6 +83,7 @@ internal static class BundledCoreToolRegistrar
         RegisterBuiltInCodeActionTool(registry, "use-named-arguments", UseNamedArgumentsTool.Register);
         RegisterBuiltInCodeActionTool(registry, "make-local-function-static", MakeLocalFunctionStaticTool.Register);
         RegisterBuiltInCodeActionTool(registry, "inline-variable", InlineVariableTool.Register);
+        ConvertPropertyTool.Register(registry);
         SortUsingsTool.Register(registry);
         FormatDocumentTool.Register(registry);
         RegisterBuiltInCodeActionTool(registry, "add-missing-usings", AddMissingUsingsTool.Register);

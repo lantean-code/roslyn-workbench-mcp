@@ -2,19 +2,6 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using AwesomeAssertions;
-
-using ModelContextProtocol.Protocol;
-using ModelContextProtocol.Server;
-
-using Moq;
-
-using Roslyn.Workbench.Mcp.Contracts.Results;
-using Roslyn.Workbench.Mcp.Contracts.Server;
-using Roslyn.Workbench.Mcp.Workspace;
-
-using Xunit;
-
 namespace Roslyn.Workbench.Mcp.Test;
 
 public sealed class ServerStatusToolTests

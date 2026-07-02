@@ -1,5 +1,3 @@
-using Roslyn.Workbench.Mcp.Plugins;
-
 namespace Roslyn.Workbench.Mcp.Plugins.Core;
 
 internal abstract class QueryToolHandler<TRequest, TResponse> : IQueryToolHandler<TRequest, TResponse>

@@ -1,10 +1,5 @@
-using AwesomeAssertions;
-
-using Roslyn.Workbench.Mcp.Contracts.Results;
 using Roslyn.Workbench.Mcp.Contracts.Selectors;
 using Roslyn.Workbench.Mcp.Contracts.Validation;
-
-using Xunit;
 
 namespace Roslyn.Workbench.Mcp.Contracts.Test.Selectors;
 

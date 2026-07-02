@@ -1,12 +1,5 @@
 using System.Text.Json;
 
-using AwesomeAssertions;
-
-using Roslyn.Workbench.Mcp.Contracts.Results;
-using Roslyn.Workbench.Mcp.Contracts.Server;
-
-using Xunit;
-
 namespace Roslyn.Workbench.Mcp.Plugins.Test;
 
 public sealed class PluginRegistryTests

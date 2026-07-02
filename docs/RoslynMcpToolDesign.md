@@ -20,6 +20,8 @@ catalogue:
 - `get-symbol-dependents`
 - `get-change-impact`
 - `get-api-surface`
+- `convert-expression-body`
+- `add-null-checks`
 - `get-control-flow-graph`, including populated `regions` data
 
 The following point 2 catalogue entries remain explicitly deferred from the
@@ -38,12 +40,10 @@ current build:
 - `move-type-to-file`
 - `move-type-to-namespace`
 - `convert-to-async`
-- `convert-expression-body`
 - `convert-property`
 - `convert-to-pattern-matching`
 - `generate-constructor`
 - `generate-tostring`
-- `add-null-checks`
 
 The following mutation families are not planned for implementation in this
 server while they depend on non-public Roslyn services or internal IDE-only
@@ -51,6 +51,11 @@ generation paths. They remain part of the aspirational catalogue only and
 should be treated as unavailable unless Roslyn exposes a new supported public
 API path in the future:
 
+- `move-type-to-namespace`
+- `convert-to-async`
+- `convert-to-pattern-matching`
+- `generate-constructor`
+- `generate-tostring`
 - `extract-interface`
 - `extract-base-class`
 - `change-signature`
@@ -279,8 +284,8 @@ bounded preview. The operation does not write to disk.
 
 | Tool | Status | Purpose |
 |---|---|---|
-| `move-type-to-file` | Existing | Stage a type move to a document. |
-| `move-type-to-namespace` | Existing | Stage a type namespace move. |
+| `move-type-to-file` | Existing | Stage Roslyn's move-type refactoring to move a selected type into its own Roslyn-chosen file within the same project. Arbitrary caller-selected target paths are not supported. |
+| `move-type-to-namespace` | Existing | Not planned for this server while the current Roslyn move-to-namespace path still depends on internal service and options seams. |
 | `rename-symbol` | Existing | Stage a solution-wide rename with configurable rename options. |
 | `extract-method` | Existing | Stage extraction of a valid statement or expression selection. |
 | `introduce-variable` | Existing | Stage one supported Roslyn introduce-variable leaf action. |
@@ -290,18 +295,18 @@ bounded preview. The operation does not write to disk.
 | `inline-variable` | Existing | Stage inlining of a local variable. |
 | `change-signature` | Existing | Not planned for this server while the required Roslyn feature service remains internal-only. This action family remains hidden from descriptor-based discovery unless a supported public API path becomes available. |
 | `encapsulate-field` | Existing | Stage field encapsulation and reference updates. |
-| `convert-to-async` | Existing | Stage a supported async conversion and report propagation impact. |
-| `convert-expression-body` | Existing | Stage expression-body or block-body conversion. |
-| `convert-property` | Existing | Stage auto-property or full-property conversion. |
+| `convert-to-async` | Existing | Not planned for this server while the public Roslyn surface only exposes narrow code-fix cases instead of the documented end-state async-conversion workflow. |
+| `convert-expression-body` | Existing | Stage the supported Roslyn block-body or expression-body conversion offered at the selected declaration location. |
+| `convert-property` | Existing | Stage Roslyn-backed conversion of a selected property between supported auto-property and full-property forms. |
 | `convert-foreach-linq` | Existing | Stage one supported Roslyn foreach or LINQ conversion. |
 | `convert-to-interpolated-string` | Existing | Stage interpolation conversion. |
-| `convert-to-pattern-matching` | Existing | Stage supported pattern-matching modernisation. |
-| `generate-constructor` | Existing | Stage a constructor from selected members. |
+| `convert-to-pattern-matching` | Existing | Not planned for this server while the relevant Roslyn fixes still depend on diagnostics not surfaced through the server's current public compilation and analyzer diagnostics path. |
+| `generate-constructor` | Existing | Not planned for this server while the current Roslyn path remains a dialog-backed member-pick flow. |
 | `generate-equals-hashcode` | Existing | Not planned for this server while the required Roslyn feature service remains internal-only. This action family remains hidden from descriptor-based discovery unless a supported public API path becomes available. |
 | `generate-overrides` | Existing | Not planned for this server while the Roslyn implementation still depends on internal generation APIs. This action family remains hidden from descriptor-based discovery unless a supported public API path becomes available. |
-| `generate-tostring` | Existing | Stage a `ToString` override. |
+| `generate-tostring` | Existing | Not planned for this server while no supported public Roslyn generation seam has been identified for this workflow in the current build. |
 | `implement-interface` | Existing | Not planned for this server while the required Roslyn feature service remains internal-only. This action family remains hidden from descriptor-based discovery unless a supported public API path becomes available. |
-| `add-null-checks` | Existing | Stage configurable guard clauses. |
+| `add-null-checks` | Existing | Stage the supported Roslyn parameter null-check refactoring at the selected parameter location. |
 | `add-missing-usings` | Existing | Stage import additions. |
 | `remove-unused-usings` | Existing | Stage import removal. |
 | `sort-usings` | Existing | Stage import ordering. |

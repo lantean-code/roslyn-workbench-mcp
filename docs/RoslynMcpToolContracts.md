@@ -13,9 +13,13 @@ this project.
 
 The current build now registers and serves the `get-code-context`,
 `find-callees`, `find-overrides`, `get-symbol-dependencies`,
-`get-symbol-dependents`, `get-change-impact`, and `get-api-surface` contracts
-described in this catalogue, and `get-control-flow-graph` now returns
-populated `regions` data instead of an empty placeholder array.
+`get-symbol-dependents`, `get-change-impact`, `get-api-surface`,
+`convert-expression-body`, and `add-null-checks` contracts described in this
+catalogue, and `get-control-flow-graph` now returns populated `regions` data
+instead of an empty placeholder array. The narrowed future request contracts
+for `move-type-to-file` and `convert-property` now exist in the contracts
+project, and the shipped `convert-auto-property-to-full-property` split uses
+its own dedicated CLR request contract.
 
 The following point 2 catalogue entries remain planned contracts only and are
 not registered by the current build:
@@ -32,18 +36,21 @@ not registered by the current build:
 - `move-type-to-file`
 - `move-type-to-namespace`
 - `convert-to-async`
-- `convert-expression-body`
 - `convert-property`
 - `convert-to-pattern-matching`
 - `generate-constructor`
 - `generate-tostring`
-- `add-null-checks`
 
 The following mutation families are not planned for implementation in this
 server while they depend on non-public Roslyn services or internal IDE-only
 generation paths. Their request and response shapes remain in this catalogue
 only as aspirational end-state contracts:
 
+- `move-type-to-namespace`
+- `convert-to-async`
+- `convert-to-pattern-matching`
+- `generate-constructor`
+- `generate-tostring`
 - `extract-interface`
 - `extract-base-class`
 - `change-signature`
@@ -318,8 +325,8 @@ explicitly and through their snapshot-bound action token.
 
 | Tool | Source | Behaviour | Title and description | Input parameters |
 |---|---|---|---|---|
-| `move-type-to-file` | Existing | M | **Move Type To File**. Moves a type to a target source document. The target project must include the resulting file without project-file edits. | `type: SymbolSelector`, `targetPath: ProjectRelativePath`, `createTargetFile?: boolean = true`, `preserveNamespace?: boolean = true`, `expectedSnapshot: SnapshotPrecondition`. |
-| `move-type-to-namespace` | Existing | M | **Move Type To Namespace**. Changes a type namespace and references. If relocating its file, the target project must include the file by convention. | `type: SymbolSelector`, `targetNamespace: string`, `relocateFile?: boolean = false`, `targetPath?: ProjectRelativePath`, `updateUsings?: boolean = true`, `expectedSnapshot: SnapshotPrecondition`. |
+| `move-type-to-file` | Existing | M | **Move Type To File**. Moves a selected type to its own Roslyn-chosen file within the same project, while still requiring the SDK-style project to include the resulting file by convention. Arbitrary caller-selected target paths are not supported. | `type: SymbolSelector`, `preserveNamespace?: boolean = true`, `expectedSnapshot: SnapshotPrecondition`. |
+| `move-type-to-namespace` | Existing | M | **Move Type To Namespace**. Not planned for this server while the current Roslyn move-to-namespace path still depends on internal service and options seams. This action family is omitted from `list-code-actions` unless a supported public API path becomes available. | `type: SymbolSelector`, `targetNamespace: string`, `relocateFile?: boolean = false`, `targetPath?: ProjectRelativePath`, `updateUsings?: boolean = true`, `expectedSnapshot: SnapshotPrecondition`. |
 | `rename-symbol` | Existing | M | **Rename Symbol**. Renames a resolved symbol and updates references across the effective solution. | `symbol: SymbolSelector`, `newName: string`, `renameOverloads?: boolean = false`, `renameImplementations?: boolean = true`, `renameFile?: boolean = false`. |
 | `extract-method` | Existing | M | **Extract Method**. Extracts a valid statement or expression selection through the replay-backed Roslyn backend. | `selection: LocationSelector`, `targetKind?: Method|LocalFunction = Method`. |
 | `introduce-variable` | Existing | M | **Introduce Variable**. Stages one supported Roslyn introduce-variable leaf action through the replay-backed backend. | `selection: LocationSelector`, `kind: Local|LocalAllOccurrences|LocalConstant|LocalConstantAllOccurrences|Constant|ConstantAllOccurrences|Field|FieldAllOccurrences|QueryVariable|QueryVariableAllOccurrences`. |
@@ -329,18 +336,18 @@ explicitly and through their snapshot-bound action token.
 | `inline-variable` | Existing | M | **Inline Variable**. Replaces local variable references with its initializer. `removeDeclaration` currently requires the default `true`; `false` is rejected by the replay-backed Roslyn backend. | `symbol: SymbolSelector`, `removeDeclaration?: boolean = true`. |
 | `change-signature` | Existing | M | **Change Signature**. Not planned for this server while the required Roslyn feature service remains internal-only. This action family is omitted from `list-code-actions` unless a supported public API path becomes available. | `method: SymbolSelector`, `parameters: ParameterChange[]`, `updateCallSites?: boolean = true`. |
 | `encapsulate-field` | Existing | M | **Encapsulate Field**. Encapsulates one field through the replay-backed Roslyn backend. | `field: SymbolSelector`, `updateReferences?: boolean = true`. |
-| `convert-to-async` | Existing | M | **Convert To Async**. Converts a supported synchronous method to asynchronous code and reports propagation impact. | `method: SymbolSelector`, `renameToAsync?: boolean = true`, `propagate?: None|ContainingType|Solution = None`. |
-| `convert-expression-body` | Existing | M | **Convert Expression Body**. Converts a member between block and expression-bodied forms. | `member: SymbolSelector`, `direction: ToExpression|ToBlock`. |
-| `convert-property` | Existing | M | **Convert Property**. Converts an auto-property to a full property or the reverse when safe. | `property: SymbolSelector`, `direction: ToAuto|ToFull`, `backingFieldName?: string`. |
+| `convert-to-async` | Existing | M | **Convert To Async**. Not planned for this server while the public Roslyn surface currently exposes only narrow code-fix cases instead of the documented end-state synchronous-to-asynchronous conversion workflow. | `method: SymbolSelector`, `renameToAsync?: boolean = true`, `propagate?: None|ContainingType|Solution = None`. |
+| `convert-expression-body` | Existing | M | **Convert Expression Body**. Stages the supported Roslyn block-body or expression-body conversion offered at the selected declaration location. | `selection: LocationSelector`, `expectedSnapshot: SnapshotPrecondition`. |
+| `convert-property` | Existing | M | **Convert Property**. Converts a selected property between supported auto-property-to-full-property and full-property-to-auto-property forms, without caller-specified backing-field naming. This contract ships in the contracts project as `ConvertPropertyRequest` with `ConvertPropertyDirection`. | `selection: LocationSelector`, `direction: ToFull|ToAutoWhenSafe`, `expectedSnapshot: SnapshotPrecondition`. |
 | `convert-foreach-linq` | Existing | M | **Convert Foreach LINQ**. Stages one supported Roslyn foreach or LINQ conversion through the replay-backed backend. | `selection: LocationSelector`, `conversionKind: ForeachToQuery|ForeachToCallForm|LinqToForeach`. |
 | `convert-to-interpolated-string` | Existing | M | **Convert To Interpolated String**. Converts supported concatenation or formatting expressions through the replay-backed Roslyn backend. | `selection: LocationSelector`. |
-| `convert-to-pattern-matching` | Existing | M | **Convert To Pattern Matching**. Modernises supported type-test and switch patterns. | `selection: LocationSelector`. |
-| `generate-constructor` | Existing | M | **Generate Constructor**. Generates a constructor from selected fields or properties. | `type: SymbolSelector`, `members: SymbolSelector[]`, `accessibility?: Private|Internal|Protected|Public = Public`, `addNullChecks?: boolean = false`. |
+| `convert-to-pattern-matching` | Existing | M | **Convert To Pattern Matching**. Not planned for this server while the relevant Roslyn fixes still depend on diagnostics that are not surfaced through the server's current public compilation and analyzer diagnostics path. | `selection: LocationSelector`, `expectedSnapshot: SnapshotPrecondition`. |
+| `generate-constructor` | Existing | M | **Generate Constructor**. Not planned for this server while the current Roslyn path remains a dialog-backed member-pick flow. This action family is omitted from `list-code-actions` unless a supported public API path becomes available. | `type: SymbolSelector`, `members: SymbolSelector[]`, `accessibility?: Private|Internal|Protected|Public = Public`, `addNullChecks?: boolean = false`. |
 | `generate-equals-hashcode` | Existing | M | **Generate Equals And GetHashCode**. Not planned for this server while the required Roslyn feature service remains internal-only. This action family is omitted from `list-code-actions` unless a supported public API path becomes available. | `type: SymbolSelector`, `members: SymbolSelector[]`, `implementEquatable?: boolean = false`. |
 | `generate-overrides` | Existing | M | **Generate Overrides**. Not planned for this server while the Roslyn implementation still depends on internal generation APIs. This action family is omitted from `list-code-actions` unless a supported public API path becomes available. | `type: SymbolSelector`, `members: SymbolSelector[]`. |
-| `generate-tostring` | Existing | M | **Generate ToString**. Generates a `ToString` override from selected fields or properties. | `type: SymbolSelector`, `members: SymbolSelector[]`, `format?: string`. |
+| `generate-tostring` | Existing | M | **Generate ToString**. Not planned for this server while no supported public Roslyn generation seam has been identified for this workflow in the current build. | `type: SymbolSelector`, `members: SymbolSelector[]`, `format?: string`. |
 | `implement-interface` | Existing | M | **Implement Interface**. Not planned for this server while the required Roslyn feature service remains internal-only. This action family is omitted from `list-code-actions` unless a supported public API path becomes available. | `type: SymbolSelector`, `interface: SymbolSelector`, `members?: SymbolSelector[]`, `explicitImplementation?: boolean = false`. |
-| `add-null-checks` | Existing | M | **Add Null Checks**. Adds configurable parameter guard clauses. | `method: SymbolSelector`, `parameters?: SymbolSelector[]`, `style?: ThrowIfNull|GuardClause = ThrowIfNull`. |
+| `add-null-checks` | Existing | M | **Add Null Checks**. Stages the supported Roslyn parameter null-check refactoring at the selected parameter location. | `selection: LocationSelector`, `expectedSnapshot: SnapshotPrecondition`. |
 | `add-missing-usings` | Existing | M | **Add Missing Usings**. Adds imports needed to resolve unbound type references. `preferGlobalUsings` is reserved and currently rejected when set to `true`. | `scope: ScopeSelector`, `preferGlobalUsings?: boolean = false`. |
 | `remove-unused-usings` | Existing | M | **Remove Unused Usings**. Removes unused import directives. | `scope: ScopeSelector`. |
 | `sort-usings` | Existing | M | **Sort Usings**. Orders import directives using the loaded workspace options. | `document: DocumentSelector`, `systemFirst?: boolean`. |

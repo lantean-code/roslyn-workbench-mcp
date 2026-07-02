@@ -1,11 +1,5 @@
 using System.Text.RegularExpressions;
 
-using DiffPlex;
-using DiffPlex.Chunkers;
-using DiffPlex.Renderer;
-
-using Microsoft.CodeAnalysis;
-
 using Roslyn.Workbench.Mcp.Contracts.Results;
 using Roslyn.Workbench.Mcp.Contracts.Selectors;
 
@@ -16,6 +10,7 @@ namespace Roslyn.Workbench.Mcp.Workspace;
 internal static class WorkspaceDiffBuilder
 {
     private static readonly IDiffer _differ = new Differ();
+
     private static readonly Regex _hunkHeaderPattern = new(
         "^@@ -(?<originalStart>\\d+)(?:,(?<originalCount>\\d+))? \\+(?<updatedStart>\\d+)(?:,(?<updatedCount>\\d+))? @@",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);

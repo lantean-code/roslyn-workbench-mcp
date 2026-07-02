@@ -1,5 +1,3 @@
-using Microsoft.Build.Locator;
-
 namespace Roslyn.Workbench.Mcp.TestSupport;
 
 public static class MsBuildTestRegistration

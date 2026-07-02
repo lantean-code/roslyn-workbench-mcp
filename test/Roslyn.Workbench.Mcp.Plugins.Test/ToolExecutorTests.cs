@@ -1,10 +1,4 @@
 using System.Text.Json;
-using AwesomeAssertions;
-using ModelContextProtocol.Protocol;
-using Moq;
-using Roslyn.Workbench.Mcp.Contracts.Results;
-using Roslyn.Workbench.Mcp.Contracts.Selectors;
-using Xunit;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Test;
 

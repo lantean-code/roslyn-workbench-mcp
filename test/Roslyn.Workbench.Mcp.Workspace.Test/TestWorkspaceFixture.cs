@@ -1,5 +1,3 @@
-using Roslyn.Workbench.Mcp.Workspace;
-
 namespace Roslyn.Workbench.Mcp.Workspace.Test;
 
 public sealed class TestWorkspaceFixture : IDisposable

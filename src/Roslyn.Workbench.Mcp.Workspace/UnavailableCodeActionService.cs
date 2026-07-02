@@ -104,6 +104,18 @@ internal sealed class UnavailableCodeActionService : ICodeActionService
         return ValueTask.FromResult(Rejected<MutationProposal>());
     }
 
+    public ValueTask<PluginExecutionResult<MutationProposal>> StageLocationCodeFixAsync(
+        LocationCodeFixRequest request,
+        IMutationContext context,
+        CancellationToken cancellationToken)
+    {
+        _ = request;
+        _ = context;
+        _ = cancellationToken;
+
+        return ValueTask.FromResult(Rejected<MutationProposal>());
+    }
+
     private static PluginExecutionResult<T> Rejected<T>()
     {
         return PluginExecutionResult<T>.Rejected(new ToolError

@@ -1,7 +1,4 @@
-using Microsoft.CodeAnalysis;
-
 using Roslyn.Workbench.Mcp.Contracts.Inspection;
-using Roslyn.Workbench.Mcp.Plugins;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core;
 

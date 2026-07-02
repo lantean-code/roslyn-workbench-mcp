@@ -1,7 +1,5 @@
 using Roslyn.Workbench.Mcp.Contracts.Server;
 
-using Stateless;
-
 namespace Roslyn.Workbench.Mcp.Workspace;
 
 internal static class WorkspaceStateMachine

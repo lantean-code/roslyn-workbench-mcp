@@ -1,9 +1,4 @@
-using AwesomeAssertions;
-
-using Roslyn.Workbench.Mcp.Plugins.Core;
 using Roslyn.Workbench.Mcp.TestSupport;
-
-using Xunit;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test;
 

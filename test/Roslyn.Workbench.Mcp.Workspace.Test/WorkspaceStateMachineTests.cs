@@ -1,10 +1,4 @@
-using AwesomeAssertions;
-
 using Roslyn.Workbench.Mcp.Contracts.Server;
-
-using Roslyn.Workbench.Mcp.Workspace;
-
-using Xunit;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test;
 

@@ -1,5 +1,3 @@
-using Roslyn.Workbench.Mcp.Contracts.Results;
-
 namespace Roslyn.Workbench.Mcp.Plugins;
 
 internal sealed class PluginToolInvoker<TRequest, TResponse> : IPluginToolInvoker

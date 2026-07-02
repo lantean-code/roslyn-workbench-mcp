@@ -1,11 +1,6 @@
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Operations;
-
 using Roslyn.Workbench.Mcp.Contracts.Inspection;
 using Roslyn.Workbench.Mcp.Contracts.Results;
 using Roslyn.Workbench.Mcp.Contracts.Selectors;
-using Roslyn.Workbench.Mcp.Plugins;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core;
 
@@ -131,6 +126,7 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
                 case IInvocationOperation invocationOperation:
                     callees.Add(invocationOperation.TargetMethod);
                     break;
+
                 case IObjectCreationOperation objectCreationOperation when objectCreationOperation.Constructor is not null:
                     callees.Add(objectCreationOperation.Constructor);
                     break;

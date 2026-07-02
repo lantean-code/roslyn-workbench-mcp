@@ -1,5 +1,3 @@
-using Roslyn.Workbench.Mcp.Plugins;
-
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test;
 
 public sealed class HostValidMutationPlugin : IRoslynPlugin

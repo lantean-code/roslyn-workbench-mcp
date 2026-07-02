@@ -1,4 +1,3 @@
-using ModelContextProtocol.Server;
 using Roslyn.Workbench.Mcp.Contracts.Server;
 using Roslyn.Workbench.Mcp.Contracts.Transactions;
 using Roslyn.Workbench.Mcp.Workspace;

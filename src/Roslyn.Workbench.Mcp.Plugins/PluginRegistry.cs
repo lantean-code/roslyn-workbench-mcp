@@ -1,6 +1,3 @@
-using System.Text.Json;
-
-using ModelContextProtocol.Protocol;
 using Roslyn.Workbench.Mcp.Contracts.Server;
 
 namespace Roslyn.Workbench.Mcp.Plugins;

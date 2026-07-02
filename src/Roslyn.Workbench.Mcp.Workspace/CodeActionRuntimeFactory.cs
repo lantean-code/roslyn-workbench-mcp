@@ -1,10 +1,5 @@
 using System.Reflection;
 
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.CodeRefactorings;
-using Microsoft.CodeAnalysis.Host.Mef;
-
 namespace Roslyn.Workbench.Mcp.Workspace;
 
 /// <summary>

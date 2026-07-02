@@ -1,13 +1,7 @@
-using AwesomeAssertions;
-
-using Microsoft.CodeAnalysis;
-
 using Roslyn.Workbench.Mcp.Contracts.Selectors;
 using Roslyn.Workbench.Mcp.Contracts.Server;
 
 using Roslyn.Workbench.Mcp.Plugins;
-
-using Xunit;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test;
 

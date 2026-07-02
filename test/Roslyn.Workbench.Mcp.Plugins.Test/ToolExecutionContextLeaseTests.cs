@@ -1,9 +1,3 @@
-using AwesomeAssertions;
-
-using Roslyn.Workbench.Mcp.Contracts.Results;
-
-using Xunit;
-
 namespace Roslyn.Workbench.Mcp.Plugins.Test;
 
 public sealed class ToolExecutionContextLeaseTests

@@ -1,5 +1,3 @@
-using Microsoft.CodeAnalysis;
-
 namespace Roslyn.Workbench.Mcp.Workspace;
 
 internal static class WorkspaceInputManifestBuilder

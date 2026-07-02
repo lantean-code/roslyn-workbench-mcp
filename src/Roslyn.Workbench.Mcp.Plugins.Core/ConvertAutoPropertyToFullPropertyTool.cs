@@ -1,10 +1,8 @@
 using Roslyn.Workbench.Mcp.Contracts.Refactorings;
-using Roslyn.Workbench.Mcp.Contracts.Results;
-using Roslyn.Workbench.Mcp.Plugins;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core;
 
-internal sealed class ConvertAutoPropertyToFullPropertyTool : MutationToolHandler<LocationRefactoringRequest, MutationProposal>
+internal sealed class ConvertAutoPropertyToFullPropertyTool : MutationToolHandler<ConvertAutoPropertyToFullPropertyRequest, MutationProposal>
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertAutoPropertyToFullProperty.CSharpConvertAutoPropertyToFullPropertyCodeRefactoringProvider";
 
@@ -24,7 +22,7 @@ internal sealed class ConvertAutoPropertyToFullPropertyTool : MutationToolHandle
         registry.RegisterMutationTool(_metadata, new ConvertAutoPropertyToFullPropertyTool());
     }
 
-    protected override ValueTask<PluginExecutionResult<MutationProposal>> ExecuteCoreAsync(LocationRefactoringRequest request, IMutationContext context, CancellationToken cancellationToken)
+    protected override ValueTask<PluginExecutionResult<MutationProposal>> ExecuteCoreAsync(ConvertAutoPropertyToFullPropertyRequest request, IMutationContext context, CancellationToken cancellationToken)
     {
         return ToolExecutionHelpers.StageReplaySelectionAsync(
             request.Selection,

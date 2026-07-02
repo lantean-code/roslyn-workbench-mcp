@@ -1,11 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using AwesomeAssertions;
-using Roslyn.Workbench.Mcp.Contracts.Results;
-using Roslyn.Workbench.Mcp.Contracts.Selectors;
-using Roslyn.Workbench.Mcp.Plugins;
-using Roslyn.Workbench.Mcp.Plugins.Core;
-using Xunit;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test;
 

@@ -1,19 +1,5 @@
 using System.Text.Json;
-
-using AwesomeAssertions;
-
-using Roslyn.Workbench.Mcp.Contracts.Inspection;
-using Roslyn.Workbench.Mcp.Contracts.Refactorings;
-using Roslyn.Workbench.Mcp.Contracts.Results;
-using Roslyn.Workbench.Mcp.Contracts.Selectors;
-using Roslyn.Workbench.Mcp.Contracts.Server;
-using Roslyn.Workbench.Mcp.Contracts.Transactions;
-using Roslyn.Workbench.Mcp.Plugins;
-using Roslyn.Workbench.Mcp.Plugins.Core;
 using Roslyn.Workbench.Mcp.TestSupport;
-using Roslyn.Workbench.Mcp.Workspace;
-
-using Xunit;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test;
 
@@ -88,6 +74,30 @@ public sealed class InspectionToolsTests
         plugin.Register(registry);
 
         BuiltInCodeActionAuditCases.HiddenDedicatedToolNames.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void GIVEN_BundledCorePlugin_WHEN_RegisteringConvertAutoPropertyTool_THEN_ShouldUseDedicatedRequestContract()
+    {
+        var plugin = new BundledCorePlugin();
+        var registry = new PluginRegistry(plugin.Metadata);
+
+        plugin.Register(registry);
+
+        var tool = registry.RegisteredTools.Single(static registeredTool => registeredTool.Metadata.Name == "convert-auto-property-to-full-property");
+
+        tool.RequestType.Should().Be(typeof(ConvertAutoPropertyToFullPropertyRequest));
+    }
+
+    [Fact]
+    public void GIVEN_BundledCorePlugin_WHEN_RegisteringRemainingContractNarrowedTools_THEN_ShouldPublishLiveToolSurface()
+    {
+        var plugin = new BundledCorePlugin();
+        var registry = new PluginRegistry(plugin.Metadata);
+
+        plugin.Register(registry);
+
+        registry.RegisteredTools.Select(static tool => tool.Metadata.Name).Should().Contain(["move-type-to-file", "convert-property"]);
     }
 
     [Fact]
@@ -1253,7 +1263,6 @@ public sealed class InspectionToolsTests
         var documentPreview = preview.Data.Documents.Single(static change => change.Document!.Path == "Formatting.cs").Preview!;
         (documentPreview.AddedLines + documentPreview.RemovedLines + documentPreview.ChangedLines).Should().BeGreaterThan(0);
     }
-
 
     [Fact]
     public async Task GIVEN_AmbiguousSelection_WHEN_ConvertingToInterpolatedString_THEN_ShouldRejectWithAmbiguousLocation()

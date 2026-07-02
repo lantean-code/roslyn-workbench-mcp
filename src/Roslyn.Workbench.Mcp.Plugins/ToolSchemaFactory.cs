@@ -2,8 +2,6 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using ModelContextProtocol.Server;
-
 namespace Roslyn.Workbench.Mcp.Plugins;
 
 public static class ToolSchemaFactory

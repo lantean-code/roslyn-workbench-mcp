@@ -1,5 +1,3 @@
-using Microsoft.CodeAnalysis.CodeActions;
-
 using Roslyn.Workbench.Mcp.Contracts.CodeActions;
 using Roslyn.Workbench.Mcp.Plugins;
 

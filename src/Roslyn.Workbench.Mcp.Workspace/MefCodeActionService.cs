@@ -1,15 +1,6 @@
 using System.Collections.Immutable;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
-
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeActions;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.CodeRefactorings;
-using Microsoft.CodeAnalysis.Diagnostics;
-using Microsoft.CodeAnalysis.Host;
-using Microsoft.CodeAnalysis.Text;
 
 using Roslyn.Workbench.Mcp.Contracts.CodeActions;
 using Roslyn.Workbench.Mcp.Contracts.Results;
@@ -546,7 +537,7 @@ internal sealed class MefCodeActionService : ICodeActionService
             .OrderBy(document => context.Resolver.NormalizeDocumentPath(document.FilePath ?? document.Name), StringComparer.Ordinal))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var diagnostics = await GetScopedCodeFixDiagnosticsAsync(document, request.DiagnosticIds, request.SyntheticDiagnosticId, cancellationToken).ConfigureAwait(false);
+            var diagnostics = await GetScopedCodeFixDiagnosticsAsync(document, request.DiagnosticIds, request.AnalyzerTypeName, request.SyntheticDiagnosticId, cancellationToken).ConfigureAwait(false);
             if (diagnostics.IsDefaultOrEmpty)
             {
                 continue;
@@ -666,7 +657,7 @@ internal sealed class MefCodeActionService : ICodeActionService
                     var fixAllProvider = candidate.Provider.GetFixAllProvider();
                     if (fixAllProvider is null)
                     {
-                        var directResult = await ApplyDocumentScopedCodeFixAsync(candidate, targetDocument, context, request.SyntheticDiagnosticId, cancellationToken).ConfigureAwait(false);
+                        var directResult = await ApplyDocumentScopedCodeFixAsync(candidate, targetDocument, context, request.AnalyzerTypeName, request.SyntheticDiagnosticId, cancellationToken).ConfigureAwait(false);
                         if (directResult.Rejection is not null)
                         {
                             return directResult.Rejection;
@@ -781,14 +772,131 @@ internal sealed class MefCodeActionService : ICodeActionService
         });
     }
 
+    public async ValueTask<PluginExecutionResult<MutationProposal>> StageLocationCodeFixAsync(
+        LocationCodeFixRequest request,
+        IMutationContext context,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var snapshotRejection = ValidateSnapshot<MutationProposal>(context.Resolver, request.ExpectedSnapshot);
+        if (snapshotRejection is not null)
+        {
+            return snapshotRejection;
+        }
+
+        if (request.Location is null)
+        {
+            return Rejected<MutationProposal>("InvalidRequest", "A location selector is required.");
+        }
+
+        if (request.DiagnosticIds.Count == 0)
+        {
+            return Rejected<MutationProposal>("InvalidRequest", "At least one diagnostic ID is required.");
+        }
+
+        var location = await context.Resolver.ResolveLocationAsync(request.Location, cancellationToken).ConfigureAwait(false);
+        if (location.Status != SelectorResolveStatus.Resolved || location.Value is null)
+        {
+            return RejectFromStatus<MutationProposal>(location.Status, "Location");
+        }
+
+        var document = context.CurrentSolution.GetDocument(location.Value.SourceTree);
+        if (document is null)
+        {
+            return Rejected<MutationProposal>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain);
+        }
+
+        var span = location.Value.SourceSpan;
+        var matchingProviders = _codeFixProviders
+            .Where(provider => string.IsNullOrWhiteSpace(request.ProviderId) || string.Equals(GetProviderId(provider), request.ProviderId, StringComparison.Ordinal))
+            .OrderBy(GetProviderId, StringComparer.Ordinal)
+            .ToArray();
+        if (matchingProviders.Length == 0)
+        {
+            return Rejected<MutationProposal>("CodeFixUnavailable", "No matching code-fix provider is available.");
+        }
+
+        var diagnostics = await GetLocationScopedCodeFixDiagnosticsAsync(document, span, request.DiagnosticIds, request.AnalyzerTypeName, request.SyntheticDiagnosticId, cancellationToken).ConfigureAwait(false);
+        if (diagnostics.IsDefaultOrEmpty)
+        {
+            return Rejected<MutationProposal>("CodeFixUnavailable", "No matching code fix was available at the selected location.");
+        }
+
+        var candidates = new List<ClassifiedCodeAction>();
+        foreach (var provider in matchingProviders)
+        {
+            var actions = await DiscoverCodeFixesAsync(provider, document, span, diagnostics, cancellationToken).ConfigureAwait(false);
+            foreach (var action in actions)
+            {
+                if (!string.IsNullOrWhiteSpace(request.Title)
+                    && !string.Equals(action.Title, request.Title, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (!string.IsNullOrWhiteSpace(request.EquivalenceKey)
+                    && !string.Equals(action.EquivalenceKey, request.EquivalenceKey, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var descriptor = _descriptorRegistry.Classify(action.Action, action.ProviderId, action.Title);
+                if (!descriptor.IsVisible)
+                {
+                    continue;
+                }
+
+                candidates.Add(new ClassifiedCodeAction
+                {
+                    Action = action,
+                    Descriptor = descriptor,
+                });
+            }
+        }
+
+        var distinctCandidates = candidates
+            .GroupBy(static candidate => new DirectCodeFixCandidateKey
+            {
+                ProviderId = candidate.Action.ProviderId,
+                Title = candidate.Action.Title,
+                EquivalenceKey = candidate.Action.EquivalenceKey,
+                ActionPath = candidate.Action.ActionPath.ToArray(),
+                DiagnosticIds = candidate.Action.DiagnosticIds.OrderBy(static id => id, StringComparer.Ordinal).ToArray(),
+            })
+            .Select(static group => group.First())
+            .ToArray();
+        if (distinctCandidates.Length == 0)
+        {
+            return Rejected<MutationProposal>("CodeFixUnavailable", "No matching code fix was available at the selected location.");
+        }
+
+        if (distinctCandidates.Length > 1)
+        {
+            return PluginExecutionResult<MutationProposal>.Rejected(new ToolError
+            {
+                Code = "ActionAmbiguous",
+                Message = "The requested code fix could not be selected uniquely.",
+            }, RequiredAction.ResolveTargetAgain);
+        }
+
+        var candidate = distinctCandidates[0];
+        return candidate.Descriptor.ExecutionMode switch
+        {
+            CodeActionExecutionMode.Replay => await CreateMutationProposalAsync(candidate.Action.Action, candidate.Action.Title, context, cancellationToken).ConfigureAwait(false),
+            CodeActionExecutionMode.Parameterised => await CreateMutationProposalAsync(candidate.Action.Action, candidate.Action.Title, context, cancellationToken).ConfigureAwait(false),
+            _ => Rejected<MutationProposal>("CodeFixUnavailable", "The selected action is not replayable in this server build.", RequiredAction.ResolveTargetAgain),
+        };
+    }
+
     private async ValueTask<DirectCodeFixResult> ApplyDocumentScopedCodeFixAsync(
         ScopedCodeFixCandidate candidate,
         Document targetDocument,
         IMutationContext context,
+        string? analyzerTypeName,
         string? syntheticDiagnosticId,
         CancellationToken cancellationToken)
     {
-        var diagnostics = await GetScopedCodeFixDiagnosticsAsync(targetDocument, candidate.DiagnosticIds, syntheticDiagnosticId, cancellationToken).ConfigureAwait(false);
+        var diagnostics = await GetScopedCodeFixDiagnosticsAsync(targetDocument, candidate.DiagnosticIds, analyzerTypeName, syntheticDiagnosticId, cancellationToken).ConfigureAwait(false);
         if (diagnostics.IsDefaultOrEmpty)
         {
             return new DirectCodeFixResult
@@ -1232,20 +1340,115 @@ internal sealed class MefCodeActionService : ICodeActionService
     private static async Task<ImmutableArray<Diagnostic>> GetScopedCodeFixDiagnosticsAsync(
         Document document,
         IReadOnlyList<string> diagnosticIds,
+        string? analyzerTypeName,
         string? syntheticDiagnosticId,
         CancellationToken cancellationToken)
     {
         var diagnostics = await GetDocumentDiagnosticsAsync(document, diagnosticIds, cancellationToken).ConfigureAwait(false);
+        if (!diagnostics.IsDefaultOrEmpty)
+        {
+            return diagnostics;
+        }
+
+        diagnostics = await GetAdditionalAnalyzerDiagnosticsAsync(document, span: null, diagnosticIds, analyzerTypeName, cancellationToken).ConfigureAwait(false);
         if (!diagnostics.IsDefaultOrEmpty || string.IsNullOrWhiteSpace(syntheticDiagnosticId))
         {
             return diagnostics;
         }
 
-        var syntheticDiagnostic = await CreateSyntheticDocumentDiagnosticAsync(document, syntheticDiagnosticId, cancellationToken).ConfigureAwait(false);
+        var sourceText = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
+        var syntheticDiagnostic = await CreateSyntheticDiagnosticAsync(document, new TextSpan(0, sourceText.Length), syntheticDiagnosticId, cancellationToken).ConfigureAwait(false);
         return syntheticDiagnostic is null ? [] : [syntheticDiagnostic];
     }
 
-    private static async Task<Diagnostic?> CreateSyntheticDocumentDiagnosticAsync(Document document, string diagnosticId, CancellationToken cancellationToken)
+    private static async Task<ImmutableArray<Diagnostic>> GetLocationScopedCodeFixDiagnosticsAsync(
+        Document document,
+        TextSpan span,
+        IReadOnlyList<string> diagnosticIds,
+        string? analyzerTypeName,
+        string? syntheticDiagnosticId,
+        CancellationToken cancellationToken)
+    {
+        var diagnostics = await GetDocumentDiagnosticsAsync(document, span, diagnosticIds, cancellationToken).ConfigureAwait(false);
+        if (!diagnostics.IsDefaultOrEmpty)
+        {
+            return diagnostics;
+        }
+
+        diagnostics = await GetAdditionalAnalyzerDiagnosticsAsync(document, span, diagnosticIds, analyzerTypeName, cancellationToken).ConfigureAwait(false);
+        if (!diagnostics.IsDefaultOrEmpty || string.IsNullOrWhiteSpace(syntheticDiagnosticId))
+        {
+            return diagnostics;
+        }
+
+        var syntheticDiagnostic = await CreateSyntheticDiagnosticAsync(document, span, syntheticDiagnosticId, cancellationToken).ConfigureAwait(false);
+        return syntheticDiagnostic is null ? [] : [syntheticDiagnostic];
+    }
+
+    private static async Task<ImmutableArray<Diagnostic>> GetAdditionalAnalyzerDiagnosticsAsync(
+        Document document,
+        TextSpan? span,
+        IReadOnlyList<string> diagnosticIds,
+        string? analyzerTypeName,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(analyzerTypeName))
+        {
+            return [];
+        }
+
+        var analyzer = CreateDiagnosticAnalyzer(analyzerTypeName);
+        if (analyzer is null)
+        {
+            return [];
+        }
+
+        var compilation = await document.Project.GetCompilationAsync(cancellationToken).ConfigureAwait(false);
+        if (compilation is null)
+        {
+            return [];
+        }
+
+        var syntaxTree = await document.GetSyntaxTreeAsync(cancellationToken).ConfigureAwait(false);
+        if (syntaxTree is null)
+        {
+            return [];
+        }
+
+        var diagnostics = await compilation
+            .WithAnalyzers([analyzer], document.Project.AnalyzerOptions)
+            .GetAnalyzerDiagnosticsAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return diagnostics
+            .Where(diagnostic => diagnostic.Location.IsInSource && diagnostic.Location.SourceTree == syntaxTree)
+            .Where(diagnostic => diagnosticIds.Count == 0 || diagnosticIds.Contains(diagnostic.Id, StringComparer.Ordinal))
+            .Where(diagnostic => span is null || diagnostic.Location.SourceSpan.IntersectsWith(span.Value))
+            .ToImmutableArray();
+    }
+
+    private static DiagnosticAnalyzer? CreateDiagnosticAnalyzer(string analyzerTypeName)
+    {
+        try
+        {
+            var analyzerType = AppDomain.CurrentDomain
+                .GetAssemblies()
+                .Select(assembly => assembly.GetType(analyzerTypeName, throwOnError: false, ignoreCase: false))
+                .FirstOrDefault(static candidate => candidate is not null);
+            if (analyzerType is null || !typeof(DiagnosticAnalyzer).IsAssignableFrom(analyzerType))
+            {
+                return null;
+            }
+
+            return Activator.CreateInstance(analyzerType, nonPublic: true) as DiagnosticAnalyzer;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static async Task<Diagnostic?> CreateSyntheticDiagnosticAsync(Document document, TextSpan span, string diagnosticId, CancellationToken cancellationToken)
     {
         var syntaxTree = await document.GetSyntaxTreeAsync(cancellationToken).ConfigureAwait(false);
         if (syntaxTree is null)
@@ -1261,7 +1464,7 @@ internal sealed class MefCodeActionService : ICodeActionService
             Microsoft.CodeAnalysis.DiagnosticSeverity.Hidden,
             isEnabledByDefault: true);
 
-        return Diagnostic.Create(descriptor, Location.Create(syntaxTree, new TextSpan(0, syntaxTree.Length)));
+        return Diagnostic.Create(descriptor, Location.Create(syntaxTree, span));
     }
 
     private static async Task<ImmutableArray<Diagnostic>> GetProjectDiagnosticsAsync(Project project, IReadOnlyList<string>? diagnosticIds, CancellationToken cancellationToken)
@@ -1779,6 +1982,19 @@ internal sealed class MefCodeActionService : ICodeActionService
         public IReadOnlyList<int> ActionPath { get; init; } = [];
     }
 
+    private sealed record DirectCodeFixCandidateKey
+    {
+        public string ProviderId { get; init; } = string.Empty;
+
+        public string Title { get; init; } = string.Empty;
+
+        public string? EquivalenceKey { get; init; }
+
+        public IReadOnlyList<int> ActionPath { get; init; } = [];
+
+        public IReadOnlyList<string> DiagnosticIds { get; init; } = [];
+    }
+
     private sealed record FixAllApplyResult
     {
         public Solution? CandidateSolution { get; init; }
@@ -1819,7 +2035,7 @@ internal sealed class MefCodeActionService : ICodeActionService
 
         public override async Task<IEnumerable<Diagnostic>> GetDocumentDiagnosticsAsync(Document document, CancellationToken cancellationToken)
         {
-            return await MefCodeActionService.GetScopedCodeFixDiagnosticsAsync(document, _diagnosticIds, _syntheticDiagnosticId, cancellationToken);
+            return await MefCodeActionService.GetScopedCodeFixDiagnosticsAsync(document, _diagnosticIds, analyzerTypeName: null, syntheticDiagnosticId: _syntheticDiagnosticId, cancellationToken);
         }
 
         public override async Task<IEnumerable<Diagnostic>> GetProjectDiagnosticsAsync(Project project, CancellationToken cancellationToken)

@@ -38,6 +38,11 @@ public sealed record ScopedCodeFixRequest
     public string? EquivalenceKey { get; init; }
 
     /// <summary>
+    /// Gets the optional reflected analyzer type name to run when project analyzers do not produce matching diagnostics.
+    /// </summary>
+    public string? AnalyzerTypeName { get; init; }
+
+    /// <summary>
     /// Gets the optional synthetic diagnostic ID to use when no matching diagnostics are produced for a document.
     /// </summary>
     public string? SyntheticDiagnosticId { get; init; }

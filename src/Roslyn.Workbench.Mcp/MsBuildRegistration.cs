@@ -1,5 +1,3 @@
-using Microsoft.Build.Locator;
-
 using Roslyn.Workbench.Mcp.Contracts.Server;
 
 namespace Roslyn.Workbench.Mcp;

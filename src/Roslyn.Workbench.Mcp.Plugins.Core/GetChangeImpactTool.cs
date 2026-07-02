@@ -1,10 +1,6 @@
 using System.Collections.Immutable;
 
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.FindSymbols;
-
 using Roslyn.Workbench.Mcp.Contracts.Inspection;
-using Roslyn.Workbench.Mcp.Plugins;
 
 using ContractReferenceLocation = Roslyn.Workbench.Mcp.Contracts.Inspection.ReferenceLocation;
 

@@ -1,7 +1,3 @@
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-
 using Roslyn.Workbench.Mcp.Contracts.Inspection;
 using Roslyn.Workbench.Mcp.Contracts.Selectors;
 

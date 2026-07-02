@@ -572,6 +572,23 @@ public sealed class InspectionSampleFixture : IDisposable
                 public int Goo { get; set; }
             }
 
+            public sealed class FullPropertySamples
+            {
+                private int _score;
+
+                public int Score
+                {
+                    get
+                    {
+                        return _score;
+                    }
+                    set
+                    {
+                        _score = value;
+                    }
+                }
+            }
+
             public class ConvertibleToRecord
             {
                 public int Id { get; init; }

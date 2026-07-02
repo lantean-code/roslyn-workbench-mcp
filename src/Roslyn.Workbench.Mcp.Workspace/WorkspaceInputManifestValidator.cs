@@ -9,6 +9,22 @@ internal static class WorkspaceInputManifestValidator
             return false;
         }
 
+        foreach (var directory in manifest.Directories)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (!Directory.Exists(directory.Path))
+            {
+                return true;
+            }
+
+            var info = new DirectoryInfo(directory.Path);
+            if (info.LastWriteTimeUtc != directory.LastWriteTimeUtc)
+            {
+                return true;
+            }
+        }
+
         foreach (var file in manifest.Files)
         {
             cancellationToken.ThrowIfCancellationRequested();

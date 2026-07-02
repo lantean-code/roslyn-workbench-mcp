@@ -297,10 +297,7 @@ internal static class ToolExecutionHelpers
             {
                 Span = new TextSpanSelector
                 {
-                    Document = new DocumentSelector
-                    {
-                        Path = resolvedLocation.Document.Path,
-                    },
+                    Document = CreateDocumentSelector(resolvedLocation.Document),
                     Start = resolvedLocation.Span.Start,
                     Length = resolvedLocation.Span.Length,
                 },
@@ -319,14 +316,24 @@ internal static class ToolExecutionHelpers
         {
             Span = new TextSpanSelector
             {
-                Document = new DocumentSelector
-                {
-                    Path = resolvedLocation.Document.Path,
-                },
+                Document = CreateDocumentSelector(resolvedLocation.Document),
                 Start = resolvedLocation.Span.Start,
                 Length = resolvedLocation.Span.Length,
             },
         };
+    }
+
+    private static DocumentSelector CreateDocumentSelector(DocumentReference document)
+    {
+        return !string.IsNullOrWhiteSpace(document.DocumentId)
+            ? new DocumentSelector
+            {
+                DocumentId = document.DocumentId,
+            }
+            : new DocumentSelector
+            {
+                Path = document.Path,
+            };
     }
 
     internal sealed record ResolutionResult<TValue, TResponse>

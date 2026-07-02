@@ -1,6 +1,6 @@
+using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.MSBuild;
-
 using Roslyn.Workbench.Mcp.Contracts.Results;
 using Roslyn.Workbench.Mcp.Contracts.Selectors;
 using Roslyn.Workbench.Mcp.Contracts.Server;
@@ -1686,9 +1686,8 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
                     continue;
                 }
 
-                var text = (await document.GetTextAsync(cancellationToken)).ToString();
                 Directory.CreateDirectory(Path.GetDirectoryName(document.FilePath)!);
-                File.WriteAllText(document.FilePath, text);
+                await WriteDocumentTextAsync(document, cancellationToken);
             }
 
             foreach (var documentId in projectChange.GetAddedDocuments())
@@ -1700,9 +1699,8 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
                     continue;
                 }
 
-                var text = (await document.GetTextAsync(cancellationToken)).ToString();
                 Directory.CreateDirectory(Path.GetDirectoryName(document.FilePath)!);
-                File.WriteAllText(document.FilePath, text);
+                await WriteDocumentTextAsync(document, cancellationToken);
             }
 
             foreach (var documentId in projectChange.GetRemovedDocuments())
@@ -1715,6 +1713,15 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
                 }
             }
         }
+    }
+
+    private static async ValueTask WriteDocumentTextAsync(Document document, CancellationToken cancellationToken)
+    {
+        var sourceText = await document.GetTextAsync(cancellationToken);
+        await using var stream = File.Create(document.FilePath!);
+        await using var writer = new StreamWriter(stream, sourceText.Encoding ?? Encoding.UTF8);
+        sourceText.Write(writer, cancellationToken);
+        await writer.FlushAsync(cancellationToken);
     }
 
     private static DiagnosticInfo CreateLoadDiagnostic(string message)

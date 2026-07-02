@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 
 using AwesomeAssertions;
@@ -86,6 +87,32 @@ public sealed class WorkspaceCoordinatorTests
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
         await File.AppendAllTextAsync(fixture.DocumentPath, Environment.NewLine + "class Added { }", TestContext.Current.CancellationToken);
+
+        var result = await target.GetStatusAsync(new WorkspaceStatusRequest(), CancellationToken.None);
+
+        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Data!.State.Should().Be(WorkspaceLifecycleState.WorkspaceOutOfDate);
+        result.Data.ReloadRequired.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GIVEN_AddedWorkspaceInput_WHEN_GettingStatus_THEN_ShouldTransitionToWorkspaceOutOfDate()
+    {
+        using var fixture = await TestWorkspaceFixture.CreateAsync();
+        var target = fixture.CreateCoordinator();
+        await target.OpenAsync(new WorkspaceOpenRequest
+        {
+            Path = fixture.ProjectPath,
+        }, CancellationToken.None);
+
+        var addedDocumentPath = Path.Combine(Path.GetDirectoryName(fixture.DocumentPath)!, "Added.cs");
+        await File.WriteAllTextAsync(addedDocumentPath, """
+            namespace Sample;
+
+            public sealed class Added
+            {
+            }
+            """, TestContext.Current.CancellationToken);
 
         var result = await target.GetStatusAsync(new WorkspaceStatusRequest(), CancellationToken.None);
 
@@ -477,6 +504,39 @@ public sealed class WorkspaceCoordinatorTests
         commit.Outcome.Should().Be(ToolOutcome.Succeeded);
         commit.Data!.Committed.Should().BeTrue();
         status.Data!.State.Should().Be(WorkspaceLifecycleState.Ready);
+        text.Should().Contain("TransactionMarker");
+    }
+
+    [Fact]
+    public async Task GIVEN_UnicodeEncodedDocument_WHEN_Committing_THEN_ShouldPreserveDocumentEncoding()
+    {
+        using var fixture = await TestWorkspaceFixture.CreateAsync();
+        var encoding = new UnicodeEncoding(bigEndian: false, byteOrderMark: true);
+        await File.WriteAllTextAsync(fixture.DocumentPath, """
+            namespace Sample;
+
+            public sealed class Class1
+            {
+            }
+            """, encoding, TestContext.Current.CancellationToken);
+
+        var target = await CreateCoordinatorWithOneStagedRevisionAsync(fixture);
+        var preview = await target.PreviewTransactionAsync(new TransactionPreviewRequest(), CancellationToken.None);
+
+        var commit = await target.CommitTransactionAsync(new TransactionCommitRequest
+        {
+            ExpectedSnapshot = new Contracts.Selectors.SnapshotPrecondition
+            {
+                WorkspaceId = preview.WorkspaceId,
+                WorkspaceEpoch = preview.WorkspaceEpoch!.Value,
+                TransactionRevision = preview.TransactionRevision,
+            },
+        }, CancellationToken.None);
+        var text = await File.ReadAllTextAsync(fixture.DocumentPath, TestContext.Current.CancellationToken);
+        var bytes = await File.ReadAllBytesAsync(fixture.DocumentPath, TestContext.Current.CancellationToken);
+
+        commit.Outcome.Should().Be(ToolOutcome.Succeeded);
+        bytes.Should().StartWith(encoding.GetPreamble());
         text.Should().Contain("TransactionMarker");
     }
 

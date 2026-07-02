@@ -1,12 +1,10 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-
 using AwesomeAssertions;
-
 using Roslyn.Workbench.Mcp.Contracts.Results;
+using Roslyn.Workbench.Mcp.Contracts.Selectors;
 using Roslyn.Workbench.Mcp.Plugins;
 using Roslyn.Workbench.Mcp.Plugins.Core;
-
 using Xunit;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test;
@@ -55,5 +53,56 @@ public sealed class ToolExecutionHelpersTests
         resolved.HasRejection.Should().BeFalse();
         resolved.Value.Should().Be("Value");
         resolved.Rejection.Should().BeNull();
+    }
+
+    [Fact]
+    public void GIVEN_ResolvedLocation_WHEN_CreatingLocationSelector_THEN_ShouldPreserveDocumentIdentity()
+    {
+        var selector = ToolExecutionHelpers.CreateLocationSelector(new ResolvedLocation
+        {
+            Document = new DocumentReference
+            {
+                DocumentId = "DocumentId",
+                Path = "Shared/SharedClass.cs",
+                ProjectId = "ProjectId",
+            },
+            Span = new TextSpanRange
+            {
+                Start = 10,
+                Length = 5,
+            },
+        });
+
+        selector.Should().NotBeNull();
+        selector!.Span.Should().NotBeNull();
+        selector.Span!.Document.Should().NotBeNull();
+        selector.Span.Document!.DocumentId.Should().Be("DocumentId");
+        selector.Span.Document.Path.Should().BeNull();
+    }
+
+    [Fact]
+    public void GIVEN_ResolvedLocation_WHEN_CreatingLocationSymbolSelector_THEN_ShouldPreserveDocumentIdentity()
+    {
+        var selector = ToolExecutionHelpers.CreateLocationSymbolSelector(new ResolvedLocation
+        {
+            Document = new DocumentReference
+            {
+                DocumentId = "DocumentId",
+                Path = "Shared/SharedClass.cs",
+                ProjectId = "ProjectId",
+            },
+            Span = new TextSpanRange
+            {
+                Start = 10,
+                Length = 5,
+            },
+        });
+
+        selector.Should().NotBeNull();
+        selector!.Location.Should().NotBeNull();
+        selector.Location!.Span.Should().NotBeNull();
+        selector.Location.Span!.Document.Should().NotBeNull();
+        selector.Location.Span.Document!.DocumentId.Should().Be("DocumentId");
+        selector.Location.Span.Document.Path.Should().BeNull();
     }
 }

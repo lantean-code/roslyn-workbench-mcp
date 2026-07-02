@@ -105,6 +105,35 @@ public sealed class InspectionToolsTests
     }
 
     [Fact]
+    public void GIVEN_BundledCorePlugin_WHEN_RegisteringTools_THEN_ShouldPublishPoint2QuerySurface()
+    {
+        var plugin = new BundledCorePlugin();
+        var registry = new PluginRegistry(plugin.Metadata);
+
+        plugin.Register(registry);
+
+        registry.RegisteredTools.Select(static tool => tool.Metadata.Name).Should().Contain(
+        [
+            "get-code-metrics",
+            "get-code-context",
+            "find-callees",
+            "find-overrides",
+            "get-symbol-dependencies",
+            "get-symbol-dependents",
+            "get-dependency-graph",
+            "find-dependency-cycles",
+            "find-duplicate-code",
+            "get-change-impact",
+            "get-api-surface",
+            "get-test-impact",
+            "find-unused-symbols",
+            "analyze-nullability",
+            "analyze-async",
+            "analyze-disposables",
+        ]);
+    }
+
+    [Fact]
     public async Task GIVEN_InspectionWorkspace_WHEN_ExecutingStructuralAndSemanticTools_THEN_ShouldReturnProjectedRoslynData()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
@@ -329,6 +358,392 @@ public sealed class InspectionToolsTests
         dataFlow.Data!.DataFlowsOut.Should().Contain(static symbol => symbol.DisplayName.Contains("upper", StringComparison.Ordinal));
         operationTree.Data!.Root!.Kind.Should().Contain("Invocation");
         controlFlowGraph.Data!.Blocks.Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public async Task GIVEN_InspectionWorkspace_WHEN_ExecutingPoint2QueryTools_THEN_ShouldReturnProjectedContextAndRelationships()
+    {
+        using var fixture = await InspectionSampleFixture.CreateAsync();
+        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
+        {
+            DefaultMaxResults = 100,
+            MaxConcurrentQueries = 2,
+            MaxResponseBytes = 65536,
+        });
+        var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
+        {
+            Path = fixture.ProjectPath,
+        }, CancellationToken.None);
+        var plugin = new BundledCorePlugin();
+        var registry = new PluginRegistry(plugin.Metadata);
+        var executor = new ToolExecutor(coordinator);
+
+        plugin.Register(registry);
+        openResult.Outcome.Should().Be(ToolOutcome.Succeeded);
+
+        var codeContext = await ExecuteAsync<JsonElement>(executor, registry, "get-code-context", new Dictionary<string, JsonElement>
+        {
+            ["location"] = JsonSerializer.SerializeToElement(fixture.GetLocation("var unused = 42;")),
+            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition
+            {
+                WorkspaceEpoch = openResult.WorkspaceEpoch!.Value,
+            }),
+        });
+        var callees = await ExecuteAsync<JsonElement>(executor, registry, "find-callees", new Dictionary<string, JsonElement>
+        {
+            ["symbol"] = JsonSerializer.SerializeToElement(new SymbolSelector
+            {
+                DocumentationCommentId = "M:Sample.FormatterCaller.Call",
+            }),
+        });
+        var overrides = await ExecuteAsync<JsonElement>(executor, registry, "find-overrides", new Dictionary<string, JsonElement>
+        {
+            ["symbol"] = JsonSerializer.SerializeToElement(new SymbolSelector
+            {
+                DocumentationCommentId = "M:Sample.FormatterBase.Decorate(System.String)",
+            }),
+        });
+        var branchOnlyControlFlowGraph = await ExecuteAsync<ControlFlowGraphData>(executor, registry, "get-control-flow-graph", new Dictionary<string, JsonElement>
+        {
+            ["symbol"] = JsonSerializer.SerializeToElement(new SymbolSelector
+            {
+                DocumentationCommentId = "M:Sample.FlowSamples.Analyse(System.String)",
+            }),
+        });
+        var exceptionalControlFlowGraph = await ExecuteAsync<ControlFlowGraphData>(executor, registry, "get-control-flow-graph", new Dictionary<string, JsonElement>
+        {
+            ["symbol"] = JsonSerializer.SerializeToElement(new SymbolSelector
+            {
+                DocumentationCommentId = "M:Sample.FlowSamples.AnalyseExceptional(System.String)",
+            }),
+        });
+
+        codeContext.Data!.GetProperty("text").GetString().Should().Contain("var unused = 42;");
+        codeContext.Data.GetProperty("diagnostics").EnumerateArray().Select(static diagnostic => diagnostic.GetProperty("id").GetString()).Should().Contain("CS0219");
+        codeContext.Data.GetProperty("enclosingSymbols").EnumerateArray().Select(static symbol => symbol.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter.Format", StringComparison.Ordinal));
+
+        callees.Data!.GetProperty("callees").EnumerateArray().Select(static callee => callee.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter.Format", StringComparison.Ordinal));
+        callees.Data.GetProperty("callees").EnumerateArray().Select(static callee => callee.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter.GreetingFormatter", StringComparison.Ordinal) || displayName!.Contains(".ctor", StringComparison.Ordinal));
+
+        overrides.Data!.GetProperty("overrides").EnumerateArray().Select(static symbol => symbol.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter.Decorate", StringComparison.Ordinal));
+        overrides.Data.GetProperty("overrides").EnumerateArray().Select(static symbol => symbol.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("DerivedGreetingFormatter.Decorate", StringComparison.Ordinal));
+
+        branchOnlyControlFlowGraph.Data!.Regions.Should().NotBeEmpty();
+        branchOnlyControlFlowGraph.Data.Regions.Select(static region => region.Kind).Should().Contain("Root");
+        exceptionalControlFlowGraph.Data!.Regions.Select(static region => region.Kind).Should().Contain(static kind => kind.Contains("Try", StringComparison.Ordinal) || kind.Contains("Catch", StringComparison.Ordinal) || kind.Contains("Finally", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task GIVEN_InspectionWorkspace_WHEN_ExecutingDependencyAndImpactQueryTools_THEN_ShouldReturnProjectedRelationships()
+    {
+        using var fixture = await InspectionSampleFixture.CreateAsync();
+        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
+        {
+            DefaultMaxResults = 100,
+            MaxConcurrentQueries = 2,
+            MaxResponseBytes = 65536,
+        });
+        var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
+        {
+            Path = fixture.ProjectPath,
+        }, CancellationToken.None);
+        var plugin = new BundledCorePlugin();
+        var registry = new PluginRegistry(plugin.Metadata);
+        var executor = new ToolExecutor(coordinator);
+
+        plugin.Register(registry);
+        openResult.Outcome.Should().Be(ToolOutcome.Succeeded);
+
+        var dependencies = await ExecuteAsync<JsonElement>(executor, registry, "get-symbol-dependencies", new Dictionary<string, JsonElement>
+        {
+            ["symbol"] = JsonSerializer.SerializeToElement(new SymbolSelector
+            {
+                DocumentationCommentId = "M:Sample.GreetingFormatter.Format(System.String)",
+            }),
+        });
+        var dependents = await ExecuteAsync<JsonElement>(executor, registry, "get-symbol-dependents", new Dictionary<string, JsonElement>
+        {
+            ["symbol"] = JsonSerializer.SerializeToElement(new SymbolSelector
+            {
+                DocumentationCommentId = "M:Sample.GreetingFormatter.Format(System.String)",
+            }),
+        });
+        var changeImpact = await ExecuteAsync<JsonElement>(executor, registry, "get-change-impact", new Dictionary<string, JsonElement>
+        {
+            ["symbol"] = JsonSerializer.SerializeToElement(new SymbolSelector
+            {
+                DocumentationCommentId = "M:Sample.GreetingFormatter.Format(System.String)",
+            }),
+        });
+        var apiSurface = await ExecuteAsync<JsonElement>(executor, registry, "get-api-surface", new Dictionary<string, JsonElement>
+        {
+            ["scope"] = JsonSerializer.SerializeToElement(new ScopeSelector
+            {
+                Kind = ScopeKind.Project,
+                Project = new ProjectSelector
+                {
+                    Path = "Sample.csproj",
+                },
+            }),
+        });
+
+        dependencies.Data!.GetProperty("dependencies").EnumerateArray().Select(static dependency => dependency.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("ToUpperInvariant", StringComparison.Ordinal));
+        dependencies.Data.GetProperty("dependencies").EnumerateArray().Select(static dependency => dependency.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("Decorate", StringComparison.Ordinal));
+
+        dependents.Data!.GetProperty("dependents").EnumerateArray().Select(static dependent => dependent.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("FormatterCaller.Call", StringComparison.Ordinal));
+        dependents.Data.GetProperty("dependents").EnumerateArray().Select(static dependent => dependent.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter.Format", StringComparison.Ordinal) && displayName!.Contains("bool", StringComparison.Ordinal));
+
+        changeImpact.Data!.GetProperty("impact").GetProperty("referenceCount").GetInt32().Should().BeGreaterThan(0);
+        changeImpact.Data.GetProperty("impact").GetProperty("callerCount").GetInt32().Should().BeGreaterThan(0);
+        changeImpact.Data.GetProperty("locations").EnumerateArray().Select(static location => location.GetProperty("context").GetString()).Should().Contain(static context => context!.Contains("formatter.Format(\"hi\")", StringComparison.Ordinal));
+
+        apiSurface.Data!.GetProperty("symbols").EnumerateArray().Select(static symbol => symbol.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter", StringComparison.Ordinal));
+        apiSurface.Data.GetProperty("symbols").EnumerateArray().Select(static symbol => symbol.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("IMessageFormatter", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task GIVEN_InspectionWorkspace_WHEN_ExecutingGraphAndTestImpactQueryTools_THEN_ShouldReturnProjectedGraphCyclesAndImpactedTests()
+    {
+        using var fixture = await InspectionSampleFixture.CreateAsync();
+        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
+        {
+            DefaultMaxResults = 100,
+            MaxConcurrentQueries = 2,
+            MaxResponseBytes = 65536,
+        });
+        var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
+        {
+            Path = fixture.ProjectPath,
+        }, CancellationToken.None);
+        var plugin = new BundledCorePlugin();
+        var registry = new PluginRegistry(plugin.Metadata);
+        var executor = new ToolExecutor(coordinator);
+
+        plugin.Register(registry);
+        openResult.Outcome.Should().Be(ToolOutcome.Succeeded);
+
+        var dependencyGraph = await ExecuteAsync<JsonElement>(executor, registry, "get-dependency-graph", new Dictionary<string, JsonElement>
+        {
+            ["scope"] = JsonSerializer.SerializeToElement(new ScopeSelector
+            {
+                Kind = ScopeKind.Project,
+                Project = new ProjectSelector
+                {
+                    Path = "Sample.csproj",
+                },
+            }),
+            ["granularity"] = JsonSerializer.SerializeToElement("Type"),
+            ["maxDepth"] = JsonSerializer.SerializeToElement(2),
+        });
+        var dependencyCycles = await ExecuteAsync<JsonElement>(executor, registry, "find-dependency-cycles", new Dictionary<string, JsonElement>
+        {
+            ["scope"] = JsonSerializer.SerializeToElement(new ScopeSelector
+            {
+                Kind = ScopeKind.Project,
+                Project = new ProjectSelector
+                {
+                    Path = "Sample.csproj",
+                },
+            }),
+            ["granularity"] = JsonSerializer.SerializeToElement("Type"),
+        });
+        var testImpact = await ExecuteAsync<JsonElement>(executor, registry, "get-test-impact", new Dictionary<string, JsonElement>
+        {
+            ["symbol"] = JsonSerializer.SerializeToElement(new SymbolSelector
+            {
+                DocumentationCommentId = "M:Sample.FormatterCaller.Call",
+            }),
+        });
+
+        dependencyGraph.Data!.GetProperty("nodes").EnumerateArray().Select(static node => node.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("FormatterCaller", StringComparison.Ordinal));
+        dependencyGraph.Data.GetProperty("nodes").EnumerateArray().Select(static node => node.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter", StringComparison.Ordinal));
+        dependencyGraph.Data.GetProperty("edges").EnumerateArray().Select(static edge => $"{edge.GetProperty("fromDisplayName").GetString()}->{edge.GetProperty("toDisplayName").GetString()}").Should().Contain(static edge => edge.Contains("FormatterCaller", StringComparison.Ordinal) && edge.Contains("GreetingFormatter", StringComparison.Ordinal));
+
+        dependencyCycles.Data!.GetProperty("cycles").EnumerateArray().Select(static cycle => cycle.GetProperty("nodes").EnumerateArray().Select(static node => node.GetProperty("displayName").GetString()).ToArray()).Should().Contain(static cycleNodes =>
+            cycleNodes.Any(static displayName => displayName!.Contains("AlphaCycle", StringComparison.Ordinal))
+            && cycleNodes.Any(static displayName => displayName!.Contains("BetaCycle", StringComparison.Ordinal)));
+
+        testImpact.Data!.GetProperty("tests").EnumerateArray().Select(static test => test.GetProperty("test").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GIVEN_FormatterCaller_WHEN_CallingCall_THEN_ShouldReturnFormattedGreeting", StringComparison.Ordinal));
+        testImpact.Data.GetProperty("tests").EnumerateArray().Select(static test => test.GetProperty("reasons").EnumerateArray().Select(static reason => reason.GetString()).ToArray()).Should().Contain(static reasons =>
+            reasons.Any(static reason => reason!.Contains("reference", StringComparison.OrdinalIgnoreCase) || reason.Contains("call", StringComparison.OrdinalIgnoreCase)));
+    }
+
+    [Fact]
+    public async Task GIVEN_InspectionWorkspace_WHEN_ExecutingRemainingAnalysisQueryTools_THEN_ShouldReturnProjectedFindings()
+    {
+        using var fixture = await InspectionSampleFixture.CreateAsync();
+        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
+        {
+            DefaultMaxResults = 100,
+            MaxConcurrentQueries = 2,
+            MaxResponseBytes = 65536,
+        });
+        var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
+        {
+            Path = fixture.ProjectPath,
+        }, CancellationToken.None);
+        var plugin = new BundledCorePlugin();
+        var registry = new PluginRegistry(plugin.Metadata);
+        var executor = new ToolExecutor(coordinator);
+
+        plugin.Register(registry);
+        openResult.Outcome.Should().Be(ToolOutcome.Succeeded);
+
+        var unusedSymbols = await ExecuteAsync<JsonElement>(executor, registry, "find-unused-symbols", new Dictionary<string, JsonElement>
+        {
+            ["scope"] = JsonSerializer.SerializeToElement(new ScopeSelector
+            {
+                Kind = ScopeKind.Document,
+                Document = new DocumentSelector
+                {
+                    Path = "RemoveUnusedVariable.cs",
+                },
+            }),
+        });
+        var nullability = await ExecuteAsync<JsonElement>(executor, registry, "analyze-nullability", new Dictionary<string, JsonElement>
+        {
+            ["scope"] = JsonSerializer.SerializeToElement(new ScopeSelector
+            {
+                Kind = ScopeKind.Document,
+                Document = new DocumentSelector
+                {
+                    Path = "EnableNullable.cs",
+                },
+            }),
+        });
+        var asyncAnalysis = await ExecuteAsync<JsonElement>(executor, registry, "analyze-async", new Dictionary<string, JsonElement>
+        {
+            ["scope"] = JsonSerializer.SerializeToElement(new ScopeSelector
+            {
+                Kind = ScopeKind.Document,
+                Document = new DocumentSelector
+                {
+                    Path = "Formatting.cs",
+                },
+            }),
+        });
+        var disposableAnalysis = await ExecuteAsync<JsonElement>(executor, registry, "analyze-disposables", new Dictionary<string, JsonElement>
+        {
+            ["scope"] = JsonSerializer.SerializeToElement(new ScopeSelector
+            {
+                Kind = ScopeKind.Document,
+                Document = new DocumentSelector
+                {
+                    Path = "Formatting.cs",
+                },
+            }),
+        });
+
+        unusedSymbols.Data!.GetProperty("candidates").EnumerateArray().Select(static candidate => candidate.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("unused", StringComparison.Ordinal));
+        unusedSymbols.Data.GetProperty("candidates").EnumerateArray().Select(static candidate => candidate.GetProperty("reasons").EnumerateArray().Select(static reason => reason.GetString()).ToArray()).Should().Contain(static reasons =>
+            reasons.Any(static reason => reason!.Contains("CS0219", StringComparison.Ordinal)));
+
+        nullability.Data!.GetProperty("findings").EnumerateArray().Select(static finding => finding.GetProperty("diagnostic").GetProperty("id").GetString()).Should().Contain("CS8602");
+        nullability.Data.GetProperty("findings").EnumerateArray().Select(static finding => finding.GetProperty("diagnostic").GetProperty("message").GetString()).Should().Contain(static message => message!.Contains("possibly null", StringComparison.OrdinalIgnoreCase));
+
+        asyncAnalysis.Data!.GetProperty("findings").EnumerateArray().Select(static finding => finding.GetProperty("kind").GetString()).Should().Contain("AsyncWithoutAwait");
+        asyncAnalysis.Data.GetProperty("findings").EnumerateArray().Select(static finding => finding.GetProperty("kind").GetString()).Should().Contain("UnawaitedTask");
+
+        disposableAnalysis.Data!.GetProperty("findings").EnumerateArray().Select(static finding => finding.GetProperty("kind").GetString()).Should().Contain("UndisposedLocal");
+        disposableAnalysis.Data.GetProperty("findings").EnumerateArray().Select(static finding => finding.GetProperty("type").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("MemoryStream", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task GIVEN_InspectionWorkspace_WHEN_ExecutingMetricsAndDuplicateQueryTools_THEN_ShouldReturnProjectedMetricsAndMatches()
+    {
+        using var fixture = await InspectionSampleFixture.CreateAsync();
+        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
+        {
+            DefaultMaxResults = 100,
+            MaxConcurrentQueries = 2,
+            MaxResponseBytes = 65536,
+        });
+        var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
+        {
+            Path = fixture.ProjectPath,
+        }, CancellationToken.None);
+        var plugin = new BundledCorePlugin();
+        var registry = new PluginRegistry(plugin.Metadata);
+        var executor = new ToolExecutor(coordinator);
+
+        plugin.Register(registry);
+        openResult.Outcome.Should().Be(ToolOutcome.Succeeded);
+
+        var typeMetrics = await ExecuteAsync<JsonElement>(executor, registry, "get-code-metrics", new Dictionary<string, JsonElement>
+        {
+            ["symbol"] = JsonSerializer.SerializeToElement(new SymbolSelector
+            {
+                DocumentationCommentId = "T:Sample.GreetingFormatter",
+            }),
+            ["includeChildren"] = JsonSerializer.SerializeToElement(true),
+        });
+        var metrics = await ExecuteAsync<JsonElement>(executor, registry, "get-code-metrics", new Dictionary<string, JsonElement>
+        {
+            ["scope"] = JsonSerializer.SerializeToElement(new ScopeSelector
+            {
+                Kind = ScopeKind.Document,
+                Document = new DocumentSelector
+                {
+                    Path = "Formatting.cs",
+                },
+            }),
+            ["symbol"] = JsonSerializer.SerializeToElement(new SymbolSelector
+            {
+                DocumentationCommentId = "M:Sample.ConditionalSamples.DescribeValue(System.Int32)",
+            }),
+        });
+        var duplicateCode = await ExecuteAsync<JsonElement>(executor, registry, "find-duplicate-code", new Dictionary<string, JsonElement>
+        {
+            ["scope"] = JsonSerializer.SerializeToElement(new ScopeSelector
+            {
+                Kind = ScopeKind.Document,
+                Document = new DocumentSelector
+                {
+                    Path = "Formatting.cs",
+                },
+            }),
+            ["minimumStatements"] = JsonSerializer.SerializeToElement(3),
+        });
+
+        typeMetrics.Data!.GetProperty("metrics").EnumerateArray().Select(static metric => metric.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter.Format", StringComparison.Ordinal));
+        metrics.Data!.GetProperty("metrics").EnumerateArray().Select(static metric => metric.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("ConditionalSamples.DescribeValue", StringComparison.Ordinal));
+        metrics.Data.GetProperty("metrics").EnumerateArray().Select(static metric => metric.GetProperty("cyclomaticComplexity").GetInt32()).Should().Contain(static complexity => complexity >= 3);
+        metrics.Data.GetProperty("metrics").EnumerateArray().Select(static metric => metric.GetProperty("logicalLines").GetInt32()).Should().Contain(static logicalLines => logicalLines >= 5);
+
+        duplicateCode.Data!.GetProperty("groups").EnumerateArray().Select(static group => group.GetProperty("occurrences").EnumerateArray().Select(static occurrence => occurrence.GetProperty("symbol").GetProperty("displayName").GetString()).ToArray()).Should().Contain(static displays =>
+            displays.Any(static display => display!.Contains("DuplicateCodeSamples.ComputeOne", StringComparison.Ordinal))
+            && displays.Any(static display => display!.Contains("DuplicateCodeSamples.ComputeTwo", StringComparison.Ordinal)));
+        duplicateCode.Data.GetProperty("groups").EnumerateArray().Select(static group => group.GetProperty("statementCount").GetInt32()).Should().Contain(static statementCount => statementCount >= 3);
+    }
+
+    [Fact]
+    public async Task GIVEN_InvalidDuplicateCodeThreshold_WHEN_ExecutingDuplicateCodeTool_THEN_ShouldRejectInvalidRequest()
+    {
+        using var fixture = await InspectionSampleFixture.CreateAsync();
+        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
+        {
+            DefaultMaxResults = 100,
+            MaxConcurrentQueries = 2,
+            MaxResponseBytes = 65536,
+        });
+        var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
+        {
+            Path = fixture.ProjectPath,
+        }, CancellationToken.None);
+        var plugin = new BundledCorePlugin();
+        var registry = new PluginRegistry(plugin.Metadata);
+        var executor = new ToolExecutor(coordinator);
+
+        plugin.Register(registry);
+        openResult.Outcome.Should().Be(ToolOutcome.Succeeded);
+
+        var result = await ExecuteAsync<DuplicateCodeData>(executor, registry, "find-duplicate-code", new Dictionary<string, JsonElement>
+        {
+            ["minimumStatements"] = JsonSerializer.SerializeToElement(0),
+        }, expectProtocolSuccess: false);
+
+        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Error!.Code.Should().Be("InvalidRequest");
     }
 
     [Fact]

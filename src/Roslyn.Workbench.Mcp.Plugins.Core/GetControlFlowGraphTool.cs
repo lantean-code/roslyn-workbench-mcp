@@ -83,8 +83,32 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
                 FallThroughSuccessor = block.FallThroughSuccessor?.Destination is { } fallThroughDestination ? fallThroughDestination.Ordinal : null,
                 ConditionalSuccessor = block.ConditionalSuccessor?.Destination is { } conditionalDestination ? conditionalDestination.Ordinal : null,
             }).ToArray(),
-            Regions = [],
+            Regions = CreateRegions(graph),
         });
+    }
+
+    private static IReadOnlyList<FlowRegionInfo> CreateRegions(ControlFlowGraph graph)
+    {
+        var regions = new List<FlowRegionInfo>();
+        var nextId = 0;
+        AddRegion(graph.Root, regions, ref nextId);
+        return regions;
+    }
+
+    private static void AddRegion(ControlFlowRegion region, ICollection<FlowRegionInfo> regions, ref int nextId)
+    {
+        regions.Add(new FlowRegionInfo
+        {
+            Id = nextId++,
+            Kind = region.Kind.ToString(),
+            FirstBlockOrdinal = region.FirstBlockOrdinal,
+            LastBlockOrdinal = region.LastBlockOrdinal,
+        });
+
+        foreach (var nestedRegion in region.NestedRegions)
+        {
+            AddRegion(nestedRegion, regions, ref nextId);
+        }
     }
 
     private static async ValueTask<SyntaxNodeResolution> ResolveSyntaxNodeAsync(LocationSelector? selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)

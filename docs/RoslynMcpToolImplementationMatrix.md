@@ -77,11 +77,11 @@ validated.
 | `rename-symbol` | Public `Renamer.RenameSymbolAsync` | Core |
 | `extract-method` | Host wrapper over deterministic MEF refactoring replay | Batch 3 |
 | `introduce-variable` | Host wrapper over deterministic MEF refactoring replay with Roslyn leaf-action selection | Batch 3 |
-| `extract-interface` | MEF refactoring provider plus options-service interaction | Hidden in current build |
-| `extract-base-class` | MEF refactoring provider plus options-service interaction | Hidden in current build |
+| `extract-interface` | MEF refactoring provider plus options-service interaction | Not planned with current public Roslyn APIs |
+| `extract-base-class` | MEF refactoring provider plus options-service interaction | Not planned with current public Roslyn APIs |
 | `introduce-parameter` | Host wrapper over deterministic MEF refactoring replay with nested-action selection | Batch 3 |
 | `inline-variable` | Host wrapper over deterministic MEF refactoring replay | Batch 3 |
-| `change-signature` | MEF refactoring provider plus internal Roslyn feature service wrapper | Hidden in current build |
+| `change-signature` | MEF refactoring provider plus internal Roslyn feature service wrapper | Not planned with current public Roslyn APIs |
 | `encapsulate-field` | Host wrapper over deterministic MEF refactoring replay | Batch 3 |
 | `convert-to-async` | Custom syntax/semantic implementation | Custom |
 | `convert-expression-body` | Custom syntax transformation | Custom |
@@ -90,10 +90,10 @@ validated.
 | `convert-to-interpolated-string` | Host wrapper over deterministic MEF refactoring replay | Batch 3 |
 | `convert-to-pattern-matching` | Custom syntax/semantic transformation | Custom |
 | `generate-constructor` | Custom syntax/semantic generation | Custom |
-| `generate-equals-hashcode` | MEF refactoring provider plus internal Roslyn feature service wrapper | Hidden in current build |
-| `generate-overrides` | MEF refactoring provider plus internal generation APIs | Hidden in current build |
+| `generate-equals-hashcode` | MEF refactoring provider plus internal Roslyn feature service wrapper | Not planned with current public Roslyn APIs |
+| `generate-overrides` | MEF refactoring provider plus internal generation APIs | Not planned with current public Roslyn APIs |
 | `generate-tostring` | Custom syntax/semantic generation | Custom |
-| `implement-interface` | MEF code-fix/refactoring provider plus internal Roslyn feature service wrapper | Hidden in current build |
+| `implement-interface` | MEF code-fix/refactoring provider plus internal Roslyn feature service wrapper | Not planned with current public Roslyn APIs |
 | `add-null-checks` | Custom syntax/semantic transformation | Custom |
 | `add-missing-usings` | Host wrapper over deterministic MEF code-fix selection | Batch 2 |
 | `remove-unused-usings` | Host wrapper over deterministic MEF code-fix selection | Batch 2 |

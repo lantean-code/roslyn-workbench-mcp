@@ -9,6 +9,52 @@ shapes in `JoshuaRamirez/RoslynMcpServer`; retained tool names preserve their
 intent, but use the safer workspace, selector and transaction model defined by
 this project.
 
+## Current Execution Surface Note (2026-07-02)
+
+The current build now registers and serves the `get-code-context`,
+`find-callees`, `find-overrides`, `get-symbol-dependencies`,
+`get-symbol-dependents`, `get-change-impact`, and `get-api-surface` contracts
+described in this catalogue, and `get-control-flow-graph` now returns
+populated `regions` data instead of an empty placeholder array.
+
+The following point 2 catalogue entries remain planned contracts only and are
+not registered by the current build:
+
+- `get-code-metrics`
+- `find-unused-symbols`
+- `find-duplicate-code`
+- `get-dependency-graph`
+- `find-dependency-cycles`
+- `get-test-impact`
+- `analyze-nullability`
+- `analyze-async`
+- `analyze-disposables`
+- `move-type-to-file`
+- `move-type-to-namespace`
+- `convert-to-async`
+- `convert-expression-body`
+- `convert-property`
+- `convert-to-pattern-matching`
+- `generate-constructor`
+- `generate-tostring`
+- `add-null-checks`
+
+The following mutation families are not planned for implementation in this
+server while they depend on non-public Roslyn services or internal IDE-only
+generation paths. Their request and response shapes remain in this catalogue
+only as aspirational end-state contracts:
+
+- `extract-interface`
+- `extract-base-class`
+- `change-signature`
+- `generate-equals-hashcode`
+- `generate-overrides`
+- `implement-interface`
+
+Where those deferred or not-planned tools still appear below, their request and
+response shapes should not be read as evidence that the current build publishes
+them through `tools/list`.
+
 ## MCP Metadata
 
 Every tool listed here is exposed through `tools/list` with the following MCP
@@ -235,21 +281,21 @@ one workspace is loaded, omitting it is rejected with
 | Tool | Source | Behaviour | Title and description | Input parameters | `data` output shape |
 |---|---|---|---|---|---|
 | `get-diagnostics` | Existing | Q | **Get Diagnostics**. Returns compiler and configured analyzer diagnostics for a scope. | `scope?: ScopeSelector`, `severities?: string[]`, `ids?: string[]`, `limit?: ResultLimit`. | `DiagnosticsData { diagnostics: DiagnosticInfo[], returnedCount: int, hasMore: boolean }` |
-| `get-code-metrics` | Existing | Q | **Get Code Metrics**. Returns logical lines, complexity, nesting, coupling and maintainability metrics. | `scope: ScopeSelector`, `symbol?: SymbolSelector`, `includeChildren?: boolean = false`, `limit?: ResultLimit`. | `CodeMetricsData { metrics: MetricInfo[], returnedCount: int, hasMore: boolean }` |
+| `get-code-metrics` | Existing | Q | **Get Code Metrics**. Returns projected logical lines, cyclomatic complexity, nesting depth, type coupling and a derived maintainability score for a symbol or scope. | `scope?: ScopeSelector = Solution`, `symbol?: SymbolSelector`, `includeChildren?: boolean = false`, `limit?: ResultLimit`, `expectedSnapshot?: SnapshotPrecondition` required for location-based symbol selectors. | `CodeMetricsData { metrics: MetricInfo { symbol?: SymbolReference, location?: ResolvedLocation, logicalLines: int, cyclomaticComplexity: int, maxNestingDepth: int, coupling: int, maintainabilityIndex: int }[], returnedCount: int, hasMore: boolean }` |
 | `analyze-control-flow` | Existing | Q | **Analyze Control Flow**. Returns reachability, exit paths and return behaviour for a selected executable region. | `location: LocationSelector`. | `ControlFlowAnalysisData { region: ResolvedLocation, entryReachable: boolean, exitReachable: boolean, exits: ControlFlowExit[], returns: ResolvedLocation[] }` |
 | `analyze-data-flow` | Existing | Q | **Analyze Data Flow**. Returns reads, writes, data in/out and captured variables for a selected region. | `location: LocationSelector`. | `DataFlowAnalysisData { region: ResolvedLocation, variablesDeclared: SymbolReference[], readInside: SymbolReference[], writtenInside: SymbolReference[], dataFlowsIn: SymbolReference[], dataFlowsOut: SymbolReference[], captured: SymbolReference[] }` |
 | `get-operation-tree` | New | Q | **Get Operation Tree**. Returns a compact typed `IOperation` tree for a selected expression, statement or member. | `location: LocationSelector`, `maxDepth?: int = 8`. | `OperationTreeData { root: OperationNode, truncated: boolean }` |
 | `get-control-flow-graph` | New | Q | **Get Control Flow Graph**. Returns basic blocks, branches and regions for an executable symbol or body. | `symbol?: SymbolSelector`, `location?: LocationSelector`. Exactly one is required. | `ControlFlowGraphData { owner: SymbolReference, blocks: BasicBlockInfo[], regions: FlowRegionInfo[] }` |
-| `find-unused-symbols` | New | Q | **Find Unused Symbols**. Identifies candidate dead private or internal symbols with confidence reasons. | `scope?: ScopeSelector`, `includeInternal?: boolean = false`, `excludeGenerated?: boolean = true`, `limit?: ResultLimit`. | `UnusedSymbolsData { candidates: UnusedSymbolCandidate[], returnedCount: int, hasMore: boolean }` |
-| `find-duplicate-code` | New | Q | **Find Duplicate Code**. Identifies structurally similar code regions for review. It does not refactor them. | `scope?: ScopeSelector`, `minimumStatements?: int = 3`, `limit?: ResultLimit`. | `DuplicateCodeData { groups: DuplicateCodeGroup[], returnedCount: int, hasMore: boolean }` |
-| `get-dependency-graph` | New | Q | **Get Dependency Graph**. Builds a bounded dependency graph at a selected granularity. | `scope: ScopeSelector`, `granularity: Project|Namespace|Type|Symbol`, `maxDepth?: int = 3`, `maxNodes?: int`, `maxEdges?: int`. | `DependencyGraphData { nodes: GraphNode[], edges: GraphEdge[], returnedNodeCount: int, returnedEdgeCount: int, truncationReasons: CollectionTruncation[] }` |
-| `find-dependency-cycles` | New | Q | **Find Dependency Cycles**. Detects dependency cycles at project, namespace or type granularity. | `scope: ScopeSelector`, `granularity: Project|Namespace|Type`, `limit?: ResultLimit`. | `DependencyCyclesData { cycles: DependencyCycle[], returnedCount: int, hasMore: boolean }` |
+| `find-unused-symbols` | New | Q | **Find Unused Symbols**. Identifies candidate unused locals and members from compiler-unused diagnostics, with confidence reasons. | `scope?: ScopeSelector = Solution`, `includeInternal?: boolean = false`, `excludeGenerated?: boolean = true`, `limit?: ResultLimit`. | `UnusedSymbolsData { candidates: UnusedSymbolCandidate { symbol: SymbolReference, location?: ResolvedLocation, confidence: string, reasons: string[] }[], returnedCount: int, hasMore: boolean }` |
+| `find-duplicate-code` | New | Q | **Find Duplicate Code**. Groups identical executable blocks by their normalized statement sequence for review. It is advisory and does not refactor code. | `scope?: ScopeSelector = Solution`, `minimumStatements?: int = 3`, `limit?: ResultLimit`. | `DuplicateCodeData { groups: DuplicateCodeGroup { statementCount: int, occurrences: DuplicateCodeOccurrence { symbol?: SymbolReference, location?: ResolvedLocation, context: string }[] }[], returnedCount: int, hasMore: boolean }` |
+| `get-dependency-graph` | New | Q | **Get Dependency Graph**. Builds a bounded dependency graph at a selected granularity. | `scope?: ScopeSelector = Solution`, `granularity: Project|Namespace|Type|Symbol`, `maxDepth?: int = 3`, `maxNodes?: int`, `maxEdges?: int`. | `DependencyGraphData { nodes: GraphNode { id: string, kind: string, displayName: string, symbol?: SymbolReference }[], edges: GraphEdge { fromId: string, fromDisplayName: string, toId: string, toDisplayName: string, kind: string }[], returnedNodeCount: int, returnedEdgeCount: int, truncationReasons: CollectionTruncation[] }` |
+| `find-dependency-cycles` | New | Q | **Find Dependency Cycles**. Detects dependency cycles at project, namespace or type granularity. | `scope?: ScopeSelector = Solution`, `granularity: Project|Namespace|Type`, `limit?: ResultLimit`. | `DependencyCyclesData { cycles: DependencyCycle { nodes: GraphNode[] }[], returnedCount: int, hasMore: boolean }` |
 | `get-change-impact` | New | Q | **Get Change Impact**. Estimates blast radius using references, callers, overrides, implementations and public surface. | `symbol: SymbolSelector`, `scope?: ScopeSelector`, `limit?: ResultLimit`. | `ChangeImpactData { symbol: SymbolReference, impact: ImpactSummary, locations: ReferenceLocation[], returnedCount: int, hasMore: boolean }` |
 | `get-api-surface` | New | Q | **Get API Surface**. Describes exported API symbols for a solution, project, namespace or type. | `scope: ScopeSelector`, `minimumAccessibility?: Public|Protected|Internal = Public`, `includeObsolete?: boolean = true`, `limit?: ResultLimit`. | `ApiSurfaceData { symbols: ApiSymbolInfo[], returnedCount: int, hasMore: boolean }` |
-| `get-test-impact` | New | Q | **Get Test Impact**. Identifies likely impacted tests using configured test conventions. | `symbol: SymbolSelector`, `testScope?: ScopeSelector`, `includeReasons?: boolean = true`, `limit?: ResultLimit`. | `TestImpactData { symbol: SymbolReference, tests: TestImpactInfo[], returnedCount: int, hasMore: boolean }` |
-| `analyze-nullability` | New | Q | **Analyze Nullability**. Returns nullable-flow issues and unsafe dereferences. | `scope?: ScopeSelector`, `location?: LocationSelector`, `limit?: ResultLimit`. | `NullabilityAnalysisData { findings: NullabilityFinding[], returnedCount: int, hasMore: boolean }` |
-| `analyze-async` | New | Q | **Analyze Async**. Identifies supported async antipatterns using syntax and operation analysis. | `scope?: ScopeSelector`, `limit?: ResultLimit`. | `AsyncAnalysisData { findings: AsyncFinding[], returnedCount: int, hasMore: boolean }` |
-| `analyze-disposables` | New | Q | **Analyze Disposables**. Identifies candidate undisposed `IDisposable` or `IAsyncDisposable` values. Findings are advisory. | `scope?: ScopeSelector`, `limit?: ResultLimit`. | `DisposableAnalysisData { findings: DisposableFinding[], returnedCount: int, hasMore: boolean }` |
+| `get-test-impact` | New | Q | **Get Test Impact**. Identifies likely impacted tests using built-in test-like type and method naming conventions. | `symbol: SymbolSelector`, `testScope?: ScopeSelector = Solution`, `includeReasons?: boolean = true`, `limit?: ResultLimit`. | `TestImpactData { symbol: SymbolReference, tests: TestImpactInfo { test: SymbolReference, location?: ResolvedLocation, reasons: string[] }[], returnedCount: int, hasMore: boolean }` |
+| `analyze-nullability` | New | Q | **Analyze Nullability**. Returns nullable-flow issues and unsafe dereferences from compiler nullability diagnostics. | `scope?: ScopeSelector = Solution`, `location?: LocationSelector`, `limit?: ResultLimit`, `expectedSnapshot?: SnapshotPrecondition` required for location-based selectors. | `NullabilityAnalysisData { findings: NullabilityFinding { diagnostic: DiagnosticInfo }[], returnedCount: int, hasMore: boolean }` |
+| `analyze-async` | New | Q | **Analyze Async**. Identifies supported async antipatterns using syntax and operation analysis. | `scope?: ScopeSelector = Solution`, `limit?: ResultLimit`. | `AsyncAnalysisData { findings: AsyncFinding { kind: string, symbol?: SymbolReference, location?: ResolvedLocation, message: string }[], returnedCount: int, hasMore: boolean }` |
+| `analyze-disposables` | New | Q | **Analyze Disposables**. Identifies candidate undisposed local `IDisposable` or `IAsyncDisposable` values. Findings are advisory. | `scope?: ScopeSelector = Solution`, `limit?: ResultLimit`. | `DisposableAnalysisData { findings: DisposableFinding { kind: string, symbol?: SymbolReference, type?: TypeInfo, location?: ResolvedLocation, message: string }[], returnedCount: int, hasMore: boolean }` |
 
 ## Specific Refactorings, Generation and Formatting (28)
 
@@ -277,11 +323,11 @@ explicitly and through their snapshot-bound action token.
 | `rename-symbol` | Existing | M | **Rename Symbol**. Renames a resolved symbol and updates references across the effective solution. | `symbol: SymbolSelector`, `newName: string`, `renameOverloads?: boolean = false`, `renameImplementations?: boolean = true`, `renameFile?: boolean = false`. |
 | `extract-method` | Existing | M | **Extract Method**. Extracts a valid statement or expression selection through the replay-backed Roslyn backend. | `selection: LocationSelector`, `targetKind?: Method|LocalFunction = Method`. |
 | `introduce-variable` | Existing | M | **Introduce Variable**. Stages one supported Roslyn introduce-variable leaf action through the replay-backed backend. | `selection: LocationSelector`, `kind: Local|LocalAllOccurrences|LocalConstant|LocalConstantAllOccurrences|Constant|ConstantAllOccurrences|Field|FieldAllOccurrences|QueryVariable|QueryVariableAllOccurrences`. |
-| `extract-interface` | Existing | M | **Extract Interface**. Deferred from the current execution surface. In builds where the Roslyn implementation still depends on options-service interaction, this action family is omitted from `list-code-actions`. | `type: SymbolSelector`, `interfaceName: string`, `members: SymbolSelector[]`, `targetPath?: ProjectRelativePath`. |
-| `extract-base-class` | Existing | M | **Extract Base Class**. Deferred from the current execution surface. In builds where the Roslyn implementation still depends on options-service interaction, this action family is omitted from `list-code-actions`. | `type: SymbolSelector`, `baseClassName: string`, `members: SymbolSelector[]`, `targetPath?: ProjectRelativePath`, `makeAbstract?: boolean = false`. |
+| `extract-interface` | Existing | M | **Extract Interface**. Not planned for this server while the Roslyn implementation still depends on options-service interaction. This action family is omitted from `list-code-actions` unless a supported public API path becomes available. | `type: SymbolSelector`, `interfaceName: string`, `members: SymbolSelector[]`, `targetPath?: ProjectRelativePath`. |
+| `extract-base-class` | Existing | M | **Extract Base Class**. Not planned for this server while the Roslyn implementation still depends on options-service interaction. This action family is omitted from `list-code-actions` unless a supported public API path becomes available. | `type: SymbolSelector`, `baseClassName: string`, `members: SymbolSelector[]`, `targetPath?: ProjectRelativePath`, `makeAbstract?: boolean = false`. |
 | `introduce-parameter` | Existing | M | **Introduce Parameter**. Promotes a supported expression to a parameter through the replay-backed Roslyn backend. | `selection: LocationSelector`, `allOccurrences?: boolean = false`, `strategy?: UpdateCallSitesDirectly|IntoExtractedMethod|IntoNewOverload = UpdateCallSitesDirectly`. |
 | `inline-variable` | Existing | M | **Inline Variable**. Replaces local variable references with its initializer. `removeDeclaration` currently requires the default `true`; `false` is rejected by the replay-backed Roslyn backend. | `symbol: SymbolSelector`, `removeDeclaration?: boolean = true`. |
-| `change-signature` | Existing | M | **Change Signature**. Deferred from the current Batch 2 execution surface. In builds where the required Roslyn feature service is internal-only, this action family is omitted from `list-code-actions`. | `method: SymbolSelector`, `parameters: ParameterChange[]`, `updateCallSites?: boolean = true`. |
+| `change-signature` | Existing | M | **Change Signature**. Not planned for this server while the required Roslyn feature service remains internal-only. This action family is omitted from `list-code-actions` unless a supported public API path becomes available. | `method: SymbolSelector`, `parameters: ParameterChange[]`, `updateCallSites?: boolean = true`. |
 | `encapsulate-field` | Existing | M | **Encapsulate Field**. Encapsulates one field through the replay-backed Roslyn backend. | `field: SymbolSelector`, `updateReferences?: boolean = true`. |
 | `convert-to-async` | Existing | M | **Convert To Async**. Converts a supported synchronous method to asynchronous code and reports propagation impact. | `method: SymbolSelector`, `renameToAsync?: boolean = true`, `propagate?: None|ContainingType|Solution = None`. |
 | `convert-expression-body` | Existing | M | **Convert Expression Body**. Converts a member between block and expression-bodied forms. | `member: SymbolSelector`, `direction: ToExpression|ToBlock`. |
@@ -290,10 +336,10 @@ explicitly and through their snapshot-bound action token.
 | `convert-to-interpolated-string` | Existing | M | **Convert To Interpolated String**. Converts supported concatenation or formatting expressions through the replay-backed Roslyn backend. | `selection: LocationSelector`. |
 | `convert-to-pattern-matching` | Existing | M | **Convert To Pattern Matching**. Modernises supported type-test and switch patterns. | `selection: LocationSelector`. |
 | `generate-constructor` | Existing | M | **Generate Constructor**. Generates a constructor from selected fields or properties. | `type: SymbolSelector`, `members: SymbolSelector[]`, `accessibility?: Private|Internal|Protected|Public = Public`, `addNullChecks?: boolean = false`. |
-| `generate-equals-hashcode` | Existing | M | **Generate Equals And GetHashCode**. Deferred from the current Batch 2 execution surface. In builds where the required Roslyn feature service is internal-only, this action family is omitted from `list-code-actions`. | `type: SymbolSelector`, `members: SymbolSelector[]`, `implementEquatable?: boolean = false`. |
-| `generate-overrides` | Existing | M | **Generate Overrides**. Deferred from the current execution surface. In builds where the Roslyn implementation still depends on internal generation APIs, this action family is omitted from `list-code-actions`. | `type: SymbolSelector`, `members: SymbolSelector[]`. |
+| `generate-equals-hashcode` | Existing | M | **Generate Equals And GetHashCode**. Not planned for this server while the required Roslyn feature service remains internal-only. This action family is omitted from `list-code-actions` unless a supported public API path becomes available. | `type: SymbolSelector`, `members: SymbolSelector[]`, `implementEquatable?: boolean = false`. |
+| `generate-overrides` | Existing | M | **Generate Overrides**. Not planned for this server while the Roslyn implementation still depends on internal generation APIs. This action family is omitted from `list-code-actions` unless a supported public API path becomes available. | `type: SymbolSelector`, `members: SymbolSelector[]`. |
 | `generate-tostring` | Existing | M | **Generate ToString**. Generates a `ToString` override from selected fields or properties. | `type: SymbolSelector`, `members: SymbolSelector[]`, `format?: string`. |
-| `implement-interface` | Existing | M | **Implement Interface**. Deferred from the current Batch 2 execution surface. In builds where the required Roslyn feature service is internal-only, this action family is omitted from `list-code-actions`. | `type: SymbolSelector`, `interface: SymbolSelector`, `members?: SymbolSelector[]`, `explicitImplementation?: boolean = false`. |
+| `implement-interface` | Existing | M | **Implement Interface**. Not planned for this server while the required Roslyn feature service remains internal-only. This action family is omitted from `list-code-actions` unless a supported public API path becomes available. | `type: SymbolSelector`, `interface: SymbolSelector`, `members?: SymbolSelector[]`, `explicitImplementation?: boolean = false`. |
 | `add-null-checks` | Existing | M | **Add Null Checks**. Adds configurable parameter guard clauses. | `method: SymbolSelector`, `parameters?: SymbolSelector[]`, `style?: ThrowIfNull|GuardClause = ThrowIfNull`. |
 | `add-missing-usings` | Existing | M | **Add Missing Usings**. Adds imports needed to resolve unbound type references. `preferGlobalUsings` is reserved and currently rejected when set to `true`. | `scope: ScopeSelector`, `preferGlobalUsings?: boolean = false`. |
 | `remove-unused-usings` | Existing | M | **Remove Unused Usings**. Removes unused import directives. | `scope: ScopeSelector`. |

@@ -8,6 +8,61 @@ A smaller initial release is acceptable, but its architecture must support this
 catalogue without changing the core workspace, plugin, transaction or result
 contracts later.
 
+## Current Execution Surface Note (2026-07-02)
+
+The current build now ships the following point 2 and point 3 items from this
+catalogue:
+
+- `get-code-context`
+- `find-callees`
+- `find-overrides`
+- `get-symbol-dependencies`
+- `get-symbol-dependents`
+- `get-change-impact`
+- `get-api-surface`
+- `get-control-flow-graph`, including populated `regions` data
+
+The following point 2 catalogue entries remain explicitly deferred from the
+current execution surface and must not be treated as registered tools in the
+current build:
+
+- `get-code-metrics`
+- `find-unused-symbols`
+- `find-duplicate-code`
+- `get-dependency-graph`
+- `find-dependency-cycles`
+- `get-test-impact`
+- `analyze-nullability`
+- `analyze-async`
+- `analyze-disposables`
+- `move-type-to-file`
+- `move-type-to-namespace`
+- `convert-to-async`
+- `convert-expression-body`
+- `convert-property`
+- `convert-to-pattern-matching`
+- `generate-constructor`
+- `generate-tostring`
+- `add-null-checks`
+
+The following mutation families are not planned for implementation in this
+server while they depend on non-public Roslyn services or internal IDE-only
+generation paths. They remain part of the aspirational catalogue only and
+should be treated as unavailable unless Roslyn exposes a new supported public
+API path in the future:
+
+- `extract-interface`
+- `extract-base-class`
+- `change-signature`
+- `generate-equals-hashcode`
+- `generate-overrides`
+- `implement-interface`
+
+Some of the deferred or not-planned mutation families above already have
+planned request and result shapes in this document because they remain part of
+the aspirational end-state catalogue. They are omitted from the registered tool
+surface in the current build.
+
 ## Project Identity
 
 The product name is **Roslyn Workbench**.
@@ -201,21 +256,21 @@ real output schema in `Full` mode or omits `outputSchema` entirely.
 | Tool | Status | Purpose |
 |---|---|---|
 | `get-diagnostics` | Existing | Return compiler and configured analyzer diagnostics, filtered by scope, severity and ID. |
-| `get-code-metrics` | Existing | Return logical lines, complexity, nesting, coupling and maintainability metrics. |
+| `get-code-metrics` | Existing | Return projected logical lines, cyclomatic complexity, nesting depth, type coupling and a derived maintainability score for a symbol or scope. |
 | `analyze-control-flow` | Existing | Return reachability, exit paths and return behaviour for a selected executable region. |
 | `analyze-data-flow` | Existing | Return variables read/written, data in/out and captured variables. |
 | `get-operation-tree` | New | Return a compact, typed `IOperation` tree for a selected expression, statement or member. |
 | `get-control-flow-graph` | New | Return basic blocks, branches and regions for a method, lambda or local function. |
-| `find-unused-symbols` | New | Identify candidate dead private or internal symbols with exclusions and confidence reasons. |
-| `find-duplicate-code` | New | Identify structurally similar code regions. This is advisory, not an automatic refactoring. |
-| `get-dependency-graph` | New | Build a bounded project, namespace, type or symbol dependency graph. |
-| `find-dependency-cycles` | New | Detect cycles at project, namespace or type granularity. |
+| `find-unused-symbols` | New | Identify candidate unused locals and members from compiler-unused diagnostics, with confidence reasons. |
+| `find-duplicate-code` | New | Group identical executable blocks by normalized statement sequence. This is advisory, not an automatic refactoring. |
+| `get-dependency-graph` | New | Build a bounded project, namespace, type or symbol dependency graph for the selected scope. |
+| `find-dependency-cycles` | New | Detect cycles at project, namespace or type granularity within the selected scope. |
 | `get-change-impact` | New | Combine references, callers, overrides, implementations and public surface to estimate blast radius. |
 | `get-api-surface` | New | Describe exported API symbols for the selected solution, project, namespace or type. |
-| `get-test-impact` | New | Identify likely impacted tests using configurable test-framework and naming conventions. |
-| `analyze-nullability` | New | Identify nullable-flow issues and unsafe dereferences from compiler and analyzer data. |
-| `analyze-async` | New | Identify supported async antipatterns using syntax and operation analysis. |
-| `analyze-disposables` | New | Identify candidate undisposed `IDisposable` or `IAsyncDisposable` values. This is advisory only. |
+| `get-test-impact` | New | Identify likely impacted tests using built-in test-like type and method naming conventions. |
+| `analyze-nullability` | New | Identify nullable-flow issues and unsafe dereferences from compiler nullability diagnostics. |
+| `analyze-async` | New | Identify supported async antipatterns such as async methods without `await` and unawaited task-returning invocations. |
+| `analyze-disposables` | New | Identify candidate undisposed local `IDisposable` or `IAsyncDisposable` values. This is advisory only. |
 
 ### Specific Refactorings, Generation and Formatting (28)
 
@@ -229,11 +284,11 @@ bounded preview. The operation does not write to disk.
 | `rename-symbol` | Existing | Stage a solution-wide rename with configurable rename options. |
 | `extract-method` | Existing | Stage extraction of a valid statement or expression selection. |
 | `introduce-variable` | Existing | Stage one supported Roslyn introduce-variable leaf action. |
-| `extract-interface` | Existing | Deferred from the current execution surface. In builds where the Roslyn implementation still depends on options-service interaction, this action family is hidden from descriptor-based discovery. |
-| `extract-base-class` | Existing | Deferred from the current execution surface. In builds where the Roslyn implementation still depends on options-service interaction, this action family is hidden from descriptor-based discovery. |
+| `extract-interface` | Existing | Not planned for this server while the Roslyn implementation still depends on options-service interaction. This action family remains hidden from descriptor-based discovery unless a supported public API path becomes available. |
+| `extract-base-class` | Existing | Not planned for this server while the Roslyn implementation still depends on options-service interaction. This action family remains hidden from descriptor-based discovery unless a supported public API path becomes available. |
 | `introduce-parameter` | Existing | Stage promotion of an expression or local to a parameter and update call sites. |
 | `inline-variable` | Existing | Stage inlining of a local variable. |
-| `change-signature` | Existing | Deferred from the current Batch 2 execution surface. In builds where the required Roslyn feature service is internal-only, this action family is hidden from descriptor-based discovery. |
+| `change-signature` | Existing | Not planned for this server while the required Roslyn feature service remains internal-only. This action family remains hidden from descriptor-based discovery unless a supported public API path becomes available. |
 | `encapsulate-field` | Existing | Stage field encapsulation and reference updates. |
 | `convert-to-async` | Existing | Stage a supported async conversion and report propagation impact. |
 | `convert-expression-body` | Existing | Stage expression-body or block-body conversion. |
@@ -242,10 +297,10 @@ bounded preview. The operation does not write to disk.
 | `convert-to-interpolated-string` | Existing | Stage interpolation conversion. |
 | `convert-to-pattern-matching` | Existing | Stage supported pattern-matching modernisation. |
 | `generate-constructor` | Existing | Stage a constructor from selected members. |
-| `generate-equals-hashcode` | Existing | Deferred from the current Batch 2 execution surface. In builds where the required Roslyn feature service is internal-only, this action family is hidden from descriptor-based discovery. |
-| `generate-overrides` | Existing | Deferred from the current execution surface. In builds where the Roslyn implementation still depends on internal generation APIs, this action family is hidden from descriptor-based discovery. |
+| `generate-equals-hashcode` | Existing | Not planned for this server while the required Roslyn feature service remains internal-only. This action family remains hidden from descriptor-based discovery unless a supported public API path becomes available. |
+| `generate-overrides` | Existing | Not planned for this server while the Roslyn implementation still depends on internal generation APIs. This action family remains hidden from descriptor-based discovery unless a supported public API path becomes available. |
 | `generate-tostring` | Existing | Stage a `ToString` override. |
-| `implement-interface` | Existing | Deferred from the current Batch 2 execution surface. In builds where the required Roslyn feature service is internal-only, this action family is hidden from descriptor-based discovery. |
+| `implement-interface` | Existing | Not planned for this server while the required Roslyn feature service remains internal-only. This action family remains hidden from descriptor-based discovery unless a supported public API path becomes available. |
 | `add-null-checks` | Existing | Stage configurable guard clauses. |
 | `add-missing-usings` | Existing | Stage import additions. |
 | `remove-unused-usings` | Existing | Stage import removal. |

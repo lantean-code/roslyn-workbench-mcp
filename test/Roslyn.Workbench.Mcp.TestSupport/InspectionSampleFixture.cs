@@ -167,6 +167,29 @@ public sealed class InspectionSampleFixture : IDisposable
                 }
             }
 
+            public sealed class AlphaCycle
+            {
+                public BetaCycle? Beta { get; init; }
+            }
+
+            public sealed class BetaCycle
+            {
+                public AlphaCycle? Alpha { get; init; }
+            }
+
+            public static class FormatterCallerTests
+            {
+                public static void GIVEN_FormatterCaller_WHEN_CallingCall_THEN_ShouldReturnFormattedGreeting()
+                {
+                    _ = FormatterCaller.Call();
+                }
+
+                public static void Helper()
+                {
+                    _ = new GreetingFormatter().Decorate("helper");
+                }
+            }
+
             public static class FlowSamples
             {
                 public static string Analyse(string value)
@@ -180,6 +203,27 @@ public sealed class InspectionSampleFixture : IDisposable
 
                     var upper = trimmed.ToUpperInvariant();
                     return upper;
+                }
+
+                public static string AnalyseExceptional(string? value)
+                {
+                    try
+                    {
+                        if (value is null)
+                        {
+                            throw new ArgumentNullException(nameof(value));
+                        }
+
+                        return value.Trim();
+                    }
+                    catch (ArgumentNullException)
+                    {
+                        return string.Empty;
+                    }
+                    finally
+                    {
+                        _ = value?.Length ?? 0;
+                    }
                 }
             }
 
@@ -489,6 +533,23 @@ public sealed class InspectionSampleFixture : IDisposable
                 }
             }
 
+            public static class DuplicateCodeSamples
+            {
+                public static int ComputeOne(int value)
+                {
+                    var adjusted = value + 1;
+                    adjusted *= 2;
+                    return adjusted - 3;
+                }
+
+                public static int ComputeTwo(int value)
+                {
+                    var adjusted = value + 1;
+                    adjusted *= 2;
+                    return adjusted - 3;
+                }
+            }
+
             public static class TupleSamples
             {
                 public static (int Sum, int Count) Build()
@@ -745,6 +806,11 @@ public sealed class InspectionSampleFixture : IDisposable
             public sealed class EnableNullableSample
             {
                 public string? Value { get; set; }
+
+                public int GetLength()
+                {
+                    return Value.Length;
+                }
             }
             """);
         if (options.IncludeConsoleTopLevelDocument)

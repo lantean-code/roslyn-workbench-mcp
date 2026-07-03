@@ -13,7 +13,7 @@ internal static class MsBuildProjectUtilities
 
         try
         {
-            using var projectCollection = new ProjectCollection();
+            using var projectCollection = new Microsoft.Build.Evaluation.ProjectCollection();
             var project = projectCollection.LoadProject(projectPath);
 
             return project.Imports
@@ -23,7 +23,7 @@ internal static class MsBuildProjectUtilities
                 .Distinct(StringComparer.Ordinal)
                 .ToArray();
         }
-        catch (Exception exception) when (exception is InvalidProjectFileException or IOException or UnauthorizedAccessException)
+        catch (Exception exception) when (exception is Microsoft.Build.Exceptions.InvalidProjectFileException or IOException or UnauthorizedAccessException)
         {
             return [];
         }
@@ -33,15 +33,15 @@ internal static class MsBuildProjectUtilities
     {
         try
         {
-            using var projectCollection = new ProjectCollection();
+            using var projectCollection = new Microsoft.Build.Evaluation.ProjectCollection();
             var project = projectCollection.LoadProject(projectPath);
             var root = project.Xml;
 
             var isSdkStyle = !string.IsNullOrWhiteSpace(root.Sdk)
-                || root.Children.OfType<ProjectSdkElement>().Any();
+                || root.Children.OfType<Microsoft.Build.Construction.ProjectSdkElement>().Any();
             return (isSdkStyle, []);
         }
-        catch (Exception exception) when (exception is InvalidProjectFileException or IOException or UnauthorizedAccessException)
+        catch (Exception exception) when (exception is Microsoft.Build.Exceptions.InvalidProjectFileException or IOException or UnauthorizedAccessException)
         {
             return (false, [CreateLoadDiagnostic(exception.Message)]);
         }
@@ -52,7 +52,7 @@ internal static class MsBuildProjectUtilities
         return new DiagnosticInfo
         {
             Id = "WorkspaceLoad",
-            Severity = DiagnosticSeverity.Error,
+            Severity = Roslyn.Workbench.Mcp.Contracts.Results.DiagnosticSeverity.Error,
             Message = message,
         };
     }

@@ -1,3 +1,7 @@
+using Roslyn.Workbench.Mcp.Plugins.Core.CodeActions;
+using Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
+using Roslyn.Workbench.Mcp.Plugins.Core.Refactorings;
+
 namespace Roslyn.Workbench.Mcp.Plugins.Core;
 
 internal static class BundledCoreToolRegistrar

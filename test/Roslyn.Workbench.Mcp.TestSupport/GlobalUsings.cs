@@ -1,0 +1,9 @@
+global using Microsoft.Build.Locator;
+global using Microsoft.CodeAnalysis;
+global using Microsoft.CodeAnalysis.CodeActions;
+global using Microsoft.CodeAnalysis.CodeFixes;
+global using Microsoft.CodeAnalysis.CodeRefactorings;
+global using Microsoft.CodeAnalysis.CSharp;
+global using Microsoft.CodeAnalysis.CSharp.Syntax;
+global using Microsoft.CodeAnalysis.Diagnostics;
+global using Microsoft.CodeAnalysis.Text;

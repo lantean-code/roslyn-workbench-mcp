@@ -1,0 +1,10 @@
+global using AwesomeAssertions;
+global using Microsoft.CodeAnalysis;
+global using Microsoft.CodeAnalysis.CodeActions;
+global using Microsoft.CodeAnalysis.CSharp;
+global using Microsoft.CodeAnalysis.Text;
+global using Roslyn.Workbench.Mcp.Contracts.Results;
+global using Roslyn.Workbench.Mcp.Contracts.Selectors;
+global using Roslyn.Workbench.Mcp.Contracts.Server;
+global using Roslyn.Workbench.Mcp.Contracts.Transactions;
+global using Xunit;

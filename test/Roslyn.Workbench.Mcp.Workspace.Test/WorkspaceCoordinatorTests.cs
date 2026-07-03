@@ -1,11 +1,6 @@
 using System.Text;
 using System.Text.Json;
 
-using Roslyn.Workbench.Mcp.Contracts.Results;
-using Roslyn.Workbench.Mcp.Contracts.Selectors;
-using Roslyn.Workbench.Mcp.Contracts.Server;
-using Roslyn.Workbench.Mcp.Contracts.Transactions;
-
 using Roslyn.Workbench.Mcp.Plugins;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test;

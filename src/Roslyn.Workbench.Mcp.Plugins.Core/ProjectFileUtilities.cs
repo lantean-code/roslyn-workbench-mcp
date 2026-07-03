@@ -18,7 +18,7 @@ internal static class ProjectFileUtilities
 
         try
         {
-            using var projectCollection = new ProjectCollection();
+            using var projectCollection = new Microsoft.Build.Evaluation.ProjectCollection();
             var project = projectCollection.LoadProject(projectPath);
             var multipleTargetFrameworks = project.GetPropertyValue("TargetFrameworks");
             if (!string.IsNullOrWhiteSpace(multipleTargetFrameworks))

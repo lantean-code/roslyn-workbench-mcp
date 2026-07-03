@@ -1,0 +1,14 @@
+global using DiffPlex;
+global using DiffPlex.Chunkers;
+global using DiffPlex.Renderer;
+global using Microsoft.CodeAnalysis;
+global using Microsoft.CodeAnalysis.CodeActions;
+global using Microsoft.CodeAnalysis.CodeFixes;
+global using Microsoft.CodeAnalysis.CodeRefactorings;
+global using Microsoft.CodeAnalysis.Diagnostics;
+global using Microsoft.CodeAnalysis.FindSymbols;
+global using Microsoft.CodeAnalysis.Host;
+global using Microsoft.CodeAnalysis.Host.Mef;
+global using Microsoft.CodeAnalysis.MSBuild;
+global using Microsoft.CodeAnalysis.Text;
+global using Stateless;

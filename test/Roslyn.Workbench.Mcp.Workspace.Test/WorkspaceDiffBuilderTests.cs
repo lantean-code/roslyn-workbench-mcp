@@ -1,5 +1,3 @@
-using Roslyn.Workbench.Mcp.Contracts.Results;
-
 namespace Roslyn.Workbench.Mcp.Workspace.Test;
 
 public sealed class WorkspaceDiffBuilderTests

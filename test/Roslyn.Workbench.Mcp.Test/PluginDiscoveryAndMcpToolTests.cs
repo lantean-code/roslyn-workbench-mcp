@@ -2,7 +2,6 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Roslyn.Workbench.Mcp.Plugins.Core.Test;
-using Roslyn.Workbench.Mcp.TestSupport;
 using Roslyn.Workbench.Mcp.Workspace.Test;
 
 namespace Roslyn.Workbench.Mcp.Test;

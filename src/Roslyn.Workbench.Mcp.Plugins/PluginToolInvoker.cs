@@ -37,15 +37,6 @@ internal sealed class PluginToolInvoker<TRequest, TResponse> : IPluginToolInvoke
                 throw new InvalidOperationException($"Unsupported tool kind '{_kind}'.");
         }
 
-        return new PluginExecutionResultBox
-        {
-            Outcome = result.Outcome,
-            Data = result.Data,
-            Changes = result.Changes,
-            Diagnostics = result.Diagnostics,
-            Warnings = result.Warnings,
-            Error = result.Error,
-            RequiredAction = result.RequiredAction,
-        };
+        return PluginExecutionResultBox.From(result);
     }
 }

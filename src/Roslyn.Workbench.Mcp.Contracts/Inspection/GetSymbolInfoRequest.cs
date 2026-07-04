@@ -20,7 +20,7 @@ public sealed record GetSymbolInfoRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets a value indicating whether XML documentation should be included.
     /// </summary>
-    public bool IncludeDocumentation { get; init; } = true;
+    public bool IncludeDocumentation { get; init; }
 
     /// <summary>
     /// Gets the expected snapshot for location-based symbol selectors.

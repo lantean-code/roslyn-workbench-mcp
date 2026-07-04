@@ -89,6 +89,14 @@ internal static class ContractSchemaTestTools
         return new CallToolResult();
     }
 
+    [McpServerTool(Name = "get-control-flow-graph", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<ControlFlowGraphData>))]
+    public static CallToolResult GetControlFlowGraph(GetControlFlowGraphRequest request)
+    {
+        _ = request;
+
+        return new CallToolResult();
+    }
+
     [McpServerTool(Name = "rename-symbol", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<MutationData>))]
     public static CallToolResult RenameSymbol(RenameSymbolRequest request)
     {

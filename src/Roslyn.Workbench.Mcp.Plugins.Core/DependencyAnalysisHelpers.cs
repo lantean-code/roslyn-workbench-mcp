@@ -148,7 +148,7 @@ internal static class DependencyAnalysisHelpers
                     Location = sourceLocation is null ? null : context.Resolver.CreateResolvedLocation(sourceLocation),
                     Reasons = includeReasons
                         ? ["Direct reference to the target symbol or its owning type."]
-                        : [],
+                        : null,
                 });
             }
         }

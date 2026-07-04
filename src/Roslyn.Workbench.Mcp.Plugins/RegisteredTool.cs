@@ -30,7 +30,7 @@ public sealed record RegisteredTool
     /// <summary>
     /// Gets the successful response payload type.
     /// </summary>
-    public Type ResponseType { get; init; } = typeof(object);
+    public Type PublishedResponseType { get; init; } = typeof(object);
 
     /// <summary>
     /// Gets the generated MCP input schema.
@@ -41,6 +41,11 @@ public sealed record RegisteredTool
     /// Gets the generated MCP output schema.
     /// </summary>
     public JsonElement? OutputSchema { get; init; }
+
+    /// <summary>
+    /// Gets the externally published response shape descriptor.
+    /// </summary>
+    public ToolResponseDescriptor ResponseDescriptor { get; init; } = new();
 
     /// <summary>
     /// Gets the generated MCP tool annotations.

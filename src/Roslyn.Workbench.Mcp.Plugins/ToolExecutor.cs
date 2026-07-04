@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -32,7 +31,7 @@ public sealed class ToolExecutor
 
         if (contextLease.ShortCircuitResult is not null)
         {
-            var shortCircuitContent = SerializeStructuredResult(tool.ResponseType, contextLease.ShortCircuitResult, context);
+            var shortCircuitContent = SerializeStructuredResult(tool.ResponseDescriptor, tool.PublishedResponseType, contextLease.ShortCircuitResult);
 
             return new CallToolResult
             {
@@ -46,7 +45,7 @@ public sealed class ToolExecutor
         {
             var pluginResult = await tool.Invoker.ExecuteAsync(request, context!, cancellationToken);
             var effectiveResult = await StageMutationProposalAsync(tool, context, pluginResult, cancellationToken);
-            var structuredContent = SerializeStructuredResult(tool.ResponseType, effectiveResult, context);
+            var structuredContent = SerializeStructuredResult(tool.ResponseDescriptor, tool.PublishedResponseType, effectiveResult);
 
             return new CallToolResult
             {
@@ -61,8 +60,8 @@ public sealed class ToolExecutor
         }
         catch (Exception)
         {
-            var fault = PluginExecutionResultBoxFromException();
-            var structuredContent = SerializeStructuredResult(tool.ResponseType, fault, context);
+            var fault = PluginExecutionResultBox.CreateUnhandledException();
+            var structuredContent = SerializeStructuredResult(tool.ResponseDescriptor, tool.PublishedResponseType, fault);
 
             return new CallToolResult
             {
@@ -103,16 +102,7 @@ public sealed class ToolExecutor
         }
 
         var stagedResult = await mutationContext.StageAsync(tool, proposal, result.Diagnostics, result.Warnings, cancellationToken);
-        return new PluginExecutionResultBox
-        {
-            Outcome = stagedResult.Outcome,
-            Data = stagedResult.Data,
-            Changes = stagedResult.Changes,
-            Diagnostics = stagedResult.Diagnostics,
-            Warnings = stagedResult.Warnings,
-            Error = stagedResult.Error,
-            RequiredAction = stagedResult.RequiredAction,
-        };
+        return PluginExecutionResultBox.From(stagedResult);
     }
 
     private static object DeserializeRequest(Type requestType, IDictionary<string, JsonElement> arguments)
@@ -134,114 +124,9 @@ public sealed class ToolExecutor
         return request;
     }
 
-    private static JsonElement SerializeStructuredResult(Type responseType, PluginExecutionResultBox result, IToolExecutionContext? context)
+    private static JsonElement SerializeStructuredResult(ToolResponseDescriptor descriptor, Type publishedResponseType, PluginExecutionResultBox result)
     {
-        var toolResultType = typeof(ToolResult<>).MakeGenericType(responseType);
-        var toolResult = CreateToolResult(toolResultType, result, context);
-
-        return JsonSerializer.SerializeToElement(toolResult, toolResultType, _serializerOptions);
-    }
-
-    private static object CreateToolResult(Type toolResultType, PluginExecutionResultBox result, IToolExecutionContext? context)
-    {
-        var workspaceId = context?.WorkspaceIdentity?.WorkspaceId;
-        var workspaceEpoch = context?.WorkspaceIdentity?.WorkspaceEpoch;
-        var transactionRevision = result.Data is Contracts.Results.MutationData mutationData
-            ? mutationData.Transaction?.Revision
-            : context?.TransactionRevision;
-        object?[] arguments;
-        string methodName;
-
-        switch (result.Outcome)
-        {
-            case ToolOutcome.Succeeded:
-                methodName = nameof(ToolResult<object>.Succeeded);
-                arguments =
-                [
-                    result.Data!,
-                    workspaceId,
-                    workspaceEpoch,
-                    transactionRevision,
-                    result.Changes,
-                    result.Diagnostics,
-                    result.Warnings,
-                ];
-                break;
-
-            case ToolOutcome.NoChange:
-                methodName = nameof(ToolResult<object>.NoChange);
-                arguments =
-                [
-                    workspaceId,
-                    workspaceEpoch,
-                    transactionRevision,
-                    result.Data,
-                    result.Diagnostics,
-                    result.Warnings,
-                ];
-                break;
-
-            case ToolOutcome.Rejected:
-                methodName = nameof(ToolResult<object>.Rejected);
-                arguments =
-                [
-                    result.Error!,
-                    result.RequiredAction,
-                    workspaceId,
-                    workspaceEpoch,
-                    transactionRevision,
-                    result.Diagnostics,
-                    result.Warnings,
-                ];
-                break;
-
-            case ToolOutcome.Conflict:
-                methodName = nameof(ToolResult<object>.Conflict);
-                arguments =
-                [
-                    result.Error!,
-                    result.RequiredAction,
-                    workspaceId,
-                    workspaceEpoch,
-                    transactionRevision,
-                    result.Diagnostics,
-                    result.Warnings,
-                ];
-                break;
-
-            case ToolOutcome.Faulted:
-                methodName = nameof(ToolResult<object>.Faulted);
-                arguments =
-                [
-                    result.Error!,
-                    result.RequiredAction,
-                    workspaceId,
-                    workspaceEpoch,
-                    transactionRevision,
-                    result.Diagnostics,
-                    result.Warnings,
-                ];
-                break;
-
-            default:
-                throw new InvalidOperationException($"Unsupported tool outcome '{result.Outcome}'.");
-        }
-
-        return toolResultType.GetMethod(methodName, BindingFlags.Public | BindingFlags.Static)!.Invoke(null, arguments)!;
-    }
-
-    private static PluginExecutionResultBox PluginExecutionResultBoxFromException()
-    {
-        return new PluginExecutionResultBox
-        {
-            Outcome = ToolOutcome.Faulted,
-            Error = new ToolError
-            {
-                Code = "UnhandledException",
-                Message = "Tool execution failed.",
-                CorrelationId = Guid.NewGuid().ToString("n"),
-            },
-        };
+        return ToolResponseShaper.Shape(descriptor, publishedResponseType, result);
     }
 
     private static bool IsErrorOutcome(ToolOutcome outcome)

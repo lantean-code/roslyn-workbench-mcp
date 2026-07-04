@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Roslyn.Workbench.Mcp.Contracts.Results;
 
 namespace Roslyn.Workbench.Mcp.Contracts.Server;
@@ -30,7 +31,8 @@ public sealed record WorkspaceStatusData
     /// <summary>
     /// Gets the project load diagnostics.
     /// </summary>
-    public IReadOnlyList<DiagnosticInfo> LoadDiagnostics { get; init; } = [];
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<DiagnosticInfo>? LoadDiagnostics { get; init; }
 
     /// <summary>
     /// Gets the active transaction info, when present.

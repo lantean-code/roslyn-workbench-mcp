@@ -28,7 +28,9 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
             return locationResolution.Rejection;
         }
 
-        var enclosingSymbols = GetEnclosingSymbols(locationResolution.SemanticModel!, locationResolution.Node!, context);
+        var enclosingSymbols = request.IncludeEnclosingSymbols
+            ? GetEnclosingSymbols(locationResolution.SemanticModel!, locationResolution.Node!, context)
+            : [];
         var diagnostics = request.IncludeDiagnostics
             ? locationResolution.SemanticModel!.GetDiagnostics(locationResolution.Location!.SourceSpan)
                 .Distinct(DiagnosticLocationComparer.Instance)

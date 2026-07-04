@@ -25,7 +25,7 @@ public sealed record FindReferencesRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets a value indicating whether context snippets should be included.
     /// </summary>
-    public bool IncludeContext { get; init; } = true;
+    public bool IncludeContext { get; init; }
 
     /// <summary>
     /// Gets the optional result limit.

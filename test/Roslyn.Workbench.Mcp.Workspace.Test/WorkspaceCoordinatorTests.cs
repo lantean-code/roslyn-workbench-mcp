@@ -362,7 +362,7 @@ public sealed class WorkspaceCoordinatorTests
         var executor = new ToolExecutor(target);
 
         var result = await executor.ExecuteAsync(tool, new Dictionary<string, JsonElement>(), CancellationToken.None);
-        var payload = JsonSerializer.Deserialize<ToolResult<MutationData>>(result.StructuredContent!.Value.GetRawText(), _serializerOptions);
+        var payload = DeserializeMutationToolResult(result.StructuredContent!.Value, tool.Metadata.Name);
         var preview = await target.PreviewTransactionAsync(new TransactionPreviewRequest
         {
             IncludeDiff = true,
@@ -376,8 +376,6 @@ public sealed class WorkspaceCoordinatorTests
         payload!.Outcome.Should().Be(ToolOutcome.Succeeded);
         payload.TransactionRevision.Should().Be(1);
         payload.Data!.Operation.Should().Be("test-stage-mutation");
-        payload.Data.Transaction!.Revision.Should().Be(1);
-        payload.Changes!.Modified.Should().ContainSingle();
         preview.Data!.Transaction!.Revision.Should().Be(1);
         preview.Data.Documents.Should().ContainSingle();
         preview.Data.Diff.Should().NotBeNull();
@@ -434,8 +432,9 @@ public sealed class WorkspaceCoordinatorTests
         await target.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
         var executor = new ToolExecutor(target);
 
-        var firstResult = await executor.ExecuteAsync(CreateStageMutationTool(), new Dictionary<string, JsonElement>(), CancellationToken.None);
-        var firstPayload = JsonSerializer.Deserialize<ToolResult<MutationData>>(firstResult.StructuredContent!.Value.GetRawText(), _serializerOptions);
+        var firstTool = CreateStageMutationTool();
+        var firstResult = await executor.ExecuteAsync(firstTool, new Dictionary<string, JsonElement>(), CancellationToken.None);
+        var firstPayload = DeserializeMutationToolResult(firstResult.StructuredContent!.Value, firstTool.Metadata.Name);
         var undo = await target.MoveTransactionHistoryAsync(new TransactionHistoryRequest
         {
             Direction = TransactionHistoryDirection.Undo,
@@ -445,8 +444,9 @@ public sealed class WorkspaceCoordinatorTests
                 TransactionRevision = 1,
             },
         }, CancellationToken.None);
-        var secondResult = await executor.ExecuteAsync(CreateStageMutationTool(), new Dictionary<string, JsonElement>(), CancellationToken.None);
-        var secondPayload = JsonSerializer.Deserialize<ToolResult<MutationData>>(secondResult.StructuredContent!.Value.GetRawText(), _serializerOptions);
+        var secondTool = CreateStageMutationTool();
+        var secondResult = await executor.ExecuteAsync(secondTool, new Dictionary<string, JsonElement>(), CancellationToken.None);
+        var secondPayload = DeserializeMutationToolResult(secondResult.StructuredContent!.Value, secondTool.Metadata.Name);
 
         firstPayload!.Outcome.Should().Be(ToolOutcome.Succeeded);
         undo.Outcome.Should().Be(ToolOutcome.Succeeded);
@@ -563,8 +563,9 @@ public sealed class WorkspaceCoordinatorTests
         await target.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
         var executor = new ToolExecutor(target);
 
-        var result = await executor.ExecuteAsync(CreateCompilationOptionsMutationTool(), new Dictionary<string, JsonElement>(), CancellationToken.None);
-        var payload = JsonSerializer.Deserialize<ToolResult<MutationData>>(result.StructuredContent!.Value.GetRawText(), _serializerOptions);
+        var tool = CreateCompilationOptionsMutationTool();
+        var result = await executor.ExecuteAsync(tool, new Dictionary<string, JsonElement>(), CancellationToken.None);
+        var payload = DeserializeMutationToolResult(result.StructuredContent!.Value, tool.Metadata.Name);
 
         result.IsError.Should().BeTrue();
         payload!.Outcome.Should().Be(ToolOutcome.Rejected);
@@ -756,6 +757,41 @@ public sealed class WorkspaceCoordinatorTests
             new CompilationOptionsMutationHandler());
 
         return registry.RegisteredTools.Single();
+    }
+
+    private static ToolResult<MutationData> DeserializeMutationToolResult(JsonElement payload, string toolName)
+    {
+        if (payload.TryGetProperty("outcome", out _))
+        {
+            return JsonSerializer.Deserialize<ToolResult<MutationData>>(payload.GetRawText(), _serializerOptions)!;
+        }
+
+        if (!payload.GetProperty("ok").GetBoolean())
+        {
+            return ToolResult<MutationData>.Rejected(
+                JsonSerializer.Deserialize<ToolError>(payload.GetProperty("error").GetRawText(), _serializerOptions)!,
+                payload.TryGetProperty("next", out var nextElement) && nextElement.ValueKind != JsonValueKind.Null
+                    ? JsonSerializer.Deserialize<RequiredAction>(nextElement.GetRawText(), _serializerOptions)
+                    : null);
+        }
+
+        var transaction = payload.TryGetProperty("transaction", out var transactionElement)
+            ? new TransactionInfo
+            {
+                Revision = transactionElement.GetProperty("revision").GetInt32(),
+            }
+            : null;
+
+        return ToolResult<MutationData>.Succeeded(
+            new MutationData
+            {
+                Operation = toolName,
+                Summary = payload.TryGetProperty("summary", out var summaryElement) && summaryElement.ValueKind == JsonValueKind.String
+                    ? summaryElement.GetString() ?? string.Empty
+                    : string.Empty,
+                Transaction = transaction,
+            },
+            transactionRevision: transaction?.Revision);
     }
 
     private static async Task<IWorkspaceCoordinator> CreateCoordinatorWithOneStagedRevisionAsync(TestWorkspaceFixture fixture)

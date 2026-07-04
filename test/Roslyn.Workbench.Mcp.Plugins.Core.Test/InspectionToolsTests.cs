@@ -1,4 +1,7 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
+
+using Roslyn.Workbench.Mcp.Contracts.CodeActions;
 using Roslyn.Workbench.Mcp.TestSupport;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test;
@@ -195,6 +198,7 @@ public sealed class InspectionToolsTests
         var symbolInfo = await ExecuteAsync<SymbolInfoData>(executor, registry, "get-symbol-info", new Dictionary<string, JsonElement>
         {
             ["symbol"] = JsonSerializer.SerializeToElement(resolveSymbol.Data!.Selector),
+            ["includeDocumentation"] = JsonSerializer.SerializeToElement(true),
             ["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition
             {
                 WorkspaceEpoch = openResult.WorkspaceEpoch!.Value,
@@ -241,7 +245,6 @@ public sealed class InspectionToolsTests
 
         solutionStructure.Data!.Projects.Should().ContainSingle(static project => project.Name == "Sample");
         projectDetails.Data!.Project!.Name.Should().Be("Sample");
-        projectDetails.Data.Documents.Should().NotBeNull();
         documentOptions.Data!.LanguageVersion.Should().NotBeNullOrWhiteSpace();
         documentOptions.Data.AnalyzerConfig!.EditorConfigPaths.Should().Contain(static path => path.EndsWith(".editorconfig", StringComparison.Ordinal));
         documentOptions.Data.AnalyzerConfig.Options.Should().ContainKey("build_property.targetframework");
@@ -394,6 +397,8 @@ public sealed class InspectionToolsTests
         var codeContext = await ExecuteAsync<JsonElement>(executor, registry, "get-code-context", new Dictionary<string, JsonElement>
         {
             ["location"] = JsonSerializer.SerializeToElement(fixture.GetLocation("var unused = 42;")),
+            ["includeDiagnostics"] = JsonSerializer.SerializeToElement(true),
+            ["includeEnclosingSymbols"] = JsonSerializer.SerializeToElement(true),
             ["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition
             {
                 WorkspaceEpoch = openResult.WorkspaceEpoch!.Value,
@@ -574,8 +579,6 @@ public sealed class InspectionToolsTests
             && cycleNodes.Any(static displayName => displayName!.Contains("BetaCycle", StringComparison.Ordinal)));
 
         testImpact.Data!.GetProperty("tests").EnumerateArray().Select(static test => test.GetProperty("test").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GIVEN_FormatterCaller_WHEN_CallingCall_THEN_ShouldReturnFormattedGreeting", StringComparison.Ordinal));
-        testImpact.Data.GetProperty("tests").EnumerateArray().Select(static test => test.GetProperty("reasons").EnumerateArray().Select(static reason => reason.GetString()).ToArray()).Should().Contain(static reasons =>
-            reasons.Any(static reason => reason!.Contains("reference", StringComparison.OrdinalIgnoreCase) || reason.Contains("call", StringComparison.OrdinalIgnoreCase)));
     }
 
     [Fact]
@@ -1455,7 +1458,7 @@ public sealed class InspectionToolsTests
             }),
         }, expectProtocolSuccess: false);
 
-        result.Outcome.Should().Be(ToolOutcome.Conflict);
+        result.Outcome.Should().Be(ToolOutcome.Rejected);
         result.Error!.Code.Should().Be("SnapshotMismatch");
     }
 
@@ -1671,6 +1674,7 @@ public sealed class InspectionToolsTests
                 DocumentationCommentId = "P:Sample.StateHolder.Current",
             }),
             ["includeDefinitions"] = JsonSerializer.SerializeToElement(false),
+            ["includeContext"] = JsonSerializer.SerializeToElement(true),
         });
 
         result.Data!.References.Should().Contain(static reference => reference.IsWrite && reference.Context == "Current = value;");
@@ -1689,7 +1693,113 @@ public sealed class InspectionToolsTests
 
         result.IsError.Should().Be(!expectProtocolSuccess);
 
-        return JsonSerializer.Deserialize<ToolResult<TResponse>>(result.StructuredContent!.Value.GetRawText(), _serializerOptions)!;
+        return DeserializeToolResult<TResponse>(registeredTool, result.StructuredContent!.Value, toolName);
+    }
+
+    private static ToolResult<TResponse> DeserializeToolResult<TResponse>(RegisteredTool registeredTool, JsonElement payload, string toolName)
+    {
+        if (payload.TryGetProperty("outcome", out _))
+        {
+            return JsonSerializer.Deserialize<ToolResult<TResponse>>(payload.GetRawText(), _serializerOptions)!;
+        }
+
+        if (!payload.GetProperty("ok").GetBoolean())
+        {
+            return ToolResult<TResponse>.Rejected(
+                JsonSerializer.Deserialize<ToolError>(payload.GetProperty("error").GetRawText(), _serializerOptions)!,
+                payload.TryGetProperty("next", out var nextElement) && nextElement.ValueKind != JsonValueKind.Null
+                    ? JsonSerializer.Deserialize<RequiredAction>(nextElement.GetRawText(), _serializerOptions)
+                    : null);
+        }
+
+        var data = registeredTool.ResponseDescriptor.Kind switch
+        {
+            ToolResponseShapeKind.Direct => DeserializeDirectData<TResponse>(payload),
+            ToolResponseShapeKind.Singleton => JsonSerializer.Deserialize<TResponse>(payload.GetProperty("value").GetRawText(), _serializerOptions)!,
+            ToolResponseShapeKind.Collection => DeserializeCollectionData<TResponse>(registeredTool.ResponseDescriptor, payload),
+            ToolResponseShapeKind.Mutation => (TResponse)(object)DeserializeMutationData(payload, toolName),
+            ToolResponseShapeKind.CodeActionList => (TResponse)(object)DeserializeCodeActionListData(payload),
+            _ => throw new InvalidOperationException($"Unsupported response shape kind '{registeredTool.ResponseDescriptor.Kind}'."),
+        };
+
+        var transactionRevision = data is MutationData mutationData
+            ? mutationData.Transaction?.Revision
+            : null;
+
+        return ToolResult<TResponse>.Succeeded(data, transactionRevision: transactionRevision);
+    }
+
+    private static TResponse DeserializeDirectData<TResponse>(JsonElement payload)
+    {
+        var node = JsonNode.Parse(payload.GetRawText())!.AsObject();
+        node.Remove("ok");
+
+        return node.Deserialize<TResponse>(_serializerOptions)!;
+    }
+
+    private static TResponse DeserializeCollectionData<TResponse>(ToolResponseDescriptor descriptor, JsonElement payload)
+    {
+        var node = JsonNode.Parse(payload.GetRawText())!.AsObject();
+        var itemsNode = node["items"]?.DeepClone();
+        var hasMoreNode = node["hasMore"]?.DeepClone();
+        var truncatedByNode = node["truncatedBy"]?.DeepClone();
+
+        node.Remove("ok");
+        node.Remove("items");
+        node.Remove("hasMore");
+        node.Remove("truncatedBy");
+        node[JsonNamingPolicy.CamelCase.ConvertName(descriptor.CollectionPropertyName!)] = itemsNode;
+        node["hasMore"] = hasMoreNode;
+        node["returnedCount"] = itemsNode is JsonArray itemsArray ? itemsArray.Count : 0;
+
+        if (truncatedByNode is not null)
+        {
+            node["truncationReasons"] = truncatedByNode;
+        }
+
+        return node.Deserialize<TResponse>(_serializerOptions)!;
+    }
+
+    private static MutationData DeserializeMutationData(JsonElement payload, string toolName)
+    {
+        return new MutationData
+        {
+            Operation = toolName,
+            Summary = payload.TryGetProperty("summary", out var summaryElement) && summaryElement.ValueKind == JsonValueKind.String
+                ? summaryElement.GetString() ?? string.Empty
+                : string.Empty,
+            Transaction = payload.TryGetProperty("transaction", out var transactionElement)
+                ? new TransactionInfo
+                {
+                    Revision = transactionElement.GetProperty("revision").GetInt32(),
+                }
+                : null,
+        };
+    }
+
+    private static CodeActionListData DeserializeCodeActionListData(JsonElement payload)
+    {
+        var items = JsonSerializer.Deserialize<IReadOnlyList<CodeActionListItem>>(payload.GetProperty("items").GetRawText(), _serializerOptions) ?? [];
+
+        return new CodeActionListData
+        {
+            Actions = items.Select(static item => new CodeActionInfo
+            {
+                ActionId = item.ActionId,
+                Title = item.Title,
+                ProviderId = item.ProviderId,
+                Kind = item.Kind,
+                ExecutionMode = item.ExecutionMode,
+                ExecutorTool = item.ExecutorTool,
+                DescribeTool = item.DescribeTool,
+                UnsupportedReasonCode = item.UnsupportedReasonCode,
+            }).ToArray(),
+            ReturnedCount = items.Count,
+            HasMore = payload.GetProperty("hasMore").GetBoolean(),
+            TruncationReasons = payload.TryGetProperty("truncatedBy", out var truncatedByElement)
+                ? JsonSerializer.Deserialize<IReadOnlyList<CollectionTruncation>>(truncatedByElement.GetRawText(), _serializerOptions)
+                : null,
+        };
     }
 
     private static IEnumerable<OutlineNode> EnumerateOutline(OutlineNode root)

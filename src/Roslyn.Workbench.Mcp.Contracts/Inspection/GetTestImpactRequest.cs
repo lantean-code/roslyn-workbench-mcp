@@ -20,7 +20,7 @@ public sealed record GetTestImpactRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets a value indicating whether explanatory reasons should be included.
     /// </summary>
-    public bool IncludeReasons { get; init; } = true;
+    public bool IncludeReasons { get; init; }
 
     /// <summary>
     /// Gets the optional result limit.

@@ -32,7 +32,8 @@ public sealed class PluginRegistryTests
         tool.Metadata.Name.Should().Be("test-query");
         tool.Kind.Should().Be(ToolKind.Query);
         tool.RequestType.Should().Be(typeof(TestRequest));
-        tool.ResponseType.Should().Be(typeof(TestResponse));
+        tool.PublishedResponseType.Should().Be(typeof(TestResponse));
+        tool.ResponseDescriptor.Kind.Should().Be(ToolResponseShapeKind.Singleton);
         tool.Annotations.ReadOnlyHint.Should().BeTrue();
         tool.Annotations.IdempotentHint.Should().BeTrue();
         tool.Annotations.OpenWorldHint.Should().BeFalse();
@@ -134,12 +135,13 @@ public sealed class PluginRegistryTests
         var tool = target.RegisteredTools.Should().ContainSingle().Subject;
 
         tool.Kind.Should().Be(ToolKind.Mutation);
-        tool.ResponseType.Should().Be(typeof(MutationData));
+        tool.PublishedResponseType.Should().Be(typeof(MutationData));
+        tool.ResponseDescriptor.Kind.Should().Be(ToolResponseShapeKind.Mutation);
         tool.OutputSchema.Should().BeNull();
     }
 
     [Fact]
-    public void GIVEN_FullOutputSchemaMode_WHEN_BuildingRegistry_THEN_ShouldPublishToolResultSchema()
+    public void GIVEN_FullOutputSchemaMode_WHEN_BuildingRegistry_THEN_ShouldPublishShapedOutputSchema()
     {
         var metadata = new PluginMetadata
         {
@@ -164,9 +166,11 @@ public sealed class PluginRegistryTests
 
         ((object?)tool.OutputSchema).Should().NotBeNull();
         var outputSchema = (JsonElement)((object?)tool.OutputSchema)!;
-        outputSchema.GetRawText().Should().Contain("operation");
+        outputSchema.GetRawText().Should().Contain("staged");
+        outputSchema.GetRawText().Should().Contain("summary");
         outputSchema.GetRawText().Should().Contain("transaction");
-        outputSchema.GetRawText().Should().Contain("preview");
+        outputSchema.GetRawText().Should().NotContain("operation");
+        outputSchema.GetRawText().Should().NotContain("changes");
     }
 
     private sealed record TestRequest

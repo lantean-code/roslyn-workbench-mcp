@@ -789,7 +789,113 @@ public sealed class CodeActionMcpToolTests
 
         result.IsError.Should().Be(!expectProtocolSuccess);
 
-        return JsonSerializer.Deserialize<ToolResult<TResponse>>(result.StructuredContent!.Value.GetRawText(), _serializerOptions)!;
+        return DeserializeToolResult<TResponse>(registeredTool, result.StructuredContent!.Value, toolName);
+    }
+
+    private static ToolResult<TResponse> DeserializeToolResult<TResponse>(RegisteredTool registeredTool, JsonElement payload, string toolName)
+    {
+        if (payload.TryGetProperty("outcome", out _))
+        {
+            return JsonSerializer.Deserialize<ToolResult<TResponse>>(payload.GetRawText(), _serializerOptions)!;
+        }
+
+        if (!payload.GetProperty("ok").GetBoolean())
+        {
+            return ToolResult<TResponse>.Rejected(
+                JsonSerializer.Deserialize<ToolError>(payload.GetProperty("error").GetRawText(), _serializerOptions)!,
+                payload.TryGetProperty("next", out var nextElement) && nextElement.ValueKind != JsonValueKind.Null
+                    ? JsonSerializer.Deserialize<RequiredAction>(nextElement.GetRawText(), _serializerOptions)
+                    : null);
+        }
+
+        var data = registeredTool.ResponseDescriptor.Kind switch
+        {
+            ToolResponseShapeKind.Direct => DeserializeDirectData<TResponse>(payload),
+            ToolResponseShapeKind.Singleton => JsonSerializer.Deserialize<TResponse>(payload.GetProperty("value").GetRawText(), _serializerOptions)!,
+            ToolResponseShapeKind.Collection => DeserializeCollectionData<TResponse>(registeredTool.ResponseDescriptor, payload),
+            ToolResponseShapeKind.Mutation => (TResponse)(object)DeserializeMutationData(payload, toolName),
+            ToolResponseShapeKind.CodeActionList => (TResponse)(object)DeserializeCodeActionListData(payload),
+            _ => throw new InvalidOperationException($"Unsupported response shape kind '{registeredTool.ResponseDescriptor.Kind}'."),
+        };
+
+        var transactionRevision = data is MutationData mutationData
+            ? mutationData.Transaction?.Revision
+            : null;
+
+        return ToolResult<TResponse>.Succeeded(data, transactionRevision: transactionRevision);
+    }
+
+    private static TResponse DeserializeDirectData<TResponse>(JsonElement payload)
+    {
+        var node = JsonNode.Parse(payload.GetRawText())!.AsObject();
+        node.Remove("ok");
+
+        return node.Deserialize<TResponse>(_serializerOptions)!;
+    }
+
+    private static TResponse DeserializeCollectionData<TResponse>(ToolResponseDescriptor descriptor, JsonElement payload)
+    {
+        var node = JsonNode.Parse(payload.GetRawText())!.AsObject();
+        var itemsNode = node["items"]?.DeepClone();
+        var hasMoreNode = node["hasMore"]?.DeepClone();
+        var truncatedByNode = node["truncatedBy"]?.DeepClone();
+
+        node.Remove("ok");
+        node.Remove("items");
+        node.Remove("hasMore");
+        node.Remove("truncatedBy");
+        node[JsonNamingPolicy.CamelCase.ConvertName(descriptor.CollectionPropertyName!)] = itemsNode;
+        node["hasMore"] = hasMoreNode;
+        node["returnedCount"] = itemsNode is JsonArray itemsArray ? itemsArray.Count : 0;
+
+        if (truncatedByNode is not null)
+        {
+            node["truncationReasons"] = truncatedByNode;
+        }
+
+        return node.Deserialize<TResponse>(_serializerOptions)!;
+    }
+
+    private static MutationData DeserializeMutationData(JsonElement payload, string toolName)
+    {
+        return new MutationData
+        {
+            Operation = toolName,
+            Summary = payload.TryGetProperty("summary", out var summaryElement) && summaryElement.ValueKind == JsonValueKind.String
+                ? summaryElement.GetString() ?? string.Empty
+                : string.Empty,
+            Transaction = payload.TryGetProperty("transaction", out var transactionElement)
+                ? new TransactionInfo
+                {
+                    Revision = transactionElement.GetProperty("revision").GetInt32(),
+                }
+                : null,
+        };
+    }
+
+    private static CodeActionListData DeserializeCodeActionListData(JsonElement payload)
+    {
+        var items = JsonSerializer.Deserialize<IReadOnlyList<CodeActionListItem>>(payload.GetProperty("items").GetRawText(), _serializerOptions) ?? [];
+
+        return new CodeActionListData
+        {
+            Actions = items.Select(static item => new CodeActionInfo
+            {
+                ActionId = item.ActionId,
+                Title = item.Title,
+                ProviderId = item.ProviderId,
+                Kind = item.Kind,
+                ExecutionMode = item.ExecutionMode,
+                ExecutorTool = item.ExecutorTool,
+                DescribeTool = item.DescribeTool,
+                UnsupportedReasonCode = item.UnsupportedReasonCode,
+            }).ToArray(),
+            ReturnedCount = items.Count,
+            HasMore = payload.GetProperty("hasMore").GetBoolean(),
+            TruncationReasons = payload.TryGetProperty("truncatedBy", out var truncatedByElement)
+                ? JsonSerializer.Deserialize<IReadOnlyList<CollectionTruncation>>(truncatedByElement.GetRawText(), _serializerOptions)
+                : null,
+        };
     }
 
     private static McpServer CreateServer()

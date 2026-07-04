@@ -1,0 +1,24 @@
+namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
+
+public sealed class AnalyzeControlFlowToolTests
+{
+    [Fact]
+    public async Task GIVEN_InspectionWorkspace_WHEN_ExecutingTool_THEN_ShouldReturnControlFlow()
+    {
+        using var fixture = await InspectionSampleFixture.CreateAsync();
+        var coordinator = BundledCoreToolTestHarness.CreateInspectionCoordinator();
+        var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
+        {
+            Path = fixture.ProjectPath,
+        }, CancellationToken.None);
+        var target = new AnalyzeControlFlowTool();
+
+        var result = await BundledCoreToolTestHarness.ExecuteQueryAsync(coordinator, "analyze-control-flow", target, new AnalyzeControlFlowRequest
+        {
+            Location = fixture.GetLocation("if (trimmed.Length == 0)"),
+            ExpectedSnapshot = BundledCoreToolTestHarness.CreateSnapshot(openResult),
+        });
+
+        result.Data!.Exits.Should().NotBeEmpty();
+    }
+}

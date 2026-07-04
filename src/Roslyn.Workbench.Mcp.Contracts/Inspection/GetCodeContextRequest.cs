@@ -23,9 +23,14 @@ public sealed record GetCodeContextRequest : WorkspaceBoundRequest
     public int AfterLines { get; init; } = 10;
 
     /// <summary>
+    /// Gets a value indicating whether the enclosing symbol chain should be included.
+    /// </summary>
+    public bool IncludeEnclosingSymbols { get; init; }
+
+    /// <summary>
     /// Gets a value indicating whether diagnostics should be included for the selected span.
     /// </summary>
-    public bool IncludeDiagnostics { get; init; } = true;
+    public bool IncludeDiagnostics { get; init; }
 
     /// <summary>
     /// Gets the expected workspace snapshot.

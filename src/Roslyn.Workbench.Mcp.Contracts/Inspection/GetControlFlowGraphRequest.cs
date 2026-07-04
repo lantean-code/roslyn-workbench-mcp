@@ -8,6 +8,16 @@ namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
 public sealed record GetControlFlowGraphRequest : WorkspaceBoundRequest
 {
     /// <summary>
+    /// Gets the maximum number of projected basic blocks.
+    /// </summary>
+    public int MaxBlocks { get; init; } = 64;
+
+    /// <summary>
+    /// Gets the maximum number of projected flow regions.
+    /// </summary>
+    public int MaxRegions { get; init; } = 32;
+
+    /// <summary>
     /// Gets the optional symbol selector.
     /// </summary>
     public SymbolSelector? Symbol { get; init; }

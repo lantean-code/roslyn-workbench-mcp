@@ -6,8 +6,6 @@ namespace Roslyn.Workbench.Mcp.Test;
 
 public sealed class WorkspaceLifecycleToolTests
 {
-    private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
-
     [Fact]
     public async Task GIVEN_LifecycleTools_WHEN_OpeningAndReadingStatus_THEN_ShouldReturnStructuredWorkspaceResults()
     {
@@ -38,11 +36,9 @@ public sealed class WorkspaceLifecycleToolTests
                 }),
             CancellationToken.None);
 
-        var openPayload = JsonSerializer.Deserialize<ToolResult<WorkspaceOpenData>>(openResult.StructuredContent!.Value.GetRawText(), _serializerOptions);
-
         openResult.IsError.Should().BeFalse();
-        openPayload!.Outcome.Should().Be(ToolOutcome.Succeeded);
-        openPayload.Data!.Workspace!.LoadedPath.Should().Be(fixture.ProjectPath);
+        openResult.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeTrue();
+        openResult.StructuredContent.Value.GetProperty("workspace").GetProperty("loadedPath").GetString().Should().Be(fixture.ProjectPath);
 
         var statusResult = await statusTool.InvokeAsync(
             new RequestContext<CallToolRequestParams>(
@@ -58,12 +54,10 @@ public sealed class WorkspaceLifecycleToolTests
                 }),
             CancellationToken.None);
 
-        var statusPayload = JsonSerializer.Deserialize<ToolResult<WorkspaceStatusData>>(statusResult.StructuredContent!.Value.GetRawText(), _serializerOptions);
-
         statusResult.IsError.Should().BeFalse();
-        statusPayload!.Outcome.Should().Be(ToolOutcome.Succeeded);
-        statusPayload.Data!.State.Should().Be(WorkspaceLifecycleState.Ready);
-        statusPayload.WorkspaceEpoch.Should().BeGreaterThan(0);
+        statusResult.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeTrue();
+        statusResult.StructuredContent.Value.GetProperty("state").GetString().Should().Be(nameof(WorkspaceLifecycleState.Ready));
+        statusResult.StructuredContent.Value.GetProperty("workspace").GetProperty("workspaceEpoch").GetInt64().Should().BeGreaterThan(0);
     }
 
     [Fact]
@@ -94,7 +88,7 @@ public sealed class WorkspaceLifecycleToolTests
                     },
                 }),
             CancellationToken.None);
-        var openAPayload = JsonSerializer.Deserialize<ToolResult<WorkspaceOpenData>>(openA.StructuredContent!.Value.GetRawText(), _serializerOptions);
+        var openAWorkspaceId = openA.StructuredContent!.Value.GetProperty("workspace").GetProperty("workspaceId").GetString();
 
         await openTool.InvokeAsync(
             new RequestContext<CallToolRequestParams>(
@@ -127,8 +121,6 @@ public sealed class WorkspaceLifecycleToolTests
                     Arguments = new Dictionary<string, JsonElement>(),
                 }),
             CancellationToken.None);
-        var listPayload = JsonSerializer.Deserialize<ToolResult<WorkspaceListData>>(listResult.StructuredContent!.Value.GetRawText(), _serializerOptions);
-
         var ambiguousStatusResult = await statusTool.InvokeAsync(
             new RequestContext<CallToolRequestParams>(
                 CreateServer(),
@@ -142,8 +134,6 @@ public sealed class WorkspaceLifecycleToolTests
                     Arguments = new Dictionary<string, JsonElement>(),
                 }),
             CancellationToken.None);
-        var ambiguousStatusPayload = JsonSerializer.Deserialize<ToolResult<WorkspaceStatusData>>(ambiguousStatusResult.StructuredContent!.Value.GetRawText(), _serializerOptions);
-
         var selectedStatusResult = await statusTool.InvokeAsync(
             new RequestContext<CallToolRequestParams>(
                 CreateServer(),
@@ -158,19 +148,18 @@ public sealed class WorkspaceLifecycleToolTests
                     {
                         ["workspace"] = JsonSerializer.SerializeToElement(new
                         {
-                            workspaceId = openAPayload!.Data!.Workspace!.WorkspaceId,
+                            workspaceId = openAWorkspaceId,
                         }),
                     },
                 }),
             CancellationToken.None);
-        var selectedStatusPayload = JsonSerializer.Deserialize<ToolResult<WorkspaceStatusData>>(selectedStatusResult.StructuredContent!.Value.GetRawText(), _serializerOptions);
 
-        listPayload!.Outcome.Should().Be(ToolOutcome.Succeeded);
-        listPayload.Data!.Workspaces.Should().HaveCount(2);
-        ambiguousStatusPayload!.Outcome.Should().Be(ToolOutcome.Rejected);
-        ambiguousStatusPayload.Error!.Code.Should().Be("WorkspaceSelectorRequired");
-        selectedStatusPayload!.Outcome.Should().Be(ToolOutcome.Succeeded);
-        selectedStatusPayload.Data!.Workspace!.WorkspaceId.Should().Be(openAPayload.Data!.Workspace!.WorkspaceId);
+        listResult.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeTrue();
+        listResult.StructuredContent.Value.GetProperty("workspaces").GetArrayLength().Should().Be(2);
+        ambiguousStatusResult.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeFalse();
+        ambiguousStatusResult.StructuredContent.Value.GetProperty("error").GetProperty("code").GetString().Should().Be("WorkspaceSelectorRequired");
+        selectedStatusResult.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeTrue();
+        selectedStatusResult.StructuredContent.Value.GetProperty("workspace").GetProperty("workspaceId").GetString().Should().Be(openAWorkspaceId);
     }
 
     [Fact]
@@ -193,11 +182,9 @@ public sealed class WorkspaceLifecycleToolTests
                 }),
             CancellationToken.None);
 
-        var payload = JsonSerializer.Deserialize<ToolResult<WorkspaceCloseData>>(result.StructuredContent!.Value.GetRawText(), _serializerOptions);
-
         result.IsError.Should().BeTrue();
-        payload!.Outcome.Should().Be(ToolOutcome.Rejected);
-        payload.Error!.Code.Should().Be("WorkspaceNotOpen");
+        result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeFalse();
+        result.StructuredContent.Value.GetProperty("error").GetProperty("code").GetString().Should().Be("WorkspaceNotOpen");
     }
 
     [Fact]
@@ -240,11 +227,9 @@ public sealed class WorkspaceLifecycleToolTests
                 }),
             CancellationToken.None);
 
-        var payload = JsonSerializer.Deserialize<ToolResult<WorkspaceReloadData>>(result.StructuredContent!.Value.GetRawText(), _serializerOptions);
-
         result.IsError.Should().BeTrue();
-        payload!.Outcome.Should().Be(ToolOutcome.Rejected);
-        payload.Error!.Code.Should().Be("WorkspaceReloadNotRequired");
+        result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeFalse();
+        result.StructuredContent.Value.GetProperty("error").GetProperty("code").GetString().Should().Be("WorkspaceReloadNotRequired");
     }
 
     [Fact]
@@ -274,8 +259,6 @@ public sealed class WorkspaceLifecycleToolTests
                     Arguments = new Dictionary<string, JsonElement>(),
                 }),
             CancellationToken.None);
-        var startPayload = JsonSerializer.Deserialize<ToolResult<TransactionStartData>>(startResult.StructuredContent!.Value.GetRawText(), _serializerOptions);
-
         var previewResult = await previewTool.InvokeAsync(
             new RequestContext<CallToolRequestParams>(
                 CreateServer(),
@@ -289,8 +272,6 @@ public sealed class WorkspaceLifecycleToolTests
                     Arguments = new Dictionary<string, JsonElement>(),
                 }),
             CancellationToken.None);
-        var previewPayload = JsonSerializer.Deserialize<ToolResult<TransactionPreviewData>>(previewResult.StructuredContent!.Value.GetRawText(), _serializerOptions);
-
         var rollbackResult = await rollbackTool.InvokeAsync(
             new RequestContext<CallToolRequestParams>(
                 CreateServer(),
@@ -304,14 +285,12 @@ public sealed class WorkspaceLifecycleToolTests
                     Arguments = new Dictionary<string, JsonElement>(),
                 }),
             CancellationToken.None);
-        var rollbackPayload = JsonSerializer.Deserialize<ToolResult<TransactionRollbackData>>(rollbackResult.StructuredContent!.Value.GetRawText(), _serializerOptions);
-
-        startPayload!.Outcome.Should().Be(ToolOutcome.Succeeded);
-        startPayload.Data!.Transaction!.Revision.Should().Be(0);
-        previewPayload!.Outcome.Should().Be(ToolOutcome.Succeeded);
-        previewPayload.Data!.Transaction!.Revision.Should().Be(0);
-        rollbackPayload!.Outcome.Should().Be(ToolOutcome.Succeeded);
-        rollbackPayload.Data!.State.Should().Be(TransactionRollbackState.Ready);
+        startResult.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeTrue();
+        startResult.StructuredContent.Value.GetProperty("transaction").GetProperty("revision").GetInt32().Should().Be(0);
+        previewResult.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeTrue();
+        previewResult.StructuredContent.Value.GetProperty("transaction").GetProperty("revision").GetInt32().Should().Be(0);
+        rollbackResult.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeTrue();
+        rollbackResult.StructuredContent.Value.GetProperty("state").GetString().Should().Be(nameof(TransactionRollbackState.Ready));
     }
 
     [Fact]
@@ -387,11 +366,9 @@ public sealed class WorkspaceLifecycleToolTests
                 }),
             CancellationToken.None);
 
-        var payload = JsonSerializer.Deserialize<ToolResult<WorkspaceStatusData>>(result.StructuredContent!.Value.GetRawText(), _serializerOptions);
-
         result.IsError.Should().BeTrue();
-        payload!.Outcome.Should().Be(ToolOutcome.Faulted);
-        payload.Error!.Code.Should().Be("UnhandledException");
+        result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeFalse();
+        result.StructuredContent.Value.GetProperty("error").GetProperty("code").GetString().Should().Be("UnhandledException");
     }
 
     [Fact]
@@ -428,11 +405,9 @@ public sealed class WorkspaceLifecycleToolTests
                 }),
             CancellationToken.None);
 
-        var payload = JsonSerializer.Deserialize<ToolResult<WorkspaceOpenData>>(result.StructuredContent!.Value.GetRawText(), _serializerOptions);
-
         result.IsError.Should().BeTrue();
-        payload!.Outcome.Should().Be(ToolOutcome.Faulted);
-        payload.Error!.Code.Should().Be("UnhandledException");
+        result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeFalse();
+        result.StructuredContent.Value.GetProperty("error").GetProperty("code").GetString().Should().Be("UnhandledException");
     }
 
     private static McpServer CreateServer()

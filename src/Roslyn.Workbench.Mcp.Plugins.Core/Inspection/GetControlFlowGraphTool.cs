@@ -67,19 +67,26 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
             return ToolExecutionHelpers.Rejected<ControlFlowGraphData>("InvalidRequest", "The selected target does not support control-flow graph generation.");
         }
 
+        var blocks = graph.Blocks.Select(static block => new BasicBlockInfo
+        {
+            Ordinal = block.Ordinal,
+            Kind = block.Kind.ToString(),
+            IsReachable = block.IsReachable,
+            Operations = block.Operations.Select(static operation => operation.Syntax.ToString()).ToArray(),
+            FallThroughSuccessor = block.FallThroughSuccessor?.Destination is { } fallThroughDestination ? fallThroughDestination.Ordinal : null,
+            ConditionalSuccessor = block.ConditionalSuccessor?.Destination is { } conditionalDestination ? conditionalDestination.Ordinal : null,
+        }).ToArray();
+        var regions = CreateRegions(graph).ToArray();
+        var boundedBlocks = blocks.Take(request.MaxBlocks).ToArray();
+        var boundedRegions = regions.Take(request.MaxRegions).ToArray();
+
         return ToolExecutionHelpers.EnsureWithinSize(context, new ControlFlowGraphData
         {
             Owner = context.Resolver.CreateSymbolReference(ownerSymbol),
-            Blocks = graph.Blocks.Select(static block => new BasicBlockInfo
-            {
-                Ordinal = block.Ordinal,
-                Kind = block.Kind.ToString(),
-                IsReachable = block.IsReachable,
-                Operations = block.Operations.Select(static operation => operation.Syntax.ToString()).ToArray(),
-                FallThroughSuccessor = block.FallThroughSuccessor?.Destination is { } fallThroughDestination ? fallThroughDestination.Ordinal : null,
-                ConditionalSuccessor = block.ConditionalSuccessor?.Destination is { } conditionalDestination ? conditionalDestination.Ordinal : null,
-            }).ToArray(),
-            Regions = CreateRegions(graph),
+            Blocks = boundedBlocks,
+            BlocksTruncated = boundedBlocks.Length < blocks.Length,
+            Regions = boundedRegions,
+            RegionsTruncated = boundedRegions.Length < regions.Length,
         });
     }
 

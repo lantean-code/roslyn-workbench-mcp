@@ -11,6 +11,22 @@ public static class ToolSchemaFactory
         return CreateInputSchemaCore<TRequest>();
     }
 
+    public static JsonElement CreateOutputSchema(ToolResponseDescriptor descriptor, Type responseType)
+    {
+        ArgumentNullException.ThrowIfNull(descriptor);
+        ArgumentNullException.ThrowIfNull(responseType);
+
+        return descriptor.Kind switch
+        {
+            ToolResponseShapeKind.Direct => CreateDirectResponseSchema(responseType),
+            ToolResponseShapeKind.Singleton => CreateSingletonResponseSchema(responseType),
+            ToolResponseShapeKind.Collection => CreateCollectionResponseSchema(responseType, descriptor.CollectionPropertyName!),
+            ToolResponseShapeKind.Mutation => CreateMutationResponseSchema(),
+            ToolResponseShapeKind.CodeActionList => CreateCodeActionListResponseSchema(),
+            _ => throw new InvalidOperationException($"Unsupported response shape kind '{descriptor.Kind}'."),
+        };
+    }
+
     public static JsonElement CreateToolResultSchema<TResult>()
     {
         var dataSchema = CreateValueSchema<TResult>();
@@ -48,6 +64,20 @@ public static class ToolSchemaFactory
 
     private static JsonElement CreateValueSchema<TValue>()
     {
+        return CreateValueSchema(typeof(TValue));
+    }
+
+    private static JsonElement CreateValueSchema(Type valueType)
+    {
+        var method = typeof(ToolSchemaFactory)
+            .GetMethod(nameof(CreateValueSchemaCore), BindingFlags.NonPublic | BindingFlags.Static)!
+            .MakeGenericMethod(valueType);
+
+        return (JsonElement)method.Invoke(null, null)!;
+    }
+
+    private static JsonElement CreateValueSchemaCore<TValue>()
+    {
         var method = typeof(SchemaValueProbe<TValue>).GetMethod(nameof(SchemaValueProbe<>.Invoke), BindingFlags.Public | BindingFlags.Static)!;
         var tool = McpServerTool.Create(method);
         var root = tool.ProtocolTool.InputSchema;
@@ -72,6 +102,235 @@ public static class ToolSchemaFactory
         }
 
         return JsonSerializer.SerializeToElement(schemaObject);
+    }
+
+    private static JsonElement CreateDirectResponseSchema(Type responseType)
+    {
+        var valueSchema = CreateValueSchema(responseType);
+        var valueObject = JsonNode.Parse(valueSchema.GetRawText())!.AsObject();
+        var successProperties = new JsonObject
+        {
+            ["ok"] = new JsonObject
+            {
+                ["const"] = true,
+            },
+        };
+        var successRequired = new JsonArray("ok");
+
+        if (valueObject["properties"] is JsonObject valueProperties)
+        {
+            foreach (var property in valueProperties)
+            {
+                successProperties[property.Key] = property.Value?.DeepClone();
+            }
+        }
+
+        if (valueObject["required"] is JsonArray requiredProperties)
+        {
+            foreach (var requiredProperty in requiredProperties)
+            {
+                successRequired.Add(requiredProperty!.DeepClone());
+            }
+        }
+
+        return CreateResponseSchema(
+            new JsonObject
+            {
+                ["type"] = "object",
+                ["required"] = successRequired,
+                ["properties"] = successProperties,
+            },
+            [valueSchema]);
+    }
+
+    private static JsonElement CreateSingletonResponseSchema(Type responseType)
+    {
+        var valueSchema = CreateValueSchema(responseType);
+
+        return CreateResponseSchema(
+            new JsonObject
+            {
+                ["type"] = "object",
+                ["required"] = new JsonArray("ok", "value"),
+                ["properties"] = new JsonObject
+                {
+                    ["ok"] = new JsonObject
+                    {
+                        ["const"] = true,
+                    },
+                    ["value"] = JsonNode.Parse(valueSchema.GetRawText()),
+                },
+            },
+            [valueSchema]);
+    }
+
+    private static JsonElement CreateCollectionResponseSchema(Type responseType, string collectionPropertyName)
+    {
+        var responseSchema = CreateValueSchema(responseType);
+        var collectionProperty = responseType.GetProperty(collectionPropertyName, BindingFlags.Instance | BindingFlags.Public)
+            ?? throw new InvalidOperationException($"Collection property '{collectionPropertyName}' was not found on '{responseType.FullName}'.");
+        var itemType = collectionProperty.PropertyType.GetGenericArguments()[0];
+        var itemSchema = CreateValueSchema(itemType);
+        var extraSchemas = new List<JsonElement>
+        {
+            responseSchema,
+            itemSchema,
+        };
+        var properties = new JsonObject
+        {
+            ["ok"] = new JsonObject
+            {
+                ["const"] = true,
+            },
+            ["items"] = CreateArraySchema(itemSchema),
+            ["hasMore"] = new JsonObject
+            {
+                ["type"] = "boolean",
+            },
+        };
+
+        foreach (var property in responseType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+        {
+            if (string.Equals(property.Name, collectionPropertyName, StringComparison.Ordinal)
+                || string.Equals(property.Name, "ReturnedCount", StringComparison.Ordinal)
+                || string.Equals(property.Name, "HasMore", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var propertySchema = CreateValueSchema(property.PropertyType);
+            extraSchemas.Add(propertySchema);
+            properties[string.Equals(property.Name, "TruncationReasons", StringComparison.Ordinal)
+                ? "truncatedBy"
+                : JsonNamingPolicy.CamelCase.ConvertName(property.Name)] = JsonNode.Parse(propertySchema.GetRawText());
+        }
+
+        return CreateResponseSchema(
+            new JsonObject
+            {
+                ["type"] = "object",
+                ["required"] = new JsonArray("ok", "items", "hasMore"),
+                ["properties"] = properties,
+            },
+            extraSchemas);
+    }
+
+    private static JsonElement CreateMutationResponseSchema()
+    {
+        return CreateResponseSchema(
+            new JsonObject
+            {
+                ["type"] = "object",
+                ["required"] = new JsonArray("ok", "staged"),
+                ["properties"] = new JsonObject
+                {
+                    ["ok"] = new JsonObject
+                    {
+                        ["const"] = true,
+                    },
+                    ["staged"] = new JsonObject
+                    {
+                        ["type"] = "boolean",
+                    },
+                    ["summary"] = CreateNullablePrimitiveSchema("string"),
+                    ["transaction"] = new JsonObject
+                    {
+                        ["type"] = new JsonArray("object", "null"),
+                        ["required"] = new JsonArray("revision"),
+                        ["properties"] = new JsonObject
+                        {
+                            ["revision"] = new JsonObject
+                            {
+                                ["type"] = "integer",
+                            },
+                        },
+                    },
+                },
+            },
+            []);
+    }
+
+    private static JsonElement CreateCodeActionListResponseSchema()
+    {
+        var itemSchema = CreateValueSchema(typeof(Contracts.CodeActions.CodeActionListItem));
+        var truncationSchema = CreateValueSchema(typeof(IReadOnlyList<Contracts.Results.CollectionTruncation>));
+
+        return CreateResponseSchema(
+            new JsonObject
+            {
+                ["type"] = "object",
+                ["required"] = new JsonArray("ok", "items", "hasMore"),
+                ["properties"] = new JsonObject
+                {
+                    ["ok"] = new JsonObject
+                    {
+                        ["const"] = true,
+                    },
+                    ["items"] = CreateArraySchema(itemSchema),
+                    ["hasMore"] = new JsonObject
+                    {
+                        ["type"] = "boolean",
+                    },
+                    ["truncatedBy"] = AllowNull(truncationSchema),
+                },
+            },
+            [itemSchema, truncationSchema]);
+    }
+
+    private static JsonElement CreateResponseSchema(JsonObject successSchema, IReadOnlyList<JsonElement> componentSchemas)
+    {
+        var errorSchema = CreateValueSchema<Contracts.Results.ToolError>();
+        var nextSchema = CreateValueSchema<Contracts.Results.RequiredAction>();
+        var mergedDefinitions = MergeDefinitions(componentSchemas.Concat([errorSchema, nextSchema]));
+        var root = new JsonObject
+        {
+            ["type"] = "object",
+            ["oneOf"] = new JsonArray
+            {
+                successSchema,
+                new JsonObject
+                {
+                    ["type"] = "object",
+                    ["required"] = new JsonArray("ok", "error"),
+                    ["properties"] = new JsonObject
+                    {
+                        ["ok"] = new JsonObject
+                        {
+                            ["const"] = false,
+                        },
+                        ["error"] = JsonNode.Parse(errorSchema.GetRawText()),
+                        ["next"] = AllowNull(nextSchema),
+                    },
+                },
+            },
+        };
+
+        if (mergedDefinitions.Count > 0)
+        {
+            root["$defs"] = mergedDefinitions;
+        }
+
+        return JsonSerializer.SerializeToElement(root);
+    }
+
+    private static JsonObject MergeDefinitions(IEnumerable<JsonElement> schemas)
+    {
+        var definitions = new JsonObject();
+
+        foreach (var schema in schemas)
+        {
+            if (!schema.TryGetProperty("$defs", out var childDefinitions))
+            {
+                continue;
+            }
+
+            foreach (var definition in JsonNode.Parse(childDefinitions.GetRawText())!.AsObject())
+            {
+                definitions[definition.Key] = definition.Value?.DeepClone();
+            }
+        }
+
+        return definitions;
     }
 
     private static JsonObject CreateSuccessVariant(

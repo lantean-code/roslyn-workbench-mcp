@@ -6,8 +6,6 @@ namespace Roslyn.Workbench.Mcp.Test;
 
 public sealed class ServerStatusToolTests
 {
-    private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
-
     [Fact]
     public async Task GIVEN_ServerStatusTool_WHEN_Invoked_THEN_ShouldReturnStructuredServerDiagnostics()
     {
@@ -49,16 +47,64 @@ public sealed class ServerStatusToolTests
                 }),
             CancellationToken.None);
 
-        var payload = JsonSerializer.Deserialize<ToolResult<ServerStatusData>>(result.StructuredContent!.Value.GetRawText(), _serializerOptions);
-
         result.IsError.Should().BeFalse();
-        payload!.Outcome.Should().Be(ToolOutcome.Succeeded);
-        payload.Data!.ProtocolVersion.Should().Be("2025-06-18");
-        payload.Data.ToolCount.Should().Be(14);
-        payload.Data.CodeActions.Should().NotBeNull();
-        payload.Data.Plugins.Should().ContainSingle(static plugin => plugin.PluginId == "plugin.id");
-        payload.Data.Configuration!.MaxResponseBytes.Should().Be(4096);
-        payload.Data.ServerVersion.Should().Be(Assembly.GetAssembly(typeof(ServerStatusToolFactory))!.GetName().Version!.ToString());
+        result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeTrue();
+        result.StructuredContent.Value.GetProperty("protocolVersion").GetString().Should().Be("2025-06-18");
+        result.StructuredContent.Value.GetProperty("toolCount").GetInt32().Should().Be(14);
+        result.StructuredContent.Value.GetProperty("codeActions").ValueKind.Should().Be(JsonValueKind.Object);
+        result.StructuredContent.Value.GetProperty("serverVersion").GetString().Should().Be(Assembly.GetAssembly(typeof(ServerStatusToolFactory))!.GetName().Version!.ToString());
+        result.StructuredContent.Value.TryGetProperty("plugins", out _).Should().BeFalse();
+        result.StructuredContent.Value.TryGetProperty("configuration", out _).Should().BeFalse();
+        result.StructuredContent.Value.TryGetProperty("recovery", out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GIVEN_ServerStatusToolFullDetail_WHEN_Invoked_THEN_ShouldReturnExpandedDiagnostics()
+    {
+        var startupOptions = new StartupOptions
+        {
+            DefaultMaxResults = 100,
+            MaxResponseBytes = 4096,
+            MaxConcurrentQueries = 2,
+            MaxTransactionRevisions = 20,
+            CodeActionTokenLifetime = TimeSpan.FromMinutes(5),
+        };
+        var pluginSnapshot = new PluginCatalogSnapshot
+        {
+            Plugins =
+            [
+                new PluginStatus
+                {
+                    PluginId = "plugin.id",
+                    DisplayName = "Plugin Name",
+                    Version = "1.2.3",
+                    SupportedApiVersion = "1.0",
+                    Enabled = true,
+                },
+            ],
+        };
+        var tool = ServerStatusToolFactory.Create(startupOptions, pluginSnapshot, new ComponentStatus { IsAvailable = true }, 14);
+
+        var result = await tool.InvokeAsync(
+            new RequestContext<CallToolRequestParams>(
+                CreateServer(),
+                new JsonRpcRequest
+                {
+                    Method = "tools/call",
+                },
+                new CallToolRequestParams
+                {
+                    Name = "server-status",
+                    Arguments = new Dictionary<string, JsonElement>
+                    {
+                        ["detail"] = JsonSerializer.SerializeToElement(StatusDetailLevel.Full),
+                    },
+                }),
+            CancellationToken.None);
+
+        result.StructuredContent!.Value.GetProperty("configuration").GetProperty("maxResponseBytes").GetInt32().Should().Be(4096);
+        result.StructuredContent.Value.GetProperty("plugins").EnumerateArray().Should().ContainSingle(static plugin => plugin.GetProperty("pluginId").GetString() == "plugin.id");
+        result.StructuredContent.Value.GetProperty("recovery").ValueKind.Should().Be(JsonValueKind.Array);
     }
 
     [Fact]
@@ -122,13 +168,14 @@ public sealed class ServerStatusToolTests
                 new CallToolRequestParams
                 {
                     Name = "server-status",
-                    Arguments = new Dictionary<string, JsonElement>(),
+                    Arguments = new Dictionary<string, JsonElement>
+                    {
+                        ["detail"] = JsonSerializer.SerializeToElement(StatusDetailLevel.Full),
+                    },
                 }),
             CancellationToken.None);
 
-        var payload = JsonSerializer.Deserialize<ToolResult<ServerStatusData>>(result.StructuredContent!.Value.GetRawText(), _serializerOptions);
-
-        payload!.Data!.Recovery.Should().ContainSingle(static status => status.CommitId == "commit-id");
+        result.StructuredContent!.Value.GetProperty("recovery").EnumerateArray().Should().ContainSingle(static status => status.GetProperty("commitId").GetString() == "commit-id");
     }
 
     [Fact]
@@ -163,15 +210,15 @@ public sealed class ServerStatusToolTests
                 new CallToolRequestParams
                 {
                     Name = "server-status",
-                    Arguments = new Dictionary<string, JsonElement>(),
+                    Arguments = new Dictionary<string, JsonElement>
+                    {
+                        ["detail"] = JsonSerializer.SerializeToElement(StatusDetailLevel.Full),
+                    },
                 }),
             CancellationToken.None);
 
-        var payload = JsonSerializer.Deserialize<ToolResult<ServerStatusData>>(result.StructuredContent!.Value.GetRawText(), _serializerOptions);
-
-        payload!.Data!.CodeActions.Should().NotBeNull();
-        payload.Data.CodeActions!.IsAvailable.Should().BeFalse();
-        payload.Data.CodeActions.Message.Should().Be("Code-action composition is unavailable.");
+        result.StructuredContent!.Value.GetProperty("codeActions").GetProperty("isAvailable").GetBoolean().Should().BeFalse();
+        result.StructuredContent.Value.GetProperty("codeActions").GetProperty("message").GetString().Should().Be("Code-action composition is unavailable.");
     }
 
     private static McpServer CreateServer()

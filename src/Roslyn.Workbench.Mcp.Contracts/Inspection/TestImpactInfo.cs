@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Roslyn.Workbench.Mcp.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
@@ -20,5 +21,6 @@ public sealed record TestImpactInfo
     /// <summary>
     /// Gets the explanatory impact reasons.
     /// </summary>
-    public IReadOnlyList<string> Reasons { get; init; } = [];
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<string>? Reasons { get; init; }
 }

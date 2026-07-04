@@ -73,7 +73,7 @@ metadata:
 | `title` | The human-readable title in this catalogue. |
 | `description` | The description in this catalogue, including any operational requirements an agent must understand. |
 | `inputSchema` | A JSON Schema generated from the named request record and shared component records below. Schema validation improves tool discovery but the server validates all inputs at runtime. |
-| `outputSchema` | Optional. In the default agent-optimised mode the server omits it to reduce `tools/list` size. When the startup `ToolOutputSchemaMode` is `Full`, the published schema is the real `ToolResult<TData>` structured-content schema for the named data shape. |
+| `outputSchema` | Optional. In the default agent-optimised mode the server omits it to reduce `tools/list` size. When the startup `ToolOutputSchemaMode` is `Full`, the published schema is the real family-specific structured-content schema for that tool's runtime response shape. |
 | `annotations.readOnlyHint` | `true` for query tools; `false` for lifecycle and staged-mutation tools. |
 | `annotations.destructiveHint` | Set from the tool's maximum effect. Any tool that can replace or remove staged source, discard staged work, or write source to disk is `true`. |
 | `annotations.idempotentHint` | `true` for queries; `false` for state-changing operations. |
@@ -86,7 +86,8 @@ as server-owned `PluginMcpServerTool` instances, one per validated
 `RegisteredTool`, rather than by scanning plugin methods for MCP attributes.
 The adapter publishes the schema and metadata held by `RegisteredTool`,
 deserializes the full argument object into the named request record, and
-returns a structured `CallToolResult` carrying `ToolResult<TData>`. See the
+returns a structured `CallToolResult` carrying the published response family
+for that tool. See the
 [C# SDK tool documentation](https://csharp.sdk.modelcontextprotocol.io/concepts/tools/tools.html)
 and [McpServerTool API](https://csharp.sdk.modelcontextprotocol.io/api/ModelContextProtocol.Server.McpServerTool.html).
 
@@ -99,49 +100,40 @@ DTOs or JSON Schema fragments.
 
 For implementation, each input type is named by converting the tool name to
 PascalCase and appending `Request`: for example, `find-references` uses
-`FindReferencesRequest`. A tool's declared structured output type is always
-`ToolResult<TData>`, where `TData` is the type named in that tool's output
-column. `PluginMcpServerTool` invokes `ToolExecutor`, which validates and
-constructs the appropriate context before it invokes the plugin's typed
-handler. This gives each plugin a predictable C# contract without adding a
-second, non-MCP metadata format or making the plugin a protocol endpoint.
+`FindReferencesRequest`. Tool handlers still execute against typed C# request
+and response contracts, but the MCP adapter shapes the runtime JSON into the
+published response family for that tool rather than exposing one universal
+success envelope.
 
-## Common Output Envelope
+## Published Response Families
 
-Every successful or expected domain outcome is returned as structured JSON in
-`ToolResult<TData>`:
+Every tool shares the same minimal machine-readable failure and continuation
+base:
 
-```text
-ToolResult<TData>
-- outcome: Succeeded | NoChange | Rejected | Conflict | Faulted
-- workspaceId?: string
-- workspaceEpoch?: long
-- transactionRevision?: int
-- data?: TData
-- changes?: ChangeSummary
-- diagnostics: DiagnosticInfo[]
-- warnings: WarningInfo[]
-- error?: ToolError
-- requiredAction?: RequiredAction
+```json
+{
+  "ok": false,
+  "error": {
+    "code": "SnapshotMismatch",
+    "message": "The request snapshot does not match the current workspace snapshot."
+  },
+  "next": "resolveTargetAgain"
+}
 ```
 
-`Succeeded` and `NoChange` set MCP `isError` to `false`. `Rejected`,
-`Conflict` and `Faulted` set it to `true`. Malformed MCP requests remain
-protocol-level failures rather than `ToolResult` values.
+Successful results are then published by family:
 
-The runtime output shape is a discriminated `oneOf` on `outcome`, not merely an
-object with optional fields. `Succeeded` query results require `data` and do
-not contain `changes`; successful staged mutations require both `data` and the
-top-level `changes`; successful lifecycle, preview, history, commit and
-rollback operations may return `data` without `changes`; `NoChange` never
-contains `changes`; `Rejected` and `Conflict` require `error` and contain
-neither `data` nor `changes`; `Faulted` requires `error` and contains no
-partially staged data or changes. When `ToolOutputSchemaMode` is `Full`,
-`PluginMcpServerTool` publishes this explicit schema rather than relying on an
-SDK-generated generic type schema. In the default `Omit` mode, the runtime JSON
-shape remains unchanged even though `tools/list` does not carry `outputSchema`.
-Response readability is preserved because these contracts serialize enums as
-strings via `JsonStringEnumConverter<TEnum>` rather than numeric values.
+- Direct lifecycle and status results: `{ ok: true, ...tool fields }`
+- Singleton queries: `{ ok: true, value: { ... } }`
+- Collection queries: `{ ok: true, items: [ ... ], hasMore: boolean, ...extra fields }`
+- Staged mutations: `{ ok: true, staged: boolean, summary?: string, transaction?: { revision: int } }`
+- Code-action listings: `{ ok: true, items: CodeActionListItem[], hasMore: boolean, truncatedBy?: CollectionTruncation[] }`
+
+Collection-family responses do not publish redundant `returnedCount`; callers
+derive it from `items.length`. When `ToolOutputSchemaMode` is `Full`,
+`PluginMcpServerTool` publishes the real family-specific `oneOf` schema for the
+tool instead of a generic wrapper. Malformed MCP requests remain protocol-level
+failures rather than structured tool results.
 
 Common fields used by the data shapes below:
 
@@ -245,34 +237,41 @@ selector may be omitted and the server routes the request there. When more than
 one workspace is loaded, omitting it is rejected with
 `WorkspaceSelectorRequired`.
 
+The output tables below name the successful response payload for each tool.
+For direct results those fields are published at the top level beside `ok`.
+For singleton queries they appear under `value`. For collection queries they
+are projected to `{ ok, items, hasMore, ... }`, so backing DTO collection
+property names and internal `returnedCount` metadata are not emitted on the
+wire.
+
 ## Server and Workspace Context (8)
 
-| Tool | Source | Behaviour | Title and description | Input parameters | `data` output shape |
+| Tool | Source | Behaviour | Title and description | Input parameters | Success payload shape |
 |---|---|---|---|---|---|
-| `server-status` | New server | Q | **Server Status**. Returns server diagnostics and unfinished commit recovery state without requiring a workspace. | None. | `ServerStatusData { serverVersion, protocolVersion, roslynVersion, msBuild: ComponentStatus, configuration: ServerConfiguration, toolCount, plugins: PluginStatus[], recovery: RecoveryStatus[] }` |
+| `server-status` | New server | Q | **Server Status**. Returns server diagnostics and unfinished commit recovery state without requiring a workspace. | `detail?: Minimal|Standard|Full = Minimal`. | `ServerStatusData { serverVersion, protocolVersion, roslynVersion, msBuild: ComponentStatus, toolCount, configuration?: ServerConfiguration, plugins?: PluginStatus[], recovery?: RecoveryStatus[] }` |
 | `workspace-open` | New server | S | **Open Workspace**. Loads an additional `.sln`, `.slnx` or `.csproj` as a writable workspace session. All loaded C# projects must be SDK style. | `path: string` - absolute solution or project path; `alias?: string` - optional caller-friendly label. | `WorkspaceOpenData { workspace: WorkspaceIdentity, projectCount, documentCount, loadDiagnostics: DiagnosticInfo[] }` |
 | `workspace-list` | New server | Q | **Workspace List**. Returns every loaded workspace plus the current global transaction owner, if any. | None. | `WorkspaceListData { workspaces: WorkspaceIdentity[], transactionOwnerWorkspaceId?: string }` |
 | `workspace-close` | New server | S | **Close Workspace**. Disposes one selected loaded workspace. An active transaction on that workspace must first be committed or rolled back. | `workspace?: WorkspaceSelector`. | `WorkspaceCloseData { closedPath: string }` |
-| `workspace-status` | Replaces `diagnose` | Q | **Workspace Status**. Returns one selected loaded workspace's lifecycle state, project-load diagnostics and transaction capabilities. | `workspace?: WorkspaceSelector`. | `WorkspaceStatusData { state: Ready|TransactionActive|TransactionConflicted|WorkspaceOutOfDate, workspace: WorkspaceIdentity, projectCount: int, documentCount: int, loadDiagnostics: DiagnosticInfo[], transaction?: TransactionInfo, reloadRequired: boolean }` |
+| `workspace-status` | Replaces `diagnose` | Q | **Workspace Status**. Returns one selected loaded workspace's lifecycle state, project-load diagnostics and transaction capabilities. | `workspace?: WorkspaceSelector`, `detail?: Minimal|Standard|Full = Standard`. | `WorkspaceStatusData { state: Ready|TransactionActive|TransactionConflicted|WorkspaceOutOfDate, workspace: WorkspaceIdentity, projectCount: int, documentCount: int, loadDiagnostics?: DiagnosticInfo[], transaction?: TransactionInfo, reloadRequired: boolean }` |
 | `workspace-reload` | New server | S | **Reload Workspace**. Reloads one selected workspace that is out of date. Unavailable while that workspace owns an active transaction. | `workspace?: WorkspaceSelector`. | `WorkspaceReloadData { workspace: WorkspaceIdentity, projectCount, documentCount, loadDiagnostics: DiagnosticInfo[] }` |
 | `get-solution-structure` | New plugin | Q | **Get Solution Structure**. Returns solution folders, projects, target frameworks and direct project relationships. | `includeDocuments?: boolean = false`, `limit?: ResultLimit`. | `SolutionStructureData { solutionPath, folders: SolutionFolderInfo[], projects: ProjectStructureInfo[], returnedCount, hasMore }` |
-| `get-project-details` | New plugin | Q | **Get Project Details**. Returns project properties, documents, direct references, analyzers and compilation options. | `project: ProjectSelector`, `includeDocuments?: boolean = true`, `limit?: ResultLimit`. | `ProjectDetailsData { project: ProjectInfo, documents?: DocumentReference[], projectReferences: ProjectReferenceInfo[], metadataReferences: MetadataReferenceInfo[], analyzers: AnalyzerInfo[], compilationOptions: CompilationOptionsInfo, returnedCount?, hasMore? }` |
+| `get-project-details` | New plugin | Q | **Get Project Details**. Returns project properties, optional document inventory, direct references, analyzers and compilation options. | `project: ProjectSelector`, `includeDocuments?: boolean = false`, `limit?: ResultLimit`. | `ProjectDetailsData { project: ProjectInfo, documents?: DocumentReference[], projectReferences: ProjectReferenceInfo[], metadataReferences: MetadataReferenceInfo[], analyzers: AnalyzerInfo[], compilationOptions: CompilationOptionsInfo, returnedCount?, hasMore? }` |
 | `get-document-options` | New plugin | Q | **Get Document Options**. Returns parse options, nullable context, language version, analyzers and editor-config-derived options. | `document: DocumentSelector`. | `DocumentOptionsData { document: DocumentReference, languageVersion, nullableContext, parseOptions: ParseOptionsInfo, analyzerConfig: AnalyzerConfigInfo }` |
 
 ## Semantic Inspection and Navigation (19)
 
-| Tool | Source | Behaviour | Title and description | Input parameters | `data` output shape |
+| Tool | Source | Behaviour | Title and description | Input parameters | Success payload shape |
 |---|---|---|---|---|---|
 | `get-document-outline` | Existing | Q | **Get Document Outline**. Returns the semantic namespace, type and member hierarchy of one document. | `document: DocumentSelector`, `includeMembers?: boolean = true`. | `DocumentOutlineData { document: DocumentReference, root: OutlineNode }` |
-| `get-code-context` | New | Q | **Get Code Context**. Returns a focused code window and enclosing semantic context. | `location: LocationSelector`, `beforeLines?: int = 10`, `afterLines?: int = 10`, `includeDiagnostics?: boolean = true`. | `CodeContextData { location: ResolvedLocation, text: string, enclosingSymbols: SymbolReference[], diagnostics: DiagnosticInfo[] }` |
+| `get-code-context` | New | Q | **Get Code Context**. Returns a focused code window and optional semantic context branches. | `location: LocationSelector`, `beforeLines?: int = 10`, `afterLines?: int = 10`, `includeDiagnostics?: boolean = false`, `includeEnclosingSymbols?: boolean = false`. | `CodeContextData { location: ResolvedLocation, text: string, enclosingSymbols?: SymbolReference[], diagnostics?: DiagnosticInfo[] }` |
 | `search-symbols` | Existing | Q | **Search Symbols**. Searches declarations by name, metadata name and optional semantic filters. | `query?: string`, `metadataName?: string`, `scope?: ScopeSelector`, `kinds?: string[]`, `accessibilities?: string[]`, `namespace?: string`, `limit?: ResultLimit`. At least one of `query` or `metadataName` is required. | `SymbolSearchData { symbols: SymbolReference[], returnedCount: int, hasMore: boolean }` |
 | `resolve-symbol` | New | Q | **Resolve Symbol**. Resolves the symbol at a location or selection and returns its canonical selector. | `location: LocationSelector`. | `ResolveSymbolData { symbol: SymbolReference, selector: SymbolSelector, declarations: ResolvedLocation[] }` |
-| `get-symbol-info` | Existing | Q | **Get Symbol Info**. Returns detailed metadata for a resolved symbol. | `symbol: SymbolSelector`, `includeMembers?: boolean = false`, `includeDocumentation?: boolean = true`. | `SymbolInfoData { symbol: SymbolReference, accessibility, modifiers: string[], type?: TypeInfo, parameters?: ParameterInfo[], returnType?: TypeInfo, documentation?: string, declarations: ResolvedLocation[] }` |
+| `get-symbol-info` | Existing | Q | **Get Symbol Info**. Returns detailed metadata for a resolved symbol. | `symbol: SymbolSelector`, `includeMembers?: boolean = false`, `includeDocumentation?: boolean = false`. | `SymbolInfoData { symbol: SymbolReference, accessibility, modifiers: string[], type?: TypeInfo, parameters?: ParameterInfo[], returnType?: TypeInfo, documentation?: string, declarations: ResolvedLocation[] }` |
 | `get-symbol-members` | New | Q | **Get Symbol Members**. Lists declared members and optionally inherited or explicit-interface members. | `symbol: SymbolSelector`, `includeInherited?: boolean = false`, `includeExplicitInterface?: boolean = false`, `limit?: ResultLimit`. | `SymbolMembersData { symbol: SymbolReference, members: SymbolReference[], returnedCount: int, hasMore: boolean }` |
 | `get-symbol-attributes` | New | Q | **Get Symbol Attributes**. Returns declared and inherited attributes with constructor and named arguments. | `symbol: SymbolSelector`, `includeInherited?: boolean = false`, `limit?: ResultLimit`. | `SymbolAttributesData { symbol: SymbolReference, attributes: AttributeInfo[], returnedCount: int, hasMore: boolean }` |
 | `go-to-definition` | Existing | Q | **Go To Definition**. Returns source or metadata definitions for a symbol. | `symbol: SymbolSelector`. | `DefinitionData { symbol: SymbolReference, definitions: DefinitionLocation[] }` |
-| `find-references` | Existing | Q | **Find References**. Finds source references, optionally including declarations and access classification. | `symbol: SymbolSelector`, `scope?: ScopeSelector`, `includeDefinitions?: boolean = true`, `includeContext?: boolean = true`, `limit?: ResultLimit`. | `ReferenceSearchData { symbol: SymbolReference, references: ReferenceLocation[], returnedCount: int, hasMore: boolean }` |
-| `find-callers` | Existing | Q | **Find Callers**. Returns direct source call sites and containing symbols. | `symbol: SymbolSelector`, `scope?: ScopeSelector`, `includeContext?: boolean = true`, `limit?: ResultLimit`. | `CallerSearchData { symbol: SymbolReference, callers: CallerInfo[], returnedCount: int, hasMore: boolean }` |
+| `find-references` | Existing | Q | **Find References**. Finds source references, optionally including declarations and access classification. | `symbol: SymbolSelector`, `scope?: ScopeSelector`, `includeDefinitions?: boolean = true`, `includeContext?: boolean = false`, `limit?: ResultLimit`. | `ReferenceSearchData { symbol: SymbolReference, references: ReferenceLocation[], returnedCount: int, hasMore: boolean }` |
+| `find-callers` | Existing | Q | **Find Callers**. Returns direct source call sites and containing symbols. | `symbol: SymbolSelector`, `scope?: ScopeSelector`, `includeContext?: boolean = false`, `limit?: ResultLimit`. | `CallerSearchData { symbol: SymbolReference, callers: CallerInfo[], returnedCount: int, hasMore: boolean }` |
 | `find-callees` | New | Q | **Find Callees**. Returns symbols directly invoked by a method or selected executable body. | `symbol?: SymbolSelector`, `location?: LocationSelector`, `includeIndirect?: boolean = false`, `limit?: ResultLimit`. Exactly one of `symbol` or `location`. | `CalleeSearchData { source: SymbolReference, callees: SymbolReference[], returnedCount: int, hasMore: boolean }` |
 | `find-implementations` | Existing | Q | **Find Implementations**. Finds implementations of an interface or abstract member. | `symbol: SymbolSelector`, `scope?: ScopeSelector`, `limit?: ResultLimit`. | `ImplementationSearchData { symbol: SymbolReference, implementations: SymbolReference[], returnedCount: int, hasMore: boolean }` |
 | `find-overrides` | New | Q | **Find Overrides**. Finds overrides of a virtual or abstract member. | `symbol: SymbolSelector`, `scope?: ScopeSelector`, `limit?: ResultLimit`. | `OverrideSearchData { symbol: SymbolReference, overrides: SymbolReference[], returnedCount: int, hasMore: boolean }` |
@@ -285,21 +284,21 @@ one workspace is loaded, omitting it is rejected with
 
 ## Analysis and Architecture (16)
 
-| Tool | Source | Behaviour | Title and description | Input parameters | `data` output shape |
+| Tool | Source | Behaviour | Title and description | Input parameters | Success payload shape |
 |---|---|---|---|---|---|
 | `get-diagnostics` | Existing | Q | **Get Diagnostics**. Returns compiler and configured analyzer diagnostics for a scope. | `scope?: ScopeSelector`, `severities?: string[]`, `ids?: string[]`, `limit?: ResultLimit`. | `DiagnosticsData { diagnostics: DiagnosticInfo[], returnedCount: int, hasMore: boolean }` |
 | `get-code-metrics` | Existing | Q | **Get Code Metrics**. Returns projected logical lines, cyclomatic complexity, nesting depth, type coupling and a derived maintainability score for a symbol or scope. | `scope?: ScopeSelector = Solution`, `symbol?: SymbolSelector`, `includeChildren?: boolean = false`, `limit?: ResultLimit`, `expectedSnapshot?: SnapshotPrecondition` required for location-based symbol selectors. | `CodeMetricsData { metrics: MetricInfo { symbol?: SymbolReference, location?: ResolvedLocation, logicalLines: int, cyclomaticComplexity: int, maxNestingDepth: int, coupling: int, maintainabilityIndex: int }[], returnedCount: int, hasMore: boolean }` |
 | `analyze-control-flow` | Existing | Q | **Analyze Control Flow**. Returns reachability, exit paths and return behaviour for a selected executable region. | `location: LocationSelector`. | `ControlFlowAnalysisData { region: ResolvedLocation, entryReachable: boolean, exitReachable: boolean, exits: ControlFlowExit[], returns: ResolvedLocation[] }` |
 | `analyze-data-flow` | Existing | Q | **Analyze Data Flow**. Returns reads, writes, data in/out and captured variables for a selected region. | `location: LocationSelector`. | `DataFlowAnalysisData { region: ResolvedLocation, variablesDeclared: SymbolReference[], readInside: SymbolReference[], writtenInside: SymbolReference[], dataFlowsIn: SymbolReference[], dataFlowsOut: SymbolReference[], captured: SymbolReference[] }` |
 | `get-operation-tree` | New | Q | **Get Operation Tree**. Returns a compact typed `IOperation` tree for a selected expression, statement or member. | `location: LocationSelector`, `maxDepth?: int = 8`. | `OperationTreeData { root: OperationNode, truncated: boolean }` |
-| `get-control-flow-graph` | New | Q | **Get Control Flow Graph**. Returns basic blocks, branches and regions for an executable symbol or body. | `symbol?: SymbolSelector`, `location?: LocationSelector`. Exactly one is required. | `ControlFlowGraphData { owner: SymbolReference, blocks: BasicBlockInfo[], regions: FlowRegionInfo[] }` |
+| `get-control-flow-graph` | New | Q | **Get Control Flow Graph**. Returns basic blocks, branches and regions for an executable symbol or body. | `symbol?: SymbolSelector`, `location?: LocationSelector`, `maxBlocks?: int = 64`, `maxRegions?: int = 32`. Exactly one of `symbol` or `location` is required. | `ControlFlowGraphData { owner: SymbolReference, blocks: BasicBlockInfo[], regions: FlowRegionInfo[], blocksTruncated: boolean, regionsTruncated: boolean }` |
 | `find-unused-symbols` | New | Q | **Find Unused Symbols**. Identifies candidate unused locals and members from compiler-unused diagnostics, with confidence reasons. | `scope?: ScopeSelector = Solution`, `includeInternal?: boolean = false`, `excludeGenerated?: boolean = true`, `limit?: ResultLimit`. | `UnusedSymbolsData { candidates: UnusedSymbolCandidate { symbol: SymbolReference, location?: ResolvedLocation, confidence: string, reasons: string[] }[], returnedCount: int, hasMore: boolean }` |
 | `find-duplicate-code` | New | Q | **Find Duplicate Code**. Groups identical executable blocks by their normalized statement sequence for review. It is advisory and does not refactor code. | `scope?: ScopeSelector = Solution`, `minimumStatements?: int = 3`, `limit?: ResultLimit`. | `DuplicateCodeData { groups: DuplicateCodeGroup { statementCount: int, occurrences: DuplicateCodeOccurrence { symbol?: SymbolReference, location?: ResolvedLocation, context: string }[] }[], returnedCount: int, hasMore: boolean }` |
 | `get-dependency-graph` | New | Q | **Get Dependency Graph**. Builds a bounded dependency graph at a selected granularity. | `scope?: ScopeSelector = Solution`, `granularity: Project|Namespace|Type|Symbol`, `maxDepth?: int = 3`, `maxNodes?: int`, `maxEdges?: int`. | `DependencyGraphData { nodes: GraphNode { id: string, kind: string, displayName: string, symbol?: SymbolReference }[], edges: GraphEdge { fromId: string, fromDisplayName: string, toId: string, toDisplayName: string, kind: string }[], returnedNodeCount: int, returnedEdgeCount: int, truncationReasons: CollectionTruncation[] }` |
 | `find-dependency-cycles` | New | Q | **Find Dependency Cycles**. Detects dependency cycles at project, namespace or type granularity. | `scope?: ScopeSelector = Solution`, `granularity: Project|Namespace|Type`, `limit?: ResultLimit`. | `DependencyCyclesData { cycles: DependencyCycle { nodes: GraphNode[] }[], returnedCount: int, hasMore: boolean }` |
 | `get-change-impact` | New | Q | **Get Change Impact**. Estimates blast radius using references, callers, overrides, implementations and public surface. | `symbol: SymbolSelector`, `scope?: ScopeSelector`, `limit?: ResultLimit`. | `ChangeImpactData { symbol: SymbolReference, impact: ImpactSummary, locations: ReferenceLocation[], returnedCount: int, hasMore: boolean }` |
 | `get-api-surface` | New | Q | **Get API Surface**. Describes exported API symbols for a solution, project, namespace or type. | `scope: ScopeSelector`, `minimumAccessibility?: Public|Protected|Internal = Public`, `includeObsolete?: boolean = true`, `limit?: ResultLimit`. | `ApiSurfaceData { symbols: ApiSymbolInfo[], returnedCount: int, hasMore: boolean }` |
-| `get-test-impact` | New | Q | **Get Test Impact**. Identifies likely impacted tests using built-in test-like type and method naming conventions. | `symbol: SymbolSelector`, `testScope?: ScopeSelector = Solution`, `includeReasons?: boolean = true`, `limit?: ResultLimit`. | `TestImpactData { symbol: SymbolReference, tests: TestImpactInfo { test: SymbolReference, location?: ResolvedLocation, reasons: string[] }[], returnedCount: int, hasMore: boolean }` |
+| `get-test-impact` | New | Q | **Get Test Impact**. Identifies likely impacted tests using built-in test-like type and method naming conventions. | `symbol: SymbolSelector`, `testScope?: ScopeSelector = Solution`, `includeReasons?: boolean = false`, `limit?: ResultLimit`. | `TestImpactData { symbol: SymbolReference, tests: TestImpactInfo { test: SymbolReference, location?: ResolvedLocation, reasons?: string[] }[], returnedCount: int, hasMore: boolean }` |
 | `analyze-nullability` | New | Q | **Analyze Nullability**. Returns nullable-flow issues and unsafe dereferences from compiler nullability diagnostics. | `scope?: ScopeSelector = Solution`, `location?: LocationSelector`, `limit?: ResultLimit`, `expectedSnapshot?: SnapshotPrecondition` required for location-based selectors. | `NullabilityAnalysisData { findings: NullabilityFinding { diagnostic: DiagnosticInfo }[], returnedCount: int, hasMore: boolean }` |
 | `analyze-async` | New | Q | **Analyze Async**. Identifies supported async antipatterns using syntax and operation analysis. | `scope?: ScopeSelector = Solution`, `limit?: ResultLimit`. | `AsyncAnalysisData { findings: AsyncFinding { kind: string, symbol?: SymbolReference, location?: ResolvedLocation, message: string }[], returnedCount: int, hasMore: boolean }` |
 | `analyze-disposables` | New | Q | **Analyze Disposables**. Identifies candidate undisposed local `IDisposable` or `IAsyncDisposable` values. Findings are advisory. | `scope?: ScopeSelector = Solution`, `limit?: ResultLimit`. | `DisposableAnalysisData { findings: DisposableFinding { kind: string, symbol?: SymbolReference, type?: TypeInfo, location?: ResolvedLocation, message: string }[], returnedCount: int, hasMore: boolean }` |
@@ -357,7 +356,7 @@ explicitly and through their snapshot-bound action token.
 
 | Tool | Source | Behaviour | Title and description | Input parameters | `data` output shape |
 |---|---|---|---|---|---|
-| `list-code-actions` | New plugin | Q | **List Code Actions**. Lists applicable installed refactorings and code fixes at a target, but only for built-in Roslyn families that this server build has explicitly audited. Listed actions publish execution metadata that declares whether they are replayable, parameterised or unsupported. | `location: LocationSelector`, `expectedSnapshot: SnapshotPrecondition`, `includeRefactorings?: boolean = true`, `includeCodeFixes?: boolean = true`, `diagnosticIds?: string[]`, `limit?: ResultLimit`. | `CodeActionListData { actions: CodeActionInfo[], returnedCount: int, hasMore: boolean, truncationReasons?: CollectionTruncation[] }` |
+| `list-code-actions` | New plugin | Q | **List Code Actions**. Lists applicable installed refactorings and code fixes at a target, but only for built-in Roslyn families that this server build has explicitly audited. Listed actions publish execution metadata that declares whether they are replayable, parameterised or unsupported. | `location: LocationSelector`, `expectedSnapshot: SnapshotPrecondition`, `includeRefactorings?: boolean = true`, `includeCodeFixes?: boolean = true`, `diagnosticIds?: string[]`, `limit?: ResultLimit`. | `CodeActionListItem[] { actionId, title, providerId, kind?, executionMode?, executorTool?, describeTool?, unsupportedReasonCode? }` |
 | `describe-code-action` | New plugin | Q | **Describe Code Action**. Revalidates one discovered action and returns its descriptor plus any preflight context required before dedicated execution. | `actionId: string`, `expectedSnapshot: SnapshotPrecondition`. | `DescribeCodeActionData { descriptor: CodeActionInfo, context: CodeActionDescriptorContext }` |
 | `stage-code-action` | New plugin | M | **Stage Code Action**. Re-runs the recorded provider and stages exactly one matching replayable refactoring action. Parameterised actions are rejected instead of being replayed generically. | `actionId: string`, `expectedSnapshot: SnapshotPrecondition`. | `MutationData` |
 | `stage-code-fix` | New plugin | M | **Stage Code Fix**. Re-runs the recorded provider and stages exactly one matching code fix. | `actionId: string`, `expectedSnapshot: SnapshotPrecondition`. | `MutationData` |

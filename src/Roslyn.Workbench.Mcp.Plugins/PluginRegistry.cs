@@ -63,19 +63,21 @@ public sealed class PluginRegistry : IPluginRegistry
                 $"Mutation tool '{metadata.Name}' must return '{typeof(MutationProposal).FullName}'.");
         }
 
+        var publishedResponseType = kind == ToolKind.Mutation ? typeof(Contracts.Results.MutationData) : responseType;
+        var responseDescriptor = ToolResponseDescriptorResolver.Resolve(metadata.Name, kind, publishedResponseType);
+
         _registeredTools.Add(new RegisteredTool
         {
             Plugin = _pluginMetadata,
             Metadata = metadata,
             Kind = kind,
             RequestType = requestType,
-            ResponseType = kind == ToolKind.Mutation ? typeof(Contracts.Results.MutationData) : responseType,
+            PublishedResponseType = publishedResponseType,
             InputSchema = ToolSchemaFactory.CreateInputSchema<TRequest>(),
             OutputSchema = _outputSchemaMode == ToolOutputSchemaMode.Full
-                ? kind == ToolKind.Mutation
-                    ? ToolSchemaFactory.CreateToolResultSchema<Contracts.Results.MutationData>()
-                    : ToolSchemaFactory.CreateToolResultSchema<TResponse>()
+                ? ToolSchemaFactory.CreateOutputSchema(responseDescriptor, publishedResponseType)
                 : null,
+            ResponseDescriptor = responseDescriptor,
             Annotations = CreateAnnotations(kind, metadata),
             Invoker = invoker,
         });

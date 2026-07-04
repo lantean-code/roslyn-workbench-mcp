@@ -23,20 +23,6 @@ public sealed class SchemaGenerationTests
     }
 
     [Fact]
-    public void GIVEN_WorkspaceStatusRequest_WHEN_GeneratingToolSchema_THEN_ShouldPublishWorkspaceSelectorProperty()
-    {
-        var method = typeof(ContractSchemaTestTools).GetMethod(nameof(ContractSchemaTestTools.WorkspaceStatus), BindingFlags.Public | BindingFlags.Static);
-
-        var tool = McpServerTool.Create(method!);
-        var requestProperties = tool.ProtocolTool.InputSchema.GetProperty("properties").GetProperty("request").GetProperty("properties");
-
-        requestProperties.TryGetProperty("workspace", out var workspaceProperty).Should().BeTrue();
-        workspaceProperty.GetRawText().Should().Contain("workspaceId");
-        workspaceProperty.GetRawText().Should().Contain("alias");
-        workspaceProperty.GetRawText().Should().Contain("path");
-    }
-
-    [Fact]
     public void GIVEN_TransactionStartRequest_WHEN_GeneratingToolSchema_THEN_ShouldPublishWorkspaceSelectorProperty()
     {
         var method = typeof(ContractSchemaTestTools).GetMethod(nameof(ContractSchemaTestTools.TransactionStart), BindingFlags.Public | BindingFlags.Static);

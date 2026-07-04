@@ -3,7 +3,6 @@ using System.Text.Json.Nodes;
 
 using Roslyn.Workbench.Mcp.Contracts.Results;
 using Roslyn.Workbench.Mcp.Contracts.Server;
-
 using Roslyn.Workbench.Mcp.Plugins;
 
 namespace Roslyn.Workbench.Mcp;
@@ -14,6 +13,7 @@ internal sealed class ServerToolMcpServerTool<TRequest, TResponse> : McpServerTo
     private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
 
     private readonly Func<TRequest, RequestContext<CallToolRequestParams>, CancellationToken, ValueTask<ToolResult<TResponse>>> _handler;
+    private readonly ToolResponseDescriptor _responseDescriptor;
     private readonly Tool _protocolTool;
 
     public ServerToolMcpServerTool(
@@ -27,6 +27,7 @@ internal sealed class ServerToolMcpServerTool<TRequest, TResponse> : McpServerTo
         Func<TRequest, RequestContext<CallToolRequestParams>, CancellationToken, ValueTask<ToolResult<TResponse>>> handler)
     {
         _handler = handler;
+        _responseDescriptor = ToolResponseDescriptorResolver.ResolveServer(name, typeof(TResponse));
         var publishedDescription = string.IsNullOrWhiteSpace(resultSummary)
             ? description
             : $"{description} Result: {resultSummary}";
@@ -37,7 +38,7 @@ internal sealed class ServerToolMcpServerTool<TRequest, TResponse> : McpServerTo
             Description = publishedDescription,
             InputSchema = ToolSchemaFactory.CreateInputSchema<TRequest>(),
             OutputSchema = outputSchemaMode == ToolOutputSchemaMode.Full
-                ? ToolSchemaFactory.CreateToolResultSchema<TResponse>()
+                ? ToolSchemaFactory.CreateOutputSchema(_responseDescriptor, typeof(TResponse))
                 : null,
             Annotations = new ToolAnnotations
             {
@@ -66,7 +67,7 @@ internal sealed class ServerToolMcpServerTool<TRequest, TResponse> : McpServerTo
             return new CallToolResult
             {
                 Content = [],
-                StructuredContent = JsonSerializer.SerializeToElement(result, _serializerOptions),
+                StructuredContent = ToolResponseShaper.Shape(_responseDescriptor, typeof(TResponse), PluginExecutionResultBox.From(result)),
                 IsError = result.Outcome is ToolOutcome.Rejected or ToolOutcome.Conflict or ToolOutcome.Faulted,
             };
         }
@@ -76,17 +77,10 @@ internal sealed class ServerToolMcpServerTool<TRequest, TResponse> : McpServerTo
         }
         catch (Exception)
         {
-            var result = ToolResult<TResponse>.Faulted(new ToolError
-            {
-                Code = "UnhandledException",
-                Message = "Tool execution failed.",
-                CorrelationId = Guid.NewGuid().ToString("n"),
-            });
-
             return new CallToolResult
             {
                 Content = [],
-                StructuredContent = JsonSerializer.SerializeToElement(result, _serializerOptions),
+                StructuredContent = ToolResponseShaper.Shape(_responseDescriptor, typeof(TResponse), PluginExecutionResultBox.CreateUnhandledException()),
                 IsError = true,
             };
         }

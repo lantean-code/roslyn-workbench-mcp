@@ -20,7 +20,7 @@ internal static class ServerStatusToolFactory
             destructive: false,
             startupOptions.ToolOutputSchemaMode,
             "server diagnostics, effective configuration, plugin status, and unfinished recovery state.",
-            (_, requestContext, cancellationToken) => ValueTask.FromResult(CreateResult(startupOptions, pluginCatalogSnapshot, codeActions, toolCount, requestContext, cancellationToken)));
+            (request, requestContext, cancellationToken) => ValueTask.FromResult(CreateResult(startupOptions, pluginCatalogSnapshot, codeActions, toolCount, request, requestContext, cancellationToken)));
     }
 
     private static ToolResult<ServerStatusData> CreateResult(
@@ -28,6 +28,7 @@ internal static class ServerStatusToolFactory
         PluginCatalogSnapshot pluginCatalogSnapshot,
         ComponentStatus codeActions,
         int toolCount,
+        ServerStatusRequest request,
         RequestContext<CallToolRequestParams> requestContext,
         CancellationToken cancellationToken)
     {
@@ -36,6 +37,8 @@ internal static class ServerStatusToolFactory
         var serverAssembly = typeof(ServerStatusToolFactory).Assembly.GetName();
         var roslynAssembly = typeof(Microsoft.CodeAnalysis.Workspace).Assembly.GetName();
 
+        var includeExpandedDetail = request.Detail == StatusDetailLevel.Full;
+
         return ToolResult<ServerStatusData>.Succeeded(new ServerStatusData
         {
             ServerVersion = serverAssembly.Version?.ToString() ?? "0.0.0.0",
@@ -43,18 +46,20 @@ internal static class ServerStatusToolFactory
             RoslynVersion = roslynAssembly.Version?.ToString() ?? "0.0.0.0",
             MsBuild = MsBuildRegistration.CurrentStatus,
             CodeActions = codeActions,
-            Configuration = new ServerConfiguration
-            {
-                DefaultMaxResults = startupOptions.DefaultMaxResults,
-                MaxResponseBytes = startupOptions.MaxResponseBytes,
-                CodeActionTokenLifetime = startupOptions.CodeActionTokenLifetime,
-                MaxTransactionRevisions = startupOptions.MaxTransactionRevisions,
-                MaxConcurrentQueries = startupOptions.MaxConcurrentQueries,
-                ToolOutputSchemaMode = startupOptions.ToolOutputSchemaMode,
-            },
+            Configuration = includeExpandedDetail
+                ? new ServerConfiguration
+                {
+                    DefaultMaxResults = startupOptions.DefaultMaxResults,
+                    MaxResponseBytes = startupOptions.MaxResponseBytes,
+                    CodeActionTokenLifetime = startupOptions.CodeActionTokenLifetime,
+                    MaxTransactionRevisions = startupOptions.MaxTransactionRevisions,
+                    MaxConcurrentQueries = startupOptions.MaxConcurrentQueries,
+                    ToolOutputSchemaMode = startupOptions.ToolOutputSchemaMode,
+                }
+                : null,
             ToolCount = toolCount,
-            Plugins = pluginCatalogSnapshot.Plugins,
-            Recovery = CommitRecoveryStore.GetStatuses(startupOptions.StateDirectory),
+            Plugins = includeExpandedDetail ? pluginCatalogSnapshot.Plugins : null,
+            Recovery = includeExpandedDetail ? CommitRecoveryStore.GetStatuses(startupOptions.StateDirectory) : null,
         });
     }
 }

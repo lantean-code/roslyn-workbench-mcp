@@ -521,7 +521,8 @@ configured JSON serializer options and passes the typed request to
 `ToolExecutor`. The executor then acquires the required query or exclusive
 lease, performs lifecycle, transaction, external-change and selector checks,
 constructs `QueryContext` or `MutationContext`, invokes the plugin handler, and
-converts the common result envelope into structured `CallToolResult` content.
+converts the internal normalized tool result into the published structured
+`CallToolResult` content.
 The plugin handler is never an MCP endpoint and receives neither raw protocol
 arguments nor transport objects.
 
@@ -602,14 +603,12 @@ matches return `AmbiguousSelection` and candidate locations. The server never
 guesses which repeated text the caller intended. `resolve-symbol` accepts this
 selector so an agent can turn copied source text into a canonical location and
 symbol without calculating a character offset itself.
-- `ToolResult`: structured data, collection-limit metadata, warnings and
-  state errors rather than tool-specific text parsing.
+- Published tool response: a family-specific structured MCP payload with a
+  shared machine-readable failure base and compact success projection.
 - `MutationProposal`: a plugin-produced candidate changed `Solution`, summary,
   warnings and optional intended changed-symbol selectors. It does not contain
   diffs, content hashes, transaction state or disk-write instructions.
-- `MutationResult`: operation summary, revision information and preview. The
-  top-level `ToolResult.changes` is the sole authority for changed documents and
-  affected symbols.
+- `MutationResult`: operation summary, revision information and preview.
 
 The host owns all MCP response construction. Query plugins return their typed
 data; mutation plugins return `MutationProposal`. Plugins never create
@@ -617,59 +616,45 @@ canonical diffs, staged revisions, validation records or disk-write plans.
 
 ### Tool response and error contract
 
-Every workspace, transaction and plugin-tool invocation returns a common
-structured result envelope. Tool-specific query data is carried in `data`; a
-plugin must not substitute prose for structured results or invent an
-incompatible success or error shape.
+Every workspace, transaction and plugin-tool invocation now publishes a compact
+family-specific MCP result instead of one universal success envelope. A plugin
+must still return structured data; it must not substitute prose for structured
+results or invent an incompatible success or error shape.
 
-```text
-ToolResult
-- outcome: Succeeded | NoChange | Rejected | Conflict | Faulted
-- workspaceEpoch?
-- transactionRevision?
-- changes?
-- diagnostics[]
-- warnings[]
-- data?
-- error?
-- requiredAction?
+All tools share the same minimal failure and continuation base:
+
+```json
+{
+  "ok": false,
+  "error": {
+    "code": "SnapshotMismatch",
+    "message": "The request snapshot does not match the current workspace snapshot."
+  },
+  "next": "resolveTargetAgain"
+}
 ```
 
-`workspaceEpoch` identifies the currently loaded workspace baseline and
-changes when a workspace is opened or reloaded. `transactionRevision` is
-present for an active transaction and identifies its current staged solution.
-They are returned on every relevant response so an agent can recognise when a
-previous selector, preview or decision no longer describes the effective
-solution.
+Successful payloads are shaped by family:
 
-The outcome definitions are deliberately narrow:
+- direct lifecycle and status tools publish `{ ok: true, ...tool fields }`
+- singleton queries publish `{ ok: true, value: { ... } }`
+- collection queries publish `{ ok: true, items: [ ... ], hasMore, ...extra }`
+- staged mutations publish `{ ok: true, staged, summary?, transaction? }`
+- code-action listings publish compact `CodeActionListItem` entries
 
-- `Succeeded`: a query requires `data` and no `changes`; a staged mutation
-  requires `data` and top-level `changes`; lifecycle, preview, history,
-  commit and rollback operations may return `data` without `changes`.
-- `NoChange`: the request was valid but there was no applicable result or no
-  source change to stage, and contains no `changes`. An empty query result is
-  normally `Succeeded` with empty `data`; `NoChange` is reserved for an
-  operation that was meaningfully attempted but had nothing to do.
-- `Rejected`: the request cannot run in the current server state or its
-  resolved target is invalid or ambiguous. Examples include
-  `NoLoadedWorkspace`, `NoActiveTransaction`, `AmbiguousSelection` and
-  `RevisionCapacityReached`. It also includes `WorkspaceBusy` when another
-  operation owns the required workspace lease.
-- `Conflict`: the request was valid but cannot safely continue because its
-  workspace, transaction or source view is stale. Examples include
-  `WorkspaceOutOfDate`, `TransactionConflicted` and a selector that belongs to
-  an earlier solution snapshot.
-- `Faulted`: an unexpected host or plugin failure. It never contains partially
-  staged `data` or `changes`. The public error contains a stable code, short
-  message and correlation ID; detailed exception data is logged locally only.
+This keeps the default path compact:
 
-`error`, when present, contains at least a stable machine-readable `code` and
-a human-readable `message`. `requiredAction` is an optional machine-readable
-continuation hint such as `OpenWorkspace`, `StartTransaction`,
-`ReloadWorkspace`, `ResolveTargetAgain`, `CommitOrRollback` or
-`ReduceTransactionHistory` or `Retry`. It guides an agent without replacing the outcome
-and error code as the authoritative contract.
+- collection responses omit redundant `returnedCount`
+- singleton queries keep heavy branches behind explicit request flags
+- status tools default to smaller projections and expose expanded detail on
+  request
+- mutation success confirms staged state by default rather than returning a
+  universal change envelope
+
+`next`, when present, is a machine-readable continuation hint such as
+`OpenWorkspace`, `StartTransaction`, `ReloadWorkspace`, `ResolveTargetAgain`,
+`CommitOrRollback`, `ReduceTransactionHistory` or `Retry`. It guides an agent
+without replacing the error code as the authoritative contract.
 
 Roslyn diagnostics use a common representation aligned with Roslyn's own
 model: diagnostic ID, severity, message, document identity and text span.
@@ -677,14 +662,12 @@ Diagnostics are retrieved only through an explicit query such as
 `get-diagnostics`; mutation, preview and commit operations do not implicitly
 compile the solution.
 
-At the MCP boundary, the host serializes this envelope as a discriminated
-structured JSON schema, rather than a permissive object with optional fields.
-It sets `isError` to `false` for `Succeeded` and `NoChange`, and to `true` for
-`Rejected`, `Conflict` and `Faulted`. JSON-RPC or MCP protocol
-errors, including malformed protocol messages, remain protocol-level errors
-rather than fabricated `ToolResult` values. This preserves a recoverable,
-machine-readable result for valid tool calls while keeping transport failures
-separate.
+At the MCP boundary, the host serializes the real published response family for
+each tool and sets `isError` to `false` for successful results and to `true`
+for rejected, conflict and faulted results. JSON-RPC or MCP protocol errors,
+including malformed protocol messages, remain protocol-level errors rather than
+fabricated tool results. This preserves a recoverable, machine-readable result
+for valid tool calls while keeping transport failures separate.
 
 ## Deliberate Public Exclusions
 

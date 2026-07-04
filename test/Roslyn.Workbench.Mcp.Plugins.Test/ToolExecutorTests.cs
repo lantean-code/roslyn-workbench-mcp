@@ -4,8 +4,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Test;
 
 public sealed class ToolExecutorTests
 {
-    private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
-
     [Fact]
     public void GIVEN_ToolExecutionContextContract_WHEN_InspectingPublicProperties_THEN_ShouldExposeTransactionRevision()
     {
@@ -26,14 +24,8 @@ public sealed class ToolExecutorTests
 
         result.IsError.Should().BeFalse();
         result.StructuredContent.Should().NotBeNull();
-
-        var payload = JsonSerializer.Deserialize<ToolResult<TestResponse>>(result.StructuredContent!.Value.GetRawText(), _serializerOptions);
-
-        payload!.Outcome.Should().Be(ToolOutcome.Succeeded);
-        payload.Data!.Value.Should().Be("Value");
-        payload.WorkspaceId.Should().Be("workspace-42");
-        payload.WorkspaceEpoch.Should().Be(42);
-        payload.TransactionRevision.Should().Be(7);
+        result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeTrue();
+        result.StructuredContent.Value.GetProperty("value").GetProperty("value").GetString().Should().Be("Value");
     }
 
     [Fact]
@@ -92,10 +84,9 @@ public sealed class ToolExecutorTests
             ["name"] = JsonSerializer.SerializeToElement("Name"),
         }, CancellationToken.None);
 
-        var payload = JsonSerializer.Deserialize<ToolResult<TestResponse>>(result.StructuredContent!.Value.GetRawText(), _serializerOptions);
-
         result.IsError.Should().BeFalse();
-        payload!.Outcome.Should().Be(ToolOutcome.NoChange);
+        result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeTrue();
+        result.StructuredContent.Value.GetProperty("value").ValueKind.Should().Be(JsonValueKind.Null);
     }
 
     [Fact]
@@ -109,11 +100,9 @@ public sealed class ToolExecutorTests
             ["name"] = JsonSerializer.SerializeToElement("Name"),
         }, CancellationToken.None);
 
-        var payload = JsonSerializer.Deserialize<ToolResult<TestResponse>>(result.StructuredContent!.Value.GetRawText(), _serializerOptions);
-
         result.IsError.Should().BeTrue();
-        payload!.Outcome.Should().Be(ToolOutcome.Rejected);
-        payload.Error!.Code.Should().Be("Rejected");
+        result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeFalse();
+        result.StructuredContent.Value.GetProperty("error").GetProperty("code").GetString().Should().Be("Rejected");
     }
 
     [Fact]
@@ -127,11 +116,9 @@ public sealed class ToolExecutorTests
             ["name"] = JsonSerializer.SerializeToElement("Name"),
         }, CancellationToken.None);
 
-        var payload = JsonSerializer.Deserialize<ToolResult<TestResponse>>(result.StructuredContent!.Value.GetRawText(), _serializerOptions);
-
         result.IsError.Should().BeTrue();
-        payload!.Outcome.Should().Be(ToolOutcome.Conflict);
-        payload.Error!.Code.Should().Be("Conflict");
+        result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeFalse();
+        result.StructuredContent.Value.GetProperty("error").GetProperty("code").GetString().Should().Be("Conflict");
     }
 
     [Fact]
@@ -145,12 +132,10 @@ public sealed class ToolExecutorTests
             ["name"] = JsonSerializer.SerializeToElement("Name"),
         }, CancellationToken.None);
 
-        var payload = JsonSerializer.Deserialize<ToolResult<TestResponse>>(result.StructuredContent!.Value.GetRawText(), _serializerOptions);
-
         result.IsError.Should().BeTrue();
-        payload!.Outcome.Should().Be(ToolOutcome.Faulted);
-        payload.Error!.Code.Should().Be("UnhandledException");
-        payload.Error.CorrelationId.Should().NotBeNullOrWhiteSpace();
+        result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeFalse();
+        result.StructuredContent.Value.GetProperty("error").GetProperty("code").GetString().Should().Be("UnhandledException");
+        result.StructuredContent.Value.GetProperty("error").GetProperty("correlationId").GetString().Should().NotBeNullOrWhiteSpace();
     }
 
     [Fact]
@@ -164,11 +149,10 @@ public sealed class ToolExecutorTests
             ["name"] = JsonSerializer.SerializeToElement("Name"),
         }, CancellationToken.None);
 
-        var payload = JsonSerializer.Deserialize<ToolResult<TestResponse>>(result.StructuredContent!.Value.GetRawText(), _serializerOptions);
-
         result.IsError.Should().BeTrue();
-        payload!.Outcome.Should().Be(ToolOutcome.Rejected);
-        payload.Error!.Code.Should().Be("WorkspaceBusy");
+        result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeFalse();
+        result.StructuredContent.Value.GetProperty("error").GetProperty("code").GetString().Should().Be("WorkspaceBusy");
+        result.StructuredContent.Value.GetProperty("next").GetString().Should().Be("Retry");
     }
 
     private static RegisteredTool CreateQueryTool(IQueryToolHandler<TestRequest, TestResponse> handler)

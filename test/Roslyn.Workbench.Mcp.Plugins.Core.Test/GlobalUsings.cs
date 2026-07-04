@@ -1,10 +1,16 @@
 global using AwesomeAssertions;
 global using Microsoft.CodeAnalysis;
+global using Roslyn.Workbench.Mcp.Contracts.CodeActions;
 global using Roslyn.Workbench.Mcp.Contracts.Inspection;
 global using Roslyn.Workbench.Mcp.Contracts.Refactorings;
 global using Roslyn.Workbench.Mcp.Contracts.Results;
 global using Roslyn.Workbench.Mcp.Contracts.Selectors;
 global using Roslyn.Workbench.Mcp.Contracts.Server;
 global using Roslyn.Workbench.Mcp.Contracts.Transactions;
+global using Roslyn.Workbench.Mcp.Plugins;
+global using Roslyn.Workbench.Mcp.Plugins.Core.CodeActions;
+global using Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
+global using Roslyn.Workbench.Mcp.Plugins.Core.Refactorings;
+global using Roslyn.Workbench.Mcp.TestSupport;
 global using Roslyn.Workbench.Mcp.Workspace;
 global using Xunit;

@@ -15,7 +15,7 @@ public sealed record GetProjectDetailsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets a value indicating whether documents should be included.
     /// </summary>
-    public bool IncludeDocuments { get; init; } = true;
+    public bool IncludeDocuments { get; init; }
 
     /// <summary>
     /// Gets the optional result limit.

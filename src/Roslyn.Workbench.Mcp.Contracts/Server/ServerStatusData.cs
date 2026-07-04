@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Roslyn.Workbench.Mcp.Contracts.Results;
 
 namespace Roslyn.Workbench.Mcp.Contracts.Server;
@@ -35,6 +36,7 @@ public sealed record ServerStatusData
     /// <summary>
     /// Gets the effective non-sensitive server configuration.
     /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public ServerConfiguration? Configuration { get; init; }
 
     /// <summary>
@@ -45,10 +47,12 @@ public sealed record ServerStatusData
     /// <summary>
     /// Gets the plugin load results.
     /// </summary>
-    public IReadOnlyList<PluginStatus> Plugins { get; init; } = [];
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<PluginStatus>? Plugins { get; init; }
 
     /// <summary>
     /// Gets the unfinished recovery state, when present.
     /// </summary>
-    public IReadOnlyList<RecoveryStatus> Recovery { get; init; } = [];
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<RecoveryStatus>? Recovery { get; init; }
 }

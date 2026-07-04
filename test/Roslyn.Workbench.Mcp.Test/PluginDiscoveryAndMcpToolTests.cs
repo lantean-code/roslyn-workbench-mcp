@@ -8,8 +8,6 @@ namespace Roslyn.Workbench.Mcp.Test;
 
 public sealed class PluginDiscoveryAndMcpToolTests
 {
-    private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
-
     [Fact]
     public void GIVEN_PluginDirectoryAssemblies_WHEN_LoadingCatalog_THEN_ShouldKeepEnabledToolsAndDisabledDiagnostics()
     {
@@ -70,11 +68,9 @@ public sealed class PluginDiscoveryAndMcpToolTests
 
         result.StructuredContent.Should().NotBeNull();
 
-        var payload = JsonSerializer.Deserialize<ToolResult<HostValidQueryPlugin.Response>>(result.StructuredContent!.Value.GetRawText(), _serializerOptions);
-
         result.IsError.Should().BeFalse();
-        payload!.Outcome.Should().Be(ToolOutcome.Succeeded);
-        payload.Data!.Value.Should().Be("Name");
+        result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeTrue();
+        result.StructuredContent.Value.GetProperty("value").GetProperty("value").GetString().Should().Be("Name");
     }
 
     [Fact]
@@ -113,10 +109,8 @@ public sealed class PluginDiscoveryAndMcpToolTests
                 }),
             CancellationToken.None);
 
-        var payload = JsonSerializer.Deserialize<ToolResult<HostValidQueryPlugin.Response>>(result.StructuredContent!.Value.GetRawText(), _serializerOptions);
-
-        payload!.Outcome.Should().Be(ToolOutcome.Succeeded);
-        payload.Data!.Value.Should().Be("Name");
+        result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeTrue();
+        result.StructuredContent.Value.GetProperty("value").GetProperty("value").GetString().Should().Be("Name");
     }
 
     private static string CreatePluginDirectory(params Assembly[] assemblies)

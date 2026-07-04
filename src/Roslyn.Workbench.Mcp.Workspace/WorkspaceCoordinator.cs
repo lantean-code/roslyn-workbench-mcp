@@ -362,7 +362,7 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
         }
 
         return ToolResult<WorkspaceStatusData>.Succeeded(
-            CreateStatusData(session),
+            CreateStatusData(session, request.Detail),
             workspaceId: session.Workspace.WorkspaceId,
             workspaceEpoch: session.Workspace.WorkspaceEpoch,
             transactionRevision: session.Transaction?.CurrentRevision);
@@ -974,7 +974,7 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
             StageMutationAsync);
     }
 
-    private static WorkspaceStatusData CreateStatusData(WorkspaceSessionSnapshot session)
+    private static WorkspaceStatusData CreateStatusData(WorkspaceSessionSnapshot session, StatusDetailLevel detail)
     {
         return new WorkspaceStatusData
         {
@@ -982,7 +982,7 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
             Workspace = session.Workspace,
             ProjectCount = session.ProjectCount,
             DocumentCount = session.DocumentCount,
-            LoadDiagnostics = session.LoadDiagnostics,
+            LoadDiagnostics = detail == StatusDetailLevel.Full ? session.LoadDiagnostics : null,
             Transaction = session.Transaction?.ToInfo(session.State == WorkspaceLifecycleState.TransactionConflicted),
             ReloadRequired = session.State == WorkspaceLifecycleState.WorkspaceOutOfDate,
         };

@@ -23,7 +23,7 @@ internal sealed class GetDiagnosticsTool : QueryToolHandler<GetDiagnosticsReques
     protected override async ValueTask<PluginExecutionResult<DiagnosticsData>> ExecuteCoreAsync(GetDiagnosticsRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var documents = ToolExecutionHelpers.ResolveDocuments<DiagnosticsData>(request.Scope, context);
+        var documents = context.ToolExecutionServices.RequestResolver.ResolveDocuments<DiagnosticsData>(request.Scope, context);
         if (documents.HasRejection)
         {
             return documents.Rejection;
@@ -44,14 +44,14 @@ internal sealed class GetDiagnosticsTool : QueryToolHandler<GetDiagnosticsReques
                 Id = diagnostic.Id,
                 Severity = InspectionProjectionFactory.MapSeverity(diagnostic.Severity),
                 Message = diagnostic.GetMessage(),
-                Location = diagnostic.Location.IsInSource ? context.Resolver.CreateResolvedLocation(diagnostic.Location) : null,
+                Location = diagnostic.Location.IsInSource ? context.WorkspaceResolver.CreateResolvedLocation(diagnostic.Location) : null,
             })
             .OrderBy(static diagnostic => diagnostic.Location?.Document?.Path ?? string.Empty, StringComparer.Ordinal)
             .ThenBy(static diagnostic => diagnostic.Location?.Span?.Start ?? int.MaxValue)
             .ThenBy(static diagnostic => diagnostic.Id, StringComparer.Ordinal)
             .ToArray();
 
-        return ToolExecutionHelpers.CreateBoundedCollectionResult(
+        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
             context,
             projectedDiagnostics,
             ToolExecutionHelpers.GetMaxResults(context, request.Limit),

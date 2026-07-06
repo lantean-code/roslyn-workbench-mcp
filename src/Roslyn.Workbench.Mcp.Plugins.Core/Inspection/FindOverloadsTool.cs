@@ -19,7 +19,7 @@ internal sealed class FindOverloadsTool : QueryToolHandler<FindOverloadsRequest,
     protected override async ValueTask<PluginExecutionResult<OverloadSearchData>> ExecuteCoreAsync(FindOverloadsRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var symbolResolution = await ToolExecutionHelpers.ResolveSymbolAsync<OverloadSearchData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<OverloadSearchData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
@@ -27,7 +27,7 @@ internal sealed class FindOverloadsTool : QueryToolHandler<FindOverloadsRequest,
 
         if (symbolResolution.Value is not IMethodSymbol methodSymbol)
         {
-            return ToolExecutionHelpers.Rejected<OverloadSearchData>("InvalidRequest", "Find overloads requires a method or constructor symbol.");
+            return context.ToolExecutionServices.ResultShaper.Rejected<OverloadSearchData>("InvalidRequest", "Find overloads requires a method or constructor symbol.");
         }
 
         IEnumerable<IMethodSymbol> overloads = methodSymbol.MethodKind == MethodKind.Constructor
@@ -41,13 +41,13 @@ internal sealed class FindOverloadsTool : QueryToolHandler<FindOverloadsRequest,
             .Select(CreateCallableSignature)
             .ToArray();
 
-        return ToolExecutionHelpers.CreateBoundedCollectionResult(
+        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
             context,
             signatures,
             ToolExecutionHelpers.GetMaxResults(context, request.Limit),
             (items, hasMore) => new OverloadSearchData
             {
-                Symbol = context.Resolver.CreateSymbolReference(methodSymbol),
+                Symbol = context.WorkspaceResolver.CreateSymbolReference(methodSymbol),
                 Overloads = items,
                 ReturnedCount = items.Count,
                 HasMore = hasMore,

@@ -16,7 +16,7 @@ public static class BundledCoreToolTestHarness
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = maxResponseBytes,
-        });
+        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
     }
 
     public static IWorkspaceCoordinator CreateBuiltInCodeActionCoordinator()
@@ -28,12 +28,10 @@ public static class BundledCoreToolTestHarness
 
         return WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
         {
-            CodeActionService = runtime.CodeActionService,
-            WorkspaceHostServices = runtime.WorkspaceHostServices,
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
     }
 
     public static IWorkspaceCoordinator CreateTestCodeActionCoordinator(TimeSpan? tokenLifetime = null)
@@ -50,12 +48,10 @@ public static class BundledCoreToolTestHarness
 
         return WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
         {
-            CodeActionService = runtime.CodeActionService,
-            WorkspaceHostServices = runtime.WorkspaceHostServices,
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
     }
 
     public static SnapshotPrecondition CreateSnapshot(ToolResult<WorkspaceOpenData> openResult, int? transactionRevision = null)

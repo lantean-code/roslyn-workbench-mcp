@@ -22,14 +22,14 @@ internal sealed class GetSymbolDependentsTool : QueryToolHandler<GetSymbolDepend
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var symbolResolution = await ToolExecutionHelpers.ResolveSymbolAsync<SymbolDependentsData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<SymbolDependentsData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
         }
 
         var symbol = symbolResolution.Value;
-        var documents = ToolExecutionHelpers.ResolveDocuments<SymbolDependentsData>(request.Scope, context);
+        var documents = context.ToolExecutionServices.RequestResolver.ResolveDocuments<SymbolDependentsData>(request.Scope, context);
         if (documents.HasRejection)
         {
             return documents.Rejection;
@@ -57,17 +57,17 @@ internal sealed class GetSymbolDependentsTool : QueryToolHandler<GetSymbolDepend
         }
 
         var orderedDependents = dependents
-            .OrderBy(item => context.Resolver.CreateSymbolReference(item).DisplayName, StringComparer.Ordinal)
-            .Select(context.Resolver.CreateSymbolReference)
+            .OrderBy(item => context.WorkspaceResolver.CreateSymbolReference(item).DisplayName, StringComparer.Ordinal)
+            .Select(context.WorkspaceResolver.CreateSymbolReference)
             .ToArray();
 
-        return ToolExecutionHelpers.CreateBoundedCollectionResult(
+        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
             context,
             orderedDependents,
             ToolExecutionHelpers.GetMaxResults(context, request.Limit),
             (items, hasMore) => new SymbolDependentsData
             {
-                Symbol = context.Resolver.CreateSymbolReference(symbol),
+                Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
                 Dependents = items,
                 ReturnedCount = items.Count,
                 HasMore = hasMore,

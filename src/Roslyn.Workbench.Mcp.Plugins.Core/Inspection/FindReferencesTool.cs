@@ -23,14 +23,14 @@ internal sealed class FindReferencesTool : QueryToolHandler<FindReferencesReques
     protected override async ValueTask<PluginExecutionResult<ReferenceSearchData>> ExecuteCoreAsync(FindReferencesRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var symbolResolution = await ToolExecutionHelpers.ResolveSymbolAsync<ReferenceSearchData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<ReferenceSearchData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
         }
 
         var symbol = symbolResolution.Value;
-        var documents = ToolExecutionHelpers.ResolveDocuments<ReferenceSearchData>(request.Scope, context);
+        var documents = context.ToolExecutionServices.RequestResolver.ResolveDocuments<ReferenceSearchData>(request.Scope, context);
         if (documents.HasRejection)
         {
             return documents.Rejection;
@@ -51,8 +51,8 @@ internal sealed class FindReferencesTool : QueryToolHandler<FindReferencesReques
                     .Where(static location => location.IsInSource)
                     .Select(location => new ContractReferenceLocation
                     {
-                        Location = context.Resolver.CreateResolvedLocation(location),
-                        ContainingSymbol = context.Resolver.CreateSymbolReference(referencedSymbol.Definition),
+                        Location = context.WorkspaceResolver.CreateResolvedLocation(location),
+                        ContainingSymbol = context.WorkspaceResolver.CreateSymbolReference(referencedSymbol.Definition),
                         IsDefinition = true,
                     })
                     .Where(static location => location.Location is not null));
@@ -66,12 +66,12 @@ internal sealed class FindReferencesTool : QueryToolHandler<FindReferencesReques
             {
                 var containingSymbol = reference.Document is null
                     ? null
-                    : await ToolExecutionHelpers.TryCreateContainingSymbolAsync(reference.Document, reference.Location.SourceSpan.Start, context, cancellationToken).ConfigureAwait(false);
+                    : await context.ToolExecutionServices.InspectionContextService.TryCreateContainingSymbolAsync(reference.Document, reference.Location.SourceSpan.Start, context.CurrentSolution, cancellationToken).ConfigureAwait(false);
                 var contextLine = request.IncludeContext
-                    ? await ToolExecutionHelpers.ReadContextAsync(reference.Document, reference.Location.SourceSpan, cancellationToken).ConfigureAwait(false)
+                    ? await context.ToolExecutionServices.InspectionContextService.ReadContextAsync(reference.Document, reference.Location.SourceSpan, cancellationToken).ConfigureAwait(false)
                     : null;
 
-                var location = context.Resolver.CreateResolvedLocation(reference.Location);
+                var location = context.WorkspaceResolver.CreateResolvedLocation(reference.Location);
                 if (location is null)
                 {
                     continue;
@@ -80,7 +80,7 @@ internal sealed class FindReferencesTool : QueryToolHandler<FindReferencesReques
                 references.Add(new ContractReferenceLocation
                 {
                     Location = location,
-                    ContainingSymbol = containingSymbol is null ? null : context.Resolver.CreateSymbolReference(containingSymbol),
+                    ContainingSymbol = containingSymbol is null ? null : context.WorkspaceResolver.CreateSymbolReference(containingSymbol),
                     IsWrite = await IsWriteReferenceAsync(reference, cancellationToken).ConfigureAwait(false),
                     Context = contextLine,
                 });
@@ -91,9 +91,9 @@ internal sealed class FindReferencesTool : QueryToolHandler<FindReferencesReques
             .OrderBy(static reference => reference.Location!.Document!.Path, StringComparer.Ordinal)
             .ThenBy(static reference => reference.Location!.Span!.Start)
             .ToArray();
-        var symbolReference = context.Resolver.CreateSymbolReference(symbol);
+        var symbolReference = context.WorkspaceResolver.CreateSymbolReference(symbol);
 
-        return ToolExecutionHelpers.CreateBoundedCollectionResult(
+        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
             context,
             orderedReferences,
             ToolExecutionHelpers.GetMaxResults(context, request.Limit),

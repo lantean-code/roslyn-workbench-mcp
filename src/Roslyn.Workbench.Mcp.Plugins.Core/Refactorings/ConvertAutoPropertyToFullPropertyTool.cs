@@ -24,7 +24,7 @@ internal sealed class ConvertAutoPropertyToFullPropertyTool : MutationToolHandle
 
     protected override ValueTask<PluginExecutionResult<MutationProposal>> ExecuteCoreAsync(ConvertAutoPropertyToFullPropertyRequest request, IMutationContext context, CancellationToken cancellationToken)
     {
-        return ToolExecutionHelpers.StageReplaySelectionAsync(
+        return context.ToolExecutionServices.ReplayCodeActionExecutor.StageReplaySelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             context,

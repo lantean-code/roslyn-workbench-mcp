@@ -28,7 +28,7 @@ internal sealed class ConvertIfToSwitchTool : MutationToolHandler<ConvertIfToSwi
             ? "Convert to 'switch' expression"
             : "Convert to 'switch' statement";
 
-        return ToolExecutionHelpers.StageReplaySelectionAsync(
+        return context.ToolExecutionServices.ReplayCodeActionExecutor.StageReplaySelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             context,

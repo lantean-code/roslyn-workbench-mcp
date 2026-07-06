@@ -19,32 +19,31 @@ internal sealed class FindDependencyCyclesTool : QueryToolHandler<FindDependency
     protected override async ValueTask<PluginExecutionResult<DependencyCyclesData>> ExecuteCoreAsync(FindDependencyCyclesRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-
-        if (!DependencyAnalysisHelpers.IsSupportedCycleGranularity(request.Granularity))
+        if (!context.ToolExecutionServices.DependencyAnalysisService.IsSupportedCycleGranularity(request.Granularity))
         {
             return ToolExecutionHelpers.Rejected<DependencyCyclesData>("InvalidRequest", "Granularity must be Project, Namespace, or Type.");
         }
 
-        var documents = ToolExecutionHelpers.ResolveDocuments<DependencyCyclesData>(request.Scope, context);
+        var documents = context.ToolExecutionServices.RequestResolver.ResolveDocuments<DependencyCyclesData>(request.Scope, context);
         if (documents.HasRejection)
         {
             return documents.Rejection;
         }
 
-        var projects = ToolExecutionHelpers.ResolveProjects<DependencyCyclesData>(request.Scope, context);
+        var projects = context.ToolExecutionServices.RequestResolver.ResolveProjects<DependencyCyclesData>(request.Scope, context);
         if (projects.HasRejection)
         {
             return projects.Rejection;
         }
 
-        var cycles = await DependencyAnalysisHelpers.FindCyclesAsync(
+        var cycles = await context.ToolExecutionServices.DependencyAnalysisService.FindCyclesAsync(
             request.Granularity,
             projects.Value,
             documents.Value,
             context,
             cancellationToken).ConfigureAwait(false);
 
-        return ToolExecutionHelpers.CreateBoundedCollectionResult(
+        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
             context,
             cycles,
             ToolExecutionHelpers.GetMaxResults(context, request.Limit),

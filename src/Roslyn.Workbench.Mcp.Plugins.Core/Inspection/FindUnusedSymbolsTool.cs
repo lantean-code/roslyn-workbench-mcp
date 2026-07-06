@@ -27,7 +27,7 @@ internal sealed class FindUnusedSymbolsTool : QueryToolHandler<FindUnusedSymbols
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var documents = ToolExecutionHelpers.ResolveDocuments<UnusedSymbolsData>(request.Scope, context);
+        var documents = context.ToolExecutionServices.RequestResolver.ResolveDocuments<UnusedSymbolsData>(request.Scope, context);
         if (documents.HasRejection)
         {
             return documents.Rejection;
@@ -36,7 +36,7 @@ internal sealed class FindUnusedSymbolsTool : QueryToolHandler<FindUnusedSymbols
         var selectedDocuments = request.ExcludeGenerated
             ? documents.Value.Where(static document => !CompilerDiagnosticHelpers.IsGeneratedDocument(document)).ToArray()
             : documents.Value.ToArray();
-        var diagnostics = await CompilerDiagnosticHelpers.GetCompilerDiagnosticsAsync(selectedDocuments, cancellationToken).ConfigureAwait(false);
+        var diagnostics = await context.ToolExecutionServices.CompilerDiagnosticService.GetCompilerDiagnosticsAsync(selectedDocuments, cancellationToken).ConfigureAwait(false);
         var candidates = new List<UnusedSymbolCandidate>();
 
         foreach (var diagnostic in diagnostics.Where(diagnostic => _unusedDiagnosticIds.Contains(diagnostic.Id)))
@@ -69,8 +69,8 @@ internal sealed class FindUnusedSymbolsTool : QueryToolHandler<FindUnusedSymbols
             var sourceLocation = symbol.Locations.FirstOrDefault(static location => location.IsInSource);
             candidates.Add(new UnusedSymbolCandidate
             {
-                Symbol = context.Resolver.CreateSymbolReference(symbol),
-                Location = sourceLocation is null ? null : context.Resolver.CreateResolvedLocation(sourceLocation),
+                Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
+                Location = sourceLocation is null ? null : context.WorkspaceResolver.CreateResolvedLocation(sourceLocation),
                 Confidence = "High",
                 Reasons =
                 [
@@ -86,7 +86,7 @@ internal sealed class FindUnusedSymbolsTool : QueryToolHandler<FindUnusedSymbols
             .ThenBy(static candidate => candidate.Symbol?.DisplayName ?? string.Empty, StringComparer.Ordinal)
             .ToArray();
 
-        return ToolExecutionHelpers.CreateBoundedCollectionResult(
+        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
             context,
             orderedCandidates,
             ToolExecutionHelpers.GetMaxResults(context, request.Limit),

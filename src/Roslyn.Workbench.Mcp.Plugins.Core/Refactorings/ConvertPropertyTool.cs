@@ -29,7 +29,7 @@ internal sealed class ConvertPropertyTool : MutationToolHandler<ConvertPropertyR
     {
         return request.Direction switch
         {
-            ConvertPropertyDirection.ToFull => ToolExecutionHelpers.StageReplaySelectionAsync(
+            ConvertPropertyDirection.ToFull => context.ToolExecutionServices.ReplayCodeActionExecutor.StageReplaySelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
                 context,
@@ -46,7 +46,7 @@ internal sealed class ConvertPropertyTool : MutationToolHandler<ConvertPropertyR
                 AnalyzerTypeName = UseAutoPropertyAnalyzerTypeName,
                 SyntheticDiagnosticId = UseAutoPropertyDiagnosticId,
             }, context, cancellationToken),
-            _ => ValueTask.FromResult(ToolExecutionHelpers.Rejected<MutationProposal>("InvalidRequest", "The requested property conversion direction is not supported.")),
+            _ => ValueTask.FromResult(context.ToolExecutionServices.ResultShaper.Rejected<MutationProposal>("InvalidRequest", "The requested property conversion direction is not supported.")),
         };
     }
 }

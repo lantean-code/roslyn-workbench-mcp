@@ -22,7 +22,7 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
     protected override async ValueTask<PluginExecutionResult<TypeHierarchyData>> ExecuteCoreAsync(GetTypeHierarchyRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var symbolResolution = await ToolExecutionHelpers.ResolveSymbolAsync<TypeHierarchyData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<TypeHierarchyData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
@@ -36,7 +36,7 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
         var baseTypes = new List<SymbolReference>();
         for (var current = namedType.BaseType; current is not null; current = current.BaseType)
         {
-            baseTypes.Add(context.Resolver.CreateSymbolReference(current));
+            baseTypes.Add(context.WorkspaceResolver.CreateSymbolReference(current));
         }
 
         IReadOnlyList<TypeHierarchyNode>? derivedTypes = null;
@@ -47,10 +47,10 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
             var derived = (await FindDerivedTypeSymbolsAsync(namedType, context.CurrentSolution, context.CurrentSolution.Projects.ToImmutableHashSet(), cancellationToken).ConfigureAwait(false))
                 .Distinct(SymbolEqualityComparer.Default)
                 .OfType<INamedTypeSymbol>()
-                .OrderBy(symbol => context.Resolver.CreateSymbolReference(symbol).DisplayName, StringComparer.Ordinal)
+                .OrderBy(symbol => context.WorkspaceResolver.CreateSymbolReference(symbol).DisplayName, StringComparer.Ordinal)
                 .Select(symbol => new TypeHierarchyNode
                 {
-                    Type = context.Resolver.CreateSymbolReference(symbol),
+                    Type = context.WorkspaceResolver.CreateSymbolReference(symbol),
                     Depth = GetTypeDepth(symbol, namedType),
                 })
                 .ToArray();
@@ -59,13 +59,13 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
             hasMore = derivedHasMore;
         }
 
-        return ToolExecutionHelpers.EnsureWithinSize(context, new TypeHierarchyData
+        return context.ToolExecutionServices.ResultShaper.EnsureWithinSize(context, new TypeHierarchyData
         {
-            Type = context.Resolver.CreateSymbolReference(namedType),
+            Type = context.WorkspaceResolver.CreateSymbolReference(namedType),
             BaseTypes = baseTypes,
             Interfaces = namedType.AllInterfaces
                 .OrderBy(static item => item.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat), StringComparer.Ordinal)
-                .Select(context.Resolver.CreateSymbolReference)
+                .Select(context.WorkspaceResolver.CreateSymbolReference)
                 .ToArray(),
             DerivedTypes = derivedTypes,
             ReturnedCount = returnedCount,

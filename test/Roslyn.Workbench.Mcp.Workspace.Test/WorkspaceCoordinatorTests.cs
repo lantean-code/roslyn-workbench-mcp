@@ -1,6 +1,8 @@
 using System.Text;
 using System.Text.Json;
 
+using Microsoft.Extensions.Options;
+
 using Roslyn.Workbench.Mcp.Plugins;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test;
@@ -18,6 +20,39 @@ public sealed class WorkspaceCoordinatorTests
         typeof(IWorkspaceCoordinator).GetMethod("CommitTransactionAsync", [typeof(TransactionCommitRequest), typeof(CancellationToken)]).Should().NotBeNull();
         typeof(IWorkspaceCoordinator).GetMethod("RollbackTransactionAsync", [typeof(TransactionRollbackRequest), typeof(CancellationToken)]).Should().NotBeNull();
         typeof(IWorkspaceCoordinator).GetMethod("ListAsync", [typeof(WorkspaceListRequest), typeof(CancellationToken)]).Should().NotBeNull();
+    }
+
+    [Fact]
+    public void GIVEN_WorkspaceCoordinatorOptionsContract_WHEN_InspectingPublicProperties_THEN_ShouldOnlyExposeConfigurationState()
+    {
+        var propertyNames = typeof(WorkspaceCoordinatorOptions)
+            .GetProperties()
+            .Select(static property => property.Name)
+            .OrderBy(static name => name, StringComparer.Ordinal)
+            .ToArray();
+
+        propertyNames.Should().Equal(
+        [
+            "DefaultMaxResults",
+            "MaxConcurrentQueries",
+            "MaxLoadedWorkspaces",
+            "MaxResponseBytes",
+            "MaxTransactionRevisions",
+            "StateDirectory",
+        ]);
+    }
+
+    [Fact]
+    public void GIVEN_WorkspaceCoordinatorType_WHEN_InspectingPublicConstructors_THEN_ShouldRequireTypedOptionsAndInjectedServices()
+    {
+        var constructor = typeof(WorkspaceCoordinator).GetConstructor(
+        [
+            typeof(IOptions<WorkspaceCoordinatorOptions>),
+            typeof(CodeActionRuntime),
+            typeof(IToolExecutionServices),
+        ]);
+
+        constructor.Should().NotBeNull();
     }
 
     [Fact]

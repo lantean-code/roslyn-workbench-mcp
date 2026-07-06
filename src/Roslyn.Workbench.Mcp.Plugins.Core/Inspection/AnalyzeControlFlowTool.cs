@@ -33,7 +33,7 @@ internal sealed class AnalyzeControlFlowTool : QueryToolHandler<AnalyzeControlFl
             return ToolExecutionHelpers.Rejected<ControlFlowAnalysisData>("InvalidRequest", "The selected region does not support control-flow analysis.");
         }
 
-        return ToolExecutionHelpers.EnsureWithinSize(context, new ControlFlowAnalysisData
+        return context.ToolExecutionServices.ResultShaper.EnsureWithinSize(context, new ControlFlowAnalysisData
         {
             Region = statementResolution.ResolvedLocation,
             EntryReachable = analysis.StartPointIsReachable,
@@ -41,10 +41,10 @@ internal sealed class AnalyzeControlFlowTool : QueryToolHandler<AnalyzeControlFl
             Exits = analysis.ExitPoints.Select(node => new ControlFlowExit
             {
                 Kind = node.Kind().ToString(),
-                Location = context.Resolver.CreateResolvedLocation(node.GetLocation()),
+                Location = context.WorkspaceResolver.CreateResolvedLocation(node.GetLocation()),
             }).ToArray(),
             Returns = analysis.ReturnStatements
-                .Select(node => context.Resolver.CreateResolvedLocation(node.GetLocation()))
+                .Select(node => context.WorkspaceResolver.CreateResolvedLocation(node.GetLocation()))
                 .Where(static item => item is not null)
                 .Select(static item => item!)
                 .ToArray(),
@@ -81,7 +81,7 @@ internal sealed class AnalyzeControlFlowTool : QueryToolHandler<AnalyzeControlFl
 
     private static async ValueTask<SyntaxNodeResolution> ResolveSyntaxNodeAsync(LocationSelector? selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)
     {
-        var rejection = ToolExecutionHelpers.ValidateSnapshot<ControlFlowAnalysisData>(context, expectedSnapshot);
+        var rejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<ControlFlowAnalysisData>(context, expectedSnapshot);
         if (rejection is not null)
         {
             return new SyntaxNodeResolution
@@ -98,7 +98,7 @@ internal sealed class AnalyzeControlFlowTool : QueryToolHandler<AnalyzeControlFl
             };
         }
 
-        var locationResolution = await context.Resolver.ResolveLocationAsync(selector, cancellationToken).ConfigureAwait(false);
+        var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken).ConfigureAwait(false);
         if (locationResolution.Status != SelectorResolveStatus.Resolved)
         {
             return new SyntaxNodeResolution
@@ -107,7 +107,7 @@ internal sealed class AnalyzeControlFlowTool : QueryToolHandler<AnalyzeControlFl
             };
         }
 
-        var resolvedLocation = context.Resolver.CreateResolvedLocation(locationResolution.Value!);
+        var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(locationResolution.Value!);
         if (resolvedLocation?.Document?.Path is null)
         {
             return new SyntaxNodeResolution

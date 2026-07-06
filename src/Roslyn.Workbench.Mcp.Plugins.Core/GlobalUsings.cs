@@ -13,3 +13,4 @@ global using Microsoft.CodeAnalysis.Rename;
 global using Microsoft.CodeAnalysis.Text;
 global using Microsoft.VisualStudio.SolutionPersistence.Model;
 global using Microsoft.VisualStudio.SolutionPersistence.Serializer;
+global using Roslyn.Workbench.Mcp.Plugins;

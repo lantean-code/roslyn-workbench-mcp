@@ -22,7 +22,7 @@ internal sealed class FindOverridesTool : QueryToolHandler<FindOverridesRequest,
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var symbolResolution = await ToolExecutionHelpers.ResolveSymbolAsync<OverrideSearchData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<OverrideSearchData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
@@ -31,10 +31,10 @@ internal sealed class FindOverridesTool : QueryToolHandler<FindOverridesRequest,
         var symbol = symbolResolution.Value;
         if (symbol is not IMethodSymbol and not IPropertySymbol and not IEventSymbol)
         {
-            return ToolExecutionHelpers.Rejected<OverrideSearchData>("InvalidRequest", "Find overrides requires a virtual, abstract, property, or event member symbol.");
+            return context.ToolExecutionServices.ResultShaper.Rejected<OverrideSearchData>("InvalidRequest", "Find overrides requires a virtual, abstract, property, or event member symbol.");
         }
 
-        var scopeResolution = ToolExecutionHelpers.ResolveProjects<OverrideSearchData>(request.Scope, context);
+        var scopeResolution = context.ToolExecutionServices.RequestResolver.ResolveProjects<OverrideSearchData>(request.Scope, context);
         if (scopeResolution.HasRejection)
         {
             return scopeResolution.Rejection;
@@ -42,17 +42,17 @@ internal sealed class FindOverridesTool : QueryToolHandler<FindOverridesRequest,
 
         var overrides = (await SymbolFinder.FindOverridesAsync(symbol, context.CurrentSolution, scopeResolution.Value.ToImmutableHashSet(), cancellationToken).ConfigureAwait(false))
             .Distinct(SymbolEqualityComparer.Default)
-            .OrderBy(item => context.Resolver.CreateSymbolReference(item).DisplayName, StringComparer.Ordinal)
-            .Select(context.Resolver.CreateSymbolReference)
+            .OrderBy(item => context.WorkspaceResolver.CreateSymbolReference(item).DisplayName, StringComparer.Ordinal)
+            .Select(context.WorkspaceResolver.CreateSymbolReference)
             .ToArray();
 
-        return ToolExecutionHelpers.CreateBoundedCollectionResult(
+        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
             context,
             overrides,
             ToolExecutionHelpers.GetMaxResults(context, request.Limit),
             (items, hasMore) => new OverrideSearchData
             {
-                Symbol = context.Resolver.CreateSymbolReference(symbol),
+                Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
                 Overrides = items,
                 ReturnedCount = items.Count,
                 HasMore = hasMore,

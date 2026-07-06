@@ -8,7 +8,7 @@ public sealed class ToolExecutionHelpersTests
     [Fact]
     public void GIVEN_ResolutionResult_WHEN_CheckingHasRejection_THEN_ShouldExposeConditionalNullabilityMetadata()
     {
-        var property = typeof(ToolExecutionHelpers.ResolutionResult<string, object>).GetProperty("HasRejection", BindingFlags.Instance | BindingFlags.Public);
+        var property = typeof(ToolResolutionResult<string, object>).GetProperty("HasRejection", BindingFlags.Instance | BindingFlags.Public);
 
         property.Should().NotBeNull();
 
@@ -19,15 +19,15 @@ public sealed class ToolExecutionHelpersTests
 
         attributes.Should().HaveCount(2);
         attributes[0].ReturnValue.Should().BeFalse();
-        attributes[0].Members.Should().Equal(nameof(ToolExecutionHelpers.ResolutionResult<string, object>.Value));
+        attributes[0].Members.Should().Equal(nameof(ToolResolutionResult<string, object>.Value));
         attributes[1].ReturnValue.Should().BeTrue();
-        attributes[1].Members.Should().Equal(nameof(ToolExecutionHelpers.ResolutionResult<string, object>.Rejection));
+        attributes[1].Members.Should().Equal(nameof(ToolResolutionResult<string, object>.Rejection));
     }
 
     [Fact]
     public void GIVEN_ResolutionResult_WHEN_CheckingHasRejection_THEN_ShouldReflectStoredOutcome()
     {
-        var rejected = new ToolExecutionHelpers.ResolutionResult<string, object>
+        var rejected = new ToolResolutionResult<string, object>
         {
             Rejection = PluginExecutionResult<object>.Rejected(new ToolError
             {
@@ -35,7 +35,7 @@ public sealed class ToolExecutionHelpersTests
                 Message = "Message",
             }),
         };
-        var resolved = new ToolExecutionHelpers.ResolutionResult<string, object>
+        var resolved = new ToolResolutionResult<string, object>
         {
             Value = "Value",
         };

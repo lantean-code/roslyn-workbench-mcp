@@ -21,7 +21,7 @@ internal sealed class FindDerivedTypesTool : QueryToolHandler<FindDerivedTypesRe
     protected override async ValueTask<PluginExecutionResult<DerivedTypesData>> ExecuteCoreAsync(FindDerivedTypesRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var symbolResolution = await ToolExecutionHelpers.ResolveSymbolAsync<DerivedTypesData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<DerivedTypesData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
@@ -29,10 +29,10 @@ internal sealed class FindDerivedTypesTool : QueryToolHandler<FindDerivedTypesRe
 
         if (symbolResolution.Value is not INamedTypeSymbol namedType)
         {
-            return ToolExecutionHelpers.Rejected<DerivedTypesData>("InvalidRequest", "Find derived types requires a named type symbol.");
+            return context.ToolExecutionServices.ResultShaper.Rejected<DerivedTypesData>("InvalidRequest", "Find derived types requires a named type symbol.");
         }
 
-        var scopeResolution = ToolExecutionHelpers.ResolveProjects<DerivedTypesData>(request.Scope, context);
+        var scopeResolution = context.ToolExecutionServices.RequestResolver.ResolveProjects<DerivedTypesData>(request.Scope, context);
         if (scopeResolution.HasRejection)
         {
             return scopeResolution.Rejection;
@@ -41,21 +41,21 @@ internal sealed class FindDerivedTypesTool : QueryToolHandler<FindDerivedTypesRe
         var derivedTypes = (await FindDerivedTypeSymbolsAsync(namedType, context.CurrentSolution, scopeResolution.Value.ToImmutableHashSet(), cancellationToken).ConfigureAwait(false))
             .Distinct(SymbolEqualityComparer.Default)
             .OfType<INamedTypeSymbol>()
-            .OrderBy(symbol => context.Resolver.CreateSymbolReference(symbol).DisplayName, StringComparer.Ordinal)
+            .OrderBy(symbol => context.WorkspaceResolver.CreateSymbolReference(symbol).DisplayName, StringComparer.Ordinal)
             .Select(symbol => new TypeHierarchyNode
             {
-                Type = context.Resolver.CreateSymbolReference(symbol),
+                Type = context.WorkspaceResolver.CreateSymbolReference(symbol),
                 Depth = GetTypeDepth(symbol, namedType),
             })
             .ToArray();
 
-        return ToolExecutionHelpers.CreateBoundedCollectionResult(
+        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
             context,
             derivedTypes,
             ToolExecutionHelpers.GetMaxResults(context, request.Limit),
             (items, hasMore) => new DerivedTypesData
             {
-                BaseType = context.Resolver.CreateSymbolReference(namedType),
+                BaseType = context.WorkspaceResolver.CreateSymbolReference(namedType),
                 DerivedTypes = items,
                 ReturnedCount = items.Count,
                 HasMore = hasMore,

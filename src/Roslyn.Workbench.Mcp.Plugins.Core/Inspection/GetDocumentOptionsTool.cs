@@ -19,7 +19,7 @@ internal sealed class GetDocumentOptionsTool : QueryToolHandler<GetDocumentOptio
     protected override async ValueTask<PluginExecutionResult<DocumentOptionsData>> ExecuteCoreAsync(GetDocumentOptionsRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var documentResolution = ToolExecutionHelpers.ResolveDocument<DocumentOptionsData>(request.Document, context);
+        var documentResolution = context.ToolExecutionServices.RequestResolver.ResolveDocument<DocumentOptionsData>(request.Document, context);
         if (documentResolution.HasRejection)
         {
             return documentResolution.Rejection;
@@ -29,13 +29,13 @@ internal sealed class GetDocumentOptionsTool : QueryToolHandler<GetDocumentOptio
         var parseOptions = document.Project.ParseOptions;
         var data = new DocumentOptionsData
         {
-            Document = context.Resolver.CreateDocumentReference(document),
+            Document = context.WorkspaceResolver.CreateDocumentReference(document),
             LanguageVersion = parseOptions is CSharpParseOptions csharpParseOptions ? csharpParseOptions.LanguageVersion.ToDisplayString() : parseOptions?.Language ?? string.Empty,
             NullableContext = document.Project.CompilationOptions is CSharpCompilationOptions csharpCompilationOptions ? csharpCompilationOptions.NullableContextOptions.ToString() : string.Empty,
             ParseOptions = InspectionProjectionFactory.CreateParseOptionsInfo(parseOptions),
             AnalyzerConfig = await InspectionProjectionFactory.CreateAnalyzerConfigInfoAsync(document, cancellationToken).ConfigureAwait(false),
         };
 
-        return ToolExecutionHelpers.EnsureWithinSize(context, data);
+        return context.ToolExecutionServices.ResultShaper.EnsureWithinSize(context, data);
     }
 }

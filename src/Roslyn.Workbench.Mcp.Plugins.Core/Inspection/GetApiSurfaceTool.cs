@@ -19,8 +19,7 @@ internal sealed class GetApiSurfaceTool : QueryToolHandler<GetApiSurfaceRequest,
     protected override async ValueTask<PluginExecutionResult<ApiSurfaceData>> ExecuteCoreAsync(GetApiSurfaceRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-
-        var documents = ToolExecutionHelpers.ResolveDocuments<ApiSurfaceData>(request.Scope, context);
+        var documents = context.ToolExecutionServices.RequestResolver.ResolveDocuments<ApiSurfaceData>(request.Scope, context);
         if (documents.HasRejection)
         {
             return documents.Rejection;
@@ -29,7 +28,7 @@ internal sealed class GetApiSurfaceTool : QueryToolHandler<GetApiSurfaceRequest,
         var threshold = ParseMinimumAccessibility(request.MinimumAccessibility);
         if (threshold is null)
         {
-            return ToolExecutionHelpers.Rejected<ApiSurfaceData>("InvalidRequest", "Minimum accessibility must be Public, Protected, or Internal.");
+            return context.ToolExecutionServices.ResultShaper.Rejected<ApiSurfaceData>("InvalidRequest", "Minimum accessibility must be Public, Protected, or Internal.");
         }
 
         var exportedSymbols = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
@@ -66,16 +65,16 @@ internal sealed class GetApiSurfaceTool : QueryToolHandler<GetApiSurfaceRequest,
         }
 
         var orderedSymbols = exportedSymbols
-            .OrderBy(item => context.Resolver.CreateSymbolReference(item).DisplayName, StringComparer.Ordinal)
+            .OrderBy(item => context.WorkspaceResolver.CreateSymbolReference(item).DisplayName, StringComparer.Ordinal)
             .Select(item => new ApiSymbolInfo
             {
-                Symbol = context.Resolver.CreateSymbolReference(item),
+                Symbol = context.WorkspaceResolver.CreateSymbolReference(item),
                 Accessibility = item.DeclaredAccessibility.ToString(),
                 IsObsolete = HasObsoleteAttribute(item),
             })
             .ToArray();
 
-        return ToolExecutionHelpers.CreateBoundedCollectionResult(
+        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
             context,
             orderedSymbols,
             ToolExecutionHelpers.GetMaxResults(context, request.Limit),

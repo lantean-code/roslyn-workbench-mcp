@@ -24,7 +24,7 @@ internal sealed class ConvertToRecordTool : MutationToolHandler<LocationRefactor
 
     protected override ValueTask<PluginExecutionResult<MutationProposal>> ExecuteCoreAsync(LocationRefactoringRequest request, IMutationContext context, CancellationToken cancellationToken)
     {
-        return ToolExecutionHelpers.StageReplaySelectionAsync(
+        return context.ToolExecutionServices.ReplayCodeActionExecutor.StageReplaySelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             context,

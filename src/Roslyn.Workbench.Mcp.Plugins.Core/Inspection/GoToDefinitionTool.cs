@@ -19,7 +19,7 @@ internal sealed class GoToDefinitionTool : QueryToolHandler<GoToDefinitionReques
     protected override async ValueTask<PluginExecutionResult<DefinitionData>> ExecuteCoreAsync(GoToDefinitionRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var symbolResolution = await ToolExecutionHelpers.ResolveSymbolAsync<DefinitionData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<DefinitionData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
@@ -32,19 +32,19 @@ internal sealed class GoToDefinitionTool : QueryToolHandler<GoToDefinitionReques
                 .Where(static location => location.IsInSource)
                 .Select(location => new DefinitionLocation
                 {
-                    Location = context.Resolver.CreateResolvedLocation(location),
+                    Location = context.WorkspaceResolver.CreateResolvedLocation(location),
                 })
                 .Where(static definition => definition.Location is not null)
                 .OrderBy(static definition => definition.Location!.Document!.Path, StringComparer.Ordinal)
                 .ThenBy(static definition => definition.Location!.Span!.Start)
                 .ToArray()
-            : [InspectionProjectionFactory.CreateDefinitionLocation(sourceDefinition, context.Resolver)];
+            : [InspectionProjectionFactory.CreateDefinitionLocation(sourceDefinition, context.WorkspaceResolver)];
         var data = new DefinitionData
         {
-            Symbol = context.Resolver.CreateSymbolReference(symbol),
+            Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
             Definitions = definitions,
         };
 
-        return ToolExecutionHelpers.EnsureWithinSize(context, data);
+        return context.ToolExecutionServices.ResultShaper.EnsureWithinSize(context, data);
     }
 }

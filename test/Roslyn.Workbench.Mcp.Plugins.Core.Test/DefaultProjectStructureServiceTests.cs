@@ -1,20 +1,22 @@
-using Roslyn.Workbench.Mcp.TestSupport;
-
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test;
 
-public sealed class ProjectFileUtilitiesTests
+public sealed class DefaultProjectStructureServiceTests
 {
     [Fact]
     public async Task GIVEN_MissingSolutionPath_WHEN_GettingSolutionHierarchy_THEN_ShouldReturnEmpty()
     {
-        var result = await ProjectFileUtilities.GetSolutionHierarchyAsync(null, TestContext.Current.CancellationToken);
+        var target = new DefaultProjectStructureService();
 
-        result.Should().Be(ProjectFileUtilities.SolutionHierarchyInfo.Empty);
+        var result = await target.GetSolutionHierarchyAsync(null, TestContext.Current.CancellationToken);
+
+        result.Folders.Should().BeEmpty();
+        result.ProjectFolderPaths.Should().BeEmpty();
     }
 
     [Fact]
     public async Task GIVEN_UnsupportedSolutionExtension_WHEN_GettingSolutionHierarchy_THEN_ShouldReturnEmpty()
     {
+        var target = new DefaultProjectStructureService();
         var directoryPath = CreateDirectoryPath();
 
         try
@@ -22,9 +24,10 @@ public sealed class ProjectFileUtilitiesTests
             var solutionPath = Path.Combine(directoryPath, "Sample.txt");
             await File.WriteAllTextAsync(solutionPath, "content", TestContext.Current.CancellationToken);
 
-            var result = await ProjectFileUtilities.GetSolutionHierarchyAsync(solutionPath, TestContext.Current.CancellationToken);
+            var result = await target.GetSolutionHierarchyAsync(solutionPath, TestContext.Current.CancellationToken);
 
-            result.Should().Be(ProjectFileUtilities.SolutionHierarchyInfo.Empty);
+            result.Folders.Should().BeEmpty();
+            result.ProjectFolderPaths.Should().BeEmpty();
         }
         finally
         {
@@ -35,6 +38,7 @@ public sealed class ProjectFileUtilitiesTests
     [Fact]
     public async Task GIVEN_InvalidSolutionContent_WHEN_GettingSolutionHierarchy_THEN_ShouldReturnEmpty()
     {
+        var target = new DefaultProjectStructureService();
         var directoryPath = CreateDirectoryPath();
 
         try
@@ -42,9 +46,10 @@ public sealed class ProjectFileUtilitiesTests
             var solutionPath = Path.Combine(directoryPath, "Sample.slnx");
             await File.WriteAllTextAsync(solutionPath, "<Solution>", TestContext.Current.CancellationToken);
 
-            var result = await ProjectFileUtilities.GetSolutionHierarchyAsync(solutionPath, TestContext.Current.CancellationToken);
+            var result = await target.GetSolutionHierarchyAsync(solutionPath, TestContext.Current.CancellationToken);
 
-            result.Should().Be(ProjectFileUtilities.SolutionHierarchyInfo.Empty);
+            result.Folders.Should().BeEmpty();
+            result.ProjectFolderPaths.Should().BeEmpty();
         }
         finally
         {
@@ -55,6 +60,7 @@ public sealed class ProjectFileUtilitiesTests
     [Fact]
     public async Task GIVEN_SlnHierarchy_WHEN_GettingSolutionHierarchy_THEN_ShouldReturnFoldersAndProjectMembership()
     {
+        var target = new DefaultProjectStructureService();
         var directoryPath = CreateDirectoryPath();
 
         try
@@ -62,7 +68,7 @@ public sealed class ProjectFileUtilitiesTests
             var solutionPath = Path.Combine(directoryPath, "Sample.sln");
             await File.WriteAllTextAsync(solutionPath, CreateSlnContent().Replace("\n", Environment.NewLine), TestContext.Current.CancellationToken);
 
-            var result = await ProjectFileUtilities.GetSolutionHierarchyAsync(solutionPath, TestContext.Current.CancellationToken);
+            var result = await target.GetSolutionHierarchyAsync(solutionPath, TestContext.Current.CancellationToken);
 
             result.Folders.Should().BeEquivalentTo(
             [
@@ -81,6 +87,7 @@ public sealed class ProjectFileUtilitiesTests
     [Fact]
     public async Task GIVEN_SlnxHierarchy_WHEN_GettingSolutionHierarchy_THEN_ShouldReturnFoldersAndProjectMembership()
     {
+        var target = new DefaultProjectStructureService();
         var directoryPath = CreateDirectoryPath();
 
         try
@@ -88,7 +95,7 @@ public sealed class ProjectFileUtilitiesTests
             var solutionPath = Path.Combine(directoryPath, "Sample.slnx");
             await File.WriteAllTextAsync(solutionPath, CreateSlnxContent().Replace("\n", Environment.NewLine), TestContext.Current.CancellationToken);
 
-            var result = await ProjectFileUtilities.GetSolutionHierarchyAsync(solutionPath, TestContext.Current.CancellationToken);
+            var result = await target.GetSolutionHierarchyAsync(solutionPath, TestContext.Current.CancellationToken);
 
             result.Folders.Should().BeEquivalentTo(
             [
@@ -108,6 +115,7 @@ public sealed class ProjectFileUtilitiesTests
     public void GIVEN_TargetFrameworksImportedFromProps_WHEN_GettingTargetFrameworks_THEN_ShouldReturnEvaluatedValues()
     {
         MsBuildTestRegistration.EnsureRegistered();
+        var target = new DefaultProjectStructureService();
         var directoryPath = CreateDirectoryPath();
 
         try
@@ -130,7 +138,7 @@ public sealed class ProjectFileUtilitiesTests
                 </Project>
                 """);
 
-            var result = ProjectFileUtilities.GetTargetFrameworks(projectPath);
+            var result = target.GetTargetFrameworks(projectPath);
 
             result.Should().Equal("net10.0", "net9.0");
         }
@@ -142,7 +150,7 @@ public sealed class ProjectFileUtilitiesTests
 
     private static string CreateDirectoryPath()
     {
-        var directoryPath = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-project-file-utilities-tests", Guid.NewGuid().ToString("n"));
+        var directoryPath = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-project-structure-service-tests", Guid.NewGuid().ToString("n"));
         Directory.CreateDirectory(directoryPath);
         return directoryPath;
     }

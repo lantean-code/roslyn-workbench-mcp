@@ -2,14 +2,14 @@ using Roslyn.Workbench.Mcp.Contracts.Inspection;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core;
 
-internal static class ProjectFileUtilities
+internal sealed class DefaultProjectStructureService : IProjectStructureService
 {
-    public static IReadOnlyList<string> GetTargetFrameworks(Microsoft.CodeAnalysis.Project project)
+    public IReadOnlyList<string> GetTargetFrameworks(Project project)
     {
         return GetTargetFrameworks(project.FilePath);
     }
 
-    public static IReadOnlyList<string> GetTargetFrameworks(string? projectPath)
+    public IReadOnlyList<string> GetTargetFrameworks(string? projectPath)
     {
         if (string.IsNullOrWhiteSpace(projectPath) || !File.Exists(projectPath))
         {
@@ -40,22 +40,24 @@ internal static class ProjectFileUtilities
         }
     }
 
-    public static async Task<SolutionHierarchyInfo> GetSolutionHierarchyAsync(string? loadedPath, CancellationToken cancellationToken)
+    public async Task<(IReadOnlyList<SolutionFolderInfo> Folders, IReadOnlyDictionary<string, string?> ProjectFolderPaths)> GetSolutionHierarchyAsync(
+        string? loadedPath,
+        CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(loadedPath) || !File.Exists(loadedPath))
         {
-            return SolutionHierarchyInfo.Empty;
+            return EmptyHierarchy();
         }
 
         var serializer = SolutionSerializers.GetSerializerByMoniker(loadedPath);
         if (serializer is null)
         {
-            return SolutionHierarchyInfo.Empty;
+            return EmptyHierarchy();
         }
 
         try
         {
-            var model = await serializer.OpenAsync(loadedPath, cancellationToken);
+            var model = await serializer.OpenAsync(loadedPath, cancellationToken).ConfigureAwait(false);
             var folders = model.SolutionFolders
                 .Select(static folder => CreateSolutionFolderInfo(folder))
                 .OrderBy(static folder => folder.Path, StringComparer.Ordinal)
@@ -65,7 +67,7 @@ internal static class ProjectFileUtilities
                 static project => project.Parent is not null ? NormalizeFolderPath(project.Parent.Path) : null,
                 StringComparer.Ordinal);
 
-            return new SolutionHierarchyInfo(folders, projectFolderPaths);
+            return (folders, projectFolderPaths);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -73,8 +75,13 @@ internal static class ProjectFileUtilities
         }
         catch
         {
-            return SolutionHierarchyInfo.Empty;
+            return EmptyHierarchy();
         }
+    }
+
+    private static (IReadOnlyList<SolutionFolderInfo> Folders, IReadOnlyDictionary<string, string?> ProjectFolderPaths) EmptyHierarchy()
+    {
+        return ([], new Dictionary<string, string?>(StringComparer.Ordinal));
     }
 
     private static SolutionFolderInfo CreateSolutionFolderInfo(SolutionFolderModel folder)
@@ -112,12 +119,5 @@ internal static class ProjectFileUtilities
     {
         var lastSeparatorIndex = folderPath.LastIndexOf('/');
         return lastSeparatorIndex < 0 ? null : folderPath[..lastSeparatorIndex];
-    }
-
-    internal sealed record SolutionHierarchyInfo(
-        IReadOnlyList<SolutionFolderInfo> Folders,
-        IReadOnlyDictionary<string, string?> ProjectFolderPaths)
-    {
-        public static SolutionHierarchyInfo Empty { get; } = new([], new Dictionary<string, string?>(StringComparer.Ordinal));
     }
 }

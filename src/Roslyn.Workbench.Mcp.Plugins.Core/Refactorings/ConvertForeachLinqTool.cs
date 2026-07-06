@@ -27,7 +27,7 @@ internal sealed class ConvertForeachLinqTool : MutationToolHandler<ConvertForeac
     {
         if (request.Selection is null)
         {
-            return ValueTask.FromResult(ToolExecutionHelpers.Rejected<MutationProposal>("InvalidRequest", "A location selector is required."));
+            return ValueTask.FromResult(context.ToolExecutionServices.ResultShaper.Rejected<MutationProposal>("InvalidRequest", "A location selector is required."));
         }
 
         var replayRequest = request.ConversionKind switch

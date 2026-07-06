@@ -20,7 +20,7 @@ internal sealed class AnalyzeAsyncTool : QueryToolHandler<AnalyzeAsyncRequest, A
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var documents = ToolExecutionHelpers.ResolveDocuments<AsyncAnalysisData>(request.Scope, context);
+        var documents = context.ToolExecutionServices.RequestResolver.ResolveDocuments<AsyncAnalysisData>(request.Scope, context);
         if (documents.HasRejection)
         {
             return documents.Rejection;
@@ -51,8 +51,8 @@ internal sealed class AnalyzeAsyncTool : QueryToolHandler<AnalyzeAsyncRequest, A
                     findings.Add(new AsyncFinding
                     {
                         Kind = "AsyncWithoutAwait",
-                        Symbol = context.Resolver.CreateSymbolReference(methodSymbol),
-                        Location = context.Resolver.CreateResolvedLocation(methodDeclaration.Identifier.GetLocation()),
+                        Symbol = context.WorkspaceResolver.CreateSymbolReference(methodSymbol),
+                        Location = context.WorkspaceResolver.CreateResolvedLocation(methodDeclaration.Identifier.GetLocation()),
                         Message = "The async method does not contain an await expression.",
                     });
                 }
@@ -74,8 +74,8 @@ internal sealed class AnalyzeAsyncTool : QueryToolHandler<AnalyzeAsyncRequest, A
                     findings.Add(new AsyncFinding
                     {
                         Kind = "UnawaitedTask",
-                        Symbol = context.Resolver.CreateSymbolReference(invocation.TargetMethod),
-                        Location = context.Resolver.CreateResolvedLocation(invocation.Syntax.GetLocation()),
+                        Symbol = context.WorkspaceResolver.CreateSymbolReference(invocation.TargetMethod),
+                        Location = context.WorkspaceResolver.CreateResolvedLocation(invocation.Syntax.GetLocation()),
                         Message = "The task-returning invocation is not awaited.",
                     });
                 }
@@ -88,7 +88,7 @@ internal sealed class AnalyzeAsyncTool : QueryToolHandler<AnalyzeAsyncRequest, A
             .ThenBy(static finding => finding.Kind, StringComparer.Ordinal)
             .ToArray();
 
-        return ToolExecutionHelpers.CreateBoundedCollectionResult(
+        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
             context,
             orderedFindings,
             ToolExecutionHelpers.GetMaxResults(context, request.Limit),

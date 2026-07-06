@@ -29,7 +29,7 @@ internal sealed class UseNamedArgumentsTool : MutationToolHandler<UseNamedArgume
             ? "Add argument name '"
             : "Add argument name '";
 
-        return ToolExecutionHelpers.StageReplaySelectionAsync(
+        return context.ToolExecutionServices.ReplayCodeActionExecutor.StageReplaySelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             context,

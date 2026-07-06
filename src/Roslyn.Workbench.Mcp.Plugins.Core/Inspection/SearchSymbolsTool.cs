@@ -19,7 +19,7 @@ internal sealed class SearchSymbolsTool : QueryToolHandler<SearchSymbolsRequest,
     protected override async ValueTask<PluginExecutionResult<SymbolSearchData>> ExecuteCoreAsync(SearchSymbolsRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var scopeResolution = ToolExecutionHelpers.ResolveProjects<SymbolSearchData>(request.Scope, context);
+        var scopeResolution = context.ToolExecutionServices.RequestResolver.ResolveProjects<SymbolSearchData>(request.Scope, context);
         if (scopeResolution.HasRejection)
         {
             return scopeResolution.Rejection;
@@ -27,7 +27,7 @@ internal sealed class SearchSymbolsTool : QueryToolHandler<SearchSymbolsRequest,
 
         if (string.IsNullOrWhiteSpace(request.Query) && string.IsNullOrWhiteSpace(request.MetadataName))
         {
-            return ToolExecutionHelpers.Rejected<SymbolSearchData>("InvalidRequest", "Search symbols requires query or metadataName.");
+            return context.ToolExecutionServices.ResultShaper.Rejected<SymbolSearchData>("InvalidRequest", "Search symbols requires query or metadataName.");
         }
 
         var pattern = request.Query ?? request.MetadataName!;
@@ -40,12 +40,12 @@ internal sealed class SearchSymbolsTool : QueryToolHandler<SearchSymbolsRequest,
 
         var symbols = matchedSymbols
             .Distinct(SymbolEqualityComparer.Default)
-            .OrderBy(symbol => context.Resolver.CreateSymbolReference(symbol).DisplayName, StringComparer.Ordinal)
-            .ThenBy(symbol => context.Resolver.CreateSymbolReference(symbol).Location?.Document?.Path ?? string.Empty, StringComparer.Ordinal)
-            .Select(context.Resolver.CreateSymbolReference)
+            .OrderBy(symbol => context.WorkspaceResolver.CreateSymbolReference(symbol).DisplayName, StringComparer.Ordinal)
+            .ThenBy(symbol => context.WorkspaceResolver.CreateSymbolReference(symbol).Location?.Document?.Path ?? string.Empty, StringComparer.Ordinal)
+            .Select(context.WorkspaceResolver.CreateSymbolReference)
             .ToArray();
 
-        return ToolExecutionHelpers.CreateBoundedCollectionResult(
+        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
             context,
             symbols,
             ToolExecutionHelpers.GetMaxResults(context, request.Limit),

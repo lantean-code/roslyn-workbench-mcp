@@ -15,14 +15,14 @@ public sealed class WorkspaceResolverTests
         }, CancellationToken.None);
 
         await using var contextLease = await target.CreateQueryContextAsync(new RegisteredTool(), new object(), CancellationToken.None);
-        var resolution = contextLease.Context!.Resolver.ResolveProject(new ProjectSelector
+        var resolution = contextLease.Context!.WorkspaceResolver.ResolveProject(new ProjectSelector
         {
             Path = "Sample.csproj",
         });
 
         resolution.Status.Should().Be(SelectorResolveStatus.Resolved);
         resolution.Value.Should().NotBeNull();
-        contextLease.Context.Resolver.NormalizeProjectPath(resolution.Value!.FilePath!).Should().Be("Sample.csproj");
+        contextLease.Context.WorkspaceResolver.NormalizeProjectPath(resolution.Value!.FilePath!).Should().Be("Sample.csproj");
     }
 
     [Fact]
@@ -36,7 +36,7 @@ public sealed class WorkspaceResolverTests
         }, CancellationToken.None);
 
         await using var contextLease = await target.CreateQueryContextAsync(new RegisteredTool(), new object(), CancellationToken.None);
-        var resolution = contextLease.Context!.Resolver.ResolveProject(new ProjectSelector
+        var resolution = contextLease.Context!.WorkspaceResolver.ResolveProject(new ProjectSelector
         {
             Name = "Sample",
         });
@@ -56,7 +56,7 @@ public sealed class WorkspaceResolverTests
         }, CancellationToken.None);
 
         await using var contextLease = await target.CreateQueryContextAsync(new RegisteredTool(), new object(), CancellationToken.None);
-        var resolution = contextLease.Context!.Resolver.ResolveDocument(new DocumentSelector
+        var resolution = contextLease.Context!.WorkspaceResolver.ResolveDocument(new DocumentSelector
         {
             Path = fixture.SharedDocumentPath!,
         });
@@ -76,7 +76,7 @@ public sealed class WorkspaceResolverTests
         }, CancellationToken.None);
 
         await using var contextLease = await target.CreateQueryContextAsync(new RegisteredTool(), new object(), CancellationToken.None);
-        var resolution = contextLease.Context!.Resolver.ResolveDocument(new DocumentSelector
+        var resolution = contextLease.Context!.WorkspaceResolver.ResolveDocument(new DocumentSelector
         {
             Path = "Missing.cs",
         });
@@ -96,7 +96,7 @@ public sealed class WorkspaceResolverTests
         }, CancellationToken.None);
 
         await using var contextLease = await target.CreateQueryContextAsync(new RegisteredTool(), new object(), CancellationToken.None);
-        var result = contextLease.Context!.Resolver.ValidateSnapshot(new SnapshotPrecondition
+        var result = contextLease.Context!.WorkspaceResolver.ValidateSnapshot(new SnapshotPrecondition
         {
             WorkspaceEpoch = contextLease.Context.WorkspaceIdentity!.WorkspaceEpoch,
         });
@@ -115,7 +115,7 @@ public sealed class WorkspaceResolverTests
         }, CancellationToken.None);
 
         await using var contextLease = await target.CreateQueryContextAsync(new RegisteredTool(), new object(), CancellationToken.None);
-        var result = contextLease.Context!.Resolver.ValidateSnapshot(new SnapshotPrecondition
+        var result = contextLease.Context!.WorkspaceResolver.ValidateSnapshot(new SnapshotPrecondition
         {
             WorkspaceEpoch = contextLease.Context.WorkspaceIdentity!.WorkspaceEpoch + 1,
         });
@@ -134,7 +134,7 @@ public sealed class WorkspaceResolverTests
         }, CancellationToken.None);
 
         await using var contextLease = await target.CreateQueryContextAsync(new RegisteredTool(), new object(), CancellationToken.None);
-        var result = contextLease.Context!.Resolver.ValidateSnapshot(new SnapshotPrecondition
+        var result = contextLease.Context!.WorkspaceResolver.ValidateSnapshot(new SnapshotPrecondition
         {
             WorkspaceEpoch = contextLease.Context.WorkspaceIdentity!.WorkspaceEpoch,
             TransactionRevision = 1,
@@ -156,7 +156,7 @@ public sealed class WorkspaceResolverTests
         var start = sourceText.IndexOf("Class1", StringComparison.Ordinal);
 
         await using var contextLease = await target.CreateQueryContextAsync(new RegisteredTool(), new object(), CancellationToken.None);
-        var resolution = await contextLease.Context!.Resolver.ResolveLocationAsync(new LocationSelector
+        var resolution = await contextLease.Context!.WorkspaceResolver.ResolveLocationAsync(new LocationSelector
         {
             Span = new TextSpanSelector
             {
@@ -173,7 +173,7 @@ public sealed class WorkspaceResolverTests
         resolution.Value.Should().NotBeNull();
         resolution.Value!.IsInSource.Should().BeTrue();
 
-        var projectedLocation = contextLease.Context.Resolver.CreateResolvedLocation(resolution.Value);
+        var projectedLocation = contextLease.Context.WorkspaceResolver.CreateResolvedLocation(resolution.Value);
 
         projectedLocation.Should().NotBeNull();
         projectedLocation!.Document!.Path.Should().Be("Class1.cs");
@@ -193,7 +193,7 @@ public sealed class WorkspaceResolverTests
         var start = sourceText.IndexOf("Class1", StringComparison.Ordinal);
 
         await using var contextLease = await target.CreateQueryContextAsync(new RegisteredTool(), new object(), CancellationToken.None);
-        var resolution = await contextLease.Context!.Resolver.ResolveSymbolAsync(new SymbolSelector
+        var resolution = await contextLease.Context!.WorkspaceResolver.ResolveSymbolAsync(new SymbolSelector
         {
             Location = new LocationSelector
             {
@@ -213,7 +213,7 @@ public sealed class WorkspaceResolverTests
         resolution.Value.Should().NotBeNull();
         resolution.Value!.Name.Should().Be("Class1");
 
-        var reference = contextLease.Context.Resolver.CreateSymbolReference(resolution.Value);
+        var reference = contextLease.Context.WorkspaceResolver.CreateSymbolReference(resolution.Value);
 
         reference.DisplayName.Should().Contain("Class1");
         reference.DocumentationCommentId.Should().Be("T:Sample.Class1");

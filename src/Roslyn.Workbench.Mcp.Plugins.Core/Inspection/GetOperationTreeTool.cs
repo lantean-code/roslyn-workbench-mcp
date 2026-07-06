@@ -37,7 +37,7 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
         }
 
         var root = CreateOperationNode(operation, request.MaxDepth, depth: 0, out var truncated);
-        return ToolExecutionHelpers.EnsureWithinSize(context, new OperationTreeData
+        return context.ToolExecutionServices.ResultShaper.EnsureWithinSize(context, new OperationTreeData
         {
             Root = root,
             Truncated = truncated,
@@ -65,7 +65,7 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
 
     private static async ValueTask<SyntaxNodeResolution> ResolveSyntaxNodeAsync(LocationSelector? selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)
     {
-        var rejection = ToolExecutionHelpers.ValidateSnapshot<OperationTreeData>(context, expectedSnapshot);
+        var rejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<OperationTreeData>(context, expectedSnapshot);
         if (rejection is not null)
         {
             return new SyntaxNodeResolution
@@ -82,7 +82,7 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
             };
         }
 
-        var locationResolution = await context.Resolver.ResolveLocationAsync(selector, cancellationToken).ConfigureAwait(false);
+        var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken).ConfigureAwait(false);
         if (locationResolution.Status != SelectorResolveStatus.Resolved)
         {
             return new SyntaxNodeResolution
@@ -91,7 +91,7 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
             };
         }
 
-        var resolvedLocation = context.Resolver.CreateResolvedLocation(locationResolution.Value!);
+        var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(locationResolution.Value!);
         if (resolvedLocation?.Document?.Path is null)
         {
             return new SyntaxNodeResolution

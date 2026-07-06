@@ -19,7 +19,7 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
     protected override async ValueTask<PluginExecutionResult<ProjectDetailsData>> ExecuteCoreAsync(GetProjectDetailsRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var projectResolution = ToolExecutionHelpers.ResolveProject<ProjectDetailsData>(request.Project, context);
+        var projectResolution = context.ToolExecutionServices.RequestResolver.ResolveProject<ProjectDetailsData>(request.Project, context);
         if (projectResolution.HasRejection)
         {
             return projectResolution.Rejection;
@@ -27,11 +27,12 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
 
         var project = projectResolution.Value;
         var compilation = await project.GetCompilationAsync(cancellationToken).ConfigureAwait(false);
+        var targetFrameworks = context.ToolExecutionServices.ProjectStructureService.GetTargetFrameworks(project);
         var documents = request.IncludeDocuments
             ? project.Documents
                 .Where(static document => !string.IsNullOrWhiteSpace(document.FilePath))
-                .OrderBy(document => context.Resolver.NormalizeDocumentPath(document.FilePath!), StringComparer.Ordinal)
-                .Select(document => context.Resolver.CreateDocumentReference(document)!)
+                .OrderBy(document => context.WorkspaceResolver.NormalizeDocumentPath(document.FilePath!), StringComparer.Ordinal)
+                .Select(document => context.WorkspaceResolver.CreateDocumentReference(document)!)
                 .ToArray()
             : null;
 
@@ -39,12 +40,12 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
         {
             var unboundedData = new ProjectDetailsData
             {
-                Project = InspectionProjectionFactory.CreateProjectInfo(project, context.Resolver),
+                Project = InspectionProjectionFactory.CreateProjectInfo(project, context.WorkspaceResolver, targetFrameworks),
                 Documents = null,
                 ProjectReferences = project.ProjectReferences
                     .Select(reference => context.CurrentSolution.GetProject(reference.ProjectId))
                     .Where(static referencedProject => referencedProject is not null)
-                    .Select(referencedProject => InspectionProjectionFactory.CreateProjectReferenceInfo(referencedProject!, context.Resolver))
+                    .Select(referencedProject => InspectionProjectionFactory.CreateProjectReferenceInfo(referencedProject!, context.WorkspaceResolver))
                     .OrderBy(static reference => reference.Path, StringComparer.Ordinal)
                     .ToArray(),
                 MetadataReferences = project.MetadataReferences
@@ -58,13 +59,13 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
                 CompilationOptions = InspectionProjectionFactory.CreateCompilationOptionsInfo(compilation?.Options ?? project.CompilationOptions),
             };
 
-            return ToolExecutionHelpers.EnsureWithinSize(context, unboundedData);
+            return context.ToolExecutionServices.ResultShaper.EnsureWithinSize(context, unboundedData);
         }
 
         var projectReferences = project.ProjectReferences
             .Select(reference => context.CurrentSolution.GetProject(reference.ProjectId))
             .Where(static referencedProject => referencedProject is not null)
-            .Select(referencedProject => InspectionProjectionFactory.CreateProjectReferenceInfo(referencedProject!, context.Resolver))
+            .Select(referencedProject => InspectionProjectionFactory.CreateProjectReferenceInfo(referencedProject!, context.WorkspaceResolver))
             .OrderBy(static reference => reference.Path, StringComparer.Ordinal)
             .ToArray();
         var metadataReferences = project.MetadataReferences
@@ -76,13 +77,13 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
             .OrderBy(static analyzer => analyzer.Path ?? analyzer.DisplayName, StringComparer.Ordinal)
             .ToArray();
 
-        return ToolExecutionHelpers.CreateBoundedCollectionResult(
+        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
             context,
             documents,
             ToolExecutionHelpers.GetMaxResults(context, request.Limit),
             (items, hasMore) => new ProjectDetailsData
             {
-                Project = InspectionProjectionFactory.CreateProjectInfo(project, context.Resolver),
+                Project = InspectionProjectionFactory.CreateProjectInfo(project, context.WorkspaceResolver, targetFrameworks),
                 Documents = items,
                 ProjectReferences = projectReferences,
                 MetadataReferences = metadataReferences,

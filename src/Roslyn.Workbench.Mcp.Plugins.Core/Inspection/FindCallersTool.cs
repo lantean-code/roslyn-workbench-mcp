@@ -21,14 +21,14 @@ internal sealed class FindCallersTool : QueryToolHandler<FindCallersRequest, Cal
     protected override async ValueTask<PluginExecutionResult<CallerSearchData>> ExecuteCoreAsync(FindCallersRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var symbolResolution = await ToolExecutionHelpers.ResolveSymbolAsync<CallerSearchData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<CallerSearchData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
         }
 
         var symbol = symbolResolution.Value;
-        var documents = ToolExecutionHelpers.ResolveDocuments<CallerSearchData>(request.Scope, context);
+        var documents = context.ToolExecutionServices.RequestResolver.ResolveDocuments<CallerSearchData>(request.Scope, context);
         if (documents.HasRejection)
         {
             return documents.Rejection;
@@ -43,7 +43,7 @@ internal sealed class FindCallersTool : QueryToolHandler<FindCallersRequest, Cal
             {
                 foreach (var location in caller.Locations.Where(static location => location.IsInSource))
                 {
-                    var contextLine = await ToolExecutionHelpers.ReadContextAsync(context.CurrentSolution.GetDocument(location.SourceTree!), location.SourceSpan, cancellationToken).ConfigureAwait(false);
+                    var contextLine = await context.ToolExecutionServices.InspectionContextService.ReadContextAsync(context.CurrentSolution.GetDocument(location.SourceTree!), location.SourceSpan, cancellationToken).ConfigureAwait(false);
                     if (!string.IsNullOrWhiteSpace(contextLine))
                     {
                         contexts.Add(contextLine);
@@ -53,10 +53,10 @@ internal sealed class FindCallersTool : QueryToolHandler<FindCallersRequest, Cal
 
             callers.Add(new CallerInfo
             {
-                Caller = context.Resolver.CreateSymbolReference(caller.CallingSymbol),
+                Caller = context.WorkspaceResolver.CreateSymbolReference(caller.CallingSymbol),
                 Locations = caller.Locations
                     .Where(static location => location.IsInSource)
-                    .Select(location => context.Resolver.CreateResolvedLocation(location))
+                    .Select(location => context.WorkspaceResolver.CreateResolvedLocation(location))
                     .Where(static location => location is not null)
                     .Select(static location => location!)
                     .OrderBy(static location => location.Document!.Path, StringComparer.Ordinal)
@@ -69,9 +69,9 @@ internal sealed class FindCallersTool : QueryToolHandler<FindCallersRequest, Cal
         var orderedCallers = callers
             .OrderBy(static caller => caller.Caller!.DisplayName, StringComparer.Ordinal)
             .ToArray();
-        var symbolReference = context.Resolver.CreateSymbolReference(symbol);
+        var symbolReference = context.WorkspaceResolver.CreateSymbolReference(symbol);
 
-        return ToolExecutionHelpers.CreateBoundedCollectionResult(
+        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
             context,
             orderedCallers,
             ToolExecutionHelpers.GetMaxResults(context, request.Limit),

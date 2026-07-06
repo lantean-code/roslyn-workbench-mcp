@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.Contracts.Results;
 using Roslyn.Workbench.Mcp.Contracts.Selectors;
 using Roslyn.Workbench.Mcp.Contracts.Server;
@@ -29,15 +30,23 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
 
     private readonly Lock _syncRoot;
     private readonly WorkspaceCoordinatorOptions _options;
+    private readonly HostServices? _workspaceHostServices;
     private readonly ICodeActionService _codeActionService;
+    private readonly IToolExecutionServices _toolExecutionServices;
     private WorkspaceHostSnapshot _snapshot;
     private long _nextWorkspaceEpoch;
     private long _nextWorkspaceId;
 
-    public WorkspaceCoordinator(WorkspaceCoordinatorOptions options)
+    public WorkspaceCoordinator(
+        IOptions<WorkspaceCoordinatorOptions> options,
+        CodeActionRuntime codeActionRuntime,
+        IToolExecutionServices toolExecutionServices)
     {
-        _options = options;
-        _codeActionService = options.CodeActionService ?? new UnavailableCodeActionService();
+        _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(codeActionRuntime);
+        _workspaceHostServices = codeActionRuntime.WorkspaceHostServices;
+        _codeActionService = codeActionRuntime.CodeActionService ?? new UnavailableCodeActionService();
+        _toolExecutionServices = toolExecutionServices ?? throw new ArgumentNullException(nameof(toolExecutionServices));
         _syncRoot = new Lock();
         _snapshot = new WorkspaceHostSnapshot();
         _nextWorkspaceEpoch = 0;
@@ -955,7 +964,8 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
             },
             _options.MaxResponseBytes,
             resolver,
-            _codeActionService);
+            _codeActionService,
+            _toolExecutionServices);
     }
 
     private WorkspaceMutationContext CreateMutationContext(WorkspaceSessionSnapshot session)
@@ -971,7 +981,8 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
             },
             resolver,
             _codeActionService,
-            StageMutationAsync);
+            StageMutationAsync,
+            _toolExecutionServices);
     }
 
     private static WorkspaceStatusData CreateStatusData(WorkspaceSessionSnapshot session, StatusDetailLevel detail)
@@ -1292,9 +1303,9 @@ public sealed class WorkspaceCoordinator : IWorkspaceCoordinator
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var workspace = _options.WorkspaceHostServices is null
+        var workspace = _workspaceHostServices is null
             ? MSBuildWorkspace.Create()
-            : MSBuildWorkspace.Create(_options.WorkspaceHostServices);
+            : MSBuildWorkspace.Create(_workspaceHostServices);
         var diagnostics = new List<DiagnosticInfo>();
 
         workspace.RegisterWorkspaceFailedHandler(args =>

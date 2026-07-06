@@ -144,8 +144,8 @@ internal static class DependencyAnalysisHelpers
 
                 impacts.Add(new TestImpactInfo
                 {
-                    Test = context.Resolver.CreateSymbolReference(methodSymbol),
-                    Location = sourceLocation is null ? null : context.Resolver.CreateResolvedLocation(sourceLocation),
+                    Test = context.WorkspaceResolver.CreateSymbolReference(methodSymbol),
+                    Location = sourceLocation is null ? null : context.WorkspaceResolver.CreateResolvedLocation(sourceLocation),
                     Reasons = includeReasons
                         ? ["Direct reference to the target symbol or its owning type."]
                         : null,
@@ -548,8 +548,8 @@ internal static class DependencyAnalysisHelpers
         {
             Id = CreateSymbolId(symbol),
             Kind = kind,
-            DisplayName = context.Resolver.CreateSymbolReference(symbol).DisplayName,
-            Symbol = context.Resolver.CreateSymbolReference(symbol),
+            DisplayName = context.WorkspaceResolver.CreateSymbolReference(symbol).DisplayName,
+            Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
         };
     }
 

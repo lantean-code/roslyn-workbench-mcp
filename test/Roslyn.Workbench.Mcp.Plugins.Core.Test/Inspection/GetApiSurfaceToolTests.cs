@@ -3,17 +3,127 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class GetApiSurfaceToolTests
 {
     [Fact]
-    public async Task GIVEN_InspectionWorkspace_WHEN_ExecutingTool_THEN_ShouldReturnExportedSymbols()
+    public async Task GIVEN_UnableToResolveDocument_WHEN_CallingExecute_THEN_ShouldReturnRejection()
     {
-        using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = BundledCoreToolTestHarness.CreateInspectionCoordinator();
-        await coordinator.OpenAsync(new WorkspaceOpenRequest
+        var expected = PluginExecutionResult<ApiSurfaceData>.Rejected(new ToolError
         {
-            Path = fixture.ProjectPath,
-        }, CancellationToken.None);
+            Code = "DocumentNotFound",
+            Message = "DocumentNotFound",
+        }, RequiredAction.ResolveTargetAgain);
+        var requestResolver = new Mock<IToolRequestResolver>();
+        var services = new ToolExecutionServicesBuilder()
+            .WithRequestResolver(requestResolver.Object)
+            .Build();
+        var context = new QueryContextBuilder()
+            .WithToolExecutionServices(services)
+            .Build();
         var target = new GetApiSurfaceTool();
 
-        var result = await BundledCoreToolTestHarness.ExecuteQueryAsync(coordinator, "get-api-surface", target, new GetApiSurfaceRequest
+        requestResolver
+            .Setup(resolver => resolver.ResolveDocuments<ApiSurfaceData>(
+                It.IsAny<ScopeSelector?>(),
+                It.IsAny<IToolExecutionContext>()))
+            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, ApiSurfaceData>
+            {
+                Rejection = expected,
+            });
+
+        var result = await target.ExecuteAsync(new GetApiSurfaceRequest
+        {
+            Scope = new ScopeSelector
+            {
+                Kind = ScopeKind.Document,
+                Document = new DocumentSelector
+                {
+                    Path = "Missing.cs",
+                },
+            },
+        }, context, CancellationToken.None);
+
+        result.Should().BeEquivalentTo(expected);
+    }
+
+    [Fact]
+    public async Task GIVEN_UnableToParseAccessibility_WHEN_CallingExecute_THEN_ShouldReturnInvalidRequest()
+    {
+        var requestResolver = new Mock<IToolRequestResolver>();
+        var services = new ToolExecutionServicesBuilder()
+            .WithRequestResolver(requestResolver.Object)
+            .Build();
+        var context = new QueryContextBuilder()
+            .WithToolExecutionServices(services)
+            .Build();
+        var target = new GetApiSurfaceTool();
+
+        requestResolver
+            .Setup(resolver => resolver.ResolveDocuments<ApiSurfaceData>(
+                It.IsAny<ScopeSelector?>(),
+                It.IsAny<IToolExecutionContext>()))
+            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, ApiSurfaceData>
+            {
+                Value = Array.Empty<Document>(),
+            });
+
+        var result = await target.ExecuteAsync(new GetApiSurfaceRequest
+        {
+            MinimumAccessibility = "Private",
+        }, context, CancellationToken.None);
+
+        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Error!.Code.Should().Be("InvalidRequest");
+    }
+
+    [Fact]
+    public async Task GIVEN_ResponseExceedsConfiguredLimit_WHEN_CallingExecute_THEN_ShouldReturnNarrowRequestRejection()
+    {
+        using var workspace = MiniWorkspaceFactory.CreateCSharp("""
+            namespace Sample;
+
+            public sealed class GreetingFormatter
+            {
+            }
+            """);
+        var workspaceIdentity = workspace.CreateWorkspaceIdentity();
+        var resolver = workspace.CreateResolver(workspaceIdentity);
+        var context = new QueryContextBuilder()
+            .WithCurrentSolution(workspace.Solution)
+            .WithResolver(resolver)
+            .WithWorkspaceIdentity(workspaceIdentity)
+            .WithMaxResponseBytes(1)
+            .Build();
+        var target = new GetApiSurfaceTool();
+
+        var result = await target.ExecuteAsync(new GetApiSurfaceRequest(), context, CancellationToken.None);
+
+        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Error!.Code.Should().Be("ResponseLimitExceeded");
+        result.RequiredAction.Should().Be(RequiredAction.NarrowRequest);
+    }
+
+    [Fact]
+    public async Task GIVEN_ProjectScopeWithPublicType_WHEN_CallingExecute_THEN_ShouldReturnExportedSymbols()
+    {
+        using var workspace = MiniWorkspaceFactory.CreateCSharp("""
+            namespace Sample;
+
+            public interface IMessageFormatter
+            {
+            }
+
+            public sealed class GreetingFormatter : IMessageFormatter
+            {
+            }
+            """);
+        var workspaceIdentity = workspace.CreateWorkspaceIdentity();
+        var resolver = workspace.CreateResolver(workspaceIdentity);
+        var context = new QueryContextBuilder()
+            .WithCurrentSolution(workspace.Solution)
+            .WithResolver(resolver)
+            .WithWorkspaceIdentity(workspaceIdentity)
+            .Build();
+        var target = new GetApiSurfaceTool();
+
+        var result = await target.ExecuteAsync(new GetApiSurfaceRequest
         {
             Scope = new ScopeSelector
             {
@@ -23,7 +133,7 @@ public sealed class GetApiSurfaceToolTests
                     Path = "Sample.csproj",
                 },
             },
-        });
+        }, context, CancellationToken.None);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
         result.Data!.Symbols.Should().Contain(static symbol => symbol.Symbol!.DisplayName.Contains("GreetingFormatter", StringComparison.Ordinal));

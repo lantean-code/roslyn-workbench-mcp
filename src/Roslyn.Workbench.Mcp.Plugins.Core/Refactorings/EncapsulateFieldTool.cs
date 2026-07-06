@@ -25,7 +25,7 @@ internal sealed class EncapsulateFieldTool : MutationToolHandler<EncapsulateFiel
 
     protected override async ValueTask<PluginExecutionResult<MutationProposal>> ExecuteCoreAsync(EncapsulateFieldRequest request, IMutationContext context, CancellationToken cancellationToken)
     {
-        var symbolResolution = await ToolExecutionHelpers.ResolveSymbolAsync<MutationProposal>(request.Field, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<MutationProposal>(request.Field, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
@@ -33,19 +33,19 @@ internal sealed class EncapsulateFieldTool : MutationToolHandler<EncapsulateFiel
 
         if (symbolResolution.Value is not IFieldSymbol fieldSymbol)
         {
-            return ToolExecutionHelpers.Rejected<MutationProposal>("SymbolNotSupported", "The selected symbol is not a field.", RequiredAction.ResolveTargetAgain);
+            return context.ToolExecutionServices.ResultShaper.Rejected<MutationProposal>("SymbolNotSupported", "The selected symbol is not a field.", RequiredAction.ResolveTargetAgain);
         }
 
         var sourceLocation = fieldSymbol.Locations.FirstOrDefault(static location => location.IsInSource);
         if (sourceLocation is null)
         {
-            return ToolExecutionHelpers.Rejected<MutationProposal>("SymbolNotSupported", "The selected symbol does not resolve to a source location.", RequiredAction.ResolveTargetAgain);
+            return context.ToolExecutionServices.ResultShaper.Rejected<MutationProposal>("SymbolNotSupported", "The selected symbol does not resolve to a source location.", RequiredAction.ResolveTargetAgain);
         }
 
-        var locationSelector = ToolExecutionHelpers.CreateLocationSelector(context.Resolver.CreateResolvedLocation(sourceLocation));
+        var locationSelector = ToolExecutionHelpers.CreateLocationSelector(context.WorkspaceResolver.CreateResolvedLocation(sourceLocation));
         if (locationSelector is null)
         {
-            return ToolExecutionHelpers.Rejected<MutationProposal>("SymbolNotSupported", "The selected symbol does not resolve to a replayable source span.", RequiredAction.ResolveTargetAgain);
+            return context.ToolExecutionServices.ResultShaper.Rejected<MutationProposal>("SymbolNotSupported", "The selected symbol does not resolve to a replayable source span.", RequiredAction.ResolveTargetAgain);
         }
 
         var (title, equivalenceKey) = request.UpdateReferences

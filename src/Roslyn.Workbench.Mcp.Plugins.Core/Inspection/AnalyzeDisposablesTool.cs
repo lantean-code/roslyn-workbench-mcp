@@ -20,7 +20,7 @@ internal sealed class AnalyzeDisposablesTool : QueryToolHandler<AnalyzeDisposabl
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var documents = ToolExecutionHelpers.ResolveDocuments<DisposableAnalysisData>(request.Scope, context);
+        var documents = context.ToolExecutionServices.RequestResolver.ResolveDocuments<DisposableAnalysisData>(request.Scope, context);
         if (documents.HasRejection)
         {
             return documents.Rejection;
@@ -57,9 +57,9 @@ internal sealed class AnalyzeDisposablesTool : QueryToolHandler<AnalyzeDisposabl
                     findings.Add(new DisposableFinding
                     {
                         Kind = "UndisposedLocal",
-                        Symbol = context.Resolver.CreateSymbolReference(localSymbol),
+                        Symbol = context.WorkspaceResolver.CreateSymbolReference(localSymbol),
                         Type = InspectionProjectionFactory.CreateTypeInfo(localSymbol.Type),
-                        Location = context.Resolver.CreateResolvedLocation(variableDeclarator.GetLocation()),
+                        Location = context.WorkspaceResolver.CreateResolvedLocation(variableDeclarator.GetLocation()),
                         Message = "The disposable local is not disposed before it goes out of scope.",
                     });
                 }
@@ -72,7 +72,7 @@ internal sealed class AnalyzeDisposablesTool : QueryToolHandler<AnalyzeDisposabl
             .ThenBy(static finding => finding.Type?.DisplayName ?? string.Empty, StringComparer.Ordinal)
             .ToArray();
 
-        return ToolExecutionHelpers.CreateBoundedCollectionResult(
+        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
             context,
             orderedFindings,
             ToolExecutionHelpers.GetMaxResults(context, request.Limit),

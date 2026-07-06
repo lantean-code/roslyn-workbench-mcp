@@ -19,7 +19,7 @@ internal sealed class GetSymbolMembersTool : QueryToolHandler<GetSymbolMembersRe
     protected override async ValueTask<PluginExecutionResult<SymbolMembersData>> ExecuteCoreAsync(GetSymbolMembersRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var symbolResolution = await ToolExecutionHelpers.ResolveSymbolAsync<SymbolMembersData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<SymbolMembersData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
@@ -48,13 +48,13 @@ internal sealed class GetSymbolMembersTool : QueryToolHandler<GetSymbolMembersRe
 
         var orderedMembers = members
             .Distinct(SymbolEqualityComparer.Default)
-            .OrderBy(member => context.Resolver.CreateSymbolReference(member).DisplayName, StringComparer.Ordinal)
-            .ThenBy(member => context.Resolver.CreateSymbolReference(member).Location?.Document?.Path ?? string.Empty, StringComparer.Ordinal)
-            .Select(context.Resolver.CreateSymbolReference)
+            .OrderBy(member => context.WorkspaceResolver.CreateSymbolReference(member).DisplayName, StringComparer.Ordinal)
+            .ThenBy(member => context.WorkspaceResolver.CreateSymbolReference(member).Location?.Document?.Path ?? string.Empty, StringComparer.Ordinal)
+            .Select(context.WorkspaceResolver.CreateSymbolReference)
             .ToArray();
-        var symbolReference = context.Resolver.CreateSymbolReference(namedType);
+        var symbolReference = context.WorkspaceResolver.CreateSymbolReference(namedType);
 
-        return ToolExecutionHelpers.CreateBoundedCollectionResult(
+        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
             context,
             orderedMembers,
             ToolExecutionHelpers.GetMaxResults(context, request.Limit),

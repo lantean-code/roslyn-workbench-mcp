@@ -6,10 +6,16 @@ namespace Roslyn.Workbench.Mcp;
 
 internal static class ServerStatusToolFactory
 {
-    public static McpServerTool Create(StartupOptions startupOptions, PluginCatalogSnapshot pluginCatalogSnapshot, ComponentStatus codeActions, int toolCount)
+    public static McpServerTool Create(
+        StartupOptions startupOptions,
+        PluginCatalogSnapshot pluginCatalogSnapshot,
+        IMsBuildRegistrationService msBuildRegistrationService,
+        ComponentStatus codeActions,
+        int toolCount)
     {
         ArgumentNullException.ThrowIfNull(startupOptions);
         ArgumentNullException.ThrowIfNull(pluginCatalogSnapshot);
+        ArgumentNullException.ThrowIfNull(msBuildRegistrationService);
         ArgumentNullException.ThrowIfNull(codeActions);
 
         return new ServerToolMcpServerTool<ServerStatusRequest, ServerStatusData>(
@@ -20,12 +26,13 @@ internal static class ServerStatusToolFactory
             destructive: false,
             startupOptions.ToolOutputSchemaMode,
             "server diagnostics, effective configuration, plugin status, and unfinished recovery state.",
-            (request, requestContext, cancellationToken) => ValueTask.FromResult(CreateResult(startupOptions, pluginCatalogSnapshot, codeActions, toolCount, request, requestContext, cancellationToken)));
+            (request, requestContext, cancellationToken) => ValueTask.FromResult(CreateResult(startupOptions, pluginCatalogSnapshot, msBuildRegistrationService, codeActions, toolCount, request, requestContext, cancellationToken)));
     }
 
     private static ToolResult<ServerStatusData> CreateResult(
         StartupOptions startupOptions,
         PluginCatalogSnapshot pluginCatalogSnapshot,
+        IMsBuildRegistrationService msBuildRegistrationService,
         ComponentStatus codeActions,
         int toolCount,
         ServerStatusRequest request,
@@ -44,7 +51,7 @@ internal static class ServerStatusToolFactory
             ServerVersion = serverAssembly.Version?.ToString() ?? "0.0.0.0",
             ProtocolVersion = requestContext.Server.NegotiatedProtocolVersion ?? string.Empty,
             RoslynVersion = roslynAssembly.Version?.ToString() ?? "0.0.0.0",
-            MsBuild = MsBuildRegistration.CurrentStatus,
+            MsBuild = msBuildRegistrationService.CurrentStatus,
             CodeActions = codeActions,
             Configuration = includeExpandedDetail
                 ? new ServerConfiguration

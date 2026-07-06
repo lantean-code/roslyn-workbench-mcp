@@ -155,7 +155,7 @@ public sealed class InspectionToolsTests
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -268,7 +268,7 @@ public sealed class InspectionToolsTests
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -382,7 +382,7 @@ public sealed class InspectionToolsTests
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -457,7 +457,7 @@ public sealed class InspectionToolsTests
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -525,7 +525,7 @@ public sealed class InspectionToolsTests
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -590,7 +590,7 @@ public sealed class InspectionToolsTests
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -670,7 +670,7 @@ public sealed class InspectionToolsTests
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -738,7 +738,7 @@ public sealed class InspectionToolsTests
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -768,7 +768,7 @@ public sealed class InspectionToolsTests
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -839,12 +839,10 @@ public sealed class InspectionToolsTests
         });
         var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
         {
-            CodeActionService = runtime.CodeActionService,
-            WorkspaceHostServices = runtime.WorkspaceHostServices,
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -892,12 +890,10 @@ public sealed class InspectionToolsTests
         });
         var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
         {
-            CodeActionService = runtime.CodeActionService,
-            WorkspaceHostServices = runtime.WorkspaceHostServices,
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -945,12 +941,10 @@ public sealed class InspectionToolsTests
         });
         var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
         {
-            CodeActionService = runtime.CodeActionService,
-            WorkspaceHostServices = runtime.WorkspaceHostServices,
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -994,12 +988,10 @@ public sealed class InspectionToolsTests
         });
         var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
         {
-            CodeActionService = runtime.CodeActionService,
-            WorkspaceHostServices = runtime.WorkspaceHostServices,
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -1040,12 +1032,10 @@ public sealed class InspectionToolsTests
         });
         var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
         {
-            CodeActionService = runtime.CodeActionService,
-            WorkspaceHostServices = runtime.WorkspaceHostServices,
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -1087,12 +1077,10 @@ public sealed class InspectionToolsTests
         });
         var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
         {
-            CodeActionService = runtime.CodeActionService,
-            WorkspaceHostServices = runtime.WorkspaceHostServices,
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -1134,12 +1122,10 @@ public sealed class InspectionToolsTests
         });
         var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
         {
-            CodeActionService = runtime.CodeActionService,
-            WorkspaceHostServices = runtime.WorkspaceHostServices,
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -1183,12 +1169,10 @@ public sealed class InspectionToolsTests
         });
         var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
         {
-            CodeActionService = runtime.CodeActionService,
-            WorkspaceHostServices = runtime.WorkspaceHostServices,
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -1230,12 +1214,10 @@ public sealed class InspectionToolsTests
         });
         var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
         {
-            CodeActionService = runtime.CodeActionService,
-            WorkspaceHostServices = runtime.WorkspaceHostServices,
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -1277,12 +1259,10 @@ public sealed class InspectionToolsTests
         });
         var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
         {
-            CodeActionService = runtime.CodeActionService,
-            WorkspaceHostServices = runtime.WorkspaceHostServices,
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -1328,12 +1308,10 @@ public sealed class InspectionToolsTests
         });
         var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
         {
-            CodeActionService = runtime.CodeActionService,
-            WorkspaceHostServices = runtime.WorkspaceHostServices,
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -1373,7 +1351,7 @@ public sealed class InspectionToolsTests
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var executor = new ToolExecutor(coordinator);
 
         plugin.Register(registry);
@@ -1393,7 +1371,7 @@ public sealed class InspectionToolsTests
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -1437,7 +1415,7 @@ public sealed class InspectionToolsTests
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -1471,7 +1449,7 @@ public sealed class InspectionToolsTests
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -1508,7 +1486,7 @@ public sealed class InspectionToolsTests
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -1546,7 +1524,7 @@ public sealed class InspectionToolsTests
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -1580,13 +1558,13 @@ public sealed class InspectionToolsTests
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var truncatedCoordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
         {
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 500,
-        });
+        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
         var fullExecutor = new ToolExecutor(fullCoordinator);
@@ -1627,7 +1605,7 @@ public sealed class InspectionToolsTests
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.SolutionPath,
@@ -1655,7 +1633,7 @@ public sealed class InspectionToolsTests
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,

@@ -30,7 +30,7 @@ internal sealed class ExtractMethodTool : MutationToolHandler<ExtractMethodReque
     {
         if (request.Selection is null)
         {
-            return ValueTask.FromResult(ToolExecutionHelpers.Rejected<MutationProposal>("InvalidRequest", "A location selector is required."));
+            return ValueTask.FromResult(context.ToolExecutionServices.ResultShaper.Rejected<MutationProposal>("InvalidRequest", "A location selector is required."));
         }
 
         var (title, equivalenceKey) = request.TargetKind switch

@@ -16,15 +16,17 @@ internal sealed class WorkspaceMutationContext : IMutationContext
         ResultLimit effectiveResultLimit,
         IWorkspaceResolver resolver,
         ICodeActionService codeActionService,
-        Func<RegisteredTool, MutationProposal, IReadOnlyList<DiagnosticInfo>, IReadOnlyList<WarningInfo>, CancellationToken, ValueTask<PluginExecutionResult<MutationData>>> stageAsync)
+        Func<RegisteredTool, MutationProposal, IReadOnlyList<DiagnosticInfo>, IReadOnlyList<WarningInfo>, CancellationToken, ValueTask<PluginExecutionResult<MutationData>>> stageAsync,
+        IToolExecutionServices toolExecutionServices)
     {
         CurrentSolution = currentSolution;
         WorkspaceIdentity = workspaceIdentity;
         TransactionRevision = transactionRevision;
         EffectiveResultLimit = effectiveResultLimit;
-        Resolver = resolver;
+        WorkspaceResolver = resolver;
         CodeActionService = codeActionService;
         _stageAsync = stageAsync;
+        ToolExecutionServices = toolExecutionServices ?? throw new ArgumentNullException(nameof(toolExecutionServices));
     }
 
     public Solution CurrentSolution { get; }
@@ -35,9 +37,11 @@ internal sealed class WorkspaceMutationContext : IMutationContext
 
     public ResultLimit EffectiveResultLimit { get; }
 
-    public IWorkspaceResolver Resolver { get; }
+    public IWorkspaceResolver WorkspaceResolver { get; }
 
     public ICodeActionService CodeActionService { get; }
+
+    public IToolExecutionServices ToolExecutionServices { get; }
 
     public ValueTask<PluginExecutionResult<MutationData>> StageAsync(
         RegisteredTool tool,
@@ -48,4 +52,5 @@ internal sealed class WorkspaceMutationContext : IMutationContext
     {
         return _stageAsync(tool, proposal, diagnostics, warnings, cancellationToken);
     }
+
 }

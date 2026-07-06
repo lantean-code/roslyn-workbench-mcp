@@ -33,15 +33,15 @@ internal sealed class AnalyzeDataFlowTool : QueryToolHandler<AnalyzeDataFlowRequ
             return ToolExecutionHelpers.Rejected<DataFlowAnalysisData>("InvalidRequest", "The selected region does not support data-flow analysis.");
         }
 
-        return ToolExecutionHelpers.EnsureWithinSize(context, new DataFlowAnalysisData
+        return context.ToolExecutionServices.ResultShaper.EnsureWithinSize(context, new DataFlowAnalysisData
         {
             Region = statementResolution.ResolvedLocation,
-            VariablesDeclared = analysis.VariablesDeclared.Select(context.Resolver.CreateSymbolReference).ToArray(),
-            ReadInside = analysis.ReadInside.Select(context.Resolver.CreateSymbolReference).ToArray(),
-            WrittenInside = analysis.WrittenInside.Select(context.Resolver.CreateSymbolReference).ToArray(),
-            DataFlowsIn = analysis.DataFlowsIn.Select(context.Resolver.CreateSymbolReference).ToArray(),
-            DataFlowsOut = analysis.DataFlowsOut.Select(context.Resolver.CreateSymbolReference).ToArray(),
-            Captured = analysis.Captured.Select(context.Resolver.CreateSymbolReference).ToArray(),
+            VariablesDeclared = analysis.VariablesDeclared.Select(context.WorkspaceResolver.CreateSymbolReference).ToArray(),
+            ReadInside = analysis.ReadInside.Select(context.WorkspaceResolver.CreateSymbolReference).ToArray(),
+            WrittenInside = analysis.WrittenInside.Select(context.WorkspaceResolver.CreateSymbolReference).ToArray(),
+            DataFlowsIn = analysis.DataFlowsIn.Select(context.WorkspaceResolver.CreateSymbolReference).ToArray(),
+            DataFlowsOut = analysis.DataFlowsOut.Select(context.WorkspaceResolver.CreateSymbolReference).ToArray(),
+            Captured = analysis.Captured.Select(context.WorkspaceResolver.CreateSymbolReference).ToArray(),
         });
     }
 
@@ -75,7 +75,7 @@ internal sealed class AnalyzeDataFlowTool : QueryToolHandler<AnalyzeDataFlowRequ
 
     private static async ValueTask<SyntaxNodeResolution> ResolveSyntaxNodeAsync(LocationSelector? selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)
     {
-        var rejection = ToolExecutionHelpers.ValidateSnapshot<DataFlowAnalysisData>(context, expectedSnapshot);
+        var rejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<DataFlowAnalysisData>(context, expectedSnapshot);
         if (rejection is not null)
         {
             return new SyntaxNodeResolution
@@ -92,7 +92,7 @@ internal sealed class AnalyzeDataFlowTool : QueryToolHandler<AnalyzeDataFlowRequ
             };
         }
 
-        var locationResolution = await context.Resolver.ResolveLocationAsync(selector, cancellationToken).ConfigureAwait(false);
+        var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken).ConfigureAwait(false);
         if (locationResolution.Status != SelectorResolveStatus.Resolved)
         {
             return new SyntaxNodeResolution
@@ -101,7 +101,7 @@ internal sealed class AnalyzeDataFlowTool : QueryToolHandler<AnalyzeDataFlowRequ
             };
         }
 
-        var resolvedLocation = context.Resolver.CreateResolvedLocation(locationResolution.Value!);
+        var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(locationResolution.Value!);
         if (resolvedLocation?.Document?.Path is null)
         {
             return new SyntaxNodeResolution

@@ -26,7 +26,7 @@ internal sealed class AddImportTool : MutationToolHandler<AddImportRequest, Muta
     {
         var titleDoesNotContain = request.SimplifyAllOccurrences ? null : "simplify all occurrences";
 
-        return ToolExecutionHelpers.StageReplaySelectionAsync(
+        return context.ToolExecutionServices.ReplayCodeActionExecutor.StageReplaySelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             context,

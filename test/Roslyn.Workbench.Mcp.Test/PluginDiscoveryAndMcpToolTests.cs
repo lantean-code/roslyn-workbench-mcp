@@ -149,9 +149,9 @@ public sealed class PluginDiscoveryAndMcpToolTests
         var factory = new Mock<IToolExecutionContextFactory>();
 
         queryContext.SetupGet(static context => context.WorkspaceIdentity).Returns(workspaceIdentity);
-        queryContext.SetupGet(static context => context.Resolver).Returns(resolver.Object);
+        queryContext.SetupGet(static context => context.WorkspaceResolver).Returns(resolver.Object);
         mutationContext.SetupGet(static context => context.WorkspaceIdentity).Returns(workspaceIdentity);
-        mutationContext.SetupGet(static context => context.Resolver).Returns(resolver.Object);
+        mutationContext.SetupGet(static context => context.WorkspaceResolver).Returns(resolver.Object);
         factory
             .Setup(static contextFactory => contextFactory.CreateQueryContextAsync(It.IsAny<RegisteredTool>(), It.IsAny<object>(), It.IsAny<CancellationToken>()))
             .Returns((RegisteredTool _, object _, CancellationToken _) => ValueTask.FromResult(ToolExecutionContextLease<IQueryContext>.Acquired(queryContext.Object)));

@@ -6,16 +6,6 @@ namespace Roslyn.Workbench.Mcp.Workspace;
 public sealed record WorkspaceCoordinatorOptions
 {
     /// <summary>
-    /// Gets the workspace host services used when opening workspaces.
-    /// </summary>
-    public Microsoft.CodeAnalysis.Host.HostServices? WorkspaceHostServices { get; init; }
-
-    /// <summary>
-    /// Gets the code-action service used by tool execution contexts.
-    /// </summary>
-    public Plugins.ICodeActionService? CodeActionService { get; init; }
-
-    /// <summary>
     /// Gets the maximum number of concurrent query leases.
     /// </summary>
     public int MaxConcurrentQueries { get; init; } = 2;

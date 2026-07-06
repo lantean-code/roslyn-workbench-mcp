@@ -19,7 +19,7 @@ internal sealed class GetSymbolAttributesTool : QueryToolHandler<GetSymbolAttrib
     protected override async ValueTask<PluginExecutionResult<SymbolAttributesData>> ExecuteCoreAsync(GetSymbolAttributesRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var symbolResolution = await ToolExecutionHelpers.ResolveSymbolAsync<SymbolAttributesData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<SymbolAttributesData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
@@ -41,9 +41,9 @@ internal sealed class GetSymbolAttributesTool : QueryToolHandler<GetSymbolAttrib
             .OrderBy(static item => item.Name, StringComparer.Ordinal)
             .ThenBy(static item => item.Inherited)
             .ToArray();
-        var symbolReference = context.Resolver.CreateSymbolReference(symbol);
+        var symbolReference = context.WorkspaceResolver.CreateSymbolReference(symbol);
 
-        return ToolExecutionHelpers.CreateBoundedCollectionResult(
+        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
             context,
             orderedAttributes,
             ToolExecutionHelpers.GetMaxResults(context, request.Limit),

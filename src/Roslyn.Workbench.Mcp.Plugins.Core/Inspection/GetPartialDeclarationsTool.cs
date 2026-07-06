@@ -19,7 +19,7 @@ internal sealed class GetPartialDeclarationsTool : QueryToolHandler<GetPartialDe
     protected override async ValueTask<PluginExecutionResult<PartialDeclarationsData>> ExecuteCoreAsync(GetPartialDeclarationsRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var symbolResolution = await ToolExecutionHelpers.ResolveSymbolAsync<PartialDeclarationsData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<PartialDeclarationsData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
@@ -27,20 +27,20 @@ internal sealed class GetPartialDeclarationsTool : QueryToolHandler<GetPartialDe
 
         var symbol = symbolResolution.Value;
         var declarations = symbol.DeclaringSyntaxReferences
-            .Select(reference => context.Resolver.CreateResolvedLocation(reference.SyntaxTree.GetLocation(reference.Span)))
+            .Select(reference => context.WorkspaceResolver.CreateResolvedLocation(reference.SyntaxTree.GetLocation(reference.Span)))
             .Where(static item => item is not null)
             .Select(static item => item!)
             .OrderBy(static item => item.Document!.Path, StringComparer.Ordinal)
             .ThenBy(static item => item.Span!.Start)
             .ToArray();
 
-        return ToolExecutionHelpers.CreateBoundedCollectionResult(
+        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
             context,
             declarations,
             ToolExecutionHelpers.GetMaxResults(context, request.Limit),
             (items, hasMore) => new PartialDeclarationsData
             {
-                Symbol = context.Resolver.CreateSymbolReference(symbol),
+                Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
                 Declarations = items,
                 ReturnedCount = items.Count,
                 HasMore = hasMore,

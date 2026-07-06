@@ -84,12 +84,10 @@ public sealed class ReplayRefactoringToolsTests
         });
         var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
         {
-            CodeActionService = runtime.CodeActionService,
-            WorkspaceHostServices = runtime.WorkspaceHostServices,
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -126,12 +124,10 @@ public sealed class ReplayRefactoringToolsTests
         });
         var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
         {
-            CodeActionService = runtime.CodeActionService,
-            WorkspaceHostServices = runtime.WorkspaceHostServices,
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -161,12 +157,10 @@ public sealed class ReplayRefactoringToolsTests
         });
         var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
         {
-            CodeActionService = runtime.CodeActionService,
-            WorkspaceHostServices = runtime.WorkspaceHostServices,
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -198,12 +192,10 @@ public sealed class ReplayRefactoringToolsTests
         });
         var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
         {
-            CodeActionService = runtime.CodeActionService,
-            WorkspaceHostServices = runtime.WorkspaceHostServices,
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,

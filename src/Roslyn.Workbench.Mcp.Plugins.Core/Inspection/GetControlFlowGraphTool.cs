@@ -32,7 +32,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
         ISymbol ownerSymbol;
         if (request.Symbol is not null)
         {
-            var symbolResolution = await ToolExecutionHelpers.ResolveSymbolAsync<ControlFlowGraphData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+            var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<ControlFlowGraphData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
             if (symbolResolution.HasRejection)
             {
                 return symbolResolution.Rejection;
@@ -80,9 +80,9 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
         var boundedBlocks = blocks.Take(request.MaxBlocks).ToArray();
         var boundedRegions = regions.Take(request.MaxRegions).ToArray();
 
-        return ToolExecutionHelpers.EnsureWithinSize(context, new ControlFlowGraphData
+        return context.ToolExecutionServices.ResultShaper.EnsureWithinSize(context, new ControlFlowGraphData
         {
-            Owner = context.Resolver.CreateSymbolReference(ownerSymbol),
+            Owner = context.WorkspaceResolver.CreateSymbolReference(ownerSymbol),
             Blocks = boundedBlocks,
             BlocksTruncated = boundedBlocks.Length < blocks.Length,
             Regions = boundedRegions,
@@ -116,7 +116,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
 
     private static async ValueTask<SyntaxNodeResolution> ResolveSyntaxNodeAsync(LocationSelector? selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)
     {
-        var rejection = ToolExecutionHelpers.ValidateSnapshot<ControlFlowGraphData>(context, expectedSnapshot);
+        var rejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<ControlFlowGraphData>(context, expectedSnapshot);
         if (rejection is not null)
         {
             return new SyntaxNodeResolution
@@ -133,7 +133,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
             };
         }
 
-        var locationResolution = await context.Resolver.ResolveLocationAsync(selector, cancellationToken).ConfigureAwait(false);
+        var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken).ConfigureAwait(false);
         if (locationResolution.Status != SelectorResolveStatus.Resolved)
         {
             return new SyntaxNodeResolution
@@ -142,7 +142,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
             };
         }
 
-        var resolvedLocation = context.Resolver.CreateResolvedLocation(locationResolution.Value!);
+        var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(locationResolution.Value!);
         if (resolvedLocation?.Document?.Path is null)
         {
             return new SyntaxNodeResolution

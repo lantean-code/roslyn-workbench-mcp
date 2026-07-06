@@ -28,7 +28,7 @@ internal sealed class RenameSymbolTool : MutationToolHandler<RenameSymbolRequest
     private static async ValueTask<PluginExecutionResult<MutationProposal>> ExecuteRenameSymbolAsync(RenameSymbolRequest request, IMutationContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var symbolResolution = await ToolExecutionHelpers.ResolveSymbolAsync<MutationProposal>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<MutationProposal>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;

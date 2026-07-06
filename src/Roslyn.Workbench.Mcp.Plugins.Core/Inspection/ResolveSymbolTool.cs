@@ -20,7 +20,7 @@ internal sealed class ResolveSymbolTool : QueryToolHandler<ResolveSymbolRequest,
     protected override async ValueTask<PluginExecutionResult<ResolveSymbolData>> ExecuteCoreAsync(ResolveSymbolRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var snapshotRejection = ToolExecutionHelpers.ValidateSnapshot<ResolveSymbolData>(context, request.ExpectedSnapshot);
+        var snapshotRejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<ResolveSymbolData>(context, request.ExpectedSnapshot);
         if (snapshotRejection is not null)
         {
             return snapshotRejection;
@@ -28,33 +28,33 @@ internal sealed class ResolveSymbolTool : QueryToolHandler<ResolveSymbolRequest,
 
         if (request.Location is null)
         {
-            return ToolExecutionHelpers.Rejected<ResolveSymbolData>("InvalidRequest", "Resolve symbol requires location.");
+            return context.ToolExecutionServices.ResultShaper.Rejected<ResolveSymbolData>("InvalidRequest", "Resolve symbol requires location.");
         }
 
-        var locationResolution = await context.Resolver.ResolveLocationAsync(request.Location, cancellationToken).ConfigureAwait(false);
+        var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(request.Location, cancellationToken).ConfigureAwait(false);
         if (locationResolution.Status != SelectorResolveStatus.Resolved)
         {
-            return ToolExecutionHelpers.RejectFromStatus<ResolveSymbolData>(locationResolution.Status, "Location");
+            return context.ToolExecutionServices.ResultShaper.RejectFromStatus<ResolveSymbolData>(locationResolution.Status, "Location");
         }
 
-        var symbolResolution = await context.Resolver.ResolveSymbolAsync(new SymbolSelector
+        var symbolResolution = await context.WorkspaceResolver.ResolveSymbolAsync(new SymbolSelector
         {
             Location = request.Location,
         }, cancellationToken).ConfigureAwait(false);
         if (symbolResolution.Status != SelectorResolveStatus.Resolved)
         {
-            return ToolExecutionHelpers.RejectFromStatus<ResolveSymbolData>(symbolResolution.Status, "Symbol");
+            return context.ToolExecutionServices.ResultShaper.RejectFromStatus<ResolveSymbolData>(symbolResolution.Status, "Symbol");
         }
 
         var symbol = symbolResolution.Value!;
         var data = new ResolveSymbolData
         {
-            Symbol = context.Resolver.CreateSymbolReference(symbol),
-            Selector = ToolExecutionHelpers.CreateSourceSymbolSelector(symbol, context.Resolver)
-                ?? ToolExecutionHelpers.CreateLocationSymbolSelector(context.Resolver.CreateResolvedLocation(locationResolution.Value!)),
+            Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
+            Selector = ToolExecutionHelpers.CreateSourceSymbolSelector(symbol, context.WorkspaceResolver)
+                ?? ToolExecutionHelpers.CreateLocationSymbolSelector(context.WorkspaceResolver.CreateResolvedLocation(locationResolution.Value!)),
             Declarations = symbol.Locations
                 .Where(static location => location.IsInSource)
-                .Select(location => context.Resolver.CreateResolvedLocation(location))
+                .Select(location => context.WorkspaceResolver.CreateResolvedLocation(location))
                 .Where(static location => location is not null)
                 .Select(static location => location!)
                 .OrderBy(static location => location.Document!.Path, StringComparer.Ordinal)
@@ -62,6 +62,6 @@ internal sealed class ResolveSymbolTool : QueryToolHandler<ResolveSymbolRequest,
                 .ToArray(),
         };
 
-        return ToolExecutionHelpers.EnsureWithinSize(context, data);
+        return context.ToolExecutionServices.ResultShaper.EnsureWithinSize(context, data);
     }
 }

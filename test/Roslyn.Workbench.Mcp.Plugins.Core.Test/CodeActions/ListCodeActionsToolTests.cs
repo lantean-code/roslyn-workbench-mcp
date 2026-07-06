@@ -3,44 +3,73 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.CodeActions;
 public sealed class ListCodeActionsToolTests
 {
     [Fact]
-    public async Task GIVEN_DefaultCoordinator_WHEN_ExecutingTool_THEN_ShouldRejectAsUnavailable()
+    public async Task GIVEN_CodeActionServiceReturnsActions_WHEN_CallingExecute_THEN_ShouldReturnServiceResult()
     {
-        using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = BundledCoreToolTestHarness.CreateInspectionCoordinator();
-        var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
+        var expected = PluginExecutionResult<CodeActionListData>.Success(new CodeActionListData
         {
-            Path = fixture.ProjectPath,
-        }, CancellationToken.None);
+            Actions =
+            [
+                new CodeActionInfo
+                {
+                    ActionId = "ActionId",
+                    Title = "Title",
+                    ProviderId = "ProviderId",
+                    ExpiresAt = "2000-01-01T00:00:00Z",
+                },
+            ],
+            ReturnedCount = 1,
+        });
+        var codeActionService = new Mock<ICodeActionService>();
+        var context = new QueryContextBuilder()
+            .WithCodeActionService(codeActionService.Object)
+            .Build();
         var target = new ListCodeActionsTool();
 
-        var result = await BundledCoreToolTestHarness.ExecuteQueryAsync(coordinator, "list-code-actions", target, new ListCodeActionsRequest
-        {
-            Location = fixture.GetLocation("StateHolder"),
-            ExpectedSnapshot = BundledCoreToolTestHarness.CreateSnapshot(openResult),
-        });
+        codeActionService
+            .Setup(service => service.ListCodeActionsAsync(
+                It.IsAny<ListCodeActionsRequest>(),
+                It.IsAny<IQueryContext>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error!.Code.Should().Be("CodeActionsUnavailable");
+        var request = new ListCodeActionsRequest
+        {
+            Location = new LocationSelector(),
+        };
+        var result = await target.ExecuteAsync(request, context, CancellationToken.None);
+
+        result.Should().BeEquivalentTo(expected);
+        codeActionService.Verify(service => service.ListCodeActionsAsync(request, context, CancellationToken.None), Times.Once);
     }
 
     [Fact]
-    public async Task GIVEN_TestProviders_WHEN_ExecutingTool_THEN_ShouldReturnDeterministicActions()
+    public async Task GIVEN_CodeActionServiceRejectsRequest_WHEN_CallingExecute_THEN_ShouldReturnServiceRejection()
     {
-        using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = BundledCoreToolTestHarness.CreateTestCodeActionCoordinator();
-        var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
+        var expected = PluginExecutionResult<CodeActionListData>.Rejected(new ToolError
         {
-            Path = fixture.ProjectPath,
-        }, CancellationToken.None);
+            Code = "CodeActionsUnavailable",
+            Message = "CodeActionsUnavailable",
+        });
+        var codeActionService = new Mock<ICodeActionService>();
+        var context = new QueryContextBuilder()
+            .WithCodeActionService(codeActionService.Object)
+            .Build();
         var target = new ListCodeActionsTool();
 
-        var result = await BundledCoreToolTestHarness.ExecuteQueryAsync(coordinator, "list-code-actions", target, new ListCodeActionsRequest
-        {
-            Location = fixture.GetLocation("StateHolder"),
-            ExpectedSnapshot = BundledCoreToolTestHarness.CreateSnapshot(openResult),
-        });
+        codeActionService
+            .Setup(service => service.ListCodeActionsAsync(
+                It.IsAny<ListCodeActionsRequest>(),
+                It.IsAny<IQueryContext>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data!.Actions.Select(static action => action.Title).Should().ContainInOrder(["Apply test refactoring", "Change signature test refactoring", "Option gathering test refactoring", "Retain test state", "Unsupported test refactoring"]);
+        var request = new ListCodeActionsRequest
+        {
+            Location = new LocationSelector(),
+        };
+        var result = await target.ExecuteAsync(request, context, CancellationToken.None);
+
+        result.Should().BeEquivalentTo(expected);
+        codeActionService.Verify(service => service.ListCodeActionsAsync(request, context, CancellationToken.None), Times.Once);
     }
 }

@@ -19,7 +19,7 @@ internal sealed class GetDocumentOutlineTool : QueryToolHandler<GetDocumentOutli
     protected override async ValueTask<PluginExecutionResult<DocumentOutlineData>> ExecuteCoreAsync(GetDocumentOutlineRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var documentResolution = ToolExecutionHelpers.ResolveDocument<DocumentOutlineData>(request.Document, context);
+        var documentResolution = context.ToolExecutionServices.RequestResolver.ResolveDocument<DocumentOutlineData>(request.Document, context);
         if (documentResolution.HasRejection)
         {
             return documentResolution.Rejection;
@@ -30,17 +30,17 @@ internal sealed class GetDocumentOutlineTool : QueryToolHandler<GetDocumentOutli
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
         var data = new DocumentOutlineData
         {
-            Document = context.Resolver.CreateDocumentReference(document),
+            Document = context.WorkspaceResolver.CreateDocumentReference(document),
             Root = syntaxRoot is null || semanticModel is null
                 ? null
                 : new OutlineNode
                 {
                     Name = document.Name,
                     Kind = "Document",
-                    Children = InspectionProjectionFactory.BuildOutlineChildren(syntaxRoot, semanticModel, context.Resolver, request.IncludeMembers, cancellationToken),
+                    Children = DocumentOutlineProjectionFactory.BuildOutlineChildren(syntaxRoot, semanticModel, context.WorkspaceResolver, request.IncludeMembers, cancellationToken),
                 },
         };
 
-        return ToolExecutionHelpers.EnsureWithinSize(context, data);
+        return context.ToolExecutionServices.ResultShaper.EnsureWithinSize(context, data);
     }
 }

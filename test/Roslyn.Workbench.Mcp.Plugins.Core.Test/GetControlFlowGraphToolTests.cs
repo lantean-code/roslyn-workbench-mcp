@@ -18,7 +18,7 @@ public sealed class GetControlFlowGraphToolTests
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -50,7 +50,7 @@ public sealed class GetControlFlowGraphToolTests
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,

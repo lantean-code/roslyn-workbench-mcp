@@ -23,13 +23,13 @@ internal sealed class SortUsingsTool : MutationToolHandler<SortUsingsRequest, Mu
     protected override async ValueTask<PluginExecutionResult<MutationProposal>> ExecuteCoreAsync(SortUsingsRequest request, IMutationContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var documentResolution = ToolExecutionHelpers.ResolveDocument<MutationProposal>(request.Document, context);
+        var documentResolution = context.ToolExecutionServices.RequestResolver.ResolveDocument<MutationProposal>(request.Document, context);
         if (documentResolution.HasRejection)
         {
             return documentResolution.Rejection;
         }
 
-        var snapshotRejection = ToolExecutionHelpers.ValidateSnapshot<MutationProposal>(context, request.ExpectedSnapshot);
+        var snapshotRejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<MutationProposal>(context, request.ExpectedSnapshot);
         if (snapshotRejection is not null)
         {
             return snapshotRejection;

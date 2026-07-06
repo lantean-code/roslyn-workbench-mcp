@@ -16,7 +16,7 @@ public sealed class InspectionMcpToolTests
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -127,7 +127,7 @@ public sealed class InspectionMcpToolTests
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxResponseBytes = 65536,
-        });
+        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,

@@ -7,15 +7,24 @@ namespace Roslyn.Workbench.Mcp.Workspace;
 
 internal sealed class WorkspaceQueryContext : IQueryContext
 {
-    public WorkspaceQueryContext(Solution currentSolution, WorkspaceIdentity? workspaceIdentity, int? transactionRevision, ResultLimit effectiveResultLimit, int maxResponseBytes, IWorkspaceResolver resolver, ICodeActionService codeActionService)
+    public WorkspaceQueryContext(
+        Solution currentSolution,
+        WorkspaceIdentity? workspaceIdentity,
+        int? transactionRevision,
+        ResultLimit effectiveResultLimit,
+        int maxResponseBytes,
+        IWorkspaceResolver resolver,
+        ICodeActionService codeActionService,
+        IToolExecutionServices toolExecutionServices)
     {
         CurrentSolution = currentSolution;
         WorkspaceIdentity = workspaceIdentity;
         TransactionRevision = transactionRevision;
         EffectiveResultLimit = effectiveResultLimit;
         MaxResponseBytes = maxResponseBytes;
-        Resolver = resolver;
+        WorkspaceResolver = resolver;
         CodeActionService = codeActionService;
+        ToolExecutionServices = toolExecutionServices ?? throw new ArgumentNullException(nameof(toolExecutionServices));
     }
 
     public Solution CurrentSolution { get; }
@@ -28,7 +37,9 @@ internal sealed class WorkspaceQueryContext : IQueryContext
 
     public int MaxResponseBytes { get; }
 
-    public IWorkspaceResolver Resolver { get; }
+    public IWorkspaceResolver WorkspaceResolver { get; }
 
     public ICodeActionService CodeActionService { get; }
+
+    public IToolExecutionServices ToolExecutionServices { get; }
 }

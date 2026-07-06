@@ -28,7 +28,7 @@ internal sealed class ConvertAnonymousTypeToClassTool : MutationToolHandler<Conv
             ? "Convert to record"
             : "Convert to class";
 
-        return ToolExecutionHelpers.StageReplaySelectionAsync(
+        return context.ToolExecutionServices.ReplayCodeActionExecutor.StageReplaySelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             context,

@@ -19,36 +19,36 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
     protected override async ValueTask<PluginExecutionResult<SolutionStructureData>> ExecuteCoreAsync(GetSolutionStructureRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var hierarchy = await ProjectFileUtilities.GetSolutionHierarchyAsync(context.WorkspaceIdentity?.LoadedPath, cancellationToken);
+        var hierarchy = await context.ToolExecutionServices.ProjectStructureService.GetSolutionHierarchyAsync(context.WorkspaceIdentity?.LoadedPath, cancellationToken).ConfigureAwait(false);
 
         var projects = context.CurrentSolution.Projects
-            .OrderBy(project => context.Resolver.NormalizeProjectPath(project.FilePath ?? project.Name), StringComparer.Ordinal)
+            .OrderBy(project => context.WorkspaceResolver.NormalizeProjectPath(project.FilePath ?? project.Name), StringComparer.Ordinal)
             .Select(project => new ProjectStructureInfo
             {
                 ProjectId = project.Id.Id.ToString(),
                 Name = project.Name,
-                Path = context.Resolver.NormalizeProjectPath(project.FilePath ?? project.Name),
-                SolutionFolderPath = hierarchy.ProjectFolderPaths.TryGetValue(context.Resolver.NormalizeProjectPath(project.FilePath ?? project.Name), out var solutionFolderPath)
+                Path = context.WorkspaceResolver.NormalizeProjectPath(project.FilePath ?? project.Name),
+                SolutionFolderPath = hierarchy.ProjectFolderPaths.TryGetValue(context.WorkspaceResolver.NormalizeProjectPath(project.FilePath ?? project.Name), out var solutionFolderPath)
                     ? solutionFolderPath
                     : null,
-                TargetFrameworks = ProjectFileUtilities.GetTargetFrameworks(project),
+                TargetFrameworks = context.ToolExecutionServices.ProjectStructureService.GetTargetFrameworks(project),
                 ProjectReferences = project.ProjectReferences
                     .Select(reference => context.CurrentSolution.GetProject(reference.ProjectId))
                     .Where(static project => project is not null)
-                    .Select(project => InspectionProjectionFactory.CreateProjectReferenceInfo(project!, context.Resolver))
+                    .Select(project => InspectionProjectionFactory.CreateProjectReferenceInfo(project!, context.WorkspaceResolver))
                     .OrderBy(static reference => reference.Path, StringComparer.Ordinal)
                     .ToArray(),
                 Documents = request.IncludeDocuments
                     ? project.Documents
                         .Where(static document => !string.IsNullOrWhiteSpace(document.FilePath))
-                        .OrderBy(document => context.Resolver.NormalizeDocumentPath(document.FilePath!), StringComparer.Ordinal)
-                        .Select(document => context.Resolver.CreateDocumentReference(document)!)
+                        .OrderBy(document => context.WorkspaceResolver.NormalizeDocumentPath(document.FilePath!), StringComparer.Ordinal)
+                        .Select(document => context.WorkspaceResolver.CreateDocumentReference(document)!)
                         .ToArray()
                     : null,
             })
             .ToArray();
 
-        return ToolExecutionHelpers.CreateBoundedCollectionResult(
+        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
             context,
             projects,
             ToolExecutionHelpers.GetMaxResults(context, request.Limit),

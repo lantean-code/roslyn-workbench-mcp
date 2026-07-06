@@ -31,10 +31,15 @@ public interface IToolExecutionContext
     /// <summary>
     /// Gets the host-owned workspace resolution services for this invocation.
     /// </summary>
-    IWorkspaceResolver Resolver { get; }
+    IWorkspaceResolver WorkspaceResolver { get; }
 
     /// <summary>
     /// Gets the host-owned code-action service for this invocation.
     /// </summary>
     ICodeActionService CodeActionService { get; }
+
+    /// <summary>
+    /// Gets the host-composed execution services available to plugin tools.
+    /// </summary>
+    IToolExecutionServices ToolExecutionServices { get; }
 }

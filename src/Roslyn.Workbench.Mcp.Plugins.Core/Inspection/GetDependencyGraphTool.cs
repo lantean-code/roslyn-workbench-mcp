@@ -20,8 +20,7 @@ internal sealed class GetDependencyGraphTool : QueryToolHandler<GetDependencyGra
     protected override async ValueTask<PluginExecutionResult<DependencyGraphData>> ExecuteCoreAsync(GetDependencyGraphRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-
-        if (!DependencyAnalysisHelpers.IsSupportedGraphGranularity(request.Granularity))
+        if (!context.ToolExecutionServices.DependencyAnalysisService.IsSupportedGraphGranularity(request.Granularity))
         {
             return ToolExecutionHelpers.Rejected<DependencyGraphData>("InvalidRequest", "Granularity must be Project, Namespace, Type, or Symbol.");
         }
@@ -36,19 +35,19 @@ internal sealed class GetDependencyGraphTool : QueryToolHandler<GetDependencyGra
             return ToolExecutionHelpers.Rejected<DependencyGraphData>("InvalidRequest", "MaxNodes and MaxEdges must be greater than zero when provided.");
         }
 
-        var documents = ToolExecutionHelpers.ResolveDocuments<DependencyGraphData>(request.Scope, context);
+        var documents = context.ToolExecutionServices.RequestResolver.ResolveDocuments<DependencyGraphData>(request.Scope, context);
         if (documents.HasRejection)
         {
             return documents.Rejection;
         }
 
-        var projects = ToolExecutionHelpers.ResolveProjects<DependencyGraphData>(request.Scope, context);
+        var projects = context.ToolExecutionServices.RequestResolver.ResolveProjects<DependencyGraphData>(request.Scope, context);
         if (projects.HasRejection)
         {
             return projects.Rejection;
         }
 
-        var graph = await DependencyAnalysisHelpers.BuildGraphAsync(
+        var graph = await context.ToolExecutionServices.DependencyAnalysisService.BuildGraphAsync(
             request.Granularity,
             projects.Value,
             documents.Value,
@@ -74,7 +73,7 @@ internal sealed class GetDependencyGraphTool : QueryToolHandler<GetDependencyGra
             truncationReasons.Add(CollectionTruncation.EdgeLimit);
         }
 
-        return ToolExecutionHelpers.EnsureWithinSize(context, new DependencyGraphData
+        return context.ToolExecutionServices.ResultShaper.EnsureWithinSize(context, new DependencyGraphData
         {
             Nodes = nodes,
             Edges = edges,

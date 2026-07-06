@@ -3,47 +3,113 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Refactorings;
 public sealed class ConvertPropertyToolTests
 {
     [Fact]
-    public async Task GIVEN_ActiveTransaction_WHEN_ExecutingTool_THEN_ShouldStageMutation()
+    public async Task GIVEN_UnsupportedDirection_WHEN_CallingExecute_THEN_ShouldReturnInvalidRequest()
     {
-        using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = BundledCoreToolTestHarness.CreateBuiltInCodeActionCoordinator();
-        var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, CancellationToken.None);
-        await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
         var target = new ConvertPropertyTool();
+        var context = new MutationContextBuilder().Build();
 
-        openResult.Outcome.Should().Be(ToolOutcome.Succeeded);
+        var result = await target.ExecuteAsync(new ConvertPropertyRequest
+        {
+            Selection = new LocationSelector(),
+            Direction = (ConvertPropertyDirection)999,
+        }, context, CancellationToken.None);
 
-        var result = await BundledCoreToolTestHarness.ExecuteMutationAsync(coordinator, "convert-property", target, RefactoringRequestFactory.CreateConvertPropertyRequest(fixture.GetLocation("Goo"), openResult, ConvertPropertyDirection.ToFull));
-        var preview = await coordinator.PreviewTransactionAsync(new TransactionPreviewRequest(), CancellationToken.None);
-
-        result.ProposalResult.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.ProposalResult.Data!.CandidateSolution.Should().NotBeNull();
-        result.StagedResult!.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.StagedResult.Data!.Operation.Should().Be("convert-property");
-        preview.Data!.Documents.Should().Contain(static change => change.Document!.Path == "Formatting.cs");
+        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Error!.Code.Should().Be("InvalidRequest");
     }
 
     [Fact]
-    public async Task GIVEN_AutoPropertyDirection_WHEN_ExecutingTool_THEN_ShouldStageMutation()
+    public async Task GIVEN_ToFullDirection_WHEN_CallingExecute_THEN_ShouldDelegateToReplayExecutor()
     {
-        using var fixture = await InspectionSampleFixture.CreateAsync(new InspectionSampleFixtureOptions
-        {
-            AdditionalEditorConfigText = "dotnet_style_prefer_auto_properties = true:suggestion",
-        });
-        var coordinator = BundledCoreToolTestHarness.CreateBuiltInCodeActionCoordinator();
-        var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, CancellationToken.None);
-        await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
+        var expected = PluginExecutionResult<MutationProposal>.Success(new MutationProposal());
+        var replayExecutor = new Mock<IReplayCodeActionExecutor>();
+        var services = new ToolExecutionServicesBuilder()
+            .WithReplayCodeActionExecutor(replayExecutor.Object)
+            .Build();
         var target = new ConvertPropertyTool();
+        var context = new MutationContextBuilder()
+            .WithToolExecutionServices(services)
+            .Build();
+        var request = new ConvertPropertyRequest
+        {
+            Selection = new LocationSelector(),
+            Direction = ConvertPropertyDirection.ToFull,
+            ExpectedSnapshot = new SnapshotPrecondition
+            {
+                WorkspaceEpoch = 1,
+            },
+        };
 
-        var result = await BundledCoreToolTestHarness.ExecuteMutationAsync(coordinator, "convert-property", target, RefactoringRequestFactory.CreateConvertPropertyRequest(fixture.GetLocation("Score"), openResult, ConvertPropertyDirection.ToAutoWhenSafe));
+        replayExecutor
+            .Setup(executor => executor.StageReplaySelectionAsync(
+                It.IsAny<LocationSelector?>(),
+                It.IsAny<SnapshotPrecondition?>(),
+                It.IsAny<IMutationContext>(),
+                It.IsAny<CancellationToken>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<IReadOnlyList<int>?>()))
+            .ReturnsAsync(expected);
 
-        result.StagedResult!.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.StagedResult.Data!.Operation.Should().Be("convert-property");
+        var result = await target.ExecuteAsync(request, context, CancellationToken.None);
+
+        result.Should().BeEquivalentTo(expected);
+        replayExecutor.Verify(executor => executor.StageReplaySelectionAsync(
+            request.Selection,
+            request.ExpectedSnapshot,
+            context,
+            CancellationToken.None,
+            "Microsoft.CodeAnalysis.CSharp.ConvertAutoPropertyToFullProperty.CSharpConvertAutoPropertyToFullPropertyCodeRefactoringProvider",
+            "Convert to full property",
+            null,
+            null,
+            null,
+            null), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_ToAutoWhenSafeDirection_WHEN_CallingExecute_THEN_ShouldDelegateToLocationCodeFixService()
+    {
+        var expected = PluginExecutionResult<MutationProposal>.Success(new MutationProposal());
+        var codeActionService = new Mock<ICodeActionService>();
+        var context = new MutationContextBuilder()
+            .WithCodeActionService(codeActionService.Object)
+            .Build();
+        var target = new ConvertPropertyTool();
+        var request = new ConvertPropertyRequest
+        {
+            Selection = new LocationSelector(),
+            Direction = ConvertPropertyDirection.ToAutoWhenSafe,
+            ExpectedSnapshot = new SnapshotPrecondition
+            {
+                WorkspaceEpoch = 1,
+            },
+        };
+
+        codeActionService
+            .Setup(service => service.StageLocationCodeFixAsync(
+                It.IsAny<LocationCodeFixRequest>(),
+                It.IsAny<IMutationContext>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
+
+        var result = await target.ExecuteAsync(request, context, CancellationToken.None);
+
+        result.Should().BeEquivalentTo(expected);
+        codeActionService.Verify(service => service.StageLocationCodeFixAsync(
+            It.Is<LocationCodeFixRequest>(stageRequest =>
+                stageRequest.Location == request.Selection
+                && stageRequest.ExpectedSnapshot == request.ExpectedSnapshot
+                && stageRequest.ProviderId == "Microsoft.CodeAnalysis.CSharp.UseAutoProperty.CSharpUseAutoPropertyCodeFixProvider"
+                && stageRequest.AnalyzerTypeName == "Microsoft.CodeAnalysis.CSharp.UseAutoProperty.CSharpUseAutoPropertyAnalyzer"
+                && stageRequest.SyntheticDiagnosticId == "IDE0032"
+                && stageRequest.DiagnosticIds.Count == 1
+                && stageRequest.DiagnosticIds[0] == "IDE0032"
+                && stageRequest.Title == "Use auto property"),
+            context,
+            CancellationToken.None), Times.Once);
     }
 }

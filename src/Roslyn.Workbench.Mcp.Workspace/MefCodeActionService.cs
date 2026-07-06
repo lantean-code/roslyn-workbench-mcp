@@ -47,7 +47,7 @@ internal sealed class MefCodeActionService : ICodeActionService
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var snapshotRejection = ValidateSnapshot<CodeActionListData>(context.Resolver, request.ExpectedSnapshot);
+        var snapshotRejection = ValidateSnapshot<CodeActionListData>(context.WorkspaceResolver, request.ExpectedSnapshot);
         if (snapshotRejection is not null)
         {
             return snapshotRejection;
@@ -58,7 +58,7 @@ internal sealed class MefCodeActionService : ICodeActionService
             return Rejected<CodeActionListData>("InvalidRequest", "A location selector is required.");
         }
 
-        var location = await context.Resolver.ResolveLocationAsync(request.Location, cancellationToken);
+        var location = await context.WorkspaceResolver.ResolveLocationAsync(request.Location, cancellationToken);
         if (location.Status != SelectorResolveStatus.Resolved || location.Value is null)
         {
             return RejectFromStatus<CodeActionListData>(location.Status, "Location");
@@ -152,7 +152,7 @@ internal sealed class MefCodeActionService : ICodeActionService
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var snapshotRejection = ValidateSnapshot<MutationProposal>(context.Resolver, request.ExpectedSnapshot);
+        var snapshotRejection = ValidateSnapshot<MutationProposal>(context.WorkspaceResolver, request.ExpectedSnapshot);
         if (snapshotRejection is not null)
         {
             return snapshotRejection;
@@ -163,7 +163,7 @@ internal sealed class MefCodeActionService : ICodeActionService
             return Rejected<MutationProposal>("InvalidRequest", "A location selector is required.");
         }
 
-        var location = await context.Resolver.ResolveLocationAsync(request.Location, cancellationToken).ConfigureAwait(false);
+        var location = await context.WorkspaceResolver.ResolveLocationAsync(request.Location, cancellationToken).ConfigureAwait(false);
         if (location.Status != SelectorResolveStatus.Resolved || location.Value is null)
         {
             return RejectFromStatus<MutationProposal>(location.Status, "Location");
@@ -286,7 +286,7 @@ internal sealed class MefCodeActionService : ICodeActionService
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var snapshotRejection = ValidateSnapshot<MutationProposal>(context.Resolver, request.ExpectedSnapshot);
+        var snapshotRejection = ValidateSnapshot<MutationProposal>(context.WorkspaceResolver, request.ExpectedSnapshot);
         if (snapshotRejection is not null)
         {
             return snapshotRejection;
@@ -319,7 +319,7 @@ internal sealed class MefCodeActionService : ICodeActionService
             return ActionExpired<MutationProposal>();
         }
 
-        var originDocumentResolution = context.Resolver.ResolveDocument(new DocumentSelector
+        var originDocumentResolution = context.WorkspaceResolver.ResolveDocument(new DocumentSelector
         {
             Path = payload.DocumentPath,
         });
@@ -388,7 +388,7 @@ internal sealed class MefCodeActionService : ICodeActionService
                         return Rejected<MutationProposal>("InvalidRequest", "Document scope requires a document selector.");
                     }
 
-                    var documentResolution = context.Resolver.ResolveDocument(request.Scope.Document);
+                    var documentResolution = context.WorkspaceResolver.ResolveDocument(request.Scope.Document);
                     if (documentResolution.Status != SelectorResolveStatus.Resolved || documentResolution.Value is null)
                     {
                         return RejectFromStatus<MutationProposal>(documentResolution.Status, "Document");
@@ -417,7 +417,7 @@ internal sealed class MefCodeActionService : ICodeActionService
                         return Rejected<MutationProposal>("InvalidRequest", "Project scope requires a project selector.");
                     }
 
-                    var projectResolution = context.Resolver.ResolveProject(request.Scope.Project);
+                    var projectResolution = context.WorkspaceResolver.ResolveProject(request.Scope.Project);
                     if (projectResolution.Status != SelectorResolveStatus.Resolved || projectResolution.Value is null)
                     {
                         return RejectFromStatus<MutationProposal>(projectResolution.Status, "Project");
@@ -448,7 +448,7 @@ internal sealed class MefCodeActionService : ICodeActionService
 
                     foreach (var projectSelector in request.Scope.Projects)
                     {
-                        var projectResolution = context.Resolver.ResolveProject(projectSelector);
+                        var projectResolution = context.WorkspaceResolver.ResolveProject(projectSelector);
                         if (projectResolution.Status != SelectorResolveStatus.Resolved || projectResolution.Value is null)
                         {
                             return RejectFromStatus<MutationProposal>(projectResolution.Status, "Project");
@@ -499,7 +499,7 @@ internal sealed class MefCodeActionService : ICodeActionService
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var snapshotRejection = ValidateSnapshot<MutationProposal>(context.Resolver, request.ExpectedSnapshot);
+        var snapshotRejection = ValidateSnapshot<MutationProposal>(context.WorkspaceResolver, request.ExpectedSnapshot);
         if (snapshotRejection is not null)
         {
             return snapshotRejection;
@@ -534,7 +534,7 @@ internal sealed class MefCodeActionService : ICodeActionService
         var hadDiagnostics = false;
 
         foreach (var document in documentsResolution.Documents
-            .OrderBy(document => context.Resolver.NormalizeDocumentPath(document.FilePath ?? document.Name), StringComparer.Ordinal))
+            .OrderBy(document => context.WorkspaceResolver.NormalizeDocumentPath(document.FilePath ?? document.Name), StringComparer.Ordinal))
         {
             cancellationToken.ThrowIfCancellationRequested();
             var diagnostics = await GetScopedCodeFixDiagnosticsAsync(document, request.DiagnosticIds, request.AnalyzerTypeName, request.SyntheticDiagnosticId, cancellationToken).ConfigureAwait(false);
@@ -642,7 +642,7 @@ internal sealed class MefCodeActionService : ICodeActionService
                         return Rejected<MutationProposal>("InvalidRequest", "Document scope requires a document selector.");
                     }
 
-                    var documentResolution = context.Resolver.ResolveDocument(request.Scope.Document);
+                    var documentResolution = context.WorkspaceResolver.ResolveDocument(request.Scope.Document);
                     if (documentResolution.Status != SelectorResolveStatus.Resolved || documentResolution.Value is null)
                     {
                         return RejectFromStatus<MutationProposal>(documentResolution.Status, "Document");
@@ -690,7 +690,7 @@ internal sealed class MefCodeActionService : ICodeActionService
                         return Rejected<MutationProposal>("InvalidRequest", "Project scope requires a project selector.");
                     }
 
-                    var projectResolution = context.Resolver.ResolveProject(request.Scope.Project);
+                    var projectResolution = context.WorkspaceResolver.ResolveProject(request.Scope.Project);
                     if (projectResolution.Status != SelectorResolveStatus.Resolved || projectResolution.Value is null)
                     {
                         return RejectFromStatus<MutationProposal>(projectResolution.Status, "Project");
@@ -727,7 +727,7 @@ internal sealed class MefCodeActionService : ICodeActionService
 
                     foreach (var projectSelector in request.Scope.Projects)
                     {
-                        var projectResolution = context.Resolver.ResolveProject(projectSelector);
+                        var projectResolution = context.WorkspaceResolver.ResolveProject(projectSelector);
                         if (projectResolution.Status != SelectorResolveStatus.Resolved || projectResolution.Value is null)
                         {
                             return RejectFromStatus<MutationProposal>(projectResolution.Status, "Project");
@@ -778,7 +778,7 @@ internal sealed class MefCodeActionService : ICodeActionService
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var snapshotRejection = ValidateSnapshot<MutationProposal>(context.Resolver, request.ExpectedSnapshot);
+        var snapshotRejection = ValidateSnapshot<MutationProposal>(context.WorkspaceResolver, request.ExpectedSnapshot);
         if (snapshotRejection is not null)
         {
             return snapshotRejection;
@@ -794,7 +794,7 @@ internal sealed class MefCodeActionService : ICodeActionService
             return Rejected<MutationProposal>("InvalidRequest", "At least one diagnostic ID is required.");
         }
 
-        var location = await context.Resolver.ResolveLocationAsync(request.Location, cancellationToken).ConfigureAwait(false);
+        var location = await context.WorkspaceResolver.ResolveLocationAsync(request.Location, cancellationToken).ConfigureAwait(false);
         if (location.Status != SelectorResolveStatus.Resolved || location.Value is null)
         {
             return RejectFromStatus<MutationProposal>(location.Status, "Location");
@@ -1022,7 +1022,7 @@ internal sealed class MefCodeActionService : ICodeActionService
                 WorkspaceEpoch = context.WorkspaceIdentity?.WorkspaceEpoch ?? 0,
                 TransactionRevision = context.TransactionRevision,
                 ExpiresAt = expiresAt.ToString("O"),
-                DocumentPath = context.Resolver.NormalizeDocumentPath(document.FilePath ?? document.Name),
+                DocumentPath = context.WorkspaceResolver.NormalizeDocumentPath(document.FilePath ?? document.Name),
                 Start = span.Start,
                 Length = span.Length,
             }),
@@ -1086,7 +1086,7 @@ internal sealed class MefCodeActionService : ICodeActionService
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var snapshotRejection = ValidateSnapshot<T>(context.Resolver, expectedSnapshot);
+        var snapshotRejection = ValidateSnapshot<T>(context.WorkspaceResolver, expectedSnapshot);
         if (snapshotRejection is not null)
         {
             return new ResolvedAction<T>
@@ -1137,7 +1137,7 @@ internal sealed class MefCodeActionService : ICodeActionService
             };
         }
 
-        var documentResolution = context.Resolver.ResolveDocument(new DocumentSelector
+        var documentResolution = context.WorkspaceResolver.ResolveDocument(new DocumentSelector
         {
             Path = payload.DocumentPath,
         });
@@ -1520,7 +1520,7 @@ internal sealed class MefCodeActionService : ICodeActionService
             };
         }
 
-        var resolution = context.Resolver.ResolveDocument(selector);
+        var resolution = context.WorkspaceResolver.ResolveDocument(selector);
         return resolution.Status == SelectorResolveStatus.Resolved && resolution.Value is not null
             ? new ScopeDocumentResolution
             {
@@ -1542,7 +1542,7 @@ internal sealed class MefCodeActionService : ICodeActionService
             };
         }
 
-        var resolution = context.Resolver.ResolveProject(selector);
+        var resolution = context.WorkspaceResolver.ResolveProject(selector);
         return resolution.Status == SelectorResolveStatus.Resolved && resolution.Value is not null
             ? new ScopeDocumentResolution
             {
@@ -1567,7 +1567,7 @@ internal sealed class MefCodeActionService : ICodeActionService
         var documents = new List<Document>();
         foreach (var selector in selectors)
         {
-            var resolution = context.Resolver.ResolveProject(selector);
+            var resolution = context.WorkspaceResolver.ResolveProject(selector);
             if (resolution.Status != SelectorResolveStatus.Resolved || resolution.Value is null)
             {
                 return new ScopeDocumentResolution

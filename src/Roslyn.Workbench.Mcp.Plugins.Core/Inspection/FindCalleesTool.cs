@@ -24,7 +24,7 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
 
         if (request.Symbol is null == request.Location is null)
         {
-            return ToolExecutionHelpers.Rejected<CalleeSearchData>("InvalidRequest", "Specify exactly one of symbol or location.");
+            return context.ToolExecutionServices.ResultShaper.Rejected<CalleeSearchData>("InvalidRequest", "Specify exactly one of symbol or location.");
         }
 
         var directCallees = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
@@ -32,7 +32,7 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
 
         if (request.Symbol is not null)
         {
-            var symbolResolution = await ToolExecutionHelpers.ResolveSymbolAsync<CalleeSearchData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+            var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<CalleeSearchData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
             if (symbolResolution.HasRejection)
             {
                 return symbolResolution.Rejection;
@@ -73,7 +73,7 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
 
             if (!foundSourceOperation)
             {
-                return ToolExecutionHelpers.Rejected<CalleeSearchData>("InvalidRequest", "The selected symbol does not have an executable source body.");
+                return context.ToolExecutionServices.ResultShaper.Rejected<CalleeSearchData>("InvalidRequest", "The selected symbol does not have an executable source body.");
             }
         }
         else
@@ -87,7 +87,7 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
             var operation = GetOperation(locationResolution.SemanticModel!, locationResolution.Node!, cancellationToken);
             if (operation is null)
             {
-                return ToolExecutionHelpers.Rejected<CalleeSearchData>("InvalidRequest", "The selected location does not resolve to executable code.");
+                return context.ToolExecutionServices.ResultShaper.Rejected<CalleeSearchData>("InvalidRequest", "The selected location does not resolve to executable code.");
             }
 
             sourceSymbol = locationResolution.SemanticModel!.GetEnclosingSymbol(locationResolution.Node!.SpanStart, cancellationToken)!;
@@ -100,17 +100,17 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
         }
 
         var orderedCallees = directCallees
-            .OrderBy(symbol => context.Resolver.CreateSymbolReference(symbol).DisplayName, StringComparer.Ordinal)
-            .Select(context.Resolver.CreateSymbolReference)
+            .OrderBy(symbol => context.WorkspaceResolver.CreateSymbolReference(symbol).DisplayName, StringComparer.Ordinal)
+            .Select(context.WorkspaceResolver.CreateSymbolReference)
             .ToArray();
 
-        return ToolExecutionHelpers.CreateBoundedCollectionResult(
+        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
             context,
             orderedCallees,
             ToolExecutionHelpers.GetMaxResults(context, request.Limit),
             (items, hasMore) => new CalleeSearchData
             {
-                Source = context.Resolver.CreateSymbolReference(sourceSymbol),
+                Source = context.WorkspaceResolver.CreateSymbolReference(sourceSymbol),
                 Callees = items,
                 ReturnedCount = items.Count,
                 HasMore = hasMore,
@@ -213,7 +213,7 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
 
     private static async ValueTask<LocationResolution> ResolveLocationAsync(LocationSelector? selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)
     {
-        var snapshotRejection = ToolExecutionHelpers.ValidateSnapshot<CalleeSearchData>(context, expectedSnapshot);
+        var snapshotRejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<CalleeSearchData>(context, expectedSnapshot);
         if (snapshotRejection is not null)
         {
             return new LocationResolution
@@ -226,16 +226,16 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
         {
             return new LocationResolution
             {
-                Rejection = ToolExecutionHelpers.Rejected<CalleeSearchData>("InvalidRequest", "A location selector is required."),
+                Rejection = context.ToolExecutionServices.ResultShaper.Rejected<CalleeSearchData>("InvalidRequest", "A location selector is required."),
             };
         }
 
-        var location = await context.Resolver.ResolveLocationAsync(selector, cancellationToken).ConfigureAwait(false);
+        var location = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken).ConfigureAwait(false);
         if (location.Status != SelectorResolveStatus.Resolved)
         {
             return new LocationResolution
             {
-                Rejection = ToolExecutionHelpers.RejectFromStatus<CalleeSearchData>(location.Status, "Location"),
+                Rejection = context.ToolExecutionServices.ResultShaper.RejectFromStatus<CalleeSearchData>(location.Status, "Location"),
             };
         }
 
@@ -244,7 +244,7 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
         {
             return new LocationResolution
             {
-                Rejection = ToolExecutionHelpers.Rejected<CalleeSearchData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
+                Rejection = context.ToolExecutionServices.ResultShaper.Rejected<CalleeSearchData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
             };
         }
 
@@ -254,7 +254,7 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
         {
             return new LocationResolution
             {
-                Rejection = ToolExecutionHelpers.Rejected<CalleeSearchData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
+                Rejection = context.ToolExecutionServices.ResultShaper.Rejected<CalleeSearchData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
             };
         }
 

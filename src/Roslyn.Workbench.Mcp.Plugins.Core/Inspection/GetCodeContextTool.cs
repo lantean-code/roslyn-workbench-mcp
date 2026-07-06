@@ -21,7 +21,6 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
     protected override async ValueTask<PluginExecutionResult<CodeContextData>> ExecuteCoreAsync(GetCodeContextRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-
         var locationResolution = await ResolveLocationAsync(request.Location, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
         if (locationResolution.Rejection is not null)
         {
@@ -39,7 +38,7 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
                     Id = diagnostic.Id,
                     Severity = InspectionProjectionFactory.MapSeverity(diagnostic.Severity),
                     Message = diagnostic.GetMessage(),
-                    Location = diagnostic.Location.IsInSource ? context.Resolver.CreateResolvedLocation(diagnostic.Location) : null,
+                    Location = diagnostic.Location.IsInSource ? context.WorkspaceResolver.CreateResolvedLocation(diagnostic.Location) : null,
                 })
                 .OrderBy(static diagnostic => diagnostic.Location?.Document?.Path ?? string.Empty, StringComparer.Ordinal)
                 .ThenBy(static diagnostic => diagnostic.Location?.Span?.Start ?? int.MaxValue)
@@ -58,7 +57,7 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
             Environment.NewLine,
             Enumerable.Range(windowStart, windowEnd - windowStart + 1).Select(index => lines[index].ToString()));
 
-        return ToolExecutionHelpers.EnsureWithinSize(context, new CodeContextData
+        return context.ToolExecutionServices.ResultShaper.EnsureWithinSize(context, new CodeContextData
         {
             Location = locationResolution.ResolvedLocation,
             Text = windowText,
@@ -77,7 +76,7 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
                 continue;
             }
 
-            symbols.Add(context.Resolver.CreateSymbolReference(current));
+            symbols.Add(context.WorkspaceResolver.CreateSymbolReference(current));
         }
 
         return symbols;
@@ -85,7 +84,7 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
 
     private static async ValueTask<LocationResolution> ResolveLocationAsync(LocationSelector? selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)
     {
-        var snapshotRejection = ToolExecutionHelpers.ValidateSnapshot<CodeContextData>(context, expectedSnapshot);
+        var snapshotRejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<CodeContextData>(context, expectedSnapshot);
         if (snapshotRejection is not null)
         {
             return new LocationResolution
@@ -98,26 +97,26 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
         {
             return new LocationResolution
             {
-                Rejection = ToolExecutionHelpers.Rejected<CodeContextData>("InvalidRequest", "A location selector is required."),
+                Rejection = context.ToolExecutionServices.ResultShaper.Rejected<CodeContextData>("InvalidRequest", "A location selector is required."),
             };
         }
 
-        var location = await context.Resolver.ResolveLocationAsync(selector, cancellationToken).ConfigureAwait(false);
+        var location = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken).ConfigureAwait(false);
         if (location.Status != SelectorResolveStatus.Resolved)
         {
             return new LocationResolution
             {
-                Rejection = ToolExecutionHelpers.RejectFromStatus<CodeContextData>(location.Status, "Location"),
+                Rejection = context.ToolExecutionServices.ResultShaper.RejectFromStatus<CodeContextData>(location.Status, "Location"),
             };
         }
 
         var document = context.CurrentSolution.GetDocument(location.Value!.SourceTree!);
-        var resolvedLocation = context.Resolver.CreateResolvedLocation(location.Value);
+        var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(location.Value);
         if (document is null || resolvedLocation?.Document?.Path is null)
         {
             return new LocationResolution
             {
-                Rejection = ToolExecutionHelpers.Rejected<CodeContextData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
+                Rejection = context.ToolExecutionServices.ResultShaper.Rejected<CodeContextData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
             };
         }
 
@@ -127,7 +126,7 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
         {
             return new LocationResolution
             {
-                Rejection = ToolExecutionHelpers.Rejected<CodeContextData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
+                Rejection = context.ToolExecutionServices.ResultShaper.Rejected<CodeContextData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
             };
         }
 

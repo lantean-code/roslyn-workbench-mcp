@@ -21,14 +21,14 @@ internal sealed class FindImplementationsTool : QueryToolHandler<FindImplementat
     protected override async ValueTask<PluginExecutionResult<ImplementationSearchData>> ExecuteCoreAsync(FindImplementationsRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var symbolResolution = await ToolExecutionHelpers.ResolveSymbolAsync<ImplementationSearchData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<ImplementationSearchData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
         }
 
         var symbol = symbolResolution.Value;
-        var scopeResolution = ToolExecutionHelpers.ResolveProjects<ImplementationSearchData>(request.Scope, context);
+        var scopeResolution = context.ToolExecutionServices.RequestResolver.ResolveProjects<ImplementationSearchData>(request.Scope, context);
         if (scopeResolution.HasRejection)
         {
             return scopeResolution.Rejection;
@@ -37,12 +37,12 @@ internal sealed class FindImplementationsTool : QueryToolHandler<FindImplementat
         var projects = scopeResolution.Value.ToImmutableHashSet();
         var implementations = (await SymbolFinder.FindImplementationsAsync(symbol, context.CurrentSolution, projects, cancellationToken).ConfigureAwait(false))
             .Distinct(SymbolEqualityComparer.Default)
-            .OrderBy(implementation => context.Resolver.CreateSymbolReference(implementation).DisplayName, StringComparer.Ordinal)
-            .Select(context.Resolver.CreateSymbolReference)
+            .OrderBy(implementation => context.WorkspaceResolver.CreateSymbolReference(implementation).DisplayName, StringComparer.Ordinal)
+            .Select(context.WorkspaceResolver.CreateSymbolReference)
             .ToArray();
-        var symbolReference = context.Resolver.CreateSymbolReference(symbol);
+        var symbolReference = context.WorkspaceResolver.CreateSymbolReference(symbol);
 
-        return ToolExecutionHelpers.CreateBoundedCollectionResult(
+        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
             context,
             implementations,
             ToolExecutionHelpers.GetMaxResults(context, request.Limit),

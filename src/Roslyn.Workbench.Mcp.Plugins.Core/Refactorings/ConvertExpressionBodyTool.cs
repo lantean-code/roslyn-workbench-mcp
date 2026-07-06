@@ -26,7 +26,7 @@ internal sealed class ConvertExpressionBodyTool : MutationToolHandler<LocationRe
 
     protected override async ValueTask<PluginExecutionResult<MutationProposal>> ExecuteCoreAsync(LocationRefactoringRequest request, IMutationContext context, CancellationToken cancellationToken)
     {
-        var result = await ToolExecutionHelpers.StageReplaySelectionAsync(
+        var result = await context.ToolExecutionServices.ReplayCodeActionExecutor.StageReplaySelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             context,
@@ -37,7 +37,7 @@ internal sealed class ConvertExpressionBodyTool : MutationToolHandler<LocationRe
             return result;
         }
 
-        return await ToolExecutionHelpers.StageReplaySelectionAsync(
+        return await context.ToolExecutionServices.ReplayCodeActionExecutor.StageReplaySelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             context,

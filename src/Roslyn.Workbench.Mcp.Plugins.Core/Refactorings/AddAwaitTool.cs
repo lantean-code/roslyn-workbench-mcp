@@ -31,7 +31,7 @@ internal sealed class AddAwaitTool : MutationToolHandler<AddAwaitRequest, Mutati
             ? new[] { 1 }
             : new[] { 0 };
 
-        return ToolExecutionHelpers.StageReplaySelectionAsync(
+        return context.ToolExecutionServices.ReplayCodeActionExecutor.StageReplaySelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             context,

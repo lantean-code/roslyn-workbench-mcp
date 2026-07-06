@@ -19,34 +19,33 @@ internal sealed class GetTestImpactTool : QueryToolHandler<GetTestImpactRequest,
     protected override async ValueTask<PluginExecutionResult<TestImpactData>> ExecuteCoreAsync(GetTestImpactRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-
-        var symbolResolution = await ToolExecutionHelpers.ResolveSymbolAsync<TestImpactData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<TestImpactData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
         }
 
-        var documents = ToolExecutionHelpers.ResolveDocuments<TestImpactData>(request.TestScope, context);
+        var documents = context.ToolExecutionServices.RequestResolver.ResolveDocuments<TestImpactData>(request.TestScope, context);
         if (documents.HasRejection)
         {
             return documents.Rejection;
         }
 
         var symbol = symbolResolution.Value;
-        var impactedTests = await DependencyAnalysisHelpers.FindTestImpactsAsync(
+        var impactedTests = await context.ToolExecutionServices.DependencyAnalysisService.FindTestImpactsAsync(
             symbol,
             documents.Value,
             request.IncludeReasons,
             context,
             cancellationToken).ConfigureAwait(false);
 
-        return ToolExecutionHelpers.CreateBoundedCollectionResult(
+        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
             context,
             impactedTests,
             ToolExecutionHelpers.GetMaxResults(context, request.Limit),
             (items, hasMore) => new TestImpactData
             {
-                Symbol = context.Resolver.CreateSymbolReference(symbol),
+                Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
                 Tests = items,
                 ReturnedCount = items.Count,
                 HasMore = hasMore,

@@ -7,4 +7,5 @@ global using Roslyn.Workbench.Mcp.Contracts.Results;
 global using Roslyn.Workbench.Mcp.Contracts.Selectors;
 global using Roslyn.Workbench.Mcp.Contracts.Server;
 global using Roslyn.Workbench.Mcp.Contracts.Transactions;
+global using Roslyn.Workbench.Mcp.TestSupport;
 global using Xunit;

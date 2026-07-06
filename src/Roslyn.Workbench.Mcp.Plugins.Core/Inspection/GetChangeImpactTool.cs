@@ -24,20 +24,20 @@ internal sealed class GetChangeImpactTool : QueryToolHandler<GetChangeImpactRequ
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var symbolResolution = await ToolExecutionHelpers.ResolveSymbolAsync<ChangeImpactData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<ChangeImpactData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
         }
 
         var symbol = symbolResolution.Value;
-        var documents = ToolExecutionHelpers.ResolveDocuments<ChangeImpactData>(request.Scope, context);
+        var documents = context.ToolExecutionServices.RequestResolver.ResolveDocuments<ChangeImpactData>(request.Scope, context);
         if (documents.HasRejection)
         {
             return documents.Rejection;
         }
 
-        var projects = ToolExecutionHelpers.ResolveProjects<ChangeImpactData>(request.Scope, context);
+        var projects = context.ToolExecutionServices.RequestResolver.ResolveProjects<ChangeImpactData>(request.Scope, context);
         if (projects.HasRejection)
         {
             return projects.Rejection;
@@ -50,7 +50,7 @@ internal sealed class GetChangeImpactTool : QueryToolHandler<GetChangeImpactRequ
         {
             foreach (var reference in referencedSymbol.Locations.Where(static item => item.Location.IsInSource))
             {
-                var resolvedLocation = context.Resolver.CreateResolvedLocation(reference.Location);
+                var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(reference.Location);
                 if (resolvedLocation is null)
                 {
                     continue;
@@ -59,12 +59,12 @@ internal sealed class GetChangeImpactTool : QueryToolHandler<GetChangeImpactRequ
                 var containingSymbol = reference.Document is null
                     ? null
                     : await GetEnclosingSymbolAsync(reference.Document, reference.Location.SourceSpan.Start, cancellationToken).ConfigureAwait(false);
-                var contextLine = await ToolExecutionHelpers.ReadContextAsync(reference.Document, reference.Location.SourceSpan, cancellationToken).ConfigureAwait(false);
+                var contextLine = await context.ToolExecutionServices.InspectionContextService.ReadContextAsync(reference.Document, reference.Location.SourceSpan, cancellationToken).ConfigureAwait(false);
 
                 locations.Add(new ContractReferenceLocation
                 {
                     Location = resolvedLocation,
-                    ContainingSymbol = containingSymbol is null ? null : context.Resolver.CreateSymbolReference(containingSymbol),
+                    ContainingSymbol = containingSymbol is null ? null : context.WorkspaceResolver.CreateSymbolReference(containingSymbol),
                     Context = contextLine,
                 });
             }
@@ -97,13 +97,13 @@ internal sealed class GetChangeImpactTool : QueryToolHandler<GetChangeImpactRequ
             PublicSurfaceCount = IsPublicSurface(symbol) ? 1 : 0,
         };
 
-        return ToolExecutionHelpers.CreateBoundedCollectionResult(
+        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
             context,
             orderedLocations,
             ToolExecutionHelpers.GetMaxResults(context, request.Limit),
             (items, hasMore) => new ChangeImpactData
             {
-                Symbol = context.Resolver.CreateSymbolReference(symbol),
+                Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
                 Impact = impact,
                 Locations = items,
                 ReturnedCount = items.Count,

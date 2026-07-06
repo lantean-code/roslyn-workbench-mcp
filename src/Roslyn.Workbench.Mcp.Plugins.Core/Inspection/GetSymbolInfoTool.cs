@@ -19,7 +19,7 @@ internal sealed class GetSymbolInfoTool : QueryToolHandler<GetSymbolInfoRequest,
     protected override async ValueTask<PluginExecutionResult<SymbolInfoData>> ExecuteCoreAsync(GetSymbolInfoRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var symbolResolution = await ToolExecutionHelpers.ResolveSymbolAsync<SymbolInfoData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<SymbolInfoData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
@@ -28,7 +28,7 @@ internal sealed class GetSymbolInfoTool : QueryToolHandler<GetSymbolInfoRequest,
         var symbol = symbolResolution.Value;
         var data = new SymbolInfoData
         {
-            Symbol = context.Resolver.CreateSymbolReference(symbol),
+            Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
             Accessibility = symbol.DeclaredAccessibility.ToString(),
             Modifiers = InspectionProjectionFactory.GetModifiers(symbol),
             Type = InspectionProjectionFactory.CreateAssociatedTypeInfo(symbol),
@@ -37,7 +37,7 @@ internal sealed class GetSymbolInfoTool : QueryToolHandler<GetSymbolInfoRequest,
             Documentation = request.IncludeDocumentation ? symbol.GetDocumentationCommentXml(cancellationToken: cancellationToken) : null,
             Declarations = symbol.Locations
                 .Where(static location => location.IsInSource)
-                .Select(location => context.Resolver.CreateResolvedLocation(location))
+                .Select(location => context.WorkspaceResolver.CreateResolvedLocation(location))
                 .Where(static location => location is not null)
                 .Select(static location => location!)
                 .OrderBy(static location => location.Document!.Path, StringComparer.Ordinal)
@@ -45,6 +45,6 @@ internal sealed class GetSymbolInfoTool : QueryToolHandler<GetSymbolInfoRequest,
                 .ToArray(),
         };
 
-        return ToolExecutionHelpers.EnsureWithinSize(context, data);
+        return context.ToolExecutionServices.ResultShaper.EnsureWithinSize(context, data);
     }
 }

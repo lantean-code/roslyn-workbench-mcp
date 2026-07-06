@@ -25,13 +25,13 @@ internal sealed class AnalyzeNullabilityTool : QueryToolHandler<AnalyzeNullabili
         IReadOnlyList<Document> documents;
         if (request.Location is not null)
         {
-            var snapshotRejection = ToolExecutionHelpers.ValidateSnapshot<NullabilityAnalysisData>(context, request.ExpectedSnapshot);
+            var snapshotRejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<NullabilityAnalysisData>(context, request.ExpectedSnapshot);
             if (snapshotRejection is not null)
             {
                 return snapshotRejection;
             }
 
-            var locationResolution = await context.Resolver.ResolveLocationAsync(request.Location, cancellationToken).ConfigureAwait(false);
+            var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(request.Location, cancellationToken).ConfigureAwait(false);
             if (locationResolution.Status != SelectorResolveStatus.Resolved)
             {
                 return ToolExecutionHelpers.RejectFromStatus<NullabilityAnalysisData>(locationResolution.Status, "Location");
@@ -47,7 +47,7 @@ internal sealed class AnalyzeNullabilityTool : QueryToolHandler<AnalyzeNullabili
         }
         else
         {
-            var documentResolution = ToolExecutionHelpers.ResolveDocuments<NullabilityAnalysisData>(request.Scope, context);
+            var documentResolution = context.ToolExecutionServices.RequestResolver.ResolveDocuments<NullabilityAnalysisData>(request.Scope, context);
             if (documentResolution.HasRejection)
             {
                 return documentResolution.Rejection;
@@ -56,7 +56,7 @@ internal sealed class AnalyzeNullabilityTool : QueryToolHandler<AnalyzeNullabili
             documents = documentResolution.Value;
         }
 
-        var diagnostics = await CompilerDiagnosticHelpers.GetCompilerDiagnosticsAsync(documents, cancellationToken).ConfigureAwait(false);
+        var diagnostics = await context.ToolExecutionServices.CompilerDiagnosticService.GetCompilerDiagnosticsAsync(documents, cancellationToken).ConfigureAwait(false);
         var findings = diagnostics
             .Where(static diagnostic => diagnostic.Id.StartsWith("CS86", StringComparison.Ordinal))
             .Where(diagnostic => selectedSpan is null || diagnostic.Location.SourceSpan.IntersectsWith(selectedSpan.Value))
@@ -68,7 +68,7 @@ internal sealed class AnalyzeNullabilityTool : QueryToolHandler<AnalyzeNullabili
             })
             .ToArray();
 
-        return ToolExecutionHelpers.CreateBoundedCollectionResult(
+        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
             context,
             findings,
             ToolExecutionHelpers.GetMaxResults(context, request.Limit),

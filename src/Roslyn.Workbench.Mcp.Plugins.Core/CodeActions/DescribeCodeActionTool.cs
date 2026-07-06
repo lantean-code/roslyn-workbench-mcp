@@ -18,6 +18,6 @@ internal sealed class DescribeCodeActionTool : QueryToolHandler<DescribeCodeActi
 
     protected override ValueTask<PluginExecutionResult<DescribeCodeActionData>> ExecuteCoreAsync(DescribeCodeActionRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        return context.CodeActionService.DescribeCodeActionAsync(request, context, cancellationToken);
+        return context.DescribeCodeActionAsync(request, cancellationToken);
     }
 }

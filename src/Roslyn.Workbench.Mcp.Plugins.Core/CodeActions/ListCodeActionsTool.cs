@@ -18,6 +18,6 @@ internal sealed class ListCodeActionsTool : QueryToolHandler<ListCodeActionsRequ
 
     protected override ValueTask<PluginExecutionResult<CodeActionListData>> ExecuteCoreAsync(ListCodeActionsRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        return context.CodeActionService.ListCodeActionsAsync(request, context, cancellationToken);
+        return context.ListCodeActionsAsync(request, cancellationToken);
     }
 }

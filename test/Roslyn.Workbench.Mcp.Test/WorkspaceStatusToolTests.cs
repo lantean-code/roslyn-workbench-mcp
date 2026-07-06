@@ -13,11 +13,7 @@ public sealed class WorkspaceStatusToolTests
     public async Task GIVEN_OpenedWorkspace_WHEN_RequestingDefaultStatus_THEN_ShouldOmitLoadDiagnosticsBranch()
     {
         using var fixture = await TestWorkspaceFixture.CreateAsync();
-        var runtime = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-        });
+        var runtime = WorkspaceCoordinatorFactory.Create();
         var openTool = new WorkspaceOpenTool(CreateStartupOptions(), runtime.WorkspaceLifecycleService);
         var statusTool = new WorkspaceStatusTool(CreateStartupOptions(), runtime.WorkspaceLifecycleService);
 
@@ -60,11 +56,7 @@ public sealed class WorkspaceStatusToolTests
     public async Task GIVEN_OpenedWorkspace_WHEN_RequestingFullStatusDetail_THEN_ShouldIncludeLoadDiagnosticsBranch()
     {
         using var fixture = await TestWorkspaceFixture.CreateAsync();
-        var runtime = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-        });
+        var runtime = WorkspaceCoordinatorFactory.Create();
         var openTool = new WorkspaceOpenTool(CreateStartupOptions(), runtime.WorkspaceLifecycleService);
         var statusTool = new WorkspaceStatusTool(CreateStartupOptions(), runtime.WorkspaceLifecycleService);
 

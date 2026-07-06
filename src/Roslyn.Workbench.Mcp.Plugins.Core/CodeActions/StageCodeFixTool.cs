@@ -22,6 +22,6 @@ internal sealed class StageCodeFixTool : MutationToolHandler<StageCodeFixRequest
 
     protected override ValueTask<PluginExecutionResult<MutationProposal>> ExecuteCoreAsync(StageCodeFixRequest request, IMutationContext context, CancellationToken cancellationToken)
     {
-        return context.CodeActionService.StageCodeFixAsync(request, context, cancellationToken);
+        return context.StageCodeFixAsync(request, cancellationToken);
     }
 }

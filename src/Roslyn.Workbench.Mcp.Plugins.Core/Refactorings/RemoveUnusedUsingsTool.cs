@@ -24,13 +24,13 @@ internal sealed class RemoveUnusedUsingsTool : MutationToolHandler<RemoveUnusedU
 
     protected override ValueTask<PluginExecutionResult<MutationProposal>> ExecuteCoreAsync(RemoveUnusedUsingsRequest request, IMutationContext context, CancellationToken cancellationToken)
     {
-        return context.CodeActionService.StageScopedCodeFixAsync(new ScopedCodeFixRequest
+        return context.StageScopedCodeFixAsync(new ScopedCodeFixRequest
         {
             Scope = request.Scope,
             ExpectedSnapshot = request.ExpectedSnapshot,
             DiagnosticIds = [FixableDiagnosticId],
             Title = "Remove unnecessary usings",
             SyntheticDiagnosticId = FixableDiagnosticId,
-        }, context, cancellationToken);
+        }, cancellationToken);
     }
 }

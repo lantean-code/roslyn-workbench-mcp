@@ -52,13 +52,13 @@ internal sealed class EncapsulateFieldTool : MutationToolHandler<EncapsulateFiel
             ? ($"Encapsulate field: '{fieldSymbol.Name}' (and use property)", $"Encapsulate_field_colon_0_and_use_property_{fieldSymbol.Name}")
             : ($"Encapsulate field: '{fieldSymbol.Name}' (but still use field)", $"Encapsulate_field_colon_0_but_still_use_field_{fieldSymbol.Name}");
 
-        return await context.CodeActionService.StageReplayCodeActionAsync(new ReplayCodeActionRequest
+        return await context.StageReplayCodeActionAsync(new ReplayCodeActionRequest
         {
             Location = locationSelector,
             ExpectedSnapshot = request.ExpectedSnapshot,
             ProviderId = ProviderId,
             Title = title,
             EquivalenceKey = equivalenceKey,
-        }, context, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken).ConfigureAwait(false);
     }
 }

@@ -54,12 +54,7 @@ public sealed class GetProjectDetailsToolTests
     public async Task GIVEN_InspectionWorkspace_WHEN_RequestingProjectDetailsByDefault_THEN_ShouldOmitDocumentInventory()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = WorkspaceCoordinatorFactory.Create(toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -86,12 +81,7 @@ public sealed class GetProjectDetailsToolTests
     public async Task GIVEN_InspectionWorkspace_WHEN_RequestingProjectDocumentsExplicitly_THEN_ShouldReturnBoundedDocumentInventory()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = WorkspaceCoordinatorFactory.Create(toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,

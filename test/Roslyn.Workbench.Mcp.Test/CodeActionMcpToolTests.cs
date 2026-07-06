@@ -11,12 +11,7 @@ public sealed class CodeActionMcpToolTests
     public async Task GIVEN_DefaultCoordinator_WHEN_InvokingListCodeActions_THEN_ShouldRejectAsUnavailable()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = WorkspaceCoordinatorFactory.Create(toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var open = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -685,37 +680,35 @@ public sealed class CodeActionMcpToolTests
 
     private static IWorkspaceRuntime CreateCoordinator(TimeSpan? tokenLifetime = null)
     {
-        var runtime = CodeActionRuntimeFactory.Create(new CodeActionRuntimeOptions
-        {
-            TokenLifetime = tokenLifetime ?? TimeSpan.FromMinutes(5),
-            IncludeBuiltInAssemblies = false,
-            AdditionalAssemblies =
+        var runtime = new CodeActionRuntimeComposer(
+            new CodeActionDiagnosticService(),
+            new CodeActionDescriptorRegistry(),
+            new CodeActionTokenService())
+            .Compose(new CodeActionRuntimeOptions
+            {
+                TokenLifetime = tokenLifetime ?? TimeSpan.FromMinutes(5),
+                IncludeBuiltInAssemblies = false,
+                AdditionalAssemblies =
             [
                 typeof(TestRefactoringProvider).Assembly,
             ],
-        });
+            });
 
-        return WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        return WorkspaceCoordinatorFactory.CreateWithCodeActionRuntime(runtime, BundledCoreToolExecutionServicesFactory.Create());
     }
 
     private static IWorkspaceRuntime CreateBuiltInCoordinator()
     {
-        var runtime = CodeActionRuntimeFactory.Create(new CodeActionRuntimeOptions
-        {
-            IncludeBuiltInAssemblies = true,
-        });
+        var runtime = new CodeActionRuntimeComposer(
+            new CodeActionDiagnosticService(),
+            new CodeActionDescriptorRegistry(),
+            new CodeActionTokenService())
+            .Compose(new CodeActionRuntimeOptions
+            {
+                IncludeBuiltInAssemblies = true,
+            });
 
-        return WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        return WorkspaceCoordinatorFactory.CreateWithCodeActionRuntime(runtime, BundledCoreToolExecutionServicesFactory.Create());
     }
 
     public static TheoryData<BuiltInCodeActionAuditCase> GetPromotedDraftValidationCandidates()

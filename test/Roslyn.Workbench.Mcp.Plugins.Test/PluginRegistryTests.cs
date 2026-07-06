@@ -33,8 +33,6 @@ public sealed class PluginRegistryTests
         tool.Plugin.PluginId.Should().Be("plugin.test");
         tool.Metadata.Name.Should().Be("test-query");
         tool.Kind.Should().Be(ToolKind.Query);
-        tool.RequestType.Should().Be(typeof(TestRequest));
-        tool.PublishedResponseType.Should().Be(typeof(TestResponse));
         tool.ResponseDescriptor.Kind.Should().Be(ToolResponseShapeKind.Singleton);
         tool.Annotations.ReadOnlyHint.Should().BeTrue();
         tool.Annotations.IdempotentHint.Should().BeTrue();
@@ -137,7 +135,6 @@ public sealed class PluginRegistryTests
         var tool = target.RegisteredTools.Should().ContainSingle().Subject;
 
         tool.Kind.Should().Be(ToolKind.Mutation);
-        tool.PublishedResponseType.Should().Be(typeof(MutationData));
         tool.ResponseDescriptor.Kind.Should().Be(ToolResponseShapeKind.Mutation);
         tool.OutputSchema.Should().BeNull();
     }

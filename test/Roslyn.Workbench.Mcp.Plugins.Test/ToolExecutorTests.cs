@@ -1,6 +1,7 @@
 using System.Text.Json;
 
 using Roslyn.Workbench.Mcp.Contracts.Selectors;
+using Roslyn.Workbench.Mcp.Plugins.CodeActions;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Test;
 
@@ -10,7 +11,8 @@ public sealed class ToolExecutorTests
     public void GIVEN_ToolExecutionContextContract_WHEN_InspectingPublicProperties_THEN_ShouldExposeTransactionRevision()
     {
         typeof(IToolExecutionContext).GetProperty("TransactionRevision").Should().NotBeNull();
-        typeof(IToolExecutionContext).GetProperty("CodeActionService").Should().NotBeNull();
+        typeof(IQueryContext).GetInterfaces().Should().Contain(static type => type == typeof(ICodeActionQueryWorkflow));
+        typeof(IMutationContext).GetInterfaces().Should().Contain(static type => type == typeof(ICodeActionMutationWorkflow));
     }
 
     [Fact]

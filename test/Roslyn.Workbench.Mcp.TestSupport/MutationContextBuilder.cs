@@ -1,4 +1,6 @@
+using Roslyn.Workbench.Mcp.Contracts.CodeActions;
 using Roslyn.Workbench.Mcp.Contracts.Server;
+using Roslyn.Workbench.Mcp.Plugins.CodeActions;
 
 namespace Roslyn.Workbench.Mcp.TestSupport;
 
@@ -9,9 +11,14 @@ public sealed class MutationContextBuilder
     private int? _transactionRevision;
     private ResultLimit _effectiveResultLimit = new();
     private IWorkspaceResolver? _resolver;
-    private ICodeActionService? _codeActionService;
     private IToolExecutionServices _toolExecutionServices = new ToolExecutionServicesBuilder().Build();
     private Func<RegisteredTool, MutationProposal, IReadOnlyList<DiagnosticInfo>, IReadOnlyList<WarningInfo>, CancellationToken, ValueTask<PluginExecutionResult<MutationData>>>? _stageAsync;
+    private Func<StageCodeActionRequest, CancellationToken, ValueTask<PluginExecutionResult<MutationProposal>>>? _stageCodeActionAsync;
+    private Func<ReplayCodeActionRequest, CancellationToken, ValueTask<PluginExecutionResult<MutationProposal>>>? _stageReplayCodeActionAsync;
+    private Func<StageCodeFixRequest, CancellationToken, ValueTask<PluginExecutionResult<MutationProposal>>>? _stageCodeFixAsync;
+    private Func<StageFixAllRequest, CancellationToken, ValueTask<PluginExecutionResult<MutationProposal>>>? _stageFixAllAsync;
+    private Func<ScopedCodeFixRequest, CancellationToken, ValueTask<PluginExecutionResult<MutationProposal>>>? _stageScopedCodeFixAsync;
+    private Func<LocationCodeFixRequest, CancellationToken, ValueTask<PluginExecutionResult<MutationProposal>>>? _stageLocationCodeFixAsync;
 
     public MutationContextBuilder WithCurrentSolution(Solution currentSolution)
     {
@@ -43,9 +50,39 @@ public sealed class MutationContextBuilder
         return this;
     }
 
-    public MutationContextBuilder WithCodeActionService(ICodeActionService codeActionService)
+    public MutationContextBuilder WithStageCodeActionAsync(Func<StageCodeActionRequest, CancellationToken, ValueTask<PluginExecutionResult<MutationProposal>>> stageCodeActionAsync)
     {
-        _codeActionService = codeActionService ?? throw new ArgumentNullException(nameof(codeActionService));
+        _stageCodeActionAsync = stageCodeActionAsync ?? throw new ArgumentNullException(nameof(stageCodeActionAsync));
+        return this;
+    }
+
+    public MutationContextBuilder WithStageReplayCodeActionAsync(Func<ReplayCodeActionRequest, CancellationToken, ValueTask<PluginExecutionResult<MutationProposal>>> stageReplayCodeActionAsync)
+    {
+        _stageReplayCodeActionAsync = stageReplayCodeActionAsync ?? throw new ArgumentNullException(nameof(stageReplayCodeActionAsync));
+        return this;
+    }
+
+    public MutationContextBuilder WithStageCodeFixAsync(Func<StageCodeFixRequest, CancellationToken, ValueTask<PluginExecutionResult<MutationProposal>>> stageCodeFixAsync)
+    {
+        _stageCodeFixAsync = stageCodeFixAsync ?? throw new ArgumentNullException(nameof(stageCodeFixAsync));
+        return this;
+    }
+
+    public MutationContextBuilder WithStageFixAllAsync(Func<StageFixAllRequest, CancellationToken, ValueTask<PluginExecutionResult<MutationProposal>>> stageFixAllAsync)
+    {
+        _stageFixAllAsync = stageFixAllAsync ?? throw new ArgumentNullException(nameof(stageFixAllAsync));
+        return this;
+    }
+
+    public MutationContextBuilder WithStageScopedCodeFixAsync(Func<ScopedCodeFixRequest, CancellationToken, ValueTask<PluginExecutionResult<MutationProposal>>> stageScopedCodeFixAsync)
+    {
+        _stageScopedCodeFixAsync = stageScopedCodeFixAsync ?? throw new ArgumentNullException(nameof(stageScopedCodeFixAsync));
+        return this;
+    }
+
+    public MutationContextBuilder WithStageLocationCodeFixAsync(Func<LocationCodeFixRequest, CancellationToken, ValueTask<PluginExecutionResult<MutationProposal>>> stageLocationCodeFixAsync)
+    {
+        _stageLocationCodeFixAsync = stageLocationCodeFixAsync ?? throw new ArgumentNullException(nameof(stageLocationCodeFixAsync));
         return this;
     }
 
@@ -64,8 +101,13 @@ public sealed class MutationContextBuilder
     public IMutationContext Build()
     {
         var resolver = _resolver ?? CreateDefaultResolver();
-        var codeActionService = _codeActionService ?? CreateDefaultCodeActionService();
         var stageAsync = _stageAsync;
+        var stageCodeActionAsync = _stageCodeActionAsync ?? CreateDefaultMutationProposalAsync<StageCodeActionRequest>();
+        var stageReplayCodeActionAsync = _stageReplayCodeActionAsync ?? CreateDefaultMutationProposalAsync<ReplayCodeActionRequest>();
+        var stageCodeFixAsync = _stageCodeFixAsync ?? CreateDefaultMutationProposalAsync<StageCodeFixRequest>();
+        var stageFixAllAsync = _stageFixAllAsync ?? CreateDefaultMutationProposalAsync<StageFixAllRequest>();
+        var stageScopedCodeFixAsync = _stageScopedCodeFixAsync ?? CreateDefaultMutationProposalAsync<ScopedCodeFixRequest>();
+        var stageLocationCodeFixAsync = _stageLocationCodeFixAsync ?? CreateDefaultMutationProposalAsync<LocationCodeFixRequest>();
         if (stageAsync is null)
         {
             stageAsync = static (_, proposal, _, _, _) => ValueTask.FromResult(PluginExecutionResult<MutationData>.Success(new MutationData
@@ -81,7 +123,6 @@ public sealed class MutationContextBuilder
         context.SetupGet(item => item.TransactionRevision).Returns(_transactionRevision);
         context.SetupGet(item => item.EffectiveResultLimit).Returns(_effectiveResultLimit);
         context.SetupGet(item => item.WorkspaceResolver).Returns(resolver);
-        context.SetupGet(item => item.CodeActionService).Returns(codeActionService);
         context.SetupGet(item => item.ToolExecutionServices).Returns(_toolExecutionServices);
         context
             .Setup(item => item.StageAsync(
@@ -92,6 +133,36 @@ public sealed class MutationContextBuilder
                 It.IsAny<CancellationToken>()))
             .Returns<RegisteredTool, MutationProposal, IReadOnlyList<DiagnosticInfo>, IReadOnlyList<WarningInfo>, CancellationToken>((tool, proposal, diagnostics, warnings, cancellationToken) =>
                 stageAsync(tool, proposal, diagnostics, warnings, cancellationToken));
+        context
+            .Setup(item => item.StageCodeActionAsync(
+                It.IsAny<StageCodeActionRequest>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<StageCodeActionRequest, CancellationToken>((request, cancellationToken) => stageCodeActionAsync(request, cancellationToken));
+        context
+            .Setup(item => item.StageReplayCodeActionAsync(
+                It.IsAny<ReplayCodeActionRequest>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<ReplayCodeActionRequest, CancellationToken>((request, cancellationToken) => stageReplayCodeActionAsync(request, cancellationToken));
+        context
+            .Setup(item => item.StageCodeFixAsync(
+                It.IsAny<StageCodeFixRequest>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<StageCodeFixRequest, CancellationToken>((request, cancellationToken) => stageCodeFixAsync(request, cancellationToken));
+        context
+            .Setup(item => item.StageFixAllAsync(
+                It.IsAny<StageFixAllRequest>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<StageFixAllRequest, CancellationToken>((request, cancellationToken) => stageFixAllAsync(request, cancellationToken));
+        context
+            .Setup(item => item.StageScopedCodeFixAsync(
+                It.IsAny<ScopedCodeFixRequest>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<ScopedCodeFixRequest, CancellationToken>((request, cancellationToken) => stageScopedCodeFixAsync(request, cancellationToken));
+        context
+            .Setup(item => item.StageLocationCodeFixAsync(
+                It.IsAny<LocationCodeFixRequest>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<LocationCodeFixRequest, CancellationToken>((request, cancellationToken) => stageLocationCodeFixAsync(request, cancellationToken));
         return context.Object;
     }
 
@@ -104,14 +175,12 @@ public sealed class MutationContextBuilder
         return resolver.Object;
     }
 
-    private static ICodeActionService CreateDefaultCodeActionService()
+    private static Func<TRequest, CancellationToken, ValueTask<PluginExecutionResult<MutationProposal>>> CreateDefaultMutationProposalAsync<TRequest>()
     {
-        var service = new Mock<ICodeActionService>();
-        service.SetupGet(item => item.Status).Returns(new ComponentStatus
+        return static (_, _) => ValueTask.FromResult(PluginExecutionResult<MutationProposal>.Rejected(new ToolError
         {
-            IsAvailable = true,
-            Version = "Version",
-        });
-        return service.Object;
+            Code = "CodeActionsUnavailable",
+            Message = "Code-action composition is unavailable.",
+        }));
     }
 }

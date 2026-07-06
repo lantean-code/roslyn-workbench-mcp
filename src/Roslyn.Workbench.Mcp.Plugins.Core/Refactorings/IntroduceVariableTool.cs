@@ -41,7 +41,7 @@ internal sealed class IntroduceVariableTool : MutationToolHandler<IntroduceVaria
             _ => CreateReplayRequest(request, "Introduce local for ", "all occurrences"),
         };
 
-        return context.CodeActionService.StageReplayCodeActionAsync(replayRequest, context, cancellationToken);
+        return context.StageReplayCodeActionAsync(replayRequest, cancellationToken);
     }
 
     private static ReplayCodeActionRequest CreateReplayRequest(IntroduceVariableRequest request, string titleStartsWith, string? titleDoesNotContain = null)

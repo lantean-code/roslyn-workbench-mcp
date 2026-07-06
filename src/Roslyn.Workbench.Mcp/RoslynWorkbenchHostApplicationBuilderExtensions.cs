@@ -2,7 +2,6 @@ using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.Plugins;
 using Roslyn.Workbench.Mcp.Plugins.Core;
 using Roslyn.Workbench.Mcp.Tools;
-using Roslyn.Workbench.Mcp.Workspace;
 
 namespace Roslyn.Workbench.Mcp;
 
@@ -73,8 +72,15 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
         services.AddSingleton<IProjectStructureService, DefaultProjectStructureService>();
         services.AddSingleton<IDependencyAnalysisService, DefaultDependencyAnalysisService>();
         services.AddSingleton<IToolExecutionServices, ToolExecutionServices>();
-        services.AddSingleton(static serviceProvider => CodeActionRuntimeFactory.Create(serviceProvider.GetRequiredService<IOptions<CodeActionRuntimeOptions>>().Value));
-        services.AddSingleton<ICodeActionService>(static serviceProvider => serviceProvider.GetRequiredService<CodeActionRuntime>().CodeActionService);
+        services.AddSingleton<ICodeActionDiagnosticService, CodeActionDiagnosticService>();
+        services.AddSingleton<ICodeActionDescriptorRegistry, CodeActionDescriptorRegistry>();
+        services.AddSingleton<ICodeActionTokenService, CodeActionTokenService>();
+        services.AddSingleton<ICodeActionRuntimeComposer, CodeActionRuntimeComposer>();
+        services.AddSingleton(static serviceProvider => serviceProvider
+            .GetRequiredService<ICodeActionRuntimeComposer>()
+            .Compose(serviceProvider.GetRequiredService<IOptions<CodeActionRuntimeOptions>>().Value));
+        services.AddSingleton<Roslyn.Workbench.Mcp.Workspace.CodeActions.Execution.ICodeActionQueryWorkflow>(static serviceProvider => serviceProvider.GetRequiredService<CodeActionRuntime>().QueryWorkflow);
+        services.AddSingleton<Roslyn.Workbench.Mcp.Workspace.CodeActions.Execution.ICodeActionMutationWorkflow>(static serviceProvider => serviceProvider.GetRequiredService<CodeActionRuntime>().MutationWorkflow);
         services.AddSingleton(static serviceProvider => new WorkspaceHostServicesAccessor(serviceProvider.GetRequiredService<CodeActionRuntime>().WorkspaceHostServices));
         services.AddSingleton<IWorkspaceOperationResultFactory, WorkspaceOperationResultFactory>();
         services.AddSingleton<IWorkspaceSessionStore, WorkspaceSessionStore>();

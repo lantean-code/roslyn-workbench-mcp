@@ -2,7 +2,6 @@ using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp;
 using Roslyn.Workbench.Mcp.Contracts.Results;
 using Roslyn.Workbench.Mcp.Contracts.Transactions;
-using Roslyn.Workbench.Mcp.Workspace;
 
 namespace Roslyn.Workbench.Mcp.Tools;
 

@@ -11,12 +11,7 @@ public sealed class InspectionMcpToolTests
     public async Task GIVEN_InspectionWorkspace_WHEN_InvokingStage4ToolsThroughMcpAdapter_THEN_ShouldReturnStructuredResults()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = WorkspaceCoordinatorFactory.Create(toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -122,12 +117,7 @@ public sealed class InspectionMcpToolTests
     public async Task GIVEN_InspectionWorkspace_WHEN_InvokingBatch1ToolsThroughMcpAdapter_THEN_ShouldReturnStructuredResults()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = WorkspaceCoordinatorFactory.Create(toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,

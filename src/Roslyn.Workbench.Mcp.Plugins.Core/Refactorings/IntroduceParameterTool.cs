@@ -46,7 +46,7 @@ internal sealed class IntroduceParameterTool : MutationToolHandler<IntroducePara
             _ => request.AllOccurrences ? [1, 0] : [0, 0],
         };
 
-        return context.CodeActionService.StageReplayCodeActionAsync(new ReplayCodeActionRequest
+        return context.StageReplayCodeActionAsync(new ReplayCodeActionRequest
         {
             Location = request.Selection,
             ExpectedSnapshot = request.ExpectedSnapshot,
@@ -54,6 +54,6 @@ internal sealed class IntroduceParameterTool : MutationToolHandler<IntroducePara
             Title = title,
             EquivalenceKey = title,
             ActionPath = actionPath,
-        }, context, cancellationToken);
+        }, cancellationToken);
     }
 }

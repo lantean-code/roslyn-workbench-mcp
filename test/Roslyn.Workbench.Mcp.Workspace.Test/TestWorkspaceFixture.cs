@@ -213,10 +213,7 @@ public sealed class TestWorkspaceFixture : IDisposable
 
     public IWorkspaceRuntime CreateCoordinator()
     {
-        return WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            MaxConcurrentQueries = 2,
-        });
+        return WorkspaceCoordinatorFactory.Create();
     }
 
     public void Dispose()

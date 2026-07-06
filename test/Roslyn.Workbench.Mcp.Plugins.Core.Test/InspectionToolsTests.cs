@@ -150,12 +150,7 @@ public sealed class InspectionToolsTests
     public async Task GIVEN_InspectionWorkspace_WHEN_ExecutingStructuralAndSemanticTools_THEN_ShouldReturnProjectedRoslynData()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = WorkspaceCoordinatorFactory.Create(toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -263,12 +258,7 @@ public sealed class InspectionToolsTests
     public async Task GIVEN_InspectionWorkspace_WHEN_ExecutingBatch1QueryTools_THEN_ShouldReturnRoslynDrivenData()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = WorkspaceCoordinatorFactory.Create(toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -377,12 +367,7 @@ public sealed class InspectionToolsTests
     public async Task GIVEN_InspectionWorkspace_WHEN_ExecutingPoint2QueryTools_THEN_ShouldReturnProjectedContextAndRelationships()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = WorkspaceCoordinatorFactory.Create(toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -452,12 +437,7 @@ public sealed class InspectionToolsTests
     public async Task GIVEN_InspectionWorkspace_WHEN_ExecutingDependencyAndImpactQueryTools_THEN_ShouldReturnProjectedRelationships()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = WorkspaceCoordinatorFactory.Create(toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -520,12 +500,7 @@ public sealed class InspectionToolsTests
     public async Task GIVEN_InspectionWorkspace_WHEN_ExecutingGraphAndTestImpactQueryTools_THEN_ShouldReturnProjectedGraphCyclesAndImpactedTests()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = WorkspaceCoordinatorFactory.Create(toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -585,12 +560,7 @@ public sealed class InspectionToolsTests
     public async Task GIVEN_InspectionWorkspace_WHEN_ExecutingRemainingAnalysisQueryTools_THEN_ShouldReturnProjectedFindings()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = WorkspaceCoordinatorFactory.Create(toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -665,12 +635,7 @@ public sealed class InspectionToolsTests
     public async Task GIVEN_InspectionWorkspace_WHEN_ExecutingMetricsAndDuplicateQueryTools_THEN_ShouldReturnProjectedMetricsAndMatches()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = WorkspaceCoordinatorFactory.Create(toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -733,12 +698,7 @@ public sealed class InspectionToolsTests
     public async Task GIVEN_InvalidDuplicateCodeThreshold_WHEN_ExecutingDuplicateCodeTool_THEN_ShouldRejectInvalidRequest()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = WorkspaceCoordinatorFactory.Create(toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -763,12 +723,7 @@ public sealed class InspectionToolsTests
     public async Task GIVEN_ActiveTransaction_WHEN_ExecutingBatch1MutationTools_THEN_ShouldStageStructuredMutations()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = WorkspaceCoordinatorFactory.Create(toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -833,16 +788,7 @@ public sealed class InspectionToolsTests
     public async Task GIVEN_ActiveTransactionAndBuiltInCodeActions_WHEN_RemovingUnusedUsings_THEN_ShouldStageStructuredMutation()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var runtime = CodeActionRuntimeFactory.Create(new CodeActionRuntimeOptions
-        {
-            IncludeBuiltInAssemblies = true,
-        });
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = CreateBuiltInCoordinator();
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -884,16 +830,7 @@ public sealed class InspectionToolsTests
     public async Task GIVEN_ActiveTransactionAndBuiltInCodeActions_WHEN_AddingMissingUsings_THEN_ShouldStageStructuredMutation()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var runtime = CodeActionRuntimeFactory.Create(new CodeActionRuntimeOptions
-        {
-            IncludeBuiltInAssemblies = true,
-        });
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = CreateBuiltInCoordinator();
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -935,16 +872,7 @@ public sealed class InspectionToolsTests
     public async Task GIVEN_ActiveTransactionAndBuiltInCodeActions_WHEN_InliningVariable_THEN_ShouldStageStructuredMutation()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var runtime = CodeActionRuntimeFactory.Create(new CodeActionRuntimeOptions
-        {
-            IncludeBuiltInAssemblies = true,
-        });
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = CreateBuiltInCoordinator();
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -982,16 +910,7 @@ public sealed class InspectionToolsTests
     public async Task GIVEN_ActiveTransactionAndBuiltInCodeActions_WHEN_ConvertingToInterpolatedString_THEN_ShouldStageStructuredMutation()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var runtime = CodeActionRuntimeFactory.Create(new CodeActionRuntimeOptions
-        {
-            IncludeBuiltInAssemblies = true,
-        });
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = CreateBuiltInCoordinator();
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -1026,16 +945,7 @@ public sealed class InspectionToolsTests
     public async Task GIVEN_ActiveTransactionAndBuiltInCodeActions_WHEN_ExtractingMethod_THEN_ShouldStageStructuredMutation()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var runtime = CodeActionRuntimeFactory.Create(new CodeActionRuntimeOptions
-        {
-            IncludeBuiltInAssemblies = true,
-        });
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = CreateBuiltInCoordinator();
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -1071,16 +981,7 @@ public sealed class InspectionToolsTests
     public async Task GIVEN_ActiveTransactionAndBuiltInCodeActions_WHEN_IntroducingParameter_THEN_ShouldStageStructuredMutation()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var runtime = CodeActionRuntimeFactory.Create(new CodeActionRuntimeOptions
-        {
-            IncludeBuiltInAssemblies = true,
-        });
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = CreateBuiltInCoordinator();
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -1116,16 +1017,7 @@ public sealed class InspectionToolsTests
     public async Task GIVEN_ActiveTransactionAndBuiltInCodeActions_WHEN_EncapsulatingField_THEN_ShouldStageStructuredMutation()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var runtime = CodeActionRuntimeFactory.Create(new CodeActionRuntimeOptions
-        {
-            IncludeBuiltInAssemblies = true,
-        });
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = CreateBuiltInCoordinator();
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -1163,16 +1055,7 @@ public sealed class InspectionToolsTests
     public async Task GIVEN_ActiveTransactionAndBuiltInCodeActions_WHEN_ConvertingForeachToLinq_THEN_ShouldStageStructuredMutation()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var runtime = CodeActionRuntimeFactory.Create(new CodeActionRuntimeOptions
-        {
-            IncludeBuiltInAssemblies = true,
-        });
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = CreateBuiltInCoordinator();
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -1208,16 +1091,7 @@ public sealed class InspectionToolsTests
     public async Task GIVEN_ActiveTransactionAndBuiltInCodeActions_WHEN_IntroducingVariable_THEN_ShouldStageStructuredMutation()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var runtime = CodeActionRuntimeFactory.Create(new CodeActionRuntimeOptions
-        {
-            IncludeBuiltInAssemblies = true,
-        });
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = CreateBuiltInCoordinator();
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -1253,16 +1127,7 @@ public sealed class InspectionToolsTests
     public async Task GIVEN_AmbiguousSelection_WHEN_ConvertingToInterpolatedString_THEN_ShouldRejectWithAmbiguousLocation()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var runtime = CodeActionRuntimeFactory.Create(new CodeActionRuntimeOptions
-        {
-            IncludeBuiltInAssemblies = true,
-        });
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = CreateBuiltInCoordinator();
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -1302,16 +1167,7 @@ public sealed class InspectionToolsTests
     public async Task GIVEN_RemoveDeclarationFalse_WHEN_InliningVariable_THEN_ShouldRejectUnsupportedOption()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var runtime = CodeActionRuntimeFactory.Create(new CodeActionRuntimeOptions
-        {
-            IncludeBuiltInAssemblies = true,
-        });
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = CreateBuiltInCoordinator();
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -1346,12 +1202,7 @@ public sealed class InspectionToolsTests
     {
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = WorkspaceCoordinatorFactory.Create(toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var executor = new ToolExecutor(coordinator);
 
         plugin.Register(registry);
@@ -1366,12 +1217,7 @@ public sealed class InspectionToolsTests
     public async Task GIVEN_AmbiguousSelection_WHEN_ResolvingSymbol_THEN_ShouldRejectWithAmbiguousLocation()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = WorkspaceCoordinatorFactory.Create(toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -1410,12 +1256,7 @@ public sealed class InspectionToolsTests
     public async Task GIVEN_StaleSnapshot_WHEN_ResolvingSymbol_THEN_ShouldRejectWithSnapshotMismatch()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = WorkspaceCoordinatorFactory.Create(toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -1444,12 +1285,7 @@ public sealed class InspectionToolsTests
     public async Task GIVEN_MetadataSymbol_WHEN_GoingToDefinition_THEN_ShouldReturnMetadataLocation()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = WorkspaceCoordinatorFactory.Create(toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -1481,12 +1317,7 @@ public sealed class InspectionToolsTests
     public async Task GIVEN_FilteredDiagnosticsRequest_WHEN_QueryingDiagnostics_THEN_ShouldApplyFiltersWithoutDuplicates()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = WorkspaceCoordinatorFactory.Create(toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -1519,12 +1350,7 @@ public sealed class InspectionToolsTests
     public async Task GIVEN_LimitedSymbolSearch_WHEN_MultipleMatchesExist_THEN_ShouldReportHasMore()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = WorkspaceCoordinatorFactory.Create(toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -1553,16 +1379,9 @@ public sealed class InspectionToolsTests
     public async Task GIVEN_LowResponseByteLimit_WHEN_SearchingSymbols_THEN_ShouldTruncateInsteadOfRejecting()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var fullCoordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
+        var fullCoordinator = WorkspaceCoordinatorFactory.Create(toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var truncatedCoordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceRuntimeOptions
         {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
-        var truncatedCoordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
             MaxResponseBytes = 500,
         }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var plugin = new BundledCorePlugin();
@@ -1600,12 +1419,7 @@ public sealed class InspectionToolsTests
     public async Task GIVEN_SolutionHierarchyWorkspace_WHEN_GettingSolutionStructure_THEN_ShouldReturnFoldersAndProjectFolderPaths()
     {
         using var fixture = await SolutionHierarchyFixture.CreateAsync();
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = WorkspaceCoordinatorFactory.Create(toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.SolutionPath,
@@ -1628,12 +1442,7 @@ public sealed class InspectionToolsTests
     public async Task GIVEN_PropertyReferences_WHEN_FindingReferences_THEN_ShouldClassifyWrites()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = WorkspaceCoordinatorFactory.Create(toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -1705,6 +1514,11 @@ public sealed class InspectionToolsTests
             : null;
 
         return ToolResult<TResponse>.Succeeded(data, transactionRevision: transactionRevision);
+    }
+
+    private static IWorkspaceRuntime CreateBuiltInCoordinator()
+    {
+        return BundledCoreToolTestHarness.CreateBuiltInCodeActionCoordinator();
     }
 
     private static TResponse DeserializeDirectData<TResponse>(JsonElement payload)

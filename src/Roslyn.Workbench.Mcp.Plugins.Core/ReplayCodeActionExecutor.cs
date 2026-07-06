@@ -30,7 +30,7 @@ internal sealed class ReplayCodeActionExecutor : IReplayCodeActionExecutor
             return ValueTask.FromResult(_resultShaper.Rejected<MutationProposal>("InvalidRequest", "A location selector is required."));
         }
 
-        return context.CodeActionService.StageReplayCodeActionAsync(new ReplayCodeActionRequest
+        return context.StageReplayCodeActionAsync(new ReplayCodeActionRequest
         {
             Location = selection,
             ExpectedSnapshot = expectedSnapshot,
@@ -40,6 +40,6 @@ internal sealed class ReplayCodeActionExecutor : IReplayCodeActionExecutor
             TitleDoesNotContain = titleDoesNotContain,
             EquivalenceKey = equivalenceKey,
             ActionPath = actionPath,
-        }, context, cancellationToken);
+        }, cancellationToken);
     }
 }

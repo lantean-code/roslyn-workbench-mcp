@@ -60,14 +60,14 @@ internal static class DependencyAnalysisHelpers
 
             foreach (var nextNodeId in adjacency.GetValueOrDefault(nodeId, []))
             {
-                if (!indexByNodeId.ContainsKey(nextNodeId))
+                if (!indexByNodeId.TryGetValue(nextNodeId, out var value))
                 {
                     Visit(nextNodeId);
                     lowLinkByNodeId[nodeId] = Math.Min(lowLinkByNodeId[nodeId], lowLinkByNodeId[nextNodeId]);
                 }
                 else if (onStack.Contains(nextNodeId))
                 {
-                    lowLinkByNodeId[nodeId] = Math.Min(lowLinkByNodeId[nodeId], indexByNodeId[nextNodeId]);
+                    lowLinkByNodeId[nodeId] = Math.Min(lowLinkByNodeId[nodeId], value);
                 }
             }
 

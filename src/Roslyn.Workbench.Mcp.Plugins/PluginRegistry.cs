@@ -28,20 +28,23 @@ public sealed class PluginRegistry : IPluginRegistry
     public IReadOnlyList<RegisteredTool> RegisteredTools => _registeredTools;
 
     public void RegisterQueryTool<TRequest, TResponse>(ToolRegistrationMetadata metadata, IQueryToolHandler<TRequest, TResponse> handler)
+        where TRequest : WorkspaceBoundRequest
     {
         ArgumentNullException.ThrowIfNull(handler);
 
-        RegisterTool<TRequest, TResponse>(metadata, ToolKind.Query, new PluginToolInvoker<TRequest, TResponse>(handler));
+        RegisterTool<TRequest, TResponse>(metadata, ToolKind.Query, new QueryToolInvoker<TRequest, TResponse>(handler));
     }
 
     public void RegisterMutationTool<TRequest, TResponse>(ToolRegistrationMetadata metadata, IMutationToolHandler<TRequest, TResponse> handler)
+        where TRequest : WorkspaceBoundRequest
     {
         ArgumentNullException.ThrowIfNull(handler);
 
-        RegisterTool<TRequest, TResponse>(metadata, ToolKind.Mutation, new PluginToolInvoker<TRequest, TResponse>(handler));
+        RegisterTool<TRequest, TResponse>(metadata, ToolKind.Mutation, new MutationToolInvoker<TRequest, TResponse>(handler));
     }
 
     private void RegisterTool<TRequest, TResponse>(ToolRegistrationMetadata metadata, ToolKind kind, IPluginToolInvoker invoker)
+        where TRequest : WorkspaceBoundRequest
     {
         ArgumentNullException.ThrowIfNull(metadata);
         ArgumentNullException.ThrowIfNull(invoker);
@@ -64,12 +67,6 @@ public sealed class PluginRegistry : IPluginRegistry
                 $"Mutation tool '{metadata.Name}' must return '{typeof(MutationProposal).FullName}'.");
         }
 
-        if (!typeof(WorkspaceBoundRequest).IsAssignableFrom(requestType))
-        {
-            throw new InvalidOperationException(
-                $"Tool '{metadata.Name}' must use a request type derived from '{typeof(WorkspaceBoundRequest).FullName}'.");
-        }
-
         var publishedResponseType = kind == ToolKind.Mutation ? typeof(Contracts.Results.MutationData) : responseType;
         var responseDescriptor = ToolResponseDescriptorResolver.Resolve(metadata.Name, kind, publishedResponseType);
 
@@ -79,7 +76,6 @@ public sealed class PluginRegistry : IPluginRegistry
             Metadata = metadata,
             Kind = kind,
             RequestType = requestType,
-            PublishedResponseType = publishedResponseType,
             InputSchema = ToolSchemaFactory.CreateInputSchema<TRequest>(),
             OutputSchema = _outputSchemaMode == ToolOutputSchemaMode.Full
                 ? ToolSchemaFactory.CreateOutputSchema(responseDescriptor, publishedResponseType)

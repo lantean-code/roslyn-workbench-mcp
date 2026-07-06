@@ -1,3 +1,5 @@
+using Roslyn.Workbench.Mcp.Contracts.Selectors;
+
 namespace Roslyn.Workbench.Mcp.Plugins;
 
 /// <summary>
@@ -12,7 +14,8 @@ public interface IPluginRegistry
     /// <typeparam name="TResponse">The successful response payload type.</typeparam>
     /// <param name="metadata">The tool metadata.</param>
     /// <param name="handler">The typed query handler.</param>
-    void RegisterQueryTool<TRequest, TResponse>(ToolRegistrationMetadata metadata, IQueryToolHandler<TRequest, TResponse> handler);
+    void RegisterQueryTool<TRequest, TResponse>(ToolRegistrationMetadata metadata, IQueryToolHandler<TRequest, TResponse> handler)
+        where TRequest : WorkspaceBoundRequest;
 
     /// <summary>
     /// Registers a mutation tool.
@@ -21,5 +24,6 @@ public interface IPluginRegistry
     /// <typeparam name="TResponse">The successful response payload type.</typeparam>
     /// <param name="metadata">The tool metadata.</param>
     /// <param name="handler">The typed mutation handler.</param>
-    void RegisterMutationTool<TRequest, TResponse>(ToolRegistrationMetadata metadata, IMutationToolHandler<TRequest, TResponse> handler);
+    void RegisterMutationTool<TRequest, TResponse>(ToolRegistrationMetadata metadata, IMutationToolHandler<TRequest, TResponse> handler)
+        where TRequest : WorkspaceBoundRequest;
 }

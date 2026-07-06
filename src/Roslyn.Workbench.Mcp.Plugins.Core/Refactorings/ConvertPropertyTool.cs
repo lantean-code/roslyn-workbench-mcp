@@ -36,7 +36,7 @@ internal sealed class ConvertPropertyTool : MutationToolHandler<ConvertPropertyR
                 cancellationToken,
                 ConvertToFullProviderId,
                 title: "Convert to full property"),
-            ConvertPropertyDirection.ToAutoWhenSafe => context.CodeActionService.StageLocationCodeFixAsync(new LocationCodeFixRequest
+            ConvertPropertyDirection.ToAutoWhenSafe => context.StageLocationCodeFixAsync(new LocationCodeFixRequest
             {
                 Location = request.Selection,
                 ExpectedSnapshot = request.ExpectedSnapshot,
@@ -45,7 +45,7 @@ internal sealed class ConvertPropertyTool : MutationToolHandler<ConvertPropertyR
                 Title = "Use auto property",
                 AnalyzerTypeName = UseAutoPropertyAnalyzerTypeName,
                 SyntheticDiagnosticId = UseAutoPropertyDiagnosticId,
-            }, context, cancellationToken),
+            }, cancellationToken),
             _ => ValueTask.FromResult(context.ToolExecutionServices.ResultShaper.Rejected<MutationProposal>("InvalidRequest", "The requested property conversion direction is not supported.")),
         };
     }

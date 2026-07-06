@@ -3,7 +3,6 @@ using Roslyn.Workbench.Mcp.Contracts.Selectors;
 using Roslyn.Workbench.Mcp.Contracts.Server;
 using Roslyn.Workbench.Mcp.Plugins;
 using Roslyn.Workbench.Mcp.Plugins.Core;
-using Roslyn.Workbench.Mcp.Workspace;
 
 namespace Roslyn.Workbench.Mcp.TestSupport;
 
@@ -11,47 +10,43 @@ public static class BundledCoreToolTestHarness
 {
     public static IWorkspaceRuntime CreateInspectionCoordinator(int maxResponseBytes = 65536)
     {
-        return WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
+        return WorkspaceCoordinatorFactory.Create(new WorkspaceRuntimeOptions
         {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
             MaxResponseBytes = maxResponseBytes,
         }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
     }
 
     public static IWorkspaceRuntime CreateBuiltInCodeActionCoordinator()
     {
-        var runtime = CodeActionRuntimeFactory.Create(new CodeActionRuntimeOptions
-        {
-            IncludeBuiltInAssemblies = true,
-        });
+        var runtime = new CodeActionRuntimeComposer(
+            new CodeActionDiagnosticService(),
+            new CodeActionDescriptorRegistry(),
+            new CodeActionTokenService())
+            .Compose(new CodeActionRuntimeOptions
+            {
+                IncludeBuiltInAssemblies = true,
+            });
 
-        return WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        return WorkspaceCoordinatorFactory.CreateWithCodeActionRuntime(runtime, BundledCoreToolExecutionServicesFactory.Create());
     }
 
     public static IWorkspaceRuntime CreateTestCodeActionCoordinator(TimeSpan? tokenLifetime = null)
     {
-        var runtime = CodeActionRuntimeFactory.Create(new CodeActionRuntimeOptions
-        {
-            TokenLifetime = tokenLifetime ?? TimeSpan.FromMinutes(5),
-            IncludeBuiltInAssemblies = false,
-            AdditionalAssemblies =
+        var runtime = new CodeActionRuntimeComposer(
+            new CodeActionDiagnosticService(),
+            new CodeActionDescriptorRegistry(),
+            new CodeActionTokenService())
+            .Compose(new CodeActionRuntimeOptions
+            {
+                TokenLifetime = tokenLifetime ?? TimeSpan.FromMinutes(5),
+                IncludeBuiltInAssemblies = false,
+                AdditionalAssemblies =
             [
                 typeof(TestRefactoringProvider).Assembly,
             ],
-        });
+            });
 
-        return WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        return WorkspaceCoordinatorFactory.CreateWithCodeActionRuntime(runtime, BundledCoreToolExecutionServicesFactory.Create());
     }
 
     public static SnapshotPrecondition CreateSnapshot(ToolResult<WorkspaceOpenData> openResult, int? transactionRevision = null)

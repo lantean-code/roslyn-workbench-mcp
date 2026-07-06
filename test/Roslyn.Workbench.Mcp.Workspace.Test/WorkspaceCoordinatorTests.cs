@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.Contracts.Selectors;
 using Roslyn.Workbench.Mcp.Plugins;
+using Roslyn.Workbench.Mcp.Plugins.CodeActions;
 using Roslyn.Workbench.Mcp.TestSupport;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test;
@@ -46,7 +47,8 @@ public sealed class WorkspaceCoordinatorTests
         var constructor = typeof(WorkspaceExecutionContextFactory).GetConstructor(
         [
             typeof(IOptions<WorkspaceCoordinatorOptions>),
-            typeof(ICodeActionService),
+            typeof(Roslyn.Workbench.Mcp.Workspace.CodeActions.Execution.ICodeActionQueryWorkflow),
+            typeof(Roslyn.Workbench.Mcp.Workspace.CodeActions.Execution.ICodeActionMutationWorkflow),
             typeof(IToolExecutionServices),
             typeof(IWorkspaceSessionStore),
             typeof(IWorkspaceSelector),
@@ -337,7 +339,7 @@ public sealed class WorkspaceCoordinatorTests
     [Fact]
     public async Task GIVEN_UnloadedCoordinator_WHEN_ClosingWorkspace_THEN_ShouldRejectRequest()
     {
-        var target = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions());
+        var target = WorkspaceCoordinatorFactory.Create();
 
         var result = await target.CloseAsync(new WorkspaceCloseRequest(), CancellationToken.None);
 
@@ -458,9 +460,8 @@ public sealed class WorkspaceCoordinatorTests
     public async Task GIVEN_FullRevisionHistoryAfterUndo_WHEN_StagingNewMutation_THEN_ShouldTruncateRedoAndFreeCapacity()
     {
         using var fixture = await TestWorkspaceFixture.CreateAsync();
-        var target = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
+        var target = WorkspaceCoordinatorFactory.Create(new WorkspaceRuntimeOptions
         {
-            MaxConcurrentQueries = 2,
             MaxTransactionRevisions = 1,
         });
         var open = await target.OpenAsync(new WorkspaceOpenRequest
@@ -626,7 +627,7 @@ public sealed class WorkspaceCoordinatorTests
     [Fact]
     public async Task GIVEN_CancelledToken_WHEN_GettingWorkspaceStatus_THEN_ShouldThrowOperationCanceledException()
     {
-        var target = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions());
+        var target = WorkspaceCoordinatorFactory.Create();
         using var cancellationTokenSource = new CancellationTokenSource();
         cancellationTokenSource.Cancel();
 
@@ -672,10 +673,8 @@ public sealed class WorkspaceCoordinatorTests
     public async Task GIVEN_QueryContext_WHEN_Acquired_THEN_ShouldExposeConfiguredResponseByteLimit()
     {
         using var fixture = await TestWorkspaceFixture.CreateAsync();
-        var target = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
+        var target = WorkspaceCoordinatorFactory.Create(new WorkspaceRuntimeOptions
         {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
             MaxResponseBytes = 2048,
         });
         await target.OpenAsync(new WorkspaceOpenRequest
@@ -741,7 +740,7 @@ public sealed class WorkspaceCoordinatorTests
             State = RecoveryState.RecoveryIncomplete,
             Message = "Message",
         });
-        var target = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
+        var target = WorkspaceCoordinatorFactory.Create(new WorkspaceRuntimeOptions
         {
             StateDirectory = stateDirectory,
         });

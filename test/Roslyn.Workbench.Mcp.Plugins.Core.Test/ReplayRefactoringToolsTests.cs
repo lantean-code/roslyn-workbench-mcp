@@ -79,16 +79,7 @@ public sealed class ReplayRefactoringToolsTests
         ReplayMutationCaseDefinition testCase)
     {
         using var fixture = await (testCase.FixtureFactory?.Invoke() ?? InspectionSampleFixture.CreateAsync());
-        var runtime = CodeActionRuntimeFactory.Create(new CodeActionRuntimeOptions
-        {
-            IncludeBuiltInAssemblies = true,
-        });
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = CreateBuiltInCoordinator();
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -119,16 +110,7 @@ public sealed class ReplayRefactoringToolsTests
     public async Task GIVEN_ActiveTransactionAndBuiltInCodeActions_WHEN_ExecutingMoveTypeToFile_THEN_ShouldStageNewDocumentAndSourceUpdate()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var runtime = CodeActionRuntimeFactory.Create(new CodeActionRuntimeOptions
-        {
-            IncludeBuiltInAssemblies = true,
-        });
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = CreateBuiltInCoordinator();
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -152,16 +134,7 @@ public sealed class ReplayRefactoringToolsTests
     public async Task GIVEN_ActiveTransactionAndBuiltInCodeActions_WHEN_ExecutingConvertPropertyToFull_THEN_ShouldStageStructuredMutation()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var runtime = CodeActionRuntimeFactory.Create(new CodeActionRuntimeOptions
-        {
-            IncludeBuiltInAssemblies = true,
-        });
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = CreateBuiltInCoordinator();
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -187,16 +160,7 @@ public sealed class ReplayRefactoringToolsTests
         {
             AdditionalEditorConfigText = "dotnet_style_prefer_auto_properties = true:suggestion",
         });
-        var runtime = CodeActionRuntimeFactory.Create(new CodeActionRuntimeOptions
-        {
-            IncludeBuiltInAssemblies = true,
-        });
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = CreateBuiltInCoordinator();
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -324,6 +288,11 @@ public sealed class ReplayRefactoringToolsTests
         };
     }
 
+    private static IWorkspaceRuntime CreateBuiltInCoordinator()
+    {
+        return BundledCoreToolTestHarness.CreateBuiltInCodeActionCoordinator();
+    }
+
     private static async Task<PluginExecutionResult<MutationData>> ExecuteAsync(
         IToolExecutionContextFactory coordinator,
         PluginRegistry registry,
@@ -331,32 +300,23 @@ public sealed class ReplayRefactoringToolsTests
         IDictionary<string, JsonElement> arguments)
     {
         var registeredTool = registry.RegisteredTools.Single(tool => tool.Metadata.Name == toolName);
-        var request = DeserializeRequest(registeredTool.RequestType, arguments);
-        await using var mutationLease = coordinator.CreateMutationContext((WorkspaceBoundRequest)request, CancellationToken.None);
-        var proposalResult = await registeredTool.Invoker.ExecuteAsync(request, mutationLease.Context!, CancellationToken.None);
-
-        proposalResult.Outcome.Should().Be(ToolOutcome.Succeeded, proposalResult.Error?.Message);
-        proposalResult.Data.Should().BeOfType<MutationProposal>();
-
-        var stagedResult = await mutationLease.Context!.StageAsync(
+        var result = await registeredTool.Invoker.ExecuteAsync(
             registeredTool,
-            (MutationProposal)proposalResult.Data!,
-            proposalResult.Diagnostics,
-            proposalResult.Warnings,
+            arguments,
+            coordinator,
             CancellationToken.None);
 
-        return stagedResult;
-    }
+        result.Outcome.Should().Be(ToolOutcome.Succeeded, result.Error?.Message);
 
-    private static object DeserializeRequest(Type requestType, IDictionary<string, JsonElement> arguments)
-    {
-        var requestNode = new JsonObject();
-
-        foreach (var pair in arguments)
+        return new PluginExecutionResult<MutationData>
         {
-            requestNode[pair.Key] = JsonNode.Parse(pair.Value.GetRawText());
-        }
-
-        return requestNode.Deserialize(requestType, new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
+            Outcome = result.Outcome,
+            Data = result.Data.Should().BeOfType<MutationData>().Subject,
+            Changes = result.Changes,
+            Error = result.Error,
+            RequiredAction = result.RequiredAction,
+            Diagnostics = result.Diagnostics,
+            Warnings = result.Warnings,
+        };
     }
 }

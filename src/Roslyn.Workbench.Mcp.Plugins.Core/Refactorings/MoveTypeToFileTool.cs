@@ -54,12 +54,12 @@ internal sealed class MoveTypeToFileTool : MutationToolHandler<MoveTypeToFileReq
             return context.ToolExecutionServices.ResultShaper.Rejected<MutationProposal>("SymbolNotSupported", "The selected symbol does not resolve to a replayable source span.", RequiredAction.ResolveTargetAgain);
         }
 
-        return await context.CodeActionService.StageReplayCodeActionAsync(new ReplayCodeActionRequest
+        return await context.StageReplayCodeActionAsync(new ReplayCodeActionRequest
         {
             Location = locationSelector,
             ExpectedSnapshot = request.ExpectedSnapshot,
             ProviderId = ProviderId,
             TitleStartsWith = TitlePrefix,
-        }, context, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken).ConfigureAwait(false);
     }
 }

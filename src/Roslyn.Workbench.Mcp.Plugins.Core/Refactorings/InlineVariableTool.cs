@@ -56,13 +56,13 @@ internal sealed class InlineVariableTool : MutationToolHandler<InlineVariableReq
             return context.ToolExecutionServices.ResultShaper.Rejected<MutationProposal>("SymbolNotSupported", "The selected symbol does not resolve to a replayable source span.", RequiredAction.ResolveTargetAgain);
         }
 
-        return await context.CodeActionService.StageReplayCodeActionAsync(new ReplayCodeActionRequest
+        return await context.StageReplayCodeActionAsync(new ReplayCodeActionRequest
         {
             Location = locationSelector,
             ExpectedSnapshot = request.ExpectedSnapshot,
             ProviderId = ProviderId,
             Title = Title,
             EquivalenceKey = EquivalenceKey,
-        }, context, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken).ConfigureAwait(false);
     }
 }

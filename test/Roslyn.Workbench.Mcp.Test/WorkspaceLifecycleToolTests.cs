@@ -16,11 +16,7 @@ public sealed class WorkspaceLifecycleToolTests
     public async Task GIVEN_LifecycleTools_WHEN_OpeningAndReadingStatus_THEN_ShouldReturnStructuredWorkspaceResults()
     {
         using var fixture = await TestWorkspaceFixture.CreateAsync();
-        var runtime = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-        });
+        var runtime = WorkspaceCoordinatorFactory.Create();
         var openTool = new WorkspaceOpenTool(CreateStartupOptions(), runtime.WorkspaceLifecycleService);
         var statusTool = new WorkspaceStatusTool(CreateStartupOptions(), runtime.WorkspaceLifecycleService);
 
@@ -70,7 +66,7 @@ public sealed class WorkspaceLifecycleToolTests
     {
         using var fixtureA = await TestWorkspaceFixture.CreateAsync();
         using var fixtureB = await TestWorkspaceFixture.CreateAsync();
-        var runtime = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions());
+        var runtime = WorkspaceCoordinatorFactory.Create();
         var openTool = new WorkspaceOpenTool(CreateStartupOptions(), runtime.WorkspaceLifecycleService);
         var listTool = new WorkspaceListTool(CreateStartupOptions(), runtime.WorkspaceLifecycleService);
         var statusTool = new WorkspaceStatusTool(CreateStartupOptions(), runtime.WorkspaceLifecycleService);
@@ -169,7 +165,7 @@ public sealed class WorkspaceLifecycleToolTests
     [Fact]
     public async Task GIVEN_UnloadedCoordinator_WHEN_InvokingWorkspaceCloseTool_THEN_ShouldReturnWorkspaceNotOpen()
     {
-        var runtime = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions());
+        var runtime = WorkspaceCoordinatorFactory.Create();
         var tool = new WorkspaceCloseTool(CreateStartupOptions(), runtime.WorkspaceLifecycleService);
 
         var result = await tool.InvokeAsync(
@@ -195,7 +191,7 @@ public sealed class WorkspaceLifecycleToolTests
     public async Task GIVEN_ReadyWorkspace_WHEN_InvokingWorkspaceReloadTool_THEN_ShouldReturnWorkspaceReloadNotRequired()
     {
         using var fixture = await TestWorkspaceFixture.CreateAsync();
-        var runtime = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions());
+        var runtime = WorkspaceCoordinatorFactory.Create();
         var openTool = new WorkspaceOpenTool(CreateStartupOptions(), runtime.WorkspaceLifecycleService);
         var reloadTool = new WorkspaceReloadTool(CreateStartupOptions(), runtime.WorkspaceLifecycleService);
 
@@ -239,7 +235,7 @@ public sealed class WorkspaceLifecycleToolTests
     public async Task GIVEN_OpenedWorkspace_WHEN_InvokingTransactionLifecycleTools_THEN_ShouldReturnStructuredTransactionResults()
     {
         using var fixture = await TestWorkspaceFixture.CreateAsync();
-        var runtime = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions());
+        var runtime = WorkspaceCoordinatorFactory.Create();
         await runtime.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -298,7 +294,7 @@ public sealed class WorkspaceLifecycleToolTests
     [Fact]
     public void GIVEN_ServerOwnedWorkspaceTools_WHEN_CreatingTools_THEN_ShouldPublishExpectedToolNames()
     {
-        var runtime = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions());
+        var runtime = WorkspaceCoordinatorFactory.Create();
         var tools = new McpServerTool[]
         {
             new WorkspaceOpenTool(CreateStartupOptions(), runtime.WorkspaceLifecycleService),
@@ -321,7 +317,7 @@ public sealed class WorkspaceLifecycleToolTests
     [Fact]
     public void GIVEN_ServerOwnedTransactionTools_WHEN_CreatingTools_THEN_ShouldPublishExpectedToolNames()
     {
-        var runtime = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions());
+        var runtime = WorkspaceCoordinatorFactory.Create();
         var tools = new McpServerTool[]
         {
             new TransactionStartTool(CreateStartupOptions(), runtime.TransactionService),
@@ -344,7 +340,7 @@ public sealed class WorkspaceLifecycleToolTests
     [Fact]
     public void GIVEN_TransactionHistoryTool_WHEN_CreatingServerTool_THEN_ShouldPublishDestructiveAnnotation()
     {
-        var runtime = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions());
+        var runtime = WorkspaceCoordinatorFactory.Create();
         var tool = new TransactionHistoryTool(CreateStartupOptions(), runtime.TransactionService);
 
         tool.ProtocolTool.Annotations.Should().NotBeNull();

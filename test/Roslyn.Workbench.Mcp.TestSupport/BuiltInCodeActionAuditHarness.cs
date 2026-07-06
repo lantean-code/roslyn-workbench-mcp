@@ -5,7 +5,6 @@ using Roslyn.Workbench.Mcp.Contracts.Selectors;
 using Roslyn.Workbench.Mcp.Contracts.Server;
 using Roslyn.Workbench.Mcp.Plugins;
 using Roslyn.Workbench.Mcp.Plugins.Core;
-using Roslyn.Workbench.Mcp.Workspace;
 
 namespace Roslyn.Workbench.Mcp.TestSupport;
 
@@ -33,16 +32,15 @@ public static class BuiltInCodeActionAuditHarness
         ArgumentNullException.ThrowIfNull(auditCase);
 
         using var fixture = await auditCase.FixtureFactory();
-        var runtime = CodeActionRuntimeFactory.Create(new CodeActionRuntimeOptions
-        {
-            IncludeBuiltInAssemblies = true,
-        });
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var runtime = new CodeActionRuntimeComposer(
+            new CodeActionDiagnosticService(),
+            new CodeActionDescriptorRegistry(),
+            new CodeActionTokenService())
+            .Compose(new CodeActionRuntimeOptions
+            {
+                IncludeBuiltInAssemblies = true,
+            });
+        var coordinator = WorkspaceCoordinatorFactory.CreateWithCodeActionRuntime(runtime, BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -103,7 +101,7 @@ public static class BuiltInCodeActionAuditHarness
             .Where(action => MatchesTitle(auditCase, action.Title))
             .Where(action => auditCase.ActionPath.Count == 0 || action.ActionPath.SequenceEqual(auditCase.ActionPath))
             .ToArray();
-        var visibilityResult = await queryContext.CodeActionService.ListCodeActionsAsync(new ListCodeActionsRequest
+        var visibilityResult = await queryContext.ListCodeActionsAsync(new ListCodeActionsRequest
         {
             Location = location,
             IncludeCodeFixes = auditCase.Kind == BuiltInCodeActionAuditKind.CodeFix,
@@ -112,7 +110,7 @@ public static class BuiltInCodeActionAuditHarness
             {
                 WorkspaceEpoch = openResult.WorkspaceEpoch!.Value,
             },
-        }, queryContext, CancellationToken.None);
+        }, CancellationToken.None);
 
         if (matching.Length == 0)
         {

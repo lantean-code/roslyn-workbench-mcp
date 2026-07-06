@@ -39,13 +39,13 @@ internal sealed class ExtractMethodTool : MutationToolHandler<ExtractMethodReque
             _ => (MethodTitle, MethodEquivalenceKey),
         };
 
-        return context.CodeActionService.StageReplayCodeActionAsync(new ReplayCodeActionRequest
+        return context.StageReplayCodeActionAsync(new ReplayCodeActionRequest
         {
             Location = request.Selection,
             ExpectedSnapshot = request.ExpectedSnapshot,
             ProviderId = ProviderId,
             Title = title,
             EquivalenceKey = equivalenceKey,
-        }, context, cancellationToken);
+        }, cancellationToken);
     }
 }

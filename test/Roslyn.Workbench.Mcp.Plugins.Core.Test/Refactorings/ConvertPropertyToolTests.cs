@@ -74,11 +74,6 @@ public sealed class ConvertPropertyToolTests
     public async Task GIVEN_ToAutoWhenSafeDirection_WHEN_CallingExecute_THEN_ShouldDelegateToLocationCodeFixService()
     {
         var expected = PluginExecutionResult<MutationProposal>.Success(new MutationProposal());
-        var codeActionService = new Mock<ICodeActionService>();
-        var context = new MutationContextBuilder()
-            .WithCodeActionService(codeActionService.Object)
-            .Build();
-        var target = new ConvertPropertyTool();
         var request = new ConvertPropertyRequest
         {
             Selection = new LocationSelector(),
@@ -88,28 +83,24 @@ public sealed class ConvertPropertyToolTests
                 WorkspaceEpoch = 1,
             },
         };
-
-        codeActionService
-            .Setup(service => service.StageLocationCodeFixAsync(
-                It.IsAny<LocationCodeFixRequest>(),
-                It.IsAny<IMutationContext>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(expected);
+        var context = new MutationContextBuilder()
+            .WithStageLocationCodeFixAsync((stageRequest, cancellationToken) =>
+            {
+                stageRequest.Location.Should().Be(request.Selection);
+                stageRequest.ExpectedSnapshot.Should().Be(request.ExpectedSnapshot);
+                stageRequest.ProviderId.Should().Be("Microsoft.CodeAnalysis.CSharp.UseAutoProperty.CSharpUseAutoPropertyCodeFixProvider");
+                stageRequest.AnalyzerTypeName.Should().Be("Microsoft.CodeAnalysis.CSharp.UseAutoProperty.CSharpUseAutoPropertyAnalyzer");
+                stageRequest.SyntheticDiagnosticId.Should().Be("IDE0032");
+                stageRequest.DiagnosticIds.Should().ContainSingle().Which.Should().Be("IDE0032");
+                stageRequest.Title.Should().Be("Use auto property");
+                cancellationToken.Should().Be(CancellationToken.None);
+                return ValueTask.FromResult(expected);
+            })
+            .Build();
+        var target = new ConvertPropertyTool();
 
         var result = await target.ExecuteAsync(request, context, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        codeActionService.Verify(service => service.StageLocationCodeFixAsync(
-            It.Is<LocationCodeFixRequest>(stageRequest =>
-                stageRequest.Location == request.Selection
-                && stageRequest.ExpectedSnapshot == request.ExpectedSnapshot
-                && stageRequest.ProviderId == "Microsoft.CodeAnalysis.CSharp.UseAutoProperty.CSharpUseAutoPropertyCodeFixProvider"
-                && stageRequest.AnalyzerTypeName == "Microsoft.CodeAnalysis.CSharp.UseAutoProperty.CSharpUseAutoPropertyAnalyzer"
-                && stageRequest.SyntheticDiagnosticId == "IDE0032"
-                && stageRequest.DiagnosticIds.Count == 1
-                && stageRequest.DiagnosticIds[0] == "IDE0032"
-                && stageRequest.Title == "Use auto property"),
-            context,
-            CancellationToken.None), Times.Once);
     }
 }

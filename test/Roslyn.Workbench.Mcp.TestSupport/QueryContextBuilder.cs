@@ -1,4 +1,6 @@
+using Roslyn.Workbench.Mcp.Contracts.CodeActions;
 using Roslyn.Workbench.Mcp.Contracts.Server;
+using Roslyn.Workbench.Mcp.Plugins.CodeActions;
 
 namespace Roslyn.Workbench.Mcp.TestSupport;
 
@@ -10,8 +12,9 @@ public sealed class QueryContextBuilder
     private ResultLimit _effectiveResultLimit = new();
     private int _maxResponseBytes = 1024 * 1024;
     private IWorkspaceResolver? _resolver;
-    private ICodeActionService? _codeActionService;
     private IToolExecutionServices _toolExecutionServices = new ToolExecutionServicesBuilder().Build();
+    private Func<ListCodeActionsRequest, CancellationToken, ValueTask<PluginExecutionResult<CodeActionListData>>>? _listCodeActionsAsync;
+    private Func<DescribeCodeActionRequest, CancellationToken, ValueTask<PluginExecutionResult<DescribeCodeActionData>>>? _describeCodeActionAsync;
 
     public QueryContextBuilder WithCurrentSolution(Solution currentSolution)
     {
@@ -49,9 +52,15 @@ public sealed class QueryContextBuilder
         return this;
     }
 
-    public QueryContextBuilder WithCodeActionService(ICodeActionService codeActionService)
+    public QueryContextBuilder WithListCodeActionsAsync(Func<ListCodeActionsRequest, CancellationToken, ValueTask<PluginExecutionResult<CodeActionListData>>> listCodeActionsAsync)
     {
-        _codeActionService = codeActionService ?? throw new ArgumentNullException(nameof(codeActionService));
+        _listCodeActionsAsync = listCodeActionsAsync ?? throw new ArgumentNullException(nameof(listCodeActionsAsync));
+        return this;
+    }
+
+    public QueryContextBuilder WithDescribeCodeActionAsync(Func<DescribeCodeActionRequest, CancellationToken, ValueTask<PluginExecutionResult<DescribeCodeActionData>>> describeCodeActionAsync)
+    {
+        _describeCodeActionAsync = describeCodeActionAsync ?? throw new ArgumentNullException(nameof(describeCodeActionAsync));
         return this;
     }
 
@@ -64,7 +73,8 @@ public sealed class QueryContextBuilder
     public IQueryContext Build()
     {
         var resolver = _resolver ?? CreateDefaultResolver();
-        var codeActionService = _codeActionService ?? CreateDefaultCodeActionService();
+        var listCodeActionsAsync = _listCodeActionsAsync ?? CreateDefaultListCodeActionsAsync();
+        var describeCodeActionAsync = _describeCodeActionAsync ?? CreateDefaultDescribeCodeActionAsync();
         var context = new Mock<IQueryContext>();
         context.SetupGet(item => item.CurrentSolution).Returns(_currentSolution);
         context.SetupGet(item => item.WorkspaceIdentity).Returns(_workspaceIdentity);
@@ -72,8 +82,17 @@ public sealed class QueryContextBuilder
         context.SetupGet(item => item.EffectiveResultLimit).Returns(_effectiveResultLimit);
         context.SetupGet(item => item.MaxResponseBytes).Returns(_maxResponseBytes);
         context.SetupGet(item => item.WorkspaceResolver).Returns(resolver);
-        context.SetupGet(item => item.CodeActionService).Returns(codeActionService);
         context.SetupGet(item => item.ToolExecutionServices).Returns(_toolExecutionServices);
+        context
+            .Setup(item => item.ListCodeActionsAsync(
+                It.IsAny<ListCodeActionsRequest>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<ListCodeActionsRequest, CancellationToken>((request, cancellationToken) => listCodeActionsAsync(request, cancellationToken));
+        context
+            .Setup(item => item.DescribeCodeActionAsync(
+                It.IsAny<DescribeCodeActionRequest>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<DescribeCodeActionRequest, CancellationToken>((request, cancellationToken) => describeCodeActionAsync(request, cancellationToken));
         return context.Object;
     }
 
@@ -86,14 +105,21 @@ public sealed class QueryContextBuilder
         return resolver.Object;
     }
 
-    private static ICodeActionService CreateDefaultCodeActionService()
+    private static Func<ListCodeActionsRequest, CancellationToken, ValueTask<PluginExecutionResult<CodeActionListData>>> CreateDefaultListCodeActionsAsync()
     {
-        var service = new Mock<ICodeActionService>();
-        service.SetupGet(item => item.Status).Returns(new ComponentStatus
+        return static (_, _) => ValueTask.FromResult(PluginExecutionResult<CodeActionListData>.Rejected(new ToolError
         {
-            IsAvailable = true,
-            Version = "Version",
-        });
-        return service.Object;
+            Code = "CodeActionsUnavailable",
+            Message = "Code-action composition is unavailable.",
+        }));
+    }
+
+    private static Func<DescribeCodeActionRequest, CancellationToken, ValueTask<PluginExecutionResult<DescribeCodeActionData>>> CreateDefaultDescribeCodeActionAsync()
+    {
+        return static (_, _) => ValueTask.FromResult(PluginExecutionResult<DescribeCodeActionData>.Rejected(new ToolError
+        {
+            Code = "CodeActionsUnavailable",
+            Message = "Code-action composition is unavailable.",
+        }));
     }
 }

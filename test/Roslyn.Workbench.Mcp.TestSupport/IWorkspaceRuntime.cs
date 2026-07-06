@@ -2,7 +2,6 @@ using Roslyn.Workbench.Mcp.Contracts.Results;
 using Roslyn.Workbench.Mcp.Contracts.Server;
 using Roslyn.Workbench.Mcp.Contracts.Transactions;
 using Roslyn.Workbench.Mcp.Plugins;
-using Roslyn.Workbench.Mcp.Workspace;
 
 namespace Roslyn.Workbench.Mcp.TestSupport;
 

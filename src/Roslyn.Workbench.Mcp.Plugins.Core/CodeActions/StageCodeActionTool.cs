@@ -22,6 +22,6 @@ internal sealed class StageCodeActionTool : MutationToolHandler<StageCodeActionR
 
     protected override ValueTask<PluginExecutionResult<MutationProposal>> ExecuteCoreAsync(StageCodeActionRequest request, IMutationContext context, CancellationToken cancellationToken)
     {
-        return context.CodeActionService.StageCodeActionAsync(request, context, cancellationToken);
+        return context.StageCodeActionAsync(request, cancellationToken);
     }
 }

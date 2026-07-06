@@ -1,59 +1,63 @@
 using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.Contracts.Results;
 using Roslyn.Workbench.Mcp.Contracts.Server;
-using Roslyn.Workbench.Mcp.Plugins;
-using Roslyn.Workbench.Mcp.Workspace;
 
 namespace Roslyn.Workbench.Mcp;
 
 internal sealed class ServerStatusService : IServerStatusService
 {
-    private readonly IOptions<StartupOptions> _startupOptions;
+    private static readonly string _serverVersion = typeof(ServerStatusService).Assembly.GetName().Version?.ToString() ?? "0.0.0.0";
+    private static readonly string _roslynVersion = typeof(Microsoft.CodeAnalysis.Workspace).Assembly.GetName().Version?.ToString() ?? "0.0.0.0";
+
+    private readonly StartupOptions _startupOptions;
     private readonly PluginCatalogSnapshot _pluginCatalogSnapshot;
     private readonly IMsBuildRegistrationService _msBuildRegistrationService;
-    private readonly ICodeActionService _codeActionService;
+    private readonly CodeActionRuntime _codeActionRuntime;
+    private readonly int _toolCount;
+    private ServerConfiguration? _configuration;
 
     public ServerStatusService(
         IOptions<StartupOptions> startupOptions,
         PluginCatalogSnapshot pluginCatalogSnapshot,
         IMsBuildRegistrationService msBuildRegistrationService,
-        ICodeActionService codeActionService)
+        CodeActionRuntime codeActionRuntime)
     {
-        _startupOptions = startupOptions;
+        _startupOptions = startupOptions.Value;
         _pluginCatalogSnapshot = pluginCatalogSnapshot;
         _msBuildRegistrationService = msBuildRegistrationService;
-        _codeActionService = codeActionService;
+        _codeActionRuntime = codeActionRuntime;
+        _toolCount = _pluginCatalogSnapshot.Tools.Count + ServerOwnedToolRegistration.ToolCount;
     }
 
     public ValueTask<ToolResult<ServerStatusData>> GetStatusAsync(StatusDetailLevel detail, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var serverAssembly = typeof(ServerStatusService).Assembly.GetName();
-        var roslynAssembly = typeof(Microsoft.CodeAnalysis.Workspace).Assembly.GetName();
-        var startupOptions = _startupOptions.Value;
         var includeExpandedDetail = detail == StatusDetailLevel.Full;
 
         return ValueTask.FromResult(ToolResult<ServerStatusData>.Succeeded(new ServerStatusData
         {
-            ServerVersion = serverAssembly.Version?.ToString() ?? "0.0.0.0",
-            RoslynVersion = roslynAssembly.Version?.ToString() ?? "0.0.0.0",
+            ServerVersion = _serverVersion,
+            RoslynVersion = _roslynVersion,
             MsBuild = _msBuildRegistrationService.CurrentStatus,
-            CodeActions = _codeActionService.Status,
-            Configuration = includeExpandedDetail
-                ? new ServerConfiguration
-                {
-                    DefaultMaxResults = startupOptions.DefaultMaxResults,
-                    MaxResponseBytes = startupOptions.MaxResponseBytes,
-                    CodeActionTokenLifetime = startupOptions.CodeActionTokenLifetime,
-                    MaxTransactionRevisions = startupOptions.MaxTransactionRevisions,
-                    MaxConcurrentQueries = startupOptions.MaxConcurrentQueries,
-                    ToolOutputSchemaMode = startupOptions.ToolOutputSchemaMode,
-                }
-                : null,
-            ToolCount = _pluginCatalogSnapshot.Tools.Count + ServerOwnedToolRegistration.ToolCount,
+            CodeActions = _codeActionRuntime.Status,
+            Configuration = includeExpandedDetail ? GetConfiguration() : null,
+            ToolCount = _toolCount,
             Plugins = includeExpandedDetail ? _pluginCatalogSnapshot.Plugins : null,
-            Recovery = includeExpandedDetail ? CommitRecoveryStore.GetStatuses(startupOptions.StateDirectory) : null,
+            Recovery = includeExpandedDetail ? CommitRecoveryStore.GetStatuses(_startupOptions.StateDirectory) : null,
         }));
+    }
+
+    private ServerConfiguration GetConfiguration()
+    {
+        return _configuration ??= new ServerConfiguration
+        {
+            DefaultMaxResults = _startupOptions.DefaultMaxResults,
+            MaxResponseBytes = _startupOptions.MaxResponseBytes,
+            CodeActionTokenLifetime = _startupOptions.CodeActionTokenLifetime,
+            MaxTransactionRevisions = _startupOptions.MaxTransactionRevisions,
+            MaxConcurrentQueries = _startupOptions.MaxConcurrentQueries,
+            ToolOutputSchemaMode = _startupOptions.ToolOutputSchemaMode,
+        };
     }
 }

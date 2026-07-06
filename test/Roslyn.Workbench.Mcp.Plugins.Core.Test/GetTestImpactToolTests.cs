@@ -13,12 +13,7 @@ public sealed class GetTestImpactToolTests
     public async Task GIVEN_InspectionWorkspace_WHEN_RequestingTestImpactByDefault_THEN_ShouldOmitReasonBranch()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = WorkspaceCoordinatorFactory.Create(toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -45,12 +40,7 @@ public sealed class GetTestImpactToolTests
     public async Task GIVEN_InspectionWorkspace_WHEN_RequestingTestImpactReasonsExplicitly_THEN_ShouldIncludeReasonBranch()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxResponseBytes = 65536,
-        }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        var coordinator = WorkspaceCoordinatorFactory.Create(toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,

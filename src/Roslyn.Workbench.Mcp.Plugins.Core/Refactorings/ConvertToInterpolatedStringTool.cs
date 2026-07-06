@@ -44,12 +44,12 @@ internal sealed class ConvertToInterpolatedStringTool : MutationToolHandler<Conv
             return context.ToolExecutionServices.ResultShaper.RejectFromStatus<MutationProposal>(locationResolution.Status, "Location");
         }
 
-        return await context.CodeActionService.StageReplayCodeActionAsync(new ReplayCodeActionRequest
+        return await context.StageReplayCodeActionAsync(new ReplayCodeActionRequest
         {
             Location = request.Selection,
             ExpectedSnapshot = request.ExpectedSnapshot,
             Title = Title,
             EquivalenceKey = EquivalenceKey,
-        }, context, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken).ConfigureAwait(false);
     }
 }

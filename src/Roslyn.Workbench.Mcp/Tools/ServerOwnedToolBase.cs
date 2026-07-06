@@ -4,7 +4,6 @@ using Roslyn.Workbench.Mcp;
 using Roslyn.Workbench.Mcp.Contracts.Results;
 using Roslyn.Workbench.Mcp.Contracts.Server;
 using Roslyn.Workbench.Mcp.Plugins;
-using Roslyn.Workbench.Mcp.Tooling;
 
 namespace Roslyn.Workbench.Mcp.Tools;
 

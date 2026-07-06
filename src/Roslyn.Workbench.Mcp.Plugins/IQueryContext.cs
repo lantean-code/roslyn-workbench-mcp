@@ -1,9 +1,13 @@
+using Roslyn.Workbench.Mcp.Plugins.CodeActions;
+
 namespace Roslyn.Workbench.Mcp.Plugins;
 
 /// <summary>
 /// Represents the host-owned execution context for a query tool.
 /// </summary>
-public interface IQueryContext : IToolExecutionContext
+public interface IQueryContext :
+    IToolExecutionContext,
+    ICodeActionQueryWorkflow
 {
     /// <summary>
     /// Gets the maximum serialized response size, in bytes, for this invocation.

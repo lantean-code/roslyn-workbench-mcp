@@ -6,7 +6,6 @@ using Roslyn.Workbench.Mcp.Contracts.CodeActions;
 using Roslyn.Workbench.Mcp.Contracts.Results;
 using Roslyn.Workbench.Mcp.Plugins;
 using Roslyn.Workbench.Mcp.Tools;
-using Roslyn.Workbench.Mcp.Workspace;
 
 namespace Roslyn.Workbench.Mcp.Test;
 
@@ -254,14 +253,16 @@ public sealed class ServerStatusToolTests
         IMsBuildRegistrationService msBuildRegistrationService,
         ComponentStatus codeActionStatus)
     {
-        var codeActionService = new Mock<ICodeActionService>();
-        codeActionService.SetupGet(static service => service.Status).Returns(codeActionStatus);
+        var codeActionRuntime = new CodeActionRuntime
+        {
+            Status = codeActionStatus,
+        };
 
         var service = new ServerStatusService(
             Options.Create(startupOptions),
             pluginSnapshot,
             msBuildRegistrationService,
-            codeActionService.Object);
+            codeActionRuntime);
 
         return new ServerStatusTool(Options.Create(startupOptions), service);
     }

@@ -29,7 +29,7 @@ internal sealed class AddMissingUsingsTool : MutationToolHandler<AddMissingUsing
             return ValueTask.FromResult(context.ToolExecutionServices.ResultShaper.Rejected<MutationProposal>("UnsupportedOption", "The preferGlobalUsings option is not supported by the current Roslyn add-import backend."));
         }
 
-        return context.CodeActionService.StageScopedCodeFixAsync(new ScopedCodeFixRequest
+        return context.StageScopedCodeFixAsync(new ScopedCodeFixRequest
         {
             Scope = request.Scope,
             ExpectedSnapshot = request.ExpectedSnapshot,
@@ -39,6 +39,6 @@ internal sealed class AddMissingUsingsTool : MutationToolHandler<AddMissingUsing
                 "CS0246",
             ],
             ProviderId = AddImportProviderId,
-        }, context, cancellationToken);
+        }, cancellationToken);
     }
 }

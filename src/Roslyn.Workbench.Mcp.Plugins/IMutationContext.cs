@@ -1,11 +1,14 @@
 namespace Roslyn.Workbench.Mcp.Plugins;
 
 using Roslyn.Workbench.Mcp.Contracts.Results;
+using Roslyn.Workbench.Mcp.Plugins.CodeActions;
 
 /// <summary>
 /// Represents the host-owned execution context for a mutation tool.
 /// </summary>
-public interface IMutationContext : IToolExecutionContext
+public interface IMutationContext :
+    IToolExecutionContext,
+    ICodeActionMutationWorkflow
 {
     /// <summary>
     /// Stages a plugin-produced mutation proposal into the active transaction.

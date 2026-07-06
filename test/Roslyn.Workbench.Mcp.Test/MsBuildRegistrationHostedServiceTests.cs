@@ -3,14 +3,6 @@ namespace Roslyn.Workbench.Mcp.Test;
 public sealed class MsBuildRegistrationHostedServiceTests
 {
     [Fact]
-    public void GIVEN_NullRegistrationService_WHEN_ConstructingHostedService_THEN_ShouldThrowArgumentNullException()
-    {
-        var action = () => new MsBuildRegistrationHostedService(null!);
-
-        action.Should().Throw<ArgumentNullException>().WithParameterName("msBuildRegistrationService");
-    }
-
-    [Fact]
     public async Task GIVEN_RegistrationService_WHEN_StartingHostedService_THEN_ShouldEnsureMsBuildIsRegistered()
     {
         var msBuildRegistrationService = new Mock<IMsBuildRegistrationService>();

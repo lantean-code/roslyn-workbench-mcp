@@ -19,18 +19,18 @@ public sealed class ListCodeActionsToolTests
             ],
             ReturnedCount = 1,
         });
-        var codeActionService = new Mock<ICodeActionService>();
         var context = new QueryContextBuilder()
-            .WithCodeActionService(codeActionService.Object)
+            .WithListCodeActionsAsync((request, cancellationToken) =>
+            {
+                request.Should().BeEquivalentTo(new ListCodeActionsRequest
+                {
+                    Location = new LocationSelector(),
+                });
+                cancellationToken.Should().Be(CancellationToken.None);
+                return ValueTask.FromResult(expected);
+            })
             .Build();
         var target = new ListCodeActionsTool();
-
-        codeActionService
-            .Setup(service => service.ListCodeActionsAsync(
-                It.IsAny<ListCodeActionsRequest>(),
-                It.IsAny<IQueryContext>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(expected);
 
         var request = new ListCodeActionsRequest
         {
@@ -39,7 +39,6 @@ public sealed class ListCodeActionsToolTests
         var result = await target.ExecuteAsync(request, context, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        codeActionService.Verify(service => service.ListCodeActionsAsync(request, context, CancellationToken.None), Times.Once);
     }
 
     [Fact]
@@ -50,18 +49,18 @@ public sealed class ListCodeActionsToolTests
             Code = "CodeActionsUnavailable",
             Message = "CodeActionsUnavailable",
         });
-        var codeActionService = new Mock<ICodeActionService>();
         var context = new QueryContextBuilder()
-            .WithCodeActionService(codeActionService.Object)
+            .WithListCodeActionsAsync((request, cancellationToken) =>
+            {
+                request.Should().BeEquivalentTo(new ListCodeActionsRequest
+                {
+                    Location = new LocationSelector(),
+                });
+                cancellationToken.Should().Be(CancellationToken.None);
+                return ValueTask.FromResult(expected);
+            })
             .Build();
         var target = new ListCodeActionsTool();
-
-        codeActionService
-            .Setup(service => service.ListCodeActionsAsync(
-                It.IsAny<ListCodeActionsRequest>(),
-                It.IsAny<IQueryContext>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(expected);
 
         var request = new ListCodeActionsRequest
         {
@@ -70,6 +69,5 @@ public sealed class ListCodeActionsToolTests
         var result = await target.ExecuteAsync(request, context, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        codeActionService.Verify(service => service.ListCodeActionsAsync(request, context, CancellationToken.None), Times.Once);
     }
 }

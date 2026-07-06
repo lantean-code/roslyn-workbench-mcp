@@ -58,6 +58,6 @@ internal sealed class ConvertForeachLinqTool : MutationToolHandler<ConvertForeac
             },
         };
 
-        return context.CodeActionService.StageReplayCodeActionAsync(replayRequest, context, cancellationToken);
+        return context.StageReplayCodeActionAsync(replayRequest, cancellationToken);
     }
 }

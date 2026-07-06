@@ -14,3 +14,8 @@ global using Microsoft.CodeAnalysis.Text;
 global using Microsoft.VisualStudio.SolutionPersistence.Model;
 global using Microsoft.VisualStudio.SolutionPersistence.Serializer;
 global using Roslyn.Workbench.Mcp.Plugins;
+global using Roslyn.Workbench.Mcp.Plugins.CodeActions;
+global using Roslyn.Workbench.Mcp.Plugins.Execution;
+global using Roslyn.Workbench.Mcp.Plugins.Protocol;
+global using Roslyn.Workbench.Mcp.Plugins.Services;
+global using Roslyn.Workbench.Mcp.Plugins.Workspace;

@@ -683,7 +683,7 @@ public sealed class CodeActionMcpToolTests
         result.Error!.Code.Should().Be("UnsupportedOption");
     }
 
-    private static IWorkspaceCoordinator CreateCoordinator(TimeSpan? tokenLifetime = null)
+    private static IWorkspaceRuntime CreateCoordinator(TimeSpan? tokenLifetime = null)
     {
         var runtime = CodeActionRuntimeFactory.Create(new CodeActionRuntimeOptions
         {
@@ -703,7 +703,7 @@ public sealed class CodeActionMcpToolTests
         }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
     }
 
-    private static IWorkspaceCoordinator CreateBuiltInCoordinator()
+    private static IWorkspaceRuntime CreateBuiltInCoordinator()
     {
         var runtime = CodeActionRuntimeFactory.Create(new CodeActionRuntimeOptions
         {

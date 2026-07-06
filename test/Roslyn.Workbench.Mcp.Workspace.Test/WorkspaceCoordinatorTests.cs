@@ -2,8 +2,8 @@ using System.Text;
 using System.Text.Json;
 
 using Microsoft.Extensions.Options;
-
 using Roslyn.Workbench.Mcp.Plugins;
+using Roslyn.Workbench.Mcp.TestSupport;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test;
 
@@ -12,14 +12,11 @@ public sealed class WorkspaceCoordinatorTests
     private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
 
     [Fact]
-    public void GIVEN_WorkspaceCoordinatorContract_WHEN_InspectingTransactionSurface_THEN_ShouldExposeStageFiveServerOperations()
+    public void GIVEN_WorkspaceCoordinatorContract_WHEN_InspectingTransactionSurface_THEN_ShouldOnlyExposePluginExecutionContextCreation()
     {
-        typeof(IWorkspaceCoordinator).GetMethod("StartTransactionAsync", [typeof(TransactionStartRequest), typeof(CancellationToken)]).Should().NotBeNull();
-        typeof(IWorkspaceCoordinator).GetMethod("PreviewTransactionAsync", [typeof(TransactionPreviewRequest), typeof(CancellationToken)]).Should().NotBeNull();
-        typeof(IWorkspaceCoordinator).GetMethod("MoveTransactionHistoryAsync", [typeof(TransactionHistoryRequest), typeof(CancellationToken)]).Should().NotBeNull();
-        typeof(IWorkspaceCoordinator).GetMethod("CommitTransactionAsync", [typeof(TransactionCommitRequest), typeof(CancellationToken)]).Should().NotBeNull();
-        typeof(IWorkspaceCoordinator).GetMethod("RollbackTransactionAsync", [typeof(TransactionRollbackRequest), typeof(CancellationToken)]).Should().NotBeNull();
-        typeof(IWorkspaceCoordinator).GetMethod("ListAsync", [typeof(WorkspaceListRequest), typeof(CancellationToken)]).Should().NotBeNull();
+        typeof(IWorkspaceExecutionContextFactory).GetInterfaces().Should().ContainSingle(static type => type == typeof(IToolExecutionContextFactory));
+        typeof(IToolExecutionContextFactory).GetMethod("CreateQueryContextAsync", [typeof(RegisteredTool), typeof(object), typeof(CancellationToken)]).Should().NotBeNull();
+        typeof(IToolExecutionContextFactory).GetMethod("CreateMutationContextAsync", [typeof(RegisteredTool), typeof(object), typeof(CancellationToken)]).Should().NotBeNull();
     }
 
     [Fact]
@@ -43,13 +40,18 @@ public sealed class WorkspaceCoordinatorTests
     }
 
     [Fact]
-    public void GIVEN_WorkspaceCoordinatorType_WHEN_InspectingPublicConstructors_THEN_ShouldRequireTypedOptionsAndInjectedServices()
+    public void GIVEN_WorkspaceCoordinatorType_WHEN_InspectingPublicConstructors_THEN_ShouldRequireSharedHostService()
     {
-        var constructor = typeof(WorkspaceCoordinator).GetConstructor(
+        var constructor = typeof(WorkspaceExecutionContextFactory).GetConstructor(
         [
             typeof(IOptions<WorkspaceCoordinatorOptions>),
             typeof(CodeActionRuntime),
             typeof(IToolExecutionServices),
+            typeof(IWorkspaceSessionStore),
+            typeof(IWorkspaceSelector),
+            typeof(IWorkspaceChangeDetector),
+            typeof(IWorkspaceStateTransitions),
+            typeof(IMutationStagingService),
         ]);
 
         constructor.Should().NotBeNull();
@@ -829,7 +831,7 @@ public sealed class WorkspaceCoordinatorTests
             transactionRevision: transaction?.Revision);
     }
 
-    private static async Task<IWorkspaceCoordinator> CreateCoordinatorWithOneStagedRevisionAsync(TestWorkspaceFixture fixture)
+    private static async Task<IWorkspaceRuntime> CreateCoordinatorWithOneStagedRevisionAsync(TestWorkspaceFixture fixture)
     {
         var target = fixture.CreateCoordinator();
         await target.OpenAsync(new WorkspaceOpenRequest

@@ -1,14 +1,13 @@
 using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.Plugins;
 using Roslyn.Workbench.Mcp.Plugins.Core;
+using Roslyn.Workbench.Mcp.Tools;
 using Roslyn.Workbench.Mcp.Workspace;
 
 namespace Roslyn.Workbench.Mcp;
 
 internal static class RoslynWorkbenchHostApplicationBuilderExtensions
 {
-    private const int _serverOwnedToolCount = 11;
-
     public static IHostApplicationBuilder AddRoslynWorkbench(this IHostApplicationBuilder builder, string[] args)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -75,60 +74,31 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
         services.AddSingleton<IDependencyAnalysisService, DefaultDependencyAnalysisService>();
         services.AddSingleton<IToolExecutionServices, ToolExecutionServices>();
         services.AddSingleton(static serviceProvider => CodeActionRuntimeFactory.Create(serviceProvider.GetRequiredService<IOptions<CodeActionRuntimeOptions>>().Value));
-        services.AddSingleton<IWorkspaceCoordinator, WorkspaceCoordinator>();
-        services.AddSingleton(static serviceProvider => (IToolExecutionContextFactory)serviceProvider.GetRequiredService<IWorkspaceCoordinator>());
+        services.AddSingleton<IWorkspaceOperationResultFactory, WorkspaceOperationResultFactory>();
+        services.AddSingleton<IWorkspaceSessionStore, WorkspaceSessionStore>();
+        services.AddSingleton<IWorkspaceSelector, WorkspaceSelectorService>();
+        services.AddSingleton<IWorkspaceLoader, WorkspaceLoader>();
+        services.AddSingleton<IWorkspaceChangeDetector, WorkspaceChangeDetector>();
+        services.AddSingleton<IWorkspaceStateTransitions, WorkspaceStateTransitions>();
+        services.AddSingleton<ISnapshotGuard, SnapshotGuard>();
+        services.AddSingleton<IMutationStagingService, MutationStagingService>();
+        services.AddSingleton<ITransactionCommitService, TransactionCommitService>();
+        services.AddSingleton<IWorkspaceExecutionContextFactory, WorkspaceExecutionContextFactory>();
+        services.AddSingleton<IWorkspaceLifecycleService, WorkspaceLifecycleService>();
+        services.AddSingleton<ITransactionService, TransactionService>();
+        services.AddSingleton<IServerStatusService, ServerStatusService>();
+        services.AddSingleton(static serviceProvider => (IToolExecutionContextFactory)serviceProvider.GetRequiredService<IWorkspaceExecutionContextFactory>());
         services.AddSingleton<ToolExecutor>();
     }
 
     private static void AddMcpTools(IServiceCollection services, PluginCatalogSnapshot pluginCatalogSnapshot)
     {
-        services.AddSingleton<McpServerTool>(static serviceProvider =>
-        {
-            var startupOptions = serviceProvider.GetRequiredService<IOptions<StartupOptions>>().Value;
-            var snapshot = serviceProvider.GetRequiredService<PluginCatalogSnapshot>();
-            var msBuildRegistrationService = serviceProvider.GetRequiredService<IMsBuildRegistrationService>();
-            var codeActionStatus = serviceProvider.GetRequiredService<CodeActionRuntime>().CodeActionService.Status;
-            return ServerStatusToolFactory.Create(
-                startupOptions,
-                snapshot,
-                msBuildRegistrationService,
-                codeActionStatus,
-                snapshot.Tools.Count + _serverOwnedToolCount);
-        });
-
         foreach (var registeredTool in pluginCatalogSnapshot.Tools)
         {
             var pluginTool = registeredTool;
             services.AddSingleton<McpServerTool>(serviceProvider => new PluginMcpServerTool(pluginTool, serviceProvider.GetRequiredService<ToolExecutor>()));
         }
 
-        services.AddSingleton<McpServerTool>(static serviceProvider => CreateWorkspaceLifecycleTool(serviceProvider, "workspace-open"));
-        services.AddSingleton<McpServerTool>(static serviceProvider => CreateWorkspaceLifecycleTool(serviceProvider, "workspace-list"));
-        services.AddSingleton<McpServerTool>(static serviceProvider => CreateWorkspaceLifecycleTool(serviceProvider, "workspace-close"));
-        services.AddSingleton<McpServerTool>(static serviceProvider => CreateWorkspaceLifecycleTool(serviceProvider, "workspace-status"));
-        services.AddSingleton<McpServerTool>(static serviceProvider => CreateWorkspaceLifecycleTool(serviceProvider, "workspace-reload"));
-        services.AddSingleton<McpServerTool>(static serviceProvider => CreateTransactionTool(serviceProvider, "transaction-start"));
-        services.AddSingleton<McpServerTool>(static serviceProvider => CreateTransactionTool(serviceProvider, "transaction-preview"));
-        services.AddSingleton<McpServerTool>(static serviceProvider => CreateTransactionTool(serviceProvider, "transaction-history"));
-        services.AddSingleton<McpServerTool>(static serviceProvider => CreateTransactionTool(serviceProvider, "transaction-commit"));
-        services.AddSingleton<McpServerTool>(static serviceProvider => CreateTransactionTool(serviceProvider, "transaction-rollback"));
-    }
-
-    private static McpServerTool CreateWorkspaceLifecycleTool(IServiceProvider serviceProvider, string toolName)
-    {
-        var startupOptions = serviceProvider.GetRequiredService<IOptions<StartupOptions>>().Value;
-        var coordinator = serviceProvider.GetRequiredService<IWorkspaceCoordinator>();
-
-        return WorkspaceLifecycleToolFactory.Create(coordinator, startupOptions.ToolOutputSchemaMode)
-            .Single(tool => string.Equals(tool.ProtocolTool.Name, toolName, StringComparison.Ordinal));
-    }
-
-    private static McpServerTool CreateTransactionTool(IServiceProvider serviceProvider, string toolName)
-    {
-        var startupOptions = serviceProvider.GetRequiredService<IOptions<StartupOptions>>().Value;
-        var coordinator = serviceProvider.GetRequiredService<IWorkspaceCoordinator>();
-
-        return TransactionToolFactory.Create(coordinator, startupOptions.ToolOutputSchemaMode)
-            .Single(tool => string.Equals(tool.ProtocolTool.Name, toolName, StringComparison.Ordinal));
+        ServerOwnedToolRegistration.AddMcpTools(services);
     }
 }

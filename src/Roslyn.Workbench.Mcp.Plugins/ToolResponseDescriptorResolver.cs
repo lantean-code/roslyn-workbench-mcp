@@ -10,21 +10,6 @@ namespace Roslyn.Workbench.Mcp.Plugins;
 /// </summary>
 public static class ToolResponseDescriptorResolver
 {
-    private static readonly HashSet<string> _directToolNames =
-    [
-        "server-status",
-        "workspace-open",
-        "workspace-list",
-        "workspace-close",
-        "workspace-status",
-        "workspace-reload",
-        "transaction-start",
-        "transaction-preview",
-        "transaction-history",
-        "transaction-commit",
-        "transaction-rollback",
-    ];
-
     /// <summary>
     /// Resolves the published response shape for a plugin tool.
     /// </summary>
@@ -67,28 +52,6 @@ public static class ToolResponseDescriptorResolver
         {
             Kind = ToolResponseShapeKind.Singleton,
         };
-    }
-
-    /// <summary>
-    /// Resolves the published response shape for a server-owned tool.
-    /// </summary>
-    /// <param name="toolName">The MCP tool name.</param>
-    /// <param name="responseType">The successful response payload type.</param>
-    /// <returns>The resolved response descriptor.</returns>
-    public static ToolResponseDescriptor ResolveServer(string toolName, Type responseType)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(toolName);
-        ArgumentNullException.ThrowIfNull(responseType);
-
-        if (_directToolNames.Contains(toolName))
-        {
-            return new ToolResponseDescriptor
-            {
-                Kind = ToolResponseShapeKind.Direct,
-            };
-        }
-
-        return Resolve(toolName, ToolKind.Query, responseType);
     }
 
     private static bool TryResolveCollectionProperty(Type responseType, out string? collectionPropertyName)

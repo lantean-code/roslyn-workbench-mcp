@@ -324,7 +324,7 @@ public sealed class ReplayRefactoringToolsTests
     }
 
     private static async Task<PluginExecutionResult<MutationData>> ExecuteAsync(
-        IWorkspaceCoordinator coordinator,
+        IToolExecutionContextFactory coordinator,
         PluginRegistry registry,
         string toolName,
         IDictionary<string, JsonElement> arguments)

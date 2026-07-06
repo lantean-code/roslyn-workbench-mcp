@@ -9,7 +9,7 @@ namespace Roslyn.Workbench.Mcp.TestSupport;
 
 public static class BundledCoreToolTestHarness
 {
-    public static IWorkspaceCoordinator CreateInspectionCoordinator(int maxResponseBytes = 65536)
+    public static IWorkspaceRuntime CreateInspectionCoordinator(int maxResponseBytes = 65536)
     {
         return WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
         {
@@ -19,7 +19,7 @@ public static class BundledCoreToolTestHarness
         }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
     }
 
-    public static IWorkspaceCoordinator CreateBuiltInCodeActionCoordinator()
+    public static IWorkspaceRuntime CreateBuiltInCodeActionCoordinator()
     {
         var runtime = CodeActionRuntimeFactory.Create(new CodeActionRuntimeOptions
         {
@@ -34,7 +34,7 @@ public static class BundledCoreToolTestHarness
         }, codeActionRuntime: runtime, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
     }
 
-    public static IWorkspaceCoordinator CreateTestCodeActionCoordinator(TimeSpan? tokenLifetime = null)
+    public static IWorkspaceRuntime CreateTestCodeActionCoordinator(TimeSpan? tokenLifetime = null)
     {
         var runtime = CodeActionRuntimeFactory.Create(new CodeActionRuntimeOptions
         {
@@ -64,7 +64,7 @@ public static class BundledCoreToolTestHarness
     }
 
     public static async Task<PluginExecutionResult<TResponse>> ExecuteQueryAsync<TRequest, TResponse>(
-        IWorkspaceCoordinator coordinator,
+        IToolExecutionContextFactory coordinator,
         string toolName,
         IQueryToolHandler<TRequest, TResponse> target,
         TRequest request)
@@ -84,7 +84,7 @@ public static class BundledCoreToolTestHarness
     }
 
     public static async Task<ToolMutationExecutionResult> ExecuteMutationAsync<TRequest>(
-        IWorkspaceCoordinator coordinator,
+        IToolExecutionContextFactory coordinator,
         string toolName,
         IMutationToolHandler<TRequest, MutationProposal> target,
         TRequest request)

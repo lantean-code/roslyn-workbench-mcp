@@ -1,6 +1,12 @@
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Microsoft.Extensions.Options;
+using Roslyn.Workbench.Mcp.Contracts.CodeActions;
+using Roslyn.Workbench.Mcp.Contracts.Results;
+using Roslyn.Workbench.Mcp.Plugins;
+using Roslyn.Workbench.Mcp.Tools;
+using Roslyn.Workbench.Mcp.Workspace;
 
 namespace Roslyn.Workbench.Mcp.Test;
 
@@ -32,7 +38,7 @@ public sealed class ServerStatusToolTests
             ],
         };
         var msBuildRegistrationService = CreateMsBuildRegistrationService();
-        var tool = ServerStatusToolFactory.Create(startupOptions, pluginSnapshot, msBuildRegistrationService.Object, new ComponentStatus { IsAvailable = true }, 14);
+        var tool = CreateTool(startupOptions, pluginSnapshot, msBuildRegistrationService.Object, new ComponentStatus { IsAvailable = true });
 
         var result = await tool.InvokeAsync(
             new RequestContext<CallToolRequestParams>(
@@ -50,10 +56,9 @@ public sealed class ServerStatusToolTests
 
         result.IsError.Should().BeFalse();
         result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeTrue();
-        result.StructuredContent.Value.GetProperty("protocolVersion").GetString().Should().Be("2025-06-18");
-        result.StructuredContent.Value.GetProperty("toolCount").GetInt32().Should().Be(14);
+        result.StructuredContent.Value.GetProperty("toolCount").GetInt32().Should().Be(ServerOwnedToolRegistration.ToolCount);
         result.StructuredContent.Value.GetProperty("codeActions").ValueKind.Should().Be(JsonValueKind.Object);
-        result.StructuredContent.Value.GetProperty("serverVersion").GetString().Should().Be(Assembly.GetAssembly(typeof(ServerStatusToolFactory))!.GetName().Version!.ToString());
+        result.StructuredContent.Value.GetProperty("serverVersion").GetString().Should().Be(Assembly.GetAssembly(typeof(ServerStatusTool))!.GetName().Version!.ToString());
         result.StructuredContent.Value.TryGetProperty("plugins", out _).Should().BeFalse();
         result.StructuredContent.Value.TryGetProperty("configuration", out _).Should().BeFalse();
         result.StructuredContent.Value.TryGetProperty("recovery", out _).Should().BeFalse();
@@ -85,7 +90,7 @@ public sealed class ServerStatusToolTests
             ],
         };
         var msBuildRegistrationService = CreateMsBuildRegistrationService();
-        var tool = ServerStatusToolFactory.Create(startupOptions, pluginSnapshot, msBuildRegistrationService.Object, new ComponentStatus { IsAvailable = true }, 14);
+        var tool = CreateTool(startupOptions, pluginSnapshot, msBuildRegistrationService.Object, new ComponentStatus { IsAvailable = true });
 
         var result = await tool.InvokeAsync(
             new RequestContext<CallToolRequestParams>(
@@ -116,7 +121,7 @@ public sealed class ServerStatusToolTests
         var pluginSnapshot = new PluginCatalogSnapshot();
 
         var msBuildRegistrationService = CreateMsBuildRegistrationService();
-        var tool = ServerStatusToolFactory.Create(startupOptions, pluginSnapshot, msBuildRegistrationService.Object, new ComponentStatus { IsAvailable = true }, 14);
+        var tool = CreateTool(startupOptions, pluginSnapshot, msBuildRegistrationService.Object, new ComponentStatus { IsAvailable = true });
 
         tool.ProtocolTool.OutputSchema.Should().BeNull();
         tool.ProtocolTool.Description.Should().Be("Returns server diagnostics without requiring a loaded workspace. Result: server diagnostics, effective configuration, plugin status, and unfinished recovery state.");
@@ -132,7 +137,7 @@ public sealed class ServerStatusToolTests
         var pluginSnapshot = new PluginCatalogSnapshot();
 
         var msBuildRegistrationService = CreateMsBuildRegistrationService();
-        var tool = ServerStatusToolFactory.Create(startupOptions, pluginSnapshot, msBuildRegistrationService.Object, new ComponentStatus { IsAvailable = true }, 14);
+        var tool = CreateTool(startupOptions, pluginSnapshot, msBuildRegistrationService.Object, new ComponentStatus { IsAvailable = true });
 
         tool.ProtocolTool.OutputSchema.Should().NotBeNull();
         tool.ProtocolTool.OutputSchema!.Value.GetProperty("oneOf").ValueKind.Should().Be(JsonValueKind.Array);
@@ -161,7 +166,7 @@ public sealed class ServerStatusToolTests
         };
         var pluginSnapshot = new PluginCatalogSnapshot();
         var msBuildRegistrationService = CreateMsBuildRegistrationService();
-        var tool = ServerStatusToolFactory.Create(startupOptions, pluginSnapshot, msBuildRegistrationService.Object, new ComponentStatus { IsAvailable = true }, 14);
+        var tool = CreateTool(startupOptions, pluginSnapshot, msBuildRegistrationService.Object, new ComponentStatus { IsAvailable = true });
 
         var result = await tool.InvokeAsync(
             new RequestContext<CallToolRequestParams>(
@@ -196,7 +201,7 @@ public sealed class ServerStatusToolTests
         };
         var pluginSnapshot = new PluginCatalogSnapshot();
         var msBuildRegistrationService = CreateMsBuildRegistrationService();
-        var tool = ServerStatusToolFactory.Create(
+        var tool = CreateTool(
             startupOptions,
             pluginSnapshot,
             msBuildRegistrationService.Object,
@@ -204,8 +209,7 @@ public sealed class ServerStatusToolTests
             {
                 IsAvailable = false,
                 Message = "Code-action composition is unavailable.",
-            },
-            14);
+            });
 
         var result = await tool.InvokeAsync(
             new RequestContext<CallToolRequestParams>(
@@ -242,6 +246,27 @@ public sealed class ServerStatusToolTests
             });
 
         return msBuildRegistrationService;
+    }
+
+    private static ServerStatusTool CreateTool(
+        StartupOptions startupOptions,
+        PluginCatalogSnapshot pluginSnapshot,
+        IMsBuildRegistrationService msBuildRegistrationService,
+        ComponentStatus codeActionStatus)
+    {
+        var codeActionService = new Mock<ICodeActionService>();
+        codeActionService.SetupGet(static service => service.Status).Returns(codeActionStatus);
+
+        var service = new ServerStatusService(
+            Options.Create(startupOptions),
+            pluginSnapshot,
+            msBuildRegistrationService,
+            new CodeActionRuntime
+            {
+                CodeActionService = codeActionService.Object,
+            });
+
+        return new ServerStatusTool(Options.Create(startupOptions), service);
     }
 
     private static McpServer CreateServer()

@@ -14,11 +14,6 @@ public sealed record ServerStatusData
     public string ServerVersion { get; init; } = string.Empty;
 
     /// <summary>
-    /// Gets the protocol version.
-    /// </summary>
-    public string ProtocolVersion { get; init; } = string.Empty;
-
-    /// <summary>
     /// Gets the Roslyn version.
     /// </summary>
     public string RoslynVersion { get; init; } = string.Empty;

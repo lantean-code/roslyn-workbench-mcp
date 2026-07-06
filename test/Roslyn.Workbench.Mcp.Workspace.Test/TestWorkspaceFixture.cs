@@ -211,7 +211,7 @@ public sealed class TestWorkspaceFixture : IDisposable
         return new TestWorkspaceFixture(directoryPath, projectPath, documentPath, directoryBuildPropsPath, editorConfigPath, sharedDocumentPath);
     }
 
-    public IWorkspaceCoordinator CreateCoordinator()
+    public IWorkspaceRuntime CreateCoordinator()
     {
         return WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
         {

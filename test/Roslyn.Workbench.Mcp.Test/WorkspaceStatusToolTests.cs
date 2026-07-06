@@ -1,6 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
-
+using Microsoft.Extensions.Options;
+using Roslyn.Workbench.Mcp.TestSupport;
+using Roslyn.Workbench.Mcp.Tools;
 using Roslyn.Workbench.Mcp.Workspace.Test;
 
 namespace Roslyn.Workbench.Mcp.Test;
@@ -11,14 +13,13 @@ public sealed class WorkspaceStatusToolTests
     public async Task GIVEN_OpenedWorkspace_WHEN_RequestingDefaultStatus_THEN_ShouldOmitLoadDiagnosticsBranch()
     {
         using var fixture = await TestWorkspaceFixture.CreateAsync();
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
+        var runtime = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
         {
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
         });
-        var tools = WorkspaceLifecycleToolFactory.Create(coordinator);
-        var openTool = tools.Single(tool => tool.ProtocolTool.Name == "workspace-open");
-        var statusTool = tools.Single(tool => tool.ProtocolTool.Name == "workspace-status");
+        var openTool = new WorkspaceOpenTool(CreateStartupOptions(), runtime.WorkspaceLifecycleService);
+        var statusTool = new WorkspaceStatusTool(CreateStartupOptions(), runtime.WorkspaceLifecycleService);
 
         await openTool.InvokeAsync(
             new RequestContext<CallToolRequestParams>(
@@ -59,14 +60,13 @@ public sealed class WorkspaceStatusToolTests
     public async Task GIVEN_OpenedWorkspace_WHEN_RequestingFullStatusDetail_THEN_ShouldIncludeLoadDiagnosticsBranch()
     {
         using var fixture = await TestWorkspaceFixture.CreateAsync();
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
+        var runtime = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
         {
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
         });
-        var tools = WorkspaceLifecycleToolFactory.Create(coordinator);
-        var openTool = tools.Single(tool => tool.ProtocolTool.Name == "workspace-open");
-        var statusTool = tools.Single(tool => tool.ProtocolTool.Name == "workspace-status");
+        var openTool = new WorkspaceOpenTool(CreateStartupOptions(), runtime.WorkspaceLifecycleService);
+        var statusTool = new WorkspaceStatusTool(CreateStartupOptions(), runtime.WorkspaceLifecycleService);
 
         await openTool.InvokeAsync(
             new RequestContext<CallToolRequestParams>(
@@ -139,5 +139,10 @@ public sealed class WorkspaceStatusToolTests
         server.Setup(static value => value.DisposeAsync()).Returns(ValueTask.CompletedTask);
 
         return server.Object;
+    }
+
+    private static IOptions<StartupOptions> CreateStartupOptions()
+    {
+        return Options.Create(new StartupOptions());
     }
 }

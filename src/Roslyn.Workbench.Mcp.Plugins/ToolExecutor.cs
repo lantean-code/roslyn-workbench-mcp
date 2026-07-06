@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.Json.Nodes;
 
 using Roslyn.Workbench.Mcp.Contracts.Results;
 
@@ -7,8 +6,6 @@ namespace Roslyn.Workbench.Mcp.Plugins;
 
 public sealed class ToolExecutor
 {
-    private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
-
     private readonly IToolExecutionContextFactory _contextFactory;
 
     public ToolExecutor(IToolExecutionContextFactory contextFactory)
@@ -107,21 +104,7 @@ public sealed class ToolExecutor
 
     private static object DeserializeRequest(Type requestType, IDictionary<string, JsonElement> arguments)
     {
-        var requestNode = new JsonObject();
-
-        foreach (var pair in arguments)
-        {
-            requestNode[pair.Key] = JsonNode.Parse(pair.Value.GetRawText());
-        }
-
-        var request = requestNode.Deserialize(requestType, _serializerOptions);
-
-        if (request is null)
-        {
-            throw new JsonException($"Request payload for '{requestType.FullName}' could not be deserialized.");
-        }
-
-        return request;
+        return ToolRequestBinder.Deserialize(requestType, arguments);
     }
 
     private static JsonElement SerializeStructuredResult(ToolResponseDescriptor descriptor, Type publishedResponseType, PluginExecutionResultBox result)

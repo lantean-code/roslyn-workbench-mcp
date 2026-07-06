@@ -1,5 +1,11 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Microsoft.Extensions.Options;
+using Roslyn.Workbench.Mcp.Contracts.Results;
+using Roslyn.Workbench.Mcp.Contracts.Server;
+using Roslyn.Workbench.Mcp.Contracts.Transactions;
+using Roslyn.Workbench.Mcp.TestSupport;
+using Roslyn.Workbench.Mcp.Tools;
 using Roslyn.Workbench.Mcp.Workspace.Test;
 
 namespace Roslyn.Workbench.Mcp.Test;
@@ -10,14 +16,13 @@ public sealed class WorkspaceLifecycleToolTests
     public async Task GIVEN_LifecycleTools_WHEN_OpeningAndReadingStatus_THEN_ShouldReturnStructuredWorkspaceResults()
     {
         using var fixture = await TestWorkspaceFixture.CreateAsync();
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
+        var runtime = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions
         {
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
         });
-        var tools = WorkspaceLifecycleToolFactory.Create(coordinator);
-        var openTool = tools.Single(tool => tool.ProtocolTool.Name == "workspace-open");
-        var statusTool = tools.Single(tool => tool.ProtocolTool.Name == "workspace-status");
+        var openTool = new WorkspaceOpenTool(CreateStartupOptions(), runtime.WorkspaceLifecycleService);
+        var statusTool = new WorkspaceStatusTool(CreateStartupOptions(), runtime.WorkspaceLifecycleService);
 
         var openResult = await openTool.InvokeAsync(
             new RequestContext<CallToolRequestParams>(
@@ -65,11 +70,10 @@ public sealed class WorkspaceLifecycleToolTests
     {
         using var fixtureA = await TestWorkspaceFixture.CreateAsync();
         using var fixtureB = await TestWorkspaceFixture.CreateAsync();
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions());
-        var tools = WorkspaceLifecycleToolFactory.Create(coordinator);
-        var openTool = tools.Single(tool => tool.ProtocolTool.Name == "workspace-open");
-        var listTool = tools.Single(tool => tool.ProtocolTool.Name == "workspace-list");
-        var statusTool = tools.Single(tool => tool.ProtocolTool.Name == "workspace-status");
+        var runtime = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions());
+        var openTool = new WorkspaceOpenTool(CreateStartupOptions(), runtime.WorkspaceLifecycleService);
+        var listTool = new WorkspaceListTool(CreateStartupOptions(), runtime.WorkspaceLifecycleService);
+        var statusTool = new WorkspaceStatusTool(CreateStartupOptions(), runtime.WorkspaceLifecycleService);
 
         var openA = await openTool.InvokeAsync(
             new RequestContext<CallToolRequestParams>(
@@ -165,8 +169,8 @@ public sealed class WorkspaceLifecycleToolTests
     [Fact]
     public async Task GIVEN_UnloadedCoordinator_WHEN_InvokingWorkspaceCloseTool_THEN_ShouldReturnWorkspaceNotOpen()
     {
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions());
-        var tool = WorkspaceLifecycleToolFactory.Create(coordinator).Single(static value => value.ProtocolTool.Name == "workspace-close");
+        var runtime = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions());
+        var tool = new WorkspaceCloseTool(CreateStartupOptions(), runtime.WorkspaceLifecycleService);
 
         var result = await tool.InvokeAsync(
             new RequestContext<CallToolRequestParams>(
@@ -191,10 +195,9 @@ public sealed class WorkspaceLifecycleToolTests
     public async Task GIVEN_ReadyWorkspace_WHEN_InvokingWorkspaceReloadTool_THEN_ShouldReturnWorkspaceReloadNotRequired()
     {
         using var fixture = await TestWorkspaceFixture.CreateAsync();
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions());
-        var tools = WorkspaceLifecycleToolFactory.Create(coordinator);
-        var openTool = tools.Single(static value => value.ProtocolTool.Name == "workspace-open");
-        var reloadTool = tools.Single(static value => value.ProtocolTool.Name == "workspace-reload");
+        var runtime = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions());
+        var openTool = new WorkspaceOpenTool(CreateStartupOptions(), runtime.WorkspaceLifecycleService);
+        var reloadTool = new WorkspaceReloadTool(CreateStartupOptions(), runtime.WorkspaceLifecycleService);
 
         await openTool.InvokeAsync(
             new RequestContext<CallToolRequestParams>(
@@ -236,15 +239,14 @@ public sealed class WorkspaceLifecycleToolTests
     public async Task GIVEN_OpenedWorkspace_WHEN_InvokingTransactionLifecycleTools_THEN_ShouldReturnStructuredTransactionResults()
     {
         using var fixture = await TestWorkspaceFixture.CreateAsync();
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions());
-        await coordinator.OpenAsync(new WorkspaceOpenRequest
+        var runtime = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions());
+        await runtime.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
-        var tools = TransactionToolFactory.Create(coordinator);
-        var startTool = tools.Single(static value => value.ProtocolTool.Name == "transaction-start");
-        var previewTool = tools.Single(static value => value.ProtocolTool.Name == "transaction-preview");
-        var rollbackTool = tools.Single(static value => value.ProtocolTool.Name == "transaction-rollback");
+        var startTool = new TransactionStartTool(CreateStartupOptions(), runtime.TransactionService);
+        var previewTool = new TransactionPreviewTool(CreateStartupOptions(), runtime.TransactionService);
+        var rollbackTool = new TransactionRollbackTool(CreateStartupOptions(), runtime.TransactionService);
 
         var startResult = await startTool.InvokeAsync(
             new RequestContext<CallToolRequestParams>(
@@ -294,11 +296,17 @@ public sealed class WorkspaceLifecycleToolTests
     }
 
     [Fact]
-    public void GIVEN_LifecycleToolFactory_WHEN_CreatingTools_THEN_ShouldPublishExpectedToolNames()
+    public void GIVEN_ServerOwnedWorkspaceTools_WHEN_CreatingTools_THEN_ShouldPublishExpectedToolNames()
     {
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions());
-
-        var tools = WorkspaceLifecycleToolFactory.Create(coordinator);
+        var runtime = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions());
+        var tools = new McpServerTool[]
+        {
+            new WorkspaceOpenTool(CreateStartupOptions(), runtime.WorkspaceLifecycleService),
+            new WorkspaceListTool(CreateStartupOptions(), runtime.WorkspaceLifecycleService),
+            new WorkspaceCloseTool(CreateStartupOptions(), runtime.WorkspaceLifecycleService),
+            new WorkspaceStatusTool(CreateStartupOptions(), runtime.WorkspaceLifecycleService),
+            new WorkspaceReloadTool(CreateStartupOptions(), runtime.WorkspaceLifecycleService),
+        };
 
         tools.Select(static tool => tool.ProtocolTool.Name).Should().Contain(
         [
@@ -311,11 +319,17 @@ public sealed class WorkspaceLifecycleToolTests
     }
 
     [Fact]
-    public void GIVEN_TransactionToolFactory_WHEN_CreatingTools_THEN_ShouldPublishExpectedToolNames()
+    public void GIVEN_ServerOwnedTransactionTools_WHEN_CreatingTools_THEN_ShouldPublishExpectedToolNames()
     {
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions());
-
-        var tools = TransactionToolFactory.Create(coordinator);
+        var runtime = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions());
+        var tools = new McpServerTool[]
+        {
+            new TransactionStartTool(CreateStartupOptions(), runtime.TransactionService),
+            new TransactionPreviewTool(CreateStartupOptions(), runtime.TransactionService),
+            new TransactionHistoryTool(CreateStartupOptions(), runtime.TransactionService),
+            new TransactionCommitTool(CreateStartupOptions(), runtime.TransactionService),
+            new TransactionRollbackTool(CreateStartupOptions(), runtime.TransactionService),
+        };
 
         tools.Select(static tool => tool.ProtocolTool.Name).Should().Contain(
         [
@@ -330,9 +344,8 @@ public sealed class WorkspaceLifecycleToolTests
     [Fact]
     public void GIVEN_TransactionHistoryTool_WHEN_CreatingServerTool_THEN_ShouldPublishDestructiveAnnotation()
     {
-        var coordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions());
-
-        var tool = TransactionToolFactory.Create(coordinator).Single(static value => value.ProtocolTool.Name == "transaction-history");
+        var runtime = WorkspaceCoordinatorFactory.Create(new WorkspaceCoordinatorOptions());
+        var tool = new TransactionHistoryTool(CreateStartupOptions(), runtime.TransactionService);
 
         tool.ProtocolTool.Annotations.Should().NotBeNull();
         tool.ProtocolTool.Annotations!.ReadOnlyHint.Should().BeFalse();
@@ -342,15 +355,16 @@ public sealed class WorkspaceLifecycleToolTests
     [Fact]
     public async Task GIVEN_ThrowingLifecycleHandler_WHEN_InvokingServerTool_THEN_ShouldReturnStructuredFaultResult()
     {
-        var tool = new ServerToolMcpServerTool<EmptyRequest, WorkspaceStatusData>(
-            "test-status",
-            "Test Status",
-            "Throws for testing.",
-            readOnly: true,
-            destructive: false,
-            ToolOutputSchemaMode.Omit,
-            resultSummary: null,
-            (_, _, _) => throw new InvalidOperationException("Boom"));
+        var service = new Mock<IWorkspaceLifecycleService>();
+        service
+            .Setup(static value => value.GetStatusAsync(
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<StatusDetailLevel>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Boom"));
+        var tool = new WorkspaceStatusTool(CreateStartupOptions(), service.Object);
 
         var result = await tool.InvokeAsync(
             new RequestContext<CallToolRequestParams>(
@@ -374,19 +388,8 @@ public sealed class WorkspaceLifecycleToolTests
     [Fact]
     public async Task GIVEN_InvalidLifecycleRequestPayload_WHEN_InvokingServerTool_THEN_ShouldReturnStructuredFaultResult()
     {
-        var tool = new ServerToolMcpServerTool<WorkspaceOpenRequest, WorkspaceOpenData>(
-            "workspace-open",
-            "Workspace Open",
-            "Deserializes request for testing.",
-            readOnly: false,
-            destructive: false,
-            ToolOutputSchemaMode.Omit,
-            resultSummary: null,
-            (_, _, _) => ValueTask.FromResult(ToolResult<WorkspaceOpenData>.Rejected(new ToolError
-            {
-                Code = "Unreachable",
-                Message = "Unreachable.",
-            })));
+        var service = new Mock<IWorkspaceLifecycleService>();
+        var tool = new WorkspaceOpenTool(CreateStartupOptions(), service.Object);
 
         var result = await tool.InvokeAsync(
             new RequestContext<CallToolRequestParams>(
@@ -443,5 +446,10 @@ public sealed class WorkspaceLifecycleToolTests
         server.Setup(static value => value.DisposeAsync()).Returns(ValueTask.CompletedTask);
 
         return server.Object;
+    }
+
+    private static IOptions<StartupOptions> CreateStartupOptions()
+    {
+        return Options.Create(new StartupOptions());
     }
 }

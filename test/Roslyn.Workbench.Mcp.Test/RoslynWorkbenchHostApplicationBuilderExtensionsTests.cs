@@ -75,7 +75,6 @@ public sealed class RoslynWorkbenchHostApplicationBuilderExtensionsTests
         host.Services.GetRequiredService<IMsBuildRegistrationService>().Should().NotBeNull();
         host.Services.GetRequiredService<IToolExecutionServices>().Should().NotBeNull();
         host.Services.GetRequiredService<CodeActionRuntime>().Should().NotBeNull();
-        host.Services.GetRequiredService<IWorkspaceCoordinator>().Should().NotBeNull();
         host.Services.GetRequiredService<IToolExecutionContextFactory>().Should().NotBeNull();
         host.Services.GetRequiredService<ToolExecutor>().Should().NotBeNull();
         host.Services.GetRequiredService<McpServer>().Should().NotBeNull();

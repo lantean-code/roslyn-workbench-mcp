@@ -74,6 +74,8 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
         services.AddSingleton<IDependencyAnalysisService, DefaultDependencyAnalysisService>();
         services.AddSingleton<IToolExecutionServices, ToolExecutionServices>();
         services.AddSingleton(static serviceProvider => CodeActionRuntimeFactory.Create(serviceProvider.GetRequiredService<IOptions<CodeActionRuntimeOptions>>().Value));
+        services.AddSingleton<ICodeActionService>(static serviceProvider => serviceProvider.GetRequiredService<CodeActionRuntime>().CodeActionService);
+        services.AddSingleton(static serviceProvider => new WorkspaceHostServicesAccessor(serviceProvider.GetRequiredService<CodeActionRuntime>().WorkspaceHostServices));
         services.AddSingleton<IWorkspaceOperationResultFactory, WorkspaceOperationResultFactory>();
         services.AddSingleton<IWorkspaceSessionStore, WorkspaceSessionStore>();
         services.AddSingleton<IWorkspaceSelector, WorkspaceSelectorService>();

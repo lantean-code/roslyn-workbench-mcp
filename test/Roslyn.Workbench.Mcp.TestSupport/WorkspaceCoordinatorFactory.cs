@@ -22,7 +22,7 @@ public static class WorkspaceCoordinatorFactory
         var executionServices = toolExecutionServices ?? new UnavailableToolExecutionServices();
         var sessionStore = new WorkspaceSessionStore();
         var workspaceSelector = new WorkspaceSelectorService();
-        var workspaceLoader = new WorkspaceLoader(runtime);
+        var workspaceLoader = new WorkspaceLoader(new WorkspaceHostServicesAccessor(runtime.WorkspaceHostServices));
         var workspaceChangeDetector = new WorkspaceChangeDetector();
         var workspaceStateTransitions = new WorkspaceStateTransitions();
         var resultFactory = new WorkspaceOperationResultFactory();
@@ -37,7 +37,7 @@ public static class WorkspaceCoordinatorFactory
             resultFactory);
         var coordinator = new WorkspaceExecutionContextFactory(
             optionsWrapper,
-            runtime,
+            runtime.CodeActionService,
             executionServices,
             sessionStore,
             workspaceSelector,

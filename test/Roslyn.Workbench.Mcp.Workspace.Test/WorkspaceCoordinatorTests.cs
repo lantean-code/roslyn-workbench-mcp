@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 
 using Microsoft.Extensions.Options;
+using Roslyn.Workbench.Mcp.Contracts.Selectors;
 using Roslyn.Workbench.Mcp.Plugins;
 using Roslyn.Workbench.Mcp.TestSupport;
 
@@ -15,8 +16,8 @@ public sealed class WorkspaceCoordinatorTests
     public void GIVEN_WorkspaceCoordinatorContract_WHEN_InspectingTransactionSurface_THEN_ShouldOnlyExposePluginExecutionContextCreation()
     {
         typeof(IWorkspaceExecutionContextFactory).GetInterfaces().Should().ContainSingle(static type => type == typeof(IToolExecutionContextFactory));
-        typeof(IToolExecutionContextFactory).GetMethod("CreateQueryContextAsync", [typeof(RegisteredTool), typeof(object), typeof(CancellationToken)]).Should().NotBeNull();
-        typeof(IToolExecutionContextFactory).GetMethod("CreateMutationContextAsync", [typeof(RegisteredTool), typeof(object), typeof(CancellationToken)]).Should().NotBeNull();
+        typeof(IToolExecutionContextFactory).GetMethod("CreateQueryContext", [typeof(WorkspaceBoundRequest), typeof(CancellationToken)]).Should().NotBeNull();
+        typeof(IToolExecutionContextFactory).GetMethod("CreateMutationContext", [typeof(WorkspaceBoundRequest), typeof(CancellationToken)]).Should().NotBeNull();
     }
 
     [Fact]
@@ -45,7 +46,7 @@ public sealed class WorkspaceCoordinatorTests
         var constructor = typeof(WorkspaceExecutionContextFactory).GetConstructor(
         [
             typeof(IOptions<WorkspaceCoordinatorOptions>),
-            typeof(CodeActionRuntime),
+            typeof(ICodeActionService),
             typeof(IToolExecutionServices),
             typeof(IWorkspaceSessionStore),
             typeof(IWorkspaceSelector),
@@ -175,7 +176,7 @@ public sealed class WorkspaceCoordinatorTests
         }, CancellationToken.None);
         await File.AppendAllTextAsync(fixture.EditorConfigPath, Environment.NewLine + "dotnet_diagnostic.CS0168.severity = warning", TestContext.Current.CancellationToken);
 
-        await using var result = await target.CreateQueryContextAsync(new RegisteredTool(), new object(), CancellationToken.None);
+        await using var result = target.CreateQueryContext(new WorkspaceStatusRequest(), CancellationToken.None);
 
         result.ShortCircuitResult.Should().NotBeNull();
         result.ShortCircuitResult!.Error!.Code.Should().Be("WorkspaceOutOfDate");
@@ -215,7 +216,7 @@ public sealed class WorkspaceCoordinatorTests
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
 
-        await using var queryLease = await target.CreateQueryContextAsync(new RegisteredTool(), new object(), CancellationToken.None);
+        await using var queryLease = target.CreateQueryContext(new WorkspaceStatusRequest(), CancellationToken.None);
 
         var result = await target.GetStatusAsync(new WorkspaceStatusRequest(), CancellationToken.None);
 
@@ -354,7 +355,7 @@ public sealed class WorkspaceCoordinatorTests
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
 
-        await using var result = await target.CreateMutationContextAsync(new RegisteredTool(), new object(), CancellationToken.None);
+        await using var result = target.CreateMutationContext(new StageMutationRequest(), CancellationToken.None);
 
         result.ShortCircuitResult.Should().NotBeNull();
         result.ShortCircuitResult!.Error!.Code.Should().Be("NoActiveTransaction");
@@ -646,9 +647,9 @@ public sealed class WorkspaceCoordinatorTests
         using var cancellationTokenSource = new CancellationTokenSource();
         cancellationTokenSource.Cancel();
 
-        var action = async () => await target.CreateQueryContextAsync(new RegisteredTool(), new object(), cancellationTokenSource.Token);
+        var action = () => target.CreateQueryContext(new WorkspaceStatusRequest(), cancellationTokenSource.Token);
 
-        await action.Should().ThrowAsync<OperationCanceledException>();
+        action.Should().Throw<OperationCanceledException>();
     }
 
     [Fact]
@@ -682,7 +683,7 @@ public sealed class WorkspaceCoordinatorTests
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
 
-        await using var result = await target.CreateQueryContextAsync(new RegisteredTool(), new object(), CancellationToken.None);
+        await using var result = target.CreateQueryContext(new WorkspaceStatusRequest(), CancellationToken.None);
 
         result.Context.Should().NotBeNull();
         result.Context!.MaxResponseBytes.Should().Be(2048);
@@ -846,7 +847,7 @@ public sealed class WorkspaceCoordinatorTests
         return target;
     }
 
-    private sealed record StageMutationRequest;
+    private sealed record StageMutationRequest : WorkspaceBoundRequest;
 
     private sealed class StageMutationHandler : IMutationToolHandler<StageMutationRequest, MutationProposal>
     {

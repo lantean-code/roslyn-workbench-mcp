@@ -52,8 +52,7 @@ public static class BuiltInCodeActionAuditHarness
 
         plugin.Register(registry);
 
-        var listTool = registry.RegisteredTools.Single(tool => tool.Metadata.Name == "list-code-actions");
-        await using var queryLease = await coordinator.CreateQueryContextAsync(listTool, new object(), CancellationToken.None);
+        await using var queryLease = coordinator.CreateQueryContext(new ListCodeActionsRequest(), CancellationToken.None);
         var queryContext = queryLease.Context!;
         var location = auditCase.LocationFactory(fixture);
         var resolution = await queryContext.WorkspaceResolver.ResolveLocationAsync(location, CancellationToken.None);

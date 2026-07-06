@@ -1,3 +1,5 @@
+using Roslyn.Workbench.Mcp.Contracts.Selectors;
+
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test;
 
 public sealed class HostValidMutationPlugin : IRoslynPlugin
@@ -22,7 +24,7 @@ public sealed class HostValidMutationPlugin : IRoslynPlugin
             new Handler());
     }
 
-    public sealed record Request
+    public sealed record Request : WorkspaceBoundRequest
     {
         public string Summary { get; init; } = string.Empty;
     }

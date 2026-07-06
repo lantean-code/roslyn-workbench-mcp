@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp;
 using Roslyn.Workbench.Mcp.Contracts.Results;
@@ -12,8 +11,6 @@ namespace Roslyn.Workbench.Mcp.Tools;
 internal abstract class ServerOwnedToolBase<TRequest, TResponse> : McpServerTool
     where TRequest : class
 {
-    private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
-
     private readonly Tool _protocolTool;
 
     protected ServerOwnedToolBase(
@@ -93,78 +90,14 @@ internal abstract class ServerOwnedToolBase<TRequest, TResponse> : McpServerTool
     {
         if (result.Outcome is ToolOutcome.Rejected or ToolOutcome.Conflict or ToolOutcome.Faulted)
         {
-            return JsonSerializer.SerializeToElement(CreateFailureResponse(result), _serializerOptions);
+            return ToolStructuredResultSerializer.CreateFailure(result.Error, result.RequiredAction);
         }
 
-        return JsonSerializer.SerializeToElement(CreateSuccessResponse(result), _serializerOptions);
+        return ToolStructuredResultSerializer.CreateDirectSuccess(result.Data, typeof(TResponse));
     }
 
     private static JsonElement CreateUnhandledExceptionResponse()
     {
-        return JsonSerializer.SerializeToElement(
-            new JsonObject
-            {
-                ["ok"] = false,
-                ["error"] = JsonSerializer.SerializeToNode(
-                    new ToolError
-                    {
-                        Code = "UnhandledException",
-                        Message = "Tool execution failed.",
-                        CorrelationId = Guid.NewGuid().ToString("n"),
-                    },
-                    _serializerOptions),
-            },
-            _serializerOptions);
-    }
-
-    private static JsonObject CreateFailureResponse(ToolResult<TResponse> result)
-    {
-        var payload = new JsonObject
-        {
-            ["ok"] = false,
-            ["error"] = result.Error is null
-                ? null
-                : JsonSerializer.SerializeToNode(result.Error, _serializerOptions),
-        };
-
-        if (result.RequiredAction is not null)
-        {
-            payload["next"] = JsonSerializer.SerializeToNode(result.RequiredAction, typeof(RequiredAction), _serializerOptions);
-        }
-
-        return payload;
-    }
-
-    private static JsonObject CreateSuccessResponse(ToolResult<TResponse> result)
-    {
-        var payload = new JsonObject
-        {
-            ["ok"] = true,
-        };
-
-        if (result.Data is null)
-        {
-            return payload;
-        }
-
-        var serialized = SerializeObject(result.Data);
-        foreach (var property in serialized)
-        {
-            payload[property.Key] = property.Value?.DeepClone();
-        }
-
-        return payload;
-    }
-
-    private static JsonObject SerializeObject(TResponse value)
-    {
-        var serialized = JsonSerializer.SerializeToNode(value, _serializerOptions);
-
-        if (serialized is JsonObject objectNode)
-        {
-            return objectNode;
-        }
-
-        throw new InvalidOperationException($"Published response type '{typeof(TResponse).FullName}' must serialize as a JSON object.");
+        return ToolStructuredResultSerializer.CreateUnhandledException();
     }
 }

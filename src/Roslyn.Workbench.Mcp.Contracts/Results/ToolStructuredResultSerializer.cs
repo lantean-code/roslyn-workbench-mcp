@@ -1,0 +1,142 @@
+using System.Buffers;
+using System.Text.Json;
+namespace Roslyn.Workbench.Mcp.Contracts.Results;
+
+/// <summary>
+/// Serializes structured MCP tool result envelopes using the published response contracts.
+/// </summary>
+public static class ToolStructuredResultSerializer
+{
+    private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
+
+    /// <summary>
+    /// Creates a successful envelope that flattens the published response object into the top level payload.
+    /// </summary>
+    /// <param name="data">The successful response payload.</param>
+    /// <param name="dataType">The published response payload type.</param>
+    /// <returns>The structured JSON payload.</returns>
+    public static JsonElement CreateDirectSuccess(object? data, Type dataType)
+    {
+        ArgumentNullException.ThrowIfNull(dataType);
+
+        return BuildPayload(writer =>
+        {
+            writer.WriteStartObject();
+            writer.WriteBoolean("ok", true);
+
+            if (data is not null)
+            {
+                var serialized = SerializeObject(data, dataType);
+                foreach (var property in serialized.EnumerateObject())
+                {
+                    property.WriteTo(writer);
+                }
+            }
+
+            writer.WriteEndObject();
+        });
+    }
+
+    /// <summary>
+    /// Creates a successful envelope that publishes the response payload under <c>value</c>.
+    /// </summary>
+    /// <param name="data">The successful response payload.</param>
+    /// <param name="dataType">The published response payload type.</param>
+    /// <returns>The structured JSON payload.</returns>
+    public static JsonElement CreateSingletonSuccess(object? data, Type dataType)
+    {
+        ArgumentNullException.ThrowIfNull(dataType);
+
+        return BuildPayload(writer =>
+        {
+            writer.WriteStartObject();
+            writer.WriteBoolean("ok", true);
+            writer.WritePropertyName("value");
+
+            if (data is null)
+            {
+                writer.WriteNullValue();
+            }
+            else
+            {
+                JsonSerializer.Serialize(writer, data, dataType, _serializerOptions);
+            }
+
+            writer.WriteEndObject();
+        });
+    }
+
+    /// <summary>
+    /// Creates a failed envelope with the published error payload.
+    /// </summary>
+    /// <param name="error">The structured error payload.</param>
+    /// <param name="requiredAction">The optional follow-up action.</param>
+    /// <returns>The structured JSON payload.</returns>
+    public static JsonElement CreateFailure(ToolError? error, RequiredAction? requiredAction)
+    {
+        return BuildPayload(writer =>
+        {
+            writer.WriteStartObject();
+            writer.WriteBoolean("ok", false);
+            writer.WritePropertyName("error");
+
+            if (error is null)
+            {
+                writer.WriteNullValue();
+            }
+            else
+            {
+                JsonSerializer.Serialize(writer, error, _serializerOptions);
+            }
+
+            if (requiredAction is not null)
+            {
+                writer.WritePropertyName("next");
+                JsonSerializer.Serialize(writer, requiredAction, _serializerOptions);
+            }
+
+            writer.WriteEndObject();
+        });
+    }
+
+    /// <summary>
+    /// Creates a failed envelope for an unhandled tool exception.
+    /// </summary>
+    /// <returns>The structured JSON payload.</returns>
+    public static JsonElement CreateUnhandledException()
+    {
+        return CreateFailure(
+            new ToolError
+            {
+                Code = "UnhandledException",
+                Message = "Tool execution failed.",
+                CorrelationId = Guid.NewGuid().ToString("n"),
+            },
+            requiredAction: null);
+    }
+
+    private static JsonElement BuildPayload(Action<Utf8JsonWriter> writePayload)
+    {
+        var buffer = new ArrayBufferWriter<byte>();
+
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
+            writePayload(writer);
+        }
+
+        using var document = JsonDocument.Parse(buffer.WrittenMemory);
+        return document.RootElement.Clone();
+    }
+
+    private static JsonElement SerializeObject(object value, Type valueType)
+    {
+        var serialized = JsonSerializer.SerializeToElement(value, valueType, _serializerOptions);
+
+        if (serialized.ValueKind == JsonValueKind.Object)
+        {
+            return serialized;
+        }
+
+        throw new InvalidOperationException($"Published response type '{valueType.FullName}' must serialize as a JSON object.");
+    }
+}

@@ -1,5 +1,7 @@
 using System.Text.Json;
 
+using Roslyn.Workbench.Mcp.Contracts.Selectors;
+
 namespace Roslyn.Workbench.Mcp.Plugins.Test;
 
 public sealed class PluginRegistryTests
@@ -173,7 +175,7 @@ public sealed class PluginRegistryTests
         outputSchema.GetRawText().Should().NotContain("changes");
     }
 
-    private sealed record TestRequest
+    private sealed record TestRequest : WorkspaceBoundRequest
     {
         public string Name { get; init; } = string.Empty;
     }

@@ -1,3 +1,5 @@
+using Roslyn.Workbench.Mcp.Contracts.Selectors;
+
 namespace Roslyn.Workbench.Mcp.Plugins;
 
 /// <summary>
@@ -8,18 +10,16 @@ public interface IToolExecutionContextFactory
     /// <summary>
     /// Creates the query context for a tool invocation.
     /// </summary>
-    /// <param name="tool">The tool being executed.</param>
-    /// <param name="request">The deserialized request payload.</param>
+    /// <param name="request">The deserialized workspace-bound request payload.</param>
     /// <param name="cancellationToken">The cancellation token for the invocation.</param>
     /// <returns>The host-owned query context lease or a short-circuit result.</returns>
-    ValueTask<ToolExecutionContextLease<IQueryContext>> CreateQueryContextAsync(RegisteredTool tool, object request, CancellationToken cancellationToken);
+    ToolExecutionContextLease<IQueryContext> CreateQueryContext(WorkspaceBoundRequest request, CancellationToken cancellationToken);
 
     /// <summary>
     /// Creates the mutation context for a tool invocation.
     /// </summary>
-    /// <param name="tool">The tool being executed.</param>
-    /// <param name="request">The deserialized request payload.</param>
+    /// <param name="request">The deserialized workspace-bound request payload.</param>
     /// <param name="cancellationToken">The cancellation token for the invocation.</param>
     /// <returns>The host-owned mutation context lease or a short-circuit result.</returns>
-    ValueTask<ToolExecutionContextLease<IMutationContext>> CreateMutationContextAsync(RegisteredTool tool, object request, CancellationToken cancellationToken);
+    ToolExecutionContextLease<IMutationContext> CreateMutationContext(WorkspaceBoundRequest request, CancellationToken cancellationToken);
 }

@@ -14,7 +14,7 @@ public sealed class WorkspaceResolverTests
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
 
-        await using var contextLease = await target.CreateQueryContextAsync(new RegisteredTool(), new object(), CancellationToken.None);
+        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), CancellationToken.None);
         var resolution = contextLease.Context!.WorkspaceResolver.ResolveProject(new ProjectSelector
         {
             Path = "Sample.csproj",
@@ -35,7 +35,7 @@ public sealed class WorkspaceResolverTests
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
 
-        await using var contextLease = await target.CreateQueryContextAsync(new RegisteredTool(), new object(), CancellationToken.None);
+        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), CancellationToken.None);
         var resolution = contextLease.Context!.WorkspaceResolver.ResolveProject(new ProjectSelector
         {
             Name = "Sample",
@@ -55,7 +55,7 @@ public sealed class WorkspaceResolverTests
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
 
-        await using var contextLease = await target.CreateQueryContextAsync(new RegisteredTool(), new object(), CancellationToken.None);
+        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), CancellationToken.None);
         var resolution = contextLease.Context!.WorkspaceResolver.ResolveDocument(new DocumentSelector
         {
             Path = fixture.SharedDocumentPath!,
@@ -75,7 +75,7 @@ public sealed class WorkspaceResolverTests
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
 
-        await using var contextLease = await target.CreateQueryContextAsync(new RegisteredTool(), new object(), CancellationToken.None);
+        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), CancellationToken.None);
         var resolution = contextLease.Context!.WorkspaceResolver.ResolveDocument(new DocumentSelector
         {
             Path = "Missing.cs",
@@ -95,7 +95,7 @@ public sealed class WorkspaceResolverTests
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
 
-        await using var contextLease = await target.CreateQueryContextAsync(new RegisteredTool(), new object(), CancellationToken.None);
+        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), CancellationToken.None);
         var result = contextLease.Context!.WorkspaceResolver.ValidateSnapshot(new SnapshotPrecondition
         {
             WorkspaceEpoch = contextLease.Context.WorkspaceIdentity!.WorkspaceEpoch,
@@ -114,7 +114,7 @@ public sealed class WorkspaceResolverTests
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
 
-        await using var contextLease = await target.CreateQueryContextAsync(new RegisteredTool(), new object(), CancellationToken.None);
+        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), CancellationToken.None);
         var result = contextLease.Context!.WorkspaceResolver.ValidateSnapshot(new SnapshotPrecondition
         {
             WorkspaceEpoch = contextLease.Context.WorkspaceIdentity!.WorkspaceEpoch + 1,
@@ -133,7 +133,7 @@ public sealed class WorkspaceResolverTests
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
 
-        await using var contextLease = await target.CreateQueryContextAsync(new RegisteredTool(), new object(), CancellationToken.None);
+        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), CancellationToken.None);
         var result = contextLease.Context!.WorkspaceResolver.ValidateSnapshot(new SnapshotPrecondition
         {
             WorkspaceEpoch = contextLease.Context.WorkspaceIdentity!.WorkspaceEpoch,
@@ -155,7 +155,7 @@ public sealed class WorkspaceResolverTests
         var sourceText = await File.ReadAllTextAsync(fixture.DocumentPath, TestContext.Current.CancellationToken);
         var start = sourceText.IndexOf("Class1", StringComparison.Ordinal);
 
-        await using var contextLease = await target.CreateQueryContextAsync(new RegisteredTool(), new object(), CancellationToken.None);
+        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), CancellationToken.None);
         var resolution = await contextLease.Context!.WorkspaceResolver.ResolveLocationAsync(new LocationSelector
         {
             Span = new TextSpanSelector
@@ -192,7 +192,7 @@ public sealed class WorkspaceResolverTests
         var sourceText = await File.ReadAllTextAsync(fixture.DocumentPath, TestContext.Current.CancellationToken);
         var start = sourceText.IndexOf("Class1", StringComparison.Ordinal);
 
-        await using var contextLease = await target.CreateQueryContextAsync(new RegisteredTool(), new object(), CancellationToken.None);
+        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), CancellationToken.None);
         var resolution = await contextLease.Context!.WorkspaceResolver.ResolveSymbolAsync(new SymbolSelector
         {
             Location = new LocationSelector

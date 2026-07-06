@@ -52,5 +52,7 @@ public sealed record RegisteredTool
     /// </summary>
     public ToolAnnotations Annotations { get; init; } = new();
 
+    internal Func<PluginExecutionResultBox, JsonElement> ResponseWriter { get; init; } = static _ => default;
+
     internal IPluginToolInvoker Invoker { get; init; } = NullPluginToolInvoker.Instance;
 }

@@ -1,6 +1,6 @@
 using System.Text.Json;
-
 using Roslyn.Workbench.Mcp.Contracts.Results;
+using Roslyn.Workbench.Mcp.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.Plugins;
 
@@ -22,13 +22,13 @@ public sealed class ToolExecutor
         ArgumentNullException.ThrowIfNull(arguments);
 
         var request = DeserializeRequest(tool.RequestType, arguments);
-        var contextLease = await CreateContextAsync(tool, request, cancellationToken);
+        var contextLease = CreateContext(tool, request, cancellationToken);
         await using var _ = contextLease.ConfigureAwait(false);
         var context = contextLease.Context;
 
         if (contextLease.ShortCircuitResult is not null)
         {
-            var shortCircuitContent = SerializeStructuredResult(tool.ResponseDescriptor, tool.PublishedResponseType, contextLease.ShortCircuitResult);
+            var shortCircuitContent = tool.ResponseWriter(contextLease.ShortCircuitResult);
 
             return new CallToolResult
             {
@@ -42,7 +42,7 @@ public sealed class ToolExecutor
         {
             var pluginResult = await tool.Invoker.ExecuteAsync(request, context!, cancellationToken);
             var effectiveResult = await StageMutationProposalAsync(tool, context, pluginResult, cancellationToken);
-            var structuredContent = SerializeStructuredResult(tool.ResponseDescriptor, tool.PublishedResponseType, effectiveResult);
+            var structuredContent = tool.ResponseWriter(effectiveResult);
 
             return new CallToolResult
             {
@@ -58,7 +58,7 @@ public sealed class ToolExecutor
         catch (Exception)
         {
             var fault = PluginExecutionResultBox.CreateUnhandledException();
-            var structuredContent = SerializeStructuredResult(tool.ResponseDescriptor, tool.PublishedResponseType, fault);
+            var structuredContent = tool.ResponseWriter(fault);
 
             return new CallToolResult
             {
@@ -69,12 +69,12 @@ public sealed class ToolExecutor
         }
     }
 
-    private async ValueTask<ToolExecutionContextLease<IToolExecutionContext>> CreateContextAsync(RegisteredTool tool, object request, CancellationToken cancellationToken)
+    private ToolExecutionContextLease<IToolExecutionContext> CreateContext(RegisteredTool tool, WorkspaceBoundRequest request, CancellationToken cancellationToken)
     {
         return tool.Kind switch
         {
-            ToolKind.Query => ConvertLease(await _contextFactory.CreateQueryContextAsync(tool, request, cancellationToken)),
-            ToolKind.Mutation => ConvertLease(await _contextFactory.CreateMutationContextAsync(tool, request, cancellationToken)),
+            ToolKind.Query => ConvertLease(_contextFactory.CreateQueryContext(request, cancellationToken)),
+            ToolKind.Mutation => ConvertLease(_contextFactory.CreateMutationContext(request, cancellationToken)),
             _ => throw new InvalidOperationException($"Unsupported tool kind '{tool.Kind}'."),
         };
     }
@@ -102,14 +102,12 @@ public sealed class ToolExecutor
         return PluginExecutionResultBox.From(stagedResult);
     }
 
-    private static object DeserializeRequest(Type requestType, IDictionary<string, JsonElement> arguments)
+    private static WorkspaceBoundRequest DeserializeRequest(Type requestType, IDictionary<string, JsonElement> arguments)
     {
-        return ToolRequestBinder.Deserialize(requestType, arguments);
-    }
-
-    private static JsonElement SerializeStructuredResult(ToolResponseDescriptor descriptor, Type publishedResponseType, PluginExecutionResultBox result)
-    {
-        return ToolResponseShaper.Shape(descriptor, publishedResponseType, result);
+        var request = ToolRequestBinder.Deserialize(requestType, arguments);
+        return request as WorkspaceBoundRequest
+            ?? throw new InvalidOperationException(
+                $"Registered tool request type '{requestType.FullName}' must derive from '{typeof(WorkspaceBoundRequest).FullName}'.");
     }
 
     private static bool IsErrorOutcome(ToolOutcome outcome)

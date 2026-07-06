@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Roslyn.Workbench.Mcp.Contracts.Selectors;
 using Roslyn.Workbench.Mcp.TestSupport;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test;
@@ -331,7 +332,7 @@ public sealed class ReplayRefactoringToolsTests
     {
         var registeredTool = registry.RegisteredTools.Single(tool => tool.Metadata.Name == toolName);
         var request = DeserializeRequest(registeredTool.RequestType, arguments);
-        await using var mutationLease = await coordinator.CreateMutationContextAsync(registeredTool, new object(), CancellationToken.None);
+        await using var mutationLease = coordinator.CreateMutationContext((WorkspaceBoundRequest)request, CancellationToken.None);
         var proposalResult = await registeredTool.Invoker.ExecuteAsync(request, mutationLease.Context!, CancellationToken.None);
 
         proposalResult.Outcome.Should().Be(ToolOutcome.Succeeded, proposalResult.Error?.Message);

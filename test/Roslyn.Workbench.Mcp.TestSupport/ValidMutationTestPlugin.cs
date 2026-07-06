@@ -1,3 +1,4 @@
+using Roslyn.Workbench.Mcp.Contracts.Selectors;
 using Roslyn.Workbench.Mcp.Plugins;
 
 namespace Roslyn.Workbench.Mcp.TestSupport;
@@ -28,7 +29,7 @@ public sealed class ValidMutationTestPlugin : IRoslynPlugin
             new Handler());
     }
 
-    public sealed record Request
+    public sealed record Request : WorkspaceBoundRequest
     {
         public string Summary { get; init; } = string.Empty;
     }

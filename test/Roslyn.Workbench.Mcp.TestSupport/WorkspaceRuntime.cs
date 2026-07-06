@@ -1,5 +1,6 @@
 using Roslyn.Workbench.Mcp;
 using Roslyn.Workbench.Mcp.Contracts.Results;
+using Roslyn.Workbench.Mcp.Contracts.Selectors;
 using Roslyn.Workbench.Mcp.Contracts.Server;
 using Roslyn.Workbench.Mcp.Contracts.Transactions;
 using Roslyn.Workbench.Mcp.Plugins;
@@ -27,14 +28,14 @@ public sealed class WorkspaceRuntime : IWorkspaceRuntime
 
     internal ITransactionService TransactionService => _transactionService;
 
-    public ValueTask<ToolExecutionContextLease<IMutationContext>> CreateMutationContextAsync(RegisteredTool tool, object request, CancellationToken cancellationToken)
+    public ToolExecutionContextLease<IMutationContext> CreateMutationContext(WorkspaceBoundRequest request, CancellationToken cancellationToken)
     {
-        return _coordinator.CreateMutationContextAsync(tool, request, cancellationToken);
+        return _coordinator.CreateMutationContext(request, cancellationToken);
     }
 
-    public ValueTask<ToolExecutionContextLease<IQueryContext>> CreateQueryContextAsync(RegisteredTool tool, object request, CancellationToken cancellationToken)
+    public ToolExecutionContextLease<IQueryContext> CreateQueryContext(WorkspaceBoundRequest request, CancellationToken cancellationToken)
     {
-        return _coordinator.CreateQueryContextAsync(tool, request, cancellationToken);
+        return _coordinator.CreateQueryContext(request, cancellationToken);
     }
 
     public ValueTask<ToolResult<WorkspaceOpenData>> OpenAsync(WorkspaceOpenRequest request, CancellationToken cancellationToken)

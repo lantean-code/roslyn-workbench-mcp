@@ -1,5 +1,7 @@
 using System.Text.Json;
 
+using Roslyn.Workbench.Mcp.Contracts.Selectors;
+
 namespace Roslyn.Workbench.Mcp.Plugins.Test;
 
 public sealed class ToolExecutorTests
@@ -46,14 +48,13 @@ public sealed class ToolExecutorTests
         queryContext.SetupGet(static context => context.TransactionRevision).Returns(7);
         queryContext.SetupGet(static context => context.WorkspaceResolver).Returns(resolver.Object);
         factory
-            .Setup(static contextFactory => contextFactory.CreateQueryContextAsync(
-                It.IsAny<RegisteredTool>(),
-                It.Is<object>(request => MatchesTestRequest(request, "Name", "workspace-42")),
+            .Setup(static contextFactory => contextFactory.CreateQueryContext(
+                It.Is<WorkspaceBoundRequest>(request => MatchesTestRequest(request, "Name", "workspace-42")),
                 It.IsAny<CancellationToken>()))
-            .Returns((RegisteredTool _, object _, CancellationToken _) => ValueTask.FromResult(ToolExecutionContextLease<IQueryContext>.Acquired(queryContext.Object)));
+            .Returns((WorkspaceBoundRequest _, CancellationToken _) => ToolExecutionContextLease<IQueryContext>.Acquired(queryContext.Object));
         factory
-            .Setup(static contextFactory => contextFactory.CreateMutationContextAsync(It.IsAny<RegisteredTool>(), It.IsAny<object>(), It.IsAny<CancellationToken>()))
-            .Returns((RegisteredTool _, object _, CancellationToken _) => throw new InvalidOperationException("Mutation context should not be requested."));
+            .Setup(static contextFactory => contextFactory.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), It.IsAny<CancellationToken>()))
+            .Returns((WorkspaceBoundRequest _, CancellationToken _) => throw new InvalidOperationException("Mutation context should not be requested."));
 
         var executor = new ToolExecutor(factory.Object);
 
@@ -67,9 +68,8 @@ public sealed class ToolExecutorTests
         }, CancellationToken.None);
 
         result.IsError.Should().BeFalse();
-        factory.Verify(static contextFactory => contextFactory.CreateQueryContextAsync(
-            It.IsAny<RegisteredTool>(),
-            It.Is<object>(request => MatchesTestRequest(request, "Name", "workspace-42")),
+        factory.Verify(static contextFactory => contextFactory.CreateQueryContext(
+            It.Is<WorkspaceBoundRequest>(request => MatchesTestRequest(request, "Name", "workspace-42")),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -179,11 +179,9 @@ public sealed class ToolExecutorTests
         return registry.RegisteredTools.Single();
     }
 
-    private sealed record TestRequest
+    private sealed record TestRequest : WorkspaceBoundRequest
     {
         public string Name { get; init; } = string.Empty;
-
-        public WorkspaceSelector? Workspace { get; init; }
     }
 
     private sealed record TestResponse
@@ -191,7 +189,7 @@ public sealed class ToolExecutorTests
         public string Value { get; init; } = string.Empty;
     }
 
-    private static bool MatchesTestRequest(object request, string name, string workspaceId)
+    private static bool MatchesTestRequest(WorkspaceBoundRequest request, string name, string workspaceId)
     {
         if (request is not TestRequest typedRequest)
         {
@@ -223,11 +221,11 @@ public sealed class ToolExecutorTests
         mutationContext.SetupGet(static context => context.TransactionRevision).Returns(7);
         mutationContext.SetupGet(static context => context.WorkspaceResolver).Returns(resolver.Object);
         factory
-            .Setup(static contextFactory => contextFactory.CreateQueryContextAsync(It.IsAny<RegisteredTool>(), It.IsAny<object>(), It.IsAny<CancellationToken>()))
-            .Returns((RegisteredTool _, object _, CancellationToken _) => ValueTask.FromResult(ToolExecutionContextLease<IQueryContext>.Acquired(queryContext.Object)));
+            .Setup(static contextFactory => contextFactory.CreateQueryContext(It.IsAny<WorkspaceBoundRequest>(), It.IsAny<CancellationToken>()))
+            .Returns((WorkspaceBoundRequest _, CancellationToken _) => ToolExecutionContextLease<IQueryContext>.Acquired(queryContext.Object));
         factory
-            .Setup(static contextFactory => contextFactory.CreateMutationContextAsync(It.IsAny<RegisteredTool>(), It.IsAny<object>(), It.IsAny<CancellationToken>()))
-            .Returns((RegisteredTool _, object _, CancellationToken _) => ValueTask.FromResult(ToolExecutionContextLease<IMutationContext>.Acquired(mutationContext.Object)));
+            .Setup(static contextFactory => contextFactory.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), It.IsAny<CancellationToken>()))
+            .Returns((WorkspaceBoundRequest _, CancellationToken _) => ToolExecutionContextLease<IMutationContext>.Acquired(mutationContext.Object));
 
         return factory.Object;
     }
@@ -237,8 +235,8 @@ public sealed class ToolExecutorTests
         var factory = new Mock<IToolExecutionContextFactory>();
 
         factory
-            .Setup(static contextFactory => contextFactory.CreateQueryContextAsync(It.IsAny<RegisteredTool>(), It.IsAny<object>(), It.IsAny<CancellationToken>()))
-            .Returns((RegisteredTool _, object _, CancellationToken _) => ValueTask.FromResult(ToolExecutionContextLease<IQueryContext>.Rejected(new PluginExecutionResultBox
+            .Setup(static contextFactory => contextFactory.CreateQueryContext(It.IsAny<WorkspaceBoundRequest>(), It.IsAny<CancellationToken>()))
+            .Returns((WorkspaceBoundRequest _, CancellationToken _) => ToolExecutionContextLease<IQueryContext>.Rejected(new PluginExecutionResultBox
             {
                 Outcome = ToolOutcome.Rejected,
                 Error = new ToolError
@@ -247,10 +245,10 @@ public sealed class ToolExecutorTests
                     Message = "Workspace is busy.",
                 },
                 RequiredAction = RequiredAction.Retry,
-            })));
+            }));
         factory
-            .Setup(static contextFactory => contextFactory.CreateMutationContextAsync(It.IsAny<RegisteredTool>(), It.IsAny<object>(), It.IsAny<CancellationToken>()))
-            .Returns((RegisteredTool _, object _, CancellationToken _) => ValueTask.FromResult(ToolExecutionContextLease<IMutationContext>.Rejected(new PluginExecutionResultBox
+            .Setup(static contextFactory => contextFactory.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), It.IsAny<CancellationToken>()))
+            .Returns((WorkspaceBoundRequest _, CancellationToken _) => ToolExecutionContextLease<IMutationContext>.Rejected(new PluginExecutionResultBox
             {
                 Outcome = ToolOutcome.Rejected,
                 Error = new ToolError
@@ -259,7 +257,7 @@ public sealed class ToolExecutorTests
                     Message = "Workspace is busy.",
                 },
                 RequiredAction = RequiredAction.Retry,
-            })));
+            }));
 
         return factory.Object;
     }

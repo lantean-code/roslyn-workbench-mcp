@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Roslyn.Workbench.Mcp.Contracts.Selectors;
 using Roslyn.Workbench.Mcp.Plugins.Core.Test;
 using Roslyn.Workbench.Mcp.Workspace.Test;
 
@@ -153,11 +154,11 @@ public sealed class PluginDiscoveryAndMcpToolTests
         mutationContext.SetupGet(static context => context.WorkspaceIdentity).Returns(workspaceIdentity);
         mutationContext.SetupGet(static context => context.WorkspaceResolver).Returns(resolver.Object);
         factory
-            .Setup(static contextFactory => contextFactory.CreateQueryContextAsync(It.IsAny<RegisteredTool>(), It.IsAny<object>(), It.IsAny<CancellationToken>()))
-            .Returns((RegisteredTool _, object _, CancellationToken _) => ValueTask.FromResult(ToolExecutionContextLease<IQueryContext>.Acquired(queryContext.Object)));
+            .Setup(static contextFactory => contextFactory.CreateQueryContext(It.IsAny<WorkspaceBoundRequest>(), It.IsAny<CancellationToken>()))
+            .Returns((WorkspaceBoundRequest _, CancellationToken _) => ToolExecutionContextLease<IQueryContext>.Acquired(queryContext.Object));
         factory
-            .Setup(static contextFactory => contextFactory.CreateMutationContextAsync(It.IsAny<RegisteredTool>(), It.IsAny<object>(), It.IsAny<CancellationToken>()))
-            .Returns((RegisteredTool _, object _, CancellationToken _) => ValueTask.FromResult(ToolExecutionContextLease<IMutationContext>.Acquired(mutationContext.Object)));
+            .Setup(static contextFactory => contextFactory.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), It.IsAny<CancellationToken>()))
+            .Returns((WorkspaceBoundRequest _, CancellationToken _) => ToolExecutionContextLease<IMutationContext>.Acquired(mutationContext.Object));
 
         return factory.Object;
     }

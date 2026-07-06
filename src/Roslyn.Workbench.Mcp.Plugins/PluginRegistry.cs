@@ -1,3 +1,4 @@
+using Roslyn.Workbench.Mcp.Contracts.Selectors;
 using Roslyn.Workbench.Mcp.Contracts.Server;
 
 namespace Roslyn.Workbench.Mcp.Plugins;
@@ -63,6 +64,12 @@ public sealed class PluginRegistry : IPluginRegistry
                 $"Mutation tool '{metadata.Name}' must return '{typeof(MutationProposal).FullName}'.");
         }
 
+        if (!typeof(WorkspaceBoundRequest).IsAssignableFrom(requestType))
+        {
+            throw new InvalidOperationException(
+                $"Tool '{metadata.Name}' must use a request type derived from '{typeof(WorkspaceBoundRequest).FullName}'.");
+        }
+
         var publishedResponseType = kind == ToolKind.Mutation ? typeof(Contracts.Results.MutationData) : responseType;
         var responseDescriptor = ToolResponseDescriptorResolver.Resolve(metadata.Name, kind, publishedResponseType);
 
@@ -78,6 +85,7 @@ public sealed class PluginRegistry : IPluginRegistry
                 ? ToolSchemaFactory.CreateOutputSchema(responseDescriptor, publishedResponseType)
                 : null,
             ResponseDescriptor = responseDescriptor,
+            ResponseWriter = ToolResponseShaper.CreateWriter(responseDescriptor, publishedResponseType),
             Annotations = CreateAnnotations(kind, metadata),
             Invoker = invoker,
         });

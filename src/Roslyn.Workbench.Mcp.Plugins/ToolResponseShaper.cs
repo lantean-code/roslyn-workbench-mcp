@@ -1,6 +1,5 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
-
 using Roslyn.Workbench.Mcp.Contracts.CodeActions;
 using Roslyn.Workbench.Mcp.Contracts.Results;
 
@@ -22,76 +21,78 @@ public static class ToolResponseShaper
     /// <returns>The structured-content payload.</returns>
     public static JsonElement Shape(ToolResponseDescriptor descriptor, Type publishedResponseType, PluginExecutionResultBox result)
     {
+        return CreateWriter(descriptor, publishedResponseType)(result);
+    }
+
+    internal static Func<PluginExecutionResultBox, JsonElement> CreateWriter(ToolResponseDescriptor descriptor, Type publishedResponseType)
+    {
         ArgumentNullException.ThrowIfNull(descriptor);
         ArgumentNullException.ThrowIfNull(publishedResponseType);
-        ArgumentNullException.ThrowIfNull(result);
-
-        if (IsFailure(result.Outcome))
-        {
-            return JsonSerializer.SerializeToElement(CreateFailureResponse(result), _serializerOptions);
-        }
-
-        ValidatePublishedResponseData(descriptor, publishedResponseType, result);
 
         return descriptor.Kind switch
         {
-            ToolResponseShapeKind.Direct => JsonSerializer.SerializeToElement(CreateDirectSuccessResponse(publishedResponseType, result), _serializerOptions),
-            ToolResponseShapeKind.Singleton => JsonSerializer.SerializeToElement(CreateSingletonSuccessResponse(publishedResponseType, result), _serializerOptions),
-            ToolResponseShapeKind.Collection => JsonSerializer.SerializeToElement(CreateCollectionSuccessResponse(descriptor, publishedResponseType, result), _serializerOptions),
-            ToolResponseShapeKind.Mutation => JsonSerializer.SerializeToElement(CreateMutationSuccessResponse(result), _serializerOptions),
-            ToolResponseShapeKind.CodeActionList => JsonSerializer.SerializeToElement(CreateCodeActionListSuccessResponse(result), _serializerOptions),
+            ToolResponseShapeKind.Direct => result => ShapeDirectSuccess(publishedResponseType, result),
+            ToolResponseShapeKind.Singleton => result => ShapeSingletonSuccess(publishedResponseType, result),
+            ToolResponseShapeKind.Collection => result => ShapeCollectionSuccess(descriptor, publishedResponseType, result),
+            ToolResponseShapeKind.Mutation => ShapeMutationSuccess,
+            ToolResponseShapeKind.CodeActionList => ShapeCodeActionListSuccess,
             _ => throw new InvalidOperationException($"Unsupported response shape kind '{descriptor.Kind}'."),
         };
     }
 
-    private static JsonObject CreateFailureResponse(PluginExecutionResultBox result)
+    private static JsonElement ShapeDirectSuccess(Type responseType, PluginExecutionResultBox result)
     {
-        var payload = new JsonObject
+        if (IsFailure(result.Outcome))
         {
-            ["ok"] = false,
-            ["error"] = result.Error is null
-                ? null
-                : JsonSerializer.SerializeToNode(result.Error, typeof(ToolError), _serializerOptions),
-        };
-
-        if (result.RequiredAction is not null)
-        {
-            payload["next"] = JsonSerializer.SerializeToNode(result.RequiredAction, typeof(RequiredAction), _serializerOptions);
+            return ToolStructuredResultSerializer.CreateFailure(result.Error, result.RequiredAction);
         }
 
-        return payload;
+        ValidatePublishedResponseData(ToolResponseShapeKind.Direct, responseType, result);
+        return ToolStructuredResultSerializer.CreateDirectSuccess(result.Data, responseType);
     }
 
-    private static JsonObject CreateDirectSuccessResponse(Type responseType, PluginExecutionResultBox result)
+    private static JsonElement ShapeSingletonSuccess(Type responseType, PluginExecutionResultBox result)
     {
-        var payload = new JsonObject
+        if (IsFailure(result.Outcome))
         {
-            ["ok"] = true,
-        };
-
-        if (result.Data is null)
-        {
-            return payload;
+            return ToolStructuredResultSerializer.CreateFailure(result.Error, result.RequiredAction);
         }
 
-        var serialized = SerializeObject(result.Data, responseType);
-        foreach (var property in serialized)
-        {
-            payload[property.Key] = property.Value?.DeepClone();
-        }
-
-        return payload;
+        ValidatePublishedResponseData(ToolResponseShapeKind.Singleton, responseType, result);
+        return ToolStructuredResultSerializer.CreateSingletonSuccess(result.Data, responseType);
     }
 
-    private static JsonObject CreateSingletonSuccessResponse(Type responseType, PluginExecutionResultBox result)
+    private static JsonElement ShapeCollectionSuccess(ToolResponseDescriptor descriptor, Type responseType, PluginExecutionResultBox result)
     {
-        return new JsonObject
+        if (IsFailure(result.Outcome))
         {
-            ["ok"] = true,
-            ["value"] = result.Data is null
-                ? null
-                : JsonSerializer.SerializeToNode(result.Data, responseType, _serializerOptions),
-        };
+            return ToolStructuredResultSerializer.CreateFailure(result.Error, result.RequiredAction);
+        }
+
+        ValidatePublishedResponseData(descriptor.Kind, responseType, result);
+        return JsonSerializer.SerializeToElement(CreateCollectionSuccessResponse(descriptor, responseType, result), _serializerOptions);
+    }
+
+    private static JsonElement ShapeMutationSuccess(PluginExecutionResultBox result)
+    {
+        if (IsFailure(result.Outcome))
+        {
+            return ToolStructuredResultSerializer.CreateFailure(result.Error, result.RequiredAction);
+        }
+
+        ValidatePublishedResponseData(ToolResponseShapeKind.Mutation, typeof(MutationData), result);
+        return JsonSerializer.SerializeToElement(CreateMutationSuccessResponse(result), _serializerOptions);
+    }
+
+    private static JsonElement ShapeCodeActionListSuccess(PluginExecutionResultBox result)
+    {
+        if (IsFailure(result.Outcome))
+        {
+            return ToolStructuredResultSerializer.CreateFailure(result.Error, result.RequiredAction);
+        }
+
+        ValidatePublishedResponseData(ToolResponseShapeKind.CodeActionList, typeof(CodeActionListData), result);
+        return JsonSerializer.SerializeToElement(CreateCodeActionListSuccessResponse(result), _serializerOptions);
     }
 
     private static JsonObject CreateCollectionSuccessResponse(ToolResponseDescriptor descriptor, Type responseType, PluginExecutionResultBox result)
@@ -178,13 +179,13 @@ public static class ToolResponseShaper
         var payload = new JsonObject
         {
             ["ok"] = true,
-            ["items"] = JsonSerializer.SerializeToNode(items, typeof(CodeActionListItem[]), _serializerOptions),
+            ["items"] = JsonSerializer.SerializeToNode(items, _serializerOptions),
             ["hasMore"] = data?.HasMore ?? false,
         };
 
         if (data?.TruncationReasons is { Count: > 0 } truncationReasons)
         {
-            payload["truncatedBy"] = JsonSerializer.SerializeToNode(truncationReasons, typeof(IReadOnlyList<CollectionTruncation>), _serializerOptions);
+            payload["truncatedBy"] = JsonSerializer.SerializeToNode(truncationReasons, _serializerOptions);
         }
 
         return payload;
@@ -207,14 +208,14 @@ public static class ToolResponseShaper
         return outcome is ToolOutcome.Rejected or ToolOutcome.Conflict or ToolOutcome.Faulted;
     }
 
-    private static void ValidatePublishedResponseData(ToolResponseDescriptor descriptor, Type publishedResponseType, PluginExecutionResultBox result)
+    private static void ValidatePublishedResponseData(ToolResponseShapeKind shapeKind, Type publishedResponseType, PluginExecutionResultBox result)
     {
         if (result.Data is null)
         {
             return;
         }
 
-        var expectedType = descriptor.Kind switch
+        var expectedType = shapeKind switch
         {
             ToolResponseShapeKind.Mutation => typeof(MutationData),
             ToolResponseShapeKind.CodeActionList => typeof(CodeActionListData),

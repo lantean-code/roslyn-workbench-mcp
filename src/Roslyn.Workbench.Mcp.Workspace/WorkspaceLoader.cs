@@ -6,10 +6,9 @@ internal sealed class WorkspaceLoader : IWorkspaceLoader
 {
     private readonly HostServices? _workspaceHostServices;
 
-    public WorkspaceLoader(CodeActionRuntime codeActionRuntime)
+    public WorkspaceLoader(WorkspaceHostServicesAccessor workspaceHostServicesAccessor)
     {
-        ArgumentNullException.ThrowIfNull(codeActionRuntime);
-        _workspaceHostServices = codeActionRuntime.WorkspaceHostServices;
+        _workspaceHostServices = workspaceHostServicesAccessor.WorkspaceHostServices;
     }
 
     public string? NormalizeOpenPath(string path)

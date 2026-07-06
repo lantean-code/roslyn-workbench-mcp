@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.Contracts.Results;
 using Roslyn.Workbench.Mcp.Contracts.Server;
+using Roslyn.Workbench.Mcp.Plugins;
 using Roslyn.Workbench.Mcp.Workspace;
 
 namespace Roslyn.Workbench.Mcp;
@@ -10,18 +11,18 @@ internal sealed class ServerStatusService : IServerStatusService
     private readonly IOptions<StartupOptions> _startupOptions;
     private readonly PluginCatalogSnapshot _pluginCatalogSnapshot;
     private readonly IMsBuildRegistrationService _msBuildRegistrationService;
-    private readonly CodeActionRuntime _codeActionRuntime;
+    private readonly ICodeActionService _codeActionService;
 
     public ServerStatusService(
         IOptions<StartupOptions> startupOptions,
         PluginCatalogSnapshot pluginCatalogSnapshot,
         IMsBuildRegistrationService msBuildRegistrationService,
-        CodeActionRuntime codeActionRuntime)
+        ICodeActionService codeActionService)
     {
-        _startupOptions = startupOptions ?? throw new ArgumentNullException(nameof(startupOptions));
-        _pluginCatalogSnapshot = pluginCatalogSnapshot ?? throw new ArgumentNullException(nameof(pluginCatalogSnapshot));
-        _msBuildRegistrationService = msBuildRegistrationService ?? throw new ArgumentNullException(nameof(msBuildRegistrationService));
-        _codeActionRuntime = codeActionRuntime ?? throw new ArgumentNullException(nameof(codeActionRuntime));
+        _startupOptions = startupOptions;
+        _pluginCatalogSnapshot = pluginCatalogSnapshot;
+        _msBuildRegistrationService = msBuildRegistrationService;
+        _codeActionService = codeActionService;
     }
 
     public ValueTask<ToolResult<ServerStatusData>> GetStatusAsync(StatusDetailLevel detail, CancellationToken cancellationToken)
@@ -38,7 +39,7 @@ internal sealed class ServerStatusService : IServerStatusService
             ServerVersion = serverAssembly.Version?.ToString() ?? "0.0.0.0",
             RoslynVersion = roslynAssembly.Version?.ToString() ?? "0.0.0.0",
             MsBuild = _msBuildRegistrationService.CurrentStatus,
-            CodeActions = _codeActionRuntime.CodeActionService.Status,
+            CodeActions = _codeActionService.Status,
             Configuration = includeExpandedDetail
                 ? new ServerConfiguration
                 {

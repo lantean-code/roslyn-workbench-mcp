@@ -19,7 +19,7 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
 
     public WorkspaceExecutionContextFactory(
         IOptions<WorkspaceCoordinatorOptions> options,
-        CodeActionRuntime codeActionRuntime,
+        ICodeActionService codeActionService,
         IToolExecutionServices toolExecutionServices,
         IWorkspaceSessionStore sessionStore,
         IWorkspaceSelector workspaceSelector,
@@ -27,86 +27,81 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
         IWorkspaceStateTransitions workspaceStateTransitions,
         IMutationStagingService mutationStagingService)
     {
-        _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
-        ArgumentNullException.ThrowIfNull(codeActionRuntime);
-        _codeActionService = codeActionRuntime.CodeActionService ?? new UnavailableCodeActionService();
-        _toolExecutionServices = toolExecutionServices ?? throw new ArgumentNullException(nameof(toolExecutionServices));
-        _sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
-        _workspaceSelector = workspaceSelector ?? throw new ArgumentNullException(nameof(workspaceSelector));
-        _workspaceChangeDetector = workspaceChangeDetector ?? throw new ArgumentNullException(nameof(workspaceChangeDetector));
-        _workspaceStateTransitions = workspaceStateTransitions ?? throw new ArgumentNullException(nameof(workspaceStateTransitions));
-        _mutationStagingService = mutationStagingService ?? throw new ArgumentNullException(nameof(mutationStagingService));
+        _options = options.Value;
+        _codeActionService = codeActionService;
+        _toolExecutionServices = toolExecutionServices;
+        _sessionStore = sessionStore;
+        _workspaceSelector = workspaceSelector;
+        _workspaceChangeDetector = workspaceChangeDetector;
+        _workspaceStateTransitions = workspaceStateTransitions;
+        _mutationStagingService = mutationStagingService;
     }
 
-    public ValueTask<ToolExecutionContextLease<IMutationContext>> CreateMutationContextAsync(RegisteredTool tool, object request, CancellationToken cancellationToken)
+    public ToolExecutionContextLease<IMutationContext> CreateMutationContext(WorkspaceBoundRequest request, CancellationToken cancellationToken)
     {
-        _ = tool;
-        ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
 
         var hostSnapshot = _sessionStore.ReadSnapshot();
         if (hostSnapshot.Workspaces.Count == 0)
         {
-            return ValueTask.FromResult(ToolExecutionContextLease<IMutationContext>.Rejected(CreateWorkspaceRequiredResult()));
+            return ToolExecutionContextLease<IMutationContext>.Rejected(CreateWorkspaceRequiredResult());
         }
 
-        var selectionResult = _workspaceSelector.Select(hostSnapshot, GetWorkspaceSelector(request));
+        var selectionResult = _workspaceSelector.Select(hostSnapshot, request.Workspace);
         if (selectionResult.Error is not null)
         {
-            return ValueTask.FromResult(ToolExecutionContextLease<IMutationContext>.Rejected(CreatePluginResult(selectionResult.Error)));
+            return ToolExecutionContextLease<IMutationContext>.Rejected(CreatePluginResult(selectionResult.Error));
         }
 
         var selection = selectionResult.Selection!;
         var lease = selection.Session.OperationGate.TryAcquireExclusive();
         if (lease is null)
         {
-            return ValueTask.FromResult(ToolExecutionContextLease<IMutationContext>.Rejected(CreateBusyResult(selection.Session)));
+            return ToolExecutionContextLease<IMutationContext>.Rejected(CreateBusyResult(selection.Session));
         }
 
         var session = _sessionStore.ReadSession(selection.WorkspaceId);
         if (session is null)
         {
-            return ValueTask.FromResult(ToolExecutionContextLease<IMutationContext>.Rejected(CreateWorkspaceRequiredResult(), lease: lease));
+            return ToolExecutionContextLease<IMutationContext>.Rejected(CreateWorkspaceRequiredResult(), lease: lease);
         }
 
         var rejection = ValidateMutationSession(selection.WorkspaceId, session, cancellationToken);
         if (rejection is not null)
         {
-            return ValueTask.FromResult(ToolExecutionContextLease<IMutationContext>.Rejected(rejection, CreateMutationContext(session), lease));
+            return ToolExecutionContextLease<IMutationContext>.Rejected(rejection, CreateMutationContext(session), lease);
         }
 
-        return ValueTask.FromResult(ToolExecutionContextLease<IMutationContext>.Acquired(CreateMutationContext(session), lease));
+        return ToolExecutionContextLease<IMutationContext>.Acquired(CreateMutationContext(session), lease);
     }
 
-    public ValueTask<ToolExecutionContextLease<IQueryContext>> CreateQueryContextAsync(RegisteredTool tool, object request, CancellationToken cancellationToken)
+    public ToolExecutionContextLease<IQueryContext> CreateQueryContext(WorkspaceBoundRequest request, CancellationToken cancellationToken)
     {
-        _ = tool;
-        ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
 
         var hostSnapshot = _sessionStore.ReadSnapshot();
         if (hostSnapshot.Workspaces.Count == 0)
         {
-            return ValueTask.FromResult(ToolExecutionContextLease<IQueryContext>.Rejected(CreateWorkspaceRequiredResult()));
+            return ToolExecutionContextLease<IQueryContext>.Rejected(CreateWorkspaceRequiredResult());
         }
 
-        var selectionResult = _workspaceSelector.Select(hostSnapshot, GetWorkspaceSelector(request));
+        var selectionResult = _workspaceSelector.Select(hostSnapshot, request.Workspace);
         if (selectionResult.Error is not null)
         {
-            return ValueTask.FromResult(ToolExecutionContextLease<IQueryContext>.Rejected(CreatePluginResult(selectionResult.Error)));
+            return ToolExecutionContextLease<IQueryContext>.Rejected(CreatePluginResult(selectionResult.Error));
         }
 
         var selection = selectionResult.Selection!;
         var lease = selection.Session.OperationGate.TryAcquireShared();
         if (lease is null)
         {
-            return ValueTask.FromResult(ToolExecutionContextLease<IQueryContext>.Rejected(CreateBusyResult(selection.Session)));
+            return ToolExecutionContextLease<IQueryContext>.Rejected(CreateBusyResult(selection.Session));
         }
 
         var session = _sessionStore.ReadSession(selection.WorkspaceId);
         if (session is null)
         {
-            return ValueTask.FromResult(ToolExecutionContextLease<IQueryContext>.Rejected(CreateWorkspaceRequiredResult(), lease: lease));
+            return ToolExecutionContextLease<IQueryContext>.Rejected(CreateWorkspaceRequiredResult(), lease: lease);
         }
 
         if (session.State is WorkspaceLifecycleState.Ready or WorkspaceLifecycleState.TransactionActive
@@ -119,15 +114,15 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
 
         if (session.State == WorkspaceLifecycleState.WorkspaceOutOfDate)
         {
-            return ValueTask.FromResult(ToolExecutionContextLease<IQueryContext>.Rejected(CreateWorkspaceOutOfDateResult(), CreateQueryContext(session), lease));
+            return ToolExecutionContextLease<IQueryContext>.Rejected(CreateWorkspaceOutOfDateResult(), CreateQueryContext(session), lease);
         }
 
         if (session.State == WorkspaceLifecycleState.TransactionConflicted)
         {
-            return ValueTask.FromResult(ToolExecutionContextLease<IQueryContext>.Rejected(CreateTransactionConflictedResult(), CreateQueryContext(session), lease));
+            return ToolExecutionContextLease<IQueryContext>.Rejected(CreateTransactionConflictedResult(), CreateQueryContext(session), lease);
         }
 
-        return ValueTask.FromResult(ToolExecutionContextLease<IQueryContext>.Acquired(CreateQueryContext(session), lease));
+        return ToolExecutionContextLease<IQueryContext>.Acquired(CreateQueryContext(session), lease);
     }
 
     private WorkspaceQueryContext CreateQueryContext(WorkspaceSessionSnapshot session)
@@ -212,11 +207,6 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
         }
 
         return null;
-    }
-
-    private static WorkspaceSelector? GetWorkspaceSelector(object request)
-    {
-        return request.GetType().GetProperty("Workspace")?.GetValue(request) as WorkspaceSelector;
     }
 
     private static string GetWorkspaceDisplayName(WorkspaceSessionSnapshot? session)

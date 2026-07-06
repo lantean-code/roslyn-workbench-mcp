@@ -68,13 +68,14 @@ public static class BundledCoreToolTestHarness
         string toolName,
         IQueryToolHandler<TRequest, TResponse> target,
         TRequest request)
+        where TRequest : WorkspaceBoundRequest
     {
         ArgumentNullException.ThrowIfNull(coordinator);
         ArgumentNullException.ThrowIfNull(toolName);
         ArgumentNullException.ThrowIfNull(target);
 
         var registeredTool = GetRegisteredTool(toolName);
-        await using var lease = await coordinator.CreateQueryContextAsync(registeredTool, request!, CancellationToken.None);
+        await using var lease = coordinator.CreateQueryContext(request, CancellationToken.None);
         if (lease.ShortCircuitResult is not null)
         {
             return Unbox<TResponse>(lease.ShortCircuitResult);
@@ -88,13 +89,14 @@ public static class BundledCoreToolTestHarness
         string toolName,
         IMutationToolHandler<TRequest, MutationProposal> target,
         TRequest request)
+        where TRequest : WorkspaceBoundRequest
     {
         ArgumentNullException.ThrowIfNull(coordinator);
         ArgumentNullException.ThrowIfNull(toolName);
         ArgumentNullException.ThrowIfNull(target);
 
         var registeredTool = GetRegisteredTool(toolName);
-        await using var lease = await coordinator.CreateMutationContextAsync(registeredTool, request!, CancellationToken.None);
+        await using var lease = coordinator.CreateMutationContext(request, CancellationToken.None);
         if (lease.ShortCircuitResult is not null)
         {
             return new ToolMutationExecutionResult

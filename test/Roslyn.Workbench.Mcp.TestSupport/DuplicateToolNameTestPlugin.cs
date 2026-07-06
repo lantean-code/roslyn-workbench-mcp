@@ -1,3 +1,4 @@
+using Roslyn.Workbench.Mcp.Contracts.Selectors;
 using Roslyn.Workbench.Mcp.Plugins;
 
 namespace Roslyn.Workbench.Mcp.TestSupport;
@@ -25,7 +26,7 @@ public sealed class DuplicateToolNameTestPlugin : IRoslynPlugin
         registry.RegisterQueryTool(metadata, new Handler());
     }
 
-    public sealed record Request
+    public sealed record Request : WorkspaceBoundRequest
     {
         public string Name { get; init; } = string.Empty;
     }

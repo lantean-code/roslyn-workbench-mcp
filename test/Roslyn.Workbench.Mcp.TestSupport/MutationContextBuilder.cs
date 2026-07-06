@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.TestSupport;
 public sealed class MutationContextBuilder
 {
     private Solution _currentSolution = new AdhocWorkspace().CurrentSolution;
-    private WorkspaceIdentity? _workspaceIdentity;
+    private WorkspaceIdentity _workspaceIdentity = default!;
     private int? _transactionRevision;
     private ResultLimit _effectiveResultLimit = new();
     private IWorkspaceResolver? _resolver;
@@ -19,7 +19,7 @@ public sealed class MutationContextBuilder
         return this;
     }
 
-    public MutationContextBuilder WithWorkspaceIdentity(WorkspaceIdentity? workspaceIdentity)
+    public MutationContextBuilder WithWorkspaceIdentity(WorkspaceIdentity workspaceIdentity)
     {
         _workspaceIdentity = workspaceIdentity;
         return this;

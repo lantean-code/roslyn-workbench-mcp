@@ -11,13 +11,13 @@ internal sealed class ToolExecutionServices : IToolExecutionServices
         IProjectStructureService projectStructureService,
         IDependencyAnalysisService dependencyAnalysisService)
     {
-        RequestResolver = requestResolver ?? throw new ArgumentNullException(nameof(requestResolver));
-        ResultShaper = resultShaper ?? throw new ArgumentNullException(nameof(resultShaper));
-        ReplayCodeActionExecutor = replayCodeActionExecutor ?? throw new ArgumentNullException(nameof(replayCodeActionExecutor));
-        CompilerDiagnosticService = compilerDiagnosticService ?? throw new ArgumentNullException(nameof(compilerDiagnosticService));
-        InspectionContextService = inspectionContextService ?? throw new ArgumentNullException(nameof(inspectionContextService));
-        ProjectStructureService = projectStructureService ?? throw new ArgumentNullException(nameof(projectStructureService));
-        DependencyAnalysisService = dependencyAnalysisService ?? throw new ArgumentNullException(nameof(dependencyAnalysisService));
+        RequestResolver = requestResolver;
+        ResultShaper = resultShaper;
+        ReplayCodeActionExecutor = replayCodeActionExecutor;
+        CompilerDiagnosticService = compilerDiagnosticService;
+        InspectionContextService = inspectionContextService;
+        ProjectStructureService = projectStructureService;
+        DependencyAnalysisService = dependencyAnalysisService;
     }
 
     public IToolRequestResolver RequestResolver { get; }

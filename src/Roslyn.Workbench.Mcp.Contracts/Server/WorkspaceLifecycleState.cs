@@ -9,11 +9,6 @@ namespace Roslyn.Workbench.Mcp.Contracts.Server;
 public enum WorkspaceLifecycleState
 {
     /// <summary>
-    /// No workspace is loaded.
-    /// </summary>
-    Unloaded,
-
-    /// <summary>
     /// A workspace is loaded and ready.
     /// </summary>
     Ready,

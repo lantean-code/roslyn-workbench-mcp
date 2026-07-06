@@ -10,7 +10,7 @@ internal sealed class ReplayCodeActionExecutor : IReplayCodeActionExecutor
 
     public ReplayCodeActionExecutor(IToolResultShaper resultShaper)
     {
-        _resultShaper = resultShaper ?? throw new ArgumentNullException(nameof(resultShaper));
+        _resultShaper = resultShaper;
     }
 
     public ValueTask<PluginExecutionResult<MutationProposal>> StageReplaySelectionAsync(

@@ -23,12 +23,12 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         ISnapshotGuard snapshotGuard,
         IWorkspaceOperationResultFactory resultFactory)
     {
-        _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
-        _sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
-        _workspaceChangeDetector = workspaceChangeDetector ?? throw new ArgumentNullException(nameof(workspaceChangeDetector));
-        _workspaceStateTransitions = workspaceStateTransitions ?? throw new ArgumentNullException(nameof(workspaceStateTransitions));
-        _snapshotGuard = snapshotGuard ?? throw new ArgumentNullException(nameof(snapshotGuard));
-        _resultFactory = resultFactory ?? throw new ArgumentNullException(nameof(resultFactory));
+        _options = options.Value;
+        _sessionStore = sessionStore;
+        _workspaceChangeDetector = workspaceChangeDetector;
+        _workspaceStateTransitions = workspaceStateTransitions;
+        _snapshotGuard = snapshotGuard;
+        _resultFactory = resultFactory;
     }
 
     public async ValueTask<WorkspaceOperationResult<TransactionCommitOutcome>> CommitAsync(
@@ -76,7 +76,7 @@ internal sealed class TransactionCommitService : ITransactionCommitService
                 });
         }
 
-        if (session.InputManifest is not null && _workspaceChangeDetector.HasChanged(session.InputManifest, cancellationToken))
+        if (_workspaceChangeDetector.HasChanged(session.InputManifest, cancellationToken))
         {
             session = _workspaceStateTransitions.ApplyExternalChangeDetected(session);
             _sessionStore.ReplaceSession(session);

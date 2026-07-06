@@ -24,13 +24,13 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         IWorkspaceStateTransitions workspaceStateTransitions,
         IWorkspaceOperationResultFactory resultFactory)
     {
-        _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
-        _sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
-        _workspaceSelector = workspaceSelector ?? throw new ArgumentNullException(nameof(workspaceSelector));
-        _workspaceLoader = workspaceLoader ?? throw new ArgumentNullException(nameof(workspaceLoader));
-        _workspaceChangeDetector = workspaceChangeDetector ?? throw new ArgumentNullException(nameof(workspaceChangeDetector));
-        _workspaceStateTransitions = workspaceStateTransitions ?? throw new ArgumentNullException(nameof(workspaceStateTransitions));
-        _resultFactory = resultFactory ?? throw new ArgumentNullException(nameof(resultFactory));
+        _options = options.Value;
+        _sessionStore = sessionStore;
+        _workspaceSelector = workspaceSelector;
+        _workspaceLoader = workspaceLoader;
+        _workspaceChangeDetector = workspaceChangeDetector;
+        _workspaceStateTransitions = workspaceStateTransitions;
+        _resultFactory = resultFactory;
     }
 
     public async ValueTask<WorkspaceOperationResult<WorkspaceOpenOutcome>> OpenAsync(string path, string? alias, CancellationToken cancellationToken)
@@ -107,7 +107,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             loadedWorkspace.Diagnostics,
             operationGate: null);
 
-        foreach (var project in session.LoadedWorkspace!.CurrentSolution.Projects
+        foreach (var project in session.LoadedWorkspace.CurrentSolution.Projects
                      .Where(static project => string.Equals(project.Language, LanguageNames.CSharp, StringComparison.Ordinal))
                      .Where(static project => !string.IsNullOrWhiteSpace(project.FilePath)))
         {
@@ -183,12 +183,17 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         }
 
         var selectionResult = _workspaceSelector.Select(hostSnapshot, CreateWorkspaceSelector(workspaceId, alias, path));
-        if (selectionResult.Error is not null)
+        if (selectionResult.HasError)
         {
             return _resultFactory.Rejected<WorkspaceCloseOutcome>(selectionResult.Error);
         }
 
-        var selection = selectionResult.Selection!;
+        if (!selectionResult.HasSelection)
+        {
+            throw new InvalidOperationException("Workspace selection must produce either a selection or an error.");
+        }
+
+        var selection = selectionResult.Selection;
         var lease = selection.Session.OperationGate.TryAcquireExclusive();
         if (lease is null)
         {
@@ -255,12 +260,17 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         }
 
         var selectionResult = _workspaceSelector.Select(hostSnapshot, CreateWorkspaceSelector(workspaceId, alias, path));
-        if (selectionResult.Error is not null)
+        if (selectionResult.HasError)
         {
             return _resultFactory.Rejected<WorkspaceStatusOutcome>(selectionResult.Error);
         }
 
-        var selection = selectionResult.Selection!;
+        if (!selectionResult.HasSelection)
+        {
+            throw new InvalidOperationException("Workspace selection must produce either a selection or an error.");
+        }
+
+        var selection = selectionResult.Selection;
         var lease = selection.Session.OperationGate.TryAcquireShared();
         if (lease is null)
         {
@@ -282,7 +292,6 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         }
 
         if (session.State is WorkspaceLifecycleState.Ready or WorkspaceLifecycleState.TransactionActive
-            && session.InputManifest is not null
             && _workspaceChangeDetector.HasChanged(session.InputManifest, cancellationToken))
         {
             session = _workspaceStateTransitions.ApplyExternalChangeDetected(session);
@@ -306,12 +315,17 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         }
 
         var selectionResult = _workspaceSelector.Select(hostSnapshot, CreateWorkspaceSelector(workspaceId, alias, path));
-        if (selectionResult.Error is not null)
+        if (selectionResult.HasError)
         {
             return _resultFactory.Rejected<WorkspaceReloadOutcome>(selectionResult.Error);
         }
 
-        var selection = selectionResult.Selection!;
+        if (!selectionResult.HasSelection)
+        {
+            throw new InvalidOperationException("Workspace selection must produce either a selection or an error.");
+        }
+
+        var selection = selectionResult.Selection;
         var lease = selection.Session.OperationGate.TryAcquireExclusive();
         if (lease is null)
         {

@@ -5,19 +5,19 @@ namespace Roslyn.Workbench.Mcp.Workspace;
 
 internal sealed record WorkspaceSessionSnapshot
 {
-    public WorkspaceLifecycleState State { get; init; }
+    public required WorkspaceLifecycleState State { get; init; }
 
-    public WorkspaceIdentity Workspace { get; init; } = new();
+    public required WorkspaceIdentity Workspace { get; init; }
 
-    public MSBuildWorkspace? LoadedWorkspace { get; init; }
+    public required MSBuildWorkspace LoadedWorkspace { get; init; }
 
-    public Solution? CurrentSolution { get; init; }
+    public required Solution CurrentSolution { get; init; }
 
     public WorkspaceTransaction? Transaction { get; init; }
 
-    public WorkspaceInputManifest? InputManifest { get; init; }
+    public required WorkspaceInputManifest InputManifest { get; init; }
 
-    public WorkspaceOperationGate OperationGate { get; init; } = new(2);
+    public required WorkspaceOperationGate OperationGate { get; init; }
 
     public int ProjectCount { get; init; }
 

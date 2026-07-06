@@ -9,19 +9,8 @@ public sealed class WorkspaceStateMachineTests
 
         triggers.Should().BeEquivalentTo(
         [
-            WorkspaceTrigger.CloseSucceeded,
             WorkspaceTrigger.ExternalChangeDetected,
             WorkspaceTrigger.TransactionStarted,
         ]);
-    }
-
-    [Fact]
-    public async Task GIVEN_UnloadedState_WHEN_InspectingPermittedTriggers_THEN_ShouldNotAllowTransactionTransitions()
-    {
-        var triggers = await WorkspaceStateMachine.GetPermittedTriggersAsync(WorkspaceLifecycleState.Unloaded);
-
-        triggers.Should().ContainSingle(static trigger => trigger == WorkspaceTrigger.OpenSucceeded);
-        triggers.Should().NotContain(WorkspaceTrigger.TransactionStarted);
-        triggers.Should().NotContain(WorkspaceTrigger.TransactionConflictDetected);
     }
 }

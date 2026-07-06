@@ -11,7 +11,7 @@ internal sealed class WorkspaceMutationContext : IMutationContext
 
     public WorkspaceMutationContext(
         Solution currentSolution,
-        WorkspaceIdentity? workspaceIdentity,
+        WorkspaceIdentity workspaceIdentity,
         int? transactionRevision,
         ResultLimit effectiveResultLimit,
         IWorkspaceResolver resolver,
@@ -31,7 +31,7 @@ internal sealed class WorkspaceMutationContext : IMutationContext
 
     public Solution CurrentSolution { get; }
 
-    public WorkspaceIdentity? WorkspaceIdentity { get; }
+    public WorkspaceIdentity WorkspaceIdentity { get; }
 
     public int? TransactionRevision { get; }
 

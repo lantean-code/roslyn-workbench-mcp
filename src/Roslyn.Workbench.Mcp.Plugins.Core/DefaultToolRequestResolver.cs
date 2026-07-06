@@ -9,7 +9,7 @@ internal sealed class DefaultToolRequestResolver : IToolRequestResolver
 
     public DefaultToolRequestResolver(IToolResultShaper resultShaper)
     {
-        _resultShaper = resultShaper ?? throw new ArgumentNullException(nameof(resultShaper));
+        _resultShaper = resultShaper;
     }
 
     public ToolResolutionResult<Document, TResponse> ResolveDocument<TResponse>(DocumentSelector? selector, IToolExecutionContext context)

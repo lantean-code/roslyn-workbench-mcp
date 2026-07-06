@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.TestSupport;
 public sealed class QueryContextBuilder
 {
     private Solution _currentSolution = new AdhocWorkspace().CurrentSolution;
-    private WorkspaceIdentity? _workspaceIdentity;
+    private WorkspaceIdentity _workspaceIdentity = default!;
     private int? _transactionRevision;
     private ResultLimit _effectiveResultLimit = new();
     private int _maxResponseBytes = 1024 * 1024;
@@ -19,7 +19,7 @@ public sealed class QueryContextBuilder
         return this;
     }
 
-    public QueryContextBuilder WithWorkspaceIdentity(WorkspaceIdentity? workspaceIdentity)
+    public QueryContextBuilder WithWorkspaceIdentity(WorkspaceIdentity workspaceIdentity)
     {
         _workspaceIdentity = workspaceIdentity;
         return this;

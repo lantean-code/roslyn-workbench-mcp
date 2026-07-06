@@ -98,7 +98,7 @@ public sealed class WorkspaceResolverTests
         await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), CancellationToken.None);
         var result = contextLease.Context!.WorkspaceResolver.ValidateSnapshot(new SnapshotPrecondition
         {
-            WorkspaceEpoch = contextLease.Context.WorkspaceIdentity!.WorkspaceEpoch,
+            WorkspaceEpoch = contextLease.Context.WorkspaceIdentity.WorkspaceEpoch,
         });
 
         result.Kind.Should().Be(SnapshotMatchKind.Matched);
@@ -117,7 +117,7 @@ public sealed class WorkspaceResolverTests
         await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), CancellationToken.None);
         var result = contextLease.Context!.WorkspaceResolver.ValidateSnapshot(new SnapshotPrecondition
         {
-            WorkspaceEpoch = contextLease.Context.WorkspaceIdentity!.WorkspaceEpoch + 1,
+            WorkspaceEpoch = contextLease.Context.WorkspaceIdentity.WorkspaceEpoch + 1,
         });
 
         result.Kind.Should().Be(SnapshotMatchKind.WorkspaceEpochMismatch);
@@ -136,7 +136,7 @@ public sealed class WorkspaceResolverTests
         await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), CancellationToken.None);
         var result = contextLease.Context!.WorkspaceResolver.ValidateSnapshot(new SnapshotPrecondition
         {
-            WorkspaceEpoch = contextLease.Context.WorkspaceIdentity!.WorkspaceEpoch,
+            WorkspaceEpoch = contextLease.Context.WorkspaceIdentity.WorkspaceEpoch,
             TransactionRevision = 1,
         });
 

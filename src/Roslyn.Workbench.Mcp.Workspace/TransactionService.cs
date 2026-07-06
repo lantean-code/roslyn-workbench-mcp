@@ -28,14 +28,14 @@ internal sealed class TransactionService : ITransactionService
         IWorkspaceOperationResultFactory resultFactory,
         ITransactionCommitService transactionCommitService)
     {
-        _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
-        _sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
-        _workspaceSelector = workspaceSelector ?? throw new ArgumentNullException(nameof(workspaceSelector));
-        _workspaceChangeDetector = workspaceChangeDetector ?? throw new ArgumentNullException(nameof(workspaceChangeDetector));
-        _workspaceStateTransitions = workspaceStateTransitions ?? throw new ArgumentNullException(nameof(workspaceStateTransitions));
-        _snapshotGuard = snapshotGuard ?? throw new ArgumentNullException(nameof(snapshotGuard));
-        _resultFactory = resultFactory ?? throw new ArgumentNullException(nameof(resultFactory));
-        _transactionCommitService = transactionCommitService ?? throw new ArgumentNullException(nameof(transactionCommitService));
+        _options = options.Value;
+        _sessionStore = sessionStore;
+        _workspaceSelector = workspaceSelector;
+        _workspaceChangeDetector = workspaceChangeDetector;
+        _workspaceStateTransitions = workspaceStateTransitions;
+        _snapshotGuard = snapshotGuard;
+        _resultFactory = resultFactory;
+        _transactionCommitService = transactionCommitService;
     }
 
     public async ValueTask<WorkspaceOperationResult<TransactionStartOutcome>> StartAsync(string? workspaceId, string? alias, string? path, CancellationToken cancellationToken)
@@ -52,12 +52,17 @@ internal sealed class TransactionService : ITransactionService
         }
 
         var selectionResult = _workspaceSelector.Select(hostSnapshot, CreateWorkspaceSelector(workspaceId, alias, path));
-        if (selectionResult.Error is not null)
+        if (selectionResult.HasError)
         {
             return _resultFactory.Rejected<TransactionStartOutcome>(selectionResult.Error);
         }
 
-        var selection = selectionResult.Selection!;
+        if (!selectionResult.HasSelection)
+        {
+            throw new InvalidOperationException("Workspace selection must produce either a selection or an error.");
+        }
+
+        var selection = selectionResult.Selection;
         var lease = selection.Session.OperationGate.TryAcquireExclusive();
         if (lease is null)
         {
@@ -152,12 +157,17 @@ internal sealed class TransactionService : ITransactionService
         }
 
         var selectionResult = _workspaceSelector.Select(hostSnapshot, CreateWorkspaceSelector(workspaceId, alias, path));
-        if (selectionResult.Error is not null)
+        if (selectionResult.HasError)
         {
             return _resultFactory.Rejected<TransactionPreviewOutcome>(selectionResult.Error);
         }
 
-        var selection = selectionResult.Selection!;
+        if (!selectionResult.HasSelection)
+        {
+            throw new InvalidOperationException("Workspace selection must produce either a selection or an error.");
+        }
+
+        var selection = selectionResult.Selection;
         var lease = selection.Session.OperationGate.TryAcquireShared();
         if (lease is null)
         {
@@ -236,12 +246,17 @@ internal sealed class TransactionService : ITransactionService
         }
 
         var selectionResult = _workspaceSelector.Select(hostSnapshot, CreateWorkspaceSelector(workspaceId, alias, path));
-        if (selectionResult.Error is not null)
+        if (selectionResult.HasError)
         {
             return _resultFactory.Rejected<TransactionHistoryOutcome>(selectionResult.Error);
         }
 
-        var selection = selectionResult.Selection!;
+        if (!selectionResult.HasSelection)
+        {
+            throw new InvalidOperationException("Workspace selection must produce either a selection or an error.");
+        }
+
+        var selection = selectionResult.Selection;
         var lease = selection.Session.OperationGate.TryAcquireExclusive();
         if (lease is null)
         {
@@ -333,12 +348,17 @@ internal sealed class TransactionService : ITransactionService
         }
 
         var selectionResult = _workspaceSelector.Select(hostSnapshot, CreateWorkspaceSelector(workspaceId, alias, path));
-        if (selectionResult.Error is not null)
+        if (selectionResult.HasError)
         {
             return _resultFactory.Rejected<TransactionCommitOutcome>(selectionResult.Error);
         }
 
-        var selection = selectionResult.Selection!;
+        if (!selectionResult.HasSelection)
+        {
+            throw new InvalidOperationException("Workspace selection must produce either a selection or an error.");
+        }
+
+        var selection = selectionResult.Selection;
         var lease = selection.Session.OperationGate.TryAcquireExclusive();
         if (lease is null)
         {
@@ -367,12 +387,17 @@ internal sealed class TransactionService : ITransactionService
         }
 
         var selectionResult = _workspaceSelector.Select(hostSnapshot, CreateWorkspaceSelector(workspaceId, alias, path));
-        if (selectionResult.Error is not null)
+        if (selectionResult.HasError)
         {
             return _resultFactory.Rejected<TransactionRollbackOutcome>(selectionResult.Error);
         }
 
-        var selection = selectionResult.Selection!;
+        if (!selectionResult.HasSelection)
+        {
+            throw new InvalidOperationException("Workspace selection must produce either a selection or an error.");
+        }
+
+        var selection = selectionResult.Selection;
         var lease = selection.Session.OperationGate.TryAcquireExclusive();
         if (lease is null)
         {

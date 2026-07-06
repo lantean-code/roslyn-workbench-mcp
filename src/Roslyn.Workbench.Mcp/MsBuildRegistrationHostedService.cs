@@ -6,7 +6,7 @@ internal sealed class MsBuildRegistrationHostedService : IHostedService
 
     public MsBuildRegistrationHostedService(IMsBuildRegistrationService msBuildRegistrationService)
     {
-        _msBuildRegistrationService = msBuildRegistrationService ?? throw new ArgumentNullException(nameof(msBuildRegistrationService));
+        _msBuildRegistrationService = msBuildRegistrationService;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)

@@ -2,7 +2,7 @@ namespace Roslyn.Workbench.Mcp.Workspace;
 
 internal sealed record WorkspaceSelection
 {
-    public string WorkspaceId { get; init; } = string.Empty;
+    public required string WorkspaceId { get; init; }
 
-    public WorkspaceSessionSnapshot Session { get; init; } = new();
+    public required WorkspaceSessionSnapshot Session { get; init; }
 }

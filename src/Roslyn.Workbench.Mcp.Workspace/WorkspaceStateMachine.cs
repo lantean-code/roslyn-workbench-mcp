@@ -10,11 +10,7 @@ internal static class WorkspaceStateMachine
     {
         var machine = new StateMachine<WorkspaceLifecycleState, WorkspaceTrigger>(stateAccessor, stateMutator);
 
-        machine.Configure(WorkspaceLifecycleState.Unloaded)
-            .Permit(WorkspaceTrigger.OpenSucceeded, WorkspaceLifecycleState.Ready);
-
         machine.Configure(WorkspaceLifecycleState.Ready)
-            .Permit(WorkspaceTrigger.CloseSucceeded, WorkspaceLifecycleState.Unloaded)
             .Permit(WorkspaceTrigger.ExternalChangeDetected, WorkspaceLifecycleState.WorkspaceOutOfDate)
             .Permit(WorkspaceTrigger.TransactionStarted, WorkspaceLifecycleState.TransactionActive);
 

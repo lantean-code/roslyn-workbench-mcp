@@ -9,7 +9,7 @@ internal sealed class WorkspaceQueryContext : IQueryContext
 {
     public WorkspaceQueryContext(
         Solution currentSolution,
-        WorkspaceIdentity? workspaceIdentity,
+        WorkspaceIdentity workspaceIdentity,
         int? transactionRevision,
         ResultLimit effectiveResultLimit,
         int maxResponseBytes,
@@ -24,12 +24,12 @@ internal sealed class WorkspaceQueryContext : IQueryContext
         MaxResponseBytes = maxResponseBytes;
         WorkspaceResolver = resolver;
         CodeActionService = codeActionService;
-        ToolExecutionServices = toolExecutionServices ?? throw new ArgumentNullException(nameof(toolExecutionServices));
+        ToolExecutionServices = toolExecutionServices;
     }
 
     public Solution CurrentSolution { get; }
 
-    public WorkspaceIdentity? WorkspaceIdentity { get; }
+    public WorkspaceIdentity WorkspaceIdentity { get; }
 
     public int? TransactionRevision { get; }
 

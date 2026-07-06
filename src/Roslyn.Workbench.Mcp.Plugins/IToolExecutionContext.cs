@@ -16,7 +16,7 @@ public interface IToolExecutionContext
     /// <summary>
     /// Gets the effective workspace identity, when available.
     /// </summary>
-    WorkspaceIdentity? WorkspaceIdentity { get; }
+    WorkspaceIdentity WorkspaceIdentity { get; }
 
     /// <summary>
     /// Gets the effective transaction revision, when available.

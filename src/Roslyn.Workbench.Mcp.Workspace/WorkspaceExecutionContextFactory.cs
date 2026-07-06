@@ -48,12 +48,17 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
         }
 
         var selectionResult = _workspaceSelector.Select(hostSnapshot, request.Workspace);
-        if (selectionResult.Error is not null)
+        if (selectionResult.HasError)
         {
             return ToolExecutionContextLease<IMutationContext>.Rejected(CreatePluginResult(selectionResult.Error));
         }
 
-        var selection = selectionResult.Selection!;
+        if (!selectionResult.HasSelection)
+        {
+            throw new InvalidOperationException("Workspace selection must produce either a selection or an error.");
+        }
+
+        var selection = selectionResult.Selection;
         var lease = selection.Session.OperationGate.TryAcquireExclusive();
         if (lease is null)
         {
@@ -86,12 +91,17 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
         }
 
         var selectionResult = _workspaceSelector.Select(hostSnapshot, request.Workspace);
-        if (selectionResult.Error is not null)
+        if (selectionResult.HasError)
         {
             return ToolExecutionContextLease<IQueryContext>.Rejected(CreatePluginResult(selectionResult.Error));
         }
 
-        var selection = selectionResult.Selection!;
+        if (!selectionResult.HasSelection)
+        {
+            throw new InvalidOperationException("Workspace selection must produce either a selection or an error.");
+        }
+
+        var selection = selectionResult.Selection;
         var lease = selection.Session.OperationGate.TryAcquireShared();
         if (lease is null)
         {
@@ -105,7 +115,6 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
         }
 
         if (session.State is WorkspaceLifecycleState.Ready or WorkspaceLifecycleState.TransactionActive
-            && session.InputManifest is not null
             && _workspaceChangeDetector.HasChanged(session.InputManifest, cancellationToken))
         {
             session = _workspaceStateTransitions.ApplyExternalChangeDetected(session);
@@ -127,9 +136,9 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
 
     private WorkspaceQueryContext CreateQueryContext(WorkspaceSessionSnapshot session)
     {
-        var resolver = new WorkspaceResolver(session.CurrentSolution!, session.Workspace, session.Transaction?.CurrentRevision);
+        var resolver = new WorkspaceResolver(session.CurrentSolution, session.Workspace, session.Transaction?.CurrentRevision);
         return new WorkspaceQueryContext(
-            session.CurrentSolution!,
+            session.CurrentSolution,
             session.Workspace,
             session.Transaction?.CurrentRevision,
             new ResultLimit
@@ -144,9 +153,9 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
 
     private WorkspaceMutationContext CreateMutationContext(WorkspaceSessionSnapshot session)
     {
-        var resolver = new WorkspaceResolver(session.CurrentSolution!, session.Workspace, session.Transaction?.CurrentRevision);
+        var resolver = new WorkspaceResolver(session.CurrentSolution, session.Workspace, session.Transaction?.CurrentRevision);
         return new WorkspaceMutationContext(
-            session.CurrentSolution!,
+            session.CurrentSolution,
             session.Workspace,
             session.Transaction?.CurrentRevision,
             new ResultLimit
@@ -180,7 +189,7 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
             return CreateWorkspaceOutOfDateResult();
         }
 
-        if (session.InputManifest is not null && _workspaceChangeDetector.HasChanged(session.InputManifest, cancellationToken))
+        if (_workspaceChangeDetector.HasChanged(session.InputManifest, cancellationToken))
         {
             session = _workspaceStateTransitions.ApplyExternalChangeDetected(session);
             _sessionStore.ReplaceSession(session);

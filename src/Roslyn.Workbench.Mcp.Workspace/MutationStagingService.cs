@@ -9,7 +9,7 @@ internal sealed class MutationStagingService : IMutationStagingService
 
     public MutationStagingService(IWorkspaceSessionStore sessionStore)
     {
-        _sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
+        _sessionStore = sessionStore;
     }
 
     public async ValueTask<PluginExecutionResult<MutationData>> StageAsync(

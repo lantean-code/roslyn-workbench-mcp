@@ -11,11 +11,6 @@ public sealed record ServerConfiguration
     public int DefaultMaxResults { get; init; }
 
     /// <summary>
-    /// Gets the configured maximum response size in bytes.
-    /// </summary>
-    public int MaxResponseBytes { get; init; }
-
-    /// <summary>
     /// Gets the configured code-action token lifetime.
     /// </summary>
     public TimeSpan CodeActionTokenLifetime { get; init; }

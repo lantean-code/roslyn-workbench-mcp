@@ -48,17 +48,15 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
             })
             .ToArray();
 
-        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
-            context,
-            projects,
-            ToolExecutionHelpers.GetMaxResults(context, request.Limit),
-            (items, hasMore) => new SolutionStructureData
-            {
-                SolutionPath = context.WorkspaceIdentity.LoadedPath,
-                Folders = hierarchy.Folders,
-                Projects = items,
-                ReturnedCount = items.Count,
-                HasMore = hasMore,
-            });
+        return PluginExecutionResult<SolutionStructureData>.Success(new SolutionStructureData
+        {
+            SolutionPath = context.WorkspaceIdentity.LoadedPath,
+            Folders = ToolExecutionHelpers.CreateBoundedCollection(
+                hierarchy.Folders,
+                ToolExecutionHelpers.GetMaxResults(context, request.FoldersLimit)),
+            Projects = ToolExecutionHelpers.CreateBoundedCollection(
+                projects,
+                ToolExecutionHelpers.GetMaxResults(context, request.ProjectsLimit)),
+        });
     }
 }

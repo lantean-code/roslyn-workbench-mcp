@@ -18,7 +18,22 @@ public sealed record GetProjectDetailsRequest : WorkspaceBoundRequest
     public bool IncludeDocuments { get; init; }
 
     /// <summary>
-    /// Gets the optional result limit.
+    /// Gets the optional documents limit.
     /// </summary>
-    public ResultLimit? Limit { get; init; }
+    public CollectionLimit? DocumentsLimit { get; init; }
+
+    /// <summary>
+    /// Gets the optional project references limit.
+    /// </summary>
+    public CollectionLimit? ProjectReferencesLimit { get; init; }
+
+    /// <summary>
+    /// Gets the optional metadata references limit.
+    /// </summary>
+    public CollectionLimit? MetadataReferencesLimit { get; init; }
+
+    /// <summary>
+    /// Gets the optional analyzers limit.
+    /// </summary>
+    public CollectionLimit? AnalyzersLimit { get; init; }
 }

@@ -2,7 +2,7 @@ using Roslyn.Workbench.Mcp.Contracts.Inspection;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
-internal sealed class GetDocumentOptionsTool : QueryToolHandler<GetDocumentOptionsRequest, QueryResponse<DocumentOptionsData>>
+internal sealed class GetDocumentOptionsTool : QueryToolHandler<GetDocumentOptionsRequest, DocumentOptionsData>
 {
     private static readonly ToolRegistrationMetadata _metadata = new()
     {
@@ -16,10 +16,10 @@ internal sealed class GetDocumentOptionsTool : QueryToolHandler<GetDocumentOptio
         registry.RegisterQueryTool(_metadata, new GetDocumentOptionsTool());
     }
 
-    protected override async ValueTask<PluginExecutionResult<QueryResponse<DocumentOptionsData>>> ExecuteCoreAsync(GetDocumentOptionsRequest request, IQueryContext context, CancellationToken cancellationToken)
+    protected override async ValueTask<PluginExecutionResult<DocumentOptionsData>> ExecuteCoreAsync(GetDocumentOptionsRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var documentResolution = context.ToolExecutionServices.RequestResolver.ResolveDocument<QueryResponse<DocumentOptionsData>>(request.Document, context);
+        var documentResolution = context.ToolExecutionServices.RequestResolver.ResolveDocument<DocumentOptionsData>(request.Document, context);
         if (documentResolution.HasRejection)
         {
             return documentResolution.Rejection;
@@ -36,6 +36,6 @@ internal sealed class GetDocumentOptionsTool : QueryToolHandler<GetDocumentOptio
             AnalyzerConfig = await InspectionProjectionFactory.CreateAnalyzerConfigInfoAsync(document, cancellationToken).ConfigureAwait(false),
         };
 
-        return context.ToolExecutionServices.ResultShaper.CreateSingletonResponse(context, data);
+        return PluginExecutionResult<DocumentOptionsData>.Success(data);
     }
 }

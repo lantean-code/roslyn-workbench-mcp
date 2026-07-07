@@ -180,20 +180,17 @@ public sealed class PluginRegistryTests
         public string Value { get; init; } = string.Empty;
     }
 
-    private sealed class TestQueryHandler : IQueryToolHandler<TestRequest, QueryResponse<TestResponse>>
+    private sealed class TestQueryHandler : IQueryToolHandler<TestRequest, TestResponse>
     {
-        public ValueTask<PluginExecutionResult<QueryResponse<TestResponse>>> ExecuteAsync(TestRequest request, IQueryContext context, CancellationToken cancellationToken)
+        public ValueTask<PluginExecutionResult<TestResponse>> ExecuteAsync(TestRequest request, IQueryContext context, CancellationToken cancellationToken)
         {
             _ = request;
             _ = context;
             _ = cancellationToken;
 
-            return ValueTask.FromResult(PluginExecutionResult<QueryResponse<TestResponse>>.Success(new QueryResponse<TestResponse>
+            return ValueTask.FromResult(PluginExecutionResult<TestResponse>.Success(new TestResponse
             {
-                Value = new TestResponse
-                {
-                    Value = "Value",
-                },
+                Value = "Value",
             }));
         }
     }

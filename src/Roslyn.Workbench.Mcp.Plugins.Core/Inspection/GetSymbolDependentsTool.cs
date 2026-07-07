@@ -61,17 +61,13 @@ internal sealed class GetSymbolDependentsTool : QueryToolHandler<GetSymbolDepend
             .Select(context.WorkspaceResolver.CreateSymbolReference)
             .ToArray();
 
-        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
-            context,
-            orderedDependents,
-            ToolExecutionHelpers.GetMaxResults(context, request.Limit),
-            (items, hasMore) => new SymbolDependentsData
-            {
-                Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
-                Dependents = items,
-                ReturnedCount = items.Count,
-                HasMore = hasMore,
-            });
+        return PluginExecutionResult<SymbolDependentsData>.Success(new SymbolDependentsData
+        {
+            Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
+            Dependents = ToolExecutionHelpers.CreateBoundedCollection(
+                orderedDependents,
+                ToolExecutionHelpers.GetMaxResults(context, request.DependentsLimit)),
+        });
     }
 
     private static async ValueTask<ISymbol?> GetEnclosingSymbolAsync(Document document, int position, CancellationToken cancellationToken)

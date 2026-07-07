@@ -88,16 +88,12 @@ internal sealed class AnalyzeAsyncTool : QueryToolHandler<AnalyzeAsyncRequest, A
             .ThenBy(static finding => finding.Kind, StringComparer.Ordinal)
             .ToArray();
 
-        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
-            context,
-            orderedFindings,
-            ToolExecutionHelpers.GetMaxResults(context, request.Limit),
-            static (items, hasMore) => new AsyncAnalysisData
-            {
-                Findings = items,
-                ReturnedCount = items.Count,
-                HasMore = hasMore,
-            });
+        return PluginExecutionResult<AsyncAnalysisData>.Success(new AsyncAnalysisData
+        {
+            Findings = ToolExecutionHelpers.CreateBoundedCollection(
+                orderedFindings,
+                ToolExecutionHelpers.GetMaxResults(context, request.FindingsLimit)),
+        });
     }
 
     private static bool IsAwaited(IOperation operation)

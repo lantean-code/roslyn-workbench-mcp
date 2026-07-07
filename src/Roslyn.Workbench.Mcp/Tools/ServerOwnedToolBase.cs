@@ -53,14 +53,14 @@ internal abstract class ServerOwnedToolBase<TRequest, TResponse> : McpServerTool
         try
         {
             var arguments = requestContext.Params.Arguments ?? new Dictionary<string, JsonElement>(StringComparer.Ordinal);
-            var request = DeserializeRequest(arguments);
+            var request = ToolRequestBinder.Deserialize<TRequest>(arguments);
             var result = await ExecuteAsync(request, cancellationToken).ConfigureAwait(false);
 
             return new CallToolResult
             {
                 Content = [],
-                StructuredContent = ShapeResult(result),
-                IsError = result.Outcome is ToolOutcome.Rejected or ToolOutcome.Conflict or ToolOutcome.Faulted,
+                StructuredContent = SerializeResult(result),
+                IsError = result.Outcome.IsError(),
             };
         }
         catch (OperationCanceledException)
@@ -72,7 +72,7 @@ internal abstract class ServerOwnedToolBase<TRequest, TResponse> : McpServerTool
             return new CallToolResult
             {
                 Content = [],
-                StructuredContent = CreateUnhandledExceptionResponse(),
+                StructuredContent = ToolResultEnvelopeSerializer.CreateUnhandledException(),
                 IsError = true,
             };
         }
@@ -80,23 +80,13 @@ internal abstract class ServerOwnedToolBase<TRequest, TResponse> : McpServerTool
 
     protected abstract ValueTask<ToolResult<TResponse>> ExecuteAsync(TRequest request, CancellationToken cancellationToken);
 
-    private static TRequest DeserializeRequest(IDictionary<string, JsonElement> arguments)
+    private static JsonElement SerializeResult(ToolResult<TResponse> result)
     {
-        return ToolRequestBinder.Deserialize<TRequest>(arguments);
-    }
-
-    private static JsonElement ShapeResult(ToolResult<TResponse> result)
-    {
-        if (result.Outcome is ToolOutcome.Rejected or ToolOutcome.Conflict or ToolOutcome.Faulted)
+        if (result.Outcome.IsError())
         {
-            return ToolStructuredResultSerializer.CreateFailure(result.Error, result.RequiredAction);
+            return ToolResultEnvelopeSerializer.CreateFailure(result.Error, result.RequiredAction);
         }
 
-        return ToolStructuredResultSerializer.CreateDirectSuccess(result.Data, typeof(TResponse));
-    }
-
-    private static JsonElement CreateUnhandledExceptionResponse()
-    {
-        return ToolStructuredResultSerializer.CreateUnhandledException();
+        return ToolResultEnvelopeSerializer.CreateFlattenedSuccess(result.Data);
     }
 }

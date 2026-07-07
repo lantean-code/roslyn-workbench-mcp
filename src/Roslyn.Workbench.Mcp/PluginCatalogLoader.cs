@@ -106,6 +106,10 @@ internal sealed class PluginCatalogLoader
                 return DisabledPlugin(plugin.Metadata, "Plugin tool names must be globally unique across loaded plugins.");
             }
 
+            var diagnostics = registry.RegisteredPluginTools
+                .SelectMany(static tool => QueryResponseContractInspector.Inspect(tool.Tool))
+                .ToArray();
+
             return new PluginAssemblyLoadResult(
                 new PluginStatus
                 {
@@ -114,6 +118,7 @@ internal sealed class PluginCatalogLoader
                     Version = plugin.Metadata.Version,
                     SupportedApiVersion = plugin.Metadata.SupportedApiVersion,
                     Enabled = true,
+                    Diagnostics = diagnostics,
                 },
                 registry.RegisteredPluginTools);
         }

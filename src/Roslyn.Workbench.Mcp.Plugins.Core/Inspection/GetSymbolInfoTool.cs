@@ -2,7 +2,7 @@ using Roslyn.Workbench.Mcp.Contracts.Inspection;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
-internal sealed class GetSymbolInfoTool : QueryToolHandler<GetSymbolInfoRequest, QueryResponse<SymbolInfoData>>
+internal sealed class GetSymbolInfoTool : QueryToolHandler<GetSymbolInfoRequest, SymbolInfoData>
 {
     private static readonly ToolRegistrationMetadata _metadata = new()
     {
@@ -16,10 +16,10 @@ internal sealed class GetSymbolInfoTool : QueryToolHandler<GetSymbolInfoRequest,
         registry.RegisterQueryTool(_metadata, new GetSymbolInfoTool());
     }
 
-    protected override async ValueTask<PluginExecutionResult<QueryResponse<SymbolInfoData>>> ExecuteCoreAsync(GetSymbolInfoRequest request, IQueryContext context, CancellationToken cancellationToken)
+    protected override async ValueTask<PluginExecutionResult<SymbolInfoData>> ExecuteCoreAsync(GetSymbolInfoRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<QueryResponse<SymbolInfoData>>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<SymbolInfoData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
@@ -45,6 +45,6 @@ internal sealed class GetSymbolInfoTool : QueryToolHandler<GetSymbolInfoRequest,
                 .ToArray(),
         };
 
-        return context.ToolExecutionServices.ResultShaper.CreateSingletonResponse(context, data);
+        return PluginExecutionResult<SymbolInfoData>.Success(data);
     }
 }

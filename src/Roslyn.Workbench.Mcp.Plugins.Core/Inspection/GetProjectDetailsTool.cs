@@ -4,7 +4,7 @@ using Roslyn.Workbench.Mcp.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
-internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetailsRequest, QueryResponse<ProjectDetailsData>>
+internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetailsRequest, ProjectDetailsData>
 {
     private static readonly ToolRegistrationMetadata _metadata = new()
     {
@@ -18,10 +18,10 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
         registry.RegisterQueryTool(_metadata, new GetProjectDetailsTool());
     }
 
-    protected override async ValueTask<PluginExecutionResult<QueryResponse<ProjectDetailsData>>> ExecuteCoreAsync(GetProjectDetailsRequest request, IQueryContext context, CancellationToken cancellationToken)
+    protected override async ValueTask<PluginExecutionResult<ProjectDetailsData>> ExecuteCoreAsync(GetProjectDetailsRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var projectResolution = context.ToolExecutionServices.RequestResolver.ResolveProject<QueryResponse<ProjectDetailsData>>(request.Project, context);
+        var projectResolution = context.ToolExecutionServices.RequestResolver.ResolveProject<ProjectDetailsData>(request.Project, context);
         if (projectResolution.HasRejection)
         {
             return projectResolution.Rejection;
@@ -38,32 +38,6 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
                 .ToArray()
             : null;
 
-        if (documents is null)
-        {
-            var unboundedData = new ProjectDetailsData
-            {
-                Project = InspectionProjectionFactory.CreateProjectInfo(project, context.WorkspaceResolver, targetFrameworks),
-                Documents = null,
-                ProjectReferences = project.ProjectReferences
-                    .Select(reference => context.CurrentSolution.GetProject(reference.ProjectId))
-                    .Where(static referencedProject => referencedProject is not null)
-                    .Select(referencedProject => InspectionProjectionFactory.CreateProjectReferenceInfo(referencedProject!, context.WorkspaceResolver))
-                    .OrderBy(static reference => reference.Path, StringComparer.Ordinal)
-                    .ToArray(),
-                MetadataReferences = project.MetadataReferences
-                    .Select(InspectionProjectionFactory.CreateMetadataReferenceInfo)
-                    .OrderBy(static reference => reference.Path ?? reference.Display, StringComparer.Ordinal)
-                    .ToArray(),
-                Analyzers = project.AnalyzerReferences
-                    .Select(InspectionProjectionFactory.CreateAnalyzerInfo)
-                    .OrderBy(static analyzer => analyzer.Path ?? analyzer.DisplayName, StringComparer.Ordinal)
-                    .ToArray(),
-                CompilationOptions = InspectionProjectionFactory.CreateCompilationOptionsInfo(compilation?.Options ?? project.CompilationOptions),
-            };
-
-            return context.ToolExecutionServices.ResultShaper.CreateSingletonResponse(context, unboundedData);
-        }
-
         var projectReferences = project.ProjectReferences
             .Select(reference => context.CurrentSolution.GetProject(reference.ProjectId))
             .Where(static referencedProject => referencedProject is not null)
@@ -79,49 +53,24 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
             .OrderBy(static analyzer => analyzer.Path ?? analyzer.DisplayName, StringComparer.Ordinal)
             .ToArray();
 
-        return CreateBoundedResponse(
-            context,
-            documents,
-            ToolExecutionHelpers.GetMaxResults(context, request.Limit),
-            (items, hasMore) => new ProjectDetailsData
-            {
-                Project = InspectionProjectionFactory.CreateProjectInfo(project, context.WorkspaceResolver, targetFrameworks),
-                Documents = items,
-                ProjectReferences = projectReferences,
-                MetadataReferences = metadataReferences,
-                Analyzers = analyzers,
-                CompilationOptions = InspectionProjectionFactory.CreateCompilationOptionsInfo(compilation?.Options ?? project.CompilationOptions),
-                ReturnedCount = items.Count,
-                HasMore = hasMore,
-            });
-    }
-
-    private static PluginExecutionResult<QueryResponse<ProjectDetailsData>> CreateBoundedResponse(
-        IQueryContext context,
-        IReadOnlyList<DocumentReference> orderedDocuments,
-        int maxResults,
-        Func<IReadOnlyList<DocumentReference>, bool, ProjectDetailsData> createData)
-    {
-        var limitedCount = Math.Min(maxResults, orderedDocuments.Count);
-
-        for (var count = limitedCount; count >= 0; count--)
+        return PluginExecutionResult<ProjectDetailsData>.Success(new ProjectDetailsData
         {
-            var documents = count == orderedDocuments.Count
-                ? orderedDocuments
-                : orderedDocuments.Take(count).ToArray();
-            var result = context.ToolExecutionServices.ResultShaper.CreateSingletonResponse(
-                context,
-                createData(documents, count < orderedDocuments.Count));
-
-            if (result.Outcome == ToolOutcome.Succeeded)
-            {
-                return result;
-            }
-        }
-
-        return context.ToolExecutionServices.ResultShaper.Rejected<QueryResponse<ProjectDetailsData>>(
-            "ResponseLimitExceeded",
-            "The response exceeded the configured response size limit.",
-            RequiredAction.NarrowRequest);
+            Project = InspectionProjectionFactory.CreateProjectInfo(project, context.WorkspaceResolver, targetFrameworks),
+            Documents = documents is null
+                ? null
+                : ToolExecutionHelpers.CreateBoundedCollection(
+                    documents,
+                    ToolExecutionHelpers.GetMaxResults(context, request.DocumentsLimit)),
+            ProjectReferences = ToolExecutionHelpers.CreateBoundedCollection(
+                projectReferences,
+                ToolExecutionHelpers.GetMaxResults(context, request.ProjectReferencesLimit)),
+            MetadataReferences = ToolExecutionHelpers.CreateBoundedCollection(
+                metadataReferences,
+                ToolExecutionHelpers.GetMaxResults(context, request.MetadataReferencesLimit)),
+            Analyzers = ToolExecutionHelpers.CreateBoundedCollection(
+                analyzers,
+                ToolExecutionHelpers.GetMaxResults(context, request.AnalyzersLimit)),
+            CompilationOptions = InspectionProjectionFactory.CreateCompilationOptionsInfo(compilation?.Options ?? project.CompilationOptions),
+        });
     }
 }

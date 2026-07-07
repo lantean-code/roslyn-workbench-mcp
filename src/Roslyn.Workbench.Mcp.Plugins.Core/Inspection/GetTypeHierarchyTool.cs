@@ -1,11 +1,12 @@
 using System.Collections.Immutable;
 
 using Roslyn.Workbench.Mcp.Contracts.Inspection;
+using Roslyn.Workbench.Mcp.Contracts.Results;
 using Roslyn.Workbench.Mcp.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
-internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRequest, QueryResponse<TypeHierarchyData>>
+internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRequest, TypeHierarchyData>
 {
     private static readonly ToolRegistrationMetadata _metadata = new()
     {
@@ -19,10 +20,10 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
         registry.RegisterQueryTool(_metadata, new GetTypeHierarchyTool());
     }
 
-    protected override async ValueTask<PluginExecutionResult<QueryResponse<TypeHierarchyData>>> ExecuteCoreAsync(GetTypeHierarchyRequest request, IQueryContext context, CancellationToken cancellationToken)
+    protected override async ValueTask<PluginExecutionResult<TypeHierarchyData>> ExecuteCoreAsync(GetTypeHierarchyRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<QueryResponse<TypeHierarchyData>>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<TypeHierarchyData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
@@ -30,7 +31,7 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
 
         if (symbolResolution.Value is not INamedTypeSymbol namedType)
         {
-            return ToolExecutionHelpers.Rejected<QueryResponse<TypeHierarchyData>>("InvalidRequest", "Get type hierarchy requires a named type symbol.");
+            return ToolExecutionHelpers.Rejected<TypeHierarchyData>("InvalidRequest", "Get type hierarchy requires a named type symbol.");
         }
 
         var baseTypes = new List<SymbolReference>();
@@ -39,9 +40,7 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
             baseTypes.Add(context.WorkspaceResolver.CreateSymbolReference(current));
         }
 
-        IReadOnlyList<TypeHierarchyNode>? derivedTypes = null;
-        int? returnedCount = null;
-        bool? hasMore = null;
+        BoundedCollection<TypeHierarchyNode>? derivedTypes = null;
         if (request.IncludeDerived)
         {
             var derived = (await FindDerivedTypeSymbolsAsync(namedType, context.CurrentSolution, context.CurrentSolution.Projects.ToImmutableHashSet(), cancellationToken).ConfigureAwait(false))
@@ -54,29 +53,25 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
                     Depth = GetTypeDepth(symbol, namedType),
                 })
                 .ToArray();
-            derivedTypes = ApplyLimit(derived, ToolExecutionHelpers.GetMaxResults(context, request.Limit), out var derivedHasMore);
-            returnedCount = derivedTypes.Count;
-            hasMore = derivedHasMore;
+            derivedTypes = ToolExecutionHelpers.CreateBoundedCollection(
+                derived,
+                ToolExecutionHelpers.GetMaxResults(context, request.DerivedTypesLimit));
         }
 
-        return context.ToolExecutionServices.ResultShaper.CreateSingletonResponse(context, new TypeHierarchyData
+        return PluginExecutionResult<TypeHierarchyData>.Success(new TypeHierarchyData
         {
             Type = context.WorkspaceResolver.CreateSymbolReference(namedType),
-            BaseTypes = baseTypes,
-            Interfaces = namedType.AllInterfaces
-                .OrderBy(static item => item.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat), StringComparer.Ordinal)
-                .Select(context.WorkspaceResolver.CreateSymbolReference)
-                .ToArray(),
+            BaseTypes = ToolExecutionHelpers.CreateBoundedCollection(
+                baseTypes,
+                ToolExecutionHelpers.GetMaxResults(context, request.BaseTypesLimit)),
+            Interfaces = ToolExecutionHelpers.CreateBoundedCollection(
+                namedType.AllInterfaces
+                    .OrderBy(static item => item.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat), StringComparer.Ordinal)
+                    .Select(context.WorkspaceResolver.CreateSymbolReference)
+                    .ToArray(),
+                ToolExecutionHelpers.GetMaxResults(context, request.InterfacesLimit)),
             DerivedTypes = derivedTypes,
-            ReturnedCount = returnedCount,
-            HasMore = hasMore,
         });
-    }
-
-    private static IReadOnlyList<T> ApplyLimit<T>(IReadOnlyList<T> items, int maxResults, out bool hasMore)
-    {
-        hasMore = items.Count > maxResults;
-        return hasMore ? items.Take(maxResults).ToArray() : items;
     }
 
     private static async ValueTask<IReadOnlyList<INamedTypeSymbol>> FindDerivedTypeSymbolsAsync(INamedTypeSymbol root, Solution solution, IImmutableSet<Project> projects, CancellationToken cancellationToken)

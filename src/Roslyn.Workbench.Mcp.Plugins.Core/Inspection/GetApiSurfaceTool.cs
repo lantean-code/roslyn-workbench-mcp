@@ -28,7 +28,7 @@ internal sealed class GetApiSurfaceTool : QueryToolHandler<GetApiSurfaceRequest,
         var threshold = ParseMinimumAccessibility(request.MinimumAccessibility);
         if (threshold is null)
         {
-            return context.ToolExecutionServices.ResultShaper.Rejected<ApiSurfaceData>("InvalidRequest", "Minimum accessibility must be Public, Protected, or Internal.");
+            return ToolExecutionHelpers.Rejected<ApiSurfaceData>("InvalidRequest", "Minimum accessibility must be Public, Protected, or Internal.");
         }
 
         var exportedSymbols = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
@@ -74,16 +74,12 @@ internal sealed class GetApiSurfaceTool : QueryToolHandler<GetApiSurfaceRequest,
             })
             .ToArray();
 
-        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
-            context,
-            orderedSymbols,
-            ToolExecutionHelpers.GetMaxResults(context, request.Limit),
-            (items, hasMore) => new ApiSurfaceData
-            {
-                Symbols = items,
-                ReturnedCount = items.Count,
-                HasMore = hasMore,
-            });
+        return PluginExecutionResult<ApiSurfaceData>.Success(new ApiSurfaceData
+        {
+            Symbols = ToolExecutionHelpers.CreateBoundedCollection(
+                orderedSymbols,
+                ToolExecutionHelpers.GetMaxResults(context, request.SymbolsLimit)),
+        });
     }
 
     private static Accessibility? ParseMinimumAccessibility(string value)

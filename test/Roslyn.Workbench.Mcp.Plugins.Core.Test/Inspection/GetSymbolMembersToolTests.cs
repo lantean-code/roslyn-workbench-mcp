@@ -23,7 +23,7 @@ public sealed class GetSymbolMembersToolTests
         });
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data!.Members.Should().Contain(static symbol => symbol.DisplayName.Contains("Decorate", StringComparison.Ordinal));
-        result.Data.Members.Should().Contain(static symbol => symbol.DisplayName.Contains("Prefix", StringComparison.Ordinal));
+        result.Data!.Members.Items.Should().Contain(static symbol => symbol.DisplayName.Contains("Decorate", StringComparison.Ordinal));
+        result.Data.Members.Items.Should().Contain(static symbol => symbol.DisplayName.Contains("Prefix", StringComparison.Ordinal));
     }
 }

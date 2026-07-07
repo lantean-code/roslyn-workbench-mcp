@@ -1,11 +1,7 @@
-using System.Text.Json;
-
 namespace Roslyn.Workbench.Mcp.Workspace.CodeActions.Execution;
 
 internal sealed class CodeActionQueryWorkflow : ICodeActionQueryWorkflow
 {
-    private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
-
     private readonly ICodeActionDiscoveryService _discoveryService;
     private readonly ICodeActionDiagnosticService _diagnosticService;
     private readonly ICodeActionResolutionService _resolutionService;
@@ -97,18 +93,12 @@ internal sealed class CodeActionQueryWorkflow : ICodeActionQueryWorkflow
             .ThenBy(static action => action.Action.EquivalenceKey ?? string.Empty, StringComparer.Ordinal)
             .ThenBy(static action => string.Join(".", action.Action.ActionPath), StringComparer.Ordinal)
             .ToArray();
-        var maxResults = request.Limit?.MaxResults ?? context.EffectiveResultLimit.MaxResults ?? 100;
-
-        return CreateBoundedCollectionResult(
-            context,
-            ordered,
-            maxResults,
-            items => new CodeActionListData
-            {
-                Actions = items.Select(item => CreateInfo(item.Action, context, document, span, item.Descriptor)).ToArray(),
-                ReturnedCount = items.Count,
-                HasMore = items.Count < ordered.Length,
-            });
+        return PluginExecutionResult<CodeActionListData>.Success(new CodeActionListData
+        {
+            Actions = ordered
+                .Select(item => CreateInfo(item.Action, context, document, span, item.Descriptor))
+                .ToArray(),
+        });
     }
 
     public async ValueTask<PluginExecutionResult<DescribeCodeActionData>> DescribeCodeActionAsync(
@@ -142,7 +132,7 @@ internal sealed class CodeActionQueryWorkflow : ICodeActionQueryWorkflow
             },
         };
 
-        return EnsureWithinSize(context, data);
+        return PluginExecutionResult<DescribeCodeActionData>.Success(data);
     }
 
     private CodeActionInfo CreateInfo(
@@ -218,40 +208,6 @@ internal sealed class CodeActionQueryWorkflow : ICodeActionQueryWorkflow
             Code = code,
             Message = message,
         }, requiredAction);
-    }
-
-    private static PluginExecutionResult<CodeActionListData> CreateBoundedCollectionResult(
-        IQueryContext context,
-        IReadOnlyList<ClassifiedCodeAction> actions,
-        int maxResults,
-        Func<IReadOnlyList<ClassifiedCodeAction>, CodeActionListData> createData)
-    {
-        var limitedCount = Math.Min(maxResults, actions.Count);
-
-        for (var count = limitedCount; count >= 0; count--)
-        {
-            var items = count == actions.Count ? actions : actions.Take(count).ToArray();
-            var data = createData(items);
-            var bytes = JsonSerializer.SerializeToUtf8Bytes(data, _serializerOptions);
-
-            if (bytes.Length <= context.MaxResponseBytes)
-            {
-                return PluginExecutionResult<CodeActionListData>.Success(data);
-            }
-        }
-
-        return Rejected<CodeActionListData>(
-            "ResponseLimitExceeded",
-            "The response exceeded the configured response size limit.",
-            RequiredAction.NarrowRequest);
-    }
-
-    private static PluginExecutionResult<T> EnsureWithinSize<T>(IQueryContext context, T data)
-    {
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(data, _serializerOptions);
-        return bytes.Length <= context.MaxResponseBytes
-            ? PluginExecutionResult<T>.Success(data)
-            : Rejected<T>("ResponseLimitExceeded", "The response exceeded the configured response size limit.", RequiredAction.NarrowRequest);
     }
 
     private sealed record ClassifiedCodeAction

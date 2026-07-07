@@ -1,11 +1,12 @@
 using System.Buffers;
 using System.Text.Json;
+
 namespace Roslyn.Workbench.Mcp.Contracts.Results;
 
 /// <summary>
 /// Serializes structured MCP tool result envelopes using the published response contracts.
 /// </summary>
-public static class ToolStructuredResultSerializer
+public static class ToolResultEnvelopeSerializer
 {
     private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
 
@@ -13,12 +14,10 @@ public static class ToolStructuredResultSerializer
     /// Creates a successful envelope that flattens the published response object into the top level payload.
     /// </summary>
     /// <param name="data">The successful response payload.</param>
-    /// <param name="dataType">The published response payload type.</param>
     /// <returns>The structured JSON payload.</returns>
-    public static JsonElement CreateDirectSuccess(object? data, Type dataType)
+    /// <typeparam name="TData">The successful response payload type.</typeparam>
+    public static JsonElement CreateFlattenedSuccess<TData>(TData? data)
     {
-        ArgumentNullException.ThrowIfNull(dataType);
-
         return BuildPayload(writer =>
         {
             writer.WriteStartObject();
@@ -26,7 +25,7 @@ public static class ToolStructuredResultSerializer
 
             if (data is not null)
             {
-                var serialized = SerializeObject(data, dataType);
+                var serialized = SerializeObject(data);
                 foreach (var property in serialized.EnumerateObject())
                 {
                     property.WriteTo(writer);
@@ -38,20 +37,21 @@ public static class ToolStructuredResultSerializer
     }
 
     /// <summary>
-    /// Creates a successful envelope that publishes the response payload under <c>value</c>.
+    /// Creates a successful envelope that publishes the response payload under a named property.
     /// </summary>
+    /// <param name="propertyName">The name of the published property.</param>
     /// <param name="data">The successful response payload.</param>
-    /// <param name="dataType">The published response payload type.</param>
     /// <returns>The structured JSON payload.</returns>
-    public static JsonElement CreateSingletonSuccess(object? data, Type dataType)
+    /// <typeparam name="TData">The successful response payload type.</typeparam>
+    public static JsonElement CreateNestedSuccess<TData>(string propertyName, TData? data)
     {
-        ArgumentNullException.ThrowIfNull(dataType);
+        ArgumentException.ThrowIfNullOrWhiteSpace(propertyName);
 
         return BuildPayload(writer =>
         {
             writer.WriteStartObject();
             writer.WriteBoolean("ok", true);
-            writer.WritePropertyName("value");
+            writer.WritePropertyName(propertyName);
 
             if (data is null)
             {
@@ -59,7 +59,38 @@ public static class ToolStructuredResultSerializer
             }
             else
             {
-                JsonSerializer.Serialize(writer, data, dataType, _serializerOptions);
+                SerializeObject(data).WriteTo(writer);
+            }
+
+            writer.WriteEndObject();
+        });
+    }
+
+    /// <summary>
+    /// Creates a successful envelope for a mutation result.
+    /// </summary>
+    /// <param name="data">The successful mutation payload.</param>
+    /// <param name="staged">A value indicating whether a mutation was staged.</param>
+    /// <returns>The structured JSON payload.</returns>
+    public static JsonElement CreateMutationSuccess(MutationData? data, bool staged)
+    {
+        return BuildPayload(writer =>
+        {
+            writer.WriteStartObject();
+            writer.WriteBoolean("ok", true);
+            writer.WriteBoolean("staged", staged);
+
+            if (staged && data is not null)
+            {
+                writer.WritePropertyName("summary");
+                JsonSerializer.Serialize(writer, data.Summary, _serializerOptions);
+
+                if (data.Transaction?.Revision is int revision)
+                {
+                    writer.WriteStartObject("transaction");
+                    writer.WriteNumber("revision", revision);
+                    writer.WriteEndObject();
+                }
             }
 
             writer.WriteEndObject();
@@ -128,15 +159,15 @@ public static class ToolStructuredResultSerializer
         return document.RootElement.Clone();
     }
 
-    private static JsonElement SerializeObject(object value, Type valueType)
+    private static JsonElement SerializeObject<TData>(TData value)
     {
-        var serialized = JsonSerializer.SerializeToElement(value, valueType, _serializerOptions);
+        var serialized = JsonSerializer.SerializeToElement(value, _serializerOptions);
 
         if (serialized.ValueKind == JsonValueKind.Object)
         {
             return serialized;
         }
 
-        throw new InvalidOperationException($"Published response type '{valueType.FullName}' must serialize as a JSON object.");
+        throw new InvalidOperationException($"Published response type '{typeof(TData).FullName}' must serialize as a JSON object.");
     }
 }

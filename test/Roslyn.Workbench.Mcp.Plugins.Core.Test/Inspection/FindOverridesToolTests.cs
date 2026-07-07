@@ -22,7 +22,7 @@ public sealed class FindOverridesToolTests
         });
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data!.Overrides.Should().Contain(static symbol => symbol.DisplayName.Contains("GreetingFormatter.Decorate", StringComparison.Ordinal));
-        result.Data.Overrides.Should().Contain(static symbol => symbol.DisplayName.Contains("DerivedGreetingFormatter.Decorate", StringComparison.Ordinal));
+        result.Data!.Overrides.Items.Should().Contain(static symbol => symbol.DisplayName.Contains("GreetingFormatter.Decorate", StringComparison.Ordinal));
+        result.Data.Overrides.Items.Should().Contain(static symbol => symbol.DisplayName.Contains("DerivedGreetingFormatter.Decorate", StringComparison.Ordinal));
     }
 }

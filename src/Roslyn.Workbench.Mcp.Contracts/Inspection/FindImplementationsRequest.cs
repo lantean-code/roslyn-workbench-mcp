@@ -20,7 +20,7 @@ public sealed record FindImplementationsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
-    public ResultLimit? Limit { get; init; }
+    public CollectionLimit? ImplementationsLimit { get; init; }
 
     /// <summary>
     /// Gets the expected snapshot for location-based symbol selectors.

@@ -46,7 +46,7 @@ internal sealed class ConvertPropertyTool : MutationToolHandler<ConvertPropertyR
                 AnalyzerTypeName = UseAutoPropertyAnalyzerTypeName,
                 SyntheticDiagnosticId = UseAutoPropertyDiagnosticId,
             }, cancellationToken),
-            _ => ValueTask.FromResult(context.ToolExecutionServices.ResultShaper.Rejected<MutationProposal>("InvalidRequest", "The requested property conversion direction is not supported.")),
+            _ => ValueTask.FromResult(ToolExecutionHelpers.Rejected<MutationProposal>("InvalidRequest", "The requested property conversion direction is not supported.")),
         };
     }
 }

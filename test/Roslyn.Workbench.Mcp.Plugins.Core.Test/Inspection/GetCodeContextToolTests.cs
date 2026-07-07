@@ -76,13 +76,13 @@ public sealed class GetCodeContextToolTests
         }, context, CancellationToken.None);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data!.Value.Text.Should().Contain("var unused = 42;");
-        result.Data.Value.Diagnostics.Should().Contain(static diagnostic => diagnostic.Id == "CS0219");
-        result.Data.Value.EnclosingSymbols.Should().Contain(static symbol => symbol.DisplayName.Contains("GreetingFormatter.Format", StringComparison.Ordinal));
+        result.Data!.Text.Should().Contain("var unused = 42;");
+        result.Data.Diagnostics.Should().Contain(static diagnostic => diagnostic.Id == "CS0219");
+        result.Data.EnclosingSymbols.Should().Contain(static symbol => symbol.DisplayName.Contains("GreetingFormatter.Format", StringComparison.Ordinal));
     }
 
     [Fact]
-    public async Task GIVEN_ResponseExceedsConfiguredLimit_WHEN_CallingExecute_THEN_ShouldReturnNarrowRequestRejection()
+    public async Task GIVEN_LowDefaultMaxResults_WHEN_CallingExecute_THEN_ShouldNotAffectSingletonResponse()
     {
         using var workspace = MiniWorkspaceFactory.CreateCSharp("""
             namespace Sample;
@@ -102,7 +102,7 @@ public sealed class GetCodeContextToolTests
             .WithCurrentSolution(workspace.Solution)
             .WithResolver(resolver)
             .WithWorkspaceIdentity(workspaceIdentity)
-            .WithMaxResponseBytes(1)
+            .WithDefaultMaxResults(1)
             .Build();
         var target = new GetCodeContextTool();
 
@@ -115,8 +115,7 @@ public sealed class GetCodeContextToolTests
             },
         }, context, CancellationToken.None);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error!.Code.Should().Be("ResponseLimitExceeded");
-        result.RequiredAction.Should().Be(RequiredAction.NarrowRequest);
+        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Data.Should().NotBeNull();
     }
 }

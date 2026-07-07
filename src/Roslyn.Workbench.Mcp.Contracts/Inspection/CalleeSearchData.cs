@@ -1,3 +1,4 @@
+using Roslyn.Workbench.Mcp.Contracts.Results;
 using Roslyn.Workbench.Mcp.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
@@ -5,7 +6,6 @@ namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by find-callees.
 /// </summary>
-[PublishedCollectionResponse(nameof(Callees))]
 public sealed record CalleeSearchData
 {
     /// <summary>
@@ -16,15 +16,5 @@ public sealed record CalleeSearchData
     /// <summary>
     /// Gets the returned callees.
     /// </summary>
-    public IReadOnlyList<SymbolReference> Callees { get; init; } = [];
-
-    /// <summary>
-    /// Gets the number of callees returned.
-    /// </summary>
-    public int ReturnedCount { get; init; }
-
-    /// <summary>
-    /// Gets a value indicating whether more callees were available.
-    /// </summary>
-    public bool HasMore { get; init; }
+    public BoundedCollection<SymbolReference> Callees { get; init; } = BoundedCollection<SymbolReference>.Empty();
 }

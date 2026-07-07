@@ -22,6 +22,6 @@ public sealed class FindOverloadsToolTests
         });
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data!.Overloads.Should().HaveCount(2);
+        result.Data!.Overloads.Items.Should().HaveCount(2);
     }
 }

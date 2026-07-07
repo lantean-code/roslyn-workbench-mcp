@@ -29,7 +29,7 @@ internal sealed class IntroduceParameterTool : MutationToolHandler<IntroducePara
     {
         if (request.Selection is null)
         {
-            return ValueTask.FromResult(context.ToolExecutionServices.ResultShaper.Rejected<MutationProposal>("InvalidRequest", "A location selector is required."));
+            return ValueTask.FromResult(ToolExecutionHelpers.Rejected<MutationProposal>("InvalidRequest", "A location selector is required."));
         }
 
         var title = request.Strategy switch

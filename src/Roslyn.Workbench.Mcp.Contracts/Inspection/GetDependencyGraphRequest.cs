@@ -23,12 +23,12 @@ public sealed record GetDependencyGraphRequest : WorkspaceBoundRequest
     public int MaxDepth { get; init; } = 3;
 
     /// <summary>
-    /// Gets the optional maximum number of nodes to return.
+    /// Gets the optional nodes limit.
     /// </summary>
-    public int? MaxNodes { get; init; }
+    public CollectionLimit? NodesLimit { get; init; }
 
     /// <summary>
-    /// Gets the optional maximum number of edges to return.
+    /// Gets the optional edges limit.
     /// </summary>
-    public int? MaxEdges { get; init; }
+    public CollectionLimit? EdgesLimit { get; init; }
 }

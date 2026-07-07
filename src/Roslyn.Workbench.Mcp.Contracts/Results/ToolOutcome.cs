@@ -32,9 +32,4 @@ public enum ToolOutcome
     /// The tool failed unexpectedly.
     /// </summary>
     Faulted,
-
-    /// <summary>
-    /// Composite flag indicating that the tool failed to complete successfully.
-    /// </summary>
-    IsFailure = Rejected | Conflict | Faulted
 }

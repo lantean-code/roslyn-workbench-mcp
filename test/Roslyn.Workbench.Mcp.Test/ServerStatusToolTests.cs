@@ -17,7 +17,6 @@ public sealed class ServerStatusToolTests
         var startupOptions = new StartupOptions
         {
             DefaultMaxResults = 100,
-            MaxResponseBytes = 4096,
             MaxConcurrentQueries = 2,
             MaxTransactionRevisions = 20,
             CodeActionTokenLifetime = TimeSpan.FromMinutes(5),
@@ -69,7 +68,6 @@ public sealed class ServerStatusToolTests
         var startupOptions = new StartupOptions
         {
             DefaultMaxResults = 100,
-            MaxResponseBytes = 4096,
             MaxConcurrentQueries = 2,
             MaxTransactionRevisions = 20,
             CodeActionTokenLifetime = TimeSpan.FromMinutes(5),
@@ -108,7 +106,7 @@ public sealed class ServerStatusToolTests
                 }),
             CancellationToken.None);
 
-        result.StructuredContent!.Value.GetProperty("configuration").GetProperty("maxResponseBytes").GetInt32().Should().Be(4096);
+        result.StructuredContent!.Value.GetProperty("configuration").TryGetProperty("maxResponseBytes", out _).Should().BeFalse();
         result.StructuredContent.Value.GetProperty("plugins").EnumerateArray().Should().ContainSingle(static plugin => plugin.GetProperty("pluginId").GetString() == "plugin.id");
         result.StructuredContent.Value.GetProperty("recovery").ValueKind.Should().Be(JsonValueKind.Array);
     }
@@ -157,7 +155,6 @@ public sealed class ServerStatusToolTests
         var startupOptions = new StartupOptions
         {
             DefaultMaxResults = 100,
-            MaxResponseBytes = 4096,
             MaxConcurrentQueries = 2,
             MaxTransactionRevisions = 20,
             CodeActionTokenLifetime = TimeSpan.FromMinutes(5),
@@ -193,7 +190,6 @@ public sealed class ServerStatusToolTests
         var startupOptions = new StartupOptions
         {
             DefaultMaxResults = 100,
-            MaxResponseBytes = 4096,
             MaxConcurrentQueries = 2,
             MaxTransactionRevisions = 20,
             CodeActionTokenLifetime = TimeSpan.FromMinutes(5),

@@ -124,14 +124,14 @@ public sealed class SelectorValidationTests
     [Fact]
     public void GIVEN_ResultLimitBelowOne_WHEN_Validated_THEN_ShouldReturnValidationError()
     {
-        var limit = new ResultLimit
+        var limit = new CollectionLimit
         {
-            MaxResults = 0,
+            MaxResults = -1,
         };
 
         var errors = ContractValidator.Validate(limit);
 
-        errors.Should().ContainSingle(error => error.Contains("at least 1"));
+        errors.Should().ContainSingle(error => error.Contains("zero or greater"));
     }
 
     [Fact]

@@ -5,11 +5,8 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core;
 
 internal sealed class DefaultToolRequestResolver : IToolRequestResolver
 {
-    private readonly IToolResultShaper _resultShaper;
-
-    public DefaultToolRequestResolver(IToolResultShaper resultShaper)
+    public DefaultToolRequestResolver()
     {
-        _resultShaper = resultShaper;
     }
 
     public ToolResolutionResult<Document, TResponse> ResolveDocument<TResponse>(DocumentSelector? selector, IToolExecutionContext context)
@@ -18,14 +15,14 @@ internal sealed class DefaultToolRequestResolver : IToolRequestResolver
         {
             return new ToolResolutionResult<Document, TResponse>
             {
-                Rejection = _resultShaper.Rejected<TResponse>("InvalidRequest", "A document selector is required."),
+                Rejection = ToolExecutionHelpers.Rejected<TResponse>("InvalidRequest", "A document selector is required."),
             };
         }
 
         var resolution = context.WorkspaceResolver.ResolveDocument(selector);
         return resolution.Status == SelectorResolveStatus.Resolved
             ? new ToolResolutionResult<Document, TResponse> { Value = resolution.Value! }
-            : new ToolResolutionResult<Document, TResponse> { Rejection = _resultShaper.RejectFromStatus<TResponse>(resolution.Status, "Document") };
+            : new ToolResolutionResult<Document, TResponse> { Rejection = ToolExecutionHelpers.RejectFromStatus<TResponse>(resolution.Status, "Document") };
     }
 
     public ToolResolutionResult<Project, TResponse> ResolveProject<TResponse>(ProjectSelector? selector, IToolExecutionContext context)
@@ -34,14 +31,14 @@ internal sealed class DefaultToolRequestResolver : IToolRequestResolver
         {
             return new ToolResolutionResult<Project, TResponse>
             {
-                Rejection = _resultShaper.Rejected<TResponse>("InvalidRequest", "A project selector is required."),
+                Rejection = ToolExecutionHelpers.Rejected<TResponse>("InvalidRequest", "A project selector is required."),
             };
         }
 
         var resolution = context.WorkspaceResolver.ResolveProject(selector);
         return resolution.Status == SelectorResolveStatus.Resolved
             ? new ToolResolutionResult<Project, TResponse> { Value = resolution.Value! }
-            : new ToolResolutionResult<Project, TResponse> { Rejection = _resultShaper.RejectFromStatus<TResponse>(resolution.Status, "Project") };
+            : new ToolResolutionResult<Project, TResponse> { Rejection = ToolExecutionHelpers.RejectFromStatus<TResponse>(resolution.Status, "Project") };
     }
 
     public ToolResolutionResult<IReadOnlyList<Document>, TResponse> ResolveDocuments<TResponse>(ScopeSelector? scope, IToolExecutionContext context)
@@ -139,14 +136,14 @@ internal sealed class DefaultToolRequestResolver : IToolRequestResolver
         {
             return new ToolResolutionResult<ISymbol, TResponse>
             {
-                Rejection = _resultShaper.Rejected<TResponse>("InvalidRequest", "A symbol selector is required."),
+                Rejection = ToolExecutionHelpers.Rejected<TResponse>("InvalidRequest", "A symbol selector is required."),
             };
         }
 
         var resolution = await context.WorkspaceResolver.ResolveSymbolAsync(selector, cancellationToken).ConfigureAwait(false);
         return resolution.Status == SelectorResolveStatus.Resolved
             ? new ToolResolutionResult<ISymbol, TResponse> { Value = resolution.Value! }
-            : new ToolResolutionResult<ISymbol, TResponse> { Rejection = _resultShaper.RejectFromStatus<TResponse>(resolution.Status, "Symbol") };
+            : new ToolResolutionResult<ISymbol, TResponse> { Rejection = ToolExecutionHelpers.RejectFromStatus<TResponse>(resolution.Status, "Symbol") };
     }
 
     public PluginExecutionResult<TResponse>? ValidateSnapshot<TResponse>(IToolExecutionContext context, SnapshotPrecondition? expectedSnapshot)

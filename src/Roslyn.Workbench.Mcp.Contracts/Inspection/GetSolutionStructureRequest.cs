@@ -13,7 +13,12 @@ public sealed record GetSolutionStructureRequest : WorkspaceBoundRequest
     public bool IncludeDocuments { get; init; }
 
     /// <summary>
-    /// Gets the optional result limit.
+    /// Gets the optional folders limit.
     /// </summary>
-    public ResultLimit? Limit { get; init; }
+    public CollectionLimit? FoldersLimit { get; init; }
+
+    /// <summary>
+    /// Gets the optional projects limit.
+    /// </summary>
+    public CollectionLimit? ProjectsLimit { get; init; }
 }

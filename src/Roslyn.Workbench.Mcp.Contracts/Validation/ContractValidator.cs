@@ -152,14 +152,14 @@ public static class ContractValidator
     /// </summary>
     /// <param name="limit">The limit to validate.</param>
     /// <returns>The validation errors, if any.</returns>
-    public static IReadOnlyList<string> Validate(ResultLimit limit)
+    public static IReadOnlyList<string> Validate(CollectionLimit limit)
     {
-        if (limit.MaxResults is null || limit.MaxResults >= 1)
+        if (limit.MaxResults is null || limit.MaxResults >= 0)
         {
             return [];
         }
 
-        return ["ResultLimit MaxResults must be at least 1 when provided."];
+        return ["CollectionLimit MaxResults must be zero or greater when provided."];
     }
 
     /// <summary>

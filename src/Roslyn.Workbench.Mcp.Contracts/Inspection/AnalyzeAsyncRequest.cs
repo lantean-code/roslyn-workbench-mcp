@@ -15,5 +15,5 @@ public sealed record AnalyzeAsyncRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
-    public ResultLimit? Limit { get; init; }
+    public CollectionLimit? FindingsLimit { get; init; }
 }

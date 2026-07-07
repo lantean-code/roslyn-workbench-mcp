@@ -1,9 +1,9 @@
 namespace Roslyn.Workbench.Mcp.Contracts.Selectors;
 
 /// <summary>
-/// Represents the requested limit for collection-style results.
+/// Represents the requested limit for a published collection.
 /// </summary>
-public sealed record ResultLimit
+public sealed record CollectionLimit
 {
     /// <summary>
     /// Gets the requested maximum result count.

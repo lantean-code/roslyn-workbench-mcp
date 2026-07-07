@@ -9,8 +9,7 @@ public sealed class QueryContextBuilder
     private Solution _currentSolution = new AdhocWorkspace().CurrentSolution;
     private WorkspaceIdentity _workspaceIdentity = default!;
     private int? _transactionRevision;
-    private ResultLimit _effectiveResultLimit = new();
-    private int _maxResponseBytes = 1024 * 1024;
+    private int _defaultMaxResults = 100;
     private IWorkspaceResolver? _resolver;
     private IToolExecutionServices _toolExecutionServices = new ToolExecutionServicesBuilder().Build();
     private Func<ListCodeActionsRequest, CancellationToken, ValueTask<PluginExecutionResult<CodeActionListData>>>? _listCodeActionsAsync;
@@ -34,15 +33,9 @@ public sealed class QueryContextBuilder
         return this;
     }
 
-    public QueryContextBuilder WithEffectiveResultLimit(ResultLimit effectiveResultLimit)
+    public QueryContextBuilder WithDefaultMaxResults(int defaultMaxResults)
     {
-        _effectiveResultLimit = effectiveResultLimit ?? throw new ArgumentNullException(nameof(effectiveResultLimit));
-        return this;
-    }
-
-    public QueryContextBuilder WithMaxResponseBytes(int maxResponseBytes)
-    {
-        _maxResponseBytes = maxResponseBytes;
+        _defaultMaxResults = defaultMaxResults;
         return this;
     }
 
@@ -79,8 +72,7 @@ public sealed class QueryContextBuilder
         context.SetupGet(item => item.CurrentSolution).Returns(_currentSolution);
         context.SetupGet(item => item.WorkspaceIdentity).Returns(_workspaceIdentity);
         context.SetupGet(item => item.TransactionRevision).Returns(_transactionRevision);
-        context.SetupGet(item => item.EffectiveResultLimit).Returns(_effectiveResultLimit);
-        context.SetupGet(item => item.MaxResponseBytes).Returns(_maxResponseBytes);
+        context.SetupGet(item => item.DefaultMaxResults).Returns(_defaultMaxResults);
         context.SetupGet(item => item.WorkspaceResolver).Returns(resolver);
         context.SetupGet(item => item.ToolExecutionServices).Returns(_toolExecutionServices);
         context

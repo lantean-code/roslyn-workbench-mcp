@@ -35,13 +35,13 @@ internal sealed class ConvertToInterpolatedStringTool : MutationToolHandler<Conv
 
         if (request.Selection is null)
         {
-            return context.ToolExecutionServices.ResultShaper.Rejected<MutationProposal>("InvalidRequest", "A location selector is required.");
+            return ToolExecutionHelpers.Rejected<MutationProposal>("InvalidRequest", "A location selector is required.");
         }
 
         var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(request.Selection, cancellationToken).ConfigureAwait(false);
         if (locationResolution.Status != SelectorResolveStatus.Resolved)
         {
-            return context.ToolExecutionServices.ResultShaper.RejectFromStatus<MutationProposal>(locationResolution.Status, "Location");
+            return ToolExecutionHelpers.RejectFromStatus<MutationProposal>(locationResolution.Status, "Location");
         }
 
         return await context.StageReplayCodeActionAsync(new ReplayCodeActionRequest

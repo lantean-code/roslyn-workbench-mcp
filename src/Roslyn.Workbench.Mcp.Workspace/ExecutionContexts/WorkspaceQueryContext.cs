@@ -13,8 +13,7 @@ internal sealed class WorkspaceQueryContext : IQueryContext
         Solution currentSolution,
         WorkspaceIdentity workspaceIdentity,
         int? transactionRevision,
-        ResultLimit effectiveResultLimit,
-        int maxResponseBytes,
+        int defaultMaxResults,
         IWorkspaceResolver resolver,
         Roslyn.Workbench.Mcp.Workspace.CodeActions.Execution.ICodeActionQueryWorkflow codeActionWorkflow,
         IToolExecutionServices toolExecutionServices)
@@ -22,8 +21,7 @@ internal sealed class WorkspaceQueryContext : IQueryContext
         CurrentSolution = currentSolution;
         WorkspaceIdentity = workspaceIdentity;
         TransactionRevision = transactionRevision;
-        EffectiveResultLimit = effectiveResultLimit;
-        MaxResponseBytes = maxResponseBytes;
+        DefaultMaxResults = defaultMaxResults;
         WorkspaceResolver = resolver;
         _codeActionWorkflow = codeActionWorkflow;
         ToolExecutionServices = toolExecutionServices;
@@ -35,9 +33,7 @@ internal sealed class WorkspaceQueryContext : IQueryContext
 
     public int? TransactionRevision { get; }
 
-    public ResultLimit EffectiveResultLimit { get; }
-
-    public int MaxResponseBytes { get; }
+    public int DefaultMaxResults { get; }
 
     public IWorkspaceResolver WorkspaceResolver { get; }
 

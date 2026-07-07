@@ -20,24 +20,7 @@ public static class ToolSchemaFactory
             return CreateMutationResponseSchema();
         }
 
-        if (responseType == typeof(Contracts.CodeActions.CodeActionListData))
-        {
-            return CreateCodeActionListResponseSchema();
-        }
-
-        if (QueryResponseContract.TryGetCollectionItemType(responseType, out var itemType))
-        {
-            return CreateCollectionResponseSchema(
-                responseType,
-                itemType ?? throw new InvalidOperationException($"Collection response type '{responseType.FullName}' did not resolve an item type."));
-        }
-
-        if (QueryResponseContract.TryGetSingletonValueType(responseType, out var valueType))
-        {
-            return CreateSingletonResponseSchema(valueType ?? throw new InvalidOperationException($"Singleton response type '{responseType.FullName}' did not resolve a value type."));
-        }
-
-        throw new InvalidOperationException($"Unsupported query response type '{responseType.FullName}'.");
+        return CreateQueryResponseSchema(responseType);
     }
 
     public static JsonElement CreateToolResultSchema<TResult>()
@@ -65,7 +48,7 @@ public static class ToolSchemaFactory
         });
     }
 
-    private static JsonElement CreateSingletonResponseSchema(Type responseType)
+    private static JsonElement CreateQueryResponseSchema(Type responseType)
     {
         var valueSchema = ToolSchemaBuilder.CreateValueSchema(responseType);
 
@@ -73,72 +56,17 @@ public static class ToolSchemaFactory
             new JsonObject
             {
                 ["type"] = "object",
-                ["required"] = new JsonArray("ok", "value"),
+                ["required"] = new JsonArray("ok", "data"),
                 ["properties"] = new JsonObject
                 {
                     ["ok"] = new JsonObject
                     {
                         ["const"] = true,
                     },
-                    ["value"] = JsonNode.Parse(valueSchema.GetRawText()),
+                    ["data"] = JsonNode.Parse(valueSchema.GetRawText()),
                 },
             },
             [valueSchema]);
-    }
-
-    private static JsonElement CreateCollectionResponseSchema(Type responseType, Type itemType)
-    {
-        var itemSchema = ToolSchemaBuilder.CreateValueSchema(itemType);
-        var truncationSchema = ToolSchemaBuilder.CreateValueSchema(typeof(IReadOnlyList<Contracts.Results.CollectionTruncation>));
-        var properties = new JsonObject
-        {
-            ["ok"] = new JsonObject
-            {
-                ["const"] = true,
-            },
-            ["items"] = ToolSchemaBuilder.CreateArraySchema(itemSchema),
-            ["hasMore"] = new JsonObject
-            {
-                ["type"] = "boolean",
-            },
-        };
-        var extraSchemas = new List<JsonElement>
-        {
-            itemSchema,
-            truncationSchema,
-        };
-
-        var attribute = QueryResponseContract.GetCollectionAttribute(responseType);
-        if (attribute is not null)
-        {
-            foreach (var property in responseType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
-            {
-                if (string.Equals(property.Name, attribute.CollectionPropertyName, StringComparison.Ordinal)
-                    || string.Equals(property.Name, "ReturnedCount", StringComparison.Ordinal)
-                    || string.Equals(property.Name, "HasMore", StringComparison.Ordinal)
-                    || string.Equals(property.Name, attribute.TruncationPropertyName, StringComparison.Ordinal))
-                {
-                    continue;
-                }
-
-                var propertySchema = ToolSchemaBuilder.CreateValueSchema(property.PropertyType);
-                extraSchemas.Add(propertySchema);
-                properties[JsonNamingPolicy.CamelCase.ConvertName(property.Name)] = JsonNode.Parse(propertySchema.GetRawText());
-            }
-        }
-        else
-        {
-            properties["truncatedBy"] = ToolSchemaBuilder.AllowNull(truncationSchema);
-        }
-
-        return ToolSchemaBuilder.CreateResponseSchema(
-            new JsonObject
-            {
-                ["type"] = "object",
-                ["required"] = new JsonArray("ok", "items", "hasMore"),
-                ["properties"] = properties,
-            },
-            extraSchemas);
     }
 
     private static JsonElement CreateMutationResponseSchema()
@@ -174,33 +102,6 @@ public static class ToolSchemaFactory
                 },
             },
             []);
-    }
-
-    private static JsonElement CreateCodeActionListResponseSchema()
-    {
-        var itemSchema = ToolSchemaBuilder.CreateValueSchema(typeof(Contracts.CodeActions.CodeActionListItem));
-        var truncationSchema = ToolSchemaBuilder.CreateValueSchema(typeof(IReadOnlyList<Contracts.Results.CollectionTruncation>));
-
-        return ToolSchemaBuilder.CreateResponseSchema(
-            new JsonObject
-            {
-                ["type"] = "object",
-                ["required"] = new JsonArray("ok", "items", "hasMore"),
-                ["properties"] = new JsonObject
-                {
-                    ["ok"] = new JsonObject
-                    {
-                        ["const"] = true,
-                    },
-                    ["items"] = ToolSchemaBuilder.CreateArraySchema(itemSchema),
-                    ["hasMore"] = new JsonObject
-                    {
-                        ["type"] = "boolean",
-                    },
-                    ["truncatedBy"] = ToolSchemaBuilder.AllowNull(truncationSchema),
-                },
-            },
-            [itemSchema, truncationSchema]);
     }
 
     private static JsonObject CreateSuccessVariant(

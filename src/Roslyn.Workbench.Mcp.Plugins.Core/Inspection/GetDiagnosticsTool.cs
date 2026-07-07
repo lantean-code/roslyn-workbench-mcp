@@ -51,16 +51,12 @@ internal sealed class GetDiagnosticsTool : QueryToolHandler<GetDiagnosticsReques
             .ThenBy(static diagnostic => diagnostic.Id, StringComparer.Ordinal)
             .ToArray();
 
-        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
-            context,
-            projectedDiagnostics,
-            ToolExecutionHelpers.GetMaxResults(context, request.Limit),
-            static (items, hasMore) => new DiagnosticsData
-            {
-                Diagnostics = items,
-                ReturnedCount = items.Count,
-                HasMore = hasMore,
-            });
+        return PluginExecutionResult<DiagnosticsData>.Success(new DiagnosticsData
+        {
+            Diagnostics = ToolExecutionHelpers.CreateBoundedCollection(
+                projectedDiagnostics,
+                ToolExecutionHelpers.GetMaxResults(context, request.DiagnosticsLimit)),
+        });
     }
 
     private static async ValueTask<IReadOnlyList<Diagnostic>> GetProjectDiagnosticsAsync(Project project, ImmutableHashSet<DocumentId> selectedDocumentIds, bool restrictToSelectedDocuments, CancellationToken cancellationToken)

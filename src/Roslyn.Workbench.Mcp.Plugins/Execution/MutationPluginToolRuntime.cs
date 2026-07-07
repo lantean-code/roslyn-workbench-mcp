@@ -41,19 +41,24 @@ internal sealed class MutationPluginToolRuntime<TRequest> : IPluginToolRuntime
             var context = contextLease.Context
                 ?? throw new InvalidOperationException("Mutation context acquisition completed without a mutation context.");
             var proposalResult = await _handler.ExecuteAsync(request, context, cancellationToken).ConfigureAwait(false);
-            var boxedResult = PluginExecutionResultBox.From(proposalResult);
 
-            if (boxedResult.Outcome != ToolOutcome.Succeeded
-                || boxedResult.Data is not MutationProposal proposal)
+            if (proposalResult.Outcome.IsError())
             {
-                return CreateCallToolResult(boxedResult);
+                return CreateCallToolResult(proposalResult);
+            }
+
+            if (proposalResult.Outcome == ToolOutcome.NoChange || proposalResult.Data is null)
+            {
+                return CreateCallToolResult(PluginExecutionResult<MutationData>.NoChange(
+                    diagnostics: proposalResult.Diagnostics,
+                    warnings: proposalResult.Warnings));
             }
 
             var stagedResult = await context
-                .StageAsync(_tool, proposal, boxedResult.Diagnostics, boxedResult.Warnings, cancellationToken)
+                .StageAsync(_tool, proposalResult.Data, proposalResult.Diagnostics, proposalResult.Warnings, cancellationToken)
                 .ConfigureAwait(false);
 
-            return CreateCallToolResult(PluginExecutionResultBox.From(stagedResult));
+            return CreateCallToolResult(stagedResult);
         }
         catch (OperationCanceledException)
         {
@@ -61,17 +66,44 @@ internal sealed class MutationPluginToolRuntime<TRequest> : IPluginToolRuntime
         }
         catch (Exception)
         {
-            return CreateCallToolResult(PluginExecutionResultBox.CreateUnhandledException());
+            return CreateCallToolResult(ToolExecutionFailureResult.CreateUnhandledException());
         }
     }
 
-    private static CallToolResult CreateCallToolResult(PluginExecutionResultBox result)
+    private static CallToolResult CreateCallToolResult(PluginExecutionResult<MutationProposal> result)
     {
         return new CallToolResult
         {
             Content = [],
-            StructuredContent = PluginToolResultSerializer.Serialize(ToolKind.Mutation, typeof(MutationData), result),
-            IsError = result.Outcome is ToolOutcome.Rejected or ToolOutcome.Conflict or ToolOutcome.Faulted,
+            StructuredContent = PluginPublishedResultSerializer.SerializeFailure(new ToolExecutionFailureResult
+            {
+                Outcome = result.Outcome,
+                Error = result.Error ?? throw new InvalidOperationException("Mutation failure result must provide an error."),
+                RequiredAction = result.RequiredAction,
+                Diagnostics = result.Diagnostics,
+                Warnings = result.Warnings,
+            }),
+            IsError = result.Outcome.IsError(),
+        };
+    }
+
+    private static CallToolResult CreateCallToolResult(PluginExecutionResult<MutationData> result)
+    {
+        return new CallToolResult
+        {
+            Content = [],
+            StructuredContent = PluginPublishedResultSerializer.SerializeMutation(result),
+            IsError = result.Outcome.IsError(),
+        };
+    }
+
+    private static CallToolResult CreateCallToolResult(ToolExecutionFailureResult result)
+    {
+        return new CallToolResult
+        {
+            Content = [],
+            StructuredContent = PluginPublishedResultSerializer.SerializeFailure(result),
+            IsError = result.Outcome.IsError(),
         };
     }
 }

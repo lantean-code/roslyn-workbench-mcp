@@ -24,9 +24,9 @@ public interface IToolExecutionContext
     int? TransactionRevision { get; }
 
     /// <summary>
-    /// Gets the effective result limit for bounded query operations.
+    /// Gets the default maximum collection size for bounded query operations.
     /// </summary>
-    ResultLimit EffectiveResultLimit { get; }
+    int DefaultMaxResults { get; }
 
     /// <summary>
     /// Gets the host-owned workspace resolution services for this invocation.

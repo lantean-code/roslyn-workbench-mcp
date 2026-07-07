@@ -2,7 +2,7 @@ using Roslyn.Workbench.Mcp.Contracts.Inspection;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
-internal sealed class GoToDefinitionTool : QueryToolHandler<GoToDefinitionRequest, QueryResponse<DefinitionData>>
+internal sealed class GoToDefinitionTool : QueryToolHandler<GoToDefinitionRequest, DefinitionData>
 {
     private static readonly ToolRegistrationMetadata _metadata = new()
     {
@@ -16,10 +16,10 @@ internal sealed class GoToDefinitionTool : QueryToolHandler<GoToDefinitionReques
         registry.RegisterQueryTool(_metadata, new GoToDefinitionTool());
     }
 
-    protected override async ValueTask<PluginExecutionResult<QueryResponse<DefinitionData>>> ExecuteCoreAsync(GoToDefinitionRequest request, IQueryContext context, CancellationToken cancellationToken)
+    protected override async ValueTask<PluginExecutionResult<DefinitionData>> ExecuteCoreAsync(GoToDefinitionRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<QueryResponse<DefinitionData>>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<DefinitionData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
@@ -45,6 +45,6 @@ internal sealed class GoToDefinitionTool : QueryToolHandler<GoToDefinitionReques
             Definitions = definitions,
         };
 
-        return context.ToolExecutionServices.ResultShaper.CreateSingletonResponse(context, data);
+        return PluginExecutionResult<DefinitionData>.Success(data);
     }
 }

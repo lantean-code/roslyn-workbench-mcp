@@ -72,16 +72,12 @@ internal sealed class AnalyzeDisposablesTool : QueryToolHandler<AnalyzeDisposabl
             .ThenBy(static finding => finding.Type?.DisplayName ?? string.Empty, StringComparer.Ordinal)
             .ToArray();
 
-        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
-            context,
-            orderedFindings,
-            ToolExecutionHelpers.GetMaxResults(context, request.Limit),
-            static (items, hasMore) => new DisposableAnalysisData
-            {
-                Findings = items,
-                ReturnedCount = items.Count,
-                HasMore = hasMore,
-            });
+        return PluginExecutionResult<DisposableAnalysisData>.Success(new DisposableAnalysisData
+        {
+            Findings = ToolExecutionHelpers.CreateBoundedCollection(
+                orderedFindings,
+                ToolExecutionHelpers.GetMaxResults(context, request.FindingsLimit)),
+        });
     }
 
     private static bool ImplementsDisposable(ITypeSymbol type, Compilation compilation)

@@ -31,7 +31,7 @@ internal sealed class FindOverridesTool : QueryToolHandler<FindOverridesRequest,
         var symbol = symbolResolution.Value;
         if (symbol is not IMethodSymbol and not IPropertySymbol and not IEventSymbol)
         {
-            return context.ToolExecutionServices.ResultShaper.Rejected<OverrideSearchData>("InvalidRequest", "Find overrides requires a virtual, abstract, property, or event member symbol.");
+            return ToolExecutionHelpers.Rejected<OverrideSearchData>("InvalidRequest", "Find overrides requires a virtual, abstract, property, or event member symbol.");
         }
 
         var scopeResolution = context.ToolExecutionServices.RequestResolver.ResolveProjects<OverrideSearchData>(request.Scope, context);
@@ -46,16 +46,12 @@ internal sealed class FindOverridesTool : QueryToolHandler<FindOverridesRequest,
             .Select(context.WorkspaceResolver.CreateSymbolReference)
             .ToArray();
 
-        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
-            context,
-            overrides,
-            ToolExecutionHelpers.GetMaxResults(context, request.Limit),
-            (items, hasMore) => new OverrideSearchData
-            {
-                Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
-                Overrides = items,
-                ReturnedCount = items.Count,
-                HasMore = hasMore,
-            });
+        return PluginExecutionResult<OverrideSearchData>.Success(new OverrideSearchData
+        {
+            Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
+            Overrides = ToolExecutionHelpers.CreateBoundedCollection(
+                overrides,
+                ToolExecutionHelpers.GetMaxResults(context, request.OverridesLimit)),
+        });
     }
 }

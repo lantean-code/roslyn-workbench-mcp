@@ -21,6 +21,6 @@ public sealed class FindImplementationsToolTests
             },
         });
 
-        result.Data!.Implementations.Should().Contain(static symbol => symbol.DisplayName.Contains("GreetingFormatter", StringComparison.Ordinal));
+        result.Data!.Implementations.Items.Should().Contain(static symbol => symbol.DisplayName.Contains("GreetingFormatter", StringComparison.Ordinal));
     }
 }

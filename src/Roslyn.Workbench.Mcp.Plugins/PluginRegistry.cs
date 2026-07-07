@@ -86,6 +86,7 @@ public sealed class PluginRegistry : IPluginRegistry
             Metadata = metadata,
             Kind = ToolKind.Query,
             RequestType = requestType,
+            ResponseType = responseType,
             InputSchema = ToolSchemaFactory.CreateInputSchema<TRequest>(),
             OutputSchema = _outputSchemaMode == ToolOutputSchemaMode.Full
                 ? ToolSchemaFactory.CreateOutputSchema(ToolKind.Query, responseType)
@@ -116,6 +117,7 @@ public sealed class PluginRegistry : IPluginRegistry
             Metadata = metadata,
             Kind = ToolKind.Mutation,
             RequestType = requestType,
+            ResponseType = typeof(Contracts.Results.MutationData),
             InputSchema = ToolSchemaFactory.CreateInputSchema<TRequest>(),
             OutputSchema = _outputSchemaMode == ToolOutputSchemaMode.Full
                 ? ToolSchemaFactory.CreateOutputSchema(ToolKind.Mutation, typeof(Contracts.Results.MutationData))
@@ -145,12 +147,6 @@ public sealed class PluginRegistry : IPluginRegistry
         if (!_toolNames.Add(metadata.Name))
         {
             throw new InvalidOperationException($"Tool name '{metadata.Name}' is already registered for plugin '{_pluginMetadata.PluginId}'.");
-        }
-
-        if (kind == ToolKind.Query && !QueryResponseContract.IsSupportedQueryResponseType(responseType))
-        {
-            throw new InvalidOperationException(
-                $"Query tool '{metadata.Name}' must return '{typeof(QueryResponse<>).FullName}', '{typeof(CollectionResponse<>).FullName}', or a supported internal query response contract.");
         }
 
         if (kind == ToolKind.Mutation && responseType != typeof(MutationProposal))

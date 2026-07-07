@@ -24,7 +24,7 @@ internal sealed class IntroduceVariableTool : MutationToolHandler<IntroduceVaria
     {
         if (request.Selection is null)
         {
-            return ValueTask.FromResult(context.ToolExecutionServices.ResultShaper.Rejected<MutationProposal>("InvalidRequest", "A location selector is required."));
+            return ValueTask.FromResult(ToolExecutionHelpers.Rejected<MutationProposal>("InvalidRequest", "A location selector is required."));
         }
 
         var replayRequest = request.Kind switch

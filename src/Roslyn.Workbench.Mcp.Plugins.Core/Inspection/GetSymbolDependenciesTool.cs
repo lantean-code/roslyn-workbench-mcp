@@ -61,17 +61,13 @@ internal sealed class GetSymbolDependenciesTool : QueryToolHandler<GetSymbolDepe
             })
             .ToArray();
 
-        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
-            context,
-            orderedDependencies,
-            ToolExecutionHelpers.GetMaxResults(context, request.Limit),
-            (items, hasMore) => new SymbolDependenciesData
-            {
-                Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
-                Dependencies = items,
-                ReturnedCount = items.Count,
-                HasMore = hasMore,
-            });
+        return PluginExecutionResult<SymbolDependenciesData>.Success(new SymbolDependenciesData
+        {
+            Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
+            Dependencies = ToolExecutionHelpers.CreateBoundedCollection(
+                orderedDependencies,
+                ToolExecutionHelpers.GetMaxResults(context, request.DependenciesLimit)),
+        });
     }
 
     private static void AddSignatureDependencies(ISymbol symbol, ISet<ISymbol> dependencies)

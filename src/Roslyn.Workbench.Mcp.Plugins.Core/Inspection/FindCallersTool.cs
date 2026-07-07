@@ -71,16 +71,12 @@ internal sealed class FindCallersTool : QueryToolHandler<FindCallersRequest, Cal
             .ToArray();
         var symbolReference = context.WorkspaceResolver.CreateSymbolReference(symbol);
 
-        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
-            context,
-            orderedCallers,
-            ToolExecutionHelpers.GetMaxResults(context, request.Limit),
-            (items, hasMore) => new CallerSearchData
-            {
-                Symbol = symbolReference,
-                Callers = items,
-                ReturnedCount = items.Count,
-                HasMore = hasMore,
-            });
+        return PluginExecutionResult<CallerSearchData>.Success(new CallerSearchData
+        {
+            Symbol = symbolReference,
+            Callers = ToolExecutionHelpers.CreateBoundedCollection(
+                orderedCallers,
+                ToolExecutionHelpers.GetMaxResults(context, request.CallersLimit)),
+        });
     }
 }

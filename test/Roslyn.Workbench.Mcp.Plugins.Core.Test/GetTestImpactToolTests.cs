@@ -28,7 +28,7 @@ public sealed class GetTestImpactToolTests
         });
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data!.GetProperty("items").EnumerateArray().All(static test => !test.TryGetProperty("reasons", out _)).Should().BeTrue();
+        result.Data!.GetProperty("tests").GetProperty("items").EnumerateArray().All(static test => !test.TryGetProperty("reasons", out _)).Should().BeTrue();
     }
 
     [Fact]
@@ -54,7 +54,7 @@ public sealed class GetTestImpactToolTests
         });
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data!.GetProperty("items").EnumerateArray().Select(static test => test.GetProperty("reasons").EnumerateArray().Select(static reason => reason.GetString()).ToArray()).Should().Contain(static reasons =>
+        result.Data!.GetProperty("tests").GetProperty("items").EnumerateArray().Select(static test => test.GetProperty("reasons").EnumerateArray().Select(static reason => reason.GetString()).ToArray()).Should().Contain(static reasons =>
             reasons.Any(static reason => reason!.Contains("reference", StringComparison.OrdinalIgnoreCase) || reason.Contains("call", StringComparison.OrdinalIgnoreCase)));
     }
 

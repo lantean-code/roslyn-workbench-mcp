@@ -74,10 +74,14 @@ public sealed class GetApiSurfaceToolTests
     }
 
     [Fact]
-    public async Task GIVEN_ResponseExceedsConfiguredLimit_WHEN_CallingExecute_THEN_ShouldReturnNarrowRequestRejection()
+    public async Task GIVEN_LowDefaultMaxResults_WHEN_CallingExecute_THEN_ShouldBoundResults()
     {
         using var workspace = MiniWorkspaceFactory.CreateCSharp("""
             namespace Sample;
+
+            public interface IMessageFormatter
+            {
+            }
 
             public sealed class GreetingFormatter
             {
@@ -89,15 +93,15 @@ public sealed class GetApiSurfaceToolTests
             .WithCurrentSolution(workspace.Solution)
             .WithResolver(resolver)
             .WithWorkspaceIdentity(workspaceIdentity)
-            .WithMaxResponseBytes(1)
+            .WithDefaultMaxResults(1)
             .Build();
         var target = new GetApiSurfaceTool();
 
         var result = await target.ExecuteAsync(new GetApiSurfaceRequest(), context, CancellationToken.None);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error!.Code.Should().Be("ResponseLimitExceeded");
-        result.RequiredAction.Should().Be(RequiredAction.NarrowRequest);
+        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Data!.Symbols.Items.Should().HaveCount(1);
+        result.Data.Symbols.HasMore.Should().BeTrue();
     }
 
     [Fact]
@@ -136,7 +140,7 @@ public sealed class GetApiSurfaceToolTests
         }, context, CancellationToken.None);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data!.Symbols.Should().Contain(static symbol => symbol.Symbol!.DisplayName.Contains("GreetingFormatter", StringComparison.Ordinal));
-        result.Data.Symbols.Should().Contain(static symbol => symbol.Symbol!.DisplayName.Contains("IMessageFormatter", StringComparison.Ordinal));
+        result.Data!.Symbols.Items.Should().Contain(static symbol => symbol.Symbol!.DisplayName.Contains("GreetingFormatter", StringComparison.Ordinal));
+        result.Data.Symbols.Items.Should().Contain(static symbol => symbol.Symbol!.DisplayName.Contains("IMessageFormatter", StringComparison.Ordinal));
     }
 }

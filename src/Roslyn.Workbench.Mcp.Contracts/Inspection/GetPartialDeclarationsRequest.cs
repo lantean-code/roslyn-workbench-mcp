@@ -15,7 +15,7 @@ public sealed record GetPartialDeclarationsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
-    public ResultLimit? Limit { get; init; }
+    public CollectionLimit? DeclarationsLimit { get; init; }
 
     /// <summary>
     /// Gets the expected snapshot for location-based symbol selectors.

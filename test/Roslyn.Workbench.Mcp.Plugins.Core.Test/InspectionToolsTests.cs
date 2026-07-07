@@ -236,19 +236,19 @@ public sealed class InspectionToolsTests
             }),
         });
 
-        solutionStructure.Data!.Projects.Should().ContainSingle(static project => project.Name == "Sample");
+        solutionStructure.Data!.Projects.Items.Should().ContainSingle(static project => project.Name == "Sample");
         projectDetails.Data!.Project!.Name.Should().Be("Sample");
         documentOptions.Data!.LanguageVersion.Should().NotBeNullOrWhiteSpace();
         documentOptions.Data.AnalyzerConfig!.EditorConfigPaths.Should().Contain(static path => path.EndsWith(".editorconfig", StringComparison.Ordinal));
         documentOptions.Data.AnalyzerConfig.Options.Should().ContainKey("build_property.targetframework");
-        searchSymbols.Data!.Symbols.Should().Contain(static symbol => symbol.DisplayName.Contains("GreetingFormatter", StringComparison.Ordinal));
+        searchSymbols.Data!.Symbols.Items.Should().Contain(static symbol => symbol.DisplayName.Contains("GreetingFormatter", StringComparison.Ordinal));
         resolveSymbol.Data!.Symbol!.DisplayName.Should().Contain("GreetingFormatter");
         symbolInfo.Data!.Documentation.Should().NotBeNull();
         definition.Data!.Definitions.Should().NotBeEmpty();
-        references.Data!.References.Should().NotBeEmpty();
-        callers.Data!.Callers.Should().Contain(static caller => caller.Caller!.DisplayName.Contains("Call", StringComparison.Ordinal));
-        implementations.Data!.Implementations.Should().Contain(static symbol => symbol.DisplayName.Contains("GreetingFormatter", StringComparison.Ordinal));
-        diagnostics.Data!.Diagnostics.Should().Contain(static diagnostic => diagnostic.Id == "CS0219");
+        references.Data!.References.Items.Should().NotBeEmpty();
+        callers.Data!.Callers.Items.Should().Contain(static caller => caller.Caller!.DisplayName.Contains("Call", StringComparison.Ordinal));
+        implementations.Data!.Implementations.Items.Should().Contain(static symbol => symbol.DisplayName.Contains("GreetingFormatter", StringComparison.Ordinal));
+        diagnostics.Data!.Diagnostics.Items.Should().Contain(static diagnostic => diagnostic.Id == "CS0219");
         EnumerateOutline(outline.Data!.Root!).Should().Contain(static node => node.Name == "GreetingFormatter");
     }
 
@@ -345,16 +345,16 @@ public sealed class InspectionToolsTests
             }),
         });
 
-        symbolMembers.Data!.Members.Should().Contain(static symbol => symbol.DisplayName.Contains("Decorate", StringComparison.Ordinal));
-        symbolMembers.Data.Members.Should().Contain(static symbol => symbol.DisplayName.Contains("Prefix", StringComparison.Ordinal));
-        symbolAttributes.Data!.Attributes.Should().Contain(static attribute => attribute.Name.Contains("Serializable", StringComparison.Ordinal));
-        symbolAttributes.Data.Attributes.Should().Contain(static attribute => attribute.Name.Contains("Obsolete", StringComparison.Ordinal));
-        derivedTypes.Data!.DerivedTypes.Should().Contain(static node => node.Type!.DisplayName.Contains("DerivedGreetingFormatter", StringComparison.Ordinal));
-        typeHierarchy.Data!.BaseTypes.Should().Contain(static symbol => symbol.DisplayName.Contains("FormatterBase", StringComparison.Ordinal));
-        typeHierarchy.Data.Interfaces.Should().Contain(static symbol => symbol.DisplayName.Contains("IMessageFormatter", StringComparison.Ordinal));
-        typeHierarchy.Data.DerivedTypes.Should().Contain(static node => node.Type!.DisplayName.Contains("DerivedGreetingFormatter", StringComparison.Ordinal));
-        overloads.Data!.Overloads.Should().HaveCount(2);
-        partialDeclarations.Data!.Declarations.Should().HaveCount(2);
+        symbolMembers.Data!.Members.Items.Should().Contain(static symbol => symbol.DisplayName.Contains("Decorate", StringComparison.Ordinal));
+        symbolMembers.Data.Members.Items.Should().Contain(static symbol => symbol.DisplayName.Contains("Prefix", StringComparison.Ordinal));
+        symbolAttributes.Data!.Attributes.Items.Should().Contain(static attribute => attribute.Name.Contains("Serializable", StringComparison.Ordinal));
+        symbolAttributes.Data.Attributes.Items.Should().Contain(static attribute => attribute.Name.Contains("Obsolete", StringComparison.Ordinal));
+        derivedTypes.Data!.DerivedTypes.Items.Should().Contain(static node => node.Type!.DisplayName.Contains("DerivedGreetingFormatter", StringComparison.Ordinal));
+        typeHierarchy.Data!.BaseTypes.Items.Should().Contain(static symbol => symbol.DisplayName.Contains("FormatterBase", StringComparison.Ordinal));
+        typeHierarchy.Data.Interfaces.Items.Should().Contain(static symbol => symbol.DisplayName.Contains("IMessageFormatter", StringComparison.Ordinal));
+        typeHierarchy.Data.DerivedTypes!.Items.Should().Contain(static node => node.Type!.DisplayName.Contains("DerivedGreetingFormatter", StringComparison.Ordinal));
+        overloads.Data!.Overloads.Items.Should().HaveCount(2);
+        partialDeclarations.Data!.Declarations.Items.Should().HaveCount(2);
         controlFlow.Data!.Exits.Should().NotBeEmpty();
         dataFlow.Data!.DataFlowsOut.Should().Contain(static symbol => symbol.DisplayName.Contains("upper", StringComparison.Ordinal));
         operationTree.Data!.Root!.Kind.Should().Contain("Invocation");
@@ -420,11 +420,11 @@ public sealed class InspectionToolsTests
         codeContext.Data.GetProperty("diagnostics").EnumerateArray().Select(static diagnostic => diagnostic.GetProperty("id").GetString()).Should().Contain("CS0219");
         codeContext.Data.GetProperty("enclosingSymbols").EnumerateArray().Select(static symbol => symbol.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter.Format", StringComparison.Ordinal));
 
-        callees.Data!.GetProperty("items").EnumerateArray().Select(static callee => callee.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter.Format", StringComparison.Ordinal));
-        callees.Data.GetProperty("items").EnumerateArray().Select(static callee => callee.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter.GreetingFormatter", StringComparison.Ordinal) || displayName!.Contains(".ctor", StringComparison.Ordinal));
+        GetBoundedItems(callees.Data!, "callees").EnumerateArray().Select(static callee => callee.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter.Format", StringComparison.Ordinal));
+        GetBoundedItems(callees.Data, "callees").EnumerateArray().Select(static callee => callee.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter.GreetingFormatter", StringComparison.Ordinal) || displayName!.Contains(".ctor", StringComparison.Ordinal));
 
-        overrides.Data!.GetProperty("items").EnumerateArray().Select(static symbol => symbol.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter.Decorate", StringComparison.Ordinal));
-        overrides.Data.GetProperty("items").EnumerateArray().Select(static symbol => symbol.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("DerivedGreetingFormatter.Decorate", StringComparison.Ordinal));
+        GetBoundedItems(overrides.Data!, "overrides").EnumerateArray().Select(static symbol => symbol.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter.Decorate", StringComparison.Ordinal));
+        GetBoundedItems(overrides.Data, "overrides").EnumerateArray().Select(static symbol => symbol.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("DerivedGreetingFormatter.Decorate", StringComparison.Ordinal));
 
         branchOnlyControlFlowGraph.Data!.Regions.Should().NotBeEmpty();
         branchOnlyControlFlowGraph.Data.Regions.Select(static region => region.Kind).Should().Contain("Root");
@@ -480,18 +480,18 @@ public sealed class InspectionToolsTests
             }),
         });
 
-        dependencies.Data!.GetProperty("items").EnumerateArray().Select(static dependency => dependency.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("ToUpperInvariant", StringComparison.Ordinal));
-        dependencies.Data.GetProperty("items").EnumerateArray().Select(static dependency => dependency.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("Decorate", StringComparison.Ordinal));
+        GetBoundedItems(dependencies.Data!, "dependencies").EnumerateArray().Select(static dependency => dependency.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("ToUpperInvariant", StringComparison.Ordinal));
+        GetBoundedItems(dependencies.Data, "dependencies").EnumerateArray().Select(static dependency => dependency.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("Decorate", StringComparison.Ordinal));
 
-        dependents.Data!.GetProperty("items").EnumerateArray().Select(static dependent => dependent.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("FormatterCaller.Call", StringComparison.Ordinal));
-        dependents.Data.GetProperty("items").EnumerateArray().Select(static dependent => dependent.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter.Format", StringComparison.Ordinal) && displayName!.Contains("bool", StringComparison.Ordinal));
+        GetBoundedItems(dependents.Data!, "dependents").EnumerateArray().Select(static dependent => dependent.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("FormatterCaller.Call", StringComparison.Ordinal));
+        GetBoundedItems(dependents.Data, "dependents").EnumerateArray().Select(static dependent => dependent.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter.Format", StringComparison.Ordinal) && displayName!.Contains("bool", StringComparison.Ordinal));
 
         changeImpact.Data!.GetProperty("impact").GetProperty("referenceCount").GetInt32().Should().BeGreaterThan(0);
         changeImpact.Data.GetProperty("impact").GetProperty("callerCount").GetInt32().Should().BeGreaterThan(0);
-        changeImpact.Data.GetProperty("items").EnumerateArray().Select(static location => location.GetProperty("context").GetString()).Should().Contain(static context => context!.Contains("formatter.Format(\"hi\")", StringComparison.Ordinal));
+        GetBoundedItems(changeImpact.Data, "locations").EnumerateArray().Select(static location => location.GetProperty("context").GetString()).Should().Contain(static context => context!.Contains("formatter.Format(\"hi\")", StringComparison.Ordinal));
 
-        apiSurface.Data!.GetProperty("items").EnumerateArray().Select(static symbol => symbol.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter", StringComparison.Ordinal));
-        apiSurface.Data.GetProperty("items").EnumerateArray().Select(static symbol => symbol.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("IMessageFormatter", StringComparison.Ordinal));
+        GetBoundedItems(apiSurface.Data!, "symbols").EnumerateArray().Select(static symbol => symbol.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter", StringComparison.Ordinal));
+        GetBoundedItems(apiSurface.Data, "symbols").EnumerateArray().Select(static symbol => symbol.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("IMessageFormatter", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -543,15 +543,15 @@ public sealed class InspectionToolsTests
             }),
         });
 
-        dependencyGraph.Data!.GetProperty("nodes").EnumerateArray().Select(static node => node.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("FormatterCaller", StringComparison.Ordinal));
-        dependencyGraph.Data.GetProperty("nodes").EnumerateArray().Select(static node => node.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter", StringComparison.Ordinal));
-        dependencyGraph.Data.GetProperty("edges").EnumerateArray().Select(static edge => $"{edge.GetProperty("fromDisplayName").GetString()}->{edge.GetProperty("toDisplayName").GetString()}").Should().Contain(static edge => edge.Contains("FormatterCaller", StringComparison.Ordinal) && edge.Contains("GreetingFormatter", StringComparison.Ordinal));
+        GetBoundedItems(dependencyGraph.Data!, "nodes").EnumerateArray().Select(static node => node.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("FormatterCaller", StringComparison.Ordinal));
+        GetBoundedItems(dependencyGraph.Data, "nodes").EnumerateArray().Select(static node => node.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter", StringComparison.Ordinal));
+        GetBoundedItems(dependencyGraph.Data, "edges").EnumerateArray().Select(static edge => $"{edge.GetProperty("fromDisplayName").GetString()}->{edge.GetProperty("toDisplayName").GetString()}").Should().Contain(static edge => edge.Contains("FormatterCaller", StringComparison.Ordinal) && edge.Contains("GreetingFormatter", StringComparison.Ordinal));
 
-        dependencyCycles.Data!.GetProperty("items").EnumerateArray().Select(static cycle => cycle.GetProperty("nodes").EnumerateArray().Select(static node => node.GetProperty("displayName").GetString()).ToArray()).Should().Contain(static cycleNodes =>
+        GetBoundedItems(dependencyCycles.Data!, "cycles").EnumerateArray().Select(static cycle => cycle.GetProperty("nodes").EnumerateArray().Select(static node => node.GetProperty("displayName").GetString()).ToArray()).Should().Contain(static cycleNodes =>
             cycleNodes.Any(static displayName => displayName!.Contains("AlphaCycle", StringComparison.Ordinal))
             && cycleNodes.Any(static displayName => displayName!.Contains("BetaCycle", StringComparison.Ordinal)));
 
-        testImpact.Data!.GetProperty("items").EnumerateArray().Select(static test => test.GetProperty("test").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GIVEN_FormatterCaller_WHEN_CallingCall_THEN_ShouldReturnFormattedGreeting", StringComparison.Ordinal));
+        GetBoundedItems(testImpact.Data!, "tests").EnumerateArray().Select(static test => test.GetProperty("test").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GIVEN_FormatterCaller_WHEN_CallingCall_THEN_ShouldReturnFormattedGreeting", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -615,18 +615,18 @@ public sealed class InspectionToolsTests
             }),
         });
 
-        unusedSymbols.Data!.GetProperty("items").EnumerateArray().Select(static candidate => candidate.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("unused", StringComparison.Ordinal));
-        unusedSymbols.Data.GetProperty("items").EnumerateArray().Select(static candidate => candidate.GetProperty("reasons").EnumerateArray().Select(static reason => reason.GetString()).ToArray()).Should().Contain(static reasons =>
+        GetBoundedItems(unusedSymbols.Data!, "candidates").EnumerateArray().Select(static candidate => candidate.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("unused", StringComparison.Ordinal));
+        GetBoundedItems(unusedSymbols.Data, "candidates").EnumerateArray().Select(static candidate => candidate.GetProperty("reasons").EnumerateArray().Select(static reason => reason.GetString()).ToArray()).Should().Contain(static reasons =>
             reasons.Any(static reason => reason!.Contains("CS0219", StringComparison.Ordinal)));
 
-        nullability.Data!.GetProperty("items").EnumerateArray().Select(static finding => finding.GetProperty("diagnostic").GetProperty("id").GetString()).Should().Contain("CS8602");
-        nullability.Data.GetProperty("items").EnumerateArray().Select(static finding => finding.GetProperty("diagnostic").GetProperty("message").GetString()).Should().Contain(static message => message!.Contains("possibly null", StringComparison.OrdinalIgnoreCase));
+        GetBoundedItems(nullability.Data!, "findings").EnumerateArray().Select(static finding => finding.GetProperty("diagnostic").GetProperty("id").GetString()).Should().Contain("CS8602");
+        GetBoundedItems(nullability.Data, "findings").EnumerateArray().Select(static finding => finding.GetProperty("diagnostic").GetProperty("message").GetString()).Should().Contain(static message => message!.Contains("possibly null", StringComparison.OrdinalIgnoreCase));
 
-        asyncAnalysis.Data!.GetProperty("items").EnumerateArray().Select(static finding => finding.GetProperty("kind").GetString()).Should().Contain("AsyncWithoutAwait");
-        asyncAnalysis.Data.GetProperty("items").EnumerateArray().Select(static finding => finding.GetProperty("kind").GetString()).Should().Contain("UnawaitedTask");
+        GetBoundedItems(asyncAnalysis.Data!, "findings").EnumerateArray().Select(static finding => finding.GetProperty("kind").GetString()).Should().Contain("AsyncWithoutAwait");
+        GetBoundedItems(asyncAnalysis.Data, "findings").EnumerateArray().Select(static finding => finding.GetProperty("kind").GetString()).Should().Contain("UnawaitedTask");
 
-        disposableAnalysis.Data!.GetProperty("items").EnumerateArray().Select(static finding => finding.GetProperty("kind").GetString()).Should().Contain("UndisposedLocal");
-        disposableAnalysis.Data.GetProperty("items").EnumerateArray().Select(static finding => finding.GetProperty("type").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("MemoryStream", StringComparison.Ordinal));
+        GetBoundedItems(disposableAnalysis.Data!, "findings").EnumerateArray().Select(static finding => finding.GetProperty("kind").GetString()).Should().Contain("UndisposedLocal");
+        GetBoundedItems(disposableAnalysis.Data, "findings").EnumerateArray().Select(static finding => finding.GetProperty("type").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("MemoryStream", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -681,15 +681,15 @@ public sealed class InspectionToolsTests
             ["minimumStatements"] = JsonSerializer.SerializeToElement(3),
         });
 
-        typeMetrics.Data!.GetProperty("items").EnumerateArray().Select(static metric => metric.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter.Format", StringComparison.Ordinal));
-        metrics.Data!.GetProperty("items").EnumerateArray().Select(static metric => metric.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("ConditionalSamples.DescribeValue", StringComparison.Ordinal));
-        metrics.Data.GetProperty("items").EnumerateArray().Select(static metric => metric.GetProperty("cyclomaticComplexity").GetInt32()).Should().Contain(static complexity => complexity >= 3);
-        metrics.Data.GetProperty("items").EnumerateArray().Select(static metric => metric.GetProperty("logicalLines").GetInt32()).Should().Contain(static logicalLines => logicalLines >= 5);
+        GetBoundedItems(typeMetrics.Data!, "metrics").EnumerateArray().Select(static metric => metric.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter.Format", StringComparison.Ordinal));
+        GetBoundedItems(metrics.Data!, "metrics").EnumerateArray().Select(static metric => metric.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("ConditionalSamples.DescribeValue", StringComparison.Ordinal));
+        GetBoundedItems(metrics.Data, "metrics").EnumerateArray().Select(static metric => metric.GetProperty("cyclomaticComplexity").GetInt32()).Should().Contain(static complexity => complexity >= 3);
+        GetBoundedItems(metrics.Data, "metrics").EnumerateArray().Select(static metric => metric.GetProperty("logicalLines").GetInt32()).Should().Contain(static logicalLines => logicalLines >= 5);
 
-        duplicateCode.Data!.GetProperty("items").EnumerateArray().Select(static group => group.GetProperty("occurrences").EnumerateArray().Select(static occurrence => occurrence.GetProperty("symbol").GetProperty("displayName").GetString()).ToArray()).Should().Contain(static displays =>
+        GetBoundedItems(duplicateCode.Data!, "groups").EnumerateArray().Select(static group => group.GetProperty("occurrences").EnumerateArray().Select(static occurrence => occurrence.GetProperty("symbol").GetProperty("displayName").GetString()).ToArray()).Should().Contain(static displays =>
             displays.Any(static display => display!.Contains("DuplicateCodeSamples.ComputeOne", StringComparison.Ordinal))
             && displays.Any(static display => display!.Contains("DuplicateCodeSamples.ComputeTwo", StringComparison.Ordinal)));
-        duplicateCode.Data.GetProperty("items").EnumerateArray().Select(static group => group.GetProperty("statementCount").GetInt32()).Should().Contain(static statementCount => statementCount >= 3);
+        GetBoundedItems(duplicateCode.Data, "groups").EnumerateArray().Select(static group => group.GetProperty("statementCount").GetInt32()).Should().Contain(static statementCount => statementCount >= 3);
     }
 
     [Fact]
@@ -1341,7 +1341,7 @@ public sealed class InspectionToolsTests
             ["ids"] = JsonSerializer.SerializeToElement(new[] { "CS0219" }),
         });
 
-        result.Data!.Diagnostics.Should().ContainSingle(static diagnostic => diagnostic.Id == "CS0219");
+        result.Data!.Diagnostics.Items.Should().ContainSingle(static diagnostic => diagnostic.Id == "CS0219");
     }
 
     [Fact]
@@ -1363,24 +1363,24 @@ public sealed class InspectionToolsTests
         var result = await ExecuteAsync<SymbolSearchData>(executor, registry, "search-symbols", new Dictionary<string, JsonElement>
         {
             ["query"] = JsonSerializer.SerializeToElement("Format"),
-            ["limit"] = JsonSerializer.SerializeToElement(new ResultLimit
+            ["symbolsLimit"] = JsonSerializer.SerializeToElement(new CollectionLimit
             {
                 MaxResults = 1,
             }),
         });
 
-        result.Data!.Symbols.Should().HaveCount(1);
-        result.Data.HasMore.Should().BeTrue();
+        result.Data!.Symbols.Items.Should().HaveCount(1);
+        result.Data.Symbols.HasMore.Should().BeTrue();
     }
 
     [Fact]
-    public async Task GIVEN_LowResponseByteLimit_WHEN_SearchingSymbols_THEN_ShouldTruncateInsteadOfRejecting()
+    public async Task GIVEN_LowDefaultMaxResults_WHEN_SearchingSymbols_THEN_ShouldBoundResults()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
         var fullCoordinator = WorkspaceCoordinatorFactory.Create(toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var truncatedCoordinator = WorkspaceCoordinatorFactory.Create(new WorkspaceRuntimeOptions
         {
-            MaxResponseBytes = 500,
+            DefaultMaxResults = 1,
         }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
@@ -1407,10 +1407,10 @@ public sealed class InspectionToolsTests
             ["query"] = JsonSerializer.SerializeToElement("Format"),
         });
 
-        fullResult.Data!.Symbols.Count.Should().BeGreaterThan(1);
+        fullResult.Data!.Symbols.Items.Count.Should().BeGreaterThan(1);
         truncatedResult.Outcome.Should().Be(ToolOutcome.Succeeded);
-        truncatedResult.Data!.Symbols.Count.Should().BeLessThan(fullResult.Data.Symbols.Count);
-        truncatedResult.Data.HasMore.Should().BeTrue();
+        truncatedResult.Data!.Symbols.Items.Count.Should().BeLessThan(fullResult.Data.Symbols.Items.Count);
+        truncatedResult.Data.Symbols.HasMore.Should().BeTrue();
     }
 
     [Fact]
@@ -1431,9 +1431,9 @@ public sealed class InspectionToolsTests
 
         var result = await ExecuteAsync<SolutionStructureData>(executor, registry, "get-solution-structure", new Dictionary<string, JsonElement>());
 
-        result.Data!.Folders.Should().Contain(static folder => folder.Path == "src");
-        result.Data.Folders.Should().Contain(static folder => folder.Path == "src/core" && folder.ParentPath == "src");
-        result.Data.Projects.Should().ContainSingle(static project => project.Name == "Lib" && project.SolutionFolderPath == "src/core");
+        result.Data!.Folders.Items.Should().Contain(static folder => folder.Path == "src");
+        result.Data.Folders.Items.Should().Contain(static folder => folder.Path == "src/core" && folder.ParentPath == "src");
+        result.Data.Projects.Items.Should().ContainSingle(static project => project.Name == "Lib" && project.SolutionFolderPath == "src/core");
     }
 
     [Fact]
@@ -1462,8 +1462,8 @@ public sealed class InspectionToolsTests
             ["includeContext"] = JsonSerializer.SerializeToElement(true),
         });
 
-        result.Data!.References.Should().Contain(static reference => reference.IsWrite && reference.Context == "Current = value;");
-        result.Data.References.Should().Contain(static reference => !reference.IsWrite && reference.Context == "return Current;");
+        result.Data!.References.Items.Should().Contain(static reference => reference.IsWrite && reference.Context == "Current = value;");
+        result.Data.References.Items.Should().Contain(static reference => !reference.IsWrite && reference.Context == "return Current;");
     }
 
     private static async Task<ToolResult<TResponse>> ExecuteAsync<TResponse>(
@@ -1479,6 +1479,11 @@ public sealed class InspectionToolsTests
     private static ToolResult<TResponse> DeserializeToolResult<TResponse>(RegisteredTool registeredTool, JsonElement payload, string toolName)
     {
         return PluginToolTestHarness.DeserializeToolResult<TResponse>(registeredTool, payload, toolName);
+    }
+
+    private static JsonElement GetBoundedItems(JsonElement data, string propertyName)
+    {
+        return data.GetProperty(propertyName).GetProperty("items");
     }
 
     private static IWorkspaceRuntime CreateBuiltInCoordinator()

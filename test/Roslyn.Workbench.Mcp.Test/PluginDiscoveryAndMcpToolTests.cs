@@ -70,7 +70,7 @@ public sealed class PluginDiscoveryAndMcpToolTests
 
         result.IsError.Should().BeFalse();
         result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeTrue();
-        result.StructuredContent.Value.GetProperty("value").GetProperty("value").GetString().Should().Be("Name");
+        result.StructuredContent.Value.GetProperty("data").GetProperty("value").GetString().Should().Be("Name");
     }
 
     [Fact]
@@ -109,7 +109,7 @@ public sealed class PluginDiscoveryAndMcpToolTests
             CancellationToken.None);
 
         result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeTrue();
-        result.StructuredContent.Value.GetProperty("value").GetProperty("value").GetString().Should().Be("Name");
+        result.StructuredContent.Value.GetProperty("data").GetProperty("value").GetString().Should().Be("Name");
     }
 
     private static string CreatePluginDirectory(params Assembly[] assemblies)

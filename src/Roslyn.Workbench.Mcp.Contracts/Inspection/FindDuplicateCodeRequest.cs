@@ -20,5 +20,5 @@ public sealed record FindDuplicateCodeRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
-    public ResultLimit? Limit { get; init; }
+    public CollectionLimit? GroupsLimit { get; init; }
 }

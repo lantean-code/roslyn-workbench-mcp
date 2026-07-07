@@ -54,16 +54,12 @@ internal sealed class GetSymbolMembersTool : QueryToolHandler<GetSymbolMembersRe
             .ToArray();
         var symbolReference = context.WorkspaceResolver.CreateSymbolReference(namedType);
 
-        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
-            context,
-            orderedMembers,
-            ToolExecutionHelpers.GetMaxResults(context, request.Limit),
-            (items, hasMore) => new SymbolMembersData
-            {
-                Symbol = symbolReference,
-                Members = items,
-                ReturnedCount = items.Count,
-                HasMore = hasMore,
-            });
+        return PluginExecutionResult<SymbolMembersData>.Success(new SymbolMembersData
+        {
+            Symbol = symbolReference,
+            Members = ToolExecutionHelpers.CreateBoundedCollection(
+                orderedMembers,
+                ToolExecutionHelpers.GetMaxResults(context, request.MembersLimit)),
+        });
     }
 }

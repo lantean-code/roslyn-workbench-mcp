@@ -26,6 +26,6 @@ public sealed class FindDependencyCyclesToolTests
             Granularity = "Type",
         });
 
-        result.Data!.Cycles.Should().Contain(static cycle => cycle.Nodes.Any(node => node.DisplayName.Contains("AlphaCycle", StringComparison.Ordinal)) && cycle.Nodes.Any(node => node.DisplayName.Contains("BetaCycle", StringComparison.Ordinal)));
+        result.Data!.Cycles.Items.Should().Contain(static cycle => cycle.Nodes.Any(node => node.DisplayName.Contains("AlphaCycle", StringComparison.Ordinal)) && cycle.Nodes.Any(node => node.DisplayName.Contains("BetaCycle", StringComparison.Ordinal)));
     }
 }

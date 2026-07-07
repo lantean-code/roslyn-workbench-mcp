@@ -177,6 +177,11 @@ internal static class ToolSchemaBuilder
 
     private static JsonElement CreateValueSchemaCore(Type valueType)
     {
+        if (valueType.IsGenericType && valueType.GetGenericTypeDefinition() == typeof(Contracts.Results.BoundedCollection<>))
+        {
+            return CreateBoundedCollectionSchema(valueType.GetGenericArguments()[0]);
+        }
+
         var method = typeof(ToolSchemaBuilder)
             .GetMethod(nameof(CreateValueSchemaCoreGeneric), BindingFlags.NonPublic | BindingFlags.Static)!
             .MakeGenericMethod(valueType);
@@ -230,6 +235,32 @@ internal static class ToolSchemaBuilder
         }
 
         return definitions;
+    }
+
+    private static JsonElement CreateBoundedCollectionSchema(Type itemType)
+    {
+        var itemSchema = CreateValueSchema(itemType);
+        var definitions = MergeDefinitions([itemSchema]);
+        var schema = new JsonObject
+        {
+            ["type"] = "object",
+            ["required"] = new JsonArray("items", "hasMore"),
+            ["properties"] = new JsonObject
+            {
+                ["items"] = CreateArraySchema(itemSchema),
+                ["hasMore"] = new JsonObject
+                {
+                    ["type"] = "boolean",
+                },
+            },
+        };
+
+        if (definitions.Count > 0)
+        {
+            schema["$defs"] = definitions;
+        }
+
+        return JsonSerializer.SerializeToElement(schema);
     }
 
     private sealed record SchemaValueWrapper<TValue>

@@ -94,7 +94,7 @@ public sealed class SchemaGenerationTests
         requestProperties.TryGetProperty("kinds", out var kindsProperty).Should().BeTrue();
         requestProperties.TryGetProperty("accessibilities", out var accessibilitiesProperty).Should().BeTrue();
         requestProperties.TryGetProperty("namespace", out var @namespaceProperty).Should().BeTrue();
-        requestProperties.TryGetProperty("limit", out var limitProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("symbolsLimit", out var limitProperty).Should().BeTrue();
 
         queryProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
         metadataNameProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
@@ -133,8 +133,6 @@ public sealed class SchemaGenerationTests
         var outputSchema = tool.ProtocolTool.OutputSchema!.Value;
 
         outputSchema.GetProperty("type").GetString().Should().Be("object");
-        outputSchema.GetRawText().Should().Contain("returnedCount");
-        outputSchema.GetRawText().Should().Contain("hasMore");
         outputSchema.GetRawText().Should().Contain("folders");
         outputSchema.GetRawText().Should().Contain("projects");
     }
@@ -153,15 +151,12 @@ public sealed class SchemaGenerationTests
         requestProperties.TryGetProperty("includeRefactorings", out var refactoringsProperty).Should().BeTrue();
         requestProperties.TryGetProperty("includeCodeFixes", out var codeFixesProperty).Should().BeTrue();
         requestProperties.TryGetProperty("diagnosticIds", out var diagnosticIdsProperty).Should().BeTrue();
-        requestProperties.TryGetProperty("limit", out var limitProperty).Should().BeTrue();
-
         locationProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
         snapshotProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
         workspaceProperty.GetRawText().Should().Contain("workspaceId");
         refactoringsProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
         codeFixesProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
         diagnosticIdsProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
-        limitProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
     }
 
     [Fact]
@@ -584,12 +579,16 @@ public sealed class SchemaGenerationTests
         requestProperties.TryGetProperty("symbol", out var symbolProperty).Should().BeTrue();
         requestProperties.TryGetProperty("includeDerived", out var includeDerivedProperty).Should().BeTrue();
         requestProperties.TryGetProperty("maxDepth", out var maxDepthProperty).Should().BeTrue();
-        requestProperties.TryGetProperty("limit", out var limitProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("baseTypesLimit", out var baseTypesLimitProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("interfacesLimit", out var interfacesLimitProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("derivedTypesLimit", out var derivedTypesLimitProperty).Should().BeTrue();
 
         symbolProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
         includeDerivedProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
         maxDepthProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
-        limitProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        baseTypesLimitProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        interfacesLimitProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        derivedTypesLimitProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
         outputSchema.GetRawText().Should().Contain("baseTypes");
         outputSchema.GetRawText().Should().Contain("interfaces");
     }

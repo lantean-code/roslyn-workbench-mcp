@@ -143,7 +143,6 @@ public static class WorkspaceCoordinatorFactory
             DefaultMaxResults = options.DefaultMaxResults,
             MaxConcurrentQueries = options.MaxConcurrentQueries,
             MaxLoadedWorkspaces = options.MaxLoadedWorkspaces,
-            MaxResponseBytes = options.MaxResponseBytes,
             MaxTransactionRevisions = options.MaxTransactionRevisions,
             StateDirectory = options.StateDirectory ?? Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-state"),
         };

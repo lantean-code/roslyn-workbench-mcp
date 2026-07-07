@@ -34,6 +34,7 @@
 - Never use reflection to invoke implementation code. Cover private or protected methods through normal execution flow only.
 - If code cannot be reached via public methods or supported internal seams, consider asking to refactor.
 - Do not add test-only hooks or methods to production code. If coverage gaps exist, ask for a refactor to expose the behaviour through normal flows.
+- Do not reshape production contracts or runtime design to make assertions easier. Tests must follow the production API and behaviour, not the other way around.
 
 ## Clarification policy
 - Do not make assumptions. If any referenced code or behaviour is unclear, ask for clarification before writing tests.

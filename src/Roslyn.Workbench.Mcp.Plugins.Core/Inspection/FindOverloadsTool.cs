@@ -27,7 +27,7 @@ internal sealed class FindOverloadsTool : QueryToolHandler<FindOverloadsRequest,
 
         if (symbolResolution.Value is not IMethodSymbol methodSymbol)
         {
-            return context.ToolExecutionServices.ResultShaper.Rejected<OverloadSearchData>("InvalidRequest", "Find overloads requires a method or constructor symbol.");
+            return ToolExecutionHelpers.Rejected<OverloadSearchData>("InvalidRequest", "Find overloads requires a method or constructor symbol.");
         }
 
         IEnumerable<IMethodSymbol> overloads = methodSymbol.MethodKind == MethodKind.Constructor
@@ -41,17 +41,13 @@ internal sealed class FindOverloadsTool : QueryToolHandler<FindOverloadsRequest,
             .Select(CreateCallableSignature)
             .ToArray();
 
-        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
-            context,
-            signatures,
-            ToolExecutionHelpers.GetMaxResults(context, request.Limit),
-            (items, hasMore) => new OverloadSearchData
-            {
-                Symbol = context.WorkspaceResolver.CreateSymbolReference(methodSymbol),
-                Overloads = items,
-                ReturnedCount = items.Count,
-                HasMore = hasMore,
-            });
+        return PluginExecutionResult<OverloadSearchData>.Success(new OverloadSearchData
+        {
+            Symbol = context.WorkspaceResolver.CreateSymbolReference(methodSymbol),
+            Overloads = ToolExecutionHelpers.CreateBoundedCollection(
+                signatures,
+                ToolExecutionHelpers.GetMaxResults(context, request.OverloadsLimit)),
+        });
     }
 
     private static CallableSignature CreateCallableSignature(IMethodSymbol methodSymbol)

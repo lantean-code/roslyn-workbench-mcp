@@ -25,6 +25,6 @@ public sealed class AnalyzeDisposablesToolTests
             },
         });
 
-        result.Data!.Findings.Select(static finding => finding.Kind).Should().Contain("UndisposedLocal");
+        result.Data!.Findings.Items.Select(static finding => finding.Kind).Should().Contain("UndisposedLocal");
     }
 }

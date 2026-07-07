@@ -93,17 +93,13 @@ internal sealed class FindReferencesTool : QueryToolHandler<FindReferencesReques
             .ToArray();
         var symbolReference = context.WorkspaceResolver.CreateSymbolReference(symbol);
 
-        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
-            context,
-            orderedReferences,
-            ToolExecutionHelpers.GetMaxResults(context, request.Limit),
-            (items, hasMore) => new ReferenceSearchData
-            {
-                Symbol = symbolReference,
-                References = items,
-                ReturnedCount = items.Count,
-                HasMore = hasMore,
-            });
+        return PluginExecutionResult<ReferenceSearchData>.Success(new ReferenceSearchData
+        {
+            Symbol = symbolReference,
+            References = ToolExecutionHelpers.CreateBoundedCollection(
+                orderedReferences,
+                ToolExecutionHelpers.GetMaxResults(context, request.ReferencesLimit)),
+        });
     }
 
     private static async ValueTask<bool> IsWriteReferenceAsync(Microsoft.CodeAnalysis.FindSymbols.ReferenceLocation reference, CancellationToken cancellationToken)

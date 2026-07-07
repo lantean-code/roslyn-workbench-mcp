@@ -9,7 +9,7 @@ public sealed class MutationContextBuilder
     private Solution _currentSolution = new AdhocWorkspace().CurrentSolution;
     private WorkspaceIdentity _workspaceIdentity = default!;
     private int? _transactionRevision;
-    private ResultLimit _effectiveResultLimit = new();
+    private int _defaultMaxResults = 100;
     private IWorkspaceResolver? _resolver;
     private IToolExecutionServices _toolExecutionServices = new ToolExecutionServicesBuilder().Build();
     private Func<RegisteredTool, MutationProposal, IReadOnlyList<DiagnosticInfo>, IReadOnlyList<WarningInfo>, CancellationToken, ValueTask<PluginExecutionResult<MutationData>>>? _stageAsync;
@@ -38,9 +38,9 @@ public sealed class MutationContextBuilder
         return this;
     }
 
-    public MutationContextBuilder WithEffectiveResultLimit(ResultLimit effectiveResultLimit)
+    public MutationContextBuilder WithDefaultMaxResults(int defaultMaxResults)
     {
-        _effectiveResultLimit = effectiveResultLimit ?? throw new ArgumentNullException(nameof(effectiveResultLimit));
+        _defaultMaxResults = defaultMaxResults;
         return this;
     }
 
@@ -121,7 +121,7 @@ public sealed class MutationContextBuilder
         context.SetupGet(item => item.CurrentSolution).Returns(_currentSolution);
         context.SetupGet(item => item.WorkspaceIdentity).Returns(_workspaceIdentity);
         context.SetupGet(item => item.TransactionRevision).Returns(_transactionRevision);
-        context.SetupGet(item => item.EffectiveResultLimit).Returns(_effectiveResultLimit);
+        context.SetupGet(item => item.DefaultMaxResults).Returns(_defaultMaxResults);
         context.SetupGet(item => item.WorkspaceResolver).Returns(resolver);
         context.SetupGet(item => item.ToolExecutionServices).Returns(_toolExecutionServices);
         context

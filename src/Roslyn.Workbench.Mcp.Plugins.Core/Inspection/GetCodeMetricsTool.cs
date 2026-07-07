@@ -66,16 +66,12 @@ internal sealed class GetCodeMetricsTool : QueryToolHandler<GetCodeMetricsReques
             .Select(CreateMetricInfo)
             .ToArray();
 
-        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
-            context,
-            metrics,
-            ToolExecutionHelpers.GetMaxResults(context, request.Limit),
-            static (items, hasMore) => new CodeMetricsData
-            {
-                Metrics = items,
-                ReturnedCount = items.Count,
-                HasMore = hasMore,
-            });
+        return PluginExecutionResult<CodeMetricsData>.Success(new CodeMetricsData
+        {
+            Metrics = ToolExecutionHelpers.CreateBoundedCollection(
+                metrics,
+                ToolExecutionHelpers.GetMaxResults(context, request.MetricsLimit)),
+        });
     }
 
     private static void AddMetricTargets(ISymbol symbol, bool includeChildren, ICollection<MetricTarget> targets, IQueryContext context)

@@ -52,8 +52,8 @@ public sealed class GetSolutionStructureToolTests
         var result = await target.ExecuteAsync(new GetSolutionStructureRequest(), context, CancellationToken.None);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data!.Folders.Should().ContainSingle(static folder => folder.Path == "src/core" && folder.ParentPath == "src");
-        result.Data.Projects.Should().ContainSingle(static item => item.TargetFrameworks.Count == 1 && item.TargetFrameworks[0] == "net10.0" && item.SolutionFolderPath == "src/core");
+        result.Data!.Folders.Items.Should().ContainSingle(static folder => folder.Path == "src/core" && folder.ParentPath == "src");
+        result.Data.Projects.Items.Should().ContainSingle(static item => item.TargetFrameworks.Count == 1 && item.TargetFrameworks[0] == "net10.0" && item.SolutionFolderPath == "src/core");
     }
 
     [Fact]
@@ -73,7 +73,7 @@ public sealed class GetSolutionStructureToolTests
         });
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data!.Projects.Should().ContainSingle(static project => project.Name == "Sample" && project.Documents != null && project.Documents.Count > 0);
+        result.Data!.Projects.Items.Should().ContainSingle(static project => project.Name == "Sample" && project.Documents != null && project.Documents.Count > 0);
     }
 
     [Fact]
@@ -90,8 +90,8 @@ public sealed class GetSolutionStructureToolTests
         var result = await BundledCoreToolTestHarness.ExecuteQueryAsync(coordinator, "get-solution-structure", target, new GetSolutionStructureRequest());
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data!.Folders.Should().Contain(static folder => folder.Path == "src");
-        result.Data.Folders.Should().Contain(static folder => folder.Path == "src/core" && folder.ParentPath == "src");
-        result.Data.Projects.Should().ContainSingle(static project => project.Name == "Lib" && project.SolutionFolderPath == "src/core");
+        result.Data!.Folders.Items.Should().Contain(static folder => folder.Path == "src");
+        result.Data.Folders.Items.Should().Contain(static folder => folder.Path == "src/core" && folder.ParentPath == "src");
+        result.Data.Projects.Items.Should().ContainSingle(static project => project.Name == "Lib" && project.SolutionFolderPath == "src/core");
     }
 }

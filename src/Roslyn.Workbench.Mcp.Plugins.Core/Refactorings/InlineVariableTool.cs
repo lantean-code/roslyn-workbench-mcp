@@ -29,7 +29,7 @@ internal sealed class InlineVariableTool : MutationToolHandler<InlineVariableReq
     {
         if (!request.RemoveDeclaration)
         {
-            return context.ToolExecutionServices.ResultShaper.Rejected<MutationProposal>("UnsupportedOption", "The removeDeclaration option is not supported by the current Roslyn inline-variable backend.");
+            return ToolExecutionHelpers.Rejected<MutationProposal>("UnsupportedOption", "The removeDeclaration option is not supported by the current Roslyn inline-variable backend.");
         }
 
         var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<MutationProposal>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
@@ -40,20 +40,20 @@ internal sealed class InlineVariableTool : MutationToolHandler<InlineVariableReq
 
         if (symbolResolution.Value is not ILocalSymbol localSymbol)
         {
-            return context.ToolExecutionServices.ResultShaper.Rejected<MutationProposal>("SymbolNotSupported", "The selected symbol is not a local variable.", RequiredAction.ResolveTargetAgain);
+            return ToolExecutionHelpers.Rejected<MutationProposal>("SymbolNotSupported", "The selected symbol is not a local variable.", RequiredAction.ResolveTargetAgain);
         }
 
         var sourceLocation = localSymbol.Locations.FirstOrDefault(static location => location.IsInSource);
         if (sourceLocation is null)
         {
-            return context.ToolExecutionServices.ResultShaper.Rejected<MutationProposal>("SymbolNotSupported", "The selected symbol does not resolve to a source location.", RequiredAction.ResolveTargetAgain);
+            return ToolExecutionHelpers.Rejected<MutationProposal>("SymbolNotSupported", "The selected symbol does not resolve to a source location.", RequiredAction.ResolveTargetAgain);
         }
 
         var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(sourceLocation);
         var locationSelector = ToolExecutionHelpers.CreateLocationSelector(resolvedLocation);
         if (locationSelector is null)
         {
-            return context.ToolExecutionServices.ResultShaper.Rejected<MutationProposal>("SymbolNotSupported", "The selected symbol does not resolve to a replayable source span.", RequiredAction.ResolveTargetAgain);
+            return ToolExecutionHelpers.Rejected<MutationProposal>("SymbolNotSupported", "The selected symbol does not resolve to a replayable source span.", RequiredAction.ResolveTargetAgain);
         }
 
         return await context.StageReplayCodeActionAsync(new ReplayCodeActionRequest

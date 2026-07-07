@@ -5,7 +5,7 @@ public sealed class ToolExecutionContextLeaseTests
     [Fact]
     public async Task GIVEN_RejectedLease_WHEN_Disposed_THEN_ShouldNotThrow()
     {
-        var target = ToolExecutionContextLease<IQueryContext>.Rejected(new PluginExecutionResultBox
+        var target = ToolExecutionContextLease<IQueryContext>.Rejected(new ToolExecutionFailureResult
         {
             Outcome = ToolOutcome.Rejected,
             Error = new ToolError

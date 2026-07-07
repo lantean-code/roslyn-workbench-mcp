@@ -5,7 +5,6 @@ namespace Roslyn.Workbench.Mcp.TestSupport;
 internal sealed class ToolExecutionServicesBuilder
 {
     private IToolRequestResolver? _requestResolver;
-    private IToolResultShaper? _resultShaper;
     private IReplayCodeActionExecutor? _replayCodeActionExecutor;
     private ICompilerDiagnosticService? _compilerDiagnosticService;
     private IInspectionContextService? _inspectionContextService;
@@ -15,12 +14,6 @@ internal sealed class ToolExecutionServicesBuilder
     public ToolExecutionServicesBuilder WithRequestResolver(IToolRequestResolver requestResolver)
     {
         _requestResolver = requestResolver ?? throw new ArgumentNullException(nameof(requestResolver));
-        return this;
-    }
-
-    public ToolExecutionServicesBuilder WithResultShaper(IToolResultShaper resultShaper)
-    {
-        _resultShaper = resultShaper ?? throw new ArgumentNullException(nameof(resultShaper));
         return this;
     }
 
@@ -56,9 +49,8 @@ internal sealed class ToolExecutionServicesBuilder
 
     public IToolExecutionServices Build()
     {
-        var resultShaper = _resultShaper ?? new DefaultToolResultShaper();
-        var requestResolver = _requestResolver ?? new DefaultToolRequestResolver(resultShaper);
-        var replayCodeActionExecutor = _replayCodeActionExecutor ?? new ReplayCodeActionExecutor(resultShaper);
+        var requestResolver = _requestResolver ?? new DefaultToolRequestResolver();
+        var replayCodeActionExecutor = _replayCodeActionExecutor ?? new ReplayCodeActionExecutor();
         var compilerDiagnosticService = _compilerDiagnosticService ?? new DefaultCompilerDiagnosticService();
         var inspectionContextService = _inspectionContextService ?? new DefaultInspectionContextService();
         var projectStructureService = _projectStructureService ?? new DefaultProjectStructureService();
@@ -66,7 +58,6 @@ internal sealed class ToolExecutionServicesBuilder
 
         return new ToolExecutionServices(
             requestResolver,
-            resultShaper,
             replayCodeActionExecutor,
             compilerDiagnosticService,
             inspectionContextService,

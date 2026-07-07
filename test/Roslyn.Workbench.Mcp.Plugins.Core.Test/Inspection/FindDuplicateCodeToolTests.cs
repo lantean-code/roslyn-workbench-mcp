@@ -26,7 +26,7 @@ public sealed class FindDuplicateCodeToolTests
             MinimumStatements = 3,
         });
 
-        result.Data!.Groups.Should().Contain(static group => group.Occurrences.Any(occurrence => occurrence.Symbol!.DisplayName.Contains("DuplicateCodeSamples.ComputeOne", StringComparison.Ordinal)) && group.Occurrences.Any(occurrence => occurrence.Symbol!.DisplayName.Contains("DuplicateCodeSamples.ComputeTwo", StringComparison.Ordinal)));
+        result.Data!.Groups.Items.Should().Contain(static group => group.Occurrences.Any(occurrence => occurrence.Symbol!.DisplayName.Contains("DuplicateCodeSamples.ComputeOne", StringComparison.Ordinal)) && group.Occurrences.Any(occurrence => occurrence.Symbol!.DisplayName.Contains("DuplicateCodeSamples.ComputeTwo", StringComparison.Ordinal)));
     }
 
     [Fact]

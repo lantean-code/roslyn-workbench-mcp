@@ -1,3 +1,4 @@
+using Roslyn.Workbench.Mcp.Contracts.Results;
 using Roslyn.Workbench.Mcp.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
@@ -15,25 +16,15 @@ public sealed record TypeHierarchyData
     /// <summary>
     /// Gets the ordered base types.
     /// </summary>
-    public IReadOnlyList<SymbolReference> BaseTypes { get; init; } = [];
+    public BoundedCollection<SymbolReference> BaseTypes { get; init; } = BoundedCollection<SymbolReference>.Empty();
 
     /// <summary>
     /// Gets the implemented interfaces.
     /// </summary>
-    public IReadOnlyList<SymbolReference> Interfaces { get; init; } = [];
+    public BoundedCollection<SymbolReference> Interfaces { get; init; } = BoundedCollection<SymbolReference>.Empty();
 
     /// <summary>
     /// Gets the optional derived types.
     /// </summary>
-    public IReadOnlyList<TypeHierarchyNode>? DerivedTypes { get; init; }
-
-    /// <summary>
-    /// Gets the number of derived types returned when requested.
-    /// </summary>
-    public int? ReturnedCount { get; init; }
-
-    /// <summary>
-    /// Gets a value indicating whether more derived types were available when requested.
-    /// </summary>
-    public bool? HasMore { get; init; }
+    public BoundedCollection<TypeHierarchyNode>? DerivedTypes { get; init; }
 }

@@ -22,7 +22,7 @@ public sealed class GetSymbolDependenciesToolTests
         });
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data!.Dependencies.Should().Contain(static dependency => dependency.Symbol!.DisplayName.Contains("ToUpperInvariant", StringComparison.Ordinal));
-        result.Data.Dependencies.Should().Contain(static dependency => dependency.Symbol!.DisplayName.Contains("Decorate", StringComparison.Ordinal));
+        result.Data!.Dependencies.Items.Should().Contain(static dependency => dependency.Symbol!.DisplayName.Contains("ToUpperInvariant", StringComparison.Ordinal));
+        result.Data.Dependencies.Items.Should().Contain(static dependency => dependency.Symbol!.DisplayName.Contains("Decorate", StringComparison.Ordinal));
     }
 }

@@ -5,9 +5,26 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core;
 
 internal static class ToolExecutionHelpers
 {
-    public static int GetMaxResults(IQueryContext context, ResultLimit? requestLimit)
+    public static int GetMaxResults(IQueryContext context, CollectionLimit? requestLimit)
     {
-        return requestLimit?.MaxResults ?? context.EffectiveResultLimit.MaxResults ?? 100;
+        return requestLimit?.MaxResults ?? context.DefaultMaxResults;
+    }
+
+    public static BoundedCollection<T> CreateBoundedCollection<T>(
+        IReadOnlyList<T> items,
+        int maxResults)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+
+        return BoundedCollection<T>.Create(items, maxResults);
+    }
+
+    public static IReadOnlyList<T> ApplyLimit<T>(IReadOnlyList<T> items, int maxResults, out bool hasMore)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+
+        hasMore = items.Count > maxResults;
+        return hasMore ? items.Take(maxResults).ToArray() : items;
     }
 
     public static PluginExecutionResult<T> RejectFromStatus<T>(SelectorResolveStatus status, string targetName)

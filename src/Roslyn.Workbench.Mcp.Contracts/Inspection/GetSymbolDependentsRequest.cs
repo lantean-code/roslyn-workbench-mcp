@@ -20,7 +20,7 @@ public sealed record GetSymbolDependentsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
-    public ResultLimit? Limit { get; init; }
+    public CollectionLimit? DependentsLimit { get; init; }
 
     /// <summary>
     /// Gets the expected snapshot for location-based symbol selectors.

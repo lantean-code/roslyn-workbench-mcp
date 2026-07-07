@@ -44,7 +44,7 @@ public sealed class GetProjectDetailsToolTests
         }, context, CancellationToken.None);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data!.Value.Project!.TargetFrameworks.Should().Equal("net10.0", "net9.0");
+        result.Data!.Project!.TargetFrameworks.Should().Equal("net10.0", "net9.0");
     }
 
     [Fact]
@@ -96,8 +96,7 @@ public sealed class GetProjectDetailsToolTests
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
         result.Data!.Documents.Should().NotBeNull();
-        result.Data.Documents.Should().NotBeEmpty();
-        result.Data.ReturnedCount.Should().Be(result.Data.Documents.Count);
+        result.Data.Documents!.Items.Should().NotBeEmpty();
     }
 
 }

@@ -22,6 +22,6 @@ public sealed class GetPartialDeclarationsToolTests
         });
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data!.Declarations.Should().HaveCount(2);
+        result.Data!.Declarations.Items.Should().HaveCount(2);
     }
 }

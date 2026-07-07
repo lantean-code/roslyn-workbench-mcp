@@ -4,7 +4,6 @@ internal sealed class ToolExecutionServices : IToolExecutionServices
 {
     public ToolExecutionServices(
         IToolRequestResolver requestResolver,
-        IToolResultShaper resultShaper,
         IReplayCodeActionExecutor replayCodeActionExecutor,
         ICompilerDiagnosticService compilerDiagnosticService,
         IInspectionContextService inspectionContextService,
@@ -12,7 +11,6 @@ internal sealed class ToolExecutionServices : IToolExecutionServices
         IDependencyAnalysisService dependencyAnalysisService)
     {
         RequestResolver = requestResolver;
-        ResultShaper = resultShaper;
         ReplayCodeActionExecutor = replayCodeActionExecutor;
         CompilerDiagnosticService = compilerDiagnosticService;
         InspectionContextService = inspectionContextService;
@@ -21,8 +19,6 @@ internal sealed class ToolExecutionServices : IToolExecutionServices
     }
 
     public IToolRequestResolver RequestResolver { get; }
-
-    public IToolResultShaper ResultShaper { get; }
 
     public IReplayCodeActionExecutor ReplayCodeActionExecutor { get; }
 

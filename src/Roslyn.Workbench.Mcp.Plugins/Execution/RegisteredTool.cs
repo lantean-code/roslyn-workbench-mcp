@@ -28,6 +28,11 @@ public sealed record RegisteredTool
     public Type RequestType { get; init; } = typeof(object);
 
     /// <summary>
+    /// Gets the successful response contract type.
+    /// </summary>
+    public Type ResponseType { get; init; } = typeof(object);
+
+    /// <summary>
     /// Gets the generated MCP input schema.
     /// </summary>
     public JsonElement InputSchema { get; init; }

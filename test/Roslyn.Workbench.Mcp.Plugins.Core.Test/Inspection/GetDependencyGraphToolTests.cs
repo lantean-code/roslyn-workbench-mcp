@@ -28,8 +28,8 @@ public sealed class GetDependencyGraphToolTests
         });
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data!.Nodes.Should().Contain(static node => node.DisplayName.Contains("FormatterCaller", StringComparison.Ordinal));
-        result.Data.Nodes.Should().Contain(static node => node.DisplayName.Contains("GreetingFormatter", StringComparison.Ordinal));
-        result.Data.Edges.Should().Contain(static edge => edge.FromDisplayName.Contains("FormatterCaller", StringComparison.Ordinal) && edge.ToDisplayName.Contains("GreetingFormatter", StringComparison.Ordinal));
+        result.Data!.Nodes.Items.Should().Contain(static node => node.DisplayName.Contains("FormatterCaller", StringComparison.Ordinal));
+        result.Data.Nodes.Items.Should().Contain(static node => node.DisplayName.Contains("GreetingFormatter", StringComparison.Ordinal));
+        result.Data.Edges.Items.Should().Contain(static edge => edge.FromDisplayName.Contains("FormatterCaller", StringComparison.Ordinal) && edge.ToDisplayName.Contains("GreetingFormatter", StringComparison.Ordinal));
     }
 }

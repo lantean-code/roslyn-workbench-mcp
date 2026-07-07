@@ -9,7 +9,7 @@ public sealed class ToolExecutionContextLease<TContext> : IAsyncDisposable
 {
     private readonly IAsyncDisposable? _lease;
 
-    private ToolExecutionContextLease(TContext? context, PluginExecutionResultBox? shortCircuitResult, IAsyncDisposable? lease)
+    private ToolExecutionContextLease(TContext? context, ToolExecutionFailureResult? shortCircuitResult, IAsyncDisposable? lease)
     {
         Context = context;
         ShortCircuitResult = shortCircuitResult;
@@ -24,7 +24,7 @@ public sealed class ToolExecutionContextLease<TContext> : IAsyncDisposable
     /// <summary>
     /// Gets the host-generated short-circuit result, when the invocation should not reach the plugin.
     /// </summary>
-    public PluginExecutionResultBox? ShortCircuitResult { get; }
+    public ToolExecutionFailureResult? ShortCircuitResult { get; }
 
     /// <summary>
     /// Creates a successful leased context.
@@ -47,7 +47,7 @@ public sealed class ToolExecutionContextLease<TContext> : IAsyncDisposable
     /// <param name="lease">The lease to dispose when execution completes.</param>
     /// <returns>The short-circuit context lease.</returns>
     public static ToolExecutionContextLease<TContext> Rejected(
-        PluginExecutionResultBox result,
+        ToolExecutionFailureResult result,
         TContext? context = null,
         IAsyncDisposable? lease = null)
     {

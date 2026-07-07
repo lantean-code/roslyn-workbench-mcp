@@ -53,7 +53,7 @@ public sealed class FindUnusedSymbolsToolTests
         }, context, CancellationToken.None);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data!.Candidates.Should().ContainSingle(static candidate => candidate.Symbol!.DisplayName.Contains("unused", StringComparison.Ordinal));
+        result.Data!.Candidates.Items.Should().ContainSingle(static candidate => candidate.Symbol!.DisplayName.Contains("unused", StringComparison.Ordinal));
         compilerDiagnosticService.Verify(service => service.GetCompilerDiagnosticsAsync(
             It.Is<IReadOnlyList<Document>>(documents => documents.Count == 1 && documents[0] == document),
             CancellationToken.None), Times.Once);
@@ -83,7 +83,7 @@ public sealed class FindUnusedSymbolsToolTests
         });
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data!.Candidates.Should().Contain(static candidate => candidate.Symbol!.DisplayName.Contains("unused", StringComparison.Ordinal));
-        result.Data.Candidates.Should().Contain(static candidate => candidate.Reasons.Any(reason => reason.Contains("CS0219", StringComparison.Ordinal)));
+        result.Data!.Candidates.Items.Should().Contain(static candidate => candidate.Symbol!.DisplayName.Contains("unused", StringComparison.Ordinal));
+        result.Data.Candidates.Items.Should().Contain(static candidate => candidate.Reasons.Any(reason => reason.Contains("CS0219", StringComparison.Ordinal)));
     }
 }

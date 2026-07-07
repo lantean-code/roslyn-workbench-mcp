@@ -28,6 +28,6 @@ public sealed class GetDiagnosticsToolTests
         });
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data!.Diagnostics.Should().ContainSingle(static diagnostic => diagnostic.Id == "CS0219");
+        result.Data!.Diagnostics.Items.Should().ContainSingle(static diagnostic => diagnostic.Id == "CS0219");
     }
 }

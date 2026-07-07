@@ -34,16 +34,12 @@ internal sealed class GetPartialDeclarationsTool : QueryToolHandler<GetPartialDe
             .ThenBy(static item => item.Span!.Start)
             .ToArray();
 
-        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
-            context,
-            declarations,
-            ToolExecutionHelpers.GetMaxResults(context, request.Limit),
-            (items, hasMore) => new PartialDeclarationsData
-            {
-                Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
-                Declarations = items,
-                ReturnedCount = items.Count,
-                HasMore = hasMore,
-            });
+        return PluginExecutionResult<PartialDeclarationsData>.Success(new PartialDeclarationsData
+        {
+            Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
+            Declarations = ToolExecutionHelpers.CreateBoundedCollection(
+                declarations,
+                ToolExecutionHelpers.GetMaxResults(context, request.DeclarationsLimit)),
+        });
     }
 }

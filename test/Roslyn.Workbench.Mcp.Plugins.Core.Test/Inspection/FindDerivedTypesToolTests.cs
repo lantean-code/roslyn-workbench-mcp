@@ -21,6 +21,6 @@ public sealed class FindDerivedTypesToolTests
             },
         });
 
-        result.Data!.DerivedTypes.Should().Contain(static node => node.Type!.DisplayName.Contains("DerivedGreetingFormatter", StringComparison.Ordinal));
+        result.Data!.DerivedTypes.Items.Should().Contain(static node => node.Type!.DisplayName.Contains("DerivedGreetingFormatter", StringComparison.Ordinal));
     }
 }

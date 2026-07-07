@@ -8,11 +8,11 @@ namespace Roslyn.Workbench.Mcp.TestSupport;
 
 public static class BundledCoreToolTestHarness
 {
-    public static IWorkspaceRuntime CreateInspectionCoordinator(int maxResponseBytes = 65536)
+    public static IWorkspaceRuntime CreateInspectionCoordinator(int defaultMaxResults = 100)
     {
         return WorkspaceCoordinatorFactory.Create(new WorkspaceRuntimeOptions
         {
-            MaxResponseBytes = maxResponseBytes,
+            DefaultMaxResults = defaultMaxResults,
         }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
     }
 
@@ -73,7 +73,7 @@ public static class BundledCoreToolTestHarness
         await using var lease = coordinator.CreateQueryContext(request, CancellationToken.None);
         if (lease.ShortCircuitResult is not null)
         {
-            return Unbox<TResponse>(lease.ShortCircuitResult);
+            return lease.ShortCircuitResult.ToPluginExecutionResult<TResponse>();
         }
 
         return await target.ExecuteAsync(request, lease.Context!, CancellationToken.None);
@@ -82,7 +82,7 @@ public static class BundledCoreToolTestHarness
     public static async Task<PluginExecutionResult<TValue>> ExecuteSingletonQueryAsync<TRequest, TValue>(
         IToolExecutionContextFactory coordinator,
         string toolName,
-        IQueryToolHandler<TRequest, QueryResponse<TValue>> target,
+        IQueryToolHandler<TRequest, TValue> target,
         TRequest request)
         where TRequest : WorkspaceBoundRequest
     {
@@ -91,7 +91,7 @@ public static class BundledCoreToolTestHarness
         return new PluginExecutionResult<TValue>
         {
             Outcome = result.Outcome,
-            Data = result.Data is null ? default : result.Data.Value,
+            Data = result.Data,
             Changes = result.Changes,
             Error = result.Error,
             RequiredAction = result.RequiredAction,
@@ -117,7 +117,7 @@ public static class BundledCoreToolTestHarness
         {
             return new ToolMutationExecutionResult
             {
-                ProposalResult = Unbox<MutationProposal>(lease.ShortCircuitResult),
+                ProposalResult = lease.ShortCircuitResult.ToPluginExecutionResult<MutationProposal>(),
             };
         }
 
@@ -153,19 +153,5 @@ public static class BundledCoreToolTestHarness
         plugin.Register(registry);
 
         return registry.RegisteredTools.Single(tool => tool.Metadata.Name == toolName);
-    }
-
-    private static PluginExecutionResult<TResponse> Unbox<TResponse>(PluginExecutionResultBox result)
-    {
-        return new PluginExecutionResult<TResponse>
-        {
-            Outcome = result.Outcome,
-            Data = result.Data is TResponse typedData ? typedData : default,
-            Changes = result.Changes,
-            Error = result.Error,
-            RequiredAction = result.RequiredAction,
-            Diagnostics = result.Diagnostics,
-            Warnings = result.Warnings,
-        };
     }
 }

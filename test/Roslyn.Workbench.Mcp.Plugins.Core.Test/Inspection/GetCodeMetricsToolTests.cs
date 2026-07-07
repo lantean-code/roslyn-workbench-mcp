@@ -30,8 +30,8 @@ public sealed class GetCodeMetricsToolTests
         });
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data!.Metrics.Should().Contain(static metric => metric.Symbol!.DisplayName.Contains("ConditionalSamples.DescribeValue", StringComparison.Ordinal));
-        result.Data.Metrics.Should().Contain(static metric => metric.CyclomaticComplexity >= 3);
-        result.Data.Metrics.Should().Contain(static metric => metric.LogicalLines >= 5);
+        result.Data!.Metrics.Items.Should().Contain(static metric => metric.Symbol!.DisplayName.Contains("ConditionalSamples.DescribeValue", StringComparison.Ordinal));
+        result.Data.Metrics.Items.Should().Contain(static metric => metric.CyclomaticComplexity >= 3);
+        result.Data.Metrics.Items.Should().Contain(static metric => metric.LogicalLines >= 5);
     }
 }

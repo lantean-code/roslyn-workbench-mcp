@@ -36,8 +36,7 @@ internal sealed class PluginMcpServerTool : McpServerTool
 
     public override ValueTask<CallToolResult> InvokeAsync(RequestContext<CallToolRequestParams> requestContext, CancellationToken cancellationToken)
     {
-        var arguments = requestContext.Params.Arguments
-            ?? (IDictionary<string, JsonElement>)new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        var arguments = requestContext.Params.Arguments ?? new Dictionary<string, JsonElement>(StringComparer.Ordinal);
 
         return _registeredTool.Runtime.InvokeAsync(arguments, _contextFactory, cancellationToken);
     }

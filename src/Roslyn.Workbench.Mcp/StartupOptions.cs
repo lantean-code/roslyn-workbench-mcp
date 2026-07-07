@@ -8,8 +8,6 @@ internal sealed class StartupOptions
 
     public int DefaultMaxResults { get; init; } = 100;
 
-    public int MaxResponseBytes { get; init; } = 4 * 1024 * 1024;
-
     public TimeSpan CodeActionTokenLifetime { get; init; } = TimeSpan.FromMinutes(5);
 
     public int MaxTransactionRevisions { get; init; } = 20;

@@ -96,18 +96,18 @@ public sealed class InspectionMcpToolTests
             }),
         });
 
-        solutionStructure.Data!.Projects.Should().ContainSingle(static project => project.Name == "Sample");
+        solutionStructure.Data!.Projects.Items.Should().ContainSingle(static project => project.Name == "Sample");
         projectDetails.Data!.Project!.Name.Should().Be("Sample");
         documentOptions.Data!.AnalyzerConfig!.EditorConfigPaths.Should().Contain(static path => path.EndsWith(".editorconfig", StringComparison.Ordinal));
         documentOptions.Data.AnalyzerConfig.Options.Should().ContainKey("build_property.targetframework");
-        searchSymbols.Data!.Symbols.Should().Contain(static symbol => symbol.DisplayName.Contains("GreetingFormatter", StringComparison.Ordinal));
+        searchSymbols.Data!.Symbols.Items.Should().Contain(static symbol => symbol.DisplayName.Contains("GreetingFormatter", StringComparison.Ordinal));
         resolveSymbol.Data!.Symbol!.DisplayName.Should().Contain("GreetingFormatter");
         symbolInfo.Data!.Symbol!.DisplayName.Should().Contain("GreetingFormatter");
         definition.Data!.Definitions.Should().NotBeEmpty();
-        references.Data!.References.Should().NotBeEmpty();
-        callers.Data!.Callers.Should().Contain(static caller => caller.Caller!.DisplayName.Contains("Call", StringComparison.Ordinal));
-        implementations.Data!.Implementations.Should().Contain(static symbol => symbol.DisplayName.Contains("GreetingFormatter", StringComparison.Ordinal));
-        diagnostics.Data!.Diagnostics.Should().Contain(static diagnostic => diagnostic.Id == "CS0219");
+        references.Data!.References.Items.Should().NotBeEmpty();
+        callers.Data!.Callers.Items.Should().Contain(static caller => caller.Caller!.DisplayName.Contains("Call", StringComparison.Ordinal));
+        implementations.Data!.Implementations.Items.Should().Contain(static symbol => symbol.DisplayName.Contains("GreetingFormatter", StringComparison.Ordinal));
+        diagnostics.Data!.Diagnostics.Items.Should().Contain(static diagnostic => diagnostic.Id == "CS0219");
         EnumerateOutline(outline.Data!.Root!).Should().Contain(static node => node.Name == "GreetingFormatter");
     }
 
@@ -148,7 +148,7 @@ public sealed class InspectionMcpToolTests
             }),
         });
 
-        typeHierarchy.Data!.Interfaces.Should().Contain(static symbol => symbol.DisplayName.Contains("IMessageFormatter", StringComparison.Ordinal));
+        typeHierarchy.Data!.Interfaces.Items.Should().Contain(static symbol => symbol.DisplayName.Contains("IMessageFormatter", StringComparison.Ordinal));
         renameResult.Data!.Operation.Should().Be("rename-symbol");
     }
 

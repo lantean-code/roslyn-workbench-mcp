@@ -16,11 +16,6 @@ internal sealed record WorkspaceCoordinatorOptions
     public int DefaultMaxResults { get; init; } = 100;
 
     /// <summary>
-    /// Gets the maximum serialized response size, in bytes, for query execution.
-    /// </summary>
-    public int MaxResponseBytes { get; init; } = 4 * 1024 * 1024;
-
-    /// <summary>
     /// Gets the maximum number of stored transaction revisions.
     /// </summary>
     public int MaxTransactionRevisions { get; init; } = 20;

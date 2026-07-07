@@ -69,7 +69,7 @@ Principles being enforced:
   - `src/Roslyn.Workbench.Mcp.Workspace/MutationStagingService.cs`
   - `src/Roslyn.Workbench.Mcp.Workspace/WorkspaceExecutionContextFactory.cs`
   Notes:
-  - Workspace services still produce `PluginExecutionResult`, `PluginExecutionResultBox`, and `ToolError`.
+  - Workspace services still produce `PluginExecutionResult` and `ToolError`.
   - That cuts across the boundary you wanted between workspace workflows and tool transport concerns.
 
 - [ ] Rework code action runtime composition into a cleaner service boundary.

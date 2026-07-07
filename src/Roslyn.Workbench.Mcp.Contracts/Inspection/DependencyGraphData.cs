@@ -10,25 +10,10 @@ public sealed record DependencyGraphData
     /// <summary>
     /// Gets the returned graph nodes.
     /// </summary>
-    public IReadOnlyList<GraphNode> Nodes { get; init; } = [];
+    public BoundedCollection<GraphNode> Nodes { get; init; } = BoundedCollection<GraphNode>.Empty();
 
     /// <summary>
     /// Gets the returned graph edges.
     /// </summary>
-    public IReadOnlyList<GraphEdge> Edges { get; init; } = [];
-
-    /// <summary>
-    /// Gets the number of nodes returned.
-    /// </summary>
-    public int ReturnedNodeCount { get; init; }
-
-    /// <summary>
-    /// Gets the number of edges returned.
-    /// </summary>
-    public int ReturnedEdgeCount { get; init; }
-
-    /// <summary>
-    /// Gets the reasons the graph was truncated.
-    /// </summary>
-    public IReadOnlyList<CollectionTruncation> TruncationReasons { get; init; } = [];
+    public BoundedCollection<GraphEdge> Edges { get; init; } = BoundedCollection<GraphEdge>.Empty();
 }

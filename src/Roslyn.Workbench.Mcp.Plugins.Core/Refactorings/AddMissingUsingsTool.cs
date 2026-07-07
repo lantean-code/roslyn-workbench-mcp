@@ -26,7 +26,7 @@ internal sealed class AddMissingUsingsTool : MutationToolHandler<AddMissingUsing
     {
         if (request.PreferGlobalUsings)
         {
-            return ValueTask.FromResult(context.ToolExecutionServices.ResultShaper.Rejected<MutationProposal>("UnsupportedOption", "The preferGlobalUsings option is not supported by the current Roslyn add-import backend."));
+            return ValueTask.FromResult(ToolExecutionHelpers.Rejected<MutationProposal>("UnsupportedOption", "The preferGlobalUsings option is not supported by the current Roslyn add-import backend."));
         }
 
         return context.StageScopedCodeFixAsync(new ScopedCodeFixRequest

@@ -32,8 +32,4 @@ public sealed record ListCodeActionsRequest : WorkspaceBoundRequest
     /// </summary>
     public IReadOnlyList<string>? DiagnosticIds { get; init; }
 
-    /// <summary>
-    /// Gets the optional result limit.
-    /// </summary>
-    public ResultLimit? Limit { get; init; }
 }

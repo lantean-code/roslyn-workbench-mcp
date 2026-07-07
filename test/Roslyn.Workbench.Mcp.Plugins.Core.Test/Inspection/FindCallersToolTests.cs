@@ -57,7 +57,7 @@ public sealed class FindCallersToolTests
         }, context, CancellationToken.None);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data!.Callers.Should().ContainSingle(static caller => caller.Contexts.Contains("Context"));
+        result.Data!.Callers.Items.Should().ContainSingle(static caller => caller.Contexts.Contains("Context"));
         inspectionContextService.Verify(service => service.ReadContextAsync(
             It.IsAny<Document?>(),
             It.IsAny<TextSpan>(),
@@ -83,6 +83,6 @@ public sealed class FindCallersToolTests
             },
         });
 
-        result.Data!.Callers.Should().Contain(static caller => caller.Caller!.DisplayName.Contains("Call", StringComparison.Ordinal));
+        result.Data!.Callers.Items.Should().Contain(static caller => caller.Caller!.DisplayName.Contains("Call", StringComparison.Ordinal));
     }
 }

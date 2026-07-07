@@ -42,16 +42,12 @@ internal sealed class FindImplementationsTool : QueryToolHandler<FindImplementat
             .ToArray();
         var symbolReference = context.WorkspaceResolver.CreateSymbolReference(symbol);
 
-        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
-            context,
-            implementations,
-            ToolExecutionHelpers.GetMaxResults(context, request.Limit),
-            (items, hasMore) => new ImplementationSearchData
-            {
-                Symbol = symbolReference,
-                Implementations = items,
-                ReturnedCount = items.Count,
-                HasMore = hasMore,
-            });
+        return PluginExecutionResult<ImplementationSearchData>.Success(new ImplementationSearchData
+        {
+            Symbol = symbolReference,
+            Implementations = ToolExecutionHelpers.CreateBoundedCollection(
+                implementations,
+                ToolExecutionHelpers.GetMaxResults(context, request.ImplementationsLimit)),
+        });
     }
 }

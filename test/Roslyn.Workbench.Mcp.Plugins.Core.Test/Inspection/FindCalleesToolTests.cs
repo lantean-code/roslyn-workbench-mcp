@@ -21,6 +21,6 @@ public sealed class FindCalleesToolTests
             },
         });
 
-        result.Data!.Callees.Should().Contain(static callee => callee.DisplayName.Contains("GreetingFormatter.Format", StringComparison.Ordinal));
+        result.Data!.Callees.Items.Should().Contain(static callee => callee.DisplayName.Contains("GreetingFormatter.Format", StringComparison.Ordinal));
     }
 }

@@ -56,8 +56,8 @@ public sealed class GetChangeImpactToolTests
         }, context, CancellationToken.None);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data!.Locations.Should().NotBeEmpty();
-        result.Data.Locations.Should().OnlyContain(static location => location.Context == "Context");
+        result.Data!.Locations.Items.Should().NotBeEmpty();
+        result.Data.Locations.Items.Should().OnlyContain(static location => location.Context == "Context");
         inspectionContextService.Verify(service => service.ReadContextAsync(
             It.IsAny<Document?>(),
             It.IsAny<TextSpan>(),
@@ -86,6 +86,6 @@ public sealed class GetChangeImpactToolTests
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
         result.Data!.Impact!.ReferenceCount.Should().BeGreaterThan(0);
         result.Data.Impact.CallerCount.Should().BeGreaterThan(0);
-        result.Data.Locations.Should().Contain(static location => location.Context!.Contains("formatter.Format(\"hi\")", StringComparison.Ordinal));
+        result.Data.Locations.Items.Should().Contain(static location => location.Context!.Contains("formatter.Format(\"hi\")", StringComparison.Ordinal));
     }
 }

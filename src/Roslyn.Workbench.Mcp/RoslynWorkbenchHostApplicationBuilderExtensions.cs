@@ -53,7 +53,6 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
             {
                 DefaultMaxResults = options.DefaultMaxResults,
                 MaxConcurrentQueries = options.MaxConcurrentQueries,
-                MaxResponseBytes = options.MaxResponseBytes,
                 MaxTransactionRevisions = options.MaxTransactionRevisions,
                 StateDirectory = options.StateDirectory,
             });
@@ -64,7 +63,6 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
     {
         services.AddSingleton(pluginCatalogSnapshot);
         services.AddSingleton<IMsBuildRegistrationService, MsBuildRegistrationService>();
-        services.AddSingleton<IToolResultShaper, DefaultToolResultShaper>();
         services.AddSingleton<IToolRequestResolver, DefaultToolRequestResolver>();
         services.AddSingleton<IReplayCodeActionExecutor, ReplayCodeActionExecutor>();
         services.AddSingleton<ICompilerDiagnosticService, DefaultCompilerDiagnosticService>();

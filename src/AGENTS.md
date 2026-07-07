@@ -79,6 +79,7 @@
 - For records and classes with constructors, declare explicit properties and constructor bodies.
 - Constructor parameter names must use `camelCase`.
 - Extension methods are permitted and should follow standard naming conventions.
+- Do not change production contracts, inheritance, implemented interfaces, or other runtime design purely to simplify tests. Production design must drive the tests, and tests must adapt to the production API.
 
 ### Documentation
 - XML documentation comments are required on public APIs that form contracts, plugin extension points, or other externally consumed behaviour.

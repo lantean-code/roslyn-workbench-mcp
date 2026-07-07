@@ -36,16 +36,12 @@ internal sealed class FindDuplicateCodeTool : QueryToolHandler<FindDuplicateCode
             request.MinimumStatements,
             cancellationToken).ConfigureAwait(false);
 
-        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
-            context,
-            groups,
-            ToolExecutionHelpers.GetMaxResults(context, request.Limit),
-            static (items, hasMore) => new DuplicateCodeData
-            {
-                Groups = items,
-                ReturnedCount = items.Count,
-                HasMore = hasMore,
-            });
+        return PluginExecutionResult<DuplicateCodeData>.Success(new DuplicateCodeData
+        {
+            Groups = ToolExecutionHelpers.CreateBoundedCollection(
+                groups,
+                ToolExecutionHelpers.GetMaxResults(context, request.GroupsLimit)),
+        });
     }
 
     private static async ValueTask<IReadOnlyList<DuplicateCodeGroup>> FindDuplicateGroupsAsync(

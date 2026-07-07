@@ -43,15 +43,11 @@ internal sealed class FindDependencyCyclesTool : QueryToolHandler<FindDependency
             context,
             cancellationToken).ConfigureAwait(false);
 
-        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
-            context,
-            cycles,
-            ToolExecutionHelpers.GetMaxResults(context, request.Limit),
-            (items, hasMore) => new DependencyCyclesData
-            {
-                Cycles = items,
-                ReturnedCount = items.Count,
-                HasMore = hasMore,
-            });
+        return PluginExecutionResult<DependencyCyclesData>.Success(new DependencyCyclesData
+        {
+            Cycles = ToolExecutionHelpers.CreateBoundedCollection(
+                cycles,
+                ToolExecutionHelpers.GetMaxResults(context, request.CyclesLimit)),
+        });
     }
 }

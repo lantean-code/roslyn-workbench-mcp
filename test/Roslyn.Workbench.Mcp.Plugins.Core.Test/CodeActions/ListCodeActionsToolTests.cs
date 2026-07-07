@@ -17,7 +17,6 @@ public sealed class ListCodeActionsToolTests
                     ExpiresAt = "2000-01-01T00:00:00Z",
                 },
             ],
-            ReturnedCount = 1,
         });
         var context = new QueryContextBuilder()
             .WithListCodeActionsAsync((request, cancellationToken) =>

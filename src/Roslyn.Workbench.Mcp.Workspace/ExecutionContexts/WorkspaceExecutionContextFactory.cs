@@ -134,11 +134,7 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
             session.CurrentSolution,
             session.Workspace,
             session.Transaction?.CurrentRevision,
-            new ResultLimit
-            {
-                MaxResults = _options.DefaultMaxResults,
-            },
-            _options.MaxResponseBytes,
+            _options.DefaultMaxResults,
             resolver,
             _codeActionQueryWorkflow,
             _toolExecutionServices);
@@ -151,23 +147,20 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
             session.CurrentSolution,
             session.Workspace,
             session.Transaction?.CurrentRevision,
-            new ResultLimit
-            {
-                MaxResults = _options.DefaultMaxResults,
-            },
+            _options.DefaultMaxResults,
             resolver,
             _codeActionMutationWorkflow,
             StageMutationAsync,
             _toolExecutionServices);
     }
 
-    private PluginExecutionResultBox? ValidateMutationSession(string workspaceId, WorkspaceSessionSnapshot session, CancellationToken cancellationToken)
+    private ToolExecutionFailureResult? ValidateMutationSession(string workspaceId, WorkspaceSessionSnapshot session, CancellationToken cancellationToken)
     {
         var ownerWorkspaceId = _sessionStore.ReadSnapshot().TransactionOwnerWorkspaceId;
         if (!string.IsNullOrWhiteSpace(ownerWorkspaceId) && !string.Equals(ownerWorkspaceId, workspaceId, StringComparison.Ordinal))
         {
             var ownerSession = _sessionStore.ReadSession(ownerWorkspaceId);
-            return new PluginExecutionResultBox
+            return new ToolExecutionFailureResult
             {
                 Outcome = ToolOutcome.Rejected,
                 Error = CreateToolError(
@@ -200,7 +193,7 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
 
         if (session.Transaction.CurrentRevision >= session.Transaction.MaxRevisions)
         {
-            return new PluginExecutionResultBox
+            return new ToolExecutionFailureResult
             {
                 Outcome = ToolOutcome.Rejected,
                 Error = CreateToolError(WorkspaceErrorCodes.TransactionCapacity, "Reduce transaction history before staging more changes."),
@@ -223,9 +216,9 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
             ?? session.Workspace.WorkspaceId;
     }
 
-    private static PluginExecutionResultBox CreatePluginResult(WorkspaceOperationError error)
+    private static ToolExecutionFailureResult CreatePluginResult(WorkspaceOperationError error)
     {
-        return new PluginExecutionResultBox
+        return new ToolExecutionFailureResult
         {
             Outcome = ToolOutcome.Rejected,
             Error = CreateToolError(error.Code, error.Message),
@@ -282,10 +275,10 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
         };
     }
 
-    private static PluginExecutionResultBox CreateBusyResult(WorkspaceSessionSnapshot? session = null)
+    private static ToolExecutionFailureResult CreateBusyResult(WorkspaceSessionSnapshot? session = null)
     {
         _ = session;
-        return new PluginExecutionResultBox
+        return new ToolExecutionFailureResult
         {
             Outcome = ToolOutcome.Rejected,
             Error = CreateToolError(WorkspaceErrorCodes.WorkspaceBusy, "The workspace is busy."),
@@ -293,9 +286,9 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
         };
     }
 
-    private static PluginExecutionResultBox CreateNoActiveTransactionResult()
+    private static ToolExecutionFailureResult CreateNoActiveTransactionResult()
     {
-        return new PluginExecutionResultBox
+        return new ToolExecutionFailureResult
         {
             Outcome = ToolOutcome.Rejected,
             Error = CreateToolError(WorkspaceErrorCodes.TransactionRequired, "Start a transaction before invoking mutation tools."),
@@ -303,9 +296,9 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
         };
     }
 
-    private static PluginExecutionResultBox CreateWorkspaceRequiredResult()
+    private static ToolExecutionFailureResult CreateWorkspaceRequiredResult()
     {
-        return new PluginExecutionResultBox
+        return new ToolExecutionFailureResult
         {
             Outcome = ToolOutcome.Rejected,
             Error = CreateToolError(WorkspaceErrorCodes.WorkspaceNotOpen, "Open a workspace before invoking this tool."),
@@ -313,9 +306,9 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
         };
     }
 
-    private static PluginExecutionResultBox CreateWorkspaceOutOfDateResult()
+    private static ToolExecutionFailureResult CreateWorkspaceOutOfDateResult()
     {
-        return new PluginExecutionResultBox
+        return new ToolExecutionFailureResult
         {
             Outcome = ToolOutcome.Conflict,
             Error = CreateToolError(WorkspaceErrorCodes.WorkspaceOutOfDate, "Reload the workspace before invoking this tool."),
@@ -323,9 +316,9 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
         };
     }
 
-    private static PluginExecutionResultBox CreateTransactionConflictedResult()
+    private static ToolExecutionFailureResult CreateTransactionConflictedResult()
     {
-        return new PluginExecutionResultBox
+        return new ToolExecutionFailureResult
         {
             Outcome = ToolOutcome.Conflict,
             Error = CreateToolError(WorkspaceErrorCodes.TransactionConflicted, "Roll back the conflicted transaction before invoking this tool."),

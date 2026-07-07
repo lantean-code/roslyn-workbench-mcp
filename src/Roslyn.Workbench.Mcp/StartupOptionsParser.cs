@@ -16,7 +16,6 @@ internal static class StartupOptionsParser
         {
             PluginDirectories = pluginDirectories.Distinct(StringComparer.OrdinalIgnoreCase).ToArray(),
             DefaultMaxResults = ReadInt(optionMap, "default-max-results", "ROSLYN_WORKBENCH_MCP_DEFAULT_MAX_RESULTS", 100),
-            MaxResponseBytes = ReadInt(optionMap, "max-response-bytes", "ROSLYN_WORKBENCH_MCP_MAX_RESPONSE_BYTES", 4 * 1024 * 1024),
             CodeActionTokenLifetime = ReadTimeSpan(optionMap, "code-action-token-lifetime", "ROSLYN_WORKBENCH_MCP_CODE_ACTION_TOKEN_LIFETIME", TimeSpan.FromMinutes(5)),
             MaxTransactionRevisions = ReadInt(optionMap, "max-transaction-revisions", "ROSLYN_WORKBENCH_MCP_MAX_TRANSACTION_REVISIONS", 20),
             MaxConcurrentQueries = ReadInt(optionMap, "max-concurrent-queries", "ROSLYN_WORKBENCH_MCP_MAX_CONCURRENT_QUERIES", 2),

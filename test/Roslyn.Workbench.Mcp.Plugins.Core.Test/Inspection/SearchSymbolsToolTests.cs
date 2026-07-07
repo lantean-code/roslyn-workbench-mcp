@@ -16,15 +16,15 @@ public sealed class SearchSymbolsToolTests
         var result = await BundledCoreToolTestHarness.ExecuteQueryAsync(coordinator, "search-symbols", target, new SearchSymbolsRequest
         {
             Query = "Format",
-            Limit = new ResultLimit
+            SymbolsLimit = new CollectionLimit
             {
                 MaxResults = 1,
             },
         });
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data!.Symbols.Should().HaveCount(1);
-        result.Data.HasMore.Should().BeTrue();
+        result.Data!.Symbols.Items.Should().HaveCount(1);
+        result.Data.Symbols.HasMore.Should().BeTrue();
     }
 
     [Fact]

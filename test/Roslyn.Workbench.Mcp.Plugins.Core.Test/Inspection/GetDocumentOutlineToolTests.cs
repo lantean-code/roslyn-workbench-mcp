@@ -35,7 +35,7 @@ public sealed class GetDocumentOutlineToolTests
         }, context, CancellationToken.None);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        var typeNode = Enumerate(result.Data!.Value.Root!).Single(static node => node.Name == "GreetingFormatter");
+        var typeNode = Enumerate(result.Data!.Root!).Single(static node => node.Name == "GreetingFormatter");
         typeNode.Children.Should().BeEmpty();
     }
 
@@ -72,7 +72,7 @@ public sealed class GetDocumentOutlineToolTests
         }, context, CancellationToken.None);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        Enumerate(result.Data!.Value.Root!).Should().Contain(static node => node.Name == "Format");
+        Enumerate(result.Data!.Root!).Should().Contain(static node => node.Name == "Format");
     }
 
     [Fact]

@@ -57,7 +57,7 @@ public sealed class AnalyzeNullabilityToolTests
         }, context, CancellationToken.None);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data!.Findings.Should().ContainSingle(static finding => finding.Diagnostic!.Id == "CS8602");
+        result.Data!.Findings.Items.Should().ContainSingle(static finding => finding.Diagnostic!.Id == "CS8602");
         compilerDiagnosticService.Verify(service => service.GetCompilerDiagnosticsAsync(
             It.Is<IReadOnlyList<Document>>(documents => documents.Count == 1 && documents[0] == document),
             CancellationToken.None), Times.Once);
@@ -86,7 +86,7 @@ public sealed class AnalyzeNullabilityToolTests
             },
         });
 
-        result.Data!.Findings.Select(static finding => finding.Diagnostic!.Id).Should().Contain("CS8602");
+        result.Data!.Findings.Items.Select(static finding => finding.Diagnostic!.Id).Should().Contain("CS8602");
     }
 
     private static Diagnostic CreateDiagnostic(string id, SyntaxTree syntaxTree, int start, int length)

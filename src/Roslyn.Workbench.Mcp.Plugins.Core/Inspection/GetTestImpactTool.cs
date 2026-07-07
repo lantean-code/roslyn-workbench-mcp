@@ -39,16 +39,12 @@ internal sealed class GetTestImpactTool : QueryToolHandler<GetTestImpactRequest,
             context,
             cancellationToken).ConfigureAwait(false);
 
-        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
-            context,
-            impactedTests,
-            ToolExecutionHelpers.GetMaxResults(context, request.Limit),
-            (items, hasMore) => new TestImpactData
-            {
-                Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
-                Tests = items,
-                ReturnedCount = items.Count,
-                HasMore = hasMore,
-            });
+        return PluginExecutionResult<TestImpactData>.Success(new TestImpactData
+        {
+            Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
+            Tests = ToolExecutionHelpers.CreateBoundedCollection(
+                impactedTests,
+                ToolExecutionHelpers.GetMaxResults(context, request.TestsLimit)),
+        });
     }
 }

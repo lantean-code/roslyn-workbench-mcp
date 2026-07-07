@@ -23,7 +23,7 @@ public sealed class GetSymbolAttributesToolTests
         });
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data!.Attributes.Should().Contain(static attribute => attribute.Name.Contains("Serializable", StringComparison.Ordinal));
-        result.Data.Attributes.Should().Contain(static attribute => attribute.Name.Contains("Obsolete", StringComparison.Ordinal));
+        result.Data!.Attributes.Items.Should().Contain(static attribute => attribute.Name.Contains("Serializable", StringComparison.Ordinal));
+        result.Data.Attributes.Items.Should().Contain(static attribute => attribute.Name.Contains("Obsolete", StringComparison.Ordinal));
     }
 }

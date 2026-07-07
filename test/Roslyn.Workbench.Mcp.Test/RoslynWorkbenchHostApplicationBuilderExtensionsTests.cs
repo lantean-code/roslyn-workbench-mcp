@@ -33,7 +33,6 @@ public sealed class RoslynWorkbenchHostApplicationBuilderExtensionsTests
         builder.AddRoslynWorkbench(
         [
             "--default-max-results", "123",
-            "--max-response-bytes", "456",
             "--max-concurrent-queries", "7",
             "--max-transaction-revisions", "8",
             "--code-action-token-lifetime", "00:00:09",
@@ -47,14 +46,12 @@ public sealed class RoslynWorkbenchHostApplicationBuilderExtensionsTests
         var codeActionOptions = host.Services.GetRequiredService<IOptions<CodeActionRuntimeOptions>>().Value;
 
         startupOptions.DefaultMaxResults.Should().Be(123);
-        startupOptions.MaxResponseBytes.Should().Be(456);
         startupOptions.MaxConcurrentQueries.Should().Be(7);
         startupOptions.MaxTransactionRevisions.Should().Be(8);
         startupOptions.CodeActionTokenLifetime.Should().Be(TimeSpan.FromSeconds(9));
         startupOptions.StateDirectory.Should().Be(stateDirectory);
         startupOptions.ToolOutputSchemaMode.Should().Be(ToolOutputSchemaMode.Full);
         workspaceOptions.DefaultMaxResults.Should().Be(123);
-        workspaceOptions.MaxResponseBytes.Should().Be(456);
         workspaceOptions.MaxConcurrentQueries.Should().Be(7);
         workspaceOptions.MaxTransactionRevisions.Should().Be(8);
         workspaceOptions.StateDirectory.Should().Be(stateDirectory);

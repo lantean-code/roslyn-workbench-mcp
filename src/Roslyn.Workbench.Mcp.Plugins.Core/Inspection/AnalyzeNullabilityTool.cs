@@ -68,15 +68,11 @@ internal sealed class AnalyzeNullabilityTool : QueryToolHandler<AnalyzeNullabili
             })
             .ToArray();
 
-        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
-            context,
-            findings,
-            ToolExecutionHelpers.GetMaxResults(context, request.Limit),
-            static (items, hasMore) => new NullabilityAnalysisData
-            {
-                Findings = items,
-                ReturnedCount = items.Count,
-                HasMore = hasMore,
-            });
+        return PluginExecutionResult<NullabilityAnalysisData>.Success(new NullabilityAnalysisData
+        {
+            Findings = ToolExecutionHelpers.CreateBoundedCollection(
+                findings,
+                ToolExecutionHelpers.GetMaxResults(context, request.FindingsLimit)),
+        });
     }
 }

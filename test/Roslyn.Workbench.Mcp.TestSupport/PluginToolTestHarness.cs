@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using Roslyn.Workbench.Mcp.Contracts.CodeActions;
 using Roslyn.Workbench.Mcp.Contracts.Results;
 using Roslyn.Workbench.Mcp.Plugins;
@@ -71,55 +70,7 @@ public static class PluginToolTestHarness
             return (TResponse)(object)DeserializeMutationData(payload, toolName);
         }
 
-        if (typeof(TResponse) == typeof(CodeActionListData))
-        {
-            return (TResponse)(object)DeserializeCodeActionListData(payload);
-        }
-
-        if (payload.TryGetProperty("value", out var valueElement))
-        {
-            return JsonSerializer.Deserialize<TResponse>(valueElement.GetRawText(), SerializerOptions)!;
-        }
-
-        if (payload.TryGetProperty("items", out _))
-        {
-            return DeserializeCollectionData<TResponse>(payload);
-        }
-
-        return JsonSerializer.Deserialize<TResponse>(payload.GetRawText(), SerializerOptions)!;
-    }
-
-    private static TResponse DeserializeCollectionData<TResponse>(JsonElement payload)
-    {
-        var collectionAttribute = typeof(TResponse)
-            .GetCustomAttributes(typeof(PublishedCollectionResponseAttribute), inherit: false)
-            .OfType<PublishedCollectionResponseAttribute>()
-            .SingleOrDefault();
-
-        if (collectionAttribute is null)
-        {
-            return JsonSerializer.Deserialize<TResponse>(payload.GetRawText(), SerializerOptions)!;
-        }
-
-        var node = JsonNode.Parse(payload.GetRawText())!.AsObject();
-        var itemsNode = node["items"]?.DeepClone();
-        var hasMoreNode = node["hasMore"]?.DeepClone();
-        var truncatedByNode = node["truncatedBy"]?.DeepClone();
-
-        node.Remove("ok");
-        node.Remove("items");
-        node.Remove("hasMore");
-        node.Remove("truncatedBy");
-        node[JsonNamingPolicy.CamelCase.ConvertName(collectionAttribute.CollectionPropertyName)] = itemsNode;
-        node["hasMore"] = hasMoreNode;
-        node["returnedCount"] = itemsNode is JsonArray itemsArray ? itemsArray.Count : 0;
-
-        if (truncatedByNode is not null && collectionAttribute.TruncationPropertyName is not null)
-        {
-            node[JsonNamingPolicy.CamelCase.ConvertName(collectionAttribute.TruncationPropertyName)] = truncatedByNode;
-        }
-
-        return node.Deserialize<TResponse>(SerializerOptions)!;
+        return JsonSerializer.Deserialize<TResponse>(payload.GetProperty("data").GetRawText(), SerializerOptions)!;
     }
 
     private static MutationData DeserializeMutationData(JsonElement payload, string toolName)
@@ -135,31 +86,6 @@ public static class PluginToolTestHarness
                 {
                     Revision = transactionElement.GetProperty("revision").GetInt32(),
                 }
-                : null,
-        };
-    }
-
-    private static CodeActionListData DeserializeCodeActionListData(JsonElement payload)
-    {
-        var items = JsonSerializer.Deserialize<IReadOnlyList<CodeActionListItem>>(payload.GetProperty("items").GetRawText(), SerializerOptions) ?? [];
-
-        return new CodeActionListData
-        {
-            Actions = items.Select(static item => new CodeActionInfo
-            {
-                ActionId = item.ActionId,
-                Title = item.Title,
-                ProviderId = item.ProviderId,
-                Kind = item.Kind,
-                ExecutionMode = item.ExecutionMode,
-                ExecutorTool = item.ExecutorTool,
-                DescribeTool = item.DescribeTool,
-                UnsupportedReasonCode = item.UnsupportedReasonCode,
-            }).ToArray(),
-            ReturnedCount = items.Count,
-            HasMore = payload.GetProperty("hasMore").GetBoolean(),
-            TruncationReasons = payload.TryGetProperty("truncatedBy", out var truncatedByElement) && truncatedByElement.ValueKind != JsonValueKind.Null
-                ? JsonSerializer.Deserialize<IReadOnlyList<CollectionTruncation>>(truncatedByElement.GetRawText(), SerializerOptions)
                 : null,
         };
     }

@@ -25,5 +25,5 @@ public sealed record FindUnusedSymbolsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
-    public ResultLimit? Limit { get; init; }
+    public CollectionLimit? CandidatesLimit { get; init; }
 }

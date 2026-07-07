@@ -7,17 +7,17 @@ namespace Roslyn.Workbench.Mcp.Plugins.Test;
 public sealed class ToolSchemaFactoryTests
 {
     [Fact]
-    public void GIVEN_SingletonResponseSchema_WHEN_InspectingSharedControlProperties_THEN_ShouldPublishOkValueAndErrorBranches()
+    public void GIVEN_QueryResponseSchema_WHEN_InspectingSharedControlProperties_THEN_ShouldPublishOkDataAndErrorBranches()
     {
         var schema = ToolSchemaFactory.CreateOutputSchema(
             ToolKind.Query,
-            typeof(QueryResponse<TestResponse>));
+            typeof(TestResponse));
         var variants = schema.GetProperty("oneOf").EnumerateArray().ToArray();
         var successVariant = variants.Single(variant => variant.GetProperty("properties").GetProperty("ok").GetProperty("const").GetBoolean());
         var failureVariant = variants.Single(variant => !variant.GetProperty("properties").GetProperty("ok").GetProperty("const").GetBoolean());
 
-        successVariant.GetProperty("required").EnumerateArray().Select(static value => value.GetString()).Should().Contain(["ok", "value"]);
-        successVariant.GetProperty("properties").GetProperty("value").GetRawText().Should().Contain("value");
+        successVariant.GetProperty("required").EnumerateArray().Select(static value => value.GetString()).Should().Contain(["ok", "data"]);
+        successVariant.GetProperty("properties").GetProperty("data").GetRawText().Should().Contain("value");
         failureVariant.GetProperty("required").EnumerateArray().Select(static value => value.GetString()).Should().Contain(["ok", "error"]);
         AllowsNull(failureVariant.GetProperty("properties").GetProperty("next")).Should().BeTrue();
     }

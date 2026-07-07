@@ -23,9 +23,19 @@ public sealed record GetTypeHierarchyRequest : WorkspaceBoundRequest
     public int? MaxDepth { get; init; }
 
     /// <summary>
-    /// Gets the optional result limit.
+    /// Gets the optional base types limit.
     /// </summary>
-    public ResultLimit? Limit { get; init; }
+    public CollectionLimit? BaseTypesLimit { get; init; }
+
+    /// <summary>
+    /// Gets the optional interfaces limit.
+    /// </summary>
+    public CollectionLimit? InterfacesLimit { get; init; }
+
+    /// <summary>
+    /// Gets the optional derived types limit.
+    /// </summary>
+    public CollectionLimit? DerivedTypesLimit { get; init; }
 
     /// <summary>
     /// Gets the expected snapshot for location-based symbol selectors.

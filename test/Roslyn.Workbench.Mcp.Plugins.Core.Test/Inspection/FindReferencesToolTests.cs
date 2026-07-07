@@ -63,8 +63,8 @@ public sealed class FindReferencesToolTests
         }, context, CancellationToken.None);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data!.References.Should().NotBeEmpty();
-        result.Data.References.Where(static reference => !reference.IsDefinition).Should().OnlyContain(static reference => reference.Context == "Context");
+        result.Data!.References.Items.Should().NotBeEmpty();
+        result.Data.References.Items.Where(static reference => !reference.IsDefinition).Should().OnlyContain(static reference => reference.Context == "Context");
         inspectionContextService.Verify(service => service.ReadContextAsync(
             It.IsAny<Document?>(),
             It.IsAny<TextSpan>(),
@@ -93,7 +93,7 @@ public sealed class FindReferencesToolTests
         });
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data!.References.Should().Contain(static reference => reference.IsWrite && reference.Context == "Current = value;");
-        result.Data.References.Should().Contain(static reference => !reference.IsWrite && reference.Context == "return Current;");
+        result.Data!.References.Items.Should().Contain(static reference => reference.IsWrite && reference.Context == "Current = value;");
+        result.Data.References.Items.Should().Contain(static reference => !reference.IsWrite && reference.Context == "return Current;");
     }
 }

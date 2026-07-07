@@ -97,18 +97,14 @@ internal sealed class GetChangeImpactTool : QueryToolHandler<GetChangeImpactRequ
             PublicSurfaceCount = IsPublicSurface(symbol) ? 1 : 0,
         };
 
-        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
-            context,
-            orderedLocations,
-            ToolExecutionHelpers.GetMaxResults(context, request.Limit),
-            (items, hasMore) => new ChangeImpactData
-            {
-                Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
-                Impact = impact,
-                Locations = items,
-                ReturnedCount = items.Count,
-                HasMore = hasMore,
-            });
+        return PluginExecutionResult<ChangeImpactData>.Success(new ChangeImpactData
+        {
+            Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
+            Impact = impact,
+            Locations = ToolExecutionHelpers.CreateBoundedCollection(
+                orderedLocations,
+                ToolExecutionHelpers.GetMaxResults(context, request.LocationsLimit)),
+        });
     }
 
     private static bool IsPublicSurface(ISymbol symbol)

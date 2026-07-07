@@ -35,7 +35,6 @@ public sealed class WorkspaceCoordinatorTests
             "DefaultMaxResults",
             "MaxConcurrentQueries",
             "MaxLoadedWorkspaces",
-            "MaxResponseBytes",
             "MaxTransactionRevisions",
             "StateDirectory",
         ]);
@@ -665,12 +664,12 @@ public sealed class WorkspaceCoordinatorTests
     }
 
     [Fact]
-    public async Task GIVEN_QueryContext_WHEN_Acquired_THEN_ShouldExposeConfiguredResponseByteLimit()
+    public async Task GIVEN_QueryContext_WHEN_Acquired_THEN_ShouldExposeConfiguredDefaultMaxResults()
     {
         using var fixture = await TestWorkspaceFixture.CreateAsync();
         var target = WorkspaceCoordinatorFactory.Create(new WorkspaceRuntimeOptions
         {
-            MaxResponseBytes = 2048,
+            DefaultMaxResults = 42,
         });
         await target.OpenAsync(new WorkspaceOpenRequest
         {
@@ -680,7 +679,7 @@ public sealed class WorkspaceCoordinatorTests
         await using var result = target.CreateQueryContext(new WorkspaceStatusRequest(), CancellationToken.None);
 
         result.Context.Should().NotBeNull();
-        result.Context!.MaxResponseBytes.Should().Be(2048);
+        result.Context!.DefaultMaxResults.Should().Be(42);
     }
 
     [Fact]

@@ -43,17 +43,13 @@ internal sealed class GetSymbolAttributesTool : QueryToolHandler<GetSymbolAttrib
             .ToArray();
         var symbolReference = context.WorkspaceResolver.CreateSymbolReference(symbol);
 
-        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
-            context,
-            orderedAttributes,
-            ToolExecutionHelpers.GetMaxResults(context, request.Limit),
-            (items, hasMore) => new SymbolAttributesData
-            {
-                Symbol = symbolReference,
-                Attributes = items,
-                ReturnedCount = items.Count,
-                HasMore = hasMore,
-            });
+        return PluginExecutionResult<SymbolAttributesData>.Success(new SymbolAttributesData
+        {
+            Symbol = symbolReference,
+            Attributes = ToolExecutionHelpers.CreateBoundedCollection(
+                orderedAttributes,
+                ToolExecutionHelpers.GetMaxResults(context, request.AttributesLimit)),
+        });
     }
 
     private static AttributeInfo CreateAttributeInfo(AttributeData attributeData, bool inherited)

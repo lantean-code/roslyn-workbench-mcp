@@ -27,7 +27,7 @@ public sealed class ToolExecutorTests
         result.IsError.Should().BeFalse();
         result.StructuredContent.Should().NotBeNull();
         result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeTrue();
-        result.StructuredContent.Value.GetProperty("value").GetProperty("value").GetString().Should().Be("Value");
+        result.StructuredContent.Value.GetProperty("data").GetProperty("value").GetString().Should().Be("Value");
     }
 
     [Fact]
@@ -82,7 +82,7 @@ public sealed class ToolExecutorTests
 
         result.IsError.Should().BeFalse();
         result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeTrue();
-        result.StructuredContent.Value.GetProperty("value").ValueKind.Should().Be(JsonValueKind.Null);
+        result.StructuredContent.Value.GetProperty("data").ValueKind.Should().Be(JsonValueKind.Null);
     }
 
     [Fact]
@@ -143,7 +143,7 @@ public sealed class ToolExecutorTests
         result.StructuredContent.Value.GetProperty("next").GetString().Should().Be("Retry");
     }
 
-    private static RegisteredPluginTool CreateQueryTool(IQueryToolHandler<TestRequest, QueryResponse<TestResponse>> handler)
+    private static RegisteredPluginTool CreateQueryTool(IQueryToolHandler<TestRequest, TestResponse> handler)
     {
         var metadata = new PluginMetadata
         {
@@ -224,7 +224,7 @@ public sealed class ToolExecutorTests
 
         factory
             .Setup(static contextFactory => contextFactory.CreateQueryContext(It.IsAny<WorkspaceBoundRequest>(), It.IsAny<CancellationToken>()))
-            .Returns((WorkspaceBoundRequest _, CancellationToken _) => ToolExecutionContextLease<IQueryContext>.Rejected(new PluginExecutionResultBox
+            .Returns((WorkspaceBoundRequest _, CancellationToken _) => ToolExecutionContextLease<IQueryContext>.Rejected(new ToolExecutionFailureResult
             {
                 Outcome = ToolOutcome.Rejected,
                 Error = new ToolError
@@ -236,7 +236,7 @@ public sealed class ToolExecutorTests
             }));
         factory
             .Setup(static contextFactory => contextFactory.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), It.IsAny<CancellationToken>()))
-            .Returns((WorkspaceBoundRequest _, CancellationToken _) => ToolExecutionContextLease<IMutationContext>.Rejected(new PluginExecutionResultBox
+            .Returns((WorkspaceBoundRequest _, CancellationToken _) => ToolExecutionContextLease<IMutationContext>.Rejected(new ToolExecutionFailureResult
             {
                 Outcome = ToolOutcome.Rejected,
                 Error = new ToolError
@@ -250,45 +250,42 @@ public sealed class ToolExecutorTests
         return factory.Object;
     }
 
-    private sealed class SuccessQueryHandler : IQueryToolHandler<TestRequest, QueryResponse<TestResponse>>
+    private sealed class SuccessQueryHandler : IQueryToolHandler<TestRequest, TestResponse>
     {
-        public ValueTask<PluginExecutionResult<QueryResponse<TestResponse>>> ExecuteAsync(TestRequest request, IQueryContext context, CancellationToken cancellationToken)
+        public ValueTask<PluginExecutionResult<TestResponse>> ExecuteAsync(TestRequest request, IQueryContext context, CancellationToken cancellationToken)
         {
             _ = request;
             _ = context;
             _ = cancellationToken;
 
-            return ValueTask.FromResult(PluginExecutionResult<QueryResponse<TestResponse>>.Success(new QueryResponse<TestResponse>
+            return ValueTask.FromResult(PluginExecutionResult<TestResponse>.Success(new TestResponse
             {
-                Value = new TestResponse
-                {
-                    Value = "Value",
-                },
+                Value = "Value",
             }));
         }
     }
 
-    private sealed class NoChangeQueryHandler : IQueryToolHandler<TestRequest, QueryResponse<TestResponse>>
+    private sealed class NoChangeQueryHandler : IQueryToolHandler<TestRequest, TestResponse>
     {
-        public ValueTask<PluginExecutionResult<QueryResponse<TestResponse>>> ExecuteAsync(TestRequest request, IQueryContext context, CancellationToken cancellationToken)
+        public ValueTask<PluginExecutionResult<TestResponse>> ExecuteAsync(TestRequest request, IQueryContext context, CancellationToken cancellationToken)
         {
             _ = request;
             _ = context;
             _ = cancellationToken;
 
-            return ValueTask.FromResult(PluginExecutionResult<QueryResponse<TestResponse>>.NoChange());
+            return ValueTask.FromResult(PluginExecutionResult<TestResponse>.NoChange());
         }
     }
 
-    private sealed class RejectedQueryHandler : IQueryToolHandler<TestRequest, QueryResponse<TestResponse>>
+    private sealed class RejectedQueryHandler : IQueryToolHandler<TestRequest, TestResponse>
     {
-        public ValueTask<PluginExecutionResult<QueryResponse<TestResponse>>> ExecuteAsync(TestRequest request, IQueryContext context, CancellationToken cancellationToken)
+        public ValueTask<PluginExecutionResult<TestResponse>> ExecuteAsync(TestRequest request, IQueryContext context, CancellationToken cancellationToken)
         {
             _ = request;
             _ = context;
             _ = cancellationToken;
 
-            return ValueTask.FromResult(PluginExecutionResult<QueryResponse<TestResponse>>.Rejected(new ToolError
+            return ValueTask.FromResult(PluginExecutionResult<TestResponse>.Rejected(new ToolError
             {
                 Code = "Rejected",
                 Message = "Rejected message.",
@@ -296,15 +293,15 @@ public sealed class ToolExecutorTests
         }
     }
 
-    private sealed class ConflictQueryHandler : IQueryToolHandler<TestRequest, QueryResponse<TestResponse>>
+    private sealed class ConflictQueryHandler : IQueryToolHandler<TestRequest, TestResponse>
     {
-        public ValueTask<PluginExecutionResult<QueryResponse<TestResponse>>> ExecuteAsync(TestRequest request, IQueryContext context, CancellationToken cancellationToken)
+        public ValueTask<PluginExecutionResult<TestResponse>> ExecuteAsync(TestRequest request, IQueryContext context, CancellationToken cancellationToken)
         {
             _ = request;
             _ = context;
             _ = cancellationToken;
 
-            return ValueTask.FromResult(PluginExecutionResult<QueryResponse<TestResponse>>.Conflict(new ToolError
+            return ValueTask.FromResult(PluginExecutionResult<TestResponse>.Conflict(new ToolError
             {
                 Code = "Conflict",
                 Message = "Conflict message.",
@@ -312,9 +309,9 @@ public sealed class ToolExecutorTests
         }
     }
 
-    private sealed class ThrowingQueryHandler : IQueryToolHandler<TestRequest, QueryResponse<TestResponse>>
+    private sealed class ThrowingQueryHandler : IQueryToolHandler<TestRequest, TestResponse>
     {
-        public ValueTask<PluginExecutionResult<QueryResponse<TestResponse>>> ExecuteAsync(TestRequest request, IQueryContext context, CancellationToken cancellationToken)
+        public ValueTask<PluginExecutionResult<TestResponse>> ExecuteAsync(TestRequest request, IQueryContext context, CancellationToken cancellationToken)
         {
             _ = request;
             _ = context;

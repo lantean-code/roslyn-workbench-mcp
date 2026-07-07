@@ -7,13 +7,9 @@ public static class BundledCoreToolExecutionServicesFactory
 {
     public static IToolExecutionServices Create()
     {
-        var resultShaper = new DefaultToolResultShaper();
-        var requestResolver = new DefaultToolRequestResolver(resultShaper);
-
         return new ToolExecutionServices(
-            requestResolver,
-            resultShaper,
-            new ReplayCodeActionExecutor(resultShaper),
+            new DefaultToolRequestResolver(),
+            new ReplayCodeActionExecutor(),
             new DefaultCompilerDiagnosticService(),
             new DefaultInspectionContextService(),
             new DefaultProjectStructureService(),

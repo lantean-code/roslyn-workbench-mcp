@@ -28,6 +28,6 @@ public sealed class AnalyzeAsyncToolTests
         });
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data!.Findings.Select(static finding => finding.Kind).Should().Contain(["AsyncWithoutAwait", "UnawaitedTask"]);
+        result.Data!.Findings.Items.Select(static finding => finding.Kind).Should().Contain(["AsyncWithoutAwait", "UnawaitedTask"]);
     }
 }

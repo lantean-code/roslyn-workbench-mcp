@@ -27,7 +27,7 @@ internal sealed class SearchSymbolsTool : QueryToolHandler<SearchSymbolsRequest,
 
         if (string.IsNullOrWhiteSpace(request.Query) && string.IsNullOrWhiteSpace(request.MetadataName))
         {
-            return context.ToolExecutionServices.ResultShaper.Rejected<SymbolSearchData>("InvalidRequest", "Search symbols requires query or metadataName.");
+            return ToolExecutionHelpers.Rejected<SymbolSearchData>("InvalidRequest", "Search symbols requires query or metadataName.");
         }
 
         var pattern = request.Query ?? request.MetadataName!;
@@ -45,16 +45,12 @@ internal sealed class SearchSymbolsTool : QueryToolHandler<SearchSymbolsRequest,
             .Select(context.WorkspaceResolver.CreateSymbolReference)
             .ToArray();
 
-        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
-            context,
-            symbols,
-            ToolExecutionHelpers.GetMaxResults(context, request.Limit),
-            static (items, hasMore) => new SymbolSearchData
-            {
-                Symbols = items,
-                ReturnedCount = items.Count,
-                HasMore = hasMore,
-            });
+        return PluginExecutionResult<SymbolSearchData>.Success(new SymbolSearchData
+        {
+            Symbols = ToolExecutionHelpers.CreateBoundedCollection(
+                symbols,
+                ToolExecutionHelpers.GetMaxResults(context, request.SymbolsLimit)),
+        });
     }
 
     private static bool MatchesSymbolFilters(ISymbol symbol, SearchSymbolsRequest request)

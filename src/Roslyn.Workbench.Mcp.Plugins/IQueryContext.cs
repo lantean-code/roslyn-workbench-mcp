@@ -9,8 +9,4 @@ public interface IQueryContext :
     IToolExecutionContext,
     ICodeActionQueryWorkflow
 {
-    /// <summary>
-    /// Gets the maximum serialized response size, in bytes, for this invocation.
-    /// </summary>
-    int MaxResponseBytes { get; }
 }

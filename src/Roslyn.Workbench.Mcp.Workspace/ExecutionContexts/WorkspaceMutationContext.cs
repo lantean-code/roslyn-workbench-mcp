@@ -14,7 +14,7 @@ internal sealed class WorkspaceMutationContext : IMutationContext
         Solution currentSolution,
         WorkspaceIdentity workspaceIdentity,
         int? transactionRevision,
-        ResultLimit effectiveResultLimit,
+        int defaultMaxResults,
         IWorkspaceResolver resolver,
         Roslyn.Workbench.Mcp.Workspace.CodeActions.Execution.ICodeActionMutationWorkflow codeActionWorkflow,
         Func<RegisteredTool, MutationProposal, IReadOnlyList<DiagnosticInfo>, IReadOnlyList<WarningInfo>, CancellationToken, ValueTask<PluginExecutionResult<MutationData>>> stageAsync,
@@ -23,7 +23,7 @@ internal sealed class WorkspaceMutationContext : IMutationContext
         CurrentSolution = currentSolution;
         WorkspaceIdentity = workspaceIdentity;
         TransactionRevision = transactionRevision;
-        EffectiveResultLimit = effectiveResultLimit;
+        DefaultMaxResults = defaultMaxResults;
         WorkspaceResolver = resolver;
         _codeActionWorkflow = codeActionWorkflow;
         _stageAsync = stageAsync;
@@ -36,7 +36,7 @@ internal sealed class WorkspaceMutationContext : IMutationContext
 
     public int? TransactionRevision { get; }
 
-    public ResultLimit EffectiveResultLimit { get; }
+    public int DefaultMaxResults { get; }
 
     public IWorkspaceResolver WorkspaceResolver { get; }
 

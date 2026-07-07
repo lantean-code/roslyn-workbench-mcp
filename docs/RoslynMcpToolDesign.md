@@ -137,14 +137,13 @@ the existing host, direct-write, or incomplete rollback design.
   precondition. A stale span is rejected rather than reinterpreted at the same
   offset in a newer solution. Symbol names and metadata names are search inputs,
   not source identity.
-- Collection and graph queries accept an optional `maxResults`. When omitted,
-  the server uses its startup-configured `DefaultMaxResults`, which defaults to
-  `100`. Results have a documented deterministic order. Responses include
-  `returnedCount`, `hasMore` and any truncation reason; an agent can request
-  more results or narrow its criteria. A larger limit recomputes from the
-  start. Non-collection results that exceed the configured response-byte budget
-  are rejected with `ResponseLimitExceeded`, so they can be narrowed rather
-  than silently damaged. There are no cursors or generic paging.
+- Collection and graph queries accept explicit named per-collection limits.
+  When omitted, the server uses its startup-configured `DefaultMaxResults`,
+  which defaults to `100`. `0` means “return none from this collection”.
+  Results have a documented deterministic order. Top-level published
+  collections should use `BoundedCollection<TItem>`, which carries `items` and
+  `hasMore`. A larger limit recomputes from the start. There
+  are no cursors or generic paging.
 - Large code and diff results use explicit document and range selectors, or a
   focused follow-up call, rather than pagination.
 
@@ -462,15 +461,15 @@ taking precedence over built-in defaults. Configuration is loaded and validated
 once during startup; changing it requires a server restart.
 
 The initial settings are repeatable `plugin-directory`, `default-max-results`,
-`max-response-bytes`, `code-action-token-lifetime`,
-`max-transaction-revisions`, `max-concurrent-queries` and `state-directory`.
-Each has an environment-variable equivalent. `server-status` reports the
-effective non-sensitive configuration and plugin load results so an agent can
-reason about the server's current limits and tool set. The built-in defaults are
-`DefaultMaxResults = 100`, `MaxResponseBytes = 4 MiB`,
-`CodeActionTokenLifetime = 5 minutes`, `MaxTransactionRevisions = 20` and
-`MaxConcurrentQueries = 2`. `StateDirectory` defaults to the host temporary
-directory under `roslyn-workbench-mcp-state`.
+`code-action-token-lifetime`, `max-transaction-revisions`,
+`max-concurrent-queries` and `state-directory`. Each has an
+environment-variable equivalent. `server-status` reports the effective
+non-sensitive configuration and plugin load results so an agent can reason
+about the server's current limits and tool set. The built-in defaults are
+`DefaultMaxResults = 100`, `CodeActionTokenLifetime = 5 minutes`,
+`MaxTransactionRevisions = 20` and `MaxConcurrentQueries = 2`.
+`StateDirectory` defaults to the host temporary directory under
+`roslyn-workbench-mcp-state`.
 
 ### Static plugin registration
 
@@ -636,16 +635,14 @@ All tools share the same minimal failure and continuation base:
 
 Successful payloads are shaped by family:
 
-- direct lifecycle and status tools publish `{ ok: true, ...tool fields }`
-- singleton queries publish `{ ok: true, value: { ... } }`
-- collection queries publish `{ ok: true, items: [ ... ], hasMore, ...extra }`
+- direct lifecycle and status tools publish their existing structured envelopes
+- query tools publish `{ ok: true, data: { ...response dto... } }`
 - staged mutations publish `{ ok: true, staged, summary?, transaction? }`
-- code-action listings publish compact `CodeActionListItem` entries
 
 This keeps the default path compact:
 
-- collection responses omit redundant `returnedCount`
-- singleton queries keep heavy branches behind explicit request flags
+- bounded collections carry their own truncation metadata
+- query DTOs keep heavy branches behind explicit request flags and named limits
 - status tools default to smaller projections and expose expanded detail on
   request
 - mutation success confirms staged state by default rather than returning a

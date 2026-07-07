@@ -86,16 +86,12 @@ internal sealed class FindUnusedSymbolsTool : QueryToolHandler<FindUnusedSymbols
             .ThenBy(static candidate => candidate.Symbol?.DisplayName ?? string.Empty, StringComparer.Ordinal)
             .ToArray();
 
-        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
-            context,
-            orderedCandidates,
-            ToolExecutionHelpers.GetMaxResults(context, request.Limit),
-            static (items, hasMore) => new UnusedSymbolsData
-            {
-                Candidates = items,
-                ReturnedCount = items.Count,
-                HasMore = hasMore,
-            });
+        return PluginExecutionResult<UnusedSymbolsData>.Success(new UnusedSymbolsData
+        {
+            Candidates = ToolExecutionHelpers.CreateBoundedCollection(
+                orderedCandidates,
+                ToolExecutionHelpers.GetMaxResults(context, request.CandidatesLimit)),
+        });
     }
 
     private static ISymbol? GetCandidateSymbol(SyntaxNode syntaxRoot, SemanticModel semanticModel, TextSpan span, CancellationToken cancellationToken)

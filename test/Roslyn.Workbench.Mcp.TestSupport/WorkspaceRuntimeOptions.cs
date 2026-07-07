@@ -6,8 +6,6 @@ public sealed record WorkspaceRuntimeOptions
 
     public int DefaultMaxResults { get; init; } = 100;
 
-    public int MaxResponseBytes { get; init; } = 65536;
-
     public int MaxTransactionRevisions { get; init; } = 20;
 
     public int MaxLoadedWorkspaces { get; init; } = 4;

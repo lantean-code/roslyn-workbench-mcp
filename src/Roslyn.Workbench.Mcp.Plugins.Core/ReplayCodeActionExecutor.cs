@@ -6,11 +6,8 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core;
 
 internal sealed class ReplayCodeActionExecutor : IReplayCodeActionExecutor
 {
-    private readonly IToolResultShaper _resultShaper;
-
-    public ReplayCodeActionExecutor(IToolResultShaper resultShaper)
+    public ReplayCodeActionExecutor()
     {
-        _resultShaper = resultShaper;
     }
 
     public ValueTask<PluginExecutionResult<MutationProposal>> StageReplaySelectionAsync(
@@ -27,7 +24,7 @@ internal sealed class ReplayCodeActionExecutor : IReplayCodeActionExecutor
     {
         if (selection is null)
         {
-            return ValueTask.FromResult(_resultShaper.Rejected<MutationProposal>("InvalidRequest", "A location selector is required."));
+            return ValueTask.FromResult(ToolExecutionHelpers.Rejected<MutationProposal>("InvalidRequest", "A location selector is required."));
         }
 
         return context.StageReplayCodeActionAsync(new ReplayCodeActionRequest

@@ -29,7 +29,7 @@ internal sealed class FindDerivedTypesTool : QueryToolHandler<FindDerivedTypesRe
 
         if (symbolResolution.Value is not INamedTypeSymbol namedType)
         {
-            return context.ToolExecutionServices.ResultShaper.Rejected<DerivedTypesData>("InvalidRequest", "Find derived types requires a named type symbol.");
+            return ToolExecutionHelpers.Rejected<DerivedTypesData>("InvalidRequest", "Find derived types requires a named type symbol.");
         }
 
         var scopeResolution = context.ToolExecutionServices.RequestResolver.ResolveProjects<DerivedTypesData>(request.Scope, context);
@@ -49,17 +49,13 @@ internal sealed class FindDerivedTypesTool : QueryToolHandler<FindDerivedTypesRe
             })
             .ToArray();
 
-        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
-            context,
-            derivedTypes,
-            ToolExecutionHelpers.GetMaxResults(context, request.Limit),
-            (items, hasMore) => new DerivedTypesData
-            {
-                BaseType = context.WorkspaceResolver.CreateSymbolReference(namedType),
-                DerivedTypes = items,
-                ReturnedCount = items.Count,
-                HasMore = hasMore,
-            });
+        return PluginExecutionResult<DerivedTypesData>.Success(new DerivedTypesData
+        {
+            BaseType = context.WorkspaceResolver.CreateSymbolReference(namedType),
+            DerivedTypes = ToolExecutionHelpers.CreateBoundedCollection(
+                derivedTypes,
+                ToolExecutionHelpers.GetMaxResults(context, request.DerivedTypesLimit)),
+        });
     }
 
     private static async ValueTask<IReadOnlyList<INamedTypeSymbol>> FindDerivedTypeSymbolsAsync(INamedTypeSymbol root, Solution solution, IImmutableSet<Project> projects, CancellationToken cancellationToken)

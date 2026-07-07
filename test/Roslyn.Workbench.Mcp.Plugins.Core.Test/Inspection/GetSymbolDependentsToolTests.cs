@@ -22,7 +22,7 @@ public sealed class GetSymbolDependentsToolTests
         });
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data!.Dependents.Should().Contain(static symbol => symbol.DisplayName.Contains("FormatterCaller.Call", StringComparison.Ordinal));
-        result.Data.Dependents.Should().Contain(static symbol => symbol.DisplayName.Contains("GreetingFormatter.Format", StringComparison.Ordinal) && symbol.DisplayName.Contains("bool", StringComparison.Ordinal));
+        result.Data!.Dependents.Items.Should().Contain(static symbol => symbol.DisplayName.Contains("FormatterCaller.Call", StringComparison.Ordinal));
+        result.Data.Dependents.Items.Should().Contain(static symbol => symbol.DisplayName.Contains("GreetingFormatter.Format", StringComparison.Ordinal) && symbol.DisplayName.Contains("bool", StringComparison.Ordinal));
     }
 }

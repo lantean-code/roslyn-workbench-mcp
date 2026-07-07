@@ -2,7 +2,7 @@ using Roslyn.Workbench.Mcp.Contracts.Refactorings;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Refactorings;
 
-internal sealed class ConvertForeachLinqTool : MutationToolHandler<ConvertForeachLinqRequest, MutationProposal>
+internal sealed class ConvertForeachLinqTool : MutationToolHandler<ConvertForeachLinqRequest>
 {
     private const string ForEachToLinqProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertLinq.ConvertForEachToLinqQuery.CSharpConvertForEachToLinqQueryProvider";
     private const string LinqToForEachProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertLinq.CSharpConvertLinqQueryToForEachProvider";

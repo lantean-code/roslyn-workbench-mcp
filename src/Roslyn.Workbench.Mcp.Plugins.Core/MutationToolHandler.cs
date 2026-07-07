@@ -1,13 +1,22 @@
+using Roslyn.Workbench.Mcp.Contracts.Selectors;
+
 namespace Roslyn.Workbench.Mcp.Plugins.Core;
 
-internal abstract class MutationToolHandler<TRequest, TResponse> : IMutationToolHandler<TRequest, TResponse>
+internal abstract class MutationToolHandler<TRequest> : IMutationToolHandler<TRequest>
+    where TRequest : WorkspaceBoundRequest
 {
-    public ValueTask<PluginExecutionResult<TResponse>> ExecuteAsync(TRequest request, IMutationContext context, CancellationToken cancellationToken)
+    public ValueTask<PluginExecutionResult<MutationProposal>> ExecuteAsync(
+        TRequest request,
+        IMutationContext context,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
 
         return ExecuteCoreAsync(request, context, cancellationToken);
     }
 
-    protected abstract ValueTask<PluginExecutionResult<TResponse>> ExecuteCoreAsync(TRequest request, IMutationContext context, CancellationToken cancellationToken);
+    protected abstract ValueTask<PluginExecutionResult<MutationProposal>> ExecuteCoreAsync(
+        TRequest request,
+        IMutationContext context,
+        CancellationToken cancellationToken);
 }

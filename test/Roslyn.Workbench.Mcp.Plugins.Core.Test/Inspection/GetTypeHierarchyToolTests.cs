@@ -13,7 +13,7 @@ public sealed class GetTypeHierarchyToolTests
         }, CancellationToken.None);
         var target = new GetTypeHierarchyTool();
 
-        var result = await BundledCoreToolTestHarness.ExecuteQueryAsync(coordinator, "get-type-hierarchy", target, new GetTypeHierarchyRequest
+        var result = await BundledCoreToolTestHarness.ExecuteSingletonQueryAsync(coordinator, "get-type-hierarchy", target, new GetTypeHierarchyRequest
         {
             Symbol = new SymbolSelector
             {

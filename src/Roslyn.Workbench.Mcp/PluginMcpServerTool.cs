@@ -6,25 +6,27 @@ namespace Roslyn.Workbench.Mcp;
 
 internal sealed class PluginMcpServerTool : McpServerTool
 {
-    private readonly RegisteredTool _registeredTool;
-    private readonly ToolExecutor _toolExecutor;
+    private readonly RegisteredPluginTool _registeredTool;
+    private readonly IToolExecutionContextFactory _contextFactory;
     private readonly Tool _protocolTool;
 
-    public PluginMcpServerTool(RegisteredTool registeredTool, ToolExecutor toolExecutor)
+    public PluginMcpServerTool(
+        RegisteredPluginTool registeredTool,
+        IToolExecutionContextFactory contextFactory)
     {
         _registeredTool = registeredTool;
-        _toolExecutor = toolExecutor;
-        var description = string.IsNullOrWhiteSpace(registeredTool.Metadata.ResultSummary)
-            ? registeredTool.Metadata.Description
-            : $"{registeredTool.Metadata.Description} Result: {registeredTool.Metadata.ResultSummary}";
+        _contextFactory = contextFactory;
+        var description = string.IsNullOrWhiteSpace(registeredTool.Tool.Metadata.ResultSummary)
+            ? registeredTool.Tool.Metadata.Description
+            : $"{registeredTool.Tool.Metadata.Description} Result: {registeredTool.Tool.Metadata.ResultSummary}";
         _protocolTool = new Tool
         {
-            Name = registeredTool.Metadata.Name,
-            Title = registeredTool.Metadata.Title,
+            Name = registeredTool.Tool.Metadata.Name,
+            Title = registeredTool.Tool.Metadata.Title,
             Description = description,
-            InputSchema = registeredTool.InputSchema,
-            OutputSchema = registeredTool.OutputSchema,
-            Annotations = registeredTool.Annotations,
+            InputSchema = registeredTool.Tool.InputSchema,
+            OutputSchema = registeredTool.Tool.OutputSchema,
+            Annotations = registeredTool.Tool.Annotations,
         };
     }
 
@@ -37,6 +39,6 @@ internal sealed class PluginMcpServerTool : McpServerTool
         var arguments = requestContext.Params.Arguments
             ?? (IDictionary<string, JsonElement>)new Dictionary<string, JsonElement>(StringComparer.Ordinal);
 
-        return _toolExecutor.ExecuteAsync(_registeredTool, arguments, cancellationToken);
+        return _registeredTool.Runtime.InvokeAsync(arguments, _contextFactory, cancellationToken);
     }
 }

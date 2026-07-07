@@ -3,6 +3,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by get-api-surface.
 /// </summary>
+[PublishedCollectionResponse(nameof(Symbols))]
 public sealed record ApiSurfaceData
 {
     /// <summary>

@@ -13,7 +13,7 @@ public sealed class ResolveSymbolToolTests
         }, CancellationToken.None);
         var target = new ResolveSymbolTool();
 
-        var result = await BundledCoreToolTestHarness.ExecuteQueryAsync(coordinator, "resolve-symbol", target, new ResolveSymbolRequest
+        var result = await BundledCoreToolTestHarness.ExecuteSingletonQueryAsync(coordinator, "resolve-symbol", target, new ResolveSymbolRequest
         {
             Location = fixture.GetLocation("GreetingFormatter"),
             ExpectedSnapshot = BundledCoreToolTestHarness.CreateSnapshot(openResult),

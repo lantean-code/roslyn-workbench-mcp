@@ -5,6 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by find-overloads.
 /// </summary>
+[PublishedCollectionResponse(nameof(Overloads))]
 public sealed record OverloadSearchData
 {
     /// <summary>

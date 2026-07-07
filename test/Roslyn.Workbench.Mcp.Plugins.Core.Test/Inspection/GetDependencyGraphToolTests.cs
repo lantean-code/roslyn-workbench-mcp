@@ -13,7 +13,7 @@ public sealed class GetDependencyGraphToolTests
         }, CancellationToken.None);
         var target = new GetDependencyGraphTool();
 
-        var result = await BundledCoreToolTestHarness.ExecuteQueryAsync(coordinator, "get-dependency-graph", target, new GetDependencyGraphRequest
+        var result = await BundledCoreToolTestHarness.ExecuteSingletonQueryAsync(coordinator, "get-dependency-graph", target, new GetDependencyGraphRequest
         {
             Scope = new ScopeSelector
             {

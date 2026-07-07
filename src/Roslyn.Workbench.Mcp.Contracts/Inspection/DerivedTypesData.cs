@@ -5,6 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by find-derived-types.
 /// </summary>
+[PublishedCollectionResponse(nameof(DerivedTypes))]
 public sealed record DerivedTypesData
 {
     /// <summary>

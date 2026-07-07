@@ -4,7 +4,7 @@ using Roslyn.Workbench.Mcp.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
-internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowGraphRequest, ControlFlowGraphData>
+internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowGraphRequest, QueryResponse<ControlFlowGraphData>>
 {
     private static readonly ToolRegistrationMetadata _metadata = new()
     {
@@ -18,13 +18,13 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
         registry.RegisterQueryTool(_metadata, new GetControlFlowGraphTool());
     }
 
-    protected override async ValueTask<PluginExecutionResult<ControlFlowGraphData>> ExecuteCoreAsync(GetControlFlowGraphRequest request, IQueryContext context, CancellationToken cancellationToken)
+    protected override async ValueTask<PluginExecutionResult<QueryResponse<ControlFlowGraphData>>> ExecuteCoreAsync(GetControlFlowGraphRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         if (request.Symbol is null == request.Location is null)
         {
-            return ToolExecutionHelpers.Rejected<ControlFlowGraphData>("InvalidRequest", "Specify exactly one of symbol or location.");
+            return ToolExecutionHelpers.Rejected<QueryResponse<ControlFlowGraphData>>("InvalidRequest", "Specify exactly one of symbol or location.");
         }
 
         SyntaxNode node;
@@ -32,7 +32,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
         ISymbol ownerSymbol;
         if (request.Symbol is not null)
         {
-            var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<ControlFlowGraphData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+            var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<QueryResponse<ControlFlowGraphData>>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
             if (symbolResolution.HasRejection)
             {
                 return symbolResolution.Rejection;
@@ -42,7 +42,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
             var sourceLocation = ownerSymbol.Locations.FirstOrDefault(static item => item.IsInSource);
             if (sourceLocation is null || context.CurrentSolution.GetDocument(sourceLocation.SourceTree) is not { } document)
             {
-                return ToolExecutionHelpers.Rejected<ControlFlowGraphData>("LocationNotFound", "The symbol does not have a source declaration.", RequiredAction.ResolveTargetAgain);
+                return ToolExecutionHelpers.Rejected<QueryResponse<ControlFlowGraphData>>("LocationNotFound", "The symbol does not have a source declaration.", RequiredAction.ResolveTargetAgain);
             }
 
             semanticModel = (await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false))!;
@@ -64,7 +64,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
         var graph = ControlFlowGraph.Create(node, semanticModel, cancellationToken);
         if (graph is null)
         {
-            return ToolExecutionHelpers.Rejected<ControlFlowGraphData>("InvalidRequest", "The selected target does not support control-flow graph generation.");
+            return ToolExecutionHelpers.Rejected<QueryResponse<ControlFlowGraphData>>("InvalidRequest", "The selected target does not support control-flow graph generation.");
         }
 
         var blocks = graph.Blocks.Select(static block => new BasicBlockInfo
@@ -80,7 +80,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
         var boundedBlocks = blocks.Take(request.MaxBlocks).ToArray();
         var boundedRegions = regions.Take(request.MaxRegions).ToArray();
 
-        return context.ToolExecutionServices.ResultShaper.EnsureWithinSize(context, new ControlFlowGraphData
+        return context.ToolExecutionServices.ResultShaper.CreateSingletonResponse(context, new ControlFlowGraphData
         {
             Owner = context.WorkspaceResolver.CreateSymbolReference(ownerSymbol),
             Blocks = boundedBlocks,
@@ -116,7 +116,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
 
     private static async ValueTask<SyntaxNodeResolution> ResolveSyntaxNodeAsync(LocationSelector? selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)
     {
-        var rejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<ControlFlowGraphData>(context, expectedSnapshot);
+        var rejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<QueryResponse<ControlFlowGraphData>>(context, expectedSnapshot);
         if (rejection is not null)
         {
             return new SyntaxNodeResolution
@@ -129,7 +129,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
         {
             return new SyntaxNodeResolution
             {
-                Rejection = ToolExecutionHelpers.Rejected<ControlFlowGraphData>("InvalidRequest", "A location selector is required."),
+                Rejection = ToolExecutionHelpers.Rejected<QueryResponse<ControlFlowGraphData>>("InvalidRequest", "A location selector is required."),
             };
         }
 
@@ -138,7 +138,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
         {
             return new SyntaxNodeResolution
             {
-                Rejection = ToolExecutionHelpers.RejectFromStatus<ControlFlowGraphData>(locationResolution.Status, "Location"),
+                Rejection = ToolExecutionHelpers.RejectFromStatus<QueryResponse<ControlFlowGraphData>>(locationResolution.Status, "Location"),
             };
         }
 
@@ -147,7 +147,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
         {
             return new SyntaxNodeResolution
             {
-                Rejection = ToolExecutionHelpers.Rejected<ControlFlowGraphData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
+                Rejection = ToolExecutionHelpers.Rejected<QueryResponse<ControlFlowGraphData>>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
             };
         }
 
@@ -156,7 +156,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
         {
             return new SyntaxNodeResolution
             {
-                Rejection = ToolExecutionHelpers.Rejected<ControlFlowGraphData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
+                Rejection = ToolExecutionHelpers.Rejected<QueryResponse<ControlFlowGraphData>>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
             };
         }
 
@@ -166,7 +166,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
         {
             return new SyntaxNodeResolution
             {
-                Rejection = ToolExecutionHelpers.Rejected<ControlFlowGraphData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
+                Rejection = ToolExecutionHelpers.Rejected<QueryResponse<ControlFlowGraphData>>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
             };
         }
 
@@ -179,7 +179,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
 
     private sealed record SyntaxNodeResolution
     {
-        public PluginExecutionResult<ControlFlowGraphData>? Rejection { get; init; }
+        public PluginExecutionResult<QueryResponse<ControlFlowGraphData>>? Rejection { get; init; }
 
         public SyntaxNode? Node { get; init; }
 

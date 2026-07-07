@@ -3,6 +3,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by find-duplicate-code.
 /// </summary>
+[PublishedCollectionResponse(nameof(Groups))]
 public sealed record DuplicateCodeData
 {
     /// <summary>

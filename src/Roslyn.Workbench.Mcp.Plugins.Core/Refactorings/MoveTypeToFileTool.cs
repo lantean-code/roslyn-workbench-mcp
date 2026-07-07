@@ -3,7 +3,7 @@ using Roslyn.Workbench.Mcp.Contracts.Results;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Refactorings;
 
-internal sealed class MoveTypeToFileTool : MutationToolHandler<MoveTypeToFileRequest, MutationProposal>
+internal sealed class MoveTypeToFileTool : MutationToolHandler<MoveTypeToFileRequest>
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CodeRefactorings.MoveType.MoveTypeCodeRefactoringProvider";
     private const string TitlePrefix = "Move type to ";

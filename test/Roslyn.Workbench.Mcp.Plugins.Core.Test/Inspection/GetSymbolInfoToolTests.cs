@@ -14,12 +14,12 @@ public sealed class GetSymbolInfoToolTests
         var resolveTarget = new ResolveSymbolTool();
         var target = new GetSymbolInfoTool();
 
-        var resolve = await BundledCoreToolTestHarness.ExecuteQueryAsync(coordinator, "resolve-symbol", resolveTarget, new ResolveSymbolRequest
+        var resolve = await BundledCoreToolTestHarness.ExecuteSingletonQueryAsync(coordinator, "resolve-symbol", resolveTarget, new ResolveSymbolRequest
         {
             Location = fixture.GetLocation("GreetingFormatter"),
             ExpectedSnapshot = BundledCoreToolTestHarness.CreateSnapshot(openResult),
         });
-        var result = await BundledCoreToolTestHarness.ExecuteQueryAsync(coordinator, "get-symbol-info", target, new GetSymbolInfoRequest
+        var result = await BundledCoreToolTestHarness.ExecuteSingletonQueryAsync(coordinator, "get-symbol-info", target, new GetSymbolInfoRequest
         {
             Symbol = resolve.Data!.Selector!,
             IncludeDocumentation = true,

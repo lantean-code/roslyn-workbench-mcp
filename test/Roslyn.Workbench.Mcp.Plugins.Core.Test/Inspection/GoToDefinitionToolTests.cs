@@ -14,12 +14,12 @@ public sealed class GoToDefinitionToolTests
         var resolveTarget = new ResolveSymbolTool();
         var target = new GoToDefinitionTool();
 
-        var resolve = await BundledCoreToolTestHarness.ExecuteQueryAsync(coordinator, "resolve-symbol", resolveTarget, new ResolveSymbolRequest
+        var resolve = await BundledCoreToolTestHarness.ExecuteSingletonQueryAsync(coordinator, "resolve-symbol", resolveTarget, new ResolveSymbolRequest
         {
             Location = fixture.GetLocation("ToUpperInvariant"),
             ExpectedSnapshot = BundledCoreToolTestHarness.CreateSnapshot(openResult),
         });
-        var result = await BundledCoreToolTestHarness.ExecuteQueryAsync(coordinator, "go-to-definition", target, new GoToDefinitionRequest
+        var result = await BundledCoreToolTestHarness.ExecuteSingletonQueryAsync(coordinator, "go-to-definition", target, new GoToDefinitionRequest
         {
             Symbol = resolve.Data!.Selector!,
         });

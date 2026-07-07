@@ -38,16 +38,7 @@ public sealed record RegisteredTool
     public JsonElement? OutputSchema { get; init; }
 
     /// <summary>
-    /// Gets the externally published response shape descriptor.
-    /// </summary>
-    public ToolResponseDescriptor ResponseDescriptor { get; init; } = new();
-
-    /// <summary>
     /// Gets the generated MCP tool annotations.
     /// </summary>
     public ToolAnnotations Annotations { get; init; } = new();
-
-    internal Func<PluginExecutionResultBox, JsonElement> ResponseWriter { get; init; } = static _ => default;
-
-    internal IPluginToolInvoker Invoker { get; init; } = NullPluginToolInvoker.Instance;
 }

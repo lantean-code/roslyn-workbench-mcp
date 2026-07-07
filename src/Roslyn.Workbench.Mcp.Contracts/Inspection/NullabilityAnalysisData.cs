@@ -3,6 +3,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by analyze-nullability.
 /// </summary>
+[PublishedCollectionResponse(nameof(Findings))]
 public sealed record NullabilityAnalysisData
 {
     /// <summary>

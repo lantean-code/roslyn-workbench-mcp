@@ -25,7 +25,7 @@ public sealed class PluginDiscoveryAndMcpToolTests
         var plugins = snapshot.Plugins;
 
         tools.Should().HaveCount(2);
-        tools.Select(static tool => tool.Metadata.Name).Should().Contain(["host-valid-query", "host-valid-mutation"]);
+        tools.Select(static tool => tool.Tool.Metadata.Name).Should().Contain(["host-valid-query", "host-valid-mutation"]);
 
         plugins.Should().ContainSingle(static status => status.PluginId == "host.valid.query" && status.Enabled);
         plugins.Should().ContainSingle(static status => status.PluginId == "host.valid.mutation" && status.Enabled);
@@ -40,8 +40,7 @@ public sealed class PluginDiscoveryAndMcpToolTests
         var loader = new PluginCatalogLoader();
         var snapshot = loader.Load(startupOptions, []);
         var tool = snapshot.Tools.Single();
-        var executor = new ToolExecutor(CreateExecutionContextFactory());
-        var serverTool = new PluginMcpServerTool(tool, executor);
+        var serverTool = new PluginMcpServerTool(tool, CreateExecutionContextFactory());
 
         serverTool.ProtocolTool.Name.Should().Be("host-valid-query");
         serverTool.ProtocolTool.Title.Should().Be("Host Valid Query");
@@ -87,8 +86,7 @@ public sealed class PluginDiscoveryAndMcpToolTests
         var loader = new PluginCatalogLoader();
         var snapshot = loader.Load(startupOptions, []);
         var tool = snapshot.Tools.Single();
-        var executor = new ToolExecutor(CreateExecutionContextFactory());
-        var serverTool = new PluginMcpServerTool(tool, executor);
+        var serverTool = new PluginMcpServerTool(tool, CreateExecutionContextFactory());
 
         serverTool.ProtocolTool.OutputSchema.Should().NotBeNull();
         serverTool.ProtocolTool.OutputSchema!.Value.GetProperty("oneOf").ValueKind.Should().Be(JsonValueKind.Array);

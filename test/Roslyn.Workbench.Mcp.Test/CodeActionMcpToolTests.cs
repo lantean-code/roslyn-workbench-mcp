@@ -1,12 +1,11 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Roslyn.Workbench.Mcp.TestSupport;
 
 namespace Roslyn.Workbench.Mcp.Test;
 
 public sealed class CodeActionMcpToolTests
 {
-    private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
-
     [Fact]
     public async Task GIVEN_DefaultCoordinator_WHEN_InvokingListCodeActions_THEN_ShouldRejectAsUnavailable()
     {
@@ -18,8 +17,7 @@ public sealed class CodeActionMcpToolTests
         }, CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
-
+        var executor = coordinator;
         plugin.Register(registry);
 
         var result = await InvokeAsync<CodeActionListData>(executor, registry, "list-code-actions", new Dictionary<string, JsonElement>
@@ -46,8 +44,7 @@ public sealed class CodeActionMcpToolTests
         }, CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
-
+        var executor = coordinator;
         plugin.Register(registry);
 
         var result = await InvokeAsync<CodeActionListData>(executor, registry, "list-code-actions", new Dictionary<string, JsonElement>
@@ -81,8 +78,7 @@ public sealed class CodeActionMcpToolTests
         }, CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
-
+        var executor = coordinator;
         plugin.Register(registry);
 
         var result = await InvokeAsync<CodeActionListData>(executor, registry, "list-code-actions", new Dictionary<string, JsonElement>
@@ -117,8 +113,7 @@ public sealed class CodeActionMcpToolTests
         }, CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
-
+        var executor = coordinator;
         plugin.Register(registry);
 
         var list = await InvokeAsync<CodeActionListData>(executor, registry, "list-code-actions", new Dictionary<string, JsonElement>
@@ -155,7 +150,7 @@ public sealed class CodeActionMcpToolTests
         }, CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
 
@@ -185,7 +180,7 @@ public sealed class CodeActionMcpToolTests
         }, CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
 
@@ -223,7 +218,7 @@ public sealed class CodeActionMcpToolTests
         }, CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
 
@@ -255,7 +250,7 @@ public sealed class CodeActionMcpToolTests
         await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
 
@@ -294,7 +289,7 @@ public sealed class CodeActionMcpToolTests
         await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
 
@@ -355,7 +350,7 @@ public sealed class CodeActionMcpToolTests
         await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
 
@@ -406,7 +401,7 @@ public sealed class CodeActionMcpToolTests
         await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
 
@@ -450,7 +445,7 @@ public sealed class CodeActionMcpToolTests
         await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
 
@@ -499,7 +494,7 @@ public sealed class CodeActionMcpToolTests
         await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
 
@@ -570,7 +565,7 @@ public sealed class CodeActionMcpToolTests
         await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
 
@@ -615,7 +610,7 @@ public sealed class CodeActionMcpToolTests
         await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
 
@@ -653,7 +648,7 @@ public sealed class CodeActionMcpToolTests
         await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
 
@@ -754,137 +749,13 @@ public sealed class CodeActionMcpToolTests
     }
 
     private static async Task<ToolResult<TResponse>> InvokeAsync<TResponse>(
-        ToolExecutor executor,
+        IToolExecutionContextFactory executor,
         PluginRegistry registry,
         string toolName,
         IDictionary<string, JsonElement> arguments,
         bool expectProtocolSuccess = true)
     {
-        var registeredTool = registry.RegisteredTools.Single(tool => tool.Metadata.Name == toolName);
-        var serverTool = new PluginMcpServerTool(registeredTool, executor);
-        var result = await serverTool.InvokeAsync(
-            new RequestContext<CallToolRequestParams>(
-                CreateServer(),
-                new JsonRpcRequest
-                {
-                    Method = "tools/call",
-                },
-                new CallToolRequestParams
-                {
-                    Name = toolName,
-                    Arguments = arguments,
-                }),
-            CancellationToken.None);
-
-        result.IsError.Should().Be(!expectProtocolSuccess);
-
-        return DeserializeToolResult<TResponse>(registeredTool, result.StructuredContent!.Value, toolName);
-    }
-
-    private static ToolResult<TResponse> DeserializeToolResult<TResponse>(RegisteredTool registeredTool, JsonElement payload, string toolName)
-    {
-        if (payload.TryGetProperty("outcome", out _))
-        {
-            return JsonSerializer.Deserialize<ToolResult<TResponse>>(payload.GetRawText(), _serializerOptions)!;
-        }
-
-        if (!payload.GetProperty("ok").GetBoolean())
-        {
-            return ToolResult<TResponse>.Rejected(
-                JsonSerializer.Deserialize<ToolError>(payload.GetProperty("error").GetRawText(), _serializerOptions)!,
-                payload.TryGetProperty("next", out var nextElement) && nextElement.ValueKind != JsonValueKind.Null
-                    ? JsonSerializer.Deserialize<RequiredAction>(nextElement.GetRawText(), _serializerOptions)
-                    : null);
-        }
-
-        var data = registeredTool.ResponseDescriptor.Kind switch
-        {
-            ToolResponseShapeKind.Direct => DeserializeDirectData<TResponse>(payload),
-            ToolResponseShapeKind.Singleton => JsonSerializer.Deserialize<TResponse>(payload.GetProperty("value").GetRawText(), _serializerOptions)!,
-            ToolResponseShapeKind.Collection => DeserializeCollectionData<TResponse>(registeredTool.ResponseDescriptor, payload),
-            ToolResponseShapeKind.Mutation => (TResponse)(object)DeserializeMutationData(payload, toolName),
-            ToolResponseShapeKind.CodeActionList => (TResponse)(object)DeserializeCodeActionListData(payload),
-            _ => throw new InvalidOperationException($"Unsupported response shape kind '{registeredTool.ResponseDescriptor.Kind}'."),
-        };
-
-        var transactionRevision = data is MutationData mutationData
-            ? mutationData.Transaction?.Revision
-            : null;
-
-        return ToolResult<TResponse>.Succeeded(data, transactionRevision: transactionRevision);
-    }
-
-    private static TResponse DeserializeDirectData<TResponse>(JsonElement payload)
-    {
-        var node = JsonNode.Parse(payload.GetRawText())!.AsObject();
-        node.Remove("ok");
-
-        return node.Deserialize<TResponse>(_serializerOptions)!;
-    }
-
-    private static TResponse DeserializeCollectionData<TResponse>(ToolResponseDescriptor descriptor, JsonElement payload)
-    {
-        var node = JsonNode.Parse(payload.GetRawText())!.AsObject();
-        var itemsNode = node["items"]?.DeepClone();
-        var hasMoreNode = node["hasMore"]?.DeepClone();
-        var truncatedByNode = node["truncatedBy"]?.DeepClone();
-
-        node.Remove("ok");
-        node.Remove("items");
-        node.Remove("hasMore");
-        node.Remove("truncatedBy");
-        node[JsonNamingPolicy.CamelCase.ConvertName(descriptor.CollectionPropertyName!)] = itemsNode;
-        node["hasMore"] = hasMoreNode;
-        node["returnedCount"] = itemsNode is JsonArray itemsArray ? itemsArray.Count : 0;
-
-        if (truncatedByNode is not null)
-        {
-            node["truncationReasons"] = truncatedByNode;
-        }
-
-        return node.Deserialize<TResponse>(_serializerOptions)!;
-    }
-
-    private static MutationData DeserializeMutationData(JsonElement payload, string toolName)
-    {
-        return new MutationData
-        {
-            Operation = toolName,
-            Summary = payload.TryGetProperty("summary", out var summaryElement) && summaryElement.ValueKind == JsonValueKind.String
-                ? summaryElement.GetString() ?? string.Empty
-                : string.Empty,
-            Transaction = payload.TryGetProperty("transaction", out var transactionElement)
-                ? new TransactionInfo
-                {
-                    Revision = transactionElement.GetProperty("revision").GetInt32(),
-                }
-                : null,
-        };
-    }
-
-    private static CodeActionListData DeserializeCodeActionListData(JsonElement payload)
-    {
-        var items = JsonSerializer.Deserialize<IReadOnlyList<CodeActionListItem>>(payload.GetProperty("items").GetRawText(), _serializerOptions) ?? [];
-
-        return new CodeActionListData
-        {
-            Actions = items.Select(static item => new CodeActionInfo
-            {
-                ActionId = item.ActionId,
-                Title = item.Title,
-                ProviderId = item.ProviderId,
-                Kind = item.Kind,
-                ExecutionMode = item.ExecutionMode,
-                ExecutorTool = item.ExecutorTool,
-                DescribeTool = item.DescribeTool,
-                UnsupportedReasonCode = item.UnsupportedReasonCode,
-            }).ToArray(),
-            ReturnedCount = items.Count,
-            HasMore = payload.GetProperty("hasMore").GetBoolean(),
-            TruncationReasons = payload.TryGetProperty("truncatedBy", out var truncatedByElement)
-                ? JsonSerializer.Deserialize<IReadOnlyList<CollectionTruncation>>(truncatedByElement.GetRawText(), _serializerOptions)
-                : null,
-        };
+        return await PluginToolTestHarness.InvokeAsync<TResponse>(executor, registry, toolName, arguments, expectProtocolSuccess);
     }
 
     private static McpServer CreateServer()

@@ -2,7 +2,7 @@ using Roslyn.Workbench.Mcp.Contracts.CodeActions;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.CodeActions;
 
-internal sealed class StageCodeActionTool : MutationToolHandler<StageCodeActionRequest, MutationProposal>
+internal sealed class StageCodeActionTool : MutationToolHandler<StageCodeActionRequest>
 {
     private static readonly ToolRegistrationMetadata _metadata = new()
     {

@@ -1,8 +1,10 @@
 using Roslyn.Workbench.Mcp.Contracts.Inspection;
+using Roslyn.Workbench.Mcp.Contracts.Results;
+using Roslyn.Workbench.Mcp.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
-internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetailsRequest, ProjectDetailsData>
+internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetailsRequest, QueryResponse<ProjectDetailsData>>
 {
     private static readonly ToolRegistrationMetadata _metadata = new()
     {
@@ -16,10 +18,10 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
         registry.RegisterQueryTool(_metadata, new GetProjectDetailsTool());
     }
 
-    protected override async ValueTask<PluginExecutionResult<ProjectDetailsData>> ExecuteCoreAsync(GetProjectDetailsRequest request, IQueryContext context, CancellationToken cancellationToken)
+    protected override async ValueTask<PluginExecutionResult<QueryResponse<ProjectDetailsData>>> ExecuteCoreAsync(GetProjectDetailsRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var projectResolution = context.ToolExecutionServices.RequestResolver.ResolveProject<ProjectDetailsData>(request.Project, context);
+        var projectResolution = context.ToolExecutionServices.RequestResolver.ResolveProject<QueryResponse<ProjectDetailsData>>(request.Project, context);
         if (projectResolution.HasRejection)
         {
             return projectResolution.Rejection;
@@ -59,7 +61,7 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
                 CompilationOptions = InspectionProjectionFactory.CreateCompilationOptionsInfo(compilation?.Options ?? project.CompilationOptions),
             };
 
-            return context.ToolExecutionServices.ResultShaper.EnsureWithinSize(context, unboundedData);
+            return context.ToolExecutionServices.ResultShaper.CreateSingletonResponse(context, unboundedData);
         }
 
         var projectReferences = project.ProjectReferences
@@ -77,7 +79,7 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
             .OrderBy(static analyzer => analyzer.Path ?? analyzer.DisplayName, StringComparer.Ordinal)
             .ToArray();
 
-        return context.ToolExecutionServices.ResultShaper.CreateBoundedCollectionResult(
+        return CreateBoundedResponse(
             context,
             documents,
             ToolExecutionHelpers.GetMaxResults(context, request.Limit),
@@ -92,5 +94,34 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
                 ReturnedCount = items.Count,
                 HasMore = hasMore,
             });
+    }
+
+    private static PluginExecutionResult<QueryResponse<ProjectDetailsData>> CreateBoundedResponse(
+        IQueryContext context,
+        IReadOnlyList<DocumentReference> orderedDocuments,
+        int maxResults,
+        Func<IReadOnlyList<DocumentReference>, bool, ProjectDetailsData> createData)
+    {
+        var limitedCount = Math.Min(maxResults, orderedDocuments.Count);
+
+        for (var count = limitedCount; count >= 0; count--)
+        {
+            var documents = count == orderedDocuments.Count
+                ? orderedDocuments
+                : orderedDocuments.Take(count).ToArray();
+            var result = context.ToolExecutionServices.ResultShaper.CreateSingletonResponse(
+                context,
+                createData(documents, count < orderedDocuments.Count));
+
+            if (result.Outcome == ToolOutcome.Succeeded)
+            {
+                return result;
+            }
+        }
+
+        return context.ToolExecutionServices.ResultShaper.Rejected<QueryResponse<ProjectDetailsData>>(
+            "ResponseLimitExceeded",
+            "The response exceeded the configured response size limit.",
+            RequiredAction.NarrowRequest);
     }
 }

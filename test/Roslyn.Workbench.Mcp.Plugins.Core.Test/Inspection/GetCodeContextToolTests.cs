@@ -76,9 +76,9 @@ public sealed class GetCodeContextToolTests
         }, context, CancellationToken.None);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data!.Text.Should().Contain("var unused = 42;");
-        result.Data.Diagnostics.Should().Contain(static diagnostic => diagnostic.Id == "CS0219");
-        result.Data.EnclosingSymbols.Should().Contain(static symbol => symbol.DisplayName.Contains("GreetingFormatter.Format", StringComparison.Ordinal));
+        result.Data!.Value.Text.Should().Contain("var unused = 42;");
+        result.Data.Value.Diagnostics.Should().Contain(static diagnostic => diagnostic.Id == "CS0219");
+        result.Data.Value.EnclosingSymbols.Should().Contain(static symbol => symbol.DisplayName.Contains("GreetingFormatter.Format", StringComparison.Ordinal));
     }
 
     [Fact]

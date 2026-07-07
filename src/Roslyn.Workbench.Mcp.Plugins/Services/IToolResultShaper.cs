@@ -9,6 +9,15 @@ namespace Roslyn.Workbench.Mcp.Plugins.Services;
 public interface IToolResultShaper
 {
     /// <summary>
+    /// Creates a singleton query response that respects the configured response-size limit.
+    /// </summary>
+    /// <typeparam name="TValue">The published value type.</typeparam>
+    /// <param name="context">The current query context.</param>
+    /// <param name="value">The published value.</param>
+    /// <returns>A successful or rejected plugin result.</returns>
+    PluginExecutionResult<QueryResponse<TValue>> CreateSingletonResponse<TValue>(IQueryContext context, TValue value);
+
+    /// <summary>
     /// Ensures a singleton query payload fits within the configured response limit.
     /// </summary>
     /// <typeparam name="TResponse">The response payload type.</typeparam>
@@ -51,4 +60,17 @@ public interface IToolResultShaper
         IReadOnlyList<TItem> orderedItems,
         int maxResults,
         Func<IReadOnlyList<TItem>, bool, TData> createData);
+
+    /// <summary>
+    /// Creates a bounded collection response that respects result-count and response-size limits.
+    /// </summary>
+    /// <typeparam name="TItem">The collection item type.</typeparam>
+    /// <param name="context">The current query context.</param>
+    /// <param name="orderedItems">The pre-ordered items.</param>
+    /// <param name="maxResults">The maximum number of items to include.</param>
+    /// <returns>The bounded collection result.</returns>
+    PluginExecutionResult<CollectionResponse<TItem>> CreateBoundedCollectionResponse<TItem>(
+        IQueryContext context,
+        IReadOnlyList<TItem> orderedItems,
+        int maxResults);
 }

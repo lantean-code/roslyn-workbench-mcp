@@ -1,8 +1,8 @@
 using Roslyn.Workbench.Mcp.Contracts.Inspection;
 
-namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
+namespace Roslyn.Workbench.Mcp.Plugins.Core.Refactorings;
 
-internal sealed class RenameSymbolTool : MutationToolHandler<RenameSymbolRequest, MutationProposal>
+internal sealed class RenameSymbolTool : MutationToolHandler<RenameSymbolRequest>
 {
     private static readonly ToolRegistrationMetadata _metadata = new()
     {

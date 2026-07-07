@@ -299,19 +299,14 @@ public sealed class ReplayRefactoringToolsTests
         string toolName,
         IDictionary<string, JsonElement> arguments)
     {
-        var registeredTool = registry.RegisteredTools.Single(tool => tool.Metadata.Name == toolName);
-        var result = await registeredTool.Invoker.ExecuteAsync(
-            registeredTool,
-            arguments,
-            coordinator,
-            CancellationToken.None);
+        var result = await PluginToolTestHarness.InvokeAsync<MutationData>(coordinator, registry, toolName, arguments);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded, result.Error?.Message);
 
         return new PluginExecutionResult<MutationData>
         {
             Outcome = result.Outcome,
-            Data = result.Data.Should().BeOfType<MutationData>().Subject,
+            Data = result.Data,
             Changes = result.Changes,
             Error = result.Error,
             RequiredAction = result.RequiredAction,

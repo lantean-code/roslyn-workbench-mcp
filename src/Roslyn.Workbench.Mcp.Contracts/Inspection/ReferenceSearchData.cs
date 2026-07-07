@@ -5,6 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by find-references.
 /// </summary>
+[PublishedCollectionResponse(nameof(References))]
 public sealed record ReferenceSearchData
 {
     /// <summary>

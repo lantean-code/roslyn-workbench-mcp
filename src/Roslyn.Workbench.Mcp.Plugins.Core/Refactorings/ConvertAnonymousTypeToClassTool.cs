@@ -2,7 +2,7 @@ using Roslyn.Workbench.Mcp.Contracts.Refactorings;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Refactorings;
 
-internal sealed class ConvertAnonymousTypeToClassTool : MutationToolHandler<ConvertAnonymousTypeToClassRequest, MutationProposal>
+internal sealed class ConvertAnonymousTypeToClassTool : MutationToolHandler<ConvertAnonymousTypeToClassRequest>
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertAnonymousType.CSharpConvertAnonymousTypeToClassCodeRefactoringProvider";
 

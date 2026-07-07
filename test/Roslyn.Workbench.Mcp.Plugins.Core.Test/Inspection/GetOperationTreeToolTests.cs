@@ -13,7 +13,7 @@ public sealed class GetOperationTreeToolTests
         }, CancellationToken.None);
         var target = new GetOperationTreeTool();
 
-        var result = await BundledCoreToolTestHarness.ExecuteQueryAsync(coordinator, "get-operation-tree", target, new GetOperationTreeRequest
+        var result = await BundledCoreToolTestHarness.ExecuteSingletonQueryAsync(coordinator, "get-operation-tree", target, new GetOperationTreeRequest
         {
             Location = fixture.GetLocation("formatter.Format(\"hi\")"),
             ExpectedSnapshot = BundledCoreToolTestHarness.CreateSnapshot(openResult),

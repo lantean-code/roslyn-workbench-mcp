@@ -34,7 +34,7 @@ public sealed class ValidMutationTestPlugin : IRoslynPlugin
         public string Summary { get; init; } = string.Empty;
     }
 
-    private sealed class Handler : IMutationToolHandler<Request, MutationProposal>
+    private sealed class Handler : IMutationToolHandler<Request>
     {
         public ValueTask<PluginExecutionResult<MutationProposal>> ExecuteAsync(Request request, IMutationContext context, CancellationToken cancellationToken)
         {

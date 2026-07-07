@@ -19,12 +19,10 @@ public sealed class ToolExecutorTests
     public async Task GIVEN_QueryHandlerSuccess_WHEN_ExecutingRegisteredTool_THEN_ShouldReturnStructuredSucceededResult()
     {
         var registeredTool = CreateQueryTool(new SuccessQueryHandler());
-        var executor = new ToolExecutor(CreateExecutionContextFactory());
-
-        var result = await executor.ExecuteAsync(registeredTool, new Dictionary<string, JsonElement>
+        var result = await registeredTool.Runtime.InvokeAsync(new Dictionary<string, JsonElement>
         {
             ["name"] = JsonSerializer.SerializeToElement("Name"),
-        }, CancellationToken.None);
+        }, CreateExecutionContextFactory(), CancellationToken.None);
 
         result.IsError.Should().BeFalse();
         result.StructuredContent.Should().NotBeNull();
@@ -58,16 +56,14 @@ public sealed class ToolExecutorTests
             .Setup(static contextFactory => contextFactory.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), It.IsAny<CancellationToken>()))
             .Returns((WorkspaceBoundRequest _, CancellationToken _) => throw new InvalidOperationException("Mutation context should not be requested."));
 
-        var executor = new ToolExecutor(factory.Object);
-
-        var result = await executor.ExecuteAsync(registeredTool, new Dictionary<string, JsonElement>
+        var result = await registeredTool.Runtime.InvokeAsync(new Dictionary<string, JsonElement>
         {
             ["name"] = JsonSerializer.SerializeToElement("Name"),
             ["workspace"] = JsonSerializer.SerializeToElement(new WorkspaceSelector
             {
                 WorkspaceId = "workspace-42",
             }),
-        }, CancellationToken.None);
+        }, factory.Object, CancellationToken.None);
 
         result.IsError.Should().BeFalse();
         factory.Verify(static contextFactory => contextFactory.CreateQueryContext(
@@ -79,12 +75,10 @@ public sealed class ToolExecutorTests
     public async Task GIVEN_QueryHandlerNoChange_WHEN_ExecutingRegisteredTool_THEN_ShouldReturnStructuredNoChangeResult()
     {
         var registeredTool = CreateQueryTool(new NoChangeQueryHandler());
-        var executor = new ToolExecutor(CreateExecutionContextFactory());
-
-        var result = await executor.ExecuteAsync(registeredTool, new Dictionary<string, JsonElement>
+        var result = await registeredTool.Runtime.InvokeAsync(new Dictionary<string, JsonElement>
         {
             ["name"] = JsonSerializer.SerializeToElement("Name"),
-        }, CancellationToken.None);
+        }, CreateExecutionContextFactory(), CancellationToken.None);
 
         result.IsError.Should().BeFalse();
         result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeTrue();
@@ -95,12 +89,10 @@ public sealed class ToolExecutorTests
     public async Task GIVEN_QueryHandlerRejected_WHEN_ExecutingRegisteredTool_THEN_ShouldReturnStructuredRejectedResult()
     {
         var registeredTool = CreateQueryTool(new RejectedQueryHandler());
-        var executor = new ToolExecutor(CreateExecutionContextFactory());
-
-        var result = await executor.ExecuteAsync(registeredTool, new Dictionary<string, JsonElement>
+        var result = await registeredTool.Runtime.InvokeAsync(new Dictionary<string, JsonElement>
         {
             ["name"] = JsonSerializer.SerializeToElement("Name"),
-        }, CancellationToken.None);
+        }, CreateExecutionContextFactory(), CancellationToken.None);
 
         result.IsError.Should().BeTrue();
         result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeFalse();
@@ -111,12 +103,10 @@ public sealed class ToolExecutorTests
     public async Task GIVEN_QueryHandlerConflict_WHEN_ExecutingRegisteredTool_THEN_ShouldReturnStructuredConflictResult()
     {
         var registeredTool = CreateQueryTool(new ConflictQueryHandler());
-        var executor = new ToolExecutor(CreateExecutionContextFactory());
-
-        var result = await executor.ExecuteAsync(registeredTool, new Dictionary<string, JsonElement>
+        var result = await registeredTool.Runtime.InvokeAsync(new Dictionary<string, JsonElement>
         {
             ["name"] = JsonSerializer.SerializeToElement("Name"),
-        }, CancellationToken.None);
+        }, CreateExecutionContextFactory(), CancellationToken.None);
 
         result.IsError.Should().BeTrue();
         result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeFalse();
@@ -127,12 +117,10 @@ public sealed class ToolExecutorTests
     public async Task GIVEN_QueryHandlerThrows_WHEN_ExecutingRegisteredTool_THEN_ShouldNormalizeFaultedResult()
     {
         var registeredTool = CreateQueryTool(new ThrowingQueryHandler());
-        var executor = new ToolExecutor(CreateExecutionContextFactory());
-
-        var result = await executor.ExecuteAsync(registeredTool, new Dictionary<string, JsonElement>
+        var result = await registeredTool.Runtime.InvokeAsync(new Dictionary<string, JsonElement>
         {
             ["name"] = JsonSerializer.SerializeToElement("Name"),
-        }, CancellationToken.None);
+        }, CreateExecutionContextFactory(), CancellationToken.None);
 
         result.IsError.Should().BeTrue();
         result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeFalse();
@@ -144,12 +132,10 @@ public sealed class ToolExecutorTests
     public async Task GIVEN_HostRejectedContext_WHEN_ExecutingRegisteredTool_THEN_ShouldReturnStructuredRejectedResultWithoutInvokingPlugin()
     {
         var registeredTool = CreateQueryTool(new SuccessQueryHandler());
-        var executor = new ToolExecutor(CreateRejectedExecutionContextFactory());
-
-        var result = await executor.ExecuteAsync(registeredTool, new Dictionary<string, JsonElement>
+        var result = await registeredTool.Runtime.InvokeAsync(new Dictionary<string, JsonElement>
         {
             ["name"] = JsonSerializer.SerializeToElement("Name"),
-        }, CancellationToken.None);
+        }, CreateRejectedExecutionContextFactory(), CancellationToken.None);
 
         result.IsError.Should().BeTrue();
         result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeFalse();
@@ -157,7 +143,7 @@ public sealed class ToolExecutorTests
         result.StructuredContent.Value.GetProperty("next").GetString().Should().Be("Retry");
     }
 
-    private static RegisteredTool CreateQueryTool(IQueryToolHandler<TestRequest, TestResponse> handler)
+    private static RegisteredPluginTool CreateQueryTool(IQueryToolHandler<TestRequest, QueryResponse<TestResponse>> handler)
     {
         var metadata = new PluginMetadata
         {
@@ -178,7 +164,7 @@ public sealed class ToolExecutorTests
             },
             handler);
 
-        return registry.RegisteredTools.Single();
+        return registry.RegisteredPluginTools.Single();
     }
 
     private sealed record TestRequest : WorkspaceBoundRequest
@@ -264,39 +250,45 @@ public sealed class ToolExecutorTests
         return factory.Object;
     }
 
-    private sealed class SuccessQueryHandler : IQueryToolHandler<TestRequest, TestResponse>
+    private sealed class SuccessQueryHandler : IQueryToolHandler<TestRequest, QueryResponse<TestResponse>>
     {
-        public ValueTask<PluginExecutionResult<TestResponse>> ExecuteAsync(TestRequest request, IQueryContext context, CancellationToken cancellationToken)
+        public ValueTask<PluginExecutionResult<QueryResponse<TestResponse>>> ExecuteAsync(TestRequest request, IQueryContext context, CancellationToken cancellationToken)
         {
             _ = request;
             _ = context;
             _ = cancellationToken;
 
-            return ValueTask.FromResult(PluginExecutionResult<TestResponse>.Success(new TestResponse { Value = "Value" }));
+            return ValueTask.FromResult(PluginExecutionResult<QueryResponse<TestResponse>>.Success(new QueryResponse<TestResponse>
+            {
+                Value = new TestResponse
+                {
+                    Value = "Value",
+                },
+            }));
         }
     }
 
-    private sealed class NoChangeQueryHandler : IQueryToolHandler<TestRequest, TestResponse>
+    private sealed class NoChangeQueryHandler : IQueryToolHandler<TestRequest, QueryResponse<TestResponse>>
     {
-        public ValueTask<PluginExecutionResult<TestResponse>> ExecuteAsync(TestRequest request, IQueryContext context, CancellationToken cancellationToken)
+        public ValueTask<PluginExecutionResult<QueryResponse<TestResponse>>> ExecuteAsync(TestRequest request, IQueryContext context, CancellationToken cancellationToken)
         {
             _ = request;
             _ = context;
             _ = cancellationToken;
 
-            return ValueTask.FromResult(PluginExecutionResult<TestResponse>.NoChange());
+            return ValueTask.FromResult(PluginExecutionResult<QueryResponse<TestResponse>>.NoChange());
         }
     }
 
-    private sealed class RejectedQueryHandler : IQueryToolHandler<TestRequest, TestResponse>
+    private sealed class RejectedQueryHandler : IQueryToolHandler<TestRequest, QueryResponse<TestResponse>>
     {
-        public ValueTask<PluginExecutionResult<TestResponse>> ExecuteAsync(TestRequest request, IQueryContext context, CancellationToken cancellationToken)
+        public ValueTask<PluginExecutionResult<QueryResponse<TestResponse>>> ExecuteAsync(TestRequest request, IQueryContext context, CancellationToken cancellationToken)
         {
             _ = request;
             _ = context;
             _ = cancellationToken;
 
-            return ValueTask.FromResult(PluginExecutionResult<TestResponse>.Rejected(new ToolError
+            return ValueTask.FromResult(PluginExecutionResult<QueryResponse<TestResponse>>.Rejected(new ToolError
             {
                 Code = "Rejected",
                 Message = "Rejected message.",
@@ -304,15 +296,15 @@ public sealed class ToolExecutorTests
         }
     }
 
-    private sealed class ConflictQueryHandler : IQueryToolHandler<TestRequest, TestResponse>
+    private sealed class ConflictQueryHandler : IQueryToolHandler<TestRequest, QueryResponse<TestResponse>>
     {
-        public ValueTask<PluginExecutionResult<TestResponse>> ExecuteAsync(TestRequest request, IQueryContext context, CancellationToken cancellationToken)
+        public ValueTask<PluginExecutionResult<QueryResponse<TestResponse>>> ExecuteAsync(TestRequest request, IQueryContext context, CancellationToken cancellationToken)
         {
             _ = request;
             _ = context;
             _ = cancellationToken;
 
-            return ValueTask.FromResult(PluginExecutionResult<TestResponse>.Conflict(new ToolError
+            return ValueTask.FromResult(PluginExecutionResult<QueryResponse<TestResponse>>.Conflict(new ToolError
             {
                 Code = "Conflict",
                 Message = "Conflict message.",
@@ -320,9 +312,9 @@ public sealed class ToolExecutorTests
         }
     }
 
-    private sealed class ThrowingQueryHandler : IQueryToolHandler<TestRequest, TestResponse>
+    private sealed class ThrowingQueryHandler : IQueryToolHandler<TestRequest, QueryResponse<TestResponse>>
     {
-        public ValueTask<PluginExecutionResult<TestResponse>> ExecuteAsync(TestRequest request, IQueryContext context, CancellationToken cancellationToken)
+        public ValueTask<PluginExecutionResult<QueryResponse<TestResponse>>> ExecuteAsync(TestRequest request, IQueryContext context, CancellationToken cancellationToken)
         {
             _ = request;
             _ = context;

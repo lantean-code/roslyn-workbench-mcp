@@ -2,7 +2,7 @@ using Roslyn.Workbench.Mcp.Contracts.Refactorings;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Refactorings;
 
-internal sealed class AddMissingUsingsTool : MutationToolHandler<AddMissingUsingsRequest, MutationProposal>
+internal sealed class AddMissingUsingsTool : MutationToolHandler<AddMissingUsingsRequest>
 {
     private const string AddImportProviderId = "Microsoft.CodeAnalysis.CSharp.AddImport.CSharpAddImportCodeFixProvider";
 

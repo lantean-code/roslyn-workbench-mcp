@@ -3,6 +3,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by get-code-metrics.
 /// </summary>
+[PublishedCollectionResponse(nameof(Metrics))]
 public sealed record CodeMetricsData
 {
     /// <summary>

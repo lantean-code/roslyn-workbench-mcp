@@ -2,7 +2,7 @@ using Roslyn.Workbench.Mcp.Contracts.Refactorings;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Refactorings;
 
-internal sealed class ReplaceConditionalWithStatementsTool : MutationToolHandler<LocationRefactoringRequest, MutationProposal>
+internal sealed class ReplaceConditionalWithStatementsTool : MutationToolHandler<LocationRefactoringRequest>
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.ReplaceConditionalWithStatements.CSharpReplaceConditionalWithStatementsCodeRefactoringProvider";
 

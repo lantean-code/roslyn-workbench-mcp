@@ -76,7 +76,6 @@ public sealed class RoslynWorkbenchHostApplicationBuilderExtensionsTests
         host.Services.GetRequiredService<IToolExecutionServices>().Should().NotBeNull();
         host.Services.GetRequiredService<CodeActionRuntime>().Should().NotBeNull();
         host.Services.GetRequiredService<IToolExecutionContextFactory>().Should().NotBeNull();
-        host.Services.GetRequiredService<ToolExecutor>().Should().NotBeNull();
         host.Services.GetRequiredService<McpServer>().Should().NotBeNull();
 
         mcpTools.Should().HaveCount(pluginCatalogSnapshot.Tools.Count + 11);

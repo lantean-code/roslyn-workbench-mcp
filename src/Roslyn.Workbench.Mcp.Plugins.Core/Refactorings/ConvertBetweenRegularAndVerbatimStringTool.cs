@@ -2,7 +2,7 @@ using Roslyn.Workbench.Mcp.Contracts.Refactorings;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Refactorings;
 
-internal sealed class ConvertBetweenRegularAndVerbatimStringTool : MutationToolHandler<LocationRefactoringRequest, MutationProposal>
+internal sealed class ConvertBetweenRegularAndVerbatimStringTool : MutationToolHandler<LocationRefactoringRequest>
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertBetweenRegularAndVerbatimString.ConvertBetweenRegularAndVerbatimStringCodeRefactoringProvider";
 

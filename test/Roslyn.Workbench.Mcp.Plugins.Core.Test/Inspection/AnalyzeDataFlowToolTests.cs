@@ -13,7 +13,7 @@ public sealed class AnalyzeDataFlowToolTests
         }, CancellationToken.None);
         var target = new AnalyzeDataFlowTool();
 
-        var result = await BundledCoreToolTestHarness.ExecuteQueryAsync(coordinator, "analyze-data-flow", target, new AnalyzeDataFlowRequest
+        var result = await BundledCoreToolTestHarness.ExecuteSingletonQueryAsync(coordinator, "analyze-data-flow", target, new AnalyzeDataFlowRequest
         {
             Location = fixture.GetLocation("var upper = trimmed.ToUpperInvariant();"),
             ExpectedSnapshot = BundledCoreToolTestHarness.CreateSnapshot(openResult),

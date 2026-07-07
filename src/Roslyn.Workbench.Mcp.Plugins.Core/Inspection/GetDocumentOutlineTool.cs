@@ -2,7 +2,7 @@ using Roslyn.Workbench.Mcp.Contracts.Inspection;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
-internal sealed class GetDocumentOutlineTool : QueryToolHandler<GetDocumentOutlineRequest, DocumentOutlineData>
+internal sealed class GetDocumentOutlineTool : QueryToolHandler<GetDocumentOutlineRequest, QueryResponse<DocumentOutlineData>>
 {
     private static readonly ToolRegistrationMetadata _metadata = new()
     {
@@ -16,10 +16,10 @@ internal sealed class GetDocumentOutlineTool : QueryToolHandler<GetDocumentOutli
         registry.RegisterQueryTool(_metadata, new GetDocumentOutlineTool());
     }
 
-    protected override async ValueTask<PluginExecutionResult<DocumentOutlineData>> ExecuteCoreAsync(GetDocumentOutlineRequest request, IQueryContext context, CancellationToken cancellationToken)
+    protected override async ValueTask<PluginExecutionResult<QueryResponse<DocumentOutlineData>>> ExecuteCoreAsync(GetDocumentOutlineRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var documentResolution = context.ToolExecutionServices.RequestResolver.ResolveDocument<DocumentOutlineData>(request.Document, context);
+        var documentResolution = context.ToolExecutionServices.RequestResolver.ResolveDocument<QueryResponse<DocumentOutlineData>>(request.Document, context);
         if (documentResolution.HasRejection)
         {
             return documentResolution.Rejection;
@@ -41,6 +41,6 @@ internal sealed class GetDocumentOutlineTool : QueryToolHandler<GetDocumentOutli
                 },
         };
 
-        return context.ToolExecutionServices.ResultShaper.EnsureWithinSize(context, data);
+        return context.ToolExecutionServices.ResultShaper.CreateSingletonResponse(context, data);
     }
 }

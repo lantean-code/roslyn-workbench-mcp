@@ -13,7 +13,7 @@ public sealed class GetDocumentOptionsToolTests
         }, CancellationToken.None);
         var target = new GetDocumentOptionsTool();
 
-        var result = await BundledCoreToolTestHarness.ExecuteQueryAsync(coordinator, "get-document-options", target, new GetDocumentOptionsRequest
+        var result = await BundledCoreToolTestHarness.ExecuteSingletonQueryAsync(coordinator, "get-document-options", target, new GetDocumentOptionsRequest
         {
             Document = new DocumentSelector
             {

@@ -2,7 +2,7 @@ using Roslyn.Workbench.Mcp.Contracts.Refactorings;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Refactorings;
 
-internal sealed class ExtractMethodTool : MutationToolHandler<ExtractMethodRequest, MutationProposal>
+internal sealed class ExtractMethodTool : MutationToolHandler<ExtractMethodRequest>
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CodeRefactorings.ExtractMethod.ExtractMethodCodeRefactoringProvider";
     private const string MethodTitle = "Extract method";

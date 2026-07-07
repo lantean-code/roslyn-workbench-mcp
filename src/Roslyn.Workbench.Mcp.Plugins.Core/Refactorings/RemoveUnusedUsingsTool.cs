@@ -2,7 +2,7 @@ using Roslyn.Workbench.Mcp.Contracts.Refactorings;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Refactorings;
 
-internal sealed class RemoveUnusedUsingsTool : MutationToolHandler<RemoveUnusedUsingsRequest, MutationProposal>
+internal sealed class RemoveUnusedUsingsTool : MutationToolHandler<RemoveUnusedUsingsRequest>
 {
     private const string FixableDiagnosticId = "RemoveUnnecessaryImportsFixable";
 

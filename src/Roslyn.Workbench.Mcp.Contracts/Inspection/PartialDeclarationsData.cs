@@ -5,6 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by get-partial-declarations.
 /// </summary>
+[PublishedCollectionResponse(nameof(Declarations))]
 public sealed record PartialDeclarationsData
 {
     /// <summary>

@@ -1,4 +1,4 @@
-namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
+namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Refactorings;
 
 public sealed class SortUsingsToolTests
 {

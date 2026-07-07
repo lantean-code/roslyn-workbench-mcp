@@ -8,8 +8,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test;
 
 public sealed class InspectionToolsTests
 {
-    private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
-
     [Fact]
     public void GIVEN_BundledCorePlugin_WHEN_RegisteringTools_THEN_ShouldPublishStage4InspectionSurface()
     {
@@ -158,7 +156,7 @@ public sealed class InspectionToolsTests
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
         plugin.Register(registry);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
         var resolveLocation = fixture.GetLocation("GreetingFormatter");
 
         openResult.Outcome.Should().Be(ToolOutcome.Succeeded);
@@ -265,7 +263,7 @@ public sealed class InspectionToolsTests
         }, CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
         openResult.Outcome.Should().Be(ToolOutcome.Succeeded);
@@ -374,7 +372,7 @@ public sealed class InspectionToolsTests
         }, CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
         openResult.Outcome.Should().Be(ToolOutcome.Succeeded);
@@ -422,11 +420,11 @@ public sealed class InspectionToolsTests
         codeContext.Data.GetProperty("diagnostics").EnumerateArray().Select(static diagnostic => diagnostic.GetProperty("id").GetString()).Should().Contain("CS0219");
         codeContext.Data.GetProperty("enclosingSymbols").EnumerateArray().Select(static symbol => symbol.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter.Format", StringComparison.Ordinal));
 
-        callees.Data!.GetProperty("callees").EnumerateArray().Select(static callee => callee.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter.Format", StringComparison.Ordinal));
-        callees.Data.GetProperty("callees").EnumerateArray().Select(static callee => callee.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter.GreetingFormatter", StringComparison.Ordinal) || displayName!.Contains(".ctor", StringComparison.Ordinal));
+        callees.Data!.GetProperty("items").EnumerateArray().Select(static callee => callee.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter.Format", StringComparison.Ordinal));
+        callees.Data.GetProperty("items").EnumerateArray().Select(static callee => callee.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter.GreetingFormatter", StringComparison.Ordinal) || displayName!.Contains(".ctor", StringComparison.Ordinal));
 
-        overrides.Data!.GetProperty("overrides").EnumerateArray().Select(static symbol => symbol.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter.Decorate", StringComparison.Ordinal));
-        overrides.Data.GetProperty("overrides").EnumerateArray().Select(static symbol => symbol.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("DerivedGreetingFormatter.Decorate", StringComparison.Ordinal));
+        overrides.Data!.GetProperty("items").EnumerateArray().Select(static symbol => symbol.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter.Decorate", StringComparison.Ordinal));
+        overrides.Data.GetProperty("items").EnumerateArray().Select(static symbol => symbol.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("DerivedGreetingFormatter.Decorate", StringComparison.Ordinal));
 
         branchOnlyControlFlowGraph.Data!.Regions.Should().NotBeEmpty();
         branchOnlyControlFlowGraph.Data.Regions.Select(static region => region.Kind).Should().Contain("Root");
@@ -444,7 +442,7 @@ public sealed class InspectionToolsTests
         }, CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
         openResult.Outcome.Should().Be(ToolOutcome.Succeeded);
@@ -482,18 +480,18 @@ public sealed class InspectionToolsTests
             }),
         });
 
-        dependencies.Data!.GetProperty("dependencies").EnumerateArray().Select(static dependency => dependency.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("ToUpperInvariant", StringComparison.Ordinal));
-        dependencies.Data.GetProperty("dependencies").EnumerateArray().Select(static dependency => dependency.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("Decorate", StringComparison.Ordinal));
+        dependencies.Data!.GetProperty("items").EnumerateArray().Select(static dependency => dependency.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("ToUpperInvariant", StringComparison.Ordinal));
+        dependencies.Data.GetProperty("items").EnumerateArray().Select(static dependency => dependency.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("Decorate", StringComparison.Ordinal));
 
-        dependents.Data!.GetProperty("dependents").EnumerateArray().Select(static dependent => dependent.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("FormatterCaller.Call", StringComparison.Ordinal));
-        dependents.Data.GetProperty("dependents").EnumerateArray().Select(static dependent => dependent.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter.Format", StringComparison.Ordinal) && displayName!.Contains("bool", StringComparison.Ordinal));
+        dependents.Data!.GetProperty("items").EnumerateArray().Select(static dependent => dependent.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("FormatterCaller.Call", StringComparison.Ordinal));
+        dependents.Data.GetProperty("items").EnumerateArray().Select(static dependent => dependent.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter.Format", StringComparison.Ordinal) && displayName!.Contains("bool", StringComparison.Ordinal));
 
         changeImpact.Data!.GetProperty("impact").GetProperty("referenceCount").GetInt32().Should().BeGreaterThan(0);
         changeImpact.Data.GetProperty("impact").GetProperty("callerCount").GetInt32().Should().BeGreaterThan(0);
-        changeImpact.Data.GetProperty("locations").EnumerateArray().Select(static location => location.GetProperty("context").GetString()).Should().Contain(static context => context!.Contains("formatter.Format(\"hi\")", StringComparison.Ordinal));
+        changeImpact.Data.GetProperty("items").EnumerateArray().Select(static location => location.GetProperty("context").GetString()).Should().Contain(static context => context!.Contains("formatter.Format(\"hi\")", StringComparison.Ordinal));
 
-        apiSurface.Data!.GetProperty("symbols").EnumerateArray().Select(static symbol => symbol.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter", StringComparison.Ordinal));
-        apiSurface.Data.GetProperty("symbols").EnumerateArray().Select(static symbol => symbol.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("IMessageFormatter", StringComparison.Ordinal));
+        apiSurface.Data!.GetProperty("items").EnumerateArray().Select(static symbol => symbol.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter", StringComparison.Ordinal));
+        apiSurface.Data.GetProperty("items").EnumerateArray().Select(static symbol => symbol.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("IMessageFormatter", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -507,7 +505,7 @@ public sealed class InspectionToolsTests
         }, CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
         openResult.Outcome.Should().Be(ToolOutcome.Succeeded);
@@ -549,11 +547,11 @@ public sealed class InspectionToolsTests
         dependencyGraph.Data.GetProperty("nodes").EnumerateArray().Select(static node => node.GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter", StringComparison.Ordinal));
         dependencyGraph.Data.GetProperty("edges").EnumerateArray().Select(static edge => $"{edge.GetProperty("fromDisplayName").GetString()}->{edge.GetProperty("toDisplayName").GetString()}").Should().Contain(static edge => edge.Contains("FormatterCaller", StringComparison.Ordinal) && edge.Contains("GreetingFormatter", StringComparison.Ordinal));
 
-        dependencyCycles.Data!.GetProperty("cycles").EnumerateArray().Select(static cycle => cycle.GetProperty("nodes").EnumerateArray().Select(static node => node.GetProperty("displayName").GetString()).ToArray()).Should().Contain(static cycleNodes =>
+        dependencyCycles.Data!.GetProperty("items").EnumerateArray().Select(static cycle => cycle.GetProperty("nodes").EnumerateArray().Select(static node => node.GetProperty("displayName").GetString()).ToArray()).Should().Contain(static cycleNodes =>
             cycleNodes.Any(static displayName => displayName!.Contains("AlphaCycle", StringComparison.Ordinal))
             && cycleNodes.Any(static displayName => displayName!.Contains("BetaCycle", StringComparison.Ordinal)));
 
-        testImpact.Data!.GetProperty("tests").EnumerateArray().Select(static test => test.GetProperty("test").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GIVEN_FormatterCaller_WHEN_CallingCall_THEN_ShouldReturnFormattedGreeting", StringComparison.Ordinal));
+        testImpact.Data!.GetProperty("items").EnumerateArray().Select(static test => test.GetProperty("test").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GIVEN_FormatterCaller_WHEN_CallingCall_THEN_ShouldReturnFormattedGreeting", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -567,7 +565,7 @@ public sealed class InspectionToolsTests
         }, CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
         openResult.Outcome.Should().Be(ToolOutcome.Succeeded);
@@ -617,18 +615,18 @@ public sealed class InspectionToolsTests
             }),
         });
 
-        unusedSymbols.Data!.GetProperty("candidates").EnumerateArray().Select(static candidate => candidate.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("unused", StringComparison.Ordinal));
-        unusedSymbols.Data.GetProperty("candidates").EnumerateArray().Select(static candidate => candidate.GetProperty("reasons").EnumerateArray().Select(static reason => reason.GetString()).ToArray()).Should().Contain(static reasons =>
+        unusedSymbols.Data!.GetProperty("items").EnumerateArray().Select(static candidate => candidate.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("unused", StringComparison.Ordinal));
+        unusedSymbols.Data.GetProperty("items").EnumerateArray().Select(static candidate => candidate.GetProperty("reasons").EnumerateArray().Select(static reason => reason.GetString()).ToArray()).Should().Contain(static reasons =>
             reasons.Any(static reason => reason!.Contains("CS0219", StringComparison.Ordinal)));
 
-        nullability.Data!.GetProperty("findings").EnumerateArray().Select(static finding => finding.GetProperty("diagnostic").GetProperty("id").GetString()).Should().Contain("CS8602");
-        nullability.Data.GetProperty("findings").EnumerateArray().Select(static finding => finding.GetProperty("diagnostic").GetProperty("message").GetString()).Should().Contain(static message => message!.Contains("possibly null", StringComparison.OrdinalIgnoreCase));
+        nullability.Data!.GetProperty("items").EnumerateArray().Select(static finding => finding.GetProperty("diagnostic").GetProperty("id").GetString()).Should().Contain("CS8602");
+        nullability.Data.GetProperty("items").EnumerateArray().Select(static finding => finding.GetProperty("diagnostic").GetProperty("message").GetString()).Should().Contain(static message => message!.Contains("possibly null", StringComparison.OrdinalIgnoreCase));
 
-        asyncAnalysis.Data!.GetProperty("findings").EnumerateArray().Select(static finding => finding.GetProperty("kind").GetString()).Should().Contain("AsyncWithoutAwait");
-        asyncAnalysis.Data.GetProperty("findings").EnumerateArray().Select(static finding => finding.GetProperty("kind").GetString()).Should().Contain("UnawaitedTask");
+        asyncAnalysis.Data!.GetProperty("items").EnumerateArray().Select(static finding => finding.GetProperty("kind").GetString()).Should().Contain("AsyncWithoutAwait");
+        asyncAnalysis.Data.GetProperty("items").EnumerateArray().Select(static finding => finding.GetProperty("kind").GetString()).Should().Contain("UnawaitedTask");
 
-        disposableAnalysis.Data!.GetProperty("findings").EnumerateArray().Select(static finding => finding.GetProperty("kind").GetString()).Should().Contain("UndisposedLocal");
-        disposableAnalysis.Data.GetProperty("findings").EnumerateArray().Select(static finding => finding.GetProperty("type").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("MemoryStream", StringComparison.Ordinal));
+        disposableAnalysis.Data!.GetProperty("items").EnumerateArray().Select(static finding => finding.GetProperty("kind").GetString()).Should().Contain("UndisposedLocal");
+        disposableAnalysis.Data.GetProperty("items").EnumerateArray().Select(static finding => finding.GetProperty("type").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("MemoryStream", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -642,7 +640,7 @@ public sealed class InspectionToolsTests
         }, CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
         openResult.Outcome.Should().Be(ToolOutcome.Succeeded);
@@ -683,15 +681,15 @@ public sealed class InspectionToolsTests
             ["minimumStatements"] = JsonSerializer.SerializeToElement(3),
         });
 
-        typeMetrics.Data!.GetProperty("metrics").EnumerateArray().Select(static metric => metric.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter.Format", StringComparison.Ordinal));
-        metrics.Data!.GetProperty("metrics").EnumerateArray().Select(static metric => metric.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("ConditionalSamples.DescribeValue", StringComparison.Ordinal));
-        metrics.Data.GetProperty("metrics").EnumerateArray().Select(static metric => metric.GetProperty("cyclomaticComplexity").GetInt32()).Should().Contain(static complexity => complexity >= 3);
-        metrics.Data.GetProperty("metrics").EnumerateArray().Select(static metric => metric.GetProperty("logicalLines").GetInt32()).Should().Contain(static logicalLines => logicalLines >= 5);
+        typeMetrics.Data!.GetProperty("items").EnumerateArray().Select(static metric => metric.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("GreetingFormatter.Format", StringComparison.Ordinal));
+        metrics.Data!.GetProperty("items").EnumerateArray().Select(static metric => metric.GetProperty("symbol").GetProperty("displayName").GetString()).Should().Contain(static displayName => displayName!.Contains("ConditionalSamples.DescribeValue", StringComparison.Ordinal));
+        metrics.Data.GetProperty("items").EnumerateArray().Select(static metric => metric.GetProperty("cyclomaticComplexity").GetInt32()).Should().Contain(static complexity => complexity >= 3);
+        metrics.Data.GetProperty("items").EnumerateArray().Select(static metric => metric.GetProperty("logicalLines").GetInt32()).Should().Contain(static logicalLines => logicalLines >= 5);
 
-        duplicateCode.Data!.GetProperty("groups").EnumerateArray().Select(static group => group.GetProperty("occurrences").EnumerateArray().Select(static occurrence => occurrence.GetProperty("symbol").GetProperty("displayName").GetString()).ToArray()).Should().Contain(static displays =>
+        duplicateCode.Data!.GetProperty("items").EnumerateArray().Select(static group => group.GetProperty("occurrences").EnumerateArray().Select(static occurrence => occurrence.GetProperty("symbol").GetProperty("displayName").GetString()).ToArray()).Should().Contain(static displays =>
             displays.Any(static display => display!.Contains("DuplicateCodeSamples.ComputeOne", StringComparison.Ordinal))
             && displays.Any(static display => display!.Contains("DuplicateCodeSamples.ComputeTwo", StringComparison.Ordinal)));
-        duplicateCode.Data.GetProperty("groups").EnumerateArray().Select(static group => group.GetProperty("statementCount").GetInt32()).Should().Contain(static statementCount => statementCount >= 3);
+        duplicateCode.Data.GetProperty("items").EnumerateArray().Select(static group => group.GetProperty("statementCount").GetInt32()).Should().Contain(static statementCount => statementCount >= 3);
     }
 
     [Fact]
@@ -705,7 +703,7 @@ public sealed class InspectionToolsTests
         }, CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
         openResult.Outcome.Should().Be(ToolOutcome.Succeeded);
@@ -730,7 +728,7 @@ public sealed class InspectionToolsTests
         }, CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
         openResult.Outcome.Should().Be(ToolOutcome.Succeeded);
@@ -796,7 +794,7 @@ public sealed class InspectionToolsTests
         await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
 
@@ -838,7 +836,7 @@ public sealed class InspectionToolsTests
         await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
 
@@ -880,7 +878,7 @@ public sealed class InspectionToolsTests
         await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
 
@@ -918,7 +916,7 @@ public sealed class InspectionToolsTests
         await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
 
@@ -953,7 +951,7 @@ public sealed class InspectionToolsTests
         await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
 
@@ -989,7 +987,7 @@ public sealed class InspectionToolsTests
         await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
 
@@ -1025,7 +1023,7 @@ public sealed class InspectionToolsTests
         await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
 
@@ -1063,7 +1061,7 @@ public sealed class InspectionToolsTests
         await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
 
@@ -1099,7 +1097,7 @@ public sealed class InspectionToolsTests
         await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
 
@@ -1135,7 +1133,7 @@ public sealed class InspectionToolsTests
         await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
 
@@ -1175,7 +1173,7 @@ public sealed class InspectionToolsTests
         await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
 
@@ -1203,7 +1201,7 @@ public sealed class InspectionToolsTests
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
         var coordinator = WorkspaceCoordinatorFactory.Create(toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
 
@@ -1224,7 +1222,7 @@ public sealed class InspectionToolsTests
         }, CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
         openResult.Outcome.Should().Be(ToolOutcome.Succeeded);
@@ -1263,7 +1261,7 @@ public sealed class InspectionToolsTests
         }, CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
         openResult.Outcome.Should().Be(ToolOutcome.Succeeded);
@@ -1292,7 +1290,7 @@ public sealed class InspectionToolsTests
         }, CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
         openResult.Outcome.Should().Be(ToolOutcome.Succeeded);
@@ -1324,7 +1322,7 @@ public sealed class InspectionToolsTests
         }, CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
         openResult.Outcome.Should().Be(ToolOutcome.Succeeded);
@@ -1357,7 +1355,7 @@ public sealed class InspectionToolsTests
         }, CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
         openResult.Outcome.Should().Be(ToolOutcome.Succeeded);
@@ -1386,8 +1384,8 @@ public sealed class InspectionToolsTests
         }, toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var fullExecutor = new ToolExecutor(fullCoordinator);
-        var truncatedExecutor = new ToolExecutor(truncatedCoordinator);
+        var fullExecutor = fullCoordinator;
+        var truncatedExecutor = truncatedCoordinator;
 
         plugin.Register(registry);
 
@@ -1426,7 +1424,7 @@ public sealed class InspectionToolsTests
         }, CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
         openResult.Outcome.Should().Be(ToolOutcome.Succeeded);
@@ -1449,7 +1447,7 @@ public sealed class InspectionToolsTests
         }, CancellationToken.None);
         var plugin = new BundledCorePlugin();
         var registry = new PluginRegistry(plugin.Metadata);
-        var executor = new ToolExecutor(coordinator);
+        var executor = coordinator;
 
         plugin.Register(registry);
         openResult.Outcome.Should().Be(ToolOutcome.Succeeded);
@@ -1469,129 +1467,23 @@ public sealed class InspectionToolsTests
     }
 
     private static async Task<ToolResult<TResponse>> ExecuteAsync<TResponse>(
-        ToolExecutor executor,
+        IToolExecutionContextFactory executor,
         PluginRegistry registry,
         string toolName,
         IDictionary<string, JsonElement> arguments,
         bool expectProtocolSuccess = true)
     {
-        var registeredTool = registry.RegisteredTools.Single(tool => tool.Metadata.Name == toolName);
-        var result = await executor.ExecuteAsync(registeredTool, arguments, CancellationToken.None);
-
-        result.IsError.Should().Be(!expectProtocolSuccess);
-
-        return DeserializeToolResult<TResponse>(registeredTool, result.StructuredContent!.Value, toolName);
+        return await PluginToolTestHarness.InvokeAsync<TResponse>(executor, registry, toolName, arguments, expectProtocolSuccess);
     }
 
     private static ToolResult<TResponse> DeserializeToolResult<TResponse>(RegisteredTool registeredTool, JsonElement payload, string toolName)
     {
-        if (payload.TryGetProperty("outcome", out _))
-        {
-            return JsonSerializer.Deserialize<ToolResult<TResponse>>(payload.GetRawText(), _serializerOptions)!;
-        }
-
-        if (!payload.GetProperty("ok").GetBoolean())
-        {
-            return ToolResult<TResponse>.Rejected(
-                JsonSerializer.Deserialize<ToolError>(payload.GetProperty("error").GetRawText(), _serializerOptions)!,
-                payload.TryGetProperty("next", out var nextElement) && nextElement.ValueKind != JsonValueKind.Null
-                    ? JsonSerializer.Deserialize<RequiredAction>(nextElement.GetRawText(), _serializerOptions)
-                    : null);
-        }
-
-        var data = registeredTool.ResponseDescriptor.Kind switch
-        {
-            ToolResponseShapeKind.Direct => DeserializeDirectData<TResponse>(payload),
-            ToolResponseShapeKind.Singleton => JsonSerializer.Deserialize<TResponse>(payload.GetProperty("value").GetRawText(), _serializerOptions)!,
-            ToolResponseShapeKind.Collection => DeserializeCollectionData<TResponse>(registeredTool.ResponseDescriptor, payload),
-            ToolResponseShapeKind.Mutation => (TResponse)(object)DeserializeMutationData(payload, toolName),
-            ToolResponseShapeKind.CodeActionList => (TResponse)(object)DeserializeCodeActionListData(payload),
-            _ => throw new InvalidOperationException($"Unsupported response shape kind '{registeredTool.ResponseDescriptor.Kind}'."),
-        };
-
-        var transactionRevision = data is MutationData mutationData
-            ? mutationData.Transaction?.Revision
-            : null;
-
-        return ToolResult<TResponse>.Succeeded(data, transactionRevision: transactionRevision);
+        return PluginToolTestHarness.DeserializeToolResult<TResponse>(registeredTool, payload, toolName);
     }
 
     private static IWorkspaceRuntime CreateBuiltInCoordinator()
     {
         return BundledCoreToolTestHarness.CreateBuiltInCodeActionCoordinator();
-    }
-
-    private static TResponse DeserializeDirectData<TResponse>(JsonElement payload)
-    {
-        var node = JsonNode.Parse(payload.GetRawText())!.AsObject();
-        node.Remove("ok");
-
-        return node.Deserialize<TResponse>(_serializerOptions)!;
-    }
-
-    private static TResponse DeserializeCollectionData<TResponse>(ToolResponseDescriptor descriptor, JsonElement payload)
-    {
-        var node = JsonNode.Parse(payload.GetRawText())!.AsObject();
-        var itemsNode = node["items"]?.DeepClone();
-        var hasMoreNode = node["hasMore"]?.DeepClone();
-        var truncatedByNode = node["truncatedBy"]?.DeepClone();
-
-        node.Remove("ok");
-        node.Remove("items");
-        node.Remove("hasMore");
-        node.Remove("truncatedBy");
-        node[JsonNamingPolicy.CamelCase.ConvertName(descriptor.CollectionPropertyName!)] = itemsNode;
-        node["hasMore"] = hasMoreNode;
-        node["returnedCount"] = itemsNode is JsonArray itemsArray ? itemsArray.Count : 0;
-
-        if (truncatedByNode is not null)
-        {
-            node["truncationReasons"] = truncatedByNode;
-        }
-
-        return node.Deserialize<TResponse>(_serializerOptions)!;
-    }
-
-    private static MutationData DeserializeMutationData(JsonElement payload, string toolName)
-    {
-        return new MutationData
-        {
-            Operation = toolName,
-            Summary = payload.TryGetProperty("summary", out var summaryElement) && summaryElement.ValueKind == JsonValueKind.String
-                ? summaryElement.GetString() ?? string.Empty
-                : string.Empty,
-            Transaction = payload.TryGetProperty("transaction", out var transactionElement)
-                ? new TransactionInfo
-                {
-                    Revision = transactionElement.GetProperty("revision").GetInt32(),
-                }
-                : null,
-        };
-    }
-
-    private static CodeActionListData DeserializeCodeActionListData(JsonElement payload)
-    {
-        var items = JsonSerializer.Deserialize<IReadOnlyList<CodeActionListItem>>(payload.GetProperty("items").GetRawText(), _serializerOptions) ?? [];
-
-        return new CodeActionListData
-        {
-            Actions = items.Select(static item => new CodeActionInfo
-            {
-                ActionId = item.ActionId,
-                Title = item.Title,
-                ProviderId = item.ProviderId,
-                Kind = item.Kind,
-                ExecutionMode = item.ExecutionMode,
-                ExecutorTool = item.ExecutorTool,
-                DescribeTool = item.DescribeTool,
-                UnsupportedReasonCode = item.UnsupportedReasonCode,
-            }).ToArray(),
-            ReturnedCount = items.Count,
-            HasMore = payload.GetProperty("hasMore").GetBoolean(),
-            TruncationReasons = payload.TryGetProperty("truncatedBy", out var truncatedByElement)
-                ? JsonSerializer.Deserialize<IReadOnlyList<CollectionTruncation>>(truncatedByElement.GetRawText(), _serializerOptions)
-                : null,
-        };
     }
 
     private static IEnumerable<OutlineNode> EnumerateOutline(OutlineNode root)

@@ -5,7 +5,7 @@ using Roslyn.Workbench.Mcp.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
-internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRequest, TypeHierarchyData>
+internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRequest, QueryResponse<TypeHierarchyData>>
 {
     private static readonly ToolRegistrationMetadata _metadata = new()
     {
@@ -19,10 +19,10 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
         registry.RegisterQueryTool(_metadata, new GetTypeHierarchyTool());
     }
 
-    protected override async ValueTask<PluginExecutionResult<TypeHierarchyData>> ExecuteCoreAsync(GetTypeHierarchyRequest request, IQueryContext context, CancellationToken cancellationToken)
+    protected override async ValueTask<PluginExecutionResult<QueryResponse<TypeHierarchyData>>> ExecuteCoreAsync(GetTypeHierarchyRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<TypeHierarchyData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<QueryResponse<TypeHierarchyData>>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
@@ -30,7 +30,7 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
 
         if (symbolResolution.Value is not INamedTypeSymbol namedType)
         {
-            return ToolExecutionHelpers.Rejected<TypeHierarchyData>("InvalidRequest", "Get type hierarchy requires a named type symbol.");
+            return ToolExecutionHelpers.Rejected<QueryResponse<TypeHierarchyData>>("InvalidRequest", "Get type hierarchy requires a named type symbol.");
         }
 
         var baseTypes = new List<SymbolReference>();
@@ -59,7 +59,7 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
             hasMore = derivedHasMore;
         }
 
-        return context.ToolExecutionServices.ResultShaper.EnsureWithinSize(context, new TypeHierarchyData
+        return context.ToolExecutionServices.ResultShaper.CreateSingletonResponse(context, new TypeHierarchyData
         {
             Type = context.WorkspaceResolver.CreateSymbolReference(namedType),
             BaseTypes = baseTypes,

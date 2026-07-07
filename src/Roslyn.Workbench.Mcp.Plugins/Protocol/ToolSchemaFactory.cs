@@ -11,20 +11,33 @@ public static class ToolSchemaFactory
         return ToolSchemaBuilder.CreateInputSchema<TRequest>();
     }
 
-    public static JsonElement CreateOutputSchema(ToolResponseDescriptor descriptor, Type responseType)
+    public static JsonElement CreateOutputSchema(ToolKind kind, Type responseType)
     {
-        ArgumentNullException.ThrowIfNull(descriptor);
         ArgumentNullException.ThrowIfNull(responseType);
 
-        return descriptor.Kind switch
+        if (kind == ToolKind.Mutation)
         {
-            ToolResponseShapeKind.Direct => ToolSchemaBuilder.CreateDirectOutputSchema(responseType),
-            ToolResponseShapeKind.Singleton => CreateSingletonResponseSchema(responseType),
-            ToolResponseShapeKind.Collection => CreateCollectionResponseSchema(responseType, descriptor.CollectionPropertyName!),
-            ToolResponseShapeKind.Mutation => CreateMutationResponseSchema(),
-            ToolResponseShapeKind.CodeActionList => CreateCodeActionListResponseSchema(),
-            _ => throw new InvalidOperationException($"Unsupported response shape kind '{descriptor.Kind}'."),
-        };
+            return CreateMutationResponseSchema();
+        }
+
+        if (responseType == typeof(Contracts.CodeActions.CodeActionListData))
+        {
+            return CreateCodeActionListResponseSchema();
+        }
+
+        if (QueryResponseContract.TryGetCollectionItemType(responseType, out var itemType))
+        {
+            return CreateCollectionResponseSchema(
+                responseType,
+                itemType ?? throw new InvalidOperationException($"Collection response type '{responseType.FullName}' did not resolve an item type."));
+        }
+
+        if (QueryResponseContract.TryGetSingletonValueType(responseType, out var valueType))
+        {
+            return CreateSingletonResponseSchema(valueType ?? throw new InvalidOperationException($"Singleton response type '{responseType.FullName}' did not resolve a value type."));
+        }
+
+        throw new InvalidOperationException($"Unsupported query response type '{responseType.FullName}'.");
     }
 
     public static JsonElement CreateToolResultSchema<TResult>()
@@ -73,18 +86,10 @@ public static class ToolSchemaFactory
             [valueSchema]);
     }
 
-    private static JsonElement CreateCollectionResponseSchema(Type responseType, string collectionPropertyName)
+    private static JsonElement CreateCollectionResponseSchema(Type responseType, Type itemType)
     {
-        var responseSchema = ToolSchemaBuilder.CreateValueSchema(responseType);
-        var collectionProperty = responseType.GetProperty(collectionPropertyName, BindingFlags.Instance | BindingFlags.Public)
-            ?? throw new InvalidOperationException($"Collection property '{collectionPropertyName}' was not found on '{responseType.FullName}'.");
-        var itemType = collectionProperty.PropertyType.GetGenericArguments()[0];
         var itemSchema = ToolSchemaBuilder.CreateValueSchema(itemType);
-        var extraSchemas = new List<JsonElement>
-        {
-            responseSchema,
-            itemSchema,
-        };
+        var truncationSchema = ToolSchemaBuilder.CreateValueSchema(typeof(IReadOnlyList<Contracts.Results.CollectionTruncation>));
         var properties = new JsonObject
         {
             ["ok"] = new JsonObject
@@ -97,21 +102,33 @@ public static class ToolSchemaFactory
                 ["type"] = "boolean",
             },
         };
-
-        foreach (var property in responseType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+        var extraSchemas = new List<JsonElement>
         {
-            if (string.Equals(property.Name, collectionPropertyName, StringComparison.Ordinal)
-                || string.Equals(property.Name, "ReturnedCount", StringComparison.Ordinal)
-                || string.Equals(property.Name, "HasMore", StringComparison.Ordinal))
-            {
-                continue;
-            }
+            itemSchema,
+            truncationSchema,
+        };
 
-            var propertySchema = ToolSchemaBuilder.CreateValueSchema(property.PropertyType);
-            extraSchemas.Add(propertySchema);
-            properties[string.Equals(property.Name, "TruncationReasons", StringComparison.Ordinal)
-                ? "truncatedBy"
-                : JsonNamingPolicy.CamelCase.ConvertName(property.Name)] = JsonNode.Parse(propertySchema.GetRawText());
+        var attribute = QueryResponseContract.GetCollectionAttribute(responseType);
+        if (attribute is not null)
+        {
+            foreach (var property in responseType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+            {
+                if (string.Equals(property.Name, attribute.CollectionPropertyName, StringComparison.Ordinal)
+                    || string.Equals(property.Name, "ReturnedCount", StringComparison.Ordinal)
+                    || string.Equals(property.Name, "HasMore", StringComparison.Ordinal)
+                    || string.Equals(property.Name, attribute.TruncationPropertyName, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var propertySchema = ToolSchemaBuilder.CreateValueSchema(property.PropertyType);
+                extraSchemas.Add(propertySchema);
+                properties[JsonNamingPolicy.CamelCase.ConvertName(property.Name)] = JsonNode.Parse(propertySchema.GetRawText());
+            }
+        }
+        else
+        {
+            properties["truncatedBy"] = ToolSchemaBuilder.AllowNull(truncationSchema);
         }
 
         return ToolSchemaBuilder.CreateResponseSchema(

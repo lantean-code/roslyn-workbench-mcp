@@ -4,7 +4,7 @@ using Roslyn.Workbench.Mcp.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
-internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextRequest, CodeContextData>
+internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextRequest, QueryResponse<CodeContextData>>
 {
     private static readonly ToolRegistrationMetadata _metadata = new()
     {
@@ -18,7 +18,7 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
         registry.RegisterQueryTool(_metadata, new GetCodeContextTool());
     }
 
-    protected override async ValueTask<PluginExecutionResult<CodeContextData>> ExecuteCoreAsync(GetCodeContextRequest request, IQueryContext context, CancellationToken cancellationToken)
+    protected override async ValueTask<PluginExecutionResult<QueryResponse<CodeContextData>>> ExecuteCoreAsync(GetCodeContextRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var locationResolution = await ResolveLocationAsync(request.Location, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
@@ -57,7 +57,7 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
             Environment.NewLine,
             Enumerable.Range(windowStart, windowEnd - windowStart + 1).Select(index => lines[index].ToString()));
 
-        return context.ToolExecutionServices.ResultShaper.EnsureWithinSize(context, new CodeContextData
+        return context.ToolExecutionServices.ResultShaper.CreateSingletonResponse(context, new CodeContextData
         {
             Location = locationResolution.ResolvedLocation,
             Text = windowText,
@@ -84,7 +84,7 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
 
     private static async ValueTask<LocationResolution> ResolveLocationAsync(LocationSelector? selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)
     {
-        var snapshotRejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<CodeContextData>(context, expectedSnapshot);
+        var snapshotRejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<QueryResponse<CodeContextData>>(context, expectedSnapshot);
         if (snapshotRejection is not null)
         {
             return new LocationResolution
@@ -97,7 +97,7 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
         {
             return new LocationResolution
             {
-                Rejection = context.ToolExecutionServices.ResultShaper.Rejected<CodeContextData>("InvalidRequest", "A location selector is required."),
+                Rejection = context.ToolExecutionServices.ResultShaper.Rejected<QueryResponse<CodeContextData>>("InvalidRequest", "A location selector is required."),
             };
         }
 
@@ -106,7 +106,7 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
         {
             return new LocationResolution
             {
-                Rejection = context.ToolExecutionServices.ResultShaper.RejectFromStatus<CodeContextData>(location.Status, "Location"),
+                Rejection = context.ToolExecutionServices.ResultShaper.RejectFromStatus<QueryResponse<CodeContextData>>(location.Status, "Location"),
             };
         }
 
@@ -116,7 +116,7 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
         {
             return new LocationResolution
             {
-                Rejection = context.ToolExecutionServices.ResultShaper.Rejected<CodeContextData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
+                Rejection = context.ToolExecutionServices.ResultShaper.Rejected<QueryResponse<CodeContextData>>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
             };
         }
 
@@ -126,7 +126,7 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
         {
             return new LocationResolution
             {
-                Rejection = context.ToolExecutionServices.ResultShaper.Rejected<CodeContextData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
+                Rejection = context.ToolExecutionServices.ResultShaper.Rejected<QueryResponse<CodeContextData>>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
             };
         }
 
@@ -142,7 +142,7 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
 
     private sealed record LocationResolution
     {
-        public PluginExecutionResult<CodeContextData>? Rejection { get; init; }
+        public PluginExecutionResult<QueryResponse<CodeContextData>>? Rejection { get; init; }
 
         public Document? Document { get; init; }
 

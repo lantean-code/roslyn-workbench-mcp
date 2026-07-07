@@ -2,7 +2,7 @@ using Roslyn.Workbench.Mcp.Contracts.Refactorings;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Refactorings;
 
-internal sealed class IntroduceParameterTool : MutationToolHandler<IntroduceParameterRequest, MutationProposal>
+internal sealed class IntroduceParameterTool : MutationToolHandler<IntroduceParameterRequest>
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.IntroduceParameter.CSharpIntroduceParameterCodeRefactoringProvider";
     private const string UpdateCallSitesDirectlyTitle = "and update call sites directly";

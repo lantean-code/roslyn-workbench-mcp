@@ -96,7 +96,6 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
         services.AddSingleton<ITransactionService, TransactionService>();
         services.AddSingleton<IServerStatusService, ServerStatusService>();
         services.AddSingleton(static serviceProvider => (IToolExecutionContextFactory)serviceProvider.GetRequiredService<IWorkspaceExecutionContextFactory>());
-        services.AddSingleton<ToolExecutor>();
     }
 
     private static void AddMcpTools(IServiceCollection services, PluginCatalogSnapshot pluginCatalogSnapshot)
@@ -104,7 +103,9 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
         foreach (var registeredTool in pluginCatalogSnapshot.Tools)
         {
             var pluginTool = registeredTool;
-            services.AddSingleton<McpServerTool>(serviceProvider => new PluginMcpServerTool(pluginTool, serviceProvider.GetRequiredService<ToolExecutor>()));
+            services.AddSingleton<McpServerTool>(serviceProvider => new PluginMcpServerTool(
+                pluginTool,
+                serviceProvider.GetRequiredService<IToolExecutionContextFactory>()));
         }
 
         ServerOwnedToolRegistration.AddMcpTools(services);

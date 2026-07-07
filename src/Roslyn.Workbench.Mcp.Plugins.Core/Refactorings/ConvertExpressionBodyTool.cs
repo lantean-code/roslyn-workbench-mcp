@@ -3,7 +3,7 @@ using Roslyn.Workbench.Mcp.Contracts.Results;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Refactorings;
 
-internal sealed class ConvertExpressionBodyTool : MutationToolHandler<LocationRefactoringRequest, MutationProposal>
+internal sealed class ConvertExpressionBodyTool : MutationToolHandler<LocationRefactoringRequest>
 {
     private const string UseExpressionBodyProviderId = "Microsoft.CodeAnalysis.CSharp.UseExpressionBody.UseExpressionBodyCodeRefactoringProvider";
     private const string UseExpressionBodyForLambdaProviderId = "Microsoft.CodeAnalysis.CSharp.UseExpressionBodyForLambda.UseExpressionBodyForLambdaCodeRefactoringProvider";

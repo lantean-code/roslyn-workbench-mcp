@@ -4,7 +4,7 @@ using Roslyn.Workbench.Mcp.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
-internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRequest, OperationTreeData>
+internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRequest, QueryResponse<OperationTreeData>>
 {
     private static readonly ToolRegistrationMetadata _metadata = new()
     {
@@ -18,7 +18,7 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
         registry.RegisterQueryTool(_metadata, new GetOperationTreeTool());
     }
 
-    protected override async ValueTask<PluginExecutionResult<OperationTreeData>> ExecuteCoreAsync(GetOperationTreeRequest request, IQueryContext context, CancellationToken cancellationToken)
+    protected override async ValueTask<PluginExecutionResult<QueryResponse<OperationTreeData>>> ExecuteCoreAsync(GetOperationTreeRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var syntaxNodeResolution = await ResolveSyntaxNodeAsync(request.Location, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
@@ -33,11 +33,11 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
             ?? resolvedNode.ChildNodes().Select(child => resolvedSemanticModel.GetOperation(child, cancellationToken)).FirstOrDefault(static item => item is not null);
         if (operation is null)
         {
-            return ToolExecutionHelpers.Rejected<OperationTreeData>("InvalidRequest", "The selected region does not resolve to an operation tree.");
+            return ToolExecutionHelpers.Rejected<QueryResponse<OperationTreeData>>("InvalidRequest", "The selected region does not resolve to an operation tree.");
         }
 
         var root = CreateOperationNode(operation, request.MaxDepth, depth: 0, out var truncated);
-        return context.ToolExecutionServices.ResultShaper.EnsureWithinSize(context, new OperationTreeData
+        return context.ToolExecutionServices.ResultShaper.CreateSingletonResponse(context, new OperationTreeData
         {
             Root = root,
             Truncated = truncated,
@@ -65,7 +65,7 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
 
     private static async ValueTask<SyntaxNodeResolution> ResolveSyntaxNodeAsync(LocationSelector? selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)
     {
-        var rejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<OperationTreeData>(context, expectedSnapshot);
+        var rejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<QueryResponse<OperationTreeData>>(context, expectedSnapshot);
         if (rejection is not null)
         {
             return new SyntaxNodeResolution
@@ -78,7 +78,7 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
         {
             return new SyntaxNodeResolution
             {
-                Rejection = ToolExecutionHelpers.Rejected<OperationTreeData>("InvalidRequest", "A location selector is required."),
+                Rejection = ToolExecutionHelpers.Rejected<QueryResponse<OperationTreeData>>("InvalidRequest", "A location selector is required."),
             };
         }
 
@@ -87,7 +87,7 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
         {
             return new SyntaxNodeResolution
             {
-                Rejection = ToolExecutionHelpers.RejectFromStatus<OperationTreeData>(locationResolution.Status, "Location"),
+                Rejection = ToolExecutionHelpers.RejectFromStatus<QueryResponse<OperationTreeData>>(locationResolution.Status, "Location"),
             };
         }
 
@@ -96,7 +96,7 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
         {
             return new SyntaxNodeResolution
             {
-                Rejection = ToolExecutionHelpers.Rejected<OperationTreeData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
+                Rejection = ToolExecutionHelpers.Rejected<QueryResponse<OperationTreeData>>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
             };
         }
 
@@ -105,7 +105,7 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
         {
             return new SyntaxNodeResolution
             {
-                Rejection = ToolExecutionHelpers.Rejected<OperationTreeData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
+                Rejection = ToolExecutionHelpers.Rejected<QueryResponse<OperationTreeData>>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
             };
         }
 
@@ -115,7 +115,7 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
         {
             return new SyntaxNodeResolution
             {
-                Rejection = ToolExecutionHelpers.Rejected<OperationTreeData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
+                Rejection = ToolExecutionHelpers.Rejected<QueryResponse<OperationTreeData>>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
             };
         }
 
@@ -128,7 +128,7 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
 
     private sealed record SyntaxNodeResolution
     {
-        public PluginExecutionResult<OperationTreeData>? Rejection { get; init; }
+        public PluginExecutionResult<QueryResponse<OperationTreeData>>? Rejection { get; init; }
 
         public SyntaxNode? Node { get; init; }
 

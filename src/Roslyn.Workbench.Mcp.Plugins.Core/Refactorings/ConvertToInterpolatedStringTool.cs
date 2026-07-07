@@ -2,7 +2,7 @@ using Roslyn.Workbench.Mcp.Contracts.Refactorings;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Refactorings;
 
-internal sealed class ConvertToInterpolatedStringTool : MutationToolHandler<ConvertToInterpolatedStringRequest, MutationProposal>
+internal sealed class ConvertToInterpolatedStringTool : MutationToolHandler<ConvertToInterpolatedStringRequest>
 {
     private const string Title = "Convert to interpolated string";
     private const string EquivalenceKey = "Convert_to_interpolated_string";

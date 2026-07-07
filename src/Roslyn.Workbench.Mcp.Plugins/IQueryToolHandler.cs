@@ -1,3 +1,5 @@
+using Roslyn.Workbench.Mcp.Contracts.Selectors;
+
 namespace Roslyn.Workbench.Mcp.Plugins;
 
 /// <summary>
@@ -5,7 +7,7 @@ namespace Roslyn.Workbench.Mcp.Plugins;
 /// </summary>
 /// <typeparam name="TRequest">The request contract type.</typeparam>
 /// <typeparam name="TResponse">The successful response payload type.</typeparam>
-public interface IQueryToolHandler<TRequest, TResponse>
+public interface IQueryToolHandler<TRequest, TResponse> where TRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Executes the tool for the provided request.

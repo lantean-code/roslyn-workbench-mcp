@@ -5,6 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by get-symbol-attributes.
 /// </summary>
+[PublishedCollectionResponse(nameof(Attributes))]
 public sealed record SymbolAttributesData
 {
     /// <summary>

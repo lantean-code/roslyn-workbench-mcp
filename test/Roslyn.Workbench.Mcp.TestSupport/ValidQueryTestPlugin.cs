@@ -35,16 +35,19 @@ public sealed class ValidQueryTestPlugin : IRoslynPlugin
         public string Value { get; init; } = string.Empty;
     }
 
-    private sealed class Handler : IQueryToolHandler<Request, Response>
+    private sealed class Handler : IQueryToolHandler<Request, QueryResponse<Response>>
     {
-        public ValueTask<PluginExecutionResult<Response>> ExecuteAsync(Request request, IQueryContext context, CancellationToken cancellationToken)
+        public ValueTask<PluginExecutionResult<QueryResponse<Response>>> ExecuteAsync(Request request, IQueryContext context, CancellationToken cancellationToken)
         {
             _ = context;
             _ = cancellationToken;
 
-            return ValueTask.FromResult(PluginExecutionResult<Response>.Success(new Response
+            return ValueTask.FromResult(PluginExecutionResult<QueryResponse<Response>>.Success(new QueryResponse<Response>
             {
-                Value = request.Name,
+                Value = new Response
+                {
+                    Value = request.Name,
+                },
             }));
         }
     }

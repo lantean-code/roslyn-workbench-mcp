@@ -3,7 +3,7 @@ using Roslyn.Workbench.Mcp.Contracts.Results;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Refactorings;
 
-internal sealed class InlineVariableTool : MutationToolHandler<InlineVariableRequest, MutationProposal>
+internal sealed class InlineVariableTool : MutationToolHandler<InlineVariableRequest>
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.InlineTemporary.CSharpInlineTemporaryCodeRefactoringProvider";
     private const string Title = "Inline temporary variable";

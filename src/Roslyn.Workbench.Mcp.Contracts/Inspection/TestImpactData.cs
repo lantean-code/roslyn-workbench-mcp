@@ -5,6 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by get-test-impact.
 /// </summary>
+[PublishedCollectionResponse(nameof(Tests))]
 public sealed record TestImpactData
 {
     /// <summary>

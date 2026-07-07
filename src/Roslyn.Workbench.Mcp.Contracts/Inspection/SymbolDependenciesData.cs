@@ -5,6 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by get-symbol-dependencies.
 /// </summary>
+[PublishedCollectionResponse(nameof(Dependencies))]
 public sealed record SymbolDependenciesData
 {
     /// <summary>

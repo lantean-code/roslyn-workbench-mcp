@@ -79,10 +79,31 @@ public static class BundledCoreToolTestHarness
         return await target.ExecuteAsync(request, lease.Context!, CancellationToken.None);
     }
 
+    public static async Task<PluginExecutionResult<TValue>> ExecuteSingletonQueryAsync<TRequest, TValue>(
+        IToolExecutionContextFactory coordinator,
+        string toolName,
+        IQueryToolHandler<TRequest, QueryResponse<TValue>> target,
+        TRequest request)
+        where TRequest : WorkspaceBoundRequest
+    {
+        var result = await ExecuteQueryAsync(coordinator, toolName, target, request);
+
+        return new PluginExecutionResult<TValue>
+        {
+            Outcome = result.Outcome,
+            Data = result.Data is null ? default : result.Data.Value,
+            Changes = result.Changes,
+            Error = result.Error,
+            RequiredAction = result.RequiredAction,
+            Diagnostics = result.Diagnostics,
+            Warnings = result.Warnings,
+        };
+    }
+
     public static async Task<ToolMutationExecutionResult> ExecuteMutationAsync<TRequest>(
         IToolExecutionContextFactory coordinator,
         string toolName,
-        IMutationToolHandler<TRequest, MutationProposal> target,
+        IMutationToolHandler<TRequest> target,
         TRequest request)
         where TRequest : WorkspaceBoundRequest
     {

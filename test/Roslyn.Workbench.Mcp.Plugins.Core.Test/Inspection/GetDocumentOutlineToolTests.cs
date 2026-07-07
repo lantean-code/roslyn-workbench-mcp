@@ -35,7 +35,7 @@ public sealed class GetDocumentOutlineToolTests
         }, context, CancellationToken.None);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        var typeNode = Enumerate(result.Data!.Root!).Single(static node => node.Name == "GreetingFormatter");
+        var typeNode = Enumerate(result.Data!.Value.Root!).Single(static node => node.Name == "GreetingFormatter");
         typeNode.Children.Should().BeEmpty();
     }
 
@@ -72,7 +72,7 @@ public sealed class GetDocumentOutlineToolTests
         }, context, CancellationToken.None);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        Enumerate(result.Data!.Root!).Should().Contain(static node => node.Name == "Format");
+        Enumerate(result.Data!.Value.Root!).Should().Contain(static node => node.Name == "Format");
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public sealed class GetDocumentOutlineToolTests
         }, CancellationToken.None);
         var target = new GetDocumentOutlineTool();
 
-        var result = await BundledCoreToolTestHarness.ExecuteQueryAsync(coordinator, "get-document-outline", target, new GetDocumentOutlineRequest
+        var result = await BundledCoreToolTestHarness.ExecuteSingletonQueryAsync(coordinator, "get-document-outline", target, new GetDocumentOutlineRequest
         {
             Document = new DocumentSelector
             {

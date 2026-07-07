@@ -8,6 +8,14 @@ internal sealed class UnavailableToolResultShaper : IToolResultShaper
 {
     private const string _message = "Tool execution services are unavailable.";
 
+    public PluginExecutionResult<QueryResponse<TValue>> CreateSingletonResponse<TValue>(IQueryContext context, TValue value)
+    {
+        _ = context;
+        _ = value;
+
+        return Rejected<QueryResponse<TValue>>();
+    }
+
     public PluginExecutionResult<TResponse> EnsureWithinSize<TResponse>(IQueryContext context, TResponse data)
     {
         _ = context;
@@ -31,6 +39,18 @@ internal sealed class UnavailableToolResultShaper : IToolResultShaper
         _ = requiredAction;
 
         return Rejected<TResponse>();
+    }
+
+    public PluginExecutionResult<CollectionResponse<TItem>> CreateBoundedCollectionResponse<TItem>(
+        IQueryContext context,
+        IReadOnlyList<TItem> orderedItems,
+        int maxResults)
+    {
+        _ = context;
+        _ = orderedItems;
+        _ = maxResults;
+
+        return Rejected<CollectionResponse<TItem>>();
     }
 
     public PluginExecutionResult<TData> CreateBoundedCollectionResult<TData, TItem>(

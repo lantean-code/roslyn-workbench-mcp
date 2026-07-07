@@ -1,11 +1,13 @@
+using Roslyn.Workbench.Mcp.Contracts.Selectors;
+
 namespace Roslyn.Workbench.Mcp.Plugins;
 
 /// <summary>
 /// Executes one registered mutation tool.
 /// </summary>
 /// <typeparam name="TRequest">The request contract type.</typeparam>
-/// <typeparam name="TResponse">The successful response payload type.</typeparam>
-public interface IMutationToolHandler<TRequest, TResponse>
+public interface IMutationToolHandler<TRequest>
+    where TRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Executes the tool for the provided request.
@@ -14,5 +16,8 @@ public interface IMutationToolHandler<TRequest, TResponse>
     /// <param name="context">The host-owned mutation execution context.</param>
     /// <param name="cancellationToken">The cancellation token for the invocation.</param>
     /// <returns>The normalized plugin execution outcome.</returns>
-    ValueTask<PluginExecutionResult<TResponse>> ExecuteAsync(TRequest request, IMutationContext context, CancellationToken cancellationToken);
+    ValueTask<PluginExecutionResult<MutationProposal>> ExecuteAsync(
+        TRequest request,
+        IMutationContext context,
+        CancellationToken cancellationToken);
 }

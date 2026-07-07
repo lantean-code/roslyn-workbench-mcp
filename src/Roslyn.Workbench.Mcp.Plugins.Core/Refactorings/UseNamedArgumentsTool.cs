@@ -2,7 +2,7 @@ using Roslyn.Workbench.Mcp.Contracts.Refactorings;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Refactorings;
 
-internal sealed class UseNamedArgumentsTool : MutationToolHandler<UseNamedArgumentsRequest, MutationProposal>
+internal sealed class UseNamedArgumentsTool : MutationToolHandler<UseNamedArgumentsRequest>
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.UseNamedArguments.CSharpUseNamedArgumentsCodeRefactoringProvider";
 

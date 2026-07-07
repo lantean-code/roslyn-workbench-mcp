@@ -13,7 +13,7 @@ public sealed class AnalyzeControlFlowToolTests
         }, CancellationToken.None);
         var target = new AnalyzeControlFlowTool();
 
-        var result = await BundledCoreToolTestHarness.ExecuteQueryAsync(coordinator, "analyze-control-flow", target, new AnalyzeControlFlowRequest
+        var result = await BundledCoreToolTestHarness.ExecuteSingletonQueryAsync(coordinator, "analyze-control-flow", target, new AnalyzeControlFlowRequest
         {
             Location = fixture.GetLocation("if (trimmed.Length == 0)"),
             ExpectedSnapshot = BundledCoreToolTestHarness.CreateSnapshot(openResult),

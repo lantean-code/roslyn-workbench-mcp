@@ -2,7 +2,7 @@ using Roslyn.Workbench.Mcp.Contracts.CodeActions;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.CodeActions;
 
-internal sealed class StageFixAllTool : MutationToolHandler<StageFixAllRequest, MutationProposal>
+internal sealed class StageFixAllTool : MutationToolHandler<StageFixAllRequest>
 {
     private static readonly ToolRegistrationMetadata _metadata = new()
     {

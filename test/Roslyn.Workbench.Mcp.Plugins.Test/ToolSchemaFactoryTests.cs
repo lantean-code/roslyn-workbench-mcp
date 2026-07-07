@@ -10,11 +10,8 @@ public sealed class ToolSchemaFactoryTests
     public void GIVEN_SingletonResponseSchema_WHEN_InspectingSharedControlProperties_THEN_ShouldPublishOkValueAndErrorBranches()
     {
         var schema = ToolSchemaFactory.CreateOutputSchema(
-            new ToolResponseDescriptor
-            {
-                Kind = ToolResponseShapeKind.Singleton,
-            },
-            typeof(TestResponse));
+            ToolKind.Query,
+            typeof(QueryResponse<TestResponse>));
         var variants = schema.GetProperty("oneOf").EnumerateArray().ToArray();
         var successVariant = variants.Single(variant => variant.GetProperty("properties").GetProperty("ok").GetProperty("const").GetBoolean());
         var failureVariant = variants.Single(variant => !variant.GetProperty("properties").GetProperty("ok").GetProperty("const").GetBoolean());
@@ -29,10 +26,7 @@ public sealed class ToolSchemaFactoryTests
     public void GIVEN_MutationResponseSchema_WHEN_InspectingSuccessBranch_THEN_ShouldPublishMinimalStagedShape()
     {
         var schema = ToolSchemaFactory.CreateOutputSchema(
-            new ToolResponseDescriptor
-            {
-                Kind = ToolResponseShapeKind.Mutation,
-            },
+            ToolKind.Mutation,
             typeof(MutationData));
         var successVariant = schema.GetProperty("oneOf")
             .EnumerateArray()

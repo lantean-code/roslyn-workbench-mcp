@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp;
 
 internal sealed record PluginCatalogSnapshot
 {
-    public IReadOnlyList<RegisteredTool> Tools { get; init; } = [];
+    public IReadOnlyList<RegisteredPluginTool> Tools { get; init; } = [];
 
     public IReadOnlyList<PluginStatus> Plugins { get; init; } = [];
 }

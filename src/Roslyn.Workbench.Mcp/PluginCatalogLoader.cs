@@ -11,7 +11,7 @@ internal sealed class PluginCatalogLoader
 {
     public PluginCatalogSnapshot Load(StartupOptions startupOptions, IReadOnlyList<Assembly> bundledAssemblies)
     {
-        var tools = new List<RegisteredTool>();
+        var tools = new List<RegisteredPluginTool>();
         var pluginStatuses = new List<PluginStatus>();
         var toolNames = new HashSet<string>(StringComparer.Ordinal);
 
@@ -25,7 +25,7 @@ internal sealed class PluginCatalogLoader
                 foreach (var tool in loadResult.Tools)
                 {
                     tools.Add(tool);
-                    toolNames.Add(tool.Metadata.Name);
+                    toolNames.Add(tool.Tool.Metadata.Name);
                 }
             }
         }
@@ -101,7 +101,7 @@ internal sealed class PluginCatalogLoader
             var registry = new PluginRegistry(plugin.Metadata, outputSchemaMode);
             plugin.Register(registry);
 
-            if (registry.RegisteredTools.Any(tool => globalToolNames.Contains(tool.Metadata.Name)))
+            if (registry.RegisteredPluginTools.Any(tool => globalToolNames.Contains(tool.Tool.Metadata.Name)))
             {
                 return DisabledPlugin(plugin.Metadata, "Plugin tool names must be globally unique across loaded plugins.");
             }
@@ -115,7 +115,7 @@ internal sealed class PluginCatalogLoader
                     SupportedApiVersion = plugin.Metadata.SupportedApiVersion,
                     Enabled = true,
                 },
-                registry.RegisteredTools);
+                registry.RegisteredPluginTools);
         }
         catch (Exception exception)
         {
@@ -182,5 +182,5 @@ internal sealed class PluginCatalogLoader
         };
     }
 
-    private sealed record PluginAssemblyLoadResult(PluginStatus Status, IReadOnlyList<RegisteredTool> Tools);
+    private sealed record PluginAssemblyLoadResult(PluginStatus Status, IReadOnlyList<RegisteredPluginTool> Tools);
 }

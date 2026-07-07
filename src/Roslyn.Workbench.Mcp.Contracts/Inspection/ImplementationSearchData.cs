@@ -5,6 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by find-implementations.
 /// </summary>
+[PublishedCollectionResponse(nameof(Implementations))]
 public sealed record ImplementationSearchData
 {
     /// <summary>

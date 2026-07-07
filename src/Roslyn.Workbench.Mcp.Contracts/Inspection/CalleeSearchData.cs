@@ -5,6 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by find-callees.
 /// </summary>
+[PublishedCollectionResponse(nameof(Callees))]
 public sealed record CalleeSearchData
 {
     /// <summary>

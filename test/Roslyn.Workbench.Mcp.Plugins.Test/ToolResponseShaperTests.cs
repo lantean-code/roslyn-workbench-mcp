@@ -5,29 +5,21 @@ public sealed class ToolResponseShaperTests
     [Fact]
     public void GIVEN_IncompatibleSingletonPayload_WHEN_ShapingResponse_THEN_ShouldThrowInvalidOperationException()
     {
-        var descriptor = new ToolResponseDescriptor
-        {
-            Kind = ToolResponseShapeKind.Singleton,
-        };
         var result = new PluginExecutionResultBox
         {
             Outcome = ToolOutcome.Succeeded,
             Data = "Value",
         };
 
-        var action = () => ToolResponseShaper.Shape(descriptor, typeof(TestResponse), result);
+        var action = () => PluginToolResultSerializer.Serialize(ToolKind.Query, typeof(QueryResponse<TestResponse>), result);
 
         action.Should().Throw<InvalidOperationException>()
-            .WithMessage("Published response data type mismatch. Expected 'Roslyn.Workbench.Mcp.Plugins.Test.ToolResponseShaperTests+TestResponse' but got 'System.String'.");
+            .WithMessage("Published response data type mismatch. Expected 'Roslyn.Workbench.Mcp.Plugins.QueryResponse`1*TestResponse*' but got 'System.String'.");
     }
 
     [Fact]
     public void GIVEN_IncompatibleMutationPayload_WHEN_ShapingResponse_THEN_ShouldThrowInvalidOperationException()
     {
-        var descriptor = new ToolResponseDescriptor
-        {
-            Kind = ToolResponseShapeKind.Mutation,
-        };
         var result = new PluginExecutionResultBox
         {
             Outcome = ToolOutcome.Succeeded,
@@ -37,7 +29,7 @@ public sealed class ToolResponseShaperTests
             },
         };
 
-        var action = () => ToolResponseShaper.Shape(descriptor, typeof(MutationData), result);
+        var action = () => PluginToolResultSerializer.Serialize(ToolKind.Mutation, typeof(MutationData), result);
 
         action.Should().Throw<InvalidOperationException>()
             .WithMessage("Published response data type mismatch. Expected 'Roslyn.Workbench.Mcp.Contracts.Results.MutationData' but got 'Roslyn.Workbench.Mcp.Plugins.Test.ToolResponseShaperTests+TestResponse'.");

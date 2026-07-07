@@ -5,6 +5,7 @@ namespace Roslyn.Workbench.Mcp.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by find-overrides.
 /// </summary>
+[PublishedCollectionResponse(nameof(Overrides))]
 public sealed record OverrideSearchData
 {
     /// <summary>

@@ -2,7 +2,7 @@ using Roslyn.Workbench.Mcp.Contracts.Refactorings;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Refactorings;
 
-internal sealed class IntroduceVariableTool : MutationToolHandler<IntroduceVariableRequest, MutationProposal>
+internal sealed class IntroduceVariableTool : MutationToolHandler<IntroduceVariableRequest>
 {
     private static readonly ToolRegistrationMetadata _metadata = new()
     {

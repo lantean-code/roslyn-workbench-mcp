@@ -3,7 +3,7 @@ using Roslyn.Workbench.Mcp.Contracts.Results;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
-internal sealed class GetDependencyGraphTool : QueryToolHandler<GetDependencyGraphRequest, DependencyGraphData>
+internal sealed class GetDependencyGraphTool : QueryToolHandler<GetDependencyGraphRequest, QueryResponse<DependencyGraphData>>
 {
     private static readonly ToolRegistrationMetadata _metadata = new()
     {
@@ -17,31 +17,31 @@ internal sealed class GetDependencyGraphTool : QueryToolHandler<GetDependencyGra
         registry.RegisterQueryTool(_metadata, new GetDependencyGraphTool());
     }
 
-    protected override async ValueTask<PluginExecutionResult<DependencyGraphData>> ExecuteCoreAsync(GetDependencyGraphRequest request, IQueryContext context, CancellationToken cancellationToken)
+    protected override async ValueTask<PluginExecutionResult<QueryResponse<DependencyGraphData>>> ExecuteCoreAsync(GetDependencyGraphRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (!context.ToolExecutionServices.DependencyAnalysisService.IsSupportedGraphGranularity(request.Granularity))
         {
-            return ToolExecutionHelpers.Rejected<DependencyGraphData>("InvalidRequest", "Granularity must be Project, Namespace, Type, or Symbol.");
+            return ToolExecutionHelpers.Rejected<QueryResponse<DependencyGraphData>>("InvalidRequest", "Granularity must be Project, Namespace, Type, or Symbol.");
         }
 
         if (request.MaxDepth < 0)
         {
-            return ToolExecutionHelpers.Rejected<DependencyGraphData>("InvalidRequest", "MaxDepth must be zero or greater.");
+            return ToolExecutionHelpers.Rejected<QueryResponse<DependencyGraphData>>("InvalidRequest", "MaxDepth must be zero or greater.");
         }
 
         if (request.MaxNodes is <= 0 || request.MaxEdges is <= 0)
         {
-            return ToolExecutionHelpers.Rejected<DependencyGraphData>("InvalidRequest", "MaxNodes and MaxEdges must be greater than zero when provided.");
+            return ToolExecutionHelpers.Rejected<QueryResponse<DependencyGraphData>>("InvalidRequest", "MaxNodes and MaxEdges must be greater than zero when provided.");
         }
 
-        var documents = context.ToolExecutionServices.RequestResolver.ResolveDocuments<DependencyGraphData>(request.Scope, context);
+        var documents = context.ToolExecutionServices.RequestResolver.ResolveDocuments<QueryResponse<DependencyGraphData>>(request.Scope, context);
         if (documents.HasRejection)
         {
             return documents.Rejection;
         }
 
-        var projects = context.ToolExecutionServices.RequestResolver.ResolveProjects<DependencyGraphData>(request.Scope, context);
+        var projects = context.ToolExecutionServices.RequestResolver.ResolveProjects<QueryResponse<DependencyGraphData>>(request.Scope, context);
         if (projects.HasRejection)
         {
             return projects.Rejection;
@@ -73,7 +73,7 @@ internal sealed class GetDependencyGraphTool : QueryToolHandler<GetDependencyGra
             truncationReasons.Add(CollectionTruncation.EdgeLimit);
         }
 
-        return context.ToolExecutionServices.ResultShaper.EnsureWithinSize(context, new DependencyGraphData
+        return context.ToolExecutionServices.ResultShaper.CreateSingletonResponse(context, new DependencyGraphData
         {
             Nodes = nodes,
             Edges = edges,

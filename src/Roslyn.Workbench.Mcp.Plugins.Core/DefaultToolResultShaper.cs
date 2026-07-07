@@ -8,6 +8,19 @@ internal sealed class DefaultToolResultShaper : IToolResultShaper
 {
     private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
 
+    public PluginExecutionResult<QueryResponse<TValue>> CreateSingletonResponse<TValue>(IQueryContext context, TValue value)
+    {
+        var response = new QueryResponse<TValue>
+        {
+            Value = value,
+        };
+
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(response, _serializerOptions);
+        return bytes.Length > context.MaxResponseBytes
+            ? Rejected<QueryResponse<TValue>>("ResponseLimitExceeded", "The response exceeded the configured response size limit.", RequiredAction.NarrowRequest)
+            : PluginExecutionResult<QueryResponse<TValue>>.Success(response);
+    }
+
     public PluginExecutionResult<TResponse> EnsureWithinSize<TResponse>(IQueryContext context, TResponse data)
     {
         var bytes = JsonSerializer.SerializeToUtf8Bytes(data, _serializerOptions);
@@ -34,14 +47,41 @@ internal sealed class DefaultToolResultShaper : IToolResultShaper
         }, requiredAction);
     }
 
+    public PluginExecutionResult<CollectionResponse<TItem>> CreateBoundedCollectionResponse<TItem>(
+        IQueryContext context,
+        IReadOnlyList<TItem> orderedItems,
+        int maxResults)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(orderedItems);
+
+        var limitedCount = Math.Min(maxResults, orderedItems.Count);
+
+        for (var count = limitedCount; count >= 0; count--)
+        {
+            var items = count == orderedItems.Count ? orderedItems : orderedItems.Take(count).ToArray();
+            var response = new CollectionResponse<TItem>
+            {
+                Items = items,
+                HasMore = count < orderedItems.Count,
+            };
+            var bytes = JsonSerializer.SerializeToUtf8Bytes(response, _serializerOptions);
+
+            if (bytes.Length <= context.MaxResponseBytes)
+            {
+                return PluginExecutionResult<CollectionResponse<TItem>>.Success(response);
+            }
+        }
+
+        return Rejected<CollectionResponse<TItem>>("ResponseLimitExceeded", "The response exceeded the configured response size limit.", RequiredAction.NarrowRequest);
+    }
+
     public PluginExecutionResult<TData> CreateBoundedCollectionResult<TData, TItem>(
         IQueryContext context,
         IReadOnlyList<TItem> orderedItems,
         int maxResults,
         Func<IReadOnlyList<TItem>, bool, TData> createData)
     {
-        ArgumentNullException.ThrowIfNull(context);
-        ArgumentNullException.ThrowIfNull(orderedItems);
         ArgumentNullException.ThrowIfNull(createData);
 
         var limitedCount = Math.Min(maxResults, orderedItems.Count);

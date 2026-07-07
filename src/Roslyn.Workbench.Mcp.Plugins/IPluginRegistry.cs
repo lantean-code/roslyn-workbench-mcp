@@ -21,9 +21,10 @@ public interface IPluginRegistry
     /// Registers a mutation tool.
     /// </summary>
     /// <typeparam name="TRequest">The request contract type.</typeparam>
-    /// <typeparam name="TResponse">The successful response payload type.</typeparam>
     /// <param name="metadata">The tool metadata.</param>
     /// <param name="handler">The typed mutation handler.</param>
-    void RegisterMutationTool<TRequest, TResponse>(ToolRegistrationMetadata metadata, IMutationToolHandler<TRequest, TResponse> handler)
+    void RegisterMutationTool<TRequest>(
+        ToolRegistrationMetadata metadata,
+        IMutationToolHandler<TRequest> handler)
         where TRequest : WorkspaceBoundRequest;
 }

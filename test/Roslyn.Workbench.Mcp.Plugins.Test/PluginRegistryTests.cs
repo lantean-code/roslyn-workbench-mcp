@@ -33,7 +33,6 @@ public sealed class PluginRegistryTests
         tool.Plugin.PluginId.Should().Be("plugin.test");
         tool.Metadata.Name.Should().Be("test-query");
         tool.Kind.Should().Be(ToolKind.Query);
-        tool.ResponseDescriptor.Kind.Should().Be(ToolResponseShapeKind.Singleton);
         tool.Annotations.ReadOnlyHint.Should().BeTrue();
         tool.Annotations.IdempotentHint.Should().BeTrue();
         tool.Annotations.OpenWorldHint.Should().BeFalse();
@@ -135,7 +134,6 @@ public sealed class PluginRegistryTests
         var tool = target.RegisteredTools.Should().ContainSingle().Subject;
 
         tool.Kind.Should().Be(ToolKind.Mutation);
-        tool.ResponseDescriptor.Kind.Should().Be(ToolResponseShapeKind.Mutation);
         tool.OutputSchema.Should().BeNull();
     }
 
@@ -182,15 +180,21 @@ public sealed class PluginRegistryTests
         public string Value { get; init; } = string.Empty;
     }
 
-    private sealed class TestQueryHandler : IQueryToolHandler<TestRequest, TestResponse>
+    private sealed class TestQueryHandler : IQueryToolHandler<TestRequest, QueryResponse<TestResponse>>
     {
-        public ValueTask<PluginExecutionResult<TestResponse>> ExecuteAsync(TestRequest request, IQueryContext context, CancellationToken cancellationToken)
+        public ValueTask<PluginExecutionResult<QueryResponse<TestResponse>>> ExecuteAsync(TestRequest request, IQueryContext context, CancellationToken cancellationToken)
         {
             _ = request;
             _ = context;
             _ = cancellationToken;
 
-            return ValueTask.FromResult(PluginExecutionResult<TestResponse>.Success(new TestResponse { Value = "Value" }));
+            return ValueTask.FromResult(PluginExecutionResult<QueryResponse<TestResponse>>.Success(new QueryResponse<TestResponse>
+            {
+                Value = new TestResponse
+                {
+                    Value = "Value",
+                },
+            }));
         }
     }
 
@@ -198,7 +202,7 @@ public sealed class PluginRegistryTests
     {
     }
 
-    private sealed class TestMutationHandler : IMutationToolHandler<TestRequest, MutationProposal>
+    private sealed class TestMutationHandler : IMutationToolHandler<TestRequest>
     {
         public ValueTask<PluginExecutionResult<MutationProposal>> ExecuteAsync(TestRequest request, IMutationContext context, CancellationToken cancellationToken)
         {

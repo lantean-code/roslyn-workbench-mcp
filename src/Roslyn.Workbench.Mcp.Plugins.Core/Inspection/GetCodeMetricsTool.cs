@@ -19,7 +19,6 @@ internal sealed class GetCodeMetricsTool : QueryToolHandler<GetCodeMetricsReques
 
     protected override async ValueTask<PluginExecutionResult<CodeMetricsData>> ExecuteCoreAsync(GetCodeMetricsRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
         var metricTargets = new List<MetricTarget>();
 
         if (request.Symbol is not null)

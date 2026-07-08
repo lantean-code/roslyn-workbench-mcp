@@ -17,7 +17,6 @@ internal sealed class GetDependencyGraphTool : QueryToolHandler<GetDependencyGra
 
     protected override async ValueTask<PluginExecutionResult<DependencyGraphData>> ExecuteCoreAsync(GetDependencyGraphRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
         if (!context.ToolExecutionServices.DependencyAnalysisService.IsSupportedGraphGranularity(request.Granularity))
         {
             return ToolExecutionHelpers.Rejected<DependencyGraphData>("InvalidRequest", "Granularity must be Project, Namespace, Type, or Symbol.");

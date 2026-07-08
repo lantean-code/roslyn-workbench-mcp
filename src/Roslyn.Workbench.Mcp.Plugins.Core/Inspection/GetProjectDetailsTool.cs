@@ -20,7 +20,6 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
 
     protected override async ValueTask<PluginExecutionResult<ProjectDetailsData>> ExecuteCoreAsync(GetProjectDetailsRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
         var projectResolution = context.ToolExecutionServices.RequestResolver.ResolveProject<ProjectDetailsData>(request.Project, context);
         if (projectResolution.HasRejection)
         {

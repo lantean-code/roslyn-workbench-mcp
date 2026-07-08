@@ -18,7 +18,6 @@ internal sealed class AnalyzeAsyncTool : QueryToolHandler<AnalyzeAsyncRequest, A
 
     protected override async ValueTask<PluginExecutionResult<AsyncAnalysisData>> ExecuteCoreAsync(AnalyzeAsyncRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
 
         var documents = context.ToolExecutionServices.RequestResolver.ResolveDocuments<AsyncAnalysisData>(request.Scope, context);
         if (documents.HasRejection)

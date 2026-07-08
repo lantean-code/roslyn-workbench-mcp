@@ -20,7 +20,6 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
 
     protected override async ValueTask<PluginExecutionResult<CalleeSearchData>> ExecuteCoreAsync(FindCalleesRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
 
         if (request.Symbol is null == request.Location is null)
         {

@@ -18,7 +18,6 @@ internal sealed class GetDocumentOutlineTool : QueryToolHandler<GetDocumentOutli
 
     protected override async ValueTask<PluginExecutionResult<DocumentOutlineData>> ExecuteCoreAsync(GetDocumentOutlineRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
         var documentResolution = context.ToolExecutionServices.RequestResolver.ResolveDocument<DocumentOutlineData>(request.Document, context);
         if (documentResolution.HasRejection)
         {

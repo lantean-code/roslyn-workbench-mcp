@@ -18,7 +18,6 @@ internal sealed class GetDocumentOptionsTool : QueryToolHandler<GetDocumentOptio
 
     protected override async ValueTask<PluginExecutionResult<DocumentOptionsData>> ExecuteCoreAsync(GetDocumentOptionsRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
         var documentResolution = context.ToolExecutionServices.RequestResolver.ResolveDocument<DocumentOptionsData>(request.Document, context);
         if (documentResolution.HasRejection)
         {

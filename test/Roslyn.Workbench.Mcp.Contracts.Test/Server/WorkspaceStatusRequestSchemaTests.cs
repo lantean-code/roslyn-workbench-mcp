@@ -5,6 +5,7 @@ using Roslyn.Workbench.Mcp.Contracts.Test.Schema;
 
 namespace Roslyn.Workbench.Mcp.Contracts.Test.Server;
 
+[Trait("Category", "Contract")]
 public sealed class WorkspaceStatusRequestSchemaTests
 {
     [Fact]

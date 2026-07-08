@@ -65,6 +65,7 @@ public sealed class FindCallersToolTests
     }
 
     [Fact]
+    [Trait("Category", "Integration")]
     public async Task GIVEN_InspectionWorkspace_WHEN_ExecutingTool_THEN_ShouldReturnCallers()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();

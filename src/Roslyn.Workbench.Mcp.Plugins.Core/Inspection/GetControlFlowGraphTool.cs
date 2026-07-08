@@ -20,7 +20,6 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
 
     protected override async ValueTask<PluginExecutionResult<ControlFlowGraphData>> ExecuteCoreAsync(GetControlFlowGraphRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
 
         if (request.Symbol is null == request.Location is null)
         {

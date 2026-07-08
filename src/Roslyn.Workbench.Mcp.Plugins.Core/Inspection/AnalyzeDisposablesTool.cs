@@ -18,7 +18,6 @@ internal sealed class AnalyzeDisposablesTool : QueryToolHandler<AnalyzeDisposabl
 
     protected override async ValueTask<PluginExecutionResult<DisposableAnalysisData>> ExecuteCoreAsync(AnalyzeDisposablesRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
 
         var documents = context.ToolExecutionServices.RequestResolver.ResolveDocuments<DisposableAnalysisData>(request.Scope, context);
         if (documents.HasRejection)

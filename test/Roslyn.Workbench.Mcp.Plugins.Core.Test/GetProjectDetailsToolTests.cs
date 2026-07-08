@@ -48,6 +48,7 @@ public sealed class GetProjectDetailsToolTests
     }
 
     [Fact]
+    [Trait("Category", "Integration")]
     public async Task GIVEN_InspectionWorkspace_WHEN_RequestingProjectDetailsByDefault_THEN_ShouldOmitDocumentInventory()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
@@ -73,6 +74,7 @@ public sealed class GetProjectDetailsToolTests
     }
 
     [Fact]
+    [Trait("Category", "Integration")]
     public async Task GIVEN_InspectionWorkspace_WHEN_RequestingProjectDocumentsExplicitly_THEN_ShouldReturnBoundedDocumentInventory()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();

@@ -57,6 +57,7 @@ public sealed class GetSolutionStructureToolTests
     }
 
     [Fact]
+    [Trait("Category", "Integration")]
     public async Task GIVEN_ProjectWorkspace_WHEN_ExecutingTool_THEN_ShouldReturnProjectsAndDocuments()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
@@ -77,6 +78,7 @@ public sealed class GetSolutionStructureToolTests
     }
 
     [Fact]
+    [Trait("Category", "Integration")]
     public async Task GIVEN_SolutionHierarchyWorkspace_WHEN_ExecutingTool_THEN_ShouldReturnFolders()
     {
         using var fixture = await SolutionHierarchyFixture.CreateAsync();

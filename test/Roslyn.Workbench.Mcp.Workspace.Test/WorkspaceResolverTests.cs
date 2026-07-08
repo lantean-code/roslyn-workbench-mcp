@@ -2,6 +2,7 @@ using Roslyn.Workbench.Mcp.Plugins;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test;
 
+[Trait("Category", "Integration")]
 public sealed class WorkspaceResolverTests
 {
     [Fact]

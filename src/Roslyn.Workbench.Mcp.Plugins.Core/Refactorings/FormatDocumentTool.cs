@@ -27,7 +27,6 @@ internal sealed class FormatDocumentTool : MutationToolHandler<FormatDocumentReq
 
     private static async ValueTask<PluginExecutionResult<MutationProposal>> ExecuteFormatDocumentAsync(FormatDocumentRequest request, IMutationContext context, CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
         var documentResolution = context.ToolExecutionServices.RequestResolver.ResolveDocument<MutationProposal>(request.Document, context);
         if (documentResolution.HasRejection)
         {

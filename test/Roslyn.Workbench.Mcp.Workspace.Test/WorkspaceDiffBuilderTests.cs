@@ -1,5 +1,6 @@
 namespace Roslyn.Workbench.Mcp.Workspace.Test;
 
+[Trait("Category", "Integration")]
 public sealed class WorkspaceDiffBuilderTests
 {
     [Fact]

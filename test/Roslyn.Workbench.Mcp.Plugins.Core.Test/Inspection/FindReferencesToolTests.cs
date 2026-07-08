@@ -72,6 +72,7 @@ public sealed class FindReferencesToolTests
     }
 
     [Fact]
+    [Trait("Category", "Integration")]
     public async Task GIVEN_PropertyReferences_WHEN_ExecutingTool_THEN_ShouldClassifyWrites()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();

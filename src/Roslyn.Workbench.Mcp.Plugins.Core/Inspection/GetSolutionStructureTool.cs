@@ -18,7 +18,6 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
 
     protected override async ValueTask<PluginExecutionResult<SolutionStructureData>> ExecuteCoreAsync(GetSolutionStructureRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
         var hierarchy = await context.ToolExecutionServices.ProjectStructureService.GetSolutionHierarchyAsync(context.WorkspaceIdentity.LoadedPath, cancellationToken).ConfigureAwait(false);
 
         var projects = context.CurrentSolution.Projects

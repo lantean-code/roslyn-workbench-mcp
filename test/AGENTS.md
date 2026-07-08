@@ -9,6 +9,7 @@
 
 ## Naming
 - Test class name: `<ClassName>Tests`
+- Integration test class name: `<ClassName>IntegrationTests`
 - Test namespace should mirror the product namespace with `.Test` inserted into the project-specific root namespace.
   Example:
   - Product: `Roslyn.Workbench.Mcp.Workspace.Transactions`
@@ -23,6 +24,33 @@
 - Mocks used across tests are private readonly fields created with `Mock.Of<T>()`.
 - Mocks that are local to a single test method should use `new Mock<T>()`.
 - Shared test-only helpers belong in `Roslyn.Workbench.Mcp.TestSupport`.
+- Unit tests must keep collaborator mocks visible in the test class. Configure `Mock<T>` instances in the class or test method rather than hiding dependency setup behind opaque harnesses.
+- Unit tests may use small factory methods that return configured `Mock<T>` instances or wire visible mocks together, for example creating a `Mock<IQueryContext>` from class-level mocks.
+- Avoid test harnesses, builders, or helper layers in unit tests unless their sole purpose is to provide repeatable Moq-based objects without obscuring the dependency setup under test.
+- Unit tests should prefer Moq over hand-written fakes or stubs. If Moq cannot reach the behaviour and a fake seems necessary, stop and assess whether the production seam is wrong before introducing a fake.
+
+## Tool unit tests
+- Tool unit tests are the default for query and mutation tools. They belong in the normal `*.Test` project, not the integration test project.
+- Unit test classes for tools use the `Tests` suffix. Integration coverage for tools uses the `IntegrationTests` suffix.
+- Test the public entry point flow in actual runtime order, starting at `ExecuteAsync(...)` and then covering each branch reached through private helpers via normal execution.
+- For branching tool handlers, prefer one test per reachable branch or outcome split so the logical flow is obvious from top to bottom.
+- Tool test method names must describe the specific branch being exercised, for example `GIVEN_ResolveDocumentsHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult`.
+- When a shared base handler already owns a branch such as top-level cancellation handling, do not duplicate that branch expectation in every concrete tool test class. Test the shared handler once in its own unit tests.
+- Unit tests for tools must keep `Mock<T>.Setup(...)` and `Verify(...)` calls visible in the test class. Shared helpers may wire common mock graphs together, but they must not hide scenario-specific setups, callbacks, or verifies.
+- Query and mutation context helpers are acceptable when they only construct visible mocks and connect them together, for example `QueryContextMockHelper` or `MutationContextMockHelper`.
+
+## Real Roslyn objects in unit tests
+- Moq remains the default. Use real in-memory Roslyn objects only when the behaviour under test depends on Roslyn syntax, semantic model, compilation, symbol search, or solution graph behaviour that Moq cannot represent faithfully.
+- Real Roslyn helpers must be dedicated to creating Roslyn objects only. They must not become general tool harnesses or hide test scenario setup.
+- Prefer factory-based creation for real Roslyn test objects. A single factory may create multiple narrow result shapes, for example a document-scoped object and a solution-scoped object.
+- Keep Roslyn helper shapes narrow and purpose-specific:
+  - document-scoped helpers for single-document syntax or semantic scenarios
+  - solution-scoped helpers for multi-document, multi-project, or project-reference scenarios
+- Do not expand unrelated helpers such as generic workspace or context builders to absorb Roslyn-specific behaviours if that blurs their purpose.
+- If a unit test uses real in-memory Roslyn objects, the surrounding collaborators must still be mocked explicitly unless the test is intentionally being classified as integration coverage.
+- In unit tests, real Roslyn objects are allowed only as Roslyn data inputs or Roslyn-owned state, for example `Solution`, `Project`, `Document`, `Compilation`, `SemanticModel`, `SyntaxNode`, `Location`, and `ISymbol`.
+- In unit tests, production collaborators other than the system under test must not be replaced with real runtime implementations just because those implementations are convenient. Keep host and runtime services mocked, including helpers such as `IWorkspaceResolver`, coordinators, workflows, project-structure services, and execution services.
+- Test helpers must not instantiate real production service implementations for unit tests. If a helper creates a real runtime collaborator instead of a Roslyn data object, the test is no longer following the unit-test rules and must be reworked or reclassified.
 
 ## Test data conventions
 - Strings use the property name as the value (not `nameof`), for example `request.Name = "Name"`.
@@ -60,6 +88,21 @@
 - If invocation history must be reset between phases, use shared test infrastructure helpers rather than ad-hoc invocation-list manipulation.
 - Do not use `Task.Delay(...)` for synchronization or timing in tests.
 - Use deterministic waiting or polling primitives instead.
+
+## Test taxonomy
+- `Unit` tests are the default. They must not create temporary projects, open real workspaces, or drive real coordinator or transaction flows.
+- `Contract` tests deliberately lock schema shape, validation rules, serialisation, or public surface shape.
+- `Integration` tests use the real file system, Roslyn workspace, coordinator, plugin registry, transaction pipeline, or equivalent multi-component runtime flow.
+- `Audit` tests validate built-in provider coverage, replay families, promotion ledgers, or other governance-style compatibility expectations.
+- New tests that create temporary directories, open real workspaces, or execute full tool flows must be marked with `[Trait("Category", "Integration")]` unless they are specifically governance coverage, in which case use `[Trait("Category", "Audit")]`.
+- Reflection- or schema-lock tests should be marked with `[Trait("Category", "Contract")]` when they are not ordinary behaviour-focused unit tests.
+- Roslyn fixture or coordinator coverage belongs in the integration test projects and should use `IntegrationTests` class suffixes, not `Tests`.
+
+## Execution policy
+- Default local development loop: run unit and contract coverage, excluding integration and audit categories.
+- Integration coverage should run for touched areas during development and in CI for broader regression confidence.
+- Audit coverage should run in broader CI or release gates, not in the default local loop.
+- Preferred fast-loop command: `dotnet test --filter "Category!=Integration&Category!=Audit" --artifacts-path=/tmp/artifacts/roslyn-workbench-mcp`
 
 ## Pre-flight checklist (must confirm all before generating tests)
 - [ ] I am using xUnit, Moq, and AwesomeAssertions.

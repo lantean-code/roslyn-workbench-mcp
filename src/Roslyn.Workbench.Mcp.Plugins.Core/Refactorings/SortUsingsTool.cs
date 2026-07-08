@@ -22,7 +22,6 @@ internal sealed class SortUsingsTool : MutationToolHandler<SortUsingsRequest>
 
     protected override async ValueTask<PluginExecutionResult<MutationProposal>> ExecuteCoreAsync(SortUsingsRequest request, IMutationContext context, CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
         var documentResolution = context.ToolExecutionServices.RequestResolver.ResolveDocument<MutationProposal>(request.Document, context);
         if (documentResolution.HasRejection)
         {

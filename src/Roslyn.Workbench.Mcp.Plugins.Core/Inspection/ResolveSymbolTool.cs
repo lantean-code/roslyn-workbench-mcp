@@ -19,7 +19,6 @@ internal sealed class ResolveSymbolTool : QueryToolHandler<ResolveSymbolRequest,
 
     protected override async ValueTask<PluginExecutionResult<ResolveSymbolData>> ExecuteCoreAsync(ResolveSymbolRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
         var snapshotRejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<ResolveSymbolData>(context, request.ExpectedSnapshot);
         if (snapshotRejection is not null)
         {

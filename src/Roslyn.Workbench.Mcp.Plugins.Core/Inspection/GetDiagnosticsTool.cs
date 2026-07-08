@@ -22,7 +22,6 @@ internal sealed class GetDiagnosticsTool : QueryToolHandler<GetDiagnosticsReques
 
     protected override async ValueTask<PluginExecutionResult<DiagnosticsData>> ExecuteCoreAsync(GetDiagnosticsRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
         var documents = context.ToolExecutionServices.RequestResolver.ResolveDocuments<DiagnosticsData>(request.Scope, context);
         if (documents.HasRejection)
         {

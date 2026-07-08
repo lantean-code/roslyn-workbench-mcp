@@ -20,7 +20,6 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
 
     protected override async ValueTask<PluginExecutionResult<CodeContextData>> ExecuteCoreAsync(GetCodeContextRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
         var locationResolution = await ResolveLocationAsync(request.Location, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
         if (locationResolution.Rejection is not null)
         {

@@ -2,6 +2,7 @@ using Roslyn.Workbench.Mcp.Plugins.CodeActions;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Test;
 
+[Trait("Category", "Contract")]
 public sealed class PluginSurfaceShapeTests
 {
     [Fact]

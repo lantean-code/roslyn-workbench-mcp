@@ -18,7 +18,6 @@ internal sealed class SearchSymbolsTool : QueryToolHandler<SearchSymbolsRequest,
 
     protected override async ValueTask<PluginExecutionResult<SymbolSearchData>> ExecuteCoreAsync(SearchSymbolsRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
         var scopeResolution = context.ToolExecutionServices.RequestResolver.ResolveProjects<SymbolSearchData>(request.Scope, context);
         if (scopeResolution.HasRejection)
         {

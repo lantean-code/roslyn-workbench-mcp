@@ -20,7 +20,6 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
 
     protected override async ValueTask<PluginExecutionResult<OperationTreeData>> ExecuteCoreAsync(GetOperationTreeRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
         var syntaxNodeResolution = await ResolveSyntaxNodeAsync(request.Location, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
         if (syntaxNodeResolution.Rejection is not null)
         {

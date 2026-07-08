@@ -25,7 +25,6 @@ internal sealed class ConvertToInterpolatedStringTool : MutationToolHandler<Conv
 
     protected override async ValueTask<PluginExecutionResult<MutationProposal>> ExecuteCoreAsync(ConvertToInterpolatedStringRequest request, IMutationContext context, CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
 
         var snapshotRejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<MutationProposal>(context, request.ExpectedSnapshot);
         if (snapshotRejection is not null)

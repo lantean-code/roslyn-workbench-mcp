@@ -10,6 +10,7 @@ internal abstract class MutationToolHandler<TRequest> : IMutationToolHandler<TRe
         IMutationContext context,
         CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         ArgumentNullException.ThrowIfNull(context);
 
         return ExecuteCoreAsync(request, context, cancellationToken);

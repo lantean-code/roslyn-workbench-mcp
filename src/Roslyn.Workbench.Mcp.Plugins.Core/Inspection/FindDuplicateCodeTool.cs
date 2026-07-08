@@ -18,7 +18,6 @@ internal sealed class FindDuplicateCodeTool : QueryToolHandler<FindDuplicateCode
 
     protected override async ValueTask<PluginExecutionResult<DuplicateCodeData>> ExecuteCoreAsync(FindDuplicateCodeRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
         if (request.MinimumStatements < 1)
         {
             return ToolExecutionHelpers.Rejected<DuplicateCodeData>("InvalidRequest", "MinimumStatements must be at least 1.");

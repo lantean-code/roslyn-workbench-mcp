@@ -18,7 +18,6 @@ internal sealed class GetApiSurfaceTool : QueryToolHandler<GetApiSurfaceRequest,
 
     protected override async ValueTask<PluginExecutionResult<ApiSurfaceData>> ExecuteCoreAsync(GetApiSurfaceRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
         var documents = context.ToolExecutionServices.RequestResolver.ResolveDocuments<ApiSurfaceData>(request.Scope, context);
         if (documents.HasRejection)
         {

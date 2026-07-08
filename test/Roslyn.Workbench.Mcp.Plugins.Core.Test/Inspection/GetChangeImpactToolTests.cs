@@ -65,6 +65,7 @@ public sealed class GetChangeImpactToolTests
     }
 
     [Fact]
+    [Trait("Category", "Integration")]
     public async Task GIVEN_InspectionWorkspace_WHEN_ExecutingTool_THEN_ShouldReturnImpactSummary()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();

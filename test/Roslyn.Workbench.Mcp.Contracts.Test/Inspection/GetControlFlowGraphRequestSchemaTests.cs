@@ -5,6 +5,7 @@ using Roslyn.Workbench.Mcp.Contracts.Test.Schema;
 
 namespace Roslyn.Workbench.Mcp.Contracts.Test.Inspection;
 
+[Trait("Category", "Contract")]
 public sealed class GetControlFlowGraphRequestSchemaTests
 {
     [Fact]

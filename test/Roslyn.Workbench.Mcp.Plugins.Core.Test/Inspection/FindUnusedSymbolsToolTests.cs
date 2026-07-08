@@ -60,6 +60,7 @@ public sealed class FindUnusedSymbolsToolTests
     }
 
     [Fact]
+    [Trait("Category", "Integration")]
     public async Task GIVEN_InspectionWorkspace_WHEN_ExecutingTool_THEN_ShouldReturnUnusedCandidates()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();

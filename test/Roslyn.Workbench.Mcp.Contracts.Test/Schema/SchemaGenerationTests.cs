@@ -4,6 +4,7 @@ using Roslyn.Workbench.Mcp.Contracts.Inspection;
 
 namespace Roslyn.Workbench.Mcp.Contracts.Test.Schema;
 
+[Trait("Category", "Contract")]
 public sealed class SchemaGenerationTests
 {
     [Fact]

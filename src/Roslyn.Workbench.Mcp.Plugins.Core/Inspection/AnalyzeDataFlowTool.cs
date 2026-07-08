@@ -20,7 +20,6 @@ internal sealed class AnalyzeDataFlowTool : QueryToolHandler<AnalyzeDataFlowRequ
 
     protected override async ValueTask<PluginExecutionResult<DataFlowAnalysisData>> ExecuteCoreAsync(AnalyzeDataFlowRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
         var statementResolution = await ResolveStatementAsync(request.Location, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
         if (statementResolution.Rejection is not null)
         {

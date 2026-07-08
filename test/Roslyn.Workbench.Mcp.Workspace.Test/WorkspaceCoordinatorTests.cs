@@ -9,11 +9,13 @@ using Roslyn.Workbench.Mcp.TestSupport;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test;
 
+[Trait("Category", "Integration")]
 public sealed class WorkspaceCoordinatorTests
 {
     private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
 
     [Fact]
+    [Trait("Category", "Contract")]
     public void GIVEN_WorkspaceCoordinatorContract_WHEN_InspectingTransactionSurface_THEN_ShouldOnlyExposePluginExecutionContextCreation()
     {
         typeof(IWorkspaceExecutionContextFactory).GetInterfaces().Should().ContainSingle(static type => type == typeof(IToolExecutionContextFactory));
@@ -22,6 +24,7 @@ public sealed class WorkspaceCoordinatorTests
     }
 
     [Fact]
+    [Trait("Category", "Contract")]
     public void GIVEN_WorkspaceCoordinatorOptionsContract_WHEN_InspectingPublicProperties_THEN_ShouldOnlyExposeConfigurationState()
     {
         var propertyNames = typeof(WorkspaceCoordinatorOptions)
@@ -41,6 +44,7 @@ public sealed class WorkspaceCoordinatorTests
     }
 
     [Fact]
+    [Trait("Category", "Contract")]
     public void GIVEN_WorkspaceCoordinatorType_WHEN_InspectingPublicConstructors_THEN_ShouldRequireSharedHostService()
     {
         var constructor = typeof(WorkspaceExecutionContextFactory).GetConstructor(

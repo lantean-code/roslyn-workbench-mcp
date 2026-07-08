@@ -18,7 +18,6 @@ internal sealed class GetSymbolAttributesTool : QueryToolHandler<GetSymbolAttrib
 
     protected override async ValueTask<PluginExecutionResult<SymbolAttributesData>> ExecuteCoreAsync(GetSymbolAttributesRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
         var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<SymbolAttributesData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
         if (symbolResolution.HasRejection)
         {

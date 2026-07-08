@@ -64,6 +64,7 @@ public sealed class AnalyzeNullabilityToolTests
     }
 
     [Fact]
+    [Trait("Category", "Integration")]
     public async Task GIVEN_InspectionWorkspace_WHEN_ExecutingTool_THEN_ShouldReturnNullabilityFindings()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();

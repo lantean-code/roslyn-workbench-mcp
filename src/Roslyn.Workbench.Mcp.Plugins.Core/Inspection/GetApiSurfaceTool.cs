@@ -4,6 +4,19 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
 internal sealed class GetApiSurfaceTool : QueryToolHandler<GetApiSurfaceRequest, ApiSurfaceData>
 {
+    private sealed class AccessibilityThreshold
+    {
+        private AccessibilityThreshold()
+        {
+        }
+
+        public static AccessibilityThreshold Public { get; } = new();
+
+        public static AccessibilityThreshold Protected { get; } = new();
+
+        public static AccessibilityThreshold Internal { get; } = new();
+    }
+
     private static readonly ToolRegistrationMetadata _metadata = new()
     {
         Name = "get-api-surface",
@@ -49,7 +62,7 @@ internal sealed class GetApiSurfaceTool : QueryToolHandler<GetApiSurfaceRequest,
                     continue;
                 }
 
-                if (!MeetsAccessibilityThreshold(symbol, threshold.Value))
+                if (!MeetsAccessibilityThreshold(symbol, threshold))
                 {
                     continue;
                 }
@@ -81,13 +94,13 @@ internal sealed class GetApiSurfaceTool : QueryToolHandler<GetApiSurfaceRequest,
         });
     }
 
-    private static Accessibility? ParseMinimumAccessibility(string value)
+    private static AccessibilityThreshold? ParseMinimumAccessibility(string value)
     {
         return value switch
         {
-            "Public" => Accessibility.Public,
-            "Protected" => Accessibility.Protected,
-            "Internal" => Accessibility.Internal,
+            "Public" => AccessibilityThreshold.Public,
+            "Protected" => AccessibilityThreshold.Protected,
+            "Internal" => AccessibilityThreshold.Internal,
             _ => null,
         };
     }
@@ -121,17 +134,21 @@ internal sealed class GetApiSurfaceTool : QueryToolHandler<GetApiSurfaceRequest,
             or VariableDeclaratorSyntax;
     }
 
-    private static bool MeetsAccessibilityThreshold(ISymbol symbol, Accessibility threshold)
+    private static bool MeetsAccessibilityThreshold(ISymbol symbol, AccessibilityThreshold threshold)
     {
         var accessibilities = GetAccessibilityChain(symbol);
 
-        return threshold switch
+        if (ReferenceEquals(threshold, AccessibilityThreshold.Public))
         {
-            Accessibility.Public => accessibilities.All(static accessibility => accessibility == Accessibility.Public),
-            Accessibility.Protected => accessibilities.All(static accessibility => accessibility is Accessibility.Public or Accessibility.Protected or Accessibility.ProtectedOrInternal or Accessibility.ProtectedAndInternal),
-            Accessibility.Internal => accessibilities.All(static accessibility => accessibility is Accessibility.Public or Accessibility.Protected or Accessibility.Internal or Accessibility.ProtectedOrInternal or Accessibility.ProtectedAndInternal),
-            _ => false,
-        };
+            return accessibilities.All(static accessibility => accessibility == Accessibility.Public);
+        }
+
+        if (ReferenceEquals(threshold, AccessibilityThreshold.Protected))
+        {
+            return accessibilities.All(static accessibility => accessibility is Accessibility.Public or Accessibility.Protected or Accessibility.ProtectedOrInternal or Accessibility.ProtectedAndInternal);
+        }
+
+        return accessibilities.All(static accessibility => accessibility is Accessibility.Public or Accessibility.Protected or Accessibility.Internal or Accessibility.ProtectedOrInternal or Accessibility.ProtectedAndInternal);
     }
 
     private static IReadOnlyList<Accessibility> GetAccessibilityChain(ISymbol symbol)
@@ -139,11 +156,6 @@ internal sealed class GetApiSurfaceTool : QueryToolHandler<GetApiSurfaceRequest,
         var result = new List<Accessibility>();
         for (var current = symbol; current is not null; current = current.ContainingType)
         {
-            if (current is INamespaceSymbol)
-            {
-                continue;
-            }
-
             if (current.DeclaredAccessibility != Accessibility.NotApplicable)
             {
                 result.Add(current.DeclaredAccessibility);

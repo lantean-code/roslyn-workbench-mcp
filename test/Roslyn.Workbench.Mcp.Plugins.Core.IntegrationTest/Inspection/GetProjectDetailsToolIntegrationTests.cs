@@ -4,51 +4,10 @@ using Roslyn.Workbench.Mcp.TestSupport;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 
-public sealed class GetProjectDetailsToolTests
+[Trait("Category", "Integration")]
+public sealed class GetProjectDetailsToolIntegrationTests
 {
     [Fact]
-    public async Task GIVEN_ProjectStructureServiceFrameworks_WHEN_CallingExecute_THEN_ShouldUseConfiguredTargetFrameworks()
-    {
-        using var workspace = MiniWorkspaceFactory.CreateCSharp("""
-            namespace Sample;
-
-            public sealed class GreetingFormatter
-            {
-            }
-            """);
-        var workspaceIdentity = workspace.CreateWorkspaceIdentity();
-        var resolver = workspace.CreateResolver(workspaceIdentity);
-        var project = workspace.Solution.Projects.Single();
-        var projectStructureService = new Mock<IProjectStructureService>();
-        var services = new ToolExecutionServicesBuilder()
-            .WithProjectStructureService(projectStructureService.Object)
-            .Build();
-        var context = new QueryContextBuilder()
-            .WithCurrentSolution(workspace.Solution)
-            .WithResolver(resolver)
-            .WithWorkspaceIdentity(workspaceIdentity)
-            .WithToolExecutionServices(services)
-            .Build();
-        var target = new GetProjectDetailsTool();
-
-        projectStructureService
-            .Setup(service => service.GetTargetFrameworks(project))
-            .Returns(["net10.0", "net9.0"]);
-
-        var result = await target.ExecuteAsync(new GetProjectDetailsRequest
-        {
-            Project = new ProjectSelector
-            {
-                Path = "Sample.csproj",
-            },
-        }, context, CancellationToken.None);
-
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data!.Project!.TargetFrameworks.Should().Equal("net10.0", "net9.0");
-    }
-
-    [Fact]
-    [Trait("Category", "Integration")]
     public async Task GIVEN_InspectionWorkspace_WHEN_RequestingProjectDetailsByDefault_THEN_ShouldOmitDocumentInventory()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
@@ -74,7 +33,6 @@ public sealed class GetProjectDetailsToolTests
     }
 
     [Fact]
-    [Trait("Category", "Integration")]
     public async Task GIVEN_InspectionWorkspace_WHEN_RequestingProjectDocumentsExplicitly_THEN_ShouldReturnBoundedDocumentInventory()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
@@ -100,5 +58,4 @@ public sealed class GetProjectDetailsToolTests
         result.Data!.Documents.Should().NotBeNull();
         result.Data.Documents!.Items.Should().NotBeEmpty();
     }
-
 }

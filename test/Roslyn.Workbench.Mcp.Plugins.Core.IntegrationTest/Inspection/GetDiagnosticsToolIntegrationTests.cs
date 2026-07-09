@@ -1,7 +1,7 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 
 [Trait("Category", "Integration")]
-public sealed class GetDiagnosticsToolTests
+public sealed class GetDiagnosticsToolIntegrationTests
 {
     [Fact]
     public async Task GIVEN_FilteredRequest_WHEN_ExecutingTool_THEN_ShouldReturnDiagnostics()

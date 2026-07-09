@@ -5,7 +5,7 @@ using Roslyn.Workbench.Mcp.TestSupport;
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 
 [Trait("Category", "Integration")]
-public sealed class GetControlFlowGraphToolTests
+public sealed class GetControlFlowGraphToolIntegrationTests
 {
     [Fact]
     public async Task GIVEN_InspectionWorkspace_WHEN_RequestingControlFlowGraph_THEN_ShouldReturnProjectedRegions()

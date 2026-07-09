@@ -21,6 +21,11 @@ public sealed record InMemoryRoslynProjectDefinition
     public string? FilePath { get; init; }
 
     /// <summary>
+    /// Gets a value indicating whether a default project file path should be generated when <see cref="FilePath"/> is <see langword="null"/>.
+    /// </summary>
+    public bool UseDefaultFilePathWhenNull { get; init; } = true;
+
+    /// <summary>
     /// Gets the names of projects referenced by this project.
     /// </summary>
     public IReadOnlyList<string> ProjectReferences { get; init; } = [];

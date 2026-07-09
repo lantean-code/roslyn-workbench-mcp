@@ -104,7 +104,9 @@ public static class RoslynTestFactory
         foreach (var project in projects)
         {
             var projectId = projectIdsByName[project.Name];
-            var projectFilePath = project.FilePath ?? $"/workspace/{project.Name}/{project.Name}.csproj";
+            var projectFilePath = project.UseDefaultFilePathWhenNull
+                ? project.FilePath ?? $"/workspace/{project.Name}/{project.Name}.csproj"
+                : project.FilePath;
 
             solution = solution.AddProject(ProjectInfo.Create(
                 projectId,

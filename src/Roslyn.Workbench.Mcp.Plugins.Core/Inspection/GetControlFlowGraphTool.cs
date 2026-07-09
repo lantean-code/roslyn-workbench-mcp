@@ -49,7 +49,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
         }
         else
         {
-            var syntaxNodeResolution = await ResolveSyntaxNodeAsync(request.Location, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+            var syntaxNodeResolution = await ResolveSyntaxNodeAsync(request.Location!, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
             if (syntaxNodeResolution.Rejection is not null)
             {
                 return syntaxNodeResolution.Rejection;
@@ -113,7 +113,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
         }
     }
 
-    private static async ValueTask<SyntaxNodeResolution> ResolveSyntaxNodeAsync(LocationSelector? selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)
+    private static async ValueTask<SyntaxNodeResolution> ResolveSyntaxNodeAsync(LocationSelector selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)
     {
         var rejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<ControlFlowGraphData>(context, expectedSnapshot);
         if (rejection is not null)
@@ -121,14 +121,6 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
             return new SyntaxNodeResolution
             {
                 Rejection = rejection,
-            };
-        }
-
-        if (selector is null)
-        {
-            return new SyntaxNodeResolution
-            {
-                Rejection = ToolExecutionHelpers.Rejected<ControlFlowGraphData>("InvalidRequest", "A location selector is required."),
             };
         }
 

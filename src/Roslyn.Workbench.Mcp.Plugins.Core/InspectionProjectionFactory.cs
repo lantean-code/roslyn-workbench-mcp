@@ -200,7 +200,7 @@ internal static class InspectionProjectionFactory
         return new MetadataReferenceInfo
         {
             Display = reference.Display ?? reference.GetType().Name,
-            Path = reference.Display,
+            Path = (reference as PortableExecutableReference)?.FilePath,
         };
     }
 

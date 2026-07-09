@@ -114,7 +114,6 @@ internal sealed class FindUnusedSymbolsTool : QueryToolHandler<FindUnusedSymbols
         return symbol switch
         {
             ILocalSymbol => true,
-            IRangeVariableSymbol => true,
             _ => symbol.DeclaredAccessibility == Accessibility.Private
                 || (includeInternal && symbol.DeclaredAccessibility is Accessibility.Internal or Accessibility.ProtectedOrInternal or Accessibility.ProtectedAndInternal),
         };

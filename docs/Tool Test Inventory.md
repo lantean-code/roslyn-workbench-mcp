@@ -7,8 +7,13 @@ Checkbox key: `[ ]` not started, `[-]` partial, `[x]` complete.
 Coverage note: `FindCalleesTool` and `FindDuplicateCodeTool` are marked complete for this sweep with approved exceptions for defensive Roslyn branches that are not reachable through the real public tool flow. Those guards remain to reduce production risk.
 
 Current sweep note:
-- `FindUnusedSymbolsTool` now has unit and integration coverage in place, but `ShouldIncludeSymbol(...)` still contains an `IRangeVariableSymbol` branch that cannot be reached through the current public flow because `GetCandidateSymbol(...)` only resolves `VariableDeclaratorSyntax` and `CatchDeclarationSyntax`. Strict 100% for the class needs an implementation refactor or an explicit exception decision.
-- `GetApiSurfaceTool` now has branch-first unit coverage for the reachable `ExecuteAsync(...)` flow, but several helper branches remain unreachable through that flow, including the guarded default arm in `MeetsAccessibilityThreshold(...)` and the namespace path in `GetAccessibilityChain(...)`. Strict 100% for the class needs an implementation refactor or an explicit exception decision.
+- `FindUnusedSymbolsTool` now has unit and integration coverage in place, and the dead `IRangeVariableSymbol` branch has been removed. The remaining partial coverage is in reachable accessibility-filter combinations within `ShouldIncludeSymbol(...)`, so strict 100% now needs additional unit scenarios rather than a production refactor.
+- `GetApiSurfaceTool` now has branch-first unit coverage for the reachable `ExecuteAsync(...)` flow, and the dead default arm in `MeetsAccessibilityThreshold(...)` plus the unreachable namespace path in `GetAccessibilityChain(...)` have been removed. The remaining partial coverage is in reachable helper branches such as additional `GetDeclaredSymbol(...)` and accessibility/attribute combinations, so strict 100% now needs more unit scenarios rather than another dead-branch cleanup.
+- `GetCodeMetricsTool` now has unit and integration coverage in place, but strict class-level 100% still needs an implementation decision. The document-scope declaration walk never reaches the `DelegateDeclarationSyntax` arm in `GetDeclaredSymbol(...)`, `GetMaxNestingDepthCore(...)` cannot recurse from the current declaration entry points, and the defensive `sourceLocation is null` guard in `TryCreateMetricTarget(...)` is not reachable through the real public flow.
+- `GetControlFlowGraphTool` now has branch-first unit coverage for the reachable `ExecuteAsync(...)` flow, and the dead-entry `selector is null` helper branch has been removed. The remaining partial coverage is the defensive `syntaxRoot is null || semanticModel is null` guard, which would require an unsupported Roslyn document that still resolves through the normal source-tree location flow.
+- `GetDiagnosticsTool` now has branch-first unit coverage for the reachable `ExecuteAsync(...)` flow, but strict class-level 100% still needs an explicit exception decision for `DiagnosticComparer.Equals(...)` when one side is null. The current public flow only produces non-null Roslyn diagnostics, so that guard cannot be exercised without artificial test-only inputs.
+- `GetDocumentOptionsTool` now has unit and integration coverage in place, but one parse-options branch remains open. Current tests cover the C# branch and the unsupported-document null branch; strict class-level 100% still needs a dedicated non-C# Roslyn document fixture to drive the non-null, non-C# parse-options path.
+- `GetOperationTreeTool` now has branch-first unit coverage for the reachable `ExecuteAsync(...)` flow, but `ResolveSyntaxNodeAsync(...)` still contains an approved defensive guard that is not reachable through the real public flow. Hitting `syntaxRoot is null || semanticModel is null` would require an unsupported Roslyn document that still resolves through the normal source-tree location flow.
 
 | Done | Tool Class | Unit Test | Integration Test |
 | --- | --- | --- | --- |
@@ -30,18 +35,18 @@ Current sweep note:
 | [-] | GetApiSurfaceTool | GetApiSurfaceToolTests | GetApiSurfaceToolIntegrationTests |
 | [x] | GetChangeImpactTool | GetChangeImpactToolTests | GetChangeImpactToolIntegrationTests |
 | [-] | GetCodeContextTool | GetCodeContextToolTests | GetCodeContextToolIntegrationTests |
-| [ ] | GetCodeMetricsTool | GetCodeMetricsToolTests | GetCodeMetricsToolIntegrationTests |
-| [ ] | GetControlFlowGraphTool | GetControlFlowGraphToolTests | GetControlFlowGraphToolIntegrationTests |
-| [ ] | GetDependencyGraphTool | GetDependencyGraphToolTests | GetDependencyGraphToolIntegrationTests |
-| [ ] | GetDiagnosticsTool | GetDiagnosticsToolTests | GetDiagnosticsToolIntegrationTests |
-| [ ] | GetDocumentOptionsTool | GetDocumentOptionsToolTests | GetDocumentOptionsToolIntegrationTests |
-| [ ] | GetDocumentOutlineTool | GetDocumentOutlineToolTests | GetDocumentOutlineToolIntegrationTests |
-| [ ] | GetOperationTreeTool | GetOperationTreeToolTests | GetOperationTreeToolIntegrationTests |
-| [ ] | GetPartialDeclarationsTool | GetPartialDeclarationsToolTests | GetPartialDeclarationsToolIntegrationTests |
-| [ ] | GetProjectDetailsTool | GetProjectDetailsToolTests | GetProjectDetailsToolIntegrationTests |
-| [ ] | GetSolutionStructureTool | GetSolutionStructureToolTests | GetSolutionStructureToolIntegrationTests |
-| [ ] | GetSymbolAttributesTool | GetSymbolAttributesToolTests | GetSymbolAttributesToolIntegrationTests |
-| [ ] | GetSymbolDependenciesTool | GetSymbolDependenciesToolTests | GetSymbolDependenciesToolIntegrationTests |
+| [-] | GetCodeMetricsTool | GetCodeMetricsToolTests | GetCodeMetricsToolIntegrationTests |
+| [-] | GetControlFlowGraphTool | GetControlFlowGraphToolTests | GetControlFlowGraphToolIntegrationTests |
+| [x] | GetDependencyGraphTool | GetDependencyGraphToolTests | GetDependencyGraphToolIntegrationTests |
+| [-] | GetDiagnosticsTool | GetDiagnosticsToolTests | GetDiagnosticsToolIntegrationTests |
+| [-] | GetDocumentOptionsTool | GetDocumentOptionsToolTests | GetDocumentOptionsToolIntegrationTests |
+| [x] | GetDocumentOutlineTool | GetDocumentOutlineToolTests | GetDocumentOutlineToolIntegrationTests |
+| [-] | GetOperationTreeTool | GetOperationTreeToolTests | GetOperationTreeToolIntegrationTests |
+| [x] | GetPartialDeclarationsTool | GetPartialDeclarationsToolTests | GetPartialDeclarationsToolIntegrationTests |
+| [x] | GetProjectDetailsTool | GetProjectDetailsToolTests | GetProjectDetailsToolIntegrationTests |
+| [x] | GetSolutionStructureTool | GetSolutionStructureToolTests | GetSolutionStructureToolIntegrationTests |
+| [x] | GetSymbolAttributesTool | GetSymbolAttributesToolTests | GetSymbolAttributesToolIntegrationTests |
+| [x] | GetSymbolDependenciesTool | GetSymbolDependenciesToolTests | GetSymbolDependenciesToolIntegrationTests |
 | [ ] | GetSymbolDependentsTool | GetSymbolDependentsToolTests | GetSymbolDependentsToolIntegrationTests |
 | [ ] | GetSymbolInfoTool | GetSymbolInfoToolTests | GetSymbolInfoToolIntegrationTests |
 | [ ] | GetSymbolMembersTool | GetSymbolMembersToolTests | GetSymbolMembersToolIntegrationTests |

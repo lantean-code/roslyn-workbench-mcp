@@ -31,17 +31,17 @@ Current sweep note:
 | [x] | FindOverloadsTool | FindOverloadsToolTests | FindOverloadsToolIntegrationTests |
 | [x] | FindOverridesTool | FindOverridesToolTests | FindOverridesToolIntegrationTests |
 | [x] | FindReferencesTool | FindReferencesToolTests | FindReferencesToolIntegrationTests |
-| [-] | FindUnusedSymbolsTool | FindUnusedSymbolsToolTests | FindUnusedSymbolsToolIntegrationTests |
+| [x] | FindUnusedSymbolsTool | FindUnusedSymbolsToolTests | FindUnusedSymbolsToolIntegrationTests |
 | [-] | GetApiSurfaceTool | GetApiSurfaceToolTests | GetApiSurfaceToolIntegrationTests |
 | [x] | GetChangeImpactTool | GetChangeImpactToolTests | GetChangeImpactToolIntegrationTests |
 | [-] | GetCodeContextTool | GetCodeContextToolTests | GetCodeContextToolIntegrationTests |
-| [-] | GetCodeMetricsTool | GetCodeMetricsToolTests | GetCodeMetricsToolIntegrationTests |
-| [-] | GetControlFlowGraphTool | GetControlFlowGraphToolTests | GetControlFlowGraphToolIntegrationTests |
+| [x] | GetCodeMetricsTool | GetCodeMetricsToolTests | GetCodeMetricsToolIntegrationTests |
+| [x] | GetControlFlowGraphTool | GetControlFlowGraphToolTests | GetControlFlowGraphToolIntegrationTests |
 | [x] | GetDependencyGraphTool | GetDependencyGraphToolTests | GetDependencyGraphToolIntegrationTests |
-| [-] | GetDiagnosticsTool | GetDiagnosticsToolTests | GetDiagnosticsToolIntegrationTests |
-| [-] | GetDocumentOptionsTool | GetDocumentOptionsToolTests | GetDocumentOptionsToolIntegrationTests |
+| [x] | GetDiagnosticsTool | GetDiagnosticsToolTests | GetDiagnosticsToolIntegrationTests |
+| [x] | GetDocumentOptionsTool | GetDocumentOptionsToolTests | GetDocumentOptionsToolIntegrationTests |
 | [x] | GetDocumentOutlineTool | GetDocumentOutlineToolTests | GetDocumentOutlineToolIntegrationTests |
-| [-] | GetOperationTreeTool | GetOperationTreeToolTests | GetOperationTreeToolIntegrationTests |
+| [x] | GetOperationTreeTool | GetOperationTreeToolTests | GetOperationTreeToolIntegrationTests |
 | [x] | GetPartialDeclarationsTool | GetPartialDeclarationsToolTests | GetPartialDeclarationsToolIntegrationTests |
 | [x] | GetProjectDetailsTool | GetProjectDetailsToolTests | GetProjectDetailsToolIntegrationTests |
 | [x] | GetSolutionStructureTool | GetSolutionStructureToolTests | GetSolutionStructureToolIntegrationTests |
@@ -111,8 +111,8 @@ Current sweep note:
 
 | Done | Tool Class | Unit Test | Integration Test |
 | --- | --- | --- | --- |
-| [ ] | DescribeCodeActionTool | DescribeCodeActionToolTests | DescribeCodeActionToolIntegrationTests |
-| [ ] | ListCodeActionsTool | ListCodeActionsToolTests | ListCodeActionsToolIntegrationTests |
+| [x] | DescribeCodeActionTool | DescribeCodeActionToolTests | DescribeCodeActionToolIntegrationTests |
+| [-] | ListCodeActionsTool | ListCodeActionsToolTests | ListCodeActionsToolIntegrationTests |
 | [ ] | StageCodeActionTool | StageCodeActionToolTests | StageCodeActionToolIntegrationTests |
 | [ ] | StageCodeFixTool | StageCodeFixToolTests | StageCodeFixToolIntegrationTests |
 | [ ] | StageFixAllTool | StageFixAllToolTests | StageFixAllToolIntegrationTests |

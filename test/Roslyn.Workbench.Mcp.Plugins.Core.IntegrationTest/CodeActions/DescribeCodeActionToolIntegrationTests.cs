@@ -1,7 +1,7 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.CodeActions;
 
 [Trait("Category", "Integration")]
-public sealed class DescribeCodeActionToolTests
+public sealed class DescribeCodeActionToolIntegrationTests
 {
     [Fact]
     public async Task GIVEN_ParameterisedAction_WHEN_ExecutingTool_THEN_ShouldDescribeContext()

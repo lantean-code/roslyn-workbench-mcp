@@ -3,8 +3,30 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.CodeActions;
 public sealed class ListCodeActionsToolTests
 {
     [Fact]
-    public async Task GIVEN_CodeActionServiceReturnsActions_WHEN_CallingExecute_THEN_ShouldReturnServiceResult()
+    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
     {
+        var registry = new Mock<IPluginRegistry>();
+
+        ListCodeActionsTool.Register(registry.Object);
+
+        registry.Verify(item => item.RegisterQueryTool<ListCodeActionsRequest, CodeActionListData>(
+            It.Is<ToolRegistrationMetadata>(metadata =>
+                metadata.Name == "list-code-actions"
+                && metadata.Title == "List Code Actions"
+                && metadata.Description == "Lists applicable code actions and code fixes at a target location."),
+            It.IsAny<IQueryToolHandler<ListCodeActionsRequest, CodeActionListData>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_QueryContextReturnsResult_WHEN_CallingExecuteAsync_THEN_ShouldReturnQueryContextResult()
+    {
+        var target = new ListCodeActionsTool();
+        var context = new Mock<IQueryContext>();
+
+        var request = new ListCodeActionsRequest
+        {
+            Location = new LocationSelector(),
+        };
         var expected = PluginExecutionResult<CodeActionListData>.Success(new CodeActionListData
         {
             Actions =
@@ -18,54 +40,12 @@ public sealed class ListCodeActionsToolTests
                 },
             ],
         });
-        var context = new QueryContextBuilder()
-            .WithListCodeActionsAsync((request, cancellationToken) =>
-            {
-                request.Should().BeEquivalentTo(new ListCodeActionsRequest
-                {
-                    Location = new LocationSelector(),
-                });
-                cancellationToken.Should().Be(CancellationToken.None);
-                return ValueTask.FromResult(expected);
-            })
-            .Build();
-        var target = new ListCodeActionsTool();
 
-        var request = new ListCodeActionsRequest
-        {
-            Location = new LocationSelector(),
-        };
-        var result = await target.ExecuteAsync(request, context, CancellationToken.None);
+        context
+            .Setup(item => item.ListCodeActionsAsync(request, TestContext.Current.CancellationToken))
+            .ReturnsAsync(expected);
 
-        result.Should().BeEquivalentTo(expected);
-    }
-
-    [Fact]
-    public async Task GIVEN_CodeActionServiceRejectsRequest_WHEN_CallingExecute_THEN_ShouldReturnServiceRejection()
-    {
-        var expected = PluginExecutionResult<CodeActionListData>.Rejected(new ToolError
-        {
-            Code = "CodeActionsUnavailable",
-            Message = "CodeActionsUnavailable",
-        });
-        var context = new QueryContextBuilder()
-            .WithListCodeActionsAsync((request, cancellationToken) =>
-            {
-                request.Should().BeEquivalentTo(new ListCodeActionsRequest
-                {
-                    Location = new LocationSelector(),
-                });
-                cancellationToken.Should().Be(CancellationToken.None);
-                return ValueTask.FromResult(expected);
-            })
-            .Build();
-        var target = new ListCodeActionsTool();
-
-        var request = new ListCodeActionsRequest
-        {
-            Location = new LocationSelector(),
-        };
-        var result = await target.ExecuteAsync(request, context, CancellationToken.None);
+        var result = await target.ExecuteAsync(request, context.Object, TestContext.Current.CancellationToken);
 
         result.Should().BeEquivalentTo(expected);
     }

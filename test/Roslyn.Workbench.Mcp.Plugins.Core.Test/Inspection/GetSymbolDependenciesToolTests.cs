@@ -438,7 +438,10 @@ public sealed class GetSymbolDependenciesToolTests
 
         var target = new GetSymbolDependenciesTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var symbol = await GetRequiredLocalFunctionSymbolAsync(document.Document, "Local");
+        var symbol = await RoslynDocumentTestHelper.GetRequiredLocalFunctionSymbolAsync(
+            document.Document,
+            "Local",
+            TestContext.Current.CancellationToken);
 
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
@@ -486,7 +489,10 @@ public sealed class GetSymbolDependenciesToolTests
 
         var target = new GetSymbolDependenciesTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var symbol = await GetRequiredLocalFunctionSymbolAsync(document.Document, "Local");
+        var symbol = await RoslynDocumentTestHelper.GetRequiredLocalFunctionSymbolAsync(
+            document.Document,
+            "Local",
+            TestContext.Current.CancellationToken);
 
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
@@ -624,7 +630,9 @@ public sealed class GetSymbolDependenciesToolTests
 
         var target = new GetSymbolDependenciesTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var symbol = await GetRequiredAnonymousFunctionSymbolAsync(document.Document);
+        var symbol = await RoslynDocumentTestHelper.GetRequiredAnonymousFunctionSymbolAsync(
+            document.Document,
+            TestContext.Current.CancellationToken);
 
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
@@ -660,22 +668,4 @@ public sealed class GetSymbolDependenciesToolTests
         result.Data!.Dependencies.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Trim");
     }
 
-    private static async Task<IMethodSymbol> GetRequiredAnonymousFunctionSymbolAsync(Document document)
-    {
-        var syntaxRoot = await document.GetSyntaxRootAsync(TestContext.Current.CancellationToken);
-        var semanticModel = await document.GetSemanticModelAsync(TestContext.Current.CancellationToken);
-        var lambda = syntaxRoot!.DescendantNodes().OfType<SimpleLambdaExpressionSyntax>().Single();
-        return (IMethodSymbol)semanticModel!.GetSymbolInfo(lambda, TestContext.Current.CancellationToken).Symbol!;
-    }
-
-    private static async Task<IMethodSymbol> GetRequiredLocalFunctionSymbolAsync(Document document, string localFunctionName)
-    {
-        var syntaxRoot = await document.GetSyntaxRootAsync(TestContext.Current.CancellationToken);
-        var semanticModel = await document.GetSemanticModelAsync(TestContext.Current.CancellationToken);
-        var localFunction = syntaxRoot!
-            .DescendantNodes()
-            .OfType<LocalFunctionStatementSyntax>()
-            .Single(item => item.Identifier.ValueText == localFunctionName);
-        return (IMethodSymbol)semanticModel!.GetDeclaredSymbol(localFunction, TestContext.Current.CancellationToken)!;
-    }
 }

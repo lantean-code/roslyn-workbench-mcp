@@ -1,3 +1,5 @@
+using Microsoft.CodeAnalysis.Operations;
+
 namespace Roslyn.Workbench.Mcp.TestSupport;
 
 /// <summary>
@@ -19,8 +21,7 @@ public static class RoslynDocumentTestHelper
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(predicate);
 
-        var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false)
-            ?? throw new InvalidOperationException($"The syntax root for '{document.Name}' could not be resolved.");
+        var syntaxRoot = await GetRequiredSyntaxRootAsync(document, cancellationToken).ConfigureAwait(false);
         var node = syntaxRoot
             .DescendantNodes()
             .OfType<TNode>()
@@ -46,10 +47,7 @@ public static class RoslynDocumentTestHelper
         ArgumentNullException.ThrowIfNull(document);
         ArgumentException.ThrowIfNullOrWhiteSpace(methodName);
 
-        var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false)
-            ?? throw new InvalidOperationException($"The syntax root for '{document.Name}' could not be resolved.");
-        var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false)
-            ?? throw new InvalidOperationException($"The semantic model for '{document.Name}' could not be resolved.");
+        var (syntaxRoot, semanticModel) = await GetRequiredSyntaxRootAndSemanticModelAsync(document, cancellationToken).ConfigureAwait(false);
         var method = syntaxRoot.DescendantNodes()
             .OfType<MethodDeclarationSyntax>()
             .Single(item => item.Identifier.ValueText == methodName
@@ -71,10 +69,7 @@ public static class RoslynDocumentTestHelper
         ArgumentNullException.ThrowIfNull(document);
         ArgumentException.ThrowIfNullOrWhiteSpace(propertyName);
 
-        var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false)
-            ?? throw new InvalidOperationException($"The syntax root for '{document.Name}' could not be resolved.");
-        var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false)
-            ?? throw new InvalidOperationException($"The semantic model for '{document.Name}' could not be resolved.");
+        var (syntaxRoot, semanticModel) = await GetRequiredSyntaxRootAndSemanticModelAsync(document, cancellationToken).ConfigureAwait(false);
         var property = syntaxRoot.DescendantNodes()
             .OfType<PropertyDeclarationSyntax>()
             .Single(item => item.Identifier.ValueText == propertyName);
@@ -95,10 +90,7 @@ public static class RoslynDocumentTestHelper
         ArgumentNullException.ThrowIfNull(document);
         ArgumentException.ThrowIfNullOrWhiteSpace(typeName);
 
-        var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false)
-            ?? throw new InvalidOperationException($"The syntax root for '{document.Name}' could not be resolved.");
-        var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false)
-            ?? throw new InvalidOperationException($"The semantic model for '{document.Name}' could not be resolved.");
+        var (syntaxRoot, semanticModel) = await GetRequiredSyntaxRootAndSemanticModelAsync(document, cancellationToken).ConfigureAwait(false);
         var type = syntaxRoot.DescendantNodes()
             .OfType<TypeDeclarationSyntax>()
             .Single(item => item.Identifier.ValueText == typeName);
@@ -122,10 +114,7 @@ public static class RoslynDocumentTestHelper
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(predicate);
 
-        var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false)
-            ?? throw new InvalidOperationException($"The syntax root for '{document.Name}' could not be resolved.");
-        var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false)
-            ?? throw new InvalidOperationException($"The semantic model for '{document.Name}' could not be resolved.");
+        var (syntaxRoot, semanticModel) = await GetRequiredSyntaxRootAndSemanticModelAsync(document, cancellationToken).ConfigureAwait(false);
         var invocation = syntaxRoot
             .DescendantNodes()
             .OfType<InvocationExpressionSyntax>()
@@ -135,5 +124,73 @@ public static class RoslynDocumentTestHelper
         return symbolInfo.Symbol
             ?? symbolInfo.CandidateSymbols.SingleOrDefault()
             ?? throw new InvalidOperationException($"The invocation '{invocation}' could not be resolved.");
+    }
+
+    /// <summary>
+    /// Resolves a declared local function symbol from a Roslyn document.
+    /// </summary>
+    /// <param name="document">The Roslyn document to inspect.</param>
+    /// <param name="functionName">The local function name to resolve.</param>
+    /// <param name="cancellationToken">The cancellation token for the Roslyn lookup.</param>
+    /// <returns>The resolved local function symbol.</returns>
+    public static async Task<IMethodSymbol> GetRequiredLocalFunctionSymbolAsync(
+        Document document,
+        string functionName,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentException.ThrowIfNullOrWhiteSpace(functionName);
+
+        var (syntaxRoot, semanticModel) = await GetRequiredSyntaxRootAndSemanticModelAsync(document, cancellationToken).ConfigureAwait(false);
+        var function = syntaxRoot
+            .DescendantNodes()
+            .OfType<LocalFunctionStatementSyntax>()
+            .Single(item => item.Identifier.ValueText == functionName);
+
+        return (IMethodSymbol)(semanticModel.GetDeclaredSymbol(function, cancellationToken)
+            ?? throw new InvalidOperationException($"The local function '{functionName}' could not be resolved."));
+    }
+
+    /// <summary>
+    /// Resolves the symbol for a single anonymous function from a Roslyn document.
+    /// </summary>
+    /// <param name="document">The Roslyn document to inspect.</param>
+    /// <param name="cancellationToken">The cancellation token for the Roslyn lookup.</param>
+    /// <returns>The resolved anonymous function symbol.</returns>
+    public static async Task<IMethodSymbol> GetRequiredAnonymousFunctionSymbolAsync(Document document, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+
+        var (syntaxRoot, semanticModel) = await GetRequiredSyntaxRootAndSemanticModelAsync(document, cancellationToken).ConfigureAwait(false);
+        var anonymousFunction = syntaxRoot
+            .DescendantNodes()
+            .OfType<AnonymousFunctionExpressionSyntax>()
+            .Single();
+        var operation = semanticModel.GetOperation(anonymousFunction, cancellationToken) as IAnonymousFunctionOperation;
+
+        return operation?.Symbol
+            ?? throw new InvalidOperationException("The anonymous function could not be resolved.");
+    }
+
+    private static async Task<SyntaxNode> GetRequiredSyntaxRootAsync(Document document, CancellationToken cancellationToken)
+    {
+        return await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false)
+            ?? throw new InvalidOperationException($"The syntax root for '{document.Name}' could not be resolved.");
+    }
+
+    private static async Task<SemanticModel> GetRequiredSemanticModelAsync(Document document, CancellationToken cancellationToken)
+    {
+        return await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false)
+            ?? throw new InvalidOperationException($"The semantic model for '{document.Name}' could not be resolved.");
+    }
+
+    private static async Task<(SyntaxNode SyntaxRoot, SemanticModel SemanticModel)> GetRequiredSyntaxRootAndSemanticModelAsync(
+        Document document,
+        CancellationToken cancellationToken)
+    {
+        var syntaxRoot = await GetRequiredSyntaxRootAsync(document, cancellationToken).ConfigureAwait(false);
+        var semanticModel = await GetRequiredSemanticModelAsync(document, cancellationToken).ConfigureAwait(false);
+
+        return (syntaxRoot, semanticModel);
     }
 }

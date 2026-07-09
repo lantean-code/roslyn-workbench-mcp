@@ -569,7 +569,10 @@ public sealed class FindCalleesToolTests
 
         var target = new FindCalleesTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var symbol = await GetLocalFunctionSymbolAsync(document.Document, "Local");
+        var symbol = await RoslynDocumentTestHelper.GetRequiredLocalFunctionSymbolAsync(
+            document.Document,
+            "Local",
+            TestContext.Current.CancellationToken);
 
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
@@ -617,7 +620,10 @@ public sealed class FindCalleesToolTests
 
         var target = new FindCalleesTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var symbol = await GetLocalFunctionSymbolAsync(document.Document, "Local");
+        var symbol = await RoslynDocumentTestHelper.GetRequiredLocalFunctionSymbolAsync(
+            document.Document,
+            "Local",
+            TestContext.Current.CancellationToken);
 
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
@@ -764,7 +770,9 @@ public sealed class FindCalleesToolTests
 
         var target = new FindCalleesTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var symbol = await GetAnonymousFunctionSymbolAsync(document.Document);
+        var symbol = await RoslynDocumentTestHelper.GetRequiredAnonymousFunctionSymbolAsync(
+            document.Document,
+            TestContext.Current.CancellationToken);
 
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
@@ -796,16 +804,6 @@ public sealed class FindCalleesToolTests
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
     }
-    private static async Task<IMethodSymbol> GetLocalFunctionSymbolAsync(Document document, string functionName)
-    {
-        var syntaxRoot = await document.GetSyntaxRootAsync(TestContext.Current.CancellationToken);
-        var semanticModel = await document.GetSemanticModelAsync(TestContext.Current.CancellationToken);
-        var function = syntaxRoot!.DescendantNodes().OfType<LocalFunctionStatementSyntax>().Single(item => item.Identifier.ValueText == functionName);
-
-        return (IMethodSymbol)(semanticModel!.GetDeclaredSymbol(function, TestContext.Current.CancellationToken)
-            ?? throw new InvalidOperationException($"The local function '{functionName}' could not be resolved."));
-    }
-
     private static async Task<IMethodSymbol> GetAccessorSymbolAsync(Document document, string propertyName)
     {
         var syntaxRoot = await document.GetSyntaxRootAsync(TestContext.Current.CancellationToken);
@@ -820,16 +818,4 @@ public sealed class FindCalleesToolTests
         return (IMethodSymbol)(semanticModel!.GetDeclaredSymbol(accessor, TestContext.Current.CancellationToken)
             ?? throw new InvalidOperationException($"The accessor for '{propertyName}' could not be resolved."));
     }
-
-    private static async Task<IMethodSymbol> GetAnonymousFunctionSymbolAsync(Document document)
-    {
-        var syntaxRoot = await document.GetSyntaxRootAsync(TestContext.Current.CancellationToken);
-        var semanticModel = await document.GetSemanticModelAsync(TestContext.Current.CancellationToken);
-        var anonymousFunction = syntaxRoot!.DescendantNodes().OfType<AnonymousFunctionExpressionSyntax>().Single();
-        var operation = semanticModel!.GetOperation(anonymousFunction, TestContext.Current.CancellationToken) as IAnonymousFunctionOperation;
-
-        return operation?.Symbol
-            ?? throw new InvalidOperationException("The anonymous function could not be resolved.");
-    }
-
 }

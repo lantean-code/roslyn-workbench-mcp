@@ -51,10 +51,10 @@ Current sweep note:
 | [x] | GetSymbolInfoTool | GetSymbolInfoToolTests | GetSymbolInfoToolIntegrationTests |
 | [x] | GetSymbolMembersTool | GetSymbolMembersToolTests | GetSymbolMembersToolIntegrationTests |
 | [x] | GetTestImpactTool | GetTestImpactToolTests | GetTestImpactToolIntegrationTests |
-| [ ] | GetTypeHierarchyTool | GetTypeHierarchyToolTests | GetTypeHierarchyToolIntegrationTests |
-| [ ] | GoToDefinitionTool | GoToDefinitionToolTests | GoToDefinitionToolIntegrationTests |
-| [ ] | ResolveSymbolTool | ResolveSymbolToolTests | ResolveSymbolToolIntegrationTests |
-| [ ] | SearchSymbolsTool | SearchSymbolsToolTests | SearchSymbolsToolIntegrationTests |
+| [x] | GetTypeHierarchyTool | GetTypeHierarchyToolTests | GetTypeHierarchyToolIntegrationTests |
+| [x] | GoToDefinitionTool | GoToDefinitionToolTests | GoToDefinitionToolIntegrationTests |
+| [x] | ResolveSymbolTool | ResolveSymbolToolTests | ResolveSymbolToolIntegrationTests |
+| [x] | SearchSymbolsTool | SearchSymbolsToolTests | SearchSymbolsToolIntegrationTests |
 
 ## Refactoring Tools
 

@@ -106,4 +106,34 @@ public static class RoslynDocumentTestHelper
         return (INamedTypeSymbol)(semanticModel.GetDeclaredSymbol(type, cancellationToken)
             ?? throw new InvalidOperationException($"The type '{typeName}' could not be resolved."));
     }
+
+    /// <summary>
+    /// Resolves the target symbol for a single invocation that matches the supplied predicate.
+    /// </summary>
+    /// <param name="document">The Roslyn document to inspect.</param>
+    /// <param name="predicate">The predicate used to select the target invocation.</param>
+    /// <param name="cancellationToken">The cancellation token for the Roslyn lookup.</param>
+    /// <returns>The resolved target symbol.</returns>
+    public static async Task<ISymbol> GetRequiredInvocationTargetSymbolAsync(
+        Document document,
+        Func<InvocationExpressionSyntax, bool> predicate,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(predicate);
+
+        var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false)
+            ?? throw new InvalidOperationException($"The syntax root for '{document.Name}' could not be resolved.");
+        var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false)
+            ?? throw new InvalidOperationException($"The semantic model for '{document.Name}' could not be resolved.");
+        var invocation = syntaxRoot
+            .DescendantNodes()
+            .OfType<InvocationExpressionSyntax>()
+            .Single(predicate);
+        var symbolInfo = semanticModel.GetSymbolInfo(invocation, cancellationToken);
+
+        return symbolInfo.Symbol
+            ?? symbolInfo.CandidateSymbols.SingleOrDefault()
+            ?? throw new InvalidOperationException($"The invocation '{invocation}' could not be resolved.");
+    }
 }

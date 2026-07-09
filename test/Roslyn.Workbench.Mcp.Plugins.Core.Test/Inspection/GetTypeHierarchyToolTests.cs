@@ -1,0 +1,326 @@
+namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
+
+public sealed class GetTypeHierarchyToolTests
+{
+    [Fact]
+    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
+    {
+        var registry = new Mock<IPluginRegistry>();
+
+        GetTypeHierarchyTool.Register(registry.Object);
+
+        registry.Verify(item => item.RegisterQueryTool<GetTypeHierarchyRequest, TypeHierarchyData>(
+            It.Is<ToolRegistrationMetadata>(metadata =>
+                metadata.Name == "get-type-hierarchy"
+                && metadata.Title == "Get Type Hierarchy"
+                && metadata.Description == "Returns base, interface, and optional derived type relationships for a resolved type."),
+            It.IsAny<IQueryToolHandler<GetTypeHierarchyRequest, TypeHierarchyData>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_ResolveSymbolHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
+    {
+        var target = new GetTypeHierarchyTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var expected = PluginExecutionResult<TypeHierarchyData>.Rejected(new ToolError
+        {
+            Code = "SymbolNotFound",
+            Message = "SymbolNotFound",
+        });
+
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveSymbolAsync<TypeHierarchyData>(
+                It.IsAny<SymbolSelector?>(),
+                It.IsAny<SnapshotPrecondition?>(),
+                queryContextMocks.QueryContext.Object,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ToolResolutionResult<ISymbol, TypeHierarchyData>
+            {
+                Rejection = expected,
+            });
+
+        var result = await target.ExecuteAsync(new GetTypeHierarchyRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Should().BeEquivalentTo(expected);
+    }
+
+    [Fact]
+    public async Task GIVEN_ResolvedSymbolIsNotNamedType_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequest()
+    {
+        using var document = RoslynTestFactory.CreateDocument("""
+            namespace Sample;
+
+            public sealed class Formatter
+            {
+                public void Format()
+                {
+                }
+            }
+            """);
+
+        var target = new GetTypeHierarchyTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var symbol = await RoslynDocumentTestHelper.GetRequiredMethodSymbolAsync(
+            document.Document,
+            "Format",
+            "Formatter",
+            TestContext.Current.CancellationToken);
+
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveSymbolAsync<TypeHierarchyData>(
+                It.IsAny<SymbolSelector?>(),
+                It.IsAny<SnapshotPrecondition?>(),
+                queryContextMocks.QueryContext.Object,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ToolResolutionResult<ISymbol, TypeHierarchyData>
+            {
+                Value = symbol,
+            });
+
+        var result = await target.ExecuteAsync(new GetTypeHierarchyRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Error!.Code.Should().Be("InvalidRequest");
+        result.Error.Message.Should().Be("Get type hierarchy requires a named type symbol.");
+    }
+
+    [Fact]
+    public async Task GIVEN_NamedTypeAndIncludeDerivedIsFalse_WHEN_CallingExecuteAsync_THEN_ShouldReturnBaseTypesAndInterfacesWithoutDerivedTypes()
+    {
+        using var solution = RoslynTestFactory.CreateSolution(
+        [
+            new InMemoryRoslynProjectDefinition
+            {
+                Name = "Project",
+                Documents =
+                [
+                    new InMemoryRoslynDocumentDefinition
+                    {
+                        Name = "Hierarchy.cs",
+                        Source = """
+                            namespace Sample;
+
+                            public interface IZetaFormatter
+                            {
+                            }
+
+                            public interface IAlphaFormatter
+                            {
+                            }
+
+                            public class FormatterBase
+                            {
+                            }
+
+                            public class MidFormatter : FormatterBase, IZetaFormatter, IAlphaFormatter
+                            {
+                            }
+
+                            public sealed class FinalFormatter : MidFormatter
+                            {
+                            }
+                            """,
+                    },
+                ],
+            },
+        ]);
+
+        var target = new GetTypeHierarchyTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var symbol = await RoslynDocumentTestHelper.GetRequiredNamedTypeSymbolAsync(
+            solution.GetDocument("Hierarchy.cs"),
+            "FinalFormatter",
+            TestContext.Current.CancellationToken);
+
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveSymbolAsync<TypeHierarchyData>(
+                It.IsAny<SymbolSelector?>(),
+                It.IsAny<SnapshotPrecondition?>(),
+                queryContextMocks.QueryContext.Object,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ToolResolutionResult<ISymbol, TypeHierarchyData>
+            {
+                Value = symbol,
+            });
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
+        var result = await target.ExecuteAsync(new GetTypeHierarchyRequest
+        {
+            IncludeDerived = false,
+            BaseTypesLimit = new CollectionLimit
+            {
+                MaxResults = 2,
+            },
+            InterfacesLimit = new CollectionLimit
+            {
+                MaxResults = 1,
+            },
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Data!.Type!.DisplayName.Should().Be("FinalFormatter");
+        result.Data.BaseTypes.Items.Select(item => item.DisplayName).Should().Equal("MidFormatter", "FormatterBase");
+        result.Data.BaseTypes.HasMore.Should().BeTrue();
+        result.Data.Interfaces.Items.Select(item => item.DisplayName).Should().Equal("IAlphaFormatter");
+        result.Data.Interfaces.HasMore.Should().BeTrue();
+        result.Data.DerivedTypes.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GIVEN_ClassTypeAndIncludeDerivedIsTrue_WHEN_CallingExecuteAsync_THEN_ShouldReturnOrderedDerivedClassesWithDepths()
+    {
+        using var solution = RoslynTestFactory.CreateSolution(
+        [
+            new InMemoryRoslynProjectDefinition
+            {
+                Name = "Project",
+                Documents =
+                [
+                    new InMemoryRoslynDocumentDefinition
+                    {
+                        Name = "Hierarchy.cs",
+                        Source = """
+                            namespace Sample;
+
+                            public class FormatterBase
+                            {
+                            }
+
+                            public class ZetaFormatter : FormatterBase
+                            {
+                            }
+
+                            public class AlphaFormatter : FormatterBase
+                            {
+                            }
+
+                            public sealed class LeafFormatter : AlphaFormatter
+                            {
+                            }
+                            """,
+                    },
+                ],
+            },
+        ]);
+
+        var target = new GetTypeHierarchyTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var symbol = await RoslynDocumentTestHelper.GetRequiredNamedTypeSymbolAsync(
+            solution.GetDocument("Hierarchy.cs"),
+            "FormatterBase",
+            TestContext.Current.CancellationToken);
+
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(solution.Solution);
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.DefaultMaxResults)
+            .Returns(10);
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveSymbolAsync<TypeHierarchyData>(
+                It.IsAny<SymbolSelector?>(),
+                It.IsAny<SnapshotPrecondition?>(),
+                queryContextMocks.QueryContext.Object,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ToolResolutionResult<ISymbol, TypeHierarchyData>
+            {
+                Value = symbol,
+            });
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
+        var result = await target.ExecuteAsync(new GetTypeHierarchyRequest
+        {
+            IncludeDerived = true,
+            DerivedTypesLimit = new CollectionLimit
+            {
+                MaxResults = 2,
+            },
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Data!.DerivedTypes!.Items.Should().HaveCount(2);
+        result.Data.DerivedTypes.Items[0].Type!.DisplayName.Should().Be("AlphaFormatter");
+        result.Data.DerivedTypes.Items[0].Depth.Should().Be(1);
+        result.Data.DerivedTypes.Items[1].Type!.DisplayName.Should().Be("LeafFormatter");
+        result.Data.DerivedTypes.Items[1].Depth.Should().Be(2);
+        result.Data.DerivedTypes.HasMore.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GIVEN_InterfaceTypeAndIncludeDerivedIsTrue_WHEN_CallingExecuteAsync_THEN_ShouldReturnOrderedImplementationsWithBaseDepths()
+    {
+        using var solution = RoslynTestFactory.CreateSolution(
+        [
+            new InMemoryRoslynProjectDefinition
+            {
+                Name = "Project",
+                Documents =
+                [
+                    new InMemoryRoslynDocumentDefinition
+                    {
+                        Name = "Hierarchy.cs",
+                        Source = """
+                            namespace Sample;
+
+                            public interface IFormatter
+                            {
+                            }
+
+                            public class FormatterBase : IFormatter
+                            {
+                            }
+
+                            public sealed class AdvancedFormatter : FormatterBase
+                            {
+                            }
+                            """,
+                    },
+                ],
+            },
+        ]);
+
+        var target = new GetTypeHierarchyTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var symbol = await RoslynDocumentTestHelper.GetRequiredNamedTypeSymbolAsync(
+            solution.GetDocument("Hierarchy.cs"),
+            "IFormatter",
+            TestContext.Current.CancellationToken);
+
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(solution.Solution);
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.DefaultMaxResults)
+            .Returns(10);
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveSymbolAsync<TypeHierarchyData>(
+                It.IsAny<SymbolSelector?>(),
+                It.IsAny<SnapshotPrecondition?>(),
+                queryContextMocks.QueryContext.Object,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ToolResolutionResult<ISymbol, TypeHierarchyData>
+            {
+                Value = symbol,
+            });
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
+        var result = await target.ExecuteAsync(new GetTypeHierarchyRequest
+        {
+            IncludeDerived = true,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Data!.DerivedTypes!.Items.Should().HaveCount(2);
+        result.Data.DerivedTypes.Items[0].Type!.DisplayName.Should().Be("AdvancedFormatter");
+        result.Data.DerivedTypes.Items[0].Depth.Should().Be(2);
+        result.Data.DerivedTypes.Items[1].Type!.DisplayName.Should().Be("FormatterBase");
+        result.Data.DerivedTypes.Items[1].Depth.Should().Be(1);
+        result.Data.DerivedTypes.HasMore.Should().BeFalse();
+    }
+}

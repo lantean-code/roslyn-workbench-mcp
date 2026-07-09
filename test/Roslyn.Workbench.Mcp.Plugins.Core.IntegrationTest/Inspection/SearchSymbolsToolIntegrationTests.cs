@@ -1,7 +1,7 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 
 [Trait("Category", "Integration")]
-public sealed class SearchSymbolsToolTests
+public sealed class SearchSymbolsToolIntegrationTests
 {
     [Fact]
     public async Task GIVEN_MultipleMatches_WHEN_ExecutingTool_THEN_ShouldReportHasMore()

@@ -4,7 +4,7 @@ Checkbox key: `[ ]` not started, `[-]` partial, `[x]` complete.
 
 ## Inspection Tools
 
-Coverage note: `FindCalleesTool` is marked complete for this sweep with an approved exception for defensive Roslyn null-guard branches that are not reachable through the real public tool flow. Those guards remain to reduce production risk.
+Coverage note: `FindCalleesTool` and `FindDuplicateCodeTool` are marked complete for this sweep with approved exceptions for defensive Roslyn branches that are not reachable through the real public tool flow. Those guards remain to reduce production risk.
 
 | Done | Tool Class | Unit Test | Integration Test |
 | --- | --- | --- | --- |
@@ -16,11 +16,11 @@ Coverage note: `FindCalleesTool` is marked complete for this sweep with an appro
 | [x] | FindCalleesTool | FindCalleesToolTests | FindCalleesToolIntegrationTests |
 | [x] | FindCallersTool | FindCallersToolTests | FindCallersToolIntegrationTests |
 | [x] | FindDependencyCyclesTool | FindDependencyCyclesToolTests | FindDependencyCyclesToolIntegrationTests |
-| [ ] | FindDerivedTypesTool | FindDerivedTypesToolTests | FindDerivedTypesToolIntegrationTests |
-| [ ] | FindDuplicateCodeTool | FindDuplicateCodeToolTests | FindDuplicateCodeToolIntegrationTests |
-| [ ] | FindImplementationsTool | FindImplementationsToolTests | FindImplementationsToolIntegrationTests |
-| [ ] | FindOverloadsTool | FindOverloadsToolTests | FindOverloadsToolIntegrationTests |
-| [ ] | FindOverridesTool | FindOverridesToolTests | FindOverridesToolIntegrationTests |
+| [x] | FindDerivedTypesTool | FindDerivedTypesToolTests | FindDerivedTypesToolIntegrationTests |
+| [x] | FindDuplicateCodeTool | FindDuplicateCodeToolTests | FindDuplicateCodeToolIntegrationTests |
+| [x] | FindImplementationsTool | FindImplementationsToolTests | FindImplementationsToolIntegrationTests |
+| [x] | FindOverloadsTool | FindOverloadsToolTests | FindOverloadsToolIntegrationTests |
+| [x] | FindOverridesTool | FindOverridesToolTests | FindOverridesToolIntegrationTests |
 | [ ] | FindReferencesTool | FindReferencesToolTests | FindReferencesToolIntegrationTests |
 | [ ] | FindUnusedSymbolsTool | FindUnusedSymbolsToolTests | FindUnusedSymbolsToolIntegrationTests |
 | [ ] | GetApiSurfaceTool | GetApiSurfaceToolTests | GetApiSurfaceToolIntegrationTests |

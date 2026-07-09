@@ -5,7 +5,7 @@ using Roslyn.Workbench.Mcp.TestSupport;
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 
 [Trait("Category", "Integration")]
-public sealed class GetTestImpactToolTests
+public sealed class GetTestImpactToolIntegrationTests
 {
     [Fact]
     public async Task GIVEN_InspectionWorkspace_WHEN_RequestingTestImpactByDefault_THEN_ShouldOmitReasonBranch()

@@ -47,10 +47,10 @@ Current sweep note:
 | [x] | GetSolutionStructureTool | GetSolutionStructureToolTests | GetSolutionStructureToolIntegrationTests |
 | [x] | GetSymbolAttributesTool | GetSymbolAttributesToolTests | GetSymbolAttributesToolIntegrationTests |
 | [x] | GetSymbolDependenciesTool | GetSymbolDependenciesToolTests | GetSymbolDependenciesToolIntegrationTests |
-| [ ] | GetSymbolDependentsTool | GetSymbolDependentsToolTests | GetSymbolDependentsToolIntegrationTests |
-| [ ] | GetSymbolInfoTool | GetSymbolInfoToolTests | GetSymbolInfoToolIntegrationTests |
-| [ ] | GetSymbolMembersTool | GetSymbolMembersToolTests | GetSymbolMembersToolIntegrationTests |
-| [ ] | GetTestImpactTool | GetTestImpactToolTests | GetTestImpactToolIntegrationTests |
+| [x] | GetSymbolDependentsTool | GetSymbolDependentsToolTests | GetSymbolDependentsToolIntegrationTests |
+| [x] | GetSymbolInfoTool | GetSymbolInfoToolTests | GetSymbolInfoToolIntegrationTests |
+| [x] | GetSymbolMembersTool | GetSymbolMembersToolTests | GetSymbolMembersToolIntegrationTests |
+| [x] | GetTestImpactTool | GetTestImpactToolTests | GetTestImpactToolIntegrationTests |
 | [ ] | GetTypeHierarchyTool | GetTypeHierarchyToolTests | GetTypeHierarchyToolIntegrationTests |
 | [ ] | GoToDefinitionTool | GoToDefinitionToolTests | GoToDefinitionToolIntegrationTests |
 | [ ] | ResolveSymbolTool | ResolveSymbolToolTests | ResolveSymbolToolIntegrationTests |

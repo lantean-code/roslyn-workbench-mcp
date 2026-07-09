@@ -5,7 +5,6 @@ namespace Roslyn.Workbench.Mcp.TestSupport;
 internal sealed class ToolExecutionServicesBuilder
 {
     private IToolRequestResolver? _requestResolver;
-    private IReplayCodeActionExecutor? _replayCodeActionExecutor;
     private ICompilerDiagnosticService? _compilerDiagnosticService;
     private IInspectionContextService? _inspectionContextService;
     private IProjectStructureService? _projectStructureService;
@@ -14,12 +13,6 @@ internal sealed class ToolExecutionServicesBuilder
     public ToolExecutionServicesBuilder WithRequestResolver(IToolRequestResolver requestResolver)
     {
         _requestResolver = requestResolver ?? throw new ArgumentNullException(nameof(requestResolver));
-        return this;
-    }
-
-    public ToolExecutionServicesBuilder WithReplayCodeActionExecutor(IReplayCodeActionExecutor replayCodeActionExecutor)
-    {
-        _replayCodeActionExecutor = replayCodeActionExecutor ?? throw new ArgumentNullException(nameof(replayCodeActionExecutor));
         return this;
     }
 
@@ -50,7 +43,6 @@ internal sealed class ToolExecutionServicesBuilder
     public IToolExecutionServices Build()
     {
         var requestResolver = _requestResolver ?? new DefaultToolRequestResolver();
-        var replayCodeActionExecutor = _replayCodeActionExecutor ?? new ReplayCodeActionExecutor();
         var compilerDiagnosticService = _compilerDiagnosticService ?? new DefaultCompilerDiagnosticService();
         var inspectionContextService = _inspectionContextService ?? new DefaultInspectionContextService();
         var projectStructureService = _projectStructureService ?? new DefaultProjectStructureService();
@@ -58,7 +50,6 @@ internal sealed class ToolExecutionServicesBuilder
 
         return new ToolExecutionServices(
             requestResolver,
-            replayCodeActionExecutor,
             compilerDiagnosticService,
             inspectionContextService,
             projectStructureService,

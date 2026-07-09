@@ -1,6 +1,5 @@
 using Roslyn.Workbench.Mcp.Contracts.CodeActions;
 using Roslyn.Workbench.Mcp.Contracts.Server;
-using Roslyn.Workbench.Mcp.Plugins.CodeActions;
 
 namespace Roslyn.Workbench.Mcp.TestSupport;
 
@@ -68,7 +67,7 @@ public sealed class QueryContextBuilder
         var resolver = _resolver ?? CreateDefaultResolver();
         var listCodeActionsAsync = _listCodeActionsAsync ?? CreateDefaultListCodeActionsAsync();
         var describeCodeActionAsync = _describeCodeActionAsync ?? CreateDefaultDescribeCodeActionAsync();
-        var context = new Mock<IQueryContext>();
+        var context = new Mock<ICodeActionQueryContext>();
         context.SetupGet(item => item.CurrentSolution).Returns(_currentSolution);
         context.SetupGet(item => item.WorkspaceIdentity).Returns(_workspaceIdentity);
         context.SetupGet(item => item.TransactionRevision).Returns(_transactionRevision);

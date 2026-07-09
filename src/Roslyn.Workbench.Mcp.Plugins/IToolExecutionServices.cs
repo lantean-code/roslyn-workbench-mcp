@@ -11,11 +11,6 @@ public interface IToolExecutionServices
     IToolRequestResolver RequestResolver { get; }
 
     /// <summary>
-    /// Gets the replay code-action staging service for tool execution.
-    /// </summary>
-    IReplayCodeActionExecutor ReplayCodeActionExecutor { get; }
-
-    /// <summary>
     /// Gets the compiler-diagnostic service for tool execution.
     /// </summary>
     ICompilerDiagnosticService CompilerDiagnosticService { get; }

@@ -12,7 +12,7 @@ internal sealed class ServerStatusService : IServerStatusService
     private readonly StartupOptions _startupOptions;
     private readonly PluginCatalogSnapshot _pluginCatalogSnapshot;
     private readonly IMsBuildRegistrationService _msBuildRegistrationService;
-    private readonly CodeActionRuntime _codeActionRuntime;
+    private readonly ICodeActionRuntime _codeActionRuntime;
     private readonly int _toolCount;
     private ServerConfiguration? _configuration;
 
@@ -20,7 +20,7 @@ internal sealed class ServerStatusService : IServerStatusService
         IOptions<StartupOptions> startupOptions,
         PluginCatalogSnapshot pluginCatalogSnapshot,
         IMsBuildRegistrationService msBuildRegistrationService,
-        CodeActionRuntime codeActionRuntime)
+        ICodeActionRuntime codeActionRuntime)
     {
         _startupOptions = startupOptions.Value;
         _pluginCatalogSnapshot = pluginCatalogSnapshot;

@@ -7,7 +7,6 @@ internal sealed class UnavailableToolExecutionServices : IToolExecutionServices
     public UnavailableToolExecutionServices()
     {
         RequestResolver = new UnavailableToolRequestResolver();
-        ReplayCodeActionExecutor = new UnavailableReplayCodeActionExecutor();
         CompilerDiagnosticService = new UnavailableCompilerDiagnosticService();
         InspectionContextService = new UnavailableInspectionContextService();
         ProjectStructureService = new UnavailableProjectStructureService();
@@ -15,8 +14,6 @@ internal sealed class UnavailableToolExecutionServices : IToolExecutionServices
     }
 
     public IToolRequestResolver RequestResolver { get; }
-
-    public IReplayCodeActionExecutor ReplayCodeActionExecutor { get; }
 
     public ICompilerDiagnosticService CompilerDiagnosticService { get; }
 

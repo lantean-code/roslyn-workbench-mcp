@@ -5,9 +5,9 @@ using Roslyn.Workbench.Mcp.Plugins;
 
 namespace Roslyn.Workbench.Mcp.Workspace.ExecutionContexts;
 
-internal sealed class WorkspaceQueryContext : IQueryContext
+internal sealed class WorkspaceQueryContext : ICodeActionQueryContext
 {
-    private readonly Roslyn.Workbench.Mcp.Workspace.CodeActions.Execution.ICodeActionQueryWorkflow _codeActionWorkflow;
+    private readonly Roslyn.Workbench.Mcp.CodeActions.Execution.ICodeActionQueryWorkflow _codeActionWorkflow;
 
     public WorkspaceQueryContext(
         Solution currentSolution,
@@ -15,7 +15,7 @@ internal sealed class WorkspaceQueryContext : IQueryContext
         int? transactionRevision,
         int defaultMaxResults,
         IWorkspaceResolver resolver,
-        Roslyn.Workbench.Mcp.Workspace.CodeActions.Execution.ICodeActionQueryWorkflow codeActionWorkflow,
+        Roslyn.Workbench.Mcp.CodeActions.Execution.ICodeActionQueryWorkflow codeActionWorkflow,
         IToolExecutionServices toolExecutionServices)
     {
         CurrentSolution = currentSolution;

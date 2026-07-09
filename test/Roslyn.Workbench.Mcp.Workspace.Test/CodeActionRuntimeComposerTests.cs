@@ -34,10 +34,6 @@ public sealed class CodeActionRuntimeComposerTests
 
     private static CodeActionRuntime Compose(CodeActionRuntimeOptions options)
     {
-        return new CodeActionRuntimeComposer(
-            new CodeActionDiagnosticService(),
-            new CodeActionDescriptorRegistry(),
-            new CodeActionTokenService())
-            .Compose(options);
+        return new CodeActionRuntimeComposer().Compose(options);
     }
 }

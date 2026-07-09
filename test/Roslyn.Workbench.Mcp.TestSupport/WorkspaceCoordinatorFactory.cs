@@ -76,12 +76,39 @@ public static class WorkspaceCoordinatorFactory
         var executionServices = toolExecutionServices ?? new UnavailableToolExecutionServices();
         var sessionStore = new WorkspaceSessionStore();
         var workspaceSelector = new WorkspaceSelectorService();
-        var workspaceLoader = new WorkspaceLoader(new WorkspaceHostServicesAccessor(codeActionRuntime.WorkspaceHostServices));
+        var workspaceLoader = new WorkspaceLoader(new WorkspaceHostServicesAccessor(codeActionRuntime));
         var workspaceChangeDetector = new WorkspaceChangeDetector();
         var workspaceStateTransitions = new WorkspaceStateTransitions();
         var resultFactory = new WorkspaceOperationResultFactory();
         var snapshotGuard = new SnapshotGuard();
         var mutationStagingService = new MutationStagingService(new WorkspaceOperationResultFactory(), sessionStore);
+        var codeActionDiagnosticService = new CodeActionDiagnosticService();
+        var codeActionDescriptorRegistry = new CodeActionDescriptorRegistry();
+        var codeActionTokenService = new CodeActionTokenService();
+        var codeActionDiscoveryService = new CodeActionDiscoveryService(codeActionRuntime);
+        var codeActionResolutionService = new CodeActionResolutionService(
+            codeActionDiscoveryService,
+            codeActionDiagnosticService,
+            codeActionDescriptorRegistry,
+            codeActionTokenService);
+        var codeActionOperationService = new CodeActionOperationService(
+            codeActionDiagnosticService,
+            codeActionDescriptorRegistry);
+        var codeActionQueryWorkflow = new CodeActionQueryWorkflow(
+            codeActionRuntime,
+            codeActionDiscoveryService,
+            codeActionDiagnosticService,
+            codeActionResolutionService,
+            codeActionDescriptorRegistry,
+            codeActionTokenService);
+        var codeActionMutationWorkflow = new CodeActionMutationWorkflow(
+            codeActionRuntime,
+            codeActionDiscoveryService,
+            codeActionResolutionService,
+            codeActionOperationService,
+            codeActionDiagnosticService,
+            codeActionDescriptorRegistry,
+            codeActionTokenService);
         var transactionCommitService = new TransactionCommitService(
             optionsWrapper,
             sessionStore,
@@ -91,8 +118,8 @@ public static class WorkspaceCoordinatorFactory
             resultFactory);
         var coordinator = new WorkspaceExecutionContextFactory(
             optionsWrapper,
-            codeActionRuntime.QueryWorkflow,
-            codeActionRuntime.MutationWorkflow,
+            codeActionQueryWorkflow,
+            codeActionMutationWorkflow,
             executionServices,
             sessionStore,
             workspaceSelector,
@@ -129,8 +156,6 @@ public static class WorkspaceCoordinatorFactory
                 IsAvailable = false,
                 Message = "Code-action composition is unavailable.",
             },
-            QueryWorkflow = new UnavailableCodeActionQueryWorkflow(),
-            MutationWorkflow = new UnavailableCodeActionMutationWorkflow(),
         };
     }
 

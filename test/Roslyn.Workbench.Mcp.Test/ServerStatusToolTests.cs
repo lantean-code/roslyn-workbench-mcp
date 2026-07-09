@@ -221,7 +221,7 @@ public sealed class ServerStatusToolTests
             Options.Create(startupOptions),
             pluginSnapshot,
             msBuildRegistrationService,
-            codeActionRuntime);
+            (ICodeActionRuntime)codeActionRuntime);
 
         return new ServerStatusTool(Options.Create(startupOptions), service);
     }

@@ -1,6 +1,5 @@
 using Roslyn.Workbench.Mcp.Contracts.CodeActions;
 using Roslyn.Workbench.Mcp.Contracts.Server;
-using Roslyn.Workbench.Mcp.Plugins.CodeActions;
 
 namespace Roslyn.Workbench.Mcp.TestSupport;
 
@@ -117,7 +116,7 @@ public sealed class MutationContextBuilder
             }));
         }
 
-        var context = new Mock<IMutationContext>();
+        var context = new Mock<ICodeActionMutationContext>();
         context.SetupGet(item => item.CurrentSolution).Returns(_currentSolution);
         context.SetupGet(item => item.WorkspaceIdentity).Returns(_workspaceIdentity);
         context.SetupGet(item => item.TransactionRevision).Returns(_transactionRevision);

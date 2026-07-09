@@ -1,0 +1,34 @@
+using Roslyn.Workbench.Mcp.Contracts.Refactorings;
+
+namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
+
+internal sealed class UseRecursivePatternsTool : CodeActionMutationToolHandler<LocationRefactoringRequest>
+{
+    private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.UseRecursivePatterns.UseRecursivePatternsCodeRefactoringProvider";
+
+    private static readonly ToolRegistrationMetadata _metadata = new()
+    {
+        Name = "use-recursive-patterns",
+        Title = "Use Recursive Patterns",
+        Description = "Converts a supported pattern expression to recursive patterns through Roslyn refactoring composition.",
+        Behavior = new ToolBehaviorHints
+        {
+            Destructive = true,
+        },
+    };
+
+    public static void Register(IPluginRegistry registry)
+    {
+        registry.RegisterMutationTool(_metadata, new UseRecursivePatternsTool());
+    }
+
+    protected override ValueTask<PluginExecutionResult<MutationProposal>> ExecuteCoreAsync(LocationRefactoringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
+    {
+        return context.StageReplaySelectionAsync(
+            request.Selection,
+            request.ExpectedSnapshot,
+            cancellationToken,
+            ProviderId,
+            title: "Use recursive patterns");
+    }
+}

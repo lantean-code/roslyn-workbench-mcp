@@ -9,8 +9,8 @@ namespace Roslyn.Workbench.Mcp.Workspace.ExecutionContexts;
 internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionContextFactory
 {
     private readonly WorkspaceCoordinatorOptions _options;
-    private readonly Roslyn.Workbench.Mcp.Workspace.CodeActions.Execution.ICodeActionQueryWorkflow _codeActionQueryWorkflow;
-    private readonly Roslyn.Workbench.Mcp.Workspace.CodeActions.Execution.ICodeActionMutationWorkflow _codeActionMutationWorkflow;
+    private readonly Roslyn.Workbench.Mcp.CodeActions.Execution.ICodeActionQueryWorkflow _codeActionQueryWorkflow;
+    private readonly Roslyn.Workbench.Mcp.CodeActions.Execution.ICodeActionMutationWorkflow _codeActionMutationWorkflow;
     private readonly IToolExecutionServices _toolExecutionServices;
     private readonly IWorkspaceSessionStore _sessionStore;
     private readonly IWorkspaceSelector _workspaceSelector;
@@ -20,8 +20,8 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
 
     public WorkspaceExecutionContextFactory(
         IOptions<WorkspaceCoordinatorOptions> options,
-        Roslyn.Workbench.Mcp.Workspace.CodeActions.Execution.ICodeActionQueryWorkflow codeActionQueryWorkflow,
-        Roslyn.Workbench.Mcp.Workspace.CodeActions.Execution.ICodeActionMutationWorkflow codeActionMutationWorkflow,
+        Roslyn.Workbench.Mcp.CodeActions.Execution.ICodeActionQueryWorkflow codeActionQueryWorkflow,
+        Roslyn.Workbench.Mcp.CodeActions.Execution.ICodeActionMutationWorkflow codeActionMutationWorkflow,
         IToolExecutionServices toolExecutionServices,
         IWorkspaceSessionStore sessionStore,
         IWorkspaceSelector workspaceSelector,

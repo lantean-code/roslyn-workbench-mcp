@@ -9,7 +9,6 @@ public static class BundledCoreToolExecutionServicesFactory
     {
         return new ToolExecutionServices(
             new DefaultToolRequestResolver(),
-            new ReplayCodeActionExecutor(),
             new DefaultCompilerDiagnosticService(),
             new DefaultInspectionContextService(),
             new DefaultProjectStructureService(),

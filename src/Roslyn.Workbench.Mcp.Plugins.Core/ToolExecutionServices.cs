@@ -4,14 +4,12 @@ internal sealed class ToolExecutionServices : IToolExecutionServices
 {
     public ToolExecutionServices(
         IToolRequestResolver requestResolver,
-        IReplayCodeActionExecutor replayCodeActionExecutor,
         ICompilerDiagnosticService compilerDiagnosticService,
         IInspectionContextService inspectionContextService,
         IProjectStructureService projectStructureService,
         IDependencyAnalysisService dependencyAnalysisService)
     {
         RequestResolver = requestResolver;
-        ReplayCodeActionExecutor = replayCodeActionExecutor;
         CompilerDiagnosticService = compilerDiagnosticService;
         InspectionContextService = inspectionContextService;
         ProjectStructureService = projectStructureService;
@@ -19,8 +17,6 @@ internal sealed class ToolExecutionServices : IToolExecutionServices
     }
 
     public IToolRequestResolver RequestResolver { get; }
-
-    public IReplayCodeActionExecutor ReplayCodeActionExecutor { get; }
 
     public ICompilerDiagnosticService CompilerDiagnosticService { get; }
 

@@ -5,9 +5,9 @@ using Roslyn.Workbench.Mcp.Plugins;
 
 namespace Roslyn.Workbench.Mcp.Workspace.ExecutionContexts;
 
-internal sealed class WorkspaceMutationContext : IMutationContext
+internal sealed class WorkspaceMutationContext : ICodeActionMutationContext
 {
-    private readonly Roslyn.Workbench.Mcp.Workspace.CodeActions.Execution.ICodeActionMutationWorkflow _codeActionWorkflow;
+    private readonly Roslyn.Workbench.Mcp.CodeActions.Execution.ICodeActionMutationWorkflow _codeActionWorkflow;
     private readonly Func<RegisteredTool, MutationProposal, IReadOnlyList<DiagnosticInfo>, IReadOnlyList<WarningInfo>, CancellationToken, ValueTask<PluginExecutionResult<MutationData>>> _stageAsync;
 
     public WorkspaceMutationContext(
@@ -16,7 +16,7 @@ internal sealed class WorkspaceMutationContext : IMutationContext
         int? transactionRevision,
         int defaultMaxResults,
         IWorkspaceResolver resolver,
-        Roslyn.Workbench.Mcp.Workspace.CodeActions.Execution.ICodeActionMutationWorkflow codeActionWorkflow,
+        Roslyn.Workbench.Mcp.CodeActions.Execution.ICodeActionMutationWorkflow codeActionWorkflow,
         Func<RegisteredTool, MutationProposal, IReadOnlyList<DiagnosticInfo>, IReadOnlyList<WarningInfo>, CancellationToken, ValueTask<PluginExecutionResult<MutationData>>> stageAsync,
         IToolExecutionServices toolExecutionServices)
     {
@@ -82,6 +82,35 @@ internal sealed class WorkspaceMutationContext : IMutationContext
         CancellationToken cancellationToken)
     {
         return _codeActionWorkflow.StageLocationCodeFixAsync(request, this, cancellationToken);
+    }
+
+    public ValueTask<PluginExecutionResult<MutationProposal>> StageReplaySelectionAsync(
+        LocationSelector? selection,
+        SnapshotPrecondition? expectedSnapshot,
+        CancellationToken cancellationToken,
+        string providerId,
+        string? title = null,
+        string? titleStartsWith = null,
+        string? titleDoesNotContain = null,
+        string? equivalenceKey = null,
+        IReadOnlyList<int>? actionPath = null)
+    {
+        if (selection is null)
+        {
+            return ValueTask.FromResult(Roslyn.Workbench.Mcp.CodeActions.ToolExecutionHelpers.Rejected<MutationProposal>("InvalidRequest", "A location selector is required."));
+        }
+
+        return StageReplayCodeActionAsync(new ReplayCodeActionRequest
+        {
+            Location = selection,
+            ExpectedSnapshot = expectedSnapshot,
+            ProviderId = providerId,
+            Title = title,
+            TitleStartsWith = titleStartsWith,
+            TitleDoesNotContain = titleDoesNotContain,
+            EquivalenceKey = equivalenceKey,
+            ActionPath = actionPath,
+        }, cancellationToken);
     }
 
     public ValueTask<PluginExecutionResult<MutationData>> StageAsync(

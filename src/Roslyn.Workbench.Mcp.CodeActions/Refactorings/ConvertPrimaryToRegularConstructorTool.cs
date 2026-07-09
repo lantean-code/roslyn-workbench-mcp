@@ -1,0 +1,34 @@
+using Roslyn.Workbench.Mcp.Contracts.Refactorings;
+
+namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
+
+internal sealed class ConvertPrimaryToRegularConstructorTool : CodeActionMutationToolHandler<LocationRefactoringRequest>
+{
+    private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertPrimaryToRegularConstructor.ConvertPrimaryToRegularConstructorCodeRefactoringProvider";
+
+    private static readonly ToolRegistrationMetadata _metadata = new()
+    {
+        Name = "convert-primary-to-regular-constructor",
+        Title = "Convert Primary To Regular Constructor",
+        Description = "Converts a supported primary constructor to a regular constructor through Roslyn refactoring composition.",
+        Behavior = new ToolBehaviorHints
+        {
+            Destructive = true,
+        },
+    };
+
+    public static void Register(IPluginRegistry registry)
+    {
+        registry.RegisterMutationTool(_metadata, new ConvertPrimaryToRegularConstructorTool());
+    }
+
+    protected override ValueTask<PluginExecutionResult<MutationProposal>> ExecuteCoreAsync(LocationRefactoringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
+    {
+        return context.StageReplaySelectionAsync(
+            request.Selection,
+            request.ExpectedSnapshot,
+            cancellationToken,
+            ProviderId,
+            title: "Convert to regular constructor");
+    }
+}

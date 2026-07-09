@@ -32,10 +32,7 @@ public static class BuiltInCodeActionAuditHarness
         ArgumentNullException.ThrowIfNull(auditCase);
 
         using var fixture = await auditCase.FixtureFactory();
-        var runtime = new CodeActionRuntimeComposer(
-            new CodeActionDiagnosticService(),
-            new CodeActionDescriptorRegistry(),
-            new CodeActionTokenService())
+        var runtime = new CodeActionRuntimeComposer()
             .Compose(new CodeActionRuntimeOptions
             {
                 IncludeBuiltInAssemblies = true,
@@ -45,10 +42,7 @@ public static class BuiltInCodeActionAuditHarness
         {
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
-        var plugin = new BundledCorePlugin();
-        var registry = new PluginRegistry(plugin.Metadata);
-
-        plugin.Register(registry);
+        var registry = BundledPluginRegistryFactory.CreateRegistry();
 
         await using var queryLease = coordinator.CreateQueryContext(new ListCodeActionsRequest(), CancellationToken.None);
         var queryContext = queryLease.Context!;
@@ -101,7 +95,7 @@ public static class BuiltInCodeActionAuditHarness
             .Where(action => MatchesTitle(auditCase, action.Title))
             .Where(action => auditCase.ActionPath.Count == 0 || action.ActionPath.SequenceEqual(auditCase.ActionPath))
             .ToArray();
-        var visibilityResult = await queryContext.ListCodeActionsAsync(new ListCodeActionsRequest
+        var visibilityResult = await ((ICodeActionQueryContext)queryContext).ListCodeActionsAsync(new ListCodeActionsRequest
         {
             Location = location,
             IncludeCodeFixes = auditCase.Kind == BuiltInCodeActionAuditKind.CodeFix,

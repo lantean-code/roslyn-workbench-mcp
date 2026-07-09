@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using Roslyn.Workbench.Mcp.CodeActions;
 using Roslyn.Workbench.Mcp.Plugins;
 using Roslyn.Workbench.Mcp.Plugins.Core;
 using Roslyn.Workbench.Mcp.Tools;
@@ -13,7 +14,7 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
         ArgumentNullException.ThrowIfNull(args);
 
         var startupOptions = StartupOptionsParser.Parse(args);
-        var pluginCatalogSnapshot = new PluginCatalogLoader().Load(startupOptions, [typeof(BundledCorePlugin).Assembly]);
+        var pluginCatalogSnapshot = new PluginCatalogLoader().Load(startupOptions, [typeof(BundledCorePlugin).Assembly, typeof(BundledCodeActionsPlugin).Assembly]);
 
         ConfigureLogging(builder.Logging);
         AddOptions(builder.Services, startupOptions);
@@ -64,7 +65,6 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
         services.AddSingleton(pluginCatalogSnapshot);
         services.AddSingleton<IMsBuildRegistrationService, MsBuildRegistrationService>();
         services.AddSingleton<IToolRequestResolver, DefaultToolRequestResolver>();
-        services.AddSingleton<IReplayCodeActionExecutor, ReplayCodeActionExecutor>();
         services.AddSingleton<ICompilerDiagnosticService, DefaultCompilerDiagnosticService>();
         services.AddSingleton<IInspectionContextService, DefaultInspectionContextService>();
         services.AddSingleton<IProjectStructureService, DefaultProjectStructureService>();
@@ -74,12 +74,16 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
         services.AddSingleton<ICodeActionDescriptorRegistry, CodeActionDescriptorRegistry>();
         services.AddSingleton<ICodeActionTokenService, CodeActionTokenService>();
         services.AddSingleton<ICodeActionRuntimeComposer, CodeActionRuntimeComposer>();
-        services.AddSingleton(static serviceProvider => serviceProvider
+        services.AddSingleton<CodeActionRuntime>(static serviceProvider => serviceProvider
             .GetRequiredService<ICodeActionRuntimeComposer>()
             .Compose(serviceProvider.GetRequiredService<IOptions<CodeActionRuntimeOptions>>().Value));
-        services.AddSingleton<Roslyn.Workbench.Mcp.Workspace.CodeActions.Execution.ICodeActionQueryWorkflow>(static serviceProvider => serviceProvider.GetRequiredService<CodeActionRuntime>().QueryWorkflow);
-        services.AddSingleton<Roslyn.Workbench.Mcp.Workspace.CodeActions.Execution.ICodeActionMutationWorkflow>(static serviceProvider => serviceProvider.GetRequiredService<CodeActionRuntime>().MutationWorkflow);
-        services.AddSingleton(static serviceProvider => new WorkspaceHostServicesAccessor(serviceProvider.GetRequiredService<CodeActionRuntime>().WorkspaceHostServices));
+        services.AddSingleton<ICodeActionRuntime>(static serviceProvider => serviceProvider.GetRequiredService<CodeActionRuntime>());
+        services.AddSingleton<ICodeActionDiscoveryService, CodeActionDiscoveryService>();
+        services.AddSingleton<ICodeActionResolutionService, CodeActionResolutionService>();
+        services.AddSingleton<ICodeActionOperationService, CodeActionOperationService>();
+        services.AddSingleton<Roslyn.Workbench.Mcp.CodeActions.Execution.ICodeActionQueryWorkflow, CodeActionQueryWorkflow>();
+        services.AddSingleton<Roslyn.Workbench.Mcp.CodeActions.Execution.ICodeActionMutationWorkflow, CodeActionMutationWorkflow>();
+        services.AddSingleton<WorkspaceHostServicesAccessor>();
         services.AddSingleton<IWorkspaceOperationResultFactory, WorkspaceOperationResultFactory>();
         services.AddSingleton<IWorkspaceSessionStore, WorkspaceSessionStore>();
         services.AddSingleton<IWorkspaceSelector, WorkspaceSelectorService>();

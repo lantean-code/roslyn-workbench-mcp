@@ -679,10 +679,7 @@ public sealed class CodeActionMcpToolTests
 
     private static IWorkspaceRuntime CreateCoordinator(TimeSpan? tokenLifetime = null)
     {
-        var runtime = new CodeActionRuntimeComposer(
-            new CodeActionDiagnosticService(),
-            new CodeActionDescriptorRegistry(),
-            new CodeActionTokenService())
+        var runtime = new CodeActionRuntimeComposer()
             .Compose(new CodeActionRuntimeOptions
             {
                 TokenLifetime = tokenLifetime ?? TimeSpan.FromMinutes(5),
@@ -698,10 +695,7 @@ public sealed class CodeActionMcpToolTests
 
     private static IWorkspaceRuntime CreateBuiltInCoordinator()
     {
-        var runtime = new CodeActionRuntimeComposer(
-            new CodeActionDiagnosticService(),
-            new CodeActionDescriptorRegistry(),
-            new CodeActionTokenService())
+        var runtime = new CodeActionRuntimeComposer()
             .Compose(new CodeActionRuntimeOptions
             {
                 IncludeBuiltInAssemblies = true,
@@ -759,6 +753,8 @@ public sealed class CodeActionMcpToolTests
         IDictionary<string, JsonElement> arguments,
         bool expectProtocolSuccess = true)
     {
+        BundledPluginRegistryFactory.EnsureCodeActionToolsRegistered(registry);
+
         return await PluginToolTestHarness.InvokeAsync<TResponse>(executor, registry, toolName, arguments, expectProtocolSuccess);
     }
 

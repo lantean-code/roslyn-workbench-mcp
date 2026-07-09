@@ -18,10 +18,7 @@ public static class BundledCoreToolTestHarness
 
     public static IWorkspaceRuntime CreateBuiltInCodeActionCoordinator()
     {
-        var runtime = new CodeActionRuntimeComposer(
-            new CodeActionDiagnosticService(),
-            new CodeActionDescriptorRegistry(),
-            new CodeActionTokenService())
+        var runtime = new CodeActionRuntimeComposer()
             .Compose(new CodeActionRuntimeOptions
             {
                 IncludeBuiltInAssemblies = true,
@@ -32,10 +29,7 @@ public static class BundledCoreToolTestHarness
 
     public static IWorkspaceRuntime CreateTestCodeActionCoordinator(TimeSpan? tokenLifetime = null)
     {
-        var runtime = new CodeActionRuntimeComposer(
-            new CodeActionDiagnosticService(),
-            new CodeActionDescriptorRegistry(),
-            new CodeActionTokenService())
+        var runtime = new CodeActionRuntimeComposer()
             .Compose(new CodeActionRuntimeOptions
             {
                 TokenLifetime = tokenLifetime ?? TimeSpan.FromMinutes(5),
@@ -147,10 +141,7 @@ public static class BundledCoreToolTestHarness
 
     private static RegisteredTool GetRegisteredTool(string toolName)
     {
-        var plugin = new BundledCorePlugin();
-        var registry = new PluginRegistry(plugin.Metadata);
-
-        plugin.Register(registry);
+        var registry = BundledPluginRegistryFactory.CreateRegistry();
 
         return registry.RegisteredTools.Single(tool => tool.Metadata.Name == toolName);
     }

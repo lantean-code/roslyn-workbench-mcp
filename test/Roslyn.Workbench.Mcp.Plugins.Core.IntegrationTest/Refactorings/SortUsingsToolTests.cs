@@ -1,7 +1,7 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Refactorings;
 
 [Trait("Category", "Integration")]
-public sealed class SortUsingsToolTests
+public sealed class SortUsingsToolIntegrationTests
 {
     [Fact]
     public async Task GIVEN_ActiveTransaction_WHEN_ExecutingTool_THEN_ShouldStageMutation()

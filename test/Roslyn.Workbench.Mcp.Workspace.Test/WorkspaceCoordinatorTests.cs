@@ -4,7 +4,6 @@ using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.Contracts.Selectors;
 using Roslyn.Workbench.Mcp.Plugins;
-using Roslyn.Workbench.Mcp.Plugins.CodeActions;
 using Roslyn.Workbench.Mcp.TestSupport;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test;
@@ -50,8 +49,8 @@ public sealed class WorkspaceCoordinatorTests
         var constructor = typeof(WorkspaceExecutionContextFactory).GetConstructor(
         [
             typeof(IOptions<WorkspaceCoordinatorOptions>),
-            typeof(Roslyn.Workbench.Mcp.Workspace.CodeActions.Execution.ICodeActionQueryWorkflow),
-            typeof(Roslyn.Workbench.Mcp.Workspace.CodeActions.Execution.ICodeActionMutationWorkflow),
+            typeof(Roslyn.Workbench.Mcp.CodeActions.Execution.ICodeActionQueryWorkflow),
+            typeof(Roslyn.Workbench.Mcp.CodeActions.Execution.ICodeActionMutationWorkflow),
             typeof(IToolExecutionServices),
             typeof(IWorkspaceSessionStore),
             typeof(IWorkspaceSelector),

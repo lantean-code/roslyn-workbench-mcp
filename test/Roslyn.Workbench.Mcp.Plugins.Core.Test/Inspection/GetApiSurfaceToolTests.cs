@@ -1,146 +1,382 @@
+using Microsoft.CodeAnalysis.Text;
+
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 
 public sealed class GetApiSurfaceToolTests
 {
     [Fact]
-    public async Task GIVEN_UnableToResolveDocument_WHEN_CallingExecute_THEN_ShouldReturnRejection()
+    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
     {
+        var registry = new Mock<IPluginRegistry>();
+
+        GetApiSurfaceTool.Register(registry.Object);
+
+        registry.Verify(item => item.RegisterQueryTool<GetApiSurfaceRequest, ApiSurfaceData>(
+            It.Is<ToolRegistrationMetadata>(metadata =>
+                metadata.Name == "get-api-surface"
+                && metadata.Title == "Get API Surface"
+                && metadata.Description == "Returns exported API symbols for a selected scope."),
+            It.IsAny<IQueryToolHandler<GetApiSurfaceRequest, ApiSurfaceData>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_ResolveDocumentsHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
+    {
+        var target = new GetApiSurfaceTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
         var expected = PluginExecutionResult<ApiSurfaceData>.Rejected(new ToolError
         {
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
-        }, RequiredAction.ResolveTargetAgain);
-        var requestResolver = new Mock<IToolRequestResolver>();
-        var services = new ToolExecutionServicesBuilder()
-            .WithRequestResolver(requestResolver.Object)
-            .Build();
-        var context = new QueryContextBuilder()
-            .WithToolExecutionServices(services)
-            .Build();
-        var target = new GetApiSurfaceTool();
+        });
 
-        requestResolver
-            .Setup(resolver => resolver.ResolveDocuments<ApiSurfaceData>(
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveDocuments<ApiSurfaceData>(
                 It.IsAny<ScopeSelector?>(),
-                It.IsAny<IToolExecutionContext>()))
+                queryContextMocks.QueryContext.Object))
             .Returns(new ToolResolutionResult<IReadOnlyList<Document>, ApiSurfaceData>
             {
                 Rejection = expected,
             });
 
-        var result = await target.ExecuteAsync(new GetApiSurfaceRequest
-        {
-            Scope = new ScopeSelector
-            {
-                Kind = ScopeKind.Document,
-                Document = new DocumentSelector
-                {
-                    Path = "Missing.cs",
-                },
-            },
-        }, context, CancellationToken.None);
+        var result = await target.ExecuteAsync(new GetApiSurfaceRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Should().BeEquivalentTo(expected);
     }
 
     [Fact]
-    public async Task GIVEN_UnableToParseAccessibility_WHEN_CallingExecute_THEN_ShouldReturnInvalidRequest()
+    public async Task GIVEN_MinimumAccessibilityIsInvalid_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequestResult()
     {
-        var requestResolver = new Mock<IToolRequestResolver>();
-        var services = new ToolExecutionServicesBuilder()
-            .WithRequestResolver(requestResolver.Object)
-            .Build();
-        var context = new QueryContextBuilder()
-            .WithToolExecutionServices(services)
-            .Build();
         var target = new GetApiSurfaceTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
 
-        requestResolver
-            .Setup(resolver => resolver.ResolveDocuments<ApiSurfaceData>(
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.DefaultMaxResults)
+            .Returns(10);
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveDocuments<ApiSurfaceData>(
                 It.IsAny<ScopeSelector?>(),
-                It.IsAny<IToolExecutionContext>()))
+                queryContextMocks.QueryContext.Object))
             .Returns(new ToolResolutionResult<IReadOnlyList<Document>, ApiSurfaceData>
             {
-                Value = Array.Empty<Document>(),
+                Value = [],
             });
 
         var result = await target.ExecuteAsync(new GetApiSurfaceRequest
         {
             MinimumAccessibility = "Private",
-        }, context, CancellationToken.None);
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error!.Code.Should().Be("InvalidRequest");
+        result.Error.Should().BeEquivalentTo(new ToolError
+        {
+            Code = "InvalidRequest",
+            Message = "Minimum accessibility must be Public, Protected, or Internal.",
+        });
     }
 
     [Fact]
-    public async Task GIVEN_LowDefaultMaxResults_WHEN_CallingExecute_THEN_ShouldBoundResults()
+    public async Task GIVEN_DocumentDoesNotProvideSemanticData_WHEN_CallingExecuteAsync_THEN_ShouldSkipDocument()
     {
-        using var workspace = MiniWorkspaceFactory.CreateCSharp("""
-            namespace Sample;
+        using var unsupportedDocument = RoslynTestFactory.CreateUnsupportedDocument();
 
-            public interface IMessageFormatter
-            {
-            }
-
-            public sealed class GreetingFormatter
-            {
-            }
-            """);
-        var workspaceIdentity = workspace.CreateWorkspaceIdentity();
-        var resolver = workspace.CreateResolver(workspaceIdentity);
-        var context = new QueryContextBuilder()
-            .WithCurrentSolution(workspace.Solution)
-            .WithResolver(resolver)
-            .WithWorkspaceIdentity(workspaceIdentity)
-            .WithDefaultMaxResults(1)
-            .Build();
         var target = new GetApiSurfaceTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
 
-        var result = await target.ExecuteAsync(new GetApiSurfaceRequest(), context, CancellationToken.None);
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.DefaultMaxResults)
+            .Returns(10);
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveDocuments<ApiSurfaceData>(
+                It.IsAny<ScopeSelector?>(),
+                queryContextMocks.QueryContext.Object))
+            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, ApiSurfaceData>
+            {
+                Value = [unsupportedDocument.Document],
+            });
+
+        var result = await target.ExecuteAsync(new GetApiSurfaceRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data!.Symbols.Items.Should().HaveCount(1);
-        result.Data.Symbols.HasMore.Should().BeTrue();
+        result.Data!.Symbols.Items.Should().BeEmpty();
     }
 
     [Fact]
-    public async Task GIVEN_ProjectScopeWithPublicType_WHEN_CallingExecute_THEN_ShouldReturnExportedSymbols()
+    public async Task GIVEN_ObsoleteSymbolsAndMinimumAccessibilityProtected_WHEN_CallingExecuteAsync_THEN_ShouldReturnEligibleNonObsoleteApiSymbols()
     {
-        using var workspace = MiniWorkspaceFactory.CreateCSharp("""
-            namespace Sample;
+        using var document = RoslynTestFactory.CreateDocument("""
+            using System;
 
-            public interface IMessageFormatter
+            public delegate void PublicDelegate();
+
+            public interface IPublicContract
             {
             }
 
-            public sealed class GreetingFormatter : IMessageFormatter
+            public class Container
+            {
+                public int PublicField;
+
+                public int PublicProperty
+                {
+                    get
+                    {
+                        return PublicField;
+                    }
+                }
+
+                public event EventHandler Changed
+                {
+                    add
+                    {
+                    }
+                    remove
+                    {
+                    }
+                }
+
+                protected void ProtectedMethod()
+                {
+                    int local = 0;
+                }
+
+                internal void InternalMethod()
+                {
+                }
+            }
+
+            [Obsolete]
+            public class ObsoleteType
             {
             }
             """);
-        var workspaceIdentity = workspace.CreateWorkspaceIdentity();
-        var resolver = workspace.CreateResolver(workspaceIdentity);
-        var context = new QueryContextBuilder()
-            .WithCurrentSolution(workspace.Solution)
-            .WithResolver(resolver)
-            .WithWorkspaceIdentity(workspaceIdentity)
-            .Build();
+
         var target = new GetApiSurfaceTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.DefaultMaxResults)
+            .Returns(20);
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveDocuments<ApiSurfaceData>(
+                It.IsAny<ScopeSelector?>(),
+                queryContextMocks.QueryContext.Object))
+            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, ApiSurfaceData>
+            {
+                Value = [document.Document],
+            });
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
 
         var result = await target.ExecuteAsync(new GetApiSurfaceRequest
         {
-            Scope = new ScopeSelector
-            {
-                Kind = ScopeKind.Project,
-                Project = new ProjectSelector
-                {
-                    Path = "Sample.csproj",
-                },
-            },
-        }, context, CancellationToken.None);
+            MinimumAccessibility = "Protected",
+            IncludeObsolete = false,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data!.Symbols.Items.Should().Contain(static symbol => symbol.Symbol!.DisplayName.Contains("GreetingFormatter", StringComparison.Ordinal));
-        result.Data.Symbols.Items.Should().Contain(static symbol => symbol.Symbol!.DisplayName.Contains("IMessageFormatter", StringComparison.Ordinal));
+        result.Data!.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Changed");
+        result.Data.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Container");
+        result.Data.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("IPublicContract");
+        result.Data.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("ProtectedMethod");
+        result.Data.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("PublicDelegate");
+        result.Data.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("PublicField");
+        result.Data.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("PublicProperty");
+        result.Data.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().NotContain("InternalMethod");
+        result.Data.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().NotContain("ObsoleteType");
+    }
+
+    [Fact]
+    public async Task GIVEN_IncludeObsoleteIsTrueAndMinimumAccessibilityInternal_WHEN_CallingExecuteAsync_THEN_ShouldIncludeInternalAndObsoleteSymbols()
+    {
+        using var document = RoslynTestFactory.CreateDocument("""
+            using System;
+
+            [Obsolete]
+            public class ObsoleteType
+            {
+            }
+
+            public class Container
+            {
+                internal void Hidden()
+                {
+                }
+            }
+            """);
+
+        var target = new GetApiSurfaceTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.DefaultMaxResults)
+            .Returns(10);
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveDocuments<ApiSurfaceData>(
+                It.IsAny<ScopeSelector?>(),
+                queryContextMocks.QueryContext.Object))
+            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, ApiSurfaceData>
+            {
+                Value = [document.Document],
+            });
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
+        var result = await target.ExecuteAsync(new GetApiSurfaceRequest
+        {
+            MinimumAccessibility = "Internal",
+            IncludeObsolete = true,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Data!.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Hidden");
+        result.Data.Symbols.Items.Should().Contain(item => item.Symbol!.DisplayName == "ObsoleteType" && item.IsObsolete);
+    }
+
+    [Fact]
+    public async Task GIVEN_PublicThresholdIncludesAttributedTypeAndDestructor_WHEN_CallingExecuteAsync_THEN_ShouldExcludeNonPublicDeclarations()
+    {
+        using var document = RoslynTestFactory.CreateDocument("""
+            using System;
+
+            [Serializable]
+            public class Decorated
+            {
+                ~Decorated()
+                {
+                }
+
+                protected void Hidden()
+                {
+                }
+
+                public void Visible()
+                {
+                    int local = 0;
+                }
+            }
+
+            public class Container
+            {
+                private class PrivateNested
+                {
+                }
+            }
+            """);
+
+        var target = new GetApiSurfaceTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.DefaultMaxResults)
+            .Returns(20);
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveDocuments<ApiSurfaceData>(
+                It.IsAny<ScopeSelector?>(),
+                queryContextMocks.QueryContext.Object))
+            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, ApiSurfaceData>
+            {
+                Value = [document.Document],
+            });
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
+        var result = await target.ExecuteAsync(new GetApiSurfaceRequest
+        {
+            MinimumAccessibility = "Public",
+            IncludeObsolete = false,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Data!.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Decorated");
+        result.Data.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Visible");
+        result.Data.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().NotContain("Hidden");
+        result.Data.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().NotContain("PrivateNested");
+    }
+
+    [Fact]
+    public async Task GIVEN_InternalThresholdSeesPrivateDeclaration_WHEN_CallingExecuteAsync_THEN_ShouldExcludePrivateMember()
+    {
+        using var document = RoslynTestFactory.CreateDocument("""
+            public class Container
+            {
+                private void Hidden()
+                {
+                }
+
+                private protected void VisibleToFamilyAndAssembly()
+                {
+                }
+            }
+            """);
+
+        var target = new GetApiSurfaceTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.DefaultMaxResults)
+            .Returns(20);
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveDocuments<ApiSurfaceData>(
+                It.IsAny<ScopeSelector?>(),
+                queryContextMocks.QueryContext.Object))
+            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, ApiSurfaceData>
+            {
+                Value = [document.Document],
+            });
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
+        var result = await target.ExecuteAsync(new GetApiSurfaceRequest
+        {
+            MinimumAccessibility = "Internal",
+            IncludeObsolete = true,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Data!.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("VisibleToFamilyAndAssembly");
+        result.Data.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().NotContain("Hidden");
+    }
+
+    [Fact]
+    public async Task GIVEN_DefaultMaxResultsIsLowerThanExportedCount_WHEN_CallingExecuteAsync_THEN_ShouldReturnBoundedOrderedApiSymbols()
+    {
+        using var document = RoslynTestFactory.CreateDocument("""
+            public class ZType
+            {
+            }
+
+            public class AType
+            {
+            }
+            """);
+
+        var target = new GetApiSurfaceTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.DefaultMaxResults)
+            .Returns(1);
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveDocuments<ApiSurfaceData>(
+                It.IsAny<ScopeSelector?>(),
+                queryContextMocks.QueryContext.Object))
+            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, ApiSurfaceData>
+            {
+                Value = [document.Document],
+            });
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
+        var result = await target.ExecuteAsync(new GetApiSurfaceRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Data!.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().Equal("AType");
+        result.Data.Symbols.HasMore.Should().BeTrue();
     }
 }

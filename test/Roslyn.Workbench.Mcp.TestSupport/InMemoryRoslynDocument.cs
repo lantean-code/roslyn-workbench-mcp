@@ -1,7 +1,7 @@
 namespace Roslyn.Workbench.Mcp.TestSupport;
 
 /// <summary>
-/// Represents a single in-memory C# document and its owning Roslyn solution for unit tests.
+/// Represents a single in-memory Roslyn document and its owning Roslyn solution for unit tests.
 /// </summary>
 public sealed class InMemoryRoslynDocument : IDisposable
 {
@@ -38,14 +38,10 @@ public sealed class InMemoryRoslynDocument : IDisposable
     {
         ArgumentNullException.ThrowIfNull(predicate);
 
-        var syntaxRoot = Document.GetSyntaxRootAsync().GetAwaiter().GetResult()
-            ?? throw new InvalidOperationException($"The syntax root for '{Document.Name}' could not be resolved.");
-        var node = syntaxRoot
-            .DescendantNodes()
-            .OfType<TNode>()
-            .Single(predicate);
-
-        return node.GetLocation();
+        return RoslynDocumentTestHelper
+            .GetSingleNodeLocationAsync(Document, predicate, CancellationToken.None)
+            .GetAwaiter()
+            .GetResult();
     }
 
     /// <summary>

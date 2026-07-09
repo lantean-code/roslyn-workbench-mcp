@@ -39,6 +39,40 @@ public static class RoslynTestFactory
     }
 
     /// <summary>
+    /// Creates a single-document in-memory Roslyn model for a language that does not provide C# syntax or semantic data.
+    /// </summary>
+    /// <param name="source">The source text to load into the document.</param>
+    /// <param name="documentName">The logical document name.</param>
+    /// <returns>The created in-memory document wrapper.</returns>
+    public static InMemoryRoslynDocument CreateUnsupportedDocument(string source = "content", string documentName = "Sample.txt")
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentException.ThrowIfNullOrWhiteSpace(documentName);
+
+        var workspace = new AdhocWorkspace();
+        var projectId = ProjectId.CreateNewId();
+        var versionStamp = VersionStamp.Create();
+        var solution = workspace.CurrentSolution.AddProject(ProjectInfo.Create(
+            projectId,
+            versionStamp,
+            "Sample",
+            "Sample",
+            "NoLanguage",
+            filePath: "/workspace/Sample.proj"));
+        solution = solution.AddDocument(DocumentInfo.Create(
+            DocumentId.CreateNewId(projectId),
+            documentName,
+            filePath: $"/workspace/{documentName}",
+            loader: TextLoader.From(TextAndVersion.Create(SourceText.From(source), versionStamp))));
+        workspace.TryApplyChanges(solution);
+
+        return new InMemoryRoslynDocument(
+            workspace,
+            workspace.CurrentSolution,
+            workspace.CurrentSolution.Projects.Single().Documents.Single());
+    }
+
+    /// <summary>
     /// Creates an in-memory Roslyn solution from the supplied project definitions.
     /// </summary>
     /// <param name="projects">The projects to include in the solution.</param>

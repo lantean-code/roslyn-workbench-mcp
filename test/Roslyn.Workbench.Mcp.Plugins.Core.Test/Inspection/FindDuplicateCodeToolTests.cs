@@ -67,7 +67,7 @@ public sealed class FindDuplicateCodeToolTests
     [Fact]
     public async Task GIVEN_DocumentsContainUnsupportedLanguageDocument_WHEN_CallingExecuteAsync_THEN_ShouldSkipDocumentAndReturnDuplicatesFromSupportedDocuments()
     {
-        using var unsupportedWorkspace = CreateUnsupportedLanguageWorkspace(out var unsupportedDocument);
+        using var unsupportedDocument = RoslynTestFactory.CreateUnsupportedDocument();
         using var supportedDocument = RoslynTestFactory.CreateDocument("""
             class Formatter
             {
@@ -97,7 +97,7 @@ public sealed class FindDuplicateCodeToolTests
                 queryContextMocks.QueryContext.Object))
             .Returns(new ToolResolutionResult<IReadOnlyList<Document>, DuplicateCodeData>
             {
-                Value = [unsupportedDocument, supportedDocument.Document],
+                Value = [unsupportedDocument.Document, supportedDocument.Document],
             });
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
@@ -289,28 +289,5 @@ public sealed class FindDuplicateCodeToolTests
         result.Data.Groups.Items.SelectMany(item => item.Occurrences).Select(item => item.Symbol!.DisplayName).Should().Contain("Local");
         result.Data.Groups.Items.Select(item => item.StatementCount).Should().Equal(3, 2);
         result.Data.Groups.Items.SelectMany(item => item.Occurrences).All(item => !string.IsNullOrWhiteSpace(item.Context)).Should().BeTrue();
-    }
-
-    private static AdhocWorkspace CreateUnsupportedLanguageWorkspace(out Document document)
-    {
-        var workspace = new AdhocWorkspace();
-        var projectId = ProjectId.CreateNewId();
-        var versionStamp = VersionStamp.Create();
-        var solution = workspace.CurrentSolution.AddProject(Microsoft.CodeAnalysis.ProjectInfo.Create(
-            projectId,
-            versionStamp,
-            "Sample",
-            "Sample",
-            "NoLanguage",
-            filePath: "/workspace/Sample.proj"));
-        solution = solution.AddDocument(DocumentInfo.Create(
-            DocumentId.CreateNewId(projectId),
-            "Sample.txt",
-            filePath: "/workspace/Sample.txt",
-            loader: TextLoader.From(TextAndVersion.Create(SourceText.From("content"), versionStamp))));
-        workspace.TryApplyChanges(solution);
-
-        document = workspace.CurrentSolution.Projects.Single().Documents.Single();
-        return workspace;
     }
 }

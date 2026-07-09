@@ -60,7 +60,10 @@ public sealed class FindOverloadsToolTests
 
         var target = new FindOverloadsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var symbol = await GetNamedTypeSymbolAsync(document.Document, "Formatter");
+        var symbol = await RoslynDocumentTestHelper.GetRequiredNamedTypeSymbolAsync(
+            document.Document,
+            "Formatter",
+            TestContext.Current.CancellationToken);
 
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<OverloadSearchData>(
@@ -211,15 +214,5 @@ public sealed class FindOverloadsToolTests
 
         return (IMethodSymbol)(semanticModel!.GetDeclaredSymbol(constructor, TestContext.Current.CancellationToken)
             ?? throw new InvalidOperationException("The constructor could not be resolved."));
-    }
-
-    private static async Task<INamedTypeSymbol> GetNamedTypeSymbolAsync(Document document, string typeName)
-    {
-        var syntaxRoot = await document.GetSyntaxRootAsync(TestContext.Current.CancellationToken);
-        var semanticModel = await document.GetSemanticModelAsync(TestContext.Current.CancellationToken);
-        var type = syntaxRoot!.DescendantNodes().OfType<TypeDeclarationSyntax>().Single(item => item.Identifier.ValueText == typeName);
-
-        return (INamedTypeSymbol)(semanticModel!.GetDeclaredSymbol(type, TestContext.Current.CancellationToken)
-            ?? throw new InvalidOperationException($"The type '{typeName}' could not be resolved."));
     }
 }

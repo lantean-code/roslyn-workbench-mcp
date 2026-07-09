@@ -63,7 +63,11 @@ public sealed class FindDerivedTypesToolTests
 
         var target = new FindDerivedTypesTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var symbol = await GetMethodSymbolAsync(document.Document, "Run");
+        var symbol = await RoslynDocumentTestHelper.GetRequiredMethodSymbolAsync(
+            document.Document,
+            "Run",
+            null,
+            TestContext.Current.CancellationToken);
 
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<DerivedTypesData>(
@@ -100,7 +104,10 @@ public sealed class FindDerivedTypesToolTests
 
         var target = new FindDerivedTypesTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var symbol = await GetNamedTypeSymbolAsync(document.Document, "BaseType");
+        var symbol = await RoslynDocumentTestHelper.GetRequiredNamedTypeSymbolAsync(
+            document.Document,
+            "BaseType",
+            TestContext.Current.CancellationToken);
         var expected = PluginExecutionResult<DerivedTypesData>.Rejected(new ToolError
         {
             Code = "ProjectNotFound",
@@ -171,7 +178,10 @@ public sealed class FindDerivedTypesToolTests
 
         var target = new FindDerivedTypesTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var baseType = await GetNamedTypeSymbolAsync(solution.GetDocument("Code.cs"), "BaseType");
+        var baseType = await RoslynDocumentTestHelper.GetRequiredNamedTypeSymbolAsync(
+            solution.GetDocument("Code.cs"),
+            "BaseType",
+            TestContext.Current.CancellationToken);
         var project = solution.Solution.Projects.Single();
 
         queryContextMocks.QueryContext
@@ -246,7 +256,10 @@ public sealed class FindDerivedTypesToolTests
 
         var target = new FindDerivedTypesTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var symbol = await GetNamedTypeSymbolAsync(solution.GetDocument("Code.cs"), "IMessageFormatter");
+        var symbol = await RoslynDocumentTestHelper.GetRequiredNamedTypeSymbolAsync(
+            solution.GetDocument("Code.cs"),
+            "IMessageFormatter",
+            TestContext.Current.CancellationToken);
         var project = solution.Solution.Projects.Single();
 
         queryContextMocks.QueryContext
@@ -284,27 +297,5 @@ public sealed class FindDerivedTypesToolTests
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
         result.Data!.DerivedTypes.Items.Select(item => item.Type!.DisplayName).Should().Equal("AFormatter", "ZFormatter");
-    }
-
-    private static async Task<IMethodSymbol> GetMethodSymbolAsync(Document document, string methodName)
-    {
-        var syntaxRoot = await document.GetSyntaxRootAsync(TestContext.Current.CancellationToken);
-        var semanticModel = await document.GetSemanticModelAsync(TestContext.Current.CancellationToken);
-        var method = syntaxRoot!.DescendantNodes().OfType<MethodDeclarationSyntax>().Single(item => item.Identifier.ValueText == methodName);
-
-        return (IMethodSymbol)(semanticModel!.GetDeclaredSymbol(method, TestContext.Current.CancellationToken)
-            ?? throw new InvalidOperationException($"The method '{methodName}' could not be resolved."));
-    }
-
-    private static async Task<INamedTypeSymbol> GetNamedTypeSymbolAsync(Document document, string typeName)
-    {
-        var syntaxRoot = await document.GetSyntaxRootAsync(TestContext.Current.CancellationToken);
-        var semanticModel = await document.GetSemanticModelAsync(TestContext.Current.CancellationToken);
-        var type = syntaxRoot!.DescendantNodes()
-            .OfType<TypeDeclarationSyntax>()
-            .Single(item => item.Identifier.ValueText == typeName);
-
-        return (INamedTypeSymbol)(semanticModel!.GetDeclaredSymbol(type, TestContext.Current.CancellationToken)
-            ?? throw new InvalidOperationException($"The type '{typeName}' could not be resolved."));
     }
 }

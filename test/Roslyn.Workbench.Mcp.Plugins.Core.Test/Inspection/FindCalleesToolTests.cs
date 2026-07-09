@@ -87,7 +87,11 @@ public sealed class FindCalleesToolTests
 
         var target = new FindCalleesTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var symbol = await GetMethodSymbolAsync(symbolDocument.Document, "Run");
+        var symbol = await RoslynDocumentTestHelper.GetRequiredMethodSymbolAsync(
+            symbolDocument.Document,
+            "Run",
+            null,
+            TestContext.Current.CancellationToken);
 
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
@@ -130,7 +134,10 @@ public sealed class FindCalleesToolTests
 
         var target = new FindCalleesTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var symbol = await GetNamedTypeSymbolAsync(document.Document, "Formatter");
+        var symbol = await RoslynDocumentTestHelper.GetRequiredNamedTypeSymbolAsync(
+            document.Document,
+            "Formatter",
+            TestContext.Current.CancellationToken);
 
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
@@ -396,7 +403,11 @@ public sealed class FindCalleesToolTests
 
         var target = new FindCalleesTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var symbol = await GetMethodSymbolAsync(document.Document, "Run");
+        var symbol = await RoslynDocumentTestHelper.GetRequiredMethodSymbolAsync(
+            document.Document,
+            "Run",
+            null,
+            TestContext.Current.CancellationToken);
 
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
@@ -449,7 +460,11 @@ public sealed class FindCalleesToolTests
 
         var target = new FindCalleesTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var symbol = await GetMethodSymbolAsync(document.Document, "Run");
+        var symbol = await RoslynDocumentTestHelper.GetRequiredMethodSymbolAsync(
+            document.Document,
+            "Run",
+            null,
+            TestContext.Current.CancellationToken);
 
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
@@ -498,7 +513,11 @@ public sealed class FindCalleesToolTests
 
         var target = new FindCalleesTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var symbol = await GetMethodSymbolAsync(document.Document, "Expression");
+        var symbol = await RoslynDocumentTestHelper.GetRequiredMethodSymbolAsync(
+            document.Document,
+            "Expression",
+            null,
+            TestContext.Current.CancellationToken);
 
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
@@ -777,27 +796,6 @@ public sealed class FindCalleesToolTests
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
     }
-
-    private static async Task<IMethodSymbol> GetMethodSymbolAsync(Document document, string methodName)
-    {
-        var syntaxRoot = await document.GetSyntaxRootAsync(TestContext.Current.CancellationToken);
-        var semanticModel = await document.GetSemanticModelAsync(TestContext.Current.CancellationToken);
-        var method = syntaxRoot!.DescendantNodes().OfType<MethodDeclarationSyntax>().Single(item => item.Identifier.ValueText == methodName);
-
-        return (IMethodSymbol)(semanticModel!.GetDeclaredSymbol(method, TestContext.Current.CancellationToken)
-            ?? throw new InvalidOperationException($"The method '{methodName}' could not be resolved."));
-    }
-
-    private static async Task<INamedTypeSymbol> GetNamedTypeSymbolAsync(Document document, string typeName)
-    {
-        var syntaxRoot = await document.GetSyntaxRootAsync(TestContext.Current.CancellationToken);
-        var semanticModel = await document.GetSemanticModelAsync(TestContext.Current.CancellationToken);
-        var type = syntaxRoot!.DescendantNodes().OfType<ClassDeclarationSyntax>().Single(item => item.Identifier.ValueText == typeName);
-
-        return (INamedTypeSymbol)(semanticModel!.GetDeclaredSymbol(type, TestContext.Current.CancellationToken)
-            ?? throw new InvalidOperationException($"The type '{typeName}' could not be resolved."));
-    }
-
     private static async Task<IMethodSymbol> GetLocalFunctionSymbolAsync(Document document, string functionName)
     {
         var syntaxRoot = await document.GetSyntaxRootAsync(TestContext.Current.CancellationToken);

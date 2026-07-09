@@ -79,7 +79,11 @@ public sealed class FindCallersToolTests
 
         var target = new FindCallersTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var symbol = await GetMethodSymbolAsync(solution.GetDocument("Code.cs"), "Callee");
+        var symbol = await RoslynDocumentTestHelper.GetRequiredMethodSymbolAsync(
+            solution.GetDocument("Code.cs"),
+            "Callee",
+            null,
+            TestContext.Current.CancellationToken);
         var expected = PluginExecutionResult<CallerSearchData>.Rejected(new ToolError
         {
             Code = "DocumentNotFound",
@@ -168,7 +172,11 @@ public sealed class FindCallersToolTests
 
         var target = new FindCallersTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var symbol = await GetMethodSymbolAsync(solution.GetDocument("Target.cs"), "Callee");
+        var symbol = await RoslynDocumentTestHelper.GetRequiredMethodSymbolAsync(
+            solution.GetDocument("Target.cs"),
+            "Callee",
+            null,
+            TestContext.Current.CancellationToken);
         var callerDocument = solution.GetDocument("Callers.cs");
         var betaCalleeLocations = await GetCalleeIdentifierLocationsAsync(callerDocument, "RunBeta");
         var omittedSpanStart = betaCalleeLocations[0].SourceSpan.Start;
@@ -279,7 +287,11 @@ public sealed class FindCallersToolTests
         var target = new FindCallersTool();
         var queryContextMocks = QueryContextMockHelper.Create();
         var inspectionContextService = new Mock<IInspectionContextService>();
-        var symbol = await GetMethodSymbolAsync(solution.GetDocument("Target.cs"), "Callee");
+        var symbol = await RoslynDocumentTestHelper.GetRequiredMethodSymbolAsync(
+            solution.GetDocument("Target.cs"),
+            "Callee",
+            null,
+            TestContext.Current.CancellationToken);
         var callerDocument = solution.GetDocument("Callers.cs");
         var alphaCalleeLocation = (await GetCalleeIdentifierLocationsAsync(callerDocument, "RunAlpha")).Single();
         var betaCalleeLocations = await GetCalleeIdentifierLocationsAsync(callerDocument, "RunBeta");
@@ -351,17 +363,6 @@ public sealed class FindCallersToolTests
             It.IsAny<TextSpan>(),
             It.IsAny<CancellationToken>()), Times.Exactly(3));
     }
-
-    private static async Task<IMethodSymbol> GetMethodSymbolAsync(Document document, string methodName)
-    {
-        var syntaxRoot = await document.GetSyntaxRootAsync(TestContext.Current.CancellationToken);
-        var semanticModel = await document.GetSemanticModelAsync(TestContext.Current.CancellationToken);
-        var method = syntaxRoot!.DescendantNodes().OfType<MethodDeclarationSyntax>().Single(item => item.Identifier.ValueText == methodName);
-
-        return (IMethodSymbol)(semanticModel!.GetDeclaredSymbol(method, TestContext.Current.CancellationToken)
-            ?? throw new InvalidOperationException($"The method '{methodName}' could not be resolved."));
-    }
-
     private static async Task<IReadOnlyList<Location>> GetCalleeIdentifierLocationsAsync(Document document, string methodName)
     {
         var syntaxRoot = await document.GetSyntaxRootAsync(TestContext.Current.CancellationToken);

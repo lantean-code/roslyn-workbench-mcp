@@ -49,7 +49,7 @@ public sealed class AnalyzeAsyncToolTests
     [Fact]
     public async Task GIVEN_DocumentWithoutSyntaxOrSemanticModel_WHEN_CallingExecuteAsync_THEN_ShouldReturnEmptyFindings()
     {
-        using var workspace = CreateUnsupportedLanguageWorkspace(out var document);
+        using var document = RoslynTestFactory.CreateUnsupportedDocument();
 
         var target = new AnalyzeAsyncTool();
         var queryContextMocks = QueryContextMockHelper.Create();
@@ -60,7 +60,7 @@ public sealed class AnalyzeAsyncToolTests
                 queryContextMocks.QueryContext.Object))
             .Returns(new ToolResolutionResult<IReadOnlyList<Document>, AsyncAnalysisData>
             {
-                Value = [document],
+                Value = [document.Document],
             });
 
         var result = await target.ExecuteAsync(new AnalyzeAsyncRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
@@ -300,28 +300,4 @@ public sealed class AnalyzeAsyncToolTests
         result.Data.Findings.Items[0].Symbol!.DisplayName.Should().Be("CallerAsync");
         result.Data.Findings.Items.Count(item => item.Kind == "UnawaitedTask").Should().Be(4);
     }
-
-    private static AdhocWorkspace CreateUnsupportedLanguageWorkspace(out Document document)
-    {
-        var workspace = new AdhocWorkspace();
-        var projectId = ProjectId.CreateNewId();
-        var versionStamp = VersionStamp.Create();
-        var solution = workspace.CurrentSolution.AddProject(Microsoft.CodeAnalysis.ProjectInfo.Create(
-            projectId,
-            versionStamp,
-            "Sample",
-            "Sample",
-            "NoLanguage",
-            filePath: "/workspace/Sample.proj"));
-        solution = solution.AddDocument(DocumentInfo.Create(
-            DocumentId.CreateNewId(projectId),
-            "Sample.txt",
-            filePath: "/workspace/Sample.txt",
-            loader: TextLoader.From(TextAndVersion.Create(SourceText.From("content"), versionStamp))));
-        workspace.TryApplyChanges(solution);
-
-        document = workspace.CurrentSolution.Projects.Single().Documents.Single();
-        return workspace;
-    }
-
 }

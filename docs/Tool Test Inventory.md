@@ -6,6 +6,10 @@ Checkbox key: `[ ]` not started, `[-]` partial, `[x]` complete.
 
 Coverage note: `FindCalleesTool` and `FindDuplicateCodeTool` are marked complete for this sweep with approved exceptions for defensive Roslyn branches that are not reachable through the real public tool flow. Those guards remain to reduce production risk.
 
+Current sweep note:
+- `FindUnusedSymbolsTool` now has unit and integration coverage in place, but `ShouldIncludeSymbol(...)` still contains an `IRangeVariableSymbol` branch that cannot be reached through the current public flow because `GetCandidateSymbol(...)` only resolves `VariableDeclaratorSyntax` and `CatchDeclarationSyntax`. Strict 100% for the class needs an implementation refactor or an explicit exception decision.
+- `GetApiSurfaceTool` now has branch-first unit coverage for the reachable `ExecuteAsync(...)` flow, but several helper branches remain unreachable through that flow, including the guarded default arm in `MeetsAccessibilityThreshold(...)` and the namespace path in `GetAccessibilityChain(...)`. Strict 100% for the class needs an implementation refactor or an explicit exception decision.
+
 | Done | Tool Class | Unit Test | Integration Test |
 | --- | --- | --- | --- |
 | [x] | AnalyzeAsyncTool | AnalyzeAsyncToolTests | AnalyzeAsyncToolIntegrationTests |
@@ -21,11 +25,11 @@ Coverage note: `FindCalleesTool` and `FindDuplicateCodeTool` are marked complete
 | [x] | FindImplementationsTool | FindImplementationsToolTests | FindImplementationsToolIntegrationTests |
 | [x] | FindOverloadsTool | FindOverloadsToolTests | FindOverloadsToolIntegrationTests |
 | [x] | FindOverridesTool | FindOverridesToolTests | FindOverridesToolIntegrationTests |
-| [ ] | FindReferencesTool | FindReferencesToolTests | FindReferencesToolIntegrationTests |
-| [ ] | FindUnusedSymbolsTool | FindUnusedSymbolsToolTests | FindUnusedSymbolsToolIntegrationTests |
-| [ ] | GetApiSurfaceTool | GetApiSurfaceToolTests | GetApiSurfaceToolIntegrationTests |
-| [ ] | GetChangeImpactTool | GetChangeImpactToolTests | GetChangeImpactToolIntegrationTests |
-| [ ] | GetCodeContextTool | GetCodeContextToolTests | GetCodeContextToolIntegrationTests |
+| [x] | FindReferencesTool | FindReferencesToolTests | FindReferencesToolIntegrationTests |
+| [-] | FindUnusedSymbolsTool | FindUnusedSymbolsToolTests | FindUnusedSymbolsToolIntegrationTests |
+| [-] | GetApiSurfaceTool | GetApiSurfaceToolTests | GetApiSurfaceToolIntegrationTests |
+| [x] | GetChangeImpactTool | GetChangeImpactToolTests | GetChangeImpactToolIntegrationTests |
+| [-] | GetCodeContextTool | GetCodeContextToolTests | GetCodeContextToolIntegrationTests |
 | [ ] | GetCodeMetricsTool | GetCodeMetricsToolTests | GetCodeMetricsToolIntegrationTests |
 | [ ] | GetControlFlowGraphTool | GetControlFlowGraphToolTests | GetControlFlowGraphToolIntegrationTests |
 | [ ] | GetDependencyGraphTool | GetDependencyGraphToolTests | GetDependencyGraphToolIntegrationTests |

@@ -60,7 +60,10 @@ public sealed class FindImplementationsToolTests
 
         var target = new FindImplementationsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var symbol = await GetNamedTypeSymbolAsync(document.Document, "IMessageFormatter");
+        var symbol = await RoslynDocumentTestHelper.GetRequiredNamedTypeSymbolAsync(
+            document.Document,
+            "IMessageFormatter",
+            TestContext.Current.CancellationToken);
         var expected = PluginExecutionResult<ImplementationSearchData>.Rejected(new ToolError
         {
             Code = "ProjectNotFound",
@@ -127,7 +130,10 @@ public sealed class FindImplementationsToolTests
 
         var target = new FindImplementationsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var symbol = await GetNamedTypeSymbolAsync(solution.GetDocument("Code.cs"), "IMessageFormatter");
+        var symbol = await RoslynDocumentTestHelper.GetRequiredNamedTypeSymbolAsync(
+            solution.GetDocument("Code.cs"),
+            "IMessageFormatter",
+            TestContext.Current.CancellationToken);
         var project = solution.Solution.Projects.Single();
 
         queryContextMocks.QueryContext
@@ -166,17 +172,5 @@ public sealed class FindImplementationsToolTests
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
         result.Data!.Symbol!.DisplayName.Should().Be("IMessageFormatter");
         result.Data.Implementations.Items.Select(item => item.DisplayName).Should().Equal("AFormatter", "ZFormatter");
-    }
-
-    private static async Task<INamedTypeSymbol> GetNamedTypeSymbolAsync(Document document, string typeName)
-    {
-        var syntaxRoot = await document.GetSyntaxRootAsync(TestContext.Current.CancellationToken);
-        var semanticModel = await document.GetSemanticModelAsync(TestContext.Current.CancellationToken);
-        var type = syntaxRoot!.DescendantNodes()
-            .OfType<TypeDeclarationSyntax>()
-            .Single(item => item.Identifier.ValueText == typeName);
-
-        return (INamedTypeSymbol)(semanticModel!.GetDeclaredSymbol(type, TestContext.Current.CancellationToken)
-            ?? throw new InvalidOperationException($"The type '{typeName}' could not be resolved."));
     }
 }

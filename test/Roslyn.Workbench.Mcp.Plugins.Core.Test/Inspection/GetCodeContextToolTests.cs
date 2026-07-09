@@ -1,31 +1,41 @@
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Text;
+
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 
 public sealed class GetCodeContextToolTests
 {
     [Fact]
-    public async Task GIVEN_MissingLocationSelector_WHEN_CallingExecute_THEN_ShouldReturnInvalidRequest()
+    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
     {
-        var target = new GetCodeContextTool();
-        var context = new QueryContextBuilder().Build();
+        var registry = new Mock<IPluginRegistry>();
 
-        var result = await target.ExecuteAsync(new GetCodeContextRequest(), context, CancellationToken.None);
+        GetCodeContextTool.Register(registry.Object);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error!.Code.Should().Be("InvalidRequest");
+        registry.Verify(item => item.RegisterQueryTool<GetCodeContextRequest, CodeContextData>(
+            It.Is<ToolRegistrationMetadata>(metadata =>
+                metadata.Name == "get-code-context"
+                && metadata.Title == "Get Code Context"
+                && metadata.Description == "Returns a bounded code window with the enclosing semantic context for a selected location."),
+            It.IsAny<IQueryToolHandler<GetCodeContextRequest, CodeContextData>>()), Times.Once);
     }
 
     [Fact]
-    public async Task GIVEN_SnapshotMismatch_WHEN_CallingExecute_THEN_ShouldReturnConflict()
+    public async Task GIVEN_ValidateSnapshotReturnsConflict_WHEN_CallingExecuteAsync_THEN_ShouldReturnConflictResult()
     {
-        var resolver = new Mock<IWorkspaceResolver>();
         var target = new GetCodeContextTool();
-        var context = new QueryContextBuilder()
-            .WithResolver(resolver.Object)
-            .Build();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var expected = PluginExecutionResult<CodeContextData>.Conflict(new ToolError
+        {
+            Code = "SnapshotMismatch",
+            Message = "SnapshotMismatch",
+        });
 
-        resolver
-            .Setup(mock => mock.ValidateSnapshot(It.IsAny<SnapshotPrecondition?>()))
-            .Returns(SnapshotMatchResult.TransactionRevisionMismatch());
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ValidateSnapshot<CodeContextData>(
+                queryContextMocks.QueryContext.Object,
+                It.IsAny<SnapshotPrecondition?>()))
+            .Returns(expected);
 
         var result = await target.ExecuteAsync(new GetCodeContextRequest
         {
@@ -34,88 +44,248 @@ public sealed class GetCodeContextToolTests
             {
                 WorkspaceEpoch = 1,
             },
-        }, context, CancellationToken.None);
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Conflict);
-        result.Error!.Code.Should().Be("SnapshotMismatch");
+        result.Should().BeEquivalentTo(expected);
     }
 
     [Fact]
-    public async Task GIVEN_ResolvedLocationAndDiagnosticsRequested_WHEN_CallingExecute_THEN_ShouldReturnContextAndDiagnostics()
+    public async Task GIVEN_LocationSelectorIsMissing_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequestResult()
     {
-        using var workspace = MiniWorkspaceFactory.CreateCSharp("""
-            namespace Sample;
+        var target = new GetCodeContextTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
 
-            public sealed class GreetingFormatter
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ValidateSnapshot<CodeContextData>(
+                queryContextMocks.QueryContext.Object,
+                It.IsAny<SnapshotPrecondition?>()))
+            .Returns((PluginExecutionResult<CodeContextData>?)null);
+
+        var result = await target.ExecuteAsync(new GetCodeContextRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new ToolError
+        {
+            Code = "InvalidRequest",
+            Message = "A location selector is required.",
+        });
+    }
+
+    [Fact]
+    public async Task GIVEN_ResolveLocationReturnsNotFound_WHEN_CallingExecuteAsync_THEN_ShouldReturnLocationNotFoundResult()
+    {
+        var target = new GetCodeContextTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ValidateSnapshot<CodeContextData>(
+                queryContextMocks.QueryContext.Object,
+                It.IsAny<SnapshotPrecondition?>()))
+            .Returns((PluginExecutionResult<CodeContextData>?)null);
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(SelectorResolveResult<Location>.NotFound());
+
+        var result = await target.ExecuteAsync(new GetCodeContextRequest
+        {
+            Location = new LocationSelector(),
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Error!.Code.Should().Be("LocationNotFound");
+    }
+
+    [Fact]
+    public async Task GIVEN_ResolvedLocationDoesNotProduceSourceDocument_WHEN_CallingExecuteAsync_THEN_ShouldReturnLocationNotFoundResult()
+    {
+        using var document = RoslynTestFactory.CreateDocument("""
+            class Formatter
             {
-                public string Format(string value)
+                void Run()
+                {
+                }
+            }
+            """);
+        using var emptyWorkspace = new AdhocWorkspace();
+
+        var target = new GetCodeContextTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var location = document.GetSingleNodeLocation<MethodDeclarationSyntax>(item => item.Identifier.ValueText == "Run");
+
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(emptyWorkspace.CurrentSolution);
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ValidateSnapshot<CodeContextData>(
+                queryContextMocks.QueryContext.Object,
+                It.IsAny<SnapshotPrecondition?>()))
+            .Returns((PluginExecutionResult<CodeContextData>?)null);
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
+            .Returns(SelectorTestFactory.CreateResolvedLocation("Code.cs", 0, 1));
+
+        var result = await target.ExecuteAsync(new GetCodeContextRequest
+        {
+            Location = new LocationSelector(),
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Error!.Code.Should().Be("LocationNotFound");
+        result.RequiredAction.Should().Be(RequiredAction.ResolveTargetAgain);
+    }
+
+    [Fact]
+    public async Task GIVEN_ResolvedLocationDoesNotProvideResolvedPath_WHEN_CallingExecuteAsync_THEN_ShouldReturnLocationNotFoundResult()
+    {
+        using var document = RoslynTestFactory.CreateDocument("""
+            class Formatter
+            {
+                void Run()
+                {
+                }
+            }
+            """);
+
+        var target = new GetCodeContextTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var location = document.GetSingleNodeLocation<MethodDeclarationSyntax>(item => item.Identifier.ValueText == "Run");
+
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(document.Solution);
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ValidateSnapshot<CodeContextData>(
+                queryContextMocks.QueryContext.Object,
+                It.IsAny<SnapshotPrecondition?>()))
+            .Returns((PluginExecutionResult<CodeContextData>?)null);
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
+            .Returns(new ResolvedLocation());
+
+        var result = await target.ExecuteAsync(new GetCodeContextRequest
+        {
+            Location = new LocationSelector(),
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Error!.Code.Should().Be("LocationNotFound");
+    }
+
+    [Fact]
+    public async Task GIVEN_IncludeEnclosingSymbolsAndDiagnosticsAreFalse_WHEN_CallingExecuteAsync_THEN_ShouldReturnRequestedCodeWindowOnly()
+    {
+        using var document = RoslynTestFactory.CreateDocument("""
+            class Formatter
+            {
+                void Run()
+                {
+                    var value = 1;
+                    value++;
+                    value--;
+                }
+            }
+            """);
+
+        var target = new GetCodeContextTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var location = await RoslynDocumentTestHelper.GetSingleNodeLocationAsync(
+            document.Document,
+            static (LocalDeclarationStatementSyntax item) => item.ToString().Contains("var value = 1;", StringComparison.Ordinal),
+            TestContext.Current.CancellationToken);
+
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(document.Solution);
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ValidateSnapshot<CodeContextData>(
+                queryContextMocks.QueryContext.Object,
+                It.IsAny<SnapshotPrecondition?>()))
+            .Returns((PluginExecutionResult<CodeContextData>?)null);
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
+            .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, "Code.cs"));
+
+        var result = await target.ExecuteAsync(new GetCodeContextRequest
+        {
+            Location = new LocationSelector(),
+            BeforeLines = -2,
+            AfterLines = -1,
+            IncludeDiagnostics = false,
+            IncludeEnclosingSymbols = false,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Data!.EnclosingSymbols.Should().BeEmpty();
+        result.Data.Diagnostics.Should().BeEmpty();
+        result.Data.Text.Should().Contain("var value = 1;");
+    }
+
+    [Fact]
+    public async Task GIVEN_IncludeEnclosingSymbolsAndDiagnosticsAreTrue_WHEN_CallingExecuteAsync_THEN_ShouldReturnDistinctDiagnosticsAndEnclosingSymbols()
+    {
+        using var document = RoslynTestFactory.CreateDocument("""
+            class Formatter
+            {
+                string Run(string value)
                 {
                     var unused = 42;
                     return value.Trim();
                 }
             }
             """);
-        var workspaceIdentity = workspace.CreateWorkspaceIdentity();
-        var resolver = workspace.CreateResolver(workspaceIdentity);
-        var context = new QueryContextBuilder()
-            .WithCurrentSolution(workspace.Solution)
-            .WithResolver(resolver)
-            .WithWorkspaceIdentity(workspaceIdentity)
-            .Build();
+
         var target = new GetCodeContextTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var location = await RoslynDocumentTestHelper.GetSingleNodeLocationAsync(
+            document.Document,
+            static (LocalDeclarationStatementSyntax item) => item.ToString().Contains("unused", StringComparison.Ordinal),
+            TestContext.Current.CancellationToken);
+
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(document.Solution);
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ValidateSnapshot<CodeContextData>(
+                queryContextMocks.QueryContext.Object,
+                It.IsAny<SnapshotPrecondition?>()))
+            .Returns((PluginExecutionResult<CodeContextData>?)null);
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
+            .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, "Code.cs"));
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(item => new SymbolReference
+            {
+                DisplayName = item.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat),
+                Kind = item.Kind.ToString(),
+                DocumentationCommentId = item.GetDocumentationCommentId(),
+            });
 
         var result = await target.ExecuteAsync(new GetCodeContextRequest
         {
-            Location = workspace.GetLocationSelector("var unused = 42;"),
+            Location = new LocationSelector(),
             IncludeDiagnostics = true,
             IncludeEnclosingSymbols = true,
-            ExpectedSnapshot = new SnapshotPrecondition
-            {
-                WorkspaceEpoch = workspaceIdentity.WorkspaceEpoch,
-            },
-        }, context, CancellationToken.None);
+            BeforeLines = 1,
+            AfterLines = 1,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
         result.Data!.Text.Should().Contain("var unused = 42;");
-        result.Data.Diagnostics.Should().Contain(static diagnostic => diagnostic.Id == "CS0219");
-        result.Data.EnclosingSymbols.Should().Contain(static symbol => symbol.DisplayName.Contains("GreetingFormatter.Format", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public async Task GIVEN_LowDefaultMaxResults_WHEN_CallingExecute_THEN_ShouldNotAffectSingletonResponse()
-    {
-        using var workspace = MiniWorkspaceFactory.CreateCSharp("""
-            namespace Sample;
-
-            public sealed class GreetingFormatter
-            {
-                public string Format(string value)
-                {
-                    var unused = 42;
-                    return value.Trim();
-                }
-            }
-            """);
-        var workspaceIdentity = workspace.CreateWorkspaceIdentity();
-        var resolver = workspace.CreateResolver(workspaceIdentity);
-        var context = new QueryContextBuilder()
-            .WithCurrentSolution(workspace.Solution)
-            .WithResolver(resolver)
-            .WithWorkspaceIdentity(workspaceIdentity)
-            .WithDefaultMaxResults(1)
-            .Build();
-        var target = new GetCodeContextTool();
-
-        var result = await target.ExecuteAsync(new GetCodeContextRequest
-        {
-            Location = workspace.GetLocationSelector("var unused = 42;"),
-            ExpectedSnapshot = new SnapshotPrecondition
-            {
-                WorkspaceEpoch = workspaceIdentity.WorkspaceEpoch,
-            },
-        }, context, CancellationToken.None);
-
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.Data.Should().NotBeNull();
+        result.Data.EnclosingSymbols.Select(item => item.DisplayName).Should().Contain("Formatter.Run(string)");
+        result.Data.EnclosingSymbols.Select(item => item.DisplayName).Should().Contain("Formatter");
+        result.Data.Diagnostics.Select(item => item.Id).Should().Contain("CS0219");
     }
 }

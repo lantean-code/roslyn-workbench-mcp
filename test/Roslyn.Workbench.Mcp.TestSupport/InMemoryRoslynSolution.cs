@@ -89,14 +89,10 @@ public sealed class InMemoryRoslynSolution : IDisposable
         ArgumentNullException.ThrowIfNull(predicate);
 
         var document = GetDocument(documentName, projectName);
-        var syntaxRoot = document.GetSyntaxRootAsync().GetAwaiter().GetResult()
-            ?? throw new InvalidOperationException($"The syntax root for '{document.Name}' could not be resolved.");
-        var node = syntaxRoot
-            .DescendantNodes()
-            .OfType<TNode>()
-            .Single(predicate);
-
-        return node.GetLocation();
+        return RoslynDocumentTestHelper
+            .GetSingleNodeLocationAsync(document, predicate, CancellationToken.None)
+            .GetAwaiter()
+            .GetResult();
     }
 
     /// <summary>

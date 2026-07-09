@@ -1,7 +1,7 @@
 namespace Roslyn.Workbench.Mcp.TestSupport;
 
 /// <summary>
-/// Defines one in-memory Roslyn document to be created by <see cref="InMemoryRoslynFactory"/>.
+/// Defines one in-memory Roslyn document to be created by <see cref="RoslynTestFactory"/>.
 /// </summary>
 public sealed record InMemoryRoslynDocumentDefinition
 {

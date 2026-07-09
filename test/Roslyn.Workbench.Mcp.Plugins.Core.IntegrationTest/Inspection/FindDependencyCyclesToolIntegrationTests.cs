@@ -1,7 +1,7 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 
 [Trait("Category", "Integration")]
-public sealed class FindDependencyCyclesToolTests
+public sealed class FindDependencyCyclesToolIntegrationTests
 {
     [Fact]
     public async Task GIVEN_InspectionWorkspace_WHEN_ExecutingTool_THEN_ShouldReturnCycles()

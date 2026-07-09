@@ -28,6 +28,8 @@
 - Unit tests may use small factory methods that return configured `Mock<T>` instances or wire visible mocks together, for example creating a `Mock<IQueryContext>` from class-level mocks.
 - Avoid test harnesses, builders, or helper layers in unit tests unless their sole purpose is to provide repeatable Moq-based objects without obscuring the dependency setup under test.
 - Unit tests should prefer Moq over hand-written fakes or stubs. If Moq cannot reach the behaviour and a fake seems necessary, stop and assess whether the production seam is wrong before introducing a fake.
+- If a helper creates reusable non-mock test data or Roslyn-owned objects and is likely to be needed by more than one test class, move it into `Roslyn.Workbench.Mcp.TestSupport` instead of leaving it as a local helper inside one test class.
+- Keep the split explicit: shared helpers may create Roslyn data objects or repeatable mock graphs, but scenario-specific `Setup(...)`, `Verify(...)`, assertions, and branch-specific configuration stay in the test class.
 
 ## Tool unit tests
 - Tool unit tests are the default for query and mutation tools. They belong in the normal `*.Test` project, not the integration test project.
@@ -43,6 +45,7 @@
 - Moq remains the default. Use real in-memory Roslyn objects only when the behaviour under test depends on Roslyn syntax, semantic model, compilation, symbol search, or solution graph behaviour that Moq cannot represent faithfully.
 - Real Roslyn helpers must be dedicated to creating Roslyn objects only. They must not become general tool harnesses or hide test scenario setup.
 - Prefer factory-based creation for real Roslyn test objects. A single factory may create multiple narrow result shapes, for example a document-scoped object and a solution-scoped object.
+- Reusable Roslyn creation helpers such as diagnostic factories, location factories, symbol-reference factories, or document/solution factories belong in shared test support rather than individual tool test classes.
 - Keep Roslyn helper shapes narrow and purpose-specific:
   - document-scoped helpers for single-document syntax or semantic scenarios
   - solution-scoped helpers for multi-document, multi-project, or project-reference scenarios
@@ -59,6 +62,11 @@
 
 ## Coverage and access
 - Tests must cover 100% of the lines and branches of the implementation under test unless the user explicitly relaxes that rule.
+- Approved exception: defensive null-guard branches that protect Roslyn-owned APIs may remain below 100% when all of the following are true:
+  - the branch cannot be reached through the real public execution flow of the tool
+  - covering it would require artificial fake or stub Roslyn runtime objects, reflection, or test-only seams
+  - removing the guard would increase production risk by replacing defensive handling with a possible `NullReferenceException`
+  - the specific gap is documented in the active audit or inventory document
 - Never use reflection to invoke implementation code. Cover private or protected methods through normal execution flow only.
 - If code cannot be reached via public methods or supported internal seams, consider asking to refactor.
 - Do not add test-only hooks or methods to production code. If coverage gaps exist, ask for a refactor to expose the behaviour through normal flows.

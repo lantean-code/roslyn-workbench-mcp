@@ -1,7 +1,7 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 
 [Trait("Category", "Integration")]
-public sealed class FindCalleesToolTests
+public sealed class FindCalleesToolIntegrationTests
 {
     [Fact]
     public async Task GIVEN_InspectionWorkspace_WHEN_ExecutingTool_THEN_ShouldReturnCallees()

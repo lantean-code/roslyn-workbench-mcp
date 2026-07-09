@@ -1,7 +1,7 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 
 [Trait("Category", "Integration")]
-public sealed class AnalyzeDisposablesToolTests
+public sealed class AnalyzeDisposablesToolIntegrationTests
 {
     [Fact]
     public async Task GIVEN_InspectionWorkspace_WHEN_ExecutingTool_THEN_ShouldReturnDisposableFindings()

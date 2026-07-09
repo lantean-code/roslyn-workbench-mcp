@@ -20,7 +20,6 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
 
     protected override async ValueTask<PluginExecutionResult<CalleeSearchData>> ExecuteCoreAsync(FindCalleesRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-
         if (request.Symbol is null == request.Location is null)
         {
             return ToolExecutionHelpers.Rejected<CalleeSearchData>("InvalidRequest", "Specify exactly one of symbol or location.");
@@ -191,7 +190,7 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
         return null;
     }
 
-    private static SyntaxNode? GetExecutableNode(SyntaxNode node)
+    private static CSharpSyntaxNode? GetExecutableNode(SyntaxNode node)
     {
         return node switch
         {

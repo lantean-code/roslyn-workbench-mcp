@@ -3,9 +3,9 @@ using System.Collections.Immutable;
 namespace Roslyn.Workbench.Mcp.TestSupport;
 
 /// <summary>
-/// Creates narrow in-memory Roslyn objects for unit tests that require real workspace state.
+/// Creates reusable Roslyn-owned test objects for unit tests that require real in-memory Roslyn state.
 /// </summary>
-public static class InMemoryRoslynFactory
+public static class RoslynTestFactory
 {
     /// <summary>
     /// Creates a single-document in-memory C# Roslyn model.
@@ -117,6 +117,26 @@ public static class InMemoryRoslynFactory
             workspace,
             workspace.CurrentSolution,
             projectIdsByName.ToImmutableDictionary(StringComparer.Ordinal));
+    }
+
+    /// <summary>
+    /// Creates a diagnostic at the supplied span within a syntax tree.
+    /// </summary>
+    /// <param name="id">The diagnostic identifier.</param>
+    /// <param name="syntaxTree">The syntax tree that owns the target span.</param>
+    /// <param name="start">The start position within the syntax tree.</param>
+    /// <param name="length">The diagnostic span length.</param>
+    /// <returns>The created diagnostic.</returns>
+    public static Diagnostic CreateDiagnostic(string id, SyntaxTree syntaxTree, int start, int length)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        ArgumentNullException.ThrowIfNull(syntaxTree);
+        ArgumentOutOfRangeException.ThrowIfNegative(start);
+        ArgumentOutOfRangeException.ThrowIfNegative(length);
+
+        return Diagnostic.Create(
+            new DiagnosticDescriptor(id, id, "Message", "Category", Microsoft.CodeAnalysis.DiagnosticSeverity.Warning, isEnabledByDefault: true),
+            syntaxTree.GetLocation(new TextSpan(start, length)));
     }
 
     private static void ValidateProjectDefinition(InMemoryRoslynProjectDefinition project)

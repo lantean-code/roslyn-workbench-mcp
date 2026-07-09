@@ -52,20 +52,8 @@ public sealed class ToolExecutionHelpersTests
     [Fact]
     public void GIVEN_ResolvedLocation_WHEN_CreatingLocationSelector_THEN_ShouldPreserveDocumentIdentity()
     {
-        var selector = ToolExecutionHelpers.CreateLocationSelector(new ResolvedLocation
-        {
-            Document = new DocumentReference
-            {
-                DocumentId = "DocumentId",
-                Path = "Shared/SharedClass.cs",
-                ProjectId = "ProjectId",
-            },
-            Span = new TextSpanRange
-            {
-                Start = 10,
-                Length = 5,
-            },
-        });
+        var selector = ToolExecutionHelpers.CreateLocationSelector(
+            SelectorTestFactory.CreateResolvedLocation("Shared/SharedClass.cs", 10, 5));
 
         selector.Should().NotBeNull();
         selector!.Span.Should().NotBeNull();
@@ -77,20 +65,8 @@ public sealed class ToolExecutionHelpersTests
     [Fact]
     public void GIVEN_ResolvedLocation_WHEN_CreatingLocationSymbolSelector_THEN_ShouldPreserveDocumentIdentity()
     {
-        var selector = ToolExecutionHelpers.CreateLocationSymbolSelector(new ResolvedLocation
-        {
-            Document = new DocumentReference
-            {
-                DocumentId = "DocumentId",
-                Path = "Shared/SharedClass.cs",
-                ProjectId = "ProjectId",
-            },
-            Span = new TextSpanRange
-            {
-                Start = 10,
-                Length = 5,
-            },
-        });
+        var selector = ToolExecutionHelpers.CreateLocationSymbolSelector(
+            SelectorTestFactory.CreateResolvedLocation("Shared/SharedClass.cs", 10, 5));
 
         selector.Should().NotBeNull();
         selector!.Location.Should().NotBeNull();

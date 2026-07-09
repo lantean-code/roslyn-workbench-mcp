@@ -4,16 +4,18 @@ Checkbox key: `[ ]` not started, `[-]` partial, `[x]` complete.
 
 ## Inspection Tools
 
+Coverage note: `FindCalleesTool` is marked complete for this sweep with an approved exception for defensive Roslyn null-guard branches that are not reachable through the real public tool flow. Those guards remain to reduce production risk.
+
 | Done | Tool Class | Unit Test | Integration Test |
 | --- | --- | --- | --- |
-| [ ] | AnalyzeAsyncTool | AnalyzeAsyncToolTests | AnalyzeAsyncToolIntegrationTests |
-| [ ] | AnalyzeControlFlowTool | AnalyzeControlFlowToolTests | AnalyzeControlFlowToolIntegrationTests |
-| [ ] | AnalyzeDataFlowTool | AnalyzeDataFlowToolTests | AnalyzeDataFlowToolIntegrationTests |
-| [ ] | AnalyzeDisposablesTool | AnalyzeDisposablesToolTests | AnalyzeDisposablesToolIntegrationTests |
-| [ ] | AnalyzeNullabilityTool | AnalyzeNullabilityToolTests | AnalyzeNullabilityToolIntegrationTests |
-| [ ] | FindCalleesTool | FindCalleesToolTests | FindCalleesToolIntegrationTests |
-| [ ] | FindCallersTool | FindCallersToolTests | FindCallersToolIntegrationTests |
-| [ ] | FindDependencyCyclesTool | FindDependencyCyclesToolTests | FindDependencyCyclesToolIntegrationTests |
+| [x] | AnalyzeAsyncTool | AnalyzeAsyncToolTests | AnalyzeAsyncToolIntegrationTests |
+| [x] | AnalyzeControlFlowTool | AnalyzeControlFlowToolTests | AnalyzeControlFlowToolIntegrationTests |
+| [x] | AnalyzeDataFlowTool | AnalyzeDataFlowToolTests | AnalyzeDataFlowToolIntegrationTests |
+| [x] | AnalyzeDisposablesTool | AnalyzeDisposablesToolTests | AnalyzeDisposablesToolIntegrationTests |
+| [x] | AnalyzeNullabilityTool | AnalyzeNullabilityToolTests | AnalyzeNullabilityToolIntegrationTests |
+| [x] | FindCalleesTool | FindCalleesToolTests | FindCalleesToolIntegrationTests |
+| [x] | FindCallersTool | FindCallersToolTests | FindCallersToolIntegrationTests |
+| [x] | FindDependencyCyclesTool | FindDependencyCyclesToolTests | FindDependencyCyclesToolIntegrationTests |
 | [ ] | FindDerivedTypesTool | FindDerivedTypesToolTests | FindDerivedTypesToolIntegrationTests |
 | [ ] | FindDuplicateCodeTool | FindDuplicateCodeToolTests | FindDuplicateCodeToolIntegrationTests |
 | [ ] | FindImplementationsTool | FindImplementationsToolTests | FindImplementationsToolIntegrationTests |

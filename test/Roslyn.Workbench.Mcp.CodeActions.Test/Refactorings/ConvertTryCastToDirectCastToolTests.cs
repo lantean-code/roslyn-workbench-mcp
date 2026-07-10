@@ -15,7 +15,7 @@ public sealed class ConvertTryCastToDirectCastToolTests
                 && metadata.Title == "Convert Try Cast To Direct Cast"
                 && metadata.Description == "Converts a supported as-expression to a cast expression through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
     }
 
     [Fact]

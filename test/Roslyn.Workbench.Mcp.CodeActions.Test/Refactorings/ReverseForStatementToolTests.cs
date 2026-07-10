@@ -15,7 +15,7 @@ public sealed class ReverseForStatementToolTests
                 && metadata.Title == "Reverse For Statement"
                 && metadata.Description == "Reverses a supported for-statement loop through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
     }
 
     [Fact]

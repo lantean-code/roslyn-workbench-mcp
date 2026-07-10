@@ -4,7 +4,7 @@ Date: 2026-07-10
 
 ## Purpose
 
-This document records the test architecture after phases 1-6 of `IntegrationTestReorganisationPlan.md` and the subsequent boundary-remediation pass. It is the current description of project ownership, execution categories and remaining gaps.
+This document records the test architecture after phases 1-6 of `IntegrationTestReorganisationPlan.md` and the subsequent production-boundary refactor. It is the current description of project ownership, execution categories and remaining gaps. Policy and test-layer rules are defined in `TestingStrategy.md`.
 
 This document supersedes the structural conclusions in `test-project-audit-2026-07-07.md`. Tool-level ownership and known partial branches are recorded in `Tool Test Inventory.md`.
 
@@ -21,21 +21,23 @@ The current structure provides:
 - mock-isolated host service and tool tests, with host composition and persistence checks at the integration boundary
 - production code with no knowledge of controlled test-provider identities
 - deterministic plugin-discovery fixtures in dedicated assemblies
+- separate typed Plugin and Code Action catalogues, contexts and Host transport paths
+- contract tests colocated with the production assembly that owns each contract family
 - independent CI gates for fast, integration and compatibility-audit coverage
 
-The boundary-refactored suite discovers 837 tests: 666 unit/contract tests, 78 integration tests and 93 audit tests. All pass in the current workspace.
+The boundary-refactored suite discovers 1,150 tests: 979 unit/contract tests, 78 integration tests and 93 audit tests. All pass in the current workspace.
 
-One medium-priority evidence gap remains intentionally open: the seventeen-test Workspace unit project does not yet demonstrate broad unit-level branch coverage for the Workspace production assembly. This will be addressed in a separate round and is not masked by the 42 Workspace integration tests.
+Two evidence gaps remain open: the 190-test Workspace unit project now covers the principal pure selection, state, operation, execution-context and transaction primitives but has not yet completed proposal-validation, diff and lifecycle orchestration coverage, and the intended production dependency graph is verified manually rather than by an automated architecture check. Neither is masked by integration coverage.
 
 ## Current Project Topology
 
 | Project | Category | Responsibility | Tests |
 | --- | --- | --- | ---: |
 | `Roslyn.Workbench.Mcp.Plugins.Test` | Unit/Contract | Typed plugin registration, context adaptation, execution results and public surface | 26 |
-| `Roslyn.Workbench.Mcp.Workspace.Test` | Unit/Contract | Workspace-owned selectors, validation and execution-boundary primitives | 17 |
+| `Roslyn.Workbench.Mcp.Workspace.Test` | Unit/Contract | Workspace-owned selectors, validation and execution-boundary primitives | 190 |
 | `Roslyn.Workbench.Mcp.Plugins.Core.Test` | Unit | Bundled inspection and normal-refactoring branches | 308 |
 | `Roslyn.Workbench.Mcp.CodeActions.Test` | Unit | Code-action services, workflows, catalogues and tools | 238 |
-| `Roslyn.Workbench.Mcp.Test` | Unit/Contract | Host services, MCP schemas/envelopes, typed transport adapters and relocated Host contracts | 77 |
+| `Roslyn.Workbench.Mcp.Test` | Unit/Contract | Host services, MCP schemas/envelopes, typed transport adapters and relocated Host contracts | 217 |
 | `Roslyn.Workbench.Mcp.Workspace.IntegrationTest` | Integration | MSBuild, workspace lifecycle, selection and transaction persistence | 42 |
 | `Roslyn.Workbench.Mcp.Plugins.Core.IntegrationTest` | Integration | Capability-focused real-workspace inspection and mutation | 14 |
 | `Roslyn.Workbench.Mcp.CodeActions.IntegrationTest` | Integration | Controlled-provider workflows, tokens, fix-all and representative built-in staging | 10 |
@@ -64,7 +66,7 @@ The fast-loop filter is:
 Category!=Integration&Category!=Audit
 ```
 
-It selects 666 tests and no test from an `*.IntegrationTest` or `*.AuditTest` assembly.
+It selects 682 tests and no test from an `*.IntegrationTest` or `*.AuditTest` assembly.
 
 ### Support dependency direction
 
@@ -81,7 +83,13 @@ Integration support constructs the Workspace, plugin and internal Code Action pa
 
 ### Reflection policy
 
-Reflection is limited to explicit `Category=Contract` surface or metadata locks. Runtime behaviour remains in normal unit tests. The plugin execution-context shape assertion now lives in `PluginSurfaceShapeTests`, and the conditional-nullability metadata lock is explicitly categorised as a contract.
+Reflection is limited to explicit `Category=Contract` locks for deliberate public plugin surface or protocol metadata. Runtime behaviour and internal execution-context capability boundaries remain normal behavioural tests. Reflection must not invoke implementation code or preserve an internal runtime shape merely because an older test asserted it.
+
+### Production ownership and execution paths
+
+The former Contracts assembly and test project no longer exist. Workspace owns its domain and selection contracts, Plugins.Core owns inspection contracts, CodeActions owns Code Action/refactoring contracts, Plugins owns plugin contracts and Host owns MCP/lifecycle contracts. Their tests now live in the corresponding owning unit project.
+
+Plugin query, plugin mutation, Code Action query and Code Action mutation are separate closed generic Host adapter paths. Plugins and CodeActions each test their typed catalogue and Workspace context adaptation. Host owns the MCP binding, schema, cancellation, exception and publication behaviour for all four paths.
 
 ## Integration Organisation
 
@@ -120,7 +128,7 @@ The controlled providers now use the `Roslyn.Workbench.Mcp.IntegrationTestSuppor
 
 The complete source disposition, scenario inventory and proposed delivery phases are recorded in `WorkspaceUnitTestInventory.md`.
 
-`Roslyn.Workbench.Mcp.Workspace` contains 71 C# source files. Its unit project currently contains four replacement tests for `WorkspaceSelectionResult`; the remaining work is tracked in `WorkspaceUnitTestInventory.md`.
+`Roslyn.Workbench.Mcp.Workspace` contains 113 C# source files after taking ownership of the Workspace contract families. Its unit project currently contains 17 tests across selector validation, `WorkspaceSelectionResult` and execution-lease boundaries; the remaining work is tracked in `WorkspaceUnitTestInventory.md`.
 
 The Workspace integration project has 42 useful boundary tests, but these do not replace focused branch coverage of independently testable services. There is no current post-reorganisation assembly-level coverage report proving the repository's stated line and branch objectives.
 
@@ -164,7 +172,23 @@ The audit runs on every configured trigger. This is deliberately stricter than t
 
 ## Areas Still Lacking
 
-The deferred Workspace unit-coverage evidence is the only unresolved architecture finding from this re-audit.
+### Medium: Workspace unit coverage is not evidenced
+
+The deferred Workspace unit-coverage evidence remains open and is intentionally handled as a separate programme.
+
+### Resolved: all four Host adapters have focused unit evidence
+
+The obsolete `ToolExecutorTests` class has been removed. Dedicated closed-generic tests now cover Plugin query, Plugin mutation, Code Action query and Code Action mutation transport paths. Each adapter has measured 100% line and branch coverage for typed request binding, acquisition rejection, handler outcomes, publication, malformed input, cancellation, exceptions and lease disposal; both mutation adapters additionally cover separate staging and staging failures.
+
+The Code Action handler bases now implement narrow query and mutation interfaces, matching the interface-based substitution seam used by plugins. Host adapters depend on those interfaces, so their tests do not require subclasses, runtime casts or reflection.
+
+### Documented Host coverage boundaries
+
+Process entry, static MSBuild registration, plugin assembly discovery, persisted recovery I/O and complete DI composition remain integration-test responsibilities. Defensive assembly-version fallbacks and schema-exporter compatibility branches that cannot be produced by loaded assemblies or the current MCP SDK are documented rather than reached through reflection or artificial production hooks.
+
+### Low: architecture dependency enforcement is documented but not automated
+
+The project references have been manually verified against the intended graph, but there is no dedicated build-time architecture test that rejects a future Workspace-to-Plugins/CodeActions reference, a CodeActions-to-Plugins reference or MCP SDK usage outside Host. Prefer an MSBuild/project-reference check over reflection-based assembly shape tests.
 
 Separate tool-level partial branches remain documented in `Tool Test Inventory.md`. They are coverage follow-up items, not project-boundary errors. They should be evaluated with measured coverage and explicit unreachable-branch decisions.
 
@@ -181,8 +205,8 @@ dotnet test --no-restore --artifacts-path=/tmp/artifacts/roslyn-workbench-mcp
 Results:
 
 - build: 0 warnings, 0 errors
-- unit/contract projects: 666 passed
+- unit/contract projects: 979 passed
 - integration projects: 78 passed
 - code-action audit: 93 passed
-- full suite: 837 passed
+- full suite: 1,150 passed
 - changed CRLF-governed files normalised to CRLF

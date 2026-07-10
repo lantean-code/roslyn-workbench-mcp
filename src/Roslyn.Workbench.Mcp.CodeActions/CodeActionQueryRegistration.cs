@@ -5,7 +5,7 @@ internal sealed class CodeActionQueryRegistration<TRequest, TResponse> : IRegist
 {
     public CodeActionQueryRegistration(
         CodeActionToolMetadata metadata,
-        CodeActionQueryToolHandler<TRequest, TResponse> handler)
+        ICodeActionQueryToolHandler<TRequest, TResponse> handler)
     {
         Metadata = metadata;
         Handler = handler;
@@ -19,7 +19,7 @@ internal sealed class CodeActionQueryRegistration<TRequest, TResponse> : IRegist
 
     public Type ResponseType => typeof(TResponse);
 
-    public CodeActionQueryToolHandler<TRequest, TResponse> Handler { get; }
+    public ICodeActionQueryToolHandler<TRequest, TResponse> Handler { get; }
 
     public TResult Accept<TResult>(ICodeActionToolRegistrationVisitor<TResult> visitor)
     {

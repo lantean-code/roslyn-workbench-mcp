@@ -15,7 +15,7 @@ public sealed class InvertLogicalToolTests
                 && metadata.Title == "Invert Logical"
                 && metadata.Description == "Inverts a supported logical expression through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
     }
 
     [Fact]

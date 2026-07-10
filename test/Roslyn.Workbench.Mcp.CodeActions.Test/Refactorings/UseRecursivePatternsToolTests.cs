@@ -15,7 +15,7 @@ public sealed class UseRecursivePatternsToolTests
                 && metadata.Title == "Use Recursive Patterns"
                 && metadata.Description == "Converts a supported pattern expression to recursive patterns through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
     }
 
     [Fact]

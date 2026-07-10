@@ -14,7 +14,7 @@ public sealed class DescribeCodeActionToolTests
                 metadata.Name == "describe-code-action"
                 && metadata.Title == "Describe Code Action"
                 && metadata.Description == "Revalidates one discovered code action and returns its execution descriptor and preflight context."),
-            It.IsAny<CodeActionQueryToolHandler<DescribeCodeActionRequest, DescribeCodeActionData>>()), Times.Once);
+            It.IsAny<ICodeActionQueryToolHandler<DescribeCodeActionRequest, DescribeCodeActionData>>()), Times.Once);
     }
 
     [Fact]

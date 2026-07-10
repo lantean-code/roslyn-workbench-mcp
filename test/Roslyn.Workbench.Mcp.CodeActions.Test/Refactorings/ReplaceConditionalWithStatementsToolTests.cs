@@ -15,7 +15,7 @@ public sealed class ReplaceConditionalWithStatementsToolTests
                 && metadata.Title == "Replace Conditional With Statements"
                 && metadata.Description == "Rewrites a supported conditional expression into statements through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
     }
 
     [Fact]

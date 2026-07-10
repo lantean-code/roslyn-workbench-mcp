@@ -15,7 +15,7 @@ public sealed class AddMissingUsingsToolTests
                 && metadata.Title == "Add Missing Usings"
                 && metadata.Description == "Adds missing using directives across a selected scope through Roslyn code-fix composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<AddMissingUsingsRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<AddMissingUsingsRequest>>()), Times.Once);
     }
 
     [Fact]

@@ -5,12 +5,12 @@ namespace Roslyn.Workbench.Mcp.ToolExecution.CodeActions;
 internal sealed class CodeActionQueryMcpServerTool<TRequest, TResponse> : McpServerToolBase
     where TRequest : WorkspaceBoundRequest
 {
-    private readonly CodeActionQueryToolHandler<TRequest, TResponse> _handler;
+    private readonly ICodeActionQueryToolHandler<TRequest, TResponse> _handler;
     private readonly ICodeActionExecutionContextFactory _contextFactory;
 
     public CodeActionQueryMcpServerTool(
         Tool protocolTool,
-        CodeActionQueryToolHandler<TRequest, TResponse> handler,
+        ICodeActionQueryToolHandler<TRequest, TResponse> handler,
         ICodeActionExecutionContextFactory contextFactory)
         : base(protocolTool)
     {

@@ -15,7 +15,7 @@ public sealed class ConvertForToForeachToolTests
                 && metadata.Title == "Convert For To Foreach"
                 && metadata.Description == "Converts a supported for loop to a foreach loop through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
     }
 
     [Fact]

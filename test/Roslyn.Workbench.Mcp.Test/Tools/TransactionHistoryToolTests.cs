@@ -1,0 +1,56 @@
+using System.Text.Json;
+
+using Microsoft.Extensions.Options;
+
+using Roslyn.Workbench.Mcp.Tools;
+
+namespace Roslyn.Workbench.Mcp.Test.Tools;
+
+public sealed class TransactionHistoryToolTests
+{
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task GIVEN_OptionalWorkspace_WHEN_MovingHistory_THEN_ShouldRouteAndMapResult(bool includeWorkspace)
+    {
+        var service = new Mock<ITransactionService>();
+        service
+            .Setup(item => item.MoveHistoryAsync(
+                ServerOwnedToolTestData.GetWorkspaceId(includeWorkspace),
+                ServerOwnedToolTestData.GetWorkspaceAlias(includeWorkspace),
+                ServerOwnedToolTestData.GetWorkspacePath(includeWorkspace),
+                TransactionHistoryDirection.Undo,
+                null,
+                CancellationToken.None))
+            .ReturnsAsync(new WorkspaceOperationResult<TransactionHistoryOutcome>
+            {
+                Status = WorkspaceOperationStatus.Succeeded,
+                Data = new TransactionHistoryOutcome
+                {
+                    Transaction = new TransactionInfo
+                    {
+                        Revision = 3,
+                    },
+                },
+            });
+        var target = new TransactionHistoryTool(Options.Create(new StartupOptions()), service.Object);
+        var arguments = ServerOwnedToolTestData.CreateWorkspaceArguments(includeWorkspace);
+        arguments["direction"] = JsonSerializer.SerializeToElement(TransactionHistoryDirection.Undo);
+
+        var result = await ServerOwnedToolTestSupport.InvokeAsync(
+            target,
+            "transaction-history",
+            arguments,
+            CancellationToken.None);
+
+        result.IsError.Should().BeFalse();
+        result.StructuredContent!.Value.GetProperty("transaction").GetProperty("revision").GetInt32().Should().Be(3);
+        service.Verify(item => item.MoveHistoryAsync(
+            ServerOwnedToolTestData.GetWorkspaceId(includeWorkspace),
+            ServerOwnedToolTestData.GetWorkspaceAlias(includeWorkspace),
+            ServerOwnedToolTestData.GetWorkspacePath(includeWorkspace),
+            TransactionHistoryDirection.Undo,
+            null,
+            CancellationToken.None), Times.Once);
+    }
+}

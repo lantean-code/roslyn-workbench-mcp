@@ -15,7 +15,7 @@ public sealed class RemoveUnusedUsingsToolTests
                 && metadata.Title == "Remove Unused Usings"
                 && metadata.Description == "Removes unused using directives across a selected scope through Roslyn code-fix composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<RemoveUnusedUsingsRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<RemoveUnusedUsingsRequest>>()), Times.Once);
     }
 
     [Fact]

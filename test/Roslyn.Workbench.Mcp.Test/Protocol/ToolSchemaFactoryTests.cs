@@ -1,8 +1,9 @@
 using System.Text.Json;
 
+using Roslyn.Workbench.Mcp.Protocol.Results;
 using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
 
-namespace Roslyn.Workbench.Mcp.Test.ToolExecution;
+namespace Roslyn.Workbench.Mcp.Test.Protocol;
 
 public sealed class ToolSchemaFactoryTests
 {
@@ -37,6 +38,29 @@ public sealed class ToolSchemaFactoryTests
         successVariant.GetProperty("properties").TryGetProperty("transaction", out _).Should().BeTrue();
         successVariant.GetRawText().Should().NotContain("changes");
         successVariant.GetRawText().Should().NotContain("preview");
+    }
+
+    [Fact]
+    public void GIVEN_NullResponseType_WHEN_CreatingOutputSchema_THEN_ShouldThrowArgumentNullException()
+    {
+        var action = () => ToolSchemaFactory.CreateOutputSchema(PublishedToolKind.Query, null!);
+
+        action.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void GIVEN_ToolResultSchema_WHEN_Creating_THEN_ShouldPublishEveryOutcomeVariant()
+    {
+        var schema = ToolSchemaFactory.CreateToolResultSchema<TestResponse>();
+
+        var outcomes = schema.GetProperty("oneOf")
+            .EnumerateArray()
+            .Select(variant => variant.GetProperty("properties").GetProperty("outcome").GetProperty("const").GetString())
+            .ToArray();
+        outcomes.Should().Equal("Succeeded", "NoChange", "Rejected", "Conflict", "Faulted");
+        schema.GetRawText().Should().Contain("diagnostics");
+        schema.GetRawText().Should().Contain("warnings");
+        schema.GetRawText().Should().Contain("requiredAction");
     }
 
     private static bool AllowsNull(JsonElement propertySchema)

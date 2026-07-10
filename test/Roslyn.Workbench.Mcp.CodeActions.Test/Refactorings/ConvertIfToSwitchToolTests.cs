@@ -15,7 +15,7 @@ public sealed class ConvertIfToSwitchToolTests
                 && metadata.Title == "Convert If To Switch"
                 && metadata.Description == "Converts a supported if-chain to a switch statement or switch expression through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<ConvertIfToSwitchRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<ConvertIfToSwitchRequest>>()), Times.Once);
     }
 
     [Fact]

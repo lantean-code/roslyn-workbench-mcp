@@ -15,7 +15,7 @@ public sealed class AddNullChecksToolTests
                 && metadata.Title == "Add Null Checks"
                 && metadata.Description == "Stages the supported Roslyn parameter null-check refactoring at the selected parameter location."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
     }
 
     [Fact]

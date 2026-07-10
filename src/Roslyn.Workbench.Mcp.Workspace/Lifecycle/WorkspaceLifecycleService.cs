@@ -412,7 +412,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         string loadedPath,
         long workspaceEpoch,
         IReadOnlyList<DiagnosticInfo> diagnostics,
-        WorkspaceOperationGate? operationGate)
+        IWorkspaceOperationGate? operationGate)
     {
         return new WorkspaceSessionSnapshot
         {

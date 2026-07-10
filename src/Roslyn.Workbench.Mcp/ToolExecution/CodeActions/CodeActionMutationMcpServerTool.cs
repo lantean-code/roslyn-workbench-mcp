@@ -6,13 +6,13 @@ internal sealed class CodeActionMutationMcpServerTool<TRequest> : McpServerToolB
     where TRequest : WorkspaceBoundRequest
 {
     private readonly CodeActionToolMetadata _metadata;
-    private readonly CodeActionMutationToolHandler<TRequest> _handler;
+    private readonly ICodeActionMutationToolHandler<TRequest> _handler;
     private readonly ICodeActionExecutionContextFactory _contextFactory;
 
     public CodeActionMutationMcpServerTool(
         Tool protocolTool,
         CodeActionToolMetadata metadata,
-        CodeActionMutationToolHandler<TRequest> handler,
+        ICodeActionMutationToolHandler<TRequest> handler,
         ICodeActionExecutionContextFactory contextFactory)
         : base(protocolTool)
     {

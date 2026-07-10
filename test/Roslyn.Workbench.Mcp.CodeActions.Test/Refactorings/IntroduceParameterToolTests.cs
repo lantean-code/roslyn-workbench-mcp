@@ -15,7 +15,7 @@ public sealed class IntroduceParameterToolTests
                 && metadata.Title == "Introduce Parameter"
                 && metadata.Description == "Promotes a selected expression to a parameter through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<IntroduceParameterRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<IntroduceParameterRequest>>()), Times.Once);
     }
 
     [Fact]

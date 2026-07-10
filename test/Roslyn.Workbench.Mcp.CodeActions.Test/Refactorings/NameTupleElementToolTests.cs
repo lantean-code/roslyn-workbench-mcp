@@ -15,7 +15,7 @@ public sealed class NameTupleElementToolTests
                 && metadata.Title == "Name Tuple Element"
                 && metadata.Description == "Adds a supported tuple element name through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
     }
 
     [Fact]

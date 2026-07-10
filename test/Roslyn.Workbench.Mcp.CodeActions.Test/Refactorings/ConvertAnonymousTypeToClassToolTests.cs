@@ -15,7 +15,7 @@ public sealed class ConvertAnonymousTypeToClassToolTests
                 && metadata.Title == "Convert Anonymous Type To Class"
                 && metadata.Description == "Converts a supported anonymous type to a generated class or record through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<ConvertAnonymousTypeToClassRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<ConvertAnonymousTypeToClassRequest>>()), Times.Once);
     }
 
     [Fact]

@@ -102,6 +102,7 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
         services.AddSingleton<IWorkspaceStateTransitions, WorkspaceStateTransitions>();
         services.AddSingleton<ISnapshotGuard, SnapshotGuard>();
         services.AddSingleton<IMutationStagingService, MutationStagingService>();
+        services.AddSingleton<IWorkspaceChangeSummaryBuilder, WorkspaceChangeSummaryBuilder>();
         services.AddSingleton<ITransactionCommitService, TransactionCommitService>();
         services.AddSingleton<IWorkspaceExecutionContextFactory, WorkspaceExecutionContextFactory>();
         services.AddSingleton<IToolExecutionContextFactory>(static serviceProvider => new PluginExecutionContextFactory(

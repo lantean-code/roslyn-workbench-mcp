@@ -15,7 +15,7 @@ public sealed class UseExplicitTypeToolTests
                 && metadata.Title == "Use Explicit Type"
                 && metadata.Description == "Converts a supported declaration to an explicit type through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
     }
 
     [Fact]

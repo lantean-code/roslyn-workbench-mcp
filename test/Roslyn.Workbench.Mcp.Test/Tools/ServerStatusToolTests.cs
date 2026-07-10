@@ -3,7 +3,7 @@ using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.Tools;
 using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
 
-namespace Roslyn.Workbench.Mcp.Test;
+namespace Roslyn.Workbench.Mcp.Test.Tools;
 
 public sealed class ServerStatusToolTests
 {
@@ -36,7 +36,8 @@ public sealed class ServerStatusToolTests
     [Fact]
     public void GIVEN_DefaultOutputSchemaMode_WHEN_CreatingServerStatusTool_THEN_ShouldOmitOutputSchemaAndAppendResultHint()
     {
-        var target = new ServerStatusTool(Options.Create(new StartupOptions()), Mock.Of<IServerStatusService>());
+        var service = new Mock<IServerStatusService>();
+        var target = new ServerStatusTool(Options.Create(new StartupOptions()), service.Object);
 
         target.ProtocolTool.OutputSchema.Should().BeNull();
         target.ProtocolTool.Description.Should().Be("Returns server diagnostics without requiring a loaded workspace. Result: server diagnostics, effective configuration, plugin status, and unfinished recovery state.");
@@ -49,7 +50,8 @@ public sealed class ServerStatusToolTests
         {
             ToolOutputSchemaMode = ToolOutputSchemaMode.Full,
         };
-        var target = new ServerStatusTool(Options.Create(options), Mock.Of<IServerStatusService>());
+        var service = new Mock<IServerStatusService>();
+        var target = new ServerStatusTool(Options.Create(options), service.Object);
 
         target.ProtocolTool.OutputSchema.Should().NotBeNull();
         target.ProtocolTool.OutputSchema!.Value.GetProperty("oneOf").ValueKind.Should().Be(JsonValueKind.Array);

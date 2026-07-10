@@ -16,7 +16,7 @@ internal sealed record WorkspaceSessionSnapshot
 
     public required WorkspaceInputManifest InputManifest { get; init; }
 
-    public required WorkspaceOperationGate OperationGate { get; init; }
+    public required IWorkspaceOperationGate OperationGate { get; init; }
 
     public int ProjectCount { get; init; }
 

@@ -1,6 +1,6 @@
 namespace Roslyn.Workbench.Mcp.CodeActions;
 
-internal abstract class CodeActionQueryToolHandler<TRequest, TResponse>
+internal abstract class CodeActionQueryToolHandler<TRequest, TResponse> : ICodeActionQueryToolHandler<TRequest, TResponse>
     where TRequest : WorkspaceBoundRequest
 {
     public ValueTask<CodeActionExecutionResult<TResponse>> ExecuteAsync(

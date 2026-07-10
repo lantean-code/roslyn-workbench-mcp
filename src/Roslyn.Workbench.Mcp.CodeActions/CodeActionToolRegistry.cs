@@ -9,7 +9,7 @@ internal sealed class CodeActionToolRegistry : ICodeActionToolRegistry
 
     public void RegisterQueryTool<TRequest, TResponse>(
         CodeActionToolMetadata metadata,
-        CodeActionQueryToolHandler<TRequest, TResponse> handler)
+        ICodeActionQueryToolHandler<TRequest, TResponse> handler)
         where TRequest : WorkspaceBoundRequest
     {
         ArgumentNullException.ThrowIfNull(handler);
@@ -19,7 +19,7 @@ internal sealed class CodeActionToolRegistry : ICodeActionToolRegistry
 
     public void RegisterMutationTool<TRequest>(
         CodeActionToolMetadata metadata,
-        CodeActionMutationToolHandler<TRequest> handler)
+        ICodeActionMutationToolHandler<TRequest> handler)
         where TRequest : WorkspaceBoundRequest
     {
         ArgumentNullException.ThrowIfNull(handler);

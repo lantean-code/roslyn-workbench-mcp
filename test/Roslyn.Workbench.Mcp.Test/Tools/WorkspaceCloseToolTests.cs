@@ -1,0 +1,45 @@
+using Microsoft.Extensions.Options;
+
+using Roslyn.Workbench.Mcp.Tools;
+
+namespace Roslyn.Workbench.Mcp.Test.Tools;
+
+public sealed class WorkspaceCloseToolTests
+{
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task GIVEN_OptionalWorkspace_WHEN_ClosingWorkspace_THEN_ShouldRouteAndMapResult(bool includeWorkspace)
+    {
+        var service = new Mock<IWorkspaceLifecycleService>();
+        service
+            .Setup(item => item.CloseAsync(
+                ServerOwnedToolTestData.GetWorkspaceId(includeWorkspace),
+                ServerOwnedToolTestData.GetWorkspaceAlias(includeWorkspace),
+                ServerOwnedToolTestData.GetWorkspacePath(includeWorkspace),
+                CancellationToken.None))
+            .ReturnsAsync(new WorkspaceOperationResult<WorkspaceCloseOutcome>
+            {
+                Status = WorkspaceOperationStatus.Succeeded,
+                Data = new WorkspaceCloseOutcome
+                {
+                    ClosedPath = "/workspace/Sample.csproj",
+                },
+            });
+        var target = new WorkspaceCloseTool(Options.Create(new StartupOptions()), service.Object);
+
+        var result = await ServerOwnedToolTestSupport.InvokeAsync(
+            target,
+            "workspace-close",
+            ServerOwnedToolTestData.CreateWorkspaceArguments(includeWorkspace),
+            CancellationToken.None);
+
+        result.IsError.Should().BeFalse();
+        result.StructuredContent!.Value.GetProperty("closedPath").GetString().Should().Be("/workspace/Sample.csproj");
+        service.Verify(item => item.CloseAsync(
+            ServerOwnedToolTestData.GetWorkspaceId(includeWorkspace),
+            ServerOwnedToolTestData.GetWorkspaceAlias(includeWorkspace),
+            ServerOwnedToolTestData.GetWorkspacePath(includeWorkspace),
+            CancellationToken.None), Times.Once);
+    }
+}

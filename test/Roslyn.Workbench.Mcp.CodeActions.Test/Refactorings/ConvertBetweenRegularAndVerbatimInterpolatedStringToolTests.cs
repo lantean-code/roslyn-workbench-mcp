@@ -15,7 +15,7 @@ public sealed class ConvertBetweenRegularAndVerbatimInterpolatedStringToolTests
                 && metadata.Title == "Convert Between Regular And Verbatim Interpolated String"
                 && metadata.Description == "Converts a supported interpolated string between regular and verbatim forms through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
     }
 
     [Fact]

@@ -15,7 +15,7 @@ public sealed class ExtractMethodToolTests
                 && metadata.Title == "Extract Method"
                 && metadata.Description == "Extracts a selected statement or expression block through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<ExtractMethodRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<ExtractMethodRequest>>()), Times.Once);
     }
 
     [Fact]

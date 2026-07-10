@@ -95,12 +95,64 @@ public sealed class ServerStatusServiceTests
         codeActions.Message.Should().Be("Code-action composition is unavailable.");
     }
 
-    private ServerStatusService CreateTarget(StartupOptions options, PluginCatalogSnapshot pluginSnapshot)
+    [Fact]
+    public async Task GIVEN_PluginAndCodeActionTools_WHEN_GettingStatus_THEN_ShouldCountEveryToolFamily()
+    {
+        var pluginTool = new Mock<IRegisteredPluginTool>();
+        var firstCodeActionTool = new Mock<IRegisteredCodeActionTool>();
+        var secondCodeActionTool = new Mock<IRegisteredCodeActionTool>();
+        var pluginSnapshot = new PluginCatalogSnapshot
+        {
+            Tools = [pluginTool.Object],
+        };
+        var codeActionSnapshot = new CodeActionCatalogSnapshot
+        {
+            Tools =
+            [
+                firstCodeActionTool.Object,
+                secondCodeActionTool.Object,
+            ],
+        };
+        var target = CreateTarget(new StartupOptions(), pluginSnapshot, codeActionSnapshot);
+
+        var result = await target.GetStatusAsync(StatusDetailLevel.Standard, CancellationToken.None);
+
+        result.Data!.ToolCount.Should().Be(3 + ServerOwnedToolRegistration.ToolCount);
+    }
+
+    [Fact]
+    public async Task GIVEN_RepeatedFullDetail_WHEN_GettingStatus_THEN_ShouldReuseConfigurationProjection()
+    {
+        _recoveryStatusReader.Setup(item => item.GetStatuses(It.IsAny<string>())).Returns([]);
+        var target = CreateTarget(new StartupOptions(), new PluginCatalogSnapshot());
+
+        var first = await target.GetStatusAsync(StatusDetailLevel.Full, CancellationToken.None);
+        var second = await target.GetStatusAsync(StatusDetailLevel.Full, CancellationToken.None);
+
+        first.Data!.Configuration.Should().BeSameAs(second.Data!.Configuration);
+    }
+
+    [Fact]
+    public async Task GIVEN_CancelledToken_WHEN_GettingStatus_THEN_ShouldThrowOperationCanceledException()
+    {
+        var target = CreateTarget(new StartupOptions(), new PluginCatalogSnapshot());
+        using var cancellationSource = new CancellationTokenSource();
+        cancellationSource.Cancel();
+
+        var action = async () => await target.GetStatusAsync(StatusDetailLevel.Standard, cancellationSource.Token);
+
+        await action.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    private ServerStatusService CreateTarget(
+        StartupOptions options,
+        PluginCatalogSnapshot pluginSnapshot,
+        CodeActionCatalogSnapshot? codeActionSnapshot = null)
     {
         return new ServerStatusService(
             Options.Create(options),
             pluginSnapshot,
-            new CodeActionCatalogSnapshot(),
+            codeActionSnapshot ?? new CodeActionCatalogSnapshot(),
             _msBuildRegistrationService.Object,
             _codeActionRuntime.Object,
             _recoveryStatusReader.Object);

@@ -58,13 +58,8 @@ internal sealed class WorkspaceSelectorService : IWorkspaceSelector
             return !string.IsNullOrWhiteSpace(value);
         }
 
-        void MatchWorkspaceId(string? candidateWorkspaceId)
+        void MatchWorkspaceId(string candidateWorkspaceId)
         {
-            if (candidateWorkspaceId is null)
-            {
-                return;
-            }
-
             if (resolvedWorkspaceId is null)
             {
                 resolvedWorkspaceId = candidateWorkspaceId;
@@ -84,7 +79,7 @@ internal sealed class WorkspaceSelectorService : IWorkspaceSelector
                 return (null, CreateError(_workspaceSelectorNotFoundCode, "The workspace selector did not match any loaded workspace.", RequiredAction.ResolveTargetAgain));
             }
 
-            MatchWorkspaceId(selector.WorkspaceId);
+            MatchWorkspaceId(selector.WorkspaceId!);
         }
 
         if (IsProvided(selector.Alias))

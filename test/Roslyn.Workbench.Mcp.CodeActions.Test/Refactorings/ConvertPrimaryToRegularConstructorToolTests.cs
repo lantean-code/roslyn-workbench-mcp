@@ -15,7 +15,7 @@ public sealed class ConvertPrimaryToRegularConstructorToolTests
                 && metadata.Title == "Convert Primary To Regular Constructor"
                 && metadata.Description == "Converts a supported primary constructor to a regular constructor through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
     }
 
     [Fact]

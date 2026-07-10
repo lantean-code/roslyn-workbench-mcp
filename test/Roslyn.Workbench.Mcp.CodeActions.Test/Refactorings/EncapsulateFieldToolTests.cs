@@ -15,7 +15,7 @@ public sealed class EncapsulateFieldToolTests
                 && metadata.Title == "Encapsulate Field"
                 && metadata.Description == "Encapsulates one field through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<EncapsulateFieldRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<EncapsulateFieldRequest>>()), Times.Once);
     }
 
     [Fact]

@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace Roslyn.Workbench.Mcp.Test;
+namespace Roslyn.Workbench.Mcp.Test.Tools;
 
 internal static class ServerOwnedToolTestSupport
 {
@@ -39,7 +39,7 @@ internal static class ServerOwnedToolTestSupport
             Version = "1.0.0",
         });
         server.SetupGet(value => value.ServerOptions).Returns(new McpServerOptions());
-        server.SetupGet(value => value.Services).Returns(Mock.Of<IServiceProvider>());
+        server.SetupGet(value => value.Services).Returns(new Mock<IServiceProvider>().Object);
         server.SetupGet(value => value.LoggingLevel).Returns((LoggingLevel?)null);
         server.SetupGet(value => value.SessionId).Returns("session");
         server.SetupGet(value => value.NegotiatedProtocolVersion).Returns("2025-06-18");

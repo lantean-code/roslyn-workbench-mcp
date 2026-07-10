@@ -15,7 +15,7 @@ public sealed class ConvertPropertyToolTests
                 && metadata.Title == "Convert Property"
                 && metadata.Description == "Converts one selected property between supported auto-property and full-property forms through Roslyn composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<ConvertPropertyRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<ConvertPropertyRequest>>()), Times.Once);
     }
 
     [Fact]

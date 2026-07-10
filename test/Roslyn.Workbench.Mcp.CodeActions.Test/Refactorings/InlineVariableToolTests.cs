@@ -15,7 +15,7 @@ public sealed class InlineVariableToolTests
                 && metadata.Title == "Inline Variable"
                 && metadata.Description == "Inlines a local variable through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<InlineVariableRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<InlineVariableRequest>>()), Times.Once);
     }
 
     [Fact]

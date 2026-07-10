@@ -15,7 +15,7 @@ public sealed class StageCodeActionToolTests
                 && metadata.Title == "Stage Code Action"
                 && metadata.Description == "Revalidates and stages one selected refactoring action into the active transaction."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<StageCodeActionRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<StageCodeActionRequest>>()), Times.Once);
     }
 
     [Fact]

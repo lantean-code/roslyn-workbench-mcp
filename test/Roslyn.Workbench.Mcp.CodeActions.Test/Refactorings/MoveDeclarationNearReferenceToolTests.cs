@@ -15,7 +15,7 @@ public sealed class MoveDeclarationNearReferenceToolTests
                 && metadata.Title == "Move Declaration Near Reference"
                 && metadata.Description == "Moves a supported local declaration nearer to its first use through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
     }
 
     [Fact]

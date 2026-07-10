@@ -6,7 +6,7 @@ Date: 2026-07-10
 
 This inventory records current test ownership after the integration-test reorganisation. Unit projects own each tool's request handling, collaborator interaction, reachable branches and Roslyn algorithm behaviour. Integration projects prove shared runtime capabilities and boundaries; they do not provide a duplicate one-class-per-tool matrix.
 
-The current architecture and outstanding cross-project findings are recorded in `TestArchitectureReaudit-2026-07-10.md`.
+The current policy is recorded in `TestingStrategy.md`. The current architecture and outstanding cross-project findings are recorded in `TestArchitectureReaudit-2026-07-10.md`.
 
 ## Unit Ownership
 
@@ -21,6 +21,37 @@ The current architecture and outstanding cross-project findings are recorded in 
 | Server-owned tools | `Roslyn.Workbench.Mcp.Test` | Tool mapping and mock-isolated host service behaviour |
 
 Every production tool currently has dedicated unit coverage in its owning unit project. A tool is not required to have a same-named integration class.
+
+## Execution-Path Ownership
+
+Tool-handler coverage and MCP transport coverage are separate responsibilities:
+
+| Execution path | Handler and context owner | Host transport position |
+| --- | --- | --- |
+| Plugin query | `Plugins.Test` and `Plugins.Core.Test` | `PluginQueryMcpServerToolTests` covers typed binding, acquisition, all handler outcomes, publication, malformed input, cancellation, exceptions and disposal at 100% line and branch coverage |
+| Plugin mutation | `Plugins.Test` and `Plugins.Core.Test` | `PluginMutationMcpServerToolTests` covers acquisition, handler outcomes, separate staging, publication, malformed input, handler/stager cancellation and exceptions, and disposal at 100% line and branch coverage |
+| Code Action query | `CodeActions.Test` | `CodeActionQueryMcpServerToolTests` covers typed binding, acquisition, all handler outcomes, publication, malformed input, cancellation, exceptions and disposal at 100% line and branch coverage |
+| Code Action mutation | `CodeActions.Test` | `CodeActionMutationMcpServerToolTests` covers acquisition, handler outcomes, separate staging, publication, malformed input, handler/stager cancellation and exceptions, and disposal at 100% line and branch coverage |
+
+All four Host adapter families now have focused unit evidence without moving MCP concerns into Plugins or CodeActions.
+
+## Boundary-Regression Inventory
+
+| Boundary | Current evidence | Position |
+| --- | --- | --- |
+| Plugin closed-generic visitor dispatch | `PluginRegistryTests` | Covered |
+| Plugin query MCP adapter | `PluginQueryMcpServerToolTests` | Covered; 100% line and branch coverage |
+| Plugin mutation MCP adapter and separate staging | `PluginMutationMcpServerToolTests` | Covered; 100% line and branch coverage |
+| Code Action closed-generic visitor dispatch and duplicate internal names | `CodeActionToolRegistryTests` | Covered |
+| Code Action query MCP adapter | `CodeActionQueryMcpServerToolTests` | Covered; 100% line and branch coverage |
+| Code Action mutation MCP adapter and separate staging | `CodeActionMutationMcpServerToolTests` | Covered; 100% line and branch coverage |
+| Plugin adaptation of neutral Workspace contexts and failures | `PluginExecutionContextFactoryTests`, `PluginExecutionContextTests` | Covered |
+| Code Action adaptation of neutral Workspace contexts and failures | `CodeActionExecutionContextFactoryTests`, `CodeActionExecutionContextTests` | Covered |
+| Stager separate from Workspace handler context | `WorkspaceExecutionLeaseTests` | Covered at lease boundary |
+| Reserved Code Action name disables a colliding plugin | `PluginDiscoveryAndMcpToolIntegrationTests` | Covered |
+| Host constructs all tool families | `HostCompositionIntegrationTests` | Covered at composition boundary |
+| CodeActions excluded from plugin discovery/status | Separate Code Action catalogue and status mapping tests | Covered behaviourally; keep explicit when status tests change |
+| Forbidden production dependency directions | Manual project-reference inspection | Automate with a project-reference/build check in a later architecture-test round |
 
 ## Integration Capability Ownership
 
@@ -55,3 +86,5 @@ The following entries remain partial pending a later coverage-focused round. The
 - `SortUsingsTool`: defensive null handling for `UsingDirectiveSyntax.Name` is not reachable with parsed or factory-created directives.
 
 These exceptions should be reassessed against an assembly-level coverage report. Approved unreachable defensive branches should be documented rather than exercised through reflection or artificial production hooks.
+
+The Host coverage round also identified deliberate integration boundaries in `Program`, `MsBuildRegistration`, `PluginCatalogLoader`, `RecoveryStatusReader` and `RoslynWorkbenchHostApplicationBuilderExtensions`. Defensive assembly-version fallbacks in `ServerStatusService` and MCP SDK schema-exporter compatibility paths in `ToolSchemaBuilder` cannot be driven through the supported unit surface and remain documented rather than forcing production hooks solely for coverage.

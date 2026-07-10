@@ -15,7 +15,7 @@ public sealed class AddImportToolTests
                 && metadata.Title == "Add Import"
                 && metadata.Description == "Adds a supported using directive through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<AddImportRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<AddImportRequest>>()), Times.Once);
     }
 
     [Fact]

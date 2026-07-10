@@ -15,7 +15,7 @@ public sealed class MoveTypeToFileToolTests
                 && metadata.Title == "Move Type To File"
                 && metadata.Description == "Moves one selected type into its own Roslyn-chosen file within the current project."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<MoveTypeToFileRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<MoveTypeToFileRequest>>()), Times.Once);
     }
 
     [Fact]

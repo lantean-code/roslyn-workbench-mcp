@@ -32,8 +32,7 @@ internal sealed class PluginQueryMcpServerTool<TRequest, TResponse> : McpServerT
                 isError: true);
         }
 
-        var context = contextLease.Context
-            ?? throw new InvalidOperationException("Plugin query acquisition completed without a context.");
+        var context = contextLease.Context!;
         var result = await _handler.ExecuteAsync(request, context, cancellationToken).ConfigureAwait(false);
         return CreateResult(
             McpPublishedResultSerializer.SerializePluginQuery(result),

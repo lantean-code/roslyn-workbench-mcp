@@ -15,7 +15,7 @@ public sealed class ConvertExpressionBodyToolTests
                 && metadata.Title == "Convert Expression Body"
                 && metadata.Description == "Stages a supported Roslyn block-body or expression-body conversion at the selected declaration."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
     }
 
     [Fact]

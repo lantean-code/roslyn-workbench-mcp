@@ -15,7 +15,7 @@ public sealed class AddAwaitToolTests
                 && metadata.Title == "Add Await"
                 && metadata.Description == "Stages one supported add-await refactoring through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<AddAwaitRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<AddAwaitRequest>>()), Times.Once);
     }
 
     [Fact]

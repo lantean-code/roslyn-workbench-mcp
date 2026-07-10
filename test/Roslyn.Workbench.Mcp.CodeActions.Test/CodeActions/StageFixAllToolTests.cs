@@ -15,7 +15,7 @@ public sealed class StageFixAllToolTests
                 && metadata.Title == "Stage Fix All"
                 && metadata.Description == "Revalidates one selected code fix and stages its fix-all variant into the active transaction."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<StageFixAllRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<StageFixAllRequest>>()), Times.Once);
     }
 
     [Fact]

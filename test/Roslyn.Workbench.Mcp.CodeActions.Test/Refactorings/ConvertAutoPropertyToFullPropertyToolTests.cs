@@ -15,7 +15,7 @@ public sealed class ConvertAutoPropertyToFullPropertyToolTests
                 && metadata.Title == "Convert Auto Property To Full Property"
                 && metadata.Description == "Converts a supported auto-property to a full property through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<ConvertAutoPropertyToFullPropertyRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<ConvertAutoPropertyToFullPropertyRequest>>()), Times.Once);
     }
 
     [Fact]

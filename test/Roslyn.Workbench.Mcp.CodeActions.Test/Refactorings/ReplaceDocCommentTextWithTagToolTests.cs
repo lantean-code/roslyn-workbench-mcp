@@ -15,7 +15,7 @@ public sealed class ReplaceDocCommentTextWithTagToolTests
                 && metadata.Title == "Replace Doc Comment Text With Tag"
                 && metadata.Description == "Replaces supported XML doc comment text with a documentation tag through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
     }
 
     [Fact]

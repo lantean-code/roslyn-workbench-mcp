@@ -2,7 +2,7 @@ using System.Text.Json;
 using Roslyn.Workbench.Mcp.Protocol.Validation;
 using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
 
-namespace Roslyn.Workbench.Mcp.Test.Contracts.Results;
+namespace Roslyn.Workbench.Mcp.Test.Protocol.Results;
 
 public sealed class ToolResultTests
 {
@@ -129,5 +129,90 @@ public sealed class ToolResultTests
         var errors = ContractValidator.Validate(result);
 
         errors.Should().Contain(error => error.Contains("Changes"));
+    }
+
+    [Fact]
+    public void GIVEN_SucceededResultWithoutData_WHEN_Validated_THEN_ShouldReturnValidationError()
+    {
+        var result = new ToolResult<WorkspaceStatusData>
+        {
+            Outcome = ToolOutcome.Succeeded,
+        };
+
+        var errors = result.Validate();
+
+        errors.Should().ContainSingle().Which.Should().Contain("Data");
+    }
+
+    [Fact]
+    public void GIVEN_NoChangeWithErrorAndChanges_WHEN_Validated_THEN_ShouldReturnBothValidationErrors()
+    {
+        var result = new ToolResult<WorkspaceStatusData>
+        {
+            Outcome = ToolOutcome.NoChange,
+            Changes = new ChangeSummary(),
+            Error = new ToolError
+            {
+                Code = "Code",
+                Message = "Message",
+            },
+        };
+
+        var errors = result.Validate();
+
+        errors.Should().HaveCount(2);
+        errors.Should().Contain(error => error.Contains("Changes"));
+        errors.Should().Contain(error => error.Contains("Error"));
+    }
+
+    [Theory]
+    [InlineData(ToolOutcome.Rejected)]
+    [InlineData(ToolOutcome.Conflict)]
+    [InlineData(ToolOutcome.Faulted)]
+    public void GIVEN_ErrorOutcomeWithDataAndChangesButNoError_WHEN_Validated_THEN_ShouldReturnEveryValidationError(ToolOutcome outcome)
+    {
+        var result = new ToolResult<WorkspaceStatusData>
+        {
+            Outcome = outcome,
+            Data = new WorkspaceStatusData(),
+            Changes = new ChangeSummary(),
+        };
+
+        var errors = result.Validate();
+
+        errors.Should().HaveCount(3);
+        errors.Should().Contain(error => error.Contains("requires Error"));
+        errors.Should().Contain(error => error.Contains("must not include Data"));
+        errors.Should().Contain(error => error.Contains("must not include Changes"));
+    }
+
+    [Fact]
+    public void GIVEN_Error_WHEN_CreatingConflictResult_THEN_ShouldPopulateConflictState()
+    {
+        var error = new ToolError
+        {
+            Code = "Code",
+            Message = "Message",
+        };
+
+        var result = ToolResult<WorkspaceStatusData>.Conflict(error, RequiredAction.Retry);
+
+        result.Outcome.Should().Be(ToolOutcome.Conflict);
+        result.Error.Should().BeSameAs(error);
+    }
+
+    [Fact]
+    public void GIVEN_Error_WHEN_CreatingFaultedResult_THEN_ShouldPopulateFaultedState()
+    {
+        var error = new ToolError
+        {
+            Code = "Code",
+            Message = "Message",
+        };
+
+        var result = ToolResult<WorkspaceStatusData>.Faulted(error, RequiredAction.Retry);
+
+        result.Outcome.Should().Be(ToolOutcome.Faulted);
+        result.Error.Should().BeSameAs(error);
     }
 }

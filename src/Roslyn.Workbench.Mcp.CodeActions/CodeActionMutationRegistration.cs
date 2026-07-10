@@ -5,7 +5,7 @@ internal sealed class CodeActionMutationRegistration<TRequest> : IRegisteredCode
 {
     public CodeActionMutationRegistration(
         CodeActionToolMetadata metadata,
-        CodeActionMutationToolHandler<TRequest> handler)
+        ICodeActionMutationToolHandler<TRequest> handler)
     {
         Metadata = metadata;
         Handler = handler;
@@ -19,7 +19,7 @@ internal sealed class CodeActionMutationRegistration<TRequest> : IRegisteredCode
 
     public Type ResponseType => typeof(WorkspaceMutationProposal);
 
-    public CodeActionMutationToolHandler<TRequest> Handler { get; }
+    public ICodeActionMutationToolHandler<TRequest> Handler { get; }
 
     public TResult Accept<TResult>(ICodeActionToolRegistrationVisitor<TResult> visitor)
     {

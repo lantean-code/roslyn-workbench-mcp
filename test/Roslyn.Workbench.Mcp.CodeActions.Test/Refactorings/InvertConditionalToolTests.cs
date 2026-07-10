@@ -15,7 +15,7 @@ public sealed class InvertConditionalToolTests
                 && metadata.Title == "Invert Conditional"
                 && metadata.Description == "Inverts a supported conditional expression through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
     }
 
     [Fact]

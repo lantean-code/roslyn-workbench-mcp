@@ -1,5 +1,7 @@
 # Unit Testing Rules (xUnit + Moq + AwesomeAssertions)
 
+Cross-project test ownership and execution-path policy are defined in `../docs/TestingStrategy.md`; this file defines the implementation rules for tests under `test`.
+
 - Frameworks: xUnit, Moq, AwesomeAssertions.
 - Use Moq for test doubles; do not introduce hand-written fake or stub implementations unless explicitly approved.
 - Moq callbacks should only be used when verifying the same behaviour is impossible with `Verify`.
@@ -32,7 +34,9 @@
 - Keep the split explicit: shared helpers may create Roslyn data objects or repeatable mock graphs, but scenario-specific `Setup(...)`, `Verify(...)`, assertions, and branch-specific configuration stay in the test class.
 
 ## Tool unit tests
-- Tool unit tests are the default for query and mutation tools. They belong in the normal `*.Test` project, not the integration test project.
+- Tool unit tests are the default for query and mutation tools. They belong in the normal `*.Test` project owned by the implementation, not the integration test project.
+- Keep the two tool systems explicit: third-party and bundled ordinary tools use Plugins/Plugins.Core contexts, while internal Code Action tools use CodeActions contexts and catalogues. Tests must not adapt one through the other.
+- Host owns four transport adapters: plugin query, plugin mutation, Code Action query and Code Action mutation. Each adapter requires focused Host unit coverage for its type-specific acquisition, result mapping and staging behaviour.
 - Unit test classes for tools use the `Tests` suffix. Integration coverage for tools uses the `IntegrationTests` suffix.
 - Test the public entry point flow in actual runtime order, starting at `ExecuteAsync(...)` and then covering each branch reached through private helpers via normal execution.
 - For branching tool handlers, prefer one test per reachable branch or outcome split so the logical flow is obvious from top to bottom.
@@ -99,12 +103,20 @@
 
 ## Test taxonomy
 - `Unit` tests are the default. They must not create temporary projects, open real workspaces, or drive real coordinator or transaction flows.
-- `Contract` tests deliberately lock schema shape, validation rules, serialisation, or public surface shape.
-- `Integration` tests use the real file system, Roslyn workspace, coordinator, plugin registry, transaction pipeline, or equivalent multi-component runtime flow.
+- `Contract` tests deliberately lock schema shape, validation rules, serialisation, MCP metadata, or the supported public plugin surface. Contract tests live with the production assembly that owns the contract; there is no shared Contracts test project.
+- `Integration` tests use the real file system, Roslyn workspace, coordinator, plugin assembly discovery, transaction pipeline, Host composition, MCP publication, or an equivalent multi-component runtime flow.
 - `Audit` tests validate built-in provider coverage, replay families, promotion ledgers, or other governance-style compatibility expectations.
 - New tests that create temporary directories, open real workspaces, or execute full tool flows must be marked with `[Trait("Category", "Integration")]` unless they are specifically governance coverage, in which case use `[Trait("Category", "Audit")]`.
-- Reflection- or schema-lock tests should be marked with `[Trait("Category", "Contract")]` when they are not ordinary behaviour-focused unit tests.
+- Schema locks and deliberate public-surface metadata locks should be marked with `[Trait("Category", "Contract")]` when they are not ordinary behaviour-focused unit tests. Do not use reflection to lock internal runtime shapes or to compensate for missing behavioural coverage.
 - Roslyn fixture or coordinator coverage belongs in the integration test projects and should use `IntegrationTests` class suffixes, not `Tests`.
+
+## Architecture boundary tests
+- Prefer compilation, assignability, project-reference inspection and observable behaviour over reflection-only shape assertions.
+- Workspace tests own neutral execution-context and separate-stager behaviour.
+- Plugins tests own typed visitor dispatch, plugin-service adaptation and Workspace proposal/result mapping.
+- CodeActions tests own its internal catalogue, typed visitor dispatch, Code Action-only contexts and Workspace proposal/result mapping.
+- Host tests own MCP binding, schemas, publication and the four closed generic transport adapters.
+- Integration tests own plugin discovery, reserved-name collisions, full Host composition and the absence of CodeActions from plugin status.
 
 ## Execution policy
 - Default local development loop: run unit and contract coverage, excluding integration and audit categories.
@@ -122,7 +134,7 @@
 - [ ] Class-level mocks are `Mock.Of<T>()`; method-local mocks use `new Mock<T>()`.
 - [ ] Strings use property names as values; dates use `2000-01-01 00:00` with correct `DateTimeKind`; numbers are sensible.
 - [ ] No expression-bodied members; braces are always present.
-- [ ] No reflection is used; private logic is covered through normal flows.
+- [ ] No reflection invokes implementation code or locks an internal runtime shape; any deliberate public-surface metadata lock is a Contract test.
 - [ ] Planned tests achieve 100% line and branch coverage unless the user has approved a lower bar.
 - [ ] Any uncertainties have been raised and clarified.
 - [ ] If coverage would require new public or test-only hooks, I have stopped and asked for a refactor approval.

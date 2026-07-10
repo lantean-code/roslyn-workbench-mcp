@@ -21,12 +21,27 @@ The inventory does not treat integration coverage as unit coverage. It also does
 
 Workspace now owns its selectors, resolution results, diagnostics, change/transaction models, neutral execution contexts, mutation proposal and staging boundary. It has no production dependency on Plugins or CodeActions.
 
-The existing six Workspace unit tests were removed after review because they did not fully meet the current namespace, reusable Roslyn-data setup and coverage standards. The first replacement implementation is now complete:
+The production assembly currently contains 113 C# source files after the contract-family relocation. Data-only contracts are covered through validation, serialisation and owning-service assertions rather than one reflection test per type.
+
+The existing six Workspace unit tests were removed after review because they did not fully meet the current namespace, reusable Roslyn-data setup and coverage standards. The current replacement baseline is:
 
 | Test class | Tests | Target coverage |
 | --- | ---: | ---: |
 | `WorkspaceSelectionResultTests` | 4 | 100% line, 100% branch |
+| `WorkspaceSelectorServiceTests` | 18 | Supported selection flow: 100% line, 100% branch |
+| `WorkspaceResolverTests` | 48 | Public resolver: 100% line; Roslyn defensive branches documented below |
 | `SelectorValidationTests` | 10 | Workspace selector and result-contract validation |
+| `WorkspaceExecutionLeaseTests` | 3 | Query-lease disposal, mutation stager separation and rejected-lease disposal |
+| `WorkspaceExecutionContextFactoryTests` | 25 | 100% line, 100% branch |
+| `WorkspaceCoordinatorOptionsTests` | 1 | 100% line, 100% branch |
+| `WorkspaceOperationResultFactoryTests` | 9 | 100% line, 100% branch |
+| `WorkspaceOperationGateTests` | 8 | 100% line, 100% branch |
+| `WorkspaceSessionStoreTests` | 15 | 100% line, 100% branch |
+| `WorkspaceStateMachineTests` | 12 | 100% line, 100% branch |
+| `WorkspaceStateTransitionsTests` | 6 | 100% line, 100% branch |
+| `SnapshotGuardTests` | 8 | 100% line, 100% branch |
+| `WorkspaceTransactionTests` | 7 | 100% line, 100% branch |
+| `MutationStagingServiceTests` | 16 | Public staging flow: 100%; proposal validation matrix in progress |
 
 The final pre-removal unit-project Coverlet run produced:
 
@@ -76,7 +91,7 @@ Data-only records, enums, constants and interfaces do not receive direct tests u
 
 | Target | Test class | Required coverage | Priority |
 | --- | --- | --- | --- |
-| `WorkspaceCoordinatorOptions` | `WorkspaceCoordinatorOptionsTests` | Default concurrent-query, result-limit, revision, loaded-workspace and recovery-directory values | Low |
+| `WorkspaceCoordinatorOptions` | `WorkspaceCoordinatorOptionsTests` | Covered: default concurrent-query, result-limit, revision, loaded-workspace and recovery-directory values | Complete |
 
 These tests lock operational defaults rather than record shape. Property initialisers themselves do not need one test per property beyond the single default projection.
 
@@ -88,7 +103,7 @@ The capability-boundary redesign is complete. `IWorkspaceExecutionContext` conta
 
 | Target | Test class | Required coverage | Priority |
 | --- | --- | --- | --- |
-| `WorkspaceOperationResultFactory` | `WorkspaceOperationResultFactoryTests` | Success, both rejection overloads, both conflict overloads, fault and no-change; supplied/default context, diagnostics, warnings, data, error and required action | High |
+| `WorkspaceOperationResultFactory` | `WorkspaceOperationResultFactoryTests` | Covered: success, both rejection overloads, both conflict overloads, fault and no-change; supplied/default values | Complete |
 
 `WorkspaceOperationContext`, `WorkspaceOperationError`, `WorkspaceOperationResult<TOutcome>` and `WorkspaceOperationStatus` are data/result shapes. They are asserted through the factory and service tests rather than through reflection or property-only tests.
 
@@ -97,8 +112,8 @@ The capability-boundary redesign is complete. `IWorkspaceExecutionContext` conta
 | Target | Test class | Required coverage | Priority |
 | --- | --- | --- | --- |
 | `WorkspaceSelectionResult` | `WorkspaceSelectionResultTests` | Success/failure state, `HasError`, retained value and null guards | Medium |
-| `WorkspaceSelectorService` | `WorkspaceSelectorServiceTests` | Implicit selection, explicit ID/alias/path selection, not-found cases, empty selectors and cross-field mismatch | Highest |
-| `WorkspaceResolver` | `WorkspaceResolverTests` | Path normalisation, document/project/location/symbol resolution, snapshot validation and canonical references using in-memory Roslyn solutions | Highest |
+| `WorkspaceSelectorService` | `WorkspaceSelectorServiceTests` | Covered: implicit selection, explicit ID/alias/path selection, not-found cases, empty selectors and cross-field mismatch | Complete |
+| `WorkspaceResolver` | `WorkspaceResolverTests` | Covered: path normalisation, document/project/location/symbol resolution, snapshot validation and canonical references using in-memory Roslyn solutions | Complete with documented Roslyn guards |
 
 `WorkspaceSelectorServiceTests` must cover:
 
@@ -111,6 +126,10 @@ The capability-boundary redesign is complete. `IWorkspaceExecutionContext` conta
 - fields resolving to different workspaces
 - exact/case-sensitive alias and path behaviour
 - returned error code, message and required action for required, not-found and mismatch results
+
+`WorkspaceSelectorService` and its compiler-generated local-function class now measure 100% line and branch coverage. The redundant null-candidate guard was removed after explicit approval because every caller has already rejected null or lookup failure before invoking the matcher.
+
+`WorkspaceResolver` has 100% line coverage across its public synchronous flow. The remaining generated async branches are defensive Roslyn guards for a missing semantic model or compilation from an otherwise valid C# project/document, plus condition lowering around supported span and selection validation. They cannot be reached with supported in-memory Roslyn objects without fake Roslyn runtime implementations and are retained under the repository's documented Roslyn defensive exception.
 
 `WorkspaceResolverTests` should use narrow in-memory Roslyn document and solution factories. Required behaviour includes:
 
@@ -140,10 +159,10 @@ Potential approved defensive exceptions must be measured rather than assumed. In
 
 | Target | Test class | Required coverage | Priority |
 | --- | --- | --- | --- |
-| `WorkspaceOperationGate` | `WorkspaceOperationGateTests` | Expand current tests to all acquisition/release and idempotent-disposal branches | High |
-| `WorkspaceSessionStore` | `WorkspaceSessionStoreTests` | Initial snapshot, ID/epoch allocation, add validation, read, replace, remove and transaction-owner consistency | Highest |
-| `WorkspaceStateMachine` | `WorkspaceStateMachineTests` | Expand to every permitted transition and invalid trigger | High |
-| `WorkspaceStateTransitions` | `WorkspaceStateTransitionsTests` | Ready/out-of-date, active/conflicted and unchanged-state behaviour | High |
+| `WorkspaceOperationGate` | `WorkspaceOperationGateTests` | Covered: all acquisition/release and idempotent-disposal branches | Complete |
+| `WorkspaceSessionStore` | `WorkspaceSessionStoreTests` | Covered: allocation, validation, read, replace, remove, ownership and immutable snapshots | Complete |
+| `WorkspaceStateMachine` | `WorkspaceStateMachineTests` | Covered: every permitted transition and invalid trigger | Complete |
+| `WorkspaceStateTransitions` | `WorkspaceStateTransitionsTests` | Covered: ready/out-of-date, active/conflicted and unchanged-state behaviour | Complete |
 
 Additional `WorkspaceOperationGateTests`:
 
@@ -188,8 +207,8 @@ Additional `WorkspaceStateMachineTests`:
 
 | Target | Test class | Required coverage | Priority |
 | --- | --- | --- | --- |
-| `SnapshotGuard` | `SnapshotGuardTests` | Null guard, no transaction/precondition, every snapshot mismatch and exact match | Highest |
-| `WorkspaceTransaction` | `WorkspaceTransactionTests` | Current solution selection and every calculated `TransactionInfo` capability | Highest |
+| `SnapshotGuard` | `SnapshotGuardTests` | Covered: null guard, no transaction/precondition, every snapshot mismatch and exact match | Complete |
+| `WorkspaceTransaction` | `WorkspaceTransactionTests` | Covered: current solution selection and every calculated `TransactionInfo` capability | Complete |
 | `WorkspaceDiffBuilder` | `WorkspaceDiffBuilderTests` | Expand current tests across added, modified, deleted, missing and diff-format branches | High |
 
 `SnapshotGuardTests` must independently cover workspace ID, epoch and revision mismatches, a blank optional workspace ID, an exact match, no transaction and no expected snapshot.
@@ -231,15 +250,18 @@ The following classes contain important orchestration logic, but adding partial 
 
 This production seam is now complete. Workspace creates only neutral contexts and separate staging leases. Plugins and CodeActions each adapt those leases in their own assembly, and Host chooses the correct typed adapter from the corresponding catalogue without runtime type discrimination.
 
-Remaining unit coverage should cover:
+Existing boundary evidence covers lease disposal and confirms that the mutation stager is separate from the Workspace handler context. Remaining Workspace unit coverage should cover:
 
-- base Workspace contexts expose only shared properties and generic staging
-- normal query and mutation handlers receive runtime objects that do not implement the code-action context interfaces
+- base Workspace contexts expose only shared properties and no staging capability
 - code-action handlers receive the explicit CodeActions-owned adapter
 - query and mutation acquisition rejection paths, external-change transitions and lease ownership/release
 - mutation owner, out-of-date, conflicted, missing-transaction and revision-capacity branches
 - staging-result mapping for success, rejection, conflict, fault and no-change
 - code-action request delegation and replay-selection mapping in `Roslyn.Workbench.Mcp.CodeActions.Test`, not the Workspace unit project
+
+`WorkspaceExecutionContextFactoryTests` now cover every acquisition, selection, gate, disappearance, external-change, owner, state, transaction and capacity branch at 100% line and branch coverage. The session stores an `IWorkspaceOperationGate`; the production gate remains the concrete runtime implementation.
+
+`MutationStagingServiceTests` cover the complete public staging flow and the principal proposal rejection families through an injected `IWorkspaceChangeSummaryBuilder`. The remaining validation matrix covers each project/reference/non-source-document alternative. A solution-file-path mismatch is a defensive invariant because a candidate derived from the same Roslyn workspace cannot change its owning solution path.
 
 ### `WorkspaceLifecycleService`
 
@@ -433,25 +455,25 @@ Add/expand:
 
 Use only narrow in-memory Roslyn data factories and visible Moq resolver configuration. Record any genuinely unreachable Roslyn defensive guards.
 
-### W3: Context and fallback plumbing
+### W3: Context and normalisation plumbing
 
 Add:
 
-- all fallback service tests
+- `WorkspaceExecutionLeaseTests` (initial boundary coverage complete; expand with any uncovered lease branches)
+- `WorkspaceExecutionContextFactoryTests`
 - `WorkspaceCoordinatorOptionsTests`
 - the pure normalisation cases in `WorkspaceLoaderTests`
 
-This phase closes the remaining immediate plumbing behaviour without locking the flawed execution-context capability boundary.
+Production unavailable fallbacks have been removed. This phase closes the remaining immediate plumbing behaviour against the neutral Workspace execution boundary.
 
 ### W4: Coverage checkpoint and seam approval
 
 Run per-class line and branch coverage. Confirm that W1-W3 implementations meet 100% or have documented approved defensive exceptions.
 
-Review and explicitly approve or reject the proposed seams for:
+Review and explicitly approve or reject the remaining proposed seams for:
 
 - recovery storage
 - loaded workspace lifetime/apply behaviour
-- least-privilege execution contexts and code-action adapters
 - diff/resolver creation
 - mutation proposal validation
 - commit filesystem writing
@@ -460,17 +482,16 @@ Do not begin partial orchestration test classes until this decision is made.
 
 ### W5: Lifecycle and transaction orchestration
 
-After approved production seams are implemented, add:
+After the remaining approved production seams are implemented, add:
 
-- base Workspace query/mutation context tests
-- `WorkspaceExecutionContextFactoryTests`
-- CodeActions-owned context-adapter tests
 - `WorkspaceLifecycleServiceTests`
 - `MutationStagingServiceTests`
 - `TransactionServiceTests`
 - `TransactionCommitServiceTests`
 
 Keep the existing Workspace integration tests and add only the missing infrastructure-bound cases identified above.
+
+CodeActions-owned context-adapter coverage already lives in `Roslyn.Workbench.Mcp.CodeActions.Test`; it is not part of the deferred Workspace programme.
 
 ## Test-Support Rules for This Work
 

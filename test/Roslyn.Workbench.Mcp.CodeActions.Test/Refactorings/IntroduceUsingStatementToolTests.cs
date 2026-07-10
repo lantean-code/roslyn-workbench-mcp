@@ -15,7 +15,7 @@ public sealed class IntroduceUsingStatementToolTests
                 && metadata.Title == "Introduce Using Statement"
                 && metadata.Description == "Introduces a supported using statement or declaration through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
     }
 
     [Fact]

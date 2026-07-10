@@ -15,7 +15,7 @@ public sealed class AddDebuggerDisplayToolTests
                 && metadata.Title == "Add Debugger Display"
                 && metadata.Description == "Adds a DebuggerDisplay attribute through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
     }
 
     [Fact]

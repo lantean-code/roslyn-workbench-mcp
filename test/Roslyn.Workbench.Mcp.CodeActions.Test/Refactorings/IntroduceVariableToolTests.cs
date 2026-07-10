@@ -15,7 +15,7 @@ public sealed class IntroduceVariableToolTests
                 && metadata.Title == "Introduce Variable"
                 && metadata.Description == "Stages one supported Roslyn introduce-variable leaf action through refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<IntroduceVariableRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<IntroduceVariableRequest>>()), Times.Once);
     }
 
     [Fact]

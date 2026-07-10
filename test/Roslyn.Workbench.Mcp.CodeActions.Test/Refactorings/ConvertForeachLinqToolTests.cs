@@ -15,7 +15,7 @@ public sealed class ConvertForeachLinqToolTests
                 && metadata.Title == "Convert Foreach LINQ"
                 && metadata.Description == "Stages one supported Roslyn foreach or LINQ conversion through refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<ConvertForeachLinqRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<ConvertForeachLinqRequest>>()), Times.Once);
     }
 
     [Fact]

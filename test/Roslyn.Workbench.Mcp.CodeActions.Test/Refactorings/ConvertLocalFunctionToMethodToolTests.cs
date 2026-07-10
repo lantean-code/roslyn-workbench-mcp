@@ -15,7 +15,7 @@ public sealed class ConvertLocalFunctionToMethodToolTests
                 && metadata.Title == "Convert Local Function To Method"
                 && metadata.Description == "Converts a supported local function to a method through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
     }
 
     [Fact]

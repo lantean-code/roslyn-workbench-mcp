@@ -15,7 +15,7 @@ public sealed class MakeLocalFunctionStaticToolTests
                 && metadata.Title == "Make Local Function Static"
                 && metadata.Description == "Marks a supported local function as static through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
     }
 
     [Fact]

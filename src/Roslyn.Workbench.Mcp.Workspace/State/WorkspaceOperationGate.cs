@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Workspace.State;
 /// <summary>
 /// Provides shared and exclusive non-waiting operation leases for workspace activity.
 /// </summary>
-internal sealed class WorkspaceOperationGate
+internal sealed class WorkspaceOperationGate : IWorkspaceOperationGate
 {
     private readonly Lock _syncRoot;
     private readonly int _maxConcurrentQueries;

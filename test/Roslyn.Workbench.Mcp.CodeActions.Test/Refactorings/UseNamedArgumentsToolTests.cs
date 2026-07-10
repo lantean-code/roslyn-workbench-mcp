@@ -15,7 +15,7 @@ public sealed class UseNamedArgumentsToolTests
                 && metadata.Title == "Use Named Arguments"
                 && metadata.Description == "Adds a supported argument name through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<UseNamedArgumentsRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<UseNamedArgumentsRequest>>()), Times.Once);
     }
 
     [Fact]

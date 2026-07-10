@@ -1,6 +1,6 @@
 namespace Roslyn.Workbench.Mcp.CodeActions;
 
-internal abstract class CodeActionMutationToolHandler<TRequest>
+internal abstract class CodeActionMutationToolHandler<TRequest> : ICodeActionMutationToolHandler<TRequest>
     where TRequest : WorkspaceBoundRequest
 {
     public ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteAsync(

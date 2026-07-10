@@ -15,7 +15,7 @@ public sealed class ConvertAnonymousTypeToTupleToolTests
                 && metadata.Title == "Convert Anonymous Type To Tuple"
                 && metadata.Description == "Converts a supported anonymous type to a tuple through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
     }
 
     [Fact]

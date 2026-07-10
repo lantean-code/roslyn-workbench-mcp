@@ -14,7 +14,7 @@ public sealed class ListCodeActionsToolTests
                 metadata.Name == "list-code-actions"
                 && metadata.Title == "List Code Actions"
                 && metadata.Description == "Lists applicable code actions and code fixes at a target location."),
-            It.IsAny<CodeActionQueryToolHandler<ListCodeActionsRequest, CodeActionListData>>()), Times.Once);
+            It.IsAny<ICodeActionQueryToolHandler<ListCodeActionsRequest, CodeActionListData>>()), Times.Once);
     }
 
     [Fact]

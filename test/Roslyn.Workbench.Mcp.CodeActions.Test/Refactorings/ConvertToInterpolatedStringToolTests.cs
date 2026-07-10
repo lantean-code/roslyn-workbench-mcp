@@ -15,7 +15,7 @@ public sealed class ConvertToInterpolatedStringToolTests
                 && metadata.Title == "Convert To Interpolated String"
                 && metadata.Description == "Converts a supported string expression to an interpolated string through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<CodeActionMutationToolHandler<ConvertToInterpolatedStringRequest>>()), Times.Once);
+            It.IsAny<ICodeActionMutationToolHandler<ConvertToInterpolatedStringRequest>>()), Times.Once);
     }
 
     [Fact]

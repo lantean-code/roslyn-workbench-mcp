@@ -58,61 +58,69 @@ Current sweep note:
 
 ## Refactoring Tools
 
-| Done | Tool Class | Unit Test | Integration Test |
-| --- | --- | --- | --- |
-| [ ] | AddAwaitTool | AddAwaitToolTests | AddAwaitToolIntegrationTests |
-| [ ] | AddDebuggerDisplayTool | AddDebuggerDisplayToolTests | AddDebuggerDisplayToolIntegrationTests |
-| [ ] | AddImportTool | AddImportToolTests | AddImportToolIntegrationTests |
-| [ ] | AddMissingUsingsTool | AddMissingUsingsToolTests | AddMissingUsingsToolIntegrationTests |
-| [ ] | AddNullChecksTool | AddNullChecksToolTests | AddNullChecksToolIntegrationTests |
-| [ ] | ConvertAnonymousTypeToClassTool | ConvertAnonymousTypeToClassToolTests | ConvertAnonymousTypeToClassToolIntegrationTests |
-| [ ] | ConvertAnonymousTypeToTupleTool | ConvertAnonymousTypeToTupleToolTests | ConvertAnonymousTypeToTupleToolIntegrationTests |
-| [ ] | ConvertAutoPropertyToFullPropertyTool | ConvertAutoPropertyToFullPropertyToolTests | ConvertAutoPropertyToFullPropertyToolIntegrationTests |
-| [ ] | ConvertBetweenRegularAndVerbatimInterpolatedStringTool | ConvertBetweenRegularAndVerbatimInterpolatedStringToolTests | ConvertBetweenRegularAndVerbatimInterpolatedStringToolIntegrationTests |
-| [ ] | ConvertBetweenRegularAndVerbatimStringTool | ConvertBetweenRegularAndVerbatimStringToolTests | ConvertBetweenRegularAndVerbatimStringToolIntegrationTests |
-| [ ] | ConvertDirectCastToTryCastTool | ConvertDirectCastToTryCastToolTests | ConvertDirectCastToTryCastToolIntegrationTests |
-| [ ] | ConvertExpressionBodyTool | ConvertExpressionBodyToolTests | ConvertExpressionBodyToolIntegrationTests |
-| [ ] | ConvertForEachToForTool | ConvertForEachToForToolTests | ConvertForEachToForToolIntegrationTests |
-| [ ] | ConvertForToForeachTool | ConvertForToForeachToolTests | ConvertForToForeachToolIntegrationTests |
-| [ ] | ConvertForeachLinqTool | ConvertForeachLinqToolTests | ConvertForeachLinqToolIntegrationTests |
-| [ ] | ConvertIfToSwitchTool | ConvertIfToSwitchToolTests | ConvertIfToSwitchToolIntegrationTests |
-| [ ] | ConvertLocalFunctionToMethodTool | ConvertLocalFunctionToMethodToolTests | ConvertLocalFunctionToMethodToolIntegrationTests |
-| [ ] | ConvertPrimaryToRegularConstructorTool | ConvertPrimaryToRegularConstructorToolTests | ConvertPrimaryToRegularConstructorToolIntegrationTests |
-| [ ] | ConvertPropertyTool | ConvertPropertyToolTests | ConvertPropertyToolIntegrationTests |
-| [ ] | ConvertToInterpolatedStringTool | ConvertToInterpolatedStringToolTests | ConvertToInterpolatedStringToolIntegrationTests |
-| [ ] | ConvertToRecordTool | ConvertToRecordToolTests | ConvertToRecordToolIntegrationTests |
-| [ ] | ConvertTryCastToDirectCastTool | ConvertTryCastToDirectCastToolTests | ConvertTryCastToDirectCastToolIntegrationTests |
-| [ ] | EncapsulateFieldTool | EncapsulateFieldToolTests | EncapsulateFieldToolIntegrationTests |
-| [ ] | ExtractMethodTool | ExtractMethodToolTests | ExtractMethodToolIntegrationTests |
-| [ ] | FormatDocumentTool | FormatDocumentToolTests | FormatDocumentToolIntegrationTests |
-| [ ] | InlineVariableTool | InlineVariableToolTests | InlineVariableToolIntegrationTests |
-| [ ] | IntroduceParameterTool | IntroduceParameterToolTests | IntroduceParameterToolIntegrationTests |
-| [ ] | IntroduceUsingStatementTool | IntroduceUsingStatementToolTests | IntroduceUsingStatementToolIntegrationTests |
-| [ ] | IntroduceVariableTool | IntroduceVariableToolTests | IntroduceVariableToolIntegrationTests |
-| [ ] | InvertConditionalTool | InvertConditionalToolTests | InvertConditionalToolIntegrationTests |
-| [ ] | InvertIfTool | InvertIfToolTests | InvertIfToolIntegrationTests |
-| [ ] | InvertLogicalTool | InvertLogicalToolTests | InvertLogicalToolIntegrationTests |
-| [ ] | MakeLocalFunctionStaticTool | MakeLocalFunctionStaticToolTests | MakeLocalFunctionStaticToolIntegrationTests |
-| [ ] | MoveDeclarationNearReferenceTool | MoveDeclarationNearReferenceToolTests | MoveDeclarationNearReferenceToolIntegrationTests |
-| [ ] | MoveTypeToFileTool | MoveTypeToFileToolTests | MoveTypeToFileToolIntegrationTests |
-| [ ] | NameTupleElementTool | NameTupleElementToolTests | NameTupleElementToolIntegrationTests |
-| [ ] | RemoveUnusedUsingsTool | RemoveUnusedUsingsToolTests | RemoveUnusedUsingsToolIntegrationTests |
-| [ ] | RenameSymbolTool | RenameSymbolToolTests | RenameSymbolToolIntegrationTests |
-| [ ] | ReplaceConditionalWithStatementsTool | ReplaceConditionalWithStatementsToolTests | ReplaceConditionalWithStatementsToolIntegrationTests |
-| [ ] | ReplaceDocCommentTextWithTagTool | ReplaceDocCommentTextWithTagToolTests | ReplaceDocCommentTextWithTagToolIntegrationTests |
-| [ ] | ReverseForStatementTool | ReverseForStatementToolTests | ReverseForStatementToolIntegrationTests |
-| [ ] | SortUsingsTool | SortUsingsToolTests | SortUsingsToolIntegrationTests |
-| [ ] | UseExplicitTypeTool | UseExplicitTypeToolTests | UseExplicitTypeToolIntegrationTests |
-| [ ] | UseImplicitTypeTool | UseImplicitTypeToolTests | UseImplicitTypeToolIntegrationTests |
-| [ ] | UseNamedArgumentsTool | UseNamedArgumentsToolTests | UseNamedArgumentsToolIntegrationTests |
-| [ ] | UseRecursivePatternsTool | UseRecursivePatternsToolTests | UseRecursivePatternsToolIntegrationTests |
+Coverage note: `[x]` means the tool has current dedicated unit coverage, matching integration coverage, and no unresolved coverage gap. `[-]` means coverage is missing or an unreachable branch still needs an implementation decision. `[ ]` means neither unit nor integration coverage exists.
 
-## Code-Action Tools
+Current sweep note:
+- `RenameSymbolTool` has branch-first unit coverage for every reachable public flow. The remaining `ReferenceEquals(candidateSolution, context.CurrentSolution)` no-change branch cannot be reached with a valid Roslyn source symbol: a valid rename returns a new solution, while symbols outside the current source solution are rejected by Roslyn before this branch.
+- `SortUsingsTool` has 100% line and branch coverage for `ExecuteCoreAsync(...)`. The remaining class-level branches are defensive null handling for `UsingDirectiveSyntax.Name`; parsed and factory-created using directives expose a non-null name node, including malformed directives where Roslyn supplies a missing node.
 
 | Done | Tool Class | Unit Test | Integration Test |
 | --- | --- | --- | --- |
-| [x] | DescribeCodeActionTool | DescribeCodeActionToolTests | DescribeCodeActionToolIntegrationTests |
-| [-] | ListCodeActionsTool | ListCodeActionsToolTests | ListCodeActionsToolIntegrationTests |
-| [ ] | StageCodeActionTool | StageCodeActionToolTests | StageCodeActionToolIntegrationTests |
-| [ ] | StageCodeFixTool | StageCodeFixToolTests | StageCodeFixToolIntegrationTests |
-| [ ] | StageFixAllTool | StageFixAllToolTests | StageFixAllToolIntegrationTests |
+| [x] | FormatDocumentTool | FormatDocumentToolTests | FormatDocumentToolIntegrationTests |
+| [-] | RenameSymbolTool | RenameSymbolToolTests | RenameSymbolToolIntegrationTests |
+| [-] | SortUsingsTool | SortUsingsToolTests | SortUsingsToolIntegrationTests |
+
+## Code Action Tools
+
+Coverage note: `[x]` means the tool has current dedicated unit coverage and matching integration coverage. `[-]` means unit coverage is missing, old-pattern, or integration coverage is missing. `[ ]` means neither unit nor integration coverage exists.
+
+| Done | Category | Tool Class | Unit Test | Integration Test |
+| --- | --- | --- | --- | --- |
+| [x] | core code action tool | DescribeCodeActionTool | DescribeCodeActionToolTests | DescribeCodeActionToolIntegrationTests |
+| [x] | core code action tool | ListCodeActionsTool | ListCodeActionsToolTests | ListCodeActionsToolIntegrationTests |
+| [x] | core code action tool | StageCodeActionTool | StageCodeActionToolTests | StageCodeActionToolIntegrationTests |
+| [x] | core code action tool | StageCodeFixTool | StageCodeFixToolTests | StageCodeFixToolIntegrationTests |
+| [x] | core code action tool | StageFixAllTool | StageFixAllToolTests | StageFixAllToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | AddAwaitTool | AddAwaitToolTests | AddAwaitToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | AddDebuggerDisplayTool | AddDebuggerDisplayToolTests | AddDebuggerDisplayToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | AddImportTool | AddImportToolTests | AddImportToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | AddMissingUsingsTool | AddMissingUsingsToolTests | AddMissingUsingsToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | AddNullChecksTool | AddNullChecksToolTests | AddNullChecksToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | ConvertAnonymousTypeToClassTool | ConvertAnonymousTypeToClassToolTests | ConvertAnonymousTypeToClassToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | ConvertAnonymousTypeToTupleTool | ConvertAnonymousTypeToTupleToolTests | ConvertAnonymousTypeToTupleToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | ConvertAutoPropertyToFullPropertyTool | ConvertAutoPropertyToFullPropertyToolTests | ConvertAutoPropertyToFullPropertyToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | ConvertBetweenRegularAndVerbatimInterpolatedStringTool | ConvertBetweenRegularAndVerbatimInterpolatedStringToolTests | ConvertBetweenRegularAndVerbatimInterpolatedStringToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | ConvertBetweenRegularAndVerbatimStringTool | ConvertBetweenRegularAndVerbatimStringToolTests | ConvertBetweenRegularAndVerbatimStringToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | ConvertDirectCastToTryCastTool | ConvertDirectCastToTryCastToolTests | ConvertDirectCastToTryCastToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | ConvertForeachLinqTool | ConvertForeachLinqToolTests | ConvertForeachLinqToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | ConvertForEachToForTool | ConvertForEachToForToolTests | ConvertForEachToForToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | ConvertForToForeachTool | ConvertForToForeachToolTests | ConvertForToForeachToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | ConvertIfToSwitchTool | ConvertIfToSwitchToolTests | ConvertIfToSwitchToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | ConvertLocalFunctionToMethodTool | ConvertLocalFunctionToMethodToolTests | ConvertLocalFunctionToMethodToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | ConvertPrimaryToRegularConstructorTool | ConvertPrimaryToRegularConstructorToolTests | ConvertPrimaryToRegularConstructorToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | ConvertPropertyTool | ConvertPropertyToolTests | ConvertPropertyToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | ConvertToRecordTool | ConvertToRecordToolTests | ConvertToRecordToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | ConvertTryCastToDirectCastTool | ConvertTryCastToDirectCastToolTests | ConvertTryCastToDirectCastToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | ExtractMethodTool | ExtractMethodToolTests | ExtractMethodToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | IntroduceParameterTool | IntroduceParameterToolTests | IntroduceParameterToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | IntroduceUsingStatementTool | IntroduceUsingStatementToolTests | IntroduceUsingStatementToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | IntroduceVariableTool | IntroduceVariableToolTests | IntroduceVariableToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | InvertConditionalTool | InvertConditionalToolTests | InvertConditionalToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | InvertIfTool | InvertIfToolTests | InvertIfToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | InvertLogicalTool | InvertLogicalToolTests | InvertLogicalToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | MakeLocalFunctionStaticTool | MakeLocalFunctionStaticToolTests | MakeLocalFunctionStaticToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | MoveDeclarationNearReferenceTool | MoveDeclarationNearReferenceToolTests | MoveDeclarationNearReferenceToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | NameTupleElementTool | NameTupleElementToolTests | NameTupleElementToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | RemoveUnusedUsingsTool | RemoveUnusedUsingsToolTests | RemoveUnusedUsingsToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | ReplaceConditionalWithStatementsTool | ReplaceConditionalWithStatementsToolTests | ReplaceConditionalWithStatementsToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | ReplaceDocCommentTextWithTagTool | ReplaceDocCommentTextWithTagToolTests | ReplaceDocCommentTextWithTagToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | ReverseForStatementTool | ReverseForStatementToolTests | ReverseForStatementToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | UseExplicitTypeTool | UseExplicitTypeToolTests | UseExplicitTypeToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | UseImplicitTypeTool | UseImplicitTypeToolTests | UseImplicitTypeToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | UseNamedArgumentsTool | UseNamedArgumentsToolTests | UseNamedArgumentsToolIntegrationTests |
+| [x] | refactor, simple redirection service call tool | UseRecursivePatternsTool | UseRecursivePatternsToolTests | UseRecursivePatternsToolIntegrationTests |
+| [x] | refactor, complex tool | ConvertExpressionBodyTool | ConvertExpressionBodyToolTests | ConvertExpressionBodyToolIntegrationTests |
+| [x] | refactor, complex tool | ConvertToInterpolatedStringTool | ConvertToInterpolatedStringToolTests | ConvertToInterpolatedStringToolIntegrationTests |
+| [x] | refactor, complex tool | EncapsulateFieldTool | EncapsulateFieldToolTests | EncapsulateFieldToolIntegrationTests |
+| [x] | refactor, complex tool | InlineVariableTool | InlineVariableToolTests | InlineVariableToolIntegrationTests |
+| [x] | refactor, complex tool | MoveTypeToFileTool | MoveTypeToFileToolTests | MoveTypeToFileToolIntegrationTests |

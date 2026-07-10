@@ -175,6 +175,26 @@ public static class RoslynTestFactory
             syntaxTree.GetLocation(new TextSpan(start, length)));
     }
 
+    /// <summary>
+    /// Creates a source-backed Roslyn location from explicit span values.
+    /// </summary>
+    /// <param name="path">The source path.</param>
+    /// <param name="start">The source span start.</param>
+    /// <param name="length">The source span length.</param>
+    /// <returns>The created source location.</returns>
+    public static Location CreateSourceLocation(string path = "Code.cs", int start = 0, int length = 1)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentOutOfRangeException.ThrowIfNegative(start);
+        ArgumentOutOfRangeException.ThrowIfNegative(length);
+
+        var sourceLength = start + length;
+        var source = new string(' ', sourceLength == 0 ? 1 : sourceLength);
+        var syntaxTree = CSharpSyntaxTree.ParseText(SourceText.From(source), path: path);
+
+        return syntaxTree.GetLocation(new TextSpan(start, length));
+    }
+
     private static void ValidateProjectDefinition(InMemoryRoslynProjectDefinition project)
     {
         ArgumentNullException.ThrowIfNull(project);

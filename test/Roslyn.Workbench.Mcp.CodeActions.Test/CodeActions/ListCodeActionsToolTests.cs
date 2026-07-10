@@ -22,7 +22,6 @@ public sealed class ListCodeActionsToolTests
     {
         var target = new ListCodeActionsTool();
         var context = new Mock<ICodeActionQueryContext>();
-
         var request = new ListCodeActionsRequest
         {
             Location = new LocationSelector(),
@@ -48,5 +47,6 @@ public sealed class ListCodeActionsToolTests
         var result = await target.ExecuteAsync(request, context.Object, TestContext.Current.CancellationToken);
 
         result.Should().BeEquivalentTo(expected);
+        context.Verify(item => item.ListCodeActionsAsync(request, TestContext.Current.CancellationToken), Times.Once);
     }
 }

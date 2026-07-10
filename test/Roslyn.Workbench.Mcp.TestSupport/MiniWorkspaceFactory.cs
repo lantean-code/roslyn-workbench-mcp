@@ -25,7 +25,6 @@ public static class MiniWorkspaceFactory
         var projectId = ProjectId.CreateNewId("Sample");
         var versionStamp = VersionStamp.Create();
         var projectPath = "/workspace/Sample.csproj";
-        var loadedPath = "/workspace/Sample.sln";
 
         var metadataReferences = GetMetadataReferences();
         var solution = workspace.CurrentSolution.AddProject(ProjectInfo.Create(
@@ -55,7 +54,7 @@ public static class MiniWorkspaceFactory
 
         workspace.TryApplyChanges(solution);
 
-        return new MiniWorkspace(workspace, workspace.CurrentSolution, loadedPath, "Sample.csproj", documentIdsByPath.ToImmutableDictionary(StringComparer.Ordinal));
+        return new MiniWorkspace(workspace, workspace.CurrentSolution, documentIdsByPath.ToImmutableDictionary(StringComparer.Ordinal));
     }
 
     private static IReadOnlyList<MetadataReference> GetMetadataReferences()

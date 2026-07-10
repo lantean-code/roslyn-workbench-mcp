@@ -19,4 +19,14 @@
            Text="Test project '$(MSBuildProjectName)' must use an IntegrationTest or AuditTest suffix when TestCategory is set." />
   </Target>
 
+  <Target Name="ValidateTestSupportProjectReferences" BeforeTargets="ResolveProjectReferences">
+    <ItemGroup>
+      <_IntegrationTestSupportReference Include="@(ProjectReference)"
+                                        Condition="'%(Filename)' == 'Roslyn.Workbench.Mcp.IntegrationTestSupport'" />
+    </ItemGroup>
+
+    <Error Condition="'@(_IntegrationTestSupportReference)' != '' And (('$(IsTestProject)' == 'true' And '$(TestCategory)' == '') Or '$(MSBuildProjectName)' == 'Roslyn.Workbench.Mcp.TestSupport')"
+           Text="Project '$(MSBuildProjectName)' must not reference Roslyn.Workbench.Mcp.IntegrationTestSupport. Only integration and audit test projects may consume integration support." />
+  </Target>
+
 </Project>

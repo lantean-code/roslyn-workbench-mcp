@@ -1,6 +1,6 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test;
 
-public sealed class DefaultProjectStructureServiceTests
+public sealed class DefaultProjectStructureServiceIntegrationTests
 {
     [Fact]
     public async Task GIVEN_MissingSolutionPath_WHEN_GettingSolutionHierarchy_THEN_ShouldReturnEmpty()
@@ -114,7 +114,6 @@ public sealed class DefaultProjectStructureServiceTests
     [Fact]
     public void GIVEN_TargetFrameworksImportedFromProps_WHEN_GettingTargetFrameworks_THEN_ShouldReturnEvaluatedValues()
     {
-        MsBuildTestRegistration.EnsureRegistered();
         var target = new DefaultProjectStructureService();
         var directoryPath = CreateDirectoryPath();
 

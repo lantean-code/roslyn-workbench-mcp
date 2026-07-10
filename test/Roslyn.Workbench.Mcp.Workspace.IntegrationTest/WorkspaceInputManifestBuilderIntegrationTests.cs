@@ -1,5 +1,3 @@
-using Roslyn.Workbench.Mcp.TestSupport;
-
 namespace Roslyn.Workbench.Mcp.Workspace.Test;
 
 public sealed class WorkspaceInputManifestBuilderIntegrationTests

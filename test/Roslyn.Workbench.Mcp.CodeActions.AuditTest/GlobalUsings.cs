@@ -28,6 +28,5 @@ global using Roslyn.Workbench.Mcp.Plugins.Execution;
 global using Roslyn.Workbench.Mcp.Plugins.Protocol;
 global using Roslyn.Workbench.Mcp.Plugins.Services;
 global using Roslyn.Workbench.Mcp.Plugins.Workspace;
-global using Roslyn.Workbench.Mcp.TestSupport;
 global using Roslyn.Workbench.Mcp.Workspace;
 global using Xunit;

@@ -6,16 +6,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Roslyn.Workbench.Mcp\Roslyn.Workbench.Mcp.csproj" />
-    <ProjectReference Include="..\..\src\Roslyn.Workbench.Mcp.CodeActions\Roslyn.Workbench.Mcp.CodeActions.csproj" />
     <ProjectReference Include="..\..\src\Roslyn.Workbench.Mcp.Contracts\Roslyn.Workbench.Mcp.Contracts.csproj" />
-    <ProjectReference Include="..\..\src\Roslyn.Workbench.Mcp.Workspace\Roslyn.Workbench.Mcp.Workspace.csproj" />
     <ProjectReference Include="..\..\src\Roslyn.Workbench.Mcp.Plugins\Roslyn.Workbench.Mcp.Plugins.csproj" />
-    <ProjectReference Include="..\..\src\Roslyn.Workbench.Mcp.Plugins.Core\Roslyn.Workbench.Mcp.Plugins.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Build.Locator" />
     <PackageReference Include="Moq" />
   </ItemGroup>
 

@@ -1,4 +1,3 @@
-using Roslyn.Workbench.Mcp.Contracts.Results;
 using Roslyn.Workbench.Mcp.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.TestSupport;
@@ -6,43 +5,19 @@ namespace Roslyn.Workbench.Mcp.TestSupport;
 public sealed class MiniWorkspace : IDisposable
 {
     private readonly AdhocWorkspace _workspace;
-    private readonly string _loadedPath;
     private readonly IReadOnlyDictionary<string, DocumentId> _documentIdsByPath;
 
     internal MiniWorkspace(
         AdhocWorkspace workspace,
         Solution solution,
-        string loadedPath,
-        string projectPath,
         IReadOnlyDictionary<string, DocumentId> documentIdsByPath)
     {
         _workspace = workspace;
         Solution = solution;
-        _loadedPath = loadedPath;
-        ProjectPath = projectPath;
         _documentIdsByPath = documentIdsByPath;
     }
 
-    public string ProjectPath { get; }
-
     public Solution Solution { get; }
-
-    public WorkspaceIdentity CreateWorkspaceIdentity()
-    {
-        return new WorkspaceIdentity
-        {
-            WorkspaceId = "WorkspaceId",
-            WorkspaceEpoch = 1,
-            LoadedPath = _loadedPath,
-        };
-    }
-
-    public IWorkspaceResolver CreateResolver(WorkspaceIdentity workspaceIdentity, int? transactionRevision = null)
-    {
-        ArgumentNullException.ThrowIfNull(workspaceIdentity);
-
-        return new WorkspaceResolver(Solution, workspaceIdentity, transactionRevision);
-    }
 
     public LocationSelector GetLocationSelector(string text, string? documentPath = null)
     {

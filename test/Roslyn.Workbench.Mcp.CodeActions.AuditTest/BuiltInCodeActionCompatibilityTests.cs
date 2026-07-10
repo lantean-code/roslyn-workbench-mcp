@@ -1,5 +1,3 @@
-using Roslyn.Workbench.Mcp.TestSupport;
-
 namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 
 [Trait("Category", "Audit")]

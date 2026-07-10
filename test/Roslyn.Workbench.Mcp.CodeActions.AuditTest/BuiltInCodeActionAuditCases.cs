@@ -2,7 +2,7 @@ using Roslyn.Workbench.Mcp.Contracts.CodeActions;
 using Roslyn.Workbench.Mcp.Contracts.Selectors;
 using Roslyn.Workbench.Mcp.Plugins;
 
-namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
+namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 
 public enum BuiltInCodeActionRuntimeAuditOutcome
 {

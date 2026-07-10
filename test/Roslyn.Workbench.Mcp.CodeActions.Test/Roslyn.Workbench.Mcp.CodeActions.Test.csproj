@@ -8,7 +8,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Roslyn.Workbench.Mcp.CodeActions\Roslyn.Workbench.Mcp.CodeActions.csproj" />
-    <ProjectReference Include="..\Roslyn.Workbench.Mcp.IntegrationTestSupport\Roslyn.Workbench.Mcp.IntegrationTestSupport.csproj" />
     <ProjectReference Include="..\Roslyn.Workbench.Mcp.TestSupport\Roslyn.Workbench.Mcp.TestSupport.csproj" />
   </ItemGroup>
 

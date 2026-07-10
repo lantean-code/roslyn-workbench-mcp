@@ -1,4 +1,5 @@
 using Microsoft.CodeAnalysis.CodeActions;
+using Roslyn.Workbench.Mcp.CodeActions.Catalog;
 using Roslyn.Workbench.Mcp.CodeActions.Resolution;
 using Roslyn.Workbench.Mcp.Contracts.CodeActions;
 
@@ -66,16 +67,13 @@ public sealed class CodeActionDescriptorRegistryTests
 
     public static TheoryData<string, string> GetVisibleReplayFamilies()
     {
-        return CreateTheoryData(BuiltInCodeActionAuditCases.VisibleReplayFamilies);
-    }
-
-    private static TheoryData<string, string> CreateTheoryData(IReadOnlyList<BuiltInCodeActionAuditCase> families)
-    {
         var data = new TheoryData<string, string>();
 
-        foreach (var family in families)
+        foreach (var family in BuiltInCodeActionLedger.Families
+            .Where(static family => family.State == BuiltInCodeActionSupportState.SupportedReplay)
+            .Where(static family => !string.IsNullOrWhiteSpace(family.ProviderId)))
         {
-            data.Add(family.ProviderId, family.Title ?? family.TitlePrefix ?? family.ProviderId);
+            data.Add(family.ProviderId, "Title");
         }
 
         return data;

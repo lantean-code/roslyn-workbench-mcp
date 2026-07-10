@@ -6,7 +6,7 @@ using Roslyn.Workbench.Mcp.Contracts.Server;
 using Roslyn.Workbench.Mcp.Plugins;
 using Roslyn.Workbench.Mcp.Plugins.Core;
 
-namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
+namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 
 public sealed record BuiltInCodeActionAuditProbe
 {

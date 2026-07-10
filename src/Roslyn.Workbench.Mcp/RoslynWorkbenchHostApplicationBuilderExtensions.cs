@@ -81,8 +81,8 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
         services.AddSingleton<ICodeActionDiscoveryService, CodeActionDiscoveryService>();
         services.AddSingleton<ICodeActionResolutionService, CodeActionResolutionService>();
         services.AddSingleton<ICodeActionOperationService, CodeActionOperationService>();
-        services.AddSingleton<Roslyn.Workbench.Mcp.CodeActions.Execution.ICodeActionQueryWorkflow, CodeActionQueryWorkflow>();
-        services.AddSingleton<Roslyn.Workbench.Mcp.CodeActions.Execution.ICodeActionMutationWorkflow, CodeActionMutationWorkflow>();
+        services.AddSingleton<ICodeActionQueryWorkflow, CodeActionQueryWorkflow>();
+        services.AddSingleton<ICodeActionMutationWorkflow, CodeActionMutationWorkflow>();
         services.AddSingleton<WorkspaceHostServicesAccessor>();
         services.AddSingleton<IWorkspaceOperationResultFactory, WorkspaceOperationResultFactory>();
         services.AddSingleton<IWorkspaceSessionStore, WorkspaceSessionStore>();

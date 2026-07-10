@@ -7,7 +7,7 @@ namespace Roslyn.Workbench.Mcp.Workspace.ExecutionContexts;
 
 internal sealed class WorkspaceMutationContext : ICodeActionMutationContext
 {
-    private readonly Roslyn.Workbench.Mcp.CodeActions.Execution.ICodeActionMutationWorkflow _codeActionWorkflow;
+    private readonly ICodeActionMutationWorkflow _codeActionWorkflow;
     private readonly Func<RegisteredTool, MutationProposal, IReadOnlyList<DiagnosticInfo>, IReadOnlyList<WarningInfo>, CancellationToken, ValueTask<PluginExecutionResult<MutationData>>> _stageAsync;
 
     public WorkspaceMutationContext(
@@ -16,7 +16,7 @@ internal sealed class WorkspaceMutationContext : ICodeActionMutationContext
         int? transactionRevision,
         int defaultMaxResults,
         IWorkspaceResolver resolver,
-        Roslyn.Workbench.Mcp.CodeActions.Execution.ICodeActionMutationWorkflow codeActionWorkflow,
+        ICodeActionMutationWorkflow codeActionWorkflow,
         Func<RegisteredTool, MutationProposal, IReadOnlyList<DiagnosticInfo>, IReadOnlyList<WarningInfo>, CancellationToken, ValueTask<PluginExecutionResult<MutationData>>> stageAsync,
         IToolExecutionServices toolExecutionServices)
     {

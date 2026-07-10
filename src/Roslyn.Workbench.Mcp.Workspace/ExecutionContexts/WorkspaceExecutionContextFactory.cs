@@ -1,16 +1,12 @@
 using Microsoft.Extensions.Options;
-using Roslyn.Workbench.Mcp.Contracts.Results;
-using Roslyn.Workbench.Mcp.Contracts.Selectors;
-using Roslyn.Workbench.Mcp.Contracts.Server;
-using Roslyn.Workbench.Mcp.Plugins;
 
 namespace Roslyn.Workbench.Mcp.Workspace.ExecutionContexts;
 
 internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionContextFactory
 {
     private readonly WorkspaceCoordinatorOptions _options;
-    private readonly Roslyn.Workbench.Mcp.CodeActions.Execution.ICodeActionQueryWorkflow _codeActionQueryWorkflow;
-    private readonly Roslyn.Workbench.Mcp.CodeActions.Execution.ICodeActionMutationWorkflow _codeActionMutationWorkflow;
+    private readonly ICodeActionQueryWorkflow _codeActionQueryWorkflow;
+    private readonly ICodeActionMutationWorkflow _codeActionMutationWorkflow;
     private readonly IToolExecutionServices _toolExecutionServices;
     private readonly IWorkspaceSessionStore _sessionStore;
     private readonly IWorkspaceSelector _workspaceSelector;
@@ -20,8 +16,8 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
 
     public WorkspaceExecutionContextFactory(
         IOptions<WorkspaceCoordinatorOptions> options,
-        Roslyn.Workbench.Mcp.CodeActions.Execution.ICodeActionQueryWorkflow codeActionQueryWorkflow,
-        Roslyn.Workbench.Mcp.CodeActions.Execution.ICodeActionMutationWorkflow codeActionMutationWorkflow,
+        ICodeActionQueryWorkflow codeActionQueryWorkflow,
+        ICodeActionMutationWorkflow codeActionMutationWorkflow,
         IToolExecutionServices toolExecutionServices,
         IWorkspaceSessionStore sessionStore,
         IWorkspaceSelector workspaceSelector,

@@ -23,7 +23,7 @@ The current structure provides:
 - deterministic plugin-discovery fixtures in dedicated assemblies
 - independent CI gates for fast, integration and compatibility-audit coverage
 
-The full suite discovers 801 tests: 631 unit/contract tests, 77 integration tests and 93 audit tests. All pass in the current workspace.
+The full suite discovers 799 tests: 629 unit/contract tests, 77 integration tests and 93 audit tests. All pass in the current workspace.
 
 One medium-priority evidence gap remains intentionally open: the six-test Workspace unit project does not demonstrate meaningful unit-level branch coverage for the Workspace production assembly. This will be addressed in a separate round and is not masked by the 42 Workspace integration tests.
 
@@ -33,7 +33,7 @@ One medium-priority evidence gap remains intentionally open: the six-test Worksp
 | --- | --- | --- | ---: |
 | `Roslyn.Workbench.Mcp.Contracts.Test` | Unit/Contract | DTO validation, schemas, serialisation, selectors and result contracts | 53 |
 | `Roslyn.Workbench.Mcp.Plugins.Test` | Unit/Contract | Plugin registration, execution plumbing, protocol shape and public surface | 22 |
-| `Roslyn.Workbench.Mcp.Workspace.Test` | Unit | State machine, operation gate and in-memory diff behaviour | 6 |
+| `Roslyn.Workbench.Mcp.Workspace.Test` | Unit | Workspace unit-test implementation round in progress | 4 |
 | `Roslyn.Workbench.Mcp.Plugins.Core.Test` | Unit | Bundled inspection and normal-refactoring branches | 305 |
 | `Roslyn.Workbench.Mcp.CodeActions.Test` | Unit | Code-action services, workflows, catalogues and tools | 220 |
 | `Roslyn.Workbench.Mcp.Test` | Unit | Mock-isolated host services and server-owned tools | 25 |
@@ -65,7 +65,7 @@ The fast-loop filter is:
 Category!=Integration&Category!=Audit
 ```
 
-It selects 631 tests and no test from an `*.IntegrationTest` or `*.AuditTest` assembly.
+It selects 629 tests and no test from an `*.IntegrationTest` or `*.AuditTest` assembly.
 
 ### Support dependency direction
 
@@ -119,11 +119,9 @@ The controlled providers now use the `Roslyn.Workbench.Mcp.IntegrationTestSuppor
 
 ### Open: Workspace unit coverage is not evidenced
 
-`Roslyn.Workbench.Mcp.Workspace` contains 74 C# source files. Its unit project has six tests across:
+The complete source disposition, scenario inventory and proposed delivery phases are recorded in `WorkspaceUnitTestInventory.md`.
 
-- `WorkspaceDiffBuilderTests`
-- `WorkspaceOperationGateTests`
-- `WorkspaceStateMachineTests`
+`Roslyn.Workbench.Mcp.Workspace` contains 71 C# source files. Its unit project currently contains four replacement tests for `WorkspaceSelectionResult`; the remaining work is tracked in `WorkspaceUnitTestInventory.md`.
 
 The Workspace integration project has 42 useful boundary tests, but these do not replace focused branch coverage of independently testable services. There is no current post-reorganisation assembly-level coverage report proving the repository's stated line and branch objectives.
 
@@ -184,8 +182,8 @@ dotnet test --no-restore --artifacts-path=/tmp/artifacts/roslyn-workbench-mcp
 Results:
 
 - build: 0 warnings, 0 errors
-- unit/contract projects: 631 passed
+- unit/contract projects: 629 passed
 - integration projects: 77 passed
 - code-action audit: 93 passed
-- full suite: 801 passed
+- full suite: 799 passed
 - changed CRLF-governed files normalised to CRLF

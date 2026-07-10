@@ -83,7 +83,7 @@ public static class WorkspaceCoordinatorFactory
         var snapshotGuard = new SnapshotGuard();
         var mutationStagingService = new MutationStagingService(new WorkspaceOperationResultFactory(), sessionStore);
         var codeActionDiagnosticService = new CodeActionDiagnosticService();
-        var codeActionDescriptorRegistry = new CodeActionDescriptorRegistry();
+        var codeActionDescriptorRegistry = new CodeActionDescriptorRegistry([ControlledCodeActionDescriptorClassifier.Classify]);
         var codeActionTokenService = new CodeActionTokenService();
         var codeActionDiscoveryService = new CodeActionDiscoveryService(codeActionRuntime);
         var codeActionResolutionService = new CodeActionResolutionService(

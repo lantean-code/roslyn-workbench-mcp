@@ -1,6 +1,4 @@
 using Roslyn.Workbench.Mcp.CodeActions.Composition;
-using Roslyn.Workbench.Mcp.TestSupport;
-
 namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 
 public sealed class CodeActionRuntimeComposerIntegrationTests

@@ -13,6 +13,7 @@ internal sealed class ServerStatusService : IServerStatusService
     private readonly PluginCatalogSnapshot _pluginCatalogSnapshot;
     private readonly IMsBuildRegistrationService _msBuildRegistrationService;
     private readonly ICodeActionRuntime _codeActionRuntime;
+    private readonly IRecoveryStatusReader _recoveryStatusReader;
     private readonly int _toolCount;
     private ServerConfiguration? _configuration;
 
@@ -20,12 +21,14 @@ internal sealed class ServerStatusService : IServerStatusService
         IOptions<StartupOptions> startupOptions,
         PluginCatalogSnapshot pluginCatalogSnapshot,
         IMsBuildRegistrationService msBuildRegistrationService,
-        ICodeActionRuntime codeActionRuntime)
+        ICodeActionRuntime codeActionRuntime,
+        IRecoveryStatusReader recoveryStatusReader)
     {
         _startupOptions = startupOptions.Value;
         _pluginCatalogSnapshot = pluginCatalogSnapshot;
         _msBuildRegistrationService = msBuildRegistrationService;
         _codeActionRuntime = codeActionRuntime;
+        _recoveryStatusReader = recoveryStatusReader;
         _toolCount = _pluginCatalogSnapshot.Tools.Count + ServerOwnedToolRegistration.ToolCount;
     }
 
@@ -44,7 +47,7 @@ internal sealed class ServerStatusService : IServerStatusService
             Configuration = includeExpandedDetail ? GetConfiguration() : null,
             ToolCount = _toolCount,
             Plugins = includeExpandedDetail ? _pluginCatalogSnapshot.Plugins : null,
-            Recovery = includeExpandedDetail ? CommitRecoveryStore.GetStatuses(_startupOptions.StateDirectory) : null,
+            Recovery = includeExpandedDetail ? _recoveryStatusReader.GetStatuses(_startupOptions.StateDirectory) : null,
         }));
     }
 

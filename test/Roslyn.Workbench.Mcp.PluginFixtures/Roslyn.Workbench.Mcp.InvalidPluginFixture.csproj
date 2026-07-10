@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>false</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="DuplicateToolNameTestPlugin.cs" />
+    <Compile Include="ThrowingRegistrationTestPlugin.cs" />
+    <Compile Include="UnsupportedApiVersionTestPlugin.cs" />
+    <Compile Include="ValidMutationTestPlugin.cs" />
+    <Compile Include="ValidQueryTestPlugin.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Roslyn.Workbench.Mcp.Contracts\Roslyn.Workbench.Mcp.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Roslyn.Workbench.Mcp.Plugins\Roslyn.Workbench.Mcp.Plugins.csproj" />
+  </ItemGroup>
+
+</Project>

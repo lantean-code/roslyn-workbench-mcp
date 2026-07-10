@@ -1,16 +1,16 @@
 using Roslyn.Workbench.Mcp.Contracts.Selectors;
 using Roslyn.Workbench.Mcp.Plugins;
 
-namespace Roslyn.Workbench.Mcp.TestSupport;
+namespace Roslyn.Workbench.Mcp.PluginFixtures;
 
-public sealed class ValidQueryTestPlugin : IRoslynPlugin
+public sealed class UnsupportedApiVersionTestPlugin : IRoslynPlugin
 {
     public PluginMetadata Metadata => new()
     {
-        PluginId = "test.valid.query",
-        DisplayName = "Valid Query Test Plugin",
+        PluginId = "test.unsupported.api",
+        DisplayName = "Unsupported API Test Plugin",
         Version = "1.0.0",
-        SupportedApiVersion = PluginApiVersions.V1,
+        SupportedApiVersion = "9.9",
     };
 
     public void Register(IPluginRegistry registry)
@@ -18,9 +18,9 @@ public sealed class ValidQueryTestPlugin : IRoslynPlugin
         registry.RegisterQueryTool(
             new ToolRegistrationMetadata
             {
-                Name = "test-valid-query",
-                Title = "Test Valid Query",
-                Description = "Returns a predictable payload for startup tests.",
+                Name = "test-unsupported-api",
+                Title = "Unsupported API",
+                Description = "Should never register.",
             },
             new Handler());
     }
@@ -39,12 +39,13 @@ public sealed class ValidQueryTestPlugin : IRoslynPlugin
     {
         public ValueTask<PluginExecutionResult<Response>> ExecuteAsync(Request request, IQueryContext context, CancellationToken cancellationToken)
         {
+            _ = request;
             _ = context;
             _ = cancellationToken;
 
             return ValueTask.FromResult(PluginExecutionResult<Response>.Success(new Response
             {
-                Value = request.Name,
+                Value = string.Empty,
             }));
         }
     }

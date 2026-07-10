@@ -28,6 +28,7 @@
     <ProjectReference Include="..\Roslyn.Workbench.Mcp.IntegrationTestSupport\Roslyn.Workbench.Mcp.IntegrationTestSupport.csproj" />
     <ProjectReference Include="..\Roslyn.Workbench.Mcp.PluginFixtures\Roslyn.Workbench.Mcp.HostMutationPluginFixture.csproj" />
     <ProjectReference Include="..\Roslyn.Workbench.Mcp.PluginFixtures\Roslyn.Workbench.Mcp.HostQueryPluginFixture.csproj" />
+    <ProjectReference Include="..\Roslyn.Workbench.Mcp.PluginFixtures\Roslyn.Workbench.Mcp.InvalidPluginFixture.csproj" />
   </ItemGroup>
 
 </Project>

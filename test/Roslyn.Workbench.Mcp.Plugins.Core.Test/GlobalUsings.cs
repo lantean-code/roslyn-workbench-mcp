@@ -1,9 +1,6 @@
 global using AwesomeAssertions;
 global using Microsoft.CodeAnalysis;
 global using Moq;
-global using Roslyn.Workbench.Mcp.CodeActions;
-global using Roslyn.Workbench.Mcp.CodeActions.Refactorings;
-global using Roslyn.Workbench.Mcp.CodeActions.Tools;
 global using Roslyn.Workbench.Mcp.Contracts.CodeActions;
 global using Roslyn.Workbench.Mcp.Contracts.Inspection;
 global using Roslyn.Workbench.Mcp.Contracts.Refactorings;
@@ -20,5 +17,4 @@ global using Roslyn.Workbench.Mcp.Plugins.Protocol;
 global using Roslyn.Workbench.Mcp.Plugins.Services;
 global using Roslyn.Workbench.Mcp.Plugins.Workspace;
 global using Roslyn.Workbench.Mcp.TestSupport;
-global using Roslyn.Workbench.Mcp.Workspace;
 global using Xunit;

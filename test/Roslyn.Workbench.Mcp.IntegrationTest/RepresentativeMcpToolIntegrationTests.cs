@@ -1,6 +1,4 @@
 using System.Text.Json;
-using Roslyn.Workbench.Mcp.TestSupport;
-
 namespace Roslyn.Workbench.Mcp.Test;
 
 public sealed class RepresentativeMcpToolIntegrationTests

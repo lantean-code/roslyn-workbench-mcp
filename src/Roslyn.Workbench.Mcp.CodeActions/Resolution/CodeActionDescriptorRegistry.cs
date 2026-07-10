@@ -5,9 +5,18 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Resolution;
 
 internal sealed class CodeActionDescriptorRegistry : ICodeActionDescriptorRegistry
 {
-    private const string _testRefactoringProviderId = "Roslyn.Workbench.Mcp.TestSupport.TestRefactoringProvider";
-    private const string _testCodeFixProviderId = "Roslyn.Workbench.Mcp.TestSupport.TestCodeFixProvider";
     private const string _addImportCodeFixProviderId = "Microsoft.CodeAnalysis.CSharp.AddImport.CSharpAddImportCodeFixProvider";
+    private readonly IReadOnlyList<CodeActionDescriptorOverride> _overrides;
+
+    public CodeActionDescriptorRegistry()
+        : this([])
+    {
+    }
+
+    internal CodeActionDescriptorRegistry(IReadOnlyList<CodeActionDescriptorOverride> overrides)
+    {
+        _overrides = overrides;
+    }
 
     public CodeActionDescriptorEntry Classify(CodeAction action, string providerId, string title)
     {
@@ -15,14 +24,13 @@ internal sealed class CodeActionDescriptorRegistry : ICodeActionDescriptorRegist
 
         var normalizedTitle = title.Trim();
 
-        if (string.Equals(providerId, _testRefactoringProviderId, StringComparison.Ordinal))
+        foreach (var descriptorOverride in _overrides)
         {
-            return ClassifyTestRefactoring(action, normalizedTitle);
-        }
-
-        if (string.Equals(providerId, _testCodeFixProviderId, StringComparison.Ordinal))
-        {
-            return Replay();
+            var overriddenEntry = descriptorOverride(action, providerId, normalizedTitle);
+            if (overriddenEntry is not null)
+            {
+                return overriddenEntry;
+            }
         }
 
         if (string.Equals(providerId, _addImportCodeFixProviderId, StringComparison.Ordinal)
@@ -50,26 +58,6 @@ internal sealed class CodeActionDescriptorRegistry : ICodeActionDescriptorRegist
         return Hidden();
     }
 
-    private static CodeActionDescriptorEntry ClassifyTestRefactoring(CodeAction action, string normalizedTitle)
-    {
-        if (string.Equals(normalizedTitle, "Change signature test refactoring", StringComparison.Ordinal))
-        {
-            return Parameterised(null, CodeActionDescriptorContextKind.SignaturePlan);
-        }
-
-        if (string.Equals(normalizedTitle, "Extract method test refactoring", StringComparison.Ordinal))
-        {
-            return Hidden();
-        }
-
-        if (action is CodeActionWithOptions)
-        {
-            return Unsupported("UnsupportedCodeActionWithOptions", "The selected action requires unsupported Roslyn option gathering.");
-        }
-
-        return Replay();
-    }
-
     private static CodeActionDescriptorEntry Parameterised(string? executorTool, CodeActionDescriptorContextKind contextKind)
     {
         return new CodeActionDescriptorEntry
@@ -79,18 +67,6 @@ internal sealed class CodeActionDescriptorRegistry : ICodeActionDescriptorRegist
             DescribeTool = "describe-code-action",
             Requirements = ["requires-dedicated-tool", "requires-preflight-description"],
             ContextKind = contextKind,
-        };
-    }
-
-    private static CodeActionDescriptorEntry Unsupported(string reasonCode, string message)
-    {
-        return new CodeActionDescriptorEntry
-        {
-            ExecutionMode = CodeActionExecutionMode.Unsupported,
-            UnsupportedReasonCode = reasonCode,
-            Requirements = ["not-executable"],
-            ContextKind = CodeActionDescriptorContextKind.Unsupported,
-            Message = message,
         };
     }
 

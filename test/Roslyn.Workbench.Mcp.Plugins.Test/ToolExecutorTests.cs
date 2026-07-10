@@ -7,14 +7,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Test;
 public sealed class ToolExecutorTests
 {
     [Fact]
-    public void GIVEN_ToolExecutionContextContract_WHEN_InspectingPublicProperties_THEN_ShouldExposeTransactionRevision()
-    {
-        typeof(IToolExecutionContext).GetProperty("TransactionRevision").Should().NotBeNull();
-        typeof(IQueryContext).GetInterfaces().Should().ContainSingle(static type => type == typeof(IToolExecutionContext));
-        typeof(IMutationContext).GetInterfaces().Should().ContainSingle(static type => type == typeof(IToolExecutionContext));
-    }
-
-    [Fact]
     public async Task GIVEN_QueryHandlerSuccess_WHEN_ExecutingRegisteredTool_THEN_ShouldReturnStructuredSucceededResult()
     {
         var registeredTool = CreateQueryTool(new SuccessQueryHandler());

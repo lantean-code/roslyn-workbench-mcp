@@ -2,6 +2,8 @@
 
 Date: 2026-07-07
 
+> **Superseded:** This document describes the pre-reorganisation test layout and is retained for historical context only. Use `TestArchitectureReaudit-2026-07-10.md` for the current project topology, boundary rules, coverage map and outstanding work.
+
 Implementation status note, 2026-07-08:
 
 The restructuring described in this document has now been applied directly to the repository.

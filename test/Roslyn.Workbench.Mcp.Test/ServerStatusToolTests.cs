@@ -1,9 +1,7 @@
-using System.Reflection;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
-using Roslyn.Workbench.Mcp.Contracts.CodeActions;
 using Roslyn.Workbench.Mcp.Contracts.Results;
-using Roslyn.Workbench.Mcp.Plugins;
+using Roslyn.Workbench.Mcp.Contracts.Server;
 using Roslyn.Workbench.Mcp.Tools;
 
 namespace Roslyn.Workbench.Mcp.Test;
@@ -11,73 +9,19 @@ namespace Roslyn.Workbench.Mcp.Test;
 public sealed class ServerStatusToolTests
 {
     [Fact]
-    public async Task GIVEN_ServerStatusTool_WHEN_CallingExecuteAsync_THEN_ShouldReturnStructuredServerDiagnostics()
+    public async Task GIVEN_StatusRequest_WHEN_CallingExecuteAsync_THEN_ShouldReturnServiceResult()
     {
-        var startupOptions = new StartupOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxTransactionRevisions = 20,
-            CodeActionTokenLifetime = TimeSpan.FromMinutes(5),
-        };
-        var pluginSnapshot = new PluginCatalogSnapshot
-        {
-            Plugins =
-            [
-                new PluginStatus
-                {
-                    PluginId = "plugin.id",
-                    DisplayName = "Plugin Name",
-                    Version = "1.2.3",
-                    SupportedApiVersion = "1.0",
-                    Enabled = true,
-                },
-            ],
-        };
-        var msBuildRegistrationService = CreateMsBuildRegistrationService();
-        var tool = CreateTool(startupOptions, pluginSnapshot, msBuildRegistrationService.Object, new ComponentStatus { IsAvailable = true });
-
-        var result = await ServerOwnedToolTestSupport.InvokeAsync(tool, "server-status", cancellationToken: CancellationToken.None);
-
-        result.IsError.Should().BeFalse();
-        result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeTrue();
-        result.StructuredContent.Value.GetProperty("toolCount").GetInt32().Should().Be(ServerOwnedToolRegistration.ToolCount);
-        result.StructuredContent.Value.GetProperty("codeActions").ValueKind.Should().Be(JsonValueKind.Object);
-        result.StructuredContent.Value.GetProperty("serverVersion").GetString().Should().Be(Assembly.GetAssembly(typeof(ServerStatusTool))!.GetName().Version!.ToString());
-        result.StructuredContent.Value.TryGetProperty("plugins", out _).Should().BeFalse();
-        result.StructuredContent.Value.TryGetProperty("configuration", out _).Should().BeFalse();
-        result.StructuredContent.Value.TryGetProperty("recovery", out _).Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task GIVEN_ServerStatusToolFullDetail_WHEN_CallingExecuteAsync_THEN_ShouldReturnExpandedDiagnostics()
-    {
-        var startupOptions = new StartupOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxTransactionRevisions = 20,
-            CodeActionTokenLifetime = TimeSpan.FromMinutes(5),
-        };
-        var pluginSnapshot = new PluginCatalogSnapshot
-        {
-            Plugins =
-            [
-                new PluginStatus
-                {
-                    PluginId = "plugin.id",
-                    DisplayName = "Plugin Name",
-                    Version = "1.2.3",
-                    SupportedApiVersion = "1.0",
-                    Enabled = true,
-                },
-            ],
-        };
-        var msBuildRegistrationService = CreateMsBuildRegistrationService();
-        var tool = CreateTool(startupOptions, pluginSnapshot, msBuildRegistrationService.Object, new ComponentStatus { IsAvailable = true });
+        var service = new Mock<IServerStatusService>();
+        service
+            .Setup(item => item.GetStatusAsync(StatusDetailLevel.Full, CancellationToken.None))
+            .ReturnsAsync(ToolResult<ServerStatusData>.Succeeded(new ServerStatusData
+            {
+                ToolCount = 5,
+            }));
+        var target = new ServerStatusTool(Options.Create(new StartupOptions()), service.Object);
 
         var result = await ServerOwnedToolTestSupport.InvokeAsync(
-            tool,
+            target,
             "server-status",
             new Dictionary<string, JsonElement>
             {
@@ -85,145 +29,30 @@ public sealed class ServerStatusToolTests
             },
             CancellationToken.None);
 
-        result.StructuredContent!.Value.GetProperty("configuration").TryGetProperty("maxResponseBytes", out _).Should().BeFalse();
-        result.StructuredContent.Value.GetProperty("plugins").EnumerateArray().Should().ContainSingle(static plugin => plugin.GetProperty("pluginId").GetString() == "plugin.id");
-        result.StructuredContent.Value.GetProperty("recovery").ValueKind.Should().Be(JsonValueKind.Array);
+        result.IsError.Should().BeFalse();
+        result.StructuredContent!.Value.GetProperty("toolCount").GetInt32().Should().Be(5);
+        service.Verify(item => item.GetStatusAsync(StatusDetailLevel.Full, CancellationToken.None), Times.Once);
     }
 
     [Fact]
     public void GIVEN_DefaultOutputSchemaMode_WHEN_CreatingServerStatusTool_THEN_ShouldOmitOutputSchemaAndAppendResultHint()
     {
-        var startupOptions = new StartupOptions();
-        var pluginSnapshot = new PluginCatalogSnapshot();
+        var target = new ServerStatusTool(Options.Create(new StartupOptions()), Mock.Of<IServerStatusService>());
 
-        var msBuildRegistrationService = CreateMsBuildRegistrationService();
-        var tool = CreateTool(startupOptions, pluginSnapshot, msBuildRegistrationService.Object, new ComponentStatus { IsAvailable = true });
-
-        tool.ProtocolTool.OutputSchema.Should().BeNull();
-        tool.ProtocolTool.Description.Should().Be("Returns server diagnostics without requiring a loaded workspace. Result: server diagnostics, effective configuration, plugin status, and unfinished recovery state.");
+        target.ProtocolTool.OutputSchema.Should().BeNull();
+        target.ProtocolTool.Description.Should().Be("Returns server diagnostics without requiring a loaded workspace. Result: server diagnostics, effective configuration, plugin status, and unfinished recovery state.");
     }
 
     [Fact]
     public void GIVEN_FullOutputSchemaMode_WHEN_CreatingServerStatusTool_THEN_ShouldPublishOutputSchema()
     {
-        var startupOptions = new StartupOptions
+        var options = new StartupOptions
         {
             ToolOutputSchemaMode = ToolOutputSchemaMode.Full,
         };
-        var pluginSnapshot = new PluginCatalogSnapshot();
+        var target = new ServerStatusTool(Options.Create(options), Mock.Of<IServerStatusService>());
 
-        var msBuildRegistrationService = CreateMsBuildRegistrationService();
-        var tool = CreateTool(startupOptions, pluginSnapshot, msBuildRegistrationService.Object, new ComponentStatus { IsAvailable = true });
-
-        tool.ProtocolTool.OutputSchema.Should().NotBeNull();
-        tool.ProtocolTool.OutputSchema!.Value.GetProperty("oneOf").ValueKind.Should().Be(JsonValueKind.Array);
+        target.ProtocolTool.OutputSchema.Should().NotBeNull();
+        target.ProtocolTool.OutputSchema!.Value.GetProperty("oneOf").ValueKind.Should().Be(JsonValueKind.Array);
     }
-
-    [Fact]
-    public async Task GIVEN_UnfinishedRecoveryRecord_WHEN_CallingExecuteAsync_THEN_ShouldReturnRecoveryDiagnostics()
-    {
-        var stateDirectory = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-status-tests", Guid.NewGuid().ToString("n"));
-        Directory.CreateDirectory(stateDirectory);
-        CommitRecoveryStore.WriteStatus(stateDirectory, new RecoveryStatus
-        {
-            CommitId = "commit-id",
-            SolutionPath = "/workspace/Sample.csproj",
-            State = RecoveryState.RecoveryIncomplete,
-            Message = "Message",
-        });
-        var startupOptions = new StartupOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxTransactionRevisions = 20,
-            CodeActionTokenLifetime = TimeSpan.FromMinutes(5),
-            StateDirectory = stateDirectory,
-        };
-        var pluginSnapshot = new PluginCatalogSnapshot();
-        var msBuildRegistrationService = CreateMsBuildRegistrationService();
-        var tool = CreateTool(startupOptions, pluginSnapshot, msBuildRegistrationService.Object, new ComponentStatus { IsAvailable = true });
-
-        var result = await ServerOwnedToolTestSupport.InvokeAsync(
-            tool,
-            "server-status",
-            new Dictionary<string, JsonElement>
-            {
-                ["detail"] = JsonSerializer.SerializeToElement(StatusDetailLevel.Full),
-            },
-            CancellationToken.None);
-
-        result.StructuredContent!.Value.GetProperty("recovery").EnumerateArray().Should().ContainSingle(static status => status.GetProperty("commitId").GetString() == "commit-id");
-    }
-
-    [Fact]
-    public async Task GIVEN_UnavailableCodeActionComposition_WHEN_CallingExecuteAsync_THEN_ShouldReturnDisablementDiagnostics()
-    {
-        var startupOptions = new StartupOptions
-        {
-            DefaultMaxResults = 100,
-            MaxConcurrentQueries = 2,
-            MaxTransactionRevisions = 20,
-            CodeActionTokenLifetime = TimeSpan.FromMinutes(5),
-        };
-        var pluginSnapshot = new PluginCatalogSnapshot();
-        var msBuildRegistrationService = CreateMsBuildRegistrationService();
-        var tool = CreateTool(
-            startupOptions,
-            pluginSnapshot,
-            msBuildRegistrationService.Object,
-            new ComponentStatus
-            {
-                IsAvailable = false,
-                Message = "Code-action composition is unavailable.",
-            });
-
-        var result = await ServerOwnedToolTestSupport.InvokeAsync(
-            tool,
-            "server-status",
-            new Dictionary<string, JsonElement>
-            {
-                ["detail"] = JsonSerializer.SerializeToElement(StatusDetailLevel.Full),
-            },
-            CancellationToken.None);
-
-        result.StructuredContent!.Value.GetProperty("codeActions").GetProperty("isAvailable").GetBoolean().Should().BeFalse();
-        result.StructuredContent.Value.GetProperty("codeActions").GetProperty("message").GetString().Should().Be("Code-action composition is unavailable.");
-    }
-
-    private static Mock<IMsBuildRegistrationService> CreateMsBuildRegistrationService()
-    {
-        var msBuildRegistrationService = new Mock<IMsBuildRegistrationService>();
-
-        msBuildRegistrationService
-            .SetupGet(static service => service.CurrentStatus)
-            .Returns(new ComponentStatus
-            {
-                IsAvailable = true,
-                Version = "1.0.0",
-                Message = "MSBuildPath",
-            });
-
-        return msBuildRegistrationService;
-    }
-
-    private static ServerStatusTool CreateTool(
-        StartupOptions startupOptions,
-        PluginCatalogSnapshot pluginSnapshot,
-        IMsBuildRegistrationService msBuildRegistrationService,
-        ComponentStatus codeActionStatus)
-    {
-        var codeActionRuntime = new CodeActionRuntime
-        {
-            Status = codeActionStatus,
-        };
-
-        var service = new ServerStatusService(
-            Options.Create(startupOptions),
-            pluginSnapshot,
-            msBuildRegistrationService,
-            (ICodeActionRuntime)codeActionRuntime);
-
-        return new ServerStatusTool(Options.Create(startupOptions), service);
-    }
-
 }

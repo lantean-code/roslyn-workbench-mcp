@@ -6,6 +6,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test;
 public sealed class ToolExecutionHelpersTests
 {
     [Fact]
+    [Trait("Category", "Contract")]
     public void GIVEN_ResolutionResult_WHEN_CheckingHasRejection_THEN_ShouldExposeConditionalNullabilityMetadata()
     {
         var property = typeof(ToolResolutionResult<string, object>).GetProperty("HasRejection", BindingFlags.Instance | BindingFlags.Public);

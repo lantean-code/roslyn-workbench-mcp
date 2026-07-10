@@ -1,7 +1,7 @@
 using Roslyn.Workbench.Mcp.Contracts.Selectors;
 using Roslyn.Workbench.Mcp.Plugins;
 
-namespace Roslyn.Workbench.Mcp.TestSupport;
+namespace Roslyn.Workbench.Mcp.PluginFixtures;
 
 public sealed class ValidMutationTestPlugin : IRoslynPlugin
 {

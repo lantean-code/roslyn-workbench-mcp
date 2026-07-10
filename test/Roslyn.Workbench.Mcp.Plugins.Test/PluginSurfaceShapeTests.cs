@@ -4,6 +4,14 @@ namespace Roslyn.Workbench.Mcp.Plugins.Test;
 public sealed class PluginSurfaceShapeTests
 {
     [Fact]
+    public void GIVEN_ToolExecutionContextContract_WHEN_InspectingPublicProperties_THEN_ShouldExposeTransactionRevision()
+    {
+        typeof(IToolExecutionContext).GetProperty("TransactionRevision").Should().NotBeNull();
+        typeof(IQueryContext).GetInterfaces().Should().ContainSingle(static type => type == typeof(IToolExecutionContext));
+        typeof(IMutationContext).GetInterfaces().Should().ContainSingle(static type => type == typeof(IToolExecutionContext));
+    }
+
+    [Fact]
     public void GIVEN_PluginsAssembly_WHEN_LoadingPublicPluginSurface_THEN_ShouldExposePluginContracts()
     {
         typeof(IRoslynPlugin).FullName.Should().Be("Roslyn.Workbench.Mcp.Plugins.IRoslynPlugin");

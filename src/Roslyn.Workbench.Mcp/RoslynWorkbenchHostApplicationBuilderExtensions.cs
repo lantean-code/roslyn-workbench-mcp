@@ -96,6 +96,7 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
         services.AddSingleton<IWorkspaceExecutionContextFactory, WorkspaceExecutionContextFactory>();
         services.AddSingleton<IWorkspaceLifecycleService, WorkspaceLifecycleService>();
         services.AddSingleton<ITransactionService, TransactionService>();
+        services.AddSingleton<IRecoveryStatusReader, RecoveryStatusReader>();
         services.AddSingleton<IServerStatusService, ServerStatusService>();
         services.AddSingleton(static serviceProvider => (IToolExecutionContextFactory)serviceProvider.GetRequiredService<IWorkspaceExecutionContextFactory>());
     }

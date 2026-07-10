@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 
-namespace Roslyn.Workbench.Mcp.TestSupport;
+namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
 [ExportCodeRefactoringProvider(LanguageNames.CSharp, Name = "TestRefactoringProvider")]
 public sealed class TestRefactoringProvider : CodeRefactoringProvider

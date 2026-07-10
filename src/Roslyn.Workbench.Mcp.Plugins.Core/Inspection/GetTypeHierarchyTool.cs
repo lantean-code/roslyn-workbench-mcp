@@ -1,8 +1,8 @@
 using System.Collections.Immutable;
 
-using Roslyn.Workbench.Mcp.Contracts.Inspection;
-using Roslyn.Workbench.Mcp.Contracts.Results;
-using Roslyn.Workbench.Mcp.Contracts.Selectors;
+using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 

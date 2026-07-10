@@ -1,4 +1,4 @@
-using Roslyn.Workbench.Mcp.Contracts.Refactorings;
+using Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 
@@ -6,23 +6,23 @@ internal sealed class RemoveUnusedUsingsTool : CodeActionMutationToolHandler<Rem
 {
     private const string FixableDiagnosticId = "RemoveUnnecessaryImportsFixable";
 
-    private static readonly ToolRegistrationMetadata _metadata = new()
+    private static readonly CodeActionToolMetadata _metadata = new()
     {
         Name = "remove-unused-usings",
         Title = "Remove Unused Usings",
         Description = "Removes unused using directives across a selected scope through Roslyn code-fix composition.",
-        Behavior = new ToolBehaviorHints
+        Behavior = new CodeActionToolBehavior
         {
             Destructive = true,
         },
     };
 
-    public static void Register(IPluginRegistry registry)
+    public static void Register(ICodeActionToolRegistry registry)
     {
         registry.RegisterMutationTool(_metadata, new RemoveUnusedUsingsTool());
     }
 
-    protected override ValueTask<PluginExecutionResult<MutationProposal>> ExecuteCoreAsync(RemoveUnusedUsingsRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
+    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteCoreAsync(RemoveUnusedUsingsRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         return context.StageScopedCodeFixAsync(new ScopedCodeFixRequest
         {

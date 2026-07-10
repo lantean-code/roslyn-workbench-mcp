@@ -40,7 +40,7 @@ internal sealed class CodeActionRuntimeComposer : ICodeActionRuntimeComposer
 
             return new CodeActionRuntime
             {
-                Status = new ComponentStatus
+                Status = new CodeActionRuntimeStatus
                 {
                     IsAvailable = true,
                     Version = typeof(Microsoft.CodeAnalysis.Workspace).Assembly.GetName().Version?.ToString(),
@@ -110,7 +110,7 @@ internal sealed class CodeActionRuntimeComposer : ICodeActionRuntimeComposer
     {
         return new CodeActionRuntime
         {
-            Status = new ComponentStatus
+            Status = new CodeActionRuntimeStatus
             {
                 IsAvailable = false,
                 Message = message,

@@ -1,4 +1,4 @@
-using Roslyn.Workbench.Mcp.Contracts.Refactorings;
+using Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 
@@ -9,27 +9,27 @@ internal sealed class IntroduceParameterTool : CodeActionMutationToolHandler<Int
     private const string IntoExtractedMethodTitle = "into extracted method to invoke at call sites";
     private const string IntoNewOverloadTitle = "into new overload";
 
-    private static readonly ToolRegistrationMetadata _metadata = new()
+    private static readonly CodeActionToolMetadata _metadata = new()
     {
         Name = "introduce-parameter",
         Title = "Introduce Parameter",
         Description = "Promotes a selected expression to a parameter through Roslyn refactoring composition.",
-        Behavior = new ToolBehaviorHints
+        Behavior = new CodeActionToolBehavior
         {
             Destructive = true,
         },
     };
 
-    public static void Register(IPluginRegistry registry)
+    public static void Register(ICodeActionToolRegistry registry)
     {
         registry.RegisterMutationTool(_metadata, new IntroduceParameterTool());
     }
 
-    protected override ValueTask<PluginExecutionResult<MutationProposal>> ExecuteCoreAsync(IntroduceParameterRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
+    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteCoreAsync(IntroduceParameterRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         if (request.Selection is null)
         {
-            return ValueTask.FromResult(ToolExecutionHelpers.Rejected<MutationProposal>("InvalidRequest", "A location selector is required."));
+            return ValueTask.FromResult(ToolExecutionHelpers.Rejected<WorkspaceMutationProposal>("InvalidRequest", "A location selector is required."));
         }
 
         var title = request.Strategy switch

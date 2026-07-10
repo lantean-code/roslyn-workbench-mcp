@@ -11,14 +11,29 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Roslyn.Workbench.Mcp.CodeActions\Roslyn.Workbench.Mcp.CodeActions.csproj" />
-    <ProjectReference Include="..\Roslyn.Workbench.Mcp.Contracts\Roslyn.Workbench.Mcp.Contracts.csproj" />
-    <ProjectReference Include="..\Roslyn.Workbench.Mcp.Plugins\Roslyn.Workbench.Mcp.Plugins.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
       <_Parameter1>Roslyn.Workbench.Mcp</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>Roslyn.Workbench.Mcp.CodeActions</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>Roslyn.Workbench.Mcp.CodeActions.Test</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>Roslyn.Workbench.Mcp.CodeActions.IntegrationTest</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>Roslyn.Workbench.Mcp.CodeActions.AuditTest</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>Roslyn.Workbench.Mcp.Plugins</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>Roslyn.Workbench.Mcp.Plugins.Test</_Parameter1>
     </AssemblyAttribute>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
       <_Parameter1>Roslyn.Workbench.Mcp.Workspace.Test</_Parameter1>

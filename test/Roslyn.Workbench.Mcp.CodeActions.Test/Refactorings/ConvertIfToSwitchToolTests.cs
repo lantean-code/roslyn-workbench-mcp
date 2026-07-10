@@ -5,23 +5,23 @@ public sealed class ConvertIfToSwitchToolTests
     [Fact]
     public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
     {
-        var registry = new Mock<IPluginRegistry>();
+        var registry = new Mock<ICodeActionToolRegistry>();
 
         ConvertIfToSwitchTool.Register(registry.Object);
 
         registry.Verify(item => item.RegisterMutationTool<ConvertIfToSwitchRequest>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
+            It.Is<CodeActionToolMetadata>(metadata =>
                 metadata.Name == "convert-if-to-switch"
                 && metadata.Title == "Convert If To Switch"
                 && metadata.Description == "Converts a supported if-chain to a switch statement or switch expression through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<IMutationToolHandler<ConvertIfToSwitchRequest>>()), Times.Once);
+            It.IsAny<CodeActionMutationToolHandler<ConvertIfToSwitchRequest>>()), Times.Once);
     }
 
     [Fact]
     public async Task GIVEN_StatementKind_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithSwitchStatementTitle()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Success(new MutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new ConvertIfToSwitchRequest
         {
@@ -65,7 +65,7 @@ public sealed class ConvertIfToSwitchToolTests
     [Fact]
     public async Task GIVEN_ExpressionKind_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithSwitchExpressionTitle()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Success(new MutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new ConvertIfToSwitchRequest
         {

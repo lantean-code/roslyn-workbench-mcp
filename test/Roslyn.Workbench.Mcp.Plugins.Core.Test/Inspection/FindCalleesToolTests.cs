@@ -28,8 +28,8 @@ public sealed class FindCalleesToolTests
 
         var result = await target.ExecuteAsync(new FindCalleesRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new ToolError
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
         {
             Code = "InvalidRequest",
             Message = "Specify exactly one of symbol or location.",
@@ -47,7 +47,7 @@ public sealed class FindCalleesToolTests
     {
         var target = new FindCalleesTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<CalleeSearchData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<CalleeSearchData>.Rejected(new PluginExecutionError
         {
             Code = "SymbolNotFound",
             Message = "SymbolNotFound",
@@ -112,8 +112,8 @@ public sealed class FindCalleesToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new ToolError
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
         {
             Code = "InvalidRequest",
             Message = "The selected symbol does not have an executable source body.",
@@ -158,8 +158,8 @@ public sealed class FindCalleesToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new ToolError
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
         {
             Code = "InvalidRequest",
             Message = "The selected symbol does not have an executable source body.",
@@ -171,7 +171,7 @@ public sealed class FindCalleesToolTests
     {
         var target = new FindCalleesTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<CalleeSearchData>.Conflict(new ToolError
+        var expected = PluginExecutionResult<CalleeSearchData>.Conflict(new PluginExecutionError
         {
             Code = "SnapshotMismatch",
             Message = "SnapshotMismatch",
@@ -216,8 +216,8 @@ public sealed class FindCalleesToolTests
             Location = new LocationSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new ToolError
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
         {
             Code = "LocationNotFound",
             Message = "The location selector did not match any result.",
@@ -264,8 +264,8 @@ public sealed class FindCalleesToolTests
             Location = new LocationSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new ToolError
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
         {
             Code = "LocationNotFound",
             Message = "The location selector did not resolve to a source document.",
@@ -311,8 +311,8 @@ public sealed class FindCalleesToolTests
             Location = new LocationSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new ToolError
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
         {
             Code = "InvalidRequest",
             Message = "The selected location does not resolve to executable code.",
@@ -368,7 +368,7 @@ public sealed class FindCalleesToolTests
             Location = new LocationSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Source!.DisplayName.Should().Be("Run");
         result.Data.Callees.Items.Select(item => item.DisplayName).Should().Equal(".ctor", "First");
         result.Data.Callees.HasMore.Should().BeFalse();
@@ -435,7 +435,7 @@ public sealed class FindCalleesToolTests
             IncludeIndirect = true,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Source!.DisplayName.Should().Be("Run");
         result.Data.Callees.Items.Select(item => item.DisplayName).Should().Equal(".ctor", "First", "Second");
     }
@@ -492,7 +492,7 @@ public sealed class FindCalleesToolTests
             IncludeIndirect = true,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Callees.Items.Select(item => item.DisplayName).Should().Equal("Execute");
     }
 
@@ -541,7 +541,7 @@ public sealed class FindCalleesToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
     }
 
     [Fact]
@@ -596,7 +596,7 @@ public sealed class FindCalleesToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
     }
 
     [Fact]
@@ -647,7 +647,7 @@ public sealed class FindCalleesToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
     }
 
     [Fact]
@@ -697,7 +697,7 @@ public sealed class FindCalleesToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
     }
 
     [Fact]
@@ -744,7 +744,7 @@ public sealed class FindCalleesToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
     }
 
     [Fact]
@@ -802,7 +802,7 @@ public sealed class FindCalleesToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
     }
     private static async Task<IMethodSymbol> GetAccessorSymbolAsync(Document document, string propertyName)
     {

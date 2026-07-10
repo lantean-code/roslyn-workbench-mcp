@@ -22,7 +22,7 @@ public sealed class GetDocumentOutlineToolTests
     {
         var target = new GetDocumentOutlineTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<DocumentOutlineData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<DocumentOutlineData>.Rejected(new PluginExecutionError
         {
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
@@ -69,7 +69,7 @@ public sealed class GetDocumentOutlineToolTests
 
         var result = await target.ExecuteAsync(new GetDocumentOutlineRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Root.Should().BeNull();
     }
 
@@ -115,7 +115,7 @@ public sealed class GetDocumentOutlineToolTests
             IncludeMembers = false,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Root!.Name.Should().Be("Code.cs");
         result.Data.Root.Children.Should().ContainSingle(item => item.Name == "Sample");
         result.Data.Root.Children[0].Children.Should().ContainSingle(item => item.Name == "Formatter");
@@ -183,7 +183,7 @@ public sealed class GetDocumentOutlineToolTests
             IncludeMembers = true,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Root!.Children[0].Children[0].Children.Select(item => item.Name).Should().Contain(".ctor");
         result.Data.Root.Children[0].Children[0].Children.Select(item => item.Name).Should().Contain("Value");
         result.Data.Root.Children[0].Children[0].Children.Select(item => item.Name).Should().Contain("Changed");

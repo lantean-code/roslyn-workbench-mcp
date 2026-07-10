@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Options;
-using Roslyn.Workbench.Mcp.Contracts.CodeActions;
-using Roslyn.Workbench.Mcp.Contracts.Server;
+using Roslyn.Workbench.Mcp.CodeActions.Contracts;
 
 namespace Roslyn.Workbench.Mcp.Test;
 
@@ -22,7 +21,7 @@ public sealed class ServerStatusServiceTests
             });
         _codeActionRuntime
             .SetupGet(item => item.Status)
-            .Returns(new ComponentStatus
+            .Returns(new CodeActionRuntimeStatus
             {
                 IsAvailable = true,
             });
@@ -81,7 +80,7 @@ public sealed class ServerStatusServiceTests
     {
         _codeActionRuntime
             .SetupGet(item => item.Status)
-            .Returns(new ComponentStatus
+            .Returns(new CodeActionRuntimeStatus
             {
                 IsAvailable = false,
                 Message = "Code-action composition is unavailable.",
@@ -101,6 +100,7 @@ public sealed class ServerStatusServiceTests
         return new ServerStatusService(
             Options.Create(options),
             pluginSnapshot,
+            new CodeActionCatalogSnapshot(),
             _msBuildRegistrationService.Object,
             _codeActionRuntime.Object,
             _recoveryStatusReader.Object);

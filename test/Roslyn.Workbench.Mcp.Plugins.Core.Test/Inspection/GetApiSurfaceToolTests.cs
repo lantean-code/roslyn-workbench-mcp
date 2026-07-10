@@ -24,7 +24,7 @@ public sealed class GetApiSurfaceToolTests
     {
         var target = new GetApiSurfaceTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<ApiSurfaceData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<ApiSurfaceData>.Rejected(new PluginExecutionError
         {
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
@@ -67,8 +67,8 @@ public sealed class GetApiSurfaceToolTests
             MinimumAccessibility = "Private",
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new ToolError
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
         {
             Code = "InvalidRequest",
             Message = "Minimum accessibility must be Public, Protected, or Internal.",
@@ -97,7 +97,7 @@ public sealed class GetApiSurfaceToolTests
 
         var result = await target.ExecuteAsync(new GetApiSurfaceRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbols.Items.Should().BeEmpty();
     }
 
@@ -175,7 +175,7 @@ public sealed class GetApiSurfaceToolTests
             IncludeObsolete = false,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Changed");
         result.Data.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Container");
         result.Data.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("IPublicContract");
@@ -230,7 +230,7 @@ public sealed class GetApiSurfaceToolTests
             IncludeObsolete = true,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Hidden");
         result.Data.Symbols.Items.Should().Contain(item => item.Symbol!.DisplayName == "ObsoleteType" && item.IsObsolete);
     }
@@ -290,7 +290,7 @@ public sealed class GetApiSurfaceToolTests
             IncludeObsolete = false,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Decorated");
         result.Data.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Visible");
         result.Data.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().NotContain("Hidden");
@@ -337,7 +337,7 @@ public sealed class GetApiSurfaceToolTests
             IncludeObsolete = true,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("VisibleToFamilyAndAssembly");
         result.Data.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().NotContain("Hidden");
     }
@@ -375,7 +375,7 @@ public sealed class GetApiSurfaceToolTests
 
         var result = await target.ExecuteAsync(new GetApiSurfaceRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().Equal("AType");
         result.Data.Symbols.HasMore.Should().BeTrue();
     }

@@ -5,39 +5,35 @@ public sealed class EncapsulateFieldToolTests
     [Fact]
     public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
     {
-        var registry = new Mock<IPluginRegistry>();
+        var registry = new Mock<ICodeActionToolRegistry>();
 
         EncapsulateFieldTool.Register(registry.Object);
 
         registry.Verify(item => item.RegisterMutationTool<EncapsulateFieldRequest>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
+            It.Is<CodeActionToolMetadata>(metadata =>
                 metadata.Name == "encapsulate-field"
                 && metadata.Title == "Encapsulate Field"
                 && metadata.Description == "Encapsulates one field through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<IMutationToolHandler<EncapsulateFieldRequest>>()), Times.Once);
+            It.IsAny<CodeActionMutationToolHandler<EncapsulateFieldRequest>>()), Times.Once);
     }
 
     [Fact]
     public async Task GIVEN_SymbolResolutionHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Rejected(new ToolError
+        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Rejected(new CodeActionExecutionError
         {
             Code = "SymbolNotFound",
-            Message = "SymbolNotFound",
-        });
-        var requestResolver = new Mock<IToolRequestResolver>();
+            Message = "The symbol selector did not match any result.",
+        }, RequiredAction.ResolveTargetAgain);
         var workspaceResolver = new Mock<IWorkspaceResolver>();
-        var context = CreateContext(requestResolver, workspaceResolver);
+        var context = CreateContext(workspaceResolver);
         var request = CreateRequest();
         var target = new EncapsulateFieldTool();
 
-        requestResolver
-            .Setup(item => item.ResolveSymbolAsync<MutationProposal>(request.Field, request.ExpectedSnapshot, context.Object, CancellationToken.None))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, MutationProposal>
-            {
-                Rejection = expected,
-            });
+        workspaceResolver
+            .Setup(item => item.ResolveSymbolAsync(request.Field!, CancellationToken.None))
+            .ReturnsAsync(SelectorResolveResult<ISymbol>.NotFound());
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
@@ -49,23 +45,19 @@ public sealed class EncapsulateFieldToolTests
     [Fact]
     public async Task GIVEN_ResolvedSymbolIsNotField_WHEN_CallingExecuteAsync_THEN_ShouldReturnSymbolNotSupportedRejection()
     {
-        var requestResolver = new Mock<IToolRequestResolver>();
         var workspaceResolver = new Mock<IWorkspaceResolver>();
-        var context = CreateContext(requestResolver, workspaceResolver);
+        var context = CreateContext(workspaceResolver);
         var request = CreateRequest();
         var symbol = new Mock<ISymbol>();
         var target = new EncapsulateFieldTool();
 
-        requestResolver
-            .Setup(item => item.ResolveSymbolAsync<MutationProposal>(request.Field, request.ExpectedSnapshot, context.Object, CancellationToken.None))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, MutationProposal>
-            {
-                Value = symbol.Object,
-            });
+        workspaceResolver
+            .Setup(item => item.ResolveSymbolAsync(request.Field!, CancellationToken.None))
+            .ReturnsAsync(SelectorResolveResult<ISymbol>.Resolved(symbol.Object));
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
         result.Error.Should().NotBeNull();
         result.Error!.Code.Should().Be("SymbolNotSupported");
         workspaceResolver.Verify(item => item.CreateResolvedLocation(It.IsAny<Location>()), Times.Never);
@@ -75,23 +67,19 @@ public sealed class EncapsulateFieldToolTests
     [Fact]
     public async Task GIVEN_FieldSymbolHasNoSourceLocation_WHEN_CallingExecuteAsync_THEN_ShouldReturnSymbolNotSupportedRejection()
     {
-        var requestResolver = new Mock<IToolRequestResolver>();
         var workspaceResolver = new Mock<IWorkspaceResolver>();
-        var context = CreateContext(requestResolver, workspaceResolver);
+        var context = CreateContext(workspaceResolver);
         var request = CreateRequest();
         var field = CreateFieldSymbol("Field", []);
         var target = new EncapsulateFieldTool();
 
-        requestResolver
-            .Setup(item => item.ResolveSymbolAsync<MutationProposal>(request.Field, request.ExpectedSnapshot, context.Object, CancellationToken.None))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, MutationProposal>
-            {
-                Value = field.Object,
-            });
+        workspaceResolver
+            .Setup(item => item.ResolveSymbolAsync(request.Field!, CancellationToken.None))
+            .ReturnsAsync(SelectorResolveResult<ISymbol>.Resolved(field.Object));
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
         result.Error.Should().NotBeNull();
         result.Error!.Code.Should().Be("SymbolNotSupported");
         workspaceResolver.Verify(item => item.CreateResolvedLocation(It.IsAny<Location>()), Times.Never);
@@ -101,27 +89,23 @@ public sealed class EncapsulateFieldToolTests
     [Fact]
     public async Task GIVEN_FieldSourceLocationCannotBeProjected_WHEN_CallingExecuteAsync_THEN_ShouldReturnSymbolNotSupportedRejection()
     {
-        var requestResolver = new Mock<IToolRequestResolver>();
         var workspaceResolver = new Mock<IWorkspaceResolver>();
-        var context = CreateContext(requestResolver, workspaceResolver);
+        var context = CreateContext(workspaceResolver);
         var request = CreateRequest();
         var location = RoslynTestFactory.CreateSourceLocation();
         var field = CreateFieldSymbol("Field", [location]);
         var target = new EncapsulateFieldTool();
 
-        requestResolver
-            .Setup(item => item.ResolveSymbolAsync<MutationProposal>(request.Field, request.ExpectedSnapshot, context.Object, CancellationToken.None))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, MutationProposal>
-            {
-                Value = field.Object,
-            });
+        workspaceResolver
+            .Setup(item => item.ResolveSymbolAsync(request.Field!, CancellationToken.None))
+            .ReturnsAsync(SelectorResolveResult<ISymbol>.Resolved(field.Object));
         workspaceResolver
             .Setup(item => item.CreateResolvedLocation(location))
             .Returns((ResolvedLocation?)null);
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
         result.Error.Should().NotBeNull();
         result.Error!.Code.Should().Be("SymbolNotSupported");
         context.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -130,22 +114,18 @@ public sealed class EncapsulateFieldToolTests
     [Fact]
     public async Task GIVEN_UpdateReferencesIsTrue_WHEN_CallingExecuteAsync_THEN_ShouldStageReplayCodeActionUsingPropertyTitle()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Success(new MutationProposal());
-        var requestResolver = new Mock<IToolRequestResolver>();
+        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
         var workspaceResolver = new Mock<IWorkspaceResolver>();
-        var context = CreateContext(requestResolver, workspaceResolver);
+        var context = CreateContext(workspaceResolver);
         var request = CreateRequest(updateReferences: true);
         var location = RoslynTestFactory.CreateSourceLocation();
         var resolvedLocation = SelectorTestFactory.CreateResolvedLocation(location, "Code.cs");
         var field = CreateFieldSymbol("Field", [location]);
         var target = new EncapsulateFieldTool();
 
-        requestResolver
-            .Setup(item => item.ResolveSymbolAsync<MutationProposal>(request.Field, request.ExpectedSnapshot, context.Object, CancellationToken.None))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, MutationProposal>
-            {
-                Value = field.Object,
-            });
+        workspaceResolver
+            .Setup(item => item.ResolveSymbolAsync(request.Field!, CancellationToken.None))
+            .ReturnsAsync(SelectorResolveResult<ISymbol>.Resolved(field.Object));
         workspaceResolver
             .Setup(item => item.CreateResolvedLocation(location))
             .Returns(resolvedLocation);
@@ -176,22 +156,18 @@ public sealed class EncapsulateFieldToolTests
     [Fact]
     public async Task GIVEN_UpdateReferencesIsFalse_WHEN_CallingExecuteAsync_THEN_ShouldStageReplayCodeActionUsingFieldTitle()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Success(new MutationProposal());
-        var requestResolver = new Mock<IToolRequestResolver>();
+        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
         var workspaceResolver = new Mock<IWorkspaceResolver>();
-        var context = CreateContext(requestResolver, workspaceResolver);
+        var context = CreateContext(workspaceResolver);
         var request = CreateRequest(updateReferences: false);
         var location = RoslynTestFactory.CreateSourceLocation();
         var resolvedLocation = SelectorTestFactory.CreateResolvedLocation(location, "Code.cs");
         var field = CreateFieldSymbol("Field", [location]);
         var target = new EncapsulateFieldTool();
 
-        requestResolver
-            .Setup(item => item.ResolveSymbolAsync<MutationProposal>(request.Field, request.ExpectedSnapshot, context.Object, CancellationToken.None))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, MutationProposal>
-            {
-                Value = field.Object,
-            });
+        workspaceResolver
+            .Setup(item => item.ResolveSymbolAsync(request.Field!, CancellationToken.None))
+            .ReturnsAsync(SelectorResolveResult<ISymbol>.Resolved(field.Object));
         workspaceResolver
             .Setup(item => item.CreateResolvedLocation(location))
             .Returns(resolvedLocation);
@@ -219,17 +195,9 @@ public sealed class EncapsulateFieldToolTests
             CancellationToken.None), Times.Once);
     }
 
-    private static Mock<ICodeActionMutationContext> CreateContext(Mock<IToolRequestResolver> requestResolver, Mock<IWorkspaceResolver> workspaceResolver)
+    private static Mock<ICodeActionMutationContext> CreateContext(Mock<IWorkspaceResolver> workspaceResolver)
     {
-        var services = new Mock<IToolExecutionServices>();
         var context = new Mock<ICodeActionMutationContext>();
-
-        services
-            .Setup(item => item.RequestResolver)
-            .Returns(requestResolver.Object);
-        context
-            .Setup(item => item.ToolExecutionServices)
-            .Returns(services.Object);
         context
             .Setup(item => item.WorkspaceResolver)
             .Returns(workspaceResolver.Object);

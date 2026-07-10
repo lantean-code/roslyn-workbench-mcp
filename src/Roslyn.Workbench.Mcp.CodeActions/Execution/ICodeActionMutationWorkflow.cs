@@ -2,32 +2,32 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Execution;
 
 internal interface ICodeActionMutationWorkflow
 {
-    ValueTask<PluginExecutionResult<MutationProposal>> StageCodeActionAsync(
+    ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageCodeActionAsync(
         StageCodeActionRequest request,
         ICodeActionMutationContext context,
         CancellationToken cancellationToken);
 
-    ValueTask<PluginExecutionResult<MutationProposal>> StageReplayCodeActionAsync(
+    ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageReplayCodeActionAsync(
         ReplayCodeActionRequest request,
         ICodeActionMutationContext context,
         CancellationToken cancellationToken);
 
-    ValueTask<PluginExecutionResult<MutationProposal>> StageCodeFixAsync(
+    ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageCodeFixAsync(
         StageCodeFixRequest request,
         ICodeActionMutationContext context,
         CancellationToken cancellationToken);
 
-    ValueTask<PluginExecutionResult<MutationProposal>> StageFixAllAsync(
+    ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageFixAllAsync(
         StageFixAllRequest request,
         ICodeActionMutationContext context,
         CancellationToken cancellationToken);
 
-    ValueTask<PluginExecutionResult<MutationProposal>> StageScopedCodeFixAsync(
+    ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageScopedCodeFixAsync(
         ScopedCodeFixRequest request,
         ICodeActionMutationContext context,
         CancellationToken cancellationToken);
 
-    ValueTask<PluginExecutionResult<MutationProposal>> StageLocationCodeFixAsync(
+    ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageLocationCodeFixAsync(
         LocationCodeFixRequest request,
         ICodeActionMutationContext context,
         CancellationToken cancellationToken);

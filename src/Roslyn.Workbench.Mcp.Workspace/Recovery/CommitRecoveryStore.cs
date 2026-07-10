@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-using Roslyn.Workbench.Mcp.Contracts.Results;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Recovery;
 

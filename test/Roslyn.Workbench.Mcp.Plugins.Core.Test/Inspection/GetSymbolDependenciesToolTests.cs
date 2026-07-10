@@ -24,7 +24,7 @@ public sealed class GetSymbolDependenciesToolTests
     {
         var target = new GetSymbolDependenciesTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<SymbolDependenciesData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<SymbolDependenciesData>.Rejected(new PluginExecutionError
         {
             Code = "SymbolNotFound",
             Message = "SymbolNotFound",
@@ -101,7 +101,7 @@ public sealed class GetSymbolDependenciesToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Dependencies.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("String");
     }
 
@@ -180,7 +180,7 @@ public sealed class GetSymbolDependenciesToolTests
             IncludeAssemblies = true,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Dependencies.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Dependency");
         result.Data.Dependencies.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Helper");
         result.Data.Dependencies.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Field");
@@ -241,7 +241,7 @@ public sealed class GetSymbolDependenciesToolTests
             IncludeAssemblies = false,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Dependencies.Items.Should().Contain(item => item.Symbol!.DisplayName == "Dependency" && item.AssemblyName == null);
     }
 
@@ -292,7 +292,7 @@ public sealed class GetSymbolDependenciesToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Dependencies.Items.Should().ContainSingle(item => item.Symbol!.DisplayName == "Dependency");
     }
 
@@ -345,7 +345,7 @@ public sealed class GetSymbolDependenciesToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Dependencies.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("BaseType");
         result.Data.Dependencies.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("IContract");
     }
@@ -405,7 +405,7 @@ public sealed class GetSymbolDependenciesToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Dependencies.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Helper");
         result.Data.Dependencies.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Func");
     }
@@ -468,7 +468,7 @@ public sealed class GetSymbolDependenciesToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Dependencies.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Dependency");
         result.Data.Dependencies.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Format");
     }
@@ -519,7 +519,7 @@ public sealed class GetSymbolDependenciesToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Dependencies.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Trim");
     }
 
@@ -606,9 +606,9 @@ public sealed class GetSymbolDependenciesToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        blockResult.Outcome.Should().Be(ToolOutcome.Succeeded);
+        blockResult.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         blockResult.Data!.Dependencies.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Value");
-        expressionResult.Outcome.Should().Be(ToolOutcome.Succeeded);
+        expressionResult.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         expressionResult.Data!.Dependencies.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Value");
     }
 
@@ -664,7 +664,7 @@ public sealed class GetSymbolDependenciesToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Dependencies.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Trim");
     }
 

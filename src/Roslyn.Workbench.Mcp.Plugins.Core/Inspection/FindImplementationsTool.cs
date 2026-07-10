@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 
-using Roslyn.Workbench.Mcp.Contracts.Inspection;
+using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 

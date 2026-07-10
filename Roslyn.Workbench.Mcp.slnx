@@ -8,7 +8,6 @@
   <Folder Name="/Source/">
     <File Path="src/AGENTS.md" />
     <Project Path="src/Roslyn.Workbench.Mcp.CodeActions/Roslyn.Workbench.Mcp.CodeActions.csproj" />
-    <Project Path="src/Roslyn.Workbench.Mcp.Contracts/Roslyn.Workbench.Mcp.Contracts.csproj" />
     <Project Path="src/Roslyn.Workbench.Mcp.Plugins.Core/Roslyn.Workbench.Mcp.Plugins.Core.csproj" />
     <Project Path="src/Roslyn.Workbench.Mcp.Plugins/Roslyn.Workbench.Mcp.Plugins.csproj" />
     <Project Path="src/Roslyn.Workbench.Mcp.Workspace/Roslyn.Workbench.Mcp.Workspace.csproj" />
@@ -19,7 +18,6 @@
     <Project Path="test/Roslyn.Workbench.Mcp.CodeActions.AuditTest/Roslyn.Workbench.Mcp.CodeActions.AuditTest.csproj" />
     <Project Path="test/Roslyn.Workbench.Mcp.CodeActions.IntegrationTest/Roslyn.Workbench.Mcp.CodeActions.IntegrationTest.csproj" />
     <Project Path="test/Roslyn.Workbench.Mcp.CodeActions.Test/Roslyn.Workbench.Mcp.CodeActions.Test.csproj" />
-    <Project Path="test/Roslyn.Workbench.Mcp.Contracts.Test/Roslyn.Workbench.Mcp.Contracts.Test.csproj" />
     <Project Path="test/Roslyn.Workbench.Mcp.IntegrationTest/Roslyn.Workbench.Mcp.IntegrationTest.csproj" />
     <Project Path="test/Roslyn.Workbench.Mcp.IntegrationTestSupport/Roslyn.Workbench.Mcp.IntegrationTestSupport.csproj" />
     <Project Path="test/Roslyn.Workbench.Mcp.PluginFixtures/Roslyn.Workbench.Mcp.HostMutationPluginFixture.csproj" />

@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Options;
-using Roslyn.Workbench.Mcp.Contracts.Results;
-using Roslyn.Workbench.Mcp.Contracts.Selectors;
-using Roslyn.Workbench.Mcp.Contracts.Server;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Lifecycle;
 
@@ -485,11 +484,11 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         return null;
     }
 
-    private static Roslyn.Workbench.Mcp.Contracts.Selectors.WorkspaceSelector? CreateWorkspaceSelector(string? workspaceId, string? alias, string? path)
+    private static Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors.WorkspaceSelector? CreateWorkspaceSelector(string? workspaceId, string? alias, string? path)
     {
         return workspaceId is null && alias is null && path is null
             ? null
-            : new Roslyn.Workbench.Mcp.Contracts.Selectors.WorkspaceSelector
+            : new Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors.WorkspaceSelector
             {
                 WorkspaceId = workspaceId,
                 Alias = alias,

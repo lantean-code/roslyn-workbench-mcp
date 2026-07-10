@@ -4,7 +4,7 @@ This document captures the current audit findings across the source projects and
 
 Scope:
 - `Roslyn.Workbench.Mcp`
-- `Roslyn.Workbench.Mcp.Contracts`
+- `Roslyn.Workbench.Mcp.CodeActions`
 - `Roslyn.Workbench.Mcp.Workspace`
 - `Roslyn.Workbench.Mcp.Plugins`
 - `Roslyn.Workbench.Mcp.Plugins.Core`
@@ -17,6 +17,16 @@ Principles being enforced:
 - internal workspace services using workspace-owned models
 - tool-owned contracts where practical
 - smaller, focused services over god classes
+
+Current production dependency direction:
+
+```text
+Host -> CodeActions -> Workspace
+Host -> Plugins.Core -> Plugins -> Workspace
+Host -> Plugins -> Workspace
+```
+
+The former production Contracts project has been removed. Contracts now live with their owner: Code Actions in CodeActions, inspection DTOs in Plugins.Core, Workspace domain models in Workspace, plugin metadata/results in Plugins, and MCP protocol/lifecycle contracts in Host.
 
 ## P1: High Priority
 
@@ -40,45 +50,41 @@ Principles being enforced:
 
 ### Plugins
 
-- [ ] Remove runtime-typed execution from the plugin invocation path.
+- [x] Remove runtime-typed execution from the plugin invocation path.
   Files:
   - `src/Roslyn.Workbench.Mcp.Plugins/IPluginToolInvoker.cs`
   - `src/Roslyn.Workbench.Mcp.Plugins/PluginToolInvoker.cs`
   - `src/Roslyn.Workbench.Mcp.Plugins/ToolExecutor.cs`
   Notes:
-  - The core execution path still relies on `object` requests and casts.
-  - This is weaker than the newer server-owned tool path.
+  - Closed generic registrations dispatch through typed visitors without reflection, `dynamic`, or `object` invocation.
 
-- [ ] Reduce heuristic/reflection-driven response and schema publication.
+- [x] Reduce heuristic/reflection-driven response and schema publication.
   Files:
   - `src/Roslyn.Workbench.Mcp.Plugins/ToolResponseDescriptorResolver.cs`
   - `src/Roslyn.Workbench.Mcp.Plugins/ToolSchemaFactory.cs`
   - `src/Roslyn.Workbench.Mcp.Plugins/Tooling/ToolSchemaBuilder.cs`
   - `src/Roslyn.Workbench.Mcp.Plugins/ToolResponseShaper.cs`
   Notes:
-  - The current model infers behaviour from property names and response shape.
-  - This is harder to reason about and test than tool-owned contracts.
+  - Host now owns schema generation, response shaping and MCP publication for both plugin and internal Code Action catalogues.
 
 ## P2: Medium Priority
 
 ### Workspace
 
-- [ ] Remove remaining plugin result leakage from workspace internals.
+- [x] Remove remaining plugin result leakage from workspace internals.
   Files:
   - `src/Roslyn.Workbench.Mcp.Workspace/IMutationStagingService.cs`
   - `src/Roslyn.Workbench.Mcp.Workspace/MutationStagingService.cs`
   - `src/Roslyn.Workbench.Mcp.Workspace/WorkspaceExecutionContextFactory.cs`
   Notes:
-  - Workspace services still produce `PluginExecutionResult` and `ToolError`.
-  - That cuts across the boundary you wanted between workspace workflows and tool transport concerns.
+  - Workspace exposes only workspace-owned contexts, failures, mutation proposals and staging results.
 
-- [ ] Rework code action runtime composition into a cleaner service boundary.
+- [x] Rework code action runtime composition into a cleaner service boundary.
   Files:
   - `src/Roslyn.Workbench.Mcp.Workspace/CodeActionRuntime.cs`
   - `src/Roslyn.Workbench.Mcp.Workspace/CodeActionRuntimeComposer.cs`
   Notes:
-  - The public runtime bag and nullable members still feel like composition artefacts.
-  - The factory also reflects over non-public MEF APIs.
+  - Code Actions now owns its runtime, contexts, catalogue and result mapping and no longer participates in plugin discovery.
 
 ### Host
 
@@ -136,11 +142,6 @@ Principles being enforced:
 
 ## Project Summary
 
-- [ ] `Roslyn.Workbench.Mcp.Contracts`
-  Notes:
-  - No major structural issues stood out in this pass.
-  - The main watchpoint is keeping contract invariants explicit rather than convention-based.
-
 - [ ] `Roslyn.Workbench.Mcp`
   Notes:
   - Much cleaner after the server-owned tool refactor.
@@ -149,11 +150,11 @@ Principles being enforced:
 - [ ] `Roslyn.Workbench.Mcp.Workspace`
   Notes:
   - Still the main architecture hotspot.
-  - The code action stack is where most of the remaining complexity sits.
+  - Workspace no longer references Plugins or CodeActions; broad unit coverage remains the separately tracked gap.
 
 - [ ] `Roslyn.Workbench.Mcp.Plugins`
   Notes:
-  - The main concern is static, reflection-heavy infrastructure and runtime-typed execution plumbing.
+  - Typed registrations and visitors have replaced MCP-aware, runtime-typed execution plumbing.
 
 - [ ] `Roslyn.Workbench.Mcp.Plugins.Core`
   Notes:
@@ -168,14 +169,14 @@ The plugin and host work should follow after the central workspace boundaries ar
 
 - [x] 1. Split `MefCodeActionService`.
 - [x] 2. Tighten `WorkspaceSelectionResult` into a stricter result shape.
-- [ ] 3. Remove remaining plugin result leakage from workspace internals.
-- [ ] 4. Rework `CodeActionRuntime` composition into a cleaner service boundary.
+- [x] 3. Remove remaining plugin result leakage from workspace internals.
+- [x] 4. Rework `CodeActionRuntime` composition into a cleaner service boundary.
 - [ ] 5. Sweep remaining workspace null-forgiving and invariant-by-convention cases.
 
 ### Phase 2: Plugin Boundary
 
-- [ ] 6. Remove runtime `object` execution from the plugin invocation path.
-- [ ] 7. Revisit plugin response/schema publication so more of the contract is explicit and tool-owned.
+- [x] 6. Remove runtime `object` execution from the plugin invocation path.
+- [x] 7. Move plugin response/schema publication into Host with typed registration visitors.
 
 ### Phase 3: Host And Follow-On Cleanup
 

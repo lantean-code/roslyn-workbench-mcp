@@ -5,17 +5,17 @@ public sealed class ExtractMethodToolTests
     [Fact]
     public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
     {
-        var registry = new Mock<IPluginRegistry>();
+        var registry = new Mock<ICodeActionToolRegistry>();
 
         ExtractMethodTool.Register(registry.Object);
 
         registry.Verify(item => item.RegisterMutationTool<ExtractMethodRequest>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
+            It.Is<CodeActionToolMetadata>(metadata =>
                 metadata.Name == "extract-method"
                 && metadata.Title == "Extract Method"
                 && metadata.Description == "Extracts a selected statement or expression block through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<IMutationToolHandler<ExtractMethodRequest>>()), Times.Once);
+            It.IsAny<CodeActionMutationToolHandler<ExtractMethodRequest>>()), Times.Once);
     }
 
     [Fact]
@@ -26,7 +26,7 @@ public sealed class ExtractMethodToolTests
 
         var result = await target.ExecuteAsync(new ExtractMethodRequest(), context.Object, CancellationToken.None);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("InvalidRequest");
         context.Verify(item => item.StageReplayCodeActionAsync(
             It.IsAny<ReplayCodeActionRequest>(),
@@ -36,7 +36,7 @@ public sealed class ExtractMethodToolTests
     [Fact]
     public async Task GIVEN_LocalFunctionTargetKind_WHEN_CallingExecuteAsync_THEN_ShouldStageLocalFunctionReplayAction()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Success(new MutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new ExtractMethodRequest
         {
@@ -76,7 +76,7 @@ public sealed class ExtractMethodToolTests
     [Fact]
     public async Task GIVEN_MethodTargetKind_WHEN_CallingExecuteAsync_THEN_ShouldStageMethodReplayAction()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Success(new MutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new ExtractMethodRequest
         {

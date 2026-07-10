@@ -1,4 +1,4 @@
-using Roslyn.Workbench.Mcp.Contracts.Refactorings;
+using Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 
@@ -6,23 +6,23 @@ internal sealed class ReverseForStatementTool : CodeActionMutationToolHandler<Lo
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.ReverseForStatement.CSharpReverseForStatementCodeRefactoringProvider";
 
-    private static readonly ToolRegistrationMetadata _metadata = new()
+    private static readonly CodeActionToolMetadata _metadata = new()
     {
         Name = "reverse-for-statement",
         Title = "Reverse For Statement",
         Description = "Reverses a supported for-statement loop through Roslyn refactoring composition.",
-        Behavior = new ToolBehaviorHints
+        Behavior = new CodeActionToolBehavior
         {
             Destructive = true,
         },
     };
 
-    public static void Register(IPluginRegistry registry)
+    public static void Register(ICodeActionToolRegistry registry)
     {
         registry.RegisterMutationTool(_metadata, new ReverseForStatementTool());
     }
 
-    protected override ValueTask<PluginExecutionResult<MutationProposal>> ExecuteCoreAsync(LocationRefactoringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
+    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteCoreAsync(LocationRefactoringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         return context.StageReplaySelectionAsync(
             request.Selection,

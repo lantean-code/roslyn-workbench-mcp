@@ -2,11 +2,16 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
-    <PackageReference Include="ModelContextProtocol" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Roslyn.Workbench.Mcp.Contracts\Roslyn.Workbench.Mcp.Contracts.csproj" />
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>DynamicProxyGenAssembly2</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Roslyn.Workbench.Mcp.Workspace\Roslyn.Workbench.Mcp.Workspace.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -15,9 +20,6 @@
     </AssemblyAttribute>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
       <_Parameter1>Roslyn.Workbench.Mcp.Plugins.Core</_Parameter1>
-    </AssemblyAttribute>
-    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-      <_Parameter1>Roslyn.Workbench.Mcp.Workspace</_Parameter1>
     </AssemblyAttribute>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
       <_Parameter1>Roslyn.Workbench.Mcp.Plugins.Test</_Parameter1>

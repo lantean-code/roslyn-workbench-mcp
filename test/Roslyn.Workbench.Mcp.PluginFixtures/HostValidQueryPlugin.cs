@@ -1,4 +1,4 @@
-using Roslyn.Workbench.Mcp.Contracts.Selectors;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 using Roslyn.Workbench.Mcp.Plugins;
 
 namespace Roslyn.Workbench.Mcp.TestSupport;

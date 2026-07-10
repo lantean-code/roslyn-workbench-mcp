@@ -1,4 +1,4 @@
-using Roslyn.Workbench.Mcp.Contracts.Refactorings;
+using Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 
@@ -6,23 +6,23 @@ internal sealed class AddNullChecksTool : CodeActionMutationToolHandler<Location
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.InitializeParameter.CSharpAddParameterCheckCodeRefactoringProvider";
 
-    private static readonly ToolRegistrationMetadata _metadata = new()
+    private static readonly CodeActionToolMetadata _metadata = new()
     {
         Name = "add-null-checks",
         Title = "Add Null Checks",
         Description = "Stages the supported Roslyn parameter null-check refactoring at the selected parameter location.",
-        Behavior = new ToolBehaviorHints
+        Behavior = new CodeActionToolBehavior
         {
             Destructive = true,
         },
     };
 
-    public static void Register(IPluginRegistry registry)
+    public static void Register(ICodeActionToolRegistry registry)
     {
         registry.RegisterMutationTool(_metadata, new AddNullChecksTool());
     }
 
-    protected override ValueTask<PluginExecutionResult<MutationProposal>> ExecuteCoreAsync(LocationRefactoringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
+    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteCoreAsync(LocationRefactoringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         return context.StageReplaySelectionAsync(
             request.Selection,

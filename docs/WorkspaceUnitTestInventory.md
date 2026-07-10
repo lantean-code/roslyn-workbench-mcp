@@ -19,19 +19,14 @@ The inventory does not treat integration coverage as unit coverage. It also does
 
 ## Baseline
 
-The Workspace production project contains 71 C# files:
-
-- 35 classes
-- 21 records
-- 12 interfaces
-- 2 enums
-- 1 global-usings file
+Workspace now owns its selectors, resolution results, diagnostics, change/transaction models, neutral execution contexts, mutation proposal and staging boundary. It has no production dependency on Plugins or CodeActions.
 
 The existing six Workspace unit tests were removed after review because they did not fully meet the current namespace, reusable Roslyn-data setup and coverage standards. The first replacement implementation is now complete:
 
 | Test class | Tests | Target coverage |
 | --- | ---: | ---: |
 | `WorkspaceSelectionResultTests` | 4 | 100% line, 100% branch |
+| `SelectorValidationTests` | 10 | Workspace selector and result-contract validation |
 
 The final pre-removal unit-project Coverlet run produced:
 
@@ -85,22 +80,9 @@ Data-only records, enums, constants and interfaces do not receive direct tests u
 
 These tests lock operational defaults rather than record shape. Property initialisers themselves do not need one test per property beyond the single default projection.
 
-### Fallback services
-
-| Target | Test class | Required coverage | Priority |
-| --- | --- | --- | --- |
-| `UnavailableToolRequestResolver` | `UnavailableToolRequestResolverTests` | Document, project, document-list, project-list and symbol resolution all return `ToolExecutionServicesUnavailable`; snapshot validation returns the same rejection | High |
-| `UnavailableCompilerDiagnosticService` | `UnavailableCompilerDiagnosticServiceTests` | Compiler diagnostic request faults with the stable unavailable message | Low |
-| `UnavailableInspectionContextService` | `UnavailableInspectionContextServiceTests` | Context read and containing-symbol creation both fault with the stable unavailable message | Low |
-| `UnavailableProjectStructureService` | `UnavailableProjectStructureServiceTests` | Both target-framework overloads and solution hierarchy fault with the stable unavailable message | Low |
-| `UnavailableDependencyAnalysisService` | `UnavailableDependencyAnalysisServiceTests` | Both granularity probes return false; cycle, test-impact and graph operations fault with the stable unavailable message | Low |
-| `UnavailableToolExecutionServices` | `UnavailableToolExecutionServicesTests` | Exposes the five intended unavailable collaborators and keeps each responsibility distinct | Low |
-
-These are small fallback contracts. Similar inputs should use theories where xUnit can report each case independently without triggering `xUnit1044`.
-
 ### Execution contexts
 
-`WorkspaceQueryContext`, `WorkspaceMutationContext` and `WorkspaceExecutionContextFactory` are deferred pending the capability-boundary design described under Production Seams. They must not be unit-tested in their current form because the shared runtime contexts expose code-action-specific capabilities to every normal query and mutation handler.
+The capability-boundary redesign is complete. `IWorkspaceExecutionContext` contains only solution, identity, transaction revision, result limit and resolver. Query and mutation acquisition use `WorkspaceSelector`; mutation staging is a separate `IWorkspaceMutationStager` held by the lease, not implemented by the handler context. Unit coverage should now target every acquisition rejection/conflict branch, disposal and separation of context from staging capability.
 
 ### Operations
 
@@ -241,29 +223,15 @@ Additional `WorkspaceDiffBuilderTests`:
 
 Null documents returned for Roslyn change IDs appear defensive and may be unreachable with a valid `SolutionChanges` graph. Measure those paths and document them as approved Roslyn defensive exceptions if required.
 
-## Production Seams Required Before Strict Unit Coverage
+## Production Seams and Remaining Coverage
 
 The following classes contain important orchestration logic, but adding partial tests around only their early exits would leave the implementation below the repository's coverage rule. Do not use real workspaces, filesystem fixtures or general integration harnesses in the unit project to force coverage.
 
 ### Execution-context capability boundary
 
-Current blockers:
+This production seam is now complete. Workspace creates only neutral contexts and separate staging leases. Plugins and CodeActions each adapt those leases in their own assembly, and Host chooses the correct typed adapter from the corresponding catalogue without runtime type discrimination.
 
-- `WorkspaceMutationContext` implements `ICodeActionMutationContext` rather than the minimum shared `IMutationContext`
-- `WorkspaceQueryContext` implements `ICodeActionQueryContext` rather than the minimum shared `IQueryContext`
-- normal plugin handlers therefore receive runtime objects carrying code-action-only methods, even when their compile-time parameter is the minimum interface
-- the shared Workspace layer owns and constructs code-action workflow adapters, coupling generic workspace execution to the CodeActions concern
-- the current factory API does not identify the registered tool or its required context capability, so it cannot select a least-privilege runtime context
-
-Recommended design decision before tests:
-
-- make the Workspace-owned query and mutation contexts implement only `IQueryContext` and `IMutationContext`
-- move code-action context adapters/decorators into `Roslyn.Workbench.Mcp.CodeActions`
-- let registration/execution declare the minimum required context capability generically, rather than checking hard-coded plugin or provider identities
-- have the execution adapter/factory select the required context for the registered handler so normal tools receive only the base Workspace context
-- narrow code-action workflows to `IQueryContext`/`IMutationContext` wherever they use only common execution properties
-
-After approval, cover:
+Remaining unit coverage should cover:
 
 - base Workspace contexts expose only shared properties and generic staging
 - normal query and mutation handlers receive runtime objects that do not implement the code-action context interfaces

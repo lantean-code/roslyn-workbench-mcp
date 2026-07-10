@@ -36,8 +36,8 @@ public sealed class FindDependencyCyclesToolTests
             Granularity = "Invalid",
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new ToolError
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
         {
             Code = "InvalidRequest",
             Message = "Granularity must be Project, Namespace, or Type.",
@@ -51,7 +51,7 @@ public sealed class FindDependencyCyclesToolTests
         var target = new FindDependencyCyclesTool();
         var queryContextMocks = QueryContextMockHelper.Create();
         var dependencyAnalysisService = new Mock<IDependencyAnalysisService>();
-        var expected = PluginExecutionResult<DependencyCyclesData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<DependencyCyclesData>.Rejected(new PluginExecutionError
         {
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
@@ -86,7 +86,7 @@ public sealed class FindDependencyCyclesToolTests
         var target = new FindDependencyCyclesTool();
         var queryContextMocks = QueryContextMockHelper.Create();
         var dependencyAnalysisService = new Mock<IDependencyAnalysisService>();
-        var expected = PluginExecutionResult<DependencyCyclesData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<DependencyCyclesData>.Rejected(new PluginExecutionError
         {
             Code = "ProjectNotFound",
             Message = "ProjectNotFound",
@@ -205,7 +205,7 @@ public sealed class FindDependencyCyclesToolTests
             },
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Cycles.Items.Should().ContainSingle();
         result.Data.Cycles.Items[0].Should().BeEquivalentTo(cycles[0]);
         result.Data.Cycles.HasMore.Should().BeTrue();

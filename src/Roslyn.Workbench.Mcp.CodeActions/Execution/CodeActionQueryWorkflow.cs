@@ -25,7 +25,7 @@ internal sealed class CodeActionQueryWorkflow : ICodeActionQueryWorkflow
         _tokenService = tokenService;
     }
 
-    public async ValueTask<PluginExecutionResult<CodeActionListData>> ListCodeActionsAsync(
+    public async ValueTask<CodeActionExecutionResult<CodeActionListData>> ListCodeActionsAsync(
         ListCodeActionsRequest request,
         ICodeActionQueryContext context,
         CancellationToken cancellationToken)
@@ -99,7 +99,7 @@ internal sealed class CodeActionQueryWorkflow : ICodeActionQueryWorkflow
             .ThenBy(static action => action.Action.EquivalenceKey ?? string.Empty, StringComparer.Ordinal)
             .ThenBy(static action => string.Join(".", action.Action.ActionPath), StringComparer.Ordinal)
             .ToArray();
-        return PluginExecutionResult<CodeActionListData>.Success(new CodeActionListData
+        return CodeActionExecutionResult<CodeActionListData>.Success(new CodeActionListData
         {
             Actions = ordered
                 .Select(item => CreateInfo(item.Action, context, document, span, item.Descriptor))
@@ -107,7 +107,7 @@ internal sealed class CodeActionQueryWorkflow : ICodeActionQueryWorkflow
         });
     }
 
-    public async ValueTask<PluginExecutionResult<DescribeCodeActionData>> DescribeCodeActionAsync(
+    public async ValueTask<CodeActionExecutionResult<DescribeCodeActionData>> DescribeCodeActionAsync(
         DescribeCodeActionRequest request,
         ICodeActionQueryContext context,
         CancellationToken cancellationToken)
@@ -144,12 +144,12 @@ internal sealed class CodeActionQueryWorkflow : ICodeActionQueryWorkflow
             },
         };
 
-        return PluginExecutionResult<DescribeCodeActionData>.Success(data);
+        return CodeActionExecutionResult<DescribeCodeActionData>.Success(data);
     }
 
     private CodeActionInfo CreateInfo(
         DiscoveredCodeAction action,
-        IToolExecutionContext context,
+        ICodeActionExecutionContext context,
         Document document,
         TextSpan span,
         CodeActionDescriptorEntry descriptor)
@@ -192,19 +192,19 @@ internal sealed class CodeActionQueryWorkflow : ICodeActionQueryWorkflow
         };
     }
 
-    private static PluginExecutionResult<T>? ValidateSnapshot<T>(IWorkspaceResolver resolver, SnapshotPrecondition? expectedSnapshot)
+    private static CodeActionExecutionResult<T>? ValidateSnapshot<T>(IWorkspaceResolver resolver, SnapshotPrecondition? expectedSnapshot)
     {
         var result = resolver.ValidateSnapshot(expectedSnapshot);
         return result.Kind == SnapshotMatchKind.Matched
             ? null
-            : PluginExecutionResult<T>.Conflict(new ToolError
+            : CodeActionExecutionResult<T>.Conflict(new CodeActionExecutionError
             {
                 Code = "SnapshotMismatch",
                 Message = "The request snapshot does not match the current workspace snapshot.",
             }, RequiredAction.ResolveTargetAgain);
     }
 
-    private static PluginExecutionResult<T> RejectFromStatus<T>(SelectorResolveStatus status, string targetName)
+    private static CodeActionExecutionResult<T> RejectFromStatus<T>(SelectorResolveStatus status, string targetName)
     {
         return status switch
         {
@@ -213,16 +213,16 @@ internal sealed class CodeActionQueryWorkflow : ICodeActionQueryWorkflow
         };
     }
 
-    private static PluginExecutionResult<T> Rejected<T>(string code, string message, RequiredAction? requiredAction = null)
+    private static CodeActionExecutionResult<T> Rejected<T>(string code, string message, RequiredAction? requiredAction = null)
     {
-        return PluginExecutionResult<T>.Rejected(new ToolError
+        return CodeActionExecutionResult<T>.Rejected(new CodeActionExecutionError
         {
             Code = code,
             Message = message,
         }, requiredAction);
     }
 
-    private PluginExecutionResult<T>? RejectedIfUnavailable<T>()
+    private CodeActionExecutionResult<T>? RejectedIfUnavailable<T>()
     {
         return _runtime.Status.IsAvailable
             ? null

@@ -6,16 +6,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Roslyn.Workbench.Mcp.Contracts\Roslyn.Workbench.Mcp.Contracts.csproj" />
-    <ProjectReference Include="..\Roslyn.Workbench.Mcp.Plugins\Roslyn.Workbench.Mcp.Plugins.csproj" />
+    <ProjectReference Include="..\Roslyn.Workbench.Mcp.Workspace\Roslyn.Workbench.Mcp.Workspace.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
       <_Parameter1>Roslyn.Workbench.Mcp</_Parameter1>
-    </AssemblyAttribute>
-    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-      <_Parameter1>Roslyn.Workbench.Mcp.Workspace</_Parameter1>
     </AssemblyAttribute>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
       <_Parameter1>Roslyn.Workbench.Mcp.TestSupport</_Parameter1>

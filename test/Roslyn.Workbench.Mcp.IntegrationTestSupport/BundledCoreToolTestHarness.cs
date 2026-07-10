@@ -1,6 +1,5 @@
-using Roslyn.Workbench.Mcp.Contracts.Selectors;
-using Roslyn.Workbench.Mcp.Contracts.Server;
 using Roslyn.Workbench.Mcp.Plugins.Core;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 

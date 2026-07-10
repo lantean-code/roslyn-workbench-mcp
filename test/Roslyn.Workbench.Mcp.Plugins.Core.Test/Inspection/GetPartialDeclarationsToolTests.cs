@@ -22,7 +22,7 @@ public sealed class GetPartialDeclarationsToolTests
     {
         var target = new GetPartialDeclarationsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<PartialDeclarationsData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<PartialDeclarationsData>.Rejected(new PluginExecutionError
         {
             Code = "SymbolNotFound",
             Message = "SymbolNotFound",
@@ -126,7 +126,7 @@ public sealed class GetPartialDeclarationsToolTests
             },
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbol!.DisplayName.Should().Be("Formatter");
         result.Data.Declarations.Items.Should().ContainSingle();
         result.Data.Declarations.Items[0].Document!.Path.Should().Be("A.cs");

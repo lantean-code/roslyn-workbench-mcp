@@ -33,7 +33,7 @@ internal static class McpIntegrationTestHost
         bool expectProtocolSuccess = true)
     {
         var registeredTool = registry.GetRegisteredPluginTool(toolName);
-        var serverTool = new PluginMcpServerTool(registeredTool, contextFactory);
+        var serverTool = registeredTool.Accept(new PluginMcpServerToolFactory(contextFactory));
         var result = await InvokeServerToolAsync(serverTool, toolName, arguments);
 
         result.IsError.Should().Be(!expectProtocolSuccess);

@@ -1,4 +1,4 @@
-using Roslyn.Workbench.Mcp.Contracts.Results;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
 
 namespace Roslyn.Workbench.Mcp.Plugins;
 
@@ -11,7 +11,7 @@ public sealed record PluginExecutionResult<TResponse>
     /// <summary>
     /// Gets the outcome kind.
     /// </summary>
-    public ToolOutcome Outcome { get; init; }
+    public PluginExecutionOutcome Outcome { get; init; }
 
     /// <summary>
     /// Gets the successful response payload, when present.
@@ -26,7 +26,7 @@ public sealed record PluginExecutionResult<TResponse>
     /// <summary>
     /// Gets the structured error payload, when present.
     /// </summary>
-    public ToolError? Error { get; init; }
+    public PluginExecutionError? Error { get; init; }
 
     /// <summary>
     /// Gets the optional continuation hint.
@@ -59,7 +59,7 @@ public sealed record PluginExecutionResult<TResponse>
     {
         return new PluginExecutionResult<TResponse>
         {
-            Outcome = ToolOutcome.Succeeded,
+            Outcome = PluginExecutionOutcome.Succeeded,
             Data = data,
             Changes = changes,
             Diagnostics = diagnostics ?? [],
@@ -81,7 +81,7 @@ public sealed record PluginExecutionResult<TResponse>
     {
         return new PluginExecutionResult<TResponse>
         {
-            Outcome = ToolOutcome.NoChange,
+            Outcome = PluginExecutionOutcome.NoChange,
             Data = data,
             Diagnostics = diagnostics ?? [],
             Warnings = warnings ?? [],
@@ -97,14 +97,14 @@ public sealed record PluginExecutionResult<TResponse>
     /// <param name="warnings">The warnings emitted by the handler.</param>
     /// <returns>The normalized result.</returns>
     public static PluginExecutionResult<TResponse> Rejected(
-        ToolError error,
+        PluginExecutionError error,
         RequiredAction? requiredAction = null,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
     {
         return new PluginExecutionResult<TResponse>
         {
-            Outcome = ToolOutcome.Rejected,
+            Outcome = PluginExecutionOutcome.Rejected,
             Error = error,
             RequiredAction = requiredAction,
             Diagnostics = diagnostics ?? [],
@@ -121,14 +121,14 @@ public sealed record PluginExecutionResult<TResponse>
     /// <param name="warnings">The warnings emitted by the handler.</param>
     /// <returns>The normalized result.</returns>
     public static PluginExecutionResult<TResponse> Conflict(
-        ToolError error,
+        PluginExecutionError error,
         RequiredAction? requiredAction = null,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
     {
         return new PluginExecutionResult<TResponse>
         {
-            Outcome = ToolOutcome.Conflict,
+            Outcome = PluginExecutionOutcome.Conflict,
             Error = error,
             RequiredAction = requiredAction,
             Diagnostics = diagnostics ?? [],

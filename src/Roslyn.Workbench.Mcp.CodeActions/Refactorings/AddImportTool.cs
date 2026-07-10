@@ -1,4 +1,4 @@
-using Roslyn.Workbench.Mcp.Contracts.Refactorings;
+using Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 
@@ -6,23 +6,23 @@ internal sealed class AddImportTool : CodeActionMutationToolHandler<AddImportReq
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.AddImport.CSharpAddImportCodeRefactoringProvider";
 
-    private static readonly ToolRegistrationMetadata _metadata = new()
+    private static readonly CodeActionToolMetadata _metadata = new()
     {
         Name = "add-import",
         Title = "Add Import",
         Description = "Adds a supported using directive through Roslyn refactoring composition.",
-        Behavior = new ToolBehaviorHints
+        Behavior = new CodeActionToolBehavior
         {
             Destructive = true,
         },
     };
 
-    public static void Register(IPluginRegistry registry)
+    public static void Register(ICodeActionToolRegistry registry)
     {
         registry.RegisterMutationTool(_metadata, new AddImportTool());
     }
 
-    protected override ValueTask<PluginExecutionResult<MutationProposal>> ExecuteCoreAsync(AddImportRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
+    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteCoreAsync(AddImportRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         var titleDoesNotContain = request.SimplifyAllOccurrences ? null : "simplify all occurrences";
 

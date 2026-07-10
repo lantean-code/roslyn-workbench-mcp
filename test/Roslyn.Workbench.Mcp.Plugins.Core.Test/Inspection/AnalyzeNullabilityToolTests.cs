@@ -25,7 +25,7 @@ public sealed class AnalyzeNullabilityToolTests
     {
         var target = new AnalyzeNullabilityTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<NullabilityAnalysisData>.Conflict(new ToolError
+        var expected = PluginExecutionResult<NullabilityAnalysisData>.Conflict(new PluginExecutionError
         {
             Code = "SnapshotMismatch",
             Message = "SnapshotMismatch",
@@ -70,8 +70,8 @@ public sealed class AnalyzeNullabilityToolTests
             Location = new LocationSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new ToolError
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
         {
             Code = "LocationNotFound",
             Message = "The location selector did not match any result.",
@@ -99,8 +99,8 @@ public sealed class AnalyzeNullabilityToolTests
             Location = new LocationSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new ToolError
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
         {
             Code = "LocationAmbiguous",
             Message = "The location selector matched multiple results.",
@@ -145,8 +145,8 @@ public sealed class AnalyzeNullabilityToolTests
             Location = new LocationSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new ToolError
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
         {
             Code = "LocationNotFound",
             Message = "The location selector did not resolve to a source document.",
@@ -177,8 +177,8 @@ public sealed class AnalyzeNullabilityToolTests
             Location = new LocationSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new ToolError
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
         {
             Code = "LocationNotFound",
             Message = "The location selector did not resolve to a source document.",
@@ -257,7 +257,7 @@ public sealed class AnalyzeNullabilityToolTests
             Location = new LocationSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Findings.Items.Should().ContainSingle();
         result.Data.Findings.Items[0].Diagnostic!.Id.Should().Be("CS8602");
         result.Data.Findings.Items[0].Diagnostic!.Location.Should().Be(projectedSelectedLocation);
@@ -268,7 +268,7 @@ public sealed class AnalyzeNullabilityToolTests
     {
         var target = new AnalyzeNullabilityTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<NullabilityAnalysisData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<NullabilityAnalysisData>.Rejected(new PluginExecutionError
         {
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
@@ -388,7 +388,7 @@ public sealed class AnalyzeNullabilityToolTests
             },
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Findings.Items.Should().ContainSingle();
         result.Data.Findings.Items[0].Diagnostic!.Id.Should().Be("CS8602");
         result.Data.Findings.Items[0].Diagnostic!.Location.Should().Be(firstProjectedLocation);
@@ -449,7 +449,7 @@ public sealed class AnalyzeNullabilityToolTests
 
         var result = await target.ExecuteAsync(new AnalyzeNullabilityRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Findings.Items.Should().HaveCount(2);
         result.Data.Findings.Items.Should().Contain(item => item.Diagnostic!.Location == null);
         result.Data.Findings.Items.Should().Contain(item => item.Diagnostic!.Location != null);

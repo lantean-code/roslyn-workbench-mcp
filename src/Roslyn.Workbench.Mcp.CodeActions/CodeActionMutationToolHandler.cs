@@ -1,27 +1,20 @@
-using Roslyn.Workbench.Mcp.Contracts.Selectors;
-
 namespace Roslyn.Workbench.Mcp.CodeActions;
 
-internal abstract class CodeActionMutationToolHandler<TRequest> : IMutationToolHandler<TRequest>
+internal abstract class CodeActionMutationToolHandler<TRequest>
     where TRequest : WorkspaceBoundRequest
 {
-    public ValueTask<PluginExecutionResult<MutationProposal>> ExecuteAsync(
+    public ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteAsync(
         TRequest request,
-        IMutationContext context,
+        ICodeActionMutationContext context,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentNullException.ThrowIfNull(context);
 
-        if (context is not ICodeActionMutationContext codeActionContext)
-        {
-            throw new InvalidOperationException("Mutation context does not support code-action execution.");
-        }
-
-        return ExecuteCoreAsync(request, codeActionContext, cancellationToken);
+        return ExecuteCoreAsync(request, context, cancellationToken);
     }
 
-    protected abstract ValueTask<PluginExecutionResult<MutationProposal>> ExecuteCoreAsync(
+    protected abstract ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteCoreAsync(
         TRequest request,
         ICodeActionMutationContext context,
         CancellationToken cancellationToken);

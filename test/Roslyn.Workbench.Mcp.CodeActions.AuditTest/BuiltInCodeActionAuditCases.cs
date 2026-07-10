@@ -1,6 +1,6 @@
-using Roslyn.Workbench.Mcp.Contracts.CodeActions;
-using Roslyn.Workbench.Mcp.Contracts.Selectors;
+using Roslyn.Workbench.Mcp.CodeActions.Contracts;
 using Roslyn.Workbench.Mcp.Plugins;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 

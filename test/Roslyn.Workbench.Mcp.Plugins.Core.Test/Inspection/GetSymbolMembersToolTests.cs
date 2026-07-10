@@ -22,7 +22,7 @@ public sealed class GetSymbolMembersToolTests
     {
         var target = new GetSymbolMembersTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<SymbolMembersData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<SymbolMembersData>.Rejected(new PluginExecutionError
         {
             Code = "SymbolNotFound",
             Message = "SymbolNotFound",
@@ -79,7 +79,7 @@ public sealed class GetSymbolMembersToolTests
 
         var result = await target.ExecuteAsync(new GetSymbolMembersRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("InvalidRequest");
     }
 
@@ -151,7 +151,7 @@ public sealed class GetSymbolMembersToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Members.Items.Select(item => item.DisplayName).Should().Equal("Format", "Name", "get_Name");
     }
 
@@ -241,7 +241,7 @@ public sealed class GetSymbolMembersToolTests
             IncludeExplicitInterface = true,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Members.Items.Should().Contain(item => item.DocumentationCommentId == "M:Sample.BaseFormatter.Decorate");
         result.Data.Members.Items.Count(item => item.DisplayName == "Dispose").Should().Be(2);
         result.Data.Members.Items

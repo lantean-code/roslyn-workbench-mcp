@@ -1,5 +1,5 @@
-using Roslyn.Workbench.Mcp.Contracts.Results;
-using Roslyn.Workbench.Mcp.Contracts.Selectors;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core;
 
@@ -152,7 +152,7 @@ internal sealed class DefaultToolRequestResolver : IToolRequestResolver
         return result.Kind == SnapshotMatchKind.Matched
             ? null
             : PluginExecutionResult<TResponse>.Conflict(
-                new ToolError
+                new PluginExecutionError
                 {
                     Code = "SnapshotMismatch",
                     Message = "The request snapshot does not match the current workspace snapshot.",

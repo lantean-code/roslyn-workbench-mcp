@@ -1,0 +1,24 @@
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
+
+namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
+
+/// <summary>
+/// Represents a request to find overloads for a resolved callable symbol.
+/// </summary>
+public sealed record FindOverloadsRequest : WorkspaceBoundRequest
+{
+    /// <summary>
+    /// Gets the symbol selector.
+    /// </summary>
+    public SymbolSelector? Symbol { get; init; }
+
+    /// <summary>
+    /// Gets the optional result limit.
+    /// </summary>
+    public CollectionLimit? OverloadsLimit { get; init; }
+
+    /// <summary>
+    /// Gets the expected snapshot for location-based symbol selectors.
+    /// </summary>
+    public SnapshotPrecondition? ExpectedSnapshot { get; init; }
+}

@@ -5,17 +5,17 @@ public sealed class IntroduceVariableToolTests
     [Fact]
     public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
     {
-        var registry = new Mock<IPluginRegistry>();
+        var registry = new Mock<ICodeActionToolRegistry>();
 
         IntroduceVariableTool.Register(registry.Object);
 
         registry.Verify(item => item.RegisterMutationTool<IntroduceVariableRequest>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
+            It.Is<CodeActionToolMetadata>(metadata =>
                 metadata.Name == "introduce-variable"
                 && metadata.Title == "Introduce Variable"
                 && metadata.Description == "Stages one supported Roslyn introduce-variable leaf action through refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<IMutationToolHandler<IntroduceVariableRequest>>()), Times.Once);
+            It.IsAny<CodeActionMutationToolHandler<IntroduceVariableRequest>>()), Times.Once);
     }
 
     [Fact]
@@ -26,7 +26,7 @@ public sealed class IntroduceVariableToolTests
 
         var result = await target.ExecuteAsync(new IntroduceVariableRequest(), context.Object, CancellationToken.None);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("InvalidRequest");
         context.Verify(item => item.StageReplayCodeActionAsync(
             It.IsAny<ReplayCodeActionRequest>(),
@@ -49,7 +49,7 @@ public sealed class IntroduceVariableToolTests
         string titleStartsWith,
         string? titleDoesNotContain)
     {
-        var expected = PluginExecutionResult<MutationProposal>.Success(new MutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new IntroduceVariableRequest
         {

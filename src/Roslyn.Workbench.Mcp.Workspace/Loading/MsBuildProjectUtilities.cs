@@ -1,4 +1,4 @@
-using Roslyn.Workbench.Mcp.Contracts.Results;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Loading;
 
@@ -52,7 +52,7 @@ internal static class MsBuildProjectUtilities
         return new DiagnosticInfo
         {
             Id = "WorkspaceLoad",
-            Severity = Roslyn.Workbench.Mcp.Contracts.Results.DiagnosticSeverity.Error,
+            Severity = Roslyn.Workbench.Mcp.Workspace.Contracts.Results.DiagnosticSeverity.Error,
             Message = message,
         };
     }

@@ -6,6 +6,6 @@ internal interface ICodeActionResolutionService
         string actionId,
         SnapshotPrecondition? expectedSnapshot,
         DiscoveredActionKind? expectedKind,
-        IToolExecutionContext context,
+        ICodeActionExecutionContext context,
         CancellationToken cancellationToken);
 }

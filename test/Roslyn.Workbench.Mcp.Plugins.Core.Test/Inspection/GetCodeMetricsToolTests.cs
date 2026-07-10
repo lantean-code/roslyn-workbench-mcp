@@ -22,7 +22,7 @@ public sealed class GetCodeMetricsToolTests
     {
         var target = new GetCodeMetricsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<CodeMetricsData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<CodeMetricsData>.Rejected(new PluginExecutionError
         {
             Code = "SymbolNotFound",
             Message = "SymbolNotFound",
@@ -77,7 +77,7 @@ public sealed class GetCodeMetricsToolTests
             IncludeChildren = false,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Metrics.Items.Should().BeEmpty();
     }
 
@@ -161,7 +161,7 @@ public sealed class GetCodeMetricsToolTests
             IncludeChildren = true,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Metrics.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Formatter");
         result.Data.Metrics.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Formatter.Format(string)");
         result.Data.Metrics.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Formatter.Value");
@@ -174,7 +174,7 @@ public sealed class GetCodeMetricsToolTests
     {
         var target = new GetCodeMetricsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<CodeMetricsData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<CodeMetricsData>.Rejected(new PluginExecutionError
         {
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
@@ -216,7 +216,7 @@ public sealed class GetCodeMetricsToolTests
 
         var result = await target.ExecuteAsync(new GetCodeMetricsRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Metrics.Items.Should().BeEmpty();
     }
 
@@ -327,7 +327,7 @@ public sealed class GetCodeMetricsToolTests
             },
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Metrics.Items.Should().HaveCount(6);
         result.Data.Metrics.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Formatter");
         result.Data.Metrics.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Formatter.Changed");

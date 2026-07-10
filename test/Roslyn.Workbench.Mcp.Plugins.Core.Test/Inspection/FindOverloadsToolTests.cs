@@ -24,7 +24,7 @@ public sealed class FindOverloadsToolTests
     {
         var target = new FindOverloadsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<OverloadSearchData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<OverloadSearchData>.Rejected(new PluginExecutionError
         {
             Code = "SymbolNotFound",
             Message = "SymbolNotFound",
@@ -81,8 +81,8 @@ public sealed class FindOverloadsToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new ToolError
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
         {
             Code = "InvalidRequest",
             Message = "Find overloads requires a method or constructor symbol.",
@@ -138,7 +138,7 @@ public sealed class FindOverloadsToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbol!.DisplayName.Should().Be("Format");
         result.Data.Overloads.Items.Select(item => item.DisplayName).Should().Equal("Formatter.Format()", "Formatter.Format(string)", "Formatter.Format(int, string)");
         result.Data.Overloads.Items.All(item => item.ReturnType is not null).Should().BeTrue();
@@ -186,7 +186,7 @@ public sealed class FindOverloadsToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Overloads.Items.Select(item => item.DisplayName).Should().Equal("Formatter.Formatter()", "Formatter.Formatter(string)");
         result.Data.Overloads.Items.All(item => item.ReturnType is null).Should().BeTrue();
         result.Data.Overloads.Items.All(item => item.Kind == MethodKind.Constructor.ToString()).Should().BeTrue();

@@ -24,7 +24,7 @@ public sealed class AnalyzeDataFlowToolTests
     {
         var target = new AnalyzeDataFlowTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<DataFlowAnalysisData>.Conflict(new ToolError
+        var expected = PluginExecutionResult<DataFlowAnalysisData>.Conflict(new PluginExecutionError
         {
             Code = "SnapshotMismatch",
             Message = "SnapshotMismatch",
@@ -65,8 +65,8 @@ public sealed class AnalyzeDataFlowToolTests
 
         var result = await target.ExecuteAsync(new AnalyzeDataFlowRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new ToolError
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
         {
             Code = "InvalidRequest",
             Message = "A location selector is required.",
@@ -96,8 +96,8 @@ public sealed class AnalyzeDataFlowToolTests
             Location = new LocationSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new ToolError
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
         {
             Code = "LocationNotFound",
             Message = "The location selector did not match any result.",
@@ -126,8 +126,8 @@ public sealed class AnalyzeDataFlowToolTests
             Location = new LocationSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new ToolError
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
         {
             Code = "LocationAmbiguous",
             Message = "The location selector matched multiple results.",
@@ -177,8 +177,8 @@ public sealed class AnalyzeDataFlowToolTests
             Location = new LocationSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new ToolError
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
         {
             Code = "LocationNotFound",
             Message = "The location selector did not resolve to a source document.",
@@ -228,8 +228,8 @@ public sealed class AnalyzeDataFlowToolTests
             Location = new LocationSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new ToolError
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
         {
             Code = "LocationNotFound",
             Message = "The location selector did not resolve to a source document.",
@@ -278,8 +278,8 @@ public sealed class AnalyzeDataFlowToolTests
             Location = new LocationSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new ToolError
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
         {
             Code = "InvalidRequest",
             Message = "The selected region must resolve to an executable statement.",
@@ -331,7 +331,7 @@ public sealed class AnalyzeDataFlowToolTests
             Location = new LocationSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data.Should().BeEquivalentTo(new DataFlowAnalysisData
         {
             Region = region,

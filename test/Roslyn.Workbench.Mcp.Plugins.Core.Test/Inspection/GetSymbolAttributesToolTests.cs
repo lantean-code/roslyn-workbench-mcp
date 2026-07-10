@@ -22,7 +22,7 @@ public sealed class GetSymbolAttributesToolTests
     {
         var target = new GetSymbolAttributesTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<SymbolAttributesData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<SymbolAttributesData>.Rejected(new PluginExecutionError
         {
             Code = "SymbolNotFound",
             Message = "SymbolNotFound",
@@ -111,7 +111,7 @@ public sealed class GetSymbolAttributesToolTests
             },
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbol!.DisplayName.Should().Be("DerivedType");
         result.Data.Attributes.Items.Should().ContainSingle();
         result.Data.Attributes.Items[0].Name.Should().Be("MarkerAttribute");
@@ -164,7 +164,7 @@ public sealed class GetSymbolAttributesToolTests
             IncludeInherited = true,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Attributes.Items.Should().BeEmpty();
     }
 
@@ -219,7 +219,7 @@ public sealed class GetSymbolAttributesToolTests
             IncludeInherited = false,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Attributes.Items.Should().ContainSingle();
         result.Data.Attributes.Items[0].Inherited.Should().BeFalse();
     }

@@ -30,7 +30,7 @@ public sealed class ToolExecutionHelpersTests
     {
         var rejected = new ToolResolutionResult<string, object>
         {
-            Rejection = PluginExecutionResult<object>.Rejected(new ToolError
+            Rejection = PluginExecutionResult<object>.Rejected(new PluginExecutionError
             {
                 Code = "Code",
                 Message = "Message",

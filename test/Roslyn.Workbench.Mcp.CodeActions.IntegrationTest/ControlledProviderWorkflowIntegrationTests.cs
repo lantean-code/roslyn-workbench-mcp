@@ -14,21 +14,20 @@ public sealed class ControlledProviderWorkflowIntegrationTests
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
         await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
-        var registry = BundledPluginRegistryFactory.CreateRegistry();
         var snapshot = BundledCoreToolTestHarness.CreateSnapshot(open, 0);
 
-        var listed = await InvokeAsync<CodeActionListData>(coordinator, registry, "list-code-actions", new Dictionary<string, JsonElement>
+        var listed = await InvokeAsync<CodeActionListData>(coordinator, "list-code-actions", new Dictionary<string, JsonElement>
         {
             ["location"] = JsonSerializer.SerializeToElement(fixture.GetLocation("StateHolder")),
             ["expectedSnapshot"] = JsonSerializer.SerializeToElement(snapshot),
         });
         var parameterisedAction = listed.Data!.Actions.Single(static action => action.Title == "Change signature test refactoring");
-        var described = await InvokeAsync<DescribeCodeActionData>(coordinator, registry, "describe-code-action", new Dictionary<string, JsonElement>
+        var described = await InvokeAsync<DescribeCodeActionData>(coordinator, "describe-code-action", new Dictionary<string, JsonElement>
         {
             ["actionId"] = JsonSerializer.SerializeToElement(parameterisedAction.ActionId),
             ["expectedSnapshot"] = JsonSerializer.SerializeToElement(snapshot),
         });
-        var staged = await InvokeAsync<MutationData>(coordinator, registry, "stage-code-action", new Dictionary<string, JsonElement>
+        var staged = await InvokeAsync<MutationData>(coordinator, "stage-code-action", new Dictionary<string, JsonElement>
         {
             ["actionId"] = JsonSerializer.SerializeToElement(parameterisedAction.ActionId),
             ["expectedSnapshot"] = JsonSerializer.SerializeToElement(snapshot),
@@ -52,16 +51,15 @@ public sealed class ControlledProviderWorkflowIntegrationTests
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
         await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
-        var registry = BundledPluginRegistryFactory.CreateRegistry();
 
-        var refactorings = await ListActionsAsync(coordinator, registry, fixture.GetLocation("StateHolder"), open, 0, includeCodeFixes: false);
-        var stagedRefactoring = await InvokeAsync<MutationData>(coordinator, registry, "stage-code-action", new Dictionary<string, JsonElement>
+        var refactorings = await ListActionsAsync(coordinator, fixture.GetLocation("StateHolder"), open, 0, includeCodeFixes: false);
+        var stagedRefactoring = await InvokeAsync<MutationData>(coordinator, "stage-code-action", new Dictionary<string, JsonElement>
         {
             ["actionId"] = JsonSerializer.SerializeToElement(refactorings.Data!.Actions.Single(static action => action.Title == "Apply test refactoring").ActionId),
             ["expectedSnapshot"] = JsonSerializer.SerializeToElement(BundledCoreToolTestHarness.CreateSnapshot(open, 0)),
         });
-        var codeFixes = await ListActionsAsync(coordinator, registry, fixture.GetLocation("unused"), open, 1, includeRefactorings: false);
-        var stagedCodeFix = await InvokeAsync<MutationData>(coordinator, registry, "stage-code-fix", new Dictionary<string, JsonElement>
+        var codeFixes = await ListActionsAsync(coordinator, fixture.GetLocation("unused"), open, 1, includeRefactorings: false);
+        var stagedCodeFix = await InvokeAsync<MutationData>(coordinator, "stage-code-fix", new Dictionary<string, JsonElement>
         {
             ["actionId"] = JsonSerializer.SerializeToElement(codeFixes.Data!.Actions.Single(static action => action.Title == "Apply test code fix").ActionId),
             ["expectedSnapshot"] = JsonSerializer.SerializeToElement(BundledCoreToolTestHarness.CreateSnapshot(open, 1)),
@@ -87,10 +85,9 @@ public sealed class ControlledProviderWorkflowIntegrationTests
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
         await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
-        var registry = BundledPluginRegistryFactory.CreateRegistry();
-        var codeFixes = await ListActionsAsync(coordinator, registry, fixture.GetLocation("unused"), open, 0, includeRefactorings: false);
+        var codeFixes = await ListActionsAsync(coordinator, fixture.GetLocation("unused"), open, 0, includeRefactorings: false);
 
-        var result = await InvokeAsync<MutationData>(coordinator, registry, "stage-fix-all", new Dictionary<string, JsonElement>
+        var result = await InvokeAsync<MutationData>(coordinator, "stage-fix-all", new Dictionary<string, JsonElement>
         {
             ["actionId"] = JsonSerializer.SerializeToElement(codeFixes.Data!.Actions.Single(static action => action.Title == "Apply test code fix").ActionId),
             ["scope"] = JsonSerializer.SerializeToElement(CreateScope(scopeKind)),
@@ -112,11 +109,10 @@ public sealed class ControlledProviderWorkflowIntegrationTests
             Path = tamperedFixture.ProjectPath,
         }, CancellationToken.None);
         await tamperedCoordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
-        var registry = BundledPluginRegistryFactory.CreateRegistry();
-        var tamperedActions = await ListActionsAsync(tamperedCoordinator, registry, tamperedFixture.GetLocation("StateHolder"), tamperedOpen, 0, includeCodeFixes: false);
+        var tamperedActions = await ListActionsAsync(tamperedCoordinator, tamperedFixture.GetLocation("StateHolder"), tamperedOpen, 0, includeCodeFixes: false);
         var actionId = tamperedActions.Data!.Actions.Single(static action => action.Title == "Apply test refactoring").ActionId;
 
-        var tampered = await StageCodeActionAsync(tamperedCoordinator, registry, string.Concat(actionId, "tampered"), tamperedOpen, 0, expectProtocolSuccess: false);
+        var tampered = await StageCodeActionAsync(tamperedCoordinator, string.Concat(actionId, "tampered"), tamperedOpen, 0, expectProtocolSuccess: false);
 
         using var expiredFixture = await InspectionSampleFixture.CreateAsync();
         var expiredCoordinator = BundledCoreToolTestHarness.CreateTestCodeActionCoordinator(TimeSpan.FromMinutes(-1));
@@ -125,10 +121,10 @@ public sealed class ControlledProviderWorkflowIntegrationTests
             Path = expiredFixture.ProjectPath,
         }, CancellationToken.None);
         await expiredCoordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
-        var expiredActions = await ListActionsAsync(expiredCoordinator, registry, expiredFixture.GetLocation("StateHolder"), expiredOpen, 0, includeCodeFixes: false);
+        var expiredActions = await ListActionsAsync(expiredCoordinator, expiredFixture.GetLocation("StateHolder"), expiredOpen, 0, includeCodeFixes: false);
         var expiredActionId = expiredActions.Data!.Actions.Single(static action => action.Title == "Apply test refactoring").ActionId;
 
-        var expired = await StageCodeActionAsync(expiredCoordinator, registry, expiredActionId, expiredOpen, 0, expectProtocolSuccess: false);
+        var expired = await StageCodeActionAsync(expiredCoordinator, expiredActionId, expiredOpen, 0, expectProtocolSuccess: false);
 
         using var staleFixture = await InspectionSampleFixture.CreateAsync();
         var staleCoordinator = BundledCoreToolTestHarness.CreateTestCodeActionCoordinator();
@@ -137,11 +133,11 @@ public sealed class ControlledProviderWorkflowIntegrationTests
             Path = staleFixture.ProjectPath,
         }, CancellationToken.None);
         await staleCoordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
-        var staleActions = await ListActionsAsync(staleCoordinator, registry, staleFixture.GetLocation("StateHolder"), staleOpen, 0, includeCodeFixes: false);
+        var staleActions = await ListActionsAsync(staleCoordinator, staleFixture.GetLocation("StateHolder"), staleOpen, 0, includeCodeFixes: false);
         var staleActionId = staleActions.Data!.Actions.Single(static action => action.Title == "Apply test refactoring").ActionId;
-        await StageCodeActionAsync(staleCoordinator, registry, staleActionId, staleOpen, 0);
+        await StageCodeActionAsync(staleCoordinator, staleActionId, staleOpen, 0);
 
-        var stale = await StageCodeActionAsync(staleCoordinator, registry, staleActionId, staleOpen, 1, expectProtocolSuccess: false);
+        var stale = await StageCodeActionAsync(staleCoordinator, staleActionId, staleOpen, 1, expectProtocolSuccess: false);
 
         tampered.Error!.Code.Should().Be("ActionExpired");
         expired.Error!.Code.Should().Be("ActionExpired");
@@ -157,9 +153,8 @@ public sealed class ControlledProviderWorkflowIntegrationTests
         {
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
-        var registry = BundledPluginRegistryFactory.CreateRegistry();
 
-        var result = await InvokeAsync<CodeActionListData>(coordinator, registry, "list-code-actions", new Dictionary<string, JsonElement>
+        var result = await InvokeAsync<CodeActionListData>(coordinator, "list-code-actions", new Dictionary<string, JsonElement>
         {
             ["location"] = JsonSerializer.SerializeToElement(fixture.GetLocation("StateHolder")),
             ["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition
@@ -193,15 +188,14 @@ public sealed class ControlledProviderWorkflowIntegrationTests
     }
 
     private static async Task<ToolResult<CodeActionListData>> ListActionsAsync(
-        IToolExecutionContextFactory coordinator,
-        PluginRegistry registry,
+        IWorkspaceRuntime coordinator,
         LocationSelector location,
         ToolResult<WorkspaceOpenData> open,
         int transactionRevision,
         bool includeRefactorings = true,
         bool includeCodeFixes = true)
     {
-        return await InvokeAsync<CodeActionListData>(coordinator, registry, "list-code-actions", new Dictionary<string, JsonElement>
+        return await InvokeAsync<CodeActionListData>(coordinator, "list-code-actions", new Dictionary<string, JsonElement>
         {
             ["location"] = JsonSerializer.SerializeToElement(location),
             ["includeRefactorings"] = JsonSerializer.SerializeToElement(includeRefactorings),
@@ -211,14 +205,13 @@ public sealed class ControlledProviderWorkflowIntegrationTests
     }
 
     private static async Task<ToolResult<MutationData>> StageCodeActionAsync(
-        IToolExecutionContextFactory coordinator,
-        PluginRegistry registry,
+        IWorkspaceRuntime coordinator,
         string actionId,
         ToolResult<WorkspaceOpenData> open,
         int transactionRevision,
         bool expectProtocolSuccess = true)
     {
-        return await InvokeAsync<MutationData>(coordinator, registry, "stage-code-action", new Dictionary<string, JsonElement>
+        return await InvokeAsync<MutationData>(coordinator, "stage-code-action", new Dictionary<string, JsonElement>
         {
             ["actionId"] = JsonSerializer.SerializeToElement(actionId),
             ["expectedSnapshot"] = JsonSerializer.SerializeToElement(BundledCoreToolTestHarness.CreateSnapshot(open, transactionRevision)),
@@ -226,12 +219,11 @@ public sealed class ControlledProviderWorkflowIntegrationTests
     }
 
     private static async Task<ToolResult<TResponse>> InvokeAsync<TResponse>(
-        IToolExecutionContextFactory coordinator,
-        PluginRegistry registry,
+        IWorkspaceRuntime coordinator,
         string toolName,
         IDictionary<string, JsonElement> arguments,
         bool expectProtocolSuccess = true)
     {
-        return await PluginToolTestHarness.InvokeAsync<TResponse>(coordinator, registry, toolName, arguments, expectProtocolSuccess);
+        return await CodeActionToolTestHarness.InvokeAsync<TResponse>(coordinator, toolName, arguments, expectProtocolSuccess);
     }
 }

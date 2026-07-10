@@ -4,7 +4,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Resolution;
 
 internal sealed record CodeActionResolution<T>
 {
-    public PluginExecutionResult<T>? Rejection { get; init; }
+    public CodeActionExecutionResult<T>? Rejection { get; init; }
 
     public DiscoveredCodeAction? Action { get; init; }
 

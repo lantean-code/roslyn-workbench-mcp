@@ -25,7 +25,7 @@ public sealed class FindCallersToolTests
     {
         var target = new FindCallersTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<CallerSearchData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<CallerSearchData>.Rejected(new PluginExecutionError
         {
             Code = "SymbolNotFound",
             Message = "SymbolNotFound",
@@ -84,7 +84,7 @@ public sealed class FindCallersToolTests
             "Callee",
             null,
             TestContext.Current.CancellationToken);
-        var expected = PluginExecutionResult<CallerSearchData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<CallerSearchData>.Rejected(new PluginExecutionError
         {
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
@@ -225,7 +225,7 @@ public sealed class FindCallersToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbol!.DisplayName.Should().Be("Callee");
         result.Data.Callers.Items.Select(item => item.Caller!.DisplayName).Should().Equal("RunAlpha", "RunBeta");
         result.Data.Callers.Items[0].Contexts.Should().BeEmpty();
@@ -354,7 +354,7 @@ public sealed class FindCallersToolTests
             IncludeContext = true,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Callers.Items.Select(item => item.Caller!.DisplayName).Should().Equal("RunAlpha", "RunBeta");
         result.Data.Callers.Items[0].Contexts.Should().Equal("target.Callee();");
         result.Data.Callers.Items[1].Contexts.Should().Equal("target.Callee();");

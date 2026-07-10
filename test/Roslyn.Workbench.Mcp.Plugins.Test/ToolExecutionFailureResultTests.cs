@@ -7,8 +7,8 @@ public sealed class ToolExecutionFailureResultTests
     {
         var result = new ToolExecutionFailureResult
         {
-            Outcome = ToolOutcome.Rejected,
-            Error = new ToolError
+            Outcome = PluginExecutionOutcome.Rejected,
+            Error = new PluginExecutionError
             {
                 Code = "Rejected",
                 Message = "Message",
@@ -35,8 +35,8 @@ public sealed class ToolExecutionFailureResultTests
 
         var pluginResult = result.ToPluginExecutionResult<TestResponse>();
 
-        pluginResult.Outcome.Should().Be(ToolOutcome.Rejected);
-        pluginResult.Error.Should().BeEquivalentTo(new ToolError
+        pluginResult.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        pluginResult.Error.Should().BeEquivalentTo(new PluginExecutionError
         {
             Code = "Rejected",
             Message = "Message",
@@ -51,7 +51,7 @@ public sealed class ToolExecutionFailureResultTests
     {
         var result = ToolExecutionFailureResult.CreateUnhandledException();
 
-        result.Outcome.Should().Be(ToolOutcome.Faulted);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Faulted);
         result.Error.Code.Should().Be("UnhandledException");
         result.Error.Message.Should().Be("Tool execution failed.");
         result.Error.CorrelationId.Should().NotBeNullOrWhiteSpace();

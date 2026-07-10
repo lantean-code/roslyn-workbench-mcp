@@ -21,7 +21,7 @@ public sealed class FormatDocumentToolTests
     [Fact]
     public async Task GIVEN_ResolveDocumentHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Rejected(new ToolError
+        var expected = PluginExecutionResult<MutationProposal>.Rejected(new PluginExecutionError
         {
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
@@ -52,7 +52,7 @@ public sealed class FormatDocumentToolTests
     public async Task GIVEN_ValidateSnapshotHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         using var document = RoslynTestFactory.CreateDocument("class Sample { }");
-        var expected = PluginExecutionResult<MutationProposal>.Conflict(new ToolError
+        var expected = PluginExecutionResult<MutationProposal>.Conflict(new PluginExecutionError
         {
             Code = "SnapshotMismatch",
             Message = "SnapshotMismatch",
@@ -106,7 +106,7 @@ public sealed class FormatDocumentToolTests
 
         var result = await target.ExecuteAsync(request, contextMocks.MutationContext.Object, CancellationToken.None);
 
-        result.Outcome.Should().Be(ToolOutcome.NoChange);
+        result.Outcome.Should().Be(PluginExecutionOutcome.NoChange);
     }
 
     [Fact]
@@ -138,7 +138,7 @@ public sealed class FormatDocumentToolTests
 
         var result = await target.ExecuteAsync(request, contextMocks.MutationContext.Object, CancellationToken.None);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data.Should().NotBeNull();
         result.Data!.CandidateSolution.Should().NotBeSameAs(document.Solution);
         result.Data.Summary.Should().Be("Format 'Sample.cs'.");

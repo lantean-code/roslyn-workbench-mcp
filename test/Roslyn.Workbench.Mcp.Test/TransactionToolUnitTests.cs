@@ -2,7 +2,6 @@ using System.Text.Json;
 
 using Microsoft.Extensions.Options;
 
-using Roslyn.Workbench.Mcp.Contracts.Transactions;
 using Roslyn.Workbench.Mcp.Tools;
 using Roslyn.Workbench.Mcp.Workspace.Operations;
 using Roslyn.Workbench.Mcp.Workspace.Transactions;

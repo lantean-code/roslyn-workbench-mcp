@@ -22,7 +22,7 @@ public sealed class GetTestImpactToolTests
     {
         var target = new GetTestImpactTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<TestImpactData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<TestImpactData>.Rejected(new PluginExecutionError
         {
             Code = "SymbolNotFound",
             Message = "SymbolNotFound",
@@ -66,7 +66,7 @@ public sealed class GetTestImpactToolTests
             document.Document,
             "Formatter",
             TestContext.Current.CancellationToken);
-        var expected = PluginExecutionResult<TestImpactData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<TestImpactData>.Rejected(new PluginExecutionError
         {
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
@@ -204,7 +204,7 @@ public sealed class GetTestImpactToolTests
             },
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbol!.DisplayName.Should().Be("Formatter");
         result.Data.Tests.Items.Should().ContainSingle();
         result.Data.Tests.Items[0].Test!.DisplayName.Should().Be("AlphaTest");

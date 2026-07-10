@@ -5,23 +5,23 @@ public sealed class AddNullChecksToolTests
     [Fact]
     public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
     {
-        var registry = new Mock<IPluginRegistry>();
+        var registry = new Mock<ICodeActionToolRegistry>();
 
         AddNullChecksTool.Register(registry.Object);
 
         registry.Verify(item => item.RegisterMutationTool<LocationRefactoringRequest>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
+            It.Is<CodeActionToolMetadata>(metadata =>
                 metadata.Name == "add-null-checks"
                 && metadata.Title == "Add Null Checks"
                 && metadata.Description == "Stages the supported Roslyn parameter null-check refactoring at the selected parameter location."
                 && metadata.Behavior.Destructive),
-            It.IsAny<IMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
+            It.IsAny<CodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
     }
 
     [Fact]
     public async Task GIVEN_LocationRefactoringRequest_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithNullCheckProvider()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Success(new MutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new LocationRefactoringRequest
         {

@@ -1,4 +1,4 @@
-using Roslyn.Workbench.Mcp.Contracts.Refactorings;
+using Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 
@@ -9,23 +9,23 @@ internal sealed class ConvertPropertyTool : CodeActionMutationToolHandler<Conver
     private const string UseAutoPropertyAnalyzerTypeName = "Microsoft.CodeAnalysis.CSharp.UseAutoProperty.CSharpUseAutoPropertyAnalyzer";
     private const string UseAutoPropertyDiagnosticId = "IDE0032";
 
-    private static readonly ToolRegistrationMetadata _metadata = new()
+    private static readonly CodeActionToolMetadata _metadata = new()
     {
         Name = "convert-property",
         Title = "Convert Property",
         Description = "Converts one selected property between supported auto-property and full-property forms through Roslyn composition.",
-        Behavior = new ToolBehaviorHints
+        Behavior = new CodeActionToolBehavior
         {
             Destructive = true,
         },
     };
 
-    public static void Register(IPluginRegistry registry)
+    public static void Register(ICodeActionToolRegistry registry)
     {
         registry.RegisterMutationTool(_metadata, new ConvertPropertyTool());
     }
 
-    protected override ValueTask<PluginExecutionResult<MutationProposal>> ExecuteCoreAsync(ConvertPropertyRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
+    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteCoreAsync(ConvertPropertyRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         return request.Direction switch
         {
@@ -45,7 +45,7 @@ internal sealed class ConvertPropertyTool : CodeActionMutationToolHandler<Conver
                 AnalyzerTypeName = UseAutoPropertyAnalyzerTypeName,
                 SyntheticDiagnosticId = UseAutoPropertyDiagnosticId,
             }, cancellationToken),
-            _ => ValueTask.FromResult(ToolExecutionHelpers.Rejected<MutationProposal>("InvalidRequest", "The requested property conversion direction is not supported.")),
+            _ => ValueTask.FromResult(ToolExecutionHelpers.Rejected<WorkspaceMutationProposal>("InvalidRequest", "The requested property conversion direction is not supported.")),
         };
     }
 }

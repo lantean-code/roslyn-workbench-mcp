@@ -2,7 +2,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Composition;
 
 internal interface ICodeActionRuntime
 {
-    ComponentStatus Status { get; }
+    CodeActionRuntimeStatus Status { get; }
 
     HostServices? WorkspaceHostServices { get; }
 

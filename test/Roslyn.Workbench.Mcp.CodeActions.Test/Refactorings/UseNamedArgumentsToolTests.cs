@@ -5,23 +5,23 @@ public sealed class UseNamedArgumentsToolTests
     [Fact]
     public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
     {
-        var registry = new Mock<IPluginRegistry>();
+        var registry = new Mock<ICodeActionToolRegistry>();
 
         UseNamedArgumentsTool.Register(registry.Object);
 
         registry.Verify(item => item.RegisterMutationTool<UseNamedArgumentsRequest>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
+            It.Is<CodeActionToolMetadata>(metadata =>
                 metadata.Name == "use-named-arguments"
                 && metadata.Title == "Use Named Arguments"
                 && metadata.Description == "Adds a supported argument name through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<IMutationToolHandler<UseNamedArgumentsRequest>>()), Times.Once);
+            It.IsAny<CodeActionMutationToolHandler<UseNamedArgumentsRequest>>()), Times.Once);
     }
 
     [Fact]
     public async Task GIVEN_UseNamedArgumentsRequestWithoutTrailingArguments_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithoutTrailingArgumentsTitle()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Success(new MutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new UseNamedArgumentsRequest
         {
@@ -66,7 +66,7 @@ public sealed class UseNamedArgumentsToolTests
     [Fact]
     public async Task GIVEN_UseNamedArgumentsRequestWithTrailingArguments_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithTrailingArgumentsTitle()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Success(new MutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new UseNamedArgumentsRequest
         {

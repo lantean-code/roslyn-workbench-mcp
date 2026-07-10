@@ -22,7 +22,7 @@ public sealed class GetSymbolInfoToolTests
     {
         var target = new GetSymbolInfoTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<SymbolInfoData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<SymbolInfoData>.Rejected(new PluginExecutionError
         {
             Code = "SymbolNotFound",
             Message = "SymbolNotFound",
@@ -94,7 +94,7 @@ public sealed class GetSymbolInfoToolTests
             IncludeDocumentation = true,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbol!.DisplayName.Should().Be("Format");
         result.Data.Accessibility.Should().Be("Public");
         result.Data.Parameters.Should().ContainSingle();
@@ -194,7 +194,7 @@ public sealed class GetSymbolInfoToolTests
             IncludeDocumentation = false,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Documentation.Should().BeNull();
         result.Data.Parameters.Should().BeNull();
         result.Data.ReturnType.Should().BeNull();

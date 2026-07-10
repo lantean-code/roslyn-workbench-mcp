@@ -5,16 +5,16 @@ public sealed class ListCodeActionsToolTests
     [Fact]
     public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
     {
-        var registry = new Mock<IPluginRegistry>();
+        var registry = new Mock<ICodeActionToolRegistry>();
 
         ListCodeActionsTool.Register(registry.Object);
 
         registry.Verify(item => item.RegisterQueryTool<ListCodeActionsRequest, CodeActionListData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
+            It.Is<CodeActionToolMetadata>(metadata =>
                 metadata.Name == "list-code-actions"
                 && metadata.Title == "List Code Actions"
                 && metadata.Description == "Lists applicable code actions and code fixes at a target location."),
-            It.IsAny<IQueryToolHandler<ListCodeActionsRequest, CodeActionListData>>()), Times.Once);
+            It.IsAny<CodeActionQueryToolHandler<ListCodeActionsRequest, CodeActionListData>>()), Times.Once);
     }
 
     [Fact]
@@ -26,7 +26,7 @@ public sealed class ListCodeActionsToolTests
         {
             Location = new LocationSelector(),
         };
-        var expected = PluginExecutionResult<CodeActionListData>.Success(new CodeActionListData
+        var expected = CodeActionExecutionResult<CodeActionListData>.Success(new CodeActionListData
         {
             Actions =
             [

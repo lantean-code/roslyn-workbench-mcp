@@ -26,7 +26,7 @@ public sealed class GetDiagnosticsToolTests
     {
         var target = new GetDiagnosticsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<DiagnosticsData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<DiagnosticsData>.Rejected(new PluginExecutionError
         {
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
@@ -77,7 +77,7 @@ public sealed class GetDiagnosticsToolTests
             },
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Diagnostics.Items.Should().BeEmpty();
     }
 
@@ -139,7 +139,7 @@ public sealed class GetDiagnosticsToolTests
             },
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Diagnostics.Items.Should().BeEmpty();
     }
 
@@ -219,7 +219,7 @@ public sealed class GetDiagnosticsToolTests
             Severities = [],
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Diagnostics.Items.Should().HaveCount(2);
         result.Data.Diagnostics.Items[0].Id.Should().Be("RWB002");
         result.Data.Diagnostics.Items[0].Location.Should().BeNull();
@@ -266,7 +266,7 @@ public sealed class GetDiagnosticsToolTests
             Ids = ["CS9999"],
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Diagnostics.Items.Should().BeEmpty();
     }
 
@@ -309,7 +309,7 @@ public sealed class GetDiagnosticsToolTests
             Severities = ["Error"],
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Diagnostics.Items.Should().BeEmpty();
     }
 
@@ -419,7 +419,7 @@ public sealed class GetDiagnosticsToolTests
             },
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Diagnostics.Items.Should().ContainSingle();
         result.Data.Diagnostics.Items[0].Id.Should().Be("RWB001");
         result.Data.Diagnostics.Items[0].Location!.Document!.Path.Should().Be("First.cs");

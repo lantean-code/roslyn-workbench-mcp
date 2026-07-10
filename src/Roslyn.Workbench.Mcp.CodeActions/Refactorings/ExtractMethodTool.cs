@@ -1,4 +1,4 @@
-using Roslyn.Workbench.Mcp.Contracts.Refactorings;
+using Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 
@@ -10,27 +10,27 @@ internal sealed class ExtractMethodTool : CodeActionMutationToolHandler<ExtractM
     private const string LocalFunctionTitle = "Extract local function";
     private const string LocalFunctionEquivalenceKey = "Extract_local_function";
 
-    private static readonly ToolRegistrationMetadata _metadata = new()
+    private static readonly CodeActionToolMetadata _metadata = new()
     {
         Name = "extract-method",
         Title = "Extract Method",
         Description = "Extracts a selected statement or expression block through Roslyn refactoring composition.",
-        Behavior = new ToolBehaviorHints
+        Behavior = new CodeActionToolBehavior
         {
             Destructive = true,
         },
     };
 
-    public static void Register(IPluginRegistry registry)
+    public static void Register(ICodeActionToolRegistry registry)
     {
         registry.RegisterMutationTool(_metadata, new ExtractMethodTool());
     }
 
-    protected override ValueTask<PluginExecutionResult<MutationProposal>> ExecuteCoreAsync(ExtractMethodRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
+    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteCoreAsync(ExtractMethodRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         if (request.Selection is null)
         {
-            return ValueTask.FromResult(ToolExecutionHelpers.Rejected<MutationProposal>("InvalidRequest", "A location selector is required."));
+            return ValueTask.FromResult(ToolExecutionHelpers.Rejected<WorkspaceMutationProposal>("InvalidRequest", "A location selector is required."));
         }
 
         var (title, equivalenceKey) = request.TargetKind switch

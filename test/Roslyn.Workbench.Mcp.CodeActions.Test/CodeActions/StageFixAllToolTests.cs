@@ -5,23 +5,23 @@ public sealed class StageFixAllToolTests
     [Fact]
     public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
     {
-        var registry = new Mock<IPluginRegistry>();
+        var registry = new Mock<ICodeActionToolRegistry>();
 
         StageFixAllTool.Register(registry.Object);
 
         registry.Verify(item => item.RegisterMutationTool<StageFixAllRequest>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
+            It.Is<CodeActionToolMetadata>(metadata =>
                 metadata.Name == "stage-fix-all"
                 && metadata.Title == "Stage Fix All"
                 && metadata.Description == "Revalidates one selected code fix and stages its fix-all variant into the active transaction."
                 && metadata.Behavior.Destructive),
-            It.IsAny<IMutationToolHandler<StageFixAllRequest>>()), Times.Once);
+            It.IsAny<CodeActionMutationToolHandler<StageFixAllRequest>>()), Times.Once);
     }
 
     [Fact]
     public async Task GIVEN_MutationContextReturnsResult_WHEN_CallingExecuteAsync_THEN_ShouldReturnMutationContextResult()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Success(new MutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
         var request = new StageFixAllRequest
         {
             ActionId = "ActionId",

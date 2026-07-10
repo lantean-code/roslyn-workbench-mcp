@@ -1,23 +1,24 @@
 using System.Reflection;
 using System.Runtime.Loader;
-
-using Roslyn.Workbench.Mcp.Contracts.Results;
-using Roslyn.Workbench.Mcp.Contracts.Server;
 using Roslyn.Workbench.Mcp.Plugins;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
 
 namespace Roslyn.Workbench.Mcp;
 
 internal sealed class PluginCatalogLoader
 {
-    public PluginCatalogSnapshot Load(StartupOptions startupOptions, IReadOnlyList<Assembly> bundledAssemblies)
+    public PluginCatalogSnapshot Load(
+        StartupOptions startupOptions,
+        IReadOnlyList<Assembly> bundledAssemblies,
+        IEnumerable<string>? reservedToolNames = null)
     {
-        var tools = new List<RegisteredPluginTool>();
+        var tools = new List<IRegisteredPluginTool>();
         var pluginStatuses = new List<PluginStatus>();
-        var toolNames = new HashSet<string>(StringComparer.Ordinal);
+        var toolNames = new HashSet<string>(reservedToolNames ?? [], StringComparer.Ordinal);
 
         foreach (var assembly in ResolveAssemblies(startupOptions, bundledAssemblies))
         {
-            var loadResult = TryLoadAssembly(assembly, toolNames, startupOptions.ToolOutputSchemaMode);
+            var loadResult = TryLoadAssembly(assembly, toolNames);
             pluginStatuses.Add(loadResult.Status);
 
             if (loadResult.Status.Enabled)
@@ -76,7 +77,7 @@ internal sealed class PluginCatalogLoader
         return assemblies;
     }
 
-    private static PluginAssemblyLoadResult TryLoadAssembly(Assembly assembly, ISet<string> globalToolNames, ToolOutputSchemaMode outputSchemaMode)
+    private static PluginAssemblyLoadResult TryLoadAssembly(Assembly assembly, ISet<string> globalToolNames)
     {
         try
         {
@@ -98,7 +99,7 @@ internal sealed class PluginCatalogLoader
             }
 
             var plugin = (IRoslynPlugin)Activator.CreateInstance(pluginTypes[0])!;
-            var registry = new PluginRegistry(plugin.Metadata, outputSchemaMode);
+            var registry = new PluginRegistry(plugin.Metadata);
             plugin.Register(registry);
 
             if (registry.RegisteredPluginTools.Any(tool => globalToolNames.Contains(tool.Tool.Metadata.Name)))
@@ -187,5 +188,5 @@ internal sealed class PluginCatalogLoader
         };
     }
 
-    private sealed record PluginAssemblyLoadResult(PluginStatus Status, IReadOnlyList<RegisteredPluginTool> Tools);
+    private sealed record PluginAssemblyLoadResult(PluginStatus Status, IReadOnlyList<IRegisteredPluginTool> Tools);
 }

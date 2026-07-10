@@ -14,9 +14,7 @@ public sealed class BuiltInCodeActionStagingIntegrationTests
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
         await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
-        var registry = BundledPluginRegistryFactory.CreateRegistry();
-
-        var result = await PluginToolTestHarness.InvokeAsync<MutationData>(coordinator, registry, "remove-unused-usings", new Dictionary<string, JsonElement>
+        var result = await CodeActionToolTestHarness.InvokeAsync<MutationData>(coordinator, "remove-unused-usings", new Dictionary<string, JsonElement>
         {
             ["scope"] = JsonSerializer.SerializeToElement(new ScopeSelector
             {

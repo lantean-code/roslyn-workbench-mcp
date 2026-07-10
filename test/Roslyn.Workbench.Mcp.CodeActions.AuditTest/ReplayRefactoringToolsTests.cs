@@ -1,6 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Roslyn.Workbench.Mcp.Contracts.Selectors;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 
 [Trait("Category", "Audit")]
@@ -82,12 +82,7 @@ public sealed class ReplayRefactoringToolsTests
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
         await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
-        var plugin = new BundledCodeActionsPlugin();
-        var registry = new PluginRegistry(plugin.Metadata);
-
-        plugin.Register(registry);
-
-        var result = await ExecuteAsync(coordinator, registry, toolName, testCase.RequestFactory(fixture, openResult));
+        var result = await ExecuteAsync(coordinator, toolName, testCase.RequestFactory(fixture, openResult));
         var preview = await coordinator.PreviewTransactionAsync(new TransactionPreviewRequest(), CancellationToken.None);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
@@ -113,12 +108,7 @@ public sealed class ReplayRefactoringToolsTests
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
         await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
-        var plugin = new BundledCodeActionsPlugin();
-        var registry = new PluginRegistry(plugin.Metadata);
-
-        plugin.Register(registry);
-
-        var result = await ExecuteAsync(coordinator, registry, "move-type-to-file", CreateMoveTypeToFileRequest(fixture.GetLocation("AutoPropertySamples"), openResult));
+        var result = await ExecuteAsync(coordinator, "move-type-to-file", CreateMoveTypeToFileRequest(fixture.GetLocation("AutoPropertySamples"), openResult));
         var preview = await coordinator.PreviewTransactionAsync(new TransactionPreviewRequest(), CancellationToken.None);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
@@ -137,12 +127,7 @@ public sealed class ReplayRefactoringToolsTests
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
         await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
-        var plugin = new BundledCodeActionsPlugin();
-        var registry = new PluginRegistry(plugin.Metadata);
-
-        plugin.Register(registry);
-
-        var result = await ExecuteAsync(coordinator, registry, "convert-property", CreateConvertPropertyRequest(fixture.GetLocation("Goo"), openResult, ConvertPropertyDirection.ToFull));
+        var result = await ExecuteAsync(coordinator, "convert-property", CreateConvertPropertyRequest(fixture.GetLocation("Goo"), openResult, ConvertPropertyDirection.ToFull));
         var preview = await coordinator.PreviewTransactionAsync(new TransactionPreviewRequest(), CancellationToken.None);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
@@ -163,12 +148,7 @@ public sealed class ReplayRefactoringToolsTests
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
         await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
-        var plugin = new BundledCodeActionsPlugin();
-        var registry = new PluginRegistry(plugin.Metadata);
-
-        plugin.Register(registry);
-
-        var result = await ExecuteAsync(coordinator, registry, "convert-property", CreateConvertPropertyRequest(fixture.GetLocation("Score"), openResult, ConvertPropertyDirection.ToAutoWhenSafe));
+        var result = await ExecuteAsync(coordinator, "convert-property", CreateConvertPropertyRequest(fixture.GetLocation("Score"), openResult, ConvertPropertyDirection.ToAutoWhenSafe));
         var preview = await coordinator.PreviewTransactionAsync(new TransactionPreviewRequest(), CancellationToken.None);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
@@ -290,27 +270,14 @@ public sealed class ReplayRefactoringToolsTests
         return BundledCoreToolTestHarness.CreateBuiltInCodeActionCoordinator();
     }
 
-    private static async Task<PluginExecutionResult<MutationData>> ExecuteAsync(
-        IToolExecutionContextFactory coordinator,
-        PluginRegistry registry,
+    private static async Task<ToolResult<MutationData>> ExecuteAsync(
+        IWorkspaceRuntime coordinator,
         string toolName,
         IDictionary<string, JsonElement> arguments)
     {
-        BundledPluginRegistryFactory.EnsureCodeActionToolsRegistered(registry);
-
-        var result = await PluginToolTestHarness.InvokeAsync<MutationData>(coordinator, registry, toolName, arguments);
+        var result = await CodeActionToolTestHarness.InvokeAsync<MutationData>(coordinator, toolName, arguments);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded, result.Error?.Message);
-
-        return new PluginExecutionResult<MutationData>
-        {
-            Outcome = result.Outcome,
-            Data = result.Data,
-            Changes = result.Changes,
-            Error = result.Error,
-            RequiredAction = result.RequiredAction,
-            Diagnostics = result.Diagnostics,
-            Warnings = result.Warnings,
-        };
+        return result;
     }
 }

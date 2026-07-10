@@ -1,32 +1,32 @@
 namespace Roslyn.Workbench.Mcp.CodeActions;
 
-internal interface ICodeActionMutationContext : IMutationContext
+internal interface ICodeActionMutationContext : ICodeActionExecutionContext
 {
-    ValueTask<PluginExecutionResult<MutationProposal>> StageCodeActionAsync(
+    ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageCodeActionAsync(
         StageCodeActionRequest request,
         CancellationToken cancellationToken);
 
-    ValueTask<PluginExecutionResult<MutationProposal>> StageReplayCodeActionAsync(
+    ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageReplayCodeActionAsync(
         ReplayCodeActionRequest request,
         CancellationToken cancellationToken);
 
-    ValueTask<PluginExecutionResult<MutationProposal>> StageCodeFixAsync(
+    ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageCodeFixAsync(
         StageCodeFixRequest request,
         CancellationToken cancellationToken);
 
-    ValueTask<PluginExecutionResult<MutationProposal>> StageFixAllAsync(
+    ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageFixAllAsync(
         StageFixAllRequest request,
         CancellationToken cancellationToken);
 
-    ValueTask<PluginExecutionResult<MutationProposal>> StageScopedCodeFixAsync(
+    ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageScopedCodeFixAsync(
         ScopedCodeFixRequest request,
         CancellationToken cancellationToken);
 
-    ValueTask<PluginExecutionResult<MutationProposal>> StageLocationCodeFixAsync(
+    ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageLocationCodeFixAsync(
         LocationCodeFixRequest request,
         CancellationToken cancellationToken);
 
-    ValueTask<PluginExecutionResult<MutationProposal>> StageReplaySelectionAsync(
+    ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageReplaySelectionAsync(
         LocationSelector? selection,
         SnapshotPrecondition? expectedSnapshot,
         CancellationToken cancellationToken,

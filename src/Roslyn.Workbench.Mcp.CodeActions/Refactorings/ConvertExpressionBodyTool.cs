@@ -1,5 +1,5 @@
-using Roslyn.Workbench.Mcp.Contracts.Refactorings;
-using Roslyn.Workbench.Mcp.Contracts.Results;
+using Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 
@@ -8,23 +8,23 @@ internal sealed class ConvertExpressionBodyTool : CodeActionMutationToolHandler<
     private const string UseExpressionBodyProviderId = "Microsoft.CodeAnalysis.CSharp.UseExpressionBody.UseExpressionBodyCodeRefactoringProvider";
     private const string UseExpressionBodyForLambdaProviderId = "Microsoft.CodeAnalysis.CSharp.UseExpressionBodyForLambda.UseExpressionBodyForLambdaCodeRefactoringProvider";
 
-    private static readonly ToolRegistrationMetadata _metadata = new()
+    private static readonly CodeActionToolMetadata _metadata = new()
     {
         Name = "convert-expression-body",
         Title = "Convert Expression Body",
         Description = "Stages a supported Roslyn block-body or expression-body conversion at the selected declaration.",
-        Behavior = new ToolBehaviorHints
+        Behavior = new CodeActionToolBehavior
         {
             Destructive = true,
         },
     };
 
-    public static void Register(IPluginRegistry registry)
+    public static void Register(ICodeActionToolRegistry registry)
     {
         registry.RegisterMutationTool(_metadata, new ConvertExpressionBodyTool());
     }
 
-    protected override async ValueTask<PluginExecutionResult<MutationProposal>> ExecuteCoreAsync(LocationRefactoringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
+    protected override async ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteCoreAsync(LocationRefactoringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         var result = await context.StageReplaySelectionAsync(
             request.Selection,
@@ -43,9 +43,9 @@ internal sealed class ConvertExpressionBodyTool : CodeActionMutationToolHandler<
             UseExpressionBodyForLambdaProviderId).ConfigureAwait(false);
     }
 
-    private static bool ShouldTryLambdaProvider(PluginExecutionResult<MutationProposal> result)
+    private static bool ShouldTryLambdaProvider(CodeActionExecutionResult<WorkspaceMutationProposal> result)
     {
-        return result.Outcome == ToolOutcome.Rejected
+        return result.Outcome == CodeActionExecutionOutcome.Rejected
             && string.Equals(result.Error?.Code, "CodeActionUnavailable", StringComparison.Ordinal);
     }
 }

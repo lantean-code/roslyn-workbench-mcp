@@ -31,8 +31,8 @@ public sealed class FindDuplicateCodeToolTests
             MinimumStatements = 0,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new ToolError
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
         {
             Code = "InvalidRequest",
             Message = "MinimumStatements must be at least 1.",
@@ -44,7 +44,7 @@ public sealed class FindDuplicateCodeToolTests
     {
         var target = new FindDuplicateCodeTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<DuplicateCodeData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<DuplicateCodeData>.Rejected(new PluginExecutionError
         {
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
@@ -111,7 +111,7 @@ public sealed class FindDuplicateCodeToolTests
             MinimumStatements = 2,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Groups.Items.Should().ContainSingle();
     }
 
@@ -153,7 +153,7 @@ public sealed class FindDuplicateCodeToolTests
             MinimumStatements = 2,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Groups.Items.Should().BeEmpty();
     }
 
@@ -203,7 +203,7 @@ public sealed class FindDuplicateCodeToolTests
             MinimumStatements = 2,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Groups.Items.Should().BeEmpty();
     }
 
@@ -280,7 +280,7 @@ public sealed class FindDuplicateCodeToolTests
             MinimumStatements = 2,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Groups.Items.Should().HaveCount(2);
         result.Data.Groups.Items.SelectMany(item => item.Occurrences).Select(item => item.Symbol!.DisplayName).Should().Contain(".ctor");
         result.Data.Groups.Items.SelectMany(item => item.Occurrences).Select(item => item.Symbol!.DisplayName).Should().Contain("set_Property");

@@ -2,6 +2,7 @@ using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.CodeActions;
 using Roslyn.Workbench.Mcp.Plugins;
 using Roslyn.Workbench.Mcp.Plugins.Core;
+using Roslyn.Workbench.Mcp.ToolExecution;
 using Roslyn.Workbench.Mcp.Tools;
 
 namespace Roslyn.Workbench.Mcp;
@@ -14,12 +15,20 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
         ArgumentNullException.ThrowIfNull(args);
 
         var startupOptions = StartupOptionsParser.Parse(args);
-        var pluginCatalogSnapshot = new PluginCatalogLoader().Load(startupOptions, [typeof(BundledCorePlugin).Assembly, typeof(BundledCodeActionsPlugin).Assembly]);
+        var codeActionCatalogSnapshot = new CodeActionCatalogSnapshot
+        {
+            Tools = BundledCodeActionCatalog.Create(),
+        };
+        var pluginCatalogSnapshot = new PluginCatalogLoader().Load(
+            startupOptions,
+            [typeof(BundledCorePlugin).Assembly],
+            codeActionCatalogSnapshot.Tools.Select(static tool => tool.Metadata.Name));
 
         ConfigureLogging(builder.Logging);
         AddOptions(builder.Services, startupOptions);
+        builder.Services.AddSingleton(codeActionCatalogSnapshot);
         AddCoreServices(builder.Services, pluginCatalogSnapshot);
-        AddMcpTools(builder.Services, pluginCatalogSnapshot);
+        AddMcpTools(builder.Services, pluginCatalogSnapshot, codeActionCatalogSnapshot.Tools, startupOptions.ToolOutputSchemaMode);
 
         builder.Services.AddHostedService<MsBuildRegistrationHostedService>();
         builder.Services.AddMcpServer().WithStdioServerTransport();
@@ -83,7 +92,8 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
         services.AddSingleton<ICodeActionOperationService, CodeActionOperationService>();
         services.AddSingleton<ICodeActionQueryWorkflow, CodeActionQueryWorkflow>();
         services.AddSingleton<ICodeActionMutationWorkflow, CodeActionMutationWorkflow>();
-        services.AddSingleton<WorkspaceHostServicesAccessor>();
+        services.AddSingleton(static serviceProvider => new WorkspaceHostServicesAccessor(
+            serviceProvider.GetRequiredService<ICodeActionRuntime>().WorkspaceHostServices));
         services.AddSingleton<IWorkspaceOperationResultFactory, WorkspaceOperationResultFactory>();
         services.AddSingleton<IWorkspaceSessionStore, WorkspaceSessionStore>();
         services.AddSingleton<IWorkspaceSelector, WorkspaceSelectorService>();
@@ -94,21 +104,35 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
         services.AddSingleton<IMutationStagingService, MutationStagingService>();
         services.AddSingleton<ITransactionCommitService, TransactionCommitService>();
         services.AddSingleton<IWorkspaceExecutionContextFactory, WorkspaceExecutionContextFactory>();
+        services.AddSingleton<IToolExecutionContextFactory>(static serviceProvider => new PluginExecutionContextFactory(
+            serviceProvider.GetRequiredService<IWorkspaceExecutionContextFactory>(),
+            serviceProvider.GetRequiredService<IToolExecutionServices>()));
+        services.AddSingleton<ICodeActionExecutionContextFactory>(static serviceProvider => new CodeActionExecutionContextFactory(
+            serviceProvider.GetRequiredService<IWorkspaceExecutionContextFactory>(),
+            serviceProvider.GetRequiredService<ICodeActionQueryWorkflow>(),
+            serviceProvider.GetRequiredService<ICodeActionMutationWorkflow>()));
         services.AddSingleton<IWorkspaceLifecycleService, WorkspaceLifecycleService>();
         services.AddSingleton<ITransactionService, TransactionService>();
         services.AddSingleton<IRecoveryStatusReader, RecoveryStatusReader>();
         services.AddSingleton<IServerStatusService, ServerStatusService>();
-        services.AddSingleton(static serviceProvider => (IToolExecutionContextFactory)serviceProvider.GetRequiredService<IWorkspaceExecutionContextFactory>());
     }
 
-    private static void AddMcpTools(IServiceCollection services, PluginCatalogSnapshot pluginCatalogSnapshot)
+    private static void AddMcpTools(
+        IServiceCollection services,
+        PluginCatalogSnapshot pluginCatalogSnapshot,
+        IReadOnlyList<IRegisteredCodeActionTool> codeActionTools,
+        ToolOutputSchemaMode outputSchemaMode)
     {
+        var pluginVisitor = new PluginMcpToolRegistrationVisitor(services, outputSchemaMode);
         foreach (var registeredTool in pluginCatalogSnapshot.Tools)
         {
-            var pluginTool = registeredTool;
-            services.AddSingleton<McpServerTool>(serviceProvider => new PluginMcpServerTool(
-                pluginTool,
-                serviceProvider.GetRequiredService<IToolExecutionContextFactory>()));
+            _ = registeredTool.Accept(pluginVisitor);
+        }
+
+        var codeActionVisitor = new CodeActionMcpToolRegistrationVisitor(services, outputSchemaMode);
+        foreach (var registeredTool in codeActionTools)
+        {
+            _ = registeredTool.Accept(codeActionVisitor);
         }
 
         ServerOwnedToolRegistration.AddMcpTools(services);

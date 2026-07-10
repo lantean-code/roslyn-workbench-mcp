@@ -27,8 +27,8 @@ public sealed class GetControlFlowGraphToolTests
 
         var result = await target.ExecuteAsync(new GetControlFlowGraphRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new ToolError
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
         {
             Code = "InvalidRequest",
             Message = "Specify exactly one of symbol or location.",
@@ -40,7 +40,7 @@ public sealed class GetControlFlowGraphToolTests
     {
         var target = new GetControlFlowGraphTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<ControlFlowGraphData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<ControlFlowGraphData>.Rejected(new PluginExecutionError
         {
             Code = "SymbolNotFound",
             Message = "SymbolNotFound",
@@ -94,7 +94,7 @@ public sealed class GetControlFlowGraphToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("LocationNotFound");
     }
 
@@ -134,7 +134,7 @@ public sealed class GetControlFlowGraphToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("LocationNotFound");
     }
 
@@ -169,7 +169,7 @@ public sealed class GetControlFlowGraphToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("InvalidRequest");
     }
 
@@ -233,7 +233,7 @@ public sealed class GetControlFlowGraphToolTests
             MaxRegions = 1,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Regions.Should().ContainSingle();
         result.Data.RegionsTruncated.Should().BeTrue();
     }
@@ -243,7 +243,7 @@ public sealed class GetControlFlowGraphToolTests
     {
         var target = new GetControlFlowGraphTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<ControlFlowGraphData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<ControlFlowGraphData>.Rejected(new PluginExecutionError
         {
             Code = "SnapshotConflict",
             Message = "SnapshotConflict",
@@ -283,7 +283,7 @@ public sealed class GetControlFlowGraphToolTests
             Location = new LocationSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("LocationNotFound");
     }
 
@@ -324,7 +324,7 @@ public sealed class GetControlFlowGraphToolTests
             Location = new LocationSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("LocationNotFound");
     }
 
@@ -368,7 +368,7 @@ public sealed class GetControlFlowGraphToolTests
             Location = new LocationSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("LocationNotFound");
     }
 
@@ -409,7 +409,7 @@ public sealed class GetControlFlowGraphToolTests
             Location = new LocationSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("LocationNotFound");
     }
 
@@ -477,7 +477,7 @@ public sealed class GetControlFlowGraphToolTests
             MaxRegions = 1,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Owner!.DisplayName.Should().Contain("Formatter");
         result.Data.Blocks.Should().ContainSingle();
         result.Data.BlocksTruncated.Should().BeTrue();

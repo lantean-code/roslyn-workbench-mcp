@@ -24,7 +24,7 @@ public sealed class GetOperationTreeToolTests
     {
         var target = new GetOperationTreeTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<OperationTreeData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<OperationTreeData>.Rejected(new PluginExecutionError
         {
             Code = "SnapshotConflict",
             Message = "SnapshotConflict",
@@ -55,7 +55,7 @@ public sealed class GetOperationTreeToolTests
 
         var result = await target.ExecuteAsync(new GetOperationTreeRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("InvalidRequest");
     }
 
@@ -79,7 +79,7 @@ public sealed class GetOperationTreeToolTests
             Location = new LocationSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("LocationAmbiguous");
     }
 
@@ -125,7 +125,7 @@ public sealed class GetOperationTreeToolTests
             Location = new LocationSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("LocationNotFound");
     }
 
@@ -174,7 +174,7 @@ public sealed class GetOperationTreeToolTests
             Location = new LocationSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("LocationNotFound");
     }
 
@@ -220,7 +220,7 @@ public sealed class GetOperationTreeToolTests
             Location = new LocationSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("LocationNotFound");
     }
 
@@ -256,7 +256,7 @@ public sealed class GetOperationTreeToolTests
             Location = new LocationSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("InvalidRequest");
     }
 
@@ -301,7 +301,7 @@ public sealed class GetOperationTreeToolTests
             MaxDepth = 4,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Root!.Kind.Should().Contain("Literal");
         result.Data.Root.ConstantValue.Should().Be("42");
         result.Data.Root.Truncated.Should().BeFalse();
@@ -354,7 +354,7 @@ public sealed class GetOperationTreeToolTests
             MaxDepth = 8,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Root!.Kind.Should().Contain("Argument");
     }
 
@@ -404,7 +404,7 @@ public sealed class GetOperationTreeToolTests
             MaxDepth = 0,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Root!.Truncated.Should().BeTrue();
         result.Data.Root.Children.Should().BeEmpty();
         result.Data.Truncated.Should().BeTrue();

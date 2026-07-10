@@ -2,10 +2,10 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Execution;
 
 internal interface ICodeActionOperationService
 {
-    ValueTask<PluginExecutionResult<MutationProposal>> CreateMutationProposalAsync(
+    ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> CreateMutationProposalAsync(
         CodeAction action,
         string summary,
-        IToolExecutionContext context,
+        ICodeActionExecutionContext context,
         CancellationToken cancellationToken);
 
     ValueTask<int> CountChangedSourceDocumentsAsync(

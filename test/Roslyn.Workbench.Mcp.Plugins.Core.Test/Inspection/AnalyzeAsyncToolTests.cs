@@ -24,7 +24,7 @@ public sealed class AnalyzeAsyncToolTests
     {
         var target = new AnalyzeAsyncTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<AsyncAnalysisData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<AsyncAnalysisData>.Rejected(new PluginExecutionError
         {
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
@@ -65,7 +65,7 @@ public sealed class AnalyzeAsyncToolTests
 
         var result = await target.ExecuteAsync(new AnalyzeAsyncRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Findings.Items.Should().BeEmpty();
         queryContextMocks.WorkspaceResolver.Verify(item => item.CreateResolvedLocation(It.IsAny<Location>()), Times.Never);
         queryContextMocks.WorkspaceResolver.Verify(item => item.CreateSymbolReference(It.IsAny<ISymbol>()), Times.Never);
@@ -100,7 +100,7 @@ public sealed class AnalyzeAsyncToolTests
 
         var result = await target.ExecuteAsync(new AnalyzeAsyncRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Findings.Items.Should().BeEmpty();
         queryContextMocks.WorkspaceResolver.Verify(item => item.CreateResolvedLocation(It.IsAny<Location>()), Times.Never);
         queryContextMocks.WorkspaceResolver.Verify(item => item.CreateSymbolReference(It.IsAny<ISymbol>()), Times.Never);
@@ -141,7 +141,7 @@ public sealed class AnalyzeAsyncToolTests
 
         var result = await target.ExecuteAsync(new AnalyzeAsyncRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Findings.Items.Should().ContainSingle();
         result.Data.Findings.Items[0].Kind.Should().Be("AsyncWithoutAwait");
         result.Data.Findings.Items[0].Symbol!.DisplayName.Should().Be("FormatAsync");
@@ -187,7 +187,7 @@ public sealed class AnalyzeAsyncToolTests
 
         var result = await target.ExecuteAsync(new AnalyzeAsyncRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Findings.Items.Should().BeEmpty();
         queryContextMocks.WorkspaceResolver.Verify(item => item.CreateResolvedLocation(It.IsAny<Location>()), Times.Never);
         queryContextMocks.WorkspaceResolver.Verify(item => item.CreateSymbolReference(It.IsAny<ISymbol>()), Times.Never);
@@ -287,7 +287,7 @@ public sealed class AnalyzeAsyncToolTests
             },
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Findings.Items.Should().HaveCount(5);
         result.Data.Findings.Items.Select(item => item.Kind).Should().Equal(
         [

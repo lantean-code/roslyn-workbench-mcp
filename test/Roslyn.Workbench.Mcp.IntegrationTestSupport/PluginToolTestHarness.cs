@@ -1,7 +1,8 @@
 using System.Text.Json;
-using Roslyn.Workbench.Mcp.Contracts.CodeActions;
-using Roslyn.Workbench.Mcp.Contracts.Results;
+using ModelContextProtocol.Protocol;
+using Roslyn.Workbench.Mcp.CodeActions.Contracts;
 using Roslyn.Workbench.Mcp.Plugins;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
 
 namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
@@ -22,7 +23,7 @@ public static class PluginToolTestHarness
         ArgumentNullException.ThrowIfNull(arguments);
 
         var pluginTool = registry.GetRegisteredPluginTool(toolName);
-        var result = await pluginTool.ExecutionAdapter.InvokeAsync(arguments, contextFactory, CancellationToken.None);
+        var result = await InvokeRawAsync(contextFactory, registry, toolName, arguments);
 
         if (result.IsError != !expectProtocolSuccess)
         {
@@ -33,12 +34,36 @@ public static class PluginToolTestHarness
         return DeserializeToolResult<TResponse>(pluginTool.Tool, result.StructuredContent!.Value, toolName);
     }
 
+    public static async Task<CallToolResult> InvokeRawAsync(
+        IToolExecutionContextFactory contextFactory,
+        PluginRegistry registry,
+        string toolName,
+        IDictionary<string, JsonElement> arguments)
+    {
+        ArgumentNullException.ThrowIfNull(contextFactory);
+        ArgumentNullException.ThrowIfNull(registry);
+        ArgumentException.ThrowIfNullOrWhiteSpace(toolName);
+        ArgumentNullException.ThrowIfNull(arguments);
+
+        var pluginTool = registry.GetRegisteredPluginTool(toolName);
+        var serverTool = pluginTool.Accept(new PluginMcpServerToolFactory(contextFactory));
+        return await serverTool.InvokeArgumentsAsync(arguments, CancellationToken.None);
+    }
+
     public static ToolResult<TResponse> DeserializeToolResult<TResponse>(
         RegisteredTool registeredTool,
         JsonElement payload,
         string toolName)
     {
         ArgumentNullException.ThrowIfNull(registeredTool);
+
+        return DeserializeToolResult<TResponse>(payload, toolName);
+    }
+
+    public static ToolResult<TResponse> DeserializeToolResult<TResponse>(
+        JsonElement payload,
+        string toolName)
+    {
 
         if (payload.TryGetProperty("outcome", out _))
         {

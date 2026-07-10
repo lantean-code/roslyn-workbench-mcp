@@ -1,4 +1,4 @@
-using Roslyn.Workbench.Mcp.Contracts.Inspection;
+using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
 internal sealed class GetDependencyGraphTool : QueryToolHandler<GetDependencyGraphRequest, DependencyGraphData>

@@ -1,8 +1,7 @@
 using System.Text;
 using System.Text.Json;
-
-using Roslyn.Workbench.Mcp.Contracts.Selectors;
 using Roslyn.Workbench.Mcp.Plugins;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test;
 
@@ -309,9 +308,9 @@ public sealed class WorkspaceCoordinatorIntegrationTests
 
         await using var result = target.CreateMutationContext(new StageMutationRequest(), CancellationToken.None);
 
-        result.ShortCircuitResult.Should().NotBeNull();
-        result.ShortCircuitResult!.Error!.Code.Should().Be("NoActiveTransaction");
-        result.ShortCircuitResult.RequiredAction.Should().Be(RequiredAction.StartTransaction);
+        result.Failure.Should().NotBeNull();
+        result.Failure!.Error.Code.Should().Be("NoActiveTransaction");
+        result.Failure.RequiredAction.Should().Be(RequiredAction.StartTransaction);
         result.Context.Should().NotBeNull();
     }
 
@@ -348,10 +347,11 @@ public sealed class WorkspaceCoordinatorIntegrationTests
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
         await target.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
-        var tool = CreateStageMutationTool();
+        var registry = CreateStageMutationTool();
+        var tool = registry.RegisteredTools.Single();
 
-        var result = await tool.ExecutionAdapter.InvokeAsync(new Dictionary<string, JsonElement>(), target, CancellationToken.None);
-        var payload = DeserializeMutationToolResult(result.StructuredContent!.Value, tool.Tool.Metadata.Name);
+        var result = await PluginToolTestHarness.InvokeRawAsync(target, registry, tool.Metadata.Name, new Dictionary<string, JsonElement>());
+        var payload = DeserializeMutationToolResult(result.StructuredContent!.Value, tool.Metadata.Name);
         var preview = await target.PreviewTransactionAsync(new TransactionPreviewRequest
         {
             IncludeDiff = true,
@@ -418,9 +418,10 @@ public sealed class WorkspaceCoordinatorIntegrationTests
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
         await target.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
-        var firstTool = CreateStageMutationTool();
-        var firstResult = await firstTool.ExecutionAdapter.InvokeAsync(new Dictionary<string, JsonElement>(), target, CancellationToken.None);
-        var firstPayload = DeserializeMutationToolResult(firstResult.StructuredContent!.Value, firstTool.Tool.Metadata.Name);
+        var firstRegistry = CreateStageMutationTool();
+        var firstTool = firstRegistry.RegisteredTools.Single();
+        var firstResult = await PluginToolTestHarness.InvokeRawAsync(target, firstRegistry, firstTool.Metadata.Name, new Dictionary<string, JsonElement>());
+        var firstPayload = DeserializeMutationToolResult(firstResult.StructuredContent!.Value, firstTool.Metadata.Name);
         var undo = await target.MoveTransactionHistoryAsync(new TransactionHistoryRequest
         {
             Direction = TransactionHistoryDirection.Undo,
@@ -430,9 +431,10 @@ public sealed class WorkspaceCoordinatorIntegrationTests
                 TransactionRevision = 1,
             },
         }, CancellationToken.None);
-        var secondTool = CreateStageMutationTool();
-        var secondResult = await secondTool.ExecutionAdapter.InvokeAsync(new Dictionary<string, JsonElement>(), target, CancellationToken.None);
-        var secondPayload = DeserializeMutationToolResult(secondResult.StructuredContent!.Value, secondTool.Tool.Metadata.Name);
+        var secondRegistry = CreateStageMutationTool();
+        var secondTool = secondRegistry.RegisteredTools.Single();
+        var secondResult = await PluginToolTestHarness.InvokeRawAsync(target, secondRegistry, secondTool.Metadata.Name, new Dictionary<string, JsonElement>());
+        var secondPayload = DeserializeMutationToolResult(secondResult.StructuredContent!.Value, secondTool.Metadata.Name);
 
         firstPayload!.Outcome.Should().Be(ToolOutcome.Succeeded);
         undo.Outcome.Should().Be(ToolOutcome.Succeeded);
@@ -547,9 +549,10 @@ public sealed class WorkspaceCoordinatorIntegrationTests
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
         await target.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
-        var tool = CreateCompilationOptionsMutationTool();
-        var result = await tool.ExecutionAdapter.InvokeAsync(new Dictionary<string, JsonElement>(), target, CancellationToken.None);
-        var payload = DeserializeMutationToolResult(result.StructuredContent!.Value, tool.Tool.Metadata.Name);
+        var registry = CreateCompilationOptionsMutationTool();
+        var tool = registry.RegisteredTools.Single();
+        var result = await PluginToolTestHarness.InvokeRawAsync(target, registry, tool.Metadata.Name, new Dictionary<string, JsonElement>());
+        var payload = DeserializeMutationToolResult(result.StructuredContent!.Value, tool.Metadata.Name);
 
         result.IsError.Should().BeTrue();
         payload!.Outcome.Should().Be(ToolOutcome.Rejected);
@@ -699,7 +702,7 @@ public sealed class WorkspaceCoordinatorIntegrationTests
         result.RequiredAction.Should().Be(RequiredAction.ResolveRecovery);
     }
 
-    private static RegisteredPluginTool CreateStageMutationTool()
+    private static PluginRegistry CreateStageMutationTool()
     {
         var registry = new PluginRegistry(new PluginMetadata
         {
@@ -717,10 +720,10 @@ public sealed class WorkspaceCoordinatorIntegrationTests
             },
             new StageMutationHandler());
 
-        return registry.RegisteredPluginTools.Single();
+        return registry;
     }
 
-    private static RegisteredPluginTool CreateCompilationOptionsMutationTool()
+    private static PluginRegistry CreateCompilationOptionsMutationTool()
     {
         var registry = new PluginRegistry(new PluginMetadata
         {
@@ -738,7 +741,7 @@ public sealed class WorkspaceCoordinatorIntegrationTests
             },
             new CompilationOptionsMutationHandler());
 
-        return registry.RegisteredPluginTools.Single();
+        return registry;
     }
 
     private static ToolResult<MutationData> DeserializeMutationToolResult(JsonElement payload, string toolName)
@@ -784,12 +787,14 @@ public sealed class WorkspaceCoordinatorIntegrationTests
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
         await target.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
-        await CreateStageMutationTool().ExecutionAdapter.InvokeAsync(new Dictionary<string, JsonElement>(), target, CancellationToken.None);
+        var registry = CreateStageMutationTool();
+        var tool = registry.RegisteredTools.Single();
+        await PluginToolTestHarness.InvokeRawAsync(target, registry, tool.Metadata.Name, new Dictionary<string, JsonElement>());
 
         return target;
     }
 
-    private sealed record StageMutationRequest : WorkspaceBoundRequest;
+    public sealed record StageMutationRequest : WorkspaceBoundRequest;
 
     private sealed class StageMutationHandler : IMutationToolHandler<StageMutationRequest>
     {

@@ -22,7 +22,7 @@ public sealed class GetSymbolDependentsToolTests
     {
         var target = new GetSymbolDependentsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<SymbolDependentsData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<SymbolDependentsData>.Rejected(new PluginExecutionError
         {
             Code = "SymbolNotFound",
             Message = "SymbolNotFound",
@@ -66,7 +66,7 @@ public sealed class GetSymbolDependentsToolTests
             "Format",
             "Formatter",
             TestContext.Current.CancellationToken);
-        var expected = PluginExecutionResult<SymbolDependentsData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<SymbolDependentsData>.Rejected(new PluginExecutionError
         {
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
@@ -200,7 +200,7 @@ public sealed class GetSymbolDependentsToolTests
             },
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbol!.DisplayName.Should().Be("Format");
         result.Data.Dependents.Items.Should().ContainSingle();
         result.Data.Dependents.Items[0].DisplayName.Should().Be("AlphaCall");

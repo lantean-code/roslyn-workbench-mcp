@@ -5,23 +5,23 @@ public sealed class ConvertLocalFunctionToMethodToolTests
     [Fact]
     public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
     {
-        var registry = new Mock<IPluginRegistry>();
+        var registry = new Mock<ICodeActionToolRegistry>();
 
         ConvertLocalFunctionToMethodTool.Register(registry.Object);
 
         registry.Verify(item => item.RegisterMutationTool<LocationRefactoringRequest>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
+            It.Is<CodeActionToolMetadata>(metadata =>
                 metadata.Name == "convert-local-function-to-method"
                 && metadata.Title == "Convert Local Function To Method"
                 && metadata.Description == "Converts a supported local function to a method through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<IMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
+            It.IsAny<CodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
     }
 
     [Fact]
     public async Task GIVEN_LocationRefactoringRequest_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithMethodProvider()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Success(new MutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new LocationRefactoringRequest
         {

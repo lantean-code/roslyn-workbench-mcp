@@ -237,6 +237,13 @@ Successful query results now always publish as `{ ok: true, data: <payload> }`.
 Mutation and server-owned tools continue to use their existing structured
 result envelopes.
 
+Contract ownership follows the production boundary: Workspace owns selector,
+snapshot, diagnostic, mutation and transaction models; Plugins.Core owns
+inspection DTOs and collection limits; CodeActions owns Code Action and
+refactoring requests; Plugins owns plugin metadata and execution results; Host
+owns MCP envelopes, schemas, binding and lifecycle requests. Code Actions are
+an internal catalogue and are not reported as a plugin by `server-status`.
+
 ## Server and Workspace Context (8)
 
 | Tool | Source | Behaviour | Title and description | Input parameters | Success payload shape |

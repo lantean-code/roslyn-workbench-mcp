@@ -25,7 +25,7 @@ public sealed class GetCodeContextToolTests
     {
         var target = new GetCodeContextTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<CodeContextData>.Conflict(new ToolError
+        var expected = PluginExecutionResult<CodeContextData>.Conflict(new PluginExecutionError
         {
             Code = "SnapshotMismatch",
             Message = "SnapshotMismatch",
@@ -63,8 +63,8 @@ public sealed class GetCodeContextToolTests
 
         var result = await target.ExecuteAsync(new GetCodeContextRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new ToolError
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
         {
             Code = "InvalidRequest",
             Message = "A location selector is required.",
@@ -91,7 +91,7 @@ public sealed class GetCodeContextToolTests
             Location = new LocationSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("LocationNotFound");
     }
 
@@ -132,7 +132,7 @@ public sealed class GetCodeContextToolTests
             Location = new LocationSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("LocationNotFound");
         result.RequiredAction.Should().Be(RequiredAction.ResolveTargetAgain);
     }
@@ -173,7 +173,7 @@ public sealed class GetCodeContextToolTests
             Location = new LocationSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("LocationNotFound");
     }
 
@@ -223,7 +223,7 @@ public sealed class GetCodeContextToolTests
             IncludeEnclosingSymbols = false,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.EnclosingSymbols.Should().BeEmpty();
         result.Data.Diagnostics.Should().BeEmpty();
         result.Data.Text.Should().Contain("var value = 1;");
@@ -282,7 +282,7 @@ public sealed class GetCodeContextToolTests
             AfterLines = 1,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Text.Should().Contain("var unused = 42;");
         result.Data.EnclosingSymbols.Select(item => item.DisplayName).Should().Contain("Formatter.Run(string)");
         result.Data.EnclosingSymbols.Select(item => item.DisplayName).Should().Contain("Formatter");

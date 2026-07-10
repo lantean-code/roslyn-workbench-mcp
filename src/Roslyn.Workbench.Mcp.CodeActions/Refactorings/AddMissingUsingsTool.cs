@@ -1,4 +1,4 @@
-using Roslyn.Workbench.Mcp.Contracts.Refactorings;
+using Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 
@@ -6,27 +6,27 @@ internal sealed class AddMissingUsingsTool : CodeActionMutationToolHandler<AddMi
 {
     private const string AddImportProviderId = "Microsoft.CodeAnalysis.CSharp.AddImport.CSharpAddImportCodeFixProvider";
 
-    private static readonly ToolRegistrationMetadata _metadata = new()
+    private static readonly CodeActionToolMetadata _metadata = new()
     {
         Name = "add-missing-usings",
         Title = "Add Missing Usings",
         Description = "Adds missing using directives across a selected scope through Roslyn code-fix composition.",
-        Behavior = new ToolBehaviorHints
+        Behavior = new CodeActionToolBehavior
         {
             Destructive = true,
         },
     };
 
-    public static void Register(IPluginRegistry registry)
+    public static void Register(ICodeActionToolRegistry registry)
     {
         registry.RegisterMutationTool(_metadata, new AddMissingUsingsTool());
     }
 
-    protected override ValueTask<PluginExecutionResult<MutationProposal>> ExecuteCoreAsync(AddMissingUsingsRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
+    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteCoreAsync(AddMissingUsingsRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         if (request.PreferGlobalUsings)
         {
-            return ValueTask.FromResult(ToolExecutionHelpers.Rejected<MutationProposal>("UnsupportedOption", "The preferGlobalUsings option is not supported by the current Roslyn add-import backend."));
+            return ValueTask.FromResult(ToolExecutionHelpers.Rejected<WorkspaceMutationProposal>("UnsupportedOption", "The preferGlobalUsings option is not supported by the current Roslyn add-import backend."));
         }
 
         return context.StageScopedCodeFixAsync(new ScopedCodeFixRequest

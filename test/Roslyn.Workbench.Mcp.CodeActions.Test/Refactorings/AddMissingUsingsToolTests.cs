@@ -5,17 +5,17 @@ public sealed class AddMissingUsingsToolTests
     [Fact]
     public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
     {
-        var registry = new Mock<IPluginRegistry>();
+        var registry = new Mock<ICodeActionToolRegistry>();
 
         AddMissingUsingsTool.Register(registry.Object);
 
         registry.Verify(item => item.RegisterMutationTool<AddMissingUsingsRequest>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
+            It.Is<CodeActionToolMetadata>(metadata =>
                 metadata.Name == "add-missing-usings"
                 && metadata.Title == "Add Missing Usings"
                 && metadata.Description == "Adds missing using directives across a selected scope through Roslyn code-fix composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<IMutationToolHandler<AddMissingUsingsRequest>>()), Times.Once);
+            It.IsAny<CodeActionMutationToolHandler<AddMissingUsingsRequest>>()), Times.Once);
     }
 
     [Fact]
@@ -30,7 +30,7 @@ public sealed class AddMissingUsingsToolTests
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("UnsupportedOption");
         context.Verify(item => item.StageScopedCodeFixAsync(
             It.IsAny<ScopedCodeFixRequest>(),
@@ -40,7 +40,7 @@ public sealed class AddMissingUsingsToolTests
     [Fact]
     public async Task GIVEN_PreferGlobalUsingsIsFalse_WHEN_CallingExecuteAsync_THEN_ShouldStageScopedCodeFix()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Success(new MutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new AddMissingUsingsRequest
         {

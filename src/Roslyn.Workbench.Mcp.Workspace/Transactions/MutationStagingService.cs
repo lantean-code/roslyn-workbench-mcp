@@ -1,6 +1,4 @@
-using Roslyn.Workbench.Mcp.Contracts.Results;
-using Roslyn.Workbench.Mcp.Plugins;
-
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
 namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
 internal sealed class MutationStagingService : IMutationStagingService
@@ -18,7 +16,7 @@ internal sealed class MutationStagingService : IMutationStagingService
 
     public async ValueTask<WorkspaceOperationResult<MutationStagingOutcome>> StageAsync(
         string operationName,
-        MutationProposal proposal,
+        WorkspaceMutationProposal proposal,
         IReadOnlyList<DiagnosticInfo> diagnostics,
         IReadOnlyList<WarningInfo> warnings,
         CancellationToken cancellationToken)
@@ -96,7 +94,7 @@ internal sealed class MutationStagingService : IMutationStagingService
             warnings: warnings.Concat(proposal.Warnings).ToArray());
     }
 
-    private static WorkspaceOperationError? ValidateMutationProposal(Solution currentSolution, MutationProposal proposal)
+    private static WorkspaceOperationError? ValidateMutationProposal(Solution currentSolution, WorkspaceMutationProposal proposal)
     {
         if (proposal.CandidateSolution is null)
         {

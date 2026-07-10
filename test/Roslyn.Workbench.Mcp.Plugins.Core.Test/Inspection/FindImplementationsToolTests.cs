@@ -24,7 +24,7 @@ public sealed class FindImplementationsToolTests
     {
         var target = new FindImplementationsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<ImplementationSearchData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<ImplementationSearchData>.Rejected(new PluginExecutionError
         {
             Code = "SymbolNotFound",
             Message = "SymbolNotFound",
@@ -64,7 +64,7 @@ public sealed class FindImplementationsToolTests
             document.Document,
             "IMessageFormatter",
             TestContext.Current.CancellationToken);
-        var expected = PluginExecutionResult<ImplementationSearchData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<ImplementationSearchData>.Rejected(new PluginExecutionError
         {
             Code = "ProjectNotFound",
             Message = "ProjectNotFound",
@@ -169,7 +169,7 @@ public sealed class FindImplementationsToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbol!.DisplayName.Should().Be("IMessageFormatter");
         result.Data.Implementations.Items.Select(item => item.DisplayName).Should().Equal("AFormatter", "ZFormatter");
     }

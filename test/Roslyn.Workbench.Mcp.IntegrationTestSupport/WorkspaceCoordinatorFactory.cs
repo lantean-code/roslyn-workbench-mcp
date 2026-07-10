@@ -73,10 +73,10 @@ public static class WorkspaceCoordinatorFactory
         ArgumentNullException.ThrowIfNull(codeActionRuntime);
 
         var optionsWrapper = Options.Create(options);
-        var executionServices = toolExecutionServices ?? new UnavailableToolExecutionServices();
+        var executionServices = toolExecutionServices ?? BundledCoreToolExecutionServicesFactory.Create();
         var sessionStore = new WorkspaceSessionStore();
         var workspaceSelector = new WorkspaceSelectorService();
-        var workspaceLoader = new WorkspaceLoader(new WorkspaceHostServicesAccessor(codeActionRuntime));
+        var workspaceLoader = new WorkspaceLoader(new WorkspaceHostServicesAccessor(codeActionRuntime.WorkspaceHostServices));
         var workspaceChangeDetector = new WorkspaceChangeDetector();
         var workspaceStateTransitions = new WorkspaceStateTransitions();
         var resultFactory = new WorkspaceOperationResultFactory();
@@ -116,16 +116,18 @@ public static class WorkspaceCoordinatorFactory
             workspaceStateTransitions,
             snapshotGuard,
             resultFactory);
-        var coordinator = new WorkspaceExecutionContextFactory(
+        var workspaceContextFactory = new WorkspaceExecutionContextFactory(
             optionsWrapper,
-            codeActionQueryWorkflow,
-            codeActionMutationWorkflow,
-            executionServices,
             sessionStore,
             workspaceSelector,
             workspaceChangeDetector,
             workspaceStateTransitions,
             mutationStagingService);
+        var pluginContextFactory = new PluginExecutionContextFactory(workspaceContextFactory, executionServices);
+        var codeActionContextFactory = new CodeActionExecutionContextFactory(
+            workspaceContextFactory,
+            codeActionQueryWorkflow,
+            codeActionMutationWorkflow);
         var workspaceLifecycleService = new WorkspaceLifecycleService(
             optionsWrapper,
             sessionStore,
@@ -144,14 +146,18 @@ public static class WorkspaceCoordinatorFactory
             resultFactory,
             transactionCommitService);
 
-        return new WorkspaceRuntime(coordinator, workspaceLifecycleService, transactionService);
+        return new WorkspaceRuntime(
+            pluginContextFactory,
+            codeActionContextFactory,
+            workspaceLifecycleService,
+            transactionService);
     }
 
     private static CodeActionRuntime CreateUnavailableCodeActionRuntime()
     {
         return new CodeActionRuntime
         {
-            Status = new ComponentStatus
+            Status = new CodeActionRuntimeStatus
             {
                 IsAvailable = false,
                 Message = "Code-action composition is unavailable.",

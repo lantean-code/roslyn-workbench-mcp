@@ -5,17 +5,17 @@ public sealed class ConvertForeachLinqToolTests
     [Fact]
     public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
     {
-        var registry = new Mock<IPluginRegistry>();
+        var registry = new Mock<ICodeActionToolRegistry>();
 
         ConvertForeachLinqTool.Register(registry.Object);
 
         registry.Verify(item => item.RegisterMutationTool<ConvertForeachLinqRequest>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
+            It.Is<CodeActionToolMetadata>(metadata =>
                 metadata.Name == "convert-foreach-linq"
                 && metadata.Title == "Convert Foreach LINQ"
                 && metadata.Description == "Stages one supported Roslyn foreach or LINQ conversion through refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<IMutationToolHandler<ConvertForeachLinqRequest>>()), Times.Once);
+            It.IsAny<CodeActionMutationToolHandler<ConvertForeachLinqRequest>>()), Times.Once);
     }
 
     [Fact]
@@ -26,7 +26,7 @@ public sealed class ConvertForeachLinqToolTests
 
         var result = await target.ExecuteAsync(new ConvertForeachLinqRequest(), context.Object, CancellationToken.None);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("InvalidRequest");
         context.Verify(item => item.StageReplayCodeActionAsync(
             It.IsAny<ReplayCodeActionRequest>(),
@@ -36,7 +36,7 @@ public sealed class ConvertForeachLinqToolTests
     [Fact]
     public async Task GIVEN_ForeachToCallFormKind_WHEN_CallingExecuteAsync_THEN_ShouldStageCallFormReplayAction()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Success(new MutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new ConvertForeachLinqRequest
         {
@@ -76,7 +76,7 @@ public sealed class ConvertForeachLinqToolTests
     [Fact]
     public async Task GIVEN_LinqToForeachKind_WHEN_CallingExecuteAsync_THEN_ShouldStageForeachReplayAction()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Success(new MutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new ConvertForeachLinqRequest
         {
@@ -116,7 +116,7 @@ public sealed class ConvertForeachLinqToolTests
     [Fact]
     public async Task GIVEN_ForeachToQueryKind_WHEN_CallingExecuteAsync_THEN_ShouldStageQueryReplayAction()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Success(new MutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new ConvertForeachLinqRequest
         {

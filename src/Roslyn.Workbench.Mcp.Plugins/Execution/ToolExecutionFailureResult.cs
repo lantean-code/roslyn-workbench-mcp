@@ -1,4 +1,4 @@
-using Roslyn.Workbench.Mcp.Contracts.Results;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Execution;
 
@@ -10,12 +10,12 @@ public sealed record ToolExecutionFailureResult
     /// <summary>
     /// Gets the normalized tool outcome.
     /// </summary>
-    public ToolOutcome Outcome { get; init; }
+    public PluginExecutionOutcome Outcome { get; init; }
 
     /// <summary>
     /// Gets the structured error payload.
     /// </summary>
-    public ToolError Error { get; init; } = new();
+    public PluginExecutionError Error { get; init; } = new();
 
     /// <summary>
     /// Gets the optional continuation hint.
@@ -40,8 +40,8 @@ public sealed record ToolExecutionFailureResult
     {
         return new ToolExecutionFailureResult
         {
-            Outcome = ToolOutcome.Faulted,
-            Error = new ToolError
+            Outcome = PluginExecutionOutcome.Faulted,
+            Error = new PluginExecutionError
             {
                 Code = "UnhandledException",
                 Message = "Tool execution failed.",

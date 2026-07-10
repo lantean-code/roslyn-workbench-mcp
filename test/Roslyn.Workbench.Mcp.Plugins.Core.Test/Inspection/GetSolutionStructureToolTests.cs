@@ -110,7 +110,7 @@ public sealed class GetSolutionStructureToolTests
             },
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.SolutionPath.Should().Be("/workspace/Sample.slnx");
         result.Data.Folders.Items.Should().ContainSingle();
         result.Data.Folders.HasMore.Should().BeTrue();
@@ -194,7 +194,7 @@ public sealed class GetSolutionStructureToolTests
             IncludeDocuments = true,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Projects.Items.Should().ContainSingle();
         result.Data.Projects.Items[0].Documents.Should().NotBeNull();
         result.Data.Projects.Items[0].Documents!.Select(item => item.Path).Should().Equal("A.cs", "B.cs");
@@ -316,7 +316,7 @@ public sealed class GetSolutionStructureToolTests
 
         var mainProjectResult = result.Data!.Projects.Items.Single(item => item.Name == "Main");
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         mainProjectResult.Path.Should().Be("Main");
         mainProjectResult.SolutionFolderPath.Should().Be("/src/core");
         mainProjectResult.ProjectReferences.Select(item => item.Name).Should().Equal("ReferencedB", "ReferencedA");

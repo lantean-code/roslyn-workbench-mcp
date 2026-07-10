@@ -5,23 +5,23 @@ public sealed class ConvertForToForeachToolTests
     [Fact]
     public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
     {
-        var registry = new Mock<IPluginRegistry>();
+        var registry = new Mock<ICodeActionToolRegistry>();
 
         ConvertForToForeachTool.Register(registry.Object);
 
         registry.Verify(item => item.RegisterMutationTool<LocationRefactoringRequest>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
+            It.Is<CodeActionToolMetadata>(metadata =>
                 metadata.Name == "convert-for-to-foreach"
                 && metadata.Title == "Convert For To Foreach"
                 && metadata.Description == "Converts a supported for loop to a foreach loop through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<IMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
+            It.IsAny<CodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
     }
 
     [Fact]
     public async Task GIVEN_LocationRefactoringRequest_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithForeachProvider()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Success(new MutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new LocationRefactoringRequest
         {

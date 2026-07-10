@@ -22,7 +22,7 @@ public sealed class GetDocumentOptionsToolTests
     {
         var target = new GetDocumentOptionsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<DocumentOptionsData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<DocumentOptionsData>.Rejected(new PluginExecutionError
         {
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
@@ -74,7 +74,7 @@ public sealed class GetDocumentOptionsToolTests
 
         var result = await target.ExecuteAsync(new GetDocumentOptionsRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Document!.Path.Should().Be("Code.cs");
         result.Data.LanguageVersion.Should().NotBeNullOrWhiteSpace();
         result.Data.NullableContext.Should().NotBeNullOrWhiteSpace();
@@ -109,7 +109,7 @@ public sealed class GetDocumentOptionsToolTests
 
         var result = await target.ExecuteAsync(new GetDocumentOptionsRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.LanguageVersion.Should().BeEmpty();
         result.Data.NullableContext.Should().BeEmpty();
         result.Data.ParseOptions.Should().BeNull();

@@ -24,7 +24,7 @@ public sealed class GetProjectDetailsToolTests
     {
         var target = new GetProjectDetailsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<ProjectDetailsData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<ProjectDetailsData>.Rejected(new PluginExecutionError
         {
             Code = "ProjectNotFound",
             Message = "ProjectNotFound",
@@ -80,7 +80,7 @@ public sealed class GetProjectDetailsToolTests
             IncludeDocuments = false,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Documents.Should().BeNull();
         result.Data.Project!.Path.Should().Be(project.FilePath);
         result.Data.Project.TargetFrameworks.Should().Equal("TargetFramework");
@@ -237,7 +237,7 @@ public sealed class GetProjectDetailsToolTests
             },
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Project!.Name.Should().Be("Main");
         result.Data.Documents!.Items.Should().ContainSingle();
         result.Data.Documents.Items[0].Path.Should().Be("A.cs");

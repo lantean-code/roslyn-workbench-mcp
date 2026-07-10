@@ -2,7 +2,6 @@ using System.Text.Json;
 
 using Microsoft.Extensions.Options;
 
-using Roslyn.Workbench.Mcp.Contracts.Server;
 using Roslyn.Workbench.Mcp.Tools;
 using Roslyn.Workbench.Mcp.Workspace.Lifecycle;
 using Roslyn.Workbench.Mcp.Workspace.Operations;

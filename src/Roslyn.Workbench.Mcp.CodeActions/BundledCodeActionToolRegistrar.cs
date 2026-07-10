@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions;
 
 internal static class BundledCodeActionToolRegistrar
 {
-    public static void RegisterAll(IPluginRegistry registry)
+    public static void RegisterAll(ICodeActionToolRegistry registry)
     {
         RegisterBuiltInCodeActionTool(registry, "add-debugger-display", AddDebuggerDisplayTool.Register);
         RegisterBuiltInCodeActionTool(registry, "add-import", AddImportTool.Register);
@@ -57,7 +57,7 @@ internal static class BundledCodeActionToolRegistrar
         StageFixAllTool.Register(registry);
     }
 
-    private static void RegisterBuiltInCodeActionTool(IPluginRegistry registry, string toolName, Action<IPluginRegistry> register)
+    private static void RegisterBuiltInCodeActionTool(ICodeActionToolRegistry registry, string toolName, Action<ICodeActionToolRegistry> register)
     {
         if (BuiltInCodeActionLedger.IsDedicatedToolVisible(toolName))
         {

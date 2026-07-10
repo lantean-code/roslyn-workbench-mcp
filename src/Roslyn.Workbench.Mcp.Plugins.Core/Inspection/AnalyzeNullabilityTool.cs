@@ -1,5 +1,5 @@
-using Roslyn.Workbench.Mcp.Contracts.Inspection;
-using Roslyn.Workbench.Mcp.Contracts.Results;
+using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 

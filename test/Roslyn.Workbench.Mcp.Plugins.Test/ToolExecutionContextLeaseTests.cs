@@ -7,8 +7,8 @@ public sealed class ToolExecutionContextLeaseTests
     {
         var target = ToolExecutionContextLease<IQueryContext>.Rejected(new ToolExecutionFailureResult
         {
-            Outcome = ToolOutcome.Rejected,
-            Error = new ToolError
+            Outcome = PluginExecutionOutcome.Rejected,
+            Error = new PluginExecutionError
             {
                 Code = "Code",
                 Message = "Message",

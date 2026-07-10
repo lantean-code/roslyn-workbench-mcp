@@ -1,6 +1,4 @@
-using System.Text.Json;
-
-using Roslyn.Workbench.Mcp.Contracts.Selectors;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Test;
 
@@ -33,13 +31,8 @@ public sealed class PluginRegistryTests
         tool.Plugin.PluginId.Should().Be("plugin.test");
         tool.Metadata.Name.Should().Be("test-query");
         tool.Kind.Should().Be(ToolKind.Query);
-        tool.Annotations.ReadOnlyHint.Should().BeTrue();
-        tool.Annotations.IdempotentHint.Should().BeTrue();
-        tool.Annotations.OpenWorldHint.Should().BeFalse();
-        tool.Annotations.DestructiveHint.Should().BeFalse();
-        tool.InputSchema.GetProperty("properties").TryGetProperty("name", out var nameProperty).Should().BeTrue();
-        nameProperty.ValueKind.Should().Be(JsonValueKind.Object);
-        tool.OutputSchema.Should().BeNull();
+        tool.RequestType.Should().Be(typeof(TestRequest));
+        tool.ResponseType.Should().Be(typeof(TestResponse));
     }
 
     [Fact]
@@ -110,7 +103,7 @@ public sealed class PluginRegistryTests
     }
 
     [Fact]
-    public void GIVEN_MutationToolRegistration_WHEN_BuildingRegistry_THEN_ShouldPublishMutationDataResponseSchema()
+    public void GIVEN_MutationToolRegistration_WHEN_BuildingRegistry_THEN_ShouldCaptureTypedMutationTool()
     {
         var metadata = new PluginMetadata
         {
@@ -134,11 +127,12 @@ public sealed class PluginRegistryTests
         var tool = target.RegisteredTools.Should().ContainSingle().Subject;
 
         tool.Kind.Should().Be(ToolKind.Mutation);
-        tool.OutputSchema.Should().BeNull();
+        tool.RequestType.Should().Be(typeof(TestRequest));
+        tool.ResponseType.Should().Be(typeof(MutationProposal));
     }
 
     [Fact]
-    public void GIVEN_FullOutputSchemaMode_WHEN_BuildingRegistry_THEN_ShouldPublishShapedOutputSchema()
+    public void GIVEN_QueryRegistration_WHEN_AcceptingVisitor_THEN_ShouldDispatchWithClosedGenericTypes()
     {
         var metadata = new PluginMetadata
         {
@@ -148,34 +142,38 @@ public sealed class PluginRegistryTests
             SupportedApiVersion = PluginApiVersions.V1,
         };
 
-        var target = new PluginRegistry(metadata, ToolOutputSchemaMode.Full);
+        var target = new PluginRegistry(metadata);
 
-        target.RegisterMutationTool(
+        target.RegisterQueryTool(
             new ToolRegistrationMetadata
             {
-                Name = "test-mutation",
-                Title = "Test Mutation",
-                Description = "Mutation description.",
+                Name = "test-query",
+                Title = "Test Query",
+                Description = "Query description.",
             },
-            new TestMutationHandler());
+            new TestQueryHandler());
 
-        var tool = target.RegisteredTools.Should().ContainSingle().Subject;
+        var registration = target.GetRegisteredPluginTool("test-query");
+        var visitor = new Mock<IPluginToolRegistrationVisitor<bool>>();
+        visitor
+            .Setup(targetVisitor => targetVisitor.VisitQuery(It.IsAny<PluginQueryRegistration<TestRequest, TestResponse>>()))
+            .Returns(true);
 
-        ((object?)tool.OutputSchema).Should().NotBeNull();
-        var outputSchema = (JsonElement)((object?)tool.OutputSchema)!;
-        outputSchema.GetRawText().Should().Contain("staged");
-        outputSchema.GetRawText().Should().Contain("summary");
-        outputSchema.GetRawText().Should().Contain("transaction");
-        outputSchema.GetRawText().Should().NotContain("operation");
-        outputSchema.GetRawText().Should().NotContain("changes");
+        var result = registration.Accept(visitor.Object);
+
+        result.Should().BeTrue();
+        visitor.Verify(
+            targetVisitor => targetVisitor.VisitQuery(It.Is<PluginQueryRegistration<TestRequest, TestResponse>>(
+                candidate => ReferenceEquals(candidate, registration))),
+            Times.Once);
     }
 
-    private sealed record TestRequest : WorkspaceBoundRequest
+    public sealed record TestRequest : WorkspaceBoundRequest
     {
         public string Name { get; init; } = string.Empty;
     }
 
-    private sealed record TestResponse
+    public sealed record TestResponse
     {
         public string Value { get; init; } = string.Empty;
     }

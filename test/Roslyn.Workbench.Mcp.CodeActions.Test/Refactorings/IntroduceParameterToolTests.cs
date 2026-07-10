@@ -5,17 +5,17 @@ public sealed class IntroduceParameterToolTests
     [Fact]
     public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
     {
-        var registry = new Mock<IPluginRegistry>();
+        var registry = new Mock<ICodeActionToolRegistry>();
 
         IntroduceParameterTool.Register(registry.Object);
 
         registry.Verify(item => item.RegisterMutationTool<IntroduceParameterRequest>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
+            It.Is<CodeActionToolMetadata>(metadata =>
                 metadata.Name == "introduce-parameter"
                 && metadata.Title == "Introduce Parameter"
                 && metadata.Description == "Promotes a selected expression to a parameter through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<IMutationToolHandler<IntroduceParameterRequest>>()), Times.Once);
+            It.IsAny<CodeActionMutationToolHandler<IntroduceParameterRequest>>()), Times.Once);
     }
 
     [Fact]
@@ -26,7 +26,7 @@ public sealed class IntroduceParameterToolTests
 
         var result = await target.ExecuteAsync(new IntroduceParameterRequest(), context.Object, CancellationToken.None);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("InvalidRequest");
         context.Verify(item => item.StageReplayCodeActionAsync(
             It.IsAny<ReplayCodeActionRequest>(),
@@ -47,7 +47,7 @@ public sealed class IntroduceParameterToolTests
         int firstPathSegment,
         int secondPathSegment)
     {
-        var expected = PluginExecutionResult<MutationProposal>.Success(new MutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new IntroduceParameterRequest
         {

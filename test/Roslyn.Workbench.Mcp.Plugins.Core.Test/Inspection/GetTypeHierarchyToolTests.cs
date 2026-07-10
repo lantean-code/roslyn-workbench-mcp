@@ -22,7 +22,7 @@ public sealed class GetTypeHierarchyToolTests
     {
         var target = new GetTypeHierarchyTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<TypeHierarchyData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<TypeHierarchyData>.Rejected(new PluginExecutionError
         {
             Code = "SymbolNotFound",
             Message = "SymbolNotFound",
@@ -79,7 +79,7 @@ public sealed class GetTypeHierarchyToolTests
 
         var result = await target.ExecuteAsync(new GetTypeHierarchyRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("InvalidRequest");
         result.Error.Message.Should().Be("Get type hierarchy requires a named type symbol.");
     }
@@ -159,7 +159,7 @@ public sealed class GetTypeHierarchyToolTests
             },
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Type!.DisplayName.Should().Be("FinalFormatter");
         result.Data.BaseTypes.Items.Select(item => item.DisplayName).Should().Equal("MidFormatter", "FormatterBase");
         result.Data.BaseTypes.HasMore.Should().BeTrue();
@@ -241,7 +241,7 @@ public sealed class GetTypeHierarchyToolTests
             },
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.DerivedTypes!.Items.Should().HaveCount(2);
         result.Data.DerivedTypes.Items[0].Type!.DisplayName.Should().Be("AlphaFormatter");
         result.Data.DerivedTypes.Items[0].Depth.Should().Be(1);
@@ -315,7 +315,7 @@ public sealed class GetTypeHierarchyToolTests
             IncludeDerived = true,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.DerivedTypes!.Items.Should().HaveCount(2);
         result.Data.DerivedTypes.Items[0].Type!.DisplayName.Should().Be("AdvancedFormatter");
         result.Data.DerivedTypes.Items[0].Depth.Should().Be(2);

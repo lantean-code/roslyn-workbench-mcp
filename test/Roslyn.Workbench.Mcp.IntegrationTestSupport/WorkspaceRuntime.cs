@@ -1,24 +1,25 @@
 using Roslyn.Workbench.Mcp;
-using Roslyn.Workbench.Mcp.Contracts.Results;
-using Roslyn.Workbench.Mcp.Contracts.Selectors;
-using Roslyn.Workbench.Mcp.Contracts.Server;
-using Roslyn.Workbench.Mcp.Contracts.Transactions;
 using Roslyn.Workbench.Mcp.Plugins;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
 public sealed class WorkspaceRuntime : IWorkspaceRuntime
 {
     private readonly IToolExecutionContextFactory _coordinator;
+    private readonly ICodeActionExecutionContextFactory _codeActionContextFactory;
     private readonly IWorkspaceLifecycleService _workspaceLifecycleService;
     private readonly ITransactionService _transactionService;
 
     internal WorkspaceRuntime(
         IToolExecutionContextFactory coordinator,
+        ICodeActionExecutionContextFactory codeActionContextFactory,
         IWorkspaceLifecycleService workspaceLifecycleService,
         ITransactionService transactionService)
     {
         _coordinator = coordinator ?? throw new ArgumentNullException(nameof(coordinator));
+        _codeActionContextFactory = codeActionContextFactory ?? throw new ArgumentNullException(nameof(codeActionContextFactory));
         _workspaceLifecycleService = workspaceLifecycleService ?? throw new ArgumentNullException(nameof(workspaceLifecycleService));
         _transactionService = transactionService ?? throw new ArgumentNullException(nameof(transactionService));
     }
@@ -27,7 +28,9 @@ public sealed class WorkspaceRuntime : IWorkspaceRuntime
 
     internal ITransactionService TransactionService => _transactionService;
 
-    public ToolExecutionContextLease<IMutationContext> CreateMutationContext(WorkspaceBoundRequest request, CancellationToken cancellationToken)
+    internal ICodeActionExecutionContextFactory CodeActionContextFactory => _codeActionContextFactory;
+
+    public PluginMutationExecutionLease CreateMutationContext(WorkspaceBoundRequest request, CancellationToken cancellationToken)
     {
         return _coordinator.CreateMutationContext(request, cancellationToken);
     }

@@ -1,12 +1,12 @@
 namespace Roslyn.Workbench.Mcp.CodeActions;
 
-internal interface ICodeActionQueryContext : IQueryContext
+internal interface ICodeActionQueryContext : ICodeActionExecutionContext
 {
-    ValueTask<PluginExecutionResult<CodeActionListData>> ListCodeActionsAsync(
+    ValueTask<CodeActionExecutionResult<CodeActionListData>> ListCodeActionsAsync(
         ListCodeActionsRequest request,
         CancellationToken cancellationToken);
 
-    ValueTask<PluginExecutionResult<DescribeCodeActionData>> DescribeCodeActionAsync(
+    ValueTask<CodeActionExecutionResult<DescribeCodeActionData>> DescribeCodeActionAsync(
         DescribeCodeActionRequest request,
         CancellationToken cancellationToken);
 }

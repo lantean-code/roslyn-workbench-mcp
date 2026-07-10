@@ -1,10 +1,10 @@
 using System.Collections.Immutable;
-using Roslyn.Workbench.Mcp.Contracts.CodeActions;
-using Roslyn.Workbench.Mcp.Contracts.Results;
-using Roslyn.Workbench.Mcp.Contracts.Selectors;
-using Roslyn.Workbench.Mcp.Contracts.Server;
+using System.Text.Json;
+using Roslyn.Workbench.Mcp.CodeActions.Contracts;
 using Roslyn.Workbench.Mcp.Plugins;
 using Roslyn.Workbench.Mcp.Plugins.Core;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 
@@ -42,8 +42,6 @@ public static class BuiltInCodeActionAuditHarness
         {
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
-        var registry = BundledPluginRegistryFactory.CreateRegistry();
-
         await using var queryLease = coordinator.CreateQueryContext(new ListCodeActionsRequest(), CancellationToken.None);
         var queryContext = queryLease.Context!;
         var location = auditCase.LocationFactory(fixture);
@@ -95,16 +93,19 @@ public static class BuiltInCodeActionAuditHarness
             .Where(action => MatchesTitle(auditCase, action.Title))
             .Where(action => auditCase.ActionPath.Count == 0 || action.ActionPath.SequenceEqual(auditCase.ActionPath))
             .ToArray();
-        var visibilityResult = await ((ICodeActionQueryContext)queryContext).ListCodeActionsAsync(new ListCodeActionsRequest
-        {
-            Location = location,
-            IncludeCodeFixes = auditCase.Kind == BuiltInCodeActionAuditKind.CodeFix,
-            IncludeRefactorings = auditCase.Kind == BuiltInCodeActionAuditKind.Refactoring,
-            ExpectedSnapshot = new SnapshotPrecondition
+        var visibilityResult = await CodeActionToolTestHarness.InvokeAsync<CodeActionListData>(
+            coordinator,
+            "list-code-actions",
+            new Dictionary<string, JsonElement>
             {
-                WorkspaceEpoch = openResult.WorkspaceEpoch!.Value,
-            },
-        }, CancellationToken.None);
+                ["location"] = JsonSerializer.SerializeToElement(location),
+                ["includeCodeFixes"] = JsonSerializer.SerializeToElement(auditCase.Kind == BuiltInCodeActionAuditKind.CodeFix),
+                ["includeRefactorings"] = JsonSerializer.SerializeToElement(auditCase.Kind == BuiltInCodeActionAuditKind.Refactoring),
+                ["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition
+                {
+                    WorkspaceEpoch = openResult.WorkspaceEpoch!.Value,
+                }),
+            });
 
         if (matching.Length == 0)
         {
@@ -374,7 +375,7 @@ public static class BuiltInCodeActionAuditHarness
         return applyChanges is not null;
     }
 
-    private static bool IsVisible(PluginExecutionResult<CodeActionListData> result, BuiltInCodeActionAuditCase auditCase)
+    private static bool IsVisible(ToolResult<CodeActionListData> result, BuiltInCodeActionAuditCase auditCase)
     {
         return result.Data?.Actions.Any(action =>
             string.Equals(action.ProviderId, auditCase.ProviderId, StringComparison.Ordinal)

@@ -6,7 +6,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Roslyn.Workbench.Mcp.Contracts\Roslyn.Workbench.Mcp.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Roslyn.Workbench.Mcp.Plugins\Roslyn.Workbench.Mcp.Plugins.csproj" />
   </ItemGroup>
 

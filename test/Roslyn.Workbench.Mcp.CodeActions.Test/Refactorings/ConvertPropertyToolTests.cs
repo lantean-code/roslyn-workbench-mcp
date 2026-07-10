@@ -5,23 +5,23 @@ public sealed class ConvertPropertyToolTests
     [Fact]
     public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
     {
-        var registry = new Mock<IPluginRegistry>();
+        var registry = new Mock<ICodeActionToolRegistry>();
 
         ConvertPropertyTool.Register(registry.Object);
 
         registry.Verify(item => item.RegisterMutationTool<ConvertPropertyRequest>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
+            It.Is<CodeActionToolMetadata>(metadata =>
                 metadata.Name == "convert-property"
                 && metadata.Title == "Convert Property"
                 && metadata.Description == "Converts one selected property between supported auto-property and full-property forms through Roslyn composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<IMutationToolHandler<ConvertPropertyRequest>>()), Times.Once);
+            It.IsAny<CodeActionMutationToolHandler<ConvertPropertyRequest>>()), Times.Once);
     }
 
     [Fact]
     public async Task GIVEN_ToFullDirection_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithFullPropertyProvider()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Success(new MutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new ConvertPropertyRequest
         {
@@ -65,7 +65,7 @@ public sealed class ConvertPropertyToolTests
     [Fact]
     public async Task GIVEN_ToAutoWhenSafeDirection_WHEN_CallingExecuteAsync_THEN_ShouldStageLocationCodeFixWithAutoPropertyProvider()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Success(new MutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new ConvertPropertyRequest
         {
@@ -121,7 +121,7 @@ public sealed class ConvertPropertyToolTests
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("InvalidRequest");
         context.Verify(item => item.StageReplaySelectionAsync(
             It.IsAny<LocationSelector?>(),

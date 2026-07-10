@@ -2,9 +2,9 @@ namespace Roslyn.Workbench.Mcp.Workspace.Loading;
 
 internal sealed class WorkspaceHostServicesAccessor
 {
-    public WorkspaceHostServicesAccessor(ICodeActionRuntime codeActionRuntime)
+    public WorkspaceHostServicesAccessor(HostServices? workspaceHostServices)
     {
-        WorkspaceHostServices = codeActionRuntime.WorkspaceHostServices;
+        WorkspaceHostServices = workspaceHostServices;
     }
 
     public HostServices? WorkspaceHostServices { get; }

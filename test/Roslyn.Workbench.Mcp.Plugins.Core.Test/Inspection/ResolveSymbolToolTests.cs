@@ -24,7 +24,7 @@ public sealed class ResolveSymbolToolTests
     {
         var target = new ResolveSymbolTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<ResolveSymbolData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<ResolveSymbolData>.Rejected(new PluginExecutionError
         {
             Code = "SnapshotConflict",
             Message = "SnapshotConflict",
@@ -52,7 +52,7 @@ public sealed class ResolveSymbolToolTests
 
         var result = await target.ExecuteAsync(new ResolveSymbolRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("InvalidRequest");
         result.Error.Message.Should().Be("Resolve symbol requires location.");
     }
@@ -76,7 +76,7 @@ public sealed class ResolveSymbolToolTests
             Location = requestLocation,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("LocationAmbiguous");
     }
 
@@ -124,7 +124,7 @@ public sealed class ResolveSymbolToolTests
             Location = requestLocation,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("SymbolNotFound");
     }
 
@@ -247,7 +247,7 @@ public sealed class ResolveSymbolToolTests
             Location = requestLocation,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbol!.DisplayName.Should().Be("Formatter");
         result.Data.Selector!.Location!.Span!.Start.Should().Be(firstSourceLocation.SourceSpan.Start);
         result.Data.Declarations.Select(item => item.Document!.Path).Should().Equal(expectedPaths!);
@@ -309,7 +309,7 @@ public sealed class ResolveSymbolToolTests
             Location = requestLocation,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbol!.DisplayName.Should().Be("ToUpperInvariant");
         result.Data.Selector!.Location!.Span!.Start.Should().Be(usageLocation.SourceSpan.Start);
         result.Data.Declarations.Should().BeEmpty();

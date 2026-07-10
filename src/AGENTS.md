@@ -13,12 +13,12 @@
 - Prioritize maintainability, testability, and scalability.
 
 ## Project boundaries
-- `Roslyn.Workbench.Mcp` owns executable bootstrap, server startup, dependency composition, and server-owned lifecycle tools.
-- `Roslyn.Workbench.Mcp.Contracts` owns shared request/response DTOs, schemas, selectors, result envelopes, and common contract types.
-- `Roslyn.Workbench.Mcp.Workspace` owns workspace loading, transaction state, external-change handling, reload behaviour, and commit coordination.
-- `Roslyn.Workbench.Mcp.Plugins` owns plugin abstractions, registration, tool metadata, and execution plumbing shared by plugins.
-- `Roslyn.Workbench.Mcp.Plugins.Core` owns bundled first-party Roslyn query and mutation tool implementations.
-- Query and mutation MCP tools must be implemented as plugins, even when shipped in the main server package.
+- `Roslyn.Workbench.Mcp` owns executable bootstrap, server startup, dependency composition, MCP schemas and envelopes, transport adapters, and server-owned lifecycle tools.
+- `Roslyn.Workbench.Mcp.Workspace` owns workspace contracts, selector resolution, neutral execution leases, transaction state, external-change handling, reload behaviour, and commit coordination.
+- `Roslyn.Workbench.Mcp.CodeActions` owns internal Code Action contracts, catalogue metadata, execution contexts, and workflows. It may depend on Workspace but not Plugins.
+- `Roslyn.Workbench.Mcp.Plugins` owns the public third-party plugin API, plugin metadata, typed registrations, execution services, and Workspace context adaptation. It may depend on Workspace but not CodeActions or the MCP SDK.
+- `Roslyn.Workbench.Mcp.Plugins.Core` owns bundled inspection contracts and first-party plugin implementations.
+- Internal Code Action tools must not be registered or executed through the plugin system.
 - Plugins must not directly own or mutate host-only concerns such as the `MSBuildWorkspace`, transaction coordinator, file writer, or commit journal.
 - Do not collapse host-owned lifecycle code into plugin projects, and do not move plugin tool logic into the executable host for convenience.
 

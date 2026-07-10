@@ -6,7 +6,7 @@ internal sealed record CodeActionApplyResult
 {
     public Solution? CandidateSolution { get; init; }
 
-    public PluginExecutionResult<MutationProposal>? Rejection { get; init; }
+    public CodeActionExecutionResult<WorkspaceMutationProposal>? Rejection { get; init; }
 
     [MemberNotNullWhen(true, nameof(Rejection))]
     [MemberNotNullWhen(false, nameof(CandidateSolution))]

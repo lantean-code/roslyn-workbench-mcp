@@ -25,7 +25,7 @@ public sealed class FindReferencesToolTests
     {
         var target = new FindReferencesTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<ReferenceSearchData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<ReferenceSearchData>.Rejected(new PluginExecutionError
         {
             Code = "SymbolNotFound",
             Message = "SymbolNotFound",
@@ -70,7 +70,7 @@ public sealed class FindReferencesToolTests
             document.Document,
             "Current",
             TestContext.Current.CancellationToken);
-        var expected = PluginExecutionResult<ReferenceSearchData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<ReferenceSearchData>.Rejected(new PluginExecutionError
         {
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
@@ -202,7 +202,7 @@ public sealed class FindReferencesToolTests
             IncludeContext = false,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.References.Items.Should().NotContain(item => item.IsDefinition);
         result.Data.References.Items.Select(item => item.Location!.Document!.Path).Should().Equal("Usage.cs", "Usage.cs");
         result.Data.References.Items.Select(item => item.IsWrite).Should().Equal(false, true);
@@ -321,7 +321,7 @@ public sealed class FindReferencesToolTests
             IncludeContext = true,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.References.Items.Should().Contain(item => item.IsDefinition);
         result.Data.References.Items.Count(item => !item.IsDefinition).Should().Be(0);
     }
@@ -511,7 +511,7 @@ public sealed class FindReferencesToolTests
             IncludeContext = true,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.References.Items.Should().Contain(item => item.IsWrite && item.Context == expectedContext);
     }
 }

@@ -22,7 +22,7 @@ public sealed class GoToDefinitionToolTests
     {
         var target = new GoToDefinitionTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<DefinitionData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<DefinitionData>.Rejected(new PluginExecutionError
         {
             Code = "SymbolNotFound",
             Message = "SymbolNotFound",
@@ -135,7 +135,7 @@ public sealed class GoToDefinitionToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Definitions.Should().HaveCount(2);
         result.Data.Definitions.Select(item => item.Location!.Document!.Path).Should().Equal("A.cs", "C.cs");
         result.Data.Symbol!.DisplayName.Should().Be("Formatter");
@@ -185,7 +185,7 @@ public sealed class GoToDefinitionToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Definitions.Should().ContainSingle();
         result.Data.Definitions[0].IsMetadata.Should().BeTrue();
         result.Data.Definitions[0].MetadataName.Should().Contain("string.ToUpperInvariant");

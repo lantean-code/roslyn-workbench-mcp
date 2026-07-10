@@ -1,5 +1,5 @@
-using Roslyn.Workbench.Mcp.Contracts.Refactorings;
-using Roslyn.Workbench.Mcp.Contracts.Results;
+using Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 
@@ -7,25 +7,25 @@ internal sealed class EncapsulateFieldTool : CodeActionMutationToolHandler<Encap
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.EncapsulateField.EncapsulateFieldRefactoringProvider";
 
-    private static readonly ToolRegistrationMetadata _metadata = new()
+    private static readonly CodeActionToolMetadata _metadata = new()
     {
         Name = "encapsulate-field",
         Title = "Encapsulate Field",
         Description = "Encapsulates one field through Roslyn refactoring composition.",
-        Behavior = new ToolBehaviorHints
+        Behavior = new CodeActionToolBehavior
         {
             Destructive = true,
         },
     };
 
-    public static void Register(IPluginRegistry registry)
+    public static void Register(ICodeActionToolRegistry registry)
     {
         registry.RegisterMutationTool(_metadata, new EncapsulateFieldTool());
     }
 
-    protected override async ValueTask<PluginExecutionResult<MutationProposal>> ExecuteCoreAsync(EncapsulateFieldRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
+    protected override async ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteCoreAsync(EncapsulateFieldRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
-        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<MutationProposal>(request.Field, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await ToolExecutionHelpers.ResolveSymbolAsync<WorkspaceMutationProposal>(request.Field, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
@@ -33,19 +33,19 @@ internal sealed class EncapsulateFieldTool : CodeActionMutationToolHandler<Encap
 
         if (symbolResolution.Value is not IFieldSymbol fieldSymbol)
         {
-            return ToolExecutionHelpers.Rejected<MutationProposal>("SymbolNotSupported", "The selected symbol is not a field.", RequiredAction.ResolveTargetAgain);
+            return ToolExecutionHelpers.Rejected<WorkspaceMutationProposal>("SymbolNotSupported", "The selected symbol is not a field.", RequiredAction.ResolveTargetAgain);
         }
 
         var sourceLocation = fieldSymbol.Locations.FirstOrDefault(static location => location.IsInSource);
         if (sourceLocation is null)
         {
-            return ToolExecutionHelpers.Rejected<MutationProposal>("SymbolNotSupported", "The selected symbol does not resolve to a source location.", RequiredAction.ResolveTargetAgain);
+            return ToolExecutionHelpers.Rejected<WorkspaceMutationProposal>("SymbolNotSupported", "The selected symbol does not resolve to a source location.", RequiredAction.ResolveTargetAgain);
         }
 
         var locationSelector = ToolExecutionHelpers.CreateLocationSelector(context.WorkspaceResolver.CreateResolvedLocation(sourceLocation));
         if (locationSelector is null)
         {
-            return ToolExecutionHelpers.Rejected<MutationProposal>("SymbolNotSupported", "The selected symbol does not resolve to a replayable source span.", RequiredAction.ResolveTargetAgain);
+            return ToolExecutionHelpers.Rejected<WorkspaceMutationProposal>("SymbolNotSupported", "The selected symbol does not resolve to a replayable source span.", RequiredAction.ResolveTargetAgain);
         }
 
         var (title, equivalenceKey) = request.UpdateReferences

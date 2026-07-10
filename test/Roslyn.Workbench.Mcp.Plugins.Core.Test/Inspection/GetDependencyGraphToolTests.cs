@@ -36,8 +36,8 @@ public sealed class GetDependencyGraphToolTests
             Granularity = "Granularity",
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new ToolError
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
         {
             Code = "InvalidRequest",
             Message = "Granularity must be Project, Namespace, Type, or Symbol.",
@@ -64,8 +64,8 @@ public sealed class GetDependencyGraphToolTests
             MaxDepth = -1,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new ToolError
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
         {
             Code = "InvalidRequest",
             Message = "MaxDepth must be zero or greater.",
@@ -95,8 +95,8 @@ public sealed class GetDependencyGraphToolTests
             },
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new ToolError
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
         {
             Code = "InvalidRequest",
             Message = "NodesLimit and EdgesLimit must be zero or greater when provided.",
@@ -126,8 +126,8 @@ public sealed class GetDependencyGraphToolTests
             },
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new ToolError
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
         {
             Code = "InvalidRequest",
             Message = "NodesLimit and EdgesLimit must be zero or greater when provided.",
@@ -140,7 +140,7 @@ public sealed class GetDependencyGraphToolTests
         var target = new GetDependencyGraphTool();
         var queryContextMocks = QueryContextMockHelper.Create();
         var dependencyAnalysisService = new Mock<IDependencyAnalysisService>();
-        var expected = PluginExecutionResult<DependencyGraphData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<DependencyGraphData>.Rejected(new PluginExecutionError
         {
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
@@ -177,7 +177,7 @@ public sealed class GetDependencyGraphToolTests
         var target = new GetDependencyGraphTool();
         var queryContextMocks = QueryContextMockHelper.Create();
         var dependencyAnalysisService = new Mock<IDependencyAnalysisService>();
-        var expected = PluginExecutionResult<DependencyGraphData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<DependencyGraphData>.Rejected(new PluginExecutionError
         {
             Code = "ProjectNotFound",
             Message = "ProjectNotFound",
@@ -311,7 +311,7 @@ public sealed class GetDependencyGraphToolTests
             },
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Nodes.Items.Select(item => item.Id).Should().Equal("A", "B");
         result.Data.Nodes.HasMore.Should().BeTrue();
         result.Data.Edges.Items.Should().ContainSingle();

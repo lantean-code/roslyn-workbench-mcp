@@ -1,4 +1,4 @@
-using Roslyn.Workbench.Mcp.Contracts.CodeActions;
+using Roslyn.Workbench.Mcp.CodeActions.Contracts;
 
 namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 

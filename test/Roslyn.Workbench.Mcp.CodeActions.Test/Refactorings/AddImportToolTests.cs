@@ -5,23 +5,23 @@ public sealed class AddImportToolTests
     [Fact]
     public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
     {
-        var registry = new Mock<IPluginRegistry>();
+        var registry = new Mock<ICodeActionToolRegistry>();
 
         AddImportTool.Register(registry.Object);
 
         registry.Verify(item => item.RegisterMutationTool<AddImportRequest>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
+            It.Is<CodeActionToolMetadata>(metadata =>
                 metadata.Name == "add-import"
                 && metadata.Title == "Add Import"
                 && metadata.Description == "Adds a supported using directive through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<IMutationToolHandler<AddImportRequest>>()), Times.Once);
+            It.IsAny<CodeActionMutationToolHandler<AddImportRequest>>()), Times.Once);
     }
 
     [Fact]
     public async Task GIVEN_AddImportRequestWithoutSimplifyAllOccurrences_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithoutSimplifyAllOccurrencesTitle()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Success(new MutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new AddImportRequest
         {
@@ -66,7 +66,7 @@ public sealed class AddImportToolTests
     [Fact]
     public async Task GIVEN_AddImportRequestWithSimplifyAllOccurrences_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithSimplifyAllOccurrencesTitle()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Success(new MutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new AddImportRequest
         {

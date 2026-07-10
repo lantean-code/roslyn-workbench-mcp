@@ -5,23 +5,23 @@ public sealed class ConvertExpressionBodyToolTests
     [Fact]
     public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
     {
-        var registry = new Mock<IPluginRegistry>();
+        var registry = new Mock<ICodeActionToolRegistry>();
 
         ConvertExpressionBodyTool.Register(registry.Object);
 
         registry.Verify(item => item.RegisterMutationTool<LocationRefactoringRequest>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
+            It.Is<CodeActionToolMetadata>(metadata =>
                 metadata.Name == "convert-expression-body"
                 && metadata.Title == "Convert Expression Body"
                 && metadata.Description == "Stages a supported Roslyn block-body or expression-body conversion at the selected declaration."
                 && metadata.Behavior.Destructive),
-            It.IsAny<IMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
+            It.IsAny<CodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
     }
 
     [Fact]
     public async Task GIVEN_PrimaryProviderReturnsNonUnavailableResult_WHEN_CallingExecuteAsync_THEN_ShouldReturnPrimaryResult()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Success(new MutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new LocationRefactoringRequest
         {
@@ -74,7 +74,7 @@ public sealed class ConvertExpressionBodyToolTests
     [Fact]
     public async Task GIVEN_PrimaryProviderReturnsDifferentRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnPrimaryRejection()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Rejected(new ToolError
+        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Rejected(new CodeActionExecutionError
         {
             Code = "InvalidRequest",
             Message = "InvalidRequest",
@@ -131,9 +131,9 @@ public sealed class ConvertExpressionBodyToolTests
     [Fact]
     public async Task GIVEN_PrimaryProviderReturnsRejectionWithoutError_WHEN_CallingExecuteAsync_THEN_ShouldReturnPrimaryRejection()
     {
-        var expected = new PluginExecutionResult<MutationProposal>
+        var expected = new CodeActionExecutionResult<WorkspaceMutationProposal>
         {
-            Outcome = ToolOutcome.Rejected,
+            Outcome = CodeActionExecutionOutcome.Rejected,
         };
         var context = new Mock<ICodeActionMutationContext>();
         var request = new LocationRefactoringRequest
@@ -187,7 +187,7 @@ public sealed class ConvertExpressionBodyToolTests
     [Fact]
     public async Task GIVEN_PrimaryProviderReturnsUnavailableRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnLambdaProviderResult()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Success(new MutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new LocationRefactoringRequest
         {
@@ -210,7 +210,7 @@ public sealed class ConvertExpressionBodyToolTests
                 null,
                 null,
                 null))
-            .ReturnsAsync(PluginExecutionResult<MutationProposal>.Rejected(new ToolError
+            .ReturnsAsync(CodeActionExecutionResult<WorkspaceMutationProposal>.Rejected(new CodeActionExecutionError
             {
                 Code = "CodeActionUnavailable",
                 Message = "CodeActionUnavailable",

@@ -1,8 +1,10 @@
 global using AwesomeAssertions;
-global using Roslyn.Workbench.Mcp.Contracts.Inspection;
-global using Roslyn.Workbench.Mcp.Contracts.Results;
-global using Roslyn.Workbench.Mcp.Contracts.Selectors;
-global using Roslyn.Workbench.Mcp.Contracts.Server;
-global using Roslyn.Workbench.Mcp.Contracts.Transactions;
 global using Roslyn.Workbench.Mcp.IntegrationTestSupport;
+global using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Collections;
+global using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
+global using Roslyn.Workbench.Mcp.Protocol.Results;
+global using Roslyn.Workbench.Mcp.Server.Contracts;
+global using Roslyn.Workbench.Mcp.Transaction.Contracts;
+global using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
+global using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 global using Xunit;

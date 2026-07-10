@@ -24,7 +24,7 @@ public sealed class FindOverridesToolTests
     {
         var target = new FindOverridesTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<OverrideSearchData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<OverrideSearchData>.Rejected(new PluginExecutionError
         {
             Code = "SymbolNotFound",
             Message = "SymbolNotFound",
@@ -81,8 +81,8 @@ public sealed class FindOverridesToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new ToolError
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
         {
             Code = "InvalidRequest",
             Message = "Find overrides requires a virtual, abstract, property, or event member symbol.",
@@ -108,7 +108,7 @@ public sealed class FindOverridesToolTests
             "Run",
             null,
             TestContext.Current.CancellationToken);
-        var expected = PluginExecutionResult<OverrideSearchData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<OverrideSearchData>.Rejected(new PluginExecutionError
         {
             Code = "ProjectNotFound",
             Message = "ProjectNotFound",
@@ -228,7 +228,7 @@ public sealed class FindOverridesToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbol!.DisplayName.Should().Be("BaseType.Run()");
         result.Data.Overrides.Items.Select(item => item.DisplayName).Should().Equal("ADerived.Run()", "ZDerived.Run()");
     }

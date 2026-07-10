@@ -24,7 +24,7 @@ public sealed class FindUnusedSymbolsToolTests
     {
         var target = new FindUnusedSymbolsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<UnusedSymbolsData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<UnusedSymbolsData>.Rejected(new PluginExecutionError
         {
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
@@ -76,7 +76,7 @@ public sealed class FindUnusedSymbolsToolTests
             ExcludeGenerated = true,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         compilerDiagnosticService.Verify(item => item.GetCompilerDiagnosticsAsync(
             It.Is<IReadOnlyList<Document>>(documents => documents.Count == 1 && documents[0].Name == "Regular.cs"),
             It.IsAny<CancellationToken>()), Times.Once);
@@ -108,7 +108,7 @@ public sealed class FindUnusedSymbolsToolTests
 
         var result = await target.ExecuteAsync(new FindUnusedSymbolsRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Candidates.Items.Should().BeEmpty();
     }
 
@@ -161,7 +161,7 @@ public sealed class FindUnusedSymbolsToolTests
 
         var result = await target.ExecuteAsync(new FindUnusedSymbolsRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Candidates.Items.Should().BeEmpty();
     }
 
@@ -206,7 +206,7 @@ public sealed class FindUnusedSymbolsToolTests
 
         var result = await target.ExecuteAsync(new FindUnusedSymbolsRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Candidates.Items.Should().BeEmpty();
     }
 
@@ -250,7 +250,7 @@ public sealed class FindUnusedSymbolsToolTests
             IncludeInternal = false,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Candidates.Items.Should().BeEmpty();
     }
 
@@ -301,7 +301,7 @@ public sealed class FindUnusedSymbolsToolTests
 
         var result = await target.ExecuteAsync(new FindUnusedSymbolsRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Candidates.Items.Should().ContainSingle(item => item.Symbol!.DisplayName == "unusedField");
     }
 
@@ -346,7 +346,7 @@ public sealed class FindUnusedSymbolsToolTests
             IncludeInternal = true,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Candidates.Items.Should().BeEmpty();
     }
 
@@ -440,7 +440,7 @@ public sealed class FindUnusedSymbolsToolTests
             IncludeInternal = true,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Candidates.Items.Select(item => item.Symbol!.DisplayName).Should().Equal("unusedField", "ex");
         result.Data.Candidates.Items.SelectMany(item => item.Reasons).Should().Contain("CS0169");
         result.Data.Candidates.Items.SelectMany(item => item.Reasons).Should().Contain("CS0168");

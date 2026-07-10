@@ -24,7 +24,7 @@ public sealed class AnalyzeDisposablesToolTests
     {
         var target = new AnalyzeDisposablesTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<DisposableAnalysisData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<DisposableAnalysisData>.Rejected(new PluginExecutionError
         {
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
@@ -67,7 +67,7 @@ public sealed class AnalyzeDisposablesToolTests
 
         var result = await target.ExecuteAsync(new AnalyzeDisposablesRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Findings.Items.Should().BeEmpty();
     }
 
@@ -109,7 +109,7 @@ public sealed class AnalyzeDisposablesToolTests
 
         var result = await target.ExecuteAsync(new AnalyzeDisposablesRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Findings.Items.Should().BeEmpty();
     }
 
@@ -153,7 +153,7 @@ public sealed class AnalyzeDisposablesToolTests
 
         var result = await target.ExecuteAsync(new AnalyzeDisposablesRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Findings.Items.Should().BeEmpty();
     }
 
@@ -186,7 +186,7 @@ public sealed class AnalyzeDisposablesToolTests
 
         var result = await target.ExecuteAsync(new AnalyzeDisposablesRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Findings.Items.Should().BeEmpty();
     }
 
@@ -229,7 +229,7 @@ public sealed class AnalyzeDisposablesToolTests
 
         var result = await target.ExecuteAsync(new AnalyzeDisposablesRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Findings.Items.Should().BeEmpty();
     }
 
@@ -274,7 +274,7 @@ public sealed class AnalyzeDisposablesToolTests
 
         var result = await target.ExecuteAsync(new AnalyzeDisposablesRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Findings.Items.Should().BeEmpty();
     }
 
@@ -377,7 +377,7 @@ public sealed class AnalyzeDisposablesToolTests
             },
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Findings.Items.Should().ContainSingle();
         result.Data.Findings.Items[0].Kind.Should().Be("UndisposedLocal");
         result.Data.Findings.Items[0].Symbol!.DisplayName.Should().Be("disposable");
@@ -434,7 +434,7 @@ public sealed class AnalyzeDisposablesToolTests
 
         var result = await target.ExecuteAsync(new AnalyzeDisposablesRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Findings.Items.Should().ContainSingle();
         result.Data.Findings.Items[0].Symbol!.DisplayName.Should().Be("disposable");
     }

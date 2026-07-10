@@ -21,7 +21,7 @@ public sealed class RenameSymbolToolTests
     [Fact]
     public async Task GIVEN_ResolveSymbolHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Rejected(new ToolError
+        var expected = PluginExecutionResult<MutationProposal>.Rejected(new PluginExecutionError
         {
             Code = "SymbolNotFound",
             Message = "SymbolNotFound",
@@ -75,8 +75,8 @@ public sealed class RenameSymbolToolTests
 
         var result = await target.ExecuteAsync(request, contextMocks.MutationContext.Object, CancellationToken.None);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new ToolError
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
         {
             Code = "InvalidRequest",
             Message = "A newName value is required.",
@@ -118,7 +118,7 @@ public sealed class RenameSymbolToolTests
 
         var result = await target.ExecuteAsync(request, contextMocks.MutationContext.Object, CancellationToken.None);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data.Should().NotBeNull();
         result.Data!.CandidateSolution.Should().NotBeSameAs(document.Solution);
         result.Data.Summary.Should().Be("Rename 'ExistingName' to 'UpdatedName'.");

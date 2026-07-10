@@ -25,7 +25,7 @@ public sealed class GetChangeImpactToolTests
     {
         var target = new GetChangeImpactTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<ChangeImpactData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<ChangeImpactData>.Rejected(new PluginExecutionError
         {
             Code = "SymbolNotFound",
             Message = "SymbolNotFound",
@@ -69,7 +69,7 @@ public sealed class GetChangeImpactToolTests
             "Run",
             null,
             TestContext.Current.CancellationToken);
-        var expected = PluginExecutionResult<ChangeImpactData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<ChangeImpactData>.Rejected(new PluginExecutionError
         {
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
@@ -121,7 +121,7 @@ public sealed class GetChangeImpactToolTests
             "Run",
             null,
             TestContext.Current.CancellationToken);
-        var expected = PluginExecutionResult<ChangeImpactData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<ChangeImpactData>.Rejected(new PluginExecutionError
         {
             Code = "ProjectNotFound",
             Message = "ProjectNotFound",
@@ -280,7 +280,7 @@ public sealed class GetChangeImpactToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Impact!.ReferenceCount.Should().BeGreaterThan(0);
         result.Data.Impact.CallerCount.Should().BeGreaterThan(0);
         result.Data.Impact.OverrideCount.Should().BeGreaterThan(0);
@@ -420,11 +420,11 @@ public sealed class GetChangeImpactToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        interfaceResult.Outcome.Should().Be(ToolOutcome.Succeeded);
+        interfaceResult.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         interfaceResult.Data!.Impact!.ImplementationCount.Should().Be(2);
         interfaceResult.Data.Impact.PublicSurfaceCount.Should().Be(0);
 
-        privateResult.Outcome.Should().Be(ToolOutcome.Succeeded);
+        privateResult.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         privateResult.Data!.Impact!.PublicSurfaceCount.Should().Be(0);
     }
 }

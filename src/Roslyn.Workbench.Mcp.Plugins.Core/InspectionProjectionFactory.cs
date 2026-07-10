@@ -1,8 +1,8 @@
-using Roslyn.Workbench.Mcp.Contracts.Inspection;
+using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 
-using ContractDiagnosticSeverity = Roslyn.Workbench.Mcp.Contracts.Results.DiagnosticSeverity;
-using ContractProjectInfo = Roslyn.Workbench.Mcp.Contracts.Inspection.ProjectInfo;
-using ContractTypeInfo = Roslyn.Workbench.Mcp.Contracts.Inspection.TypeInfo;
+using ContractDiagnosticSeverity = Roslyn.Workbench.Mcp.Workspace.Contracts.Results.DiagnosticSeverity;
+using ContractProjectInfo = Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection.ProjectInfo;
+using ContractTypeInfo = Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection.TypeInfo;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core;
 

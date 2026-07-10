@@ -49,6 +49,7 @@ public sealed class HostCompositionIntegrationTests
 
         using var host = builder.Build();
         var pluginCatalogSnapshot = host.Services.GetRequiredService<PluginCatalogSnapshot>();
+        var codeActionCatalogSnapshot = host.Services.GetRequiredService<CodeActionCatalogSnapshot>();
         var mcpTools = host.Services.GetServices<McpServerTool>().ToArray();
 
         host.Services.GetRequiredService<IMsBuildRegistrationService>().Should().NotBeNull();
@@ -58,7 +59,7 @@ public sealed class HostCompositionIntegrationTests
         host.Services.GetRequiredService<McpServer>().Should().NotBeNull();
         host.Services.GetRequiredService<IRecoveryStatusReader>().Should().NotBeNull();
 
-        mcpTools.Should().HaveCount(pluginCatalogSnapshot.Tools.Count + 11);
+        mcpTools.Should().HaveCount(pluginCatalogSnapshot.Tools.Count + codeActionCatalogSnapshot.Tools.Count + 11);
         mcpTools.Select(static tool => tool.ProtocolTool.Name).Should().Contain(
         [
             "server-status",

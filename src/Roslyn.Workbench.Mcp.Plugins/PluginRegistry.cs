@@ -1,26 +1,17 @@
-using Roslyn.Workbench.Mcp.Contracts.Selectors;
-using Roslyn.Workbench.Mcp.Contracts.Server;
-using Roslyn.Workbench.Mcp.Plugins.Protocol;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.Plugins;
 
 public sealed class PluginRegistry : IPluginRegistry
 {
     private readonly PluginMetadata _pluginMetadata;
-    private readonly ToolOutputSchemaMode _outputSchemaMode;
     private readonly List<RegisteredTool> _registeredTools;
-    private readonly List<RegisteredPluginTool> _registeredPluginTools;
+    private readonly List<IRegisteredPluginTool> _registeredPluginTools;
     private readonly HashSet<string> _toolNames;
 
     public PluginRegistry(PluginMetadata pluginMetadata)
-        : this(pluginMetadata, ToolOutputSchemaMode.Omit)
-    {
-    }
-
-    public PluginRegistry(PluginMetadata pluginMetadata, ToolOutputSchemaMode outputSchemaMode)
     {
         _pluginMetadata = pluginMetadata;
-        _outputSchemaMode = outputSchemaMode;
         _registeredTools = [];
         _registeredPluginTools = [];
         _toolNames = new HashSet<string>(StringComparer.Ordinal);
@@ -30,28 +21,31 @@ public sealed class PluginRegistry : IPluginRegistry
 
     public IReadOnlyList<RegisteredTool> RegisteredTools => _registeredTools;
 
-    internal IReadOnlyList<RegisteredPluginTool> RegisteredPluginTools => _registeredPluginTools;
+    internal IReadOnlyList<IRegisteredPluginTool> RegisteredPluginTools => _registeredPluginTools;
 
-    internal RegisteredPluginTool GetRegisteredPluginTool(string toolName)
+    internal IRegisteredPluginTool GetRegisteredPluginTool(string toolName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(toolName);
 
         return _registeredPluginTools.Single(tool => string.Equals(tool.Tool.Metadata.Name, toolName, StringComparison.Ordinal));
     }
 
-    internal RegisteredPluginTool GetRegisteredPluginTool(RegisteredTool tool)
+    internal IRegisteredPluginTool GetRegisteredPluginTool(RegisteredTool tool)
     {
         ArgumentNullException.ThrowIfNull(tool);
 
         return _registeredPluginTools.Single(candidate => ReferenceEquals(candidate.Tool, tool));
     }
 
-    public void RegisterQueryTool<TRequest, TResponse>(ToolRegistrationMetadata metadata, IQueryToolHandler<TRequest, TResponse> handler)
+    public void RegisterQueryTool<TRequest, TResponse>(
+        ToolRegistrationMetadata metadata,
+        IQueryToolHandler<TRequest, TResponse> handler)
         where TRequest : WorkspaceBoundRequest
     {
         ArgumentNullException.ThrowIfNull(handler);
 
-        RegisterTool(CreateQueryTool(metadata, handler));
+        var tool = CreateTool(metadata, ToolKind.Query, typeof(TRequest), typeof(TResponse));
+        RegisterTool(new PluginQueryRegistration<TRequest, TResponse>(tool, handler));
     }
 
     public void RegisterMutationTool<TRequest>(
@@ -61,80 +55,36 @@ public sealed class PluginRegistry : IPluginRegistry
     {
         ArgumentNullException.ThrowIfNull(handler);
 
-        RegisterTool(CreateMutationTool(metadata, handler));
+        var tool = CreateTool(metadata, ToolKind.Mutation, typeof(TRequest), typeof(MutationProposal));
+        RegisterTool(new PluginMutationRegistration<TRequest>(tool, handler));
     }
 
-    private void RegisterTool(RegisteredPluginTool pluginTool)
+    private void RegisterTool(IRegisteredPluginTool registration)
     {
-        _registeredTools.Add(pluginTool.Tool);
-        _registeredPluginTools.Add(pluginTool);
+        _registeredTools.Add(registration.Tool);
+        _registeredPluginTools.Add(registration);
     }
 
-    private RegisteredPluginTool CreateQueryTool<TRequest, TResponse>(
+    private RegisteredTool CreateTool(
         ToolRegistrationMetadata metadata,
-        IQueryToolHandler<TRequest, TResponse> handler)
-        where TRequest : WorkspaceBoundRequest
+        ToolKind kind,
+        Type requestType,
+        Type responseType)
     {
-        var requestType = typeof(TRequest);
-        var responseType = typeof(TResponse);
+        ValidateToolRegistration(metadata, requestType, responseType);
 
-        ValidateToolRegistration(metadata, ToolKind.Query, requestType, responseType);
-
-        var tool = new RegisteredTool
+        return new RegisteredTool
         {
             Plugin = _pluginMetadata,
             Metadata = metadata,
-            Kind = ToolKind.Query,
+            Kind = kind,
             RequestType = requestType,
             ResponseType = responseType,
-            InputSchema = ToolSchemaFactory.CreateInputSchema<TRequest>(),
-            OutputSchema = _outputSchemaMode == ToolOutputSchemaMode.Full
-                ? ToolSchemaFactory.CreateOutputSchema(ToolKind.Query, responseType)
-                : null,
-            Annotations = CreateAnnotations(ToolKind.Query, metadata),
-        };
-
-        return new RegisteredPluginTool
-        {
-            Tool = tool,
-            ExecutionAdapter = new QueryPluginToolExecutionAdapter<TRequest, TResponse>(handler),
-        };
-    }
-
-    private RegisteredPluginTool CreateMutationTool<TRequest>(
-        ToolRegistrationMetadata metadata,
-        IMutationToolHandler<TRequest> handler)
-        where TRequest : WorkspaceBoundRequest
-    {
-        var requestType = typeof(TRequest);
-        var responseType = typeof(MutationProposal);
-
-        ValidateToolRegistration(metadata, ToolKind.Mutation, requestType, responseType);
-
-        var tool = new RegisteredTool
-        {
-            Plugin = _pluginMetadata,
-            Metadata = metadata,
-            Kind = ToolKind.Mutation,
-            RequestType = requestType,
-            ResponseType = typeof(Contracts.Results.MutationData),
-            InputSchema = ToolSchemaFactory.CreateInputSchema<TRequest>(),
-            OutputSchema = _outputSchemaMode == ToolOutputSchemaMode.Full
-                ? ToolSchemaFactory.CreateOutputSchema(ToolKind.Mutation, typeof(Contracts.Results.MutationData))
-                : null,
-            Annotations = CreateAnnotations(ToolKind.Mutation, metadata),
-        };
-
-        return new RegisteredPluginTool
-        {
-            Tool = tool,
-            ExecutionAdapter = new MutationPluginToolExecutionAdapter<TRequest>(tool, handler),
         };
     }
 
     private void ValidateToolRegistration(
         ToolRegistrationMetadata metadata,
-        ToolKind kind,
         Type requestType,
         Type responseType)
     {
@@ -148,41 +98,17 @@ public sealed class PluginRegistry : IPluginRegistry
         {
             throw new InvalidOperationException($"Tool name '{metadata.Name}' is already registered for plugin '{_pluginMetadata.PluginId}'.");
         }
-
-        if (kind == ToolKind.Mutation && responseType != typeof(MutationProposal))
-        {
-            throw new InvalidOperationException(
-                $"Mutation tool '{metadata.Name}' must return '{typeof(MutationProposal).FullName}'.");
-        }
-    }
-
-    private static ToolAnnotations CreateAnnotations(ToolKind kind, ToolRegistrationMetadata metadata)
-    {
-        return new ToolAnnotations
-        {
-            Title = metadata.Title,
-            ReadOnlyHint = kind == ToolKind.Query,
-            IdempotentHint = kind == ToolKind.Query,
-            OpenWorldHint = false,
-            DestructiveHint = kind == ToolKind.Mutation && metadata.Behavior.Destructive,
-        };
     }
 
     private static void ValidatePluginMetadata(PluginMetadata metadata)
     {
-        if (string.IsNullOrWhiteSpace(metadata.PluginId))
-        {
-            throw new InvalidOperationException("Plugin metadata must provide PluginId.");
-        }
+        ArgumentNullException.ThrowIfNull(metadata);
 
-        if (string.IsNullOrWhiteSpace(metadata.DisplayName))
+        if (string.IsNullOrWhiteSpace(metadata.PluginId)
+            || string.IsNullOrWhiteSpace(metadata.DisplayName)
+            || string.IsNullOrWhiteSpace(metadata.Version))
         {
-            throw new InvalidOperationException("Plugin metadata must provide DisplayName.");
-        }
-
-        if (string.IsNullOrWhiteSpace(metadata.Version))
-        {
-            throw new InvalidOperationException("Plugin metadata must provide Version.");
+            throw new InvalidOperationException("Plugin metadata must provide PluginId, DisplayName, and Version.");
         }
 
         if (!string.Equals(metadata.SupportedApiVersion, PluginApiVersions.V1, StringComparison.Ordinal))
@@ -194,30 +120,21 @@ public sealed class PluginRegistry : IPluginRegistry
 
     private static void ValidateToolMetadata(ToolRegistrationMetadata metadata)
     {
-        if (string.IsNullOrWhiteSpace(metadata.Name))
+        if (string.IsNullOrWhiteSpace(metadata.Name)
+            || string.IsNullOrWhiteSpace(metadata.Title)
+            || string.IsNullOrWhiteSpace(metadata.Description))
         {
-            throw new InvalidOperationException("Tool metadata must provide Name.");
-        }
-
-        if (string.IsNullOrWhiteSpace(metadata.Title))
-        {
-            throw new InvalidOperationException($"Tool '{metadata.Name}' must provide Title.");
-        }
-
-        if (string.IsNullOrWhiteSpace(metadata.Description))
-        {
-            throw new InvalidOperationException($"Tool '{metadata.Name}' must provide Description.");
+            throw new InvalidOperationException("Tool metadata must provide Name, Title, and Description.");
         }
     }
 
-    private static void ValidateContractType(Type contractType, string parameterName)
+    private static void ValidateContractType(Type type, string parameterName)
     {
-        ArgumentNullException.ThrowIfNull(contractType, parameterName);
+        ArgumentNullException.ThrowIfNull(type, parameterName);
 
-        if (contractType.IsAbstract || contractType.IsInterface || contractType.ContainsGenericParameters)
+        if (!type.IsPublic && !type.IsNestedPublic)
         {
-            throw new InvalidOperationException(
-                $"Registered contract type '{contractType.FullName}' for '{parameterName}' must be a concrete closed type.");
+            throw new InvalidOperationException($"Tool contract type '{type.FullName}' must be public.");
         }
     }
 }

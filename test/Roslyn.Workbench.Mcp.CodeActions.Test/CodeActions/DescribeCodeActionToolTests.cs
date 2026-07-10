@@ -5,16 +5,16 @@ public sealed class DescribeCodeActionToolTests
     [Fact]
     public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
     {
-        var registry = new Mock<IPluginRegistry>();
+        var registry = new Mock<ICodeActionToolRegistry>();
 
         DescribeCodeActionTool.Register(registry.Object);
 
         registry.Verify(item => item.RegisterQueryTool<DescribeCodeActionRequest, DescribeCodeActionData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
+            It.Is<CodeActionToolMetadata>(metadata =>
                 metadata.Name == "describe-code-action"
                 && metadata.Title == "Describe Code Action"
                 && metadata.Description == "Revalidates one discovered code action and returns its execution descriptor and preflight context."),
-            It.IsAny<IQueryToolHandler<DescribeCodeActionRequest, DescribeCodeActionData>>()), Times.Once);
+            It.IsAny<CodeActionQueryToolHandler<DescribeCodeActionRequest, DescribeCodeActionData>>()), Times.Once);
     }
 
     [Fact]
@@ -26,7 +26,7 @@ public sealed class DescribeCodeActionToolTests
         {
             ActionId = "ActionId",
         };
-        var expected = PluginExecutionResult<DescribeCodeActionData>.Success(new DescribeCodeActionData());
+        var expected = CodeActionExecutionResult<DescribeCodeActionData>.Success(new DescribeCodeActionData());
 
         context
             .Setup(item => item.DescribeCodeActionAsync(request, TestContext.Current.CancellationToken))

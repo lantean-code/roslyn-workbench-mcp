@@ -1,8 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Options;
-using Roslyn.Workbench.Mcp.Contracts.Results;
-using Roslyn.Workbench.Mcp.Contracts.Server;
 using Roslyn.Workbench.Mcp.Tools;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
 
 namespace Roslyn.Workbench.Mcp.Test;
 

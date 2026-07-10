@@ -1,6 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.Options;
-using Roslyn.Workbench.Mcp.Contracts.CodeActions;
+using Roslyn.Workbench.Mcp.CodeActions.Contracts;
 using Roslyn.Workbench.Mcp.Tools;
 
 namespace Roslyn.Workbench.Mcp.Test;
@@ -36,13 +36,14 @@ public sealed class ServerStatusRecoveryIntegrationTests
             var codeActionRuntime = new Mock<ICodeActionRuntime>();
             codeActionRuntime
                 .SetupGet(item => item.Status)
-                .Returns(new ComponentStatus
+                .Returns(new CodeActionRuntimeStatus
                 {
                     IsAvailable = true,
                 });
             var service = new ServerStatusService(
                 Options.Create(options),
                 new PluginCatalogSnapshot(),
+                new CodeActionCatalogSnapshot(),
                 msBuildRegistrationService.Object,
                 codeActionRuntime.Object,
                 new RecoveryStatusReader());

@@ -22,7 +22,7 @@ public sealed class SearchSymbolsToolTests
     {
         var target = new SearchSymbolsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<SymbolSearchData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<SymbolSearchData>.Rejected(new PluginExecutionError
         {
             Code = "ProjectNotFound",
             Message = "ProjectNotFound",
@@ -79,7 +79,7 @@ public sealed class SearchSymbolsToolTests
 
         var result = await target.ExecuteAsync(new SearchSymbolsRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("InvalidRequest");
         result.Error.Message.Should().Be("Search symbols requires query or metadataName.");
     }
@@ -114,7 +114,7 @@ public sealed class SearchSymbolsToolTests
             MetadataName = "Missing",
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbols.Items.Should().BeEmpty();
     }
 
@@ -148,7 +148,7 @@ public sealed class SearchSymbolsToolTests
             Kinds = ["Property"],
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbols.Items.Should().BeEmpty();
     }
 
@@ -182,7 +182,7 @@ public sealed class SearchSymbolsToolTests
             Accessibilities = ["Protected"],
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbols.Items.Should().BeEmpty();
     }
 
@@ -216,7 +216,7 @@ public sealed class SearchSymbolsToolTests
             Namespace = "Missing",
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbols.Items.Should().BeEmpty();
     }
 
@@ -271,7 +271,7 @@ public sealed class SearchSymbolsToolTests
             Namespace = "Sample",
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbols.Items.Should().BeEmpty();
     }
 
@@ -310,7 +310,7 @@ public sealed class SearchSymbolsToolTests
             },
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbols.Items.Should().HaveCount(2);
         result.Data.Symbols.Items.Select(item => item.Location!.Document!.Path).Should().Equal("Alpha.cs", "Beta.cs");
         result.Data.Symbols.HasMore.Should().BeTrue();
@@ -360,7 +360,7 @@ public sealed class SearchSymbolsToolTests
             Kinds = ["Method"],
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbols.Items.Should().HaveCount(3);
         result.Data.Symbols.Items[0].Location.Should().BeNull();
         result.Data.Symbols.Items.Skip(1).Select(item => item.Location!.Document!.Path).Should().Equal("Beta.cs", "Gamma.cs");
@@ -413,7 +413,7 @@ public sealed class SearchSymbolsToolTests
             Kinds = ["Method"],
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbols.Items.Should().HaveCount(3);
         result.Data.Symbols.Items[0].Location!.Document.Should().BeNull();
         result.Data.Symbols.Items.Skip(1).Select(item => item.Location!.Document!.Path).Should().Equal("Beta.cs", "Gamma.cs");
@@ -449,7 +449,7 @@ public sealed class SearchSymbolsToolTests
             Accessibilities = ["Internal"],
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbols.Items.Should().HaveCount(2);
         result.Data.Symbols.Items.Select(item => item.Location!.Document!.Path).Should().Equal("Beta.cs", "Beta.cs");
     }
@@ -484,7 +484,7 @@ public sealed class SearchSymbolsToolTests
             Namespace = "Sample",
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbols.Items.Should().HaveCount(4);
         result.Data.Symbols.Items.Select(item => item.Location!.Document!.Path).Should().OnlyContain(item => item == "Alpha.cs" || item == "Beta.cs");
     }

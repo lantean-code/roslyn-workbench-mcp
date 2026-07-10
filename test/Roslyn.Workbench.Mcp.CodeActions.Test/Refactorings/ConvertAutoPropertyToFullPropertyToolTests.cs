@@ -5,23 +5,23 @@ public sealed class ConvertAutoPropertyToFullPropertyToolTests
     [Fact]
     public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
     {
-        var registry = new Mock<IPluginRegistry>();
+        var registry = new Mock<ICodeActionToolRegistry>();
 
         ConvertAutoPropertyToFullPropertyTool.Register(registry.Object);
 
         registry.Verify(item => item.RegisterMutationTool<ConvertAutoPropertyToFullPropertyRequest>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
+            It.Is<CodeActionToolMetadata>(metadata =>
                 metadata.Name == "convert-auto-property-to-full-property"
                 && metadata.Title == "Convert Auto Property To Full Property"
                 && metadata.Description == "Converts a supported auto-property to a full property through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<IMutationToolHandler<ConvertAutoPropertyToFullPropertyRequest>>()), Times.Once);
+            It.IsAny<CodeActionMutationToolHandler<ConvertAutoPropertyToFullPropertyRequest>>()), Times.Once);
     }
 
     [Fact]
     public async Task GIVEN_ConvertAutoPropertyToFullPropertyRequest_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithFullPropertyProvider()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Success(new MutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new ConvertAutoPropertyToFullPropertyRequest
         {

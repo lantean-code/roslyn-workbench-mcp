@@ -1,4 +1,3 @@
-using Roslyn.Workbench.Mcp.Contracts.Server;
 
 namespace Roslyn.Workbench.Mcp.Workspace.State;
 

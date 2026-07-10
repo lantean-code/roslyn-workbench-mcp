@@ -5,29 +5,28 @@ public sealed class ConvertToInterpolatedStringToolTests
     [Fact]
     public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
     {
-        var registry = new Mock<IPluginRegistry>();
+        var registry = new Mock<ICodeActionToolRegistry>();
 
         ConvertToInterpolatedStringTool.Register(registry.Object);
 
         registry.Verify(item => item.RegisterMutationTool<ConvertToInterpolatedStringRequest>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
+            It.Is<CodeActionToolMetadata>(metadata =>
                 metadata.Name == "convert-to-interpolated-string"
                 && metadata.Title == "Convert To Interpolated String"
                 && metadata.Description == "Converts a supported string expression to an interpolated string through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<IMutationToolHandler<ConvertToInterpolatedStringRequest>>()), Times.Once);
+            It.IsAny<CodeActionMutationToolHandler<ConvertToInterpolatedStringRequest>>()), Times.Once);
     }
 
     [Fact]
     public async Task GIVEN_SnapshotValidationReturnsRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnSnapshotRejection()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Rejected(new ToolError
+        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Conflict(new CodeActionExecutionError
         {
             Code = "SnapshotMismatch",
-            Message = "SnapshotMismatch",
-        });
-        var requestResolver = new Mock<IToolRequestResolver>();
-        var services = new Mock<IToolExecutionServices>();
+            Message = "The request snapshot does not match the current workspace snapshot.",
+        }, RequiredAction.ResolveTargetAgain);
+        var workspaceResolver = new Mock<IWorkspaceResolver>();
         var context = new Mock<ICodeActionMutationContext>();
         var request = new ConvertToInterpolatedStringRequest
         {
@@ -39,28 +38,26 @@ public sealed class ConvertToInterpolatedStringToolTests
         };
         var target = new ConvertToInterpolatedStringTool();
 
-        services
-            .Setup(item => item.RequestResolver)
-            .Returns(requestResolver.Object);
         context
-            .Setup(item => item.ToolExecutionServices)
-            .Returns(services.Object);
-        requestResolver
-            .Setup(item => item.ValidateSnapshot<MutationProposal>(context.Object, request.ExpectedSnapshot))
-            .Returns(expected);
+            .Setup(item => item.WorkspaceResolver)
+            .Returns(workspaceResolver.Object);
+        workspaceResolver
+            .Setup(item => item.ValidateSnapshot(request.ExpectedSnapshot))
+            .Returns(SnapshotMatchResult.WorkspaceEpochMismatch());
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        context.Verify(item => item.WorkspaceResolver, Times.Never);
+        workspaceResolver.Verify(
+            item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()),
+            Times.Never);
         context.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
     public async Task GIVEN_RequestWithoutSelection_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequestRejection()
     {
-        var requestResolver = new Mock<IToolRequestResolver>();
-        var services = new Mock<IToolExecutionServices>();
+        var workspaceResolver = new Mock<IWorkspaceResolver>();
         var context = new Mock<ICodeActionMutationContext>();
         var request = new ConvertToInterpolatedStringRequest
         {
@@ -72,31 +69,28 @@ public sealed class ConvertToInterpolatedStringToolTests
         };
         var target = new ConvertToInterpolatedStringTool();
 
-        services
-            .Setup(item => item.RequestResolver)
-            .Returns(requestResolver.Object);
         context
-            .Setup(item => item.ToolExecutionServices)
-            .Returns(services.Object);
-        requestResolver
-            .Setup(item => item.ValidateSnapshot<MutationProposal>(context.Object, request.ExpectedSnapshot))
-            .Returns((PluginExecutionResult<MutationProposal>?)null);
+            .Setup(item => item.WorkspaceResolver)
+            .Returns(workspaceResolver.Object);
+        workspaceResolver
+            .Setup(item => item.ValidateSnapshot(request.ExpectedSnapshot))
+            .Returns(SnapshotMatchResult.Matched());
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
         result.Error.Should().NotBeNull();
         result.Error!.Code.Should().Be("InvalidRequest");
-        context.Verify(item => item.WorkspaceResolver, Times.Never);
+        workspaceResolver.Verify(
+            item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()),
+            Times.Never);
         context.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
     public async Task GIVEN_LocationResolutionIsNotResolved_WHEN_CallingExecuteAsync_THEN_ShouldReturnLocationRejection()
     {
-        var requestResolver = new Mock<IToolRequestResolver>();
         var workspaceResolver = new Mock<IWorkspaceResolver>();
-        var services = new Mock<IToolExecutionServices>();
         var context = new Mock<ICodeActionMutationContext>();
         var request = new ConvertToInterpolatedStringRequest
         {
@@ -108,25 +102,19 @@ public sealed class ConvertToInterpolatedStringToolTests
         };
         var target = new ConvertToInterpolatedStringTool();
 
-        services
-            .Setup(item => item.RequestResolver)
-            .Returns(requestResolver.Object);
-        context
-            .Setup(item => item.ToolExecutionServices)
-            .Returns(services.Object);
         context
             .Setup(item => item.WorkspaceResolver)
             .Returns(workspaceResolver.Object);
-        requestResolver
-            .Setup(item => item.ValidateSnapshot<MutationProposal>(context.Object, request.ExpectedSnapshot))
-            .Returns((PluginExecutionResult<MutationProposal>?)null);
+        workspaceResolver
+            .Setup(item => item.ValidateSnapshot(request.ExpectedSnapshot))
+            .Returns(SnapshotMatchResult.Matched());
         workspaceResolver
             .Setup(item => item.ResolveLocationAsync(request.Selection, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.NotFound());
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
         result.Error.Should().NotBeNull();
         result.Error!.Code.Should().Be("LocationNotFound");
         context.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -135,10 +123,8 @@ public sealed class ConvertToInterpolatedStringToolTests
     [Fact]
     public async Task GIVEN_LocationResolutionIsResolved_WHEN_CallingExecuteAsync_THEN_ShouldStageReplayCodeAction()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Success(new MutationProposal());
-        var requestResolver = new Mock<IToolRequestResolver>();
+        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
         var workspaceResolver = new Mock<IWorkspaceResolver>();
-        var services = new Mock<IToolExecutionServices>();
         var context = new Mock<ICodeActionMutationContext>();
         var location = Location.None;
         var request = new ConvertToInterpolatedStringRequest
@@ -151,18 +137,12 @@ public sealed class ConvertToInterpolatedStringToolTests
         };
         var target = new ConvertToInterpolatedStringTool();
 
-        services
-            .Setup(item => item.RequestResolver)
-            .Returns(requestResolver.Object);
-        context
-            .Setup(item => item.ToolExecutionServices)
-            .Returns(services.Object);
         context
             .Setup(item => item.WorkspaceResolver)
             .Returns(workspaceResolver.Object);
-        requestResolver
-            .Setup(item => item.ValidateSnapshot<MutationProposal>(context.Object, request.ExpectedSnapshot))
-            .Returns((PluginExecutionResult<MutationProposal>?)null);
+        workspaceResolver
+            .Setup(item => item.ValidateSnapshot(request.ExpectedSnapshot))
+            .Returns(SnapshotMatchResult.Matched());
         workspaceResolver
             .Setup(item => item.ResolveLocationAsync(request.Selection, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));

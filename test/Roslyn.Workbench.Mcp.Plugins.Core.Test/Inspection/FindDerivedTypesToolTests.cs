@@ -24,7 +24,7 @@ public sealed class FindDerivedTypesToolTests
     {
         var target = new FindDerivedTypesTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<DerivedTypesData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<DerivedTypesData>.Rejected(new PluginExecutionError
         {
             Code = "SymbolNotFound",
             Message = "SymbolNotFound",
@@ -85,8 +85,8 @@ public sealed class FindDerivedTypesToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new ToolError
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
         {
             Code = "InvalidRequest",
             Message = "Find derived types requires a named type symbol.",
@@ -108,7 +108,7 @@ public sealed class FindDerivedTypesToolTests
             document.Document,
             "BaseType",
             TestContext.Current.CancellationToken);
-        var expected = PluginExecutionResult<DerivedTypesData>.Rejected(new ToolError
+        var expected = PluginExecutionResult<DerivedTypesData>.Rejected(new PluginExecutionError
         {
             Code = "ProjectNotFound",
             Message = "ProjectNotFound",
@@ -217,7 +217,7 @@ public sealed class FindDerivedTypesToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.BaseType!.DisplayName.Should().Be("BaseType");
         result.Data.DerivedTypes.Items.Select(item => item.Type!.DisplayName).Should().Equal("AlphaDerived", "NestedDerived", "ZDerived");
         result.Data.DerivedTypes.Items.Select(item => item.Depth).Should().Equal(1, 2, 1);
@@ -295,7 +295,7 @@ public sealed class FindDerivedTypesToolTests
             Symbol = new SymbolSelector(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.DerivedTypes.Items.Select(item => item.Type!.DisplayName).Should().Equal("AFormatter", "ZFormatter");
     }
 }

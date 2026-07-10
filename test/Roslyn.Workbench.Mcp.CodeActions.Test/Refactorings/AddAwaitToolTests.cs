@@ -5,23 +5,23 @@ public sealed class AddAwaitToolTests
     [Fact]
     public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
     {
-        var registry = new Mock<IPluginRegistry>();
+        var registry = new Mock<ICodeActionToolRegistry>();
 
         AddAwaitTool.Register(registry.Object);
 
         registry.Verify(item => item.RegisterMutationTool<AddAwaitRequest>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
+            It.Is<CodeActionToolMetadata>(metadata =>
                 metadata.Name == "add-await"
                 && metadata.Title == "Add Await"
                 && metadata.Description == "Stages one supported add-await refactoring through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<IMutationToolHandler<AddAwaitRequest>>()), Times.Once);
+            It.IsAny<CodeActionMutationToolHandler<AddAwaitRequest>>()), Times.Once);
     }
 
     [Fact]
     public async Task GIVEN_AwaitKind_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithAwaitActionPath()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Success(new MutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new AddAwaitRequest
         {
@@ -65,7 +65,7 @@ public sealed class AddAwaitToolTests
     [Fact]
     public async Task GIVEN_AwaitConfigureAwaitFalseKind_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithConfigureAwaitActionPath()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Success(new MutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new AddAwaitRequest
         {

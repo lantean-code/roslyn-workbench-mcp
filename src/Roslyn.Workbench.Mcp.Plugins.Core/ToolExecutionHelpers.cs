@@ -1,5 +1,5 @@
-using Roslyn.Workbench.Mcp.Contracts.Results;
-using Roslyn.Workbench.Mcp.Contracts.Selectors;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core;
 
@@ -38,7 +38,7 @@ internal static class ToolExecutionHelpers
 
     public static PluginExecutionResult<T> Rejected<T>(string code, string message, RequiredAction? requiredAction = null)
     {
-        return PluginExecutionResult<T>.Rejected(new ToolError
+        return PluginExecutionResult<T>.Rejected(new PluginExecutionError
         {
             Code = code,
             Message = message,

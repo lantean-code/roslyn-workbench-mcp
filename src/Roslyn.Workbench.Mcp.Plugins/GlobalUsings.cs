@@ -1,7 +1,9 @@
 global using Microsoft.CodeAnalysis;
-global using ModelContextProtocol.Protocol;
-global using ModelContextProtocol.Server;
 global using Roslyn.Workbench.Mcp.Plugins.Execution;
-global using Roslyn.Workbench.Mcp.Plugins.Protocol;
 global using Roslyn.Workbench.Mcp.Plugins.Services;
-global using Roslyn.Workbench.Mcp.Plugins.Workspace;
+global using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
+global using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
+global using Roslyn.Workbench.Mcp.Workspace.ExecutionContexts;
+global using Roslyn.Workbench.Mcp.Workspace.Operations;
+global using Roslyn.Workbench.Mcp.Workspace.Resolution;
+global using Roslyn.Workbench.Mcp.Workspace.Transactions;

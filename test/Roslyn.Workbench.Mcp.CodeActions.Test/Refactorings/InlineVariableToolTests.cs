@@ -5,37 +5,34 @@ public sealed class InlineVariableToolTests
     [Fact]
     public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
     {
-        var registry = new Mock<IPluginRegistry>();
+        var registry = new Mock<ICodeActionToolRegistry>();
 
         InlineVariableTool.Register(registry.Object);
 
         registry.Verify(item => item.RegisterMutationTool<InlineVariableRequest>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
+            It.Is<CodeActionToolMetadata>(metadata =>
                 metadata.Name == "inline-variable"
                 && metadata.Title == "Inline Variable"
                 && metadata.Description == "Inlines a local variable through Roslyn refactoring composition."
                 && metadata.Behavior.Destructive),
-            It.IsAny<IMutationToolHandler<InlineVariableRequest>>()), Times.Once);
+            It.IsAny<CodeActionMutationToolHandler<InlineVariableRequest>>()), Times.Once);
     }
 
     [Fact]
     public async Task GIVEN_RemoveDeclarationIsFalse_WHEN_CallingExecuteAsync_THEN_ShouldReturnUnsupportedOptionRejection()
     {
-        var requestResolver = new Mock<IToolRequestResolver>();
         var workspaceResolver = new Mock<IWorkspaceResolver>();
-        var context = CreateContext(requestResolver, workspaceResolver);
+        var context = CreateContext(workspaceResolver);
         var request = CreateRequest(removeDeclaration: false);
         var target = new InlineVariableTool();
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
         result.Error.Should().NotBeNull();
         result.Error!.Code.Should().Be("UnsupportedOption");
-        requestResolver.Verify(item => item.ResolveSymbolAsync<MutationProposal>(
-            It.IsAny<SymbolSelector?>(),
-            It.IsAny<SnapshotPrecondition?>(),
-            It.IsAny<IToolExecutionContext>(),
+        workspaceResolver.Verify(item => item.ResolveSymbolAsync(
+            It.IsAny<SymbolSelector>(),
             It.IsAny<CancellationToken>()), Times.Never);
         context.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -43,23 +40,19 @@ public sealed class InlineVariableToolTests
     [Fact]
     public async Task GIVEN_SymbolResolutionHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Rejected(new ToolError
+        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Rejected(new CodeActionExecutionError
         {
             Code = "SymbolNotFound",
-            Message = "SymbolNotFound",
-        });
-        var requestResolver = new Mock<IToolRequestResolver>();
+            Message = "The symbol selector did not match any result.",
+        }, RequiredAction.ResolveTargetAgain);
         var workspaceResolver = new Mock<IWorkspaceResolver>();
-        var context = CreateContext(requestResolver, workspaceResolver);
+        var context = CreateContext(workspaceResolver);
         var request = CreateRequest();
         var target = new InlineVariableTool();
 
-        requestResolver
-            .Setup(item => item.ResolveSymbolAsync<MutationProposal>(request.Symbol, request.ExpectedSnapshot, context.Object, CancellationToken.None))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, MutationProposal>
-            {
-                Rejection = expected,
-            });
+        workspaceResolver
+            .Setup(item => item.ResolveSymbolAsync(request.Symbol!, CancellationToken.None))
+            .ReturnsAsync(SelectorResolveResult<ISymbol>.NotFound());
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
@@ -71,23 +64,19 @@ public sealed class InlineVariableToolTests
     [Fact]
     public async Task GIVEN_ResolvedSymbolIsNotLocal_WHEN_CallingExecuteAsync_THEN_ShouldReturnSymbolNotSupportedRejection()
     {
-        var requestResolver = new Mock<IToolRequestResolver>();
         var workspaceResolver = new Mock<IWorkspaceResolver>();
-        var context = CreateContext(requestResolver, workspaceResolver);
+        var context = CreateContext(workspaceResolver);
         var request = CreateRequest();
         var symbol = new Mock<ISymbol>();
         var target = new InlineVariableTool();
 
-        requestResolver
-            .Setup(item => item.ResolveSymbolAsync<MutationProposal>(request.Symbol, request.ExpectedSnapshot, context.Object, CancellationToken.None))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, MutationProposal>
-            {
-                Value = symbol.Object,
-            });
+        workspaceResolver
+            .Setup(item => item.ResolveSymbolAsync(request.Symbol!, CancellationToken.None))
+            .ReturnsAsync(SelectorResolveResult<ISymbol>.Resolved(symbol.Object));
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
         result.Error.Should().NotBeNull();
         result.Error!.Code.Should().Be("SymbolNotSupported");
         workspaceResolver.Verify(item => item.CreateResolvedLocation(It.IsAny<Location>()), Times.Never);
@@ -97,23 +86,19 @@ public sealed class InlineVariableToolTests
     [Fact]
     public async Task GIVEN_LocalSymbolHasNoSourceLocation_WHEN_CallingExecuteAsync_THEN_ShouldReturnSymbolNotSupportedRejection()
     {
-        var requestResolver = new Mock<IToolRequestResolver>();
         var workspaceResolver = new Mock<IWorkspaceResolver>();
-        var context = CreateContext(requestResolver, workspaceResolver);
+        var context = CreateContext(workspaceResolver);
         var request = CreateRequest();
         var local = CreateLocalSymbol([]);
         var target = new InlineVariableTool();
 
-        requestResolver
-            .Setup(item => item.ResolveSymbolAsync<MutationProposal>(request.Symbol, request.ExpectedSnapshot, context.Object, CancellationToken.None))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, MutationProposal>
-            {
-                Value = local.Object,
-            });
+        workspaceResolver
+            .Setup(item => item.ResolveSymbolAsync(request.Symbol!, CancellationToken.None))
+            .ReturnsAsync(SelectorResolveResult<ISymbol>.Resolved(local.Object));
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
         result.Error.Should().NotBeNull();
         result.Error!.Code.Should().Be("SymbolNotSupported");
         workspaceResolver.Verify(item => item.CreateResolvedLocation(It.IsAny<Location>()), Times.Never);
@@ -123,27 +108,23 @@ public sealed class InlineVariableToolTests
     [Fact]
     public async Task GIVEN_LocalSourceLocationCannotBeProjected_WHEN_CallingExecuteAsync_THEN_ShouldReturnSymbolNotSupportedRejection()
     {
-        var requestResolver = new Mock<IToolRequestResolver>();
         var workspaceResolver = new Mock<IWorkspaceResolver>();
-        var context = CreateContext(requestResolver, workspaceResolver);
+        var context = CreateContext(workspaceResolver);
         var request = CreateRequest();
         var location = RoslynTestFactory.CreateSourceLocation();
         var local = CreateLocalSymbol([location]);
         var target = new InlineVariableTool();
 
-        requestResolver
-            .Setup(item => item.ResolveSymbolAsync<MutationProposal>(request.Symbol, request.ExpectedSnapshot, context.Object, CancellationToken.None))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, MutationProposal>
-            {
-                Value = local.Object,
-            });
+        workspaceResolver
+            .Setup(item => item.ResolveSymbolAsync(request.Symbol!, CancellationToken.None))
+            .ReturnsAsync(SelectorResolveResult<ISymbol>.Resolved(local.Object));
         workspaceResolver
             .Setup(item => item.CreateResolvedLocation(location))
             .Returns((ResolvedLocation?)null);
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
         result.Error.Should().NotBeNull();
         result.Error!.Code.Should().Be("SymbolNotSupported");
         context.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -152,22 +133,18 @@ public sealed class InlineVariableToolTests
     [Fact]
     public async Task GIVEN_LocalSourceLocationCanBeProjected_WHEN_CallingExecuteAsync_THEN_ShouldStageReplayCodeAction()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Success(new MutationProposal());
-        var requestResolver = new Mock<IToolRequestResolver>();
+        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
         var workspaceResolver = new Mock<IWorkspaceResolver>();
-        var context = CreateContext(requestResolver, workspaceResolver);
+        var context = CreateContext(workspaceResolver);
         var request = CreateRequest();
         var location = RoslynTestFactory.CreateSourceLocation();
         var resolvedLocation = SelectorTestFactory.CreateResolvedLocation(location, "Code.cs");
         var local = CreateLocalSymbol([location]);
         var target = new InlineVariableTool();
 
-        requestResolver
-            .Setup(item => item.ResolveSymbolAsync<MutationProposal>(request.Symbol, request.ExpectedSnapshot, context.Object, CancellationToken.None))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, MutationProposal>
-            {
-                Value = local.Object,
-            });
+        workspaceResolver
+            .Setup(item => item.ResolveSymbolAsync(request.Symbol!, CancellationToken.None))
+            .ReturnsAsync(SelectorResolveResult<ISymbol>.Resolved(local.Object));
         workspaceResolver
             .Setup(item => item.CreateResolvedLocation(location))
             .Returns(resolvedLocation);
@@ -195,17 +172,9 @@ public sealed class InlineVariableToolTests
             CancellationToken.None), Times.Once);
     }
 
-    private static Mock<ICodeActionMutationContext> CreateContext(Mock<IToolRequestResolver> requestResolver, Mock<IWorkspaceResolver> workspaceResolver)
+    private static Mock<ICodeActionMutationContext> CreateContext(Mock<IWorkspaceResolver> workspaceResolver)
     {
-        var services = new Mock<IToolExecutionServices>();
         var context = new Mock<ICodeActionMutationContext>();
-
-        services
-            .Setup(item => item.RequestResolver)
-            .Returns(requestResolver.Object);
-        context
-            .Setup(item => item.ToolExecutionServices)
-            .Returns(services.Object);
         context
             .Setup(item => item.WorkspaceResolver)
             .Returns(workspaceResolver.Object);

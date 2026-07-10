@@ -12,8 +12,10 @@ The current architecture and outstanding cross-project findings are recorded in 
 
 | Tool family | Unit project | Current position |
 | --- | --- | --- |
-| Contracts and selectors | `Roslyn.Workbench.Mcp.Contracts.Test` | Contract validation, serialisation and schema ownership |
-| Plugin execution and registration | `Roslyn.Workbench.Mcp.Plugins.Test` | Isolated protocol, registry and execution behaviour |
+| Workspace contracts and selectors | `Roslyn.Workbench.Mcp.Workspace.Test` | Workspace selector validation and domain behaviour |
+| Inspection contracts and collection limits | `Roslyn.Workbench.Mcp.Plugins.Core.Test` | Inspection DTO validation alongside owning tools |
+| MCP envelopes, schemas and lifecycle contracts | `Roslyn.Workbench.Mcp.Test` | Host-owned serialisation, binding, schema and transport behaviour |
+| Plugin execution and registration | `Roslyn.Workbench.Mcp.Plugins.Test` | Typed registry, visitor and context-adaptation behaviour |
 | Inspection and normal refactoring tools | `Roslyn.Workbench.Mcp.Plugins.Core.Test` | Per-tool unit coverage and Roslyn algorithm branches |
 | Code-action tools and workflows | `Roslyn.Workbench.Mcp.CodeActions.Test` | Isolated catalogue, discovery, token, workflow and tool behaviour |
 | Server-owned tools | `Roslyn.Workbench.Mcp.Test` | Tool mapping and mock-isolated host service behaviour |

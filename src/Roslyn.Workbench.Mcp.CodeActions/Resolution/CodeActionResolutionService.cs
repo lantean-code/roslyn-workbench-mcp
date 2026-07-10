@@ -23,7 +23,7 @@ internal sealed class CodeActionResolutionService : ICodeActionResolutionService
         string actionId,
         SnapshotPrecondition? expectedSnapshot,
         DiscoveredActionKind? expectedKind,
-        IToolExecutionContext context,
+        ICodeActionExecutionContext context,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -94,7 +94,7 @@ internal sealed class CodeActionResolutionService : ICodeActionResolutionService
 
         if (matches.Length != 1)
         {
-            return RejectedResolution<T>(PluginExecutionResult<T>.Rejected(new ToolError
+            return RejectedResolution<T>(CodeActionExecutionResult<T>.Rejected(new CodeActionExecutionError
             {
                 Code = "ActionAmbiguous",
                 Message = "The requested action could not be reproduced uniquely.",
@@ -119,7 +119,7 @@ internal sealed class CodeActionResolutionService : ICodeActionResolutionService
         };
     }
 
-    private static CodeActionResolution<T> RejectedResolution<T>(PluginExecutionResult<T> rejection)
+    private static CodeActionResolution<T> RejectedResolution<T>(CodeActionExecutionResult<T> rejection)
     {
         return new CodeActionResolution<T>
         {
@@ -127,30 +127,30 @@ internal sealed class CodeActionResolutionService : ICodeActionResolutionService
         };
     }
 
-    private static PluginExecutionResult<T>? ValidateSnapshot<T>(IWorkspaceResolver resolver, SnapshotPrecondition? expectedSnapshot)
+    private static CodeActionExecutionResult<T>? ValidateSnapshot<T>(IWorkspaceResolver resolver, SnapshotPrecondition? expectedSnapshot)
     {
         var result = resolver.ValidateSnapshot(expectedSnapshot);
         return result.Kind == SnapshotMatchKind.Matched
             ? null
-            : PluginExecutionResult<T>.Conflict(new ToolError
+            : CodeActionExecutionResult<T>.Conflict(new CodeActionExecutionError
             {
                 Code = "SnapshotMismatch",
                 Message = "The request snapshot does not match the current workspace snapshot.",
             }, RequiredAction.ResolveTargetAgain);
     }
 
-    private static PluginExecutionResult<T> Rejected<T>(string code, string message, RequiredAction? requiredAction = null)
+    private static CodeActionExecutionResult<T> Rejected<T>(string code, string message, RequiredAction? requiredAction = null)
     {
-        return PluginExecutionResult<T>.Rejected(new ToolError
+        return CodeActionExecutionResult<T>.Rejected(new CodeActionExecutionError
         {
             Code = code,
             Message = message,
         }, requiredAction);
     }
 
-    private static PluginExecutionResult<T> ActionExpired<T>()
+    private static CodeActionExecutionResult<T> ActionExpired<T>()
     {
-        return PluginExecutionResult<T>.Rejected(new ToolError
+        return CodeActionExecutionResult<T>.Rejected(new CodeActionExecutionError
         {
             Code = "ActionExpired",
             Message = "The requested action token is no longer valid.",

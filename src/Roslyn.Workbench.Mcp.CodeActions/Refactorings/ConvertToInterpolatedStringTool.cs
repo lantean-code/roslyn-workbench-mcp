@@ -1,4 +1,4 @@
-using Roslyn.Workbench.Mcp.Contracts.Refactorings;
+using Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 
@@ -7,26 +7,26 @@ internal sealed class ConvertToInterpolatedStringTool : CodeActionMutationToolHa
     private const string Title = "Convert to interpolated string";
     private const string EquivalenceKey = "Convert_to_interpolated_string";
 
-    private static readonly ToolRegistrationMetadata _metadata = new()
+    private static readonly CodeActionToolMetadata _metadata = new()
     {
         Name = "convert-to-interpolated-string",
         Title = "Convert To Interpolated String",
         Description = "Converts a supported string expression to an interpolated string through Roslyn refactoring composition.",
-        Behavior = new ToolBehaviorHints
+        Behavior = new CodeActionToolBehavior
         {
             Destructive = true,
         },
     };
 
-    public static void Register(IPluginRegistry registry)
+    public static void Register(ICodeActionToolRegistry registry)
     {
         registry.RegisterMutationTool(_metadata, new ConvertToInterpolatedStringTool());
     }
 
-    protected override async ValueTask<PluginExecutionResult<MutationProposal>> ExecuteCoreAsync(ConvertToInterpolatedStringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
+    protected override async ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteCoreAsync(ConvertToInterpolatedStringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
 
-        var snapshotRejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<MutationProposal>(context, request.ExpectedSnapshot);
+        var snapshotRejection = ToolExecutionHelpers.ValidateSnapshot<WorkspaceMutationProposal>(context, request.ExpectedSnapshot);
         if (snapshotRejection is not null)
         {
             return snapshotRejection;
@@ -34,13 +34,13 @@ internal sealed class ConvertToInterpolatedStringTool : CodeActionMutationToolHa
 
         if (request.Selection is null)
         {
-            return ToolExecutionHelpers.Rejected<MutationProposal>("InvalidRequest", "A location selector is required.");
+            return ToolExecutionHelpers.Rejected<WorkspaceMutationProposal>("InvalidRequest", "A location selector is required.");
         }
 
         var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(request.Selection, cancellationToken).ConfigureAwait(false);
         if (locationResolution.Status != SelectorResolveStatus.Resolved)
         {
-            return ToolExecutionHelpers.RejectFromStatus<MutationProposal>(locationResolution.Status, "Location");
+            return ToolExecutionHelpers.RejectFromStatus<WorkspaceMutationProposal>(locationResolution.Status, "Location");
         }
 
         return await context.StageReplayCodeActionAsync(new ReplayCodeActionRequest

@@ -1,7 +1,7 @@
 using Microsoft.CodeAnalysis.CodeActions;
 using Roslyn.Workbench.Mcp.CodeActions.Catalog;
+using Roslyn.Workbench.Mcp.CodeActions.Contracts;
 using Roslyn.Workbench.Mcp.CodeActions.Resolution;
-using Roslyn.Workbench.Mcp.Contracts.CodeActions;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 

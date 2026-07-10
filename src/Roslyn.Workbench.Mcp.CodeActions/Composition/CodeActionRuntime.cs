@@ -9,7 +9,7 @@ internal sealed record CodeActionRuntime
     /// <summary>
     /// Gets the current code-action component status.
     /// </summary>
-    public ComponentStatus Status { get; init; } = null!;
+    public CodeActionRuntimeStatus Status { get; init; } = null!;
 
     /// <summary>
     /// Gets the workspace host services used when opening workspaces.

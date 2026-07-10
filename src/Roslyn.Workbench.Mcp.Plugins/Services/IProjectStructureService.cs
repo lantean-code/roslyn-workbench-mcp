@@ -1,4 +1,3 @@
-using Roslyn.Workbench.Mcp.Contracts.Inspection;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Services;
 

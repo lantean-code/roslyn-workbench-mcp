@@ -51,16 +51,14 @@ public sealed class RepresentativeMcpToolIntegrationTests
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
         await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
-        var registry = BundledPluginRegistryFactory.CreateRegistry();
         var snapshot = new SnapshotPrecondition
         {
             WorkspaceEpoch = openResult.WorkspaceEpoch!.Value,
             TransactionRevision = 0,
         };
 
-        var listed = await McpIntegrationTestHost.InvokePluginToolAsync<CodeActionListData>(
+        var listed = await CodeActionToolTestHarness.InvokeAsync<CodeActionListData>(
             coordinator,
-            registry,
             "list-code-actions",
             new Dictionary<string, JsonElement>
             {
@@ -69,9 +67,8 @@ public sealed class RepresentativeMcpToolIntegrationTests
                 ["includeCodeFixes"] = JsonSerializer.SerializeToElement(false),
             });
         var action = listed.Data!.Actions.Single(static candidate => candidate.Title == "Apply test refactoring");
-        var staged = await McpIntegrationTestHost.InvokePluginToolAsync<MutationData>(
+        var staged = await CodeActionToolTestHarness.InvokeAsync<MutationData>(
             coordinator,
-            registry,
             "stage-code-action",
             new Dictionary<string, JsonElement>
             {

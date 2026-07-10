@@ -5,7 +5,7 @@
 ## Project overview
 - Roslyn Workbench is a local, stdio-based MCP server for Roslyn-powered code inspection and transactional refactoring workflows.
 - Primary goals: precise MCP contracts, safe transactional source changes, stable workspace semantics, and a plugin-based query/mutation tool model.
-- Query and mutation MCP tools are plugins, even when shipped in the main server package.
+- Third-party query and mutation tools are plugins; internal Code Action tools use a separate, Host-published catalogue.
 - Non-goals: direct-write source mutations outside the transaction pipeline, dynamic tool discovery after process startup, and silent reinterpretation of stale spans or symbols against newer workspace snapshots.
 
 ## Repository layout
@@ -13,10 +13,10 @@
 - Docs: `./docs`
 - Projects:
   - `Roslyn.Workbench.Mcp` — executable host, bootstrap, and server-owned core MCP lifecycle tools.
-  - `Roslyn.Workbench.Mcp.Contracts` — shared request, response, schema, and result contracts.
-  - `Roslyn.Workbench.Mcp.Workspace` — workspace loading, transaction coordination, and commit/reload infrastructure.
-  - `Roslyn.Workbench.Mcp.Plugins` — plugin abstractions, registration, and execution infrastructure.
-  - `Roslyn.Workbench.Mcp.Plugins.Core` — bundled first-party Roslyn query and mutation plugins.
+  - `Roslyn.Workbench.Mcp.Workspace` — workspace contracts, loading, neutral execution leases, transaction coordination, and commit/reload infrastructure.
+  - `Roslyn.Workbench.Mcp.CodeActions` — internal Code Action contracts, catalogue, workflows, and Workspace adapters.
+  - `Roslyn.Workbench.Mcp.Plugins` — public third-party plugin contracts, registration, and Workspace adapters.
+  - `Roslyn.Workbench.Mcp.Plugins.Core` — bundled inspection contracts and first-party plugins.
   - `*.Test` and `*.TestSupport` projects under `./test` — unit and integration tests plus shared test helpers.
 - Config/conventions: `.editorconfig`, `nuget.config`, `global.json`, and the `AGENTS.md` files in this repository.
 

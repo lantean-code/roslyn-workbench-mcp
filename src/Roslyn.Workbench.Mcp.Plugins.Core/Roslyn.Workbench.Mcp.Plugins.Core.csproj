@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\Roslyn.Workbench.Mcp.Contracts\Roslyn.Workbench.Mcp.Contracts.csproj" />
     <ProjectReference Include="..\Roslyn.Workbench.Mcp.Plugins\Roslyn.Workbench.Mcp.Plugins.csproj" />
+    <ProjectReference Include="..\Roslyn.Workbench.Mcp.Workspace\Roslyn.Workbench.Mcp.Workspace.csproj" />
   </ItemGroup>
 
   <ItemGroup>

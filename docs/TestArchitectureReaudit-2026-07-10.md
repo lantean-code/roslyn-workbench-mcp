@@ -23,24 +23,23 @@ The current structure provides:
 - deterministic plugin-discovery fixtures in dedicated assemblies
 - independent CI gates for fast, integration and compatibility-audit coverage
 
-The full suite discovers 799 tests: 629 unit/contract tests, 77 integration tests and 93 audit tests. All pass in the current workspace.
+The boundary-refactored suite discovers 837 tests: 666 unit/contract tests, 78 integration tests and 93 audit tests. All pass in the current workspace.
 
-One medium-priority evidence gap remains intentionally open: the six-test Workspace unit project does not demonstrate meaningful unit-level branch coverage for the Workspace production assembly. This will be addressed in a separate round and is not masked by the 42 Workspace integration tests.
+One medium-priority evidence gap remains intentionally open: the seventeen-test Workspace unit project does not yet demonstrate broad unit-level branch coverage for the Workspace production assembly. This will be addressed in a separate round and is not masked by the 42 Workspace integration tests.
 
 ## Current Project Topology
 
 | Project | Category | Responsibility | Tests |
 | --- | --- | --- | ---: |
-| `Roslyn.Workbench.Mcp.Contracts.Test` | Unit/Contract | DTO validation, schemas, serialisation, selectors and result contracts | 53 |
-| `Roslyn.Workbench.Mcp.Plugins.Test` | Unit/Contract | Plugin registration, execution plumbing, protocol shape and public surface | 22 |
-| `Roslyn.Workbench.Mcp.Workspace.Test` | Unit | Workspace unit-test implementation round in progress | 4 |
-| `Roslyn.Workbench.Mcp.Plugins.Core.Test` | Unit | Bundled inspection and normal-refactoring branches | 305 |
-| `Roslyn.Workbench.Mcp.CodeActions.Test` | Unit | Code-action services, workflows, catalogues and tools | 220 |
-| `Roslyn.Workbench.Mcp.Test` | Unit | Mock-isolated host services and server-owned tools | 25 |
+| `Roslyn.Workbench.Mcp.Plugins.Test` | Unit/Contract | Typed plugin registration, context adaptation, execution results and public surface | 26 |
+| `Roslyn.Workbench.Mcp.Workspace.Test` | Unit/Contract | Workspace-owned selectors, validation and execution-boundary primitives | 17 |
+| `Roslyn.Workbench.Mcp.Plugins.Core.Test` | Unit | Bundled inspection and normal-refactoring branches | 308 |
+| `Roslyn.Workbench.Mcp.CodeActions.Test` | Unit | Code-action services, workflows, catalogues and tools | 238 |
+| `Roslyn.Workbench.Mcp.Test` | Unit/Contract | Host services, MCP schemas/envelopes, typed transport adapters and relocated Host contracts | 77 |
 | `Roslyn.Workbench.Mcp.Workspace.IntegrationTest` | Integration | MSBuild, workspace lifecycle, selection and transaction persistence | 42 |
 | `Roslyn.Workbench.Mcp.Plugins.Core.IntegrationTest` | Integration | Capability-focused real-workspace inspection and mutation | 14 |
 | `Roslyn.Workbench.Mcp.CodeActions.IntegrationTest` | Integration | Controlled-provider workflows, tokens, fix-all and representative built-in staging | 10 |
-| `Roslyn.Workbench.Mcp.IntegrationTest` | Integration | Host composition, MCP adapter, recovery, lifecycle and plugin discovery acceptance | 11 |
+| `Roslyn.Workbench.Mcp.IntegrationTest` | Integration | Host composition, MCP adapter, recovery, lifecycle and plugin discovery acceptance | 12 |
 | `Roslyn.Workbench.Mcp.CodeActions.AuditTest` | Audit | Built-in Roslyn provider compatibility and replay wrappers | 93 |
 
 Support and fixture projects are not test assemblies:
@@ -65,20 +64,20 @@ The fast-loop filter is:
 Category!=Integration&Category!=Audit
 ```
 
-It selects 629 tests and no test from an `*.IntegrationTest` or `*.AuditTest` assembly.
+It selects 666 tests and no test from an `*.IntegrationTest` or `*.AuditTest` assembly.
 
 ### Support dependency direction
 
 The targets file rejects references to `Roslyn.Workbench.Mcp.IntegrationTestSupport` from normal test projects and from `Roslyn.Workbench.Mcp.TestSupport`.
 
 ```text
-Unit/contract tests -> TestSupport -> Contracts + Plugins
+Unit/contract tests -> TestSupport -> Plugins -> Workspace
 Integration/audit tests -> IntegrationTestSupport -> production projects
 IntegrationTestSupport -X-> TestSupport
 TestSupport -X-> IntegrationTestSupport
 ```
 
-Integration support now exposes only actively consumed fixture, coordinator, registry and protocol helpers. The obsolete context builders, request factory and direct handler-execution harness methods have been removed.
+Integration support constructs the Workspace, plugin and internal Code Action paths explicitly. It has separate typed MCP harnesses and no silent unavailable fallbacks.
 
 ### Reflection policy
 
@@ -182,8 +181,8 @@ dotnet test --no-restore --artifacts-path=/tmp/artifacts/roslyn-workbench-mcp
 Results:
 
 - build: 0 warnings, 0 errors
-- unit/contract projects: 629 passed
-- integration projects: 77 passed
+- unit/contract projects: 666 passed
+- integration projects: 78 passed
 - code-action audit: 93 passed
-- full suite: 799 passed
+- full suite: 837 passed
 - changed CRLF-governed files normalised to CRLF

@@ -2,8 +2,7 @@ using Roslyn.Workbench.Mcp.TestSupport;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test;
 
-[Trait("Category", "Integration")]
-public sealed class WorkspaceInputManifestBuilderTests
+public sealed class WorkspaceInputManifestBuilderIntegrationTests
 {
     [Fact]
     public void GIVEN_ProjectWithCustomImportedProps_WHEN_BuildingManifest_THEN_ShouldIncludeEvaluatedImportPath()

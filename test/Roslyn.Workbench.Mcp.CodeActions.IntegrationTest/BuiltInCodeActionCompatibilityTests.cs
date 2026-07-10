@@ -6,9 +6,10 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 public sealed class BuiltInCodeActionCompatibilityTests
 {
     [Theory]
-    [MemberData(nameof(GetSupportedCompatibilityCases))]
-    public async Task GIVEN_SupportedCompatibilityCase_WHEN_ProbingRuntime_THEN_ShouldRemainVisibleAndReplayable(BuiltInCodeActionAuditCase auditCase)
+    [MemberData(nameof(GetSupportedCompatibilityProviderIds))]
+    public async Task GIVEN_SupportedCompatibilityCase_WHEN_ProbingRuntime_THEN_ShouldRemainVisibleAndReplayable(string providerId)
     {
+        var auditCase = BuiltInCodeActionAuditCases.SupportedCompatibilityCases.Single(item => item.ProviderId == providerId);
         var probe = await BuiltInCodeActionAuditHarness.ProbeAsync(auditCase);
 
         probe.LocationStatus.Should().Be(SelectorResolveStatus.Resolved);
@@ -16,13 +17,13 @@ public sealed class BuiltInCodeActionCompatibilityTests
         probe.IsVisibleInList.Should().BeTrue(auditCase.ToolName ?? auditCase.ProviderId);
     }
 
-    public static TheoryData<BuiltInCodeActionAuditCase> GetSupportedCompatibilityCases()
+    public static TheoryData<string> GetSupportedCompatibilityProviderIds()
     {
-        var data = new TheoryData<BuiltInCodeActionAuditCase>();
+        var data = new TheoryData<string>();
 
         foreach (var auditCase in BuiltInCodeActionAuditCases.SupportedCompatibilityCases)
         {
-            data.Add(auditCase);
+            data.Add(auditCase.ProviderId);
         }
 
         return data;

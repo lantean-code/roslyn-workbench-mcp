@@ -1,6 +1,5 @@
 namespace Roslyn.Workbench.Mcp.Workspace.Test;
 
-[Trait("Category", "Integration")]
 public sealed class WorkspaceDiffBuilderTests
 {
     [Fact]
@@ -9,7 +8,7 @@ public sealed class WorkspaceDiffBuilderTests
         using var workspace = new AdhocWorkspace();
         var projectId = ProjectId.CreateNewId();
         var documentId = DocumentId.CreateNewId(projectId);
-        var projectPath = Path.Combine(Path.GetTempPath(), "WorkspaceDiffBuilderTests", Guid.NewGuid().ToString("n"), "Sample.csproj");
+        var projectPath = Path.Combine("WorkspaceDiffBuilderTests", "Sample.csproj");
         var documentPath = Path.Combine(Path.GetDirectoryName(projectPath)!, "Class1.cs");
         var baselineText = """
             Line 1
@@ -35,15 +34,26 @@ public sealed class WorkspaceDiffBuilderTests
             .AddProject(ProjectInfo.Create(projectId, VersionStamp.Create(), "Sample", "Sample", LanguageNames.CSharp, filePath: projectPath))
             .AddDocument(documentId, "Class1.cs", SourceText.From(baselineText), filePath: documentPath);
         var currentSolution = baselineSolution.WithDocumentText(documentId, SourceText.From(currentText));
-        var resolver = new WorkspaceResolver(currentSolution, null, null);
         var currentDocument = currentSolution.GetDocument(documentId)!;
-        var documentReference = resolver.CreateDocumentReference(currentDocument)!;
+        var documentReference = new DocumentReference
+        {
+            DocumentId = documentId.Id.ToString(),
+            Path = "Class1.cs",
+            ProjectId = projectId.Id.ToString(),
+        };
+        var resolver = new Mock<IWorkspaceResolver>();
+        resolver
+            .Setup(item => item.ResolveDocument(It.Is<DocumentSelector>(selector => selector.DocumentId == documentReference.DocumentId)))
+            .Returns(SelectorResolveResult<Document>.Resolved(currentDocument));
+        resolver
+            .Setup(item => item.CreateDocumentReference(It.Is<Document>(document => document.Id == documentId)))
+            .Returns(documentReference);
 
         var diff = await WorkspaceDiffBuilder.CreateDocumentDiffAsync(
             baselineSolution,
             currentSolution,
             documentReference,
-            resolver,
+            resolver.Object,
             contextLines: 1,
             CancellationToken.None);
 
@@ -51,6 +61,8 @@ public sealed class WorkspaceDiffBuilderTests
         diff!.Hunks.Should().HaveCount(2);
         diff.Hunks[0].Lines.Should().ContainInOrder(" Line 1", "-Line 2", "+Line 2 updated", " Line 3");
         diff.Hunks[1].Lines.Should().ContainInOrder(" Line 6", "-Line 7", "+Line 7 updated", " Line 8");
+        resolver.Verify(item => item.ResolveDocument(It.Is<DocumentSelector>(selector => selector.DocumentId == documentReference.DocumentId)), Times.Once);
+        resolver.Verify(item => item.CreateDocumentReference(It.Is<Document>(document => document.Id == documentId)), Times.Once);
     }
 
     [Fact]
@@ -59,7 +71,7 @@ public sealed class WorkspaceDiffBuilderTests
         using var workspace = new AdhocWorkspace();
         var projectId = ProjectId.CreateNewId();
         var documentId = DocumentId.CreateNewId(projectId);
-        var projectPath = Path.Combine(Path.GetTempPath(), "WorkspaceDiffBuilderTests", Guid.NewGuid().ToString("n"), "Sample.csproj");
+        var projectPath = Path.Combine("WorkspaceDiffBuilderTests", "Sample.csproj");
         var documentPath = Path.Combine(Path.GetDirectoryName(projectPath)!, "Class1.cs");
         var baselineText = """
             Line 1
@@ -76,12 +88,22 @@ public sealed class WorkspaceDiffBuilderTests
             .AddProject(ProjectInfo.Create(projectId, VersionStamp.Create(), "Sample", "Sample", LanguageNames.CSharp, filePath: projectPath))
             .AddDocument(documentId, "Class1.cs", SourceText.From(baselineText), filePath: documentPath);
         var currentSolution = baselineSolution.WithDocumentText(documentId, SourceText.From(currentText));
-        var resolver = new WorkspaceResolver(currentSolution, null, null);
+        var currentDocument = currentSolution.GetDocument(documentId)!;
+        var documentReference = new DocumentReference
+        {
+            DocumentId = documentId.Id.ToString(),
+            Path = "Class1.cs",
+            ProjectId = projectId.Id.ToString(),
+        };
+        var resolver = new Mock<IWorkspaceResolver>();
+        resolver
+            .Setup(item => item.CreateDocumentReference(It.Is<Document>(document => document.Id == documentId)))
+            .Returns(documentReference);
 
         var summary = await WorkspaceDiffBuilder.CreateChangeSummaryAsync(
             baselineSolution,
             currentSolution,
-            resolver,
+            resolver.Object,
             CancellationToken.None);
 
         summary.Modified.Should().ContainSingle();
@@ -91,5 +113,6 @@ public sealed class WorkspaceDiffBuilderTests
             RemovedLines = 0,
             ChangedLines = 0,
         });
+        resolver.Verify(item => item.CreateDocumentReference(It.Is<Document>(document => document.Id == documentId)), Times.Once);
     }
 }

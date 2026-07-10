@@ -2,8 +2,7 @@ using Roslyn.Workbench.Mcp.TestSupport;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test;
 
-[Trait("Category", "Integration")]
-public sealed class MsBuildProjectUtilitiesTests
+public sealed class MsBuildProjectUtilitiesIntegrationTests
 {
     [Fact]
     public void GIVEN_ProjectWithTopLevelSdkElement_WHEN_InspectingCompatibility_THEN_ShouldReportSdkStyle()

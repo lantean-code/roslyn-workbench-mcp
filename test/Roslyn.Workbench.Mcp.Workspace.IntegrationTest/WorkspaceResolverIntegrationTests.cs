@@ -2,8 +2,7 @@ using Roslyn.Workbench.Mcp.Plugins;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test;
 
-[Trait("Category", "Integration")]
-public sealed class WorkspaceResolverTests
+public sealed class WorkspaceResolverIntegrationTests
 {
     [Fact]
     public async Task GIVEN_WorkspaceRelativeProjectPath_WHEN_ResolvingProject_THEN_ShouldResolveAgainstWorkspaceRoot()

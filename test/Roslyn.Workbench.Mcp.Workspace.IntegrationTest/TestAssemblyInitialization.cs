@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-using Roslyn.Workbench.Mcp.TestSupport;
+using Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test;
 

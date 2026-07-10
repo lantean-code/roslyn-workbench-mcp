@@ -8,11 +8,32 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 [Trait("Category", "Audit")]
 public sealed class ReplayRefactoringToolsTests
 {
-    public static TheoryData<string, ReplayMutationCaseDefinition> ReplayMutationCases
+    public static TheoryData<string> ReplayMutationCaseNames
     {
         get
         {
-            var allCases = new Dictionary<string, ReplayMutationCaseDefinition>(StringComparer.Ordinal)
+            var cases = new TheoryData<string>();
+
+            foreach (var toolName in BuiltInCodeActionAuditCases.SupportedCompatibilityCases
+                .Select(static auditCase => auditCase.ToolName)
+                .Where(static toolName => !string.IsNullOrWhiteSpace(toolName))
+                .Distinct(StringComparer.Ordinal))
+            {
+                if (ReplayMutationCases.ContainsKey(toolName!))
+                {
+                    cases.Add(toolName!);
+                }
+            }
+
+            return cases;
+        }
+    }
+
+    private static IReadOnlyDictionary<string, ReplayMutationCaseDefinition> ReplayMutationCases
+    {
+        get
+        {
+            return new Dictionary<string, ReplayMutationCaseDefinition>(StringComparer.Ordinal)
             {
                 { "convert-between-regular-and-verbatim-interpolated-string", new(static (fixture, open) => CreateLocationRequest(fixture.GetLocation("$\"C:\\\\temp\\\\{value}\""), open), "Formatting.cs") },
                 { "convert-between-regular-and-verbatim-string", new(static (fixture, open) => CreateLocationRequest(fixture.GetLocation("\"C:\\\\temp\\\\logs\""), open), "Formatting.cs") },
@@ -47,29 +68,15 @@ public sealed class ReplayRefactoringToolsTests
                 { "introduce-using-statement", new(static (fixture, open) => CreateLocationRequest(fixture.GetSelection("var stream = new MemoryStream();"), open), "Formatting.cs") },
                 { "replace-conditional-with-statements", new(static (fixture, open) => CreateLocationRequest(fixture.GetLocation("value = enabled ? 1 : 2;"), open), "Formatting.cs") },
             };
-            var cases = new TheoryData<string, ReplayMutationCaseDefinition>();
-
-            foreach (var toolName in BuiltInCodeActionAuditCases.SupportedCompatibilityCases
-                .Select(static auditCase => auditCase.ToolName)
-                .Where(static toolName => !string.IsNullOrWhiteSpace(toolName))
-                .Distinct(StringComparer.Ordinal))
-            {
-                if (allCases.TryGetValue(toolName!, out var testCase))
-                {
-                    cases.Add(toolName!, testCase);
-                }
-            }
-
-            return cases;
         }
     }
 
     [Theory]
-    [MemberData(nameof(ReplayMutationCases))]
+    [MemberData(nameof(ReplayMutationCaseNames))]
     public async Task GIVEN_ActiveTransactionAndBuiltInCodeActions_WHEN_ExecutingReplayWrapper_THEN_ShouldStageStructuredMutation(
-        string toolName,
-        ReplayMutationCaseDefinition testCase)
+        string toolName)
     {
+        var testCase = ReplayMutationCases[toolName];
         using var fixture = await (testCase.FixtureFactory?.Invoke() ?? InspectionSampleFixture.CreateAsync());
         var coordinator = CreateBuiltInCoordinator();
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest

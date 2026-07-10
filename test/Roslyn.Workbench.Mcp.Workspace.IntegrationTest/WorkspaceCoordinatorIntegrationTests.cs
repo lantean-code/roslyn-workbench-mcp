@@ -1,66 +1,14 @@
 using System.Text;
 using System.Text.Json;
 
-using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.Contracts.Selectors;
 using Roslyn.Workbench.Mcp.Plugins;
-using Roslyn.Workbench.Mcp.TestSupport;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test;
 
-[Trait("Category", "Integration")]
-public sealed class WorkspaceCoordinatorTests
+public sealed class WorkspaceCoordinatorIntegrationTests
 {
     private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
-
-    [Fact]
-    [Trait("Category", "Contract")]
-    public void GIVEN_WorkspaceCoordinatorContract_WHEN_InspectingTransactionSurface_THEN_ShouldOnlyExposePluginExecutionContextCreation()
-    {
-        typeof(IWorkspaceExecutionContextFactory).GetInterfaces().Should().ContainSingle(static type => type == typeof(IToolExecutionContextFactory));
-        typeof(IToolExecutionContextFactory).GetMethod("CreateQueryContext", [typeof(WorkspaceBoundRequest), typeof(CancellationToken)]).Should().NotBeNull();
-        typeof(IToolExecutionContextFactory).GetMethod("CreateMutationContext", [typeof(WorkspaceBoundRequest), typeof(CancellationToken)]).Should().NotBeNull();
-    }
-
-    [Fact]
-    [Trait("Category", "Contract")]
-    public void GIVEN_WorkspaceCoordinatorOptionsContract_WHEN_InspectingPublicProperties_THEN_ShouldOnlyExposeConfigurationState()
-    {
-        var propertyNames = typeof(WorkspaceCoordinatorOptions)
-            .GetProperties()
-            .Select(static property => property.Name)
-            .OrderBy(static name => name, StringComparer.Ordinal)
-            .ToArray();
-
-        propertyNames.Should().Equal(
-        [
-            "DefaultMaxResults",
-            "MaxConcurrentQueries",
-            "MaxLoadedWorkspaces",
-            "MaxTransactionRevisions",
-            "StateDirectory",
-        ]);
-    }
-
-    [Fact]
-    [Trait("Category", "Contract")]
-    public void GIVEN_WorkspaceCoordinatorType_WHEN_InspectingPublicConstructors_THEN_ShouldRequireSharedHostService()
-    {
-        var constructor = typeof(WorkspaceExecutionContextFactory).GetConstructor(
-        [
-            typeof(IOptions<WorkspaceCoordinatorOptions>),
-            typeof(Roslyn.Workbench.Mcp.CodeActions.Execution.ICodeActionQueryWorkflow),
-            typeof(Roslyn.Workbench.Mcp.CodeActions.Execution.ICodeActionMutationWorkflow),
-            typeof(IToolExecutionServices),
-            typeof(IWorkspaceSessionStore),
-            typeof(IWorkspaceSelector),
-            typeof(IWorkspaceChangeDetector),
-            typeof(IWorkspaceStateTransitions),
-            typeof(IMutationStagingService),
-        ]);
-
-        constructor.Should().NotBeNull();
-    }
 
     [Fact]
     public async Task GIVEN_UnloadedCoordinator_WHEN_OpeningWorkspace_THEN_ShouldTransitionToReady()

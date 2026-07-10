@@ -49,19 +49,10 @@ public sealed class ReplayRefactoringToolsTests
             };
             var cases = new TheoryData<string, ReplayMutationCaseDefinition>();
 
-            foreach (var toolName in BuiltInCodeActionAuditCases.PromotedDraftValidationCandidates
+            foreach (var toolName in BuiltInCodeActionAuditCases.SupportedCompatibilityCases
                 .Select(static auditCase => auditCase.ToolName)
-                .Where(static toolName => !string.IsNullOrWhiteSpace(toolName)))
-            {
-                if (allCases.TryGetValue(toolName!, out var testCase))
-                {
-                    cases.Add(toolName!, testCase);
-                }
-            }
-
-            foreach (var toolName in BuiltInCodeActionAuditCases.PendingPromotionCandidates
-                .Select(static auditCase => auditCase.ToolName)
-                .Where(static toolName => !string.IsNullOrWhiteSpace(toolName)))
+                .Where(static toolName => !string.IsNullOrWhiteSpace(toolName))
+                .Distinct(StringComparer.Ordinal))
             {
                 if (allCases.TryGetValue(toolName!, out var testCase))
                 {

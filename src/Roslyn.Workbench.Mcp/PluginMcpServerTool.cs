@@ -38,6 +38,6 @@ internal sealed class PluginMcpServerTool : McpServerTool
     {
         var arguments = requestContext.Params.Arguments ?? new Dictionary<string, JsonElement>(StringComparer.Ordinal);
 
-        return _registeredTool.Runtime.InvokeAsync(arguments, _contextFactory, cancellationToken);
+        return _registeredTool.ExecutionAdapter.InvokeAsync(arguments, _contextFactory, cancellationToken);
     }
 }

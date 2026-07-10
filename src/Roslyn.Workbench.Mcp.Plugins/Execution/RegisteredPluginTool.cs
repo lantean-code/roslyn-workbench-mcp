@@ -4,5 +4,5 @@ internal sealed record RegisteredPluginTool
 {
     public RegisteredTool Tool { get; init; } = new();
 
-    public IPluginToolRuntime Runtime { get; init; } = NullPluginToolRuntime.Instance;
+    public IPluginToolExecutionAdapter ExecutionAdapter { get; init; } = NullPluginToolExecutionAdapter.Instance;
 }

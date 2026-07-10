@@ -97,7 +97,7 @@ public sealed class PluginRegistry : IPluginRegistry
         return new RegisteredPluginTool
         {
             Tool = tool,
-            Runtime = new QueryPluginToolRuntime<TRequest, TResponse>(handler),
+            ExecutionAdapter = new QueryPluginToolExecutionAdapter<TRequest, TResponse>(handler),
         };
     }
 
@@ -128,7 +128,7 @@ public sealed class PluginRegistry : IPluginRegistry
         return new RegisteredPluginTool
         {
             Tool = tool,
-            Runtime = new MutationPluginToolRuntime<TRequest>(tool, handler),
+            ExecutionAdapter = new MutationPluginToolExecutionAdapter<TRequest>(tool, handler),
         };
     }
 

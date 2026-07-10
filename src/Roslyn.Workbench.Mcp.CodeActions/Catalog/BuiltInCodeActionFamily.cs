@@ -12,7 +12,7 @@ internal sealed record BuiltInCodeActionFamily
 
     public BuiltInCodeActionSupportState State { get; init; }
 
-    public BuiltInCodeActionAuditStatus AuditStatus { get; init; } = BuiltInCodeActionAuditStatus.ValidationCandidate;
+    public BuiltInCodeActionAuditStatus AuditStatus { get; init; } = BuiltInCodeActionAuditStatus.ImpossibleUnderCurrentRules;
 
     public BuiltInCodeActionHideReason HideReason { get; init; }
 

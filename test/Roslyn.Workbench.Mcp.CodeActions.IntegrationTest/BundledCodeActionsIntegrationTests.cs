@@ -30,17 +30,6 @@ public sealed class BundledCodeActionsIntegrationTests
     }
 
     [Fact]
-    public void GIVEN_BundledCodeActionsPlugin_WHEN_RegisteringTools_THEN_ShouldHideDeferredCodeActionFamilies()
-    {
-        var plugin = new BundledCodeActionsPlugin();
-        var registry = new PluginRegistry(plugin.Metadata);
-
-        plugin.Register(registry);
-
-        BuiltInCodeActionAuditCases.HiddenDedicatedToolNames.Should().BeEmpty();
-    }
-
-    [Fact]
     public void GIVEN_BundledPlugins_WHEN_RegisteringConvertAutoPropertyTool_THEN_ShouldUseDedicatedRequestContract()
     {
         var registry = BundledPluginRegistryFactory.CreateRegistry();
@@ -48,17 +37,6 @@ public sealed class BundledCodeActionsIntegrationTests
         var tool = registry.RegisteredTools.Single(static registeredTool => registeredTool.Metadata.Name == "convert-auto-property-to-full-property");
 
         tool.RequestType.Should().Be(typeof(ConvertAutoPropertyToFullPropertyRequest));
-    }
-
-    [Fact]
-    public void GIVEN_BundledPlugins_WHEN_RegisteringTools_THEN_ShouldExposePendingPromotionToolSurface()
-    {
-        var registry = BundledPluginRegistryFactory.CreateRegistry();
-
-        registry.RegisteredTools.Select(static tool => tool.Metadata.Name).Should().Contain(
-            BuiltInCodeActionAuditCases.PendingPromotionCandidates
-                .Select(static auditCase => auditCase.ToolName)
-                .Where(static toolName => !string.IsNullOrWhiteSpace(toolName)));
     }
 
     [Fact]

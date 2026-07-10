@@ -493,8 +493,11 @@ metadata identifies the plugin with a stable ID, display name, semantic version
 and supported plugin API version. The entry point explicitly registers its
 query and mutation handlers with `IPluginRegistry`. Each registration supplies
 typed request and response contracts, tool metadata, and a handler. The registry
-uses reflection only at startup where needed to inspect that generic handler
-contract and build a `RegisteredTool`. A `RegisteredTool` is the sole internal
+retains the supplied handler for the lifetime of the plugin catalogue. Handlers
+must be stateless, thread-safe, and must not own disposable resources.
+Invocation-scoped services are available through the execution context. The
+registry uses reflection only at startup where needed to inspect that generic
+handler contract and build a `RegisteredTool`. A `RegisteredTool` is the sole internal
 source of truth for a tool's plugin identity, name, description, behaviour,
 annotations, request and response CLR types, generated JSON schemas, and
 invocation delegate. Tool names are globally unique; invalid handler contracts,

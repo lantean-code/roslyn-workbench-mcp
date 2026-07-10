@@ -263,13 +263,6 @@ public static class BuiltInCodeActionAuditCases
         .OrderBy(static toolName => toolName, StringComparer.Ordinal)
         .ToArray();
 
-    public static IReadOnlyList<string> HiddenDedicatedToolNames { get; } = BuiltInCodeActionLedger.Families
-        .Where(static family => !family.IsDedicatedToolVisible && !string.IsNullOrWhiteSpace(family.ToolName))
-        .Select(static family => family.ToolName!)
-        .Distinct(StringComparer.Ordinal)
-        .OrderBy(static toolName => toolName, StringComparer.Ordinal)
-        .ToArray();
-
     public static IReadOnlyList<BuiltInCodeActionAuditCase> VisibleReplayFamilies { get; } = BuiltInCodeActionLedger.Families
         .Where(static family => family.ExecutionMode == CodeActionExecutionMode.Replay)
         .Where(static family => family.IsVisible)
@@ -278,15 +271,7 @@ public static class BuiltInCodeActionAuditCases
         .Select(static providerId => _replayMetadataByProviderId[providerId])
         .ToArray();
 
-    public static IReadOnlyList<BuiltInCodeActionAuditCase> HiddenReplayFamilies { get; } = BuiltInCodeActionLedger.Families
-        .Where(static family => family.ExecutionMode == CodeActionExecutionMode.Unsupported)
-        .Where(static family => family.AuditStatus == BuiltInCodeActionAuditStatus.ValidationCandidate)
-        .Select(static family => family.ProviderId)
-        .Where(static providerId => !string.IsNullOrWhiteSpace(providerId) && _replayMetadataByProviderId.ContainsKey(providerId))
-        .Select(static providerId => _replayMetadataByProviderId[providerId])
-        .ToArray();
-
-    public static IReadOnlyList<BuiltInCodeActionAuditCase> PromotedDraftValidationCandidates { get; } =
+    public static IReadOnlyList<BuiltInCodeActionAuditCase> SupportedCompatibilityCases { get; } =
     [
         new()
         {
@@ -324,10 +309,6 @@ public static class BuiltInCodeActionAuditCases
             ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
             LocationFactory = static fixture => fixture.GetLocation("for (var i = 0; i < values.Length; i++)", 0),
         },
-    ];
-
-    public static IReadOnlyList<BuiltInCodeActionAuditCase> PendingPromotionCandidates { get; } =
-    [
         new()
         {
             ToolName = "convert-anonymous-type-to-tuple",
@@ -715,14 +696,6 @@ public static class BuiltInCodeActionAuditCases
         },
         new()
         {
-            ProviderId = "Microsoft.CodeAnalysis.CSharp.InitializeParameter.CSharpAddParameterCheckCodeRefactoringProvider",
-            Title = "Add null check",
-            SourceNote = "AddParameterCheck.cs constructor parameter",
-            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
-            LocationFactory = static fixture => fixture.GetCursorInDocument("AddParameterCheck.cs", "object value"),
-        },
-        new()
-        {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.InitializeParameter.CSharpInitializeMemberFromPrimaryConstructorParameterCodeRefactoringProvider",
             TitlePrefix = "Initialize field",
             SourceNote = "PrimaryConstructorInitialization.cs primary constructor parameter",
@@ -836,14 +809,6 @@ public static class BuiltInCodeActionAuditCases
         },
         new()
         {
-            ProviderId = "Microsoft.CodeAnalysis.CSharp.UseExpressionBody.UseExpressionBodyCodeRefactoringProvider",
-            TitlePrefix = "Use expression body",
-            SourceNote = "ExpressionBodySamples.Square method",
-            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
-            LocationFactory = static fixture => fixture.GetLocation("Square"),
-        },
-        new()
-        {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.UseExpressionBodyForLambda.UseExpressionBodyForLambdaCodeRefactoringProvider",
             TitlePrefix = "Use expression body",
             SourceNote = "ExpressionBodySamples.CreateLambda lambda body",
@@ -851,9 +816,6 @@ public static class BuiltInCodeActionAuditCases
             LocationFactory = static fixture => fixture.GetLocation("value =>"),
         },
     ];
-
-    public static IReadOnlyList<BuiltInCodeActionAuditCase> FailedDraftValidationCandidates { get; } =
-    [];
 
     private static BuiltInCodeActionAuditCase CreateReplayMetadata(string? toolName, string providerId, string title)
     {

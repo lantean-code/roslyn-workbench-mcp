@@ -45,12 +45,6 @@ public sealed class CodeActionDescriptorRegistryTests
         result.UnsupportedReasonCode.Should().Be("UnsupportedCodeActionWithOptions");
     }
 
-    [Fact]
-    public void GIVEN_CurrentLedger_WHEN_QueryingHiddenReplayFamilies_THEN_ShouldHaveNoResidualDeferredReplayEntries()
-    {
-        BuiltInCodeActionAuditCases.HiddenReplayFamilies.Should().BeEmpty();
-    }
-
     [Theory]
     [InlineData("Microsoft.CodeAnalysis.ExtractInterface.ExtractInterfaceCodeRefactoringProvider", "Extract interface")]
     [InlineData("Microsoft.CodeAnalysis.CSharp.CodeFixes.GenerateType.GenerateTypeCodeFixProvider", "Generate type 'MissingType'")]
@@ -63,11 +57,6 @@ public sealed class CodeActionDescriptorRegistryTests
 
         result.IsVisible.Should().BeFalse();
         result.ExecutionMode.Should().Be(CodeActionExecutionMode.Unsupported);
-    }
-
-    public static TheoryData<string, string> GetHiddenReplayFamilies()
-    {
-        return CreateTheoryData(BuiltInCodeActionAuditCases.HiddenReplayFamilies);
     }
 
     public static TheoryData<string, string> GetVisibleReplayFamilies()

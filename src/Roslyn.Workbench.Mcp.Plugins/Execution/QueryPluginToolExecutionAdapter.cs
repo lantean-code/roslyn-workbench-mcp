@@ -5,12 +5,12 @@ using Roslyn.Workbench.Mcp.Plugins.Protocol;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Execution;
 
-internal sealed class QueryPluginToolRuntime<TRequest, TResponse> : IPluginToolRuntime
+internal sealed class QueryPluginToolExecutionAdapter<TRequest, TResponse> : IPluginToolExecutionAdapter
     where TRequest : WorkspaceBoundRequest
 {
     private readonly IQueryToolHandler<TRequest, TResponse> _handler;
 
-    public QueryPluginToolRuntime(
+    public QueryPluginToolExecutionAdapter(
         IQueryToolHandler<TRequest, TResponse> handler)
     {
         _handler = handler;

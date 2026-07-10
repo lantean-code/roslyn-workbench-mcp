@@ -59,7 +59,7 @@ The Stage 7 backlog is closed.
 Production now has:
 
 - one authoritative built-in family ledger
-- one executable audit harness used as the promotion gate
+- one executable compatibility matrix for supported providers
 - hidden-by-default catalogue behaviour
 
 Every built-in C# Roslyn MEF refactoring/code-fix family in the checked-out
@@ -70,7 +70,7 @@ source has a final production state.
 The ledger contains the earlier replay-backed families plus the final
 completion-wave promotions below.
 
-### Final completion-wave promotions
+### Final completion-wave support
 
 | Roslyn family | Execution mode | Notes |
 |---|---|---|
@@ -93,7 +93,7 @@ completion-wave promotions below.
 
 ### Earlier validated replay support
 
-Earlier Stage 7 waves already validated and promoted:
+Earlier Stage 7 waves already validated:
 
 - `ExtractMethod`
 - `IntroduceParameter`
@@ -180,7 +180,12 @@ Stage 7 is complete in repository terms:
 - every built-in C# `ExportCodeRefactoringProvider` family has a final production state
 - every built-in C# `ExportCodeFixProvider` family has a final production state
 - the ledger is authoritative for discovery and wrapper visibility
-- the audit harness is the promotion gate for future changes
+- the compatibility matrix protects supported providers against Roslyn changes
+
+Broad provider discovery is no longer part of the recurring test suite. It is
+an explicit maintenance activity when upgrading Roslyn or evaluating a new
+provider family. Any resulting decision must update the ledger to either
+supported or impossible under current rules.
 
 Ad-hoc source-vs-ledger regex scripts may still report parse artefacts around
 already-ledgered providers such as `AddImport`, `FullyQualify`, and

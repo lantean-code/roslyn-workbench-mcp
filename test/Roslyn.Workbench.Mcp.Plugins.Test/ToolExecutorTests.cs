@@ -18,7 +18,7 @@ public sealed class ToolExecutorTests
     public async Task GIVEN_QueryHandlerSuccess_WHEN_ExecutingRegisteredTool_THEN_ShouldReturnStructuredSucceededResult()
     {
         var registeredTool = CreateQueryTool(new SuccessQueryHandler());
-        var result = await registeredTool.Runtime.InvokeAsync(new Dictionary<string, JsonElement>
+        var result = await registeredTool.ExecutionAdapter.InvokeAsync(new Dictionary<string, JsonElement>
         {
             ["name"] = JsonSerializer.SerializeToElement("Name"),
         }, CreateExecutionContextFactory(), CancellationToken.None);
@@ -55,7 +55,7 @@ public sealed class ToolExecutorTests
             .Setup(static contextFactory => contextFactory.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), It.IsAny<CancellationToken>()))
             .Returns((WorkspaceBoundRequest _, CancellationToken _) => throw new InvalidOperationException("Mutation context should not be requested."));
 
-        var result = await registeredTool.Runtime.InvokeAsync(new Dictionary<string, JsonElement>
+        var result = await registeredTool.ExecutionAdapter.InvokeAsync(new Dictionary<string, JsonElement>
         {
             ["name"] = JsonSerializer.SerializeToElement("Name"),
             ["workspace"] = JsonSerializer.SerializeToElement(new WorkspaceSelector
@@ -74,7 +74,7 @@ public sealed class ToolExecutorTests
     public async Task GIVEN_QueryHandlerNoChange_WHEN_ExecutingRegisteredTool_THEN_ShouldReturnStructuredNoChangeResult()
     {
         var registeredTool = CreateQueryTool(new NoChangeQueryHandler());
-        var result = await registeredTool.Runtime.InvokeAsync(new Dictionary<string, JsonElement>
+        var result = await registeredTool.ExecutionAdapter.InvokeAsync(new Dictionary<string, JsonElement>
         {
             ["name"] = JsonSerializer.SerializeToElement("Name"),
         }, CreateExecutionContextFactory(), CancellationToken.None);
@@ -88,7 +88,7 @@ public sealed class ToolExecutorTests
     public async Task GIVEN_QueryHandlerRejected_WHEN_ExecutingRegisteredTool_THEN_ShouldReturnStructuredRejectedResult()
     {
         var registeredTool = CreateQueryTool(new RejectedQueryHandler());
-        var result = await registeredTool.Runtime.InvokeAsync(new Dictionary<string, JsonElement>
+        var result = await registeredTool.ExecutionAdapter.InvokeAsync(new Dictionary<string, JsonElement>
         {
             ["name"] = JsonSerializer.SerializeToElement("Name"),
         }, CreateExecutionContextFactory(), CancellationToken.None);
@@ -102,7 +102,7 @@ public sealed class ToolExecutorTests
     public async Task GIVEN_QueryHandlerConflict_WHEN_ExecutingRegisteredTool_THEN_ShouldReturnStructuredConflictResult()
     {
         var registeredTool = CreateQueryTool(new ConflictQueryHandler());
-        var result = await registeredTool.Runtime.InvokeAsync(new Dictionary<string, JsonElement>
+        var result = await registeredTool.ExecutionAdapter.InvokeAsync(new Dictionary<string, JsonElement>
         {
             ["name"] = JsonSerializer.SerializeToElement("Name"),
         }, CreateExecutionContextFactory(), CancellationToken.None);
@@ -116,7 +116,7 @@ public sealed class ToolExecutorTests
     public async Task GIVEN_QueryHandlerThrows_WHEN_ExecutingRegisteredTool_THEN_ShouldNormalizeFaultedResult()
     {
         var registeredTool = CreateQueryTool(new ThrowingQueryHandler());
-        var result = await registeredTool.Runtime.InvokeAsync(new Dictionary<string, JsonElement>
+        var result = await registeredTool.ExecutionAdapter.InvokeAsync(new Dictionary<string, JsonElement>
         {
             ["name"] = JsonSerializer.SerializeToElement("Name"),
         }, CreateExecutionContextFactory(), CancellationToken.None);
@@ -131,7 +131,7 @@ public sealed class ToolExecutorTests
     public async Task GIVEN_HostRejectedContext_WHEN_ExecutingRegisteredTool_THEN_ShouldReturnStructuredRejectedResultWithoutInvokingPlugin()
     {
         var registeredTool = CreateQueryTool(new SuccessQueryHandler());
-        var result = await registeredTool.Runtime.InvokeAsync(new Dictionary<string, JsonElement>
+        var result = await registeredTool.ExecutionAdapter.InvokeAsync(new Dictionary<string, JsonElement>
         {
             ["name"] = JsonSerializer.SerializeToElement("Name"),
         }, CreateRejectedExecutionContextFactory(), CancellationToken.None);

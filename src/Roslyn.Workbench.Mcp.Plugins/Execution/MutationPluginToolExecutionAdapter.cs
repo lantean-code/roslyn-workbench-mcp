@@ -5,13 +5,13 @@ using Roslyn.Workbench.Mcp.Plugins.Protocol;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Execution;
 
-internal sealed class MutationPluginToolRuntime<TRequest> : IPluginToolRuntime
+internal sealed class MutationPluginToolExecutionAdapter<TRequest> : IPluginToolExecutionAdapter
     where TRequest : WorkspaceBoundRequest
 {
     private readonly RegisteredTool _tool;
     private readonly IMutationToolHandler<TRequest> _handler;
 
-    public MutationPluginToolRuntime(
+    public MutationPluginToolExecutionAdapter(
         RegisteredTool tool,
         IMutationToolHandler<TRequest> handler)
     {

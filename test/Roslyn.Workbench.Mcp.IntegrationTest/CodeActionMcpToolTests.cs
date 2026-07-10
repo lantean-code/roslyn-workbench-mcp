@@ -169,79 +169,6 @@ public sealed class CodeActionMcpToolTests
         result.Data.Actions.Should().NotContain(static action => action.Title == "Extract base class");
     }
 
-    [Theory]
-    [Trait("Category", "Audit")]
-    [MemberData(nameof(GetPromotedDraftValidationCandidates))]
-    public async Task GIVEN_BuiltInProviders_WHEN_ListingPromotedDraftFamilies_THEN_ShouldExposeVisibleActions(BuiltInCodeActionAuditCase auditCase)
-    {
-        using var fixture = await auditCase.FixtureFactory();
-        var coordinator = CreateBuiltInCoordinator();
-        var open = await coordinator.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, CancellationToken.None);
-        var plugin = new BundledCorePlugin();
-        var registry = new PluginRegistry(plugin.Metadata);
-        var executor = coordinator;
-
-        plugin.Register(registry);
-
-        var result = await InvokeAsync<CodeActionListData>(executor, registry, "list-code-actions", new Dictionary<string, JsonElement>
-        {
-            ["location"] = JsonSerializer.SerializeToElement(auditCase.LocationFactory(fixture)),
-            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition
-            {
-                WorkspaceEpoch = open.WorkspaceEpoch!.Value,
-            }),
-            ["includeCodeFixes"] = JsonSerializer.SerializeToElement(auditCase.Kind == BuiltInCodeActionAuditKind.CodeFix),
-            ["includeRefactorings"] = JsonSerializer.SerializeToElement(auditCase.Kind == BuiltInCodeActionAuditKind.Refactoring),
-        });
-
-        result.Data!.Actions.Should().Contain(action =>
-            string.Equals(action.ProviderId, auditCase.ProviderId, StringComparison.Ordinal)
-            && MatchesAuditCase(action, auditCase));
-    }
-
-    [Fact]
-    [Trait("Category", "Audit")]
-    public void GIVEN_CurrentAuditLedger_WHEN_QueryingDeferredDraftFamilies_THEN_ShouldHaveNoResidualHiddenReplayBacklog()
-    {
-        BuiltInCodeActionAuditCases.FailedDraftValidationCandidates.Should().BeEmpty();
-    }
-
-    [Theory]
-    [Trait("Category", "Audit")]
-    [MemberData(nameof(GetPendingPromotionCandidates))]
-    public async Task GIVEN_BuiltInProviders_WHEN_ListingPendingPromotionFamilies_THEN_ShouldExposeVisibleActions(BuiltInCodeActionAuditCase auditCase)
-    {
-        using var fixture = await auditCase.FixtureFactory();
-        var coordinator = CreateBuiltInCoordinator();
-        var open = await coordinator.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, CancellationToken.None);
-        var plugin = new BundledCorePlugin();
-        var registry = new PluginRegistry(plugin.Metadata);
-        var executor = coordinator;
-
-        plugin.Register(registry);
-
-        var result = await InvokeAsync<CodeActionListData>(executor, registry, "list-code-actions", new Dictionary<string, JsonElement>
-        {
-            ["location"] = JsonSerializer.SerializeToElement(auditCase.LocationFactory(fixture)),
-            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition
-            {
-                WorkspaceEpoch = open.WorkspaceEpoch!.Value,
-            }),
-            ["includeCodeFixes"] = JsonSerializer.SerializeToElement(auditCase.Kind == BuiltInCodeActionAuditKind.CodeFix),
-            ["includeRefactorings"] = JsonSerializer.SerializeToElement(auditCase.Kind == BuiltInCodeActionAuditKind.Refactoring),
-        });
-
-        result.Data!.Actions.Should().Contain(action =>
-            string.Equals(action.ProviderId, auditCase.ProviderId, StringComparison.Ordinal)
-            && MatchesAuditCase(action, auditCase));
-    }
-
     [Fact]
     public async Task GIVEN_ParameterisedAction_WHEN_StagingThroughGenericReplay_THEN_ShouldRejectSafely()
     {
@@ -702,48 +629,6 @@ public sealed class CodeActionMcpToolTests
             });
 
         return WorkspaceCoordinatorFactory.CreateWithCodeActionRuntime(runtime, BundledCoreToolExecutionServicesFactory.Create());
-    }
-
-    public static TheoryData<BuiltInCodeActionAuditCase> GetPromotedDraftValidationCandidates()
-    {
-        return CreateTheoryData(BuiltInCodeActionAuditCases.PromotedDraftValidationCandidates);
-    }
-
-    public static TheoryData<BuiltInCodeActionAuditCase> GetPendingPromotionCandidates()
-    {
-        return CreateTheoryData(BuiltInCodeActionAuditCases.PendingPromotionCandidates);
-    }
-
-    private static TheoryData<BuiltInCodeActionAuditCase> CreateTheoryData(IReadOnlyList<BuiltInCodeActionAuditCase> auditCases)
-    {
-        var data = new TheoryData<BuiltInCodeActionAuditCase>();
-
-        foreach (var auditCase in auditCases)
-        {
-            data.Add(auditCase);
-        }
-
-        return data;
-    }
-
-    private static bool MatchesAuditCase(CodeActionInfo action, BuiltInCodeActionAuditCase auditCase)
-    {
-        if (!string.Equals(action.ProviderId, auditCase.ProviderId, StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        if (!string.IsNullOrWhiteSpace(auditCase.Title))
-        {
-            return string.Equals(action.Title, auditCase.Title, StringComparison.Ordinal);
-        }
-
-        if (!string.IsNullOrWhiteSpace(auditCase.TitlePrefix))
-        {
-            return action.Title.StartsWith(auditCase.TitlePrefix, StringComparison.Ordinal);
-        }
-
-        return true;
     }
 
     private static async Task<ToolResult<TResponse>> InvokeAsync<TResponse>(

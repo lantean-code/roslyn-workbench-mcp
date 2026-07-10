@@ -2,11 +2,11 @@ using System.Text.Json;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Execution;
 
-internal sealed class NullPluginToolRuntime : IPluginToolRuntime
+internal sealed class NullPluginToolExecutionAdapter : IPluginToolExecutionAdapter
 {
-    public static NullPluginToolRuntime Instance { get; } = new();
+    public static NullPluginToolExecutionAdapter Instance { get; } = new();
 
-    private NullPluginToolRuntime()
+    private NullPluginToolExecutionAdapter()
     {
     }
 
@@ -18,6 +18,6 @@ internal sealed class NullPluginToolRuntime : IPluginToolRuntime
         ArgumentNullException.ThrowIfNull(arguments);
         ArgumentNullException.ThrowIfNull(contextFactory);
 
-        throw new InvalidOperationException("Registered plugin tool does not have a runtime binding.");
+        throw new InvalidOperationException("Registered plugin tool does not have an execution adapter binding.");
     }
 }

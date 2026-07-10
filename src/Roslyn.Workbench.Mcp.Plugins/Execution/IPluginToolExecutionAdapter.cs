@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Execution;
 
-internal interface IPluginToolRuntime
+internal interface IPluginToolExecutionAdapter
 {
     ValueTask<CallToolResult> InvokeAsync(
         IDictionary<string, JsonElement> arguments,

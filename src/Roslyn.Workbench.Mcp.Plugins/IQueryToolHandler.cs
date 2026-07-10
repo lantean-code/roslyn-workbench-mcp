@@ -7,6 +7,10 @@ namespace Roslyn.Workbench.Mcp.Plugins;
 /// </summary>
 /// <typeparam name="TRequest">The request contract type.</typeparam>
 /// <typeparam name="TResponse">The successful response payload type.</typeparam>
+/// <remarks>
+/// Implementations are retained for the lifetime of the plugin catalogue and must be stateless, thread-safe, and must
+/// not own disposable resources. Invocation-scoped services are available through the supplied query context.
+/// </remarks>
 public interface IQueryToolHandler<TRequest, TResponse> where TRequest : WorkspaceBoundRequest
 {
     /// <summary>

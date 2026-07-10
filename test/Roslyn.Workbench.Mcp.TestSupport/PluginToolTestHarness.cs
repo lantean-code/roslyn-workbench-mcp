@@ -22,7 +22,7 @@ public static class PluginToolTestHarness
         ArgumentNullException.ThrowIfNull(arguments);
 
         var pluginTool = registry.GetRegisteredPluginTool(toolName);
-        var result = await pluginTool.Runtime.InvokeAsync(arguments, contextFactory, CancellationToken.None);
+        var result = await pluginTool.ExecutionAdapter.InvokeAsync(arguments, contextFactory, CancellationToken.None);
 
         if (result.IsError != !expectProtocolSuccess)
         {

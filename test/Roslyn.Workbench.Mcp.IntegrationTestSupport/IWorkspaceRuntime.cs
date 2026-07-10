@@ -3,7 +3,7 @@ using Roslyn.Workbench.Mcp.Contracts.Server;
 using Roslyn.Workbench.Mcp.Contracts.Transactions;
 using Roslyn.Workbench.Mcp.Plugins;
 
-namespace Roslyn.Workbench.Mcp.TestSupport;
+namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
 public interface IWorkspaceRuntime : IToolExecutionContextFactory
 {

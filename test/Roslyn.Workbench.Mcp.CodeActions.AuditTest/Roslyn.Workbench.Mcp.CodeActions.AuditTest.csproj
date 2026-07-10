@@ -1,9 +1,10 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <RootNamespace>Roslyn.Workbench.Mcp.CodeActions.Test</RootNamespace>
+    <TestCategory>Audit</TestCategory>
   </PropertyGroup>
 
   <ItemGroup>

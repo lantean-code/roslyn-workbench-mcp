@@ -1,7 +1,7 @@
 using Roslyn.Workbench.Mcp.Contracts.Results;
 using Roslyn.Workbench.Mcp.Plugins;
 
-namespace Roslyn.Workbench.Mcp.TestSupport;
+namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
 public sealed class ToolMutationExecutionResult
 {

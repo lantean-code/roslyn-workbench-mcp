@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.Plugins;
 
-namespace Roslyn.Workbench.Mcp.TestSupport;
+namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
 public static class WorkspaceCoordinatorFactory
 {

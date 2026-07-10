@@ -11,6 +11,7 @@ global using Roslyn.Workbench.Mcp.Contracts.Results;
 global using Roslyn.Workbench.Mcp.Contracts.Selectors;
 global using Roslyn.Workbench.Mcp.Contracts.Server;
 global using Roslyn.Workbench.Mcp.Contracts.Transactions;
+global using Roslyn.Workbench.Mcp.IntegrationTestSupport;
 global using Roslyn.Workbench.Mcp.Plugins;
 global using Roslyn.Workbench.Mcp.Plugins.Execution;
 global using Roslyn.Workbench.Mcp.Plugins.Protocol;

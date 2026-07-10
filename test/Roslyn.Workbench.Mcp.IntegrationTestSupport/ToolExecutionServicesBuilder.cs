@@ -1,6 +1,6 @@
 using Roslyn.Workbench.Mcp.Plugins.Core;
 
-namespace Roslyn.Workbench.Mcp.TestSupport;
+namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
 internal sealed class ToolExecutionServicesBuilder
 {

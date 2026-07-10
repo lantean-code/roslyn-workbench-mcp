@@ -1,7 +1,7 @@
 using Roslyn.Workbench.Mcp.Contracts.CodeActions;
 using Roslyn.Workbench.Mcp.Contracts.Server;
 
-namespace Roslyn.Workbench.Mcp.TestSupport;
+namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
 public sealed class QueryContextBuilder
 {

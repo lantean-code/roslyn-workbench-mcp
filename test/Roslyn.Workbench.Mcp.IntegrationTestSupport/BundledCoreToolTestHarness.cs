@@ -4,7 +4,7 @@ using Roslyn.Workbench.Mcp.Contracts.Server;
 using Roslyn.Workbench.Mcp.Plugins;
 using Roslyn.Workbench.Mcp.Plugins.Core;
 
-namespace Roslyn.Workbench.Mcp.TestSupport;
+namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
 public static class BundledCoreToolTestHarness
 {

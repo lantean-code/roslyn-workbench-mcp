@@ -1,6 +1,6 @@
 using Roslyn.Workbench.Mcp.Contracts.Selectors;
 
-namespace Roslyn.Workbench.Mcp.TestSupport;
+namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
 public sealed class InspectionSampleFixture : IDisposable
 {

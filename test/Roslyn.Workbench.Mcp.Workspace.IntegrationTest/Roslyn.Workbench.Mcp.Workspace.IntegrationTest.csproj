@@ -1,13 +1,14 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
-    <RootNamespace>Roslyn.Workbench.Mcp.CodeActions.Test</RootNamespace>
+    <RootNamespace>Roslyn.Workbench.Mcp.Workspace.Test</RootNamespace>
+    <TestCategory>Integration</TestCategory>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Roslyn.Workbench.Mcp.CodeActions\Roslyn.Workbench.Mcp.CodeActions.csproj" />
+    <ProjectReference Include="..\..\src\Roslyn.Workbench.Mcp.Workspace\Roslyn.Workbench.Mcp.Workspace.csproj" />
     <ProjectReference Include="..\Roslyn.Workbench.Mcp.IntegrationTestSupport\Roslyn.Workbench.Mcp.IntegrationTestSupport.csproj" />
     <ProjectReference Include="..\Roslyn.Workbench.Mcp.TestSupport\Roslyn.Workbench.Mcp.TestSupport.csproj" />
   </ItemGroup>

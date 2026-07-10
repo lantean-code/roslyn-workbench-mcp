@@ -1,28 +1,26 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>false</IsTestProject>
+  </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Features" />
+    <ProjectReference Include="..\..\src\Roslyn.Workbench.Mcp\Roslyn.Workbench.Mcp.csproj" />
+    <ProjectReference Include="..\..\src\Roslyn.Workbench.Mcp.CodeActions\Roslyn.Workbench.Mcp.CodeActions.csproj" />
+    <ProjectReference Include="..\..\src\Roslyn.Workbench.Mcp.Contracts\Roslyn.Workbench.Mcp.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Roslyn.Workbench.Mcp.Workspace\Roslyn.Workbench.Mcp.Workspace.csproj" />
+    <ProjectReference Include="..\..\src\Roslyn.Workbench.Mcp.Plugins\Roslyn.Workbench.Mcp.Plugins.csproj" />
+    <ProjectReference Include="..\..\src\Roslyn.Workbench.Mcp.Plugins.Core\Roslyn.Workbench.Mcp.Plugins.Core.csproj" />
+    <ProjectReference Include="..\Roslyn.Workbench.Mcp.TestSupport\Roslyn.Workbench.Mcp.TestSupport.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Roslyn.Workbench.Mcp.Contracts\Roslyn.Workbench.Mcp.Contracts.csproj" />
-    <ProjectReference Include="..\Roslyn.Workbench.Mcp.Plugins\Roslyn.Workbench.Mcp.Plugins.csproj" />
+    <PackageReference Include="Microsoft.Build.Locator" />
+    <PackageReference Include="Moq" />
   </ItemGroup>
 
   <ItemGroup>
-    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-      <_Parameter1>Roslyn.Workbench.Mcp</_Parameter1>
-    </AssemblyAttribute>
-    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-      <_Parameter1>Roslyn.Workbench.Mcp.Workspace</_Parameter1>
-    </AssemblyAttribute>
-    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-      <_Parameter1>Roslyn.Workbench.Mcp.TestSupport</_Parameter1>
-    </AssemblyAttribute>
-    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-      <_Parameter1>Roslyn.Workbench.Mcp.IntegrationTestSupport</_Parameter1>
-    </AssemblyAttribute>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
       <_Parameter1>Roslyn.Workbench.Mcp.Plugins.Core.Test</_Parameter1>
     </AssemblyAttribute>
@@ -36,16 +34,19 @@
       <_Parameter1>Roslyn.Workbench.Mcp.CodeActions.IntegrationTest</_Parameter1>
     </AssemblyAttribute>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>Roslyn.Workbench.Mcp.CodeActions.AuditTest</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
       <_Parameter1>Roslyn.Workbench.Mcp.Workspace.Test</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>Roslyn.Workbench.Mcp.Workspace.IntegrationTest</_Parameter1>
     </AssemblyAttribute>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
       <_Parameter1>Roslyn.Workbench.Mcp.Test</_Parameter1>
     </AssemblyAttribute>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
       <_Parameter1>Roslyn.Workbench.Mcp.IntegrationTest</_Parameter1>
-    </AssemblyAttribute>
-    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-      <_Parameter1>DynamicProxyGenAssembly2</_Parameter1>
     </AssemblyAttribute>
   </ItemGroup>
 

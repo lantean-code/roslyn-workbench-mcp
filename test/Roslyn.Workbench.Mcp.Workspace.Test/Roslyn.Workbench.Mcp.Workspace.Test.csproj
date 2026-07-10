@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Roslyn.Workbench.Mcp.Workspace\Roslyn.Workbench.Mcp.Workspace.csproj" />
+    <ProjectReference Include="..\Roslyn.Workbench.Mcp.IntegrationTestSupport\Roslyn.Workbench.Mcp.IntegrationTestSupport.csproj" />
     <ProjectReference Include="..\..\src\Roslyn.Workbench.Mcp.Contracts\Roslyn.Workbench.Mcp.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Roslyn.Workbench.Mcp.Plugins\Roslyn.Workbench.Mcp.Plugins.csproj" />
     <ProjectReference Include="..\Roslyn.Workbench.Mcp.TestSupport\Roslyn.Workbench.Mcp.TestSupport.csproj" />

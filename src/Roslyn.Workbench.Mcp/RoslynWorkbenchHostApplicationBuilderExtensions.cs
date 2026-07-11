@@ -95,14 +95,20 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
         services.AddSingleton(static serviceProvider => new WorkspaceHostServicesAccessor(
             serviceProvider.GetRequiredService<ICodeActionRuntime>().WorkspaceHostServices));
         services.AddSingleton<IWorkspaceOperationResultFactory, WorkspaceOperationResultFactory>();
+        services.AddSingleton<IFileSystem, FileSystem>();
+        services.AddSingleton<IAtomicFileWriter, AtomicFileWriter>();
+        services.AddSingleton<ICommitRecoveryStore, CommitRecoveryStore>();
+        services.AddSingleton<IWorkspaceCommitWriter, WorkspaceCommitWriter>();
         services.AddSingleton<IWorkspaceSessionStore, WorkspaceSessionStore>();
         services.AddSingleton<IWorkspaceSelector, WorkspaceSelectorService>();
+        services.AddSingleton<IWorkspaceResolverFactory, WorkspaceResolverFactory>();
         services.AddSingleton<IWorkspaceLoader, WorkspaceLoader>();
+        services.AddSingleton<IWorkspaceProjectInputResolver, WorkspaceProjectInputResolver>();
         services.AddSingleton<IWorkspaceChangeDetector, WorkspaceChangeDetector>();
         services.AddSingleton<IWorkspaceStateTransitions, WorkspaceStateTransitions>();
         services.AddSingleton<ISnapshotGuard, SnapshotGuard>();
         services.AddSingleton<IMutationStagingService, MutationStagingService>();
-        services.AddSingleton<IWorkspaceChangeSummaryBuilder, WorkspaceChangeSummaryBuilder>();
+        services.AddSingleton<IWorkspaceDiffBuilder, WorkspaceDiffService>();
         services.AddSingleton<ITransactionCommitService, TransactionCommitService>();
         services.AddSingleton<IWorkspaceExecutionContextFactory, WorkspaceExecutionContextFactory>();
         services.AddSingleton<IToolExecutionContextFactory>(static serviceProvider => new PluginExecutionContextFactory(
@@ -114,7 +120,6 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
             serviceProvider.GetRequiredService<ICodeActionMutationWorkflow>()));
         services.AddSingleton<IWorkspaceLifecycleService, WorkspaceLifecycleService>();
         services.AddSingleton<ITransactionService, TransactionService>();
-        services.AddSingleton<IRecoveryStatusReader, RecoveryStatusReader>();
         services.AddSingleton<IServerStatusService, ServerStatusService>();
     }
 

@@ -1,6 +1,6 @@
 namespace Roslyn.Workbench.Mcp.Workspace.Test;
 
-public sealed class WorkspaceInputManifestBuilderIntegrationTests
+public sealed class WorkspaceChangeDetectorIntegrationTests
 {
     [Fact]
     public void GIVEN_ProjectWithCustomImportedProps_WHEN_BuildingManifest_THEN_ShouldIncludeEvaluatedImportPath()
@@ -46,7 +46,9 @@ public sealed class WorkspaceInputManifestBuilderIntegrationTests
                 .AddProject(ProjectInfo.Create(projectId, VersionStamp.Create(), "Sample", "Sample", LanguageNames.CSharp, filePath: projectPath))
                 .AddDocument(DocumentId.CreateNewId(projectId), "Class1.cs", SourceText.From(File.ReadAllText(documentPath)), filePath: documentPath);
 
-            var manifest = WorkspaceInputManifestBuilder.Build(solution, projectPath);
+            var target = new WorkspaceChangeDetector(new FileSystem(), new WorkspaceProjectInputResolver());
+
+            var manifest = target.BuildManifest(solution, projectPath);
 
             manifest.Files.Select(static file => file.Path).Should().Contain(importedPropsPath);
         }

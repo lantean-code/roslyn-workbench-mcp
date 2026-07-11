@@ -8,7 +8,7 @@ internal sealed record WorkspaceSessionSnapshot
 
     public required WorkspaceIdentity Workspace { get; init; }
 
-    public required MSBuildWorkspace LoadedWorkspace { get; init; }
+    public required ILoadedWorkspace LoadedWorkspace { get; init; }
 
     public required Solution CurrentSolution { get; init; }
 

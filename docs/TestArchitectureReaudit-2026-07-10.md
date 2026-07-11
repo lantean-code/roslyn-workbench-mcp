@@ -25,9 +25,9 @@ The current structure provides:
 - contract tests colocated with the production assembly that owns each contract family
 - independent CI gates for fast, integration and compatibility-audit coverage
 
-The boundary-refactored suite discovers 1,150 tests: 979 unit/contract tests, 78 integration tests and 93 audit tests. All pass in the current workspace.
+The boundary-refactored suite discovers 1,348 tests: 1,177 unit/contract tests, 78 integration tests and 93 audit tests. All pass in the current workspace.
 
-Two evidence gaps remain open: the 190-test Workspace unit project now covers the principal pure selection, state, operation, execution-context and transaction primitives but has not yet completed proposal-validation, diff and lifecycle orchestration coverage, and the intended production dependency graph is verified manually rather than by an automated architecture check. Neither is masked by integration coverage.
+The 388-test Workspace unit project now covers the principal pure selection, state, operation, execution-context, transaction, lifecycle and commit orchestration paths. The remaining cross-project evidence gap is automated verification of the intended production dependency graph; it is not masked by integration coverage.
 
 ## Current Project Topology
 
@@ -205,8 +205,8 @@ dotnet test --no-restore --artifacts-path=/tmp/artifacts/roslyn-workbench-mcp
 Results:
 
 - build: 0 warnings, 0 errors
-- unit/contract projects: 979 passed
+- unit/contract projects: 1,177 passed
 - integration projects: 78 passed
 - code-action audit: 93 passed
-- full suite: 1,150 passed
+- full suite: 1,348 passed
 - changed CRLF-governed files normalised to CRLF

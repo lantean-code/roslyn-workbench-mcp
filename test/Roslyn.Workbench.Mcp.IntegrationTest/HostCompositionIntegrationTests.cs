@@ -57,7 +57,7 @@ public sealed class HostCompositionIntegrationTests
         host.Services.GetRequiredService<CodeActionRuntime>().Should().NotBeNull();
         host.Services.GetRequiredService<IToolExecutionContextFactory>().Should().NotBeNull();
         host.Services.GetRequiredService<McpServer>().Should().NotBeNull();
-        host.Services.GetRequiredService<IRecoveryStatusReader>().Should().NotBeNull();
+        host.Services.GetRequiredService<ICommitRecoveryStore>().Should().NotBeNull();
 
         mcpTools.Should().HaveCount(pluginCatalogSnapshot.Tools.Count + codeActionCatalogSnapshot.Tools.Count + 11);
         mcpTools.Select(static tool => tool.ProtocolTool.Name).Should().Contain(

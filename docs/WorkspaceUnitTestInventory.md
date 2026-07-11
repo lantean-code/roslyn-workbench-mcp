@@ -30,8 +30,10 @@ The existing six Workspace unit tests were removed after review because they did
 | `WorkspaceSelectionResultTests` | 4 | 100% line, 100% branch |
 | `WorkspaceSelectorServiceTests` | 18 | Supported selection flow: 100% line, 100% branch |
 | `WorkspaceResolverTests` | 48 | Public resolver: 100% line; Roslyn defensive branches documented below |
-| `SelectorValidationTests` | 10 | Workspace selector and result-contract validation |
-| `WorkspaceExecutionLeaseTests` | 3 | Query-lease disposal, mutation stager separation and rejected-lease disposal |
+| `WorkspaceResolverFactoryTests` | 1 | Resolver creation against the supplied solution and snapshot context |
+| `SelectorValidationTests` | 38 | Every selector and scope validation alternative: 100% line and branch |
+| `WorkspaceExecutionLeaseTests` | 7 | Query and mutation acquisition/rejection capability and disposal branches: 100% line and branch |
+| `WorkspaceMutationStagerTests` | 1 | Exact mutation-staging delegation: 100% line and branch |
 | `WorkspaceExecutionContextFactoryTests` | 25 | 100% line, 100% branch |
 | `WorkspaceCoordinatorOptionsTests` | 1 | 100% line, 100% branch |
 | `WorkspaceOperationResultFactoryTests` | 9 | 100% line, 100% branch |
@@ -41,7 +43,13 @@ The existing six Workspace unit tests were removed after review because they did
 | `WorkspaceStateTransitionsTests` | 6 | 100% line, 100% branch |
 | `SnapshotGuardTests` | 8 | 100% line, 100% branch |
 | `WorkspaceTransactionTests` | 7 | 100% line, 100% branch |
-| `MutationStagingServiceTests` | 16 | Public staging flow: 100%; proposal validation matrix in progress |
+| `MutationStagingServiceTests` | 34 | Public staging flow and all reachable proposal-validation alternatives covered |
+| `WorkspaceDiffBuilderTests` | 12 | Change summaries, document diffs, hunk grouping, context handling and cancellation |
+| `WorkspaceDiffServiceTests` | 2 | Summary and detailed-diff delegation |
+| `TransactionServiceTests` | 49 | Start, preview, history, commit, rollback and cancellation: 100% line and branch |
+| `WorkspaceLoaderTests` | 15 | Path and alias normalization, case-insensitive supported extensions and malformed paths: 100% line and branch for both public normalization methods |
+| `WorkspaceLifecycleServiceTests` | 56 | Open, list, close, status, reload and cancellation: 100% line and branch |
+| `TransactionCommitServiceTests` | 12 | Commit validation, recovery sequencing, writing, workspace application, success, failures and cancellation: 100% line and branch |
 
 The final pre-removal unit-project Coverlet run produced:
 
@@ -58,6 +66,8 @@ Only three implementations recorded unit coverage before removal:
 | `WorkspaceDiffBuilder` | 97.29% | 85% |
 
 These figures are retained only as the evidence that motivated this inventory; they are no longer current test coverage. Compiler-generated async classes are not separate test targets and will be covered through their owning public methods.
+
+The current Workspace unit checkpoint discovers 388 tests and measures 87.13% line and 85.29% branch coverage across the production assembly. Lifecycle, commit orchestration, leases, mutation-stager delegation and contract validation now measure 100% independently. The remaining uncovered executable areas are concentrated in recovery persistence, commit writing, loaded-workspace adaptation, input-manifest infrastructure and MSBuild compatibility boundaries.
 
 ### Current integration safety net
 
@@ -209,7 +219,7 @@ Additional `WorkspaceStateMachineTests`:
 | --- | --- | --- | --- |
 | `SnapshotGuard` | `SnapshotGuardTests` | Covered: null guard, no transaction/precondition, every snapshot mismatch and exact match | Complete |
 | `WorkspaceTransaction` | `WorkspaceTransactionTests` | Covered: current solution selection and every calculated `TransactionInfo` capability | Complete |
-| `WorkspaceDiffBuilder` | `WorkspaceDiffBuilderTests` | Expand current tests across added, modified, deleted, missing and diff-format branches | High |
+| `WorkspaceDiffBuilder` | `WorkspaceDiffBuilderTests` | Covered across added, modified and deleted summaries, missing/added/deleted/modified document diffs, context handling, hunk grouping, line-ending normalisation and cancellation | Complete with production refactors identified |
 
 `SnapshotGuardTests` must independently cover workspace ID, epoch and revision mismatches, a blank optional workspace ID, an exact match, no transaction and no expected snapshot.
 
@@ -242,6 +252,8 @@ Additional `WorkspaceDiffBuilderTests`:
 
 Null documents returned for Roslyn change IDs appear defensive and may be unreachable with a valid `SolutionChanges` graph. Measure those paths and document them as approved Roslyn defensive exceptions if required.
 
+The builder trusts the invariants of Roslyn's added, changed and removed document ID collections and parses the explicit-count hunk headers emitted by DiffPlex. Truly empty split entries are discarded so the renderer's terminal newline does not add a spurious blank entry to the final hunk, while meaningful blank diff lines retain their prefix. The builder measures 100% line and branch coverage.
+
 ## Production Seams and Remaining Coverage
 
 The following classes contain important orchestration logic, but adding partial tests around only their early exits would leave the implementation below the repository's coverage rule. Do not use real workspaces, filesystem fixtures or general integration harnesses in the unit project to force coverage.
@@ -261,20 +273,11 @@ Existing boundary evidence covers lease disposal and confirms that the mutation 
 
 `WorkspaceExecutionContextFactoryTests` now cover every acquisition, selection, gate, disappearance, external-change, owner, state, transaction and capacity branch at 100% line and branch coverage. The session stores an `IWorkspaceOperationGate`; the production gate remains the concrete runtime implementation.
 
-`MutationStagingServiceTests` cover the complete public staging flow and the principal proposal rejection families through an injected `IWorkspaceChangeSummaryBuilder`. The remaining validation matrix covers each project/reference/non-source-document alternative. A solution-file-path mismatch is a defensive invariant because a candidate derived from the same Roslyn workspace cannot change its owning solution path.
+`MutationStagingServiceTests` cover the complete public staging flow and every proposal rejection alternative through an injected `IWorkspaceDiffBuilder`. This includes every mutable project option, reference family, additional-document operation, analyzer-config-document operation, source-document kind/path rule and successful revision replacement. Non-source-document validation precedes effective compilation-option validation so analyzer-config deltas reach their specific rejection. The service measures 100% line and branch coverage.
 
 ### `WorkspaceLifecycleService`
 
-Current blockers:
-
-- reads `CommitRecoveryStore` statically
-- successful open/reload results contain a concrete `MSBuildWorkspace`
-- close/reload dispose the concrete workspace directly
-
-Recommended design decision before tests:
-
-- inject a recovery-status store abstraction
-- represent the loaded workspace through a narrow host/session abstraction that owns `Solution`, apply/dispose behaviour and the underlying `MSBuildWorkspace`
+Recovery persistence is now owned by the injected `ICommitRecoveryStore` implementation rather than static filesystem access. Loaded Roslyn workspace lifetime and solution application are owned by `ILoadedWorkspace`, with the concrete `MSBuildWorkspace` confined to the loader adapter. `WorkspaceLifecycleServiceTests` cover every open, list, close, status, reload and entry-point cancellation branch and measure 100% line and branch coverage.
 
 Once approved, `WorkspaceLifecycleServiceTests` should cover:
 
@@ -316,14 +319,7 @@ After approval, cover:
 
 ### `TransactionService`
 
-Current blockers:
-
-- preview calls static `WorkspaceDiffBuilder`
-- preview constructs a concrete `WorkspaceResolver`
-
-Recommended design decision before tests:
-
-- inject the same narrow diff service and resolver factory used by staging
+The summary-only staging seam has been replaced by a shared `IWorkspaceDiffBuilder`, and both staging and transaction preview now consume it. Workspace resolver creation is provided by `IWorkspaceResolverFactory`, shared with staging and execution-context creation. `TransactionServiceTests` cover every start, preview, history, commit, rollback and entry-point cancellation branch and measure 100% line and branch coverage. `IWorkspaceChangeDetector` remains injected and stored by `TransactionService` without being used; removing that redundant dependency is a separate production cleanup.
 
 After approval, `TransactionServiceTests` should cover every branch of:
 
@@ -337,17 +333,7 @@ After approval, `TransactionServiceTests` should cover every branch of:
 
 ### `TransactionCommitService`
 
-Current blockers:
-
-- writes/deletes recovery records statically
-- creates, changes and deletes files directly
-- applies changes to a concrete `MSBuildWorkspace`
-
-Recommended design decision before tests:
-
-- inject the recovery-status store abstraction shared with lifecycle
-- extract an `IWorkspaceCommitWriter` responsible for filesystem application and encoding preservation
-- route workspace apply behaviour through the narrow loaded-workspace abstraction
+Filesystem creation, writing, deletion and encoding preservation are owned by the injected `IWorkspaceCommitWriter`. Recovery writes/deletes use the lifecycle-owned `ICommitRecoveryStore`, and workspace application uses `ILoadedWorkspace`. `TransactionCommitServiceTests` cover every orchestration and cancellation branch and measure 100% line and branch coverage. Concrete writer and recovery durability remain integration responsibilities.
 
 After approval, `TransactionCommitServiceTests` should cover:
 
@@ -369,7 +355,7 @@ These implementations must not be moved into the unit project merely to improve 
 
 | Target | Disposition | Existing coverage | Remaining boundary inventory |
 | --- | --- | --- | --- |
-| `WorkspaceLoader` | Mixed | Coordinator integration covers project/solution load and diagnostics | Unit-test only `NormalizeOpenPath` and `NormalizeAlias`; keep `InspectCompatibility` and `LoadAsync` integration |
+| `WorkspaceLoader` | Mixed | Coordinator integration covers project/solution load and diagnostics; unit tests cover `NormalizeOpenPath` and `NormalizeAlias` at 100% line and branch | Keep `InspectCompatibility` and `LoadAsync` integration; normalization preserves path casing, recognizes supported extensions case-insensitively and rejects malformed rooted paths without throwing |
 | `MsBuildProjectUtilities` | Integration boundary | SDK and legacy compatibility tests; imported props through manifest test | Missing path, malformed project, evaluated-import de-duplication and recoverable I/O failure |
 | `WorkspaceHostServicesAccessor` | Composition/data adapter | Host composition and coordinator integration | No dedicated unit test required unless it gains branching behaviour |
 | `WorkspaceInputFileFingerprint` | Integration boundary | Indirect manifest/change tests | File path, length and timestamp capture |

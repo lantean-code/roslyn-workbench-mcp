@@ -5,16 +5,19 @@ internal sealed class MutationStagingService : IMutationStagingService
 {
     private readonly IWorkspaceOperationResultFactory _resultFactory;
     private readonly IWorkspaceSessionStore _sessionStore;
-    private readonly IWorkspaceChangeSummaryBuilder _changeSummaryBuilder;
+    private readonly IWorkspaceDiffBuilder _diffBuilder;
+    private readonly IWorkspaceResolverFactory _resolverFactory;
 
     public MutationStagingService(
         IWorkspaceOperationResultFactory resultFactory,
         IWorkspaceSessionStore sessionStore,
-        IWorkspaceChangeSummaryBuilder changeSummaryBuilder)
+        IWorkspaceDiffBuilder diffBuilder,
+        IWorkspaceResolverFactory resolverFactory)
     {
         _resultFactory = resultFactory;
         _sessionStore = sessionStore;
-        _changeSummaryBuilder = changeSummaryBuilder;
+        _diffBuilder = diffBuilder;
+        _resolverFactory = resolverFactory;
     }
 
     public async ValueTask<WorkspaceOperationResult<MutationStagingOutcome>> StageAsync(
@@ -53,10 +56,10 @@ internal sealed class MutationStagingService : IMutationStagingService
         }
 
         var transaction = session.Transaction;
-        var stagedChanges = await _changeSummaryBuilder.CreateAsync(
+        var stagedChanges = await _diffBuilder.CreateChangeSummaryAsync(
             transaction.BaselineSolution,
             proposal.CandidateSolution!,
-            new WorkspaceResolver(proposal.CandidateSolution!, session.Workspace, transaction.CurrentRevision + 1),
+            _resolverFactory.Create(proposal.CandidateSolution!, session.Workspace, transaction.CurrentRevision + 1),
             cancellationToken);
         var retainedRevisions = transaction.Revisions.Take(transaction.CurrentRevision).ToArray();
         var revision = new WorkspaceTransactionRevision
@@ -109,21 +112,15 @@ internal sealed class MutationStagingService : IMutationStagingService
             return CreateError("InvalidMutationProposal", "Mutation proposals must belong to the current workspace.");
         }
 
-        if (!string.Equals(proposal.CandidateSolution.FilePath, currentSolution.FilePath, StringComparison.Ordinal))
-        {
-            return CreateError("InvalidMutationProposal", "Mutation proposals must target the current workspace solution.");
-        }
-
         if (proposal.CandidateSolution.ProjectIds.Count != currentSolution.ProjectIds.Count)
         {
             return CreateError("UnsupportedChange", "Mutation proposals must not add or remove projects.");
         }
 
-        foreach (var projectId in currentSolution.ProjectIds)
+        foreach (var currentProject in currentSolution.Projects)
         {
-            var currentProject = currentSolution.GetProject(projectId);
-            var candidateProject = proposal.CandidateSolution.GetProject(projectId);
-            if (currentProject is null || candidateProject is null)
+            var candidateProject = proposal.CandidateSolution.GetProject(currentProject.Id);
+            if (candidateProject is null)
             {
                 return CreateError("UnsupportedChange", "Mutation proposals must not alter project identity.");
             }
@@ -131,9 +128,7 @@ internal sealed class MutationStagingService : IMutationStagingService
             if (!string.Equals(candidateProject.FilePath, currentProject.FilePath, StringComparison.Ordinal)
                 || !string.Equals(candidateProject.Name, currentProject.Name, StringComparison.Ordinal)
                 || !string.Equals(candidateProject.AssemblyName, currentProject.AssemblyName, StringComparison.Ordinal)
-                || !string.Equals(candidateProject.DefaultNamespace, currentProject.DefaultNamespace, StringComparison.Ordinal)
-                || !Equals(candidateProject.CompilationOptions, currentProject.CompilationOptions)
-                || !Equals(candidateProject.ParseOptions, currentProject.ParseOptions))
+                || !string.Equals(candidateProject.DefaultNamespace, currentProject.DefaultNamespace, StringComparison.Ordinal))
             {
                 return CreateError("UnsupportedChange", "Mutation proposals must not alter project identity or options.");
             }
@@ -153,6 +148,12 @@ internal sealed class MutationStagingService : IMutationStagingService
                 || projectChanges.GetRemovedAnalyzerConfigDocuments().Any())
             {
                 return CreateError("UnsupportedChange", "Mutation proposals must not alter project references or non-source documents.");
+            }
+
+            if (!Equals(candidateProject.CompilationOptions, currentProject.CompilationOptions)
+                || !Equals(candidateProject.ParseOptions, currentProject.ParseOptions))
+            {
+                return CreateError("UnsupportedChange", "Mutation proposals must not alter project identity or options.");
             }
 
             var textChangedDocuments = projectChanges.GetChangedDocuments(onlyGetDocumentsWithTextChanges: true).ToHashSet();

@@ -1,3 +1,4 @@
+global using System.IO.Abstractions;
 global using AwesomeAssertions;
 global using ModelContextProtocol.Protocol;
 global using ModelContextProtocol.Server;
@@ -27,6 +28,7 @@ global using Roslyn.Workbench.Mcp.Workspace.Configuration;
 global using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
 global using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 global using Roslyn.Workbench.Mcp.Workspace.ExecutionContexts;
+global using Roslyn.Workbench.Mcp.Workspace.IO;
 global using Roslyn.Workbench.Mcp.Workspace.Lifecycle;
 global using Roslyn.Workbench.Mcp.Workspace.Loading;
 global using Roslyn.Workbench.Mcp.Workspace.Operations;

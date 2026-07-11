@@ -8,30 +8,33 @@ internal sealed class TransactionService : ITransactionService
     private readonly WorkspaceCoordinatorOptions _options;
     private readonly IWorkspaceSessionStore _sessionStore;
     private readonly IWorkspaceSelector _workspaceSelector;
-    private readonly IWorkspaceChangeDetector _workspaceChangeDetector;
     private readonly IWorkspaceStateTransitions _workspaceStateTransitions;
     private readonly ISnapshotGuard _snapshotGuard;
     private readonly IWorkspaceOperationResultFactory _resultFactory;
     private readonly ITransactionCommitService _transactionCommitService;
+    private readonly IWorkspaceDiffBuilder _diffBuilder;
+    private readonly IWorkspaceResolverFactory _resolverFactory;
 
     public TransactionService(
         IOptions<WorkspaceCoordinatorOptions> options,
         IWorkspaceSessionStore sessionStore,
         IWorkspaceSelector workspaceSelector,
-        IWorkspaceChangeDetector workspaceChangeDetector,
         IWorkspaceStateTransitions workspaceStateTransitions,
         ISnapshotGuard snapshotGuard,
         IWorkspaceOperationResultFactory resultFactory,
-        ITransactionCommitService transactionCommitService)
+        ITransactionCommitService transactionCommitService,
+        IWorkspaceDiffBuilder diffBuilder,
+        IWorkspaceResolverFactory resolverFactory)
     {
         _options = options.Value;
         _sessionStore = sessionStore;
         _workspaceSelector = workspaceSelector;
-        _workspaceChangeDetector = workspaceChangeDetector;
         _workspaceStateTransitions = workspaceStateTransitions;
         _snapshotGuard = snapshotGuard;
         _resultFactory = resultFactory;
         _transactionCommitService = transactionCommitService;
+        _diffBuilder = diffBuilder;
+        _resolverFactory = resolverFactory;
     }
 
     public async ValueTask<WorkspaceOperationResult<TransactionStartOutcome>> StartAsync(string? workspaceId, string? alias, string? path, CancellationToken cancellationToken)
@@ -175,8 +178,11 @@ internal sealed class TransactionService : ITransactionService
                 session is null ? null : CreateContext(session));
         }
 
-        var resolver = new WorkspaceResolver(session.Transaction.CurrentSolution, session.Workspace, session.Transaction.CurrentRevision);
-        var changes = await WorkspaceDiffBuilder.CreateChangeSummaryAsync(
+        var resolver = _resolverFactory.Create(
+            session.Transaction.CurrentSolution,
+            session.Workspace,
+            session.Transaction.CurrentRevision);
+        var changes = await _diffBuilder.CreateChangeSummaryAsync(
             session.Transaction.BaselineSolution,
             session.Transaction.CurrentSolution,
             resolver,
@@ -192,7 +198,7 @@ internal sealed class TransactionService : ITransactionService
                 var reference = resolver.CreateDocumentReference(resolution.Value!);
                 diff = reference is null
                     ? null
-                    : await WorkspaceDiffBuilder.CreateDocumentDiffAsync(
+                    : await _diffBuilder.CreateDocumentDiffAsync(
                         session.Transaction.BaselineSolution,
                         session.Transaction.CurrentSolution,
                         reference,

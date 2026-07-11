@@ -5,9 +5,9 @@ namespace Roslyn.Workbench.Mcp.Test;
 
 public sealed class ServerStatusServiceTests
 {
-    private readonly Mock<ICodeActionRuntime> _codeActionRuntime = new();
-    private readonly Mock<IMsBuildRegistrationService> _msBuildRegistrationService = new();
-    private readonly Mock<IRecoveryStatusReader> _recoveryStatusReader = new();
+    private readonly Mock<ICodeActionRuntime> _codeActionRuntime = new Mock<ICodeActionRuntime>();
+    private readonly Mock<IMsBuildRegistrationService> _msBuildRegistrationService = new Mock<IMsBuildRegistrationService>();
+    private readonly Mock<ICommitRecoveryStore> _recoveryStore = new Mock<ICommitRecoveryStore>();
 
     public ServerStatusServiceTests()
     {
@@ -44,7 +44,7 @@ public sealed class ServerStatusServiceTests
         data.Plugins.Should().BeNull();
         data.Configuration.Should().BeNull();
         data.Recovery.Should().BeNull();
-        _recoveryStatusReader.Verify(item => item.GetStatuses(It.IsAny<string>()), Times.Never);
+        _recoveryStore.Verify(item => item.GetStatusesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -62,11 +62,11 @@ public sealed class ServerStatusServiceTests
         {
             CommitId = "CommitId",
         };
-        _recoveryStatusReader.Setup(item => item.GetStatuses("/state")).Returns([recovery]);
+        _recoveryStore.Setup(item => item.GetStatusesAsync(TestContext.Current.CancellationToken)).ReturnsAsync([recovery]);
         var pluginSnapshot = CreatePluginSnapshot();
         var target = CreateTarget(options, pluginSnapshot);
 
-        var result = await target.GetStatusAsync(StatusDetailLevel.Full, CancellationToken.None);
+        var result = await target.GetStatusAsync(StatusDetailLevel.Full, TestContext.Current.CancellationToken);
 
         var data = result.Data ?? throw new InvalidOperationException("The status response did not contain data.");
         data.Configuration.Should().NotBeNull();
@@ -123,7 +123,7 @@ public sealed class ServerStatusServiceTests
     [Fact]
     public async Task GIVEN_RepeatedFullDetail_WHEN_GettingStatus_THEN_ShouldReuseConfigurationProjection()
     {
-        _recoveryStatusReader.Setup(item => item.GetStatuses(It.IsAny<string>())).Returns([]);
+        _recoveryStore.Setup(item => item.GetStatusesAsync(It.IsAny<CancellationToken>())).ReturnsAsync([]);
         var target = CreateTarget(new StartupOptions(), new PluginCatalogSnapshot());
 
         var first = await target.GetStatusAsync(StatusDetailLevel.Full, CancellationToken.None);
@@ -155,7 +155,7 @@ public sealed class ServerStatusServiceTests
             codeActionSnapshot ?? new CodeActionCatalogSnapshot(),
             _msBuildRegistrationService.Object,
             _codeActionRuntime.Object,
-            _recoveryStatusReader.Object);
+            _recoveryStore.Object);
     }
 
     private static PluginCatalogSnapshot CreatePluginSnapshot()

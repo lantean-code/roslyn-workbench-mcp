@@ -1,8 +1,10 @@
+global using System.IO.Abstractions;
 global using AwesomeAssertions;
 global using Microsoft.CodeAnalysis;
 global using Microsoft.CodeAnalysis.CodeActions;
 global using Microsoft.CodeAnalysis.CSharp;
 global using Microsoft.CodeAnalysis.Text;
+global using Microsoft.Extensions.Options;
 global using Roslyn.Workbench.Mcp.CodeActions;
 global using Roslyn.Workbench.Mcp.CodeActions.Composition;
 global using Roslyn.Workbench.Mcp.CodeActions.Discovery;
@@ -22,6 +24,7 @@ global using Roslyn.Workbench.Mcp.Workspace.Configuration;
 global using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
 global using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 global using Roslyn.Workbench.Mcp.Workspace.ExecutionContexts;
+global using Roslyn.Workbench.Mcp.Workspace.IO;
 global using Roslyn.Workbench.Mcp.Workspace.Lifecycle;
 global using Roslyn.Workbench.Mcp.Workspace.Loading;
 global using Roslyn.Workbench.Mcp.Workspace.Operations;

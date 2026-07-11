@@ -4,7 +4,7 @@ namespace Roslyn.Workbench.Mcp.Workspace.Loading;
 
 internal sealed class WorkspaceLoadResult
 {
-    public MSBuildWorkspace? Workspace { get; init; }
+    public ILoadedWorkspace? Workspace { get; init; }
 
     public Solution? Solution { get; init; }
 

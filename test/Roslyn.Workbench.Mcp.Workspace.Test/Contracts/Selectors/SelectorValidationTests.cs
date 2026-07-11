@@ -42,6 +42,14 @@ public sealed class SelectorValidationTests
     }
 
     [Fact]
+    public void GIVEN_DocumentSelectorWithDocumentId_WHEN_Validated_THEN_ShouldReturnNoValidationErrors()
+    {
+        var errors = WorkspaceContractValidator.Validate(new DocumentSelector { DocumentId = "DocumentId" });
+
+        errors.Should().BeEmpty();
+    }
+
+    [Fact]
     public void GIVEN_ProjectSelectorWithoutAnySelector_WHEN_Validated_THEN_ShouldReturnValidationError()
     {
         var selector = new ProjectSelector();
@@ -49,6 +57,24 @@ public sealed class SelectorValidationTests
         var errors = WorkspaceContractValidator.Validate(selector);
 
         errors.Should().ContainSingle(error => error.Contains("at least one"));
+    }
+
+    [Theory]
+    [InlineData("ProjectId")]
+    [InlineData("Name")]
+    [InlineData("Path")]
+    public void GIVEN_ProjectSelectorValue_WHEN_Validated_THEN_ShouldReturnNoValidationErrors(string field)
+    {
+        var selector = new ProjectSelector
+        {
+            ProjectId = field == "ProjectId" ? "ProjectId" : null,
+            Name = field == "Name" ? "Name" : null,
+            Path = field == "Path" ? "Path" : null,
+        };
+
+        var errors = WorkspaceContractValidator.Validate(selector);
+
+        errors.Should().BeEmpty();
     }
 
     [Fact]
@@ -67,6 +93,46 @@ public sealed class SelectorValidationTests
         var selector = new WorkspaceSelector
         {
             WorkspaceId = "WorkspaceId",
+        };
+
+        var errors = WorkspaceContractValidator.Validate(selector);
+
+        errors.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData("Alias")]
+    [InlineData("Path")]
+    public void GIVEN_WorkspaceSelectorAlternative_WHEN_Validated_THEN_ShouldReturnNoValidationErrors(string field)
+    {
+        var selector = new WorkspaceSelector
+        {
+            Alias = field == "Alias" ? "Alias" : null,
+            Path = field == "Path" ? "Path" : null,
+        };
+
+        var errors = WorkspaceContractValidator.Validate(selector);
+
+        errors.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void GIVEN_LocationSelectorWithoutVariant_WHEN_Validated_THEN_ShouldReturnValidationError()
+    {
+        var errors = WorkspaceContractValidator.Validate(new LocationSelector());
+
+        errors.Should().ContainSingle();
+    }
+
+    [Theory]
+    [InlineData("Span")]
+    [InlineData("Selection")]
+    public void GIVEN_LocationSelectorVariant_WHEN_Validated_THEN_ShouldReturnNoValidationErrors(string variant)
+    {
+        var selector = new LocationSelector
+        {
+            Span = variant == "Span" ? new TextSpanSelector() : null,
+            Selection = variant == "Selection" ? new TextSelectionSelector() : null,
         };
 
         var errors = WorkspaceContractValidator.Validate(selector);
@@ -120,6 +186,57 @@ public sealed class SelectorValidationTests
         errors.Should().Contain(error => error.Contains("Kind"));
     }
 
+    [Theory]
+    [InlineData("SolutionValid", 0)]
+    [InlineData("SolutionProject", 1)]
+    [InlineData("SolutionDocument", 1)]
+    [InlineData("SolutionProjects", 1)]
+    [InlineData("ProjectValid", 0)]
+    [InlineData("ProjectMissing", 1)]
+    [InlineData("ProjectDocument", 1)]
+    [InlineData("ProjectProjects", 1)]
+    [InlineData("DocumentValid", 0)]
+    [InlineData("DocumentMissing", 1)]
+    [InlineData("DocumentProject", 1)]
+    [InlineData("DocumentProjects", 1)]
+    [InlineData("ProjectsValid", 0)]
+    [InlineData("ProjectsNull", 1)]
+    [InlineData("ProjectsEmpty", 1)]
+    [InlineData("ProjectsProject", 1)]
+    [InlineData("ProjectsDocument", 1)]
+    public void GIVEN_ScopeSelectorShape_WHEN_Validated_THEN_ShouldReturnExpectedErrors(
+        string scenario,
+        int expectedErrorCount)
+    {
+        var project = new ProjectSelector { Name = "Name" };
+        var document = new DocumentSelector { Path = "Path" };
+        var selector = scenario switch
+        {
+            "SolutionValid" => new ScopeSelector { Kind = ScopeKind.Solution },
+            "SolutionProject" => new ScopeSelector { Kind = ScopeKind.Solution, Project = project },
+            "SolutionDocument" => new ScopeSelector { Kind = ScopeKind.Solution, Document = document },
+            "SolutionProjects" => new ScopeSelector { Kind = ScopeKind.Solution, Projects = [project] },
+            "ProjectValid" => new ScopeSelector { Kind = ScopeKind.Project, Project = project },
+            "ProjectMissing" => new ScopeSelector { Kind = ScopeKind.Project },
+            "ProjectDocument" => new ScopeSelector { Kind = ScopeKind.Project, Project = project, Document = document },
+            "ProjectProjects" => new ScopeSelector { Kind = ScopeKind.Project, Project = project, Projects = [project] },
+            "DocumentValid" => new ScopeSelector { Kind = ScopeKind.Document, Document = document },
+            "DocumentMissing" => new ScopeSelector { Kind = ScopeKind.Document },
+            "DocumentProject" => new ScopeSelector { Kind = ScopeKind.Document, Document = document, Project = project },
+            "DocumentProjects" => new ScopeSelector { Kind = ScopeKind.Document, Document = document, Projects = [project] },
+            "ProjectsValid" => new ScopeSelector { Kind = ScopeKind.Projects, Projects = [project] },
+            "ProjectsNull" => new ScopeSelector { Kind = ScopeKind.Projects },
+            "ProjectsEmpty" => new ScopeSelector { Kind = ScopeKind.Projects, Projects = [] },
+            "ProjectsProject" => new ScopeSelector { Kind = ScopeKind.Projects, Projects = [project], Project = project },
+            "ProjectsDocument" => new ScopeSelector { Kind = ScopeKind.Projects, Projects = [project], Document = document },
+            _ => throw new InvalidOperationException("Unsupported scope scenario."),
+        };
+
+        var errors = WorkspaceContractValidator.Validate(selector);
+
+        errors.Should().HaveCount(expectedErrorCount);
+    }
+
     [Fact]
     public void GIVEN_SymbolSelectorWithoutAnyResolver_WHEN_Validated_THEN_ShouldReturnValidationError()
     {
@@ -153,5 +270,21 @@ public sealed class SelectorValidationTests
         var errors = WorkspaceContractValidator.Validate(selector);
 
         errors.Should().ContainSingle(error => error.Contains("exactly one"));
+    }
+
+    [Theory]
+    [InlineData("Location")]
+    [InlineData("DocumentationCommentId")]
+    public void GIVEN_SymbolSelectorResolver_WHEN_Validated_THEN_ShouldReturnNoValidationErrors(string resolver)
+    {
+        var selector = new SymbolSelector
+        {
+            Location = resolver == "Location" ? new LocationSelector() : null,
+            DocumentationCommentId = resolver == "DocumentationCommentId" ? "DocumentationCommentId" : null,
+        };
+
+        var errors = WorkspaceContractValidator.Validate(selector);
+
+        errors.Should().BeEmpty();
     }
 }

@@ -10,7 +10,7 @@ internal static class WorkspaceDiffBuilder
     private static readonly IDiffer _differ = new Differ();
 
     private static readonly Regex _hunkHeaderPattern = new(
-        "^@@ -(?<originalStart>\\d+)(?:,(?<originalCount>\\d+))? \\+(?<updatedStart>\\d+)(?:,(?<updatedCount>\\d+))? @@",
+        "^@@ -(?<originalStart>\\d+),(?<originalCount>\\d+) \\+(?<updatedStart>\\d+),(?<updatedCount>\\d+) @@",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     public static async ValueTask<ChangeSummary> CreateChangeSummaryAsync(
@@ -29,11 +29,7 @@ internal static class WorkspaceDiffBuilder
             foreach (var documentId in projectChange.GetAddedDocuments())
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var document = currentSolution.GetDocument(documentId);
-                if (document is null)
-                {
-                    continue;
-                }
+                var document = currentSolution.GetDocument(documentId)!;
 
                 added.Add(new DocumentChange
                 {
@@ -46,12 +42,8 @@ internal static class WorkspaceDiffBuilder
             foreach (var documentId in projectChange.GetChangedDocuments())
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var oldDocument = baselineSolution.GetDocument(documentId);
-                var newDocument = currentSolution.GetDocument(documentId);
-                if (oldDocument is null || newDocument is null)
-                {
-                    continue;
-                }
+                var oldDocument = baselineSolution.GetDocument(documentId)!;
+                var newDocument = currentSolution.GetDocument(documentId)!;
 
                 modified.Add(new DocumentChange
                 {
@@ -66,11 +58,7 @@ internal static class WorkspaceDiffBuilder
             foreach (var documentId in projectChange.GetRemovedDocuments())
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var document = baselineSolution.GetDocument(documentId);
-                if (document is null)
-                {
-                    continue;
-                }
+                var document = baselineSolution.GetDocument(documentId)!;
 
                 deleted.Add(new DocumentChange
                 {
@@ -173,19 +161,14 @@ internal static class WorkspaceDiffBuilder
 
                 currentHunk = new DiffHunkBuilder(
                     ParseHunkNumber(match, "originalStart"),
-                    ParseHunkCount(match, "originalCount"),
+                    ParseHunkNumber(match, "originalCount"),
                     ParseHunkNumber(match, "updatedStart"),
-                    ParseHunkCount(match, "updatedCount"));
+                    ParseHunkNumber(match, "updatedCount"));
 
                 continue;
             }
 
             if (currentHunk is null || line.StartsWith("--- ", StringComparison.Ordinal) || line.StartsWith("+++ ", StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            if (line == @"\ No newline at end of file")
             {
                 continue;
             }
@@ -204,7 +187,7 @@ internal static class WorkspaceDiffBuilder
     private static string[] SplitLines(string text)
     {
         return text.Replace("\r\n", "\n", StringComparison.Ordinal)
-            .Split('\n', StringSplitOptions.None);
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries);
     }
 
     private static async ValueTask<string> GetDocumentTextAsync(Document? document, CancellationToken cancellationToken)
@@ -221,12 +204,6 @@ internal static class WorkspaceDiffBuilder
     private static int ParseHunkNumber(Match match, string groupName)
     {
         return int.Parse(match.Groups[groupName].Value, System.Globalization.CultureInfo.InvariantCulture);
-    }
-
-    private static int ParseHunkCount(Match match, string groupName)
-    {
-        var group = match.Groups[groupName];
-        return group.Success ? int.Parse(group.Value, System.Globalization.CultureInfo.InvariantCulture) : 1;
     }
 
     private sealed class DiffHunkBuilder

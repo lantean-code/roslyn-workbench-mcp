@@ -13,6 +13,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
     private readonly IWorkspaceChangeDetector _workspaceChangeDetector;
     private readonly IWorkspaceStateTransitions _workspaceStateTransitions;
     private readonly IWorkspaceOperationResultFactory _resultFactory;
+    private readonly ICommitRecoveryStore _recoveryStore;
 
     public WorkspaceLifecycleService(
         IOptions<WorkspaceCoordinatorOptions> options,
@@ -21,7 +22,8 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         IWorkspaceLoader workspaceLoader,
         IWorkspaceChangeDetector workspaceChangeDetector,
         IWorkspaceStateTransitions workspaceStateTransitions,
-        IWorkspaceOperationResultFactory resultFactory)
+        IWorkspaceOperationResultFactory resultFactory,
+        ICommitRecoveryStore recoveryStore)
     {
         _options = options.Value;
         _sessionStore = sessionStore;
@@ -30,6 +32,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         _workspaceChangeDetector = workspaceChangeDetector;
         _workspaceStateTransitions = workspaceStateTransitions;
         _resultFactory = resultFactory;
+        _recoveryStore = recoveryStore;
     }
 
     public async ValueTask<WorkspaceOperationResult<WorkspaceOpenOutcome>> OpenAsync(string path, string? alias, CancellationToken cancellationToken)
@@ -58,7 +61,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             return _resultFactory.Rejected<WorkspaceOpenOutcome>(uniquenessError);
         }
 
-        if (CommitRecoveryStore.GetStatuses(_options.StateDirectory).Any(status =>
+        if ((await _recoveryStore.GetStatusesAsync(cancellationToken).ConfigureAwait(false)).Any(status =>
                 string.Equals(Path.GetFullPath(status.SolutionPath), normalizedPath, StringComparison.Ordinal)
                 && status.State is not RecoveryState.Committed and not RecoveryState.Restored))
         {
@@ -106,7 +109,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             loadedWorkspace.Diagnostics,
             operationGate: null);
 
-        foreach (var project in session.LoadedWorkspace.CurrentSolution.Projects
+        foreach (var project in session.CurrentSolution.Projects
                      .Where(static project => string.Equals(project.Language, LanguageNames.CSharp, StringComparison.Ordinal))
                      .Where(static project => !string.IsNullOrWhiteSpace(project.FilePath)))
         {
@@ -226,7 +229,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
                 RequiredAction.OpenWorkspace);
         }
 
-        removedSession.LoadedWorkspace?.Dispose();
+        removedSession.LoadedWorkspace.Dispose();
         return _resultFactory.Succeeded(
             new WorkspaceCloseOutcome
             {
@@ -390,7 +393,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             currentSession.OperationGate);
 
         var oldSession = _sessionStore.ReadSession(selection.WorkspaceId);
-        oldSession?.LoadedWorkspace?.Dispose();
+        oldSession?.LoadedWorkspace.Dispose();
         _sessionStore.ReplaceSession(reloadedSession);
 
         return _resultFactory.Succeeded(
@@ -407,7 +410,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
     private WorkspaceSessionSnapshot CreateSessionSnapshot(
         string workspaceId,
         string? alias,
-        MSBuildWorkspace workspace,
+        ILoadedWorkspace workspace,
         Solution solution,
         string loadedPath,
         long workspaceEpoch,

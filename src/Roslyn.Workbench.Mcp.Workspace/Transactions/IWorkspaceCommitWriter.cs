@@ -1,10 +1,9 @@
 namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
-internal interface IWorkspaceChangeSummaryBuilder
+internal interface IWorkspaceCommitWriter
 {
-    ValueTask<ChangeSummary> CreateAsync(
+    ValueTask ApplyAsync(
         Solution baselineSolution,
         Solution currentSolution,
-        IWorkspaceResolver resolver,
         CancellationToken cancellationToken);
 }

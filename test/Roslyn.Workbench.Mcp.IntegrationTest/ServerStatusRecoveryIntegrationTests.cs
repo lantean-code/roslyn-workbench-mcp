@@ -15,13 +15,18 @@ public sealed class ServerStatusRecoveryIntegrationTests
 
         try
         {
-            CommitRecoveryStore.WriteStatus(stateDirectory, new RecoveryStatus
+            var fileSystem = new FileSystem();
+            var recoveryStore = new CommitRecoveryStore(
+                Options.Create(new WorkspaceCoordinatorOptions { StateDirectory = stateDirectory }),
+                fileSystem,
+                new AtomicFileWriter(fileSystem));
+            await recoveryStore.WriteStatusAsync(new RecoveryStatus
             {
                 CommitId = "commit-id",
                 SolutionPath = "/workspace/Sample.csproj",
                 State = RecoveryState.RecoveryIncomplete,
                 Message = "Message",
-            });
+            }, TestContext.Current.CancellationToken);
             var options = new StartupOptions
             {
                 StateDirectory = stateDirectory,
@@ -46,7 +51,7 @@ public sealed class ServerStatusRecoveryIntegrationTests
                 new CodeActionCatalogSnapshot(),
                 msBuildRegistrationService.Object,
                 codeActionRuntime.Object,
-                new RecoveryStatusReader());
+                recoveryStore);
             var tool = new ServerStatusTool(Options.Create(options), service);
 
             var result = await McpIntegrationTestHost.InvokeServerToolAsync(tool, "server-status", new Dictionary<string, JsonElement>

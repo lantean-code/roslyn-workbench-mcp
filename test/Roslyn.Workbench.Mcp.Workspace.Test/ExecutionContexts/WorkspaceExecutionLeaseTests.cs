@@ -6,9 +6,10 @@ public sealed class WorkspaceExecutionLeaseTests
     public async Task GIVEN_AcquiredQueryLease_WHEN_Disposed_THEN_ShouldDisposeOperationLease()
     {
         var operationLease = new Mock<IAsyncDisposable>();
+        var context = new Mock<IWorkspaceExecutionContext>();
         operationLease.Setup(item => item.DisposeAsync()).Returns(ValueTask.CompletedTask);
         var target = WorkspaceExecutionContextLease.Acquired(
-            Mock.Of<IWorkspaceExecutionContext>(),
+            context.Object,
             operationLease.Object);
 
         await target.DisposeAsync();
@@ -19,17 +20,67 @@ public sealed class WorkspaceExecutionLeaseTests
     }
 
     [Fact]
+    public async Task GIVEN_AcquiredQueryLeaseWithoutOperationLease_WHEN_Disposed_THEN_ShouldComplete()
+    {
+        var context = new Mock<IWorkspaceExecutionContext>();
+        var target = WorkspaceExecutionContextLease.Acquired(context.Object);
+
+        await target.DisposeAsync();
+
+        target.Context.Should().BeSameAs(context.Object);
+        target.Failure.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GIVEN_RejectedQueryLease_WHEN_Disposed_THEN_ShouldRetainFailureAndContext()
+    {
+        var context = new Mock<IWorkspaceExecutionContext>();
+        var failure = new WorkspaceExecutionFailure { Status = WorkspaceOperationStatus.Rejected };
+        var target = WorkspaceExecutionContextLease.Rejected(failure, context.Object);
+
+        await target.DisposeAsync();
+
+        target.Context.Should().BeSameAs(context.Object);
+        target.Failure.Should().BeSameAs(failure);
+    }
+
+    [Fact]
     public void GIVEN_AcquiredMutationLease_WHEN_InspectingCapabilities_THEN_ShouldKeepStagerSeparateFromContext()
     {
-        var context = Mock.Of<IWorkspaceExecutionContext>();
-        var stager = Mock.Of<IWorkspaceMutationStager>();
+        var context = new Mock<IWorkspaceExecutionContext>();
+        var stager = new Mock<IWorkspaceMutationStager>();
 
-        var target = WorkspaceMutationExecutionLease.Acquired(context, stager);
+        var target = WorkspaceMutationExecutionLease.Acquired(context.Object, stager.Object);
 
-        target.Context.Should().BeSameAs(context);
-        target.Stager.Should().BeSameAs(stager);
+        target.Context.Should().BeSameAs(context.Object);
+        target.Stager.Should().BeSameAs(stager.Object);
         target.Failure.Should().BeNull();
-        ((object)context).Should().NotBeAssignableTo<IWorkspaceMutationStager>();
+        ((object)context.Object).Should().NotBeAssignableTo<IWorkspaceMutationStager>();
+    }
+
+    [Fact]
+    public async Task GIVEN_AcquiredMutationLeaseWithOperationLease_WHEN_Disposed_THEN_ShouldDisposeOperationLease()
+    {
+        var operationLease = new Mock<IAsyncDisposable>();
+        var context = new Mock<IWorkspaceExecutionContext>();
+        var stager = new Mock<IWorkspaceMutationStager>();
+        operationLease.Setup(item => item.DisposeAsync()).Returns(ValueTask.CompletedTask);
+        var target = WorkspaceMutationExecutionLease.Acquired(context.Object, stager.Object, operationLease.Object);
+
+        await target.DisposeAsync();
+
+        operationLease.Verify(item => item.DisposeAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_RejectedMutationLeaseWithoutOperationLease_WHEN_Disposed_THEN_ShouldComplete()
+    {
+        var failure = new WorkspaceExecutionFailure { Status = WorkspaceOperationStatus.Conflict };
+        var target = WorkspaceMutationExecutionLease.Rejected(failure);
+
+        await target.DisposeAsync();
+
+        target.Failure.Should().BeSameAs(failure);
     }
 
     [Fact]

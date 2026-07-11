@@ -77,14 +77,19 @@ public static class WorkspaceCoordinatorFactory
         var sessionStore = new WorkspaceSessionStore();
         var workspaceSelector = new WorkspaceSelectorService();
         var workspaceLoader = new WorkspaceLoader(new WorkspaceHostServicesAccessor(codeActionRuntime.WorkspaceHostServices));
-        var workspaceChangeDetector = new WorkspaceChangeDetector();
+        var fileSystem = new FileSystem();
+        var atomicFileWriter = new AtomicFileWriter(fileSystem);
+        var workspaceChangeDetector = new WorkspaceChangeDetector(fileSystem, new WorkspaceProjectInputResolver());
         var workspaceStateTransitions = new WorkspaceStateTransitions();
         var resultFactory = new WorkspaceOperationResultFactory();
         var snapshotGuard = new SnapshotGuard();
+        var workspaceResolverFactory = new WorkspaceResolverFactory();
+        var recoveryStore = new CommitRecoveryStore(optionsWrapper, fileSystem, atomicFileWriter);
         var mutationStagingService = new MutationStagingService(
             new WorkspaceOperationResultFactory(),
             sessionStore,
-            new WorkspaceChangeSummaryBuilder());
+            new WorkspaceDiffService(),
+            workspaceResolverFactory);
         var codeActionDiagnosticService = new CodeActionDiagnosticService();
         var codeActionDescriptorRegistry = new CodeActionDescriptorRegistry([ControlledCodeActionDescriptorClassifier.Classify]);
         var codeActionTokenService = new CodeActionTokenService();
@@ -113,19 +118,21 @@ public static class WorkspaceCoordinatorFactory
             codeActionDescriptorRegistry,
             codeActionTokenService);
         var transactionCommitService = new TransactionCommitService(
-            optionsWrapper,
             sessionStore,
             workspaceChangeDetector,
             workspaceStateTransitions,
             snapshotGuard,
-            resultFactory);
+            resultFactory,
+            recoveryStore,
+            new WorkspaceCommitWriter(fileSystem));
         var workspaceContextFactory = new WorkspaceExecutionContextFactory(
             optionsWrapper,
             sessionStore,
             workspaceSelector,
             workspaceChangeDetector,
             workspaceStateTransitions,
-            mutationStagingService);
+            mutationStagingService,
+            workspaceResolverFactory);
         var pluginContextFactory = new PluginExecutionContextFactory(workspaceContextFactory, executionServices);
         var codeActionContextFactory = new CodeActionExecutionContextFactory(
             workspaceContextFactory,
@@ -138,16 +145,18 @@ public static class WorkspaceCoordinatorFactory
             workspaceLoader,
             workspaceChangeDetector,
             workspaceStateTransitions,
-            resultFactory);
+            resultFactory,
+            recoveryStore);
         var transactionService = new TransactionService(
             optionsWrapper,
             sessionStore,
             workspaceSelector,
-            workspaceChangeDetector,
             workspaceStateTransitions,
             snapshotGuard,
             resultFactory,
-            transactionCommitService);
+            transactionCommitService,
+            new WorkspaceDiffService(),
+            workspaceResolverFactory);
 
         return new WorkspaceRuntime(
             pluginContextFactory,

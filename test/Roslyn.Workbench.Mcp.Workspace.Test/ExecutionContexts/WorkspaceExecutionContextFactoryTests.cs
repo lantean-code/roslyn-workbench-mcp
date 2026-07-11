@@ -14,6 +14,8 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
     private readonly Mock<IWorkspaceChangeDetector> _changeDetector;
     private readonly Mock<IWorkspaceStateTransitions> _stateTransitions;
     private readonly Mock<IMutationStagingService> _stagingService;
+    private readonly Mock<IWorkspaceResolverFactory> _resolverFactory;
+    private readonly Mock<IWorkspaceResolver> _resolver;
     private readonly WorkspaceExecutionContextFactory _target;
 
     public WorkspaceExecutionContextFactoryTests()
@@ -24,13 +26,18 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         _changeDetector = new Mock<IWorkspaceChangeDetector>();
         _stateTransitions = new Mock<IWorkspaceStateTransitions>();
         _stagingService = new Mock<IMutationStagingService>();
+        _resolverFactory = new Mock<IWorkspaceResolverFactory>();
+        _resolver = new Mock<IWorkspaceResolver>();
+        _resolverFactory.Setup(item => item.Create(It.IsAny<Solution>(), It.IsAny<WorkspaceIdentity>(), It.IsAny<int?>()))
+            .Returns(_resolver.Object);
         _target = new WorkspaceExecutionContextFactory(
             Options.Create(new WorkspaceCoordinatorOptions { DefaultMaxResults = 25 }),
             _sessionStore.Object,
             _workspaceSelector.Object,
             _changeDetector.Object,
             _stateTransitions.Object,
-            _stagingService.Object);
+            _stagingService.Object,
+            _resolverFactory.Object);
     }
 
     [Fact]
@@ -221,7 +228,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         result.Context.WorkspaceIdentity.Should().BeSameAs(session.Workspace);
         result.Context.TransactionRevision.Should().Be(1);
         result.Context.DefaultMaxResults.Should().Be(25);
-        result.Context.WorkspaceResolver.Should().BeOfType<WorkspaceResolver>();
+        result.Context.WorkspaceResolver.Should().BeSameAs(_resolver.Object);
     }
 
     [Fact]

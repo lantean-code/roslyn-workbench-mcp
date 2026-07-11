@@ -47,6 +47,9 @@ public sealed class PluginWorkspaceResultMapperTests
         if (status == WorkspaceOperationStatus.Succeeded)
         {
             result.Data!.Operation.Should().Be("Operation");
+            result.Data.Summary.Should().Be("Summary");
+            result.Data.Transaction.Should().NotBeNull();
+            result.Data.Preview.Should().NotBeNull();
         }
         else if (status is WorkspaceOperationStatus.Rejected or WorkspaceOperationStatus.Conflict or WorkspaceOperationStatus.Faulted)
         {
@@ -73,6 +76,8 @@ public sealed class PluginWorkspaceResultMapperTests
                 {
                     Operation = "Operation",
                     Summary = "Summary",
+                    Transaction = new TransactionInfo(),
+                    Preview = new MutationPreview(),
                 }
                 : null,
             Error = status is WorkspaceOperationStatus.Rejected or WorkspaceOperationStatus.Conflict or WorkspaceOperationStatus.Faulted

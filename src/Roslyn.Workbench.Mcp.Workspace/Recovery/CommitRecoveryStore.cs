@@ -1,4 +1,7 @@
+using System.Text;
 using System.Text.Json;
+
+using Microsoft.Extensions.Options;
 
 using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
 
@@ -7,30 +10,42 @@ namespace Roslyn.Workbench.Mcp.Workspace.Recovery;
 /// <summary>
 /// Provides durable storage for unfinished commit recovery records.
 /// </summary>
-internal static class CommitRecoveryStore
+internal sealed class CommitRecoveryStore : ICommitRecoveryStore
 {
     private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
+    private static readonly Encoding _encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+    private readonly IFileSystem _fileSystem;
+    private readonly IAtomicFileWriter _atomicFileWriter;
+    private readonly string _recoveryDirectory;
 
-    public static IReadOnlyList<RecoveryStatus> GetStatuses(string stateDirectory)
+    public CommitRecoveryStore(
+        IOptions<WorkspaceCoordinatorOptions> options,
+        IFileSystem fileSystem,
+        IAtomicFileWriter atomicFileWriter)
     {
-        if (string.IsNullOrWhiteSpace(stateDirectory))
-        {
-            return [];
-        }
+        ArgumentNullException.ThrowIfNull(options);
+        _fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
+        _atomicFileWriter = atomicFileWriter ?? throw new ArgumentNullException(nameof(atomicFileWriter));
+        _recoveryDirectory = _fileSystem.Path.Combine(
+            _fileSystem.Path.GetFullPath(options.Value.StateDirectory),
+            "recovery");
+    }
 
-        var directoryPath = GetRecoveryDirectory(stateDirectory);
-        if (!Directory.Exists(directoryPath))
+    public async ValueTask<IReadOnlyList<RecoveryStatus>> GetStatusesAsync(CancellationToken cancellationToken)
+    {
+        if (!_fileSystem.Directory.Exists(_recoveryDirectory))
         {
             return [];
         }
 
         var statuses = new List<RecoveryStatus>();
 
-        foreach (var filePath in Directory.EnumerateFiles(directoryPath, "*.json", SearchOption.TopDirectoryOnly))
+        foreach (var filePath in _fileSystem.Directory.EnumerateFiles(_recoveryDirectory, "*.json", SearchOption.TopDirectoryOnly))
         {
+            cancellationToken.ThrowIfCancellationRequested();
             try
             {
-                var json = File.ReadAllText(filePath);
+                var json = await _fileSystem.File.ReadAllTextAsync(filePath, cancellationToken).ConfigureAwait(false);
                 var status = JsonSerializer.Deserialize<RecoveryStatus>(json, _serializerOptions);
                 if (status is not null)
                 {
@@ -38,6 +53,9 @@ internal static class CommitRecoveryStore
                 }
             }
             catch (IOException)
+            {
+            }
+            catch (UnauthorizedAccessException)
             {
             }
             catch (JsonException)
@@ -48,32 +66,29 @@ internal static class CommitRecoveryStore
         return statuses;
     }
 
-    public static void WriteStatus(string stateDirectory, RecoveryStatus status)
+    public async ValueTask WriteStatusAsync(RecoveryStatus status, CancellationToken cancellationToken)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(stateDirectory);
         ArgumentNullException.ThrowIfNull(status);
+        cancellationToken.ThrowIfCancellationRequested();
 
-        var directoryPath = GetRecoveryDirectory(stateDirectory);
-        Directory.CreateDirectory(directoryPath);
+        _fileSystem.Directory.CreateDirectory(_recoveryDirectory);
 
-        var filePath = Path.Combine(directoryPath, $"{status.CommitId}.json");
-        File.WriteAllText(filePath, JsonSerializer.Serialize(status, _serializerOptions));
+        var filePath = _fileSystem.Path.Combine(_recoveryDirectory, $"{status.CommitId}.json");
+        await _atomicFileWriter.WriteAllTextAsync(
+            filePath,
+            JsonSerializer.Serialize(status, _serializerOptions),
+            _encoding,
+            cancellationToken).ConfigureAwait(false);
     }
 
-    public static void DeleteStatus(string stateDirectory, string commitId)
+    public void DeleteStatus(string commitId)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(stateDirectory);
         ArgumentException.ThrowIfNullOrWhiteSpace(commitId);
 
-        var filePath = Path.Combine(GetRecoveryDirectory(stateDirectory), $"{commitId}.json");
-        if (File.Exists(filePath))
+        var filePath = _fileSystem.Path.Combine(_recoveryDirectory, $"{commitId}.json");
+        if (_fileSystem.File.Exists(filePath))
         {
-            File.Delete(filePath);
+            _fileSystem.File.Delete(filePath);
         }
-    }
-
-    private static string GetRecoveryDirectory(string stateDirectory)
-    {
-        return Path.Combine(stateDirectory, "recovery");
     }
 }

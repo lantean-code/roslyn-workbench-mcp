@@ -681,13 +681,18 @@ public sealed class WorkspaceCoordinatorIntegrationTests
         using var fixture = await TestWorkspaceFixture.CreateAsync();
         var stateDirectory = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-recovery-tests", Guid.NewGuid().ToString("n"));
         Directory.CreateDirectory(stateDirectory);
-        CommitRecoveryStore.WriteStatus(stateDirectory, new RecoveryStatus
+        var fileSystem = new FileSystem();
+        var recoveryStore = new CommitRecoveryStore(
+            Options.Create(new WorkspaceCoordinatorOptions { StateDirectory = stateDirectory }),
+            fileSystem,
+            new AtomicFileWriter(fileSystem));
+        await recoveryStore.WriteStatusAsync(new RecoveryStatus
         {
             CommitId = "commit-id",
             SolutionPath = fixture.ProjectPath,
             State = RecoveryState.RecoveryIncomplete,
             Message = "Message",
-        });
+        }, TestContext.Current.CancellationToken);
         var target = WorkspaceCoordinatorFactory.Create(new WorkspaceRuntimeOptions
         {
             StateDirectory = stateDirectory,

@@ -10,6 +10,7 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
     private readonly IWorkspaceChangeDetector _workspaceChangeDetector;
     private readonly IWorkspaceStateTransitions _workspaceStateTransitions;
     private readonly IWorkspaceMutationStager _mutationStager;
+    private readonly IWorkspaceResolverFactory _resolverFactory;
 
     public WorkspaceExecutionContextFactory(
         IOptions<WorkspaceCoordinatorOptions> options,
@@ -17,7 +18,8 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
         IWorkspaceSelector workspaceSelector,
         IWorkspaceChangeDetector workspaceChangeDetector,
         IWorkspaceStateTransitions workspaceStateTransitions,
-        IMutationStagingService mutationStagingService)
+        IMutationStagingService mutationStagingService,
+        IWorkspaceResolverFactory resolverFactory)
     {
         _options = options.Value;
         _sessionStore = sessionStore;
@@ -25,6 +27,7 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
         _workspaceChangeDetector = workspaceChangeDetector;
         _workspaceStateTransitions = workspaceStateTransitions;
         _mutationStager = new WorkspaceMutationStager(mutationStagingService);
+        _resolverFactory = resolverFactory;
     }
 
     public WorkspaceMutationExecutionLease CreateMutationContext(
@@ -122,7 +125,10 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
 
     private WorkspaceExecutionContext CreateContext(WorkspaceSessionSnapshot session)
     {
-        var resolver = new WorkspaceResolver(session.CurrentSolution, session.Workspace, session.Transaction?.CurrentRevision);
+        var resolver = _resolverFactory.Create(
+            session.CurrentSolution,
+            session.Workspace,
+            session.Transaction?.CurrentRevision);
         return new WorkspaceExecutionContext(
             session.CurrentSolution,
             session.Workspace,

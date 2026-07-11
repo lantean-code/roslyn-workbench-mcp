@@ -23,8 +23,9 @@ Cross-project test ownership and execution-path policy are defined in `../docs/T
 - When `_target` is used, construct it in the test class constructor.
 - When constructor arguments, dependency behaviour, or lifetime vary per test and local construction is the common case, do not force a class-level `_target`; construct the system under test inside each test and store it in a method-local variable named `target`.
 - Local `target` instances are allowed in classes that also use `_target` when they are the minority case and the altered construction is part of the scenario under test.
-- Mocks used across tests are private readonly fields created with `Mock.Of<T>()`.
-- Mocks that are local to a single test method should use `new Mock<T>()`.
+- Create mocks with `new Mock<T>()` so their setup, object access and verification remain explicit.
+- Mocks used across tests are private readonly `Mock<T>` fields constructed in the test class constructor.
+- Mocks local to a single test method are method-local `Mock<T>` variables.
 - Shared test-only helpers belong in `Roslyn.Workbench.Mcp.TestSupport`.
 - Unit tests must keep collaborator mocks visible in the test class. Configure `Mock<T>` instances in the class or test method rather than hiding dependency setup behind opaque harnesses.
 - Unit tests may use small factory methods that return configured `Mock<T>` instances or wire visible mocks together, for example creating a `Mock<IQueryContext>` from class-level mocks.
@@ -131,7 +132,7 @@ Cross-project test ownership and execution-path policy are defined in `../docs/T
 - [ ] Namespace mirrors the product namespace with `.Test` inserted appropriately.
 - [ ] Methods follow `GIVEN_..._WHEN_..._THEN_...` naming.
 - [ ] For unit tests, `_target` is used only when one shared constructor setup serves most tests in the class; otherwise the system under test is created per test in a local `target`.
-- [ ] Class-level mocks are `Mock.Of<T>()`; method-local mocks use `new Mock<T>()`.
+- [ ] All mocks use explicit `new Mock<T>()` construction; shared mocks are readonly fields and local mocks are method-local variables.
 - [ ] Strings use property names as values; dates use `2000-01-01 00:00` with correct `DateTimeKind`; numbers are sensible.
 - [ ] No expression-bodied members; braces are always present.
 - [ ] No reflection invokes implementation code or locks an internal runtime shape; any deliberate public-surface metadata lock is a Contract test.

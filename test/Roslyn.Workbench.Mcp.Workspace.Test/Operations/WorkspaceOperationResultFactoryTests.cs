@@ -23,6 +23,10 @@ public sealed class WorkspaceOperationResultFactoryTests
         result.Context.Should().BeSameAs(context);
         result.Data.Should().BeSameAs(data);
         result.Diagnostics.Should().ContainSingle().Which.Should().BeSameAs(diagnostic);
+        result.Diagnostics[0].Id.Should().Be("Id");
+        result.Diagnostics[0].Severity.Should().Be(global::Roslyn.Workbench.Mcp.Workspace.Contracts.Results.DiagnosticSeverity.Warning);
+        result.Diagnostics[0].Message.Should().Be("Message");
+        result.Diagnostics[0].Location.Should().NotBeNull();
         result.Warnings.Should().ContainSingle().Which.Should().BeSameAs(warning);
         result.Error.Should().BeNull();
     }
@@ -165,7 +169,9 @@ public sealed class WorkspaceOperationResultFactoryTests
         return new DiagnosticInfo
         {
             Id = "Id",
+            Severity = global::Roslyn.Workbench.Mcp.Workspace.Contracts.Results.DiagnosticSeverity.Warning,
             Message = "Message",
+            Location = new ResolvedLocation(),
         };
     }
 

@@ -1,4 +1,3 @@
-using System.Text;
 using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
 using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
@@ -7,27 +6,30 @@ namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
 internal sealed class TransactionCommitService : ITransactionCommitService
 {
-    private readonly WorkspaceCoordinatorOptions _options;
     private readonly IWorkspaceSessionStore _sessionStore;
     private readonly IWorkspaceChangeDetector _workspaceChangeDetector;
     private readonly IWorkspaceStateTransitions _workspaceStateTransitions;
     private readonly ISnapshotGuard _snapshotGuard;
     private readonly IWorkspaceOperationResultFactory _resultFactory;
+    private readonly ICommitRecoveryStore _recoveryStore;
+    private readonly IWorkspaceCommitWriter _commitWriter;
 
     public TransactionCommitService(
-        IOptions<WorkspaceCoordinatorOptions> options,
         IWorkspaceSessionStore sessionStore,
         IWorkspaceChangeDetector workspaceChangeDetector,
         IWorkspaceStateTransitions workspaceStateTransitions,
         ISnapshotGuard snapshotGuard,
-        IWorkspaceOperationResultFactory resultFactory)
+        IWorkspaceOperationResultFactory resultFactory,
+        ICommitRecoveryStore recoveryStore,
+        IWorkspaceCommitWriter commitWriter)
     {
-        _options = options.Value;
         _sessionStore = sessionStore;
         _workspaceChangeDetector = workspaceChangeDetector;
         _workspaceStateTransitions = workspaceStateTransitions;
         _snapshotGuard = snapshotGuard;
         _resultFactory = resultFactory;
+        _recoveryStore = recoveryStore;
+        _commitWriter = commitWriter;
     }
 
     public async ValueTask<WorkspaceOperationResult<TransactionCommitOutcome>> CommitAsync(
@@ -89,24 +91,37 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         }
 
         var commitId = Guid.NewGuid().ToString("n");
-        CommitRecoveryStore.WriteStatus(_options.StateDirectory, new RecoveryStatus
-        {
-            CommitId = commitId,
-            SolutionPath = session.Workspace.LoadedPath,
-            State = RecoveryState.Prepared,
-        });
-
         try
         {
-            CommitRecoveryStore.WriteStatus(_options.StateDirectory, new RecoveryStatus
-            {
-                CommitId = commitId,
-                SolutionPath = session.Workspace.LoadedPath,
-                State = RecoveryState.Applying,
-            });
+            await WriteRecoveryStatusAsync(
+                commitId,
+                session.Workspace.LoadedPath,
+                RecoveryState.Prepared,
+                message: null,
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (IsRecoverableFileSystemException(exception))
+        {
+            return _resultFactory.Faulted<TransactionCommitOutcome>(
+                "CommitPreparationFailed",
+                "The transaction commit could not create its recovery record and no workspace changes were applied.",
+                RequiredAction.Retry,
+                context);
+        }
 
-            await ApplyCommittedSolutionAsync(transaction.BaselineSolution, transaction.CurrentSolution, cancellationToken);
-            TryApplyWorkspaceChanges(session.LoadedWorkspace, transaction.CurrentSolution);
+        var applicationStarted = false;
+        try
+        {
+            await WriteRecoveryStatusAsync(
+                commitId,
+                session.Workspace.LoadedPath,
+                RecoveryState.Applying,
+                message: null,
+                cancellationToken).ConfigureAwait(false);
+
+            applicationStarted = true;
+            await _commitWriter.ApplyAsync(transaction.BaselineSolution, transaction.CurrentSolution, cancellationToken);
+            session.LoadedWorkspace.ApplyChanges(transaction.CurrentSolution);
 
             var committedSession = session with
             {
@@ -117,7 +132,7 @@ internal sealed class TransactionCommitService : ITransactionCommitService
             };
 
             _sessionStore.ReplaceSessionAndSetTransactionOwner(committedSession, null);
-            CommitRecoveryStore.DeleteStatus(_options.StateDirectory, commitId);
+            _recoveryStore.DeleteStatus(commitId);
 
             return _resultFactory.Succeeded(
                 new TransactionCommitOutcome
@@ -126,91 +141,63 @@ internal sealed class TransactionCommitService : ITransactionCommitService
                 },
                 CreateContext(committedSession));
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        catch (Exception exception) when (IsRecoverableFileSystemException(exception))
         {
-            CommitRecoveryStore.WriteStatus(_options.StateDirectory, new RecoveryStatus
-            {
-                CommitId = commitId,
-                SolutionPath = session.Workspace.LoadedPath,
-                State = RecoveryState.RecoveryIncomplete,
-                Message = exception.Message,
-            });
+            await TryWriteRecoveryIncompleteAsync(
+                commitId,
+                session.Workspace.LoadedPath,
+                exception.Message,
+                cancellationToken).ConfigureAwait(false);
 
             return _resultFactory.Faulted<TransactionCommitOutcome>(
-                "CommitFailed",
-                "The transaction commit could not be completed.",
+                applicationStarted ? "CommitFailed" : "CommitPreparationFailed",
+                applicationStarted
+                    ? "The transaction commit could not be completed and may have partially applied workspace changes."
+                    : "The transaction commit could not update its recovery record and no workspace changes were applied.",
                 RequiredAction.ResolveRecovery,
                 context);
         }
     }
 
-    private static void TryApplyWorkspaceChanges(MSBuildWorkspace? workspace, Solution solution)
+    private async ValueTask WriteRecoveryStatusAsync(
+        string commitId,
+        string solutionPath,
+        RecoveryState state,
+        string? message,
+        CancellationToken cancellationToken)
     {
-        if (workspace is null)
+        await _recoveryStore.WriteStatusAsync(new RecoveryStatus
         {
-            return;
-        }
+            CommitId = commitId,
+            SolutionPath = solutionPath,
+            State = state,
+            Message = message,
+        }, cancellationToken).ConfigureAwait(false);
+    }
 
+    private async ValueTask TryWriteRecoveryIncompleteAsync(
+        string commitId,
+        string solutionPath,
+        string message,
+        CancellationToken cancellationToken)
+    {
         try
         {
-            _ = workspace.TryApplyChanges(solution);
+            await WriteRecoveryStatusAsync(
+                commitId,
+                solutionPath,
+                RecoveryState.RecoveryIncomplete,
+                message,
+                cancellationToken).ConfigureAwait(false);
         }
-        catch (NotSupportedException)
+        catch (Exception exception) when (IsRecoverableFileSystemException(exception))
         {
         }
     }
 
-    private static async ValueTask ApplyCommittedSolutionAsync(Solution baselineSolution, Solution currentSolution, CancellationToken cancellationToken)
+    private static bool IsRecoverableFileSystemException(Exception exception)
     {
-        var solutionChanges = currentSolution.GetChanges(baselineSolution);
-
-        foreach (var projectChange in solutionChanges.GetProjectChanges())
-        {
-            foreach (var documentId in projectChange.GetChangedDocuments())
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                var document = currentSolution.GetDocument(documentId);
-                if (document?.FilePath is null)
-                {
-                    continue;
-                }
-
-                Directory.CreateDirectory(Path.GetDirectoryName(document.FilePath)!);
-                await WriteDocumentTextAsync(document, cancellationToken);
-            }
-
-            foreach (var documentId in projectChange.GetAddedDocuments())
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                var document = currentSolution.GetDocument(documentId);
-                if (document?.FilePath is null)
-                {
-                    continue;
-                }
-
-                Directory.CreateDirectory(Path.GetDirectoryName(document.FilePath)!);
-                await WriteDocumentTextAsync(document, cancellationToken);
-            }
-
-            foreach (var documentId in projectChange.GetRemovedDocuments())
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                var document = baselineSolution.GetDocument(documentId);
-                if (!string.IsNullOrWhiteSpace(document?.FilePath) && File.Exists(document.FilePath))
-                {
-                    File.Delete(document.FilePath);
-                }
-            }
-        }
-    }
-
-    private static async ValueTask WriteDocumentTextAsync(Document document, CancellationToken cancellationToken)
-    {
-        var sourceText = await document.GetTextAsync(cancellationToken);
-        await using var stream = File.Create(document.FilePath!);
-        await using var writer = new StreamWriter(stream, sourceText.Encoding ?? Encoding.UTF8);
-        sourceText.Write(writer, cancellationToken);
-        await writer.FlushAsync(cancellationToken);
+        return exception is IOException or UnauthorizedAccessException;
     }
 
     private static WorkspaceOperationContext CreateContext(WorkspaceSessionSnapshot session)

@@ -18,9 +18,20 @@ internal sealed class WorkspaceLoader : IWorkspaceLoader
             return null;
         }
 
-        var normalizedPath = Path.GetFullPath(path);
-        var extension = Path.GetExtension(normalizedPath);
-        return extension is ".sln" or ".slnx" or ".csproj" ? normalizedPath : null;
+        try
+        {
+            var normalizedPath = Path.GetFullPath(path);
+            var extension = Path.GetExtension(normalizedPath);
+            return string.Equals(extension, ".sln", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(extension, ".slnx", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(extension, ".csproj", StringComparison.OrdinalIgnoreCase)
+                ? normalizedPath
+                : null;
+        }
+        catch (ArgumentException)
+        {
+            return null;
+        }
     }
 
     public string? NormalizeAlias(string? alias)
@@ -62,7 +73,7 @@ internal sealed class WorkspaceLoader : IWorkspaceLoader
 
             return new WorkspaceLoadResult
             {
-                Workspace = workspace,
+                Workspace = new LoadedWorkspace(workspace),
                 Solution = solution,
                 Diagnostics = diagnostics,
             };

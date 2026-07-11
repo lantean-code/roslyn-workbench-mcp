@@ -38,6 +38,18 @@ public sealed class WorkspaceStatusToolTests
                     {
                         Revision = 9,
                     },
+                    Instances =
+                    [
+                        new WorkspaceInstanceInfo
+                        {
+                            InstanceId = "other-instance",
+                            LoadedPath = "/workspace/Sample.csproj",
+                            WorkspaceRoot = "/workspace",
+                            WorkspaceState = WorkspaceLifecycleState.TransactionActive,
+                            TransactionRevision = 4,
+                            CommitPhase = "Applying",
+                        },
+                    ],
                 },
             });
         var target = new WorkspaceStatusTool(Options.Create(new StartupOptions()), service.Object);
@@ -54,6 +66,8 @@ public sealed class WorkspaceStatusToolTests
         result.StructuredContent!.Value.GetProperty("state").GetString().Should().Be("Ready");
         result.StructuredContent.Value.GetProperty("reloadRequired").GetBoolean().Should().BeTrue();
         result.StructuredContent.Value.GetProperty("transaction").GetProperty("revision").GetInt32().Should().Be(9);
+        result.StructuredContent.Value.GetProperty("instances")[0].GetProperty("instanceId").GetString().Should().Be("other-instance");
+        result.StructuredContent.Value.GetProperty("instances")[0].GetProperty("commitPhase").GetString().Should().Be("Applying");
         service.Verify(item => item.GetStatusAsync(
             ServerOwnedToolTestData.GetWorkspaceId(includeWorkspace),
             ServerOwnedToolTestData.GetWorkspaceAlias(includeWorkspace),

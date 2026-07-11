@@ -14,4 +14,9 @@ public sealed record WorkspaceOpenRequest
     /// Gets the absolute solution or project path to load.
     /// </summary>
     public string Path { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Gets the optional absolute repository or workspace root used for coordination and transaction boundaries.
+    /// </summary>
+    public string? WorkspaceRoot { get; init; }
 }

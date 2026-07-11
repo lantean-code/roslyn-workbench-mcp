@@ -34,6 +34,7 @@ public sealed class TestWorkspaceFixture : IDisposable
     {
         var directoryPath = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-tests", Guid.NewGuid().ToString("n"));
         Directory.CreateDirectory(directoryPath);
+        Directory.CreateDirectory(Path.Combine(directoryPath, ".git"));
 
         var projectPath = Path.Combine(directoryPath, "Sample.csproj");
         var documentPath = Path.Combine(directoryPath, "Class1.cs");
@@ -76,6 +77,7 @@ public sealed class TestWorkspaceFixture : IDisposable
     {
         var directoryPath = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-tests", Guid.NewGuid().ToString("n"));
         Directory.CreateDirectory(directoryPath);
+        Directory.CreateDirectory(Path.Combine(directoryPath, ".git"));
 
         var projectPath = Path.Combine(directoryPath, "Legacy.csproj");
         var documentPath = Path.Combine(directoryPath, "Class1.cs");
@@ -108,6 +110,7 @@ public sealed class TestWorkspaceFixture : IDisposable
     {
         var directoryPath = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-tests", Guid.NewGuid().ToString("n"));
         Directory.CreateDirectory(directoryPath);
+        Directory.CreateDirectory(Path.Combine(directoryPath, ".git"));
 
         var projectPath = Path.Combine(directoryPath, "Broken.csproj");
         var documentPath = Path.Combine(directoryPath, "Class1.cs");

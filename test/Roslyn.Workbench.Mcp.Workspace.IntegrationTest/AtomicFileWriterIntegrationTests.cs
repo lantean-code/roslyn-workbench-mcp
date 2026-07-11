@@ -11,7 +11,7 @@ public sealed class AtomicFileWriterIntegrationTests
         var destinationPath = Path.Combine(directoryPath, "Status.json");
         Directory.CreateDirectory(directoryPath);
         await File.WriteAllTextAsync(destinationPath, "Before", TestContext.Current.CancellationToken);
-        var target = new AtomicFileWriter(new FileSystem());
+        var target = new AtomicFileWriter(new FileSystem(), new NativeAtomicFileCommitter());
 
         try
         {
@@ -32,7 +32,7 @@ public sealed class AtomicFileWriterIntegrationTests
         var parentPath = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-atomic-writer-tests", Guid.NewGuid().ToString("n"));
         var destinationDirectoryPath = Path.Combine(parentPath, "Destination");
         Directory.CreateDirectory(destinationDirectoryPath);
-        var target = new AtomicFileWriter(new FileSystem());
+        var target = new AtomicFileWriter(new FileSystem(), new NativeAtomicFileCommitter());
 
         try
         {

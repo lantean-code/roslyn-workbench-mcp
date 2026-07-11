@@ -1,7 +1,5 @@
-using Microsoft.Extensions.Options;
-
 using Roslyn.Workbench.Mcp.Workspace.ChangeDetection;
-using Roslyn.Workbench.Mcp.Workspace.Configuration;
+using Roslyn.Workbench.Mcp.Workspace.Coordination;
 using Roslyn.Workbench.Mcp.Workspace.Loading;
 using Roslyn.Workbench.Mcp.Workspace.Recovery;
 using Roslyn.Workbench.Mcp.Workspace.Selection;
@@ -10,28 +8,21 @@ namespace Roslyn.Workbench.Mcp.Workspace.Test.Transactions;
 
 public sealed class TransactionCommitServiceTests : IDisposable
 {
-    private readonly AdhocWorkspace _workspace;
-    private readonly Mock<IWorkspaceSessionStore> _sessionStore;
-    private readonly Mock<IWorkspaceChangeDetector> _changeDetector;
-    private readonly Mock<IWorkspaceStateTransitions> _stateTransitions;
-    private readonly Mock<ISnapshotGuard> _snapshotGuard;
-    private readonly Mock<IWorkspaceOperationResultFactory> _resultFactory;
-    private readonly Mock<ICommitRecoveryStore> _recoveryStore;
-    private readonly Mock<IWorkspaceCommitWriter> _commitWriter;
-    private readonly Mock<ILoadedWorkspace> _loadedWorkspace;
+    private readonly AdhocWorkspace _workspace = new();
+    private readonly Mock<IWorkspaceSessionStore> _sessionStore = new();
+    private readonly Mock<IWorkspaceChangeDetector> _changeDetector = new();
+    private readonly Mock<IWorkspaceStateTransitions> _stateTransitions = new();
+    private readonly Mock<ISnapshotGuard> _snapshotGuard = new();
+    private readonly Mock<IWorkspaceOperationResultFactory> _resultFactory = new();
+    private readonly Mock<ICommitRecoveryStore> _recoveryStore = new();
+    private readonly Mock<IWorkspaceCommitWriter> _commitWriter = new();
+    private readonly Mock<IWorkspaceCommitPlanner> _planner = new();
+    private readonly Mock<IWorkspaceCommitLockManager> _lockManager = new();
+    private readonly Mock<IWorkspaceInstanceStatusPublisher> _statusPublisher = new();
     private readonly TransactionCommitService _target;
 
     public TransactionCommitServiceTests()
     {
-        _workspace = new AdhocWorkspace();
-        _sessionStore = new Mock<IWorkspaceSessionStore>();
-        _changeDetector = new Mock<IWorkspaceChangeDetector>();
-        _stateTransitions = new Mock<IWorkspaceStateTransitions>();
-        _snapshotGuard = new Mock<ISnapshotGuard>();
-        _resultFactory = new Mock<IWorkspaceOperationResultFactory>();
-        _recoveryStore = new Mock<ICommitRecoveryStore>();
-        _commitWriter = new Mock<IWorkspaceCommitWriter>();
-        _loadedWorkspace = new Mock<ILoadedWorkspace>();
         _target = new TransactionCommitService(
             _sessionStore.Object,
             _changeDetector.Object,
@@ -39,54 +30,28 @@ public sealed class TransactionCommitServiceTests : IDisposable
             _snapshotGuard.Object,
             _resultFactory.Object,
             _recoveryStore.Object,
-            _commitWriter.Object);
+            _commitWriter.Object,
+            _planner.Object,
+            _lockManager.Object,
+            _statusPublisher.Object);
     }
 
     [Fact]
-    public async Task GIVEN_NullSelection_WHEN_Committing_THEN_ShouldThrowArgumentNullException()
+    public async Task GIVEN_NullSelection_WHEN_Committing_THEN_ShouldRejectArgument()
     {
-        var action = async () => await _target.CommitAsync(
-            null!,
-            null,
-            TestContext.Current.CancellationToken);
+        var action = async () => await _target.CommitAsync(null!, null, TestContext.Current.CancellationToken);
 
         await action.Should().ThrowAsync<ArgumentNullException>();
     }
 
     [Fact]
-    public async Task GIVEN_CancelledToken_WHEN_Committing_THEN_ShouldPropagateCancellation()
+    public async Task GIVEN_NoActiveTransaction_WHEN_Committing_THEN_ShouldRequireTransaction()
     {
-        using var cancellationSource = new CancellationTokenSource();
-        cancellationSource.Cancel();
-
-        var action = async () => await _target.CommitAsync(
-            CreateSelection(CreateSession(transaction: null)),
-            null,
-            cancellationSource.Token);
-
-        await action.Should().ThrowAsync<OperationCanceledException>();
-    }
-
-    [Fact]
-    public async Task GIVEN_MissingSession_WHEN_Committing_THEN_ShouldRequireTransaction()
-    {
-        var selection = CreateSelection(CreateSession(transaction: null));
-        var expected = CreateResult<TransactionCommitOutcome>();
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns((WorkspaceSessionSnapshot?)null);
-        SetupRejectedResult(expected, WorkspaceErrorCodes.TransactionRequired);
-
-        var result = await _target.CommitAsync(selection, null, TestContext.Current.CancellationToken);
-
-        result.Should().BeSameAs(expected);
-    }
-
-    [Fact]
-    public async Task GIVEN_MissingTransaction_WHEN_Committing_THEN_ShouldRequireTransaction()
-    {
-        var session = CreateSession(transaction: null);
-        var expected = CreateResult<TransactionCommitOutcome>();
+        var session = CreateSession() with { Transaction = null };
+        var expected = CreateResult(WorkspaceOperationStatus.Rejected);
         _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
-        SetupRejectedResult(expected, WorkspaceErrorCodes.TransactionRequired);
+        _resultFactory.Setup(item => item.Rejected<TransactionCommitOutcome>(
+            WorkspaceErrorCodes.TransactionRequired, It.IsAny<string>(), RequiredAction.StartTransaction, null, null, null)).Returns(expected);
 
         var result = await _target.CommitAsync(CreateSelection(session), null, TestContext.Current.CancellationToken);
 
@@ -94,37 +59,30 @@ public sealed class TransactionCommitServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GIVEN_SnapshotMismatch_WHEN_Committing_THEN_ShouldReturnConflict()
+    public async Task GIVEN_SnapshotMismatch_WHEN_Committing_THEN_ShouldReturnConflictWithoutWriting()
     {
-        var session = CreateSession(CreateTransaction(currentRevision: 1));
-        var mismatch = new WorkspaceOperationError { Code = "SnapshotMismatch", Message = "Message" };
-        var expected = CreateResult<TransactionCommitOutcome>();
+        var session = CreateSession();
+        var mismatch = new WorkspaceOperationError { Code = "SnapshotMismatch", Message = "Mismatch" };
+        var expected = CreateResult(WorkspaceOperationStatus.Conflict);
         _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
         _snapshotGuard.Setup(item => item.Validate(session, It.IsAny<SnapshotPrecondition?>())).Returns(mismatch);
-        _resultFactory.Setup(item => item.Conflict<TransactionCommitOutcome>(
-            mismatch,
-            It.IsAny<WorkspaceOperationContext>(),
-            null,
-            null)).Returns(expected);
+        _resultFactory.Setup(item => item.Conflict<TransactionCommitOutcome>(mismatch, It.IsAny<WorkspaceOperationContext>(), null, null)).Returns(expected);
 
-        var result = await _target.CommitAsync(
-            CreateSelection(session),
-            new SnapshotPrecondition(),
-            TestContext.Current.CancellationToken);
+        var result = await _target.CommitAsync(CreateSelection(session), new SnapshotPrecondition(), TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
+        _lockManager.Verify(item => item.Acquire(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
     public async Task GIVEN_ConflictedTransaction_WHEN_Committing_THEN_ShouldRequireRollback()
     {
-        var session = CreateSession(CreateTransaction(currentRevision: 1)) with
-        {
-            State = WorkspaceLifecycleState.TransactionConflicted,
-        };
-        var expected = CreateResult<TransactionCommitOutcome>();
+        var session = CreateSession() with { State = WorkspaceLifecycleState.TransactionConflicted };
+        var expected = CreateResult(WorkspaceOperationStatus.Conflict);
         _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
-        SetupConflictResult(expected, WorkspaceErrorCodes.TransactionConflicted);
+        _resultFactory.Setup(item => item.Conflict<TransactionCommitOutcome>(
+            WorkspaceErrorCodes.TransactionConflicted, It.IsAny<string>(), RequiredAction.RollbackTransaction,
+            It.IsAny<WorkspaceOperationContext>(), null, null)).Returns(expected);
 
         var result = await _target.CommitAsync(CreateSelection(session), null, TestContext.Current.CancellationToken);
 
@@ -132,107 +90,71 @@ public sealed class TransactionCommitServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GIVEN_ZeroRevisionTransaction_WHEN_Committing_THEN_ShouldReturnNoChange()
+    public async Task GIVEN_EmptyTransaction_WHEN_Committing_THEN_ShouldReturnNoChange()
     {
-        var transaction = CreateTransaction(currentRevision: 0);
-        var session = CreateSession(transaction);
-        var expected = CreateResult<TransactionCommitOutcome>();
+        var session = CreateSession();
+        var empty = session.Transaction! with { CurrentRevision = 0 };
+        session = session with { Transaction = empty, CurrentSolution = empty.BaselineSolution };
+        var expected = CreateResult(WorkspaceOperationStatus.NoChange);
         _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
         _resultFactory.Setup(item => item.NoChange(
-            It.IsAny<WorkspaceOperationContext>(),
-            It.Is<TransactionCommitOutcome>(outcome => !outcome.Committed && outcome.Transaction!.Revision == 0),
+            It.IsAny<WorkspaceOperationContext>(), It.Is<TransactionCommitOutcome>(outcome => !outcome.Committed), null, null)).Returns(expected);
+
+        var result = await _target.CommitAsync(CreateSelection(session), null, TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+    }
+
+    [Fact]
+    public async Task GIVEN_ExternalWorkspaceChange_WHEN_Committing_THEN_ShouldConflictAndRetainTransaction()
+    {
+        var session = CreateSession();
+        var conflicted = session with { State = WorkspaceLifecycleState.TransactionConflicted };
+        var expected = CreateResult(WorkspaceOperationStatus.Conflict);
+        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
+        _changeDetector.Setup(item => item.HasChanged(session.InputManifest, It.IsAny<CancellationToken>())).Returns(true);
+        _stateTransitions.Setup(item => item.ApplyExternalChangeDetected(session)).Returns(conflicted);
+        _resultFactory.Setup(item => item.Conflict<TransactionCommitOutcome>(
+            WorkspaceErrorCodes.TransactionConflicted, It.IsAny<string>(), RequiredAction.RollbackTransaction,
+            It.IsAny<WorkspaceOperationContext>(), null, null)).Returns(expected);
+
+        var result = await _target.CommitAsync(CreateSelection(session), null, TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _sessionStore.Verify(item => item.ReplaceSession(conflicted), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_CommitLockContention_WHEN_Committing_THEN_ShouldReturnRetryableWorkspaceBusy()
+    {
+        var session = CreateSession();
+        var expected = CreateResult(WorkspaceOperationStatus.Rejected);
+        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
+        _lockManager.Setup(item => item.Acquire("/workspace")).Returns(CreateLockAcquisition(lockAvailable: false));
+        _resultFactory.Setup(item => item.Rejected<TransactionCommitOutcome>(
+            WorkspaceErrorCodes.WorkspaceBusy,
+            It.IsAny<string>(),
+            RequiredAction.Retry,
+            null,
             null,
             null)).Returns(expected);
 
         var result = await _target.CommitAsync(CreateSelection(session), null, TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
-        _commitWriter.Verify(item => item.ApplyAsync(
-            It.IsAny<Solution>(),
-            It.IsAny<Solution>(),
-            It.IsAny<CancellationToken>()), Times.Never);
+        _planner.Verify(item => item.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Solution>(), It.IsAny<Solution>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
-    public async Task GIVEN_ExternalWorkspaceChange_WHEN_Committing_THEN_ShouldTransitionAndReturnConflict()
+    public async Task GIVEN_CommitLockFailure_WHEN_Committing_THEN_ShouldReturnRetryableFault()
     {
-        var session = CreateSession(CreateTransaction(currentRevision: 1));
-        var conflictedSession = session with { State = WorkspaceLifecycleState.TransactionConflicted };
-        var expected = CreateResult<TransactionCommitOutcome>();
+        var session = CreateSession();
+        var expected = CreateResult(WorkspaceOperationStatus.Faulted);
         _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
-        _changeDetector.Setup(item => item.HasChanged(session.InputManifest, TestContext.Current.CancellationToken)).Returns(true);
-        _stateTransitions.Setup(item => item.ApplyExternalChangeDetected(session)).Returns(conflictedSession);
-        SetupConflictResult(expected, WorkspaceErrorCodes.TransactionConflicted);
-
-        var result = await _target.CommitAsync(CreateSelection(session), null, TestContext.Current.CancellationToken);
-
-        result.Should().BeSameAs(expected);
-        _sessionStore.Verify(item => item.ReplaceSession(conflictedSession), Times.Once);
-    }
-
-    [Fact]
-    public async Task GIVEN_ValidTransaction_WHEN_Committing_THEN_ShouldApplyAndCompleteRecoverySequence()
-    {
-        var transaction = CreateTransaction(currentRevision: 1);
-        var session = CreateSession(transaction);
-        var manifest = new WorkspaceInputManifest();
-        var expected = CreateResult<TransactionCommitOutcome>();
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
-        _changeDetector.Setup(item => item.HasChanged(session.InputManifest, TestContext.Current.CancellationToken)).Returns(false);
-        _changeDetector.Setup(item => item.BuildManifest(transaction.CurrentSolution, "LoadedPath")).Returns(manifest);
-        _stateTransitions.Setup(item => item.Fire(
-            WorkspaceLifecycleState.TransactionActive,
-            WorkspaceTrigger.TransactionCommitted)).Returns(WorkspaceLifecycleState.Ready);
-        _resultFactory.Setup(item => item.Succeeded(
-            It.Is<TransactionCommitOutcome>(outcome => outcome.Committed),
-            It.IsAny<WorkspaceOperationContext>(),
-            null,
-            null)).Returns(expected);
-
-        var result = await _target.CommitAsync(CreateSelection(session), null, TestContext.Current.CancellationToken);
-
-        result.Should().BeSameAs(expected);
-        _recoveryStore.Verify(item => item.WriteStatusAsync(
-            It.Is<RecoveryStatus>(status => status.State == RecoveryState.Prepared),
-            TestContext.Current.CancellationToken), Times.Once);
-        _recoveryStore.Verify(item => item.WriteStatusAsync(
-            It.Is<RecoveryStatus>(status => status.State == RecoveryState.Applying),
-            TestContext.Current.CancellationToken), Times.Once);
-        _commitWriter.Verify(item => item.ApplyAsync(
-            transaction.BaselineSolution,
-            transaction.CurrentSolution,
-            TestContext.Current.CancellationToken), Times.Once);
-        _loadedWorkspace.Verify(item => item.ApplyChanges(transaction.CurrentSolution), Times.Once);
-        _sessionStore.Verify(item => item.ReplaceSessionAndSetTransactionOwner(
-            It.Is<WorkspaceSessionSnapshot>(committed =>
-                committed.Transaction == null
-                && committed.CurrentSolution == transaction.CurrentSolution
-                && committed.InputManifest == manifest
-                && committed.State == WorkspaceLifecycleState.Ready),
-            null), Times.Once);
-        _recoveryStore.Verify(item => item.DeleteStatus(It.IsAny<string>()), Times.Once);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task GIVEN_InitialRecoveryWriteFailure_WHEN_Committing_THEN_ShouldReturnRetryablePreparationFailure(bool isIoException)
-    {
-        var transaction = CreateTransaction(currentRevision: 1);
-        var session = CreateSession(transaction);
-        var expected = CreateResult<TransactionCommitOutcome>();
-        var exception = isIoException
-            ? (Exception)new IOException("FailureMessage")
-            : new UnauthorizedAccessException("FailureMessage");
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
-        _recoveryStore
-            .Setup(item => item.WriteStatusAsync(
-                It.Is<RecoveryStatus>(status => status.State == RecoveryState.Prepared),
-                TestContext.Current.CancellationToken))
-            .ThrowsAsync(exception);
+        _lockManager.Setup(item => item.Acquire("/workspace")).Returns(WorkspaceCommitLockAcquisition.Failed("failure"));
         _resultFactory.Setup(item => item.Faulted<TransactionCommitOutcome>(
-            "CommitPreparationFailed",
-            It.Is<string>(message => message.Contains("no workspace changes were applied", StringComparison.Ordinal)),
+            "CommitLockFailed",
+            "failure",
             RequiredAction.Retry,
             It.IsAny<WorkspaceOperationContext>(),
             null,
@@ -241,139 +163,199 @@ public sealed class TransactionCommitServiceTests : IDisposable
         var result = await _target.CommitAsync(CreateSelection(session), null, TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
-        _commitWriter.Verify(item => item.ApplyAsync(
-            It.IsAny<Solution>(),
-            It.IsAny<Solution>(),
-            It.IsAny<CancellationToken>()), Times.Never);
-        _recoveryStore.Verify(item => item.WriteStatusAsync(
-            It.Is<RecoveryStatus>(status => status.State == RecoveryState.RecoveryIncomplete),
-            It.IsAny<CancellationToken>()), Times.Never);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task GIVEN_ApplyingRecoveryWriteFailure_WHEN_Committing_THEN_ShouldReportPreparationFailureRequiringRecovery(bool isIoException)
-    {
-        var transaction = CreateTransaction(currentRevision: 1);
-        var session = CreateSession(transaction);
-        var expected = CreateResult<TransactionCommitOutcome>();
-        var exception = isIoException
-            ? (Exception)new IOException("FailureMessage")
-            : new UnauthorizedAccessException("FailureMessage");
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
-        _recoveryStore
-            .Setup(item => item.WriteStatusAsync(
-                It.Is<RecoveryStatus>(status => status.State == RecoveryState.Applying),
-                TestContext.Current.CancellationToken))
-            .ThrowsAsync(exception);
-        _resultFactory.Setup(item => item.Faulted<TransactionCommitOutcome>(
-            "CommitPreparationFailed",
-            It.Is<string>(message => message.Contains("no workspace changes were applied", StringComparison.Ordinal)),
-            RequiredAction.ResolveRecovery,
-            It.IsAny<WorkspaceOperationContext>(),
-            null,
-            null)).Returns(expected);
-
-        var result = await _target.CommitAsync(CreateSelection(session), null, TestContext.Current.CancellationToken);
-
-        result.Should().BeSameAs(expected);
-        _commitWriter.Verify(item => item.ApplyAsync(
-            It.IsAny<Solution>(),
-            It.IsAny<Solution>(),
-            It.IsAny<CancellationToken>()), Times.Never);
-        _recoveryStore.Verify(item => item.WriteStatusAsync(
-            It.Is<RecoveryStatus>(status => status.State == RecoveryState.RecoveryIncomplete && status.Message == "FailureMessage"),
-            TestContext.Current.CancellationToken), Times.Once);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task GIVEN_RecoverableWriterFailure_WHEN_Committing_THEN_ShouldRecordIncompleteRecovery(bool isIoException)
-    {
-        var transaction = CreateTransaction(currentRevision: 1);
-        var session = CreateSession(transaction);
-        var expected = CreateResult<TransactionCommitOutcome>();
-        var exception = isIoException
-            ? (Exception)new IOException("FailureMessage")
-            : new UnauthorizedAccessException("FailureMessage");
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
-        _commitWriter.Setup(item => item.ApplyAsync(
-            transaction.BaselineSolution,
-            transaction.CurrentSolution,
-            TestContext.Current.CancellationToken)).ThrowsAsync(exception);
-        _resultFactory.Setup(item => item.Faulted<TransactionCommitOutcome>(
-            "CommitFailed",
+        _planner.Verify(item => item.CreateAsync(
             It.IsAny<string>(),
-            RequiredAction.ResolveRecovery,
-            It.IsAny<WorkspaceOperationContext>(),
-            null,
-            null)).Returns(expected);
-
-        var result = await _target.CommitAsync(CreateSelection(session), null, TestContext.Current.CancellationToken);
-
-        result.Should().BeSameAs(expected);
-        _recoveryStore.Verify(item => item.WriteStatusAsync(
-            It.Is<RecoveryStatus>(status =>
-                status.State == RecoveryState.RecoveryIncomplete && status.Message == "FailureMessage"),
-            TestContext.Current.CancellationToken), Times.Once);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task GIVEN_RecoveryRecordFailureAfterWriterFailure_WHEN_Committing_THEN_ShouldPreservePrimaryCommitFailure(bool isIoException)
-    {
-        var transaction = CreateTransaction(currentRevision: 1);
-        var session = CreateSession(transaction);
-        var expected = CreateResult<TransactionCommitOutcome>();
-        var recoveryException = isIoException
-            ? (Exception)new IOException("RecoveryFailure")
-            : new UnauthorizedAccessException("RecoveryFailure");
-        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
-        _commitWriter.Setup(item => item.ApplyAsync(
-            transaction.BaselineSolution,
-            transaction.CurrentSolution,
-            TestContext.Current.CancellationToken)).ThrowsAsync(new IOException("PrimaryFailure"));
-        _recoveryStore
-            .Setup(item => item.WriteStatusAsync(
-                It.Is<RecoveryStatus>(status => status.State == RecoveryState.RecoveryIncomplete),
-                TestContext.Current.CancellationToken))
-            .ThrowsAsync(recoveryException);
-        _resultFactory.Setup(item => item.Faulted<TransactionCommitOutcome>(
-            "CommitFailed",
-            It.Is<string>(message => message.Contains("partially applied", StringComparison.Ordinal)),
-            RequiredAction.ResolveRecovery,
-            It.IsAny<WorkspaceOperationContext>(),
-            null,
-            null)).Returns(expected);
-
-        var result = await _target.CommitAsync(CreateSelection(session), null, TestContext.Current.CancellationToken);
-
-        result.Should().BeSameAs(expected);
-        _recoveryStore.Verify(item => item.WriteStatusAsync(
-            It.Is<RecoveryStatus>(status => status.State == RecoveryState.RecoveryIncomplete && status.Message == "PrimaryFailure"),
-            TestContext.Current.CancellationToken), Times.Once);
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<Solution>(),
+            It.IsAny<Solution>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
-    public async Task GIVEN_CancellationDuringWrite_WHEN_Committing_THEN_ShouldPropagateCancellation()
+    public async Task GIVEN_ValidTransaction_WHEN_Committing_THEN_ShouldPersistProtocolAndPromoteStagedSolution()
     {
-        var transaction = CreateTransaction(currentRevision: 1);
-        var session = CreateSession(transaction);
+        var session = CreateSession();
+        var transaction = session.Transaction!;
+        var commitLock = new Mock<IWorkspaceCommitLock>();
+        var manifest = CreateManifest();
+        var plan = new WorkspaceCommitPlan(manifest, new Dictionary<string, ReadOnlyMemory<byte>>());
+        var expected = CreateResult(WorkspaceOperationStatus.Succeeded);
+        var inputManifest = new WorkspaceInputManifest();
         _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
-        _commitWriter.Setup(item => item.ApplyAsync(
-            transaction.BaselineSolution,
-            transaction.CurrentSolution,
-            TestContext.Current.CancellationToken)).ThrowsAsync(new OperationCanceledException());
+        _lockManager.Setup(item => item.Acquire("/workspace")).Returns(WorkspaceCommitLockAcquisition.Acquired(commitLock.Object));
+        _planner.Setup(item => item.CreateAsync(
+            It.IsAny<string>(), "/workspace/solution.slnx", "/workspace", transaction.BaselineSolution, transaction.CurrentSolution, TestContext.Current.CancellationToken)).ReturnsAsync(plan);
+        _changeDetector.Setup(item => item.BuildManifest(transaction.CurrentSolution, "/workspace/solution.slnx")).Returns(inputManifest);
+        _stateTransitions.Setup(item => item.Fire(WorkspaceLifecycleState.TransactionActive, WorkspaceTrigger.TransactionCommitted)).Returns(WorkspaceLifecycleState.Ready);
+        _commitWriter.Setup(item => item.CompleteAsync(It.IsAny<WorkspaceCommitManifest>())).ReturnsAsync(true);
+        _resultFactory.Setup(item => item.Succeeded(
+            It.Is<TransactionCommitOutcome>(outcome => outcome.Committed),
+            It.IsAny<WorkspaceOperationContext>(), null, null)).Returns(expected);
 
-        var action = async () => await _target.CommitAsync(
-            CreateSelection(session),
-            null,
-            TestContext.Current.CancellationToken);
+        var result = await _target.CommitAsync(CreateSelection(session), null, TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _recoveryStore.Verify(item => item.PersistPlanAsync(plan, TestContext.Current.CancellationToken), Times.Once);
+        _commitWriter.Verify(item => item.RevalidateAsync(manifest, TestContext.Current.CancellationToken), Times.Once);
+        _recoveryStore.Verify(item => item.WriteManifestAsync(It.Is<WorkspaceCommitManifest>(value => value.State == RecoveryState.Applying), TestContext.Current.CancellationToken), Times.Once);
+        _commitWriter.Verify(item => item.ApplyAsync(It.Is<WorkspaceCommitManifest>(value => value.State == RecoveryState.Applying)), Times.Once);
+        _recoveryStore.Verify(item => item.WriteManifestAsync(It.Is<WorkspaceCommitManifest>(value => value.State == RecoveryState.Committed), CancellationToken.None), Times.Once);
+        _commitWriter.Verify(item => item.CompleteAsync(It.Is<WorkspaceCommitManifest>(value => value.State == RecoveryState.Committed)), Times.Once);
+        _sessionStore.Verify(item => item.ReplaceSessionAndSetTransactionOwner(
+            It.Is<WorkspaceSessionSnapshot>(value => value.Transaction == null && value.CurrentSolution == transaction.CurrentSolution && value.InputManifest == inputManifest), null), Times.Once);
+        _recoveryStore.Verify(item => item.DeleteStatus(It.IsAny<string>()), Times.Once);
+        commitLock.Verify(item => item.Dispose(), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_ApplyFailure_WHEN_Committing_THEN_ShouldRestoreNonCancellablyAndReturnRetryableFault()
+    {
+        var session = CreateSession();
+        var manifest = CreateManifest();
+        var plan = new WorkspaceCommitPlan(manifest, new Dictionary<string, ReadOnlyMemory<byte>>());
+        var expected = CreateResult(WorkspaceOperationStatus.Faulted);
+        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
+        _lockManager.Setup(item => item.Acquire(It.IsAny<string>())).Returns(CreateLockAcquisition(lockAvailable: true));
+        _planner.Setup(item => item.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Solution>(), It.IsAny<Solution>(), It.IsAny<CancellationToken>())).ReturnsAsync(plan);
+        _commitWriter.Setup(item => item.ApplyAsync(It.IsAny<WorkspaceCommitManifest>())).ThrowsAsync(new IOException("failure"));
+        _commitWriter.Setup(item => item.RestoreAsync(It.IsAny<WorkspaceCommitManifest>())).ReturnsAsync(RecoveryState.Restored);
+        _resultFactory.Setup(item => item.Faulted<TransactionCommitOutcome>(
+            "CommitFailed", It.IsAny<string>(), RequiredAction.Retry, It.IsAny<WorkspaceOperationContext>(), null, null)).Returns(expected);
+
+        var result = await _target.CommitAsync(CreateSelection(session), null, TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _commitWriter.Verify(item => item.RestoreAsync(It.IsAny<WorkspaceCommitManifest>()), Times.Once);
+        _recoveryStore.Verify(item => item.WriteManifestAsync(It.Is<WorkspaceCommitManifest>(value => value.State == RecoveryState.Restored), CancellationToken.None), Times.Once);
+        _recoveryStore.Verify(item => item.DeleteStatus(It.IsAny<string>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData("Plan")]
+    [InlineData("Persist")]
+    [InlineData("Revalidate")]
+    [InlineData("ApplyingManifest")]
+    public async Task GIVEN_PreApplicationIoFailure_WHEN_Committing_THEN_ShouldLeaveTargetsUnchangedAndReturnRetry(string failurePoint)
+    {
+        var session = CreateSession();
+        var manifest = CreateManifest();
+        var plan = new WorkspaceCommitPlan(manifest, new Dictionary<string, ReadOnlyMemory<byte>>());
+        var expected = CreateResult(WorkspaceOperationStatus.Faulted);
+        SetupProtocol(session, plan);
+        _commitWriter.Setup(item => item.RestoreAsync(It.IsAny<WorkspaceCommitManifest>())).ReturnsAsync(RecoveryState.Restored);
+        switch (failurePoint)
+        {
+            case "Plan":
+                _planner.Setup(item => item.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Solution>(), It.IsAny<Solution>(), It.IsAny<CancellationToken>()))
+                    .ThrowsAsync(new IOException("plan"));
+                break;
+            case "Persist":
+                _recoveryStore.Setup(item => item.PersistPlanAsync(plan, It.IsAny<CancellationToken>())).ThrowsAsync(new IOException("persist"));
+                break;
+            case "Revalidate":
+                _commitWriter.Setup(item => item.RevalidateAsync(manifest, It.IsAny<CancellationToken>())).ThrowsAsync(new IOException("revalidate"));
+                break;
+            case "ApplyingManifest":
+                _recoveryStore.Setup(item => item.WriteManifestAsync(
+                    It.Is<WorkspaceCommitManifest>(value => value.State == RecoveryState.Applying),
+                    It.IsAny<CancellationToken>())).ThrowsAsync(new IOException("manifest"));
+                break;
+        }
+
+        _resultFactory.Setup(item => item.Faulted<TransactionCommitOutcome>(
+            "CommitPreparationFailed", It.IsAny<string>(), RequiredAction.Retry, It.IsAny<WorkspaceOperationContext>(), null, null)).Returns(expected);
+
+        var result = await _target.CommitAsync(CreateSelection(session), null, TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _commitWriter.Verify(item => item.ApplyAsync(It.IsAny<WorkspaceCommitManifest>()), Times.Never);
+        _commitWriter.Verify(
+            item => item.RestoreAsync(It.IsAny<WorkspaceCommitManifest>()),
+            failurePoint == "Plan" ? Times.Never() : Times.Once());
+    }
+
+    [Fact]
+    public async Task GIVEN_CommittedManifestWriteFailure_WHEN_Committing_THEN_ShouldRestoreBeforePublishingSession()
+    {
+        var session = CreateSession();
+        var manifest = CreateManifest();
+        var plan = new WorkspaceCommitPlan(manifest, new Dictionary<string, ReadOnlyMemory<byte>>());
+        var expected = CreateResult(WorkspaceOperationStatus.Faulted);
+        SetupProtocol(session, plan);
+        _recoveryStore.Setup(item => item.WriteManifestAsync(
+            It.Is<WorkspaceCommitManifest>(value => value.State == RecoveryState.Committed),
+            CancellationToken.None)).ThrowsAsync(new IOException("committed"));
+        _commitWriter.Setup(item => item.RestoreAsync(It.IsAny<WorkspaceCommitManifest>())).ReturnsAsync(RecoveryState.Restored);
+        _resultFactory.Setup(item => item.Faulted<TransactionCommitOutcome>(
+            "CommitFailed", It.IsAny<string>(), RequiredAction.Retry, It.IsAny<WorkspaceOperationContext>(), null, null)).Returns(expected);
+
+        var result = await _target.CommitAsync(CreateSelection(session), null, TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _sessionStore.Verify(item => item.ReplaceSessionAndSetTransactionOwner(It.IsAny<WorkspaceSessionSnapshot>(), It.IsAny<string?>()), Times.Never);
+        _commitWriter.Verify(item => item.RestoreAsync(It.IsAny<WorkspaceCommitManifest>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_RestorationConflict_WHEN_ApplyFails_THEN_ShouldRetainRecoveryAndRequireResolution()
+    {
+        var session = CreateSession();
+        var manifest = CreateManifest();
+        var plan = new WorkspaceCommitPlan(manifest, new Dictionary<string, ReadOnlyMemory<byte>>());
+        var expected = CreateResult(WorkspaceOperationStatus.Faulted);
+        SetupProtocol(session, plan);
+        _commitWriter.Setup(item => item.ApplyAsync(It.IsAny<WorkspaceCommitManifest>())).ThrowsAsync(new IOException("apply"));
+        _commitWriter.Setup(item => item.RestoreAsync(It.IsAny<WorkspaceCommitManifest>())).ReturnsAsync(RecoveryState.RecoveryConflict);
+        _recoveryStore.Setup(item => item.WriteManifestAsync(
+            It.Is<WorkspaceCommitManifest>(value => value.State == RecoveryState.RecoveryConflict),
+            CancellationToken.None)).ThrowsAsync(new IOException("recovery manifest"));
+        _resultFactory.Setup(item => item.Faulted<TransactionCommitOutcome>(
+            "CommitFailed", It.IsAny<string>(), RequiredAction.ResolveRecovery, It.IsAny<WorkspaceOperationContext>(), null, null)).Returns(expected);
+
+        var result = await _target.CommitAsync(CreateSelection(session), null, TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _recoveryStore.Verify(item => item.WriteManifestAsync(
+            It.Is<WorkspaceCommitManifest>(value => value.State == RecoveryState.RecoveryConflict),
+            CancellationToken.None), Times.Once);
+        _recoveryStore.Verify(item => item.DeleteStatus(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_TerminalCleanupFailure_WHEN_Committing_THEN_ShouldSucceedAndRetainCommittedRecoveryEvidence()
+    {
+        var session = CreateSession();
+        var manifest = CreateManifest();
+        var plan = new WorkspaceCommitPlan(manifest, new Dictionary<string, ReadOnlyMemory<byte>>());
+        var expected = CreateResult(WorkspaceOperationStatus.Succeeded);
+        SetupProtocol(session, plan);
+        _commitWriter.Setup(item => item.CompleteAsync(It.IsAny<WorkspaceCommitManifest>())).ReturnsAsync(false);
+        _resultFactory.Setup(item => item.Succeeded(
+            It.Is<TransactionCommitOutcome>(outcome => outcome.Committed),
+            It.IsAny<WorkspaceOperationContext>(), null, null)).Returns(expected);
+
+        var result = await _target.CommitAsync(CreateSelection(session), null, TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _sessionStore.Verify(item => item.ReplaceSessionAndSetTransactionOwner(It.IsAny<WorkspaceSessionSnapshot>(), null), Times.Once);
+        _recoveryStore.Verify(item => item.DeleteStatus(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_CancellationDuringPreparation_WHEN_Committing_THEN_ShouldCleanPreparedArtifactsAndPropagateCancellation()
+    {
+        var session = CreateSession();
+        var manifest = CreateManifest();
+        var plan = new WorkspaceCommitPlan(manifest, new Dictionary<string, ReadOnlyMemory<byte>>());
+        SetupProtocol(session, plan);
+        _recoveryStore.Setup(item => item.PersistPlanAsync(plan, It.IsAny<CancellationToken>())).ThrowsAsync(new OperationCanceledException());
+        _commitWriter.Setup(item => item.RestoreAsync(manifest)).ReturnsAsync(RecoveryState.Restored);
+
+        var action = async () => await _target.CommitAsync(CreateSelection(session), null, TestContext.Current.CancellationToken);
 
         await action.Should().ThrowAsync<OperationCanceledException>();
+        _recoveryStore.Verify(item => item.DeleteStatus("commit"), Times.Once);
     }
 
     public void Dispose()
@@ -381,71 +363,75 @@ public sealed class TransactionCommitServiceTests : IDisposable
         _workspace.Dispose();
     }
 
-    private WorkspaceSessionSnapshot CreateSession(WorkspaceTransaction? transaction)
+    private WorkspaceSessionSnapshot CreateSession()
     {
+        var baseline = _workspace.CurrentSolution;
+        var current = baseline.AddProject("Project", "Project", LanguageNames.CSharp).Solution;
+        var transaction = new WorkspaceTransaction
+        {
+            BaselineSolution = baseline,
+            Revisions = [new WorkspaceTransactionRevision { Solution = current }],
+            CurrentRevision = 1,
+            MaxRevisions = 3,
+        };
         return new WorkspaceSessionSnapshot
         {
-            State = transaction is null ? WorkspaceLifecycleState.Ready : WorkspaceLifecycleState.TransactionActive,
+            State = WorkspaceLifecycleState.TransactionActive,
             Workspace = new WorkspaceIdentity
             {
                 WorkspaceId = "WorkspaceId",
-                WorkspaceEpoch = 2,
-                LoadedPath = "LoadedPath",
+                LoadedPath = "/workspace/solution.slnx",
+                WorkspaceRoot = "/workspace",
             },
-            LoadedWorkspace = _loadedWorkspace.Object,
-            CurrentSolution = transaction?.CurrentSolution ?? _workspace.CurrentSolution,
+            LoadedWorkspace = new Mock<ILoadedWorkspace>().Object,
+            CurrentSolution = current,
             Transaction = transaction,
             InputManifest = new WorkspaceInputManifest(),
             OperationGate = new Mock<IWorkspaceOperationGate>().Object,
         };
     }
 
-    private WorkspaceTransaction CreateTransaction(int currentRevision)
-    {
-        var baselineSolution = _workspace.CurrentSolution;
-        var currentSolution = baselineSolution.AddProject("Project", "Project", LanguageNames.CSharp).Solution;
-        return new WorkspaceTransaction
-        {
-            BaselineSolution = baselineSolution,
-            Revisions = [new WorkspaceTransactionRevision { Solution = currentSolution }],
-            CurrentRevision = currentRevision,
-            MaxRevisions = 3,
-        };
-    }
-
     private static WorkspaceSelection CreateSelection(WorkspaceSessionSnapshot session)
     {
-        return new WorkspaceSelection
+        return new()
         {
             WorkspaceId = "WorkspaceId",
             Session = session,
         };
     }
 
-    private void SetupRejectedResult(WorkspaceOperationResult<TransactionCommitOutcome> result, string code)
+    private static WorkspaceCommitManifest CreateManifest()
     {
-        _resultFactory.Setup(item => item.Rejected<TransactionCommitOutcome>(
-            code,
-            It.IsAny<string>(),
-            It.IsAny<RequiredAction?>(),
-            It.IsAny<WorkspaceOperationContext?>(),
-            null,
-            null)).Returns(result);
+        return new()
+        {
+            CommitId = "commit",
+            LoadedPath = "/workspace/solution.slnx",
+            WorkspaceRoot = "/workspace",
+            State = RecoveryState.Prepared,
+            Entries = [],
+            CreatedDirectories = [],
+        };
     }
 
-    private void SetupConflictResult(WorkspaceOperationResult<TransactionCommitOutcome> result, string code)
+    private static WorkspaceOperationResult<TransactionCommitOutcome> CreateResult(WorkspaceOperationStatus status)
     {
-        _resultFactory.Setup(item => item.Conflict<TransactionCommitOutcome>(
-            code,
-            It.IsAny<string>(),
-            It.IsAny<RequiredAction?>(),
-            It.IsAny<WorkspaceOperationContext?>(),
-            null,
-            null)).Returns(result);
+        return new() { Status = status };
     }
 
-    private static WorkspaceOperationResult<TOutcome> CreateResult<TOutcome>()
+    private static WorkspaceCommitLockAcquisition CreateLockAcquisition(bool lockAvailable)
     {
-        return new WorkspaceOperationResult<TOutcome>();
+        return lockAvailable
+            ? WorkspaceCommitLockAcquisition.Acquired(new Mock<IWorkspaceCommitLock>().Object)
+            : WorkspaceCommitLockAcquisition.Contended();
+    }
+
+    private void SetupProtocol(WorkspaceSessionSnapshot session, WorkspaceCommitPlan plan)
+    {
+        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
+        _lockManager.Setup(item => item.Acquire(It.IsAny<string>())).Returns(CreateLockAcquisition(lockAvailable: true));
+        _planner.Setup(item => item.CreateAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Solution>(), It.IsAny<Solution>(), It.IsAny<CancellationToken>())).ReturnsAsync(plan);
+        _changeDetector.Setup(item => item.BuildManifest(It.IsAny<Solution>(), It.IsAny<string>())).Returns(new WorkspaceInputManifest());
+        _stateTransitions.Setup(item => item.Fire(It.IsAny<WorkspaceLifecycleState>(), WorkspaceTrigger.TransactionCommitted)).Returns(WorkspaceLifecycleState.Ready);
     }
 }

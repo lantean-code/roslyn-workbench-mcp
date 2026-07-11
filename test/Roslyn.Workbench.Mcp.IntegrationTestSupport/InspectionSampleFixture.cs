@@ -28,6 +28,7 @@ public sealed class InspectionSampleFixture : IDisposable
 
         var directoryPath = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-inspection-tests", Guid.NewGuid().ToString("n"));
         Directory.CreateDirectory(directoryPath);
+        Directory.CreateDirectory(Path.Combine(directoryPath, ".git"));
 
         var projectPath = Path.Combine(directoryPath, "Sample.csproj");
         var documentPath = Path.Combine(directoryPath, "Formatting.cs");

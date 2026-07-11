@@ -9,4 +9,14 @@ internal interface ICommitRecoveryStore
     ValueTask WriteStatusAsync(RecoveryStatus status, CancellationToken cancellationToken);
 
     void DeleteStatus(string commitId);
+
+    ValueTask PersistPlanAsync(WorkspaceCommitPlan plan, CancellationToken cancellationToken);
+
+    ValueTask WriteManifestAsync(WorkspaceCommitManifest manifest, CancellationToken cancellationToken);
+
+    ValueTask<IReadOnlyList<WorkspaceCommitManifest>> GetManifestsAsync(CancellationToken cancellationToken);
+
+    ValueTask<IReadOnlyList<WorkspaceCommitOwner>> GetOrphanedCommitOwnersAsync(CancellationToken cancellationToken);
+
+    ValueTask<byte[]> ReadArtifactAsync(string commitId, string relativePath, CancellationToken cancellationToken);
 }

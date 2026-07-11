@@ -10,32 +10,42 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
     private readonly IWorkspaceSessionStore _sessionStore;
     private readonly IWorkspaceSelector _workspaceSelector;
     private readonly IWorkspaceLoader _workspaceLoader;
+    private readonly IWorkspaceRootResolver _workspaceRootResolver;
     private readonly IWorkspaceChangeDetector _workspaceChangeDetector;
     private readonly IWorkspaceStateTransitions _workspaceStateTransitions;
     private readonly IWorkspaceOperationResultFactory _resultFactory;
     private readonly ICommitRecoveryStore _recoveryStore;
+    private readonly IWorkspaceInstanceStatusPublisher _instanceStatusPublisher;
 
     public WorkspaceLifecycleService(
         IOptions<WorkspaceCoordinatorOptions> options,
         IWorkspaceSessionStore sessionStore,
         IWorkspaceSelector workspaceSelector,
         IWorkspaceLoader workspaceLoader,
+        IWorkspaceRootResolver workspaceRootResolver,
         IWorkspaceChangeDetector workspaceChangeDetector,
         IWorkspaceStateTransitions workspaceStateTransitions,
         IWorkspaceOperationResultFactory resultFactory,
-        ICommitRecoveryStore recoveryStore)
+        ICommitRecoveryStore recoveryStore,
+        IWorkspaceInstanceStatusPublisher instanceStatusPublisher)
     {
         _options = options.Value;
         _sessionStore = sessionStore;
         _workspaceSelector = workspaceSelector;
         _workspaceLoader = workspaceLoader;
+        _workspaceRootResolver = workspaceRootResolver;
         _workspaceChangeDetector = workspaceChangeDetector;
         _workspaceStateTransitions = workspaceStateTransitions;
         _resultFactory = resultFactory;
         _recoveryStore = recoveryStore;
+        _instanceStatusPublisher = instanceStatusPublisher;
     }
 
-    public async ValueTask<WorkspaceOperationResult<WorkspaceOpenOutcome>> OpenAsync(string path, string? alias, CancellationToken cancellationToken)
+    public async ValueTask<WorkspaceOperationResult<WorkspaceOpenOutcome>> OpenAsync(
+        string path,
+        string? alias,
+        string? workspaceRoot,
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -45,6 +55,14 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             return _resultFactory.Rejected<WorkspaceOpenOutcome>(
                 "WorkspacePathInvalid",
                 "Workspace paths must be absolute .sln, .slnx, or .csproj files.");
+        }
+
+        var resolvedWorkspaceRoot = _workspaceRootResolver.Resolve(normalizedPath, workspaceRoot);
+        if (resolvedWorkspaceRoot is null)
+        {
+            return _resultFactory.Rejected<WorkspaceOpenOutcome>(
+                "WorkspaceRootInvalid",
+                "The workspace root must be an existing absolute directory containing the loaded path.");
         }
 
         var normalizedAlias = _workspaceLoader.NormalizeAlias(alias);
@@ -62,7 +80,10 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         }
 
         if ((await _recoveryStore.GetStatusesAsync(cancellationToken).ConfigureAwait(false)).Any(status =>
-                string.Equals(Path.GetFullPath(status.SolutionPath), normalizedPath, StringComparison.Ordinal)
+                (string.IsNullOrWhiteSpace(status.SolutionPath)
+                    || string.Equals(Path.GetFullPath(status.SolutionPath), normalizedPath, StringComparison.Ordinal)
+                    || !string.IsNullOrWhiteSpace(status.WorkspaceRoot)
+                    && string.Equals(Path.GetFullPath(status.WorkspaceRoot), resolvedWorkspaceRoot, StringComparison.Ordinal))
                 && status.State is not RecoveryState.Committed and not RecoveryState.Restored))
         {
             return _resultFactory.Rejected<WorkspaceOpenOutcome>(
@@ -99,12 +120,27 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
                 diagnostics: loadedWorkspace.Diagnostics);
         }
 
+
+        var loadedInputPaths = loadedWorkspace.Solution.Projects
+            .SelectMany(static project => project.Documents
+                .Select(static document => document.FilePath)
+                .Prepend(project.FilePath))
+            .Where(static inputPath => !string.IsNullOrWhiteSpace(inputPath));
+        if (loadedInputPaths.Any(inputPath => !_workspaceRootResolver.Contains(resolvedWorkspaceRoot, inputPath!)))
+        {
+            loadedWorkspace.Workspace.Dispose();
+            return _resultFactory.Rejected<WorkspaceOpenOutcome>(
+                "WorkspaceProjectOutsideRoot",
+                "Every loaded project must be contained by the workspace root.");
+        }
+
         var session = CreateSessionSnapshot(
             _sessionStore.AllocateWorkspaceId(),
             normalizedAlias,
             loadedWorkspace.Workspace,
             loadedWorkspace.Solution,
             normalizedPath,
+            resolvedWorkspaceRoot,
             _sessionStore.AllocateWorkspaceEpoch(),
             loadedWorkspace.Diagnostics,
             operationGate: null);
@@ -144,15 +180,43 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             return _resultFactory.Rejected<WorkspaceOpenOutcome>(latestValidationError);
         }
 
+        var workspaceInUse = await _instanceStatusPublisher.OpenAsync(
+            session.Workspace.WorkspaceId,
+            session.Workspace.WorkspaceRoot,
+            session.Workspace.LoadedPath,
+            session.State,
+            cancellationToken).ConfigureAwait(false);
+        session = session with
+        {
+            InputManifest = _workspaceChangeDetector.BuildManifest(session.CurrentSolution, session.Workspace.LoadedPath),
+        };
+        _sessionStore.ReplaceSession(session);
+        var openDiagnostics = workspaceInUse
+            ? session.LoadDiagnostics.Append(new DiagnosticInfo
+            {
+                Id = "WorkspaceInUse",
+                Severity = Contracts.Results.DiagnosticSeverity.Warning,
+                Message = "Another Roslyn Workbench MCP instance has this workspace open.",
+            }).ToArray()
+            : session.LoadDiagnostics;
+
         return _resultFactory.Succeeded(
             new WorkspaceOpenOutcome
             {
                 Workspace = session.Workspace,
                 ProjectCount = session.ProjectCount,
                 DocumentCount = session.DocumentCount,
-                LoadDiagnostics = session.LoadDiagnostics,
+                LoadDiagnostics = openDiagnostics,
             },
             CreateContext(session));
+    }
+
+    public ValueTask<WorkspaceOperationResult<WorkspaceOpenOutcome>> OpenAsync(
+        string path,
+        string? alias,
+        CancellationToken cancellationToken)
+    {
+        return OpenAsync(path, alias, workspaceRoot: null, cancellationToken);
     }
 
     public ValueTask<WorkspaceOperationResult<WorkspaceListOutcome>> ListAsync(CancellationToken cancellationToken)
@@ -229,6 +293,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
                 RequiredAction.OpenWorkspace);
         }
 
+        _instanceStatusPublisher.Close(removedSession.Workspace.WorkspaceId);
         removedSession.LoadedWorkspace.Dispose();
         return _resultFactory.Succeeded(
             new WorkspaceCloseOutcome
@@ -290,7 +355,10 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             _sessionStore.ReplaceSession(session);
         }
 
-        return _resultFactory.Succeeded(CreateStatusOutcome(session, detail), CreateContext(session));
+        var instances = await _instanceStatusPublisher.GetOtherLiveInstancesAsync(
+            session.Workspace.WorkspaceRoot,
+            cancellationToken).ConfigureAwait(false);
+        return _resultFactory.Succeeded(CreateStatusOutcome(session, detail, instances), CreateContext(session));
     }
 
     public async ValueTask<WorkspaceOperationResult<WorkspaceReloadOutcome>> ReloadAsync(string? workspaceId, string? alias, string? path, CancellationToken cancellationToken)
@@ -388,6 +456,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             loadedWorkspace.Workspace,
             loadedWorkspace.Solution,
             currentSession.Workspace.LoadedPath,
+            currentSession.Workspace.WorkspaceRoot,
             _sessionStore.AllocateWorkspaceEpoch(),
             loadedWorkspace.Diagnostics,
             currentSession.OperationGate);
@@ -413,6 +482,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         ILoadedWorkspace workspace,
         Solution solution,
         string loadedPath,
+        string workspaceRoot,
         long workspaceEpoch,
         IReadOnlyList<DiagnosticInfo> diagnostics,
         IWorkspaceOperationGate? operationGate)
@@ -426,6 +496,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
                 Alias = alias,
                 WorkspaceEpoch = workspaceEpoch,
                 LoadedPath = loadedPath,
+                WorkspaceRoot = workspaceRoot,
             },
             LoadedWorkspace = workspace,
             CurrentSolution = solution,
@@ -438,7 +509,10 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         };
     }
 
-    private static WorkspaceStatusOutcome CreateStatusOutcome(WorkspaceSessionSnapshot session, StatusDetailLevel detail)
+    private static WorkspaceStatusOutcome CreateStatusOutcome(
+        WorkspaceSessionSnapshot session,
+        StatusDetailLevel detail,
+        IReadOnlyList<WorkspaceInstanceInfo> instances)
     {
         return new WorkspaceStatusOutcome
         {
@@ -449,6 +523,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             LoadDiagnostics = detail == StatusDetailLevel.Full ? session.LoadDiagnostics : null,
             Transaction = session.Transaction?.ToInfo(session.State == WorkspaceLifecycleState.TransactionConflicted),
             ReloadRequired = session.State == WorkspaceLifecycleState.WorkspaceOutOfDate,
+            Instances = instances,
         };
     }
 

@@ -5,6 +5,8 @@ namespace Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
 /// </summary>
 public sealed record RecoveryStatus
 {
+    internal string WorkspaceRoot { get; init; } = string.Empty;
+
     /// <summary>
     /// Gets the durable commit identifier.
     /// </summary>

@@ -13,6 +13,9 @@ internal sealed class TransactionCommitService : ITransactionCommitService
     private readonly IWorkspaceOperationResultFactory _resultFactory;
     private readonly ICommitRecoveryStore _recoveryStore;
     private readonly IWorkspaceCommitWriter _commitWriter;
+    private readonly IWorkspaceCommitPlanner _commitPlanner;
+    private readonly IWorkspaceCommitLockManager _commitLockManager;
+    private readonly IWorkspaceInstanceStatusPublisher _instanceStatusPublisher;
 
     public TransactionCommitService(
         IWorkspaceSessionStore sessionStore,
@@ -21,7 +24,10 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         ISnapshotGuard snapshotGuard,
         IWorkspaceOperationResultFactory resultFactory,
         ICommitRecoveryStore recoveryStore,
-        IWorkspaceCommitWriter commitWriter)
+        IWorkspaceCommitWriter commitWriter,
+        IWorkspaceCommitPlanner commitPlanner,
+        IWorkspaceCommitLockManager commitLockManager,
+        IWorkspaceInstanceStatusPublisher instanceStatusPublisher)
     {
         _sessionStore = sessionStore;
         _workspaceChangeDetector = workspaceChangeDetector;
@@ -30,6 +36,9 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         _resultFactory = resultFactory;
         _recoveryStore = recoveryStore;
         _commitWriter = commitWriter;
+        _commitPlanner = commitPlanner;
+        _commitLockManager = commitLockManager;
+        _instanceStatusPublisher = instanceStatusPublisher;
     }
 
     public async ValueTask<WorkspaceOperationResult<TransactionCommitOutcome>> CommitAsync(
@@ -90,39 +99,59 @@ internal sealed class TransactionCommitService : ITransactionCommitService
                 CreateContext(session));
         }
 
-        var commitId = Guid.NewGuid().ToString("n");
-        try
+        var lockAcquisition = _commitLockManager.Acquire(session.Workspace.WorkspaceRoot);
+        if (lockAcquisition.IsContended)
         {
-            await WriteRecoveryStatusAsync(
-                commitId,
-                session.Workspace.LoadedPath,
-                RecoveryState.Prepared,
-                message: null,
-                cancellationToken).ConfigureAwait(false);
+            return _resultFactory.Rejected<TransactionCommitOutcome>(
+                WorkspaceErrorCodes.WorkspaceBusy,
+                "Another server instance is committing this workspace.",
+                RequiredAction.Retry);
         }
-        catch (Exception exception) when (IsRecoverableFileSystemException(exception))
+
+        if (lockAcquisition.IsFailed)
         {
             return _resultFactory.Faulted<TransactionCommitOutcome>(
-                "CommitPreparationFailed",
-                "The transaction commit could not create its recovery record and no workspace changes were applied.",
+                "CommitLockFailed",
+                lockAcquisition.ErrorMessage,
                 RequiredAction.Retry,
                 context);
         }
 
+        using var commitLock = lockAcquisition.Lock;
+
+        var commitId = Guid.NewGuid().ToString("n");
+        WorkspaceCommitManifest? manifest = null;
         var applicationStarted = false;
         try
         {
-            await WriteRecoveryStatusAsync(
+            var plan = await _commitPlanner.CreateAsync(
                 commitId,
                 session.Workspace.LoadedPath,
-                RecoveryState.Applying,
-                message: null,
+                session.Workspace.WorkspaceRoot,
+                transaction.BaselineSolution,
+                transaction.CurrentSolution,
                 cancellationToken).ConfigureAwait(false);
+            manifest = plan.Manifest;
+            await _instanceStatusPublisher.UpdateAsync(
+                session.Workspace.WorkspaceId,
+                session.State,
+                transaction.CurrentRevision,
+                commitId,
+                "Staging").ConfigureAwait(false);
+            await _recoveryStore.PersistPlanAsync(plan, cancellationToken).ConfigureAwait(false);
+            await _commitWriter.RevalidateAsync(manifest, cancellationToken).ConfigureAwait(false);
+
+            manifest = manifest with { State = RecoveryState.Applying };
+            await _recoveryStore.WriteManifestAsync(manifest, cancellationToken).ConfigureAwait(false);
+            await _instanceStatusPublisher.UpdateAsync(
+                session.Workspace.WorkspaceId,
+                session.State,
+                transaction.CurrentRevision,
+                commitId,
+                "Applying").ConfigureAwait(false);
 
             applicationStarted = true;
-            await _commitWriter.ApplyAsync(transaction.BaselineSolution, transaction.CurrentSolution, cancellationToken);
-            session.LoadedWorkspace.ApplyChanges(transaction.CurrentSolution);
-
+            await _commitWriter.ApplyAsync(manifest).ConfigureAwait(false);
             var committedSession = session with
             {
                 Transaction = null,
@@ -131,8 +160,20 @@ internal sealed class TransactionCommitService : ITransactionCommitService
                 State = _workspaceStateTransitions.Fire(session.State, WorkspaceTrigger.TransactionCommitted),
             };
 
+            manifest = manifest with { State = RecoveryState.Committed };
+            await _recoveryStore.WriteManifestAsync(manifest, CancellationToken.None).ConfigureAwait(false);
+
             _sessionStore.ReplaceSessionAndSetTransactionOwner(committedSession, null);
-            _recoveryStore.DeleteStatus(commitId);
+            if (await _commitWriter.CompleteAsync(manifest).ConfigureAwait(false))
+            {
+                _recoveryStore.DeleteStatus(manifest.CommitId);
+            }
+            await _instanceStatusPublisher.UpdateAsync(
+                committedSession.Workspace.WorkspaceId,
+                committedSession.State,
+                null,
+                null,
+                "Committed").ConfigureAwait(false);
 
             return _resultFactory.Succeeded(
                 new TransactionCommitOutcome
@@ -141,54 +182,62 @@ internal sealed class TransactionCommitService : ITransactionCommitService
                 },
                 CreateContext(committedSession));
         }
+        catch (OperationCanceledException) when (!applicationStarted)
+        {
+            if (manifest is not null)
+            {
+                var state = await _commitWriter.RestoreAsync(manifest).ConfigureAwait(false);
+                await TryWriteManifestAsync(manifest with { State = state }).ConfigureAwait(false);
+                if (state == RecoveryState.Restored)
+                {
+                    _recoveryStore.DeleteStatus(manifest.CommitId);
+                }
+            }
+
+            throw;
+        }
         catch (Exception exception) when (IsRecoverableFileSystemException(exception))
         {
-            await TryWriteRecoveryIncompleteAsync(
-                commitId,
-                session.Workspace.LoadedPath,
-                exception.Message,
-                cancellationToken).ConfigureAwait(false);
+            var state = manifest is null
+                ? RecoveryState.RecoveryIncomplete
+                : await _commitWriter.RestoreAsync(manifest).ConfigureAwait(false);
+            if (manifest is not null)
+            {
+                await _instanceStatusPublisher.UpdateAsync(
+                    session.Workspace.WorkspaceId,
+                    session.State,
+                    transaction.CurrentRevision,
+                    commitId,
+                    "Restoring").ConfigureAwait(false);
+                var recovered = manifest with { State = state, Message = exception.Message };
+                await TryWriteManifestAsync(recovered).ConfigureAwait(false);
+                if (state == RecoveryState.Restored)
+                {
+                    _recoveryStore.DeleteStatus(manifest.CommitId);
+                }
+                await _instanceStatusPublisher.UpdateAsync(
+                    session.Workspace.WorkspaceId,
+                    session.State,
+                    transaction.CurrentRevision,
+                    commitId,
+                    state.ToString()).ConfigureAwait(false);
+            }
 
             return _resultFactory.Faulted<TransactionCommitOutcome>(
                 applicationStarted ? "CommitFailed" : "CommitPreparationFailed",
                 applicationStarted
-                    ? "The transaction commit could not be completed and may have partially applied workspace changes."
+                    ? "The transaction commit failed and its changes were restored or retained for recovery."
                     : "The transaction commit could not update its recovery record and no workspace changes were applied.",
-                RequiredAction.ResolveRecovery,
+                !applicationStarted || state == RecoveryState.Restored ? RequiredAction.Retry : RequiredAction.ResolveRecovery,
                 context);
         }
     }
 
-    private async ValueTask WriteRecoveryStatusAsync(
-        string commitId,
-        string solutionPath,
-        RecoveryState state,
-        string? message,
-        CancellationToken cancellationToken)
-    {
-        await _recoveryStore.WriteStatusAsync(new RecoveryStatus
-        {
-            CommitId = commitId,
-            SolutionPath = solutionPath,
-            State = state,
-            Message = message,
-        }, cancellationToken).ConfigureAwait(false);
-    }
-
-    private async ValueTask TryWriteRecoveryIncompleteAsync(
-        string commitId,
-        string solutionPath,
-        string message,
-        CancellationToken cancellationToken)
+    private async ValueTask TryWriteManifestAsync(WorkspaceCommitManifest manifest)
     {
         try
         {
-            await WriteRecoveryStatusAsync(
-                commitId,
-                solutionPath,
-                RecoveryState.RecoveryIncomplete,
-                message,
-                cancellationToken).ConfigureAwait(false);
+            await _recoveryStore.WriteManifestAsync(manifest, CancellationToken.None).ConfigureAwait(false);
         }
         catch (Exception exception) when (IsRecoverableFileSystemException(exception))
         {

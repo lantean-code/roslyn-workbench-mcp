@@ -129,6 +129,7 @@ public sealed class ServerOwnedToolBaseTests
         service.Verify(item => item.OpenAsync(
             It.IsAny<string>(),
             It.IsAny<string?>(),
+            It.IsAny<string?>(),
             It.IsAny<CancellationToken>()), Times.Never);
     }
 

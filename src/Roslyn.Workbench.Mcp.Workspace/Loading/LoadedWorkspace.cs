@@ -11,17 +11,6 @@ internal sealed class LoadedWorkspace : ILoadedWorkspace
 
     public Solution CurrentSolution => _workspace.CurrentSolution;
 
-    public void ApplyChanges(Solution solution)
-    {
-        try
-        {
-            _ = _workspace.TryApplyChanges(solution);
-        }
-        catch (NotSupportedException)
-        {
-        }
-    }
-
     public void Dispose()
     {
         _workspace.Dispose();

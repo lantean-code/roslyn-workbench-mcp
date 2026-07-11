@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Options;
-
 using Roslyn.Workbench.Mcp.Workspace.ChangeDetection;
 using Roslyn.Workbench.Mcp.Workspace.Configuration;
+using Roslyn.Workbench.Mcp.Workspace.Coordination;
 using Roslyn.Workbench.Mcp.Workspace.Lifecycle;
 using Roslyn.Workbench.Mcp.Workspace.Loading;
 using Roslyn.Workbench.Mcp.Workspace.Recovery;
@@ -15,10 +15,12 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     private readonly Mock<IWorkspaceSessionStore> _sessionStore;
     private readonly Mock<IWorkspaceSelector> _workspaceSelector;
     private readonly Mock<IWorkspaceLoader> _workspaceLoader;
+    private readonly Mock<IWorkspaceRootResolver> _workspaceRootResolver;
     private readonly Mock<IWorkspaceChangeDetector> _changeDetector;
     private readonly Mock<IWorkspaceStateTransitions> _stateTransitions;
     private readonly Mock<IWorkspaceOperationResultFactory> _resultFactory;
     private readonly Mock<ICommitRecoveryStore> _recoveryStore;
+    private readonly Mock<IWorkspaceInstanceStatusPublisher> _instanceStatusPublisher;
     private readonly WorkspaceLifecycleService _target;
 
     public WorkspaceLifecycleServiceTests()
@@ -27,10 +29,17 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         _sessionStore = new Mock<IWorkspaceSessionStore>();
         _workspaceSelector = new Mock<IWorkspaceSelector>();
         _workspaceLoader = new Mock<IWorkspaceLoader>();
+        _workspaceRootResolver = new Mock<IWorkspaceRootResolver>();
+        _workspaceRootResolver.Setup(item => item.Resolve(It.IsAny<string>(), It.IsAny<string?>())).Returns("/workspace");
+        _workspaceRootResolver.Setup(item => item.Contains(It.IsAny<string>(), It.IsAny<string>())).Returns(true);
         _changeDetector = new Mock<IWorkspaceChangeDetector>();
         _stateTransitions = new Mock<IWorkspaceStateTransitions>();
         _resultFactory = new Mock<IWorkspaceOperationResultFactory>();
         _recoveryStore = new Mock<ICommitRecoveryStore>();
+        _instanceStatusPublisher = new Mock<IWorkspaceInstanceStatusPublisher>();
+        _instanceStatusPublisher
+            .Setup(item => item.GetOtherLiveInstancesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
         _target = new WorkspaceLifecycleService(
             Options.Create(new WorkspaceCoordinatorOptions
             {
@@ -41,10 +50,12 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             _sessionStore.Object,
             _workspaceSelector.Object,
             _workspaceLoader.Object,
+            _workspaceRootResolver.Object,
             _changeDetector.Object,
             _stateTransitions.Object,
             _resultFactory.Object,
-            _recoveryStore.Object);
+            _recoveryStore.Object,
+            _instanceStatusPublisher.Object);
     }
 
     [Fact]
@@ -117,6 +128,20 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         var result = await _target.OpenAsync("Path", null, TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
+    }
+
+    [Fact]
+    public async Task GIVEN_InvalidExplicitWorkspaceRoot_WHEN_OpeningWorkspace_THEN_ShouldReturnRejection()
+    {
+        var expected = CreateResult<WorkspaceOpenOutcome>();
+        _workspaceLoader.Setup(item => item.NormalizeOpenPath("Path")).Returns("/workspace/Project.csproj");
+        _workspaceRootResolver.Setup(item => item.Resolve("/workspace/Project.csproj", "/other")).Returns((string?)null);
+        SetupRejectedResult(expected, "WorkspaceRootInvalid");
+
+        var result = await _target.OpenAsync("Path", null, "/other", TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _workspaceLoader.Verify(item => item.LoadAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -255,6 +280,23 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         result.Should().BeSameAs(expected);
     }
 
+    [Fact]
+    public async Task GIVEN_LoadedProjectOutsideWorkspaceRoot_WHEN_OpeningWorkspace_THEN_ShouldDisposeAndReject()
+    {
+        var loadedWorkspace = new Mock<ILoadedWorkspace>();
+        var solution = CreateSolutionWithProject("/outside/Project.csproj");
+        var expected = CreateResult<WorkspaceOpenOutcome>();
+        SetupOpenPreflight("/workspace/New.sln", alias: null);
+        SetupLoadedWorkspace("/workspace/New.sln", solution, loadedWorkspace);
+        _workspaceRootResolver.Setup(item => item.Contains("/workspace", "/outside/Project.csproj")).Returns(false);
+        SetupRejectedResult(expected, "WorkspaceProjectOutsideRoot");
+
+        var result = await _target.OpenAsync("Path", null, TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        loadedWorkspace.Verify(item => item.Dispose(), Times.Once);
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
@@ -329,7 +371,9 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         result.Should().BeSameAs(expected);
         _sessionStore.Verify(item => item.TryAddWorkspace(
             It.Is<WorkspaceSessionSnapshot>(session =>
-                session.Workspace.Alias == "Alias" && session.OperationGate is WorkspaceOperationGate),
+                session.Workspace.Alias == "Alias"
+                && session.Workspace.WorkspaceRoot == "/workspace"
+                && session.OperationGate is WorkspaceOperationGate),
             It.IsAny<Func<WorkspaceHostSnapshot, WorkspaceOperationError?>>()), Times.Once);
     }
 
@@ -600,6 +644,37 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             null)).Returns(expected);
 
         var result = await _target.GetStatusAsync(null, null, null, detail, TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+    }
+
+    [Fact]
+    public async Task GIVEN_OtherLiveInstance_WHEN_GettingStatus_THEN_ShouldProjectItsAdvisoryState()
+    {
+        var operationLease = new Mock<IAsyncDisposable>();
+        var gate = new Mock<IWorkspaceOperationGate>();
+        var session = CreateSession("WorkspaceId", "Path", alias: null, transaction: null) with { OperationGate = gate.Object };
+        var instance = new WorkspaceInstanceInfo
+        {
+            InstanceId = "other-instance",
+            LoadedPath = "Path",
+            WorkspaceRoot = "Path",
+            WorkspaceState = WorkspaceLifecycleState.TransactionActive,
+            TransactionRevision = 2,
+            CommitPhase = "Applying",
+        };
+        var expected = CreateResult<WorkspaceStatusOutcome>();
+        SetupSelectedSession(session, gate, operationLease, exclusive: false);
+        _instanceStatusPublisher
+            .Setup(item => item.GetOtherLiveInstancesAsync("Path", TestContext.Current.CancellationToken))
+            .ReturnsAsync([instance]);
+        _resultFactory.Setup(item => item.Succeeded(
+            It.Is<WorkspaceStatusOutcome>(outcome => outcome.Instances.Count == 1 && outcome.Instances[0] == instance),
+            It.IsAny<WorkspaceOperationContext>(),
+            null,
+            null)).Returns(expected);
+
+        var result = await _target.GetStatusAsync(null, null, null, StatusDetailLevel.Standard, TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
     }
@@ -947,6 +1022,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
                 WorkspaceId = workspaceId,
                 WorkspaceEpoch = 2,
                 LoadedPath = path,
+                WorkspaceRoot = path,
                 Alias = alias,
             },
             LoadedWorkspace = new Mock<ILoadedWorkspace>().Object,

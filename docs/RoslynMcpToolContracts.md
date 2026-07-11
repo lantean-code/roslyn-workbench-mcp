@@ -249,7 +249,7 @@ an internal catalogue and are not reported as a plugin by `server-status`.
 | Tool | Source | Behaviour | Title and description | Input parameters | Success payload shape |
 |---|---|---|---|---|---|
 | `server-status` | New server | Q | **Server Status**. Returns server diagnostics and unfinished commit recovery state without requiring a workspace. | `detail?: Minimal|Standard|Full = Minimal`. | `ServerStatusData { serverVersion, protocolVersion, roslynVersion, msBuild: ComponentStatus, toolCount, configuration?: ServerConfiguration, plugins?: PluginStatus[], recovery?: RecoveryStatus[] }` |
-| `workspace-open` | New server | S | **Open Workspace**. Loads an additional `.sln`, `.slnx` or `.csproj` as a writable workspace session. All loaded C# projects must be SDK style. | `path: string` - absolute solution or project path; `alias?: string` - optional caller-friendly label. | `WorkspaceOpenData { workspace: WorkspaceIdentity, projectCount, documentCount, loadDiagnostics: DiagnosticInfo[] }` |
+| `workspace-open` | New server | S | **Open Workspace**. Loads an additional `.sln`, `.slnx` or `.csproj` as a writable workspace session. All loaded C# projects must be SDK style. | `path: string` - absolute solution or project path; `alias?: string` - optional caller-friendly label; `workspaceRoot?: string` - optional absolute repository or coordination root. | `WorkspaceOpenData { workspace: WorkspaceIdentity, projectCount, documentCount, loadDiagnostics: DiagnosticInfo[] }` |
 | `workspace-list` | New server | Q | **Workspace List**. Returns every loaded workspace plus the current global transaction owner, if any. | None. | `WorkspaceListData { workspaces: WorkspaceIdentity[], transactionOwnerWorkspaceId?: string }` |
 | `workspace-close` | New server | S | **Close Workspace**. Disposes one selected loaded workspace. An active transaction on that workspace must first be committed or rolled back. | `workspace?: WorkspaceSelector`. | `WorkspaceCloseData { closedPath: string }` |
 | `workspace-status` | Replaces `diagnose` | Q | **Workspace Status**. Returns one selected loaded workspace's lifecycle state, project-load diagnostics and transaction capabilities. | `workspace?: WorkspaceSelector`, `detail?: Minimal|Standard|Full = Standard`. | `WorkspaceStatusData { state: Ready|TransactionActive|TransactionConflicted|WorkspaceOutOfDate, workspace: WorkspaceIdentity, projectCount: int, documentCount: int, loadDiagnostics?: DiagnosticInfo[], transaction?: TransactionInfo, reloadRequired: boolean }` |
@@ -406,14 +406,49 @@ leaves state unchanged; one observed after it does not undo the completed
 transition. The client can confirm the resulting revision through
 `workspace-status`.
 
-Stage 5 commit durability is currently represented by server-owned recovery
-status records under `StateDirectory/recovery`. Commit writes `Prepared`, then
-`Applying`, and removes the record on success. If file application fails with
-an I/O or access error, the server records `RecoveryIncomplete`, returns
-`Faulted`, and exposes `ResolveRecovery`. `server-status` reports all remaining
-recovery records, and `workspace-open` refuses to open a solution that still
-has an unresolved recovery record. Automatic restore from durable per-file
-backups is not part of the current Stage 5 implementation.
+Commit derives and validates the complete source-file plan before touching a
+target. It stores a versioned manifest, exact binary backups and exact staged
+contents under `StateDirectory/recovery/<commit-id>`, then durably transitions
+through `Prepared`, `Applying` and `Committed`. Cancellation is honoured before
+`Applying`; application and restoration are non-cancellable after that point.
+
+An authoritative per-workspace-root inter-process lock serialises commits across
+local server instances. Each target is hash-checked immediately before it is
+changed. A failed or interrupted commit restores every non-divergent target to
+its original bytes and existence state, removes transaction-created files and
+empty directories, and records `RecoveryConflict` rather than overwriting a
+file changed by another local tool. Restoration I/O failures remain as
+`RecoveryIncomplete` and are retried during startup before MCP transport is
+started. `server-status`, `RecoveryStatus`, and their JSON remain unchanged.
+
+`WorkspaceIdentity` reports both `loadedPath`, the `.sln`, `.slnx` or `.csproj`
+loaded by Roslyn, and `workspaceRoot`, the repository-level transaction and
+coordination boundary. An explicit `workspaceRoot` is validated as an existing
+ancestor of every loaded project and document. When omitted, the server uses
+the nearest `.git` directory or worktree file, falling back to the loaded
+file's directory.
+
+Per-instance files under `<workspace-root>/.vs/roslyn-workbench-mcp/instances`
+are advisory only. They publish workspace/transaction/commit state and produce
+a `WorkspaceInUse` warning for another live local instance; they are never
+consulted as commit or recovery evidence. The files use a versioned JSON shape
+containing `instanceId`, `loadedPath`, `workspaceRoot`, `workspaceState`,
+`transactionRevision`, `commitId`, and `commitPhase`. `workspace-status`
+enumerates live files for the selected workspace and returns other instances
+through its `instances` collection. Stale files are removed when their
+ownership handle can be acquired; malformed live files still cause the open
+warning but are omitted from the structured query result.
+
+Atomic replacement flushes staged file contents before publication. Windows
+uses `MoveFileExW` with replace and write-through flags; Unix uses a same-volume
+rename followed by `fsync` of the parent directory. Delete application uses the
+same durable move primitive to create a transaction-owned tombstone. The
+authoritative workspace-root lock uses the CLR `FileStream.Lock` byte-range
+primitive and is released by the operating system when an owning process
+terminates. Lock-file open failures remain distinct from lock contention. These
+guarantees assume a local filesystem that honours the
+corresponding operating-system durability primitives; faulty storage hardware
+and filesystems that falsely acknowledge flushes remain outside the contract.
 
 ## Original Server Mapping
 

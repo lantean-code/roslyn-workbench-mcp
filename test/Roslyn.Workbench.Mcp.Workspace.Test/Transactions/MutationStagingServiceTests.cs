@@ -1,5 +1,6 @@
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Roslyn.Workbench.Mcp.Workspace.Coordination;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test.Transactions;
 
@@ -10,6 +11,7 @@ public sealed class MutationStagingServiceTests : IDisposable
     private readonly Mock<IWorkspaceSessionStore> _sessionStore;
     private readonly Mock<IWorkspaceDiffBuilder> _diffBuilder;
     private readonly Mock<IWorkspaceResolverFactory> _resolverFactory;
+    private readonly Mock<IWorkspaceInstanceStatusPublisher> _instanceStatusPublisher;
     private readonly MutationStagingService _target;
 
     public MutationStagingServiceTests()
@@ -19,11 +21,13 @@ public sealed class MutationStagingServiceTests : IDisposable
         _sessionStore = new Mock<IWorkspaceSessionStore>();
         _diffBuilder = new Mock<IWorkspaceDiffBuilder>();
         _resolverFactory = new Mock<IWorkspaceResolverFactory>();
+        _instanceStatusPublisher = new Mock<IWorkspaceInstanceStatusPublisher>();
         _target = new MutationStagingService(
             _resultFactory.Object,
             _sessionStore.Object,
             _diffBuilder.Object,
-            _resolverFactory.Object);
+            _resolverFactory.Object,
+            _instanceStatusPublisher.Object);
     }
 
     [Fact]

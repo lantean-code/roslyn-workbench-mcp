@@ -35,7 +35,7 @@
 - Braces on a new line and never omitted.
 - Use file-scoped namespaces by default. Use block-scoped namespaces only when the file structure genuinely requires them.
 - Use blank lines where appropriate to improve readability.
-- Expression-bodied members are allowed only for get-only properties when they improve readability; methods must use block bodies.
+- Prefer expression-bodied syntax for simple get-only properties. Methods and all other members must use block bodies.
 - Member order:
   1. Constants
   2. Static fields and properties
@@ -52,6 +52,8 @@
 ### Coding practices
 - Use `var` wherever possible unless it harms clarity.
 - Enable and properly use nullable reference types.
+- Do not use the null-forgiving operator (`!`) in production code as a routine way to silence nullable analysis. Express the invariant in the type system instead: validate inputs, use required members or constructors, retain a checked local, pattern-match nullable values, or annotate state relationships with attributes such as `MemberNotNull`, `MemberNotNullWhen`, and `NotNullWhen`.
+- A production null-forgiving operator is permitted only when the invariant cannot be expressed or observed by the compiler, no safer API shape is practical, and the reason is exceptional and explicitly documented next to the use. Reflection and framework boundary code must still validate the runtime result before relying on it.
 - Always specify access modifiers, even when the default applies.
 - Use `async` only when needed.
 - Async methods should follow normal .NET naming and generally end with `Async`, except for well-known event handlers or framework-required signatures.
@@ -105,6 +107,7 @@
 - [ ] Standards here are applied to all generated code.
 - [ ] Nullable reference types are enabled and used correctly.
 - [ ] Public contract and extension-point APIs include XML docs with proper tags.
+- [ ] Production code contains no unjustified null-forgiving operators; nullable invariants are encoded and checked rather than suppressed.
 - [ ] Braces are never omitted; no expression-bodied methods.
 - [ ] Async usage is justified and async method naming follows normal .NET conventions.
 - [ ] Member order matches the specified list.

@@ -14,6 +14,7 @@ internal sealed class TransactionService : ITransactionService
     private readonly ITransactionCommitService _transactionCommitService;
     private readonly IWorkspaceDiffBuilder _diffBuilder;
     private readonly IWorkspaceResolverFactory _resolverFactory;
+    private readonly IWorkspaceInstanceStatusPublisher _instanceStatusPublisher;
 
     public TransactionService(
         IOptions<WorkspaceCoordinatorOptions> options,
@@ -24,7 +25,8 @@ internal sealed class TransactionService : ITransactionService
         IWorkspaceOperationResultFactory resultFactory,
         ITransactionCommitService transactionCommitService,
         IWorkspaceDiffBuilder diffBuilder,
-        IWorkspaceResolverFactory resolverFactory)
+        IWorkspaceResolverFactory resolverFactory,
+        IWorkspaceInstanceStatusPublisher instanceStatusPublisher)
     {
         _options = options.Value;
         _sessionStore = sessionStore;
@@ -35,6 +37,7 @@ internal sealed class TransactionService : ITransactionService
         _transactionCommitService = transactionCommitService;
         _diffBuilder = diffBuilder;
         _resolverFactory = resolverFactory;
+        _instanceStatusPublisher = instanceStatusPublisher;
     }
 
     public async ValueTask<WorkspaceOperationResult<TransactionStartOutcome>> StartAsync(string? workspaceId, string? alias, string? path, CancellationToken cancellationToken)
@@ -121,6 +124,12 @@ internal sealed class TransactionService : ITransactionService
         };
 
         _sessionStore.ReplaceSessionAndSetTransactionOwner(updatedSession, selection.WorkspaceId);
+        await _instanceStatusPublisher.UpdateAsync(
+            updatedSession.Workspace.WorkspaceId,
+            updatedSession.State,
+            updatedSession.Transaction?.CurrentRevision,
+            null,
+            null).ConfigureAwait(false);
 
         return _resultFactory.Succeeded(
             new TransactionStartOutcome
@@ -307,6 +316,12 @@ internal sealed class TransactionService : ITransactionService
         };
 
         _sessionStore.ReplaceSession(updatedSession);
+        await _instanceStatusPublisher.UpdateAsync(
+            updatedSession.Workspace.WorkspaceId,
+            updatedSession.State,
+            updatedSession.Transaction?.CurrentRevision,
+            null,
+            null).ConfigureAwait(false);
 
         return _resultFactory.Succeeded(
             new TransactionHistoryOutcome
@@ -411,6 +426,12 @@ internal sealed class TransactionService : ITransactionService
         };
 
         _sessionStore.ReplaceSessionAndSetTransactionOwner(updatedSession, null);
+        await _instanceStatusPublisher.UpdateAsync(
+            updatedSession.Workspace.WorkspaceId,
+            updatedSession.State,
+            null,
+            null,
+            null).ConfigureAwait(false);
 
         return _resultFactory.Succeeded(
             new TransactionRollbackOutcome

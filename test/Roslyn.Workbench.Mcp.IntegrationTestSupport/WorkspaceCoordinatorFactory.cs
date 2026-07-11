@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.Plugins;
+using Roslyn.Workbench.Mcp.Workspace.Coordination;
 
 namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
@@ -78,18 +79,22 @@ public static class WorkspaceCoordinatorFactory
         var workspaceSelector = new WorkspaceSelectorService();
         var workspaceLoader = new WorkspaceLoader(new WorkspaceHostServicesAccessor(codeActionRuntime.WorkspaceHostServices));
         var fileSystem = new FileSystem();
-        var atomicFileWriter = new AtomicFileWriter(fileSystem);
+        var fileCommitter = new NativeAtomicFileCommitter();
+        var atomicFileWriter = new AtomicFileWriter(fileSystem, fileCommitter);
         var workspaceChangeDetector = new WorkspaceChangeDetector(fileSystem, new WorkspaceProjectInputResolver());
         var workspaceStateTransitions = new WorkspaceStateTransitions();
         var resultFactory = new WorkspaceOperationResultFactory();
         var snapshotGuard = new SnapshotGuard();
         var workspaceResolverFactory = new WorkspaceResolverFactory();
         var recoveryStore = new CommitRecoveryStore(optionsWrapper, fileSystem, atomicFileWriter);
+        var instanceStatusPublisher = new WorkspaceInstanceStatusPublisher(fileSystem);
+        var commitWriter = new WorkspaceCommitWriter(fileSystem, atomicFileWriter, recoveryStore, fileCommitter);
         var mutationStagingService = new MutationStagingService(
             new WorkspaceOperationResultFactory(),
             sessionStore,
             new WorkspaceDiffService(),
-            workspaceResolverFactory);
+            workspaceResolverFactory,
+            instanceStatusPublisher);
         var codeActionDiagnosticService = new CodeActionDiagnosticService();
         var codeActionDescriptorRegistry = new CodeActionDescriptorRegistry([ControlledCodeActionDescriptorClassifier.Classify]);
         var codeActionTokenService = new CodeActionTokenService();
@@ -124,7 +129,12 @@ public static class WorkspaceCoordinatorFactory
             snapshotGuard,
             resultFactory,
             recoveryStore,
-            new WorkspaceCommitWriter(fileSystem));
+            commitWriter,
+            new WorkspaceCommitPlanner(fileSystem),
+            new WorkspaceCommitLockManager(
+                fileSystem,
+                new FileStreamWorkspaceFileLockProvider()),
+            instanceStatusPublisher);
         var workspaceContextFactory = new WorkspaceExecutionContextFactory(
             optionsWrapper,
             sessionStore,
@@ -143,10 +153,12 @@ public static class WorkspaceCoordinatorFactory
             sessionStore,
             workspaceSelector,
             workspaceLoader,
+            new WorkspaceRootResolver(fileSystem),
             workspaceChangeDetector,
             workspaceStateTransitions,
             resultFactory,
-            recoveryStore);
+            recoveryStore,
+            instanceStatusPublisher);
         var transactionService = new TransactionService(
             optionsWrapper,
             sessionStore,
@@ -156,7 +168,8 @@ public static class WorkspaceCoordinatorFactory
             resultFactory,
             transactionCommitService,
             new WorkspaceDiffService(),
-            workspaceResolverFactory);
+            workspaceResolverFactory,
+            instanceStatusPublisher);
 
         return new WorkspaceRuntime(
             pluginContextFactory,

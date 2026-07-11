@@ -24,11 +24,20 @@ public sealed class WorkspaceRuntime : IWorkspaceRuntime
         _transactionService = transactionService ?? throw new ArgumentNullException(nameof(transactionService));
     }
 
-    internal IWorkspaceLifecycleService WorkspaceLifecycleService => _workspaceLifecycleService;
+    internal IWorkspaceLifecycleService WorkspaceLifecycleService
+    {
+        get { return _workspaceLifecycleService; }
+    }
 
-    internal ITransactionService TransactionService => _transactionService;
+    internal ITransactionService TransactionService
+    {
+        get { return _transactionService; }
+    }
 
-    internal ICodeActionExecutionContextFactory CodeActionContextFactory => _codeActionContextFactory;
+    internal ICodeActionExecutionContextFactory CodeActionContextFactory
+    {
+        get { return _codeActionContextFactory; }
+    }
 
     public PluginMutationExecutionLease CreateMutationContext(WorkspaceBoundRequest request, CancellationToken cancellationToken)
     {
@@ -92,7 +101,11 @@ public sealed class WorkspaceRuntime : IWorkspaceRuntime
 
     private async ValueTask<ToolResult<WorkspaceOpenData>> OpenCoreAsync(WorkspaceOpenRequest request, CancellationToken cancellationToken)
     {
-        var result = await _workspaceLifecycleService.OpenAsync(request.Path, request.Alias, cancellationToken).ConfigureAwait(false);
+        var result = await _workspaceLifecycleService.OpenAsync(
+            request.Path,
+            request.Alias,
+            request.WorkspaceRoot,
+            cancellationToken).ConfigureAwait(false);
 
         return WorkspaceToolResultMapper.Map(result, static data => new WorkspaceOpenData
         {
@@ -143,6 +156,7 @@ public sealed class WorkspaceRuntime : IWorkspaceRuntime
             LoadDiagnostics = data.LoadDiagnostics,
             Transaction = data.Transaction,
             ReloadRequired = data.ReloadRequired,
+            Instances = data.Instances,
         });
     }
 

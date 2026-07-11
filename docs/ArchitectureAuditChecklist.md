@@ -32,6 +32,19 @@ The former production Contracts project has been removed. Contracts now live wit
 
 ### Workspace
 
+- [x] Replace sequential source writes with a durable multi-file write-ahead commit protocol.
+  Notes:
+  - A complete canonical create/replace/delete plan and exact binary artifacts are durable before `Applying`.
+  - Per-workspace-root inter-process locking and the existing in-process operation gate are both authoritative.
+  - Hash-aware, idempotent restoration preserves externally divergent files and records conflicts.
+  - Atomic replacement uses write-through publication on Windows and parent-directory synchronisation on Unix.
+  - The authoritative lock is an actual OS lock, with real contention and crash-release integration coverage; file-share flags alone are not treated as ownership.
+  - A durable pre-manifest owner record allows startup to clean interrupted preparation only while holding the correct workspace-root lock.
+  - Successful source-only commits promote the staged Roslyn `Solution`; `MSBuildWorkspace.TryApplyChanges` and reload are not used.
+  - `.vs` instance/status files are warning-only hints, are excluded from workspace input tracking, and are queryable through `workspace-status.instances` after live-handle validation.
+  - Workspace coordination resolves one persisted repository-level `WorkspaceRoot`; project-only loads therefore do not create `.vs` directories beneath each project.
+  - A single CLR `FileStream.Lock` provider owns the cross-process byte-range lock; only genuine contention maps to `WorkspaceBusy`.
+
 - [x] Break up `MefCodeActionService` into focused collaborators.
   Files:
   - `src/Roslyn.Workbench.Mcp.Workspace/MefCodeActionService.cs`

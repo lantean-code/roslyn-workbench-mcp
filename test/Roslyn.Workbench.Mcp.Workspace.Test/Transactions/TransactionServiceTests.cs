@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 
 using Roslyn.Workbench.Mcp.Workspace.Configuration;
+using Roslyn.Workbench.Mcp.Workspace.Coordination;
 using Roslyn.Workbench.Mcp.Workspace.Selection;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test.Transactions;
@@ -17,6 +18,7 @@ public sealed class TransactionServiceTests : IDisposable
     private readonly Mock<IWorkspaceDiffBuilder> _diffBuilder;
     private readonly Mock<IWorkspaceResolverFactory> _resolverFactory;
     private readonly Mock<IWorkspaceResolver> _resolver;
+    private readonly Mock<IWorkspaceInstanceStatusPublisher> _instanceStatusPublisher;
     private readonly TransactionService _target;
 
     public TransactionServiceTests()
@@ -31,6 +33,7 @@ public sealed class TransactionServiceTests : IDisposable
         _diffBuilder = new Mock<IWorkspaceDiffBuilder>();
         _resolverFactory = new Mock<IWorkspaceResolverFactory>();
         _resolver = new Mock<IWorkspaceResolver>();
+        _instanceStatusPublisher = new Mock<IWorkspaceInstanceStatusPublisher>();
         _target = new TransactionService(
             Options.Create(new WorkspaceCoordinatorOptions { MaxTransactionRevisions = 5 }),
             _sessionStore.Object,
@@ -40,7 +43,8 @@ public sealed class TransactionServiceTests : IDisposable
             _resultFactory.Object,
             _commitService.Object,
             _diffBuilder.Object,
-            _resolverFactory.Object);
+            _resolverFactory.Object,
+            _instanceStatusPublisher.Object);
     }
 
     [Fact]

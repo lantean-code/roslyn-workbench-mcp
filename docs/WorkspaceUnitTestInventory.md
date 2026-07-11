@@ -479,6 +479,34 @@ Keep the existing Workspace integration tests and add only the missing infrastru
 
 CodeActions-owned context-adapter coverage already lives in `Roslyn.Workbench.Mcp.CodeActions.Test`; it is not part of the deferred Workspace programme.
 
+### Durable commit and recovery extension
+
+The source-only commit path now has distinct logic-bearing units for:
+
+- `WorkspaceCommitPlanner`: canonical target validation, create/replace/delete classification, exact encoded bytes, hashes, artifacts and created directories.
+- `WorkspaceRootResolver`: explicit-root validation, Git/worktree discovery, non-repository fallback, and path containment.
+- `WorkspaceCommitLockManager`: repository-root lock location plus acquired, contended, and failed result mapping.
+- `FileStreamWorkspaceFileLockProvider`: CLR cross-process ownership and crash release.
+- `CommitRecoveryStore`: versioned manifests, binary artifacts, validated artifact paths and unchanged public recovery projection.
+- `WorkspaceCommitWriter`: pre-apply and per-target revalidation, non-cancellable application, reverse idempotent restoration, divergence preservation and directory cleanup.
+- `WorkspaceCommitRecoveryService`: startup cleanup/restoration and retry retention.
+- `WorkspaceInstanceStatusPublisher`: advisory creation, updates, live/stale detection, versioned status parsing, structured cross-instance queries and cleanup without recovery authority.
+- `TransactionCommitService`: durable state ordering, cancellation boundary, session promotion and result mapping.
+
+Unit coverage belongs in `Roslyn.Workbench.Mcp.Workspace.Test` with mocked I/O
+and collaborators. OS file replacement, file-share locking, exact bytes across
+restart, and multi-file end-to-end behaviour belong in
+`Roslyn.Workbench.Mcp.Workspace.IntegrationTest`.
+
+The durability checkpoint additionally covers fresh-process-equivalent
+recovery from `Prepared`, `Applying`, `Committed`, `RecoveryIncomplete`,
+`RecoveryConflict`, and pre-manifest owner states; deterministic second-target
+failure and reverse restoration; exact binary create/replace/delete outcomes;
+external divergence; unsafe and malformed journals; real OS lock contention;
+and Linux crash-style lock release. `NativeAtomicFileCommitter` and
+the `FileStreamWorkspaceFileLockProvider` is an OS-bound implementation and is dispositioned
+to focused integration coverage rather than mocked unit coverage.
+
 ## Test-Support Rules for This Work
 
 - Do not reintroduce a workspace coordinator, temporary-project fixture or production service graph into `Roslyn.Workbench.Mcp.TestSupport`.

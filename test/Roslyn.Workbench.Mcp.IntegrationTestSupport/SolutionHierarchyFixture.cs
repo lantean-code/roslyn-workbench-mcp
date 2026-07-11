@@ -24,6 +24,7 @@ public sealed class SolutionHierarchyFixture : IDisposable
         var applicationDocumentPath = Path.Combine(applicationDirectoryPath, "AppFormatter.cs");
 
         Directory.CreateDirectory(directoryPath);
+        Directory.CreateDirectory(Path.Combine(directoryPath, ".git"));
         Directory.CreateDirectory(libraryDirectoryPath);
         Directory.CreateDirectory(applicationDirectoryPath);
 

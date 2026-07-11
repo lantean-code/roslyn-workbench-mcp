@@ -7,17 +7,20 @@ internal sealed class MutationStagingService : IMutationStagingService
     private readonly IWorkspaceSessionStore _sessionStore;
     private readonly IWorkspaceDiffBuilder _diffBuilder;
     private readonly IWorkspaceResolverFactory _resolverFactory;
+    private readonly IWorkspaceInstanceStatusPublisher _instanceStatusPublisher;
 
     public MutationStagingService(
         IWorkspaceOperationResultFactory resultFactory,
         IWorkspaceSessionStore sessionStore,
         IWorkspaceDiffBuilder diffBuilder,
-        IWorkspaceResolverFactory resolverFactory)
+        IWorkspaceResolverFactory resolverFactory,
+        IWorkspaceInstanceStatusPublisher instanceStatusPublisher)
     {
         _resultFactory = resultFactory;
         _sessionStore = sessionStore;
         _diffBuilder = diffBuilder;
         _resolverFactory = resolverFactory;
+        _instanceStatusPublisher = instanceStatusPublisher;
     }
 
     public async ValueTask<WorkspaceOperationResult<MutationStagingOutcome>> StageAsync(
@@ -86,6 +89,12 @@ internal sealed class MutationStagingService : IMutationStagingService
         };
 
         _sessionStore.ReplaceSession(updatedSession);
+        await _instanceStatusPublisher.UpdateAsync(
+            updatedSession.Workspace.WorkspaceId,
+            updatedSession.State,
+            updatedSession.Transaction?.CurrentRevision,
+            null,
+            null).ConfigureAwait(false);
 
         return _resultFactory.Succeeded(
             new MutationStagingOutcome

@@ -7,88 +7,312 @@ using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Recovery;
 
-/// <summary>
-/// Provides durable storage for unfinished commit recovery records.
-/// </summary>
 internal sealed class CommitRecoveryStore : ICommitRecoveryStore
 {
     private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
-    private static readonly Encoding _encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+    private static readonly Encoding _encoding = new UTF8Encoding(false);
     private readonly IFileSystem _fileSystem;
     private readonly IAtomicFileWriter _atomicFileWriter;
     private readonly string _recoveryDirectory;
 
-    public CommitRecoveryStore(
-        IOptions<WorkspaceCoordinatorOptions> options,
-        IFileSystem fileSystem,
-        IAtomicFileWriter atomicFileWriter)
+    public CommitRecoveryStore(IOptions<WorkspaceCoordinatorOptions> options, IFileSystem fileSystem, IAtomicFileWriter atomicFileWriter)
     {
         ArgumentNullException.ThrowIfNull(options);
         _fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
         _atomicFileWriter = atomicFileWriter ?? throw new ArgumentNullException(nameof(atomicFileWriter));
-        _recoveryDirectory = _fileSystem.Path.Combine(
-            _fileSystem.Path.GetFullPath(options.Value.StateDirectory),
-            "recovery");
+        _recoveryDirectory = _fileSystem.Path.Combine(_fileSystem.Path.GetFullPath(options.Value.StateDirectory), "recovery");
     }
 
-    public async ValueTask<IReadOnlyList<RecoveryStatus>> GetStatusesAsync(CancellationToken cancellationToken)
+    public async ValueTask PersistPlanAsync(WorkspaceCommitPlan plan, CancellationToken cancellationToken)
     {
-        if (!_fileSystem.Directory.Exists(_recoveryDirectory))
-        {
-            return [];
-        }
-
-        var statuses = new List<RecoveryStatus>();
-
-        foreach (var filePath in _fileSystem.Directory.EnumerateFiles(_recoveryDirectory, "*.json", SearchOption.TopDirectoryOnly))
+        var directory = GetCommitDirectory(plan.Manifest.CommitId);
+        _fileSystem.Directory.CreateDirectory(directory);
+        await _atomicFileWriter.WriteAllTextAsync(
+            _fileSystem.Path.Combine(directory, "owner.json"),
+            JsonSerializer.Serialize(new WorkspaceCommitOwner
+            {
+                CommitId = plan.Manifest.CommitId,
+                LoadedPath = plan.Manifest.LoadedPath,
+                WorkspaceRoot = plan.Manifest.WorkspaceRoot,
+            }, _serializerOptions),
+            _encoding,
+            cancellationToken).ConfigureAwait(false);
+        foreach (var artifact in plan.Artifacts)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            var path = GetArtifactPath(plan.Manifest.CommitId, artifact.Key);
+            _fileSystem.Directory.CreateDirectory(_fileSystem.Path.GetDirectoryName(path)!);
+            await _atomicFileWriter.WriteAllBytesAsync(path, artifact.Value, cancellationToken).ConfigureAwait(false);
+        }
+
+        await WriteManifestAsync(plan.Manifest, cancellationToken).ConfigureAwait(false);
+    }
+
+    public ValueTask WriteManifestAsync(WorkspaceCommitManifest manifest, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var directory = GetCommitDirectory(manifest.CommitId);
+        _fileSystem.Directory.CreateDirectory(directory);
+        return _atomicFileWriter.WriteAllTextAsync(
+            _fileSystem.Path.Combine(directory, "manifest.json"),
+            JsonSerializer.Serialize(manifest, _serializerOptions),
+            _encoding,
+            cancellationToken);
+    }
+
+    public async ValueTask<IReadOnlyList<WorkspaceCommitManifest>> GetManifestsAsync(CancellationToken cancellationToken)
+    {
+        var manifests = new List<WorkspaceCommitManifest>();
+        if (!_fileSystem.Directory.Exists(_recoveryDirectory))
+        {
+            return manifests;
+        }
+
+        foreach (var directory in _fileSystem.Directory.EnumerateDirectories(_recoveryDirectory))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var path = _fileSystem.Path.Combine(directory, "manifest.json");
+            if (!_fileSystem.File.Exists(path))
+            {
+                continue;
+            }
+
             try
             {
-                var json = await _fileSystem.File.ReadAllTextAsync(filePath, cancellationToken).ConfigureAwait(false);
-                var status = JsonSerializer.Deserialize<RecoveryStatus>(json, _serializerOptions);
-                if (status is not null)
+                var json = await _fileSystem.File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
+                var manifest = JsonSerializer.Deserialize<WorkspaceCommitManifest>(json, _serializerOptions);
+                if (manifest is not null && IsValidManifest(manifest, directory))
                 {
-                    statuses.Add(status);
+                    manifests.Add(manifest);
+                }
+                else
+                {
+                    manifests.Add(CreateInvalidManifest(directory, manifest?.LoadedPath, manifest?.WorkspaceRoot));
                 }
             }
             catch (IOException)
             {
+                manifests.Add(CreateInvalidManifest(directory, loadedPath: null, workspaceRoot: null));
             }
             catch (UnauthorizedAccessException)
             {
+                manifests.Add(CreateInvalidManifest(directory, loadedPath: null, workspaceRoot: null));
             }
             catch (JsonException)
             {
+                manifests.Add(CreateInvalidManifest(directory, loadedPath: null, workspaceRoot: null));
             }
+        }
+
+        return manifests;
+    }
+
+    public async ValueTask<IReadOnlyList<WorkspaceCommitOwner>> GetOrphanedCommitOwnersAsync(CancellationToken cancellationToken)
+    {
+        var owners = new List<WorkspaceCommitOwner>();
+        if (!_fileSystem.Directory.Exists(_recoveryDirectory))
+        {
+            return owners;
+        }
+
+        foreach (var directory in _fileSystem.Directory.EnumerateDirectories(_recoveryDirectory))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (_fileSystem.File.Exists(_fileSystem.Path.Combine(directory, "manifest.json")))
+            {
+                continue;
+            }
+
+            var ownerPath = _fileSystem.Path.Combine(directory, "owner.json");
+            if (!_fileSystem.File.Exists(ownerPath))
+            {
+                continue;
+            }
+
+            try
+            {
+                var json = await _fileSystem.File.ReadAllTextAsync(ownerPath, cancellationToken).ConfigureAwait(false);
+                var owner = JsonSerializer.Deserialize<WorkspaceCommitOwner>(json, _serializerOptions);
+                if (owner is not null
+                    && owner.Version == 2
+                    && string.Equals(
+                        owner.CommitId,
+                        _fileSystem.Path.GetFileName(directory),
+                        OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal)
+                    && _fileSystem.Path.IsPathFullyQualified(owner.LoadedPath)
+                    && _fileSystem.Path.IsPathFullyQualified(owner.WorkspaceRoot))
+                {
+                    owners.Add(owner);
+                }
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+            catch (JsonException) { }
+        }
+
+        return owners;
+    }
+
+    public async ValueTask<IReadOnlyList<RecoveryStatus>> GetStatusesAsync(CancellationToken cancellationToken)
+    {
+        var statuses = (await GetManifestsAsync(cancellationToken).ConfigureAwait(false))
+            .Select(manifest => new RecoveryStatus
+            {
+                CommitId = manifest.CommitId,
+                SolutionPath = manifest.LoadedPath,
+                WorkspaceRoot = manifest.WorkspaceRoot,
+                State = manifest.State,
+                Message = manifest.Message,
+            }).ToList();
+
+        statuses.AddRange((await GetOrphanedCommitOwnersAsync(cancellationToken).ConfigureAwait(false)).Select(owner => new RecoveryStatus
+        {
+            CommitId = owner.CommitId,
+            SolutionPath = owner.LoadedPath,
+            WorkspaceRoot = owner.WorkspaceRoot,
+            State = RecoveryState.RecoveryConflict,
+            Message = "The commit was interrupted before its durable manifest was prepared.",
+        }));
+
+        if (!_fileSystem.Directory.Exists(_recoveryDirectory))
+        {
+            return statuses;
+        }
+
+        foreach (var path in _fileSystem.Directory.EnumerateFiles(_recoveryDirectory, "*.json", SearchOption.TopDirectoryOnly))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                var json = await _fileSystem.File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
+                var legacy = JsonSerializer.Deserialize<RecoveryStatus>(json, _serializerOptions);
+                if (legacy is not null)
+                {
+                    statuses.Add(legacy with { State = RecoveryState.RecoveryConflict, Message = "Legacy recovery evidence cannot be restored automatically." });
+                }
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+            catch (JsonException) { }
         }
 
         return statuses;
     }
 
-    public async ValueTask WriteStatusAsync(RecoveryStatus status, CancellationToken cancellationToken)
+    public ValueTask WriteStatusAsync(RecoveryStatus status, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(status);
         cancellationToken.ThrowIfCancellationRequested();
-
         _fileSystem.Directory.CreateDirectory(_recoveryDirectory);
-
-        var filePath = _fileSystem.Path.Combine(_recoveryDirectory, $"{status.CommitId}.json");
-        await _atomicFileWriter.WriteAllTextAsync(
-            filePath,
+        return _atomicFileWriter.WriteAllTextAsync(
+            _fileSystem.Path.Combine(_recoveryDirectory, $"{status.CommitId}.json"),
             JsonSerializer.Serialize(status, _serializerOptions),
             _encoding,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
+    }
+
+    public async ValueTask<byte[]> ReadArtifactAsync(string commitId, string relativePath, CancellationToken cancellationToken)
+    {
+        return await _fileSystem.File.ReadAllBytesAsync(GetArtifactPath(commitId, relativePath), cancellationToken).ConfigureAwait(false);
     }
 
     public void DeleteStatus(string commitId)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(commitId);
-
-        var filePath = _fileSystem.Path.Combine(_recoveryDirectory, $"{commitId}.json");
-        if (_fileSystem.File.Exists(filePath))
+        var directory = GetCommitDirectory(commitId);
+        if (_fileSystem.Directory.Exists(directory))
         {
-            _fileSystem.File.Delete(filePath);
+            _fileSystem.Directory.Delete(directory, recursive: true);
         }
+
+        var legacy = _fileSystem.Path.Combine(_recoveryDirectory, $"{commitId}.json");
+        if (_fileSystem.File.Exists(legacy))
+        {
+            _fileSystem.File.Delete(legacy);
+        }
+    }
+
+    private string GetCommitDirectory(string commitId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(commitId);
+        if (commitId.IndexOfAny(_fileSystem.Path.GetInvalidFileNameChars()) >= 0)
+        {
+            throw new ArgumentException("The commit identifier is not a valid path segment.", nameof(commitId));
+        }
+
+        return _fileSystem.Path.Combine(_recoveryDirectory, commitId);
+    }
+
+    private string GetArtifactPath(string commitId, string relativePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(relativePath);
+        var root = GetCommitDirectory(commitId);
+        var path = _fileSystem.Path.GetFullPath(_fileSystem.Path.Combine(root, relativePath));
+        var relative = _fileSystem.Path.GetRelativePath(root, path);
+        if (relative == ".." || relative.StartsWith($"..{_fileSystem.Path.DirectorySeparatorChar}", StringComparison.Ordinal) || _fileSystem.Path.IsPathRooted(relative))
+        {
+            throw new InvalidDataException("The recovery artifact path escapes its commit directory.");
+        }
+
+        return path;
+    }
+
+    private bool IsValidManifest(WorkspaceCommitManifest manifest, string directory)
+    {
+        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        if (manifest.Version != 2
+            || !string.Equals(manifest.CommitId, _fileSystem.Path.GetFileName(directory), comparison)
+            || !_fileSystem.Path.IsPathFullyQualified(manifest.LoadedPath)
+            || !_fileSystem.Path.IsPathFullyQualified(manifest.WorkspaceRoot)
+            || !IsWithinRoot(manifest.WorkspaceRoot, manifest.LoadedPath))
+        {
+            return false;
+        }
+
+        var targets = new HashSet<string>(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+        try
+        {
+            foreach (var entry in manifest.Entries)
+            {
+                if (!_fileSystem.Path.IsPathFullyQualified(entry.TargetPath)
+                    || !IsWithinRoot(manifest.WorkspaceRoot, entry.TargetPath)
+                    || !targets.Add(entry.TargetPath)
+                    || entry.DeleteMarkerPath is not null && !IsWithinRoot(manifest.WorkspaceRoot, entry.DeleteMarkerPath)
+                    || entry.BackupPath is not null && !_fileSystem.Path.IsPathFullyQualified(GetArtifactPath(manifest.CommitId, entry.BackupPath))
+                    || entry.StagedPath is not null && !_fileSystem.Path.IsPathFullyQualified(GetArtifactPath(manifest.CommitId, entry.StagedPath)))
+                {
+                    return false;
+                }
+            }
+
+            return manifest.CreatedDirectories.All(path =>
+                _fileSystem.Path.IsPathFullyQualified(path)
+                && IsWithinRoot(manifest.WorkspaceRoot, path));
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidDataException)
+        {
+            return false;
+        }
+    }
+
+    private WorkspaceCommitManifest CreateInvalidManifest(string directory, string? loadedPath, string? workspaceRoot)
+    {
+        return new WorkspaceCommitManifest
+        {
+            CommitId = _fileSystem.Path.GetFileName(directory),
+            LoadedPath = loadedPath ?? string.Empty,
+            WorkspaceRoot = workspaceRoot ?? string.Empty,
+            State = RecoveryState.RecoveryConflict,
+            Entries = [],
+            CreatedDirectories = [],
+            Message = "The recovery manifest is malformed or contains unsafe paths.",
+        };
+    }
+
+    private bool IsWithinRoot(string root, string path)
+    {
+        var relative = _fileSystem.Path.GetRelativePath(root, path);
+        return relative != ".."
+            && !relative.StartsWith($"..{_fileSystem.Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+            && !_fileSystem.Path.IsPathRooted(relative);
     }
 }

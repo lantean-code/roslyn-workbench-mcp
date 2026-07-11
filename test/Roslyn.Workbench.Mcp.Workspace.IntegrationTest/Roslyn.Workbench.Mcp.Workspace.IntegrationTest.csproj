@@ -12,6 +12,7 @@
     <ProjectReference Include="..\..\src\Roslyn.Workbench.Mcp.Plugins\Roslyn.Workbench.Mcp.Plugins.csproj" />
     <ProjectReference Include="..\..\src\Roslyn.Workbench.Mcp.Workspace\Roslyn.Workbench.Mcp.Workspace.csproj" />
     <ProjectReference Include="..\Roslyn.Workbench.Mcp.IntegrationTestSupport\Roslyn.Workbench.Mcp.IntegrationTestSupport.csproj" />
+    <ProjectReference Include="..\Roslyn.Workbench.Mcp.Workspace.LockFixture\Roslyn.Workbench.Mcp.Workspace.LockFixture.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -13,7 +13,7 @@ public sealed class WorkspaceOpenToolTests
     {
         var service = new Mock<IWorkspaceLifecycleService>();
         service
-            .Setup(item => item.OpenAsync("/workspace/Sample.csproj", "Alias", CancellationToken.None))
+            .Setup(item => item.OpenAsync("/workspace/Sample.csproj", "Alias", "/workspace", CancellationToken.None))
             .ReturnsAsync(new WorkspaceOperationResult<WorkspaceOpenOutcome>
             {
                 Status = WorkspaceOperationStatus.Succeeded,
@@ -25,6 +25,7 @@ public sealed class WorkspaceOpenToolTests
                         Alias = "Alias",
                         WorkspaceEpoch = 3,
                         LoadedPath = "/workspace/Sample.csproj",
+                        WorkspaceRoot = "/workspace",
                     },
                     ProjectCount = 2,
                     DocumentCount = 5,
@@ -39,6 +40,7 @@ public sealed class WorkspaceOpenToolTests
             {
                 ["path"] = JsonSerializer.SerializeToElement("/workspace/Sample.csproj"),
                 ["alias"] = JsonSerializer.SerializeToElement("Alias"),
+                ["workspaceRoot"] = JsonSerializer.SerializeToElement("/workspace"),
             },
             CancellationToken.None);
 
@@ -46,6 +48,6 @@ public sealed class WorkspaceOpenToolTests
         result.StructuredContent!.Value.GetProperty("workspace").GetProperty("workspaceId").GetString().Should().Be("WorkspaceId");
         result.StructuredContent.Value.GetProperty("projectCount").GetInt32().Should().Be(2);
         result.StructuredContent.Value.GetProperty("documentCount").GetInt32().Should().Be(5);
-        service.Verify(item => item.OpenAsync("/workspace/Sample.csproj", "Alias", CancellationToken.None), Times.Once);
+        service.Verify(item => item.OpenAsync("/workspace/Sample.csproj", "Alias", "/workspace", CancellationToken.None), Times.Once);
     }
 }

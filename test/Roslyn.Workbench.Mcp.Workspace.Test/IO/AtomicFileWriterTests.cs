@@ -7,7 +7,7 @@ public sealed class AtomicFileWriterTests
     [Fact]
     public void GIVEN_NullFileSystem_WHEN_Constructing_THEN_ShouldThrowArgumentNullException()
     {
-        var action = () => new AtomicFileWriter(null!);
+        var action = () => new AtomicFileWriter(null!, new Mock<IAtomicFileCommitter>().Object);
 
         action.Should().Throw<ArgumentNullException>();
     }
@@ -17,7 +17,7 @@ public sealed class AtomicFileWriterTests
     [InlineData(" ")]
     public async Task GIVEN_InvalidDestinationPath_WHEN_Writing_THEN_ShouldThrowArgumentException(string destinationPath)
     {
-        var target = new AtomicFileWriter(new Mock<IFileSystem>().Object);
+        var target = new AtomicFileWriter(new Mock<IFileSystem>().Object, new Mock<IAtomicFileCommitter>().Object);
 
         var action = async () => await target.WriteAllTextAsync(
             destinationPath,
@@ -31,7 +31,7 @@ public sealed class AtomicFileWriterTests
     [Fact]
     public async Task GIVEN_NullContents_WHEN_Writing_THEN_ShouldThrowArgumentNullException()
     {
-        var target = new AtomicFileWriter(new Mock<IFileSystem>().Object);
+        var target = new AtomicFileWriter(new Mock<IFileSystem>().Object, new Mock<IAtomicFileCommitter>().Object);
 
         var action = async () => await target.WriteAllTextAsync(
             "DestinationPath",
@@ -45,7 +45,7 @@ public sealed class AtomicFileWriterTests
     [Fact]
     public async Task GIVEN_NullEncoding_WHEN_Writing_THEN_ShouldThrowArgumentNullException()
     {
-        var target = new AtomicFileWriter(new Mock<IFileSystem>().Object);
+        var target = new AtomicFileWriter(new Mock<IFileSystem>().Object, new Mock<IAtomicFileCommitter>().Object);
 
         var action = async () => await target.WriteAllTextAsync(
             "DestinationPath",
@@ -61,7 +61,7 @@ public sealed class AtomicFileWriterTests
     {
         using var cancellationSource = new CancellationTokenSource();
         cancellationSource.Cancel();
-        var target = new AtomicFileWriter(new Mock<IFileSystem>().Object);
+        var target = new AtomicFileWriter(new Mock<IFileSystem>().Object, new Mock<IAtomicFileCommitter>().Object);
 
         var action = async () => await target.WriteAllTextAsync(
             "DestinationPath",
@@ -79,7 +79,7 @@ public sealed class AtomicFileWriterTests
         var path = new Mock<IPath>();
         fileSystem.SetupGet(item => item.Path).Returns(path.Object);
         path.Setup(item => item.GetDirectoryName("DestinationPath")).Returns((string?)null);
-        var target = new AtomicFileWriter(fileSystem.Object);
+        var target = new AtomicFileWriter(fileSystem.Object, new Mock<IAtomicFileCommitter>().Object);
 
         var action = async () => await target.WriteAllTextAsync(
             "DestinationPath",

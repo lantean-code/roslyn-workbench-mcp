@@ -43,4 +43,9 @@ public sealed record WorkspaceStatusData
     /// Gets a value indicating whether the workspace requires reload.
     /// </summary>
     public bool ReloadRequired { get; init; }
+
+    /// <summary>
+    /// Gets other live Roslyn Workbench MCP instances using this workspace.
+    /// </summary>
+    public IReadOnlyList<WorkspaceInstanceInfo> Instances { get; init; } = [];
 }

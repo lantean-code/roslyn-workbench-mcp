@@ -30,6 +30,7 @@
     <Project Path="test/Roslyn.Workbench.Mcp.TestSupport/Roslyn.Workbench.Mcp.TestSupport.csproj" />
     <Project Path="test/Roslyn.Workbench.Mcp.Workspace.Test/Roslyn.Workbench.Mcp.Workspace.Test.csproj" />
     <Project Path="test/Roslyn.Workbench.Mcp.Workspace.IntegrationTest/Roslyn.Workbench.Mcp.Workspace.IntegrationTest.csproj" />
+    <Project Path="test/Roslyn.Workbench.Mcp.Workspace.LockFixture/Roslyn.Workbench.Mcp.Workspace.LockFixture.csproj" />
   </Folder>
   <Folder Name="/Tools/" />
 </Solution>

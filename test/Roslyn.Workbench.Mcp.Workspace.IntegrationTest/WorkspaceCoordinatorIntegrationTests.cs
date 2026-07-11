@@ -55,6 +55,33 @@ public sealed class WorkspaceCoordinatorIntegrationTests
     }
 
     [Fact]
+    public async Task GIVEN_AnotherLiveServerInstance_WHEN_OpeningAndQueryingStatus_THEN_ShouldSurfaceItsAdvisoryState()
+    {
+        using var fixture = await TestWorkspaceFixture.CreateAsync();
+        var first = WorkspaceCoordinatorFactory.Create(new WorkspaceRuntimeOptions
+        {
+            StateDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("n")),
+        });
+        var second = WorkspaceCoordinatorFactory.Create(new WorkspaceRuntimeOptions
+        {
+            StateDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("n")),
+        });
+        await first.OpenAsync(new WorkspaceOpenRequest { Path = fixture.ProjectPath }, CancellationToken.None);
+
+        var secondOpen = await second.OpenAsync(new WorkspaceOpenRequest { Path = fixture.ProjectPath }, CancellationToken.None);
+        var status = await second.GetStatusAsync(new WorkspaceStatusRequest(), CancellationToken.None);
+
+        secondOpen.Outcome.Should().Be(ToolOutcome.Succeeded);
+        secondOpen.Data!.LoadDiagnostics.Should().Contain(diagnostic => diagnostic.Id == "WorkspaceInUse");
+        status.Data!.Instances.Should().ContainSingle();
+        status.Data.Instances[0].LoadedPath.Should().Be(fixture.ProjectPath);
+        status.Data.Instances[0].WorkspaceState.Should().Be(WorkspaceLifecycleState.Ready);
+
+        await second.CloseAsync(new WorkspaceCloseRequest(), CancellationToken.None);
+        await first.CloseAsync(new WorkspaceCloseRequest(), CancellationToken.None);
+    }
+
+    [Fact]
     public async Task GIVEN_ChangedWorkspaceInput_WHEN_GettingStatus_THEN_ShouldTransitionToWorkspaceOutOfDate()
     {
         using var fixture = await TestWorkspaceFixture.CreateAsync();
@@ -484,6 +511,29 @@ public sealed class WorkspaceCoordinatorIntegrationTests
     }
 
     [Fact]
+    public async Task GIVEN_MultipleStagedDocuments_WHEN_Committing_THEN_ShouldPersistEveryFileAndRemoveJournal()
+    {
+        using var fixture = await TestWorkspaceFixture.CreateAsync();
+        var secondPath = Path.Combine(Path.GetDirectoryName(fixture.ProjectPath)!, "Class2.cs");
+        await File.WriteAllTextAsync(secondPath, "namespace Sample; public sealed class Class2 { }", TestContext.Current.CancellationToken);
+        var stateDirectory = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-transaction-tests", Guid.NewGuid().ToString("n"));
+        var target = WorkspaceCoordinatorFactory.Create(new WorkspaceRuntimeOptions { StateDirectory = stateDirectory });
+        await target.OpenAsync(new WorkspaceOpenRequest { Path = fixture.ProjectPath }, CancellationToken.None);
+        await target.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
+        var registry = CreateMultiFileMutationTool();
+        var tool = registry.RegisteredTools.Single();
+        await PluginToolTestHarness.InvokeRawAsync(target, registry, tool.Metadata.Name, new Dictionary<string, JsonElement>());
+
+        var commit = await target.CommitTransactionAsync(new TransactionCommitRequest(), CancellationToken.None);
+
+        commit.Outcome.Should().Be(ToolOutcome.Succeeded);
+        (await File.ReadAllTextAsync(fixture.DocumentPath, TestContext.Current.CancellationToken)).Should().Contain("TransactionMarker");
+        (await File.ReadAllTextAsync(secondPath, TestContext.Current.CancellationToken)).Should().Contain("TransactionMarker");
+        Directory.Exists(Path.Combine(stateDirectory, "recovery")).Should().BeTrue();
+        Directory.EnumerateFileSystemEntries(Path.Combine(stateDirectory, "recovery")).Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task GIVEN_UnicodeEncodedDocument_WHEN_Committing_THEN_ShouldPreserveDocumentEncoding()
     {
         using var fixture = await TestWorkspaceFixture.CreateAsync();
@@ -685,7 +735,7 @@ public sealed class WorkspaceCoordinatorIntegrationTests
         var recoveryStore = new CommitRecoveryStore(
             Options.Create(new WorkspaceCoordinatorOptions { StateDirectory = stateDirectory }),
             fileSystem,
-            new AtomicFileWriter(fileSystem));
+            new AtomicFileWriter(fileSystem, new NativeAtomicFileCommitter()));
         await recoveryStore.WriteStatusAsync(new RecoveryStatus
         {
             CommitId = "commit-id",
@@ -725,6 +775,26 @@ public sealed class WorkspaceCoordinatorIntegrationTests
             },
             new StageMutationHandler());
 
+        return registry;
+    }
+
+    private static PluginRegistry CreateMultiFileMutationTool()
+    {
+        var registry = new PluginRegistry(new PluginMetadata
+        {
+            PluginId = "workspace.test.multifile",
+            DisplayName = "Workspace Multi-file Test",
+            Version = "1.0.0",
+            SupportedApiVersion = PluginApiVersions.V1,
+        });
+        registry.RegisterMutationTool(
+            new ToolRegistrationMetadata
+            {
+                Name = "test-stage-multi-file-mutation",
+                Title = "Test Multi-file Mutation",
+                Description = "Stages predictable edits in every source document.",
+            },
+            new MultiFileMutationHandler());
         return registry;
     }
 
@@ -823,6 +893,31 @@ public sealed class WorkspaceCoordinatorIntegrationTests
             {
                 CandidateSolution = candidateSolution,
                 Summary = "Stage transaction marker.",
+            });
+        }
+    }
+
+    private sealed class MultiFileMutationHandler : IMutationToolHandler<StageMutationRequest>
+    {
+        public async ValueTask<PluginExecutionResult<MutationProposal>> ExecuteAsync(
+            StageMutationRequest request,
+            IMutationContext context,
+            CancellationToken cancellationToken)
+        {
+            _ = request;
+            var candidate = context.CurrentSolution;
+            foreach (var document in context.CurrentSolution.Projects.SelectMany(static project => project.Documents))
+            {
+                var text = await document.GetTextAsync(cancellationToken);
+                candidate = candidate.WithDocumentText(document.Id, text.WithChanges(new Microsoft.CodeAnalysis.Text.TextChange(
+                    new Microsoft.CodeAnalysis.Text.TextSpan(text.Length, 0),
+                    Environment.NewLine + "// TransactionMarker" + Environment.NewLine)));
+            }
+
+            return PluginExecutionResult<MutationProposal>.Success(new MutationProposal
+            {
+                CandidateSolution = candidate,
+                Summary = "Stage multi-file transaction markers.",
             });
         }
     }

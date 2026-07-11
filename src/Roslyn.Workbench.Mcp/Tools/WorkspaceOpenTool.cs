@@ -29,6 +29,7 @@ internal sealed class WorkspaceOpenTool : ServerOwnedToolBase<WorkspaceOpenReque
         var result = await _workspaceLifecycleService.OpenAsync(
             request.Path,
             request.Alias,
+            request.WorkspaceRoot,
             cancellationToken).ConfigureAwait(false);
 
         return WorkspaceToolResultMapper.Map(result, static data => new WorkspaceOpenData

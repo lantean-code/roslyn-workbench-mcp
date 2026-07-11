@@ -42,6 +42,7 @@ internal sealed class WorkspaceStatusTool : ServerOwnedToolBase<WorkspaceStatusR
             LoadDiagnostics = data.LoadDiagnostics,
             Transaction = data.Transaction,
             ReloadRequired = data.ReloadRequired,
+            Instances = data.Instances,
         });
     }
 }

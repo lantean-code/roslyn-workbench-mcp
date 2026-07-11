@@ -168,8 +168,11 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
             return false;
         }
 
-        var name = _fileSystem.Path.GetFileName(_fileSystem.Path.TrimEndingDirectorySeparator(path));
-        return !string.Equals(name, "bin", StringComparison.OrdinalIgnoreCase)
-            && !string.Equals(name, "obj", StringComparison.OrdinalIgnoreCase);
+        var canonical = _fileSystem.Path.TrimEndingDirectorySeparator(path);
+        var segments = canonical.Split(['/', '\\'], StringSplitOptions.RemoveEmptyEntries);
+        return !segments.Any(static segment =>
+            string.Equals(segment, "bin", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(segment, "obj", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(segment, ".vs", StringComparison.OrdinalIgnoreCase));
     }
 }

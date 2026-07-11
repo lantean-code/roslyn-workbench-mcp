@@ -5,10 +5,12 @@ namespace Roslyn.Workbench.Mcp.Workspace.IO;
 internal sealed class AtomicFileWriter : IAtomicFileWriter
 {
     private readonly IFileSystem _fileSystem;
+    private readonly IAtomicFileCommitter _fileCommitter;
 
-    public AtomicFileWriter(IFileSystem fileSystem)
+    public AtomicFileWriter(IFileSystem fileSystem, IAtomicFileCommitter fileCommitter)
     {
         _fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
+        _fileCommitter = fileCommitter ?? throw new ArgumentNullException(nameof(fileCommitter));
     }
 
     public async ValueTask WriteAllTextAsync(
@@ -20,6 +22,17 @@ internal sealed class AtomicFileWriter : IAtomicFileWriter
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
         ArgumentNullException.ThrowIfNull(contents);
         ArgumentNullException.ThrowIfNull(encoding);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        await WriteAllBytesAsync(destinationPath, encoding.GetBytes(contents), cancellationToken).ConfigureAwait(false);
+    }
+
+    public async ValueTask WriteAllBytesAsync(
+        string destinationPath,
+        ReadOnlyMemory<byte> contents,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
         cancellationToken.ThrowIfCancellationRequested();
 
         var directoryPath = _fileSystem.Path.GetDirectoryName(destinationPath)
@@ -38,14 +51,13 @@ internal sealed class AtomicFileWriter : IAtomicFileWriter
                 Share = FileShare.None,
             };
             await using (var stream = _fileSystem.FileStream.New(temporaryPath, options))
-            await using (var writer = new StreamWriter(stream, encoding))
             {
-                await writer.WriteAsync(contents.AsMemory(), cancellationToken).ConfigureAwait(false);
-                await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+                await stream.WriteAsync(contents, cancellationToken).ConfigureAwait(false);
+                await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
                 stream.Flush(flushToDisk: true);
             }
 
-            _fileSystem.File.Move(temporaryPath, destinationPath, overwrite: true);
+            _fileCommitter.Commit(temporaryPath, destinationPath);
         }
         catch
         {

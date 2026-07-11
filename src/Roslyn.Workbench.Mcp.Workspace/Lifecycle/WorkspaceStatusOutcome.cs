@@ -17,4 +17,6 @@ internal sealed record WorkspaceStatusOutcome
     public TransactionInfo? Transaction { get; init; }
 
     public bool ReloadRequired { get; init; }
+
+    public IReadOnlyList<WorkspaceInstanceInfo> Instances { get; init; } = [];
 }

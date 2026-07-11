@@ -6,14 +6,6 @@ namespace Roslyn.Workbench.Mcp.Test.Protocol;
 public sealed class ToolRequestBinderTests
 {
     [Fact]
-    public void GIVEN_NullArguments_WHEN_Binding_THEN_ShouldThrowArgumentNullException()
-    {
-        var action = () => ToolRequestBinder.Deserialize<TestRequest>(null!);
-
-        action.Should().Throw<ArgumentNullException>();
-    }
-
-    [Fact]
     public void GIVEN_Arguments_WHEN_Binding_THEN_ShouldDeserializeWebNamedProperties()
     {
         var result = ToolRequestBinder.Deserialize<TestRequest>(new Dictionary<string, JsonElement>

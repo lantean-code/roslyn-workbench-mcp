@@ -9,8 +9,8 @@ internal sealed class AtomicFileWriter : IAtomicFileWriter
 
     public AtomicFileWriter(IFileSystem fileSystem, IAtomicFileCommitter fileCommitter)
     {
-        _fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
-        _fileCommitter = fileCommitter ?? throw new ArgumentNullException(nameof(fileCommitter));
+        _fileSystem = fileSystem;
+        _fileCommitter = fileCommitter;
     }
 
     public async ValueTask WriteAllTextAsync(
@@ -20,8 +20,6 @@ internal sealed class AtomicFileWriter : IAtomicFileWriter
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
-        ArgumentNullException.ThrowIfNull(contents);
-        ArgumentNullException.ThrowIfNull(encoding);
         cancellationToken.ThrowIfCancellationRequested();
 
         await WriteAllBytesAsync(destinationPath, encoding.GetBytes(contents), cancellationToken).ConfigureAwait(false);

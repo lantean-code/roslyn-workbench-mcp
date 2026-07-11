@@ -2,29 +2,6 @@ namespace Roslyn.Workbench.Mcp.Test;
 
 public sealed class WorkspaceToolResultMapperTests
 {
-    [Fact]
-    public void GIVEN_NullResult_WHEN_Mapping_THEN_ShouldThrowArgumentNullException()
-    {
-        var action = () => WorkspaceToolResultMapper.Map<TestSource, TestTarget>(
-            null!,
-            source => new TestTarget
-            {
-                Value = source.Value,
-            });
-
-        action.Should().Throw<ArgumentNullException>();
-    }
-
-    [Fact]
-    public void GIVEN_NullMapper_WHEN_Mapping_THEN_ShouldThrowArgumentNullException()
-    {
-        var result = CreateResult(WorkspaceOperationStatus.Succeeded, includeData: true);
-
-        var action = () => WorkspaceToolResultMapper.Map<TestSource, TestTarget>(result, null!);
-
-        action.Should().Throw<ArgumentNullException>();
-    }
-
     [Theory]
     [InlineData(0, 0)]
     [InlineData(1, 2)]

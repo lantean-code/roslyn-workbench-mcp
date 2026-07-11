@@ -41,14 +41,6 @@ public sealed class ToolSchemaFactoryTests
     }
 
     [Fact]
-    public void GIVEN_NullResponseType_WHEN_CreatingOutputSchema_THEN_ShouldThrowArgumentNullException()
-    {
-        var action = () => ToolSchemaFactory.CreateOutputSchema(PublishedToolKind.Query, null!);
-
-        action.Should().Throw<ArgumentNullException>();
-    }
-
-    [Fact]
     public void GIVEN_ToolResultSchema_WHEN_Creating_THEN_ShouldPublishEveryOutcomeVariant()
     {
         var schema = ToolSchemaFactory.CreateToolResultSchema<TestResponse>();

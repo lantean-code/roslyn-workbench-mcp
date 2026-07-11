@@ -24,14 +24,6 @@ public sealed class PluginWorkspaceResultMapperTests
         result.RequiredAction.Should().Be(RequiredAction.Retry);
     }
 
-    [Fact]
-    public void GIVEN_NoWorkspaceFailure_WHEN_MappingFailure_THEN_ShouldRejectTheInvalidArgument()
-    {
-        var act = () => PluginWorkspaceResultMapper.MapFailure(null!);
-
-        act.Should().Throw<ArgumentNullException>();
-    }
-
     [Theory]
     [InlineData(0, PluginExecutionOutcome.Succeeded)]
     [InlineData(4, PluginExecutionOutcome.NoChange)]

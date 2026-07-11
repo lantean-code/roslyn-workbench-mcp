@@ -13,7 +13,6 @@ internal static class ToolSchemaFactory
 
     public static JsonElement CreateOutputSchema(PublishedToolKind kind, Type responseType)
     {
-        ArgumentNullException.ThrowIfNull(responseType);
 
         if (kind == PublishedToolKind.Mutation)
         {

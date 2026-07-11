@@ -9,7 +9,6 @@ internal abstract class CodeActionMutationToolHandler<TRequest> : ICodeActionMut
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        ArgumentNullException.ThrowIfNull(context);
 
         return ExecuteCoreAsync(request, context, cancellationToken);
     }

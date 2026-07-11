@@ -25,14 +25,6 @@ public sealed class CodeActionWorkspaceResultMapperTests
         result.RequiredAction.Should().Be(RequiredAction.Retry);
     }
 
-    [Fact]
-    public void GIVEN_NoWorkspaceFailure_WHEN_MappingFailure_THEN_ShouldRejectTheInvalidArgument()
-    {
-        var act = () => CodeActionWorkspaceResultMapper.MapFailure(null!);
-
-        act.Should().Throw<ArgumentNullException>();
-    }
-
     [Theory]
     [InlineData(0, 0)]
     [InlineData(4, 1)]

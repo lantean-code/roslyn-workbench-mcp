@@ -32,7 +32,6 @@ public sealed class PluginRegistry : IPluginRegistry
 
     internal IRegisteredPluginTool GetRegisteredPluginTool(RegisteredTool tool)
     {
-        ArgumentNullException.ThrowIfNull(tool);
 
         return _registeredPluginTools.Single(candidate => ReferenceEquals(candidate.Tool, tool));
     }
@@ -130,7 +129,6 @@ public sealed class PluginRegistry : IPluginRegistry
 
     private static void ValidateContractType(Type type, string parameterName)
     {
-        ArgumentNullException.ThrowIfNull(type, parameterName);
 
         if (!type.IsPublic && !type.IsNestedPublic)
         {

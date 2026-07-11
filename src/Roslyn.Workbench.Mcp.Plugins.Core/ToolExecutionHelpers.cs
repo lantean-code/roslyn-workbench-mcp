@@ -14,14 +14,12 @@ internal static class ToolExecutionHelpers
         IReadOnlyList<T> items,
         int maxResults)
     {
-        ArgumentNullException.ThrowIfNull(items);
 
         return BoundedCollection<T>.Create(items, maxResults);
     }
 
     public static IReadOnlyList<T> ApplyLimit<T>(IReadOnlyList<T> items, int maxResults, out bool hasMore)
     {
-        ArgumentNullException.ThrowIfNull(items);
 
         hasMore = items.Count > maxResults;
         return hasMore ? items.Take(maxResults).ToArray() : items;

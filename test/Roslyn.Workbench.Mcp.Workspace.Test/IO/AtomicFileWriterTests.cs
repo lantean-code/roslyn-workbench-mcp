@@ -4,14 +4,6 @@ namespace Roslyn.Workbench.Mcp.Workspace.Test.IO;
 
 public sealed class AtomicFileWriterTests
 {
-    [Fact]
-    public void GIVEN_NullFileSystem_WHEN_Constructing_THEN_ShouldThrowArgumentNullException()
-    {
-        var action = () => new AtomicFileWriter(null!, new Mock<IAtomicFileCommitter>().Object);
-
-        action.Should().Throw<ArgumentNullException>();
-    }
-
     [Theory]
     [InlineData("")]
     [InlineData(" ")]
@@ -26,34 +18,6 @@ public sealed class AtomicFileWriterTests
             TestContext.Current.CancellationToken);
 
         await action.Should().ThrowAsync<ArgumentException>();
-    }
-
-    [Fact]
-    public async Task GIVEN_NullContents_WHEN_Writing_THEN_ShouldThrowArgumentNullException()
-    {
-        var target = new AtomicFileWriter(new Mock<IFileSystem>().Object, new Mock<IAtomicFileCommitter>().Object);
-
-        var action = async () => await target.WriteAllTextAsync(
-            "DestinationPath",
-            null!,
-            Encoding.UTF8,
-            TestContext.Current.CancellationToken);
-
-        await action.Should().ThrowAsync<ArgumentNullException>();
-    }
-
-    [Fact]
-    public async Task GIVEN_NullEncoding_WHEN_Writing_THEN_ShouldThrowArgumentNullException()
-    {
-        var target = new AtomicFileWriter(new Mock<IFileSystem>().Object, new Mock<IAtomicFileCommitter>().Object);
-
-        var action = async () => await target.WriteAllTextAsync(
-            "DestinationPath",
-            "Contents",
-            null!,
-            TestContext.Current.CancellationToken);
-
-        await action.Should().ThrowAsync<ArgumentNullException>();
     }
 
     [Fact]

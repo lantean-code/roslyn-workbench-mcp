@@ -4,14 +4,6 @@ namespace Roslyn.Workbench.Mcp.Test;
 
 public sealed class QueryResponseContractInspectorTests
 {
-    [Fact]
-    public void GIVEN_NullTool_WHEN_Inspecting_THEN_ShouldThrowArgumentNullException()
-    {
-        var action = () => QueryResponseContractInspector.Inspect(null!);
-
-        action.Should().Throw<ArgumentNullException>();
-    }
-
     [Theory]
     [InlineData(ToolKind.Mutation, "mutation")]
     [InlineData(ToolKind.Query, "list-code-actions")]

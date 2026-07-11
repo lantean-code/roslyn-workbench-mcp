@@ -28,7 +28,6 @@ internal sealed class WorkspaceSelectionResult
 
     public static WorkspaceSelectionResult Success(WorkspaceSelection selection)
     {
-        ArgumentNullException.ThrowIfNull(selection);
 
         return new WorkspaceSelectionResult(
             selection: selection,
@@ -37,7 +36,6 @@ internal sealed class WorkspaceSelectionResult
 
     public static WorkspaceSelectionResult Failure(WorkspaceOperationError error)
     {
-        ArgumentNullException.ThrowIfNull(error);
 
         return new WorkspaceSelectionResult(
             selection: null,

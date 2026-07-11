@@ -35,14 +35,6 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
         _target = new WorkspaceChangeDetector(_fileSystem.Object, _projectInputResolver.Object);
     }
 
-    [Fact]
-    public void GIVEN_NullSolution_WHEN_BuildingManifest_THEN_ShouldThrowArgumentNullException()
-    {
-        var action = () => _target.BuildManifest(null!, "/Workspace/Workspace.sln");
-
-        action.Should().Throw<ArgumentNullException>();
-    }
-
     [Theory]
     [InlineData("")]
     [InlineData(" ")]

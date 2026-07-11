@@ -27,8 +27,6 @@ internal sealed class WorkspaceMutationExecutionLease : IAsyncDisposable
         IWorkspaceMutationStager stager,
         IAsyncDisposable? lease = null)
     {
-        ArgumentNullException.ThrowIfNull(context);
-        ArgumentNullException.ThrowIfNull(stager);
 
         return new WorkspaceMutationExecutionLease(context, stager, null, lease);
     }
@@ -39,7 +37,6 @@ internal sealed class WorkspaceMutationExecutionLease : IAsyncDisposable
         IWorkspaceMutationStager? stager = null,
         IAsyncDisposable? lease = null)
     {
-        ArgumentNullException.ThrowIfNull(failure);
 
         return new WorkspaceMutationExecutionLease(context, stager, failure, lease);
     }

@@ -43,14 +43,6 @@ public sealed class WorkspaceCommitLockAcquisitionTests
         result.ErrorMessage.Should().Be("failure");
     }
 
-    [Fact]
-    public void GIVEN_NullOwnership_WHEN_CreatingAcquiredResult_THEN_ShouldThrowArgumentNullException()
-    {
-        var action = () => WorkspaceCommitLockAcquisition.Acquired(null!);
-
-        action.Should().Throw<ArgumentNullException>();
-    }
-
     [Theory]
     [InlineData("")]
     [InlineData(" ")]

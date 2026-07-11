@@ -8,7 +8,6 @@ internal static class QueryResponseContractInspector
 {
     public static IReadOnlyList<DiagnosticInfo> Inspect(RegisteredTool tool)
     {
-        ArgumentNullException.ThrowIfNull(tool);
 
         if (tool.Kind != ToolKind.Query
             || string.Equals(tool.Metadata.Name, "list-code-actions", StringComparison.Ordinal))

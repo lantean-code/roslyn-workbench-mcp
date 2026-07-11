@@ -23,7 +23,6 @@ internal sealed class CodeActionQueryRegistration<TRequest, TResponse> : IRegist
 
     public TResult Accept<TResult>(ICodeActionToolRegistrationVisitor<TResult> visitor)
     {
-        ArgumentNullException.ThrowIfNull(visitor);
 
         return visitor.VisitQuery(this);
     }

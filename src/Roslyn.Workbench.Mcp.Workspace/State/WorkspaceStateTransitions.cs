@@ -10,7 +10,6 @@ internal sealed class WorkspaceStateTransitions : IWorkspaceStateTransitions
 
     public WorkspaceSessionSnapshot ApplyExternalChangeDetected(WorkspaceSessionSnapshot session)
     {
-        ArgumentNullException.ThrowIfNull(session);
 
         var trigger = session.State switch
         {

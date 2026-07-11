@@ -6,7 +6,6 @@ internal static class McpPublishedResultSerializer
 {
     public static JsonElement SerializePluginFailure(ToolExecutionFailureResult result)
     {
-        ArgumentNullException.ThrowIfNull(result);
 
         if (!result.Outcome.IsError())
         {
@@ -18,7 +17,6 @@ internal static class McpPublishedResultSerializer
 
     public static JsonElement SerializePluginQuery<TResponse>(PluginExecutionResult<TResponse> result)
     {
-        ArgumentNullException.ThrowIfNull(result);
 
         return result.Outcome.IsError()
             ? SerializePluginFailure(CreatePluginFailure(result, "Query"))
@@ -27,7 +25,6 @@ internal static class McpPublishedResultSerializer
 
     public static JsonElement SerializePluginMutation(PluginExecutionResult<MutationData> result)
     {
-        ArgumentNullException.ThrowIfNull(result);
 
         return result.Outcome.IsError()
             ? SerializePluginFailure(CreatePluginFailure(result, "Mutation"))
@@ -38,7 +35,6 @@ internal static class McpPublishedResultSerializer
 
     public static JsonElement SerializeCodeActionFailure(CodeActionExecutionFailure result)
     {
-        ArgumentNullException.ThrowIfNull(result);
 
         if (!result.Outcome.IsError())
         {
@@ -50,7 +46,6 @@ internal static class McpPublishedResultSerializer
 
     public static JsonElement SerializeCodeActionQuery<TResponse>(CodeActionExecutionResult<TResponse> result)
     {
-        ArgumentNullException.ThrowIfNull(result);
 
         return result.Outcome.IsError()
             ? SerializeCodeActionFailure(CreateCodeActionFailure(result, "Query"))
@@ -59,7 +54,6 @@ internal static class McpPublishedResultSerializer
 
     public static JsonElement SerializeCodeActionMutation(CodeActionExecutionResult<MutationData> result)
     {
-        ArgumentNullException.ThrowIfNull(result);
 
         return result.Outcome.IsError()
             ? SerializeCodeActionFailure(CreateCodeActionFailure(result, "Mutation"))

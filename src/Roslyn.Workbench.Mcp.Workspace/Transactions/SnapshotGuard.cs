@@ -9,7 +9,6 @@ internal sealed class SnapshotGuard : ISnapshotGuard
 
     public WorkspaceOperationError? Validate(WorkspaceSessionSnapshot session, SnapshotPrecondition? expectedSnapshot)
     {
-        ArgumentNullException.ThrowIfNull(session);
 
         if (session.Transaction is null || expectedSnapshot is null)
         {

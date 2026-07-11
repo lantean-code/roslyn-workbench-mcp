@@ -37,21 +37,4 @@ public sealed class WorkspaceSelectionResultTests
         target.Selection.Should().BeNull();
     }
 
-    [Fact]
-    public void GIVEN_NullSelection_WHEN_CreatingSuccessResult_THEN_ShouldThrowArgumentNullException()
-    {
-        var action = () => WorkspaceSelectionResult.Success(null!);
-
-        action.Should().Throw<ArgumentNullException>()
-            .WithParameterName("selection");
-    }
-
-    [Fact]
-    public void GIVEN_NullError_WHEN_CreatingFailureResult_THEN_ShouldThrowArgumentNullException()
-    {
-        var action = () => WorkspaceSelectionResult.Failure(null!);
-
-        action.Should().Throw<ArgumentNullException>()
-            .WithParameterName("error");
-    }
 }

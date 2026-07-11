@@ -46,36 +46,6 @@ public sealed class CommitRecoveryStoreTests
     }
 
     [Fact]
-    public void GIVEN_NullOptions_WHEN_Constructing_THEN_ShouldThrowArgumentNullException()
-    {
-        var action = () => new CommitRecoveryStore(null!, _fileSystem.Object, _atomicFileWriter.Object);
-
-        action.Should().Throw<ArgumentNullException>();
-    }
-
-    [Fact]
-    public void GIVEN_NullFileSystem_WHEN_Constructing_THEN_ShouldThrowArgumentNullException()
-    {
-        var action = () => new CommitRecoveryStore(
-            Options.Create(new WorkspaceCoordinatorOptions()),
-            null!,
-            _atomicFileWriter.Object);
-
-        action.Should().Throw<ArgumentNullException>();
-    }
-
-    [Fact]
-    public void GIVEN_NullAtomicFileWriter_WHEN_Constructing_THEN_ShouldThrowArgumentNullException()
-    {
-        var action = () => new CommitRecoveryStore(
-            Options.Create(new WorkspaceCoordinatorOptions()),
-            _fileSystem.Object,
-            null!);
-
-        action.Should().Throw<ArgumentNullException>();
-    }
-
-    [Fact]
     public async Task GIVEN_MissingRecoveryDirectory_WHEN_ReadingStatuses_THEN_ShouldReturnEmptyCollection()
     {
         var result = await _target.GetStatusesAsync(TestContext.Current.CancellationToken);
@@ -144,14 +114,6 @@ public sealed class CommitRecoveryStoreTests
             It.Is<string>(json => json.Contains("CommitId", StringComparison.Ordinal) && json.Contains("SolutionPath", StringComparison.Ordinal)),
             It.IsAny<Encoding>(),
             TestContext.Current.CancellationToken), Times.Once);
-    }
-
-    [Fact]
-    public async Task GIVEN_NullStatus_WHEN_Writing_THEN_ShouldThrowArgumentNullException()
-    {
-        var action = async () => await _target.WriteStatusAsync(null!, TestContext.Current.CancellationToken);
-
-        await action.Should().ThrowAsync<ArgumentNullException>();
     }
 
     [Fact]

@@ -37,14 +37,6 @@ public sealed class TransactionCommitServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GIVEN_NullSelection_WHEN_Committing_THEN_ShouldRejectArgument()
-    {
-        var action = async () => await _target.CommitAsync(null!, null, TestContext.Current.CancellationToken);
-
-        await action.Should().ThrowAsync<ArgumentNullException>();
-    }
-
-    [Fact]
     public async Task GIVEN_NoActiveTransaction_WHEN_Committing_THEN_ShouldRequireTransaction()
     {
         var session = CreateSession() with { Transaction = null };

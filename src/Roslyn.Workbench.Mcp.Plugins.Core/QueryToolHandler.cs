@@ -7,7 +7,6 @@ internal abstract class QueryToolHandler<TRequest, TResponse> : IQueryToolHandle
     public ValueTask<PluginExecutionResult<TResponse>> ExecuteAsync(TRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        ArgumentNullException.ThrowIfNull(context);
 
         return ExecuteCoreAsync(request, context, cancellationToken);
     }

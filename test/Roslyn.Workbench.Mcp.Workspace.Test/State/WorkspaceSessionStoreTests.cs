@@ -38,28 +38,6 @@ public sealed class WorkspaceSessionStoreTests
     }
 
     [Fact]
-    public void GIVEN_NullSession_WHEN_AddingWorkspace_THEN_ShouldThrowArgumentNullException()
-    {
-        var target = new WorkspaceSessionStore();
-        var validate = new Mock<Func<WorkspaceHostSnapshot, WorkspaceOperationError?>>();
-
-        var action = () => target.TryAddWorkspace(null!, validate.Object);
-
-        action.Should().Throw<ArgumentNullException>();
-    }
-
-    [Fact]
-    public void GIVEN_NullValidator_WHEN_AddingWorkspace_THEN_ShouldThrowArgumentNullException()
-    {
-        var target = new WorkspaceSessionStore();
-        var session = CreateSession("WorkspaceId", "Alias");
-
-        var action = () => target.TryAddWorkspace(session, null!);
-
-        action.Should().Throw<ArgumentNullException>();
-    }
-
-    [Fact]
     public void GIVEN_ValidationFailure_WHEN_AddingWorkspace_THEN_ShouldReturnErrorWithoutMutatingSnapshot()
     {
         var target = new WorkspaceSessionStore();
@@ -153,16 +131,6 @@ public sealed class WorkspaceSessionStoreTests
     }
 
     [Fact]
-    public void GIVEN_NullSession_WHEN_Replacing_THEN_ShouldThrowArgumentNullException()
-    {
-        var target = new WorkspaceSessionStore();
-
-        var action = () => target.ReplaceSession(null!);
-
-        action.Should().Throw<ArgumentNullException>();
-    }
-
-    [Fact]
     public void GIVEN_ReplacementAndOwner_WHEN_ReplacingAndSettingOwner_THEN_ShouldUpdateBothValues()
     {
         var session = CreateSession("WorkspaceId", "Alias");
@@ -173,16 +141,6 @@ public sealed class WorkspaceSessionStoreTests
 
         target.ReadSession("WorkspaceId").Should().BeSameAs(replacement);
         target.ReadSnapshot().TransactionOwnerWorkspaceId.Should().Be("WorkspaceId");
-    }
-
-    [Fact]
-    public void GIVEN_NullSession_WHEN_ReplacingAndSettingOwner_THEN_ShouldThrowArgumentNullException()
-    {
-        var target = new WorkspaceSessionStore();
-
-        var action = () => target.ReplaceSessionAndSetTransactionOwner(null!, "WorkspaceId");
-
-        action.Should().Throw<ArgumentNullException>();
     }
 
     [Fact]

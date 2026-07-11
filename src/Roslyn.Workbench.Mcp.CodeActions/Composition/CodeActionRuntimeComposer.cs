@@ -10,7 +10,6 @@ internal sealed class CodeActionRuntimeComposer : ICodeActionRuntimeComposer
 
     public CodeActionRuntime Compose(CodeActionRuntimeOptions options)
     {
-        ArgumentNullException.ThrowIfNull(options);
 
         if (!options.IncludeBuiltInAssemblies && options.AdditionalAssemblies.Count == 0)
         {

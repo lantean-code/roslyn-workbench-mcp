@@ -6,8 +6,6 @@ internal static class WorkspaceToolResultMapper
 {
     public static ToolResult<TTarget> Map<TSource, TTarget>(WorkspaceOperationResult<TSource> result, Func<TSource, TTarget> mapData)
     {
-        ArgumentNullException.ThrowIfNull(result);
-        ArgumentNullException.ThrowIfNull(mapData);
 
         var workspaceId = result.Context.WorkspaceId;
         var workspaceEpoch = result.Context.WorkspaceEpoch;

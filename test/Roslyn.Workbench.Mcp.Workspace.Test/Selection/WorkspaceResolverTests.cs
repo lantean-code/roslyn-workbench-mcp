@@ -49,17 +49,6 @@ public sealed class WorkspaceResolverTests
     }
 
     [Fact]
-    public void GIVEN_NullDocument_WHEN_CreatingReference_THEN_ShouldThrowArgumentNullException()
-    {
-        using var workspace = new AdhocWorkspace();
-        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
-
-        var action = () => target.CreateDocumentReference(null!);
-
-        action.Should().Throw<ArgumentNullException>();
-    }
-
-    [Fact]
     public async Task GIVEN_SourceLocation_WHEN_CreatingResolvedLocation_THEN_ShouldIncludeDocumentSpanAndSnapshot()
     {
         using var workspace = CreateWorkspace("Project", "Document.cs", "class C { }");
@@ -231,17 +220,6 @@ public sealed class WorkspaceResolverTests
     }
 
     [Fact]
-    public void GIVEN_NullDocumentSelector_WHEN_ResolvingDocument_THEN_ShouldThrowArgumentNullException()
-    {
-        using var workspace = new AdhocWorkspace();
-        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
-
-        var action = () => target.ResolveDocument(null!);
-
-        action.Should().Throw<ArgumentNullException>();
-    }
-
-    [Fact]
     public void GIVEN_DuplicateDocumentPath_WHEN_ResolvingDocument_THEN_ShouldReturnAmbiguous()
     {
         using var workspace = CreateWorkspace("FirstProject", "Document.cs", "class C { }");
@@ -361,17 +339,6 @@ public sealed class WorkspaceResolverTests
     }
 
     [Fact]
-    public void GIVEN_NullSymbol_WHEN_CreatingSymbolReference_THEN_ShouldThrowArgumentNullException()
-    {
-        using var workspace = new AdhocWorkspace();
-        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
-
-        var action = () => target.CreateSymbolReference(null!);
-
-        action.Should().Throw<ArgumentNullException>();
-    }
-
-    [Fact]
     public void GIVEN_SourceTreeOutsideSolution_WHEN_CreatingResolvedLocation_THEN_ShouldOmitDocumentReference()
     {
         using var workspace = new AdhocWorkspace();
@@ -396,17 +363,6 @@ public sealed class WorkspaceResolverTests
     }
 
     [Fact]
-    public void GIVEN_NullProjectSelector_WHEN_ResolvingProject_THEN_ShouldThrowArgumentNullException()
-    {
-        using var workspace = new AdhocWorkspace();
-        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
-
-        var action = () => target.ResolveProject(null!);
-
-        action.Should().Throw<ArgumentNullException>();
-    }
-
-    [Fact]
     public async Task GIVEN_LocationWithoutSpanOrSelection_WHEN_ResolvingLocation_THEN_ShouldReturnNotFound()
     {
         using var workspace = CreateWorkspace("Project", "Document.cs", "class C { }");
@@ -415,17 +371,6 @@ public sealed class WorkspaceResolverTests
         var result = await target.ResolveLocationAsync(new LocationSelector(), TestContext.Current.CancellationToken);
 
         result.Status.Should().Be(SelectorResolveStatus.NotFound);
-    }
-
-    [Fact]
-    public async Task GIVEN_NullLocationSelector_WHEN_ResolvingLocation_THEN_ShouldThrowArgumentNullException()
-    {
-        using var workspace = new AdhocWorkspace();
-        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
-
-        var action = async () => await target.ResolveLocationAsync(null!, TestContext.Current.CancellationToken);
-
-        await action.Should().ThrowAsync<ArgumentNullException>();
     }
 
     [Fact]
@@ -634,17 +579,6 @@ public sealed class WorkspaceResolverTests
         var result = await target.ResolveSymbolAsync(new SymbolSelector(), TestContext.Current.CancellationToken);
 
         result.Status.Should().Be(SelectorResolveStatus.NotFound);
-    }
-
-    [Fact]
-    public async Task GIVEN_NullSymbolSelector_WHEN_ResolvingSymbol_THEN_ShouldThrowArgumentNullException()
-    {
-        using var workspace = new AdhocWorkspace();
-        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
-
-        var action = async () => await target.ResolveSymbolAsync(null!, TestContext.Current.CancellationToken);
-
-        await action.Should().ThrowAsync<ArgumentNullException>();
     }
 
     [Fact]

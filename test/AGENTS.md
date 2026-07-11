@@ -96,6 +96,7 @@ Cross-project test ownership and execution-path policy are defined in `../docs/T
 - When contributing PR summaries or PR bodies, describe testing in terms of the coverage added or updated by the change, not just the commands executed.
 
 ## Anti-smell rules
+- Do not add tests that pass `null!` to constructor dependencies of internal DI-created types or to non-nullable parameters on internal methods. Production code must rely on nullable warnings and controlled composition for those contracts rather than adding redundant null-guard branches.
 - Do not inspect invocation internals in assertions. Avoid `Invocations.Count/Any/Where/Single/First/Last`, `Method.Name`, and `Arguments[...]` in test assertions.
 - Prefer `Verify(...)` for Moq assertions.
 - If invocation history must be reset between phases, use shared test infrastructure helpers rather than ad-hoc invocation-list manipulation.

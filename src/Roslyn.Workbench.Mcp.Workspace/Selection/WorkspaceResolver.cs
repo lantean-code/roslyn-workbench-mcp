@@ -50,7 +50,6 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
 
     public DocumentReference? CreateDocumentReference(Document document)
     {
-        ArgumentNullException.ThrowIfNull(document);
 
         return new DocumentReference
         {
@@ -62,7 +61,6 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
 
     public SymbolReference CreateSymbolReference(ISymbol symbol)
     {
-        ArgumentNullException.ThrowIfNull(symbol);
 
         var sourceLocation = symbol.Locations.FirstOrDefault(static location => location.IsInSource);
 
@@ -118,7 +116,6 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
 
     public SelectorResolveResult<Document> ResolveDocument(DocumentSelector selector)
     {
-        ArgumentNullException.ThrowIfNull(selector);
 
         if (!string.IsNullOrWhiteSpace(selector.DocumentId)
             && Guid.TryParse(selector.DocumentId, out var documentGuid))
@@ -155,7 +152,6 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
 
     public async ValueTask<SelectorResolveResult<Location>> ResolveLocationAsync(LocationSelector selector, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(selector);
 
         var resolution = await ResolveDocumentSpanAsync(selector, cancellationToken).ConfigureAwait(false);
         if (resolution.IsResolved)
@@ -173,7 +169,6 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
 
     public SelectorResolveResult<Project> ResolveProject(ProjectSelector selector)
     {
-        ArgumentNullException.ThrowIfNull(selector);
 
         var matches = _solution.Projects.Where(project => MatchesProjectSelector(project, selector)).ToArray();
         return matches.Length switch
@@ -186,7 +181,6 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
 
     public async ValueTask<SelectorResolveResult<ISymbol>> ResolveSymbolAsync(SymbolSelector selector, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(selector);
 
         if (!string.IsNullOrWhiteSpace(selector.DocumentationCommentId))
         {

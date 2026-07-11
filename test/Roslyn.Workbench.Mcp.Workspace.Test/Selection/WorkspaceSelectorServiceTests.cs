@@ -12,14 +12,6 @@ public sealed class WorkspaceSelectorServiceTests
     }
 
     [Fact]
-    public void GIVEN_NullHostSnapshot_WHEN_SelectingWorkspace_THEN_ShouldThrowArgumentNullException()
-    {
-        var action = () => _target.Select(null!, selector: null);
-
-        action.Should().Throw<ArgumentNullException>();
-    }
-
-    [Fact]
     public void GIVEN_NoLoadedWorkspacesAndNoSelector_WHEN_SelectingWorkspace_THEN_ShouldRequireOpenWorkspace()
     {
         var hostSnapshot = CreateHostSnapshot();

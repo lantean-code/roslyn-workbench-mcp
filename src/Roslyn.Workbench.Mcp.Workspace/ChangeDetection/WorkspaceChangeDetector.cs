@@ -13,7 +13,6 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
 
     public WorkspaceInputManifest BuildManifest(Solution solution, string loadedPath)
     {
-        ArgumentNullException.ThrowIfNull(solution);
         ArgumentException.ThrowIfNullOrWhiteSpace(loadedPath);
 
         var files = new Dictionary<string, WorkspaceInputFileFingerprint>(StringComparer.Ordinal);

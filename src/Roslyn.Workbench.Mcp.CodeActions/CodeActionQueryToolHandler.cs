@@ -9,7 +9,6 @@ internal abstract class CodeActionQueryToolHandler<TRequest, TResponse> : ICodeA
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        ArgumentNullException.ThrowIfNull(context);
 
         return ExecuteCoreAsync(request, context, cancellationToken);
     }

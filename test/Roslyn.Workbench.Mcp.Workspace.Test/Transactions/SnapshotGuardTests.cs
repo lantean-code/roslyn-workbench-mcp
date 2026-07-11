@@ -12,14 +12,6 @@ public sealed class SnapshotGuardTests : IDisposable
     }
 
     [Fact]
-    public void GIVEN_NullSession_WHEN_Validating_THEN_ShouldThrowArgumentNullException()
-    {
-        var action = () => _target.Validate(null!, expectedSnapshot: null);
-
-        action.Should().Throw<ArgumentNullException>();
-    }
-
-    [Fact]
     public void GIVEN_SessionWithoutTransaction_WHEN_Validating_THEN_ShouldReturnNoError()
     {
         var session = CreateSession(transaction: null);

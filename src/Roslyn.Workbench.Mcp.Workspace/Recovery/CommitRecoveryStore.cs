@@ -9,6 +9,10 @@ namespace Roslyn.Workbench.Mcp.Workspace.Recovery;
 
 internal sealed class CommitRecoveryStore : ICommitRecoveryStore
 {
+    private const string _manifestFileName = "manifest.json";
+    private const string _ownerFileName = "owner.json";
+    private const string _recoveryDirectoryName = "recovery";
+
     private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
     private static readonly Encoding _encoding = new UTF8Encoding(false);
     private readonly IFileSystem _fileSystem;
@@ -17,49 +21,26 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
 
     public CommitRecoveryStore(IOptions<WorkspaceCoordinatorOptions> options, IFileSystem fileSystem, IAtomicFileWriter atomicFileWriter)
     {
-        ArgumentNullException.ThrowIfNull(options);
-        _fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
-        _atomicFileWriter = atomicFileWriter ?? throw new ArgumentNullException(nameof(atomicFileWriter));
-        _recoveryDirectory = _fileSystem.Path.Combine(_fileSystem.Path.GetFullPath(options.Value.StateDirectory), "recovery");
+        _fileSystem = fileSystem;
+        _atomicFileWriter = atomicFileWriter;
+        _recoveryDirectory = _fileSystem.Path.Combine(
+            _fileSystem.Path.GetFullPath(options.Value.StateDirectory),
+            _recoveryDirectoryName);
     }
 
     public async ValueTask PersistPlanAsync(WorkspaceCommitPlan plan, CancellationToken cancellationToken)
     {
-        var directory = GetCommitDirectory(plan.Manifest.CommitId);
-        _fileSystem.Directory.CreateDirectory(directory);
-        await _atomicFileWriter.WriteAllTextAsync(
-            _fileSystem.Path.Combine(directory, "owner.json"),
-            JsonSerializer.Serialize(new WorkspaceCommitOwner
-            {
-                CommitId = plan.Manifest.CommitId,
-                LoadedPath = plan.Manifest.LoadedPath,
-                WorkspaceRoot = plan.Manifest.WorkspaceRoot,
-            }, _serializerOptions),
-            _encoding,
-            cancellationToken).ConfigureAwait(false);
-        foreach (var artifact in plan.Artifacts)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var path = GetArtifactPath(plan.Manifest.CommitId, artifact.Key);
-            var artifactDirectory = _fileSystem.Path.GetDirectoryName(path)
-                ?? throw new InvalidOperationException($"The recovery artifact '{path}' does not have a parent directory.");
-            _fileSystem.Directory.CreateDirectory(artifactDirectory);
-            await _atomicFileWriter.WriteAllBytesAsync(path, artifact.Value, cancellationToken).ConfigureAwait(false);
-        }
-
+        _fileSystem.Directory.CreateDirectory(GetCommitDirectory(plan.Manifest.CommitId));
+        await WriteOwnerAsync(plan.Manifest, cancellationToken).ConfigureAwait(false);
+        await WriteArtifactsAsync(plan, cancellationToken).ConfigureAwait(false);
         await WriteManifestAsync(plan.Manifest, cancellationToken).ConfigureAwait(false);
     }
 
     public ValueTask WriteManifestAsync(WorkspaceCommitManifest manifest, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var directory = GetCommitDirectory(manifest.CommitId);
-        _fileSystem.Directory.CreateDirectory(directory);
-        return _atomicFileWriter.WriteAllTextAsync(
-            _fileSystem.Path.Combine(directory, "manifest.json"),
-            JsonSerializer.Serialize(manifest, _serializerOptions),
-            _encoding,
-            cancellationToken);
+        _fileSystem.Directory.CreateDirectory(GetCommitDirectory(manifest.CommitId));
+        return WriteJsonAsync(GetManifestPath(manifest.CommitId), manifest, cancellationToken);
     }
 
     public async ValueTask<IReadOnlyList<WorkspaceCommitManifest>> GetManifestsAsync(CancellationToken cancellationToken)
@@ -73,7 +54,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         foreach (var directory in _fileSystem.Directory.EnumerateDirectories(_recoveryDirectory))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var path = _fileSystem.Path.Combine(directory, "manifest.json");
+            var path = GetManifestPathInDirectory(directory);
             if (!_fileSystem.File.Exists(path))
             {
                 continue;
@@ -120,12 +101,12 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         foreach (var directory in _fileSystem.Directory.EnumerateDirectories(_recoveryDirectory))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (_fileSystem.File.Exists(_fileSystem.Path.Combine(directory, "manifest.json")))
+            if (_fileSystem.File.Exists(GetManifestPathInDirectory(directory)))
             {
                 continue;
             }
 
-            var ownerPath = _fileSystem.Path.Combine(directory, "owner.json");
+            var ownerPath = GetOwnerPathInDirectory(directory);
             if (!_fileSystem.File.Exists(ownerPath))
             {
                 continue;
@@ -203,14 +184,9 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
 
     public ValueTask WriteStatusAsync(RecoveryStatus status, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(status);
         cancellationToken.ThrowIfCancellationRequested();
         _fileSystem.Directory.CreateDirectory(_recoveryDirectory);
-        return _atomicFileWriter.WriteAllTextAsync(
-            _fileSystem.Path.Combine(_recoveryDirectory, $"{status.CommitId}.json"),
-            JsonSerializer.Serialize(status, _serializerOptions),
-            _encoding,
-            cancellationToken);
+        return WriteJsonAsync(GetLegacyStatusPath(status.CommitId), status, cancellationToken);
     }
 
     public async ValueTask<byte[]> ReadArtifactAsync(string commitId, string relativePath, CancellationToken cancellationToken)
@@ -226,7 +202,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
             _fileSystem.Directory.Delete(directory, recursive: true);
         }
 
-        var legacy = _fileSystem.Path.Combine(_recoveryDirectory, $"{commitId}.json");
+        var legacy = GetLegacyStatusPath(commitId);
         if (_fileSystem.File.Exists(legacy))
         {
             _fileSystem.File.Delete(legacy);
@@ -244,12 +220,38 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         return _fileSystem.Path.Combine(_recoveryDirectory, commitId);
     }
 
+    private string GetLegacyStatusPath(string commitId)
+    {
+        return _fileSystem.Path.Combine(_recoveryDirectory, $"{commitId}.json");
+    }
+
+    private string GetManifestPath(string commitId)
+    {
+        return _fileSystem.Path.Combine(GetCommitDirectory(commitId), _manifestFileName);
+    }
+
+    private string GetManifestPathInDirectory(string directory)
+    {
+        return _fileSystem.Path.Combine(directory, _manifestFileName);
+    }
+
+    private string GetOwnerPath(string commitId)
+    {
+        return _fileSystem.Path.Combine(GetCommitDirectory(commitId), _ownerFileName);
+    }
+
+    private string GetOwnerPathInDirectory(string directory)
+    {
+        return _fileSystem.Path.Combine(directory, _ownerFileName);
+    }
+
     private string GetArtifactPath(string commitId, string relativePath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(relativePath);
         var root = GetCommitDirectory(commitId);
         var path = _fileSystem.Path.GetFullPath(_fileSystem.Path.Combine(root, relativePath));
         var relative = _fileSystem.Path.GetRelativePath(root, path);
+
         if (relative == ".." || relative.StartsWith($"..{_fileSystem.Path.DirectorySeparatorChar}", StringComparison.Ordinal) || _fileSystem.Path.IsPathRooted(relative))
         {
             throw new InvalidDataException("The recovery artifact path escapes its commit directory.");
@@ -316,5 +318,40 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         return relative != ".."
             && !relative.StartsWith($"..{_fileSystem.Path.DirectorySeparatorChar}", StringComparison.Ordinal)
             && !_fileSystem.Path.IsPathRooted(relative);
+    }
+
+    private async ValueTask WriteArtifactsAsync(WorkspaceCommitPlan plan, CancellationToken cancellationToken)
+    {
+        foreach (var artifact in plan.Artifacts)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var path = GetArtifactPath(plan.Manifest.CommitId, artifact.Key);
+            var artifactDirectory = _fileSystem.Path.GetDirectoryName(path)
+                ?? throw new InvalidOperationException($"The recovery artifact '{path}' does not have a parent directory.");
+
+            _fileSystem.Directory.CreateDirectory(artifactDirectory);
+            await _atomicFileWriter.WriteAllBytesAsync(path, artifact.Value, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private ValueTask WriteJsonAsync<T>(string path, T value, CancellationToken cancellationToken)
+    {
+        return _atomicFileWriter.WriteAllTextAsync(
+            path,
+            JsonSerializer.Serialize(value, _serializerOptions),
+            _encoding,
+            cancellationToken);
+    }
+
+    private ValueTask WriteOwnerAsync(WorkspaceCommitManifest manifest, CancellationToken cancellationToken)
+    {
+        var owner = new WorkspaceCommitOwner
+        {
+            CommitId = manifest.CommitId,
+            LoadedPath = manifest.LoadedPath,
+            WorkspaceRoot = manifest.WorkspaceRoot,
+        };
+
+        return WriteJsonAsync(GetOwnerPath(manifest.CommitId), owner, cancellationToken);
     }
 }

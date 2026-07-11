@@ -52,6 +52,7 @@
 ### Coding practices
 - Use `var` wherever possible unless it harms clarity.
 - Enable and properly use nullable reference types.
+- Do not add runtime null guards for constructor dependencies of internal DI-created types or for non-nullable parameters on internal methods. Nullable annotations, warnings as errors and DI composition are the contract; guards such as `throw new ArgumentNullException(...)` and `ArgumentNullException.ThrowIfNull(...)` add unreachable branches and low-value tests. Retain runtime argument validation at public or externally callable boundaries where callers are not controlled by the application.
 - Do not use the null-forgiving operator (`!`) in production code as a routine way to silence nullable analysis. Express the invariant in the type system instead: validate inputs, use required members or constructors, retain a checked local, pattern-match nullable values, or annotate state relationships with attributes such as `MemberNotNull`, `MemberNotNullWhen`, and `NotNullWhen`.
 - A production null-forgiving operator is permitted only when the invariant cannot be expressed or observed by the compiler, no safer API shape is practical, and the reason is exceptional and explicitly documented next to the use. Reflection and framework boundary code must still validate the runtime result before relying on it.
 - Always specify access modifiers, even when the default applies.

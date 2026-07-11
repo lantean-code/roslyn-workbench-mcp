@@ -18,7 +18,6 @@ internal sealed class CodeActionDescriptorRegistry : ICodeActionDescriptorRegist
 
     public CodeActionDescriptorEntry Classify(CodeAction action, string providerId, string title)
     {
-        ArgumentNullException.ThrowIfNull(action);
 
         var normalizedTitle = title.Trim();
 

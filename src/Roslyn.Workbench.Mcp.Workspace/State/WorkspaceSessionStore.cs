@@ -44,8 +44,6 @@ internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
 
     public WorkspaceOperationError? TryAddWorkspace(WorkspaceSessionSnapshot session, Func<WorkspaceHostSnapshot, WorkspaceOperationError?> validate)
     {
-        ArgumentNullException.ThrowIfNull(session);
-        ArgumentNullException.ThrowIfNull(validate);
 
         lock (_syncRoot)
         {
@@ -93,7 +91,6 @@ internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
 
     public void ReplaceSession(WorkspaceSessionSnapshot session)
     {
-        ArgumentNullException.ThrowIfNull(session);
 
         lock (_syncRoot)
         {
@@ -103,7 +100,6 @@ internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
 
     public void ReplaceSessionAndSetTransactionOwner(WorkspaceSessionSnapshot session, string? transactionOwnerWorkspaceId)
     {
-        ArgumentNullException.ThrowIfNull(session);
 
         lock (_syncRoot)
         {

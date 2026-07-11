@@ -18,14 +18,6 @@ public sealed class WorkspaceStateTransitionsTests
     }
 
     [Fact]
-    public void GIVEN_NullSession_WHEN_ApplyingExternalChange_THEN_ShouldThrowArgumentNullException()
-    {
-        var action = () => _target.ApplyExternalChangeDetected(null!);
-
-        action.Should().Throw<ArgumentNullException>();
-    }
-
-    [Fact]
     public void GIVEN_ReadySession_WHEN_ApplyingExternalChange_THEN_ShouldReturnOutOfDateCopy()
     {
         var session = CreateSession(WorkspaceLifecycleState.Ready);

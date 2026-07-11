@@ -12,7 +12,6 @@ internal sealed class CodeActionToolRegistry : ICodeActionToolRegistry
         ICodeActionQueryToolHandler<TRequest, TResponse> handler)
         where TRequest : WorkspaceBoundRequest
     {
-        ArgumentNullException.ThrowIfNull(handler);
         Validate(metadata);
         _tools.Add(new CodeActionQueryRegistration<TRequest, TResponse>(metadata, handler));
     }
@@ -22,14 +21,12 @@ internal sealed class CodeActionToolRegistry : ICodeActionToolRegistry
         ICodeActionMutationToolHandler<TRequest> handler)
         where TRequest : WorkspaceBoundRequest
     {
-        ArgumentNullException.ThrowIfNull(handler);
         Validate(metadata);
         _tools.Add(new CodeActionMutationRegistration<TRequest>(metadata, handler));
     }
 
     private void Validate(CodeActionToolMetadata metadata)
     {
-        ArgumentNullException.ThrowIfNull(metadata);
 
         if (string.IsNullOrWhiteSpace(metadata.Name)
             || string.IsNullOrWhiteSpace(metadata.Title)

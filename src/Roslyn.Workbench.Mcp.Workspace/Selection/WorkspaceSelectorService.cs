@@ -11,7 +11,6 @@ internal sealed class WorkspaceSelectorService : IWorkspaceSelector
 
     public WorkspaceSelectionResult Select(WorkspaceHostSnapshot hostSnapshot, WorkspaceSelector? selector)
     {
-        ArgumentNullException.ThrowIfNull(hostSnapshot);
 
         if (selector is null)
         {

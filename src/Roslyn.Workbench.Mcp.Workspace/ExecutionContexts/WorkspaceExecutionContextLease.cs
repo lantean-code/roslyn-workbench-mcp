@@ -22,7 +22,6 @@ internal sealed class WorkspaceExecutionContextLease : IAsyncDisposable
         IWorkspaceExecutionContext context,
         IAsyncDisposable? lease = null)
     {
-        ArgumentNullException.ThrowIfNull(context);
 
         return new WorkspaceExecutionContextLease(context, null, lease);
     }
@@ -32,7 +31,6 @@ internal sealed class WorkspaceExecutionContextLease : IAsyncDisposable
         IWorkspaceExecutionContext? context = null,
         IAsyncDisposable? lease = null)
     {
-        ArgumentNullException.ThrowIfNull(failure);
 
         return new WorkspaceExecutionContextLease(context, failure, lease);
     }

@@ -11,8 +11,6 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
 {
     public static IHostApplicationBuilder AddRoslynWorkbench(this IHostApplicationBuilder builder, string[] args)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(args);
 
         var startupOptions = StartupOptionsParser.Parse(args);
         var codeActionCatalogSnapshot = new CodeActionCatalogSnapshot

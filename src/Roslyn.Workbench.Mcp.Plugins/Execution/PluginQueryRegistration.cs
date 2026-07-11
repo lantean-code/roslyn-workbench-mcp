@@ -17,7 +17,6 @@ internal sealed class PluginQueryRegistration<TRequest, TResponse> : IRegistered
 
     public TResult Accept<TResult>(IPluginToolRegistrationVisitor<TResult> visitor)
     {
-        ArgumentNullException.ThrowIfNull(visitor);
 
         return visitor.VisitQuery(this);
     }

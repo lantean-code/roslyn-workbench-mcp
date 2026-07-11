@@ -30,7 +30,6 @@ internal sealed class WorkspaceCommitLockAcquisition
 
     public static WorkspaceCommitLockAcquisition Acquired(IWorkspaceCommitLock ownership)
     {
-        ArgumentNullException.ThrowIfNull(ownership);
         return new WorkspaceCommitLockAcquisition(
             WorkspaceCommitLockAcquisitionStatus.Acquired,
             ownership,

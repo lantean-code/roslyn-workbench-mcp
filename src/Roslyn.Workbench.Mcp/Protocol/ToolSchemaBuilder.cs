@@ -18,7 +18,6 @@ internal static class ToolSchemaBuilder
 
     public static JsonElement CreateDirectOutputSchema(Type responseType)
     {
-        ArgumentNullException.ThrowIfNull(responseType);
 
         return _directOutputSchemaCache.GetOrAdd(responseType, static type => CreateDirectOutputSchemaCore(type));
     }
@@ -30,15 +29,12 @@ internal static class ToolSchemaBuilder
 
     public static JsonElement CreateValueSchema(Type valueType)
     {
-        ArgumentNullException.ThrowIfNull(valueType);
 
         return _valueSchemaCache.GetOrAdd(valueType, static type => CreateValueSchemaCore(type));
     }
 
     public static JsonElement CreateResponseSchema(JsonObject successSchema, IReadOnlyList<JsonElement> componentSchemas)
     {
-        ArgumentNullException.ThrowIfNull(successSchema);
-        ArgumentNullException.ThrowIfNull(componentSchemas);
 
         var errorSchema = CreateValueSchema<Protocol.Results.ToolError>();
         var nextSchema = CreateValueSchema<Workspace.Contracts.Results.RequiredAction>();

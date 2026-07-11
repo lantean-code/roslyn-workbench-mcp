@@ -23,7 +23,6 @@ internal sealed class CodeActionMutationRegistration<TRequest> : IRegisteredCode
 
     public TResult Accept<TResult>(ICodeActionToolRegistrationVisitor<TResult> visitor)
     {
-        ArgumentNullException.ThrowIfNull(visitor);
 
         return visitor.VisitMutation(this);
     }

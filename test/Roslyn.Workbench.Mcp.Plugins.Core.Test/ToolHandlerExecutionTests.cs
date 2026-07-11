@@ -6,44 +6,26 @@ public sealed class ToolHandlerExecutionTests
     public async Task GIVEN_QueryCancellationIsRequested_WHEN_CallingExecuteAsync_THEN_ShouldThrowOperationCanceledException()
     {
         var target = new TestQueryTool();
+        var context = new Mock<IQueryContext>();
         using var cancellationTokenSource = new CancellationTokenSource();
         cancellationTokenSource.Cancel();
 
-        var action = async () => await target.ExecuteAsync(new TestWorkspaceBoundRequest(), Mock.Of<IQueryContext>(), cancellationTokenSource.Token);
+        var action = async () => await target.ExecuteAsync(new TestWorkspaceBoundRequest(), context.Object, cancellationTokenSource.Token);
 
         await action.Should().ThrowAsync<OperationCanceledException>();
-    }
-
-    [Fact]
-    public async Task GIVEN_NullQueryContext_WHEN_CallingExecuteAsync_THEN_ShouldThrowArgumentNullException()
-    {
-        var target = new TestQueryTool();
-
-        var action = async () => await target.ExecuteAsync(new TestWorkspaceBoundRequest(), null!, CancellationToken.None);
-
-        await action.Should().ThrowAsync<ArgumentNullException>();
     }
 
     [Fact]
     public async Task GIVEN_MutationCancellationIsRequested_WHEN_CallingExecuteAsync_THEN_ShouldThrowOperationCanceledException()
     {
         var target = new TestMutationTool();
+        var context = new Mock<IMutationContext>();
         using var cancellationTokenSource = new CancellationTokenSource();
         cancellationTokenSource.Cancel();
 
-        var action = async () => await target.ExecuteAsync(new TestWorkspaceBoundRequest(), Mock.Of<IMutationContext>(), cancellationTokenSource.Token);
+        var action = async () => await target.ExecuteAsync(new TestWorkspaceBoundRequest(), context.Object, cancellationTokenSource.Token);
 
         await action.Should().ThrowAsync<OperationCanceledException>();
-    }
-
-    [Fact]
-    public async Task GIVEN_NullMutationContext_WHEN_CallingExecuteAsync_THEN_ShouldThrowArgumentNullException()
-    {
-        var target = new TestMutationTool();
-
-        var action = async () => await target.ExecuteAsync(new TestWorkspaceBoundRequest(), null!, CancellationToken.None);
-
-        await action.Should().ThrowAsync<ArgumentNullException>();
     }
 
     private sealed record TestWorkspaceBoundRequest : WorkspaceBoundRequest;

@@ -8,38 +8,6 @@ namespace Roslyn.Workbench.Mcp.Test.Protocol;
 public sealed class ToolSchemaBuilderTests
 {
     [Fact]
-    public void GIVEN_NullOutputType_WHEN_CreatingDirectOutputSchema_THEN_ShouldThrowArgumentNullException()
-    {
-        var action = () => ToolSchemaBuilder.CreateDirectOutputSchema(null!);
-
-        action.Should().Throw<ArgumentNullException>();
-    }
-
-    [Fact]
-    public void GIVEN_NullValueType_WHEN_CreatingValueSchema_THEN_ShouldThrowArgumentNullException()
-    {
-        var action = () => ToolSchemaBuilder.CreateValueSchema(null!);
-
-        action.Should().Throw<ArgumentNullException>();
-    }
-
-    [Fact]
-    public void GIVEN_NullSuccessSchema_WHEN_CreatingResponseSchema_THEN_ShouldThrowArgumentNullException()
-    {
-        var action = () => ToolSchemaBuilder.CreateResponseSchema(null!, []);
-
-        action.Should().Throw<ArgumentNullException>();
-    }
-
-    [Fact]
-    public void GIVEN_NullComponentSchemas_WHEN_CreatingResponseSchema_THEN_ShouldThrowArgumentNullException()
-    {
-        var action = () => ToolSchemaBuilder.CreateResponseSchema(new JsonObject(), null!);
-
-        action.Should().Throw<ArgumentNullException>();
-    }
-
-    [Fact]
     public void GIVEN_EmptyPrimitiveType_WHEN_CreatingNullablePrimitiveSchema_THEN_ShouldThrowArgumentException()
     {
         var action = () => ToolSchemaBuilder.CreateNullablePrimitiveSchema(string.Empty);

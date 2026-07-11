@@ -10,7 +10,6 @@ internal static class ToolRequestBinder
     public static TRequest Deserialize<TRequest>(IDictionary<string, JsonElement> arguments)
         where TRequest : class
     {
-        ArgumentNullException.ThrowIfNull(arguments);
 
         var buffer = new ArrayBufferWriter<byte>();
 

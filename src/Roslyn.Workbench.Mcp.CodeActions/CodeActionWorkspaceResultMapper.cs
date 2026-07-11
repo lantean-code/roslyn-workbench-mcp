@@ -4,7 +4,6 @@ internal static class CodeActionWorkspaceResultMapper
 {
     public static CodeActionExecutionFailure MapFailure(WorkspaceExecutionFailure failure)
     {
-        ArgumentNullException.ThrowIfNull(failure);
 
         return new CodeActionExecutionFailure
         {

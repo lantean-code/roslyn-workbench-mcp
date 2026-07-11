@@ -46,7 +46,6 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         SnapshotPrecondition? expectedSnapshot,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(selection);
         cancellationToken.ThrowIfCancellationRequested();
 
         var session = _sessionStore.ReadSession(selection.WorkspaceId);

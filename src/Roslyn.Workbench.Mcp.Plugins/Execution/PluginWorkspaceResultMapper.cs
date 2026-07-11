@@ -4,7 +4,6 @@ internal static class PluginWorkspaceResultMapper
 {
     public static ToolExecutionFailureResult MapFailure(WorkspaceExecutionFailure failure)
     {
-        ArgumentNullException.ThrowIfNull(failure);
 
         return new ToolExecutionFailureResult
         {

@@ -30,8 +30,8 @@ internal static class ToolExecutionHelpers
         var resolution = await context.WorkspaceResolver
             .ResolveSymbolAsync(selector, cancellationToken)
             .ConfigureAwait(false);
-        return resolution.Status == SelectorResolveStatus.Resolved
-            ? new CodeActionToolResolutionResult<ISymbol, TResponse> { Value = resolution.Value! }
+        return resolution.IsResolved
+            ? new CodeActionToolResolutionResult<ISymbol, TResponse> { Value = resolution.Value }
             : new CodeActionToolResolutionResult<ISymbol, TResponse>
             {
                 Rejection = RejectFromStatus<TResponse>(resolution.Status, "Symbol"),

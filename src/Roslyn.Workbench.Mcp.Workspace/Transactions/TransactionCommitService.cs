@@ -90,7 +90,8 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         {
             session = _workspaceStateTransitions.ApplyExternalChangeDetected(session);
             _sessionStore.ReplaceSession(session);
-            transaction = session.Transaction!;
+            transaction = session.Transaction
+                ?? throw new InvalidOperationException("The conflicted session did not retain its transaction.");
 
             return _resultFactory.Conflict<TransactionCommitOutcome>(
                 WorkspaceErrorCodes.TransactionConflicted,

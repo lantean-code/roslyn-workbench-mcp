@@ -19,7 +19,8 @@ internal static class MsBuildProjectUtilities
             return project.Imports
                 .Select(static import => import.ImportedProject?.FullPath)
                 .Where(static path => !string.IsNullOrWhiteSpace(path))
-                .Select(static path => Path.GetFullPath(path!))
+                .OfType<string>()
+                .Select(static path => Path.GetFullPath(path))
                 .Distinct(StringComparer.Ordinal)
                 .ToArray();
         }

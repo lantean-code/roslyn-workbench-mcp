@@ -45,16 +45,16 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
             {
                 case WorkspaceFileOperation.Create:
                 case WorkspaceFileOperation.Replace:
-                    var contents = await _recoveryStore.ReadArtifactAsync(manifest.CommitId, entry.StagedPath!, CancellationToken.None).ConfigureAwait(false);
+                    var contents = await _recoveryStore.ReadArtifactAsync(manifest.CommitId, entry.GetRequiredStagedPath(), CancellationToken.None).ConfigureAwait(false);
                     await _atomicFileWriter.WriteAllBytesAsync(entry.TargetPath, contents, CancellationToken.None).ConfigureAwait(false);
                     break;
                 case WorkspaceFileOperation.Delete:
-                    if (_fileSystem.File.Exists(entry.DeleteMarkerPath!))
+                    if (_fileSystem.File.Exists(entry.GetRequiredDeleteMarkerPath()))
                     {
                         throw new IOException($"The delete marker '{entry.DeleteMarkerPath}' already exists.");
                     }
 
-                    _fileCommitter.Move(entry.TargetPath, entry.DeleteMarkerPath!);
+                    _fileCommitter.Move(entry.TargetPath, entry.GetRequiredDeleteMarkerPath());
                     break;
             }
         }
@@ -66,9 +66,9 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
         {
             foreach (var entry in manifest.Entries.Where(entry => entry.Operation == WorkspaceFileOperation.Delete))
             {
-                if (_fileSystem.File.Exists(entry.DeleteMarkerPath!))
+                if (_fileSystem.File.Exists(entry.GetRequiredDeleteMarkerPath()))
                 {
-                    _fileSystem.File.Delete(entry.DeleteMarkerPath!);
+                    _fileSystem.File.Delete(entry.GetRequiredDeleteMarkerPath());
                 }
             }
 
@@ -97,16 +97,17 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
                 {
                     if (entry.Operation == WorkspaceFileOperation.Delete)
                     {
-                        var markerExists = _fileSystem.File.Exists(entry.DeleteMarkerPath!);
+                        var markerPath = entry.GetRequiredDeleteMarkerPath();
+                        var markerExists = _fileSystem.File.Exists(markerPath);
                         if (markerExists && !exists)
                         {
-                            _fileCommitter.Move(entry.DeleteMarkerPath!, entry.TargetPath);
+                            _fileCommitter.Move(markerPath, entry.TargetPath);
                             continue;
                         }
 
                         if (markerExists && exists && string.Equals(currentHash, entry.OriginalHash, StringComparison.Ordinal))
                         {
-                            _fileSystem.File.Delete(entry.DeleteMarkerPath!);
+                            _fileSystem.File.Delete(markerPath);
                             continue;
                         }
 
@@ -131,8 +132,10 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
                         continue;
                     }
 
-                    var backup = await _recoveryStore.ReadArtifactAsync(manifest.CommitId, entry.BackupPath!, CancellationToken.None).ConfigureAwait(false);
-                    _fileSystem.Directory.CreateDirectory(_fileSystem.Path.GetDirectoryName(entry.TargetPath)!);
+                    var backup = await _recoveryStore.ReadArtifactAsync(manifest.CommitId, entry.GetRequiredBackupPath(), CancellationToken.None).ConfigureAwait(false);
+                    var targetDirectory = _fileSystem.Path.GetDirectoryName(entry.TargetPath)
+                        ?? throw new InvalidOperationException($"The target '{entry.TargetPath}' does not have a parent directory.");
+                    _fileSystem.Directory.CreateDirectory(targetDirectory);
                     await _atomicFileWriter.WriteAllBytesAsync(entry.TargetPath, backup, CancellationToken.None).ConfigureAwait(false);
                 }
                 else if (exists)
@@ -177,7 +180,8 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
     private async ValueTask RevalidateEntryAsync(WorkspaceCommitEntry entry, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (entry.Operation == WorkspaceFileOperation.Delete && _fileSystem.File.Exists(entry.DeleteMarkerPath!))
+        if (entry.Operation == WorkspaceFileOperation.Delete
+            && _fileSystem.File.Exists(entry.GetRequiredDeleteMarkerPath()))
         {
             throw new IOException($"The delete marker '{entry.DeleteMarkerPath}' already exists.");
         }

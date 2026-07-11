@@ -34,8 +34,8 @@ internal sealed class GoToDefinitionTool : QueryToolHandler<GoToDefinitionReques
                     Location = context.WorkspaceResolver.CreateResolvedLocation(location),
                 })
                 .Where(static definition => definition.Location is not null)
-                .OrderBy(static definition => definition.Location!.Document!.Path, StringComparer.Ordinal)
-                .ThenBy(static definition => definition.Location!.Span!.Start)
+                .OrderBy(static definition => definition.Location?.Document?.Path, StringComparer.Ordinal)
+                .ThenBy(static definition => definition.Location?.Span?.Start)
                 .ToArray()
             : [InspectionProjectionFactory.CreateDefinitionLocation(sourceDefinition, context.WorkspaceResolver)];
         var data = new DefinitionData

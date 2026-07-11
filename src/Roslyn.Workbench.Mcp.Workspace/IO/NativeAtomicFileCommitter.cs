@@ -26,7 +26,7 @@ internal sealed partial class NativeAtomicFileCommitter : IAtomicFileCommitter
         }
 
         File.Move(temporaryPath, destinationPath, overwrite: true);
-        SyncDirectory(Path.GetDirectoryName(destinationPath)!);
+        SyncDirectory(GetRequiredDirectoryName(destinationPath));
     }
 
     public void Move(string sourcePath, string destinationPath)
@@ -47,7 +47,7 @@ internal sealed partial class NativeAtomicFileCommitter : IAtomicFileCommitter
         }
 
         File.Move(sourcePath, destinationPath);
-        SyncDirectory(Path.GetDirectoryName(destinationPath)!);
+        SyncDirectory(GetRequiredDirectoryName(destinationPath));
     }
 
     private static void SyncDirectory(string directoryPath)
@@ -73,6 +73,12 @@ internal sealed partial class NativeAtomicFileCommitter : IAtomicFileCommitter
         {
             _ = Close(fileDescriptor);
         }
+    }
+
+    private static string GetRequiredDirectoryName(string path)
+    {
+        return Path.GetDirectoryName(path)
+            ?? throw new InvalidOperationException($"The path '{path}' does not have a parent directory.");
     }
 
     [LibraryImport("kernel32", EntryPoint = "MoveFileExW", StringMarshalling = StringMarshalling.Utf16, SetLastError = true)]

@@ -26,7 +26,12 @@ internal sealed class AnalyzeControlFlowTool : QueryToolHandler<AnalyzeControlFl
             return statementResolution.Rejection;
         }
 
-        var analysis = statementResolution.SemanticModel!.AnalyzeControlFlow(statementResolution.Statement!);
+        if (statementResolution.SemanticModel is null || statementResolution.Statement is null)
+        {
+            throw new InvalidOperationException("A successful statement resolution must contain a statement and semantic model.");
+        }
+
+        var analysis = statementResolution.SemanticModel.AnalyzeControlFlow(statementResolution.Statement);
         if (analysis is null)
         {
             return ToolExecutionHelpers.Rejected<ControlFlowAnalysisData>("InvalidRequest", "The selected region does not support control-flow analysis.");
@@ -44,8 +49,7 @@ internal sealed class AnalyzeControlFlowTool : QueryToolHandler<AnalyzeControlFl
             }).ToArray(),
             Returns = analysis.ReturnStatements
                 .Select(node => context.WorkspaceResolver.CreateResolvedLocation(node.GetLocation()))
-                .Where(static item => item is not null)
-                .Select(static item => item!)
+                .OfType<ResolvedLocation>()
                 .ToArray(),
         });
     }
@@ -61,7 +65,12 @@ internal sealed class AnalyzeControlFlowTool : QueryToolHandler<AnalyzeControlFl
             };
         }
 
-        var statement = syntaxNodeResolution.Node!.FirstAncestorOrSelf<StatementSyntax>();
+        if (syntaxNodeResolution.Node is null)
+        {
+            throw new InvalidOperationException("A successful syntax-node resolution must contain a node.");
+        }
+
+        var statement = syntaxNodeResolution.Node.FirstAncestorOrSelf<StatementSyntax>();
         if (statement is null)
         {
             return new StatementResolution
@@ -98,7 +107,7 @@ internal sealed class AnalyzeControlFlowTool : QueryToolHandler<AnalyzeControlFl
         }
 
         var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken).ConfigureAwait(false);
-        if (locationResolution.Status != SelectorResolveStatus.Resolved)
+        if (!locationResolution.IsResolved)
         {
             return new SyntaxNodeResolution
             {
@@ -106,7 +115,8 @@ internal sealed class AnalyzeControlFlowTool : QueryToolHandler<AnalyzeControlFl
             };
         }
 
-        var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(locationResolution.Value!);
+        var location = locationResolution.Value;
+        var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(location);
         if (resolvedLocation?.Document?.Path is null)
         {
             return new SyntaxNodeResolution
@@ -115,7 +125,9 @@ internal sealed class AnalyzeControlFlowTool : QueryToolHandler<AnalyzeControlFl
             };
         }
 
-        var document = context.CurrentSolution.GetDocument(locationResolution.Value!.SourceTree!);
+        var document = location.SourceTree is null
+            ? null
+            : context.CurrentSolution.GetDocument(location.SourceTree);
         if (document is null)
         {
             return new SyntaxNodeResolution
@@ -136,7 +148,7 @@ internal sealed class AnalyzeControlFlowTool : QueryToolHandler<AnalyzeControlFl
 
         return new SyntaxNodeResolution
         {
-            Node = syntaxRoot.FindNode(locationResolution.Value.SourceSpan, getInnermostNodeForTie: true),
+            Node = syntaxRoot.FindNode(location.SourceSpan, getInnermostNodeForTie: true),
             SemanticModel = semanticModel,
             ResolvedLocation = resolvedLocation,
         };

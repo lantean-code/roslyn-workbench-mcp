@@ -10,11 +10,5 @@ internal sealed record CodeActionApplyResult
 
     [MemberNotNullWhen(true, nameof(Rejection))]
     [MemberNotNullWhen(false, nameof(CandidateSolution))]
-    public bool HasRejection
-    {
-        get
-        {
-            return Rejection is not null;
-        }
-    }
+    public bool HasRejection => Rejection is not null;
 }

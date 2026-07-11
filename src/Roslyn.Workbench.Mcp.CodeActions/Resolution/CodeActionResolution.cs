@@ -18,11 +18,5 @@ internal sealed record CodeActionResolution<T>
     [MemberNotNullWhen(false, nameof(Action))]
     [MemberNotNullWhen(false, nameof(Descriptor))]
     [MemberNotNullWhen(false, nameof(Document))]
-    public bool HasRejection
-    {
-        get
-        {
-            return Rejection is not null;
-        }
-    }
+    public bool HasRejection => Rejection is not null;
 }

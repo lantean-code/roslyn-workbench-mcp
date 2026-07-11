@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Roslyn.Workbench.Mcp.Plugins.Execution;
 
 /// <summary>
@@ -25,6 +27,13 @@ public sealed class ToolExecutionContextLease<TContext> : IAsyncDisposable
     /// Gets the host-generated short-circuit result, when the invocation should not reach the plugin.
     /// </summary>
     public ToolExecutionFailureResult? ShortCircuitResult { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether execution should return the short-circuit result.
+    /// </summary>
+    [MemberNotNullWhen(true, nameof(ShortCircuitResult))]
+    [MemberNotNullWhen(false, nameof(Context))]
+    public bool HasShortCircuitResult => ShortCircuitResult is not null;
 
     /// <summary>
     /// Creates a successful leased context.

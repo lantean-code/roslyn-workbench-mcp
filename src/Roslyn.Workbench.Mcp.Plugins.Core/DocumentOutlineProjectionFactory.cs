@@ -8,8 +8,7 @@ internal static class DocumentOutlineProjectionFactory
     {
         return syntaxNode.ChildNodes()
             .Select(node => CreateOutlineNode(node, semanticModel, resolver, includeMembers, cancellationToken))
-            .Where(static node => node is not null)
-            .Select(static node => node!)
+            .OfType<OutlineNode>()
             .ToArray();
     }
 

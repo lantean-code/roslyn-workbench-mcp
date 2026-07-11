@@ -2,12 +2,9 @@ namespace Roslyn.Workbench.Mcp.Plugins.Execution;
 
 internal static class PluginWorkspaceResultMapper
 {
-    public static ToolExecutionFailureResult? MapFailure(WorkspaceExecutionFailure? failure)
+    public static ToolExecutionFailureResult MapFailure(WorkspaceExecutionFailure failure)
     {
-        if (failure is null)
-        {
-            return null;
-        }
+        ArgumentNullException.ThrowIfNull(failure);
 
         return new ToolExecutionFailureResult
         {
@@ -26,10 +23,10 @@ internal static class PluginWorkspaceResultMapper
     {
         return result.Status switch
         {
-            WorkspaceOperationStatus.Succeeded => PluginExecutionResult<MutationData>.Success(
+            WorkspaceOperationStatus.Succeeded when result.HasData => PluginExecutionResult<MutationData>.Success(
                 new MutationData
                 {
-                    Operation = result.Data!.Operation,
+                    Operation = result.Data.Operation,
                     Summary = result.Data.Summary,
                     Transaction = result.Data.Transaction,
                     Preview = result.Data.Preview,
@@ -37,21 +34,21 @@ internal static class PluginWorkspaceResultMapper
                 result.Data.Changes,
                 result.Diagnostics,
                 result.Warnings),
-            WorkspaceOperationStatus.Rejected => PluginExecutionResult<MutationData>.Rejected(
-                MapError(result.Error!),
-                result.Error!.RequiredAction,
+            WorkspaceOperationStatus.Rejected when result.HasError => PluginExecutionResult<MutationData>.Rejected(
+                MapError(result.Error),
+                result.Error.RequiredAction,
                 result.Diagnostics,
                 result.Warnings),
-            WorkspaceOperationStatus.Conflict => PluginExecutionResult<MutationData>.Conflict(
-                MapError(result.Error!),
-                result.Error!.RequiredAction,
+            WorkspaceOperationStatus.Conflict when result.HasError => PluginExecutionResult<MutationData>.Conflict(
+                MapError(result.Error),
+                result.Error.RequiredAction,
                 result.Diagnostics,
                 result.Warnings),
-            WorkspaceOperationStatus.Faulted => new PluginExecutionResult<MutationData>
+            WorkspaceOperationStatus.Faulted when result.HasError => new PluginExecutionResult<MutationData>
             {
                 Outcome = PluginExecutionOutcome.Faulted,
-                Error = MapError(result.Error!),
-                RequiredAction = result.Error!.RequiredAction,
+                Error = MapError(result.Error),
+                RequiredAction = result.Error.RequiredAction,
                 Diagnostics = result.Diagnostics,
                 Warnings = result.Warnings,
             },

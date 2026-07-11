@@ -141,12 +141,12 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
         IDictionary<string, WorkspaceInputDirectoryFingerprint> directories,
         string? path)
     {
-        if (!ShouldTrackDirectory(path))
+        if (path is null || !ShouldTrackDirectory(path))
         {
             return null;
         }
 
-        var directory = _fileSystem.DirectoryInfo.New(path!);
+        var directory = _fileSystem.DirectoryInfo.New(path);
         if (directory.Exists)
         {
             directories[directory.FullName] = new WorkspaceInputDirectoryFingerprint

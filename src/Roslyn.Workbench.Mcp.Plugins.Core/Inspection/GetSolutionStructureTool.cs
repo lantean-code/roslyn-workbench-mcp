@@ -33,15 +33,15 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
                 TargetFrameworks = context.ToolExecutionServices.ProjectStructureService.GetTargetFrameworks(project),
                 ProjectReferences = project.ProjectReferences
                     .Select(reference => context.CurrentSolution.GetProject(reference.ProjectId))
-                    .Where(static project => project is not null)
-                    .Select(project => InspectionProjectionFactory.CreateProjectReferenceInfo(project!, context.WorkspaceResolver))
+                    .OfType<Project>()
+                    .Select(project => InspectionProjectionFactory.CreateProjectReferenceInfo(project, context.WorkspaceResolver))
                     .OrderBy(static reference => reference.Path, StringComparer.Ordinal)
                     .ToArray(),
                 Documents = request.IncludeDocuments
                     ? project.Documents
-                        .Where(static document => !string.IsNullOrWhiteSpace(document.FilePath))
-                        .OrderBy(document => context.WorkspaceResolver.NormalizeDocumentPath(document.FilePath!), StringComparer.Ordinal)
-                        .Select(document => context.WorkspaceResolver.CreateDocumentReference(document)!)
+                        .OrderBy(document => context.WorkspaceResolver.NormalizeDocumentPath(document.FilePath ?? document.Name), StringComparer.Ordinal)
+                        .Select(document => context.WorkspaceResolver.CreateDocumentReference(document))
+                        .OfType<DocumentReference>()
                         .ToArray()
                     : null,
             })

@@ -32,7 +32,8 @@ internal sealed class MutationStagingService : IMutationStagingService
     {
         cancellationToken.ThrowIfCancellationRequested();
         var hostSnapshot = _sessionStore.ReadSnapshot();
-        if (string.IsNullOrWhiteSpace(hostSnapshot.TransactionOwnerWorkspaceId))
+        var transactionOwnerWorkspaceId = hostSnapshot.TransactionOwnerWorkspaceId;
+        if (string.IsNullOrWhiteSpace(transactionOwnerWorkspaceId))
         {
             return _resultFactory.Rejected<MutationStagingOutcome>(
                 WorkspaceErrorCodes.TransactionRequired,
@@ -40,7 +41,7 @@ internal sealed class MutationStagingService : IMutationStagingService
                 RequiredAction.StartTransaction);
         }
 
-        var session = _sessionStore.ReadSession(hostSnapshot.TransactionOwnerWorkspaceId!);
+        var session = _sessionStore.ReadSession(transactionOwnerWorkspaceId);
         if (session?.Transaction is null)
         {
             return _resultFactory.Rejected<MutationStagingOutcome>(
@@ -58,16 +59,19 @@ internal sealed class MutationStagingService : IMutationStagingService
                 warnings: warnings);
         }
 
+        var candidateSolution = proposal.CandidateSolution
+            ?? throw new InvalidOperationException("A validated mutation proposal did not contain a candidate solution.");
+
         var transaction = session.Transaction;
         var stagedChanges = await _diffBuilder.CreateChangeSummaryAsync(
             transaction.BaselineSolution,
-            proposal.CandidateSolution!,
-            _resolverFactory.Create(proposal.CandidateSolution!, session.Workspace, transaction.CurrentRevision + 1),
+            candidateSolution,
+            _resolverFactory.Create(candidateSolution, session.Workspace, transaction.CurrentRevision + 1),
             cancellationToken);
         var retainedRevisions = transaction.Revisions.Take(transaction.CurrentRevision).ToArray();
         var revision = new WorkspaceTransactionRevision
         {
-            Solution = proposal.CandidateSolution!,
+            Solution = candidateSolution,
             Changes = stagedChanges,
             Operation = operationName,
             Summary = proposal.Summary,

@@ -125,8 +125,9 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             .SelectMany(static project => project.Documents
                 .Select(static document => document.FilePath)
                 .Prepend(project.FilePath))
+            .OfType<string>()
             .Where(static inputPath => !string.IsNullOrWhiteSpace(inputPath));
-        if (loadedInputPaths.Any(inputPath => !_workspaceRootResolver.Contains(resolvedWorkspaceRoot, inputPath!)))
+        if (loadedInputPaths.Any(inputPath => !_workspaceRootResolver.Contains(resolvedWorkspaceRoot, inputPath)))
         {
             loadedWorkspace.Workspace.Dispose();
             return _resultFactory.Rejected<WorkspaceOpenOutcome>(
@@ -145,13 +146,15 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             loadedWorkspace.Diagnostics,
             operationGate: null);
 
-        foreach (var project in session.CurrentSolution.Projects
+        foreach (var projectPath in session.CurrentSolution.Projects
                      .Where(static project => string.Equals(project.Language, LanguageNames.CSharp, StringComparison.Ordinal))
-                     .Where(static project => !string.IsNullOrWhiteSpace(project.FilePath)))
+                     .Select(static project => project.FilePath)
+                     .OfType<string>()
+                     .Where(static path => !string.IsNullOrWhiteSpace(path)))
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var projectCompatibility = _workspaceLoader.InspectCompatibility(project.FilePath!);
+            var projectCompatibility = _workspaceLoader.InspectCompatibility(projectPath);
             if (projectCompatibility.Diagnostics.Count > 0)
             {
                 session.LoadedWorkspace.Dispose();

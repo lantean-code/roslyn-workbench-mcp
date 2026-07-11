@@ -42,7 +42,10 @@ internal sealed class FindCallersTool : QueryToolHandler<FindCallersRequest, Cal
             {
                 foreach (var location in caller.Locations.Where(static location => location.IsInSource))
                 {
-                    var contextLine = await context.ToolExecutionServices.InspectionContextService.ReadContextAsync(context.CurrentSolution.GetDocument(location.SourceTree!), location.SourceSpan, cancellationToken).ConfigureAwait(false);
+                    var document = location.SourceTree is null
+                        ? null
+                        : context.CurrentSolution.GetDocument(location.SourceTree);
+                    var contextLine = await context.ToolExecutionServices.InspectionContextService.ReadContextAsync(document, location.SourceSpan, cancellationToken).ConfigureAwait(false);
                     if (!string.IsNullOrWhiteSpace(contextLine))
                     {
                         contexts.Add(contextLine);
@@ -56,17 +59,16 @@ internal sealed class FindCallersTool : QueryToolHandler<FindCallersRequest, Cal
                 Locations = caller.Locations
                     .Where(static location => location.IsInSource)
                     .Select(location => context.WorkspaceResolver.CreateResolvedLocation(location))
-                    .Where(static location => location is not null)
-                    .Select(static location => location!)
-                    .OrderBy(static location => location.Document!.Path, StringComparer.Ordinal)
-                    .ThenBy(static location => location.Span!.Start)
+                    .OfType<ResolvedLocation>()
+                    .OrderBy(static location => location.Document?.Path, StringComparer.Ordinal)
+                    .ThenBy(static location => location.Span?.Start)
                     .ToArray(),
                 Contexts = request.IncludeContext ? contexts.ToArray() : [],
             });
         }
 
         var orderedCallers = callers
-            .OrderBy(static caller => caller.Caller!.DisplayName, StringComparer.Ordinal)
+            .OrderBy(static caller => caller.Caller?.DisplayName, StringComparer.Ordinal)
             .ToArray();
         var symbolReference = context.WorkspaceResolver.CreateSymbolReference(symbol);
 

@@ -85,7 +85,7 @@ internal static class ToolSchemaBuilder
 
     public static JsonNode AllowNull(JsonElement schema)
     {
-        var schemaObject = JsonNode.Parse(schema.GetRawText())!.AsObject();
+        var schemaObject = ParseObject(schema);
 
         if (schemaObject["type"] is JsonValue typeValue)
         {
@@ -129,7 +129,7 @@ internal static class ToolSchemaBuilder
     private static JsonElement CreateDirectOutputSchemaCore(Type responseType)
     {
         var valueSchema = CreateValueSchema(responseType);
-        var valueObject = JsonNode.Parse(valueSchema.GetRawText())!.AsObject();
+        var valueObject = ParseObject(valueSchema);
         var successProperties = new JsonObject
         {
             ["ok"] = new JsonObject
@@ -151,7 +151,10 @@ internal static class ToolSchemaBuilder
         {
             foreach (var requiredProperty in requiredProperties)
             {
-                successRequired.Add(requiredProperty!.DeepClone());
+                if (requiredProperty is not null)
+                {
+                    successRequired.Add(requiredProperty.DeepClone());
+                }
             }
         }
 
@@ -167,7 +170,7 @@ internal static class ToolSchemaBuilder
 
     private static JsonElement CreateInputSchemaCore<TRequest>()
     {
-        var method = typeof(SchemaProbe<TRequest>).GetMethod(nameof(SchemaProbe<TRequest>.Invoke), BindingFlags.Public | BindingFlags.Static)!;
+        var method = GetRequiredMethod(typeof(SchemaProbe<TRequest>), nameof(SchemaProbe<TRequest>.Invoke), BindingFlags.Public | BindingFlags.Static);
         var tool = McpServerTool.Create(method);
         var root = tool.ProtocolTool.InputSchema;
         var requestSchema = root.GetProperty("properties").GetProperty("request");
@@ -182,16 +185,17 @@ internal static class ToolSchemaBuilder
             return CreateBoundedCollectionSchema(valueType.GetGenericArguments()[0]);
         }
 
-        var method = typeof(ToolSchemaBuilder)
-            .GetMethod(nameof(CreateValueSchemaCoreGeneric), BindingFlags.NonPublic | BindingFlags.Static)!
+        var method = GetRequiredMethod(typeof(ToolSchemaBuilder), nameof(CreateValueSchemaCoreGeneric), BindingFlags.NonPublic | BindingFlags.Static)
             .MakeGenericMethod(valueType);
 
-        return (JsonElement)method.Invoke(null, null)!;
+        return method.Invoke(null, null) is JsonElement schema
+            ? schema
+            : throw new InvalidOperationException("Schema generation did not return a JSON element.");
     }
 
     private static JsonElement CreateValueSchemaCoreGeneric<TValue>()
     {
-        var method = typeof(SchemaValueProbe<TValue>).GetMethod(nameof(SchemaValueProbe<TValue>.Invoke), BindingFlags.Public | BindingFlags.Static)!;
+        var method = GetRequiredMethod(typeof(SchemaValueProbe<TValue>), nameof(SchemaValueProbe<TValue>.Invoke), BindingFlags.Public | BindingFlags.Static);
         var tool = McpServerTool.Create(method);
         var root = tool.ProtocolTool.InputSchema;
         var requestSchema = root.GetProperty("properties").GetProperty("request");
@@ -202,7 +206,7 @@ internal static class ToolSchemaBuilder
 
     private static JsonElement CloneSchemaNode(JsonElement schemaNode, JsonElement root)
     {
-        var schemaObject = JsonNode.Parse(schemaNode.GetRawText())!.AsObject();
+        var schemaObject = ParseObject(schemaNode);
 
         if (schemaObject["type"] is JsonArray typeArray && typeArray.Any(static node => string.Equals(node?.GetValue<string>(), "object", StringComparison.Ordinal)))
         {
@@ -228,13 +232,25 @@ internal static class ToolSchemaBuilder
                 continue;
             }
 
-            foreach (var definition in JsonNode.Parse(childDefinitions.GetRawText())!.AsObject())
+            foreach (var definition in ParseObject(childDefinitions))
             {
                 definitions[definition.Key] = definition.Value?.DeepClone();
             }
         }
 
         return definitions;
+    }
+
+    private static MethodInfo GetRequiredMethod(Type type, string name, BindingFlags bindingFlags)
+    {
+        return type.GetMethod(name, bindingFlags)
+            ?? throw new InvalidOperationException($"Schema method '{type.FullName}.{name}' was not found.");
+    }
+
+    private static JsonObject ParseObject(JsonElement element)
+    {
+        return JsonNode.Parse(element.GetRawText()) as JsonObject
+            ?? throw new InvalidOperationException("Generated schema was not a JSON object.");
     }
 
     private static JsonElement CreateBoundedCollectionSchema(Type itemType)

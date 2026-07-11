@@ -41,7 +41,9 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         {
             cancellationToken.ThrowIfCancellationRequested();
             var path = GetArtifactPath(plan.Manifest.CommitId, artifact.Key);
-            _fileSystem.Directory.CreateDirectory(_fileSystem.Path.GetDirectoryName(path)!);
+            var artifactDirectory = _fileSystem.Path.GetDirectoryName(path)
+                ?? throw new InvalidOperationException($"The recovery artifact '{path}' does not have a parent directory.");
+            _fileSystem.Directory.CreateDirectory(artifactDirectory);
             await _atomicFileWriter.WriteAllBytesAsync(path, artifact.Value, cancellationToken).ConfigureAwait(false);
         }
 

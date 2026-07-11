@@ -87,8 +87,8 @@ internal sealed class FindReferencesTool : QueryToolHandler<FindReferencesReques
         }
 
         var orderedReferences = references
-            .OrderBy(static reference => reference.Location!.Document!.Path, StringComparer.Ordinal)
-            .ThenBy(static reference => reference.Location!.Span!.Start)
+            .OrderBy(static reference => reference.Location?.Document?.Path, StringComparer.Ordinal)
+            .ThenBy(static reference => reference.Location?.Span?.Start)
             .ToArray();
         var symbolReference = context.WorkspaceResolver.CreateSymbolReference(symbol);
 

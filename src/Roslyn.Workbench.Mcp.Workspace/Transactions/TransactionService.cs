@@ -202,9 +202,9 @@ internal sealed class TransactionService : ITransactionService
         if (includeDiff && document is not null)
         {
             var resolution = resolver.ResolveDocument(document);
-            if (resolution.Status == SelectorResolveStatus.Resolved)
+            if (resolution.IsResolved)
             {
-                var reference = resolver.CreateDocumentReference(resolution.Value!);
+                var reference = resolver.CreateDocumentReference(resolution.Value);
                 diff = reference is null
                     ? null
                     : await _diffBuilder.CreateDocumentDiffAsync(

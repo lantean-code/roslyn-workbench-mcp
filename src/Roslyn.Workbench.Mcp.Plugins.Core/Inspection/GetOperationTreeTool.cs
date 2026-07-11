@@ -26,8 +26,13 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
             return syntaxNodeResolution.Rejection;
         }
 
-        var resolvedNode = syntaxNodeResolution.Node!;
-        var resolvedSemanticModel = syntaxNodeResolution.SemanticModel!;
+        if (syntaxNodeResolution.Node is null || syntaxNodeResolution.SemanticModel is null)
+        {
+            throw new InvalidOperationException("A successful syntax-node resolution must contain a node and semantic model.");
+        }
+
+        var resolvedNode = syntaxNodeResolution.Node;
+        var resolvedSemanticModel = syntaxNodeResolution.SemanticModel;
         var operation = resolvedSemanticModel.GetOperation(resolvedNode, cancellationToken)
             ?? resolvedNode.ChildNodes().Select(child => resolvedSemanticModel.GetOperation(child, cancellationToken)).FirstOrDefault(static item => item is not null);
         if (operation is null)
@@ -82,7 +87,7 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
         }
 
         var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken).ConfigureAwait(false);
-        if (locationResolution.Status != SelectorResolveStatus.Resolved)
+        if (!locationResolution.IsResolved)
         {
             return new SyntaxNodeResolution
             {
@@ -90,7 +95,8 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
             };
         }
 
-        var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(locationResolution.Value!);
+        var location = locationResolution.Value;
+        var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(location);
         if (resolvedLocation?.Document?.Path is null)
         {
             return new SyntaxNodeResolution
@@ -99,7 +105,9 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
             };
         }
 
-        var document = context.CurrentSolution.GetDocument(locationResolution.Value!.SourceTree!);
+        var document = location.SourceTree is null
+            ? null
+            : context.CurrentSolution.GetDocument(location.SourceTree);
         if (document is null)
         {
             return new SyntaxNodeResolution
@@ -120,7 +128,7 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
 
         return new SyntaxNodeResolution
         {
-            Node = syntaxRoot.FindNode(locationResolution.Value.SourceSpan, getInnermostNodeForTie: true),
+            Node = syntaxRoot.FindNode(location.SourceSpan, getInnermostNodeForTie: true),
             SemanticModel = semanticModel,
         };
     }

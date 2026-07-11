@@ -98,7 +98,15 @@ internal sealed class PluginCatalogLoader
                         : "Plugin assembly contains multiple IRoslynPlugin entry points.");
             }
 
-            var plugin = (IRoslynPlugin)Activator.CreateInstance(pluginTypes[0])!;
+            if (Activator.CreateInstance(pluginTypes[0]) is not IRoslynPlugin plugin)
+            {
+                return DisabledAssembly(
+                    assembly,
+                    assembly.GetName().Name ?? assembly.FullName ?? "unknown-assembly",
+                    assembly.GetName().Name ?? assembly.FullName ?? "unknown-assembly",
+                    assembly.GetName().Version?.ToString() ?? "0.0.0",
+                    "Plugin entry point could not be created.");
+            }
             var registry = new PluginRegistry(plugin.Metadata);
             plugin.Register(registry);
 

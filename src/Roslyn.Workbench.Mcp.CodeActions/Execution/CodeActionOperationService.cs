@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Roslyn.Workbench.Mcp.CodeActions.Execution;
 
 internal sealed class CodeActionOperationService : ICodeActionOperationService
@@ -44,7 +46,7 @@ internal sealed class CodeActionOperationService : ICodeActionOperationService
 
         return CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal
         {
-            CandidateSolution = applyChanges!.ChangedSolution,
+            CandidateSolution = applyChanges.ChangedSolution,
             Summary = summary,
         });
     }
@@ -153,12 +155,13 @@ internal sealed class CodeActionOperationService : ICodeActionOperationService
 
         return new CodeActionApplyResult
         {
-            CandidateSolution = applyChanges!.ChangedSolution,
+            CandidateSolution = applyChanges.ChangedSolution,
         };
     }
 
     private static bool TryGetSupportedApplyChangesOperation(
         IReadOnlyList<CodeActionOperation> operations,
+        [NotNullWhen(true)]
         out ApplyChangesOperation? applyChanges)
     {
         applyChanges = null;

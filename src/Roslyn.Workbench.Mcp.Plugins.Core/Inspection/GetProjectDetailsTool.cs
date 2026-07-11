@@ -31,16 +31,16 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
         var targetFrameworks = context.ToolExecutionServices.ProjectStructureService.GetTargetFrameworks(project);
         var documents = request.IncludeDocuments
             ? project.Documents
-                .Where(static document => !string.IsNullOrWhiteSpace(document.FilePath))
-                .OrderBy(document => context.WorkspaceResolver.NormalizeDocumentPath(document.FilePath!), StringComparer.Ordinal)
-                .Select(document => context.WorkspaceResolver.CreateDocumentReference(document)!)
+                .OrderBy(document => context.WorkspaceResolver.NormalizeDocumentPath(document.FilePath ?? document.Name), StringComparer.Ordinal)
+                .Select(document => context.WorkspaceResolver.CreateDocumentReference(document))
+                .OfType<DocumentReference>()
                 .ToArray()
             : null;
 
         var projectReferences = project.ProjectReferences
             .Select(reference => context.CurrentSolution.GetProject(reference.ProjectId))
-            .Where(static referencedProject => referencedProject is not null)
-            .Select(referencedProject => InspectionProjectionFactory.CreateProjectReferenceInfo(referencedProject!, context.WorkspaceResolver))
+            .OfType<Project>()
+            .Select(referencedProject => InspectionProjectionFactory.CreateProjectReferenceInfo(referencedProject, context.WorkspaceResolver))
             .OrderBy(static reference => reference.Path, StringComparer.Ordinal)
             .ToArray();
         var metadataReferences = project.MetadataReferences

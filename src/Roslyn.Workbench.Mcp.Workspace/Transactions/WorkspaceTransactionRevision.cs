@@ -4,7 +4,7 @@ namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
 internal sealed record WorkspaceTransactionRevision
 {
-    public Solution Solution { get; init; } = null!;
+    public required Solution Solution { get; init; }
 
     public ChangeSummary Changes { get; init; } = new();
 

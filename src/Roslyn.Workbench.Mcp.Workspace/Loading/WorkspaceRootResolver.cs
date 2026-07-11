@@ -2,10 +2,9 @@ namespace Roslyn.Workbench.Mcp.Workspace.Loading;
 
 internal sealed class WorkspaceRootResolver : IWorkspaceRootResolver
 {
-    private static StringComparison PathComparison
-    {
-        get { return OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal; }
-    }
+    private static StringComparison PathComparison => OperatingSystem.IsWindows()
+        ? StringComparison.OrdinalIgnoreCase
+        : StringComparison.Ordinal;
 
     private readonly IFileSystem _fileSystem;
 

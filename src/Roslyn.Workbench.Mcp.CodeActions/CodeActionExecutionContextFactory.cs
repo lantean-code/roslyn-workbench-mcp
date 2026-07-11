@@ -27,7 +27,7 @@ internal sealed class CodeActionExecutionContextFactory : ICodeActionExecutionCo
         return new CodeActionQueryExecutionLease(
             workspaceLease,
             context,
-            CodeActionWorkspaceResultMapper.MapFailure(workspaceLease.Failure));
+            workspaceLease.Failure is null ? null : CodeActionWorkspaceResultMapper.MapFailure(workspaceLease.Failure));
     }
 
     public CodeActionMutationExecutionLease CreateMutationContext(
@@ -41,6 +41,6 @@ internal sealed class CodeActionExecutionContextFactory : ICodeActionExecutionCo
         return new CodeActionMutationExecutionLease(
             workspaceLease,
             context,
-            CodeActionWorkspaceResultMapper.MapFailure(workspaceLease.Failure));
+            workspaceLease.Failure is null ? null : CodeActionWorkspaceResultMapper.MapFailure(workspaceLease.Failure));
     }
 }

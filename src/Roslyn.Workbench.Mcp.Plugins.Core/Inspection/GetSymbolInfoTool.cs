@@ -37,10 +37,9 @@ internal sealed class GetSymbolInfoTool : QueryToolHandler<GetSymbolInfoRequest,
             Declarations = symbol.Locations
                 .Where(static location => location.IsInSource)
                 .Select(location => context.WorkspaceResolver.CreateResolvedLocation(location))
-                .Where(static location => location is not null)
-                .Select(static location => location!)
-                .OrderBy(static location => location.Document!.Path, StringComparer.Ordinal)
-                .ThenBy(static location => location.Span!.Start)
+                .OfType<ResolvedLocation>()
+                .OrderBy(static location => location.Document?.Path, StringComparer.Ordinal)
+                .ThenBy(static location => location.Span?.Start)
                 .ToArray(),
         };
 

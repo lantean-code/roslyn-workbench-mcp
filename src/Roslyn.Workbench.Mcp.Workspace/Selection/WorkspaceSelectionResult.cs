@@ -14,13 +14,7 @@ internal sealed class WorkspaceSelectionResult
 
     [MemberNotNullWhen(true, nameof(Error))]
     [MemberNotNullWhen(false, nameof(Selection))]
-    public bool HasError
-    {
-        get
-        {
-            return Error is not null;
-        }
-    }
+    public bool HasError => Error is not null;
 
     public WorkspaceOperationError? Error
     {

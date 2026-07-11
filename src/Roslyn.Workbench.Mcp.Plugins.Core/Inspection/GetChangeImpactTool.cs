@@ -84,8 +84,8 @@ internal sealed class GetChangeImpactTool : QueryToolHandler<GetChangeImpactRequ
         };
 
         var orderedLocations = locations
-            .OrderBy(static location => location.Location!.Document!.Path, StringComparer.Ordinal)
-            .ThenBy(static location => location.Location!.Span!.Start)
+            .OrderBy(static location => location.Location?.Document?.Path, StringComparer.Ordinal)
+            .ThenBy(static location => location.Location?.Span?.Start)
             .ToArray();
         var impact = new ImpactSummary
         {

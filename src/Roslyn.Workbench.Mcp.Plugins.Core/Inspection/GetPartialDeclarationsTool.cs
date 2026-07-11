@@ -27,10 +27,9 @@ internal sealed class GetPartialDeclarationsTool : QueryToolHandler<GetPartialDe
         var symbol = symbolResolution.Value;
         var declarations = symbol.DeclaringSyntaxReferences
             .Select(reference => context.WorkspaceResolver.CreateResolvedLocation(reference.SyntaxTree.GetLocation(reference.Span)))
-            .Where(static item => item is not null)
-            .Select(static item => item!)
-            .OrderBy(static item => item.Document!.Path, StringComparer.Ordinal)
-            .ThenBy(static item => item.Span!.Start)
+            .OfType<ResolvedLocation>()
+            .OrderBy(static item => item.Document?.Path, StringComparer.Ordinal)
+            .ThenBy(static item => item.Span?.Start)
             .ToArray();
 
         return PluginExecutionResult<PartialDeclarationsData>.Success(new PartialDeclarationsData

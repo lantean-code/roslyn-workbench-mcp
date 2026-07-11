@@ -1,7 +1,9 @@
 namespace Roslyn.Workbench.Mcp.Workspace.Test.Transactions;
 
-public sealed class WorkspaceTransactionTests
+public sealed class WorkspaceTransactionTests : IDisposable
 {
+    private readonly AdhocWorkspace _workspace = new();
+
     [Fact]
     public void GIVEN_ZeroCurrentRevision_WHEN_GettingCurrentSolution_THEN_ShouldReturnBaselineSolution()
     {
@@ -46,6 +48,7 @@ public sealed class WorkspaceTransactionTests
     {
         var target = new WorkspaceTransaction
         {
+            BaselineSolution = _workspace.CurrentSolution,
             CurrentRevision = 0,
             MaxRevisions = 3,
         };
@@ -68,7 +71,8 @@ public sealed class WorkspaceTransactionTests
     {
         var target = new WorkspaceTransaction
         {
-            Revisions = [new WorkspaceTransactionRevision(), new WorkspaceTransactionRevision()],
+            BaselineSolution = _workspace.CurrentSolution,
+            Revisions = [CreateRevision(_workspace.CurrentSolution), CreateRevision(_workspace.CurrentSolution)],
             CurrentRevision = 1,
             MaxRevisions = 3,
         };
@@ -90,7 +94,8 @@ public sealed class WorkspaceTransactionTests
     {
         var target = new WorkspaceTransaction
         {
-            Revisions = [new WorkspaceTransactionRevision(), new WorkspaceTransactionRevision()],
+            BaselineSolution = _workspace.CurrentSolution,
+            Revisions = [CreateRevision(_workspace.CurrentSolution), CreateRevision(_workspace.CurrentSolution)],
             CurrentRevision = 2,
             MaxRevisions = 2,
         };
@@ -109,10 +114,11 @@ public sealed class WorkspaceTransactionTests
     {
         var target = new WorkspaceTransaction
         {
+            BaselineSolution = _workspace.CurrentSolution,
             Revisions =
             [
-                new WorkspaceTransactionRevision(),
-                new WorkspaceTransactionRevision(),
+                CreateRevision(_workspace.CurrentSolution),
+                CreateRevision(_workspace.CurrentSolution),
             ],
             CurrentRevision = 3,
             MaxRevisions = 2,
@@ -132,7 +138,8 @@ public sealed class WorkspaceTransactionTests
     {
         var target = new WorkspaceTransaction
         {
-            Revisions = [new WorkspaceTransactionRevision()],
+            BaselineSolution = _workspace.CurrentSolution,
+            Revisions = [CreateRevision(_workspace.CurrentSolution)],
             CurrentRevision = 1,
             MaxRevisions = 3,
         };
@@ -143,6 +150,11 @@ public sealed class WorkspaceTransactionTests
         result.CanUndo.Should().BeTrue();
         result.CanCommit.Should().BeFalse();
         result.CanRollback.Should().BeTrue();
+    }
+
+    public void Dispose()
+    {
+        _workspace.Dispose();
     }
 
     private static WorkspaceTransactionRevision CreateRevision(Solution solution)

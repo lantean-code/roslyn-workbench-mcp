@@ -24,7 +24,7 @@ internal sealed class PluginExecutionContextFactory : IToolExecutionContextFacto
         return new PluginMutationExecutionLease(
             workspaceLease,
             context,
-            PluginWorkspaceResultMapper.MapFailure(workspaceLease.Failure));
+            workspaceLease.Failure is null ? null : PluginWorkspaceResultMapper.MapFailure(workspaceLease.Failure));
     }
 
     public ToolExecutionContextLease<IQueryContext> CreateQueryContext(
@@ -36,10 +36,10 @@ internal sealed class PluginExecutionContextFactory : IToolExecutionContextFacto
             ? null
             : new PluginQueryContext(workspaceLease.Context, _toolExecutionServices);
 
-        if (workspaceLease.Failure is not null)
+        if (workspaceLease.Failure is { } failure)
         {
             return ToolExecutionContextLease<IQueryContext>.Rejected(
-                PluginWorkspaceResultMapper.MapFailure(workspaceLease.Failure)!,
+                PluginWorkspaceResultMapper.MapFailure(failure),
                 context,
                 workspaceLease);
         }

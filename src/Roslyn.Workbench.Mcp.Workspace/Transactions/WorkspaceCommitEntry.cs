@@ -17,4 +17,19 @@ internal sealed record WorkspaceCommitEntry
     public string? StagedPath { get; init; }
 
     public string? DeleteMarkerPath { get; init; }
+
+    public string GetRequiredBackupPath()
+    {
+        return BackupPath ?? throw new InvalidOperationException("The commit entry does not contain a backup path.");
+    }
+
+    public string GetRequiredStagedPath()
+    {
+        return StagedPath ?? throw new InvalidOperationException("The commit entry does not contain a staged path.");
+    }
+
+    public string GetRequiredDeleteMarkerPath()
+    {
+        return DeleteMarkerPath ?? throw new InvalidOperationException("The commit entry does not contain a delete marker path.");
+    }
 }

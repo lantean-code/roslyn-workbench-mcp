@@ -20,8 +20,8 @@ internal sealed class DefaultToolRequestResolver : IToolRequestResolver
         }
 
         var resolution = context.WorkspaceResolver.ResolveDocument(selector);
-        return resolution.Status == SelectorResolveStatus.Resolved
-            ? new ToolResolutionResult<Document, TResponse> { Value = resolution.Value! }
+        return resolution.IsResolved
+            ? new ToolResolutionResult<Document, TResponse> { Value = resolution.Value }
             : new ToolResolutionResult<Document, TResponse> { Rejection = ToolExecutionHelpers.RejectFromStatus<TResponse>(resolution.Status, "Document") };
     }
 
@@ -36,8 +36,8 @@ internal sealed class DefaultToolRequestResolver : IToolRequestResolver
         }
 
         var resolution = context.WorkspaceResolver.ResolveProject(selector);
-        return resolution.Status == SelectorResolveStatus.Resolved
-            ? new ToolResolutionResult<Project, TResponse> { Value = resolution.Value! }
+        return resolution.IsResolved
+            ? new ToolResolutionResult<Project, TResponse> { Value = resolution.Value }
             : new ToolResolutionResult<Project, TResponse> { Rejection = ToolExecutionHelpers.RejectFromStatus<TResponse>(resolution.Status, "Project") };
     }
 
@@ -141,8 +141,8 @@ internal sealed class DefaultToolRequestResolver : IToolRequestResolver
         }
 
         var resolution = await context.WorkspaceResolver.ResolveSymbolAsync(selector, cancellationToken).ConfigureAwait(false);
-        return resolution.Status == SelectorResolveStatus.Resolved
-            ? new ToolResolutionResult<ISymbol, TResponse> { Value = resolution.Value! }
+        return resolution.IsResolved
+            ? new ToolResolutionResult<ISymbol, TResponse> { Value = resolution.Value }
             : new ToolResolutionResult<ISymbol, TResponse> { Rejection = ToolExecutionHelpers.RejectFromStatus<TResponse>(resolution.Status, "Symbol") };
     }
 

@@ -38,7 +38,8 @@ internal sealed class WorkspaceSelectorService : IWorkspaceSelector
             return WorkspaceSelectionResult.Failure(resolution.Error);
         }
 
-        var workspaceId = resolution.WorkspaceId!;
+        var workspaceId = resolution.WorkspaceId
+            ?? throw new InvalidOperationException("Successful workspace resolution did not provide a workspace identifier.");
         return WorkspaceSelectionResult.Success(
             new WorkspaceSelection
             {
@@ -72,14 +73,15 @@ internal sealed class WorkspaceSelectorService : IWorkspaceSelector
             }
         }
 
-        if (IsProvided(selector.WorkspaceId))
+        var selectorWorkspaceId = selector.WorkspaceId;
+        if (!string.IsNullOrWhiteSpace(selectorWorkspaceId))
         {
-            if (!hostSnapshot.Workspaces.ContainsKey(selector.WorkspaceId!))
+            if (!hostSnapshot.Workspaces.ContainsKey(selectorWorkspaceId))
             {
                 return (null, CreateError(_workspaceSelectorNotFoundCode, "The workspace selector did not match any loaded workspace.", RequiredAction.ResolveTargetAgain));
             }
 
-            MatchWorkspaceId(selector.WorkspaceId!);
+            MatchWorkspaceId(selectorWorkspaceId);
         }
 
         if (IsProvided(selector.Alias))
@@ -93,9 +95,10 @@ internal sealed class WorkspaceSelectorService : IWorkspaceSelector
             MatchWorkspaceId(aliasMatch.Key);
         }
 
-        if (IsProvided(selector.Path))
+        var selectorPath = selector.Path;
+        if (!string.IsNullOrWhiteSpace(selectorPath))
         {
-            var normalizedPath = NormalizeSelectorPath(selector.Path!);
+            var normalizedPath = NormalizeSelectorPath(selectorPath);
             var pathMatch = hostSnapshot.Workspaces.SingleOrDefault(pair => string.Equals(pair.Value.Workspace.LoadedPath, normalizedPath, StringComparison.Ordinal));
             if (string.IsNullOrEmpty(pathMatch.Key))
             {

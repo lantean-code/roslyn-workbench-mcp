@@ -29,7 +29,8 @@ internal sealed class SearchSymbolsTool : QueryToolHandler<SearchSymbolsRequest,
             return ToolExecutionHelpers.Rejected<SymbolSearchData>("InvalidRequest", "Search symbols requires query or metadataName.");
         }
 
-        var pattern = request.Query ?? request.MetadataName!;
+        var pattern = request.Query ?? request.MetadataName
+            ?? throw new InvalidOperationException("A validated symbol search must contain a query or metadata name.");
         var matchedSymbols = new List<ISymbol>();
         foreach (var project in scopeResolution.Value)
         {

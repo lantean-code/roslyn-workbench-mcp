@@ -82,13 +82,23 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
                 return locationResolution.Rejection;
             }
 
-            var operation = GetOperation(locationResolution.SemanticModel!, locationResolution.Node!, cancellationToken);
+            if (locationResolution.SemanticModel is null || locationResolution.Node is null)
+            {
+                throw new InvalidOperationException("A successful location resolution must contain a node and semantic model.");
+            }
+
+            var operation = GetOperation(locationResolution.SemanticModel, locationResolution.Node, cancellationToken);
             if (operation is null)
             {
                 return ToolExecutionHelpers.Rejected<CalleeSearchData>("InvalidRequest", "The selected location does not resolve to executable code.");
             }
 
-            sourceSymbol = locationResolution.SemanticModel!.GetEnclosingSymbol(locationResolution.Node!.SpanStart, cancellationToken)!;
+            var enclosingSymbol = locationResolution.SemanticModel.GetEnclosingSymbol(locationResolution.Node.SpanStart, cancellationToken);
+            if (enclosingSymbol is null)
+            {
+                return ToolExecutionHelpers.Rejected<CalleeSearchData>("SymbolNotFound", "The selected location does not have an enclosing symbol.", RequiredAction.ResolveTargetAgain);
+            }
+            sourceSymbol = enclosingSymbol;
             AddDirectCallees(operation, directCallees);
         }
 
@@ -225,7 +235,7 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
         }
 
         var location = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken).ConfigureAwait(false);
-        if (location.Status != SelectorResolveStatus.Resolved)
+        if (!location.IsResolved)
         {
             return new LocationResolution
             {
@@ -233,7 +243,10 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
             };
         }
 
-        var document = context.CurrentSolution.GetDocument(location.Value!.SourceTree!);
+        var sourceLocation = location.Value;
+        var document = sourceLocation.SourceTree is null
+            ? null
+            : context.CurrentSolution.GetDocument(sourceLocation.SourceTree);
         if (document is null)
         {
             return new LocationResolution
@@ -254,7 +267,7 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
 
         return new LocationResolution
         {
-            Node = syntaxRoot.FindNode(location.Value.SourceSpan, getInnermostNodeForTie: true),
+            Node = syntaxRoot.FindNode(sourceLocation.SourceSpan, getInnermostNodeForTie: true),
             SemanticModel = semanticModel,
         };
     }

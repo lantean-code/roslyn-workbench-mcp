@@ -1,6 +1,6 @@
 # Production Null-Forgiving Operator Audit
 
-## Baseline
+## Historical Baseline
 
 The 2026-07-11 production scan found 167 null-forgiving operators across 46
 files:
@@ -15,7 +15,15 @@ files:
 
 The largest concentrations are resolution results and inspection projections,
 Workspace commit entries, result mappers, and schema/reflection boundaries.
-Four uses initialise non-nullable model properties with `null!`.
+Four uses initialised non-nullable model properties with `null!`.
+
+## Completed Remediation
+
+The 2026-07-11 remediation reduced production use to zero. Shared result types
+now expose nullable-flow evidence for successful states, invalid model states
+use required members, transaction artifacts are accessed through validated
+operations, nullable Roslyn results are checked at their boundaries, and
+nullable projections use checked locals or `OfType<T>`.
 
 ## Remediation Strategy
 
@@ -40,9 +48,7 @@ Four uses initialise non-nullable model properties with `null!`.
 
 ## Enforcement
 
-Add a Roslyn-syntax architecture test that counts
-`SuppressNullableWarningExpression` nodes under `src`. Initially ratchet against
-an explicit reviewed baseline so no new operator can be introduced. Reduce the
-baseline with each remediation group and remove it when the production count
-reaches zero. Any eventual allow-list entry must identify the file, expression
-and written justification; the target remains an empty allow-list.
+`ProductionNullForgivingOperatorAuditTests` parses every C# file under `src` and
+fails when it finds a `SuppressNullableWarningExpression`. There is no baseline
+or allow-list: production code must remain at zero. Any proposed exception must
+first update the production guidance and this audit with a written justification.

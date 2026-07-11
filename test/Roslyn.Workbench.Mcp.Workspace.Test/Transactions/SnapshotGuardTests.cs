@@ -1,11 +1,13 @@
 namespace Roslyn.Workbench.Mcp.Workspace.Test.Transactions;
 
-public sealed class SnapshotGuardTests
+public sealed class SnapshotGuardTests : IDisposable
 {
+    private readonly AdhocWorkspace _workspace;
     private readonly SnapshotGuard _target;
 
     public SnapshotGuardTests()
     {
+        _workspace = new AdhocWorkspace();
         _target = new SnapshotGuard();
     }
 
@@ -109,7 +111,12 @@ public sealed class SnapshotGuardTests
         result.Should().BeNull();
     }
 
-    private static WorkspaceSessionSnapshot CreateSession(WorkspaceTransaction? transaction)
+    public void Dispose()
+    {
+        _workspace.Dispose();
+    }
+
+    private WorkspaceSessionSnapshot CreateSession(WorkspaceTransaction? transaction)
     {
         return new WorkspaceSessionSnapshot
         {
@@ -121,17 +128,18 @@ public sealed class SnapshotGuardTests
                 LoadedPath = "LoadedPath",
             },
             LoadedWorkspace = null!,
-            CurrentSolution = null!,
+            CurrentSolution = _workspace.CurrentSolution,
             Transaction = transaction,
             InputManifest = null!,
             OperationGate = null!,
         };
     }
 
-    private static WorkspaceTransaction CreateTransaction()
+    private WorkspaceTransaction CreateTransaction()
     {
         return new WorkspaceTransaction
         {
+            BaselineSolution = _workspace.CurrentSolution,
             CurrentRevision = 1,
         };
     }

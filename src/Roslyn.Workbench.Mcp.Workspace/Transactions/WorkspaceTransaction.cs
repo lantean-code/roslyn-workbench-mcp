@@ -4,7 +4,7 @@ namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
 internal sealed record WorkspaceTransaction
 {
-    public Solution BaselineSolution { get; init; } = null!;
+    public required Solution BaselineSolution { get; init; }
 
     public IReadOnlyList<WorkspaceTransactionRevision> Revisions { get; init; } = [];
 
@@ -12,15 +12,9 @@ internal sealed record WorkspaceTransaction
 
     public int MaxRevisions { get; init; }
 
-    public Solution CurrentSolution
-    {
-        get
-        {
-            return CurrentRevision == 0
-                ? BaselineSolution
-                : Revisions[CurrentRevision - 1].Solution;
-        }
-    }
+    public Solution CurrentSolution => CurrentRevision == 0
+        ? BaselineSolution
+        : Revisions[CurrentRevision - 1].Solution;
 
     public TransactionInfo ToInfo(bool conflicted)
     {

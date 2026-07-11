@@ -31,7 +31,7 @@ internal sealed class ResolveSymbolTool : QueryToolHandler<ResolveSymbolRequest,
         }
 
         var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(request.Location, cancellationToken).ConfigureAwait(false);
-        if (locationResolution.Status != SelectorResolveStatus.Resolved)
+        if (!locationResolution.IsResolved)
         {
             return ToolExecutionHelpers.RejectFromStatus<ResolveSymbolData>(locationResolution.Status, "Location");
         }
@@ -40,24 +40,23 @@ internal sealed class ResolveSymbolTool : QueryToolHandler<ResolveSymbolRequest,
         {
             Location = request.Location,
         }, cancellationToken).ConfigureAwait(false);
-        if (symbolResolution.Status != SelectorResolveStatus.Resolved)
+        if (!symbolResolution.IsResolved)
         {
             return ToolExecutionHelpers.RejectFromStatus<ResolveSymbolData>(symbolResolution.Status, "Symbol");
         }
 
-        var symbol = symbolResolution.Value!;
+        var symbol = symbolResolution.Value;
         var data = new ResolveSymbolData
         {
             Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
             Selector = ToolExecutionHelpers.CreateSourceSymbolSelector(symbol, context.WorkspaceResolver)
-                ?? ToolExecutionHelpers.CreateLocationSymbolSelector(context.WorkspaceResolver.CreateResolvedLocation(locationResolution.Value!)),
+                ?? ToolExecutionHelpers.CreateLocationSymbolSelector(context.WorkspaceResolver.CreateResolvedLocation(locationResolution.Value)),
             Declarations = symbol.Locations
                 .Where(static location => location.IsInSource)
                 .Select(location => context.WorkspaceResolver.CreateResolvedLocation(location))
-                .Where(static location => location is not null)
-                .Select(static location => location!)
-                .OrderBy(static location => location.Document!.Path, StringComparer.Ordinal)
-                .ThenBy(static location => location.Span!.Start)
+                .OfType<ResolvedLocation>()
+                .OrderBy(static location => location.Document?.Path, StringComparer.Ordinal)
+                .ThenBy(static location => location.Span?.Start)
                 .ToArray(),
         };
 

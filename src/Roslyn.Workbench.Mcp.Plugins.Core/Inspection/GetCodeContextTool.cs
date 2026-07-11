@@ -26,11 +26,19 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
             return locationResolution.Rejection;
         }
 
+        if (locationResolution.SemanticModel is null
+            || locationResolution.Node is null
+            || locationResolution.Location is null
+            || locationResolution.Document is null)
+        {
+            throw new InvalidOperationException("A successful location resolution must contain a document, location, node and semantic model.");
+        }
+
         var enclosingSymbols = request.IncludeEnclosingSymbols
-            ? GetEnclosingSymbols(locationResolution.SemanticModel!, locationResolution.Node!, context)
+            ? GetEnclosingSymbols(locationResolution.SemanticModel, locationResolution.Node, context)
             : [];
         var diagnostics = request.IncludeDiagnostics
-            ? locationResolution.SemanticModel!.GetDiagnostics(locationResolution.Location!.SourceSpan)
+            ? locationResolution.SemanticModel.GetDiagnostics(locationResolution.Location.SourceSpan)
                 .Distinct(DiagnosticLocationComparer.Instance)
                 .Select(diagnostic => new DiagnosticInfo
                 {
@@ -45,9 +53,9 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
                 .ToArray()
             : [];
 
-        var text = await locationResolution.Document!.GetTextAsync(cancellationToken).ConfigureAwait(false);
+        var text = await locationResolution.Document.GetTextAsync(cancellationToken).ConfigureAwait(false);
         var lines = text.Lines;
-        var startLine = lines.GetLineFromPosition(locationResolution.Location!.SourceSpan.Start).LineNumber;
+        var startLine = lines.GetLineFromPosition(locationResolution.Location.SourceSpan.Start).LineNumber;
         var endPosition = Math.Max(locationResolution.Location.SourceSpan.Start, locationResolution.Location.SourceSpan.End - 1);
         var endLine = lines.GetLineFromPosition(endPosition).LineNumber;
         var windowStart = Math.Max(0, startLine - Math.Max(0, request.BeforeLines));
@@ -101,7 +109,7 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
         }
 
         var location = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken).ConfigureAwait(false);
-        if (location.Status != SelectorResolveStatus.Resolved)
+        if (!location.IsResolved)
         {
             return new LocationResolution
             {
@@ -109,8 +117,11 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
             };
         }
 
-        var document = context.CurrentSolution.GetDocument(location.Value!.SourceTree!);
-        var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(location.Value);
+        var sourceLocation = location.Value;
+        var document = sourceLocation.SourceTree is null
+            ? null
+            : context.CurrentSolution.GetDocument(sourceLocation.SourceTree);
+        var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(sourceLocation);
         if (document is null || resolvedLocation?.Document?.Path is null)
         {
             return new LocationResolution
@@ -132,8 +143,8 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
         return new LocationResolution
         {
             Document = document,
-            Location = location.Value,
-            Node = syntaxRoot.FindNode(location.Value.SourceSpan, getInnermostNodeForTie: true),
+            Location = sourceLocation,
+            Node = syntaxRoot.FindNode(sourceLocation.SourceSpan, getInnermostNodeForTie: true),
             ResolvedLocation = resolvedLocation,
             SemanticModel = semanticModel,
         };

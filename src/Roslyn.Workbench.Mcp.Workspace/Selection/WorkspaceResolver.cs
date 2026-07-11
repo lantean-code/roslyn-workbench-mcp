@@ -158,12 +158,17 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         ArgumentNullException.ThrowIfNull(selector);
 
         var resolution = await ResolveDocumentSpanAsync(selector, cancellationToken).ConfigureAwait(false);
-        return resolution.Status switch
+        if (resolution.IsResolved)
         {
-            SelectorResolveStatus.Resolved => SelectorResolveResult<Location>.Resolved((await resolution.Value!.Document.GetSyntaxTreeAsync(cancellationToken).ConfigureAwait(false))!.GetLocation(resolution.Value.Span)),
-            SelectorResolveStatus.Ambiguous => SelectorResolveResult<Location>.Ambiguous(),
-            _ => SelectorResolveResult<Location>.NotFound(),
-        };
+            var syntaxTree = await resolution.Value.Document.GetSyntaxTreeAsync(cancellationToken).ConfigureAwait(false);
+            return syntaxTree is null
+                ? SelectorResolveResult<Location>.NotFound()
+                : SelectorResolveResult<Location>.Resolved(syntaxTree.GetLocation(resolution.Value.Span));
+        }
+
+        return resolution.Status == SelectorResolveStatus.Ambiguous
+            ? SelectorResolveResult<Location>.Ambiguous()
+            : SelectorResolveResult<Location>.NotFound();
     }
 
     public SelectorResolveResult<Project> ResolveProject(ProjectSelector selector)
@@ -194,14 +199,14 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         }
 
         var locationResolution = await ResolveDocumentSpanAsync(selector.Location, cancellationToken).ConfigureAwait(false);
-        if (locationResolution.Status != SelectorResolveStatus.Resolved)
+        if (!locationResolution.IsResolved)
         {
             return locationResolution.Status == SelectorResolveStatus.Ambiguous
                 ? SelectorResolveResult<ISymbol>.Ambiguous()
                 : SelectorResolveResult<ISymbol>.NotFound();
         }
 
-        var document = locationResolution.Value!.Document;
+        var document = locationResolution.Value.Document;
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
         if (semanticModel is null)
         {
@@ -261,14 +266,14 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         }
 
         var documentResolution = ResolveDocument(selector.Document);
-        if (documentResolution.Status != SelectorResolveStatus.Resolved)
+        if (!documentResolution.IsResolved)
         {
             return documentResolution.Status == SelectorResolveStatus.Ambiguous
                 ? SelectorResolveResult<ResolvedDocumentSpan>.Ambiguous()
                 : SelectorResolveResult<ResolvedDocumentSpan>.NotFound();
         }
 
-        var document = documentResolution.Value!;
+        var document = documentResolution.Value;
         var sourceText = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
         var text = sourceText.ToString();
         var matches = new List<int>();
@@ -310,14 +315,14 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         }
 
         var documentResolution = ResolveDocument(selector.Document);
-        if (documentResolution.Status != SelectorResolveStatus.Resolved)
+        if (!documentResolution.IsResolved)
         {
             return documentResolution.Status == SelectorResolveStatus.Ambiguous
                 ? SelectorResolveResult<ResolvedDocumentSpan>.Ambiguous()
                 : SelectorResolveResult<ResolvedDocumentSpan>.NotFound();
         }
 
-        var document = documentResolution.Value!;
+        var document = documentResolution.Value;
         var sourceText = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
         if (selector.Start < 0 || selector.Length < 0 || selector.Start + selector.Length > sourceText.Length)
         {

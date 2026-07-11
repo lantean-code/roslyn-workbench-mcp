@@ -154,7 +154,7 @@ internal static class DependencyAnalysisHelpers
         }
 
         return impacts
-            .OrderBy(static impact => impact.Test!.DisplayName, StringComparer.Ordinal)
+            .OrderBy(static impact => impact.Test?.DisplayName, StringComparer.Ordinal)
             .ToArray();
     }
 
@@ -251,13 +251,13 @@ internal static class DependencyAnalysisHelpers
             .OrderBy(static project => project.Name, StringComparer.Ordinal)
             .SelectMany(project => project.ProjectReferences
                 .Select(reference => project.Solution.GetProject(reference.ProjectId))
-                .Where(static referencedProject => referencedProject is not null)
+                .OfType<Project>()
                 .Select(referencedProject => new GraphEdge
                 {
                     FromId = CreateProjectId(project),
                     FromDisplayName = project.Name,
-                    ToId = CreateProjectId(referencedProject!),
-                    ToDisplayName = referencedProject!.Name,
+                    ToId = CreateProjectId(referencedProject),
+                    ToDisplayName = referencedProject.Name,
                     Kind = "Dependency",
                 }))
             .Where(edge => nodeIds.Contains(edge.ToId))
@@ -620,7 +620,9 @@ internal static class DependencyAnalysisHelpers
         return symbol switch
         {
             INamedTypeSymbol namedTypeSymbol => NormalizeNamedTypeSymbol(namedTypeSymbol),
-            _ => NormalizeNamedTypeSymbol(symbol?.ContainingType),
+            _ => symbol?.ContainingType is { } containingType
+                ? NormalizeNamedTypeSymbol(containingType)
+                : null,
         };
     }
 
@@ -667,9 +669,9 @@ internal static class DependencyAnalysisHelpers
         }
     }
 
-    private static INamedTypeSymbol NormalizeNamedTypeSymbol(INamedTypeSymbol? symbol)
+    private static INamedTypeSymbol NormalizeNamedTypeSymbol(INamedTypeSymbol symbol)
     {
-        return symbol?.OriginalDefinition ?? symbol!;
+        return symbol.OriginalDefinition;
     }
 
     private static ISymbol NormalizeSymbol(ISymbol symbol)

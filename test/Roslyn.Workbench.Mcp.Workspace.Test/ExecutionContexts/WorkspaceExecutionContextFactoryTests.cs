@@ -345,7 +345,12 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
     {
         var gate = new Mock<IWorkspaceOperationGate>();
         gate.Setup(item => item.TryAcquireExclusive()).Returns(new Mock<IAsyncDisposable>().Object);
-        var transaction = new WorkspaceTransaction { CurrentRevision = 2, MaxRevisions = 2 };
+        var transaction = new WorkspaceTransaction
+        {
+            BaselineSolution = _workspace.CurrentSolution,
+            CurrentRevision = 2,
+            MaxRevisions = 2,
+        };
         var session = CreateSession(gate.Object, transaction: transaction);
         SetupSelection(session);
 
@@ -417,7 +422,12 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
             LoadedWorkspace = null!,
             CurrentSolution = _workspace.CurrentSolution,
             Transaction = hasTransaction
-                ? transaction ?? new WorkspaceTransaction { CurrentRevision = 1, MaxRevisions = 2 }
+                ? transaction ?? new WorkspaceTransaction
+                {
+                    BaselineSolution = _workspace.CurrentSolution,
+                    CurrentRevision = 1,
+                    MaxRevisions = 2,
+                }
                 : null,
             InputManifest = new WorkspaceInputManifest(),
             OperationGate = gate,

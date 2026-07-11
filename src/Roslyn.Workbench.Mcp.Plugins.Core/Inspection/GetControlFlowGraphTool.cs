@@ -44,20 +44,40 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
                 return ToolExecutionHelpers.Rejected<ControlFlowGraphData>("LocationNotFound", "The symbol does not have a source declaration.", RequiredAction.ResolveTargetAgain);
             }
 
-            semanticModel = (await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false))!;
-            node = (await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false))!.FindNode(sourceLocation.SourceSpan, getInnermostNodeForTie: true);
+            var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+            var resolvedSemanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+            if (syntaxRoot is null || resolvedSemanticModel is null)
+            {
+                return ToolExecutionHelpers.Rejected<ControlFlowGraphData>("LocationNotFound", "The symbol source declaration could not be analysed.", RequiredAction.ResolveTargetAgain);
+            }
+
+            semanticModel = resolvedSemanticModel;
+            node = syntaxRoot.FindNode(sourceLocation.SourceSpan, getInnermostNodeForTie: true);
         }
         else
         {
-            var syntaxNodeResolution = await ResolveSyntaxNodeAsync(request.Location!, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+            var location = request.Location
+                ?? throw new InvalidOperationException("A validated control-flow graph request must contain a location.");
+            var syntaxNodeResolution = await ResolveSyntaxNodeAsync(location, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
             if (syntaxNodeResolution.Rejection is not null)
             {
                 return syntaxNodeResolution.Rejection;
             }
 
-            node = syntaxNodeResolution.Node!;
-            semanticModel = syntaxNodeResolution.SemanticModel!;
-            ownerSymbol = semanticModel.GetEnclosingSymbol(node.SpanStart, cancellationToken)!;
+            if (syntaxNodeResolution.Node is null || syntaxNodeResolution.SemanticModel is null)
+            {
+                throw new InvalidOperationException("A successful syntax-node resolution must contain a node and semantic model.");
+            }
+
+            node = syntaxNodeResolution.Node;
+            semanticModel = syntaxNodeResolution.SemanticModel;
+            var enclosingSymbol = semanticModel.GetEnclosingSymbol(node.SpanStart, cancellationToken);
+            if (enclosingSymbol is null)
+            {
+                return ToolExecutionHelpers.Rejected<ControlFlowGraphData>("SymbolNotFound", "The selected location does not have an enclosing symbol.", RequiredAction.ResolveTargetAgain);
+            }
+
+            ownerSymbol = enclosingSymbol;
         }
 
         var graph = ControlFlowGraph.Create(node, semanticModel, cancellationToken);
@@ -125,7 +145,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
         }
 
         var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken).ConfigureAwait(false);
-        if (locationResolution.Status != SelectorResolveStatus.Resolved)
+        if (!locationResolution.IsResolved)
         {
             return new SyntaxNodeResolution
             {
@@ -133,7 +153,8 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
             };
         }
 
-        var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(locationResolution.Value!);
+        var location = locationResolution.Value;
+        var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(location);
         if (resolvedLocation?.Document?.Path is null)
         {
             return new SyntaxNodeResolution
@@ -142,7 +163,9 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
             };
         }
 
-        var document = context.CurrentSolution.GetDocument(locationResolution.Value!.SourceTree!);
+        var document = location.SourceTree is null
+            ? null
+            : context.CurrentSolution.GetDocument(location.SourceTree);
         if (document is null)
         {
             return new SyntaxNodeResolution
@@ -163,7 +186,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
 
         return new SyntaxNodeResolution
         {
-            Node = syntaxRoot.FindNode(locationResolution.Value.SourceSpan, getInnermostNodeForTie: true),
+            Node = syntaxRoot.FindNode(location.SourceSpan, getInnermostNodeForTie: true),
             SemanticModel = semanticModel,
         };
     }

@@ -29,15 +29,18 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         var createdDirectories = new HashSet<string>(comparer);
         var projectRoots = baselineSolution.Projects.Concat(currentSolution.Projects)
             .Select(project => project.FilePath)
+            .OfType<string>()
             .Where(path => !string.IsNullOrWhiteSpace(path))
-            .Select(path => _fileSystem.Path.GetDirectoryName(_fileSystem.Path.GetFullPath(path!))!)
+            .Select(path => _fileSystem.Path.GetDirectoryName(_fileSystem.Path.GetFullPath(path))
+                ?? throw new InvalidOperationException($"The project path '{path}' does not have a parent directory."))
             .Distinct(comparer)
             .ToArray();
         var baselineDocumentPaths = baselineSolution.Projects
             .SelectMany(project => project.Documents)
             .Select(document => document.FilePath)
+            .OfType<string>()
             .Where(path => !string.IsNullOrWhiteSpace(path))
-            .Select(path => _fileSystem.Path.GetFullPath(path!))
+            .Select(path => _fileSystem.Path.GetFullPath(path))
             .ToHashSet(comparer);
 
         foreach (var change in currentSolution.GetChanges(baselineSolution).GetProjectChanges())
@@ -98,9 +101,9 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
             var index = entries.Count.ToString("D6", System.Globalization.CultureInfo.InvariantCulture);
             var backup = originalExists ? $"backup/{index}.bin" : null;
             var staged = $"staged/{index}.bin";
-            if (backup is not null)
+            if (backup is not null && original is not null)
             {
-                artifacts.Add(backup, original!);
+                artifacts.Add(backup, original);
             }
 
             artifacts.Add(staged, intended);

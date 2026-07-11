@@ -20,15 +20,17 @@ public sealed class CodeActionWorkspaceResultMapperTests
 
         var result = CodeActionWorkspaceResultMapper.MapFailure(failure);
 
-        result!.Outcome.Should().Be(expectedOutcome);
+        result.Outcome.Should().Be(expectedOutcome);
         result.Error.Code.Should().Be("Code");
         result.RequiredAction.Should().Be(RequiredAction.Retry);
     }
 
     [Fact]
-    public void GIVEN_NoWorkspaceFailure_WHEN_MappingFailure_THEN_ShouldReturnNull()
+    public void GIVEN_NoWorkspaceFailure_WHEN_MappingFailure_THEN_ShouldRejectTheInvalidArgument()
     {
-        CodeActionWorkspaceResultMapper.MapFailure(null).Should().BeNull();
+        var act = () => CodeActionWorkspaceResultMapper.MapFailure(null!);
+
+        act.Should().Throw<ArgumentNullException>();
     }
 
     [Theory]

@@ -2,12 +2,9 @@ namespace Roslyn.Workbench.Mcp.CodeActions;
 
 internal static class CodeActionWorkspaceResultMapper
 {
-    public static CodeActionExecutionFailure? MapFailure(WorkspaceExecutionFailure? failure)
+    public static CodeActionExecutionFailure MapFailure(WorkspaceExecutionFailure failure)
     {
-        if (failure is null)
-        {
-            return null;
-        }
+        ArgumentNullException.ThrowIfNull(failure);
 
         return new CodeActionExecutionFailure
         {
@@ -22,10 +19,10 @@ internal static class CodeActionWorkspaceResultMapper
     {
         return result.Status switch
         {
-            WorkspaceOperationStatus.Succeeded => CodeActionExecutionResult<MutationData>.Success(
+            WorkspaceOperationStatus.Succeeded when result.HasData => CodeActionExecutionResult<MutationData>.Success(
                 new MutationData
                 {
-                    Operation = result.Data!.Operation,
+                    Operation = result.Data.Operation,
                     Summary = result.Data.Summary,
                     Transaction = result.Data.Transaction,
                     Preview = result.Data.Preview,
@@ -33,21 +30,21 @@ internal static class CodeActionWorkspaceResultMapper
                 result.Data.Changes,
                 result.Diagnostics,
                 result.Warnings),
-            WorkspaceOperationStatus.Rejected => CodeActionExecutionResult<MutationData>.Rejected(
-                MapError(result.Error!),
-                result.Error!.RequiredAction,
+            WorkspaceOperationStatus.Rejected when result.HasError => CodeActionExecutionResult<MutationData>.Rejected(
+                MapError(result.Error),
+                result.Error.RequiredAction,
                 result.Diagnostics,
                 result.Warnings),
-            WorkspaceOperationStatus.Conflict => CodeActionExecutionResult<MutationData>.Conflict(
-                MapError(result.Error!),
-                result.Error!.RequiredAction,
+            WorkspaceOperationStatus.Conflict when result.HasError => CodeActionExecutionResult<MutationData>.Conflict(
+                MapError(result.Error),
+                result.Error.RequiredAction,
                 result.Diagnostics,
                 result.Warnings),
-            WorkspaceOperationStatus.Faulted => new CodeActionExecutionResult<MutationData>
+            WorkspaceOperationStatus.Faulted when result.HasError => new CodeActionExecutionResult<MutationData>
             {
                 Outcome = CodeActionExecutionOutcome.Faulted,
-                Error = MapError(result.Error!),
-                RequiredAction = result.Error!.RequiredAction,
+                Error = MapError(result.Error),
+                RequiredAction = result.Error.RequiredAction,
                 Diagnostics = result.Diagnostics,
                 Warnings = result.Warnings,
             },

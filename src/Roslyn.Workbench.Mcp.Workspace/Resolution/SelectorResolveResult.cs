@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Roslyn.Workbench.Mcp.Workspace.Resolution;
 
 /// <summary>
@@ -16,6 +18,12 @@ public sealed record SelectorResolveResult<T>
     /// Gets the resolved value when <see cref="Status"/> is <see cref="SelectorResolveStatus.Resolved"/>.
     /// </summary>
     public T? Value { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether resolution succeeded with a value.
+    /// </summary>
+    [MemberNotNullWhen(true, nameof(Value))]
+    public bool IsResolved => Status == SelectorResolveStatus.Resolved && Value is not null;
 
     /// <summary>
     /// Creates a resolved outcome.

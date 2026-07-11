@@ -15,32 +15,32 @@ internal static class WorkspaceToolResultMapper
 
         return result.Status switch
         {
-            WorkspaceOperationStatus.Succeeded => ToolResult<TTarget>.Succeeded(
-                mapData(result.Data!),
+            WorkspaceOperationStatus.Succeeded when result.HasData => ToolResult<TTarget>.Succeeded(
+                mapData(result.Data),
                 workspaceId: workspaceId,
                 workspaceEpoch: workspaceEpoch,
                 transactionRevision: transactionRevision,
                 diagnostics: result.Diagnostics,
                 warnings: result.Warnings),
-            WorkspaceOperationStatus.Rejected => ToolResult<TTarget>.Rejected(
-                MapError(result.Error!),
-                result.Error!.RequiredAction,
+            WorkspaceOperationStatus.Rejected when result.HasError => ToolResult<TTarget>.Rejected(
+                MapError(result.Error),
+                result.Error.RequiredAction,
                 workspaceId: workspaceId,
                 workspaceEpoch: workspaceEpoch,
                 transactionRevision: transactionRevision,
                 diagnostics: result.Diagnostics,
                 warnings: result.Warnings),
-            WorkspaceOperationStatus.Conflict => ToolResult<TTarget>.Conflict(
-                MapError(result.Error!),
-                result.Error!.RequiredAction,
+            WorkspaceOperationStatus.Conflict when result.HasError => ToolResult<TTarget>.Conflict(
+                MapError(result.Error),
+                result.Error.RequiredAction,
                 workspaceId: workspaceId,
                 workspaceEpoch: workspaceEpoch,
                 transactionRevision: transactionRevision,
                 diagnostics: result.Diagnostics,
                 warnings: result.Warnings),
-            WorkspaceOperationStatus.Faulted => ToolResult<TTarget>.Faulted(
-                MapError(result.Error!),
-                result.Error!.RequiredAction,
+            WorkspaceOperationStatus.Faulted when result.HasError => ToolResult<TTarget>.Faulted(
+                MapError(result.Error),
+                result.Error.RequiredAction,
                 workspaceId: workspaceId,
                 workspaceEpoch: workspaceEpoch,
                 transactionRevision: transactionRevision,

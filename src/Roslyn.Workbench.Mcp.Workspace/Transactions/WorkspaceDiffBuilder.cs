@@ -29,7 +29,7 @@ internal static class WorkspaceDiffBuilder
             foreach (var documentId in projectChange.GetAddedDocuments())
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var document = currentSolution.GetDocument(documentId)!;
+                var document = GetRequiredDocument(currentSolution, documentId);
 
                 added.Add(new DocumentChange
                 {
@@ -42,8 +42,8 @@ internal static class WorkspaceDiffBuilder
             foreach (var documentId in projectChange.GetChangedDocuments())
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var oldDocument = baselineSolution.GetDocument(documentId)!;
-                var newDocument = currentSolution.GetDocument(documentId)!;
+                var oldDocument = GetRequiredDocument(baselineSolution, documentId);
+                var newDocument = GetRequiredDocument(currentSolution, documentId);
 
                 modified.Add(new DocumentChange
                 {
@@ -58,7 +58,7 @@ internal static class WorkspaceDiffBuilder
             foreach (var documentId in projectChange.GetRemovedDocuments())
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var document = baselineSolution.GetDocument(documentId)!;
+                var document = GetRequiredDocument(baselineSolution, documentId);
 
                 deleted.Add(new DocumentChange
                 {
@@ -105,9 +105,8 @@ internal static class WorkspaceDiffBuilder
 
         return new DocumentDiff
         {
-            Document = currentDocument is not null
-                ? resolver.CreateDocumentReference(currentDocument)
-                : resolver.CreateDocumentReference(baselineDocument!),
+            Document = resolver.CreateDocumentReference(currentDocument ?? baselineDocument
+                ?? throw new InvalidOperationException("The changed document could not be resolved.")),
             Hunks = CreateHunks(oldText, newText, contextLines),
             Truncated = false,
         };
@@ -133,6 +132,12 @@ internal static class WorkspaceDiffBuilder
             RemovedLines = removedLines,
             ChangedLines = changedLines,
         };
+    }
+
+    private static Document GetRequiredDocument(Solution solution, DocumentId documentId)
+    {
+        return solution.GetDocument(documentId)
+            ?? throw new InvalidOperationException($"The document '{documentId}' was not present in the expected solution.");
     }
 
     private static IReadOnlyList<DiffHunk> CreateHunks(string oldText, string newText, int contextLines)

@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Roslyn.Workbench.Mcp.CodeActions.Catalog;
 
 internal static class BuiltInCodeActionLedger
@@ -630,11 +632,11 @@ internal static class BuiltInCodeActionLedger
         return _families.Any(family => family.IsDedicatedToolVisible && string.Equals(family.ToolName, toolName, StringComparison.Ordinal));
     }
 
-    public static bool TryGetFamily(string providerId, out BuiltInCodeActionFamily family)
+    public static bool TryGetFamily(string providerId, [NotNullWhen(true)] out BuiltInCodeActionFamily? family)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(providerId);
 
-        family = _families.FirstOrDefault(candidate => string.Equals(candidate.ProviderId, providerId, StringComparison.Ordinal))!;
+        family = _families.FirstOrDefault(candidate => string.Equals(candidate.ProviderId, providerId, StringComparison.Ordinal));
         return family is not null;
     }
 }

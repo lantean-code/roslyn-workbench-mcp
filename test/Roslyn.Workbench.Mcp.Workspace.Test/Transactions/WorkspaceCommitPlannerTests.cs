@@ -144,7 +144,7 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
         var projectId = ProjectId.CreateNewId();
         var documentId = DocumentId.CreateNewId(projectId);
         var projectPath = Path.GetFullPath("/workspace/project/project.csproj");
-        var outsidePath = Path.GetFullPath("/outside/added.cs");
+        var outsidePath = Path.GetFullPath("/workspace/other/added.cs");
         var baseline = _workspace.CurrentSolution.AddProject(ProjectInfo.Create(
             projectId, VersionStamp.Create(), "Project", "Project", LanguageNames.CSharp, filePath: projectPath));
         var current = baseline.AddDocument(documentId, "added.cs", SourceText.From("text"), filePath: outsidePath);
@@ -152,6 +152,87 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
         var action = async () => await _target.CreateAsync("commit", "/workspace/solution.slnx", "/workspace", baseline, current, TestContext.Current.CancellationToken);
 
         await action.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task GIVEN_DeleteMarkerAlreadyExists_WHEN_PlanningDelete_THEN_ShouldRejectPlan()
+    {
+        var projectId = ProjectId.CreateNewId();
+        var documentId = DocumentId.CreateNewId(projectId);
+        var projectPath = Path.GetFullPath("/workspace/project/project.csproj");
+        var targetPath = Path.GetFullPath("/workspace/project/target.cs");
+        var deleteMarkerPath = $"{targetPath}.commit.delete";
+        var baseline = _workspace.CurrentSolution
+            .AddProject(ProjectInfo.Create(projectId, VersionStamp.Create(), "Project", "Project", LanguageNames.CSharp, filePath: projectPath))
+            .AddDocument(documentId, "target.cs", SourceText.From("text"), filePath: targetPath);
+        var current = baseline.RemoveDocument(documentId);
+        _file.Setup(item => item.Exists(targetPath)).Returns(true);
+        _file.Setup(item => item.Exists(deleteMarkerPath)).Returns(true);
+        _file.Setup(item => item.ReadAllBytesAsync(targetPath, It.IsAny<CancellationToken>())).ReturnsAsync([1, 2]);
+
+        var action = async () => await _target.CreateAsync(
+            "commit",
+            "/workspace/solution.slnx",
+            "/workspace",
+            baseline,
+            current,
+            TestContext.Current.CancellationToken);
+
+        await action.Should().ThrowAsync<IOException>();
+    }
+
+    [Fact]
+    public async Task GIVEN_ProjectPathWithoutParent_WHEN_Planning_THEN_ShouldRejectPlan()
+    {
+        var projectId = ProjectId.CreateNewId();
+        var projectPath = Path.GetFullPath("/workspace/project/project.csproj");
+        var solution = _workspace.CurrentSolution.AddProject(ProjectInfo.Create(
+            projectId,
+            VersionStamp.Create(),
+            "Project",
+            "Project",
+            LanguageNames.CSharp,
+            filePath: projectPath));
+        _path.Setup(item => item.GetDirectoryName(projectPath)).Returns((string?)null);
+
+        var action = async () => await _target.CreateAsync(
+            "commit",
+            "/workspace/solution.slnx",
+            "/workspace",
+            solution,
+            solution,
+            TestContext.Current.CancellationToken);
+
+        await action.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task GIVEN_NewDocumentPathWithoutParent_WHEN_Planning_THEN_ShouldNotRecordCreatedDirectories()
+    {
+        var projectId = ProjectId.CreateNewId();
+        var documentId = DocumentId.CreateNewId(projectId);
+        var projectPath = Path.GetFullPath("/workspace/project/project.csproj");
+        var targetPath = Path.GetFullPath("/workspace/project/added.cs");
+        var baseline = _workspace.CurrentSolution.AddProject(ProjectInfo.Create(
+            projectId,
+            VersionStamp.Create(),
+            "Project",
+            "Project",
+            LanguageNames.CSharp,
+            filePath: projectPath));
+        var current = baseline.AddDocument(documentId, "added.cs", SourceText.From("text"), filePath: targetPath);
+        _file.Setup(item => item.Exists(targetPath)).Returns(false);
+        _path.Setup(item => item.GetDirectoryName(targetPath)).Returns((string?)null);
+
+        var plan = await _target.CreateAsync(
+            "commit",
+            "/workspace/solution.slnx",
+            "/workspace",
+            baseline,
+            current,
+            TestContext.Current.CancellationToken);
+
+        plan.Manifest.CreatedDirectories.Should().BeEmpty();
     }
 
     [Fact]

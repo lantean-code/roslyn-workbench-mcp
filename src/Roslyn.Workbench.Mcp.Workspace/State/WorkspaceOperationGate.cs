@@ -24,7 +24,7 @@ internal sealed class WorkspaceOperationGate : IWorkspaceOperationGate
     /// Attempts to acquire a shared lease.
     /// </summary>
     /// <returns>The lease when acquired; otherwise, <see langword="null"/>.</returns>
-    public IAsyncDisposable? TryAcquireShared()
+    public IWorkspaceOperationLease? TryAcquireShared()
     {
         lock (_syncRoot)
         {
@@ -34,7 +34,7 @@ internal sealed class WorkspaceOperationGate : IWorkspaceOperationGate
             }
 
             _sharedLeaseCount++;
-            return new Lease(this, isExclusive: false);
+            return new WorkspaceOperationLease(this, isExclusive: false);
         }
     }
 
@@ -42,7 +42,7 @@ internal sealed class WorkspaceOperationGate : IWorkspaceOperationGate
     /// Attempts to acquire an exclusive lease.
     /// </summary>
     /// <returns>The lease when acquired; otherwise, <see langword="null"/>.</returns>
-    public IAsyncDisposable? TryAcquireExclusive()
+    public IWorkspaceOperationLease? TryAcquireExclusive()
     {
         lock (_syncRoot)
         {
@@ -52,11 +52,11 @@ internal sealed class WorkspaceOperationGate : IWorkspaceOperationGate
             }
 
             _exclusiveLeaseHeld = true;
-            return new Lease(this, isExclusive: true);
+            return new WorkspaceOperationLease(this, isExclusive: true);
         }
     }
 
-    private void Release(bool isExclusive)
+    internal void Release(bool isExclusive)
     {
         lock (_syncRoot)
         {
@@ -71,27 +71,4 @@ internal sealed class WorkspaceOperationGate : IWorkspaceOperationGate
         }
     }
 
-    private sealed class Lease : IAsyncDisposable
-    {
-        private readonly WorkspaceOperationGate _owner;
-        private readonly bool _isExclusive;
-        private bool _disposed;
-
-        public Lease(WorkspaceOperationGate owner, bool isExclusive)
-        {
-            _owner = owner;
-            _isExclusive = isExclusive;
-        }
-
-        public ValueTask DisposeAsync()
-        {
-            if (!_disposed)
-            {
-                _owner.Release(_isExclusive);
-                _disposed = true;
-            }
-
-            return ValueTask.CompletedTask;
-        }
-    }
 }

@@ -120,7 +120,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
     public void GIVEN_SharedGateRejection_WHEN_CreatingQueryContext_THEN_ShouldReturnBusyFailure()
     {
         var gate = new Mock<IWorkspaceOperationGate>();
-        gate.Setup(item => item.TryAcquireShared()).Returns((IAsyncDisposable?)null);
+        gate.Setup(item => item.TryAcquireShared()).Returns((IWorkspaceOperationLease?)null);
         var session = CreateSession(gate.Object);
         SetupSelection(session);
 
@@ -134,7 +134,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
     public void GIVEN_ExclusiveGateRejection_WHEN_CreatingMutationContext_THEN_ShouldReturnBusyFailure()
     {
         var gate = new Mock<IWorkspaceOperationGate>();
-        gate.Setup(item => item.TryAcquireExclusive()).Returns((IAsyncDisposable?)null);
+        gate.Setup(item => item.TryAcquireExclusive()).Returns((IWorkspaceOperationLease?)null);
         var session = CreateSession(gate.Object);
         SetupSelection(session);
 
@@ -146,8 +146,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
     [Fact]
     public async Task GIVEN_SelectedSessionDisappears_WHEN_CreatingQueryContext_THEN_ShouldReturnRequiredFailureAndRetainLease()
     {
-        var operationLease = new Mock<IAsyncDisposable>();
-        operationLease.Setup(item => item.DisposeAsync()).Returns(ValueTask.CompletedTask);
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         gate.Setup(item => item.TryAcquireShared()).Returns(operationLease.Object);
         var session = CreateSession(gate.Object);
@@ -157,14 +156,13 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         await result.DisposeAsync();
 
         result.Failure!.Error.Code.Should().Be(WorkspaceErrorCodes.WorkspaceNotOpen);
-        operationLease.Verify(item => item.DisposeAsync(), Times.Once);
+        operationLease.Verify(item => item.Dispose(), Times.Once);
     }
 
     [Fact]
     public async Task GIVEN_SelectedSessionDisappears_WHEN_CreatingMutationContext_THEN_ShouldReturnRequiredFailureAndRetainLease()
     {
-        var operationLease = new Mock<IAsyncDisposable>();
-        operationLease.Setup(item => item.DisposeAsync()).Returns(ValueTask.CompletedTask);
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         gate.Setup(item => item.TryAcquireExclusive()).Returns(operationLease.Object);
         var session = CreateSession(gate.Object);
@@ -174,7 +172,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         await result.DisposeAsync();
 
         result.Failure!.Error.Code.Should().Be(WorkspaceErrorCodes.WorkspaceNotOpen);
-        operationLease.Verify(item => item.DisposeAsync(), Times.Once);
+        operationLease.Verify(item => item.Dispose(), Times.Once);
     }
 
     [Theory]
@@ -185,7 +183,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         string errorCode)
     {
         var gate = new Mock<IWorkspaceOperationGate>();
-        gate.Setup(item => item.TryAcquireShared()).Returns(new Mock<IAsyncDisposable>().Object);
+        gate.Setup(item => item.TryAcquireShared()).Returns(new Mock<IWorkspaceOperationLease>().Object);
         var session = CreateSession(gate.Object, state);
         SetupSelection(session);
 
@@ -194,13 +192,16 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         result.Context.Should().NotBeNull();
         result.Failure!.Status.Should().Be(WorkspaceOperationStatus.Conflict);
         result.Failure.Error.Code.Should().Be(errorCode);
+        _changeDetector.Verify(
+            item => item.HasChanged(It.IsAny<WorkspaceInputManifest>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
     public void GIVEN_ChangedReadySession_WHEN_CreatingQueryContext_THEN_ShouldTransitionAndReplaceSession()
     {
         var gate = new Mock<IWorkspaceOperationGate>();
-        gate.Setup(item => item.TryAcquireShared()).Returns(new Mock<IAsyncDisposable>().Object);
+        gate.Setup(item => item.TryAcquireShared()).Returns(new Mock<IWorkspaceOperationLease>().Object);
         var session = CreateSession(gate.Object);
         var transitioned = session with { State = WorkspaceLifecycleState.WorkspaceOutOfDate };
         SetupSelection(session);
@@ -217,7 +218,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
     public void GIVEN_ReadySession_WHEN_CreatingQueryContext_THEN_ShouldReturnNarrowContext()
     {
         var gate = new Mock<IWorkspaceOperationGate>();
-        gate.Setup(item => item.TryAcquireShared()).Returns(new Mock<IAsyncDisposable>().Object);
+        gate.Setup(item => item.TryAcquireShared()).Returns(new Mock<IWorkspaceOperationLease>().Object);
         var session = CreateSession(gate.Object);
         SetupSelection(session);
         _changeDetector.Setup(item => item.HasChanged(session.InputManifest, CancellationToken.None)).Returns(false);
@@ -236,7 +237,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
     public void GIVEN_ActiveUnchangedSession_WHEN_CreatingQueryContext_THEN_ShouldReturnContext()
     {
         var gate = new Mock<IWorkspaceOperationGate>();
-        gate.Setup(item => item.TryAcquireShared()).Returns(new Mock<IAsyncDisposable>().Object);
+        gate.Setup(item => item.TryAcquireShared()).Returns(new Mock<IWorkspaceOperationLease>().Object);
         var session = CreateSession(gate.Object, WorkspaceLifecycleState.TransactionActive);
         SetupSelection(session);
         _changeDetector.Setup(item => item.HasChanged(session.InputManifest, CancellationToken.None)).Returns(false);
@@ -255,7 +256,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         string errorCode)
     {
         var gate = new Mock<IWorkspaceOperationGate>();
-        gate.Setup(item => item.TryAcquireExclusive()).Returns(new Mock<IAsyncDisposable>().Object);
+        gate.Setup(item => item.TryAcquireExclusive()).Returns(new Mock<IWorkspaceOperationLease>().Object);
         var session = CreateSession(gate.Object, state);
         SetupSelection(session);
 
@@ -264,13 +265,16 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         result.Context.Should().NotBeNull();
         result.Stager.Should().NotBeNull();
         result.Failure!.Error.Code.Should().Be(errorCode);
+        _changeDetector.Verify(
+            item => item.HasChanged(It.IsAny<WorkspaceInputManifest>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
     public void GIVEN_NoTransaction_WHEN_CreatingMutationContext_THEN_ShouldRequireTransaction()
     {
         var gate = new Mock<IWorkspaceOperationGate>();
-        gate.Setup(item => item.TryAcquireExclusive()).Returns(new Mock<IAsyncDisposable>().Object);
+        gate.Setup(item => item.TryAcquireExclusive()).Returns(new Mock<IWorkspaceOperationLease>().Object);
         var session = CreateSession(gate.Object, hasTransaction: false);
         SetupSelection(session);
 
@@ -290,7 +294,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         string expectedDisplayName)
     {
         var gate = new Mock<IWorkspaceOperationGate>();
-        gate.Setup(item => item.TryAcquireExclusive()).Returns(new Mock<IAsyncDisposable>().Object);
+        gate.Setup(item => item.TryAcquireExclusive()).Returns(new Mock<IWorkspaceOperationLease>().Object);
         var session = CreateSession(gate.Object);
         var ownerSession = CreateSession(new Mock<IWorkspaceOperationGate>().Object) with
         {
@@ -314,9 +318,14 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
     public void GIVEN_ChangedMutationSession_WHEN_CreatingMutationContext_THEN_ShouldTransitionAndReturnConflict()
     {
         var gate = new Mock<IWorkspaceOperationGate>();
-        gate.Setup(item => item.TryAcquireExclusive()).Returns(new Mock<IAsyncDisposable>().Object);
+        gate.Setup(item => item.TryAcquireExclusive()).Returns(new Mock<IWorkspaceOperationLease>().Object);
         var session = CreateSession(gate.Object, WorkspaceLifecycleState.TransactionActive);
-        var transitioned = session with { State = WorkspaceLifecycleState.TransactionConflicted };
+        var transitionedSolution = session.CurrentSolution.AddProject("Transitioned", "Transitioned", LanguageNames.CSharp).Solution;
+        var transitioned = session with
+        {
+            State = WorkspaceLifecycleState.TransactionConflicted,
+            CurrentSolution = transitionedSolution,
+        };
         SetupSelection(session);
         _changeDetector.Setup(item => item.HasChanged(session.InputManifest, CancellationToken.None)).Returns(true);
         _stateTransitions.Setup(item => item.ApplyExternalChangeDetected(session)).Returns(transitioned);
@@ -324,6 +333,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         var result = _target.CreateMutationContext(workspace: null, CancellationToken.None);
 
         result.Failure!.Error.Code.Should().Be(WorkspaceErrorCodes.TransactionConflicted);
+        result.Context!.CurrentSolution.Should().BeSameAs(transitionedSolution);
         _sessionStore.Verify(item => item.ReplaceSession(transitioned), Times.Once);
     }
 
@@ -331,7 +341,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
     public void GIVEN_MissingTransactionOwnerSession_WHEN_CreatingMutationContext_THEN_ShouldIdentifyUnknownOwner()
     {
         var gate = new Mock<IWorkspaceOperationGate>();
-        gate.Setup(item => item.TryAcquireExclusive()).Returns(new Mock<IAsyncDisposable>().Object);
+        gate.Setup(item => item.TryAcquireExclusive()).Returns(new Mock<IWorkspaceOperationLease>().Object);
         var session = CreateSession(gate.Object);
         SetupSelection(session, ownerWorkspaceId: "OwnerWorkspaceId", ownerSession: null);
 
@@ -345,7 +355,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
     public void GIVEN_TransactionAtCapacity_WHEN_CreatingMutationContext_THEN_ShouldRequireHistoryReduction()
     {
         var gate = new Mock<IWorkspaceOperationGate>();
-        gate.Setup(item => item.TryAcquireExclusive()).Returns(new Mock<IAsyncDisposable>().Object);
+        gate.Setup(item => item.TryAcquireExclusive()).Returns(new Mock<IWorkspaceOperationLease>().Object);
         var transaction = new WorkspaceTransaction
         {
             BaselineSolution = _workspace.CurrentSolution,
@@ -365,7 +375,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
     public void GIVEN_ValidTransaction_WHEN_CreatingMutationContext_THEN_ShouldReturnSeparateContextAndStager()
     {
         var gate = new Mock<IWorkspaceOperationGate>();
-        gate.Setup(item => item.TryAcquireExclusive()).Returns(new Mock<IAsyncDisposable>().Object);
+        gate.Setup(item => item.TryAcquireExclusive()).Returns(new Mock<IWorkspaceOperationLease>().Object);
         var session = CreateSession(gate.Object);
         SetupSelection(session);
 

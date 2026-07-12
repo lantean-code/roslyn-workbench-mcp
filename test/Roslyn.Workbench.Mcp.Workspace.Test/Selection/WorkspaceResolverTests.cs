@@ -49,6 +49,19 @@ public sealed class WorkspaceResolverTests
     }
 
     [Fact]
+    public void GIVEN_DocumentWithoutFilePath_WHEN_CreatingReference_THEN_ShouldUseEmptyPath()
+    {
+        using var workspace = new AdhocWorkspace();
+        var project = workspace.AddProject("Project", LanguageNames.CSharp);
+        var document = workspace.AddDocument(project.Id, "Document.cs", SourceText.From("class C { }"));
+        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+
+        var result = target.CreateDocumentReference(document);
+
+        result!.Path.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task GIVEN_SourceLocation_WHEN_CreatingResolvedLocation_THEN_ShouldIncludeDocumentSpanAndSnapshot()
     {
         using var workspace = CreateWorkspace("Project", "Document.cs", "class C { }");
@@ -182,6 +195,19 @@ public sealed class WorkspaceResolverTests
         var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
 
         var result = target.ResolveDocument(new DocumentSelector { Path = "Project/UnknownDocument.cs" });
+
+        result.Status.Should().Be(SelectorResolveStatus.NotFound);
+    }
+
+    [Fact]
+    public void GIVEN_PathlessDocument_WHEN_ResolvingByPath_THEN_ShouldReturnNotFound()
+    {
+        using var workspace = new AdhocWorkspace();
+        var project = workspace.AddProject("Project", LanguageNames.CSharp);
+        workspace.AddDocument(project.Id, "Document.cs", SourceText.From("class C { }"));
+        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+
+        var result = target.ResolveDocument(new DocumentSelector { Path = "Document.cs" });
 
         result.Status.Should().Be(SelectorResolveStatus.NotFound);
     }
@@ -363,6 +389,18 @@ public sealed class WorkspaceResolverTests
     }
 
     [Fact]
+    public void GIVEN_PathlessProject_WHEN_ResolvingByPath_THEN_ShouldReturnNotFound()
+    {
+        using var workspace = new AdhocWorkspace();
+        workspace.AddProject("Project", LanguageNames.CSharp);
+        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+
+        var result = target.ResolveProject(new ProjectSelector { Path = "Project.csproj" });
+
+        result.Status.Should().Be(SelectorResolveStatus.NotFound);
+    }
+
+    [Fact]
     public async Task GIVEN_LocationWithoutSpanOrSelection_WHEN_ResolvingLocation_THEN_ShouldReturnNotFound()
     {
         using var workspace = CreateWorkspace("Project", "Document.cs", "class C { }");
@@ -476,6 +514,46 @@ public sealed class WorkspaceResolverTests
                 SelectedText = "value",
                 ContextBefore = "before ",
                 ContextAfter = " wrong",
+            },
+        }, TestContext.Current.CancellationToken);
+
+        result.Status.Should().Be(SelectorResolveStatus.NotFound);
+    }
+
+    [Fact]
+    public async Task GIVEN_SelectionContextBeforeExtendsBeforeSource_WHEN_ResolvingLocation_THEN_ShouldReturnNotFound()
+    {
+        using var workspace = CreateWorkspace("Project", "Document.cs", "value after");
+        var document = workspace.CurrentSolution.Projects.Single().Documents.Single();
+        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+
+        var result = await target.ResolveLocationAsync(new LocationSelector
+        {
+            Selection = new TextSelectionSelector
+            {
+                Document = new DocumentSelector { DocumentId = document.Id.Id.ToString() },
+                SelectedText = "value",
+                ContextBefore = "before ",
+            },
+        }, TestContext.Current.CancellationToken);
+
+        result.Status.Should().Be(SelectorResolveStatus.NotFound);
+    }
+
+    [Fact]
+    public async Task GIVEN_SelectionContextAfterExtendsBeyondSource_WHEN_ResolvingLocation_THEN_ShouldReturnNotFound()
+    {
+        using var workspace = CreateWorkspace("Project", "Document.cs", "before value");
+        var document = workspace.CurrentSolution.Projects.Single().Documents.Single();
+        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+
+        var result = await target.ResolveLocationAsync(new LocationSelector
+        {
+            Selection = new TextSelectionSelector
+            {
+                Document = new DocumentSelector { DocumentId = document.Id.Id.ToString() },
+                SelectedText = "value",
+                ContextAfter = " after",
             },
         }, TestContext.Current.CancellationToken);
 

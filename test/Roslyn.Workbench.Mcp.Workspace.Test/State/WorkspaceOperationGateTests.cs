@@ -13,7 +13,7 @@ public sealed class WorkspaceOperationGateTests
     }
 
     [Fact]
-    public async Task GIVEN_SharedLeasesAtLimit_WHEN_AcquiringAnotherSharedLease_THEN_ShouldRejectUntilLeaseReleased()
+    public void GIVEN_SharedLeasesAtLimit_WHEN_AcquiringAnotherSharedLease_THEN_ShouldRejectUntilLeaseReleased()
     {
         var target = new WorkspaceOperationGate(maxConcurrentQueries: 2);
         var firstLease = target.TryAcquireShared();
@@ -25,16 +25,16 @@ public sealed class WorkspaceOperationGateTests
         secondLease.Should().NotBeNull();
         rejectedLease.Should().BeNull();
 
-        await firstLease!.DisposeAsync();
+        firstLease!.Dispose();
         var replacementLease = target.TryAcquireShared();
         replacementLease.Should().NotBeNull();
 
-        await secondLease!.DisposeAsync();
-        await replacementLease!.DisposeAsync();
+        secondLease!.Dispose();
+        replacementLease!.Dispose();
     }
 
     [Fact]
-    public async Task GIVEN_SharedLease_WHEN_AcquiringExclusiveLease_THEN_ShouldRejectUntilSharedLeaseReleased()
+    public void GIVEN_SharedLease_WHEN_AcquiringExclusiveLease_THEN_ShouldRejectUntilSharedLeaseReleased()
     {
         var target = new WorkspaceOperationGate(maxConcurrentQueries: 1);
         var sharedLease = target.TryAcquireShared();
@@ -42,14 +42,14 @@ public sealed class WorkspaceOperationGateTests
         var rejectedLease = target.TryAcquireExclusive();
 
         rejectedLease.Should().BeNull();
-        await sharedLease!.DisposeAsync();
+        sharedLease!.Dispose();
         var exclusiveLease = target.TryAcquireExclusive();
         exclusiveLease.Should().NotBeNull();
-        await exclusiveLease!.DisposeAsync();
+        exclusiveLease!.Dispose();
     }
 
     [Fact]
-    public async Task GIVEN_ExclusiveLease_WHEN_AcquiringSharedLease_THEN_ShouldRejectUntilExclusiveLeaseReleased()
+    public void GIVEN_ExclusiveLease_WHEN_AcquiringSharedLease_THEN_ShouldRejectUntilExclusiveLeaseReleased()
     {
         var target = new WorkspaceOperationGate(maxConcurrentQueries: 1);
         var exclusiveLease = target.TryAcquireExclusive();
@@ -57,14 +57,14 @@ public sealed class WorkspaceOperationGateTests
         var rejectedLease = target.TryAcquireShared();
 
         rejectedLease.Should().BeNull();
-        await exclusiveLease!.DisposeAsync();
+        exclusiveLease!.Dispose();
         var sharedLease = target.TryAcquireShared();
         sharedLease.Should().NotBeNull();
-        await sharedLease!.DisposeAsync();
+        sharedLease!.Dispose();
     }
 
     [Fact]
-    public async Task GIVEN_ExclusiveLease_WHEN_AcquiringAnotherExclusiveLease_THEN_ShouldRejectUntilLeaseReleased()
+    public void GIVEN_ExclusiveLease_WHEN_AcquiringAnotherExclusiveLease_THEN_ShouldRejectUntilLeaseReleased()
     {
         var target = new WorkspaceOperationGate(maxConcurrentQueries: 1);
         var exclusiveLease = target.TryAcquireExclusive();
@@ -72,41 +72,41 @@ public sealed class WorkspaceOperationGateTests
         var rejectedLease = target.TryAcquireExclusive();
 
         rejectedLease.Should().BeNull();
-        await exclusiveLease!.DisposeAsync();
+        exclusiveLease!.Dispose();
         var replacementLease = target.TryAcquireExclusive();
         replacementLease.Should().NotBeNull();
-        await replacementLease!.DisposeAsync();
+        replacementLease!.Dispose();
     }
 
     [Fact]
-    public async Task GIVEN_SharedLeaseDisposedTwice_WHEN_AcquiringAtLimit_THEN_ShouldNotCorruptLeaseCount()
+    public void GIVEN_SharedLeaseDisposedTwice_WHEN_AcquiringAtLimit_THEN_ShouldNotCorruptLeaseCount()
     {
         var target = new WorkspaceOperationGate(maxConcurrentQueries: 1);
         var lease = target.TryAcquireShared();
 
-        await lease!.DisposeAsync();
-        await lease.DisposeAsync();
+        lease!.Dispose();
+        lease.Dispose();
         var replacementLease = target.TryAcquireShared();
         var rejectedLease = target.TryAcquireShared();
 
         replacementLease.Should().NotBeNull();
         rejectedLease.Should().BeNull();
-        await replacementLease!.DisposeAsync();
+        replacementLease!.Dispose();
     }
 
     [Fact]
-    public async Task GIVEN_ExclusiveLeaseDisposedTwice_WHEN_AcquiringExclusive_THEN_ShouldRemainAvailableOnce()
+    public void GIVEN_ExclusiveLeaseDisposedTwice_WHEN_AcquiringExclusive_THEN_ShouldRemainAvailableOnce()
     {
         var target = new WorkspaceOperationGate(maxConcurrentQueries: 1);
         var lease = target.TryAcquireExclusive();
 
-        await lease!.DisposeAsync();
-        await lease.DisposeAsync();
+        lease!.Dispose();
+        lease.Dispose();
         var replacementLease = target.TryAcquireExclusive();
         var rejectedLease = target.TryAcquireExclusive();
 
         replacementLease.Should().NotBeNull();
         rejectedLease.Should().BeNull();
-        await replacementLease!.DisposeAsync();
+        replacementLease!.Dispose();
     }
 }

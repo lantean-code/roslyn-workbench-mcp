@@ -2,7 +2,7 @@ namespace Roslyn.Workbench.Mcp.Workspace.State;
 
 internal interface IWorkspaceOperationGate
 {
-    IAsyncDisposable? TryAcquireShared();
+    IWorkspaceOperationLease? TryAcquireShared();
 
-    IAsyncDisposable? TryAcquireExclusive();
+    IWorkspaceOperationLease? TryAcquireExclusive();
 }

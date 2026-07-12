@@ -12,8 +12,7 @@ public sealed class CodeActionMutationMcpServerToolTests
     {
         var handler = new Mock<ICodeActionMutationToolHandler<TestMutationRequest>>();
         var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
-        var operationLease = new Mock<IAsyncDisposable>();
-        operationLease.Setup(item => item.DisposeAsync()).Returns(ValueTask.CompletedTask);
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var workspaceLease = WorkspaceMutationExecutionLease.Rejected(
             new WorkspaceExecutionFailure
             {
@@ -41,7 +40,7 @@ public sealed class CodeActionMutationMcpServerToolTests
             It.IsAny<TestMutationRequest>(),
             It.IsAny<ICodeActionMutationContext>(),
             It.IsAny<CancellationToken>()), Times.Never);
-        operationLease.Verify(item => item.DisposeAsync(), Times.Once);
+        operationLease.Verify(item => item.Dispose(), Times.Once);
     }
 
     [Fact]
@@ -50,8 +49,7 @@ public sealed class CodeActionMutationMcpServerToolTests
         var handler = new Mock<ICodeActionMutationToolHandler<TestMutationRequest>>();
         var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
         var stager = new Mock<IWorkspaceMutationStager>();
-        var operationLease = new Mock<IAsyncDisposable>();
-        operationLease.Setup(item => item.DisposeAsync()).Returns(ValueTask.CompletedTask);
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var workspaceLease = WorkspaceMutationExecutionLease.Acquired(
             new Mock<IWorkspaceExecutionContext>().Object,
             stager.Object,
@@ -68,7 +66,7 @@ public sealed class CodeActionMutationMcpServerToolTests
             It.IsAny<TestMutationRequest>(),
             It.IsAny<ICodeActionMutationContext>(),
             It.IsAny<CancellationToken>()), Times.Never);
-        operationLease.Verify(item => item.DisposeAsync(), Times.Once);
+        operationLease.Verify(item => item.Dispose(), Times.Once);
     }
 
     [Theory]
@@ -198,8 +196,7 @@ public sealed class CodeActionMutationMcpServerToolTests
         var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
         var context = new Mock<ICodeActionMutationContext>();
         var stager = new Mock<IWorkspaceMutationStager>();
-        var operationLease = new Mock<IAsyncDisposable>();
-        operationLease.Setup(item => item.DisposeAsync()).Returns(ValueTask.CompletedTask);
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var diagnostic = new DiagnosticInfo
         {
             Id = "Id",
@@ -262,7 +259,7 @@ public sealed class CodeActionMutationMcpServerToolTests
             It.IsAny<IReadOnlyList<DiagnosticInfo>>(),
             It.IsAny<IReadOnlyList<WarningInfo>>(),
             CancellationToken.None), Times.Once);
-        operationLease.Verify(item => item.DisposeAsync(), Times.Once);
+        operationLease.Verify(item => item.Dispose(), Times.Once);
     }
 
     [Fact]
@@ -315,8 +312,7 @@ public sealed class CodeActionMutationMcpServerToolTests
         var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
         var context = new Mock<ICodeActionMutationContext>();
         var stager = new Mock<IWorkspaceMutationStager>();
-        var operationLease = new Mock<IAsyncDisposable>();
-        operationLease.Setup(item => item.DisposeAsync()).Returns(ValueTask.CompletedTask);
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var workspaceLease = WorkspaceMutationExecutionLease.Acquired(new Mock<IWorkspaceExecutionContext>().Object, stager.Object, operationLease.Object);
         contextFactory
             .Setup(item => item.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
@@ -329,7 +325,7 @@ public sealed class CodeActionMutationMcpServerToolTests
         var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
 
         McpServerToolResultAssertions.AssertUnhandledFailure(result);
-        operationLease.Verify(item => item.DisposeAsync(), Times.Once);
+        operationLease.Verify(item => item.Dispose(), Times.Once);
     }
 
     [Fact]
@@ -339,8 +335,7 @@ public sealed class CodeActionMutationMcpServerToolTests
         var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
         var context = new Mock<ICodeActionMutationContext>();
         var stager = new Mock<IWorkspaceMutationStager>();
-        var operationLease = new Mock<IAsyncDisposable>();
-        operationLease.Setup(item => item.DisposeAsync()).Returns(ValueTask.CompletedTask);
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         using var cancellationSource = new CancellationTokenSource();
         cancellationSource.Cancel();
         var workspaceLease = WorkspaceMutationExecutionLease.Acquired(new Mock<IWorkspaceExecutionContext>().Object, stager.Object, operationLease.Object);
@@ -355,7 +350,7 @@ public sealed class CodeActionMutationMcpServerToolTests
         var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), cancellationSource.Token);
 
         await action.Should().ThrowAsync<OperationCanceledException>();
-        operationLease.Verify(item => item.DisposeAsync(), Times.Once);
+        operationLease.Verify(item => item.Dispose(), Times.Once);
     }
 
     [Fact]
@@ -365,8 +360,7 @@ public sealed class CodeActionMutationMcpServerToolTests
         var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
         var context = new Mock<ICodeActionMutationContext>();
         var stager = new Mock<IWorkspaceMutationStager>();
-        var operationLease = new Mock<IAsyncDisposable>();
-        operationLease.Setup(item => item.DisposeAsync()).Returns(ValueTask.CompletedTask);
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var workspaceLease = WorkspaceMutationExecutionLease.Acquired(new Mock<IWorkspaceExecutionContext>().Object, stager.Object, operationLease.Object);
         contextFactory
             .Setup(item => item.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
@@ -387,7 +381,7 @@ public sealed class CodeActionMutationMcpServerToolTests
         var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
 
         McpServerToolResultAssertions.AssertUnhandledFailure(result);
-        operationLease.Verify(item => item.DisposeAsync(), Times.Once);
+        operationLease.Verify(item => item.Dispose(), Times.Once);
     }
 
     [Fact]
@@ -397,8 +391,7 @@ public sealed class CodeActionMutationMcpServerToolTests
         var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
         var context = new Mock<ICodeActionMutationContext>();
         var stager = new Mock<IWorkspaceMutationStager>();
-        var operationLease = new Mock<IAsyncDisposable>();
-        operationLease.Setup(item => item.DisposeAsync()).Returns(ValueTask.CompletedTask);
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         using var cancellationSource = new CancellationTokenSource();
         cancellationSource.Cancel();
         var workspaceLease = WorkspaceMutationExecutionLease.Acquired(new Mock<IWorkspaceExecutionContext>().Object, stager.Object, operationLease.Object);
@@ -421,7 +414,7 @@ public sealed class CodeActionMutationMcpServerToolTests
         var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), cancellationSource.Token);
 
         await action.Should().ThrowAsync<OperationCanceledException>();
-        operationLease.Verify(item => item.DisposeAsync(), Times.Once);
+        operationLease.Verify(item => item.Dispose(), Times.Once);
     }
 
     [Fact]

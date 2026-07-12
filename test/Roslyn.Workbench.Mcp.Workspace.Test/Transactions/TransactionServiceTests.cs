@@ -157,7 +157,7 @@ public sealed class TransactionServiceTests : IDisposable
         var session = CreateSession(transaction: null) with { OperationGate = gate.Object };
         var expected = CreateResult<TransactionStartOutcome>();
         SetupSelection(session);
-        gate.Setup(item => item.TryAcquireExclusive()).Returns((IAsyncDisposable?)null);
+        gate.Setup(item => item.TryAcquireExclusive()).Returns((IWorkspaceOperationLease?)null);
         SetupRejectedResult(expected, WorkspaceErrorCodes.WorkspaceBusy);
 
         var result = await _target.StartAsync(null, null, null, TestContext.Current.CancellationToken);
@@ -168,7 +168,7 @@ public sealed class TransactionServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_SelectedSessionDisappears_WHEN_StartingTransaction_THEN_ShouldReturnWorkspaceNotOpen()
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var session = CreateSession(transaction: null) with { OperationGate = gate.Object };
         var expected = CreateResult<TransactionStartOutcome>();
@@ -187,7 +187,7 @@ public sealed class TransactionServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_OutOfDateWorkspace_WHEN_StartingTransaction_THEN_ShouldReturnConflict()
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var session = CreateSession(transaction: null) with
         {
@@ -215,7 +215,7 @@ public sealed class TransactionServiceTests : IDisposable
         string ownerId,
         string expectedDisplayName)
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var session = CreateSession(transaction: null) with { OperationGate = gate.Object };
         var ownerSession = CreateSession(CreateTransaction()) with
@@ -250,7 +250,7 @@ public sealed class TransactionServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_MissingOwnerSession_WHEN_StartingTransaction_THEN_ShouldIdentifyUnknownOwner()
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var session = CreateSession(transaction: null) with { OperationGate = gate.Object };
         var expected = CreateResult<TransactionStartOutcome>();
@@ -276,7 +276,7 @@ public sealed class TransactionServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_ActiveTransaction_WHEN_StartingTransaction_THEN_ShouldRejectDuplicateTransaction()
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var session = CreateSession(CreateTransaction()) with { OperationGate = gate.Object };
         var expected = CreateResult<TransactionStartOutcome>();
@@ -293,7 +293,7 @@ public sealed class TransactionServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_ReadyWorkspace_WHEN_StartingTransaction_THEN_ShouldStoreNewTransaction()
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var session = CreateSession(transaction: null) with { OperationGate = gate.Object };
         var expected = CreateResult<TransactionStartOutcome>();
@@ -382,7 +382,7 @@ public sealed class TransactionServiceTests : IDisposable
         var session = CreateSession(CreateTransaction()) with { OperationGate = gate.Object };
         var expected = CreateResult<TransactionPreviewOutcome>();
         SetupSelection(session);
-        gate.Setup(item => item.TryAcquireShared()).Returns((IAsyncDisposable?)null);
+        gate.Setup(item => item.TryAcquireShared()).Returns((IWorkspaceOperationLease?)null);
         SetupRejectedResult(expected, WorkspaceErrorCodes.WorkspaceBusy);
 
         var result = await _target.PreviewAsync(
@@ -400,7 +400,7 @@ public sealed class TransactionServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_MissingTransaction_WHEN_PreviewingTransaction_THEN_ShouldRequireTransaction()
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var session = CreateSession(transaction: null) with { OperationGate = gate.Object };
         var expected = CreateResult<TransactionPreviewOutcome>();
@@ -419,13 +419,13 @@ public sealed class TransactionServiceTests : IDisposable
             TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
-        operationLease.Verify(item => item.DisposeAsync(), Times.Once);
+        operationLease.Verify(item => item.Dispose(), Times.Once);
     }
 
     [Fact]
     public async Task GIVEN_SelectedSessionDisappears_WHEN_PreviewingTransaction_THEN_ShouldRequireTransactionWithoutContext()
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var session = CreateSession(transaction: null) with { OperationGate = gate.Object };
         var expected = CreateResult<TransactionPreviewOutcome>();
@@ -451,7 +451,7 @@ public sealed class TransactionServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_TransactionAndDiffNotRequested_WHEN_PreviewingTransaction_THEN_ShouldReturnSummaryWithoutResolvingDocument()
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var transaction = CreateTransaction();
         var session = CreateSession(transaction) with { OperationGate = gate.Object };
@@ -494,7 +494,7 @@ public sealed class TransactionServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_UnresolvedDocument_WHEN_PreviewingWithDiff_THEN_ShouldReturnSummaryWithoutDiff()
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var transaction = CreateTransaction();
         var session = CreateSession(transaction) with { OperationGate = gate.Object };
@@ -526,7 +526,7 @@ public sealed class TransactionServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_ResolvedDocumentWithoutReference_WHEN_PreviewingWithDiff_THEN_ShouldReturnSummaryWithoutDiff()
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var transaction = CreateTransaction();
         var session = CreateSession(transaction) with { OperationGate = gate.Object };
@@ -553,7 +553,7 @@ public sealed class TransactionServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_ResolvedDocument_WHEN_PreviewingWithDiff_THEN_ShouldReturnDetailedDiff()
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var transaction = CreateTransaction();
         var session = CreateSession(transaction) with
@@ -637,7 +637,7 @@ public sealed class TransactionServiceTests : IDisposable
         var session = CreateSession(CreateTransaction()) with { OperationGate = gate.Object };
         var expected = CreateResult<TransactionHistoryOutcome>();
         SetupSelection(session);
-        gate.Setup(item => item.TryAcquireExclusive()).Returns((IAsyncDisposable?)null);
+        gate.Setup(item => item.TryAcquireExclusive()).Returns((IWorkspaceOperationLease?)null);
         SetupRejectedResult(expected, WorkspaceErrorCodes.WorkspaceBusy);
 
         var result = await _target.MoveHistoryAsync(
@@ -654,7 +654,7 @@ public sealed class TransactionServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_MissingTransaction_WHEN_MovingHistory_THEN_ShouldRequireTransaction()
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var session = CreateSession(transaction: null) with { OperationGate = gate.Object };
         var expected = CreateResult<TransactionHistoryOutcome>();
@@ -677,7 +677,7 @@ public sealed class TransactionServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_SelectedSessionDisappears_WHEN_MovingHistory_THEN_ShouldRequireTransaction()
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var session = CreateSession(CreateTransaction()) with { OperationGate = gate.Object };
         var expected = CreateResult<TransactionHistoryOutcome>();
@@ -702,7 +702,7 @@ public sealed class TransactionServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_SnapshotMismatch_WHEN_MovingHistory_THEN_ShouldReturnConflict()
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var session = CreateSession(CreateTransaction()) with { OperationGate = gate.Object };
         var mismatch = new WorkspaceOperationError { Code = "SnapshotMismatch", Message = "Message" };
@@ -729,7 +729,7 @@ public sealed class TransactionServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_ConflictedTransaction_WHEN_MovingHistory_THEN_ShouldRequireRollback()
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var session = CreateSession(CreateTransaction()) with
         {
@@ -759,7 +759,7 @@ public sealed class TransactionServiceTests : IDisposable
         int currentRevision,
         int revisionCount)
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var transaction = CreateTransaction(currentRevision, revisionCount);
         var session = CreateSession(transaction) with { OperationGate = gate.Object };
@@ -787,7 +787,7 @@ public sealed class TransactionServiceTests : IDisposable
         int revisionCount,
         int expectedRevision)
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var transaction = CreateTransaction(currentRevision, revisionCount);
         var session = CreateSession(transaction) with { OperationGate = gate.Object };
@@ -847,7 +847,7 @@ public sealed class TransactionServiceTests : IDisposable
         var session = CreateSession(CreateTransaction()) with { OperationGate = gate.Object };
         var expected = CreateResult<TransactionCommitOutcome>();
         SetupSelection(session);
-        gate.Setup(item => item.TryAcquireExclusive()).Returns((IAsyncDisposable?)null);
+        gate.Setup(item => item.TryAcquireExclusive()).Returns((IWorkspaceOperationLease?)null);
         SetupRejectedResult(expected, WorkspaceErrorCodes.WorkspaceBusy);
 
         var result = await _target.CommitAsync(null, null, null, null, TestContext.Current.CancellationToken);
@@ -858,7 +858,7 @@ public sealed class TransactionServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_AvailableWorkspace_WHEN_CommittingTransaction_THEN_ShouldDelegateAndDisposeLease()
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var session = CreateSession(CreateTransaction()) with { OperationGate = gate.Object };
         var expectedSnapshot = new SnapshotPrecondition();
@@ -878,7 +878,7 @@ public sealed class TransactionServiceTests : IDisposable
             TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
-        operationLease.Verify(item => item.DisposeAsync(), Times.Once);
+        operationLease.Verify(item => item.Dispose(), Times.Once);
     }
 
     [Fact]
@@ -916,7 +916,7 @@ public sealed class TransactionServiceTests : IDisposable
         var session = CreateSession(CreateTransaction()) with { OperationGate = gate.Object };
         var expected = CreateResult<TransactionRollbackOutcome>();
         SetupSelection(session);
-        gate.Setup(item => item.TryAcquireExclusive()).Returns((IAsyncDisposable?)null);
+        gate.Setup(item => item.TryAcquireExclusive()).Returns((IWorkspaceOperationLease?)null);
         SetupRejectedResult(expected, WorkspaceErrorCodes.WorkspaceBusy);
 
         var result = await _target.RollbackAsync(null, null, null, TestContext.Current.CancellationToken);
@@ -927,7 +927,7 @@ public sealed class TransactionServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_MissingTransaction_WHEN_RollingBackTransaction_THEN_ShouldRequireTransaction()
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var session = CreateSession(transaction: null) with { OperationGate = gate.Object };
         var expected = CreateResult<TransactionRollbackOutcome>();
@@ -944,7 +944,7 @@ public sealed class TransactionServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_SelectedSessionDisappears_WHEN_RollingBackTransaction_THEN_ShouldRequireTransaction()
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var session = CreateSession(CreateTransaction()) with { OperationGate = gate.Object };
         var expected = CreateResult<TransactionRollbackOutcome>();
@@ -968,7 +968,7 @@ public sealed class TransactionServiceTests : IDisposable
         string triggerName,
         TransactionRollbackState expectedState)
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var transaction = CreateTransaction();
         var session = CreateSession(transaction) with { OperationGate = gate.Object, State = state };
@@ -1057,7 +1057,7 @@ public sealed class TransactionServiceTests : IDisposable
         WorkspaceSessionSnapshot session,
         WorkspaceTransaction transaction,
         Mock<IWorkspaceOperationGate> gate,
-        Mock<IAsyncDisposable> operationLease)
+        Mock<IWorkspaceOperationLease> operationLease)
     {
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireShared()).Returns(operationLease.Object);
@@ -1085,7 +1085,7 @@ public sealed class TransactionServiceTests : IDisposable
     private void SetupHistory(
         WorkspaceSessionSnapshot session,
         Mock<IWorkspaceOperationGate> gate,
-        Mock<IAsyncDisposable> operationLease)
+        Mock<IWorkspaceOperationLease> operationLease)
     {
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireExclusive()).Returns(operationLease.Object);

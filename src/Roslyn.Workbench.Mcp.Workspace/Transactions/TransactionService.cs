@@ -47,11 +47,11 @@ internal sealed class TransactionService : ITransactionService
         var acquisition = _sessionAcquirer.AcquireExclusive(CreateWorkspaceSelector(workspaceId, alias, path));
         if (acquisition.HasError)
         {
-            await DisposeFailedAcquisitionAsync(acquisition).ConfigureAwait(false);
+            DisposeFailedAcquisition(acquisition);
             return CreateAcquisitionFailureResult<TransactionStartOutcome>(acquisition, acquisition.Error);
         }
 
-        await using var leaseScope = acquisition.Lease;
+        using var leaseScope = acquisition.Lease;
         var session = acquisition.Session;
 
         var context = CreateContext(session);
@@ -127,11 +127,11 @@ internal sealed class TransactionService : ITransactionService
         var acquisition = _sessionAcquirer.AcquireShared(CreateWorkspaceSelector(workspaceId, alias, path));
         if (acquisition.HasError)
         {
-            await DisposeFailedAcquisitionAsync(acquisition).ConfigureAwait(false);
+            DisposeFailedAcquisition(acquisition);
             return CreateAcquisitionFailureResult<TransactionPreviewOutcome>(acquisition, acquisition.Error);
         }
 
-        await using var leaseScope = acquisition.Lease;
+        using var leaseScope = acquisition.Lease;
         var session = acquisition.Session;
         if (session?.Transaction is null)
         {
@@ -195,11 +195,11 @@ internal sealed class TransactionService : ITransactionService
         var acquisition = _sessionAcquirer.AcquireExclusive(CreateWorkspaceSelector(workspaceId, alias, path));
         if (acquisition.HasError)
         {
-            await DisposeFailedAcquisitionAsync(acquisition).ConfigureAwait(false);
+            DisposeFailedAcquisition(acquisition);
             return CreateAcquisitionFailureResult<TransactionHistoryOutcome>(acquisition, acquisition.Error);
         }
 
-        await using var leaseScope = acquisition.Lease;
+        using var leaseScope = acquisition.Lease;
         var session = acquisition.Session;
         var transaction = session.Transaction;
         if (transaction is null)
@@ -269,11 +269,11 @@ internal sealed class TransactionService : ITransactionService
         var acquisition = _sessionAcquirer.AcquireExclusive(CreateWorkspaceSelector(workspaceId, alias, path));
         if (acquisition.HasError)
         {
-            await DisposeFailedAcquisitionAsync(acquisition).ConfigureAwait(false);
+            DisposeFailedAcquisition(acquisition);
             return CreateAcquisitionFailureResult<TransactionCommitOutcome>(acquisition, acquisition.Error);
         }
 
-        await using var leaseScope = acquisition.Lease;
+        using var leaseScope = acquisition.Lease;
         return await _transactionCommitService.CommitAsync(acquisition.Selection, expectedSnapshot, cancellationToken).ConfigureAwait(false);
     }
 
@@ -284,11 +284,11 @@ internal sealed class TransactionService : ITransactionService
         var acquisition = _sessionAcquirer.AcquireExclusive(CreateWorkspaceSelector(workspaceId, alias, path));
         if (acquisition.HasError)
         {
-            await DisposeFailedAcquisitionAsync(acquisition).ConfigureAwait(false);
+            DisposeFailedAcquisition(acquisition);
             return CreateAcquisitionFailureResult<TransactionRollbackOutcome>(acquisition, acquisition.Error);
         }
 
-        await using var leaseScope = acquisition.Lease;
+        using var leaseScope = acquisition.Lease;
         var session = acquisition.Session;
         var transaction = session.Transaction;
         if (transaction is null)
@@ -371,8 +371,8 @@ internal sealed class TransactionService : ITransactionService
         return _resultFactory.Rejected<TOutcome>(error, context);
     }
 
-    private static ValueTask DisposeFailedAcquisitionAsync(WorkspaceSessionAcquisition acquisition)
+    private static void DisposeFailedAcquisition(WorkspaceSessionAcquisition acquisition)
     {
-        return acquisition.Lease is null ? ValueTask.CompletedTask : acquisition.Lease.DisposeAsync();
+        acquisition.Lease?.Dispose();
     }
 }

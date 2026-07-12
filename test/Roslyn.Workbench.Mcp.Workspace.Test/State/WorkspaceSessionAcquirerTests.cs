@@ -71,11 +71,11 @@ public sealed class WorkspaceSessionAcquirerTests : IDisposable
         SetupSelection(session);
         if (exclusive)
         {
-            gate.Setup(item => item.TryAcquireExclusive()).Returns((IAsyncDisposable?)null);
+            gate.Setup(item => item.TryAcquireExclusive()).Returns((IWorkspaceOperationLease?)null);
         }
         else
         {
-            gate.Setup(item => item.TryAcquireShared()).Returns((IAsyncDisposable?)null);
+            gate.Setup(item => item.TryAcquireShared()).Returns((IWorkspaceOperationLease?)null);
         }
 
         var result = Acquire(exclusive);
@@ -94,7 +94,7 @@ public sealed class WorkspaceSessionAcquirerTests : IDisposable
     public void GIVEN_SelectedSessionDisappears_WHEN_Acquiring_THEN_ShouldRetainLeaseForCallerDisposal(bool exclusive)
     {
         var gate = new Mock<IWorkspaceOperationGate>();
-        var lease = new Mock<IAsyncDisposable>();
+        var lease = new Mock<IWorkspaceOperationLease>();
         var session = CreateSession(gate.Object);
         SetupSelection(session);
         SetupLease(gate, lease.Object, exclusive);
@@ -115,7 +115,7 @@ public sealed class WorkspaceSessionAcquirerTests : IDisposable
     public void GIVEN_SelectedSessionRemains_WHEN_Acquiring_THEN_ShouldReturnRefreshedSessionAndLease(bool exclusive)
     {
         var gate = new Mock<IWorkspaceOperationGate>();
-        var lease = new Mock<IAsyncDisposable>();
+        var lease = new Mock<IWorkspaceOperationLease>();
         var selectedSession = CreateSession(gate.Object);
         var refreshedSession = selectedSession with { State = WorkspaceLifecycleState.TransactionActive };
         SetupSelection(selectedSession);
@@ -152,7 +152,7 @@ public sealed class WorkspaceSessionAcquirerTests : IDisposable
         }));
     }
 
-    private static void SetupLease(Mock<IWorkspaceOperationGate> gate, IAsyncDisposable lease, bool exclusive)
+    private static void SetupLease(Mock<IWorkspaceOperationGate> gate, IWorkspaceOperationLease lease, bool exclusive)
     {
         if (exclusive)
         {

@@ -439,7 +439,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         var session = CreateSession("WorkspaceId", "Path", alias: null, transaction: null) with { OperationGate = gate.Object };
         var expected = CreateResult<WorkspaceCloseOutcome>();
         SetupSelection(session);
-        gate.Setup(item => item.TryAcquireExclusive()).Returns((IAsyncDisposable?)null);
+        gate.Setup(item => item.TryAcquireExclusive()).Returns((IWorkspaceOperationLease?)null);
         SetupRejectedResult(expected, WorkspaceErrorCodes.WorkspaceBusy);
 
         var result = await _target.CloseAsync(null, null, null, TestContext.Current.CancellationToken);
@@ -450,7 +450,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_SelectedSessionDisappears_WHEN_Closing_THEN_ShouldReturnWorkspaceNotOpen()
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var session = CreateSession("WorkspaceId", "Path", alias: null, transaction: null) with { OperationGate = gate.Object };
         var expected = CreateResult<WorkspaceCloseOutcome>();
@@ -471,7 +471,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     [InlineData(WorkspaceLifecycleState.TransactionConflicted)]
     public async Task GIVEN_OpenTransaction_WHEN_Closing_THEN_ShouldRequireCommitOrRollback(WorkspaceLifecycleState state)
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var session = CreateSession("WorkspaceId", "Path", alias: null, CreateTransaction()) with
         {
@@ -490,7 +490,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_RemoveRace_WHEN_Closing_THEN_ShouldReturnWorkspaceNotOpen()
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var session = CreateSession("WorkspaceId", "Path", alias: null, transaction: null) with { OperationGate = gate.Object };
         var expected = CreateResult<WorkspaceCloseOutcome>();
@@ -506,7 +506,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_ReadyWorkspace_WHEN_Closing_THEN_ShouldDisposeAndReturnClosedPath()
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var loadedWorkspace = new Mock<ILoadedWorkspace>();
         var session = CreateSession("WorkspaceId", "ClosedPath", alias: null, transaction: null) with
@@ -562,7 +562,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         var session = CreateSession("WorkspaceId", "Path", alias: null, transaction: null) with { OperationGate = gate.Object };
         var expected = CreateResult<WorkspaceStatusOutcome>();
         SetupSelection(session);
-        gate.Setup(item => item.TryAcquireShared()).Returns((IAsyncDisposable?)null);
+        gate.Setup(item => item.TryAcquireShared()).Returns((IWorkspaceOperationLease?)null);
         SetupRejectedResult(expected, WorkspaceErrorCodes.WorkspaceBusy);
 
         var result = await _target.GetStatusAsync(null, null, null, StatusDetailLevel.Standard, TestContext.Current.CancellationToken);
@@ -573,7 +573,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_SelectedSessionDisappears_WHEN_GettingStatus_THEN_ShouldReturnWorkspaceNotOpen()
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var session = CreateSession("WorkspaceId", "Path", alias: null, transaction: null) with { OperationGate = gate.Object };
         var expected = CreateResult<WorkspaceStatusOutcome>();
@@ -597,7 +597,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         WorkspaceLifecycleState state,
         bool shouldCheckForChanges)
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var transaction = state == WorkspaceLifecycleState.TransactionActive ? CreateTransaction() : null;
         var session = CreateSession("WorkspaceId", "Path", alias: null, transaction) with
@@ -633,7 +633,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         StatusDetailLevel detail,
         bool includesDiagnostics)
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var session = CreateSession("WorkspaceId", "Path", alias: null, transaction: null) with
         {
@@ -656,7 +656,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_OtherLiveInstance_WHEN_GettingStatus_THEN_ShouldProjectItsAdvisoryState()
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var session = CreateSession("WorkspaceId", "Path", alias: null, transaction: null) with { OperationGate = gate.Object };
         var instance = new WorkspaceInstanceInfo
@@ -717,7 +717,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         var session = CreateSession("WorkspaceId", "Path", alias: null, transaction: null) with { OperationGate = gate.Object };
         var expected = CreateResult<WorkspaceReloadOutcome>();
         SetupSelection(session);
-        gate.Setup(item => item.TryAcquireExclusive()).Returns((IAsyncDisposable?)null);
+        gate.Setup(item => item.TryAcquireExclusive()).Returns((IWorkspaceOperationLease?)null);
         SetupRejectedResult(expected, WorkspaceErrorCodes.WorkspaceBusy);
 
         var result = await _target.ReloadAsync(null, null, null, TestContext.Current.CancellationToken);
@@ -728,7 +728,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_SelectedSessionDisappears_WHEN_Reloading_THEN_ShouldReturnWorkspaceNotOpen()
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var session = CreateSession("WorkspaceId", "Path", alias: null, transaction: null) with { OperationGate = gate.Object };
         var expected = CreateResult<WorkspaceReloadOutcome>();
@@ -749,7 +749,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     [InlineData(WorkspaceLifecycleState.TransactionConflicted)]
     public async Task GIVEN_OpenTransaction_WHEN_Reloading_THEN_ShouldReturnBlocked(WorkspaceLifecycleState state)
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var session = CreateSession("WorkspaceId", "Path", alias: null, CreateTransaction()) with
         {
@@ -768,7 +768,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_ReloadNotRequired_WHEN_Reloading_THEN_ShouldReturnRejection()
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var session = CreateSession("WorkspaceId", "Path", alias: null, transaction: null) with { OperationGate = gate.Object };
         var expected = CreateResult<WorkspaceReloadOutcome>();
@@ -785,7 +785,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     [InlineData(false)]
     public async Task GIVEN_ProjectCompatibilityFailure_WHEN_Reloading_THEN_ShouldReturnExpectedRejection(bool hasDiagnostics)
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var session = CreateSession("WorkspaceId", "/workspace/Project.csproj", alias: null, transaction: null) with
         {
@@ -810,7 +810,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_SdkProjectPreflightPasses_WHEN_Reloading_THEN_ShouldContinueToLoad()
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var session = CreateSession("WorkspaceId", "/workspace/Project.csproj", alias: null, transaction: null) with
         {
@@ -830,7 +830,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_LoadWorkflowFails_WHEN_Reloading_THEN_ShouldReturnLoadFailure()
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var session = CreateSession("WorkspaceId", "/workspace/Solution.sln", alias: null, transaction: null) with
         {
@@ -850,7 +850,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_ReloadedWorkspaceFallsOutsideRoot_WHEN_Reloading_THEN_ShouldReturnRootFailure()
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var session = CreateSession("WorkspaceId", "/workspace/Solution.sln", alias: null, transaction: null) with
         {
@@ -870,7 +870,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_OutOfDateWorkspace_WHEN_Reloading_THEN_ShouldReplaceSessionAndDisposeOldWorkspace()
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var oldWorkspace = new Mock<ILoadedWorkspace>();
         var newWorkspace = new Mock<ILoadedWorkspace>();
@@ -908,7 +908,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     [Fact]
     public async Task GIVEN_OldSessionDisappearsAfterReload_WHEN_Reloading_THEN_ShouldStillStoreReloadedSession()
     {
-        var operationLease = new Mock<IAsyncDisposable>();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
         var newWorkspace = new Mock<ILoadedWorkspace>();
         var session = CreateSession("WorkspaceId", "/workspace/Solution.sln", alias: null, transaction: null) with
@@ -1028,7 +1028,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     private void SetupSelectedSession(
         WorkspaceSessionSnapshot session,
         Mock<IWorkspaceOperationGate> gate,
-        Mock<IAsyncDisposable> operationLease,
+        Mock<IWorkspaceOperationLease> operationLease,
         bool exclusive)
     {
         SetupSelection(session);

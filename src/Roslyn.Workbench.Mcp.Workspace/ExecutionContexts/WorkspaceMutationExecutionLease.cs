@@ -2,13 +2,13 @@ namespace Roslyn.Workbench.Mcp.Workspace.ExecutionContexts;
 
 internal sealed class WorkspaceMutationExecutionLease : IAsyncDisposable
 {
-    private readonly IAsyncDisposable? _lease;
+    private readonly IWorkspaceOperationLease? _lease;
 
     private WorkspaceMutationExecutionLease(
         IWorkspaceExecutionContext? context,
         IWorkspaceMutationStager? stager,
         WorkspaceExecutionFailure? failure,
-        IAsyncDisposable? lease)
+        IWorkspaceOperationLease? lease)
     {
         Context = context;
         Stager = stager;
@@ -25,7 +25,7 @@ internal sealed class WorkspaceMutationExecutionLease : IAsyncDisposable
     public static WorkspaceMutationExecutionLease Acquired(
         IWorkspaceExecutionContext context,
         IWorkspaceMutationStager stager,
-        IAsyncDisposable? lease = null)
+        IWorkspaceOperationLease? lease = null)
     {
 
         return new WorkspaceMutationExecutionLease(context, stager, null, lease);
@@ -35,7 +35,7 @@ internal sealed class WorkspaceMutationExecutionLease : IAsyncDisposable
         WorkspaceExecutionFailure failure,
         IWorkspaceExecutionContext? context = null,
         IWorkspaceMutationStager? stager = null,
-        IAsyncDisposable? lease = null)
+        IWorkspaceOperationLease? lease = null)
     {
 
         return new WorkspaceMutationExecutionLease(context, stager, failure, lease);
@@ -43,6 +43,7 @@ internal sealed class WorkspaceMutationExecutionLease : IAsyncDisposable
 
     public ValueTask DisposeAsync()
     {
-        return _lease is null ? ValueTask.CompletedTask : _lease.DisposeAsync();
+        _lease?.Dispose();
+        return ValueTask.CompletedTask;
     }
 }

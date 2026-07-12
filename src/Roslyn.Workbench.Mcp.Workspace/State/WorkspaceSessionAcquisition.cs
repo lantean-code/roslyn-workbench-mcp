@@ -8,7 +8,7 @@ internal sealed class WorkspaceSessionAcquisition
         WorkspaceSelection? selection,
         WorkspaceSessionSnapshot? session,
         WorkspaceSessionSnapshot? contextSession,
-        IAsyncDisposable? lease,
+        IWorkspaceOperationLease? lease,
         WorkspaceOperationError? error)
     {
         Selection = selection;
@@ -22,7 +22,7 @@ internal sealed class WorkspaceSessionAcquisition
 
     public WorkspaceOperationError? Error { get; }
 
-    public IAsyncDisposable? Lease { get; }
+    public IWorkspaceOperationLease? Lease { get; }
 
     public WorkspaceSelection? Selection { get; }
 
@@ -37,7 +37,7 @@ internal sealed class WorkspaceSessionAcquisition
     public static WorkspaceSessionAcquisition Acquired(
         WorkspaceSelection selection,
         WorkspaceSessionSnapshot session,
-        IAsyncDisposable lease)
+        IWorkspaceOperationLease lease)
     {
         return new WorkspaceSessionAcquisition(
             selection,
@@ -50,7 +50,7 @@ internal sealed class WorkspaceSessionAcquisition
     public static WorkspaceSessionAcquisition Rejected(
         WorkspaceOperationError error,
         WorkspaceSessionSnapshot? contextSession = null,
-        IAsyncDisposable? lease = null)
+        IWorkspaceOperationLease? lease = null)
     {
         return new WorkspaceSessionAcquisition(
             selection: null,

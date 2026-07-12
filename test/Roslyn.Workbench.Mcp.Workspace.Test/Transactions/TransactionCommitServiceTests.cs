@@ -401,6 +401,26 @@ public sealed class TransactionCommitServiceTests : IDisposable
         _recoveryStore.Verify(item => item.DeleteStatus("commit"), Times.Once);
     }
 
+    [Fact]
+    public async Task GIVEN_CancellationDuringPlanning_WHEN_Committing_THEN_ShouldPropagateWithoutRestoration()
+    {
+        var session = CreateSession();
+        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
+        _lockManager.Setup(item => item.Acquire("/workspace")).Returns(CreateLockAcquisition(lockAvailable: true));
+        _planner.Setup(item => item.CreateAsync(
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<Solution>(),
+            It.IsAny<Solution>(),
+            It.IsAny<CancellationToken>())).ThrowsAsync(new OperationCanceledException());
+
+        var action = async () => await _target.CommitAsync(CreateSelection(session), null, TestContext.Current.CancellationToken);
+
+        await action.Should().ThrowAsync<OperationCanceledException>();
+        _commitWriter.Verify(item => item.RestoreAsync(It.IsAny<WorkspaceCommitManifest>()), Times.Never);
+    }
+
     public void Dispose()
     {
         _workspace.Dispose();

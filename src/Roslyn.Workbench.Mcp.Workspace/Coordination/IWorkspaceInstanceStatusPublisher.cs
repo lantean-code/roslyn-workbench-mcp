@@ -15,5 +15,5 @@ internal interface IWorkspaceInstanceStatusPublisher
         string workspaceRoot,
         CancellationToken cancellationToken);
 
-    void Close(string workspaceId);
+    ValueTask CloseAsync(string workspaceId);
 }

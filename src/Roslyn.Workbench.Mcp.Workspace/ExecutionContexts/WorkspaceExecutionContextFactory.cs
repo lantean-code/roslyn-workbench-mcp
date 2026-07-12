@@ -47,11 +47,18 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
                 acquisition.Lease);
         }
 
-        var failure = ValidateMutationSession(acquisition.Selection.WorkspaceId, acquisition.Session, cancellationToken);
-        var context = CreateContext(acquisition.Session);
-        if (failure is not null)
+        var validation = ValidateMutationSession(
+            acquisition.Selection.WorkspaceId,
+            acquisition.Session,
+            cancellationToken);
+        var context = CreateContext(validation.Session);
+        if (validation.Failure is not null)
         {
-            return WorkspaceMutationExecutionLease.Rejected(failure, context, _mutationStager, acquisition.Lease);
+            return WorkspaceMutationExecutionLease.Rejected(
+                validation.Failure,
+                context,
+                _mutationStager,
+                acquisition.Lease);
         }
 
         return WorkspaceMutationExecutionLease.Acquired(context, _mutationStager, acquisition.Lease);
@@ -73,23 +80,11 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
                 acquisition.Lease);
         }
 
-        var session = acquisition.Session;
-        if (session.State is WorkspaceLifecycleState.Ready or WorkspaceLifecycleState.TransactionActive
-            && _workspaceChangeDetector.HasChanged(session.InputManifest, cancellationToken))
+        var validation = ValidateQuerySession(acquisition.Session, cancellationToken);
+        var context = CreateContext(validation.Session);
+        if (validation.Failure is not null)
         {
-            session = _workspaceStateTransitions.ApplyExternalChangeDetected(session);
-            _sessionStore.ReplaceSession(session);
-        }
-
-        var context = CreateContext(session);
-        if (session.State == WorkspaceLifecycleState.WorkspaceOutOfDate)
-        {
-            return WorkspaceExecutionContextLease.Rejected(CreateWorkspaceOutOfDateFailure(), context, acquisition.Lease);
-        }
-
-        if (session.State == WorkspaceLifecycleState.TransactionConflicted)
-        {
-            return WorkspaceExecutionContextLease.Rejected(CreateTransactionConflictedFailure(), context, acquisition.Lease);
+            return WorkspaceExecutionContextLease.Rejected(validation.Failure, context, acquisition.Lease);
         }
 
         return WorkspaceExecutionContextLease.Acquired(context, acquisition.Lease);
@@ -109,58 +104,81 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
             resolver);
     }
 
-    private WorkspaceExecutionFailure? ValidateMutationSession(
+    private WorkspaceExecutionSessionValidation ValidateQuerySession(
+        WorkspaceSessionSnapshot session,
+        CancellationToken cancellationToken)
+    {
+        var effectiveSession = RefreshExternalChanges(session, cancellationToken);
+        return new WorkspaceExecutionSessionValidation(
+            effectiveSession,
+            CreateUnavailableStateFailure(effectiveSession.State));
+    }
+
+    private WorkspaceExecutionSessionValidation ValidateMutationSession(
         string workspaceId,
         WorkspaceSessionSnapshot session,
         CancellationToken cancellationToken)
     {
-        var ownerWorkspaceId = _sessionStore.ReadSnapshot().TransactionOwnerWorkspaceId;
+        var snapshot = _sessionStore.ReadSnapshot();
+        var ownerWorkspaceId = snapshot.TransactionOwnerWorkspaceId;
         if (!string.IsNullOrWhiteSpace(ownerWorkspaceId)
             && !string.Equals(ownerWorkspaceId, workspaceId, StringComparison.Ordinal))
         {
             var ownerSession = _sessionStore.ReadSession(ownerWorkspaceId);
-            return CreateFailure(
-                WorkspaceOperationStatus.Rejected,
-                WorkspaceErrorCodes.TransactionOwner,
-                $"Commit or roll back the transaction on workspace '{GetWorkspaceDisplayName(ownerSession)}' before mutating this workspace.",
-                RequiredAction.CommitOrRollback);
+            return new WorkspaceExecutionSessionValidation(
+                session,
+                CreateFailure(
+                    WorkspaceOperationStatus.Rejected,
+                    WorkspaceErrorCodes.TransactionOwner,
+                    $"Commit or roll back the transaction on workspace '{GetWorkspaceDisplayName(ownerSession)}' before mutating this workspace.",
+                    RequiredAction.CommitOrRollback));
         }
 
-        if (session.State == WorkspaceLifecycleState.WorkspaceOutOfDate)
+        var effectiveSession = RefreshExternalChanges(session, cancellationToken);
+        var unavailableStateFailure = CreateUnavailableStateFailure(effectiveSession.State);
+        if (unavailableStateFailure is not null)
         {
-            return CreateWorkspaceOutOfDateFailure();
+            return new WorkspaceExecutionSessionValidation(effectiveSession, unavailableStateFailure);
         }
 
-        if (_workspaceChangeDetector.HasChanged(session.InputManifest, cancellationToken))
+        if (effectiveSession.Transaction is null)
         {
-            session = _workspaceStateTransitions.ApplyExternalChangeDetected(session);
-            _sessionStore.ReplaceSession(session);
+            return new WorkspaceExecutionSessionValidation(
+                effectiveSession,
+                CreateFailure(
+                    WorkspaceOperationStatus.Rejected,
+                    WorkspaceErrorCodes.TransactionRequired,
+                    "Start a transaction before invoking mutation tools.",
+                    RequiredAction.StartTransaction));
         }
 
-        if (session.State == WorkspaceLifecycleState.TransactionConflicted)
+        if (effectiveSession.Transaction.CurrentRevision >= effectiveSession.Transaction.MaxRevisions)
         {
-            return CreateTransactionConflictedFailure();
+            return new WorkspaceExecutionSessionValidation(
+                effectiveSession,
+                CreateFailure(
+                    WorkspaceOperationStatus.Rejected,
+                    WorkspaceErrorCodes.TransactionCapacity,
+                    "Reduce transaction history before staging more changes.",
+                    RequiredAction.ReduceTransactionHistory));
         }
 
-        if (session.Transaction is null)
+        return new WorkspaceExecutionSessionValidation(effectiveSession);
+    }
+
+    private WorkspaceSessionSnapshot RefreshExternalChanges(
+        WorkspaceSessionSnapshot session,
+        CancellationToken cancellationToken)
+    {
+        if (session.State is not (WorkspaceLifecycleState.Ready or WorkspaceLifecycleState.TransactionActive)
+            || !_workspaceChangeDetector.HasChanged(session.InputManifest, cancellationToken))
         {
-            return CreateFailure(
-                WorkspaceOperationStatus.Rejected,
-                WorkspaceErrorCodes.TransactionRequired,
-                "Start a transaction before invoking mutation tools.",
-                RequiredAction.StartTransaction);
+            return session;
         }
 
-        if (session.Transaction.CurrentRevision >= session.Transaction.MaxRevisions)
-        {
-            return CreateFailure(
-                WorkspaceOperationStatus.Rejected,
-                WorkspaceErrorCodes.TransactionCapacity,
-                "Reduce transaction history before staging more changes.",
-                RequiredAction.ReduceTransactionHistory);
-        }
-
-        return null;
+        var transitionedSession = _workspaceStateTransitions.ApplyExternalChangeDetected(session);
+        _sessionStore.ReplaceSession(transitionedSession);
+        return transitionedSession;
     }
 
     private static string GetWorkspaceDisplayName(WorkspaceSessionSnapshot? session)
@@ -200,6 +218,16 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
             WorkspaceErrorCodes.TransactionConflicted,
             "Roll back the conflicted transaction before invoking this tool.",
             RequiredAction.RollbackTransaction);
+    }
+
+    private static WorkspaceExecutionFailure? CreateUnavailableStateFailure(WorkspaceLifecycleState state)
+    {
+        return state switch
+        {
+            WorkspaceLifecycleState.WorkspaceOutOfDate => CreateWorkspaceOutOfDateFailure(),
+            WorkspaceLifecycleState.TransactionConflicted => CreateTransactionConflictedFailure(),
+            _ => null,
+        };
     }
 
     private static WorkspaceExecutionFailure CreateFailure(

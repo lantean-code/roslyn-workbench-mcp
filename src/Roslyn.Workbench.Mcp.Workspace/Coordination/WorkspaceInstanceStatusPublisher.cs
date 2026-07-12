@@ -1,14 +1,17 @@
+using System.Runtime.ExceptionServices;
 using System.Text.Json;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Coordination;
 
-internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatusPublisher, IDisposable
+internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatusPublisher, IAsyncDisposable
 {
-    private static readonly JsonSerializerOptions _options = new(JsonSerializerDefaults.Web);
+    private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
     private readonly IFileSystem _fileSystem;
     private readonly IWorkspacePathComparison _pathComparison;
-    private readonly Dictionary<string, InstanceLease> _leases = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, WorkspaceInstanceStatusHandle> _handles = new(StringComparer.Ordinal);
+    private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly string _instanceId = $"{Environment.ProcessId}-{Guid.NewGuid():n}";
+    private bool _isDisposed;
 
     public WorkspaceInstanceStatusPublisher(IFileSystem fileSystem, IWorkspacePathComparison pathComparison)
     {
@@ -23,24 +26,24 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         WorkspaceLifecycleState state,
         CancellationToken cancellationToken)
     {
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            var canonicalWorkspaceRoot = _fileSystem.Path.GetFullPath(workspaceRoot);
-            var directory = GetInstanceDirectory(canonicalWorkspaceRoot);
-            _fileSystem.Directory.CreateDirectory(directory);
-            var scan = await ScanAsync(canonicalWorkspaceRoot, cancellationToken).ConfigureAwait(false);
-
-            var filePath = _fileSystem.Path.Combine(directory, $"{_instanceId}-{workspaceId}.json");
-            var stream = _fileSystem.FileStream.New(filePath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read);
-            var lease = new InstanceLease(filePath, stream, new WorkspaceInstanceStatus
+            if (_isDisposed)
             {
-                InstanceId = _instanceId,
-                LoadedPath = _fileSystem.Path.GetFullPath(loadedPath),
-                WorkspaceRoot = canonicalWorkspaceRoot,
-                WorkspaceState = state,
-            });
-            _leases.Add(workspaceId, lease);
-            await WriteAsync(lease).ConfigureAwait(false);
+                return false;
+            }
+
+            var canonicalWorkspaceRoot = _fileSystem.Path.GetFullPath(workspaceRoot);
+            var scan = await PrepareInstanceDirectoryAsync(canonicalWorkspaceRoot, cancellationToken).ConfigureAwait(false);
+            if (_handles.ContainsKey(workspaceId))
+            {
+                return false;
+            }
+
+            var handle = CreateHandle(workspaceId, canonicalWorkspaceRoot, loadedPath, state);
+            _handles.Add(workspaceId, handle);
+            await handle.PublishAsync().ConfigureAwait(false);
             return scan.HasOtherLiveInstance;
         }
         catch (IOException)
@@ -51,6 +54,10 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         {
             return false;
         }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async ValueTask<IReadOnlyList<WorkspaceInstanceInfo>> GetOtherLiveInstancesAsync(
@@ -60,7 +67,9 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         ArgumentException.ThrowIfNullOrWhiteSpace(workspaceRoot);
         try
         {
-            return (await ScanAsync(_fileSystem.Path.GetFullPath(workspaceRoot), cancellationToken).ConfigureAwait(false)).Instances;
+            var canonicalWorkspaceRoot = _fileSystem.Path.GetFullPath(workspaceRoot);
+            var scan = await ScanAsync(canonicalWorkspaceRoot, cancellationToken).ConfigureAwait(false);
+            return scan.Instances;
         }
         catch (IOException)
         {
@@ -72,69 +81,126 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         }
     }
 
-    public async ValueTask UpdateAsync(string workspaceId, WorkspaceLifecycleState state, long? transactionRevision, string? commitId, string? commitPhase)
+    public async ValueTask UpdateAsync(
+        string workspaceId,
+        WorkspaceLifecycleState state,
+        long? transactionRevision,
+        string? commitId,
+        string? commitPhase)
     {
-        if (!_leases.TryGetValue(workspaceId, out var lease))
+        await _gate.WaitAsync().ConfigureAwait(false);
+        try
         {
-            return;
-        }
+            if (_isDisposed || !_handles.TryGetValue(workspaceId, out var handle))
+            {
+                return;
+            }
 
-        lease.Status = lease.Status with
+            try
+            {
+                await handle.UpdateAsync(state, transactionRevision, commitId, commitPhase).ConfigureAwait(false);
+            }
+            catch (IOException)
+            {
+            }
+            catch (UnauthorizedAccessException)
+            {
+            }
+        }
+        finally
         {
+            _gate.Release();
+        }
+    }
+
+    public async ValueTask CloseAsync(string workspaceId)
+    {
+        await _gate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            if (!_handles.Remove(workspaceId, out var handle))
+            {
+                return;
+            }
+
+            CloseHandle(handle);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await _gate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            if (_isDisposed)
+            {
+                return;
+            }
+
+            _isDisposed = true;
+            var handles = _handles.Values.ToArray();
+            _handles.Clear();
+
+            ExceptionDispatchInfo? disposalFailure = null;
+            foreach (var handle in handles)
+            {
+                try
+                {
+                    CloseHandle(handle);
+                }
+                catch (Exception exception)
+                {
+                    disposalFailure ??= ExceptionDispatchInfo.Capture(exception);
+                }
+            }
+
+            disposalFailure?.Throw();
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    private async ValueTask<WorkspaceInstanceScanResult> PrepareInstanceDirectoryAsync(
+        string canonicalWorkspaceRoot,
+        CancellationToken cancellationToken)
+    {
+        _fileSystem.Directory.CreateDirectory(GetInstanceDirectory(canonicalWorkspaceRoot));
+        return await ScanAsync(canonicalWorkspaceRoot, cancellationToken).ConfigureAwait(false);
+    }
+
+    private WorkspaceInstanceStatusHandle CreateHandle(
+        string workspaceId,
+        string canonicalWorkspaceRoot,
+        string loadedPath,
+        WorkspaceLifecycleState state)
+    {
+        var directory = GetInstanceDirectory(canonicalWorkspaceRoot);
+        var filePath = _fileSystem.Path.Combine(directory, $"{_instanceId}-{workspaceId}.json");
+        var stream = _fileSystem.FileStream.New(filePath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read);
+        var status = new WorkspaceInstanceStatus
+        {
+            InstanceId = _instanceId,
+            LoadedPath = _fileSystem.Path.GetFullPath(loadedPath),
+            WorkspaceRoot = canonicalWorkspaceRoot,
             WorkspaceState = state,
-            TransactionRevision = transactionRevision,
-            CommitId = commitId,
-            CommitPhase = commitPhase,
         };
-        try
-        {
-            await WriteAsync(lease).ConfigureAwait(false);
-        }
-        catch (IOException) { }
-        catch (UnauthorizedAccessException) { }
+        return new WorkspaceInstanceStatusHandle(filePath, stream, status, _serializerOptions);
     }
 
-    public void Close(string workspaceId)
-    {
-        if (!_leases.Remove(workspaceId, out var lease))
-        {
-            return;
-        }
-
-        lease.Stream.Dispose();
-        try
-        {
-            _fileSystem.File.Delete(lease.Path);
-        }
-        catch (IOException) { }
-        catch (UnauthorizedAccessException) { }
-    }
-
-    public void Dispose()
-    {
-        foreach (var workspaceId in _leases.Keys.ToArray())
-        {
-            Close(workspaceId);
-        }
-    }
-
-    private static async ValueTask WriteAsync(InstanceLease lease)
-    {
-        lease.Stream.Position = 0;
-        lease.Stream.SetLength(0);
-        await JsonSerializer.SerializeAsync(lease.Stream, lease.Status, _options, CancellationToken.None).ConfigureAwait(false);
-        await lease.Stream.FlushAsync(CancellationToken.None).ConfigureAwait(false);
-        lease.Stream.Flush();
-    }
-
-    private async ValueTask<(bool HasOtherLiveInstance, IReadOnlyList<WorkspaceInstanceInfo> Instances)> ScanAsync(
+    private async ValueTask<WorkspaceInstanceScanResult> ScanAsync(
         string canonicalWorkspaceRoot,
         CancellationToken cancellationToken)
     {
         var directory = GetInstanceDirectory(canonicalWorkspaceRoot);
         if (!_fileSystem.Directory.Exists(directory))
         {
-            return (false, []);
+            return WorkspaceInstanceScanResult.Empty;
         }
 
         var hasOtherLiveInstance = false;
@@ -142,49 +208,92 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         foreach (var path in _fileSystem.Directory.EnumerateFiles(directory, "*.json"))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            try
+            if (TryRemoveStaleInstance(path))
             {
-                using (_fileSystem.FileStream.New(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) { }
-                _fileSystem.File.Delete(path);
                 continue;
             }
-            catch (IOException) { }
-            catch (UnauthorizedAccessException) { }
 
-            WorkspaceInstanceStatus? status = null;
-            try
-            {
-                var json = await _fileSystem.File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
-                status = JsonSerializer.Deserialize<WorkspaceInstanceStatus>(json, _options);
-            }
-            catch (IOException) { }
-            catch (UnauthorizedAccessException) { }
-            catch (JsonException) { }
-
+            var status = await TryReadStatusAsync(path, cancellationToken).ConfigureAwait(false);
             if (status?.InstanceId == _instanceId)
             {
                 continue;
             }
 
             hasOtherLiveInstance = true;
-            if (status is null || status.Version != 2 || !PathsEqual(status.WorkspaceRoot, canonicalWorkspaceRoot))
+            if (status is not null && IsValidStatus(status, canonicalWorkspaceRoot))
             {
-                continue;
+                instances.Add(CreateInstanceInfo(status));
             }
-
-            instances.Add(new WorkspaceInstanceInfo
-            {
-                InstanceId = status.InstanceId,
-                LoadedPath = status.LoadedPath,
-                WorkspaceRoot = status.WorkspaceRoot,
-                WorkspaceState = status.WorkspaceState,
-                TransactionRevision = status.TransactionRevision,
-                CommitId = status.CommitId,
-                CommitPhase = status.CommitPhase,
-            });
         }
 
-        return (hasOtherLiveInstance, instances.OrderBy(instance => instance.InstanceId, StringComparer.Ordinal).ToArray());
+        var orderedInstances = instances
+            .OrderBy(instance => instance.InstanceId, StringComparer.Ordinal)
+            .ToArray();
+        return new WorkspaceInstanceScanResult(hasOtherLiveInstance, orderedInstances);
+    }
+
+    private bool TryRemoveStaleInstance(string path)
+    {
+        try
+        {
+            using (_fileSystem.FileStream.New(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            {
+            }
+
+            _fileSystem.File.Delete(path);
+            return true;
+        }
+        catch (IOException)
+        {
+            return false;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
+    private async ValueTask<WorkspaceInstanceStatus?> TryReadStatusAsync(
+        string path,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var json = await _fileSystem.File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
+            return JsonSerializer.Deserialize<WorkspaceInstanceStatus>(json, _serializerOptions);
+        }
+        catch (IOException)
+        {
+            return null;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private bool IsValidStatus(WorkspaceInstanceStatus status, string canonicalWorkspaceRoot)
+    {
+        return status.Version == 2
+            && string.Equals(status.WorkspaceRoot, canonicalWorkspaceRoot, _pathComparison.Comparison);
+    }
+
+    private void TryDelete(string path)
+    {
+        try
+        {
+            _fileSystem.File.Delete(path);
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
     }
 
     private string GetInstanceDirectory(string workspaceRoot)
@@ -192,24 +301,23 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         return _fileSystem.Path.Combine(workspaceRoot, ".vs", "roslyn-workbench-mcp", "instances");
     }
 
-    private bool PathsEqual(string left, string right)
+    private void CloseHandle(WorkspaceInstanceStatusHandle handle)
     {
-        return string.Equals(left, right, _pathComparison.Comparison);
+        handle.Dispose();
+        TryDelete(handle.Path);
     }
 
-    private sealed class InstanceLease
+    private static WorkspaceInstanceInfo CreateInstanceInfo(WorkspaceInstanceStatus status)
     {
-        public string Path { get; }
-
-        public Stream Stream { get; }
-
-        public WorkspaceInstanceStatus Status { get; set; }
-
-        public InstanceLease(string path, Stream stream, WorkspaceInstanceStatus status)
+        return new WorkspaceInstanceInfo
         {
-            Path = path;
-            Stream = stream;
-            Status = status;
-        }
+            InstanceId = status.InstanceId,
+            LoadedPath = status.LoadedPath,
+            WorkspaceRoot = status.WorkspaceRoot,
+            WorkspaceState = status.WorkspaceState,
+            TransactionRevision = status.TransactionRevision,
+            CommitId = status.CommitId,
+            CommitPhase = status.CommitPhase,
+        };
     }
 }

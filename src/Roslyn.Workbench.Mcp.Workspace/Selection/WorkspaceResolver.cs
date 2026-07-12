@@ -342,11 +342,13 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
                 continue;
             }
 
-            foreach (var symbol in new[]
-                     {
-                         DocumentationCommentId.GetFirstSymbolForDeclarationId(documentationCommentId, compilation),
-                         DocumentationCommentId.GetFirstSymbolForReferenceId(documentationCommentId, compilation),
-                     })
+            var candidateSymbols = new[]
+            {
+                DocumentationCommentId.GetFirstSymbolForDeclarationId(documentationCommentId, compilation),
+                DocumentationCommentId.GetFirstSymbolForReferenceId(documentationCommentId, compilation),
+            };
+
+            foreach (var symbol in candidateSymbols)
             {
                 if (symbol is not null && symbol.Locations.Any(static location => location.IsInSource))
                 {

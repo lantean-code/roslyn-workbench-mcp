@@ -23,179 +23,266 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+
+        var context = CreatePlanningContext(commitId, loadedPath, workspaceRoot, baselineSolution, currentSolution);
+        var projectChanges = currentSolution.GetChanges(baselineSolution).GetProjectChanges();
+        foreach (var projectChange in projectChanges)
+        {
+            await AddProjectChangesAsync(
+                context,
+                projectChange,
+                baselineSolution,
+                currentSolution,
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        return CreatePlan(context);
+    }
+
+    private WorkspaceCommitPlanningContext CreatePlanningContext(
+        string commitId,
+        string loadedPath,
+        string workspaceRoot,
+        Solution baselineSolution,
+        Solution currentSolution)
+    {
         var comparer = _pathComparison.Comparer;
-        var canonicalWorkspaceRoot = _fileSystem.Path.GetFullPath(workspaceRoot);
-        var targets = new HashSet<string>(comparer);
-        var entries = new List<WorkspaceCommitEntry>();
-        var artifacts = new Dictionary<string, ReadOnlyMemory<byte>>(StringComparer.Ordinal);
-        var createdDirectories = new HashSet<string>(comparer);
-        var projectRoots = baselineSolution.Projects.Concat(currentSolution.Projects)
+        return new WorkspaceCommitPlanningContext(
+            commitId,
+            _fileSystem.Path.GetFullPath(loadedPath),
+            _fileSystem.Path.GetFullPath(workspaceRoot),
+            GetProjectRoots(baselineSolution, currentSolution, comparer),
+            GetBaselineDocumentPaths(baselineSolution, comparer),
+            comparer);
+    }
+
+    private async ValueTask AddProjectChangesAsync(
+        WorkspaceCommitPlanningContext context,
+        ProjectChanges projectChanges,
+        Solution baselineSolution,
+        Solution currentSolution,
+        CancellationToken cancellationToken)
+    {
+        var changedDocuments = projectChanges.GetChangedDocuments()
+            .Select(currentSolution.GetDocument)
+            .OfType<Document>();
+        foreach (var document in changedDocuments)
+        {
+            await AddWriteAsync(
+                context,
+                document,
+                WorkspaceFileOperation.Replace,
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        var addedDocuments = projectChanges.GetAddedDocuments()
+            .Select(currentSolution.GetDocument)
+            .OfType<Document>();
+        foreach (var document in addedDocuments)
+        {
+            await AddWriteAsync(
+                context,
+                document,
+                WorkspaceFileOperation.Create,
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        var removedDocuments = projectChanges.GetRemovedDocuments()
+            .Select(baselineSolution.GetDocument)
+            .OfType<Document>();
+        foreach (var document in removedDocuments)
+        {
+            await AddDeleteAsync(context, document, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async ValueTask AddWriteAsync(
+        WorkspaceCommitPlanningContext context,
+        Document document,
+        WorkspaceFileOperation operation,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (document.FilePath is null)
+        {
+            return;
+        }
+
+        var path = ValidateTarget(context, document.FilePath);
+        var originalExists = _fileSystem.File.Exists(path);
+        if ((operation == WorkspaceFileOperation.Create) == originalExists)
+        {
+            throw new IOException($"The target '{path}' no longer has the expected existence state.");
+        }
+
+        var originalContents = originalExists
+            ? await _fileSystem.File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false)
+            : null;
+        var intendedContents = await GetDocumentBytesAsync(document, cancellationToken).ConfigureAwait(false);
+        var artifactIndex = GetArtifactIndex(context);
+        var backupPath = originalExists ? $"backup/{artifactIndex}.bin" : null;
+        var stagedPath = $"staged/{artifactIndex}.bin";
+
+        if (backupPath is not null && originalContents is not null)
+        {
+            context.Artifacts.Add(backupPath, originalContents);
+        }
+
+        context.Artifacts.Add(stagedPath, intendedContents);
+        AddMissingDirectories(context, path);
+        context.Entries.Add(new WorkspaceCommitEntry
+        {
+            TargetPath = path,
+            Operation = operation,
+            OriginalExists = originalExists,
+            OriginalHash = originalContents is null ? null : Hash(originalContents),
+            IntendedHash = Hash(intendedContents),
+            BackupPath = backupPath,
+            StagedPath = stagedPath,
+        });
+    }
+
+    private async ValueTask AddDeleteAsync(
+        WorkspaceCommitPlanningContext context,
+        Document document,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (document.FilePath is null)
+        {
+            return;
+        }
+
+        var path = ValidateTarget(context, document.FilePath);
+        if (!_fileSystem.File.Exists(path))
+        {
+            throw new IOException($"The target '{path}' no longer exists.");
+        }
+
+        var originalContents = await _fileSystem.File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
+        var artifactIndex = GetArtifactIndex(context);
+        var backupPath = $"backup/{artifactIndex}.bin";
+        var deleteMarkerPath = $"{path}.{context.CommitId}.delete";
+        if (_fileSystem.File.Exists(deleteMarkerPath))
+        {
+            throw new IOException($"The delete marker '{deleteMarkerPath}' already exists.");
+        }
+
+        context.Artifacts.Add(backupPath, originalContents);
+        context.Entries.Add(new WorkspaceCommitEntry
+        {
+            TargetPath = path,
+            Operation = WorkspaceFileOperation.Delete,
+            OriginalExists = true,
+            OriginalHash = Hash(originalContents),
+            BackupPath = backupPath,
+            DeleteMarkerPath = deleteMarkerPath,
+        });
+    }
+
+    private string ValidateTarget(WorkspaceCommitPlanningContext context, string path)
+    {
+        var canonicalPath = _fileSystem.Path.GetFullPath(path);
+        if (!context.Targets.Add(canonicalPath))
+        {
+            throw new InvalidOperationException($"The commit contains the duplicate target '{canonicalPath}'.");
+        }
+
+        if (!IsWithinBoundary(context.WorkspaceRoot, canonicalPath))
+        {
+            throw new InvalidOperationException($"The target '{canonicalPath}' is outside the workspace root.");
+        }
+
+        var isSupported = context.BaselineDocumentPaths.Contains(canonicalPath)
+            || context.ProjectRoots.Any(projectRoot => IsWithinBoundary(projectRoot, canonicalPath));
+        if (!isSupported)
+        {
+            throw new InvalidOperationException($"The target '{canonicalPath}' is outside the loaded project boundaries.");
+        }
+
+        return canonicalPath;
+    }
+
+    private void AddMissingDirectories(WorkspaceCommitPlanningContext context, string path)
+    {
+        var directory = _fileSystem.Path.GetDirectoryName(path);
+        while (directory is not null && !_fileSystem.Directory.Exists(directory))
+        {
+            context.CreatedDirectories.Add(directory);
+            directory = _fileSystem.Path.GetDirectoryName(directory);
+        }
+    }
+
+    private bool IsWithinBoundary(string root, string path)
+    {
+        var relativePath = _fileSystem.Path.GetRelativePath(root, path);
+        return relativePath != ".."
+            && !relativePath.StartsWith($"..{_fileSystem.Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+            && !_fileSystem.Path.IsPathRooted(relativePath);
+    }
+
+    private IReadOnlyList<string> GetProjectRoots(
+        Solution baselineSolution,
+        Solution currentSolution,
+        IEqualityComparer<string> comparer)
+    {
+        return baselineSolution.Projects
+            .Concat(currentSolution.Projects)
             .Select(project => project.FilePath)
             .OfType<string>()
             .Where(path => !string.IsNullOrWhiteSpace(path))
-            .Select(path => _fileSystem.Path.GetDirectoryName(_fileSystem.Path.GetFullPath(path))
-                ?? throw new InvalidOperationException($"The project path '{path}' does not have a parent directory."))
+            .Select(GetProjectRoot)
             .Distinct(comparer)
             .ToArray();
-        var baselineDocumentPaths = baselineSolution.Projects
+    }
+
+    private HashSet<string> GetBaselineDocumentPaths(
+        Solution baselineSolution,
+        IEqualityComparer<string> comparer)
+    {
+        return baselineSolution.Projects
             .SelectMany(project => project.Documents)
             .Select(document => document.FilePath)
             .OfType<string>()
             .Where(path => !string.IsNullOrWhiteSpace(path))
-            .Select(path => _fileSystem.Path.GetFullPath(path))
+            .Select(_fileSystem.Path.GetFullPath)
             .ToHashSet(comparer);
+    }
 
-        foreach (var change in currentSolution.GetChanges(baselineSolution).GetProjectChanges())
-        {
-            foreach (var documentId in change.GetChangedDocuments())
-            {
-                await AddWriteAsync(currentSolution.GetDocument(documentId), WorkspaceFileOperation.Replace);
-            }
+    private string GetProjectRoot(string projectPath)
+    {
+        var canonicalProjectPath = _fileSystem.Path.GetFullPath(projectPath);
+        return _fileSystem.Path.GetDirectoryName(canonicalProjectPath)
+            ?? throw new InvalidOperationException($"The project path '{projectPath}' does not have a parent directory.");
+    }
 
-            foreach (var documentId in change.GetAddedDocuments())
-            {
-                await AddWriteAsync(currentSolution.GetDocument(documentId), WorkspaceFileOperation.Create);
-            }
-
-            foreach (var documentId in change.GetRemovedDocuments())
-            {
-                await AddDeleteAsync(baselineSolution.GetDocument(documentId));
-            }
-        }
-
+    private static WorkspaceCommitPlan CreatePlan(WorkspaceCommitPlanningContext context)
+    {
         return new WorkspaceCommitPlan(
             new WorkspaceCommitManifest
             {
-                CommitId = commitId,
-                LoadedPath = _fileSystem.Path.GetFullPath(loadedPath),
-                WorkspaceRoot = _fileSystem.Path.GetFullPath(workspaceRoot),
+                CommitId = context.CommitId,
+                LoadedPath = context.LoadedPath,
+                WorkspaceRoot = context.WorkspaceRoot,
                 State = Contracts.Results.RecoveryState.Prepared,
-                Entries = entries,
-                CreatedDirectories = createdDirectories.OrderBy(path => path.Length).ToArray(),
+                Entries = context.Entries,
+                CreatedDirectories = context.CreatedDirectories.OrderBy(path => path.Length).ToArray(),
             },
-            artifacts);
+            context.Artifacts);
+    }
 
-        async ValueTask AddWriteAsync(Document? document, WorkspaceFileOperation operation)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (document?.FilePath is null)
-            {
-                return;
-            }
+    private static async ValueTask<byte[]> GetDocumentBytesAsync(
+        Document document,
+        CancellationToken cancellationToken)
+    {
+        var text = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
+        var encoding = text.Encoding ?? Encoding.UTF8;
+        return [.. encoding.GetPreamble(), .. encoding.GetBytes(text.ToString())];
+    }
 
-            var path = ValidateTarget(document.FilePath);
-            var originalExists = _fileSystem.File.Exists(path);
-            if ((operation == WorkspaceFileOperation.Create) == originalExists)
-            {
-                throw new IOException($"The target '{path}' no longer has the expected existence state.");
-            }
-
-            var original = originalExists
-                ? await _fileSystem.File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false)
-                : null;
-            var text = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
-            var encoding = text.Encoding ?? Encoding.UTF8;
-            var preamble = encoding.GetPreamble();
-            var encodedText = encoding.GetBytes(text.ToString());
-            var intended = new byte[preamble.Length + encodedText.Length];
-            preamble.CopyTo(intended, 0);
-            encodedText.CopyTo(intended, preamble.Length);
-            var index = entries.Count.ToString("D6", System.Globalization.CultureInfo.InvariantCulture);
-            var backup = originalExists ? $"backup/{index}.bin" : null;
-            var staged = $"staged/{index}.bin";
-            if (backup is not null && original is not null)
-            {
-                artifacts.Add(backup, original);
-            }
-
-            artifacts.Add(staged, intended);
-            AddMissingDirectories(path);
-            entries.Add(new WorkspaceCommitEntry
-            {
-                TargetPath = path,
-                Operation = operation,
-                OriginalExists = originalExists,
-                OriginalHash = original is null ? null : Hash(original),
-                IntendedHash = Hash(intended),
-                BackupPath = backup,
-                StagedPath = staged,
-            });
-        }
-
-        async ValueTask AddDeleteAsync(Document? document)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (document?.FilePath is null)
-            {
-                return;
-            }
-
-            var path = ValidateTarget(document.FilePath);
-            if (!_fileSystem.File.Exists(path))
-            {
-                throw new IOException($"The target '{path}' no longer exists.");
-            }
-
-            var original = await _fileSystem.File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
-            var index = entries.Count.ToString("D6", System.Globalization.CultureInfo.InvariantCulture);
-            var backup = $"backup/{index}.bin";
-            var deleteMarker = $"{path}.{commitId}.delete";
-            if (_fileSystem.File.Exists(deleteMarker))
-            {
-                throw new IOException($"The delete marker '{deleteMarker}' already exists.");
-            }
-
-            artifacts.Add(backup, original);
-            entries.Add(new WorkspaceCommitEntry
-            {
-                TargetPath = path,
-                Operation = WorkspaceFileOperation.Delete,
-                OriginalExists = true,
-                OriginalHash = Hash(original),
-                BackupPath = backup,
-                DeleteMarkerPath = deleteMarker,
-            });
-        }
-
-        string ValidateTarget(string path)
-        {
-            var canonical = _fileSystem.Path.GetFullPath(path);
-            if (!targets.Add(canonical))
-            {
-                throw new InvalidOperationException($"The commit contains the duplicate target '{canonical}'.");
-            }
-
-            var workspaceRelative = _fileSystem.Path.GetRelativePath(canonicalWorkspaceRoot, canonical);
-            if (workspaceRelative == ".."
-                || workspaceRelative.StartsWith($"..{_fileSystem.Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                || _fileSystem.Path.IsPathRooted(workspaceRelative))
-            {
-                throw new InvalidOperationException($"The target '{canonical}' is outside the workspace root.");
-            }
-
-            var supported = baselineDocumentPaths.Contains(canonical) || projectRoots.Any(root =>
-            {
-                var relative = _fileSystem.Path.GetRelativePath(root, canonical);
-                return relative != ".." && !relative.StartsWith($"..{_fileSystem.Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                    && !_fileSystem.Path.IsPathRooted(relative);
-            });
-            if (!supported)
-            {
-                throw new InvalidOperationException($"The target '{canonical}' is outside the loaded project boundaries.");
-            }
-
-            return canonical;
-        }
-
-        void AddMissingDirectories(string path)
-        {
-            var directory = _fileSystem.Path.GetDirectoryName(path);
-            while (directory is not null && !_fileSystem.Directory.Exists(directory))
-            {
-                createdDirectories.Add(directory);
-                directory = _fileSystem.Path.GetDirectoryName(directory);
-            }
-        }
+    private static string GetArtifactIndex(WorkspaceCommitPlanningContext context)
+    {
+        return context.Entries.Count.ToString("D6", System.Globalization.CultureInfo.InvariantCulture);
     }
 
     private static string Hash(ReadOnlySpan<byte> contents)

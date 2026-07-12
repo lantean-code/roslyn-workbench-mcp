@@ -138,11 +138,11 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         var acquisition = _sessionAcquirer.AcquireExclusive(CreateWorkspaceSelector(workspaceId, alias, path));
         if (acquisition.HasError)
         {
-            await DisposeFailedAcquisitionAsync(acquisition).ConfigureAwait(false);
+            DisposeFailedAcquisition(acquisition);
             return CreateAcquisitionFailureResult<WorkspaceCloseOutcome>(acquisition, acquisition.Error);
         }
 
-        await using var leaseScope = acquisition.Lease;
+        using var leaseScope = acquisition.Lease;
         var session = acquisition.Session;
 
         if (session.State is WorkspaceLifecycleState.TransactionActive or WorkspaceLifecycleState.TransactionConflicted)
@@ -163,7 +163,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
                 RequiredAction.OpenWorkspace);
         }
 
-        _instanceStatusPublisher.Close(removedSession.Workspace.WorkspaceId);
+        await _instanceStatusPublisher.CloseAsync(removedSession.Workspace.WorkspaceId).ConfigureAwait(false);
         removedSession.LoadedWorkspace.Dispose();
         return _resultFactory.Succeeded(
             new WorkspaceCloseOutcome
@@ -185,11 +185,11 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         var acquisition = _sessionAcquirer.AcquireShared(CreateWorkspaceSelector(workspaceId, alias, path));
         if (acquisition.HasError)
         {
-            await DisposeFailedAcquisitionAsync(acquisition).ConfigureAwait(false);
+            DisposeFailedAcquisition(acquisition);
             return CreateAcquisitionFailureResult<WorkspaceStatusOutcome>(acquisition, acquisition.Error);
         }
 
-        await using var leaseScope = acquisition.Lease;
+        using var leaseScope = acquisition.Lease;
         var session = acquisition.Session;
 
         if (session.State is WorkspaceLifecycleState.Ready or WorkspaceLifecycleState.TransactionActive
@@ -212,11 +212,11 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         var acquisition = _sessionAcquirer.AcquireExclusive(CreateWorkspaceSelector(workspaceId, alias, path));
         if (acquisition.HasError)
         {
-            await DisposeFailedAcquisitionAsync(acquisition).ConfigureAwait(false);
+            DisposeFailedAcquisition(acquisition);
             return CreateAcquisitionFailureResult<WorkspaceReloadOutcome>(acquisition, acquisition.Error);
         }
 
-        await using var leaseScope = acquisition.Lease;
+        using var leaseScope = acquisition.Lease;
         var currentSession = acquisition.Session;
 
         var context = CreateContext(currentSession);
@@ -508,8 +508,8 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         };
     }
 
-    private static ValueTask DisposeFailedAcquisitionAsync(WorkspaceSessionAcquisition acquisition)
+    private static void DisposeFailedAcquisition(WorkspaceSessionAcquisition acquisition)
     {
-        return acquisition.Lease is null ? ValueTask.CompletedTask : acquisition.Lease.DisposeAsync();
+        acquisition.Lease?.Dispose();
     }
 }

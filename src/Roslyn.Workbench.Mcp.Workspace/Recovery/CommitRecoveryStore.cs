@@ -185,8 +185,9 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
     public ValueTask WriteStatusAsync(RecoveryStatus status, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        var path = GetLegacyStatusPath(status.CommitId);
         _fileSystem.Directory.CreateDirectory(_recoveryDirectory);
-        return WriteJsonAsync(GetLegacyStatusPath(status.CommitId), status, cancellationToken);
+        return WriteJsonAsync(path, status, cancellationToken);
     }
 
     public async ValueTask<byte[]> ReadArtifactAsync(string commitId, string relativePath, CancellationToken cancellationToken)
@@ -211,17 +212,13 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
 
     private string GetCommitDirectory(string commitId)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(commitId);
-        if (commitId.IndexOfAny(_fileSystem.Path.GetInvalidFileNameChars()) >= 0)
-        {
-            throw new ArgumentException("The commit identifier is not a valid path segment.", nameof(commitId));
-        }
-
+        ValidateCommitId(commitId);
         return _fileSystem.Path.Combine(_recoveryDirectory, commitId);
     }
 
     private string GetLegacyStatusPath(string commitId)
     {
+        ValidateCommitId(commitId);
         return _fileSystem.Path.Combine(_recoveryDirectory, $"{commitId}.json");
     }
 
@@ -318,6 +315,15 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         return relative != ".."
             && !relative.StartsWith($"..{_fileSystem.Path.DirectorySeparatorChar}", StringComparison.Ordinal)
             && !_fileSystem.Path.IsPathRooted(relative);
+    }
+
+    private void ValidateCommitId(string commitId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(commitId);
+        if (commitId.IndexOfAny(_fileSystem.Path.GetInvalidFileNameChars()) >= 0)
+        {
+            throw new ArgumentException("The commit identifier is not a valid path segment.", nameof(commitId));
+        }
     }
 
     private async ValueTask WriteArtifactsAsync(WorkspaceCommitPlan plan, CancellationToken cancellationToken)

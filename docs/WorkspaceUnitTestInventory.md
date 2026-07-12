@@ -52,14 +52,14 @@ The existing six Workspace unit tests were removed after review because they did
 | `TransactionCommitServiceTests` | 11 | Commit orchestration and cancellation: 100% line, 87.50% branch |
 | `WorkspaceChangeDetectorTests` | 16 | Manifest creation and comparison: 98.35% line, 98.08% branch |
 | `WorkspaceInstanceStatusPublisherTests` | 3 | Initial advisory publication paths; expansion required |
-| `AtomicFileWriterTests` | 4 | Value and cancellation guards; successful writes and failure cleanup required |
+| `AtomicFileWriterTests` | 12 | 100% line and branch coverage of text, binary, commit and cleanup behaviour |
 | `WorkspaceRootResolverTests` | 7 | Core explicit, Git-root and fallback resolution; expansion required |
-| `CommitRecoveryStoreTests` | 9 | Status persistence only; manifest, artifact, orphan and cleanup expansion required |
+| `CommitRecoveryStoreTests` | 51 | 100% line, 97% branch; three platform-comparer branches execute on the opposite operating system |
 | `WorkspaceCommitRecoveryServiceTests` | 10 | Startup recovery orchestration |
 | `WorkspaceCommitLockAcquisitionTests` | 5 | Acquired, contended and failed result invariants |
 | `WorkspaceCommitLockManagerTests` | 4 | Lock path, acquisition and contention; provider failure expansion required |
 | `WorkspaceCommitPlannerTests` | 9 | Core create, replace and delete planning; defensive alternatives remain |
-| `WorkspaceCommitWriterTests` | 8 | Core application and restoration; failure and divergence expansion required |
+| `WorkspaceCommitWriterTests` | 28 | 100% line and branch coverage of revalidation, application, restoration and cleanup |
 
 The historical pre-removal unit-project Coverlet run produced:
 
@@ -77,7 +77,7 @@ Only three implementations recorded unit coverage before removal:
 
 These figures are retained only as the evidence that motivated this inventory; they are no longer current test coverage. Compiler-generated async classes are not separate test targets and will be covered through their owning public methods.
 
-The 2026-07-11 Workspace unit checkpoint discovers 456 tests and measures 86.54% line and 82.54% branch coverage across the Workspace production assembly. Of the 100 production files containing executable sequence points, 75 measure 100% line and branch coverage. The lower assembly percentage reflects the substantial durable commit and recovery implementation added after the previous checkpoint rather than a regression in the completed core state and selection tests.
+The 2026-07-12 Workspace unit checkpoint discovers 526 tests and measures 92.46% line and 91.35% branch coverage across the Workspace production assembly. Of the 100 production files containing executable sequence points, 77 measure 100% line and branch coverage. The lower assembly percentage reflects the substantial durable commit and recovery implementation added after the previous checkpoint rather than a regression in the completed core state and selection tests.
 
 ### Current class-level coverage gaps
 
@@ -92,11 +92,11 @@ Coverlet emits compiler-generated async and closure classes separately. The tabl
 | `WorkspaceProjectInputResolver` | 0% | 100% | Uncovered logic-bearing input discovery implementation; add unit coverage. |
 | `MutationData` | 0% | 100% | Data-only response properties; cover through owning service assertions. |
 | `LoadedWorkspace` | 0% | 100% | Thin `MSBuildWorkspace` lifetime adapter; retain integration coverage. |
-| `AtomicFileWriter` | 26.42% | 25% | Tests currently cover value and cancellation guards only; successful text/binary writes, cleanup and committer failure remain. |
+| `AtomicFileWriter` | 100% | 100% | Exact text/binary writes, stream durability options, commit delegation and every cleanup outcome are covered. |
 | `WorkspaceLoader` | 31.08% | 66.67% | Normalisation is unit covered; MSBuild loading and compatibility inspection remain integration boundaries. |
-| `CommitRecoveryStore` | 35.91% | 16% | Status operations are covered, but manifest, artifact, orphan and cleanup behaviour is largely uncovered. |
+| `CommitRecoveryStore` | 100% | 97% | All reachable logic is covered; three Windows/Linux comparer arms require the opposite operating system and remain covered by the cross-platform integration matrix. |
 | `WorkspaceOperationResult<T>` | 75% | 100% | Newly added successful/error state evidence properties lack direct owning-flow execution. |
-| `WorkspaceCommitWriter` | 80.58% | 72.73% | Apply/restore success paths exist; several revalidation, failure, divergence and cleanup branches remain. |
+| `WorkspaceCommitWriter` | 100% | 100% | Revalidation, application, delete-marker races, reverse restoration, divergence preservation, directory cleanup and recoverable failures are covered. |
 | `WorkspaceInstanceStatusPublisher` | 82.88% | 81.82% | Basic publication is covered; open/update failure, malformed/stale and live-instance branches remain. |
 | `WorkspaceCommitLockManager` | 88% | 75% | Successful and contended acquisition are covered; provider failure mapping remains. |
 | `WorkspaceRootResolver` | 91.30% | 78.57% | Core resolution is covered; explicit-root and repository/fallback alternatives remain. |
@@ -117,17 +117,12 @@ This checkpoint distinguishes three categories: genuine unit gaps, approved or c
 
 Prioritise durable persistence before input discovery or branch-only cleanup:
 
-1. Expand `CommitRecoveryStoreTests` across manifests, binary artifacts,
-   validated artifact paths, orphan discovery and cleanup. This is the largest
-   uncovered unit-testable component on the recovery path.
-2. Complete `AtomicFileWriterTests`, then close the reachable apply, restore,
-   divergence and cleanup branches in `WorkspaceCommitWriterTests`.
-3. Complete `WorkspaceInstanceStatusPublisherTests` because advisory status is
+1. Complete `WorkspaceInstanceStatusPublisherTests` because advisory status is
    externally observable and currently has uncovered malformed, stale and
    failure behaviour.
-4. Add `WorkspaceProjectInputResolverTests` and finish the single remaining
+2. Add `WorkspaceProjectInputResolverTests` and finish the single remaining
    `WorkspaceChangeDetector` alternative.
-5. Review the remaining line-complete branch gaps as one consistency pass,
+3. Review the remaining line-complete branch gaps as one consistency pass,
    adding reachable cases and documenting only exact defensive or
    compiler-lowered exceptions.
 
@@ -428,7 +423,7 @@ These implementations must not be moved into the unit project merely to improve 
 | `WorkspaceInputDirectoryFingerprint` | Integration boundary | Indirect manifest/change tests | Directory path and timestamp capture |
 | `WorkspaceProjectInputResolver` | Unit-testable input boundary | No unit execution | Project-file evaluation inputs, source/additional/analyzer-config documents, analyzer/metadata references, directory discovery and de-duplication |
 | `WorkspaceChangeDetector` | Unit-testable filesystem logic | 98.35% line, 98.08% branch | Class now owns manifest creation and validation over `IFileSystem`; cover the remaining resolver-failure alternative and keep representative real-filesystem scenarios |
-| `CommitRecoveryStore` | Unit-testable persistence logic plus integration durability | 35.91% line, 16% branch | Unit test manifests, artifacts, validated paths, orphans and cleanup through `IFileSystem`; keep exact-byte and restart durability integration scenarios |
+| `CommitRecoveryStore` | Unit-tested persistence logic plus integration durability | 100% line, 97% branch | Manifest, artifact, validated-path, orphan and cleanup behaviour is unit covered; exact bytes, restart durability and the opposite OS comparer arms remain integration coverage |
 
 ## Types Requiring No Direct Tests
 

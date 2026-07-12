@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.Workspace.Configuration;
 using Roslyn.Workbench.Mcp.Workspace.Recovery;
+using Roslyn.Workbench.Mcp.Workspace.Transactions;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test.Recovery;
 
@@ -31,6 +32,10 @@ public sealed class CommitRecoveryStoreTests
         _path.Setup(item => item.GetRelativePath(It.IsAny<string>(), It.IsAny<string>()))
             .Returns((string root, string path) => Path.GetRelativePath(root, path));
         _path.Setup(item => item.IsPathRooted(It.IsAny<string>())).Returns((string path) => Path.IsPathRooted(path));
+        _path.Setup(item => item.IsPathFullyQualified(It.IsAny<string>())).Returns((string path) => Path.IsPathFullyQualified(path));
+        _path.Setup(item => item.GetFileName(It.IsAny<string>())).Returns((string path) => Path.GetFileName(path));
+        _path.Setup(item => item.GetDirectoryName(It.IsAny<string>())).Returns((string path) => Path.GetDirectoryName(path));
+        _path.Setup(item => item.GetInvalidFileNameChars()).Returns(['*', '/', '\\']);
         _path.SetupGet(item => item.DirectorySeparatorChar).Returns(Path.DirectorySeparatorChar);
         _path.Setup(item => item.Combine("/State", "recovery")).Returns(_recoveryDirectory);
         _path
@@ -39,6 +44,8 @@ public sealed class CommitRecoveryStoreTests
         _path
             .Setup(item => item.Combine(It.Is<string>(value => value.StartsWith(_recoveryDirectory, StringComparison.Ordinal)), It.IsAny<string>()))
             .Returns((string directory, string fileName) => directory + "/" + fileName);
+        _path.Setup(item => item.GetFullPath(It.Is<string>(value => value.StartsWith(_recoveryDirectory, StringComparison.Ordinal))))
+            .Returns((string path) => Path.GetFullPath(path));
         _target = new CommitRecoveryStore(
             Options.Create(new WorkspaceCoordinatorOptions { StateDirectory = "StateDirectory" }),
             _fileSystem.Object,
@@ -131,6 +138,289 @@ public sealed class CommitRecoveryStoreTests
     [Theory]
     [InlineData("")]
     [InlineData(" ")]
+    [InlineData("../CommitId")]
+    [InlineData("Invalid*CommitId")]
+    public async Task GIVEN_InvalidCommitId_WHEN_WritingStatus_THEN_ShouldRejectBeforeCreatingDirectory(string commitId)
+    {
+        var status = new RecoveryStatus { CommitId = commitId };
+
+        var action = async () => await _target.WriteStatusAsync(status, TestContext.Current.CancellationToken);
+
+        await action.Should().ThrowAsync<ArgumentException>();
+        _directory.Verify(item => item.CreateDirectory(It.IsAny<string>()), Times.Never);
+        _atomicFileWriter.Verify(item => item.WriteAllTextAsync(
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<Encoding>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_PlanWithArtifacts_WHEN_Persisting_THEN_ShouldWriteOwnerArtifactsAndManifestInOrder()
+    {
+        var operations = new List<string>();
+        var manifest = CreateManifest();
+        var plan = new WorkspaceCommitPlan(manifest, new Dictionary<string, ReadOnlyMemory<byte>>
+        {
+            ["staged/File.bin"] = new byte[] { 1, 2 },
+        });
+        _atomicFileWriter.Setup(item => item.WriteAllTextAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Encoding>(), It.IsAny<CancellationToken>()))
+            .Callback((string path, string _, Encoding _, CancellationToken _) => operations.Add(path))
+            .Returns(ValueTask.CompletedTask);
+        _atomicFileWriter.Setup(item => item.WriteAllBytesAsync(
+                It.IsAny<string>(), It.IsAny<ReadOnlyMemory<byte>>(), It.IsAny<CancellationToken>()))
+            .Callback((string path, ReadOnlyMemory<byte> _, CancellationToken _) => operations.Add(path))
+            .Returns(ValueTask.CompletedTask);
+
+        await _target.PersistPlanAsync(plan, TestContext.Current.CancellationToken);
+
+        operations.Should().Equal(
+            _recoveryDirectory + "/CommitId/owner.json",
+            _recoveryDirectory + "/CommitId/staged/File.bin",
+            _recoveryDirectory + "/CommitId/manifest.json");
+        _directory.Verify(item => item.CreateDirectory(_recoveryDirectory + "/CommitId"), Times.AtLeastOnce);
+        _directory.Verify(item => item.CreateDirectory(_recoveryDirectory + "/CommitId/staged"), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_Manifest_WHEN_Writing_THEN_ShouldCreateCommitDirectoryAndWriteSerializedManifest()
+    {
+        var manifest = CreateManifest();
+
+        await _target.WriteManifestAsync(manifest, TestContext.Current.CancellationToken);
+
+        _directory.Verify(item => item.CreateDirectory(_recoveryDirectory + "/CommitId"), Times.Once);
+        _atomicFileWriter.Verify(item => item.WriteAllTextAsync(
+            _recoveryDirectory + "/CommitId/manifest.json",
+            It.Is<string>(json => json.Contains("CommitId", StringComparison.Ordinal)),
+            It.IsAny<Encoding>(),
+            TestContext.Current.CancellationToken), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_Artifact_WHEN_Reading_THEN_ShouldReadValidatedArtifactPath()
+    {
+        var expected = new byte[] { 1, 2 };
+        _file.Setup(item => item.ReadAllBytesAsync(
+            _recoveryDirectory + "/CommitId/staged/File.bin",
+            TestContext.Current.CancellationToken)).ReturnsAsync(expected);
+
+        var result = await _target.ReadArtifactAsync("CommitId", "staged/File.bin", TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+    }
+
+    [Fact]
+    public async Task GIVEN_EmptyArtifactPath_WHEN_Reading_THEN_ShouldRejectPath()
+    {
+        var action = async () => await _target.ReadArtifactAsync("CommitId", string.Empty, TestContext.Current.CancellationToken);
+
+        await action.Should().ThrowAsync<ArgumentException>();
+        _file.Verify(item => item.ReadAllBytesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_ArtifactPathTraversal_WHEN_Reading_THEN_ShouldRejectPath()
+    {
+        var action = async () => await _target.ReadArtifactAsync("CommitId", "../File.bin", TestContext.Current.CancellationToken);
+
+        await action.Should().ThrowAsync<InvalidDataException>();
+        _file.Verify(item => item.ReadAllBytesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_ValidManifest_WHEN_ReadingManifests_THEN_ShouldReturnManifest()
+    {
+        var directory = _recoveryDirectory + "/CommitId";
+        var path = directory + "/manifest.json";
+        _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
+        _directory.Setup(item => item.EnumerateDirectories(_recoveryDirectory)).Returns([directory]);
+        _file.Setup(item => item.Exists(path)).Returns(true);
+        _file.Setup(item => item.ReadAllTextAsync(path, TestContext.Current.CancellationToken))
+            .ReturnsAsync(JsonSerializer.Serialize(CreateManifest(), new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+
+        var result = await _target.GetManifestsAsync(TestContext.Current.CancellationToken);
+
+        result.Should().ContainSingle().Which.CommitId.Should().Be("CommitId");
+    }
+
+    [Theory]
+    [InlineData("missing")]
+    [InlineData("null")]
+    [InlineData("json")]
+    [InlineData("io")]
+    [InlineData("access")]
+    public async Task GIVEN_MissingOrUnreadableManifest_WHEN_ReadingManifests_THEN_ShouldSkipOrReturnConflict(string scenario)
+    {
+        var directory = _recoveryDirectory + "/CommitId";
+        var path = directory + "/manifest.json";
+        _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
+        _directory.Setup(item => item.EnumerateDirectories(_recoveryDirectory)).Returns([directory]);
+        _file.Setup(item => item.Exists(path)).Returns(scenario != "missing");
+        _file.Setup(item => item.ReadAllTextAsync(path, TestContext.Current.CancellationToken))
+            .Returns(() => scenario switch
+            {
+                "null" => Task.FromResult("null"),
+                "json" => Task.FromResult("{"),
+                "io" => Task.FromException<string>(new IOException()),
+                "access" => Task.FromException<string>(new UnauthorizedAccessException()),
+                _ => Task.FromResult(string.Empty),
+            });
+
+        var result = await _target.GetManifestsAsync(TestContext.Current.CancellationToken);
+
+        if (scenario == "missing")
+        {
+            result.Should().BeEmpty();
+        }
+        else
+        {
+            result.Should().ContainSingle().Which.State.Should().Be(RecoveryState.RecoveryConflict);
+        }
+    }
+
+    [Fact]
+    public async Task GIVEN_CancelledManifestEnumeration_WHEN_ReadingManifests_THEN_ShouldPropagateCancellation()
+    {
+        using var cancellationSource = new CancellationTokenSource();
+        cancellationSource.Cancel();
+        _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
+        _directory.Setup(item => item.EnumerateDirectories(_recoveryDirectory)).Returns([_recoveryDirectory + "/CommitId"]);
+
+        var action = async () => await _target.GetManifestsAsync(cancellationSource.Token);
+
+        await action.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Theory]
+    [InlineData("version")]
+    [InlineData("commit")]
+    [InlineData("loaded")]
+    [InlineData("root")]
+    [InlineData("outside")]
+    [InlineData("target")]
+    [InlineData("duplicate")]
+    [InlineData("delete")]
+    [InlineData("backup")]
+    [InlineData("staged")]
+    [InlineData("created")]
+    [InlineData("createdRelative")]
+    public async Task GIVEN_UnsafeManifest_WHEN_ReadingManifests_THEN_ShouldReturnRecoveryConflict(string scenario)
+    {
+        var directory = _recoveryDirectory + "/CommitId";
+        var path = directory + "/manifest.json";
+        var manifest = CreateInvalidManifest(scenario);
+        _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
+        _directory.Setup(item => item.EnumerateDirectories(_recoveryDirectory)).Returns([directory]);
+        _file.Setup(item => item.Exists(path)).Returns(true);
+        _file.Setup(item => item.ReadAllTextAsync(path, TestContext.Current.CancellationToken))
+            .ReturnsAsync(JsonSerializer.Serialize(manifest, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+
+        var result = await _target.GetManifestsAsync(TestContext.Current.CancellationToken);
+
+        result.Should().ContainSingle().Which.State.Should().Be(RecoveryState.RecoveryConflict);
+    }
+
+    [Fact]
+    public async Task GIVEN_ValidOrphanOwner_WHEN_ReadingOwners_THEN_ShouldReturnOwner()
+    {
+        var directory = _recoveryDirectory + "/CommitId";
+        var ownerPath = directory + "/owner.json";
+        var owner = new WorkspaceCommitOwner { CommitId = "CommitId", LoadedPath = "/Workspace/Workspace.sln", WorkspaceRoot = "/Workspace" };
+        _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
+        _directory.Setup(item => item.EnumerateDirectories(_recoveryDirectory)).Returns([directory]);
+        _file.Setup(item => item.Exists(directory + "/manifest.json")).Returns(false);
+        _file.Setup(item => item.Exists(ownerPath)).Returns(true);
+        _file.Setup(item => item.ReadAllTextAsync(ownerPath, TestContext.Current.CancellationToken))
+            .ReturnsAsync(JsonSerializer.Serialize(owner, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+
+        var result = await _target.GetOrphanedCommitOwnersAsync(TestContext.Current.CancellationToken);
+
+        result.Should().ContainSingle().Which.Should().BeEquivalentTo(owner);
+    }
+
+    [Theory]
+    [InlineData("manifest")]
+    [InlineData("missing")]
+    [InlineData("null")]
+    [InlineData("version")]
+    [InlineData("commit")]
+    [InlineData("loaded")]
+    [InlineData("root")]
+    [InlineData("json")]
+    [InlineData("io")]
+    [InlineData("access")]
+    public async Task GIVEN_InvalidOrUnreadableOrphanOwner_WHEN_ReadingOwners_THEN_ShouldIgnoreOwner(string scenario)
+    {
+        var directory = _recoveryDirectory + "/CommitId";
+        var manifestPath = directory + "/manifest.json";
+        var ownerPath = directory + "/owner.json";
+        var owner = new WorkspaceCommitOwner
+        {
+            CommitId = scenario == "commit" ? "OtherCommitId" : "CommitId",
+            LoadedPath = scenario == "loaded" ? "Workspace.sln" : "/Workspace/Workspace.sln",
+            WorkspaceRoot = scenario == "root" ? "Workspace" : "/Workspace",
+            Version = scenario == "version" ? 1 : 2,
+        };
+        _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
+        _directory.Setup(item => item.EnumerateDirectories(_recoveryDirectory)).Returns([directory]);
+        _file.Setup(item => item.Exists(manifestPath)).Returns(scenario == "manifest");
+        _file.Setup(item => item.Exists(ownerPath)).Returns(scenario != "missing");
+        _file.Setup(item => item.ReadAllTextAsync(ownerPath, TestContext.Current.CancellationToken))
+            .Returns(() => scenario switch
+            {
+                "null" => Task.FromResult("null"),
+                "json" => Task.FromResult("{"),
+                "io" => Task.FromException<string>(new IOException()),
+                "access" => Task.FromException<string>(new UnauthorizedAccessException()),
+                _ => Task.FromResult(JsonSerializer.Serialize(owner, new JsonSerializerOptions(JsonSerializerDefaults.Web))),
+            });
+
+        var result = await _target.GetOrphanedCommitOwnersAsync(TestContext.Current.CancellationToken);
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GIVEN_MissingRecoveryDirectory_WHEN_ReadingOwners_THEN_ShouldReturnEmptyCollection()
+    {
+        var result = await _target.GetOrphanedCommitOwnersAsync(TestContext.Current.CancellationToken);
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GIVEN_ArtifactWithoutParentDirectory_WHEN_Persisting_THEN_ShouldRejectPlan()
+    {
+        var plan = new WorkspaceCommitPlan(CreateManifest(), new Dictionary<string, ReadOnlyMemory<byte>>
+        {
+            ["File.bin"] = new byte[] { 1 },
+        });
+        _path.Setup(item => item.GetDirectoryName(_recoveryDirectory + "/CommitId/File.bin")).Returns((string?)null);
+
+        var action = async () => await _target.PersistPlanAsync(plan, TestContext.Current.CancellationToken);
+
+        await action.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void GIVEN_CommitDirectoryAndLegacyStatus_WHEN_Deleting_THEN_ShouldDeleteBoth()
+    {
+        var directory = _recoveryDirectory + "/CommitId";
+        var legacy = _recoveryDirectory + "/CommitId.json";
+        _directory.Setup(item => item.Exists(directory)).Returns(true);
+        _file.Setup(item => item.Exists(legacy)).Returns(true);
+
+        _target.DeleteStatus("CommitId");
+
+        _directory.Verify(item => item.Delete(directory, true), Times.Once);
+        _file.Verify(item => item.Delete(legacy), Times.Once);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
     public void GIVEN_InvalidCommitId_WHEN_Deleting_THEN_ShouldThrowArgumentException(string commitId)
     {
         var action = () => _target.DeleteStatus(commitId);
@@ -149,5 +439,49 @@ public sealed class CommitRecoveryStoreTests
         _target.DeleteStatus("CommitId");
 
         _file.Verify(item => item.Delete(path), exists ? Times.Once() : Times.Never());
+    }
+
+    private static WorkspaceCommitManifest CreateInvalidManifest(string scenario)
+    {
+        var manifest = CreateManifest();
+        return scenario switch
+        {
+            "version" => manifest with { Version = 1 },
+            "commit" => manifest with { CommitId = "OtherCommitId" },
+            "loaded" => manifest with { LoadedPath = "Workspace.sln" },
+            "root" => manifest with { WorkspaceRoot = "Workspace" },
+            "outside" => manifest with { LoadedPath = "/Other/Workspace.sln" },
+            "target" => manifest with { Entries = [CreateEntry("File.cs")], },
+            "duplicate" => manifest with { Entries = [CreateEntry("/Workspace/File.cs"), CreateEntry("/Workspace/File.cs")], },
+            "delete" => manifest with { Entries = [CreateEntry("/Workspace/File.cs") with { DeleteMarkerPath = "/Other/File.cs" }], },
+            "backup" => manifest with { Entries = [CreateEntry("/Workspace/File.cs") with { BackupPath = "../File.bin" }], },
+            "staged" => manifest with { Entries = [CreateEntry("/Workspace/File.cs") with { StagedPath = "../File.bin" }], },
+            "created" => manifest with { CreatedDirectories = ["/Other/Directory"] },
+            "createdRelative" => manifest with { CreatedDirectories = ["Directory"] },
+            _ => throw new InvalidOperationException("Unknown scenario."),
+        };
+    }
+
+    private static WorkspaceCommitManifest CreateManifest()
+    {
+        return new WorkspaceCommitManifest
+        {
+            CommitId = "CommitId",
+            LoadedPath = "/Workspace/Workspace.sln",
+            WorkspaceRoot = "/Workspace",
+            State = RecoveryState.Prepared,
+            Entries = [CreateEntry("/Workspace/File.cs")],
+            CreatedDirectories = ["/Workspace/NewDirectory"],
+        };
+    }
+
+    private static WorkspaceCommitEntry CreateEntry(string targetPath)
+    {
+        return new WorkspaceCommitEntry
+        {
+            TargetPath = targetPath,
+            Operation = WorkspaceFileOperation.Replace,
+            OriginalExists = true,
+        };
     }
 }

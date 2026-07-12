@@ -34,7 +34,8 @@ The existing six Workspace unit tests were removed after review because they did
 | `SelectorValidationTests` | 38 | Every selector and scope validation alternative: 100% line and branch |
 | `WorkspaceExecutionLeaseTests` | 7 | Query and mutation acquisition/rejection capability and disposal branches: 100% line and branch |
 | `WorkspaceMutationStagerTests` | 1 | Exact mutation-staging delegation: 100% line and branch |
-| `WorkspaceExecutionContextFactoryTests` | 25 | 100% line, 100% branch |
+| `WorkspaceSessionAcquirerTests` | 10 | Selection, shared/exclusive gate acquisition, disappearance races and refreshed sessions: 100% line and branch |
+| `WorkspaceExecutionContextFactoryTests` | 25 | Query/mutation state validation and execution-context construction: 100% line and branch |
 | `WorkspaceCoordinatorOptionsTests` | 1 | 100% line, 100% branch |
 | `WorkspaceOperationResultFactoryTests` | 9 | Factory outcomes and successful/error evidence properties: 100% line and branch |
 | `WorkspaceOperationGateTests` | 8 | 100% line, 100% branch |
@@ -42,13 +43,14 @@ The existing six Workspace unit tests were removed after review because they did
 | `WorkspaceStateMachineTests` | 12 | 100% line, 100% branch |
 | `WorkspaceStateTransitionsTests` | 5 | 100% line, 100% branch |
 | `SnapshotGuardTests` | 7 | 100% line, 100% branch |
-| `WorkspaceTransactionTests` | 8 | Current-solution selection, transaction information and revision-history appending: 100% line and branch |
+| `WorkspaceTransactionTests` | 12 | Current-solution selection, transaction information, revision-history appending and undo/redo movement: 100% line and branch |
 | `MutationStagingServiceTests` | 6 | Transaction acquisition, validation mapping and successful staging orchestration: 100% line and branch |
 | `WorkspaceMutationCandidateValidatorTests` | 29 | Workspace, project, option, reference and source-document validation: 100% line and branch |
 | `WorkspaceDiffBuilderTests` | 12 | Change summaries and diffs: 100% line, 96.88% branch |
 | `WorkspaceDiffServiceTests` | 2 | Summary and detailed-diff delegation |
 | `TransactionServiceTests` | 49 | Start, preview, history, commit, rollback and cancellation: 100% line and branch |
 | `WorkspaceLoaderTests` | 16 | Path and alias normalization plus compatibility-inspector delegation |
+| `WorkspaceLoadWorkflowTests` | 12 | Compatibility, loading, root containment, ownership and cancellation: 100% line and branch |
 | `WorkspaceLifecycleServiceTests` | 56 | Open, list, close, status, reload and cancellation: 100% line and branch |
 | `TransactionCommitServiceTests` | 20 | Commit orchestration, failures and cancellation: 100% line, 97.83% branch |
 | `WorkspaceChangeDetectorTests` | 17 | Manifest creation and comparison: 100% line and branch |
@@ -80,7 +82,7 @@ Only three implementations recorded unit coverage before removal:
 
 These figures are retained only as the evidence that motivated this inventory; they are no longer current test coverage. Compiler-generated async classes are not separate test targets and will be covered through their owning public methods.
 
-The 2026-07-12 Workspace unit checkpoint discovers 563 tests. Mutation staging orchestration, candidate validation and transaction revision appending each measure 100% line and branch coverage. The remaining assembly gap is concentrated in explicit operating-system and MSBuild integration boundaries, data-only cross-assembly contracts, platform-specific alternatives and the documented defensive Roslyn branches.
+The 2026-07-12 Workspace unit checkpoint discovers 589 tests and measures 93.76% line and 93.57% branch coverage across the Workspace production assembly. Shared session acquisition, validated workspace loading, lifecycle orchestration, mutation staging, candidate validation and transaction revision behaviour each measure 100% line and branch coverage. The remaining assembly gap is concentrated in explicit operating-system and MSBuild integration boundaries, data-only cross-assembly contracts, platform-specific alternatives and the documented defensive Roslyn branches.
 
 ### Current class-level coverage gaps
 
@@ -327,13 +329,13 @@ Existing boundary evidence covers lease disposal and confirms that the mutation 
 - staging-result mapping for success, rejection, conflict, fault and no-change
 - code-action request delegation and replay-selection mapping in `Roslyn.Workbench.Mcp.CodeActions.Test`, not the Workspace unit project
 
-`WorkspaceExecutionContextFactoryTests` now cover every acquisition, selection, gate, disappearance, external-change, owner, state, transaction and capacity branch at 100% line and branch coverage. The session stores an `IWorkspaceOperationGate`; the production gate remains the concrete runtime implementation.
+`WorkspaceSessionAcquirerTests` cover workspace selection, shared and exclusive gate acquisition, busy gates, refreshed sessions and the disappearance race after acquiring a lease. `WorkspaceExecutionContextFactoryTests` cover the remaining query/mutation external-change, owner, state, transaction and capacity rules. Both implementations measure 100% line and branch coverage. The session stores an `IWorkspaceOperationGate`; the production gate remains the concrete runtime implementation.
 
 `MutationStagingServiceTests` cover the complete public staging flow and every candidate rejection alternative through an injected `IWorkspaceDiffBuilder`. This includes every mutable project option, reference family, additional-document operation, analyzer-config-document operation, source-document kind/path rule and successful revision replacement. Non-source-document validation precedes effective compilation-option validation so analyzer-config deltas reach their specific rejection. A successful `WorkspaceMutationCandidate` requires its Roslyn `Solution`; the impossible missing-candidate branch has been removed. The service measures 100% line and branch coverage.
 
 ### `WorkspaceLifecycleService`
 
-Recovery persistence is now owned by the injected `ICommitRecoveryStore` implementation rather than static filesystem access. Loaded Roslyn workspace lifetime and solution application are owned by `ILoadedWorkspace`, with the concrete `MSBuildWorkspace` confined to the loader adapter. `WorkspaceLifecycleServiceTests` cover the principal open, list, close, status, reload and entry-point cancellation flows and measure 99.77% line and 96.61% branch coverage. One defensive open-failure line and generated conditional alternatives remain to classify.
+Recovery persistence is owned by `ICommitRecoveryStore`, while `IWorkspaceLoadWorkflow` owns compatibility inspection, Roslyn loading, root containment and unsuccessful-workspace disposal for both open and reload. Session selection and operation-gate acquisition are delegated to `IWorkspaceSessionAcquirer`. `WorkspaceLifecycleService` now retains lifecycle validation, registration, state changes, advisory publication and result mapping. The workflow and lifecycle service both measure 100% line and branch coverage.
 
 Once approved, `WorkspaceLifecycleServiceTests` should cover:
 
@@ -375,7 +377,7 @@ After approval, cover:
 
 ### `TransactionService`
 
-The summary-only staging seam has been replaced by a shared `IWorkspaceDiffBuilder`, and both staging and transaction preview now consume it. Workspace resolver creation is provided by `IWorkspaceResolverFactory`, shared with staging and execution-context creation. `TransactionServiceTests` cover every start, preview, history, commit, rollback and entry-point cancellation flow and measure 100% line and branch coverage.
+The summary-only staging seam has been replaced by a shared `IWorkspaceDiffBuilder`, and both staging and transaction preview now consume it. Workspace resolver creation is provided by `IWorkspaceResolverFactory`, shared with staging and execution-context creation. Session acquisition is delegated to `IWorkspaceSessionAcquirer`, while `WorkspaceTransaction` owns revision appending and undo/redo bounds. `TransactionServiceTests` cover every start, preview, history, commit, rollback and entry-point cancellation flow and measure 100% line and branch coverage. The service remains a cohesive transaction-use-case facade and does not require a broader split.
 
 After approval, `TransactionServiceTests` should cover every branch of:
 

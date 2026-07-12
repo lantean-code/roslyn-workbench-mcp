@@ -10,7 +10,7 @@ public sealed class TransactionServiceTests : IDisposable
 {
     private readonly AdhocWorkspace _workspace;
     private readonly Mock<IWorkspaceSessionStore> _sessionStore;
-    private readonly Mock<IWorkspaceSelector> _workspaceSelector;
+    private readonly Mock<IWorkspaceSessionAcquirer> _sessionAcquirer;
     private readonly Mock<IWorkspaceStateTransitions> _stateTransitions;
     private readonly Mock<ISnapshotGuard> _snapshotGuard;
     private readonly Mock<IWorkspaceOperationResultFactory> _resultFactory;
@@ -25,7 +25,8 @@ public sealed class TransactionServiceTests : IDisposable
     {
         _workspace = new AdhocWorkspace();
         _sessionStore = new Mock<IWorkspaceSessionStore>();
-        _workspaceSelector = new Mock<IWorkspaceSelector>();
+        _sessionAcquirer = new Mock<IWorkspaceSessionAcquirer>();
+        SetupWorkspaceRequiredAcquisitions();
         _stateTransitions = new Mock<IWorkspaceStateTransitions>();
         _snapshotGuard = new Mock<ISnapshotGuard>();
         _resultFactory = new Mock<IWorkspaceOperationResultFactory>();
@@ -37,7 +38,7 @@ public sealed class TransactionServiceTests : IDisposable
         _target = new TransactionService(
             Options.Create(new WorkspaceCoordinatorOptions { MaxTransactionRevisions = 5 }),
             _sessionStore.Object,
-            _workspaceSelector.Object,
+            _sessionAcquirer.Object,
             _stateTransitions.Object,
             _snapshotGuard.Object,
             _resultFactory.Object,
@@ -117,9 +118,8 @@ public sealed class TransactionServiceTests : IDisposable
         var expected = CreateResult<TransactionStartOutcome>();
         var snapshot = CreateHostSnapshot(session);
         _sessionStore.Setup(item => item.ReadSnapshot()).Returns(snapshot);
-        _workspaceSelector.Setup(item => item.Select(snapshot, It.IsAny<WorkspaceSelector?>()))
-            .Returns(WorkspaceSelectionResult.Failure(error));
         SetupRejectedResult(expected, error);
+        SetupAcquisitionFailure(error);
 
         var result = await _target.StartAsync("WorkspaceId", null, null, TestContext.Current.CancellationToken);
 
@@ -139,12 +139,11 @@ public sealed class TransactionServiceTests : IDisposable
         var expected = CreateResult<TransactionStartOutcome>();
         var snapshot = CreateHostSnapshot(session);
         _sessionStore.Setup(item => item.ReadSnapshot()).Returns(snapshot);
-        _workspaceSelector.Setup(item => item.Select(
-            snapshot,
+        SetupRejectedResult(expected, error);
+        _sessionAcquirer.Setup(item => item.AcquireExclusive(
             It.Is<WorkspaceSelector>(selector =>
                 selector.WorkspaceId == workspaceId && selector.Alias == alias && selector.Path == path)))
-            .Returns(WorkspaceSelectionResult.Failure(error));
-        SetupRejectedResult(expected, error);
+            .Returns(WorkspaceSessionAcquisition.Rejected(error));
 
         var result = await _target.StartAsync(workspaceId, alias, path, TestContext.Current.CancellationToken);
 
@@ -176,6 +175,8 @@ public sealed class TransactionServiceTests : IDisposable
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireExclusive()).Returns(operationLease.Object);
         _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns((WorkspaceSessionSnapshot?)null);
+        _sessionAcquirer.Setup(item => item.AcquireExclusive(It.IsAny<WorkspaceSelector?>()))
+            .Returns(WorkspaceSessionAcquisition.Rejected(CreateError(WorkspaceErrorCodes.WorkspaceNotOpen), lease: operationLease.Object));
         SetupRejectedResult(expected, WorkspaceErrorCodes.WorkspaceNotOpen);
 
         var result = await _target.StartAsync(null, null, null, TestContext.Current.CancellationToken);
@@ -230,8 +231,7 @@ public sealed class TransactionServiceTests : IDisposable
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireExclusive()).Returns(operationLease.Object);
         _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
-        _sessionStore.SetupSequence(item => item.ReadSnapshot())
-            .Returns(CreateHostSnapshot(session))
+        _sessionStore.Setup(item => item.ReadSnapshot())
             .Returns(CreateHostSnapshot(session) with { TransactionOwnerWorkspaceId = "OwnerId" });
         _sessionStore.Setup(item => item.ReadSession("OwnerId")).Returns(ownerSession);
         _resultFactory.Setup(item => item.Rejected<TransactionStartOutcome>(
@@ -257,8 +257,7 @@ public sealed class TransactionServiceTests : IDisposable
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireExclusive()).Returns(operationLease.Object);
         _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
-        _sessionStore.SetupSequence(item => item.ReadSnapshot())
-            .Returns(CreateHostSnapshot(session))
+        _sessionStore.Setup(item => item.ReadSnapshot())
             .Returns(CreateHostSnapshot(session) with { TransactionOwnerWorkspaceId = "OwnerId" });
         _sessionStore.Setup(item => item.ReadSession("OwnerId")).Returns((WorkspaceSessionSnapshot?)null);
         _resultFactory.Setup(item => item.Rejected<TransactionStartOutcome>(
@@ -361,9 +360,8 @@ public sealed class TransactionServiceTests : IDisposable
         var error = new WorkspaceOperationError { Code = "Code", Message = "Message" };
         var expected = CreateResult<TransactionPreviewOutcome>();
         _sessionStore.Setup(item => item.ReadSnapshot()).Returns(CreateHostSnapshot(session));
-        _workspaceSelector.Setup(item => item.Select(It.IsAny<WorkspaceHostSnapshot>(), It.IsAny<WorkspaceSelector?>()))
-            .Returns(WorkspaceSelectionResult.Failure(error));
         SetupRejectedResult(expected, error);
+        SetupAcquisitionFailure(error);
 
         var result = await _target.PreviewAsync(
             "WorkspaceId",
@@ -434,13 +432,9 @@ public sealed class TransactionServiceTests : IDisposable
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireShared()).Returns(operationLease.Object);
         _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns((WorkspaceSessionSnapshot?)null);
-        _resultFactory.Setup(item => item.Rejected<TransactionPreviewOutcome>(
-            WorkspaceErrorCodes.TransactionRequired,
-            It.IsAny<string>(),
-            RequiredAction.StartTransaction,
-            null,
-            null,
-            null)).Returns(expected);
+        _sessionAcquirer.Setup(item => item.AcquireShared(It.IsAny<WorkspaceSelector?>()))
+            .Returns(WorkspaceSessionAcquisition.Rejected(CreateError(WorkspaceErrorCodes.WorkspaceNotOpen), lease: operationLease.Object));
+        SetupRejectedResult(expected, WorkspaceErrorCodes.WorkspaceNotOpen);
 
         var result = await _target.PreviewAsync(
             null,
@@ -622,9 +616,8 @@ public sealed class TransactionServiceTests : IDisposable
         var expected = CreateResult<TransactionHistoryOutcome>();
         var snapshot = CreateHostSnapshot(session);
         _sessionStore.Setup(item => item.ReadSnapshot()).Returns(snapshot);
-        _workspaceSelector.Setup(item => item.Select(snapshot, It.IsAny<WorkspaceSelector?>()))
-            .Returns(WorkspaceSelectionResult.Failure(error));
         SetupRejectedResult(expected, error);
+        SetupAcquisitionFailure(error);
 
         var result = await _target.MoveHistoryAsync(
             null,
@@ -691,7 +684,9 @@ public sealed class TransactionServiceTests : IDisposable
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireExclusive()).Returns(operationLease.Object);
         _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns((WorkspaceSessionSnapshot?)null);
-        SetupRejectedResult(expected, WorkspaceErrorCodes.TransactionRequired);
+        _sessionAcquirer.Setup(item => item.AcquireExclusive(It.IsAny<WorkspaceSelector?>()))
+            .Returns(WorkspaceSessionAcquisition.Rejected(CreateError(WorkspaceErrorCodes.WorkspaceNotOpen), lease: operationLease.Object));
+        SetupRejectedResult(expected, WorkspaceErrorCodes.WorkspaceNotOpen);
 
         var result = await _target.MoveHistoryAsync(
             null,
@@ -837,9 +832,8 @@ public sealed class TransactionServiceTests : IDisposable
         var expected = CreateResult<TransactionCommitOutcome>();
         var snapshot = CreateHostSnapshot(session);
         _sessionStore.Setup(item => item.ReadSnapshot()).Returns(snapshot);
-        _workspaceSelector.Setup(item => item.Select(snapshot, It.IsAny<WorkspaceSelector?>()))
-            .Returns(WorkspaceSelectionResult.Failure(error));
         SetupRejectedResult(expected, error);
+        SetupAcquisitionFailure(error);
 
         var result = await _target.CommitAsync(null, null, null, null, TestContext.Current.CancellationToken);
 
@@ -907,9 +901,8 @@ public sealed class TransactionServiceTests : IDisposable
         var expected = CreateResult<TransactionRollbackOutcome>();
         var snapshot = CreateHostSnapshot(session);
         _sessionStore.Setup(item => item.ReadSnapshot()).Returns(snapshot);
-        _workspaceSelector.Setup(item => item.Select(snapshot, It.IsAny<WorkspaceSelector?>()))
-            .Returns(WorkspaceSelectionResult.Failure(error));
         SetupRejectedResult(expected, error);
+        SetupAcquisitionFailure(error);
 
         var result = await _target.RollbackAsync(null, null, null, TestContext.Current.CancellationToken);
 
@@ -958,7 +951,9 @@ public sealed class TransactionServiceTests : IDisposable
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireExclusive()).Returns(operationLease.Object);
         _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns((WorkspaceSessionSnapshot?)null);
-        SetupRejectedResult(expected, WorkspaceErrorCodes.TransactionRequired);
+        _sessionAcquirer.Setup(item => item.AcquireExclusive(It.IsAny<WorkspaceSelector?>()))
+            .Returns(WorkspaceSessionAcquisition.Rejected(CreateError(WorkspaceErrorCodes.WorkspaceNotOpen), lease: operationLease.Object));
+        SetupRejectedResult(expected, WorkspaceErrorCodes.WorkspaceNotOpen);
 
         var result = await _target.RollbackAsync(null, null, null, TestContext.Current.CancellationToken);
 
@@ -1009,12 +1004,53 @@ public sealed class TransactionServiceTests : IDisposable
     {
         var hostSnapshot = CreateHostSnapshot(session);
         _sessionStore.Setup(item => item.ReadSnapshot()).Returns(hostSnapshot);
-        _workspaceSelector.Setup(item => item.Select(It.IsAny<WorkspaceHostSnapshot>(), It.IsAny<WorkspaceSelector?>()))
-            .Returns(WorkspaceSelectionResult.Success(new WorkspaceSelection
+        _sessionAcquirer.Setup(item => item.AcquireShared(It.IsAny<WorkspaceSelector?>()))
+            .Returns(() => CreateAcquisition(session, exclusive: false));
+        _sessionAcquirer.Setup(item => item.AcquireExclusive(It.IsAny<WorkspaceSelector?>()))
+            .Returns(() => CreateAcquisition(session, exclusive: true));
+    }
+
+    private WorkspaceSessionAcquisition CreateAcquisition(WorkspaceSessionSnapshot session, bool exclusive)
+    {
+        var lease = exclusive
+            ? session.OperationGate.TryAcquireExclusive()
+            : session.OperationGate.TryAcquireShared();
+        return lease is null
+            ? WorkspaceSessionAcquisition.Rejected(CreateError(WorkspaceErrorCodes.WorkspaceBusy), session)
+            : WorkspaceSessionAcquisition.Acquired(new WorkspaceSelection
             {
-                WorkspaceId = "WorkspaceId",
+                WorkspaceId = session.Workspace.WorkspaceId,
                 Session = session,
-            }));
+            }, session, lease);
+    }
+
+    private void SetupWorkspaceRequiredAcquisitions()
+    {
+        var error = CreateError(WorkspaceErrorCodes.WorkspaceNotOpen);
+        _sessionAcquirer.Setup(item => item.AcquireShared(It.IsAny<WorkspaceSelector?>()))
+            .Returns(WorkspaceSessionAcquisition.Rejected(error));
+        _sessionAcquirer.Setup(item => item.AcquireExclusive(It.IsAny<WorkspaceSelector?>()))
+            .Returns(WorkspaceSessionAcquisition.Rejected(error));
+    }
+
+    private void SetupAcquisitionFailure(WorkspaceOperationError error)
+    {
+        _sessionAcquirer.Setup(item => item.AcquireShared(It.IsAny<WorkspaceSelector?>()))
+            .Returns(WorkspaceSessionAcquisition.Rejected(error));
+        _sessionAcquirer.Setup(item => item.AcquireExclusive(It.IsAny<WorkspaceSelector?>()))
+            .Returns(WorkspaceSessionAcquisition.Rejected(error));
+    }
+
+    private static WorkspaceOperationError CreateError(string code)
+    {
+        return new WorkspaceOperationError
+        {
+            Code = code,
+            Message = "Message",
+            RequiredAction = code == WorkspaceErrorCodes.WorkspaceBusy
+                ? RequiredAction.Retry
+                : RequiredAction.OpenWorkspace,
+        };
     }
 
     private void SetupPreview(
@@ -1062,6 +1098,11 @@ public sealed class TransactionServiceTests : IDisposable
             code,
             It.IsAny<string>(),
             It.IsAny<RequiredAction?>(),
+            It.IsAny<WorkspaceOperationContext?>(),
+            null,
+            null)).Returns(result);
+        _resultFactory.Setup(item => item.Rejected<TOutcome>(
+            It.Is<WorkspaceOperationError>(error => error.Code == code),
             It.IsAny<WorkspaceOperationContext?>(),
             null,
             null)).Returns(result);

@@ -8,9 +8,10 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
 {
     private readonly WorkspaceCoordinatorOptions _options;
     private readonly IWorkspaceSessionStore _sessionStore;
-    private readonly IWorkspaceSelector _workspaceSelector;
+    private readonly IWorkspaceSessionAcquirer _sessionAcquirer;
     private readonly IWorkspaceLoader _workspaceLoader;
     private readonly IWorkspaceRootResolver _workspaceRootResolver;
+    private readonly IWorkspaceLoadWorkflow _workspaceLoadWorkflow;
     private readonly IWorkspaceChangeDetector _workspaceChangeDetector;
     private readonly IWorkspaceStateTransitions _workspaceStateTransitions;
     private readonly IWorkspaceOperationResultFactory _resultFactory;
@@ -20,9 +21,10 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
     public WorkspaceLifecycleService(
         IOptions<WorkspaceCoordinatorOptions> options,
         IWorkspaceSessionStore sessionStore,
-        IWorkspaceSelector workspaceSelector,
+        IWorkspaceSessionAcquirer sessionAcquirer,
         IWorkspaceLoader workspaceLoader,
         IWorkspaceRootResolver workspaceRootResolver,
+        IWorkspaceLoadWorkflow workspaceLoadWorkflow,
         IWorkspaceChangeDetector workspaceChangeDetector,
         IWorkspaceStateTransitions workspaceStateTransitions,
         IWorkspaceOperationResultFactory resultFactory,
@@ -31,9 +33,10 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
     {
         _options = options.Value;
         _sessionStore = sessionStore;
-        _workspaceSelector = workspaceSelector;
+        _sessionAcquirer = sessionAcquirer;
         _workspaceLoader = workspaceLoader;
         _workspaceRootResolver = workspaceRootResolver;
+        _workspaceLoadWorkflow = workspaceLoadWorkflow;
         _workspaceChangeDetector = workspaceChangeDetector;
         _workspaceStateTransitions = workspaceStateTransitions;
         _resultFactory = resultFactory;
@@ -49,42 +52,23 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var normalizedPath = _workspaceLoader.NormalizeOpenPath(path);
-        if (normalizedPath is null)
+        var request = ResolveOpenRequest(path, alias, workspaceRoot);
+        if (request.HasError)
         {
-            return _resultFactory.Rejected<WorkspaceOpenOutcome>(
-                "WorkspacePathInvalid",
-                "Workspace paths must be absolute .sln, .slnx, or .csproj files.");
+            return _resultFactory.Rejected<WorkspaceOpenOutcome>(request.Error);
         }
 
-        var resolvedWorkspaceRoot = _workspaceRootResolver.Resolve(normalizedPath, workspaceRoot);
-        if (resolvedWorkspaceRoot is null)
+        var preflightError = ValidateOpenPreflight(request.LoadedPath, request.Alias);
+        if (preflightError is not null)
         {
-            return _resultFactory.Rejected<WorkspaceOpenOutcome>(
-                "WorkspaceRootInvalid",
-                "The workspace root must be an existing absolute directory containing the loaded path.");
+            return _resultFactory.Rejected<WorkspaceOpenOutcome>(preflightError);
         }
 
-        var normalizedAlias = _workspaceLoader.NormalizeAlias(alias);
-        var preflightSnapshot = _sessionStore.ReadSnapshot();
-        var capacityError = ValidateOpenCapacity(preflightSnapshot);
-        if (capacityError is not null)
-        {
-            return _resultFactory.Rejected<WorkspaceOpenOutcome>(capacityError);
-        }
-
-        var uniquenessError = ValidateOpenUniqueness(preflightSnapshot, normalizedPath, normalizedAlias);
-        if (uniquenessError is not null)
-        {
-            return _resultFactory.Rejected<WorkspaceOpenOutcome>(uniquenessError);
-        }
-
-        if ((await _recoveryStore.GetStatusesAsync(cancellationToken).ConfigureAwait(false)).Any(status =>
-                (string.IsNullOrWhiteSpace(status.SolutionPath)
-                    || string.Equals(Path.GetFullPath(status.SolutionPath), normalizedPath, StringComparison.Ordinal)
-                    || !string.IsNullOrWhiteSpace(status.WorkspaceRoot)
-                    && string.Equals(Path.GetFullPath(status.WorkspaceRoot), resolvedWorkspaceRoot, StringComparison.Ordinal))
-                && status.State is not RecoveryState.Committed and not RecoveryState.Restored))
+        var hasPendingRecovery = await HasPendingRecoveryAsync(
+            request.LoadedPath,
+            request.WorkspaceRoot,
+            cancellationToken).ConfigureAwait(false);
+        if (hasPendingRecovery)
         {
             return _resultFactory.Rejected<WorkspaceOpenOutcome>(
                 "RecoveryPending",
@@ -92,126 +76,35 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
                 RequiredAction.ResolveRecovery);
         }
 
-        if (string.Equals(Path.GetExtension(normalizedPath), ".csproj", StringComparison.OrdinalIgnoreCase))
+        var loadedWorkspace = await _workspaceLoadWorkflow.LoadAsync(
+            request.LoadedPath,
+            request.WorkspaceRoot,
+            cancellationToken).ConfigureAwait(false);
+        if (loadedWorkspace.HasFailure)
         {
-            var preflight = _workspaceLoader.InspectCompatibility(normalizedPath);
-            if (preflight.Diagnostics.Count > 0)
-            {
-                return _resultFactory.Rejected<WorkspaceOpenOutcome>(
-                    WorkspaceErrorCodes.WorkspaceLoadFailed,
-                    "The workspace could not be loaded.",
-                    diagnostics: preflight.Diagnostics);
-            }
-
-            if (!preflight.IsSdkStyle)
-            {
-                return _resultFactory.Rejected<WorkspaceOpenOutcome>(
-                    WorkspaceErrorCodes.WorkspaceNotSupported,
-                    "Only SDK-style C# projects are supported.");
-            }
-        }
-
-        var loadedWorkspace = await _workspaceLoader.LoadAsync(normalizedPath, cancellationToken).ConfigureAwait(false);
-        if (loadedWorkspace.Solution is null || loadedWorkspace.Workspace is null)
-        {
-            return _resultFactory.Rejected<WorkspaceOpenOutcome>(
-                WorkspaceErrorCodes.WorkspaceLoadFailed,
-                "The workspace could not be loaded.",
-                diagnostics: loadedWorkspace.Diagnostics);
-        }
-
-
-        var loadedInputPaths = loadedWorkspace.Solution.Projects
-            .SelectMany(static project => project.Documents
-                .Select(static document => document.FilePath)
-                .Prepend(project.FilePath))
-            .OfType<string>()
-            .Where(static inputPath => !string.IsNullOrWhiteSpace(inputPath));
-        if (loadedInputPaths.Any(inputPath => !_workspaceRootResolver.Contains(resolvedWorkspaceRoot, inputPath)))
-        {
-            loadedWorkspace.Workspace.Dispose();
-            return _resultFactory.Rejected<WorkspaceOpenOutcome>(
-                "WorkspaceProjectOutsideRoot",
-                "Every loaded project must be contained by the workspace root.");
+            return CreateLoadFailureResult<WorkspaceOpenOutcome>(loadedWorkspace, "loaded");
         }
 
         var session = CreateSessionSnapshot(
             _sessionStore.AllocateWorkspaceId(),
-            normalizedAlias,
+            request.Alias,
             loadedWorkspace.Workspace,
             loadedWorkspace.Solution,
-            normalizedPath,
-            resolvedWorkspaceRoot,
+            request.LoadedPath,
+            request.WorkspaceRoot,
             _sessionStore.AllocateWorkspaceEpoch(),
             loadedWorkspace.Diagnostics,
             operationGate: null);
 
-        foreach (var projectPath in session.CurrentSolution.Projects
-                     .Where(static project => string.Equals(project.Language, LanguageNames.CSharp, StringComparison.Ordinal))
-                     .Select(static project => project.FilePath)
-                     .OfType<string>()
-                     .Where(static path => !string.IsNullOrWhiteSpace(path)))
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var projectCompatibility = _workspaceLoader.InspectCompatibility(projectPath);
-            if (projectCompatibility.Diagnostics.Count > 0)
-            {
-                session.LoadedWorkspace.Dispose();
-                return _resultFactory.Rejected<WorkspaceOpenOutcome>(
-                    WorkspaceErrorCodes.WorkspaceLoadFailed,
-                    "The workspace could not be loaded.",
-                    diagnostics: projectCompatibility.Diagnostics);
-            }
-
-            if (!projectCompatibility.IsSdkStyle)
-            {
-                session.LoadedWorkspace.Dispose();
-                return _resultFactory.Rejected<WorkspaceOpenOutcome>(
-                    WorkspaceErrorCodes.WorkspaceNotSupported,
-                    "Only SDK-style C# projects are supported.");
-            }
-        }
-
-        var latestValidationError = _sessionStore.TryAddWorkspace(session, snapshot =>
-        {
-            return ValidateOpenCapacity(snapshot) ?? ValidateOpenUniqueness(snapshot, normalizedPath, normalizedAlias);
-        });
+        var latestValidationError = TryRegisterSession(session, request.LoadedPath, request.Alias);
         if (latestValidationError is not null)
         {
             session.LoadedWorkspace.Dispose();
             return _resultFactory.Rejected<WorkspaceOpenOutcome>(latestValidationError);
         }
 
-        var workspaceInUse = await _instanceStatusPublisher.OpenAsync(
-            session.Workspace.WorkspaceId,
-            session.Workspace.WorkspaceRoot,
-            session.Workspace.LoadedPath,
-            session.State,
-            cancellationToken).ConfigureAwait(false);
-        session = session with
-        {
-            InputManifest = _workspaceChangeDetector.BuildManifest(session.CurrentSolution, session.Workspace.LoadedPath),
-        };
-        _sessionStore.ReplaceSession(session);
-        var openDiagnostics = workspaceInUse
-            ? session.LoadDiagnostics.Append(new DiagnosticInfo
-            {
-                Id = "WorkspaceInUse",
-                Severity = Contracts.Results.DiagnosticSeverity.Warning,
-                Message = "Another Roslyn Workbench MCP instance has this workspace open.",
-            }).ToArray()
-            : session.LoadDiagnostics;
-
-        return _resultFactory.Succeeded(
-            new WorkspaceOpenOutcome
-            {
-                Workspace = session.Workspace,
-                ProjectCount = session.ProjectCount,
-                DocumentCount = session.DocumentCount,
-                LoadDiagnostics = openDiagnostics,
-            },
-            CreateContext(session));
+        var result = await CompleteOpenAsync(session, cancellationToken).ConfigureAwait(false);
+        return result;
     }
 
     public ValueTask<WorkspaceOperationResult<WorkspaceOpenOutcome>> OpenAsync(
@@ -242,41 +135,15 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var hostSnapshot = _sessionStore.ReadSnapshot();
-        if (hostSnapshot.Workspaces.Count == 0)
+        var acquisition = _sessionAcquirer.AcquireExclusive(CreateWorkspaceSelector(workspaceId, alias, path));
+        if (acquisition.HasError)
         {
-            return _resultFactory.Rejected<WorkspaceCloseOutcome>(
-                WorkspaceErrorCodes.WorkspaceNotOpen,
-                "Open a workspace before invoking this tool.",
-                RequiredAction.OpenWorkspace);
+            await DisposeFailedAcquisitionAsync(acquisition).ConfigureAwait(false);
+            return CreateAcquisitionFailureResult<WorkspaceCloseOutcome>(acquisition, acquisition.Error);
         }
 
-        var selectionResult = _workspaceSelector.Select(hostSnapshot, CreateWorkspaceSelector(workspaceId, alias, path));
-        if (selectionResult.HasError)
-        {
-            return _resultFactory.Rejected<WorkspaceCloseOutcome>(selectionResult.Error);
-        }
-
-        var selection = selectionResult.Selection;
-        var lease = selection.Session.OperationGate.TryAcquireExclusive();
-        if (lease is null)
-        {
-            return _resultFactory.Rejected<WorkspaceCloseOutcome>(
-                WorkspaceErrorCodes.WorkspaceBusy,
-                "The workspace is busy.",
-                RequiredAction.Retry,
-                CreateContext(selection.Session));
-        }
-
-        await using var leaseScope = lease;
-        var session = _sessionStore.ReadSession(selection.WorkspaceId);
-        if (session is null)
-        {
-            return _resultFactory.Rejected<WorkspaceCloseOutcome>(
-                WorkspaceErrorCodes.WorkspaceNotOpen,
-                "Open a workspace before invoking this tool.",
-                RequiredAction.OpenWorkspace);
-        }
+        await using var leaseScope = acquisition.Lease;
+        var session = acquisition.Session;
 
         if (session.State is WorkspaceLifecycleState.TransactionActive or WorkspaceLifecycleState.TransactionConflicted)
         {
@@ -287,7 +154,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
                 CreateContext(session));
         }
 
-        var removedSession = _sessionStore.RemoveWorkspace(selection.WorkspaceId);
+        var removedSession = _sessionStore.RemoveWorkspace(acquisition.Selection.WorkspaceId);
         if (removedSession is null)
         {
             return _resultFactory.Rejected<WorkspaceCloseOutcome>(
@@ -315,41 +182,15 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var hostSnapshot = _sessionStore.ReadSnapshot();
-        if (hostSnapshot.Workspaces.Count == 0)
+        var acquisition = _sessionAcquirer.AcquireShared(CreateWorkspaceSelector(workspaceId, alias, path));
+        if (acquisition.HasError)
         {
-            return _resultFactory.Rejected<WorkspaceStatusOutcome>(
-                WorkspaceErrorCodes.WorkspaceNotOpen,
-                "Open a workspace before invoking this tool.",
-                RequiredAction.OpenWorkspace);
+            await DisposeFailedAcquisitionAsync(acquisition).ConfigureAwait(false);
+            return CreateAcquisitionFailureResult<WorkspaceStatusOutcome>(acquisition, acquisition.Error);
         }
 
-        var selectionResult = _workspaceSelector.Select(hostSnapshot, CreateWorkspaceSelector(workspaceId, alias, path));
-        if (selectionResult.HasError)
-        {
-            return _resultFactory.Rejected<WorkspaceStatusOutcome>(selectionResult.Error);
-        }
-
-        var selection = selectionResult.Selection;
-        var lease = selection.Session.OperationGate.TryAcquireShared();
-        if (lease is null)
-        {
-            return _resultFactory.Rejected<WorkspaceStatusOutcome>(
-                WorkspaceErrorCodes.WorkspaceBusy,
-                "The workspace is busy.",
-                RequiredAction.Retry,
-                CreateContext(selection.Session));
-        }
-
-        await using var leaseScope = lease;
-        var session = _sessionStore.ReadSession(selection.WorkspaceId);
-        if (session is null)
-        {
-            return _resultFactory.Rejected<WorkspaceStatusOutcome>(
-                WorkspaceErrorCodes.WorkspaceNotOpen,
-                "Open a workspace before invoking this tool.",
-                RequiredAction.OpenWorkspace);
-        }
+        await using var leaseScope = acquisition.Lease;
+        var session = acquisition.Session;
 
         if (session.State is WorkspaceLifecycleState.Ready or WorkspaceLifecycleState.TransactionActive
             && _workspaceChangeDetector.HasChanged(session.InputManifest, cancellationToken))
@@ -368,41 +209,15 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var hostSnapshot = _sessionStore.ReadSnapshot();
-        if (hostSnapshot.Workspaces.Count == 0)
+        var acquisition = _sessionAcquirer.AcquireExclusive(CreateWorkspaceSelector(workspaceId, alias, path));
+        if (acquisition.HasError)
         {
-            return _resultFactory.Rejected<WorkspaceReloadOutcome>(
-                WorkspaceErrorCodes.WorkspaceNotOpen,
-                "Open a workspace before invoking this tool.",
-                RequiredAction.OpenWorkspace);
+            await DisposeFailedAcquisitionAsync(acquisition).ConfigureAwait(false);
+            return CreateAcquisitionFailureResult<WorkspaceReloadOutcome>(acquisition, acquisition.Error);
         }
 
-        var selectionResult = _workspaceSelector.Select(hostSnapshot, CreateWorkspaceSelector(workspaceId, alias, path));
-        if (selectionResult.HasError)
-        {
-            return _resultFactory.Rejected<WorkspaceReloadOutcome>(selectionResult.Error);
-        }
-
-        var selection = selectionResult.Selection;
-        var lease = selection.Session.OperationGate.TryAcquireExclusive();
-        if (lease is null)
-        {
-            return _resultFactory.Rejected<WorkspaceReloadOutcome>(
-                WorkspaceErrorCodes.WorkspaceBusy,
-                "The workspace is busy.",
-                RequiredAction.Retry,
-                CreateContext(selection.Session));
-        }
-
-        await using var leaseScope = lease;
-        var currentSession = _sessionStore.ReadSession(selection.WorkspaceId);
-        if (currentSession is null)
-        {
-            return _resultFactory.Rejected<WorkspaceReloadOutcome>(
-                WorkspaceErrorCodes.WorkspaceNotOpen,
-                "Open a workspace before invoking this tool.",
-                RequiredAction.OpenWorkspace);
-        }
+        await using var leaseScope = acquisition.Lease;
+        var currentSession = acquisition.Session;
 
         var context = CreateContext(currentSession);
         if (currentSession.State is WorkspaceLifecycleState.TransactionActive or WorkspaceLifecycleState.TransactionConflicted)
@@ -422,35 +237,13 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
                 context: context);
         }
 
-        if (string.Equals(Path.GetExtension(currentSession.Workspace.LoadedPath), ".csproj", StringComparison.OrdinalIgnoreCase))
+        var loadedWorkspace = await _workspaceLoadWorkflow.LoadAsync(
+            currentSession.Workspace.LoadedPath,
+            currentSession.Workspace.WorkspaceRoot,
+            cancellationToken).ConfigureAwait(false);
+        if (loadedWorkspace.HasFailure)
         {
-            var preflight = _workspaceLoader.InspectCompatibility(currentSession.Workspace.LoadedPath);
-            if (preflight.Diagnostics.Count > 0)
-            {
-                return _resultFactory.Rejected<WorkspaceReloadOutcome>(
-                    WorkspaceErrorCodes.WorkspaceLoadFailed,
-                    "The workspace could not be reloaded.",
-                    context: context,
-                    diagnostics: preflight.Diagnostics);
-            }
-
-            if (!preflight.IsSdkStyle)
-            {
-                return _resultFactory.Rejected<WorkspaceReloadOutcome>(
-                    WorkspaceErrorCodes.WorkspaceNotSupported,
-                    "Only SDK-style C# projects are supported.",
-                    context: context);
-            }
-        }
-
-        var loadedWorkspace = await _workspaceLoader.LoadAsync(currentSession.Workspace.LoadedPath, cancellationToken).ConfigureAwait(false);
-        if (loadedWorkspace.Solution is null || loadedWorkspace.Workspace is null)
-        {
-            return _resultFactory.Rejected<WorkspaceReloadOutcome>(
-                WorkspaceErrorCodes.WorkspaceLoadFailed,
-                "The workspace could not be reloaded.",
-                context: context,
-                diagnostics: loadedWorkspace.Diagnostics);
+            return CreateLoadFailureResult<WorkspaceReloadOutcome>(loadedWorkspace, "reloaded", context);
         }
 
         var reloadedSession = CreateSessionSnapshot(
@@ -464,7 +257,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             loadedWorkspace.Diagnostics,
             currentSession.OperationGate);
 
-        var oldSession = _sessionStore.ReadSession(selection.WorkspaceId);
+        var oldSession = _sessionStore.ReadSession(acquisition.Selection.WorkspaceId);
         oldSession?.LoadedWorkspace.Dispose();
         _sessionStore.ReplaceSession(reloadedSession);
 
@@ -477,6 +270,102 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
                 LoadDiagnostics = reloadedSession.LoadDiagnostics,
             },
             CreateContext(reloadedSession));
+    }
+
+    private ResolvedWorkspaceOpenRequest ResolveOpenRequest(string path, string? alias, string? workspaceRoot)
+    {
+        var normalizedPath = _workspaceLoader.NormalizeOpenPath(path);
+        if (normalizedPath is null)
+        {
+            return ResolvedWorkspaceOpenRequest.Failure(new WorkspaceOperationError
+            {
+                Code = "WorkspacePathInvalid",
+                Message = "Workspace paths must be absolute .sln, .slnx, or .csproj files.",
+            });
+        }
+
+        var resolvedWorkspaceRoot = _workspaceRootResolver.Resolve(normalizedPath, workspaceRoot);
+        if (resolvedWorkspaceRoot is null)
+        {
+            return ResolvedWorkspaceOpenRequest.Failure(new WorkspaceOperationError
+            {
+                Code = "WorkspaceRootInvalid",
+                Message = "The workspace root must be an existing absolute directory containing the loaded path.",
+            });
+        }
+
+        return ResolvedWorkspaceOpenRequest.Success(
+            normalizedPath,
+            _workspaceLoader.NormalizeAlias(alias),
+            resolvedWorkspaceRoot);
+    }
+
+    private WorkspaceOperationError? ValidateOpenPreflight(string loadedPath, string? alias)
+    {
+        var snapshot = _sessionStore.ReadSnapshot();
+        return ValidateOpenCapacity(snapshot)
+            ?? ValidateOpenUniqueness(snapshot, loadedPath, alias);
+    }
+
+    private async ValueTask<bool> HasPendingRecoveryAsync(
+        string loadedPath,
+        string workspaceRoot,
+        CancellationToken cancellationToken)
+    {
+        var statuses = await _recoveryStore.GetStatusesAsync(cancellationToken).ConfigureAwait(false);
+        return statuses.Any(status =>
+            (string.IsNullOrWhiteSpace(status.SolutionPath)
+                || string.Equals(Path.GetFullPath(status.SolutionPath), loadedPath, StringComparison.Ordinal)
+                || !string.IsNullOrWhiteSpace(status.WorkspaceRoot)
+                && string.Equals(Path.GetFullPath(status.WorkspaceRoot), workspaceRoot, StringComparison.Ordinal))
+            && status.State is not RecoveryState.Committed and not RecoveryState.Restored);
+    }
+
+    private WorkspaceOperationError? TryRegisterSession(
+        WorkspaceSessionSnapshot session,
+        string loadedPath,
+        string? alias)
+    {
+        return _sessionStore.TryAddWorkspace(session, snapshot =>
+        {
+            return ValidateOpenCapacity(snapshot)
+                ?? ValidateOpenUniqueness(snapshot, loadedPath, alias);
+        });
+    }
+
+    private async ValueTask<WorkspaceOperationResult<WorkspaceOpenOutcome>> CompleteOpenAsync(
+        WorkspaceSessionSnapshot session,
+        CancellationToken cancellationToken)
+    {
+        var workspaceInUse = await _instanceStatusPublisher.OpenAsync(
+            session.Workspace.WorkspaceId,
+            session.Workspace.WorkspaceRoot,
+            session.Workspace.LoadedPath,
+            session.State,
+            cancellationToken).ConfigureAwait(false);
+        session = session with
+        {
+            InputManifest = _workspaceChangeDetector.BuildManifest(session.CurrentSolution, session.Workspace.LoadedPath),
+        };
+        _sessionStore.ReplaceSession(session);
+        var openDiagnostics = workspaceInUse
+            ? session.LoadDiagnostics.Append(new DiagnosticInfo
+            {
+                Id = "WorkspaceInUse",
+                Severity = Contracts.Results.DiagnosticSeverity.Warning,
+                Message = "Another Roslyn Workbench MCP instance has this workspace open.",
+            }).ToArray()
+            : session.LoadDiagnostics;
+
+        return _resultFactory.Succeeded(
+            new WorkspaceOpenOutcome
+            {
+                Workspace = session.Workspace,
+                ProjectCount = session.ProjectCount,
+                DocumentCount = session.DocumentCount,
+                LoadDiagnostics = openDiagnostics,
+            },
+            CreateContext(session));
     }
 
     private WorkspaceSessionSnapshot CreateSessionSnapshot(
@@ -585,5 +474,42 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             WorkspaceEpoch = session.Workspace.WorkspaceEpoch,
             TransactionRevision = session.Transaction?.CurrentRevision,
         };
+    }
+
+    private WorkspaceOperationResult<TOutcome> CreateAcquisitionFailureResult<TOutcome>(
+        WorkspaceSessionAcquisition acquisition,
+        WorkspaceOperationError error)
+    {
+        var context = acquisition.ContextSession is null ? null : CreateContext(acquisition.ContextSession);
+        return _resultFactory.Rejected<TOutcome>(error, context);
+    }
+
+    private WorkspaceOperationResult<TOutcome> CreateLoadFailureResult<TOutcome>(
+        ValidatedWorkspaceLoadResult loadResult,
+        string operation,
+        WorkspaceOperationContext? context = null)
+    {
+        return loadResult.Failure switch
+        {
+            ValidatedWorkspaceLoadFailure.LoadFailed => _resultFactory.Rejected<TOutcome>(
+                WorkspaceErrorCodes.WorkspaceLoadFailed,
+                $"The workspace could not be {operation}.",
+                context: context,
+                diagnostics: loadResult.Diagnostics),
+            ValidatedWorkspaceLoadFailure.NotSupported => _resultFactory.Rejected<TOutcome>(
+                WorkspaceErrorCodes.WorkspaceNotSupported,
+                "Only SDK-style C# projects are supported.",
+                context: context),
+            ValidatedWorkspaceLoadFailure.OutsideWorkspaceRoot => _resultFactory.Rejected<TOutcome>(
+                "WorkspaceProjectOutsideRoot",
+                "Every loaded project must be contained by the workspace root.",
+                context: context),
+            _ => throw new InvalidOperationException("The workspace load failure is not supported."),
+        };
+    }
+
+    private static ValueTask DisposeFailedAcquisitionAsync(WorkspaceSessionAcquisition acquisition)
+    {
+        return acquisition.Lease is null ? ValueTask.CompletedTask : acquisition.Lease.DisposeAsync();
     }
 }

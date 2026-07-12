@@ -107,10 +107,12 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
         services.AddHostedService<WorkspaceCommitRecoveryHostedService>();
         services.AddSingleton<IWorkspaceSessionStore, WorkspaceSessionStore>();
         services.AddSingleton<IWorkspaceSelector, WorkspaceSelectorService>();
+        services.AddSingleton<IWorkspaceSessionAcquirer, WorkspaceSessionAcquirer>();
         services.AddSingleton<IWorkspaceResolverFactory, WorkspaceResolverFactory>();
         services.AddSingleton<IWorkspaceProjectCompatibilityInspector, WorkspaceProjectCompatibilityInspector>();
         services.AddSingleton<IWorkspaceLoader, WorkspaceLoader>();
         services.AddSingleton<IWorkspaceRootResolver, WorkspaceRootResolver>();
+        services.AddSingleton<IWorkspaceLoadWorkflow, WorkspaceLoadWorkflow>();
         services.AddSingleton<IWorkspaceProjectInputResolver, WorkspaceProjectInputResolver>();
         services.AddSingleton<IWorkspaceChangeDetector, WorkspaceChangeDetector>();
         services.AddSingleton<IWorkspaceStateTransitions, WorkspaceStateTransitions>();

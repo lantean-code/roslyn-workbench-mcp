@@ -10,7 +10,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
 {
     private readonly AdhocWorkspace _workspace;
     private readonly Mock<IWorkspaceSessionStore> _sessionStore;
-    private readonly Mock<IWorkspaceSelector> _workspaceSelector;
+    private readonly Mock<IWorkspaceSessionAcquirer> _sessionAcquirer;
     private readonly Mock<IWorkspaceChangeDetector> _changeDetector;
     private readonly Mock<IWorkspaceStateTransitions> _stateTransitions;
     private readonly Mock<IMutationStagingService> _stagingService;
@@ -22,7 +22,8 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
     {
         _workspace = new AdhocWorkspace();
         _sessionStore = new Mock<IWorkspaceSessionStore>();
-        _workspaceSelector = new Mock<IWorkspaceSelector>();
+        _sessionAcquirer = new Mock<IWorkspaceSessionAcquirer>();
+        SetupWorkspaceRequiredAcquisitions();
         _changeDetector = new Mock<IWorkspaceChangeDetector>();
         _stateTransitions = new Mock<IWorkspaceStateTransitions>();
         _stagingService = new Mock<IMutationStagingService>();
@@ -33,7 +34,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         _target = new WorkspaceExecutionContextFactory(
             Options.Create(new WorkspaceCoordinatorOptions { DefaultMaxResults = 25 }),
             _sessionStore.Object,
-            _workspaceSelector.Object,
+            _sessionAcquirer.Object,
             _changeDetector.Object,
             _stateTransitions.Object,
             _stagingService.Object,
@@ -93,7 +94,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         var snapshot = CreateHostSnapshot(session);
         var error = new WorkspaceOperationError { Code = "Code", Message = "Message" };
         _sessionStore.Setup(item => item.ReadSnapshot()).Returns(snapshot);
-        _workspaceSelector.Setup(item => item.Select(snapshot, null)).Returns(WorkspaceSelectionResult.Failure(error));
+        _sessionAcquirer.Setup(item => item.AcquireShared(null)).Returns(WorkspaceSessionAcquisition.Rejected(error));
 
         var result = _target.CreateQueryContext(workspace: null, CancellationToken.None);
 
@@ -108,7 +109,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         var snapshot = CreateHostSnapshot(session);
         var error = new WorkspaceOperationError { Code = "Code", Message = "Message" };
         _sessionStore.Setup(item => item.ReadSnapshot()).Returns(snapshot);
-        _workspaceSelector.Setup(item => item.Select(snapshot, null)).Returns(WorkspaceSelectionResult.Failure(error));
+        _sessionAcquirer.Setup(item => item.AcquireExclusive(null)).Returns(WorkspaceSessionAcquisition.Rejected(error));
 
         var result = _target.CreateMutationContext(workspace: null, CancellationToken.None);
 
@@ -389,11 +390,6 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
     {
         var snapshot = CreateHostSnapshot(selectedSession, ownerWorkspaceId);
         _sessionStore.SetupSequence(item => item.ReadSnapshot()).Returns(snapshot).Returns(snapshot);
-        _workspaceSelector.Setup(item => item.Select(snapshot, null)).Returns(WorkspaceSelectionResult.Success(new WorkspaceSelection
-        {
-            WorkspaceId = selectedSession.Workspace.WorkspaceId,
-            Session = selectedSession,
-        }));
         _sessionStore
             .Setup(item => item.ReadSession(selectedSession.Workspace.WorkspaceId))
             .Returns(sessionRemains ? selectedSession : null);
@@ -401,6 +397,52 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         {
             _sessionStore.Setup(item => item.ReadSession(ownerWorkspaceId)).Returns(ownerSession);
         }
+
+        _sessionAcquirer.Setup(item => item.AcquireShared(null)).Returns(() => CreateAcquisition(selectedSession, sessionRemains, exclusive: false));
+        _sessionAcquirer.Setup(item => item.AcquireExclusive(null)).Returns(() => CreateAcquisition(selectedSession, sessionRemains, exclusive: true));
+    }
+
+    private WorkspaceSessionAcquisition CreateAcquisition(
+        WorkspaceSessionSnapshot session,
+        bool sessionRemains,
+        bool exclusive)
+    {
+        var lease = exclusive
+            ? session.OperationGate.TryAcquireExclusive()
+            : session.OperationGate.TryAcquireShared();
+        if (lease is null)
+        {
+            return WorkspaceSessionAcquisition.Rejected(CreateError(WorkspaceErrorCodes.WorkspaceBusy), session);
+        }
+
+        return sessionRemains
+            ? WorkspaceSessionAcquisition.Acquired(new WorkspaceSelection
+            {
+                WorkspaceId = session.Workspace.WorkspaceId,
+                Session = session,
+            }, session, lease)
+            : WorkspaceSessionAcquisition.Rejected(CreateError(WorkspaceErrorCodes.WorkspaceNotOpen), lease: lease);
+    }
+
+    private void SetupWorkspaceRequiredAcquisitions()
+    {
+        var error = CreateError(WorkspaceErrorCodes.WorkspaceNotOpen);
+        _sessionAcquirer.Setup(item => item.AcquireShared(It.IsAny<WorkspaceSelector?>()))
+            .Returns(WorkspaceSessionAcquisition.Rejected(error));
+        _sessionAcquirer.Setup(item => item.AcquireExclusive(It.IsAny<WorkspaceSelector?>()))
+            .Returns(WorkspaceSessionAcquisition.Rejected(error));
+    }
+
+    private static WorkspaceOperationError CreateError(string code)
+    {
+        return new WorkspaceOperationError
+        {
+            Code = code,
+            Message = "Message",
+            RequiredAction = code == WorkspaceErrorCodes.WorkspaceBusy
+                ? RequiredAction.Retry
+                : RequiredAction.OpenWorkspace,
+        };
     }
 
     private WorkspaceSessionSnapshot CreateSession(

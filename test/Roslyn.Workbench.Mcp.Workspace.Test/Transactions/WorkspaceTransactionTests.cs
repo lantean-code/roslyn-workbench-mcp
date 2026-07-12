@@ -31,6 +31,38 @@ public sealed class WorkspaceTransactionTests : IDisposable
         result.CurrentSolution.Should().BeSameAs(appendedSolution);
     }
 
+    [Theory]
+    [InlineData(TransactionHistoryDirection.Undo, 1, 0)]
+    [InlineData(TransactionHistoryDirection.Redo, 0, 1)]
+    [InlineData(TransactionHistoryDirection.Undo, 0, null)]
+    [InlineData(TransactionHistoryDirection.Redo, 1, null)]
+    public void GIVEN_TransactionHistory_WHEN_Moving_THEN_ShouldReturnExpectedRevision(
+        TransactionHistoryDirection direction,
+        int currentRevision,
+        int? expectedRevision)
+    {
+        var target = new WorkspaceTransaction
+        {
+            BaselineSolution = _workspace.CurrentSolution,
+            Revisions = [CreateRevision(_workspace.CurrentSolution)],
+            CurrentRevision = currentRevision,
+            MaxRevisions = 3,
+        };
+
+        var result = target.MoveHistory(direction);
+
+        if (expectedRevision is null)
+        {
+            result.Should().BeNull();
+        }
+        else
+        {
+            result.Should().NotBeNull();
+            result.CurrentRevision.Should().Be(expectedRevision.Value);
+            target.CurrentRevision.Should().Be(currentRevision);
+        }
+    }
+
     [Fact]
     public void GIVEN_ZeroCurrentRevision_WHEN_GettingCurrentSolution_THEN_ShouldReturnBaselineSolution()
     {

@@ -6,7 +6,7 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
 {
     private readonly WorkspaceCoordinatorOptions _options;
     private readonly IWorkspaceSessionStore _sessionStore;
-    private readonly IWorkspaceSelector _workspaceSelector;
+    private readonly IWorkspaceSessionAcquirer _sessionAcquirer;
     private readonly IWorkspaceChangeDetector _workspaceChangeDetector;
     private readonly IWorkspaceStateTransitions _workspaceStateTransitions;
     private readonly IWorkspaceMutationStager _mutationStager;
@@ -15,7 +15,7 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
     public WorkspaceExecutionContextFactory(
         IOptions<WorkspaceCoordinatorOptions> options,
         IWorkspaceSessionStore sessionStore,
-        IWorkspaceSelector workspaceSelector,
+        IWorkspaceSessionAcquirer sessionAcquirer,
         IWorkspaceChangeDetector workspaceChangeDetector,
         IWorkspaceStateTransitions workspaceStateTransitions,
         IMutationStagingService mutationStagingService,
@@ -23,7 +23,7 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
     {
         _options = options.Value;
         _sessionStore = sessionStore;
-        _workspaceSelector = workspaceSelector;
+        _sessionAcquirer = sessionAcquirer;
         _workspaceChangeDetector = workspaceChangeDetector;
         _workspaceStateTransitions = workspaceStateTransitions;
         _mutationStager = new WorkspaceMutationStager(mutationStagingService);
@@ -36,39 +36,25 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var hostSnapshot = _sessionStore.ReadSnapshot();
-        if (hostSnapshot.Workspaces.Count == 0)
+        var acquisition = _sessionAcquirer.AcquireExclusive(workspace);
+        if (acquisition.HasError)
         {
-            return WorkspaceMutationExecutionLease.Rejected(CreateWorkspaceRequiredFailure());
+            var failureContext = acquisition.ContextSession is null ? null : CreateContext(acquisition.ContextSession);
+            return WorkspaceMutationExecutionLease.Rejected(
+                CreateSelectionFailure(acquisition.Error),
+                failureContext,
+                failureContext is null ? null : _mutationStager,
+                acquisition.Lease);
         }
 
-        var selectionResult = _workspaceSelector.Select(hostSnapshot, workspace);
-        if (selectionResult.HasError)
-        {
-            return WorkspaceMutationExecutionLease.Rejected(CreateSelectionFailure(selectionResult.Error));
-        }
-
-        var selection = selectionResult.Selection;
-        var lease = selection.Session.OperationGate.TryAcquireExclusive();
-        if (lease is null)
-        {
-            return WorkspaceMutationExecutionLease.Rejected(CreateBusyFailure());
-        }
-
-        var session = _sessionStore.ReadSession(selection.WorkspaceId);
-        if (session is null)
-        {
-            return WorkspaceMutationExecutionLease.Rejected(CreateWorkspaceRequiredFailure(), lease: lease);
-        }
-
-        var failure = ValidateMutationSession(selection.WorkspaceId, session, cancellationToken);
-        var context = CreateContext(session);
+        var failure = ValidateMutationSession(acquisition.Selection.WorkspaceId, acquisition.Session, cancellationToken);
+        var context = CreateContext(acquisition.Session);
         if (failure is not null)
         {
-            return WorkspaceMutationExecutionLease.Rejected(failure, context, _mutationStager, lease);
+            return WorkspaceMutationExecutionLease.Rejected(failure, context, _mutationStager, acquisition.Lease);
         }
 
-        return WorkspaceMutationExecutionLease.Acquired(context, _mutationStager, lease);
+        return WorkspaceMutationExecutionLease.Acquired(context, _mutationStager, acquisition.Lease);
     }
 
     public WorkspaceExecutionContextLease CreateQueryContext(
@@ -77,31 +63,17 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var hostSnapshot = _sessionStore.ReadSnapshot();
-        if (hostSnapshot.Workspaces.Count == 0)
+        var acquisition = _sessionAcquirer.AcquireShared(workspace);
+        if (acquisition.HasError)
         {
-            return WorkspaceExecutionContextLease.Rejected(CreateWorkspaceRequiredFailure());
+            var failureContext = acquisition.ContextSession is null ? null : CreateContext(acquisition.ContextSession);
+            return WorkspaceExecutionContextLease.Rejected(
+                CreateSelectionFailure(acquisition.Error),
+                failureContext,
+                acquisition.Lease);
         }
 
-        var selectionResult = _workspaceSelector.Select(hostSnapshot, workspace);
-        if (selectionResult.HasError)
-        {
-            return WorkspaceExecutionContextLease.Rejected(CreateSelectionFailure(selectionResult.Error));
-        }
-
-        var selection = selectionResult.Selection;
-        var lease = selection.Session.OperationGate.TryAcquireShared();
-        if (lease is null)
-        {
-            return WorkspaceExecutionContextLease.Rejected(CreateBusyFailure());
-        }
-
-        var session = _sessionStore.ReadSession(selection.WorkspaceId);
-        if (session is null)
-        {
-            return WorkspaceExecutionContextLease.Rejected(CreateWorkspaceRequiredFailure(), lease: lease);
-        }
-
+        var session = acquisition.Session;
         if (session.State is WorkspaceLifecycleState.Ready or WorkspaceLifecycleState.TransactionActive
             && _workspaceChangeDetector.HasChanged(session.InputManifest, cancellationToken))
         {
@@ -112,15 +84,15 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
         var context = CreateContext(session);
         if (session.State == WorkspaceLifecycleState.WorkspaceOutOfDate)
         {
-            return WorkspaceExecutionContextLease.Rejected(CreateWorkspaceOutOfDateFailure(), context, lease);
+            return WorkspaceExecutionContextLease.Rejected(CreateWorkspaceOutOfDateFailure(), context, acquisition.Lease);
         }
 
         if (session.State == WorkspaceLifecycleState.TransactionConflicted)
         {
-            return WorkspaceExecutionContextLease.Rejected(CreateTransactionConflictedFailure(), context, lease);
+            return WorkspaceExecutionContextLease.Rejected(CreateTransactionConflictedFailure(), context, acquisition.Lease);
         }
 
-        return WorkspaceExecutionContextLease.Acquired(context, lease);
+        return WorkspaceExecutionContextLease.Acquired(context, acquisition.Lease);
     }
 
     private WorkspaceExecutionContext CreateContext(WorkspaceSessionSnapshot session)
@@ -210,24 +182,6 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
             Status = WorkspaceOperationStatus.Rejected,
             Error = error,
         };
-    }
-
-    private static WorkspaceExecutionFailure CreateBusyFailure()
-    {
-        return CreateFailure(
-            WorkspaceOperationStatus.Rejected,
-            WorkspaceErrorCodes.WorkspaceBusy,
-            "The workspace is busy.",
-            RequiredAction.Retry);
-    }
-
-    private static WorkspaceExecutionFailure CreateWorkspaceRequiredFailure()
-    {
-        return CreateFailure(
-            WorkspaceOperationStatus.Rejected,
-            WorkspaceErrorCodes.WorkspaceNotOpen,
-            "Open a workspace before invoking this tool.",
-            RequiredAction.OpenWorkspace);
     }
 
     private static WorkspaceExecutionFailure CreateWorkspaceOutOfDateFailure()

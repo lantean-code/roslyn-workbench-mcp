@@ -77,11 +77,14 @@ public static class WorkspaceCoordinatorFactory
         var executionServices = toolExecutionServices ?? BundledCoreToolExecutionServicesFactory.Create();
         var sessionStore = new WorkspaceSessionStore();
         var workspaceSelector = new WorkspaceSelectorService();
+        var sessionAcquirer = new WorkspaceSessionAcquirer(sessionStore, workspaceSelector);
+        var fileSystem = new FileSystem();
+        var pathComparison = new WorkspacePathComparison();
         var workspaceLoader = new WorkspaceLoader(
             new WorkspaceHostServicesAccessor(codeActionRuntime.WorkspaceHostServices),
             new WorkspaceProjectCompatibilityInspector());
-        var fileSystem = new FileSystem();
-        var pathComparison = new WorkspacePathComparison();
+        var workspaceRootResolver = new WorkspaceRootResolver(fileSystem, pathComparison);
+        var workspaceLoadWorkflow = new WorkspaceLoadWorkflow(workspaceLoader, workspaceRootResolver);
         var fileCommitter = new NativeAtomicFileCommitter();
         var atomicFileWriter = new AtomicFileWriter(fileSystem, fileCommitter);
         var workspaceChangeDetector = new WorkspaceChangeDetector(fileSystem, new WorkspaceProjectInputResolver());
@@ -142,7 +145,7 @@ public static class WorkspaceCoordinatorFactory
         var workspaceContextFactory = new WorkspaceExecutionContextFactory(
             optionsWrapper,
             sessionStore,
-            workspaceSelector,
+            sessionAcquirer,
             workspaceChangeDetector,
             workspaceStateTransitions,
             mutationStagingService,
@@ -155,9 +158,10 @@ public static class WorkspaceCoordinatorFactory
         var workspaceLifecycleService = new WorkspaceLifecycleService(
             optionsWrapper,
             sessionStore,
-            workspaceSelector,
+            sessionAcquirer,
             workspaceLoader,
-            new WorkspaceRootResolver(fileSystem, pathComparison),
+            workspaceRootResolver,
+            workspaceLoadWorkflow,
             workspaceChangeDetector,
             workspaceStateTransitions,
             resultFactory,
@@ -166,7 +170,7 @@ public static class WorkspaceCoordinatorFactory
         var transactionService = new TransactionService(
             optionsWrapper,
             sessionStore,
-            workspaceSelector,
+            sessionAcquirer,
             workspaceStateTransitions,
             snapshotGuard,
             resultFactory,

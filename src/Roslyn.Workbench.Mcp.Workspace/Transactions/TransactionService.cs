@@ -7,7 +7,7 @@ internal sealed class TransactionService : ITransactionService
 {
     private readonly WorkspaceCoordinatorOptions _options;
     private readonly IWorkspaceSessionStore _sessionStore;
-    private readonly IWorkspaceSelector _workspaceSelector;
+    private readonly IWorkspaceSessionAcquirer _sessionAcquirer;
     private readonly IWorkspaceStateTransitions _workspaceStateTransitions;
     private readonly ISnapshotGuard _snapshotGuard;
     private readonly IWorkspaceOperationResultFactory _resultFactory;
@@ -19,7 +19,7 @@ internal sealed class TransactionService : ITransactionService
     public TransactionService(
         IOptions<WorkspaceCoordinatorOptions> options,
         IWorkspaceSessionStore sessionStore,
-        IWorkspaceSelector workspaceSelector,
+        IWorkspaceSessionAcquirer sessionAcquirer,
         IWorkspaceStateTransitions workspaceStateTransitions,
         ISnapshotGuard snapshotGuard,
         IWorkspaceOperationResultFactory resultFactory,
@@ -30,7 +30,7 @@ internal sealed class TransactionService : ITransactionService
     {
         _options = options.Value;
         _sessionStore = sessionStore;
-        _workspaceSelector = workspaceSelector;
+        _sessionAcquirer = sessionAcquirer;
         _workspaceStateTransitions = workspaceStateTransitions;
         _snapshotGuard = snapshotGuard;
         _resultFactory = resultFactory;
@@ -44,41 +44,15 @@ internal sealed class TransactionService : ITransactionService
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var hostSnapshot = _sessionStore.ReadSnapshot();
-        if (hostSnapshot.Workspaces.Count == 0)
+        var acquisition = _sessionAcquirer.AcquireExclusive(CreateWorkspaceSelector(workspaceId, alias, path));
+        if (acquisition.HasError)
         {
-            return _resultFactory.Rejected<TransactionStartOutcome>(
-                WorkspaceErrorCodes.WorkspaceNotOpen,
-                "Open a workspace before invoking this tool.",
-                RequiredAction.OpenWorkspace);
+            await DisposeFailedAcquisitionAsync(acquisition).ConfigureAwait(false);
+            return CreateAcquisitionFailureResult<TransactionStartOutcome>(acquisition, acquisition.Error);
         }
 
-        var selectionResult = _workspaceSelector.Select(hostSnapshot, CreateWorkspaceSelector(workspaceId, alias, path));
-        if (selectionResult.HasError)
-        {
-            return _resultFactory.Rejected<TransactionStartOutcome>(selectionResult.Error);
-        }
-
-        var selection = selectionResult.Selection;
-        var lease = selection.Session.OperationGate.TryAcquireExclusive();
-        if (lease is null)
-        {
-            return _resultFactory.Rejected<TransactionStartOutcome>(
-                WorkspaceErrorCodes.WorkspaceBusy,
-                "The workspace is busy.",
-                RequiredAction.Retry,
-                CreateContext(selection.Session));
-        }
-
-        await using var leaseScope = lease;
-        var session = _sessionStore.ReadSession(selection.WorkspaceId);
-        if (session is null || session.CurrentSolution is null)
-        {
-            return _resultFactory.Rejected<TransactionStartOutcome>(
-                WorkspaceErrorCodes.WorkspaceNotOpen,
-                "Open a workspace before invoking this tool.",
-                RequiredAction.OpenWorkspace);
-        }
+        await using var leaseScope = acquisition.Lease;
+        var session = acquisition.Session;
 
         var context = CreateContext(session);
         if (session.State == WorkspaceLifecycleState.WorkspaceOutOfDate)
@@ -91,7 +65,7 @@ internal sealed class TransactionService : ITransactionService
         }
 
         var ownerWorkspaceId = _sessionStore.ReadSnapshot().TransactionOwnerWorkspaceId;
-        if (!string.IsNullOrWhiteSpace(ownerWorkspaceId) && !string.Equals(ownerWorkspaceId, selection.WorkspaceId, StringComparison.Ordinal))
+        if (!string.IsNullOrWhiteSpace(ownerWorkspaceId) && !string.Equals(ownerWorkspaceId, acquisition.Selection.WorkspaceId, StringComparison.Ordinal))
         {
             var ownerSession = _sessionStore.ReadSession(ownerWorkspaceId);
             return _resultFactory.Rejected<TransactionStartOutcome>(
@@ -123,7 +97,7 @@ internal sealed class TransactionService : ITransactionService
             State = _workspaceStateTransitions.Fire(session.State, WorkspaceTrigger.TransactionStarted),
         };
 
-        _sessionStore.ReplaceSessionAndSetTransactionOwner(updatedSession, selection.WorkspaceId);
+        _sessionStore.ReplaceSessionAndSetTransactionOwner(updatedSession, acquisition.Selection.WorkspaceId);
         await _instanceStatusPublisher.UpdateAsync(
             updatedSession.Workspace.WorkspaceId,
             updatedSession.State,
@@ -150,34 +124,15 @@ internal sealed class TransactionService : ITransactionService
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var hostSnapshot = _sessionStore.ReadSnapshot();
-        if (hostSnapshot.Workspaces.Count == 0)
+        var acquisition = _sessionAcquirer.AcquireShared(CreateWorkspaceSelector(workspaceId, alias, path));
+        if (acquisition.HasError)
         {
-            return _resultFactory.Rejected<TransactionPreviewOutcome>(
-                WorkspaceErrorCodes.WorkspaceNotOpen,
-                "Open a workspace before invoking this tool.",
-                RequiredAction.OpenWorkspace);
+            await DisposeFailedAcquisitionAsync(acquisition).ConfigureAwait(false);
+            return CreateAcquisitionFailureResult<TransactionPreviewOutcome>(acquisition, acquisition.Error);
         }
 
-        var selectionResult = _workspaceSelector.Select(hostSnapshot, CreateWorkspaceSelector(workspaceId, alias, path));
-        if (selectionResult.HasError)
-        {
-            return _resultFactory.Rejected<TransactionPreviewOutcome>(selectionResult.Error);
-        }
-
-        var selection = selectionResult.Selection;
-        var lease = selection.Session.OperationGate.TryAcquireShared();
-        if (lease is null)
-        {
-            return _resultFactory.Rejected<TransactionPreviewOutcome>(
-                WorkspaceErrorCodes.WorkspaceBusy,
-                "The workspace is busy.",
-                RequiredAction.Retry,
-                CreateContext(selection.Session));
-        }
-
-        await using var leaseScope = lease;
-        var session = _sessionStore.ReadSession(selection.WorkspaceId);
+        await using var leaseScope = acquisition.Lease;
+        var session = acquisition.Session;
         if (session?.Transaction is null)
         {
             return _resultFactory.Rejected<TransactionPreviewOutcome>(
@@ -237,36 +192,17 @@ internal sealed class TransactionService : ITransactionService
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var hostSnapshot = _sessionStore.ReadSnapshot();
-        if (hostSnapshot.Workspaces.Count == 0)
+        var acquisition = _sessionAcquirer.AcquireExclusive(CreateWorkspaceSelector(workspaceId, alias, path));
+        if (acquisition.HasError)
         {
-            return _resultFactory.Rejected<TransactionHistoryOutcome>(
-                WorkspaceErrorCodes.WorkspaceNotOpen,
-                "Open a workspace before invoking this tool.",
-                RequiredAction.OpenWorkspace);
+            await DisposeFailedAcquisitionAsync(acquisition).ConfigureAwait(false);
+            return CreateAcquisitionFailureResult<TransactionHistoryOutcome>(acquisition, acquisition.Error);
         }
 
-        var selectionResult = _workspaceSelector.Select(hostSnapshot, CreateWorkspaceSelector(workspaceId, alias, path));
-        if (selectionResult.HasError)
-        {
-            return _resultFactory.Rejected<TransactionHistoryOutcome>(selectionResult.Error);
-        }
-
-        var selection = selectionResult.Selection;
-        var lease = selection.Session.OperationGate.TryAcquireExclusive();
-        if (lease is null)
-        {
-            return _resultFactory.Rejected<TransactionHistoryOutcome>(
-                WorkspaceErrorCodes.WorkspaceBusy,
-                "The workspace is busy.",
-                RequiredAction.Retry,
-                CreateContext(selection.Session));
-        }
-
-        await using var leaseScope = lease;
-        var session = _sessionStore.ReadSession(selection.WorkspaceId);
-        var transaction = session?.Transaction;
-        if (session is null || transaction is null)
+        await using var leaseScope = acquisition.Lease;
+        var session = acquisition.Session;
+        var transaction = session.Transaction;
+        if (transaction is null)
         {
             return _resultFactory.Rejected<TransactionHistoryOutcome>(
                 WorkspaceErrorCodes.TransactionRequired,
@@ -290,14 +226,8 @@ internal sealed class TransactionService : ITransactionService
                 context);
         }
 
-        var nextRevision = direction switch
-        {
-            TransactionHistoryDirection.Undo when transaction.CurrentRevision > 0 => transaction.CurrentRevision - 1,
-            TransactionHistoryDirection.Redo when transaction.CurrentRevision < transaction.Revisions.Count => transaction.CurrentRevision + 1,
-            _ => -1,
-        };
-
-        if (nextRevision < 0)
+        var updatedTransaction = transaction.MoveHistory(direction);
+        if (updatedTransaction is null)
         {
             return _resultFactory.Rejected<TransactionHistoryOutcome>(
                 WorkspaceErrorCodes.TransactionHistoryUnavailable,
@@ -305,10 +235,6 @@ internal sealed class TransactionService : ITransactionService
                 context: context);
         }
 
-        var updatedTransaction = transaction with
-        {
-            CurrentRevision = nextRevision,
-        };
         var updatedSession = session with
         {
             Transaction = updatedTransaction,
@@ -340,70 +266,32 @@ internal sealed class TransactionService : ITransactionService
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var hostSnapshot = _sessionStore.ReadSnapshot();
-        if (hostSnapshot.Workspaces.Count == 0)
+        var acquisition = _sessionAcquirer.AcquireExclusive(CreateWorkspaceSelector(workspaceId, alias, path));
+        if (acquisition.HasError)
         {
-            return _resultFactory.Rejected<TransactionCommitOutcome>(
-                WorkspaceErrorCodes.WorkspaceNotOpen,
-                "Open a workspace before invoking this tool.",
-                RequiredAction.OpenWorkspace);
+            await DisposeFailedAcquisitionAsync(acquisition).ConfigureAwait(false);
+            return CreateAcquisitionFailureResult<TransactionCommitOutcome>(acquisition, acquisition.Error);
         }
 
-        var selectionResult = _workspaceSelector.Select(hostSnapshot, CreateWorkspaceSelector(workspaceId, alias, path));
-        if (selectionResult.HasError)
-        {
-            return _resultFactory.Rejected<TransactionCommitOutcome>(selectionResult.Error);
-        }
-
-        var selection = selectionResult.Selection;
-        var lease = selection.Session.OperationGate.TryAcquireExclusive();
-        if (lease is null)
-        {
-            return _resultFactory.Rejected<TransactionCommitOutcome>(
-                WorkspaceErrorCodes.WorkspaceBusy,
-                "The workspace is busy.",
-                RequiredAction.Retry,
-                CreateContext(selection.Session));
-        }
-
-        await using var leaseScope = lease;
-        return await _transactionCommitService.CommitAsync(selection, expectedSnapshot, cancellationToken).ConfigureAwait(false);
+        await using var leaseScope = acquisition.Lease;
+        return await _transactionCommitService.CommitAsync(acquisition.Selection, expectedSnapshot, cancellationToken).ConfigureAwait(false);
     }
 
     public async ValueTask<WorkspaceOperationResult<TransactionRollbackOutcome>> RollbackAsync(string? workspaceId, string? alias, string? path, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var hostSnapshot = _sessionStore.ReadSnapshot();
-        if (hostSnapshot.Workspaces.Count == 0)
+        var acquisition = _sessionAcquirer.AcquireExclusive(CreateWorkspaceSelector(workspaceId, alias, path));
+        if (acquisition.HasError)
         {
-            return _resultFactory.Rejected<TransactionRollbackOutcome>(
-                WorkspaceErrorCodes.WorkspaceNotOpen,
-                "Open a workspace before invoking this tool.",
-                RequiredAction.OpenWorkspace);
+            await DisposeFailedAcquisitionAsync(acquisition).ConfigureAwait(false);
+            return CreateAcquisitionFailureResult<TransactionRollbackOutcome>(acquisition, acquisition.Error);
         }
 
-        var selectionResult = _workspaceSelector.Select(hostSnapshot, CreateWorkspaceSelector(workspaceId, alias, path));
-        if (selectionResult.HasError)
-        {
-            return _resultFactory.Rejected<TransactionRollbackOutcome>(selectionResult.Error);
-        }
-
-        var selection = selectionResult.Selection;
-        var lease = selection.Session.OperationGate.TryAcquireExclusive();
-        if (lease is null)
-        {
-            return _resultFactory.Rejected<TransactionRollbackOutcome>(
-                WorkspaceErrorCodes.WorkspaceBusy,
-                "The workspace is busy.",
-                RequiredAction.Retry,
-                CreateContext(selection.Session));
-        }
-
-        await using var leaseScope = lease;
-        var session = _sessionStore.ReadSession(selection.WorkspaceId);
-        var transaction = session?.Transaction;
-        if (session is null || transaction is null)
+        await using var leaseScope = acquisition.Lease;
+        var session = acquisition.Session;
+        var transaction = session.Transaction;
+        if (transaction is null)
         {
             return _resultFactory.Rejected<TransactionRollbackOutcome>(
                 WorkspaceErrorCodes.TransactionRequired,
@@ -473,5 +361,18 @@ internal sealed class TransactionService : ITransactionService
             WorkspaceEpoch = session.Workspace.WorkspaceEpoch,
             TransactionRevision = session.Transaction?.CurrentRevision,
         };
+    }
+
+    private WorkspaceOperationResult<TOutcome> CreateAcquisitionFailureResult<TOutcome>(
+        WorkspaceSessionAcquisition acquisition,
+        WorkspaceOperationError error)
+    {
+        var context = acquisition.ContextSession is null ? null : CreateContext(acquisition.ContextSession);
+        return _resultFactory.Rejected<TOutcome>(error, context);
+    }
+
+    private static ValueTask DisposeFailedAcquisitionAsync(WorkspaceSessionAcquisition acquisition)
+    {
+        return acquisition.Lease is null ? ValueTask.CompletedTask : acquisition.Lease.DisposeAsync();
     }
 }

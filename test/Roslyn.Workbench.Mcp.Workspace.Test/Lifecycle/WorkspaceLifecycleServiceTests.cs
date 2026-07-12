@@ -13,9 +13,10 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
 {
     private readonly AdhocWorkspace _workspace;
     private readonly Mock<IWorkspaceSessionStore> _sessionStore;
-    private readonly Mock<IWorkspaceSelector> _workspaceSelector;
+    private readonly Mock<IWorkspaceSessionAcquirer> _sessionAcquirer;
     private readonly Mock<IWorkspaceLoader> _workspaceLoader;
     private readonly Mock<IWorkspaceRootResolver> _workspaceRootResolver;
+    private readonly Mock<IWorkspaceLoadWorkflow> _workspaceLoadWorkflow;
     private readonly Mock<IWorkspaceChangeDetector> _changeDetector;
     private readonly Mock<IWorkspaceStateTransitions> _stateTransitions;
     private readonly Mock<IWorkspaceOperationResultFactory> _resultFactory;
@@ -27,11 +28,12 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     {
         _workspace = new AdhocWorkspace();
         _sessionStore = new Mock<IWorkspaceSessionStore>();
-        _workspaceSelector = new Mock<IWorkspaceSelector>();
+        _sessionAcquirer = new Mock<IWorkspaceSessionAcquirer>();
+        SetupWorkspaceRequiredAcquisitions();
         _workspaceLoader = new Mock<IWorkspaceLoader>();
         _workspaceRootResolver = new Mock<IWorkspaceRootResolver>();
         _workspaceRootResolver.Setup(item => item.Resolve(It.IsAny<string>(), It.IsAny<string?>())).Returns("/workspace");
-        _workspaceRootResolver.Setup(item => item.Contains(It.IsAny<string>(), It.IsAny<string>())).Returns(true);
+        _workspaceLoadWorkflow = new Mock<IWorkspaceLoadWorkflow>();
         _changeDetector = new Mock<IWorkspaceChangeDetector>();
         _stateTransitions = new Mock<IWorkspaceStateTransitions>();
         _resultFactory = new Mock<IWorkspaceOperationResultFactory>();
@@ -48,9 +50,10 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
                 StateDirectory = "StateDirectory",
             }),
             _sessionStore.Object,
-            _workspaceSelector.Object,
+            _sessionAcquirer.Object,
             _workspaceLoader.Object,
             _workspaceRootResolver.Object,
+            _workspaceLoadWorkflow.Object,
             _changeDetector.Object,
             _stateTransitions.Object,
             _resultFactory.Object,
@@ -141,7 +144,9 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         var result = await _target.OpenAsync("Path", null, "/other", TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
-        _workspaceLoader.Verify(item => item.LoadAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _workspaceLoadWorkflow.Verify(
+            item => item.LoadAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
@@ -218,8 +223,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         _recoveryStore.Setup(item => item.GetStatusesAsync(TestContext.Current.CancellationToken)).ReturnsAsync([
             new RecoveryStatus { SolutionPath = recoveryPath, State = recoveryState },
         ]);
-        _workspaceLoader.Setup(item => item.LoadAsync("/workspace/New.sln", TestContext.Current.CancellationToken))
-            .ReturnsAsync(new WorkspaceLoadResult());
+        SetupLoadFailure("/workspace/New.sln", ValidatedWorkspaceLoadFailure.LoadFailed);
         SetupRejectedResult(expected, WorkspaceErrorCodes.WorkspaceLoadFailed);
 
         var result = await _target.OpenAsync("Path", null, TestContext.Current.CancellationToken);
@@ -232,9 +236,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     {
         var expected = CreateResult<WorkspaceOpenOutcome>();
         SetupOpenPreflight("/workspace/New.csproj", alias: null);
-        _workspaceLoader.Setup(item => item.InspectCompatibility("/workspace/New.csproj")).Returns((true, []));
-        _workspaceLoader.Setup(item => item.LoadAsync("/workspace/New.csproj", TestContext.Current.CancellationToken))
-            .ReturnsAsync(new WorkspaceLoadResult());
+        SetupLoadFailure("/workspace/New.csproj", ValidatedWorkspaceLoadFailure.LoadFailed);
         SetupRejectedResult(expected, WorkspaceErrorCodes.WorkspaceLoadFailed);
 
         var result = await _target.OpenAsync("Path", null, TestContext.Current.CancellationToken);
@@ -249,8 +251,10 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     {
         var expected = CreateResult<WorkspaceOpenOutcome>();
         SetupOpenPreflight("/workspace/New.csproj", alias: null);
-        _workspaceLoader.Setup(item => item.InspectCompatibility("/workspace/New.csproj"))
-            .Returns((false, hasDiagnostics ? [new DiagnosticInfo { Message = "Message" }] : []));
+        SetupLoadFailure(
+            "/workspace/New.csproj",
+            hasDiagnostics ? ValidatedWorkspaceLoadFailure.LoadFailed : ValidatedWorkspaceLoadFailure.NotSupported,
+            hasDiagnostics ? [new DiagnosticInfo { Message = "Message" }] : []);
         SetupRejectedResult(
             expected,
             hasDiagnostics ? WorkspaceErrorCodes.WorkspaceLoadFailed : WorkspaceErrorCodes.WorkspaceNotSupported);
@@ -260,19 +264,12 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         result.Should().BeSameAs(expected);
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task GIVEN_IncompleteLoadResult_WHEN_OpeningWorkspace_THEN_ShouldReturnLoadFailure(bool hasSolution)
+    [Fact]
+    public async Task GIVEN_LoadWorkflowFails_WHEN_OpeningWorkspace_THEN_ShouldReturnLoadFailure()
     {
         var expected = CreateResult<WorkspaceOpenOutcome>();
         SetupOpenPreflight("/workspace/New.sln", alias: null);
-        _workspaceLoader.Setup(item => item.LoadAsync("/workspace/New.sln", TestContext.Current.CancellationToken))
-            .ReturnsAsync(new WorkspaceLoadResult
-            {
-                Solution = hasSolution ? _workspace.CurrentSolution : null,
-                Workspace = hasSolution ? null : new Mock<ILoadedWorkspace>().Object,
-            });
+        SetupLoadFailure("/workspace/New.sln", ValidatedWorkspaceLoadFailure.LoadFailed);
         SetupRejectedResult(expected, WorkspaceErrorCodes.WorkspaceLoadFailed);
 
         var result = await _target.OpenAsync("Path", null, TestContext.Current.CancellationToken);
@@ -281,34 +278,40 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GIVEN_LoadedProjectOutsideWorkspaceRoot_WHEN_OpeningWorkspace_THEN_ShouldDisposeAndReject()
+    public async Task GIVEN_LoadWorkflowReturnsUnknownFailure_WHEN_OpeningWorkspace_THEN_ShouldRejectInvalidWorkflowResult()
     {
-        var loadedWorkspace = new Mock<ILoadedWorkspace>();
-        var solution = CreateSolutionWithProject("/outside/Project.csproj");
+        SetupOpenPreflight("/workspace/New.sln", alias: null);
+        SetupLoadFailure("/workspace/New.sln", (ValidatedWorkspaceLoadFailure)999);
+
+        var action = async () => await _target.OpenAsync("Path", null, TestContext.Current.CancellationToken);
+
+        await action.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task GIVEN_LoadWorkflowRejectsOutsideRoot_WHEN_OpeningWorkspace_THEN_ShouldReturnRootFailure()
+    {
         var expected = CreateResult<WorkspaceOpenOutcome>();
         SetupOpenPreflight("/workspace/New.sln", alias: null);
-        SetupLoadedWorkspace("/workspace/New.sln", solution, loadedWorkspace);
-        _workspaceRootResolver.Setup(item => item.Contains("/workspace", "/outside/Project.csproj")).Returns(false);
+        SetupLoadFailure("/workspace/New.sln", ValidatedWorkspaceLoadFailure.OutsideWorkspaceRoot);
         SetupRejectedResult(expected, "WorkspaceProjectOutsideRoot");
 
         var result = await _target.OpenAsync("Path", null, TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
-        loadedWorkspace.Verify(item => item.Dispose(), Times.Once);
     }
 
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public async Task GIVEN_LoadedProjectCompatibilityFailure_WHEN_OpeningSolution_THEN_ShouldDisposeAndReject(bool hasDiagnostics)
+    public async Task GIVEN_LoadWorkflowRejectsCompatibility_WHEN_OpeningSolution_THEN_ShouldReturnExpectedFailure(bool hasDiagnostics)
     {
-        var loadedWorkspace = new Mock<ILoadedWorkspace>();
-        var solution = CreateSolutionWithProject("/workspace/Project.csproj");
         var expected = CreateResult<WorkspaceOpenOutcome>();
         SetupOpenPreflight("/workspace/New.sln", alias: null);
-        SetupLoadedWorkspace("/workspace/New.sln", solution, loadedWorkspace);
-        _workspaceLoader.Setup(item => item.InspectCompatibility("/workspace/Project.csproj"))
-            .Returns((false, hasDiagnostics ? [new DiagnosticInfo { Message = "Message" }] : []));
+        SetupLoadFailure(
+            "/workspace/New.sln",
+            hasDiagnostics ? ValidatedWorkspaceLoadFailure.LoadFailed : ValidatedWorkspaceLoadFailure.NotSupported,
+            hasDiagnostics ? [new DiagnosticInfo { Message = "Message" }] : []);
         SetupRejectedResult(
             expected,
             hasDiagnostics ? WorkspaceErrorCodes.WorkspaceLoadFailed : WorkspaceErrorCodes.WorkspaceNotSupported);
@@ -316,7 +319,6 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         var result = await _target.OpenAsync("Path", null, TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
-        loadedWorkspace.Verify(item => item.Dispose(), Times.Once);
     }
 
     [Theory]
@@ -353,7 +355,6 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         SetupOpenPreflight("/workspace/New.sln", "Alias");
         _workspaceLoader.Setup(item => item.NormalizeAlias(" Alias ")).Returns("Alias");
         SetupLoadedWorkspace("/workspace/New.sln", solution, loadedWorkspace);
-        _workspaceLoader.Setup(item => item.InspectCompatibility("/workspace/Project.csproj")).Returns((true, []));
         _sessionStore.Setup(item => item.AllocateWorkspaceId()).Returns("WorkspaceId");
         _sessionStore.Setup(item => item.AllocateWorkspaceEpoch()).Returns(2);
         _sessionStore.Setup(item => item.TryAddWorkspace(
@@ -456,6 +457,8 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireExclusive()).Returns(operationLease.Object);
         _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns((WorkspaceSessionSnapshot?)null);
+        _sessionAcquirer.Setup(item => item.AcquireShared(It.IsAny<WorkspaceSelector?>()))
+            .Returns(WorkspaceSessionAcquisition.Rejected(CreateError(WorkspaceErrorCodes.WorkspaceNotOpen), lease: operationLease.Object));
         SetupRejectedResult(expected, WorkspaceErrorCodes.WorkspaceNotOpen);
 
         var result = await _target.CloseAsync(null, null, null, TestContext.Current.CancellationToken);
@@ -577,6 +580,8 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireShared()).Returns(operationLease.Object);
         _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns((WorkspaceSessionSnapshot?)null);
+        _sessionAcquirer.Setup(item => item.AcquireShared(It.IsAny<WorkspaceSelector?>()))
+            .Returns(WorkspaceSessionAcquisition.Rejected(CreateError(WorkspaceErrorCodes.WorkspaceNotOpen), lease: operationLease.Object));
         SetupRejectedResult(expected, WorkspaceErrorCodes.WorkspaceNotOpen);
 
         var result = await _target.GetStatusAsync(null, null, null, StatusDetailLevel.Standard, TestContext.Current.CancellationToken);
@@ -730,6 +735,8 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireExclusive()).Returns(operationLease.Object);
         _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns((WorkspaceSessionSnapshot?)null);
+        _sessionAcquirer.Setup(item => item.AcquireExclusive(It.IsAny<WorkspaceSelector?>()))
+            .Returns(WorkspaceSessionAcquisition.Rejected(CreateError(WorkspaceErrorCodes.WorkspaceNotOpen), lease: operationLease.Object));
         SetupRejectedResult(expected, WorkspaceErrorCodes.WorkspaceNotOpen);
 
         var result = await _target.ReloadAsync(null, null, null, TestContext.Current.CancellationToken);
@@ -787,8 +794,10 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         };
         var expected = CreateResult<WorkspaceReloadOutcome>();
         SetupSelectedSession(session, gate, operationLease, exclusive: true);
-        _workspaceLoader.Setup(item => item.InspectCompatibility("/workspace/Project.csproj"))
-            .Returns((false, hasDiagnostics ? [new DiagnosticInfo { Message = "Message" }] : []));
+        SetupLoadFailure(
+            "/workspace/Project.csproj",
+            hasDiagnostics ? ValidatedWorkspaceLoadFailure.LoadFailed : ValidatedWorkspaceLoadFailure.NotSupported,
+            hasDiagnostics ? [new DiagnosticInfo { Message = "Message" }] : []);
         SetupRejectedResult(
             expected,
             hasDiagnostics ? WorkspaceErrorCodes.WorkspaceLoadFailed : WorkspaceErrorCodes.WorkspaceNotSupported);
@@ -810,9 +819,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         };
         var expected = CreateResult<WorkspaceReloadOutcome>();
         SetupSelectedSession(session, gate, operationLease, exclusive: true);
-        _workspaceLoader.Setup(item => item.InspectCompatibility("/workspace/Project.csproj")).Returns((true, []));
-        _workspaceLoader.Setup(item => item.LoadAsync("/workspace/Project.csproj", TestContext.Current.CancellationToken))
-            .ReturnsAsync(new WorkspaceLoadResult());
+        SetupLoadFailure("/workspace/Project.csproj", ValidatedWorkspaceLoadFailure.LoadFailed);
         SetupRejectedResult(expected, WorkspaceErrorCodes.WorkspaceLoadFailed);
 
         var result = await _target.ReloadAsync(null, null, null, TestContext.Current.CancellationToken);
@@ -820,10 +827,8 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         result.Should().BeSameAs(expected);
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task GIVEN_IncompleteLoadResult_WHEN_Reloading_THEN_ShouldReturnLoadFailure(bool hasSolution)
+    [Fact]
+    public async Task GIVEN_LoadWorkflowFails_WHEN_Reloading_THEN_ShouldReturnLoadFailure()
     {
         var operationLease = new Mock<IAsyncDisposable>();
         var gate = new Mock<IWorkspaceOperationGate>();
@@ -834,13 +839,28 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         };
         var expected = CreateResult<WorkspaceReloadOutcome>();
         SetupSelectedSession(session, gate, operationLease, exclusive: true);
-        _workspaceLoader.Setup(item => item.LoadAsync("/workspace/Solution.sln", TestContext.Current.CancellationToken))
-            .ReturnsAsync(new WorkspaceLoadResult
-            {
-                Solution = hasSolution ? _workspace.CurrentSolution : null,
-                Workspace = hasSolution ? null : new Mock<ILoadedWorkspace>().Object,
-            });
+        SetupLoadFailure("/workspace/Solution.sln", ValidatedWorkspaceLoadFailure.LoadFailed);
         SetupRejectedResult(expected, WorkspaceErrorCodes.WorkspaceLoadFailed);
+
+        var result = await _target.ReloadAsync(null, null, null, TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+    }
+
+    [Fact]
+    public async Task GIVEN_ReloadedWorkspaceFallsOutsideRoot_WHEN_Reloading_THEN_ShouldReturnRootFailure()
+    {
+        var operationLease = new Mock<IAsyncDisposable>();
+        var gate = new Mock<IWorkspaceOperationGate>();
+        var session = CreateSession("WorkspaceId", "/workspace/Solution.sln", alias: null, transaction: null) with
+        {
+            OperationGate = gate.Object,
+            State = WorkspaceLifecycleState.WorkspaceOutOfDate,
+        };
+        var expected = CreateResult<WorkspaceReloadOutcome>();
+        SetupSelectedSession(session, gate, operationLease, exclusive: true);
+        SetupLoadFailure("/workspace/Solution.sln", ValidatedWorkspaceLoadFailure.OutsideWorkspaceRoot);
+        SetupRejectedResult(expected, "WorkspaceProjectOutsideRoot");
 
         var result = await _target.ReloadAsync(null, null, null, TestContext.Current.CancellationToken);
 
@@ -863,8 +883,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         };
         var expected = CreateResult<WorkspaceReloadOutcome>();
         SetupSelectedSession(session, gate, operationLease, exclusive: true);
-        _workspaceLoader.Setup(item => item.LoadAsync("/workspace/Solution.sln", TestContext.Current.CancellationToken))
-            .ReturnsAsync(new WorkspaceLoadResult { Solution = solution, Workspace = newWorkspace.Object });
+        SetupLoadedWorkspace("/workspace/Solution.sln", solution, newWorkspace);
         _changeDetector.Setup(item => item.BuildManifest(solution, "/workspace/Solution.sln"))
             .Returns(new WorkspaceInputManifest());
         _sessionStore.Setup(item => item.AllocateWorkspaceEpoch()).Returns(3);
@@ -903,12 +922,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         _sessionStore.SetupSequence(item => item.ReadSession("WorkspaceId"))
             .Returns(session)
             .Returns((WorkspaceSessionSnapshot?)null);
-        _workspaceLoader.Setup(item => item.LoadAsync("/workspace/Solution.sln", TestContext.Current.CancellationToken))
-            .ReturnsAsync(new WorkspaceLoadResult
-            {
-                Solution = _workspace.CurrentSolution,
-                Workspace = newWorkspace.Object,
-            });
+        SetupLoadedWorkspace("/workspace/Solution.sln", _workspace.CurrentSolution, newWorkspace);
         _changeDetector.Setup(item => item.BuildManifest(_workspace.CurrentSolution, "/workspace/Solution.sln"))
             .Returns(new WorkspaceInputManifest());
         _resultFactory.Setup(item => item.Succeeded(
@@ -944,29 +958,71 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     private void SetupLoadedWorkspace(string path, Solution solution, Mock<ILoadedWorkspace> loadedWorkspace)
     {
         loadedWorkspace.SetupGet(item => item.CurrentSolution).Returns(solution);
-        _workspaceLoader.Setup(item => item.LoadAsync(path, TestContext.Current.CancellationToken))
-            .ReturnsAsync(new WorkspaceLoadResult { Workspace = loadedWorkspace.Object, Solution = solution });
+        _workspaceLoadWorkflow.Setup(item => item.LoadAsync(path, It.IsAny<string>(), TestContext.Current.CancellationToken))
+            .ReturnsAsync(ValidatedWorkspaceLoadResult.Succeeded(loadedWorkspace.Object, solution, []));
         _changeDetector.Setup(item => item.BuildManifest(solution, path)).Returns(new WorkspaceInputManifest());
+    }
+
+    private void SetupLoadFailure(
+        string path,
+        ValidatedWorkspaceLoadFailure failure,
+        IReadOnlyList<DiagnosticInfo>? diagnostics = null)
+    {
+        _workspaceLoadWorkflow.Setup(item => item.LoadAsync(path, It.IsAny<string>(), TestContext.Current.CancellationToken))
+            .ReturnsAsync(ValidatedWorkspaceLoadResult.Failed(failure, diagnostics));
     }
 
     private void SetupSelection(WorkspaceSessionSnapshot session)
     {
         _sessionStore.Setup(item => item.ReadSnapshot()).Returns(CreateHostSnapshot(session));
-        _workspaceSelector.Setup(item => item.Select(
-            It.IsAny<WorkspaceHostSnapshot>(),
-            It.IsAny<WorkspaceSelector?>())).Returns(WorkspaceSelectionResult.Success(new WorkspaceSelection
-            {
-                WorkspaceId = session.Workspace.WorkspaceId,
-                Session = session,
-            }));
+        _sessionAcquirer.Setup(item => item.AcquireShared(It.IsAny<WorkspaceSelector?>()))
+            .Returns(() => CreateAcquisition(session, exclusive: false));
+        _sessionAcquirer.Setup(item => item.AcquireExclusive(It.IsAny<WorkspaceSelector?>()))
+            .Returns(() => CreateAcquisition(session, exclusive: true));
     }
 
     private void SetupSelectionFailure(WorkspaceSessionSnapshot session, WorkspaceOperationError error)
     {
         _sessionStore.Setup(item => item.ReadSnapshot()).Returns(CreateHostSnapshot(session));
-        _workspaceSelector.Setup(item => item.Select(
-            It.IsAny<WorkspaceHostSnapshot>(),
-            It.IsAny<WorkspaceSelector?>())).Returns(WorkspaceSelectionResult.Failure(error));
+        _sessionAcquirer.Setup(item => item.AcquireShared(It.IsAny<WorkspaceSelector?>()))
+            .Returns(WorkspaceSessionAcquisition.Rejected(error));
+        _sessionAcquirer.Setup(item => item.AcquireExclusive(It.IsAny<WorkspaceSelector?>()))
+            .Returns(WorkspaceSessionAcquisition.Rejected(error));
+    }
+
+    private WorkspaceSessionAcquisition CreateAcquisition(WorkspaceSessionSnapshot session, bool exclusive)
+    {
+        var lease = exclusive
+            ? session.OperationGate.TryAcquireExclusive()
+            : session.OperationGate.TryAcquireShared();
+        return lease is null
+            ? WorkspaceSessionAcquisition.Rejected(CreateError(WorkspaceErrorCodes.WorkspaceBusy), session)
+            : WorkspaceSessionAcquisition.Acquired(new WorkspaceSelection
+            {
+                WorkspaceId = session.Workspace.WorkspaceId,
+                Session = session,
+            }, session, lease);
+    }
+
+    private void SetupWorkspaceRequiredAcquisitions()
+    {
+        var error = CreateError(WorkspaceErrorCodes.WorkspaceNotOpen);
+        _sessionAcquirer.Setup(item => item.AcquireShared(It.IsAny<WorkspaceSelector?>()))
+            .Returns(WorkspaceSessionAcquisition.Rejected(error));
+        _sessionAcquirer.Setup(item => item.AcquireExclusive(It.IsAny<WorkspaceSelector?>()))
+            .Returns(WorkspaceSessionAcquisition.Rejected(error));
+    }
+
+    private static WorkspaceOperationError CreateError(string code)
+    {
+        return new WorkspaceOperationError
+        {
+            Code = code,
+            Message = "Message",
+            RequiredAction = code == WorkspaceErrorCodes.WorkspaceBusy
+                ? RequiredAction.Retry
+                : RequiredAction.OpenWorkspace,
+        };
     }
 
     private void SetupSelectedSession(
@@ -996,6 +1052,11 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             It.IsAny<RequiredAction?>(),
             It.IsAny<WorkspaceOperationContext?>(),
             It.IsAny<IReadOnlyList<DiagnosticInfo>?>(),
+            null)).Returns(result);
+        _resultFactory.Setup(item => item.Rejected<TOutcome>(
+            It.Is<WorkspaceOperationError>(error => error.Code == code),
+            It.IsAny<WorkspaceOperationContext?>(),
+            null,
             null)).Returns(result);
     }
 

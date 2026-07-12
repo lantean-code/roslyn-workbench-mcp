@@ -30,6 +30,20 @@ internal sealed record WorkspaceTransaction
         };
     }
 
+    public WorkspaceTransaction? MoveHistory(TransactionHistoryDirection direction)
+    {
+        var revision = direction switch
+        {
+            TransactionHistoryDirection.Undo when CurrentRevision > 0 => CurrentRevision - 1,
+            TransactionHistoryDirection.Redo when CurrentRevision < Revisions.Count => CurrentRevision + 1,
+            _ => (int?)null,
+        };
+
+        return revision is null
+            ? null
+            : this with { CurrentRevision = revision.Value };
+    }
+
     public TransactionInfo ToInfo(bool conflicted)
     {
         return new TransactionInfo

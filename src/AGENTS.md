@@ -59,6 +59,7 @@
 - Always specify access modifiers, even when the default applies.
 - Use `async` only when needed.
 - Async methods should follow normal .NET naming and generally end with `Async`, except for well-known event handlers or framework-required signatures.
+- Assign an awaited result to a clearly named local before querying it or accessing members. Avoid constructs such as `(await operation.ConfigureAwait(false)).Any(...)`; separate the asynchronous operation from the subsequent synchronous processing.
 - Prefer LINQ for simple operations; use loops for complex logic or hot paths where clarity or allocation control matters.
 - Do not use exceptions for flow control.
 - Do not use fire-and-forget tasks (`async void`, discarded `Task`/`ValueTask`, or background work without explicit lifecycle management).

@@ -127,7 +127,7 @@ internal sealed class TransactionService : ITransactionService
         await _instanceStatusPublisher.UpdateAsync(
             updatedSession.Workspace.WorkspaceId,
             updatedSession.State,
-            updatedSession.Transaction?.CurrentRevision,
+            transaction.CurrentRevision,
             null,
             null).ConfigureAwait(false);
 
@@ -319,7 +319,7 @@ internal sealed class TransactionService : ITransactionService
         await _instanceStatusPublisher.UpdateAsync(
             updatedSession.Workspace.WorkspaceId,
             updatedSession.State,
-            updatedSession.Transaction?.CurrentRevision,
+            updatedTransaction.CurrentRevision,
             null,
             null).ConfigureAwait(false);
 

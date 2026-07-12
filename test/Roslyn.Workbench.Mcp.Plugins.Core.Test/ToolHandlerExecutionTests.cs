@@ -40,9 +40,9 @@ public sealed class ToolHandlerExecutionTests
 
     private sealed class TestMutationTool : MutationToolHandler<TestWorkspaceBoundRequest>
     {
-        protected override ValueTask<PluginExecutionResult<MutationProposal>> ExecuteCoreAsync(TestWorkspaceBoundRequest request, IMutationContext context, CancellationToken cancellationToken)
+        protected override ValueTask<PluginExecutionResult<MutationCandidate>> ExecuteCoreAsync(TestWorkspaceBoundRequest request, IMutationContext context, CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(PluginExecutionResult<MutationProposal>.Success(new MutationProposal()));
+            return ValueTask.FromResult(PluginExecutionResult<MutationCandidate>.Success(MutationCandidateTestData.CreatePluginCandidate()));
         }
     }
 }

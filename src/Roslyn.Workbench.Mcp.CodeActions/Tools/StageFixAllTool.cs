@@ -20,7 +20,7 @@ internal sealed class StageFixAllTool : CodeActionMutationToolHandler<StageFixAl
         registry.RegisterMutationTool(_metadata, new StageFixAllTool());
     }
 
-    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteCoreAsync(StageFixAllRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
+    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(StageFixAllRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         return context.StageFixAllAsync(request, cancellationToken);
     }

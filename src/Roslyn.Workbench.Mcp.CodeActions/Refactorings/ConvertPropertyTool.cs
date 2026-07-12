@@ -25,7 +25,7 @@ internal sealed class ConvertPropertyTool : CodeActionMutationToolHandler<Conver
         registry.RegisterMutationTool(_metadata, new ConvertPropertyTool());
     }
 
-    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteCoreAsync(ConvertPropertyRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
+    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(ConvertPropertyRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         return request.Direction switch
         {
@@ -45,7 +45,7 @@ internal sealed class ConvertPropertyTool : CodeActionMutationToolHandler<Conver
                 AnalyzerTypeName = UseAutoPropertyAnalyzerTypeName,
                 SyntheticDiagnosticId = UseAutoPropertyDiagnosticId,
             }, cancellationToken),
-            _ => ValueTask.FromResult(ToolExecutionHelpers.Rejected<WorkspaceMutationProposal>("InvalidRequest", "The requested property conversion direction is not supported.")),
+            _ => ValueTask.FromResult(ToolExecutionHelpers.Rejected<WorkspaceMutationCandidate>("InvalidRequest", "The requested property conversion direction is not supported.")),
         };
     }
 }

@@ -25,11 +25,11 @@ internal sealed class IntroduceParameterTool : CodeActionMutationToolHandler<Int
         registry.RegisterMutationTool(_metadata, new IntroduceParameterTool());
     }
 
-    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteCoreAsync(IntroduceParameterRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
+    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(IntroduceParameterRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         if (request.Selection is null)
         {
-            return ValueTask.FromResult(ToolExecutionHelpers.Rejected<WorkspaceMutationProposal>("InvalidRequest", "A location selector is required."));
+            return ValueTask.FromResult(ToolExecutionHelpers.Rejected<WorkspaceMutationCandidate>("InvalidRequest", "A location selector is required."));
         }
 
         var title = request.Strategy switch

@@ -23,11 +23,11 @@ internal sealed class ConvertForeachLinqTool : CodeActionMutationToolHandler<Con
         registry.RegisterMutationTool(_metadata, new ConvertForeachLinqTool());
     }
 
-    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteCoreAsync(ConvertForeachLinqRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
+    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(ConvertForeachLinqRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         if (request.Selection is null)
         {
-            return ValueTask.FromResult(ToolExecutionHelpers.Rejected<WorkspaceMutationProposal>("InvalidRequest", "A location selector is required."));
+            return ValueTask.FromResult(ToolExecutionHelpers.Rejected<WorkspaceMutationCandidate>("InvalidRequest", "A location selector is required."));
         }
 
         var replayRequest = request.ConversionKind switch

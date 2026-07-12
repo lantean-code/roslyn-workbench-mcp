@@ -77,8 +77,11 @@ public static class WorkspaceCoordinatorFactory
         var executionServices = toolExecutionServices ?? BundledCoreToolExecutionServicesFactory.Create();
         var sessionStore = new WorkspaceSessionStore();
         var workspaceSelector = new WorkspaceSelectorService();
-        var workspaceLoader = new WorkspaceLoader(new WorkspaceHostServicesAccessor(codeActionRuntime.WorkspaceHostServices));
+        var workspaceLoader = new WorkspaceLoader(
+            new WorkspaceHostServicesAccessor(codeActionRuntime.WorkspaceHostServices),
+            new WorkspaceProjectCompatibilityInspector());
         var fileSystem = new FileSystem();
+        var pathComparison = new WorkspacePathComparison();
         var fileCommitter = new NativeAtomicFileCommitter();
         var atomicFileWriter = new AtomicFileWriter(fileSystem, fileCommitter);
         var workspaceChangeDetector = new WorkspaceChangeDetector(fileSystem, new WorkspaceProjectInputResolver());
@@ -86,15 +89,16 @@ public static class WorkspaceCoordinatorFactory
         var resultFactory = new WorkspaceOperationResultFactory();
         var snapshotGuard = new SnapshotGuard();
         var workspaceResolverFactory = new WorkspaceResolverFactory();
-        var recoveryStore = new CommitRecoveryStore(optionsWrapper, fileSystem, atomicFileWriter);
-        var instanceStatusPublisher = new WorkspaceInstanceStatusPublisher(fileSystem);
+        var recoveryStore = new CommitRecoveryStore(optionsWrapper, fileSystem, atomicFileWriter, pathComparison);
+        var instanceStatusPublisher = new WorkspaceInstanceStatusPublisher(fileSystem, pathComparison);
         var commitWriter = new WorkspaceCommitWriter(fileSystem, atomicFileWriter, recoveryStore, fileCommitter);
         var mutationStagingService = new MutationStagingService(
             new WorkspaceOperationResultFactory(),
             sessionStore,
             new WorkspaceDiffService(),
             workspaceResolverFactory,
-            instanceStatusPublisher);
+            instanceStatusPublisher,
+            new WorkspaceMutationCandidateValidator(pathComparison));
         var codeActionDiagnosticService = new CodeActionDiagnosticService();
         var codeActionDescriptorRegistry = new CodeActionDescriptorRegistry([ControlledCodeActionDescriptorClassifier.Classify]);
         var codeActionTokenService = new CodeActionTokenService();
@@ -130,7 +134,7 @@ public static class WorkspaceCoordinatorFactory
             resultFactory,
             recoveryStore,
             commitWriter,
-            new WorkspaceCommitPlanner(fileSystem),
+            new WorkspaceCommitPlanner(fileSystem, pathComparison),
             new WorkspaceCommitLockManager(
                 fileSystem,
                 new FileStreamWorkspaceFileLockProvider()),
@@ -153,7 +157,7 @@ public static class WorkspaceCoordinatorFactory
             sessionStore,
             workspaceSelector,
             workspaceLoader,
-            new WorkspaceRootResolver(fileSystem),
+            new WorkspaceRootResolver(fileSystem, pathComparison),
             workspaceChangeDetector,
             workspaceStateTransitions,
             resultFactory,

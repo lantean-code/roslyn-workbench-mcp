@@ -25,14 +25,14 @@ internal sealed class InlineVariableTool : CodeActionMutationToolHandler<InlineV
         registry.RegisterMutationTool(_metadata, new InlineVariableTool());
     }
 
-    protected override async ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteCoreAsync(InlineVariableRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
+    protected override async ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(InlineVariableRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         if (!request.RemoveDeclaration)
         {
-            return ToolExecutionHelpers.Rejected<WorkspaceMutationProposal>("UnsupportedOption", "The removeDeclaration option is not supported by the current Roslyn inline-variable backend.");
+            return ToolExecutionHelpers.Rejected<WorkspaceMutationCandidate>("UnsupportedOption", "The removeDeclaration option is not supported by the current Roslyn inline-variable backend.");
         }
 
-        var symbolResolution = await ToolExecutionHelpers.ResolveSymbolAsync<WorkspaceMutationProposal>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await ToolExecutionHelpers.ResolveSymbolAsync<WorkspaceMutationCandidate>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
@@ -40,20 +40,20 @@ internal sealed class InlineVariableTool : CodeActionMutationToolHandler<InlineV
 
         if (symbolResolution.Value is not ILocalSymbol localSymbol)
         {
-            return ToolExecutionHelpers.Rejected<WorkspaceMutationProposal>("SymbolNotSupported", "The selected symbol is not a local variable.", RequiredAction.ResolveTargetAgain);
+            return ToolExecutionHelpers.Rejected<WorkspaceMutationCandidate>("SymbolNotSupported", "The selected symbol is not a local variable.", RequiredAction.ResolveTargetAgain);
         }
 
         var sourceLocation = localSymbol.Locations.FirstOrDefault(static location => location.IsInSource);
         if (sourceLocation is null)
         {
-            return ToolExecutionHelpers.Rejected<WorkspaceMutationProposal>("SymbolNotSupported", "The selected symbol does not resolve to a source location.", RequiredAction.ResolveTargetAgain);
+            return ToolExecutionHelpers.Rejected<WorkspaceMutationCandidate>("SymbolNotSupported", "The selected symbol does not resolve to a source location.", RequiredAction.ResolveTargetAgain);
         }
 
         var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(sourceLocation);
         var locationSelector = ToolExecutionHelpers.CreateLocationSelector(resolvedLocation);
         if (locationSelector is null)
         {
-            return ToolExecutionHelpers.Rejected<WorkspaceMutationProposal>("SymbolNotSupported", "The selected symbol does not resolve to a replayable source span.", RequiredAction.ResolveTargetAgain);
+            return ToolExecutionHelpers.Rejected<WorkspaceMutationCandidate>("SymbolNotSupported", "The selected symbol does not resolve to a replayable source span.", RequiredAction.ResolveTargetAgain);
         }
 
         return await context.StageReplayCodeActionAsync(new ReplayCodeActionRequest

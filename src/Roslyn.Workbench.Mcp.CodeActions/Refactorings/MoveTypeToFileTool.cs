@@ -24,14 +24,14 @@ internal sealed class MoveTypeToFileTool : CodeActionMutationToolHandler<MoveTyp
         registry.RegisterMutationTool(_metadata, new MoveTypeToFileTool());
     }
 
-    protected override async ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteCoreAsync(MoveTypeToFileRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
+    protected override async ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(MoveTypeToFileRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         if (!request.PreserveNamespace)
         {
-            return ToolExecutionHelpers.Rejected<WorkspaceMutationProposal>("UnsupportedOption", "The preserveNamespace option must remain true for the current move-type-to-file backend.");
+            return ToolExecutionHelpers.Rejected<WorkspaceMutationCandidate>("UnsupportedOption", "The preserveNamespace option must remain true for the current move-type-to-file backend.");
         }
 
-        var symbolResolution = await ToolExecutionHelpers.ResolveSymbolAsync<WorkspaceMutationProposal>(request.Type, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await ToolExecutionHelpers.ResolveSymbolAsync<WorkspaceMutationCandidate>(request.Type, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
@@ -39,19 +39,19 @@ internal sealed class MoveTypeToFileTool : CodeActionMutationToolHandler<MoveTyp
 
         if (symbolResolution.Value is not INamedTypeSymbol typeSymbol)
         {
-            return ToolExecutionHelpers.Rejected<WorkspaceMutationProposal>("SymbolNotSupported", "The selected symbol is not a type declaration.", RequiredAction.ResolveTargetAgain);
+            return ToolExecutionHelpers.Rejected<WorkspaceMutationCandidate>("SymbolNotSupported", "The selected symbol is not a type declaration.", RequiredAction.ResolveTargetAgain);
         }
 
         var sourceLocation = typeSymbol.Locations.FirstOrDefault(static location => location.IsInSource);
         if (sourceLocation is null)
         {
-            return ToolExecutionHelpers.Rejected<WorkspaceMutationProposal>("SymbolNotSupported", "The selected symbol does not resolve to a source location.", RequiredAction.ResolveTargetAgain);
+            return ToolExecutionHelpers.Rejected<WorkspaceMutationCandidate>("SymbolNotSupported", "The selected symbol does not resolve to a source location.", RequiredAction.ResolveTargetAgain);
         }
 
         var locationSelector = ToolExecutionHelpers.CreateLocationSelector(context.WorkspaceResolver.CreateResolvedLocation(sourceLocation));
         if (locationSelector is null)
         {
-            return ToolExecutionHelpers.Rejected<WorkspaceMutationProposal>("SymbolNotSupported", "The selected symbol does not resolve to a replayable source span.", RequiredAction.ResolveTargetAgain);
+            return ToolExecutionHelpers.Rejected<WorkspaceMutationCandidate>("SymbolNotSupported", "The selected symbol does not resolve to a replayable source span.", RequiredAction.ResolveTargetAgain);
         }
 
         return await context.StageReplayCodeActionAsync(new ReplayCodeActionRequest

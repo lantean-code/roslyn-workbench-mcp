@@ -11,14 +11,14 @@ internal sealed class WorkspaceMutationStager : IWorkspaceMutationStager
 
     public ValueTask<WorkspaceOperationResult<MutationStagingOutcome>> StageAsync(
         string operationName,
-        WorkspaceMutationProposal proposal,
+        WorkspaceMutationCandidate candidate,
         IReadOnlyList<DiagnosticInfo> diagnostics,
         IReadOnlyList<WarningInfo> warnings,
         CancellationToken cancellationToken)
     {
         return _mutationStagingService.StageAsync(
             operationName,
-            proposal,
+            candidate,
             diagnostics,
             warnings,
             cancellationToken);

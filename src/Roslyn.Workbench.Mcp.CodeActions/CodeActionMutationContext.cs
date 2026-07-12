@@ -26,49 +26,49 @@ internal sealed class CodeActionMutationContext : ICodeActionMutationContext
 
     public IWorkspaceResolver WorkspaceResolver { get; }
 
-    public ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageCodeActionAsync(
+    public ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageCodeActionAsync(
         StageCodeActionRequest request,
         CancellationToken cancellationToken)
     {
         return _workflow.StageCodeActionAsync(request, this, cancellationToken);
     }
 
-    public ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageReplayCodeActionAsync(
+    public ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageReplayCodeActionAsync(
         ReplayCodeActionRequest request,
         CancellationToken cancellationToken)
     {
         return _workflow.StageReplayCodeActionAsync(request, this, cancellationToken);
     }
 
-    public ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageCodeFixAsync(
+    public ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageCodeFixAsync(
         StageCodeFixRequest request,
         CancellationToken cancellationToken)
     {
         return _workflow.StageCodeFixAsync(request, this, cancellationToken);
     }
 
-    public ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageFixAllAsync(
+    public ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageFixAllAsync(
         StageFixAllRequest request,
         CancellationToken cancellationToken)
     {
         return _workflow.StageFixAllAsync(request, this, cancellationToken);
     }
 
-    public ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageScopedCodeFixAsync(
+    public ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageScopedCodeFixAsync(
         ScopedCodeFixRequest request,
         CancellationToken cancellationToken)
     {
         return _workflow.StageScopedCodeFixAsync(request, this, cancellationToken);
     }
 
-    public ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageLocationCodeFixAsync(
+    public ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageLocationCodeFixAsync(
         LocationCodeFixRequest request,
         CancellationToken cancellationToken)
     {
         return _workflow.StageLocationCodeFixAsync(request, this, cancellationToken);
     }
 
-    public ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageReplaySelectionAsync(
+    public ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageReplaySelectionAsync(
         LocationSelector? selection,
         SnapshotPrecondition? expectedSnapshot,
         CancellationToken cancellationToken,
@@ -81,7 +81,7 @@ internal sealed class CodeActionMutationContext : ICodeActionMutationContext
     {
         if (selection is null)
         {
-            return ValueTask.FromResult(ToolExecutionHelpers.Rejected<WorkspaceMutationProposal>(
+            return ValueTask.FromResult(ToolExecutionHelpers.Rejected<WorkspaceMutationCandidate>(
                 "InvalidRequest",
                 "A location selector is required."));
         }

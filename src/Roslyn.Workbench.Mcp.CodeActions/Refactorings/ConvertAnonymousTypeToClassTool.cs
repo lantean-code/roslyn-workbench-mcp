@@ -22,7 +22,7 @@ internal sealed class ConvertAnonymousTypeToClassTool : CodeActionMutationToolHa
         registry.RegisterMutationTool(_metadata, new ConvertAnonymousTypeToClassTool());
     }
 
-    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteCoreAsync(ConvertAnonymousTypeToClassRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
+    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(ConvertAnonymousTypeToClassRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         var title = request.Kind == ConvertAnonymousTypeToClassKind.Record
             ? "Convert to record"

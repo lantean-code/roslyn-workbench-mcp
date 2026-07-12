@@ -20,7 +20,7 @@ internal sealed class CodeActionMutationExecutionLease : IAsyncDisposable
 
     public async ValueTask<CodeActionExecutionResult<MutationData>> StageAsync(
         string operationName,
-        WorkspaceMutationProposal proposal,
+        WorkspaceMutationCandidate candidate,
         IReadOnlyList<DiagnosticInfo> diagnostics,
         IReadOnlyList<WarningInfo> warnings,
         CancellationToken cancellationToken)
@@ -29,7 +29,7 @@ internal sealed class CodeActionMutationExecutionLease : IAsyncDisposable
             ?? throw new InvalidOperationException("Code Action mutation acquisition completed without a mutation stager.");
         var result = await stager.StageAsync(
             operationName,
-            proposal,
+            candidate,
             diagnostics,
             warnings,
             cancellationToken).ConfigureAwait(false);

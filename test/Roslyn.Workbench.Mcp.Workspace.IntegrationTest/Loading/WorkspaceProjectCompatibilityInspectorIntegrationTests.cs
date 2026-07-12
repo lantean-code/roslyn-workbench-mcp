@@ -1,6 +1,6 @@
-namespace Roslyn.Workbench.Mcp.Workspace.Test;
+namespace Roslyn.Workbench.Mcp.Workspace.IntegrationTest.Loading;
 
-public sealed class MsBuildProjectUtilitiesIntegrationTests
+public sealed class WorkspaceProjectCompatibilityInspectorIntegrationTests
 {
     [Fact]
     public void GIVEN_ProjectWithTopLevelSdkElement_WHEN_InspectingCompatibility_THEN_ShouldReportSdkStyle()
@@ -19,8 +19,9 @@ public sealed class MsBuildProjectUtilitiesIntegrationTests
                   </PropertyGroup>
                 </Project>
                 """);
+            var target = new WorkspaceProjectCompatibilityInspector();
 
-            var result = MsBuildProjectUtilities.InspectCompatibility(projectPath);
+            var result = target.Inspect(projectPath);
 
             result.IsSdkStyle.Should().BeTrue();
             result.Diagnostics.Should().BeEmpty();
@@ -47,11 +48,38 @@ public sealed class MsBuildProjectUtilitiesIntegrationTests
                   </PropertyGroup>
                 </Project>
                 """);
+            var target = new WorkspaceProjectCompatibilityInspector();
 
-            var result = MsBuildProjectUtilities.InspectCompatibility(projectPath);
+            var result = target.Inspect(projectPath);
 
             result.IsSdkStyle.Should().BeFalse();
             result.Diagnostics.Should().BeEmpty();
+        }
+        finally
+        {
+            DeleteDirectory(directoryPath);
+        }
+    }
+
+    [Fact]
+    public void GIVEN_MalformedProject_WHEN_InspectingCompatibility_THEN_ShouldReturnLoadDiagnostic()
+    {
+        MsBuildTestRegistration.EnsureRegistered();
+        var directoryPath = CreateDirectoryPath();
+
+        try
+        {
+            var projectPath = Path.Combine(directoryPath, "Malformed.csproj");
+            File.WriteAllText(projectPath, "<Project>");
+            var target = new WorkspaceProjectCompatibilityInspector();
+
+            var result = target.Inspect(projectPath);
+
+            result.IsSdkStyle.Should().BeFalse();
+            result.Diagnostics.Should().ContainSingle().Which.Should().Match<DiagnosticInfo>(diagnostic =>
+                diagnostic.Id == "WorkspaceLoad"
+                && diagnostic.Severity == Contracts.Results.DiagnosticSeverity.Error
+                && !string.IsNullOrWhiteSpace(diagnostic.Message));
         }
         finally
         {

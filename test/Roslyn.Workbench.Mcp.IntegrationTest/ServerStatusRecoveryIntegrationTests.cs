@@ -19,7 +19,8 @@ public sealed class ServerStatusRecoveryIntegrationTests
             var recoveryStore = new CommitRecoveryStore(
                 Options.Create(new WorkspaceCoordinatorOptions { StateDirectory = stateDirectory }),
                 fileSystem,
-                new AtomicFileWriter(fileSystem, new NativeAtomicFileCommitter()));
+                new AtomicFileWriter(fileSystem, new NativeAtomicFileCommitter()),
+                new WorkspacePathComparison());
             await recoveryStore.WriteStatusAsync(new RecoveryStatus
             {
                 CommitId = "commit-id",

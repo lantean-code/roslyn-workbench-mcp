@@ -22,7 +22,7 @@ internal sealed class ConvertIfToSwitchTool : CodeActionMutationToolHandler<Conv
         registry.RegisterMutationTool(_metadata, new ConvertIfToSwitchTool());
     }
 
-    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteCoreAsync(ConvertIfToSwitchRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
+    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(ConvertIfToSwitchRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         var title = request.Kind == ConvertIfToSwitchKind.Expression
             ? "Convert to 'switch' expression"

@@ -52,7 +52,7 @@ public sealed class CodeActionExecutionContextTests
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
         var workflow = new Mock<ICodeActionMutationWorkflow>();
         var selection = new LocationSelector();
-        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var target = new CodeActionMutationContext(CreateWorkspaceContext(roslyn.Solution), workflow.Object);
         workflow
             .Setup(item => item.StageReplayCodeActionAsync(

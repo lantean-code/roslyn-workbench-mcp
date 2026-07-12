@@ -21,7 +21,7 @@ public sealed class FormatDocumentToolTests
     [Fact]
     public async Task GIVEN_ResolveDocumentHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Rejected(new PluginExecutionError
+        var expected = PluginExecutionResult<MutationCandidate>.Rejected(new PluginExecutionError
         {
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
@@ -34,8 +34,8 @@ public sealed class FormatDocumentToolTests
         var target = new FormatDocumentTool();
 
         contextMocks.RequestResolver
-            .Setup(item => item.ResolveDocument<MutationProposal>(request.Document, contextMocks.MutationContext.Object))
-            .Returns(new ToolResolutionResult<Document, MutationProposal>
+            .Setup(item => item.ResolveDocument<MutationCandidate>(request.Document, contextMocks.MutationContext.Object))
+            .Returns(new ToolResolutionResult<Document, MutationCandidate>
             {
                 Rejection = expected,
             });
@@ -43,7 +43,7 @@ public sealed class FormatDocumentToolTests
         var result = await target.ExecuteAsync(request, contextMocks.MutationContext.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        contextMocks.RequestResolver.Verify(item => item.ValidateSnapshot<MutationProposal>(
+        contextMocks.RequestResolver.Verify(item => item.ValidateSnapshot<MutationCandidate>(
             It.IsAny<IToolExecutionContext>(),
             It.IsAny<SnapshotPrecondition?>()), Times.Never);
     }
@@ -52,7 +52,7 @@ public sealed class FormatDocumentToolTests
     public async Task GIVEN_ValidateSnapshotHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         using var document = RoslynTestFactory.CreateDocument("class Sample { }");
-        var expected = PluginExecutionResult<MutationProposal>.Conflict(new PluginExecutionError
+        var expected = PluginExecutionResult<MutationCandidate>.Conflict(new PluginExecutionError
         {
             Code = "SnapshotMismatch",
             Message = "SnapshotMismatch",
@@ -69,13 +69,13 @@ public sealed class FormatDocumentToolTests
         var target = new FormatDocumentTool();
 
         contextMocks.RequestResolver
-            .Setup(item => item.ResolveDocument<MutationProposal>(request.Document, contextMocks.MutationContext.Object))
-            .Returns(new ToolResolutionResult<Document, MutationProposal>
+            .Setup(item => item.ResolveDocument<MutationCandidate>(request.Document, contextMocks.MutationContext.Object))
+            .Returns(new ToolResolutionResult<Document, MutationCandidate>
             {
                 Value = document.Document,
             });
         contextMocks.RequestResolver
-            .Setup(item => item.ValidateSnapshot<MutationProposal>(contextMocks.MutationContext.Object, request.ExpectedSnapshot))
+            .Setup(item => item.ValidateSnapshot<MutationCandidate>(contextMocks.MutationContext.Object, request.ExpectedSnapshot))
             .Returns(expected);
 
         var result = await target.ExecuteAsync(request, contextMocks.MutationContext.Object, CancellationToken.None);
@@ -95,14 +95,14 @@ public sealed class FormatDocumentToolTests
         var target = new FormatDocumentTool();
 
         contextMocks.RequestResolver
-            .Setup(item => item.ResolveDocument<MutationProposal>(request.Document, contextMocks.MutationContext.Object))
-            .Returns(new ToolResolutionResult<Document, MutationProposal>
+            .Setup(item => item.ResolveDocument<MutationCandidate>(request.Document, contextMocks.MutationContext.Object))
+            .Returns(new ToolResolutionResult<Document, MutationCandidate>
             {
                 Value = document.Document,
             });
         contextMocks.RequestResolver
-            .Setup(item => item.ValidateSnapshot<MutationProposal>(contextMocks.MutationContext.Object, request.ExpectedSnapshot))
-            .Returns((PluginExecutionResult<MutationProposal>?)null);
+            .Setup(item => item.ValidateSnapshot<MutationCandidate>(contextMocks.MutationContext.Object, request.ExpectedSnapshot))
+            .Returns((PluginExecutionResult<MutationCandidate>?)null);
 
         var result = await target.ExecuteAsync(request, contextMocks.MutationContext.Object, CancellationToken.None);
 
@@ -110,7 +110,7 @@ public sealed class FormatDocumentToolTests
     }
 
     [Fact]
-    public async Task GIVEN_RangeFormattingChangesDocument_WHEN_CallingExecuteAsync_THEN_ShouldReturnMutationProposal()
+    public async Task GIVEN_RangeFormattingChangesDocument_WHEN_CallingExecuteAsync_THEN_ShouldReturnMutationCandidate()
     {
         const string source = "class Sample{void Execute(){var value=1;}}";
         using var document = RoslynTestFactory.CreateDocument(source, "Sample.cs");
@@ -127,14 +127,14 @@ public sealed class FormatDocumentToolTests
         var target = new FormatDocumentTool();
 
         contextMocks.RequestResolver
-            .Setup(item => item.ResolveDocument<MutationProposal>(request.Document, contextMocks.MutationContext.Object))
-            .Returns(new ToolResolutionResult<Document, MutationProposal>
+            .Setup(item => item.ResolveDocument<MutationCandidate>(request.Document, contextMocks.MutationContext.Object))
+            .Returns(new ToolResolutionResult<Document, MutationCandidate>
             {
                 Value = document.Document,
             });
         contextMocks.RequestResolver
-            .Setup(item => item.ValidateSnapshot<MutationProposal>(contextMocks.MutationContext.Object, request.ExpectedSnapshot))
-            .Returns((PluginExecutionResult<MutationProposal>?)null);
+            .Setup(item => item.ValidateSnapshot<MutationCandidate>(contextMocks.MutationContext.Object, request.ExpectedSnapshot))
+            .Returns((PluginExecutionResult<MutationCandidate>?)null);
 
         var result = await target.ExecuteAsync(request, contextMocks.MutationContext.Object, CancellationToken.None);
 

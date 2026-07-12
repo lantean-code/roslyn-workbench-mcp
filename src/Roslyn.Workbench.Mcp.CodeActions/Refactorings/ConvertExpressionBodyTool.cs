@@ -24,7 +24,7 @@ internal sealed class ConvertExpressionBodyTool : CodeActionMutationToolHandler<
         registry.RegisterMutationTool(_metadata, new ConvertExpressionBodyTool());
     }
 
-    protected override async ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteCoreAsync(LocationRefactoringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
+    protected override async ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(LocationRefactoringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         var result = await context.StageReplaySelectionAsync(
             request.Selection,
@@ -43,7 +43,7 @@ internal sealed class ConvertExpressionBodyTool : CodeActionMutationToolHandler<
             UseExpressionBodyForLambdaProviderId).ConfigureAwait(false);
     }
 
-    private static bool ShouldTryLambdaProvider(CodeActionExecutionResult<WorkspaceMutationProposal> result)
+    private static bool ShouldTryLambdaProvider(CodeActionExecutionResult<WorkspaceMutationCandidate> result)
     {
         return result.Outcome == CodeActionExecutionOutcome.Rejected
             && string.Equals(result.Error?.Code, "CodeActionUnavailable", StringComparison.Ordinal);

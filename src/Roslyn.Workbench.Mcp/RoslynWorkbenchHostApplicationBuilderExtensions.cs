@@ -94,6 +94,7 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
             serviceProvider.GetRequiredService<ICodeActionRuntime>().WorkspaceHostServices));
         services.AddSingleton<IWorkspaceOperationResultFactory, WorkspaceOperationResultFactory>();
         services.AddSingleton<IFileSystem, FileSystem>();
+        services.AddSingleton<IWorkspacePathComparison, WorkspacePathComparison>();
         services.AddSingleton<IAtomicFileCommitter, NativeAtomicFileCommitter>();
         services.AddSingleton<IWorkspaceInstanceStatusPublisher, WorkspaceInstanceStatusPublisher>();
         services.AddSingleton<IAtomicFileWriter, AtomicFileWriter>();
@@ -107,12 +108,14 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
         services.AddSingleton<IWorkspaceSessionStore, WorkspaceSessionStore>();
         services.AddSingleton<IWorkspaceSelector, WorkspaceSelectorService>();
         services.AddSingleton<IWorkspaceResolverFactory, WorkspaceResolverFactory>();
+        services.AddSingleton<IWorkspaceProjectCompatibilityInspector, WorkspaceProjectCompatibilityInspector>();
         services.AddSingleton<IWorkspaceLoader, WorkspaceLoader>();
         services.AddSingleton<IWorkspaceRootResolver, WorkspaceRootResolver>();
         services.AddSingleton<IWorkspaceProjectInputResolver, WorkspaceProjectInputResolver>();
         services.AddSingleton<IWorkspaceChangeDetector, WorkspaceChangeDetector>();
         services.AddSingleton<IWorkspaceStateTransitions, WorkspaceStateTransitions>();
         services.AddSingleton<ISnapshotGuard, SnapshotGuard>();
+        services.AddSingleton<IWorkspaceMutationCandidateValidator, WorkspaceMutationCandidateValidator>();
         services.AddSingleton<IMutationStagingService, MutationStagingService>();
         services.AddSingleton<IWorkspaceDiffBuilder, WorkspaceDiffService>();
         services.AddSingleton<ITransactionCommitService, TransactionCommitService>();

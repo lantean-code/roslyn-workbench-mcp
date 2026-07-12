@@ -22,6 +22,8 @@ public sealed class WorkspaceOperationResultFactoryTests
         result.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
         result.Context.Should().BeSameAs(context);
         result.Data.Should().BeSameAs(data);
+        result.HasData.Should().BeTrue();
+        result.HasError.Should().BeFalse();
         result.Diagnostics.Should().ContainSingle().Which.Should().BeSameAs(diagnostic);
         result.Diagnostics[0].Id.Should().Be("Id");
         result.Diagnostics[0].Severity.Should().Be(global::Roslyn.Workbench.Mcp.Workspace.Contracts.Results.DiagnosticSeverity.Warning);
@@ -47,6 +49,8 @@ public sealed class WorkspaceOperationResultFactoryTests
         var result = _target.Rejected<TestOutcome>("Code", "Message", RequiredAction.Retry);
 
         result.Status.Should().Be(WorkspaceOperationStatus.Rejected);
+        result.HasData.Should().BeFalse();
+        result.HasError.Should().BeTrue();
         result.Error!.Code.Should().Be("Code");
         result.Error.Message.Should().Be("Message");
         result.Error.RequiredAction.Should().Be(RequiredAction.Retry);

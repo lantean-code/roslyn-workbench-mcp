@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core;
 internal abstract class MutationToolHandler<TRequest> : IMutationToolHandler<TRequest>
     where TRequest : WorkspaceBoundRequest
 {
-    public ValueTask<PluginExecutionResult<MutationProposal>> ExecuteAsync(
+    public ValueTask<PluginExecutionResult<MutationCandidate>> ExecuteAsync(
         TRequest request,
         IMutationContext context,
         CancellationToken cancellationToken)
@@ -15,7 +15,7 @@ internal abstract class MutationToolHandler<TRequest> : IMutationToolHandler<TRe
         return ExecuteCoreAsync(request, context, cancellationToken);
     }
 
-    protected abstract ValueTask<PluginExecutionResult<MutationProposal>> ExecuteCoreAsync(
+    protected abstract ValueTask<PluginExecutionResult<MutationCandidate>> ExecuteCoreAsync(
         TRequest request,
         IMutationContext context,
         CancellationToken cancellationToken);

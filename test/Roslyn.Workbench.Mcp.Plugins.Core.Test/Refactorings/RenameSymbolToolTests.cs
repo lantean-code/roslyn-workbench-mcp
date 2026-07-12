@@ -21,7 +21,7 @@ public sealed class RenameSymbolToolTests
     [Fact]
     public async Task GIVEN_ResolveSymbolHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
-        var expected = PluginExecutionResult<MutationProposal>.Rejected(new PluginExecutionError
+        var expected = PluginExecutionResult<MutationCandidate>.Rejected(new PluginExecutionError
         {
             Code = "SymbolNotFound",
             Message = "SymbolNotFound",
@@ -35,12 +35,12 @@ public sealed class RenameSymbolToolTests
         var target = new RenameSymbolTool();
 
         contextMocks.RequestResolver
-            .Setup(item => item.ResolveSymbolAsync<MutationProposal>(
+            .Setup(item => item.ResolveSymbolAsync<MutationCandidate>(
                 request.Symbol,
                 request.ExpectedSnapshot,
                 contextMocks.MutationContext.Object,
                 CancellationToken.None))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, MutationProposal>
+            .ReturnsAsync(new ToolResolutionResult<ISymbol, MutationCandidate>
             {
                 Rejection = expected,
             });
@@ -63,12 +63,12 @@ public sealed class RenameSymbolToolTests
         var target = new RenameSymbolTool();
 
         contextMocks.RequestResolver
-            .Setup(item => item.ResolveSymbolAsync<MutationProposal>(
+            .Setup(item => item.ResolveSymbolAsync<MutationCandidate>(
                 request.Symbol,
                 request.ExpectedSnapshot,
                 contextMocks.MutationContext.Object,
                 CancellationToken.None))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, MutationProposal>
+            .ReturnsAsync(new ToolResolutionResult<ISymbol, MutationCandidate>
             {
                 Value = Mock.Of<ISymbol>(),
             });
@@ -85,7 +85,7 @@ public sealed class RenameSymbolToolTests
     }
 
     [Fact]
-    public async Task GIVEN_RenameChangesSolution_WHEN_CallingExecuteAsync_THEN_ShouldReturnMutationProposal()
+    public async Task GIVEN_RenameChangesSolution_WHEN_CallingExecuteAsync_THEN_ShouldReturnMutationCandidate()
     {
         using var document = RoslynTestFactory.CreateDocument("public sealed class ExistingName { }", "ExistingName.cs");
         var symbol = await RoslynDocumentTestHelper.GetRequiredNamedTypeSymbolAsync(
@@ -106,12 +106,12 @@ public sealed class RenameSymbolToolTests
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
         contextMocks.RequestResolver
-            .Setup(item => item.ResolveSymbolAsync<MutationProposal>(
+            .Setup(item => item.ResolveSymbolAsync<MutationCandidate>(
                 request.Symbol,
                 request.ExpectedSnapshot,
                 contextMocks.MutationContext.Object,
                 CancellationToken.None))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, MutationProposal>
+            .ReturnsAsync(new ToolResolutionResult<ISymbol, MutationCandidate>
             {
                 Value = symbol,
             });

@@ -16,11 +16,6 @@ internal sealed class WorkspaceCommitLockManager : IWorkspaceCommitLockManager
         try
         {
             var canonicalRoot = _fileSystem.Path.GetFullPath(workspaceRoot);
-            if (OperatingSystem.IsWindows())
-            {
-                canonicalRoot = canonicalRoot.ToUpperInvariant();
-            }
-
             var directory = _fileSystem.Path.Combine(canonicalRoot, ".vs", "roslyn-workbench-mcp", "locks");
             _fileSystem.Directory.CreateDirectory(directory);
             var ownership = _fileLockProvider.TryAcquire(_fileSystem.Path.Combine(directory, "commit.lock"));

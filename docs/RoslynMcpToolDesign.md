@@ -558,7 +558,7 @@ The tool executor resolves the plugin and delegates queries or candidate source
 changes to the coordinator. Long-running Roslyn work occurs outside state entry
 and exit callbacks, but while its operation lease is held; the coordinator
 advances the state only after the work succeeds or fails. Query plugins return
-structured data. Mutation plugins return a `MutationProposal`: a candidate
+structured data. Mutation plugins return a `MutationCandidate`: a candidate
 changed `Solution`, a concise summary, warnings and optional intended
 changed-symbol selectors. The coordinator verifies that the candidate belongs to
 the current workspace, accepts only its allow-listed source-document delta,
@@ -607,13 +607,15 @@ selector so an agent can turn copied source text into a canonical location and
 symbol without calculating a character offset itself.
 - Published tool response: a family-specific structured MCP payload with a
   shared machine-readable failure base and compact success projection.
-- `MutationProposal`: a plugin-produced candidate changed `Solution`, summary,
+- `MutationCandidate`: a plugin-produced candidate changed `Solution`, summary,
   warnings and optional intended changed-symbol selectors. It does not contain
   diffs, content hashes, transaction state or disk-write instructions.
 - `MutationResult`: operation summary, revision information and preview.
 
 The host owns all MCP response construction. Query plugins return their typed
-data; mutation plugins return `MutationProposal`. Plugins never create
+data; mutation plugins return `MutationCandidate`. The candidate is an internal
+pre-staging value and is never published as the MCP response; successful
+mutation tools publish `MutationData`. Plugins never create
 canonical diffs, staged revisions, validation records or disk-write plans.
 
 ### Tool response and error contract

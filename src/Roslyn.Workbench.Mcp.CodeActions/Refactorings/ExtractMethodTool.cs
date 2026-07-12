@@ -26,11 +26,11 @@ internal sealed class ExtractMethodTool : CodeActionMutationToolHandler<ExtractM
         registry.RegisterMutationTool(_metadata, new ExtractMethodTool());
     }
 
-    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteCoreAsync(ExtractMethodRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
+    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(ExtractMethodRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         if (request.Selection is null)
         {
-            return ValueTask.FromResult(ToolExecutionHelpers.Rejected<WorkspaceMutationProposal>("InvalidRequest", "A location selector is required."));
+            return ValueTask.FromResult(ToolExecutionHelpers.Rejected<WorkspaceMutationCandidate>("InvalidRequest", "A location selector is required."));
         }
 
         var (title, equivalenceKey) = request.TargetKind switch

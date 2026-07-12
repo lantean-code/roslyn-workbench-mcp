@@ -36,7 +36,7 @@ internal sealed class CodeActionMcpToolRegistrationVisitor : ICodeActionToolRegi
         var protocolTool = McpToolProtocolFactory.CreateCodeActionTool<TRequest>(
             registration.Metadata,
             registration.Kind,
-            typeof(MutationData),
+            registration.ResponseType,
             _outputSchemaMode);
         _services.AddSingleton<McpServerTool>(serviceProvider => new CodeActionMutationMcpServerTool<TRequest>(
             protocolTool,

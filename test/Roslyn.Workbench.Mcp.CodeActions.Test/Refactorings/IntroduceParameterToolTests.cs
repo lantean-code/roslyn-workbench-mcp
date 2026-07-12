@@ -47,7 +47,7 @@ public sealed class IntroduceParameterToolTests
         int firstPathSegment,
         int secondPathSegment)
     {
-        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new IntroduceParameterRequest
         {

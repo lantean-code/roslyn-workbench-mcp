@@ -20,15 +20,15 @@ internal sealed class SortUsingsTool : MutationToolHandler<SortUsingsRequest>
         registry.RegisterMutationTool(_metadata, new SortUsingsTool());
     }
 
-    protected override async ValueTask<PluginExecutionResult<MutationProposal>> ExecuteCoreAsync(SortUsingsRequest request, IMutationContext context, CancellationToken cancellationToken)
+    protected override async ValueTask<PluginExecutionResult<MutationCandidate>> ExecuteCoreAsync(SortUsingsRequest request, IMutationContext context, CancellationToken cancellationToken)
     {
-        var documentResolution = context.ToolExecutionServices.RequestResolver.ResolveDocument<MutationProposal>(request.Document, context);
+        var documentResolution = context.ToolExecutionServices.RequestResolver.ResolveDocument<MutationCandidate>(request.Document, context);
         if (documentResolution.HasRejection)
         {
             return documentResolution.Rejection;
         }
 
-        var snapshotRejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<MutationProposal>(context, request.ExpectedSnapshot);
+        var snapshotRejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<MutationCandidate>(context, request.ExpectedSnapshot);
         if (snapshotRejection is not null)
         {
             return snapshotRejection;
@@ -38,7 +38,7 @@ internal sealed class SortUsingsTool : MutationToolHandler<SortUsingsRequest>
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false) as CompilationUnitSyntax;
         if (root is null)
         {
-            return ToolExecutionHelpers.Rejected<MutationProposal>("InvalidRequest", "Sort usings requires a compilation unit root.");
+            return ToolExecutionHelpers.Rejected<MutationCandidate>("InvalidRequest", "Sort usings requires a compilation unit root.");
         }
 
         var orderedUsings = root.Usings
@@ -48,13 +48,13 @@ internal sealed class SortUsingsTool : MutationToolHandler<SortUsingsRequest>
             .ToArray();
         if (root.Usings.SequenceEqual(orderedUsings))
         {
-            return PluginExecutionResult<MutationProposal>.NoChange();
+            return PluginExecutionResult<MutationCandidate>.NoChange();
         }
 
         var updatedRoot = root.WithUsings(SyntaxFactory.List(orderedUsings));
         var updatedDocument = document.WithSyntaxRoot(updatedRoot);
 
-        return PluginExecutionResult<MutationProposal>.Success(new MutationProposal
+        return PluginExecutionResult<MutationCandidate>.Success(new MutationCandidate
         {
             CandidateSolution = updatedDocument.Project.Solution,
             Summary = $"Sort using directives in '{document.Name}'.",

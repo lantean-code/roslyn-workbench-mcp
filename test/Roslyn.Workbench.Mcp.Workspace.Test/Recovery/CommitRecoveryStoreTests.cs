@@ -16,6 +16,7 @@ public sealed class CommitRecoveryStoreTests
     private readonly Mock<IDirectory> _directory;
     private readonly Mock<IPath> _path;
     private readonly Mock<IAtomicFileWriter> _atomicFileWriter;
+    private readonly Mock<IWorkspacePathComparison> _pathComparison;
     private readonly CommitRecoveryStore _target;
 
     public CommitRecoveryStoreTests()
@@ -25,6 +26,7 @@ public sealed class CommitRecoveryStoreTests
         _directory = new Mock<IDirectory>();
         _path = new Mock<IPath>();
         _atomicFileWriter = new Mock<IAtomicFileWriter>();
+        _pathComparison = new Mock<IWorkspacePathComparison>();
         _fileSystem.SetupGet(item => item.File).Returns(_file.Object);
         _fileSystem.SetupGet(item => item.Directory).Returns(_directory.Object);
         _fileSystem.SetupGet(item => item.Path).Returns(_path.Object);
@@ -46,10 +48,13 @@ public sealed class CommitRecoveryStoreTests
             .Returns((string directory, string fileName) => directory + "/" + fileName);
         _path.Setup(item => item.GetFullPath(It.Is<string>(value => value.StartsWith(_recoveryDirectory, StringComparison.Ordinal))))
             .Returns((string path) => Path.GetFullPath(path));
+        _pathComparison.SetupGet(item => item.Comparison).Returns(StringComparison.Ordinal);
+        _pathComparison.SetupGet(item => item.Comparer).Returns(StringComparer.Ordinal);
         _target = new CommitRecoveryStore(
             Options.Create(new WorkspaceCoordinatorOptions { StateDirectory = "StateDirectory" }),
             _fileSystem.Object,
-            _atomicFileWriter.Object);
+            _atomicFileWriter.Object,
+            _pathComparison.Object);
     }
 
     [Fact]

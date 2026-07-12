@@ -21,7 +21,7 @@ public sealed class AddImportToolTests
     [Fact]
     public async Task GIVEN_AddImportRequestWithoutSimplifyAllOccurrences_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithoutSimplifyAllOccurrencesTitle()
     {
-        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new AddImportRequest
         {
@@ -66,7 +66,7 @@ public sealed class AddImportToolTests
     [Fact]
     public async Task GIVEN_AddImportRequestWithSimplifyAllOccurrences_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithSimplifyAllOccurrencesTitle()
     {
-        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new AddImportRequest
         {

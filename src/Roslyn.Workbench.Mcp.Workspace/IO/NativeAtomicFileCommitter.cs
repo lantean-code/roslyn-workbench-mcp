@@ -1,6 +1,8 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 
+using Microsoft.Win32.SafeHandles;
+
 namespace Roslyn.Workbench.Mcp.Workspace.IO;
 
 internal sealed partial class NativeAtomicFileCommitter : IAtomicFileCommitter
@@ -15,18 +17,15 @@ internal sealed partial class NativeAtomicFileCommitter : IAtomicFileCommitter
 
         if (OperatingSystem.IsWindows())
         {
-            if (MoveFileEx(temporaryPath, destinationPath, _moveFileReplaceExisting | _moveFileWriteThrough) == 0)
-            {
-                throw new IOException(
-                    $"The atomic replacement of '{destinationPath}' failed.",
-                    new Win32Exception(Marshal.GetLastPInvokeError()));
-            }
-
+            MoveWindows(
+                temporaryPath,
+                destinationPath,
+                _moveFileReplaceExisting | _moveFileWriteThrough,
+                $"The atomic replacement of '{destinationPath}' failed.");
             return;
         }
 
-        File.Move(temporaryPath, destinationPath, overwrite: true);
-        SyncDirectory(GetRequiredDirectoryName(destinationPath));
+        MoveUnix(temporaryPath, destinationPath, overwrite: true);
     }
 
     public void Move(string sourcePath, string destinationPath)
@@ -36,42 +35,47 @@ internal sealed partial class NativeAtomicFileCommitter : IAtomicFileCommitter
 
         if (OperatingSystem.IsWindows())
         {
-            if (MoveFileEx(sourcePath, destinationPath, _moveFileWriteThrough) == 0)
-            {
-                throw new IOException(
-                    $"The durable move from '{sourcePath}' to '{destinationPath}' failed.",
-                    new Win32Exception(Marshal.GetLastPInvokeError()));
-            }
-
+            MoveWindows(
+                sourcePath,
+                destinationPath,
+                _moveFileWriteThrough,
+                $"The durable move from '{sourcePath}' to '{destinationPath}' failed.");
             return;
         }
 
-        File.Move(sourcePath, destinationPath);
+        MoveUnix(sourcePath, destinationPath, overwrite: false);
+    }
+
+    private static void MoveWindows(string sourcePath, string destinationPath, uint flags, string failureMessage)
+    {
+        if (MoveFileEx(sourcePath, destinationPath, flags) == 0)
+        {
+            throw new IOException(failureMessage, new Win32Exception(Marshal.GetLastPInvokeError()));
+        }
+    }
+
+    private static void MoveUnix(string sourcePath, string destinationPath, bool overwrite)
+    {
+        File.Move(sourcePath, destinationPath, overwrite);
         SyncDirectory(GetRequiredDirectoryName(destinationPath));
     }
 
     private static void SyncDirectory(string directoryPath)
     {
-        var fileDescriptor = Open(directoryPath, 0);
-        if (fileDescriptor < 0)
+        var rawFileDescriptor = Open(directoryPath, 0);
+        if (rawFileDescriptor < 0)
         {
             throw new IOException(
                 $"The directory '{directoryPath}' could not be opened for durability synchronisation.",
                 new Win32Exception(Marshal.GetLastPInvokeError()));
         }
 
-        try
+        using var fileDescriptor = new SafeFileHandle((IntPtr)rawFileDescriptor, ownsHandle: true);
+        if (Fsync(fileDescriptor.DangerousGetHandle().ToInt32()) != 0)
         {
-            if (Fsync(fileDescriptor) != 0)
-            {
-                throw new IOException(
-                    $"The directory '{directoryPath}' could not be synchronised after atomic replacement.",
-                    new Win32Exception(Marshal.GetLastPInvokeError()));
-            }
-        }
-        finally
-        {
-            _ = Close(fileDescriptor);
+            throw new IOException(
+                $"The directory '{directoryPath}' could not be synchronised after atomic replacement.",
+                new Win32Exception(Marshal.GetLastPInvokeError()));
         }
     }
 
@@ -90,6 +94,4 @@ internal sealed partial class NativeAtomicFileCommitter : IAtomicFileCommitter
     [LibraryImport("libc", EntryPoint = "fsync", SetLastError = true)]
     private static partial int Fsync(int fileDescriptor);
 
-    [LibraryImport("libc", EntryPoint = "close", SetLastError = true)]
-    private static partial int Close(int fileDescriptor);
 }

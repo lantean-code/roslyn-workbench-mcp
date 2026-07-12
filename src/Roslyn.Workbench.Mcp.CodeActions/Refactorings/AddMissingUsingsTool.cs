@@ -22,11 +22,11 @@ internal sealed class AddMissingUsingsTool : CodeActionMutationToolHandler<AddMi
         registry.RegisterMutationTool(_metadata, new AddMissingUsingsTool());
     }
 
-    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteCoreAsync(AddMissingUsingsRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
+    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(AddMissingUsingsRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         if (request.PreferGlobalUsings)
         {
-            return ValueTask.FromResult(ToolExecutionHelpers.Rejected<WorkspaceMutationProposal>("UnsupportedOption", "The preferGlobalUsings option is not supported by the current Roslyn add-import backend."));
+            return ValueTask.FromResult(ToolExecutionHelpers.Rejected<WorkspaceMutationCandidate>("UnsupportedOption", "The preferGlobalUsings option is not supported by the current Roslyn add-import backend."));
         }
 
         return context.StageScopedCodeFixAsync(new ScopedCodeFixRequest

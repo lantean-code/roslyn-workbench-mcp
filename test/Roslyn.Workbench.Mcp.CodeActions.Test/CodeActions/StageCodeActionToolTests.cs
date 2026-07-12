@@ -21,7 +21,7 @@ public sealed class StageCodeActionToolTests
     [Fact]
     public async Task GIVEN_MutationContextReturnsResult_WHEN_CallingExecuteAsync_THEN_ShouldReturnMutationContextResult()
     {
-        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var request = new StageCodeActionRequest
         {
             ActionId = "ActionId",

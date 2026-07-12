@@ -8,6 +8,7 @@ public sealed class WorkspaceRootResolverTests
     private readonly Mock<IFile> _file;
     private readonly Mock<IDirectory> _directory;
     private readonly Mock<IPath> _path;
+    private readonly Mock<IWorkspacePathComparison> _pathComparison;
     private readonly WorkspaceRootResolver _target;
 
     public WorkspaceRootResolverTests()
@@ -16,6 +17,7 @@ public sealed class WorkspaceRootResolverTests
         _file = new Mock<IFile>();
         _directory = new Mock<IDirectory>();
         _path = new Mock<IPath>();
+        _pathComparison = new Mock<IWorkspacePathComparison>();
         _fileSystem.SetupGet(item => item.File).Returns(_file.Object);
         _fileSystem.SetupGet(item => item.Directory).Returns(_directory.Object);
         _fileSystem.SetupGet(item => item.Path).Returns(_path.Object);
@@ -26,7 +28,18 @@ public sealed class WorkspaceRootResolverTests
         _path.Setup(item => item.GetRelativePath(It.IsAny<string>(), It.IsAny<string>())).Returns((string root, string value) => Path.GetRelativePath(root, value));
         _path.Setup(item => item.IsPathRooted(It.IsAny<string>())).Returns((string value) => Path.IsPathRooted(value));
         _path.SetupGet(item => item.DirectorySeparatorChar).Returns(Path.DirectorySeparatorChar);
-        _target = new WorkspaceRootResolver(_fileSystem.Object);
+        _pathComparison.SetupGet(item => item.Comparison).Returns(StringComparison.Ordinal);
+        _target = new WorkspaceRootResolver(_fileSystem.Object, _pathComparison.Object);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("relative")]
+    public void GIVEN_InvalidLoadedPath_WHEN_Resolving_THEN_ShouldRejectIt(string loadedPath)
+    {
+        var result = _target.Resolve(loadedPath, requestedRoot: null);
+
+        result.Should().BeNull();
     }
 
     [Fact]
@@ -87,12 +100,69 @@ public sealed class WorkspaceRootResolverTests
     }
 
     [Fact]
+    public void GIVEN_ExplicitRootDoesNotExist_WHEN_Resolving_THEN_ShouldRejectIt()
+    {
+        var root = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "repository"));
+        var loadedPath = Path.Combine(root, "Project.csproj");
+
+        var result = _target.Resolve(loadedPath, root);
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public void GIVEN_ExplicitRootDoesNotContainLoadedPath_WHEN_Resolving_THEN_ShouldRejectIt()
+    {
+        var root = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "repository"));
+        var loadedPath = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "other", "Project.csproj"));
+        _directory.Setup(item => item.Exists(root)).Returns(true);
+
+        var result = _target.Resolve(loadedPath, root);
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public void GIVEN_PathParentIsUnchanged_WHEN_Resolving_THEN_ShouldUseLoadedPathDirectory()
+    {
+        var root = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "repository"));
+        var loadedPath = Path.Combine(root, "Project.csproj");
+        _path.Setup(item => item.GetDirectoryName(loadedPath)).Returns(root);
+        _path.Setup(item => item.GetDirectoryName(root)).Returns(root);
+
+        var result = _target.Resolve(loadedPath, requestedRoot: null);
+
+        result.Should().Be(root);
+    }
+
+    [Fact]
     public void GIVEN_PathOutsideRoot_WHEN_CheckingContainment_THEN_ShouldReturnFalse()
     {
         var root = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "first"));
         var path = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "second", "Project.csproj"));
 
         var result = _target.Contains(root, path);
+
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public void GIVEN_PathIsParentOfRoot_WHEN_CheckingContainment_THEN_ShouldReturnFalse()
+    {
+        _path.Setup(item => item.GetRelativePath(It.IsAny<string>(), It.IsAny<string>())).Returns("..");
+
+        var result = _target.Contains("/workspace/project", "/workspace");
+
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public void GIVEN_RelativePathIsRooted_WHEN_CheckingContainment_THEN_ShouldReturnFalse()
+    {
+        var rootedPath = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "project", "Project.csproj"));
+        _path.Setup(item => item.GetRelativePath(It.IsAny<string>(), It.IsAny<string>())).Returns(rootedPath);
+
+        var result = _target.Contains("/workspace", rootedPath);
 
         result.Should().BeFalse();
     }

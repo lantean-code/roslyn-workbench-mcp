@@ -22,7 +22,7 @@ internal sealed class UseNamedArgumentsTool : CodeActionMutationToolHandler<UseN
         registry.RegisterMutationTool(_metadata, new UseNamedArgumentsTool());
     }
 
-    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteCoreAsync(UseNamedArgumentsRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
+    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(UseNamedArgumentsRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         var titleDoesNotContain = request.IncludeTrailingArguments ? null : "including trailing arguments";
         var titleStartsWith = request.IncludeTrailingArguments

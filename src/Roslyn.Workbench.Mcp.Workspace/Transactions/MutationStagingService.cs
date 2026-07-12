@@ -1,4 +1,5 @@
 using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
+
 namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
 internal sealed class MutationStagingService : IMutationStagingService
@@ -8,235 +9,164 @@ internal sealed class MutationStagingService : IMutationStagingService
     private readonly IWorkspaceDiffBuilder _diffBuilder;
     private readonly IWorkspaceResolverFactory _resolverFactory;
     private readonly IWorkspaceInstanceStatusPublisher _instanceStatusPublisher;
+    private readonly IWorkspaceMutationCandidateValidator _candidateValidator;
 
     public MutationStagingService(
         IWorkspaceOperationResultFactory resultFactory,
         IWorkspaceSessionStore sessionStore,
         IWorkspaceDiffBuilder diffBuilder,
         IWorkspaceResolverFactory resolverFactory,
-        IWorkspaceInstanceStatusPublisher instanceStatusPublisher)
+        IWorkspaceInstanceStatusPublisher instanceStatusPublisher,
+        IWorkspaceMutationCandidateValidator candidateValidator)
     {
         _resultFactory = resultFactory;
         _sessionStore = sessionStore;
         _diffBuilder = diffBuilder;
         _resolverFactory = resolverFactory;
         _instanceStatusPublisher = instanceStatusPublisher;
+        _candidateValidator = candidateValidator;
     }
 
     public async ValueTask<WorkspaceOperationResult<MutationStagingOutcome>> StageAsync(
         string operationName,
-        WorkspaceMutationProposal proposal,
+        WorkspaceMutationCandidate candidate,
         IReadOnlyList<DiagnosticInfo> diagnostics,
         IReadOnlyList<WarningInfo> warnings,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var hostSnapshot = _sessionStore.ReadSnapshot();
-        var transactionOwnerWorkspaceId = hostSnapshot.TransactionOwnerWorkspaceId;
+        var transactionOwnerWorkspaceId = _sessionStore.ReadSnapshot().TransactionOwnerWorkspaceId;
         if (string.IsNullOrWhiteSpace(transactionOwnerWorkspaceId))
         {
-            return _resultFactory.Rejected<MutationStagingOutcome>(
-                WorkspaceErrorCodes.TransactionRequired,
-                "Start a transaction before invoking mutation tools.",
-                RequiredAction.StartTransaction);
+            return CreateTransactionRequiredResult();
         }
 
         var session = _sessionStore.ReadSession(transactionOwnerWorkspaceId);
-        if (session?.Transaction is null)
+        var transaction = session?.Transaction;
+        if (session is null || transaction is null)
         {
-            return _resultFactory.Rejected<MutationStagingOutcome>(
-                WorkspaceErrorCodes.TransactionRequired,
-                "Start a transaction before invoking mutation tools.",
-                RequiredAction.StartTransaction);
+            return CreateTransactionRequiredResult();
         }
 
-        var validationError = ValidateMutationProposal(session.CurrentSolution, proposal);
+        var validationError = _candidateValidator.Validate(session.CurrentSolution, candidate.CandidateSolution);
         if (validationError is not null)
         {
-            return _resultFactory.Rejected<MutationStagingOutcome>(
-                validationError,
-                diagnostics: diagnostics,
-                warnings: warnings);
+            return CreateValidationFailureResult(validationError, diagnostics, warnings);
         }
 
-        var candidateSolution = proposal.CandidateSolution
-            ?? throw new InvalidOperationException("A validated mutation proposal did not contain a candidate solution.");
+        var stagedMutation = await CreateStagedMutationAsync(
+            operationName,
+            candidate,
+            session,
+            transaction,
+            cancellationToken).ConfigureAwait(false);
+        _sessionStore.ReplaceSession(stagedMutation.Session);
+        await PublishStatusAsync(stagedMutation).ConfigureAwait(false);
 
-        var transaction = session.Transaction;
-        var stagedChanges = await _diffBuilder.CreateChangeSummaryAsync(
+        return CreateSuccessResult(operationName, candidate, stagedMutation, diagnostics, warnings);
+    }
+
+    private async ValueTask<StagedMutation> CreateStagedMutationAsync(
+        string operationName,
+        WorkspaceMutationCandidate candidate,
+        WorkspaceSessionSnapshot session,
+        WorkspaceTransaction transaction,
+        CancellationToken cancellationToken)
+    {
+        var changes = await _diffBuilder.CreateChangeSummaryAsync(
             transaction.BaselineSolution,
-            candidateSolution,
-            _resolverFactory.Create(candidateSolution, session.Workspace, transaction.CurrentRevision + 1),
-            cancellationToken);
-        var retainedRevisions = transaction.Revisions.Take(transaction.CurrentRevision).ToArray();
-        var revision = new WorkspaceTransactionRevision
-        {
-            Solution = candidateSolution,
-            Changes = stagedChanges,
-            Operation = operationName,
-            Summary = proposal.Summary,
-            Preview = new MutationPreview
-            {
-                Summary = proposal.Summary,
-            },
-        };
-        var updatedRevisions = retainedRevisions.Concat([revision]).ToArray();
-        var updatedTransaction = transaction with
-        {
-            Revisions = updatedRevisions,
-            CurrentRevision = updatedRevisions.Length,
-        };
+            candidate.CandidateSolution,
+            _resolverFactory.Create(candidate.CandidateSolution, session.Workspace, transaction.CurrentRevision + 1),
+            cancellationToken).ConfigureAwait(false);
+        var revision = CreateRevision(operationName, candidate, changes);
+        var updatedTransaction = transaction.Append(revision);
         var updatedSession = session with
         {
             Transaction = updatedTransaction,
             CurrentSolution = updatedTransaction.CurrentSolution,
         };
 
-        _sessionStore.ReplaceSession(updatedSession);
-        await _instanceStatusPublisher.UpdateAsync(
-            updatedSession.Workspace.WorkspaceId,
-            updatedSession.State,
-            updatedSession.Transaction?.CurrentRevision,
+        return new StagedMutation
+        {
+            Session = updatedSession,
+            Transaction = updatedTransaction,
+            Revision = revision,
+            Changes = changes,
+        };
+    }
+
+    private ValueTask PublishStatusAsync(StagedMutation stagedMutation)
+    {
+        return _instanceStatusPublisher.UpdateAsync(
+            stagedMutation.Session.Workspace.WorkspaceId,
+            stagedMutation.Session.State,
+            stagedMutation.Transaction.CurrentRevision,
             null,
-            null).ConfigureAwait(false);
+            null);
+    }
 
+    private WorkspaceOperationResult<MutationStagingOutcome> CreateSuccessResult(
+        string operationName,
+        WorkspaceMutationCandidate candidate,
+        StagedMutation stagedMutation,
+        IReadOnlyList<DiagnosticInfo> diagnostics,
+        IReadOnlyList<WarningInfo> warnings)
+    {
         return _resultFactory.Succeeded(
-            new MutationStagingOutcome
-            {
-                Operation = operationName,
-                Summary = proposal.Summary,
-                Transaction = updatedTransaction.ToInfo(conflicted: false),
-                Preview = revision.Preview,
-                Changes = stagedChanges,
-            },
+            CreateOutcome(operationName, candidate, stagedMutation),
             diagnostics: diagnostics,
-            warnings: warnings.Concat(proposal.Warnings).ToArray());
+            warnings: warnings.Concat(candidate.Warnings).ToArray());
     }
 
-    private static WorkspaceOperationError? ValidateMutationProposal(Solution currentSolution, WorkspaceMutationProposal proposal)
+    private WorkspaceOperationResult<MutationStagingOutcome> CreateTransactionRequiredResult()
     {
-        if (proposal.CandidateSolution is null)
-        {
-            return CreateError("InvalidMutationProposal", "Mutation proposals must provide a candidate solution.");
-        }
-
-        if (!ReferenceEquals(proposal.CandidateSolution.Workspace, currentSolution.Workspace))
-        {
-            return CreateError("InvalidMutationProposal", "Mutation proposals must belong to the current workspace.");
-        }
-
-        if (proposal.CandidateSolution.ProjectIds.Count != currentSolution.ProjectIds.Count)
-        {
-            return CreateError("UnsupportedChange", "Mutation proposals must not add or remove projects.");
-        }
-
-        foreach (var currentProject in currentSolution.Projects)
-        {
-            var candidateProject = proposal.CandidateSolution.GetProject(currentProject.Id);
-            if (candidateProject is null)
-            {
-                return CreateError("UnsupportedChange", "Mutation proposals must not alter project identity.");
-            }
-
-            if (!string.Equals(candidateProject.FilePath, currentProject.FilePath, StringComparison.Ordinal)
-                || !string.Equals(candidateProject.Name, currentProject.Name, StringComparison.Ordinal)
-                || !string.Equals(candidateProject.AssemblyName, currentProject.AssemblyName, StringComparison.Ordinal)
-                || !string.Equals(candidateProject.DefaultNamespace, currentProject.DefaultNamespace, StringComparison.Ordinal))
-            {
-                return CreateError("UnsupportedChange", "Mutation proposals must not alter project identity or options.");
-            }
-
-            var projectChanges = candidateProject.GetChanges(currentProject);
-            if (projectChanges.GetAddedMetadataReferences().Any()
-                || projectChanges.GetRemovedMetadataReferences().Any()
-                || projectChanges.GetAddedProjectReferences().Any()
-                || projectChanges.GetRemovedProjectReferences().Any()
-                || projectChanges.GetAddedAnalyzerReferences().Any()
-                || projectChanges.GetRemovedAnalyzerReferences().Any()
-                || projectChanges.GetAddedAdditionalDocuments().Any()
-                || projectChanges.GetChangedAdditionalDocuments().Any()
-                || projectChanges.GetRemovedAdditionalDocuments().Any()
-                || projectChanges.GetAddedAnalyzerConfigDocuments().Any()
-                || projectChanges.GetChangedAnalyzerConfigDocuments().Any()
-                || projectChanges.GetRemovedAnalyzerConfigDocuments().Any())
-            {
-                return CreateError("UnsupportedChange", "Mutation proposals must not alter project references or non-source documents.");
-            }
-
-            if (!Equals(candidateProject.CompilationOptions, currentProject.CompilationOptions)
-                || !Equals(candidateProject.ParseOptions, currentProject.ParseOptions))
-            {
-                return CreateError("UnsupportedChange", "Mutation proposals must not alter project identity or options.");
-            }
-
-            var textChangedDocuments = projectChanges.GetChangedDocuments(onlyGetDocumentsWithTextChanges: true).ToHashSet();
-            if (projectChanges.GetChangedDocuments().Except(textChangedDocuments).Any())
-            {
-                return CreateError("UnsupportedChange", "Mutation proposals must not alter source document metadata.");
-            }
-
-            if (TryValidateSourceDocuments(currentProject, projectChanges.GetRemovedDocuments(), "deleted") is { } removedValidationError)
-            {
-                return removedValidationError;
-            }
-
-            if (TryValidateSourceDocuments(candidateProject, projectChanges.GetAddedDocuments(), "created") is { } addedValidationError)
-            {
-                return addedValidationError;
-            }
-
-            if (TryValidateSourceDocuments(candidateProject, textChangedDocuments, "changed") is { } changedValidationError)
-            {
-                return changedValidationError;
-            }
-        }
-
-        return null;
+        return _resultFactory.Rejected<MutationStagingOutcome>(
+            WorkspaceErrorCodes.TransactionRequired,
+            "Start a transaction before invoking mutation tools.",
+            RequiredAction.StartTransaction);
     }
 
-    private static WorkspaceOperationError? TryValidateSourceDocuments(
-        Project project,
-        IEnumerable<DocumentId> documentIds,
-        string operation)
+    private WorkspaceOperationResult<MutationStagingOutcome> CreateValidationFailureResult(
+        WorkspaceOperationError validationError,
+        IReadOnlyList<DiagnosticInfo> diagnostics,
+        IReadOnlyList<WarningInfo> warnings)
     {
-        foreach (var documentId in documentIds)
-        {
-            var document = project.GetDocument(documentId);
-            if (document is null
-                || document.SourceCodeKind != SourceCodeKind.Regular
-                || string.IsNullOrWhiteSpace(document.FilePath))
-            {
-                return CreateError("UnsupportedChange", $"Mutation proposals must use regular source documents for {operation} files.");
-            }
-
-            var projectDirectory = Path.GetDirectoryName(project.FilePath ?? string.Empty);
-            if (string.IsNullOrWhiteSpace(projectDirectory)
-                || !IsPathWithinDirectory(document.FilePath, projectDirectory))
-            {
-                return CreateError("UnsupportedChange", "Mutation proposals must keep source files within the owning project directory.");
-            }
-        }
-
-        return null;
+        return _resultFactory.Rejected<MutationStagingOutcome>(
+            validationError,
+            diagnostics: diagnostics,
+            warnings: warnings);
     }
 
-    private static bool IsPathWithinDirectory(string candidatePath, string directoryPath)
+    private static WorkspaceTransactionRevision CreateRevision(
+        string operationName,
+        WorkspaceMutationCandidate candidate,
+        ChangeSummary stagedChanges)
     {
-        var normalizedDirectory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(directoryPath));
-        var normalizedCandidate = Path.GetFullPath(candidatePath);
-        var directoryPrefix = normalizedDirectory + Path.DirectorySeparatorChar;
-        var altDirectoryPrefix = normalizedDirectory + Path.AltDirectorySeparatorChar;
-
-        return normalizedCandidate.StartsWith(directoryPrefix, StringComparison.Ordinal)
-            || normalizedCandidate.StartsWith(altDirectoryPrefix, StringComparison.Ordinal);
+        return new WorkspaceTransactionRevision
+        {
+            Solution = candidate.CandidateSolution,
+            Changes = stagedChanges,
+            Operation = operationName,
+            Summary = candidate.Summary,
+            Preview = new MutationPreview
+            {
+                Summary = candidate.Summary,
+            },
+        };
     }
 
-    private static WorkspaceOperationError CreateError(string code, string message)
+    private static MutationStagingOutcome CreateOutcome(
+        string operationName,
+        WorkspaceMutationCandidate candidate,
+        StagedMutation stagedMutation)
     {
-        return new WorkspaceOperationError
+        return new MutationStagingOutcome
         {
-            Code = code,
-            Message = message,
+            Operation = operationName,
+            Summary = candidate.Summary,
+            Transaction = stagedMutation.Transaction.ToInfo(conflicted: false),
+            Preview = stagedMutation.Revision.Preview,
+            Changes = stagedMutation.Changes,
         };
     }
 }

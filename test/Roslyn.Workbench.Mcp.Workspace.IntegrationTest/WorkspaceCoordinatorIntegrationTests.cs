@@ -590,7 +590,7 @@ public sealed class WorkspaceCoordinatorIntegrationTests
     }
 
     [Fact]
-    public async Task GIVEN_MutationProposalThatChangesCompilationOptions_WHEN_Staging_THEN_ShouldRejectUnsupportedChange()
+    public async Task GIVEN_MutationCandidateThatChangesCompilationOptions_WHEN_Staging_THEN_ShouldRejectUnsupportedChange()
     {
         using var fixture = await TestWorkspaceFixture.CreateAsync();
         var target = fixture.CreateCoordinator();
@@ -735,7 +735,8 @@ public sealed class WorkspaceCoordinatorIntegrationTests
         var recoveryStore = new CommitRecoveryStore(
             Options.Create(new WorkspaceCoordinatorOptions { StateDirectory = stateDirectory }),
             fileSystem,
-            new AtomicFileWriter(fileSystem, new NativeAtomicFileCommitter()));
+            new AtomicFileWriter(fileSystem, new NativeAtomicFileCommitter()),
+            new WorkspacePathComparison());
         await recoveryStore.WriteStatusAsync(new RecoveryStatus
         {
             CommitId = "commit-id",
@@ -873,7 +874,7 @@ public sealed class WorkspaceCoordinatorIntegrationTests
 
     private sealed class StageMutationHandler : IMutationToolHandler<StageMutationRequest>
     {
-        public async ValueTask<PluginExecutionResult<MutationProposal>> ExecuteAsync(StageMutationRequest request, IMutationContext context, CancellationToken cancellationToken)
+        public async ValueTask<PluginExecutionResult<MutationCandidate>> ExecuteAsync(StageMutationRequest request, IMutationContext context, CancellationToken cancellationToken)
         {
             _ = request;
             cancellationToken.ThrowIfCancellationRequested();
@@ -889,7 +890,7 @@ public sealed class WorkspaceCoordinatorIntegrationTests
                         Environment.NewLine + "public sealed class TransactionMarker { }" + Environment.NewLine),
                 ]));
 
-            return PluginExecutionResult<MutationProposal>.Success(new MutationProposal
+            return PluginExecutionResult<MutationCandidate>.Success(new MutationCandidate
             {
                 CandidateSolution = candidateSolution,
                 Summary = "Stage transaction marker.",
@@ -899,7 +900,7 @@ public sealed class WorkspaceCoordinatorIntegrationTests
 
     private sealed class MultiFileMutationHandler : IMutationToolHandler<StageMutationRequest>
     {
-        public async ValueTask<PluginExecutionResult<MutationProposal>> ExecuteAsync(
+        public async ValueTask<PluginExecutionResult<MutationCandidate>> ExecuteAsync(
             StageMutationRequest request,
             IMutationContext context,
             CancellationToken cancellationToken)
@@ -914,7 +915,7 @@ public sealed class WorkspaceCoordinatorIntegrationTests
                     Environment.NewLine + "// TransactionMarker" + Environment.NewLine)));
             }
 
-            return PluginExecutionResult<MutationProposal>.Success(new MutationProposal
+            return PluginExecutionResult<MutationCandidate>.Success(new MutationCandidate
             {
                 CandidateSolution = candidate,
                 Summary = "Stage multi-file transaction markers.",
@@ -924,7 +925,7 @@ public sealed class WorkspaceCoordinatorIntegrationTests
 
     private sealed class CompilationOptionsMutationHandler : IMutationToolHandler<StageMutationRequest>
     {
-        public ValueTask<PluginExecutionResult<MutationProposal>> ExecuteAsync(StageMutationRequest request, IMutationContext context, CancellationToken cancellationToken)
+        public ValueTask<PluginExecutionResult<MutationCandidate>> ExecuteAsync(StageMutationRequest request, IMutationContext context, CancellationToken cancellationToken)
         {
             _ = request;
             cancellationToken.ThrowIfCancellationRequested();
@@ -936,7 +937,7 @@ public sealed class WorkspaceCoordinatorIntegrationTests
                 : compilationOptions.WithOptimizationLevel(Microsoft.CodeAnalysis.OptimizationLevel.Debug);
             var candidateSolution = context.CurrentSolution.WithProjectCompilationOptions(project.Id, updatedOptions);
 
-            return ValueTask.FromResult(PluginExecutionResult<MutationProposal>.Success(new MutationProposal
+            return ValueTask.FromResult(PluginExecutionResult<MutationCandidate>.Success(new MutationCandidate
             {
                 CandidateSolution = candidateSolution,
                 Summary = "Change compilation options.",

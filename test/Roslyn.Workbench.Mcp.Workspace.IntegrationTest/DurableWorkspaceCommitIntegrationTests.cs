@@ -23,7 +23,8 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
         _store = new CommitRecoveryStore(
             Options.Create(new WorkspaceCoordinatorOptions { StateDirectory = _stateDirectory }),
             _fileSystem,
-            _atomicWriter);
+            _atomicWriter,
+            new WorkspacePathComparison());
         _writer = new WorkspaceCommitWriter(_fileSystem, _atomicWriter, _store, _fileCommitter);
     }
 
@@ -233,7 +234,8 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
         var store = new CommitRecoveryStore(
             Options.Create(new WorkspaceCoordinatorOptions { StateDirectory = _stateDirectory }),
             fileSystem,
-            atomicWriter);
+            atomicWriter,
+            new WorkspacePathComparison());
         var writer = new WorkspaceCommitWriter(fileSystem, atomicWriter, store, fileCommitter);
         return new WorkspaceCommitRecoveryService(store, writer, CreateLockManager(fileSystem));
     }

@@ -21,7 +21,7 @@ public sealed class RemoveUnusedUsingsToolTests
     [Fact]
     public async Task GIVEN_RemoveUnusedUsingsRequest_WHEN_CallingExecuteAsync_THEN_ShouldStageScopedCodeFixForUnusedUsings()
     {
-        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new RemoveUnusedUsingsRequest
         {

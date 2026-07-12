@@ -90,7 +90,7 @@ The former production Contracts project has been removed. Contracts now live wit
   - `src/Roslyn.Workbench.Mcp.Workspace/MutationStagingService.cs`
   - `src/Roslyn.Workbench.Mcp.Workspace/WorkspaceExecutionContextFactory.cs`
   Notes:
-  - Workspace exposes only workspace-owned contexts, failures, mutation proposals and staging results.
+  - Workspace exposes only workspace-owned contexts, failures, mutation candidates and staging results.
 
 - [x] Rework code action runtime composition into a cleaner service boundary.
   Files:

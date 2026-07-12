@@ -17,7 +17,7 @@ internal sealed class CodeActionMutationRegistration<TRequest> : IRegisteredCode
 
     public Type RequestType => typeof(TRequest);
 
-    public Type ResponseType => typeof(WorkspaceMutationProposal);
+    public Type ResponseType => typeof(MutationData);
 
     public ICodeActionMutationToolHandler<TRequest> Handler { get; }
 

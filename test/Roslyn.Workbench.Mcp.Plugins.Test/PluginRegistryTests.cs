@@ -128,7 +128,7 @@ public sealed class PluginRegistryTests
 
         tool.Kind.Should().Be(ToolKind.Mutation);
         tool.RequestType.Should().Be(typeof(TestRequest));
-        tool.ResponseType.Should().Be(typeof(MutationProposal));
+        tool.ResponseType.Should().Be(typeof(MutationData));
     }
 
     [Fact]
@@ -199,14 +199,14 @@ public sealed class PluginRegistryTests
 
     private sealed class TestMutationHandler : IMutationToolHandler<TestRequest>
     {
-        public ValueTask<PluginExecutionResult<MutationProposal>> ExecuteAsync(TestRequest request, IMutationContext context, CancellationToken cancellationToken)
+        public ValueTask<PluginExecutionResult<MutationCandidate>> ExecuteAsync(TestRequest request, IMutationContext context, CancellationToken cancellationToken)
         {
             _ = request;
-            _ = context;
             _ = cancellationToken;
 
-            return ValueTask.FromResult(PluginExecutionResult<MutationProposal>.Success(new MutationProposal
+            return ValueTask.FromResult(PluginExecutionResult<MutationCandidate>.Success(new MutationCandidate
             {
+                CandidateSolution = context.CurrentSolution,
                 Summary = "Summary",
             }));
         }

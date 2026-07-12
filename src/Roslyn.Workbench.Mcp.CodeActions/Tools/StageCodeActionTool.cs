@@ -20,7 +20,7 @@ internal sealed class StageCodeActionTool : CodeActionMutationToolHandler<StageC
         registry.RegisterMutationTool(_metadata, new StageCodeActionTool());
     }
 
-    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteCoreAsync(StageCodeActionRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
+    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(StageCodeActionRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         return context.StageCodeActionAsync(request, cancellationToken);
     }

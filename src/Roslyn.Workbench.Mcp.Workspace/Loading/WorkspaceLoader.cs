@@ -5,10 +5,14 @@ namespace Roslyn.Workbench.Mcp.Workspace.Loading;
 internal sealed class WorkspaceLoader : IWorkspaceLoader
 {
     private readonly HostServices? _workspaceHostServices;
+    private readonly IWorkspaceProjectCompatibilityInspector _compatibilityInspector;
 
-    public WorkspaceLoader(WorkspaceHostServicesAccessor workspaceHostServicesAccessor)
+    public WorkspaceLoader(
+        WorkspaceHostServicesAccessor workspaceHostServicesAccessor,
+        IWorkspaceProjectCompatibilityInspector compatibilityInspector)
     {
         _workspaceHostServices = workspaceHostServicesAccessor.WorkspaceHostServices;
+        _compatibilityInspector = compatibilityInspector;
     }
 
     public string? NormalizeOpenPath(string path)
@@ -41,7 +45,7 @@ internal sealed class WorkspaceLoader : IWorkspaceLoader
 
     public (bool IsSdkStyle, IReadOnlyList<DiagnosticInfo> Diagnostics) InspectCompatibility(string projectPath)
     {
-        return MsBuildProjectUtilities.InspectCompatibility(projectPath);
+        return _compatibilityInspector.Inspect(projectPath);
     }
 
     public async ValueTask<WorkspaceLoadResult> LoadAsync(string path, CancellationToken cancellationToken)

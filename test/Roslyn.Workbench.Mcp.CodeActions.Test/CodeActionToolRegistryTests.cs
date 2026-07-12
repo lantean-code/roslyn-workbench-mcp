@@ -70,12 +70,12 @@ public sealed class CodeActionToolRegistryTests
 
     private sealed class TestMutationHandler : CodeActionMutationToolHandler<TestRequest>
     {
-        protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteCoreAsync(
+        protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(
             TestRequest request,
             ICodeActionMutationContext context,
             CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal()));
+            return ValueTask.FromResult(CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate()));
         }
     }
 }

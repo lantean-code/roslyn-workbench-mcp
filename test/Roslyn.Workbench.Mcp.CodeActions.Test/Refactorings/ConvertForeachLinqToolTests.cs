@@ -36,7 +36,7 @@ public sealed class ConvertForeachLinqToolTests
     [Fact]
     public async Task GIVEN_ForeachToCallFormKind_WHEN_CallingExecuteAsync_THEN_ShouldStageCallFormReplayAction()
     {
-        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new ConvertForeachLinqRequest
         {
@@ -76,7 +76,7 @@ public sealed class ConvertForeachLinqToolTests
     [Fact]
     public async Task GIVEN_LinqToForeachKind_WHEN_CallingExecuteAsync_THEN_ShouldStageForeachReplayAction()
     {
-        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new ConvertForeachLinqRequest
         {
@@ -116,7 +116,7 @@ public sealed class ConvertForeachLinqToolTests
     [Fact]
     public async Task GIVEN_ForeachToQueryKind_WHEN_CallingExecuteAsync_THEN_ShouldStageQueryReplayAction()
     {
-        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new ConvertForeachLinqRequest
         {

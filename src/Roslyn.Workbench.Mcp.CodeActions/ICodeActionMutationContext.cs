@@ -2,31 +2,31 @@ namespace Roslyn.Workbench.Mcp.CodeActions;
 
 internal interface ICodeActionMutationContext : ICodeActionExecutionContext
 {
-    ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageCodeActionAsync(
+    ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageCodeActionAsync(
         StageCodeActionRequest request,
         CancellationToken cancellationToken);
 
-    ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageReplayCodeActionAsync(
+    ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageReplayCodeActionAsync(
         ReplayCodeActionRequest request,
         CancellationToken cancellationToken);
 
-    ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageCodeFixAsync(
+    ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageCodeFixAsync(
         StageCodeFixRequest request,
         CancellationToken cancellationToken);
 
-    ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageFixAllAsync(
+    ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageFixAllAsync(
         StageFixAllRequest request,
         CancellationToken cancellationToken);
 
-    ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageScopedCodeFixAsync(
+    ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageScopedCodeFixAsync(
         ScopedCodeFixRequest request,
         CancellationToken cancellationToken);
 
-    ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageLocationCodeFixAsync(
+    ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageLocationCodeFixAsync(
         LocationCodeFixRequest request,
         CancellationToken cancellationToken);
 
-    ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageReplaySelectionAsync(
+    ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageReplaySelectionAsync(
         LocationSelector? selection,
         SnapshotPrecondition? expectedSnapshot,
         CancellationToken cancellationToken,

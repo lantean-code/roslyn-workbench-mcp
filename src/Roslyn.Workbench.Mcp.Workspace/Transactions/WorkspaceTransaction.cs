@@ -16,6 +16,20 @@ internal sealed record WorkspaceTransaction
         ? BaselineSolution
         : Revisions[CurrentRevision - 1].Solution;
 
+    public WorkspaceTransaction Append(WorkspaceTransactionRevision revision)
+    {
+        var revisions = Revisions
+            .Take(CurrentRevision)
+            .Append(revision)
+            .ToArray();
+
+        return this with
+        {
+            Revisions = revisions,
+            CurrentRevision = revisions.Length,
+        };
+    }
+
     public TransactionInfo ToInfo(bool conflicted)
     {
         return new TransactionInfo

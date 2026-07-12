@@ -22,7 +22,7 @@ internal sealed class AddAwaitTool : CodeActionMutationToolHandler<AddAwaitReque
         registry.RegisterMutationTool(_metadata, new AddAwaitTool());
     }
 
-    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteCoreAsync(AddAwaitRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
+    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(AddAwaitRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         var title = request.Kind == AddAwaitKind.AwaitConfigureAwaitFalse
             ? "Add 'await' and 'ConfigureAwait(false)'"

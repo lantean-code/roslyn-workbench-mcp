@@ -21,7 +21,7 @@ public sealed class ConvertExpressionBodyToolTests
     [Fact]
     public async Task GIVEN_PrimaryProviderReturnsNonUnavailableResult_WHEN_CallingExecuteAsync_THEN_ShouldReturnPrimaryResult()
     {
-        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new LocationRefactoringRequest
         {
@@ -74,7 +74,7 @@ public sealed class ConvertExpressionBodyToolTests
     [Fact]
     public async Task GIVEN_PrimaryProviderReturnsDifferentRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnPrimaryRejection()
     {
-        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Rejected(new CodeActionExecutionError
+        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
         {
             Code = "InvalidRequest",
             Message = "InvalidRequest",
@@ -131,7 +131,7 @@ public sealed class ConvertExpressionBodyToolTests
     [Fact]
     public async Task GIVEN_PrimaryProviderReturnsRejectionWithoutError_WHEN_CallingExecuteAsync_THEN_ShouldReturnPrimaryRejection()
     {
-        var expected = new CodeActionExecutionResult<WorkspaceMutationProposal>
+        var expected = new CodeActionExecutionResult<WorkspaceMutationCandidate>
         {
             Outcome = CodeActionExecutionOutcome.Rejected,
         };
@@ -187,7 +187,7 @@ public sealed class ConvertExpressionBodyToolTests
     [Fact]
     public async Task GIVEN_PrimaryProviderReturnsUnavailableRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnLambdaProviderResult()
     {
-        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new LocationRefactoringRequest
         {
@@ -210,7 +210,7 @@ public sealed class ConvertExpressionBodyToolTests
                 null,
                 null,
                 null))
-            .ReturnsAsync(CodeActionExecutionResult<WorkspaceMutationProposal>.Rejected(new CodeActionExecutionError
+            .ReturnsAsync(CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
             {
                 Code = "CodeActionUnavailable",
                 Message = "CodeActionUnavailable",

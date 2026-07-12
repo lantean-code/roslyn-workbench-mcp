@@ -18,7 +18,7 @@ public sealed class PluginSurfaceShapeTests
         typeof(IPluginRegistry).FullName.Should().Be("Roslyn.Workbench.Mcp.Plugins.IPluginRegistry");
         typeof(IQueryContext).FullName.Should().Be("Roslyn.Workbench.Mcp.Plugins.IQueryContext");
         typeof(IMutationContext).FullName.Should().Be("Roslyn.Workbench.Mcp.Plugins.IMutationContext");
-        typeof(MutationProposal).FullName.Should().Be("Roslyn.Workbench.Mcp.Plugins.MutationProposal");
+        typeof(MutationCandidate).FullName.Should().Be("Roslyn.Workbench.Mcp.Plugins.MutationCandidate");
         typeof(RegisteredTool).FullName.Should().Be("Roslyn.Workbench.Mcp.Plugins.Execution.RegisteredTool");
     }
 }

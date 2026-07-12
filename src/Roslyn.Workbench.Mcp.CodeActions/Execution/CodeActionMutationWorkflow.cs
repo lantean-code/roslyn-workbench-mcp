@@ -28,7 +28,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
         _tokenService = tokenService;
     }
 
-    public ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageCodeActionAsync(
+    public ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageCodeActionAsync(
         StageCodeActionRequest request,
         ICodeActionMutationContext context,
         CancellationToken cancellationToken)
@@ -42,7 +42,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
         return StageAsync(request.ActionId, request.ExpectedSnapshot, DiscoveredActionKind.Refactoring, context, cancellationToken);
     }
 
-    public async ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageReplayCodeActionAsync(
+    public async ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageReplayCodeActionAsync(
         ReplayCodeActionRequest request,
         ICodeActionMutationContext context,
         CancellationToken cancellationToken)
@@ -54,7 +54,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
             return runtimeRejection;
         }
 
-        var snapshotRejection = ValidateSnapshot<WorkspaceMutationProposal>(context.WorkspaceResolver, request.ExpectedSnapshot);
+        var snapshotRejection = ValidateSnapshot<WorkspaceMutationCandidate>(context.WorkspaceResolver, request.ExpectedSnapshot);
         if (snapshotRejection is not null)
         {
             return snapshotRejection;
@@ -62,26 +62,26 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
 
         if (request.Location is null)
         {
-            return Rejected<WorkspaceMutationProposal>("InvalidRequest", "A location selector is required.");
+            return Rejected<WorkspaceMutationCandidate>("InvalidRequest", "A location selector is required.");
         }
 
         var location = await context.WorkspaceResolver.ResolveLocationAsync(request.Location, cancellationToken).ConfigureAwait(false);
         if (location.Status != SelectorResolveStatus.Resolved || location.Value is null)
         {
-            return RejectFromStatus<WorkspaceMutationProposal>(location.Status, "Location");
+            return RejectFromStatus<WorkspaceMutationCandidate>(location.Status, "Location");
         }
 
         var document = context.CurrentSolution.GetDocument(location.Value.SourceTree);
         if (document is null)
         {
-            return Rejected<WorkspaceMutationProposal>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain);
+            return Rejected<WorkspaceMutationCandidate>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain);
         }
 
         var span = location.Value.SourceSpan;
         var matchingProviders = _discoveryService.GetMatchingRefactoringProviders(request.ProviderId);
         if (matchingProviders.Count == 0)
         {
-            return Rejected<WorkspaceMutationProposal>("CodeActionUnavailable", "No matching refactoring provider is available.");
+            return Rejected<WorkspaceMutationCandidate>("CodeActionUnavailable", "No matching refactoring provider is available.");
         }
 
         var candidates = new List<ClassifiedCodeAction>();
@@ -146,12 +146,12 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
             .ToArray();
         if (distinctCandidates.Length == 0)
         {
-            return Rejected<WorkspaceMutationProposal>("CodeActionUnavailable", "No matching replayable refactoring was available at the selected location.");
+            return Rejected<WorkspaceMutationCandidate>("CodeActionUnavailable", "No matching replayable refactoring was available at the selected location.");
         }
 
         if (distinctCandidates.Length > 1)
         {
-            return CodeActionExecutionResult<WorkspaceMutationProposal>.Rejected(new CodeActionExecutionError
+            return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
             {
                 Code = "ActionAmbiguous",
                 Message = "The requested refactoring could not be selected uniquely.",
@@ -161,17 +161,17 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
         var candidate = distinctCandidates[0];
         return candidate.Descriptor.ExecutionMode switch
         {
-            CodeActionExecutionMode.Replay => await _operationService.CreateMutationProposalAsync(candidate.Action.Action, candidate.Action.Title, context, cancellationToken).ConfigureAwait(false),
-            CodeActionExecutionMode.Parameterised => CodeActionExecutionResult<WorkspaceMutationProposal>.Rejected(new CodeActionExecutionError
+            CodeActionExecutionMode.Replay => await _operationService.CreateMutationCandidateAsync(candidate.Action.Action, candidate.Action.Title, context, cancellationToken).ConfigureAwait(false),
+            CodeActionExecutionMode.Parameterised => CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
             {
                 Code = "ActionRequiresParameters",
                 Message = "The selected action requires dedicated tool parameters and cannot be replayed generically.",
             }),
-            _ => Rejected<WorkspaceMutationProposal>("CodeActionUnavailable", "The selected action is not replayable in this server build.", RequiredAction.ResolveTargetAgain),
+            _ => Rejected<WorkspaceMutationCandidate>("CodeActionUnavailable", "The selected action is not replayable in this server build.", RequiredAction.ResolveTargetAgain),
         };
     }
 
-    public ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageCodeFixAsync(
+    public ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageCodeFixAsync(
         StageCodeFixRequest request,
         ICodeActionMutationContext context,
         CancellationToken cancellationToken)
@@ -185,7 +185,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
         return StageAsync(request.ActionId, request.ExpectedSnapshot, DiscoveredActionKind.CodeFix, context, cancellationToken);
     }
 
-    public async ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageFixAllAsync(
+    public async ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageFixAllAsync(
         StageFixAllRequest request,
         ICodeActionMutationContext context,
         CancellationToken cancellationToken)
@@ -197,7 +197,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
             return runtimeRejection;
         }
 
-        var snapshotRejection = ValidateSnapshot<WorkspaceMutationProposal>(context.WorkspaceResolver, request.ExpectedSnapshot);
+        var snapshotRejection = ValidateSnapshot<WorkspaceMutationCandidate>(context.WorkspaceResolver, request.ExpectedSnapshot);
         if (snapshotRejection is not null)
         {
             return snapshotRejection;
@@ -205,29 +205,29 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
 
         if (request.Scope is null)
         {
-            return Rejected<WorkspaceMutationProposal>("InvalidRequest", "A scope selector is required.");
+            return Rejected<WorkspaceMutationCandidate>("InvalidRequest", "A scope selector is required.");
         }
 
         if (!_tokenService.TryDecode(request.ActionId, out var payload))
         {
-            return ActionExpired<WorkspaceMutationProposal>();
+            return ActionExpired<WorkspaceMutationCandidate>();
         }
 
         if (!string.Equals(payload.Kind, DiscoveredActionKind.CodeFix.ToString(), StringComparison.Ordinal))
         {
-            return ActionExpired<WorkspaceMutationProposal>();
+            return ActionExpired<WorkspaceMutationCandidate>();
         }
 
         if (!DateTimeOffset.TryParse(payload.ExpiresAt, out var expiresAt) || expiresAt < DateTimeOffset.UtcNow)
         {
-            return ActionExpired<WorkspaceMutationProposal>();
+            return ActionExpired<WorkspaceMutationCandidate>();
         }
 
         if (!string.Equals(payload.WorkspaceId, context.WorkspaceIdentity.WorkspaceId, StringComparison.Ordinal)
             || payload.WorkspaceEpoch != context.WorkspaceIdentity.WorkspaceEpoch
             || payload.TransactionRevision != context.TransactionRevision)
         {
-            return ActionExpired<WorkspaceMutationProposal>();
+            return ActionExpired<WorkspaceMutationCandidate>();
         }
 
         var originDocumentResolution = context.WorkspaceResolver.ResolveDocument(new DocumentSelector
@@ -236,7 +236,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
         });
         if (originDocumentResolution.Status != SelectorResolveStatus.Resolved || originDocumentResolution.Value is null)
         {
-            return ActionExpired<WorkspaceMutationProposal>();
+            return ActionExpired<WorkspaceMutationCandidate>();
         }
 
         var originDocument = originDocumentResolution.Value;
@@ -264,7 +264,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
             .ToArray();
         if (matches.Length != 1)
         {
-            return CodeActionExecutionResult<WorkspaceMutationProposal>.Rejected(new CodeActionExecutionError
+            return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
             {
                 Code = "ActionAmbiguous",
                 Message = "The requested action could not be reproduced uniquely.",
@@ -279,7 +279,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
                     var workingOriginDocument = workingSolution.GetDocument(originDocument.Id);
                     if (workingOriginDocument is null)
                     {
-                        return ActionExpired<WorkspaceMutationProposal>();
+                        return ActionExpired<WorkspaceMutationCandidate>();
                     }
 
                     var fixAllResult = await _operationService.ApplyFixAllAsync(
@@ -305,19 +305,19 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
                 {
                     if (request.Scope.Document is null)
                     {
-                        return Rejected<WorkspaceMutationProposal>("InvalidRequest", "Document scope requires a document selector.");
+                        return Rejected<WorkspaceMutationCandidate>("InvalidRequest", "Document scope requires a document selector.");
                     }
 
                     var documentResolution = context.WorkspaceResolver.ResolveDocument(request.Scope.Document);
                     if (documentResolution.Status != SelectorResolveStatus.Resolved || documentResolution.Value is null)
                     {
-                        return RejectFromStatus<WorkspaceMutationProposal>(documentResolution.Status, "Document");
+                        return RejectFromStatus<WorkspaceMutationCandidate>(documentResolution.Status, "Document");
                     }
 
                     var targetDocument = workingSolution.GetDocument(documentResolution.Value.Id);
                     if (targetDocument is null)
                     {
-                        return Rejected<WorkspaceMutationProposal>("DocumentNotFound", "The document selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain);
+                        return Rejected<WorkspaceMutationCandidate>("DocumentNotFound", "The document selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain);
                     }
 
                     var fixAllResult = await _operationService.ApplyFixAllAsync(
@@ -343,19 +343,19 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
                 {
                     if (request.Scope.Project is null)
                     {
-                        return Rejected<WorkspaceMutationProposal>("InvalidRequest", "Project scope requires a project selector.");
+                        return Rejected<WorkspaceMutationCandidate>("InvalidRequest", "Project scope requires a project selector.");
                     }
 
                     var projectResolution = context.WorkspaceResolver.ResolveProject(request.Scope.Project);
                     if (projectResolution.Status != SelectorResolveStatus.Resolved || projectResolution.Value is null)
                     {
-                        return RejectFromStatus<WorkspaceMutationProposal>(projectResolution.Status, "Project");
+                        return RejectFromStatus<WorkspaceMutationCandidate>(projectResolution.Status, "Project");
                     }
 
                     var targetProject = workingSolution.GetProject(projectResolution.Value.Id);
                     if (targetProject is null)
                     {
-                        return Rejected<WorkspaceMutationProposal>("ProjectNotFound", "The project selector did not resolve to a source project.", RequiredAction.ResolveTargetAgain);
+                        return Rejected<WorkspaceMutationCandidate>("ProjectNotFound", "The project selector did not resolve to a source project.", RequiredAction.ResolveTargetAgain);
                     }
 
                     var fixAllResult = await _operationService.ApplyFixAllAsync(
@@ -379,7 +379,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
                 {
                     if (request.Scope.Projects is null || request.Scope.Projects.Count == 0)
                     {
-                        return Rejected<WorkspaceMutationProposal>("InvalidRequest", "Projects scope requires at least one project selector.");
+                        return Rejected<WorkspaceMutationCandidate>("InvalidRequest", "Projects scope requires at least one project selector.");
                     }
 
                     foreach (var projectSelector in request.Scope.Projects)
@@ -387,13 +387,13 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
                         var projectResolution = context.WorkspaceResolver.ResolveProject(projectSelector);
                         if (projectResolution.Status != SelectorResolveStatus.Resolved || projectResolution.Value is null)
                         {
-                            return RejectFromStatus<WorkspaceMutationProposal>(projectResolution.Status, "Project");
+                            return RejectFromStatus<WorkspaceMutationCandidate>(projectResolution.Status, "Project");
                         }
 
                         var targetProject = workingSolution.GetProject(projectResolution.Value.Id);
                         if (targetProject is null)
                         {
-                            return Rejected<WorkspaceMutationProposal>("ProjectNotFound", "The project selector did not resolve to a source project.", RequiredAction.ResolveTargetAgain);
+                            return Rejected<WorkspaceMutationCandidate>("ProjectNotFound", "The project selector did not resolve to a source project.", RequiredAction.ResolveTargetAgain);
                         }
 
                         var fixAllResult = await _operationService.ApplyFixAllAsync(
@@ -416,7 +416,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
                 }
 
             default:
-                return Rejected<WorkspaceMutationProposal>("InvalidRequest", "The requested scope kind is not supported for fix-all.");
+                return Rejected<WorkspaceMutationCandidate>("InvalidRequest", "The requested scope kind is not supported for fix-all.");
         }
 
         var changedDocumentCount = await _operationService.CountChangedSourceDocumentsAsync(
@@ -425,21 +425,21 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
             cancellationToken).ConfigureAwait(false);
         if (request.MaxChanges is int maxChanges && changedDocumentCount > maxChanges)
         {
-            return CodeActionExecutionResult<WorkspaceMutationProposal>.Rejected(new CodeActionExecutionError
+            return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
             {
                 Code = "FixAllLimitExceeded",
                 Message = $"The fix-all operation would change {changedDocumentCount} source documents, exceeding the limit of {maxChanges}.",
             }, RequiredAction.NarrowRequest);
         }
 
-        return CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal
+        return CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(new WorkspaceMutationCandidate
         {
             CandidateSolution = workingSolution,
             Summary = $"Fix all: {matches[0].Title}",
         });
     }
 
-    public async ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageScopedCodeFixAsync(
+    public async ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageScopedCodeFixAsync(
         ScopedCodeFixRequest request,
         ICodeActionMutationContext context,
         CancellationToken cancellationToken)
@@ -451,7 +451,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
             return runtimeRejection;
         }
 
-        var snapshotRejection = ValidateSnapshot<WorkspaceMutationProposal>(context.WorkspaceResolver, request.ExpectedSnapshot);
+        var snapshotRejection = ValidateSnapshot<WorkspaceMutationCandidate>(context.WorkspaceResolver, request.ExpectedSnapshot);
         if (snapshotRejection is not null)
         {
             return snapshotRejection;
@@ -459,12 +459,12 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
 
         if (request.Scope is null)
         {
-            return Rejected<WorkspaceMutationProposal>("InvalidRequest", "A scope selector is required.");
+            return Rejected<WorkspaceMutationCandidate>("InvalidRequest", "A scope selector is required.");
         }
 
         if (request.DiagnosticIds.Count == 0)
         {
-            return Rejected<WorkspaceMutationProposal>("InvalidRequest", "At least one diagnostic ID is required.");
+            return Rejected<WorkspaceMutationCandidate>("InvalidRequest", "At least one diagnostic ID is required.");
         }
 
         var documentsResolution = ResolveScopeDocuments(request.Scope, context);
@@ -476,7 +476,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
         var matchingProviders = _discoveryService.GetMatchingCodeFixProviders(request.ProviderId);
         if (matchingProviders.Count == 0)
         {
-            return Rejected<WorkspaceMutationProposal>("CodeFixUnavailable", "No matching code-fix provider is available.");
+            return Rejected<WorkspaceMutationCandidate>("CodeFixUnavailable", "No matching code-fix provider is available.");
         }
 
         var candidates = new List<ScopedCodeFixCandidate>();
@@ -533,7 +533,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
 
         if (!hadDiagnostics)
         {
-            return CodeActionExecutionResult<WorkspaceMutationProposal>.NoChange();
+            return CodeActionExecutionResult<WorkspaceMutationCandidate>.NoChange();
         }
 
         var distinctCandidates = candidates
@@ -548,12 +548,12 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
             .ToArray();
         if (distinctCandidates.Length == 0)
         {
-            return Rejected<WorkspaceMutationProposal>("CodeFixUnavailable", "No matching code fix was available for the selected scope.");
+            return Rejected<WorkspaceMutationCandidate>("CodeFixUnavailable", "No matching code fix was available for the selected scope.");
         }
 
         if (distinctCandidates.Length > 1)
         {
-            return CodeActionExecutionResult<WorkspaceMutationProposal>.Rejected(new CodeActionExecutionError
+            return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
             {
                 Code = "ActionAmbiguous",
                 Message = "The requested code fix could not be selected uniquely.",
@@ -576,7 +576,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
                     var originDocument = workingSolution.GetDocument(candidate.Document.Id);
                     if (originDocument is null)
                     {
-                        return Rejected<WorkspaceMutationProposal>("DocumentNotFound", "The selected scope could not be resolved to a source document.", RequiredAction.ResolveTargetAgain);
+                        return Rejected<WorkspaceMutationCandidate>("DocumentNotFound", "The selected scope could not be resolved to a source document.", RequiredAction.ResolveTargetAgain);
                     }
 
                     var fixAllResult = await _operationService.ApplyFixAllAsync(
@@ -602,19 +602,19 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
                 {
                     if (request.Scope.Document is null)
                     {
-                        return Rejected<WorkspaceMutationProposal>("InvalidRequest", "Document scope requires a document selector.");
+                        return Rejected<WorkspaceMutationCandidate>("InvalidRequest", "Document scope requires a document selector.");
                     }
 
                     var documentResolution = context.WorkspaceResolver.ResolveDocument(request.Scope.Document);
                     if (documentResolution.Status != SelectorResolveStatus.Resolved || documentResolution.Value is null)
                     {
-                        return RejectFromStatus<WorkspaceMutationProposal>(documentResolution.Status, "Document");
+                        return RejectFromStatus<WorkspaceMutationCandidate>(documentResolution.Status, "Document");
                     }
 
                     var targetDocument = workingSolution.GetDocument(documentResolution.Value.Id);
                     if (targetDocument is null)
                     {
-                        return Rejected<WorkspaceMutationProposal>("DocumentNotFound", "The document selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain);
+                        return Rejected<WorkspaceMutationCandidate>("DocumentNotFound", "The document selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain);
                     }
 
                     var fixAllProvider = candidate.Provider.GetFixAllProvider();
@@ -665,19 +665,19 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
 
                     if (request.Scope.Project is null)
                     {
-                        return Rejected<WorkspaceMutationProposal>("InvalidRequest", "Project scope requires a project selector.");
+                        return Rejected<WorkspaceMutationCandidate>("InvalidRequest", "Project scope requires a project selector.");
                     }
 
                     var projectResolution = context.WorkspaceResolver.ResolveProject(request.Scope.Project);
                     if (projectResolution.Status != SelectorResolveStatus.Resolved || projectResolution.Value is null)
                     {
-                        return RejectFromStatus<WorkspaceMutationProposal>(projectResolution.Status, "Project");
+                        return RejectFromStatus<WorkspaceMutationCandidate>(projectResolution.Status, "Project");
                     }
 
                     var targetProject = workingSolution.GetProject(projectResolution.Value.Id);
                     if (targetProject is null)
                     {
-                        return Rejected<WorkspaceMutationProposal>("ProjectNotFound", "The project selector did not resolve to a source project.", RequiredAction.ResolveTargetAgain);
+                        return Rejected<WorkspaceMutationCandidate>("ProjectNotFound", "The project selector did not resolve to a source project.", RequiredAction.ResolveTargetAgain);
                     }
 
                     var fixAllResult = await _operationService.ApplyFixAllAsync(
@@ -707,7 +707,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
 
                     if (request.Scope.Projects is null || request.Scope.Projects.Count == 0)
                     {
-                        return Rejected<WorkspaceMutationProposal>("InvalidRequest", "Projects scope requires at least one project selector.");
+                        return Rejected<WorkspaceMutationCandidate>("InvalidRequest", "Projects scope requires at least one project selector.");
                     }
 
                     foreach (var projectSelector in request.Scope.Projects)
@@ -715,13 +715,13 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
                         var projectResolution = context.WorkspaceResolver.ResolveProject(projectSelector);
                         if (projectResolution.Status != SelectorResolveStatus.Resolved || projectResolution.Value is null)
                         {
-                            return RejectFromStatus<WorkspaceMutationProposal>(projectResolution.Status, "Project");
+                            return RejectFromStatus<WorkspaceMutationCandidate>(projectResolution.Status, "Project");
                         }
 
                         var targetProject = workingSolution.GetProject(projectResolution.Value.Id);
                         if (targetProject is null)
                         {
-                            return Rejected<WorkspaceMutationProposal>("ProjectNotFound", "The project selector did not resolve to a source project.", RequiredAction.ResolveTargetAgain);
+                            return Rejected<WorkspaceMutationCandidate>("ProjectNotFound", "The project selector did not resolve to a source project.", RequiredAction.ResolveTargetAgain);
                         }
 
                         var fixAllResult = await _operationService.ApplyFixAllAsync(
@@ -744,7 +744,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
                 }
 
             default:
-                return Rejected<WorkspaceMutationProposal>("InvalidRequest", "The requested scope kind is not supported for scoped code-fix staging.");
+                return Rejected<WorkspaceMutationCandidate>("InvalidRequest", "The requested scope kind is not supported for scoped code-fix staging.");
         }
 
         var changedDocumentCount = await _operationService.CountChangedSourceDocumentsAsync(
@@ -753,21 +753,21 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
             cancellationToken).ConfigureAwait(false);
         if (request.MaxChanges is int maxChanges && changedDocumentCount > maxChanges)
         {
-            return CodeActionExecutionResult<WorkspaceMutationProposal>.Rejected(new CodeActionExecutionError
+            return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
             {
                 Code = "FixAllLimitExceeded",
                 Message = $"The fix-all operation would change {changedDocumentCount} source documents, exceeding the limit of {maxChanges}.",
             }, RequiredAction.NarrowRequest);
         }
 
-        return CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal
+        return CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(new WorkspaceMutationCandidate
         {
             CandidateSolution = workingSolution,
             Summary = candidate.Title,
         });
     }
 
-    public async ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageLocationCodeFixAsync(
+    public async ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageLocationCodeFixAsync(
         LocationCodeFixRequest request,
         ICodeActionMutationContext context,
         CancellationToken cancellationToken)
@@ -779,7 +779,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
             return runtimeRejection;
         }
 
-        var snapshotRejection = ValidateSnapshot<WorkspaceMutationProposal>(context.WorkspaceResolver, request.ExpectedSnapshot);
+        var snapshotRejection = ValidateSnapshot<WorkspaceMutationCandidate>(context.WorkspaceResolver, request.ExpectedSnapshot);
         if (snapshotRejection is not null)
         {
             return snapshotRejection;
@@ -787,31 +787,31 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
 
         if (request.Location is null)
         {
-            return Rejected<WorkspaceMutationProposal>("InvalidRequest", "A location selector is required.");
+            return Rejected<WorkspaceMutationCandidate>("InvalidRequest", "A location selector is required.");
         }
 
         if (request.DiagnosticIds.Count == 0)
         {
-            return Rejected<WorkspaceMutationProposal>("InvalidRequest", "At least one diagnostic ID is required.");
+            return Rejected<WorkspaceMutationCandidate>("InvalidRequest", "At least one diagnostic ID is required.");
         }
 
         var location = await context.WorkspaceResolver.ResolveLocationAsync(request.Location, cancellationToken).ConfigureAwait(false);
         if (location.Status != SelectorResolveStatus.Resolved || location.Value is null)
         {
-            return RejectFromStatus<WorkspaceMutationProposal>(location.Status, "Location");
+            return RejectFromStatus<WorkspaceMutationCandidate>(location.Status, "Location");
         }
 
         var document = context.CurrentSolution.GetDocument(location.Value.SourceTree);
         if (document is null)
         {
-            return Rejected<WorkspaceMutationProposal>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain);
+            return Rejected<WorkspaceMutationCandidate>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain);
         }
 
         var span = location.Value.SourceSpan;
         var matchingProviders = _discoveryService.GetMatchingCodeFixProviders(request.ProviderId);
         if (matchingProviders.Count == 0)
         {
-            return Rejected<WorkspaceMutationProposal>("CodeFixUnavailable", "No matching code-fix provider is available.");
+            return Rejected<WorkspaceMutationCandidate>("CodeFixUnavailable", "No matching code-fix provider is available.");
         }
 
         var diagnostics = await _diagnosticService.GetLocationScopedCodeFixDiagnosticsAsync(
@@ -823,7 +823,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
             cancellationToken).ConfigureAwait(false);
         if (diagnostics.IsDefaultOrEmpty)
         {
-            return Rejected<WorkspaceMutationProposal>("CodeFixUnavailable", "No matching code fix was available at the selected location.");
+            return Rejected<WorkspaceMutationCandidate>("CodeFixUnavailable", "No matching code fix was available at the selected location.");
         }
 
         var candidates = new List<ClassifiedCodeAction>();
@@ -871,12 +871,12 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
             .ToArray();
         if (distinctCandidates.Length == 0)
         {
-            return Rejected<WorkspaceMutationProposal>("CodeFixUnavailable", "No matching code fix was available at the selected location.");
+            return Rejected<WorkspaceMutationCandidate>("CodeFixUnavailable", "No matching code fix was available at the selected location.");
         }
 
         if (distinctCandidates.Length > 1)
         {
-            return CodeActionExecutionResult<WorkspaceMutationProposal>.Rejected(new CodeActionExecutionError
+            return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
             {
                 Code = "ActionAmbiguous",
                 Message = "The requested code fix could not be selected uniquely.",
@@ -886,9 +886,9 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
         var candidate = distinctCandidates[0];
         return candidate.Descriptor.ExecutionMode switch
         {
-            CodeActionExecutionMode.Replay => await _operationService.CreateMutationProposalAsync(candidate.Action.Action, candidate.Action.Title, context, cancellationToken).ConfigureAwait(false),
-            CodeActionExecutionMode.Parameterised => await _operationService.CreateMutationProposalAsync(candidate.Action.Action, candidate.Action.Title, context, cancellationToken).ConfigureAwait(false),
-            _ => Rejected<WorkspaceMutationProposal>("CodeFixUnavailable", "The selected action is not replayable in this server build.", RequiredAction.ResolveTargetAgain),
+            CodeActionExecutionMode.Replay => await _operationService.CreateMutationCandidateAsync(candidate.Action.Action, candidate.Action.Title, context, cancellationToken).ConfigureAwait(false),
+            CodeActionExecutionMode.Parameterised => await _operationService.CreateMutationCandidateAsync(candidate.Action.Action, candidate.Action.Title, context, cancellationToken).ConfigureAwait(false),
+            _ => Rejected<WorkspaceMutationCandidate>("CodeFixUnavailable", "The selected action is not replayable in this server build.", RequiredAction.ResolveTargetAgain),
         };
     }
 
@@ -910,7 +910,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
         {
             return new CodeActionApplyResult
             {
-                Rejection = Rejected<WorkspaceMutationProposal>("CodeFixUnavailable", "No matching code fix was available for the selected scope."),
+                Rejection = Rejected<WorkspaceMutationCandidate>("CodeFixUnavailable", "No matching code fix was available for the selected scope."),
             };
         }
 
@@ -926,7 +926,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
         {
             return new CodeActionApplyResult
             {
-                Rejection = Rejected<WorkspaceMutationProposal>("CodeFixUnavailable", "No matching code fix was available for the selected scope."),
+                Rejection = Rejected<WorkspaceMutationCandidate>("CodeFixUnavailable", "No matching code fix was available for the selected scope."),
             };
         }
 
@@ -934,7 +934,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
         {
             return new CodeActionApplyResult
             {
-                Rejection = CodeActionExecutionResult<WorkspaceMutationProposal>.Rejected(new CodeActionExecutionError
+                Rejection = CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
                 {
                     Code = "ActionAmbiguous",
                     Message = "The requested code fix could not be selected uniquely.",
@@ -942,7 +942,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
             };
         }
 
-        var proposalResult = await _operationService.CreateMutationProposalAsync(matches[0].Action, matches[0].Title, context, cancellationToken).ConfigureAwait(false);
+        var proposalResult = await _operationService.CreateMutationCandidateAsync(matches[0].Action, matches[0].Title, context, cancellationToken).ConfigureAwait(false);
         if (proposalResult.Outcome != CodeActionExecutionOutcome.Succeeded || proposalResult.Data?.CandidateSolution is null)
         {
             return new CodeActionApplyResult
@@ -957,14 +957,14 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
         };
     }
 
-    private async ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> StageAsync(
+    private async ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageAsync(
         string actionId,
         SnapshotPrecondition? expectedSnapshot,
         DiscoveredActionKind expectedKind,
         ICodeActionMutationContext context,
         CancellationToken cancellationToken)
     {
-        var resolvedAction = await _resolutionService.ResolveActionAsync<WorkspaceMutationProposal>(
+        var resolvedAction = await _resolutionService.ResolveActionAsync<WorkspaceMutationCandidate>(
             actionId,
             expectedSnapshot,
             expectedKind,
@@ -977,14 +977,14 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
 
         if (resolvedAction.Descriptor.ExecutionMode == CodeActionExecutionMode.Parameterised)
         {
-            return CodeActionExecutionResult<WorkspaceMutationProposal>.Rejected(new CodeActionExecutionError
+            return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
             {
                 Code = "ActionRequiresParameters",
                 Message = "The selected action requires dedicated tool parameters and cannot be replayed generically.",
             });
         }
 
-        return await _operationService.CreateMutationProposalAsync(
+        return await _operationService.CreateMutationCandidateAsync(
             resolvedAction.Action.Action,
             resolvedAction.Action.Title,
             context,
@@ -1004,7 +1004,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
             ScopeKind.Projects => ResolveProjectsScope(scope.Projects, context),
             _ => new ScopeDocumentResolution
             {
-                Rejection = Rejected<WorkspaceMutationProposal>("InvalidRequest", "The requested scope kind is not supported."),
+                Rejection = Rejected<WorkspaceMutationCandidate>("InvalidRequest", "The requested scope kind is not supported."),
             },
         };
     }
@@ -1015,7 +1015,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
         {
             return new ScopeDocumentResolution
             {
-                Rejection = Rejected<WorkspaceMutationProposal>("InvalidRequest", "Document scope requires a document selector."),
+                Rejection = Rejected<WorkspaceMutationCandidate>("InvalidRequest", "Document scope requires a document selector."),
             };
         }
 
@@ -1027,7 +1027,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
             }
             : new ScopeDocumentResolution
             {
-                Rejection = RejectFromStatus<WorkspaceMutationProposal>(resolution.Status, "Document"),
+                Rejection = RejectFromStatus<WorkspaceMutationCandidate>(resolution.Status, "Document"),
             };
     }
 
@@ -1037,7 +1037,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
         {
             return new ScopeDocumentResolution
             {
-                Rejection = Rejected<WorkspaceMutationProposal>("InvalidRequest", "Project scope requires a project selector."),
+                Rejection = Rejected<WorkspaceMutationCandidate>("InvalidRequest", "Project scope requires a project selector."),
             };
         }
 
@@ -1049,7 +1049,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
             }
             : new ScopeDocumentResolution
             {
-                Rejection = RejectFromStatus<WorkspaceMutationProposal>(resolution.Status, "Project"),
+                Rejection = RejectFromStatus<WorkspaceMutationCandidate>(resolution.Status, "Project"),
             };
     }
 
@@ -1059,7 +1059,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
         {
             return new ScopeDocumentResolution
             {
-                Rejection = Rejected<WorkspaceMutationProposal>("InvalidRequest", "Projects scope requires at least one project selector."),
+                Rejection = Rejected<WorkspaceMutationCandidate>("InvalidRequest", "Projects scope requires at least one project selector."),
             };
         }
 
@@ -1071,7 +1071,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
             {
                 return new ScopeDocumentResolution
                 {
-                    Rejection = RejectFromStatus<WorkspaceMutationProposal>(resolution.Status, "Project"),
+                    Rejection = RejectFromStatus<WorkspaceMutationCandidate>(resolution.Status, "Project"),
                 };
             }
 
@@ -1114,9 +1114,9 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
         }, requiredAction);
     }
 
-    private static CodeActionExecutionResult<WorkspaceMutationProposal> FixAllUnavailable(string message)
+    private static CodeActionExecutionResult<WorkspaceMutationCandidate> FixAllUnavailable(string message)
     {
-        return CodeActionExecutionResult<WorkspaceMutationProposal>.Rejected(new CodeActionExecutionError
+        return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
         {
             Code = "FixAllUnavailable",
             Message = message,
@@ -1132,16 +1132,16 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
         }, RequiredAction.ResolveTargetAgain);
     }
 
-    private CodeActionExecutionResult<WorkspaceMutationProposal>? RejectedIfUnavailable()
+    private CodeActionExecutionResult<WorkspaceMutationCandidate>? RejectedIfUnavailable()
     {
         return _runtime.Status.IsAvailable
             ? null
-            : Rejected<WorkspaceMutationProposal>("CodeActionsUnavailable", "Code-action composition is unavailable.");
+            : Rejected<WorkspaceMutationCandidate>("CodeActionsUnavailable", "Code-action composition is unavailable.");
     }
 
     private sealed record ScopeDocumentResolution
     {
-        public CodeActionExecutionResult<WorkspaceMutationProposal>? Rejection { get; init; }
+        public CodeActionExecutionResult<WorkspaceMutationCandidate>? Rejection { get; init; }
 
         public IReadOnlyList<Document> Documents { get; init; } = [];
     }

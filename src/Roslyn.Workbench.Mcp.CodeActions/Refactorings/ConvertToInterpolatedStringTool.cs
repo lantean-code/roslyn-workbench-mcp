@@ -23,10 +23,10 @@ internal sealed class ConvertToInterpolatedStringTool : CodeActionMutationToolHa
         registry.RegisterMutationTool(_metadata, new ConvertToInterpolatedStringTool());
     }
 
-    protected override async ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteCoreAsync(ConvertToInterpolatedStringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
+    protected override async ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(ConvertToInterpolatedStringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
 
-        var snapshotRejection = ToolExecutionHelpers.ValidateSnapshot<WorkspaceMutationProposal>(context, request.ExpectedSnapshot);
+        var snapshotRejection = ToolExecutionHelpers.ValidateSnapshot<WorkspaceMutationCandidate>(context, request.ExpectedSnapshot);
         if (snapshotRejection is not null)
         {
             return snapshotRejection;
@@ -34,13 +34,13 @@ internal sealed class ConvertToInterpolatedStringTool : CodeActionMutationToolHa
 
         if (request.Selection is null)
         {
-            return ToolExecutionHelpers.Rejected<WorkspaceMutationProposal>("InvalidRequest", "A location selector is required.");
+            return ToolExecutionHelpers.Rejected<WorkspaceMutationCandidate>("InvalidRequest", "A location selector is required.");
         }
 
         var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(request.Selection, cancellationToken).ConfigureAwait(false);
         if (locationResolution.Status != SelectorResolveStatus.Resolved)
         {
-            return ToolExecutionHelpers.RejectFromStatus<WorkspaceMutationProposal>(locationResolution.Status, "Location");
+            return ToolExecutionHelpers.RejectFromStatus<WorkspaceMutationCandidate>(locationResolution.Status, "Location");
         }
 
         return await context.StageReplayCodeActionAsync(new ReplayCodeActionRequest

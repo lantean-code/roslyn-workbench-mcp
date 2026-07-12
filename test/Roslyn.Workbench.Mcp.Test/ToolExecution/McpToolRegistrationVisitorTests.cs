@@ -35,7 +35,7 @@ public sealed class McpToolRegistrationVisitorTests
         var contextFactory = new Mock<IToolExecutionContextFactory>();
         var handler = new Mock<IMutationToolHandler<TestRequest>>();
         var registration = new PluginMutationRegistration<TestRequest>(
-            CreatePluginTool(ToolKind.Mutation, typeof(MutationProposal)),
+            CreatePluginTool(ToolKind.Mutation, typeof(MutationData)),
             handler.Object);
         var target = new PluginMcpToolRegistrationVisitor(services, ToolOutputSchemaMode.Omit);
 

@@ -4,11 +4,15 @@ namespace Roslyn.Workbench.Mcp.Workspace.Test.Loading;
 
 public sealed class WorkspaceLoaderTests
 {
+    private readonly Mock<IWorkspaceProjectCompatibilityInspector> _compatibilityInspector;
     private readonly WorkspaceLoader _target;
 
     public WorkspaceLoaderTests()
     {
-        _target = new WorkspaceLoader(new WorkspaceHostServicesAccessor(workspaceHostServices: null));
+        _compatibilityInspector = new Mock<IWorkspaceProjectCompatibilityInspector>();
+        _target = new WorkspaceLoader(
+            new WorkspaceHostServicesAccessor(workspaceHostServices: null),
+            _compatibilityInspector.Object);
     }
 
     [Theory]
@@ -68,5 +72,17 @@ public sealed class WorkspaceLoaderTests
         var result = _target.NormalizeAlias(alias);
 
         result.Should().Be(expected);
+    }
+
+    [Fact]
+    public void GIVEN_ProjectPath_WHEN_InspectingCompatibility_THEN_ShouldReturnInspectorResult()
+    {
+        var expected = (IsSdkStyle: true, Diagnostics: (IReadOnlyList<DiagnosticInfo>)Array.Empty<DiagnosticInfo>());
+        _compatibilityInspector.Setup(item => item.Inspect("ProjectPath")).Returns(expected);
+
+        var result = _target.InspectCompatibility("ProjectPath");
+
+        result.Should().BeEquivalentTo(expected);
+        _compatibilityInspector.Verify(item => item.Inspect("ProjectPath"), Times.Once);
     }
 }

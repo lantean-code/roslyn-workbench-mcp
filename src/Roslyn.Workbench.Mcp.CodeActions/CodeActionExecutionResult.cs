@@ -1,10 +1,10 @@
 namespace Roslyn.Workbench.Mcp.CodeActions;
 
-internal sealed record CodeActionExecutionResult<TResponse>
+internal sealed record CodeActionExecutionResult<TData>
 {
     public CodeActionExecutionOutcome Outcome { get; init; }
 
-    public TResponse? Data { get; init; }
+    public TData? Data { get; init; }
 
     public ChangeSummary? Changes { get; init; }
 
@@ -16,13 +16,13 @@ internal sealed record CodeActionExecutionResult<TResponse>
 
     public IReadOnlyList<WarningInfo> Warnings { get; init; } = [];
 
-    public static CodeActionExecutionResult<TResponse> Success(
-        TResponse data,
+    public static CodeActionExecutionResult<TData> Success(
+        TData data,
         ChangeSummary? changes = null,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
     {
-        return new CodeActionExecutionResult<TResponse>
+        return new CodeActionExecutionResult<TData>
         {
             Outcome = CodeActionExecutionOutcome.Succeeded,
             Data = data,
@@ -32,12 +32,12 @@ internal sealed record CodeActionExecutionResult<TResponse>
         };
     }
 
-    public static CodeActionExecutionResult<TResponse> NoChange(
-        TResponse? data = default,
+    public static CodeActionExecutionResult<TData> NoChange(
+        TData? data = default,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
     {
-        return new CodeActionExecutionResult<TResponse>
+        return new CodeActionExecutionResult<TData>
         {
             Outcome = CodeActionExecutionOutcome.NoChange,
             Data = data,
@@ -46,13 +46,13 @@ internal sealed record CodeActionExecutionResult<TResponse>
         };
     }
 
-    public static CodeActionExecutionResult<TResponse> Rejected(
+    public static CodeActionExecutionResult<TData> Rejected(
         CodeActionExecutionError error,
         RequiredAction? requiredAction = null,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
     {
-        return new CodeActionExecutionResult<TResponse>
+        return new CodeActionExecutionResult<TData>
         {
             Outcome = CodeActionExecutionOutcome.Rejected,
             Error = error,
@@ -62,13 +62,13 @@ internal sealed record CodeActionExecutionResult<TResponse>
         };
     }
 
-    public static CodeActionExecutionResult<TResponse> Conflict(
+    public static CodeActionExecutionResult<TData> Conflict(
         CodeActionExecutionError error,
         RequiredAction? requiredAction = null,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
     {
-        return new CodeActionExecutionResult<TResponse>
+        return new CodeActionExecutionResult<TData>
         {
             Outcome = CodeActionExecutionOutcome.Conflict,
             Error = error,

@@ -21,7 +21,7 @@ public sealed class EncapsulateFieldToolTests
     [Fact]
     public async Task GIVEN_SymbolResolutionHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
-        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Rejected(new CodeActionExecutionError
+        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
         {
             Code = "SymbolNotFound",
             Message = "The symbol selector did not match any result.",
@@ -114,7 +114,7 @@ public sealed class EncapsulateFieldToolTests
     [Fact]
     public async Task GIVEN_UpdateReferencesIsTrue_WHEN_CallingExecuteAsync_THEN_ShouldStageReplayCodeActionUsingPropertyTitle()
     {
-        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var workspaceResolver = new Mock<IWorkspaceResolver>();
         var context = CreateContext(workspaceResolver);
         var request = CreateRequest(updateReferences: true);
@@ -156,7 +156,7 @@ public sealed class EncapsulateFieldToolTests
     [Fact]
     public async Task GIVEN_UpdateReferencesIsFalse_WHEN_CallingExecuteAsync_THEN_ShouldStageReplayCodeActionUsingFieldTitle()
     {
-        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var workspaceResolver = new Mock<IWorkspaceResolver>();
         var context = CreateContext(workspaceResolver);
         var request = CreateRequest(updateReferences: false);

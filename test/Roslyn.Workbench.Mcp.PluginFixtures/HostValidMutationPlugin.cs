@@ -1,5 +1,5 @@
-using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 using Roslyn.Workbench.Mcp.Plugins;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.TestSupport;
 
@@ -32,13 +32,14 @@ public sealed class HostValidMutationPlugin : IRoslynPlugin
 
     private sealed class Handler : IMutationToolHandler<Request>
     {
-        public ValueTask<PluginExecutionResult<MutationProposal>> ExecuteAsync(Request request, IMutationContext context, CancellationToken cancellationToken)
+        public ValueTask<PluginExecutionResult<MutationCandidate>> ExecuteAsync(Request request, IMutationContext context, CancellationToken cancellationToken)
         {
             _ = context;
             _ = cancellationToken;
 
-            return ValueTask.FromResult(PluginExecutionResult<MutationProposal>.Success(new MutationProposal
+            return ValueTask.FromResult(PluginExecutionResult<MutationCandidate>.Success(new MutationCandidate
             {
+                CandidateSolution = context.CurrentSolution,
                 Summary = request.Summary,
             }));
         }

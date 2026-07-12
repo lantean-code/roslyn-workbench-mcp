@@ -23,16 +23,16 @@ public sealed class PluginMutationExecutionLease : IAsyncDisposable
     /// <summary>Gets the normalized acquisition failure when acquisition was rejected.</summary>
     public ToolExecutionFailureResult? Failure { get; }
 
-    /// <summary>Stages a proposal returned by the plugin handler.</summary>
+    /// <summary>Stages a candidate returned by the plugin handler.</summary>
     /// <param name="operationName">The registered operation name.</param>
-    /// <param name="proposal">The plugin mutation proposal.</param>
+    /// <param name="candidate">The plugin mutation candidate.</param>
     /// <param name="diagnostics">Diagnostics produced by the handler.</param>
     /// <param name="warnings">Warnings produced by the handler.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The normalized plugin mutation result.</returns>
     public async ValueTask<PluginExecutionResult<MutationData>> StageAsync(
         string operationName,
-        MutationProposal proposal,
+        MutationCandidate candidate,
         IReadOnlyList<DiagnosticInfo> diagnostics,
         IReadOnlyList<WarningInfo> warnings,
         CancellationToken cancellationToken)
@@ -41,11 +41,11 @@ public sealed class PluginMutationExecutionLease : IAsyncDisposable
             ?? throw new InvalidOperationException("Mutation context acquisition completed without a mutation stager.");
         var result = await stager.StageAsync(
             operationName,
-            new WorkspaceMutationProposal
+            new WorkspaceMutationCandidate
             {
-                CandidateSolution = proposal.CandidateSolution,
-                Summary = proposal.Summary,
-                Warnings = proposal.Warnings,
+                CandidateSolution = candidate.CandidateSolution,
+                Summary = candidate.Summary,
+                Warnings = candidate.Warnings,
             },
             diagnostics,
             warnings,

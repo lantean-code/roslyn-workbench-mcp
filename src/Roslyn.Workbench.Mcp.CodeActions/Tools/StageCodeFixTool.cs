@@ -20,7 +20,7 @@ internal sealed class StageCodeFixTool : CodeActionMutationToolHandler<StageCode
         registry.RegisterMutationTool(_metadata, new StageCodeFixTool());
     }
 
-    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteCoreAsync(StageCodeFixRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
+    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(StageCodeFixRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         return context.StageCodeFixAsync(request, cancellationToken);
     }

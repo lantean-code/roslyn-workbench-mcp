@@ -22,7 +22,7 @@ internal sealed class RemoveUnusedUsingsTool : CodeActionMutationToolHandler<Rem
         registry.RegisterMutationTool(_metadata, new RemoveUnusedUsingsTool());
     }
 
-    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteCoreAsync(RemoveUnusedUsingsRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
+    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(RemoveUnusedUsingsRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         return context.StageScopedCodeFixAsync(new ScopedCodeFixRequest
         {

@@ -54,7 +54,7 @@ public sealed class PluginRegistry : IPluginRegistry
     {
         ArgumentNullException.ThrowIfNull(handler);
 
-        var tool = CreateTool(metadata, ToolKind.Mutation, typeof(TRequest), typeof(MutationProposal));
+        var tool = CreateTool(metadata, ToolKind.Mutation, typeof(TRequest), typeof(MutationData));
         RegisterTool(new PluginMutationRegistration<TRequest>(tool, handler));
     }
 

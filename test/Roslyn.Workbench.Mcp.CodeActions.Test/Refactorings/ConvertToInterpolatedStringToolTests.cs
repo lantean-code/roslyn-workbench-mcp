@@ -21,7 +21,7 @@ public sealed class ConvertToInterpolatedStringToolTests
     [Fact]
     public async Task GIVEN_SnapshotValidationReturnsRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnSnapshotRejection()
     {
-        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Conflict(new CodeActionExecutionError
+        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Conflict(new CodeActionExecutionError
         {
             Code = "SnapshotMismatch",
             Message = "The request snapshot does not match the current workspace snapshot.",
@@ -123,7 +123,7 @@ public sealed class ConvertToInterpolatedStringToolTests
     [Fact]
     public async Task GIVEN_LocationResolutionIsResolved_WHEN_CallingExecuteAsync_THEN_ShouldStageReplayCodeAction()
     {
-        var expected = CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal());
+        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var workspaceResolver = new Mock<IWorkspaceResolver>();
         var context = new Mock<ICodeActionMutationContext>();
         var location = Location.None;

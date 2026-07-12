@@ -20,14 +20,14 @@ internal sealed class RenameSymbolTool : MutationToolHandler<RenameSymbolRequest
         registry.RegisterMutationTool(_metadata, new RenameSymbolTool());
     }
 
-    protected override ValueTask<PluginExecutionResult<MutationProposal>> ExecuteCoreAsync(RenameSymbolRequest request, IMutationContext context, CancellationToken cancellationToken)
+    protected override ValueTask<PluginExecutionResult<MutationCandidate>> ExecuteCoreAsync(RenameSymbolRequest request, IMutationContext context, CancellationToken cancellationToken)
     {
         return ExecuteRenameSymbolAsync(request, context, cancellationToken);
     }
 
-    private static async ValueTask<PluginExecutionResult<MutationProposal>> ExecuteRenameSymbolAsync(RenameSymbolRequest request, IMutationContext context, CancellationToken cancellationToken)
+    private static async ValueTask<PluginExecutionResult<MutationCandidate>> ExecuteRenameSymbolAsync(RenameSymbolRequest request, IMutationContext context, CancellationToken cancellationToken)
     {
-        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<MutationProposal>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<MutationCandidate>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
@@ -35,7 +35,7 @@ internal sealed class RenameSymbolTool : MutationToolHandler<RenameSymbolRequest
 
         if (string.IsNullOrWhiteSpace(request.NewName))
         {
-            return ToolExecutionHelpers.Rejected<MutationProposal>("InvalidRequest", "A newName value is required.");
+            return ToolExecutionHelpers.Rejected<MutationCandidate>("InvalidRequest", "A newName value is required.");
         }
 
         var symbol = symbolResolution.Value;
@@ -43,10 +43,10 @@ internal sealed class RenameSymbolTool : MutationToolHandler<RenameSymbolRequest
         var candidateSolution = await Renamer.RenameSymbolAsync(context.CurrentSolution, symbol, options, request.NewName, cancellationToken).ConfigureAwait(false);
         if (ReferenceEquals(candidateSolution, context.CurrentSolution))
         {
-            return PluginExecutionResult<MutationProposal>.NoChange();
+            return PluginExecutionResult<MutationCandidate>.NoChange();
         }
 
-        return PluginExecutionResult<MutationProposal>.Success(new MutationProposal
+        return PluginExecutionResult<MutationCandidate>.Success(new MutationCandidate
         {
             CandidateSolution = candidateSolution,
             Summary = $"Rename '{symbol.Name}' to '{request.NewName}'.",

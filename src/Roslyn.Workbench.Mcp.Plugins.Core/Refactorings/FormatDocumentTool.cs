@@ -20,20 +20,20 @@ internal sealed class FormatDocumentTool : MutationToolHandler<FormatDocumentReq
         registry.RegisterMutationTool(_metadata, new FormatDocumentTool());
     }
 
-    protected override ValueTask<PluginExecutionResult<MutationProposal>> ExecuteCoreAsync(FormatDocumentRequest request, IMutationContext context, CancellationToken cancellationToken)
+    protected override ValueTask<PluginExecutionResult<MutationCandidate>> ExecuteCoreAsync(FormatDocumentRequest request, IMutationContext context, CancellationToken cancellationToken)
     {
         return ExecuteFormatDocumentAsync(request, context, cancellationToken);
     }
 
-    private static async ValueTask<PluginExecutionResult<MutationProposal>> ExecuteFormatDocumentAsync(FormatDocumentRequest request, IMutationContext context, CancellationToken cancellationToken)
+    private static async ValueTask<PluginExecutionResult<MutationCandidate>> ExecuteFormatDocumentAsync(FormatDocumentRequest request, IMutationContext context, CancellationToken cancellationToken)
     {
-        var documentResolution = context.ToolExecutionServices.RequestResolver.ResolveDocument<MutationProposal>(request.Document, context);
+        var documentResolution = context.ToolExecutionServices.RequestResolver.ResolveDocument<MutationCandidate>(request.Document, context);
         if (documentResolution.HasRejection)
         {
             return documentResolution.Rejection;
         }
 
-        var snapshotRejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<MutationProposal>(context, request.ExpectedSnapshot);
+        var snapshotRejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<MutationCandidate>(context, request.ExpectedSnapshot);
         if (snapshotRejection is not null)
         {
             return snapshotRejection;
@@ -55,10 +55,10 @@ internal sealed class FormatDocumentTool : MutationToolHandler<FormatDocumentReq
         var formattedText = await formattedDocument.GetTextAsync(cancellationToken).ConfigureAwait(false);
         if (string.Equals(originalText.ToString(), formattedText.ToString(), StringComparison.Ordinal))
         {
-            return PluginExecutionResult<MutationProposal>.NoChange();
+            return PluginExecutionResult<MutationCandidate>.NoChange();
         }
 
-        return PluginExecutionResult<MutationProposal>.Success(new MutationProposal
+        return PluginExecutionResult<MutationCandidate>.Success(new MutationCandidate
         {
             CandidateSolution = formattedDocument.Project.Solution,
             Summary = $"Format '{document.Name}'.",

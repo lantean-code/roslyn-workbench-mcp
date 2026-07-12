@@ -22,7 +22,7 @@ internal sealed class ConvertBetweenRegularAndVerbatimStringTool : CodeActionMut
         registry.RegisterMutationTool(_metadata, new ConvertBetweenRegularAndVerbatimStringTool());
     }
 
-    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteCoreAsync(LocationRefactoringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
+    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(LocationRefactoringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         return context.StageReplaySelectionAsync(
             request.Selection,

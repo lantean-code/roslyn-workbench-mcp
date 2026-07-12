@@ -2,7 +2,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Execution;
 
 internal interface ICodeActionOperationService
 {
-    ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> CreateMutationProposalAsync(
+    ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> CreateMutationCandidateAsync(
         CodeAction action,
         string summary,
         ICodeActionExecutionContext context,

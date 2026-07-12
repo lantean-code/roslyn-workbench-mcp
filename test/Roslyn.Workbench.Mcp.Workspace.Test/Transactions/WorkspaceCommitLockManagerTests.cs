@@ -69,4 +69,20 @@ public sealed class WorkspaceCommitLockManagerTests
         result.Status.Should().Be(WorkspaceCommitLockAcquisitionStatus.Failed);
         result.ErrorMessage.Should().NotBeNullOrWhiteSpace();
     }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void GIVEN_LockProviderFailure_WHEN_Acquiring_THEN_ShouldReportFailure(bool accessDenied)
+    {
+        var exception = accessDenied
+            ? (Exception)new UnauthorizedAccessException("denied")
+            : new IOException("failed");
+        _provider.Setup(item => item.TryAcquire(It.IsAny<string>())).Throws(exception);
+
+        var result = _target.Acquire("Root");
+
+        result.Status.Should().Be(WorkspaceCommitLockAcquisitionStatus.Failed);
+        result.ErrorMessage.Should().Be(exception.Message);
+    }
 }

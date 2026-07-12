@@ -21,12 +21,12 @@ public sealed class PluginExecutionContextTests
     }
 
     [Fact]
-    public async Task GIVEN_MutationProposal_WHEN_StagingThroughPluginLease_THEN_ShouldMapProposalAndSuccessfulResult()
+    public async Task GIVEN_MutationCandidate_WHEN_StagingThroughPluginLease_THEN_ShouldMapProposalAndSuccessfulResult()
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
         var workspaceContext = CreateWorkspaceContext(roslyn.Solution);
         var stager = new Mock<IWorkspaceMutationStager>();
-        var proposal = new MutationProposal
+        var proposal = new MutationCandidate
         {
             CandidateSolution = roslyn.Solution,
             Summary = "Summary",
@@ -43,7 +43,7 @@ public sealed class PluginExecutionContextTests
         stager
             .Setup(item => item.StageAsync(
                 "Operation",
-                It.Is<WorkspaceMutationProposal>(candidate => candidate.CandidateSolution == roslyn.Solution && candidate.Summary == "Summary"),
+                It.Is<WorkspaceMutationCandidate>(candidate => candidate.CandidateSolution == roslyn.Solution && candidate.Summary == "Summary"),
                 It.IsAny<IReadOnlyList<DiagnosticInfo>>(),
                 It.IsAny<IReadOnlyList<WarningInfo>>(),
                 CancellationToken.None))
@@ -65,7 +65,7 @@ public sealed class PluginExecutionContextTests
         result.Data.Transaction!.Revision.Should().Be(1);
         stager.Verify(item => item.StageAsync(
             "Operation",
-            It.IsAny<WorkspaceMutationProposal>(),
+            It.IsAny<WorkspaceMutationCandidate>(),
             It.IsAny<IReadOnlyList<DiagnosticInfo>>(),
             It.IsAny<IReadOnlyList<WarningInfo>>(),
             CancellationToken.None), Times.Once);

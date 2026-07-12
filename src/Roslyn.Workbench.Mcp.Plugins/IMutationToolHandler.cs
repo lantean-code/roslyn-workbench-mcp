@@ -20,7 +20,7 @@ public interface IMutationToolHandler<TRequest>
     /// <param name="context">The host-owned mutation execution context.</param>
     /// <param name="cancellationToken">The cancellation token for the invocation.</param>
     /// <returns>The normalized plugin execution outcome.</returns>
-    ValueTask<PluginExecutionResult<MutationProposal>> ExecuteAsync(
+    ValueTask<PluginExecutionResult<MutationCandidate>> ExecuteAsync(
         TRequest request,
         IMutationContext context,
         CancellationToken cancellationToken);

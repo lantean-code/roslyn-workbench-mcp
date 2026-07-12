@@ -5,6 +5,33 @@ public sealed class WorkspaceTransactionTests : IDisposable
     private readonly AdhocWorkspace _workspace = new();
 
     [Fact]
+    public void GIVEN_TransactionAtEarlierRevision_WHEN_AppendingRevision_THEN_ShouldDiscardRedoHistory()
+    {
+        var baselineSolution = _workspace.CurrentSolution;
+        var firstSolution = baselineSolution.AddProject("First", "First", LanguageNames.CSharp).Solution;
+        var redoSolution = firstSolution.AddProject("Redo", "Redo", LanguageNames.CSharp).Solution;
+        var appendedSolution = firstSolution.AddProject("Appended", "Appended", LanguageNames.CSharp).Solution;
+        var appendedRevision = CreateRevision(appendedSolution);
+        var target = new WorkspaceTransaction
+        {
+            BaselineSolution = baselineSolution,
+            Revisions =
+            [
+                CreateRevision(firstSolution),
+                CreateRevision(redoSolution),
+            ],
+            CurrentRevision = 1,
+            MaxRevisions = 3,
+        };
+
+        var result = target.Append(appendedRevision);
+
+        result.CurrentRevision.Should().Be(2);
+        result.Revisions.Should().Equal(target.Revisions[0], appendedRevision);
+        result.CurrentSolution.Should().BeSameAs(appendedSolution);
+    }
+
+    [Fact]
     public void GIVEN_ZeroCurrentRevision_WHEN_GettingCurrentSolution_THEN_ShouldReturnBaselineSolution()
     {
         using var workspace = new AdhocWorkspace();

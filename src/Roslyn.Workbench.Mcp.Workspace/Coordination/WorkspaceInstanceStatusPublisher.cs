@@ -6,12 +6,14 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
 {
     private static readonly JsonSerializerOptions _options = new(JsonSerializerDefaults.Web);
     private readonly IFileSystem _fileSystem;
+    private readonly IWorkspacePathComparison _pathComparison;
     private readonly Dictionary<string, InstanceLease> _leases = new(StringComparer.Ordinal);
     private readonly string _instanceId = $"{Environment.ProcessId}-{Guid.NewGuid():n}";
 
-    public WorkspaceInstanceStatusPublisher(IFileSystem fileSystem)
+    public WorkspaceInstanceStatusPublisher(IFileSystem fileSystem, IWorkspacePathComparison pathComparison)
     {
         _fileSystem = fileSystem;
+        _pathComparison = pathComparison;
     }
 
     public async ValueTask<bool> OpenAsync(
@@ -190,12 +192,9 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         return _fileSystem.Path.Combine(workspaceRoot, ".vs", "roslyn-workbench-mcp", "instances");
     }
 
-    private static bool PathsEqual(string left, string right)
+    private bool PathsEqual(string left, string right)
     {
-        return string.Equals(
-            left,
-            right,
-            OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
+        return string.Equals(left, right, _pathComparison.Comparison);
     }
 
     private sealed class InstanceLease

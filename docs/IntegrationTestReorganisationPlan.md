@@ -196,7 +196,7 @@ Move real-boundary coverage from `Roslyn.Workbench.Mcp.Workspace.Test` into `Ros
 
 Initial move candidates:
 
-- `MsBuildProjectUtilitiesTests`
+- `WorkspaceProjectCompatibilityInspectorIntegrationTests`
 - integration methods from `WorkspaceCoordinatorTests`
 - `WorkspaceInputManifestBuilderTests`
 - real-workspace methods from `WorkspaceResolverTests`

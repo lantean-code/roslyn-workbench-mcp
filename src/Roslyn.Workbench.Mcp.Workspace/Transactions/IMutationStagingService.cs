@@ -5,7 +5,7 @@ internal interface IMutationStagingService
 {
     ValueTask<WorkspaceOperationResult<MutationStagingOutcome>> StageAsync(
         string operationName,
-        WorkspaceMutationProposal proposal,
+        WorkspaceMutationCandidate candidate,
         IReadOnlyList<DiagnosticInfo> diagnostics,
         IReadOnlyList<WarningInfo> warnings,
         CancellationToken cancellationToken);

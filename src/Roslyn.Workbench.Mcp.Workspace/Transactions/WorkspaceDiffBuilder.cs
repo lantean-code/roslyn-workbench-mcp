@@ -95,7 +95,8 @@ internal static class WorkspaceDiffBuilder
             .SelectMany(static project => project.Documents)
             .FirstOrDefault(document => document.Id.Id.ToString() == documentReference.DocumentId);
 
-        if (currentDocument is null && baselineDocument is null)
+        var document = currentDocument ?? baselineDocument;
+        if (document is null)
         {
             return null;
         }
@@ -105,8 +106,7 @@ internal static class WorkspaceDiffBuilder
 
         return new DocumentDiff
         {
-            Document = resolver.CreateDocumentReference(currentDocument ?? baselineDocument
-                ?? throw new InvalidOperationException("The changed document could not be resolved.")),
+            Document = resolver.CreateDocumentReference(document),
             Hunks = CreateHunks(oldText, newText, contextLines),
             Truncated = false,
         };

@@ -2,15 +2,13 @@ namespace Roslyn.Workbench.Mcp.Workspace.Loading;
 
 internal sealed class WorkspaceRootResolver : IWorkspaceRootResolver
 {
-    private static StringComparison PathComparison => OperatingSystem.IsWindows()
-        ? StringComparison.OrdinalIgnoreCase
-        : StringComparison.Ordinal;
-
     private readonly IFileSystem _fileSystem;
+    private readonly IWorkspacePathComparison _pathComparison;
 
-    public WorkspaceRootResolver(IFileSystem fileSystem)
+    public WorkspaceRootResolver(IFileSystem fileSystem, IWorkspacePathComparison pathComparison)
     {
         _fileSystem = fileSystem;
+        _pathComparison = pathComparison;
     }
 
     public string? Resolve(string loadedPath, string? requestedRoot)
@@ -46,7 +44,7 @@ internal sealed class WorkspaceRootResolver : IWorkspaceRootResolver
             }
 
             var parent = _fileSystem.Path.GetDirectoryName(directory);
-            if (string.Equals(parent, directory, PathComparison))
+            if (string.Equals(parent, directory, _pathComparison.Comparison))
             {
                 break;
             }
@@ -63,7 +61,7 @@ internal sealed class WorkspaceRootResolver : IWorkspaceRootResolver
             _fileSystem.Path.GetFullPath(workspaceRoot),
             _fileSystem.Path.GetFullPath(path));
         return relative != ".."
-            && !relative.StartsWith($"..{_fileSystem.Path.DirectorySeparatorChar}", PathComparison)
+            && !relative.StartsWith($"..{_fileSystem.Path.DirectorySeparatorChar}", _pathComparison.Comparison)
             && !_fileSystem.Path.IsPathRooted(relative);
     }
 }

@@ -22,7 +22,7 @@ internal sealed class AddImportTool : CodeActionMutationToolHandler<AddImportReq
         registry.RegisterMutationTool(_metadata, new AddImportTool());
     }
 
-    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> ExecuteCoreAsync(AddImportRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
+    protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(AddImportRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         var titleDoesNotContain = request.SimplifyAllOccurrences ? null : "simplify all occurrences";
 

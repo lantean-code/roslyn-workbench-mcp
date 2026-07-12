@@ -152,6 +152,19 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
     }
 
     [Fact]
+    public void GIVEN_FileWithWhitespaceParentPath_WHEN_BuildingManifest_THEN_ShouldRetainFileOnly()
+    {
+        SetupFile("Workspace.sln");
+        _path.Setup(item => item.GetDirectoryName("Workspace.sln")).Returns(" ");
+
+        var result = _target.BuildManifest(_workspace.CurrentSolution, "Workspace.sln");
+
+        result.Files.Should().ContainSingle();
+        result.Directories.Should().BeEmpty();
+        _directoryInfoFactory.Verify(item => item.New(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
     public void GIVEN_ProjectAndDocumentWithoutPaths_WHEN_BuildingManifest_THEN_ShouldRetainOnlyLoadedPath()
     {
         var projectId = ProjectId.CreateNewId();

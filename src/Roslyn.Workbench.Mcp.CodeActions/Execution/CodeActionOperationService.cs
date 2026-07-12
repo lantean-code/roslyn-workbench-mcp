@@ -15,7 +15,7 @@ internal sealed class CodeActionOperationService : ICodeActionOperationService
         _descriptorRegistry = descriptorRegistry;
     }
 
-    public async ValueTask<CodeActionExecutionResult<WorkspaceMutationProposal>> CreateMutationProposalAsync(
+    public async ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> CreateMutationCandidateAsync(
         CodeAction action,
         string summary,
         ICodeActionExecutionContext context,
@@ -24,7 +24,7 @@ internal sealed class CodeActionOperationService : ICodeActionOperationService
         var descriptor = _descriptorRegistry.Classify(action, string.Empty, action.Title);
         if (descriptor.ExecutionMode == CodeActionExecutionMode.Parameterised)
         {
-            return CodeActionExecutionResult<WorkspaceMutationProposal>.Rejected(new CodeActionExecutionError
+            return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
             {
                 Code = "ActionRequiresParameters",
                 Message = "The selected action requires dedicated tool parameters and cannot be replayed generically.",
@@ -37,14 +37,14 @@ internal sealed class CodeActionOperationService : ICodeActionOperationService
             cancellationToken).ConfigureAwait(false);
         if (!TryGetSupportedApplyChangesOperation(operations, out var applyChanges))
         {
-            return CodeActionExecutionResult<WorkspaceMutationProposal>.Rejected(new CodeActionExecutionError
+            return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
             {
                 Code = "UnsupportedActionOperation",
                 Message = "The selected action produced unsupported operations.",
             });
         }
 
-        return CodeActionExecutionResult<WorkspaceMutationProposal>.Success(new WorkspaceMutationProposal
+        return CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(new WorkspaceMutationCandidate
         {
             CandidateSolution = applyChanges.ChangedSolution,
             Summary = summary,
@@ -145,7 +145,7 @@ internal sealed class CodeActionOperationService : ICodeActionOperationService
         {
             return new CodeActionApplyResult
             {
-                Rejection = CodeActionExecutionResult<WorkspaceMutationProposal>.Rejected(new CodeActionExecutionError
+                Rejection = CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
                 {
                     Code = "UnsupportedActionOperation",
                     Message = "The selected action produced unsupported operations.",
@@ -198,9 +198,9 @@ internal sealed class CodeActionOperationService : ICodeActionOperationService
             StringComparison.Ordinal);
     }
 
-    private static CodeActionExecutionResult<WorkspaceMutationProposal> FixAllUnavailable(string message)
+    private static CodeActionExecutionResult<WorkspaceMutationCandidate> FixAllUnavailable(string message)
     {
-        return CodeActionExecutionResult<WorkspaceMutationProposal>.Rejected(new CodeActionExecutionError
+        return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
         {
             Code = "FixAllUnavailable",
             Message = message,

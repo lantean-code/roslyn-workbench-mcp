@@ -17,12 +17,18 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
     private static readonly Encoding _encoding = new UTF8Encoding(false);
     private readonly IFileSystem _fileSystem;
     private readonly IAtomicFileWriter _atomicFileWriter;
+    private readonly IWorkspacePathComparison _pathComparison;
     private readonly string _recoveryDirectory;
 
-    public CommitRecoveryStore(IOptions<WorkspaceCoordinatorOptions> options, IFileSystem fileSystem, IAtomicFileWriter atomicFileWriter)
+    public CommitRecoveryStore(
+        IOptions<WorkspaceCoordinatorOptions> options,
+        IFileSystem fileSystem,
+        IAtomicFileWriter atomicFileWriter,
+        IWorkspacePathComparison pathComparison)
     {
         _fileSystem = fileSystem;
         _atomicFileWriter = atomicFileWriter;
+        _pathComparison = pathComparison;
         _recoveryDirectory = _fileSystem.Path.Combine(
             _fileSystem.Path.GetFullPath(options.Value.StateDirectory),
             _recoveryDirectoryName);
@@ -121,7 +127,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
                     && string.Equals(
                         owner.CommitId,
                         _fileSystem.Path.GetFileName(directory),
-                        OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal)
+                        _pathComparison.Comparison)
                     && _fileSystem.Path.IsPathFullyQualified(owner.LoadedPath)
                     && _fileSystem.Path.IsPathFullyQualified(owner.WorkspaceRoot))
                 {
@@ -259,9 +265,8 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
 
     private bool IsValidManifest(WorkspaceCommitManifest manifest, string directory)
     {
-        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
         if (manifest.Version != 2
-            || !string.Equals(manifest.CommitId, _fileSystem.Path.GetFileName(directory), comparison)
+            || !string.Equals(manifest.CommitId, _fileSystem.Path.GetFileName(directory), _pathComparison.Comparison)
             || !_fileSystem.Path.IsPathFullyQualified(manifest.LoadedPath)
             || !_fileSystem.Path.IsPathFullyQualified(manifest.WorkspaceRoot)
             || !IsWithinRoot(manifest.WorkspaceRoot, manifest.LoadedPath))
@@ -269,7 +274,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
             return false;
         }
 
-        var targets = new HashSet<string>(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+        var targets = new HashSet<string>(_pathComparison.Comparer);
         try
         {
             foreach (var entry in manifest.Entries)

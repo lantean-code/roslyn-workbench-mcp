@@ -51,6 +51,20 @@ public sealed class TransactionCommitServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GIVEN_MissingWorkspaceSession_WHEN_Committing_THEN_ShouldRequireTransaction()
+    {
+        var selection = CreateSelection(CreateSession());
+        var expected = CreateResult(WorkspaceOperationStatus.Rejected);
+        _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns((WorkspaceSessionSnapshot?)null);
+        _resultFactory.Setup(item => item.Rejected<TransactionCommitOutcome>(
+            WorkspaceErrorCodes.TransactionRequired, It.IsAny<string>(), RequiredAction.StartTransaction, null, null, null)).Returns(expected);
+
+        var result = await _target.CommitAsync(selection, null, TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+    }
+
+    [Fact]
     public async Task GIVEN_SnapshotMismatch_WHEN_Committing_THEN_ShouldReturnConflictWithoutWriting()
     {
         var session = CreateSession();
@@ -265,6 +279,43 @@ public sealed class TransactionCommitServiceTests : IDisposable
         _commitWriter.Verify(
             item => item.RestoreAsync(It.IsAny<WorkspaceCommitManifest>()),
             failurePoint == "Plan" ? Times.Never() : Times.Once());
+    }
+
+    [Fact]
+    public async Task GIVEN_PreApplicationAccessFailure_WHEN_Committing_THEN_ShouldReturnRetryableFault()
+    {
+        var session = CreateSession();
+        var manifest = CreateManifest();
+        var plan = new WorkspaceCommitPlan(manifest, new Dictionary<string, ReadOnlyMemory<byte>>());
+        var expected = CreateResult(WorkspaceOperationStatus.Faulted);
+        SetupProtocol(session, plan);
+        _planner.Setup(item => item.CreateAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Solution>(), It.IsAny<Solution>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new UnauthorizedAccessException("denied"));
+        _resultFactory.Setup(item => item.Faulted<TransactionCommitOutcome>(
+            "CommitPreparationFailed", It.IsAny<string>(), RequiredAction.Retry, It.IsAny<WorkspaceOperationContext>(), null, null)).Returns(expected);
+
+        var result = await _target.CommitAsync(CreateSelection(session), null, TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _commitWriter.Verify(item => item.RestoreAsync(It.IsAny<WorkspaceCommitManifest>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_NonRecoverablePreparationFailure_WHEN_Committing_THEN_ShouldPropagateFailure()
+    {
+        var session = CreateSession();
+        var manifest = CreateManifest();
+        var plan = new WorkspaceCommitPlan(manifest, new Dictionary<string, ReadOnlyMemory<byte>>());
+        SetupProtocol(session, plan);
+        _planner.Setup(item => item.CreateAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Solution>(), It.IsAny<Solution>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("failed"));
+
+        var action = async () => await _target.CommitAsync(CreateSelection(session), null, TestContext.Current.CancellationToken);
+
+        await action.Should().ThrowAsync<InvalidOperationException>().WithMessage("failed");
+        _commitWriter.Verify(item => item.RestoreAsync(It.IsAny<WorkspaceCommitManifest>()), Times.Never);
     }
 
     [Fact]

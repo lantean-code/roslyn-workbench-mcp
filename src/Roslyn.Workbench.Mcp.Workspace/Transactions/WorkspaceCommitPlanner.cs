@@ -6,10 +6,12 @@ namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
 {
     private readonly IFileSystem _fileSystem;
+    private readonly IWorkspacePathComparison _pathComparison;
 
-    public WorkspaceCommitPlanner(IFileSystem fileSystem)
+    public WorkspaceCommitPlanner(IFileSystem fileSystem, IWorkspacePathComparison pathComparison)
     {
         _fileSystem = fileSystem;
+        _pathComparison = pathComparison;
     }
 
     public async ValueTask<WorkspaceCommitPlan> CreateAsync(
@@ -21,7 +23,7 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var comparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+        var comparer = _pathComparison.Comparer;
         var canonicalWorkspaceRoot = _fileSystem.Path.GetFullPath(workspaceRoot);
         var targets = new HashSet<string>(comparer);
         var entries = new List<WorkspaceCommitEntry>();

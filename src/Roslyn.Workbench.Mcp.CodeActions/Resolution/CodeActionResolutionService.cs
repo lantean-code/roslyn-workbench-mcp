@@ -80,7 +80,6 @@ internal sealed class CodeActionResolutionService : ICodeActionResolutionService
             : await _discoveryService.DiscoverProviderCodeFixesAsync(
                 payload.ProviderId,
                 document,
-                span,
                 await _diagnosticService.GetDocumentDiagnosticsAsync(document, span, payload.DiagnosticIds, cancellationToken).ConfigureAwait(false),
                 cancellationToken).ConfigureAwait(false);
 

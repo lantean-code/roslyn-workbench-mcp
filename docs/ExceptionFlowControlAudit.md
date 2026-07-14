@@ -8,7 +8,7 @@ locally thrown exception is translated into a result. Test code is excluded
 because exception assertions and deliberately throwing fakes are test
 mechanisms rather than production control flow.
 
-The scan found 240 candidate lines across 85 production files: 175 throw or
+The initial scan found 240 candidate lines across 85 production files: 175 throw or
 guard lines and 65 catch lines. These numbers are a review baseline, not a
 violation count. Cancellation, invariant enforcement and translation of
 genuine framework, operating-system, filesystem, Roslyn, MSBuild, MEF or plugin
@@ -22,7 +22,7 @@ ordinary code and reserve exceptions for unusual or unexpected failures:
 
 ## Completed Remediation
 
-The 2026-07-14 plugin-composition remediation removed two violation families:
+Completed remediation on 2026-07-14 covers every confirmed violation family:
 
 - `PluginAssemblyMetadataReader` now returns explicit validation failures from
   custom-attribute parsing. Its outer exception boundary remains responsible
@@ -31,15 +31,25 @@ The 2026-07-14 plugin-composition remediation removed two violation families:
   multiple exports. `LoadedPluginPreparer` maps an expected composition failure
   to a `PluginComposition` diagnostic, while unexpected MEF or plugin-code
   exceptions continue to be isolated by candidate preparation.
+- `WorkspaceCommitPlanner` and `WorkspaceCommitWriter` now return explicit
+  planning and validation results when a target drifts, changes existence or
+  has a conflicting delete marker. `TransactionCommitService` maps those
+  anticipated outcomes to `TransactionConflicted`, while genuine filesystem
+  and access exceptions continue through durable restoration and recovery.
+- `CodeActionDiscoveryService` groups fixable diagnostics by their exact source
+  span before constructing `CodeFixContext`. Each valid group follows one
+  deterministic registration path, with no speculative call or retry catch.
+- `CommitRecoveryStore` validates persisted artifact paths through a `Try*`
+  path before accepting a manifest. Required artifact resolution throws only
+  when an already-validated recovery invariant is violated.
+- `MsBuildRegistrationService` checks `MSBuildLocator.IsRegistered` before
+  registration and owns its cached status as a DI singleton rather than through
+  a separate static state holder. The filtered catch remains only for an
+  external registration race between the check and `RegisterDefaults`.
 
 ## Remaining Confirmed Violations
 
-| Area | Current exception path | Why it is flow control | Recommended replacement |
-|---|---|---|---|
-| `CodeActionDiscoveryService` | A batch `RegisterCodeFixesAsync` call catches `ArgumentException`, clears its output and retries every diagnostic separately. | An exception selects between two supported discovery algorithms. | Use one deterministic registration strategy that satisfies `CodeFixContext` preconditions, or select the strategy from inspected diagnostic spans before invoking the provider. |
-| `MsBuildRegistration` | `RegisterDefaults` is called and an `InvalidOperationException` filtered by `MSBuildLocator.IsRegistered` is converted into an available status. | The routine already-registered state is represented by an exception even though `IsRegistered` exposes it directly. | Check `IsRegistered` before registration while holding the local lock. Retain only a narrowly documented catch if an unavoidable external registration race still exists. |
-| `CommitRecoveryStore` | `GetArtifactPath` throws `InvalidDataException` for an escaping persisted path; `IsValidManifest` catches it and returns `false`. | Unsafe or malformed persisted recovery metadata is an expected validation outcome. | Separate artifact-path validation from required path resolution, returning a validation result for manifest inspection and throwing only if an already-validated internal invariant is later violated. |
-| `WorkspaceCommitPlanner`, `WorkspaceCommitWriter` and `TransactionCommitService` | Planner and writer methods throw `IOException` after explicit existence, marker and hash checks; the transaction service catches those exceptions to choose preparation failure or recovery. | Target drift and revalidation rejection are anticipated transactional outcomes, while actual filesystem exceptions are exceptional. Using the same exception type conflates both paths. | Return a commit-plan/revalidation result for detected drift and unsafe targets. Keep real filesystem failures exceptional and translate them at the transaction boundary. Duplicate or out-of-bound targets may remain invariant failures if the caller cannot legitimately produce them; otherwise include them in the planning result. |
+No confirmed exception-for-flow-control violations remain from this audit.
 
 ## Review Findings That Are Not Flow-Control Violations
 
@@ -72,14 +82,9 @@ that they warrant a separate error-reporting review:
 
 ## Recommended Remediation Order
 
-1. Remove the Code Action discovery retry-by-exception and cover the chosen
-   diagnostic grouping behaviour directly.
-2. Separate transaction validation results from genuine filesystem exceptions
-   across planner, writer and commit orchestration.
-3. Convert recovery artifact validation and the MSBuild already-registered path
-   to ordinary result/state handling.
-4. Review the silent-degradation findings independently; they concern diagnostic
-   fidelity rather than flow-control mechanics.
+Review the silent-degradation findings independently. They concern diagnostic
+fidelity rather than flow-control mechanics and should not be treated as
+unfinished work from this remediation.
 
 After remediation, repeat the source scan and update this document with the
 remaining reviewed exception boundaries. An analyser can guard simple syntactic

@@ -34,7 +34,7 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
 
     public string GetProviderId(object provider)
     {
-        return provider.GetType().FullName ?? provider.GetType().Name;
+        return provider.GetType().ToString();
     }
 
     public async ValueTask<IReadOnlyList<DiscoveredCodeAction>> DiscoverProviderRefactoringsAsync(
@@ -52,14 +52,13 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
     public async ValueTask<IReadOnlyList<DiscoveredCodeAction>> DiscoverProviderCodeFixesAsync(
         string providerId,
         Document document,
-        TextSpan span,
         ImmutableArray<Diagnostic> diagnostics,
         CancellationToken cancellationToken)
     {
         var provider = _providerCatalog.CodeFixProviders.SingleOrDefault(candidate => string.Equals(GetProviderId(candidate), providerId, StringComparison.Ordinal));
         return provider is null
             ? []
-            : await DiscoverCodeFixesAsync(provider, document, span, diagnostics, cancellationToken).ConfigureAwait(false);
+            : await DiscoverCodeFixesAsync(provider, document, diagnostics, cancellationToken).ConfigureAwait(false);
     }
 
     public async ValueTask<IReadOnlyList<DiscoveredCodeAction>> DiscoverRefactoringsAsync(
@@ -78,7 +77,6 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
     public async ValueTask<IReadOnlyList<DiscoveredCodeAction>> DiscoverCodeFixesAsync(
         CodeFixProvider provider,
         Document document,
-        TextSpan span,
         ImmutableArray<Diagnostic> diagnostics,
         CancellationToken cancellationToken)
     {
@@ -91,17 +89,16 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         }
 
         var discovered = new List<(CodeAction Action, ImmutableArray<Diagnostic> Diagnostics)>();
-        try
+        foreach (var diagnosticGroup in matchingDiagnostics.GroupBy(static diagnostic => diagnostic.Location.SourceSpan))
         {
-            await RegisterCodeFixesAsync(provider, document, span, matchingDiagnostics, discovered, cancellationToken).ConfigureAwait(false);
-        }
-        catch (ArgumentException)
-        {
-            discovered.Clear();
-            foreach (var diagnostic in matchingDiagnostics)
-            {
-                await RegisterCodeFixesAsync(provider, document, diagnostic.Location.SourceSpan, [diagnostic], discovered, cancellationToken).ConfigureAwait(false);
-            }
+            var groupedDiagnostics = diagnosticGroup.ToImmutableArray();
+            await RegisterCodeFixesAsync(
+                provider,
+                document,
+                diagnosticGroup.Key,
+                groupedDiagnostics,
+                discovered,
+                cancellationToken).ConfigureAwait(false);
         }
 
         return discovered
@@ -124,33 +121,13 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         ICollection<(CodeAction Action, ImmutableArray<Diagnostic> Diagnostics)> discovered,
         CancellationToken cancellationToken)
     {
-        var contextSpan = ExpandCodeFixContextSpan(requestedSpan, diagnostics);
         var context = new CodeFixContext(
             document,
-            contextSpan,
+            requestedSpan,
             diagnostics,
             (action, actionDiagnostics) => discovered.Add((action, actionDiagnostics)),
             cancellationToken);
         await provider.RegisterCodeFixesAsync(context).ConfigureAwait(false);
-    }
-
-    private static TextSpan ExpandCodeFixContextSpan(TextSpan requestedSpan, ImmutableArray<Diagnostic> diagnostics)
-    {
-        var start = requestedSpan.Start;
-        var end = requestedSpan.End;
-
-        foreach (var diagnostic in diagnostics)
-        {
-            if (!diagnostic.Location.IsInSource)
-            {
-                continue;
-            }
-
-            start = Math.Min(start, diagnostic.Location.SourceSpan.Start);
-            end = Math.Max(end, diagnostic.Location.SourceSpan.End);
-        }
-
-        return TextSpan.FromBounds(start, end);
     }
 
     private static IReadOnlyList<DiscoveredCodeAction> Flatten(

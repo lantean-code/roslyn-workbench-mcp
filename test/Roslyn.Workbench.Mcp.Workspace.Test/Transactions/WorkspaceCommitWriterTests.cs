@@ -31,9 +31,10 @@ public sealed class WorkspaceCommitWriterTests
         _file.Setup(item => item.Exists("/workspace/file.cs")).Returns(true);
         _file.Setup(item => item.ReadAllBytesAsync("/workspace/file.cs", It.IsAny<CancellationToken>())).ReturnsAsync(original);
 
-        var action = async () => await _target.RevalidateAsync(manifest, TestContext.Current.CancellationToken);
+        var result = await _target.RevalidateAsync(manifest, TestContext.Current.CancellationToken);
 
-        await action.Should().NotThrowAsync();
+        result.IsValid.Should().BeTrue();
+        result.ErrorMessage.Should().BeNull();
     }
 
     [Fact]
@@ -43,9 +44,10 @@ public sealed class WorkspaceCommitWriterTests
         _file.Setup(item => item.Exists("/workspace/file.cs")).Returns(true);
         _file.Setup(item => item.ReadAllBytesAsync("/workspace/file.cs", It.IsAny<CancellationToken>())).ReturnsAsync([9]);
 
-        var action = async () => await _target.RevalidateAsync(manifest, TestContext.Current.CancellationToken);
+        var result = await _target.RevalidateAsync(manifest, TestContext.Current.CancellationToken);
 
-        await action.Should().ThrowAsync<IOException>();
+        result.IsValid.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("changed before commit application");
     }
 
     [Fact]
@@ -73,9 +75,10 @@ public sealed class WorkspaceCommitWriterTests
         var entry = CreateEntry(operation, "ORIGINAL", "INTENDED");
         _file.Setup(item => item.Exists(entry.TargetPath)).Returns(exists);
 
-        var action = async () => await _target.RevalidateAsync(CreateManifest(entry), TestContext.Current.CancellationToken);
+        var result = await _target.RevalidateAsync(CreateManifest(entry), TestContext.Current.CancellationToken);
 
-        await action.Should().ThrowAsync<IOException>();
+        result.IsValid.Should().BeFalse();
+        result.ErrorMessage.Should().Contain(entry.TargetPath);
     }
 
     [Fact]
@@ -84,9 +87,10 @@ public sealed class WorkspaceCommitWriterTests
         var entry = CreateEntry(WorkspaceFileOperation.Delete, "ORIGINAL", null);
         _file.Setup(item => item.Exists(entry.GetRequiredDeleteMarkerPath())).Returns(true);
 
-        var action = async () => await _target.RevalidateAsync(CreateManifest(entry), TestContext.Current.CancellationToken);
+        var result = await _target.RevalidateAsync(CreateManifest(entry), TestContext.Current.CancellationToken);
 
-        await action.Should().ThrowAsync<IOException>();
+        result.IsValid.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("delete marker");
     }
 
     [Fact]
@@ -110,8 +114,9 @@ public sealed class WorkspaceCommitWriterTests
         _file.Setup(item => item.ReadAllBytesAsync("/workspace/b.cs", CancellationToken.None)).ReturnsAsync(beforeReplace);
         _file.Setup(item => item.ReadAllBytesAsync("/workspace/d.cs", CancellationToken.None)).ReturnsAsync(beforeDelete);
 
-        await _target.ApplyAsync(manifest);
+        var result = await _target.ApplyAsync(manifest);
 
+        result.IsValid.Should().BeTrue();
         _directory.Verify(item => item.CreateDirectory("/workspace/new"), Times.Once);
         _atomicWriter.Verify(item => item.WriteAllBytesAsync("/workspace/a.cs", It.Is<ReadOnlyMemory<byte>>(bytes => bytes.ToArray()[0] == 1), CancellationToken.None), Times.Once);
         _atomicWriter.Verify(item => item.WriteAllBytesAsync("/workspace/b.cs", It.Is<ReadOnlyMemory<byte>>(bytes => bytes.ToArray()[0] == 2), CancellationToken.None), Times.Once);
@@ -129,10 +134,26 @@ public sealed class WorkspaceCommitWriterTests
         _file.Setup(item => item.Exists(entry.TargetPath)).Returns(true);
         _file.Setup(item => item.ReadAllBytesAsync(entry.TargetPath, CancellationToken.None)).ReturnsAsync(original);
 
-        var action = async () => await _target.ApplyAsync(CreateManifest(entry));
+        var result = await _target.ApplyAsync(CreateManifest(entry));
 
-        await action.Should().ThrowAsync<IOException>();
+        result.IsValid.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("delete marker");
         _fileCommitter.Verify(item => item.Move(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_TargetDriftsBeforeEntryApplication_WHEN_Applying_THEN_ShouldStopBeforeWriting()
+    {
+        var entry = CreateEntry(WorkspaceFileOperation.Create, null, "INTENDED");
+        _file.Setup(item => item.Exists(entry.TargetPath)).Returns(true);
+
+        var result = await _target.ApplyAsync(CreateManifest(entry));
+
+        result.IsValid.Should().BeFalse();
+        result.ErrorMessage.Should().Contain(entry.TargetPath);
+        _atomicWriter.Verify(
+            item => item.WriteAllBytesAsync(It.IsAny<string>(), It.IsAny<ReadOnlyMemory<byte>>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]

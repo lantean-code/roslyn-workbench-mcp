@@ -14,7 +14,7 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         _pathComparison = pathComparison;
     }
 
-    public async ValueTask<WorkspaceCommitPlan> CreateAsync(
+    public async ValueTask<WorkspaceCommitPlanResult> CreateAsync(
         string commitId,
         string loadedPath,
         string workspaceRoot,
@@ -28,15 +28,19 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         var projectChanges = currentSolution.GetChanges(baselineSolution).GetProjectChanges();
         foreach (var projectChange in projectChanges)
         {
-            await AddProjectChangesAsync(
+            var validation = await AddProjectChangesAsync(
                 context,
                 projectChange,
                 baselineSolution,
                 currentSolution,
                 cancellationToken).ConfigureAwait(false);
+            if (!validation.IsValid)
+            {
+                return WorkspaceCommitPlanResult.Failed(validation.ErrorMessage);
+            }
         }
 
-        return CreatePlan(context);
+        return WorkspaceCommitPlanResult.Succeeded(CreatePlan(context));
     }
 
     private WorkspaceCommitPlanningContext CreatePlanningContext(
@@ -56,7 +60,7 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
             comparer);
     }
 
-    private async ValueTask AddProjectChangesAsync(
+    private async ValueTask<WorkspaceCommitValidationResult> AddProjectChangesAsync(
         WorkspaceCommitPlanningContext context,
         ProjectChanges projectChanges,
         Solution baselineSolution,
@@ -68,11 +72,15 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
             .OfType<Document>();
         foreach (var document in changedDocuments)
         {
-            await AddWriteAsync(
+            var validation = await AddWriteAsync(
                 context,
                 document,
                 WorkspaceFileOperation.Replace,
                 cancellationToken).ConfigureAwait(false);
+            if (!validation.IsValid)
+            {
+                return validation;
+            }
         }
 
         var addedDocuments = projectChanges.GetAddedDocuments()
@@ -80,11 +88,15 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
             .OfType<Document>();
         foreach (var document in addedDocuments)
         {
-            await AddWriteAsync(
+            var validation = await AddWriteAsync(
                 context,
                 document,
                 WorkspaceFileOperation.Create,
                 cancellationToken).ConfigureAwait(false);
+            if (!validation.IsValid)
+            {
+                return validation;
+            }
         }
 
         var removedDocuments = projectChanges.GetRemovedDocuments()
@@ -92,11 +104,17 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
             .OfType<Document>();
         foreach (var document in removedDocuments)
         {
-            await AddDeleteAsync(context, document, cancellationToken).ConfigureAwait(false);
+            var validation = await AddDeleteAsync(context, document, cancellationToken).ConfigureAwait(false);
+            if (!validation.IsValid)
+            {
+                return validation;
+            }
         }
+
+        return WorkspaceCommitValidationResult.Valid();
     }
 
-    private async ValueTask AddWriteAsync(
+    private async ValueTask<WorkspaceCommitValidationResult> AddWriteAsync(
         WorkspaceCommitPlanningContext context,
         Document document,
         WorkspaceFileOperation operation,
@@ -105,14 +123,15 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         cancellationToken.ThrowIfCancellationRequested();
         if (document.FilePath is null)
         {
-            return;
+            return WorkspaceCommitValidationResult.Valid();
         }
 
         var path = ValidateTarget(context, document.FilePath);
         var originalExists = _fileSystem.File.Exists(path);
         if ((operation == WorkspaceFileOperation.Create) == originalExists)
         {
-            throw new IOException($"The target '{path}' no longer has the expected existence state.");
+            return WorkspaceCommitValidationResult.Invalid(
+                $"The target '{path}' no longer has the expected existence state.");
         }
 
         var originalContents = originalExists
@@ -140,9 +159,10 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
             BackupPath = backupPath,
             StagedPath = stagedPath,
         });
+        return WorkspaceCommitValidationResult.Valid();
     }
 
-    private async ValueTask AddDeleteAsync(
+    private async ValueTask<WorkspaceCommitValidationResult> AddDeleteAsync(
         WorkspaceCommitPlanningContext context,
         Document document,
         CancellationToken cancellationToken)
@@ -150,13 +170,13 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         cancellationToken.ThrowIfCancellationRequested();
         if (document.FilePath is null)
         {
-            return;
+            return WorkspaceCommitValidationResult.Valid();
         }
 
         var path = ValidateTarget(context, document.FilePath);
         if (!_fileSystem.File.Exists(path))
         {
-            throw new IOException($"The target '{path}' no longer exists.");
+            return WorkspaceCommitValidationResult.Invalid($"The target '{path}' no longer exists.");
         }
 
         var originalContents = await _fileSystem.File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
@@ -165,7 +185,8 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         var deleteMarkerPath = $"{path}.{context.CommitId}.delete";
         if (_fileSystem.File.Exists(deleteMarkerPath))
         {
-            throw new IOException($"The delete marker '{deleteMarkerPath}' already exists.");
+            return WorkspaceCommitValidationResult.Invalid(
+                $"The delete marker '{deleteMarkerPath}' already exists.");
         }
 
         context.Artifacts.Add(backupPath, originalContents);
@@ -178,6 +199,7 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
             BackupPath = backupPath,
             DeleteMarkerPath = deleteMarkerPath,
         });
+        return WorkspaceCommitValidationResult.Valid();
     }
 
     private string ValidateTarget(WorkspaceCommitPlanningContext context, string path)

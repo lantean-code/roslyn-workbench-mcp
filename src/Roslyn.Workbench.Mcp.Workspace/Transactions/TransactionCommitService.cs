@@ -147,12 +147,45 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         var applicationStarted = false;
         try
         {
-            var plan = await CreateCommitPlanAsync(session, transaction, commitId, cancellationToken).ConfigureAwait(false);
+            var planningResult = await CreateCommitPlanAsync(
+                session,
+                transaction,
+                commitId,
+                cancellationToken).ConfigureAwait(false);
+            if (!planningResult.IsSucceeded)
+            {
+                return await TransitionCommitConflictAsync(session, transaction).ConfigureAwait(false);
+            }
+
+            var plan = planningResult.Plan;
             manifest = plan.Manifest;
-            manifest = await PrepareCommitAsync(session, transaction, commitId, plan, cancellationToken).ConfigureAwait(false);
+            await StageCommitAsync(session, transaction, commitId, plan, cancellationToken).ConfigureAwait(false);
+
+            var revalidation = await _commitWriter.RevalidateAsync(plan.Manifest, cancellationToken).ConfigureAwait(false);
+            if (!revalidation.IsValid)
+            {
+                _recoveryStore.DeleteStatus(commitId);
+                return await TransitionCommitConflictAsync(session, transaction).ConfigureAwait(false);
+            }
+
+            manifest = await BeginApplyingAsync(session, transaction, commitId, plan.Manifest, cancellationToken).ConfigureAwait(false);
             applicationStarted = true;
 
-            var committedSession = await ApplyCommitAsync(session, transaction, manifest).ConfigureAwait(false);
+            var application = await _commitWriter.ApplyAsync(manifest).ConfigureAwait(false);
+            if (!application.IsValid)
+            {
+                return await RecoverFailedCommitAsync(
+                    session,
+                    transaction,
+                    context,
+                    commitId,
+                    manifest,
+                    applicationStarted: true,
+                    failureMessage: application.ErrorMessage,
+                    validationConflict: true).ConfigureAwait(false);
+            }
+
+            var committedSession = CreateCommittedSession(session, transaction);
             await CompleteCommitAsync(committedSession, manifest).ConfigureAwait(false);
 
             return _resultFactory.Succeeded(
@@ -176,11 +209,12 @@ internal sealed class TransactionCommitService : ITransactionCommitService
                 commitId,
                 manifest,
                 applicationStarted,
-                exception).ConfigureAwait(false);
+                exception.Message,
+                validationConflict: false).ConfigureAwait(false);
         }
     }
 
-    private ValueTask<WorkspaceCommitPlan> CreateCommitPlanAsync(
+    private ValueTask<WorkspaceCommitPlanResult> CreateCommitPlanAsync(
         WorkspaceSessionSnapshot session,
         WorkspaceTransaction transaction,
         string commitId,
@@ -195,7 +229,7 @@ internal sealed class TransactionCommitService : ITransactionCommitService
             cancellationToken);
     }
 
-    private async ValueTask<WorkspaceCommitManifest> PrepareCommitAsync(
+    private async ValueTask StageCommitAsync(
         WorkspaceSessionSnapshot session,
         WorkspaceTransaction transaction,
         string commitId,
@@ -204,20 +238,25 @@ internal sealed class TransactionCommitService : ITransactionCommitService
     {
         await PublishCommitPhaseAsync(session, transaction.CurrentRevision, commitId, "Staging").ConfigureAwait(false);
         await _recoveryStore.PersistPlanAsync(plan, cancellationToken).ConfigureAwait(false);
-        await _commitWriter.RevalidateAsync(plan.Manifest, cancellationToken).ConfigureAwait(false);
+    }
 
-        var applyingManifest = plan.Manifest with { State = RecoveryState.Applying };
+    private async ValueTask<WorkspaceCommitManifest> BeginApplyingAsync(
+        WorkspaceSessionSnapshot session,
+        WorkspaceTransaction transaction,
+        string commitId,
+        WorkspaceCommitManifest manifest,
+        CancellationToken cancellationToken)
+    {
+        var applyingManifest = manifest with { State = RecoveryState.Applying };
         await _recoveryStore.WriteManifestAsync(applyingManifest, cancellationToken).ConfigureAwait(false);
         await PublishCommitPhaseAsync(session, transaction.CurrentRevision, commitId, "Applying").ConfigureAwait(false);
         return applyingManifest;
     }
 
-    private async ValueTask<WorkspaceSessionSnapshot> ApplyCommitAsync(
+    private WorkspaceSessionSnapshot CreateCommittedSession(
         WorkspaceSessionSnapshot session,
-        WorkspaceTransaction transaction,
-        WorkspaceCommitManifest manifest)
+        WorkspaceTransaction transaction)
     {
-        await _commitWriter.ApplyAsync(manifest).ConfigureAwait(false);
         return session with
         {
             Transaction = null,
@@ -266,7 +305,8 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         string commitId,
         WorkspaceCommitManifest? manifest,
         bool applicationStarted,
-        Exception exception)
+        string failureMessage,
+        bool validationConflict)
     {
         var state = manifest is null
             ? RecoveryState.RecoveryIncomplete
@@ -274,7 +314,7 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         if (manifest is not null)
         {
             await PublishCommitPhaseAsync(session, transaction.CurrentRevision, commitId, "Restoring").ConfigureAwait(false);
-            var recoveredManifest = manifest with { State = state, Message = exception.Message };
+            var recoveredManifest = manifest with { State = state, Message = failureMessage };
             await TryWriteManifestAsync(recoveredManifest).ConfigureAwait(false);
             if (state == RecoveryState.Restored)
             {
@@ -284,6 +324,11 @@ internal sealed class TransactionCommitService : ITransactionCommitService
             await PublishCommitPhaseAsync(session, transaction.CurrentRevision, commitId, state.ToString()).ConfigureAwait(false);
         }
 
+        if (validationConflict && state == RecoveryState.Restored)
+        {
+            return await TransitionCommitConflictAsync(session, transaction).ConfigureAwait(false);
+        }
+
         return _resultFactory.Faulted<TransactionCommitOutcome>(
             applicationStarted ? "CommitFailed" : "CommitPreparationFailed",
             applicationStarted
@@ -291,6 +336,24 @@ internal sealed class TransactionCommitService : ITransactionCommitService
                 : "The transaction commit could not update its recovery record and no workspace changes were applied.",
             !applicationStarted || state == RecoveryState.Restored ? RequiredAction.Retry : RequiredAction.ResolveRecovery,
             context);
+    }
+
+    private async ValueTask<WorkspaceOperationResult<TransactionCommitOutcome>> TransitionCommitConflictAsync(
+        WorkspaceSessionSnapshot session,
+        WorkspaceTransaction transaction)
+    {
+        var conflictedSession = _workspaceStateTransitions.ApplyExternalChangeDetected(session);
+        _sessionStore.ReplaceSession(conflictedSession);
+        await PublishCommitPhaseAsync(
+            conflictedSession,
+            transaction.CurrentRevision,
+            commitId: null,
+            commitPhase: WorkspaceLifecycleState.TransactionConflicted.ToString()).ConfigureAwait(false);
+        return _resultFactory.Conflict<TransactionCommitOutcome>(
+            WorkspaceErrorCodes.TransactionConflicted,
+            "A commit target changed after the transaction was staged.",
+            RequiredAction.RollbackTransaction,
+            CreateContext(conflictedSession));
     }
 
     private ValueTask PublishCommitPhaseAsync(

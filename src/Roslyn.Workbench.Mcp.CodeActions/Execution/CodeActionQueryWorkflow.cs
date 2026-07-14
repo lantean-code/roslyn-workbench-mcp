@@ -88,7 +88,7 @@ internal sealed class CodeActionQueryWorkflow : ICodeActionQueryWorkflow
             foreach (var provider in _discoveryService.GetMatchingCodeFixProviders(providerId: null))
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                discovered.AddRange(await _discoveryService.DiscoverCodeFixesAsync(provider, document, span, diagnostics, cancellationToken).ConfigureAwait(false));
+                discovered.AddRange(await _discoveryService.DiscoverCodeFixesAsync(provider, document, diagnostics, cancellationToken).ConfigureAwait(false));
             }
         }
 

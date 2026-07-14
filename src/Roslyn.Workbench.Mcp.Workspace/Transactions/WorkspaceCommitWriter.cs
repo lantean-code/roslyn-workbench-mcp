@@ -23,15 +23,23 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
         _fileCommitter = fileCommitter;
     }
 
-    public async ValueTask RevalidateAsync(WorkspaceCommitManifest manifest, CancellationToken cancellationToken)
+    public async ValueTask<WorkspaceCommitValidationResult> RevalidateAsync(
+        WorkspaceCommitManifest manifest,
+        CancellationToken cancellationToken)
     {
         foreach (var entry in manifest.Entries)
         {
-            await RevalidateEntryAsync(entry, cancellationToken).ConfigureAwait(false);
+            var validation = await RevalidateEntryAsync(entry, cancellationToken).ConfigureAwait(false);
+            if (!validation.IsValid)
+            {
+                return validation;
+            }
         }
+
+        return WorkspaceCommitValidationResult.Valid();
     }
 
-    public async ValueTask ApplyAsync(WorkspaceCommitManifest manifest)
+    public async ValueTask<WorkspaceCommitValidationResult> ApplyAsync(WorkspaceCommitManifest manifest)
     {
         foreach (var directory in manifest.CreatedDirectories)
         {
@@ -40,7 +48,12 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
 
         foreach (var entry in manifest.Entries)
         {
-            await RevalidateEntryAsync(entry, CancellationToken.None).ConfigureAwait(false);
+            var validation = await RevalidateEntryAsync(entry, CancellationToken.None).ConfigureAwait(false);
+            if (!validation.IsValid)
+            {
+                return validation;
+            }
+
             switch (entry.Operation)
             {
                 case WorkspaceFileOperation.Create:
@@ -51,13 +64,16 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
                 case WorkspaceFileOperation.Delete:
                     if (_fileSystem.File.Exists(entry.GetRequiredDeleteMarkerPath()))
                     {
-                        throw new IOException($"The delete marker '{entry.DeleteMarkerPath}' already exists.");
+                        return WorkspaceCommitValidationResult.Invalid(
+                            $"The delete marker '{entry.DeleteMarkerPath}' already exists.");
                     }
 
                     _fileCommitter.Move(entry.TargetPath, entry.GetRequiredDeleteMarkerPath());
                     break;
             }
         }
+
+        return WorkspaceCommitValidationResult.Valid();
     }
 
     public ValueTask<bool> CompleteAsync(WorkspaceCommitManifest manifest)
@@ -177,18 +193,22 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
         return Convert.ToHexString(SHA256.HashData(contents));
     }
 
-    private async ValueTask RevalidateEntryAsync(WorkspaceCommitEntry entry, CancellationToken cancellationToken)
+    private async ValueTask<WorkspaceCommitValidationResult> RevalidateEntryAsync(
+        WorkspaceCommitEntry entry,
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (entry.Operation == WorkspaceFileOperation.Delete
             && _fileSystem.File.Exists(entry.GetRequiredDeleteMarkerPath()))
         {
-            throw new IOException($"The delete marker '{entry.DeleteMarkerPath}' already exists.");
+            return WorkspaceCommitValidationResult.Invalid(
+                $"The delete marker '{entry.DeleteMarkerPath}' already exists.");
         }
 
         if (_fileSystem.File.Exists(entry.TargetPath) != entry.OriginalExists)
         {
-            throw new IOException($"The target '{entry.TargetPath}' changed before commit application.");
+            return WorkspaceCommitValidationResult.Invalid(
+                $"The target '{entry.TargetPath}' changed before commit application.");
         }
 
         if (entry.OriginalExists && !string.Equals(
@@ -196,7 +216,10 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
             entry.OriginalHash,
             StringComparison.Ordinal))
         {
-            throw new IOException($"The target '{entry.TargetPath}' changed before commit application.");
+            return WorkspaceCommitValidationResult.Invalid(
+                $"The target '{entry.TargetPath}' changed before commit application.");
         }
+
+        return WorkspaceCommitValidationResult.Valid();
     }
 }

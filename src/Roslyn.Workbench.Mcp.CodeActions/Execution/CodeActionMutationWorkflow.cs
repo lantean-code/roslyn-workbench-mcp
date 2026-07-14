@@ -254,7 +254,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
         }
 
         var diagnostics = await _diagnosticService.GetDocumentDiagnosticsAsync(originDocument, originSpan, payload.DiagnosticIds, cancellationToken).ConfigureAwait(false);
-        var actions = await _discoveryService.DiscoverCodeFixesAsync(provider, originDocument, originSpan, diagnostics, cancellationToken).ConfigureAwait(false);
+        var actions = await _discoveryService.DiscoverCodeFixesAsync(provider, originDocument, diagnostics, cancellationToken).ConfigureAwait(false);
         var matches = actions
             .Where(action =>
                 string.Equals(action.Title, payload.Title, StringComparison.Ordinal)
@@ -503,7 +503,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
 
             foreach (var provider in matchingProviders)
             {
-                var actions = await _discoveryService.DiscoverCodeFixesAsync(provider, document, documentSpan, diagnostics, cancellationToken).ConfigureAwait(false);
+                var actions = await _discoveryService.DiscoverCodeFixesAsync(provider, document, diagnostics, cancellationToken).ConfigureAwait(false);
                 foreach (var action in actions)
                 {
                     if (!string.IsNullOrWhiteSpace(request.Title)
@@ -829,7 +829,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
         var candidates = new List<ClassifiedCodeAction>();
         foreach (var provider in matchingProviders)
         {
-            var actions = await _discoveryService.DiscoverCodeFixesAsync(provider, document, span, diagnostics, cancellationToken).ConfigureAwait(false);
+            var actions = await _discoveryService.DiscoverCodeFixesAsync(provider, document, diagnostics, cancellationToken).ConfigureAwait(false);
             foreach (var action in actions)
             {
                 if (!string.IsNullOrWhiteSpace(request.Title)
@@ -916,7 +916,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
 
         var sourceText = await targetDocument.GetTextAsync(cancellationToken).ConfigureAwait(false);
         var documentSpan = new TextSpan(0, sourceText.Length);
-        var discovered = await _discoveryService.DiscoverCodeFixesAsync(candidate.Provider, targetDocument, documentSpan, diagnostics, cancellationToken).ConfigureAwait(false);
+        var discovered = await _discoveryService.DiscoverCodeFixesAsync(candidate.Provider, targetDocument, diagnostics, cancellationToken).ConfigureAwait(false);
         var matches = discovered
             .Where(action =>
                 string.Equals(action.Title, candidate.Title, StringComparison.OrdinalIgnoreCase)

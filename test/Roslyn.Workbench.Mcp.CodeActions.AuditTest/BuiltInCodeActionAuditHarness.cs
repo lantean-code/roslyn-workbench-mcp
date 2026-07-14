@@ -77,7 +77,6 @@ public static class BuiltInCodeActionAuditHarness
             discovered = await DiscoverCodeFixesAsync(
                 providerCatalog.CodeFixProviders.Single(candidate => string.Equals(GetProviderId(candidate), auditCase.ProviderId, StringComparison.Ordinal)),
                 document,
-                resolution.Value.SourceSpan,
                 codeFixDiagnostics,
                 CancellationToken.None);
         }
@@ -185,7 +184,6 @@ public static class BuiltInCodeActionAuditHarness
     private static async Task<IReadOnlyList<DiscoveredAuditCodeAction>> DiscoverCodeFixesAsync(
         CodeFixProvider provider,
         Document document,
-        TextSpan span,
         ImmutableArray<Diagnostic> diagnostics,
         CancellationToken cancellationToken)
     {
@@ -198,17 +196,15 @@ public static class BuiltInCodeActionAuditHarness
         }
 
         var discovered = new List<(CodeAction Action, ImmutableArray<Diagnostic> Diagnostics)>();
-        try
+        foreach (var diagnosticGroup in matchingDiagnostics.GroupBy(static diagnostic => diagnostic.Location.SourceSpan))
         {
-            await RegisterCodeFixesAsync(provider, document, span, matchingDiagnostics, discovered, cancellationToken).ConfigureAwait(false);
-        }
-        catch (ArgumentException)
-        {
-            discovered.Clear();
-            foreach (var diagnostic in matchingDiagnostics)
-            {
-                await RegisterCodeFixesAsync(provider, document, diagnostic.Location.SourceSpan, [diagnostic], discovered, cancellationToken).ConfigureAwait(false);
-            }
+            await RegisterCodeFixesAsync(
+                provider,
+                document,
+                diagnosticGroup.Key,
+                diagnosticGroup.ToImmutableArray(),
+                discovered,
+                cancellationToken).ConfigureAwait(false);
         }
 
         return discovered
@@ -224,28 +220,8 @@ public static class BuiltInCodeActionAuditHarness
         ICollection<(CodeAction Action, ImmutableArray<Diagnostic> Diagnostics)> discovered,
         CancellationToken cancellationToken)
     {
-        var contextSpan = ExpandCodeFixContextSpan(requestedSpan, diagnostics);
-        var context = new CodeFixContext(document, contextSpan, diagnostics, (action, actionDiagnostics) => discovered.Add((action, actionDiagnostics)), cancellationToken);
+        var context = new CodeFixContext(document, requestedSpan, diagnostics, (action, actionDiagnostics) => discovered.Add((action, actionDiagnostics)), cancellationToken);
         await provider.RegisterCodeFixesAsync(context).ConfigureAwait(false);
-    }
-
-    private static TextSpan ExpandCodeFixContextSpan(TextSpan requestedSpan, ImmutableArray<Diagnostic> diagnostics)
-    {
-        var start = requestedSpan.Start;
-        var end = requestedSpan.End;
-
-        foreach (var diagnostic in diagnostics)
-        {
-            if (!diagnostic.Location.IsInSource)
-            {
-                continue;
-            }
-
-            start = Math.Min(start, diagnostic.Location.SourceSpan.Start);
-            end = Math.Max(end, diagnostic.Location.SourceSpan.End);
-        }
-
-        return TextSpan.FromBounds(start, end);
     }
 
     private static async Task<ImmutableArray<Diagnostic>> GetDocumentDiagnosticsAsync(

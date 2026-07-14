@@ -1,8 +1,7 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Text.Json;
-
 using Microsoft.Extensions.Options;
-
 using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Recovery;
@@ -250,12 +249,9 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
 
     private string GetArtifactPath(string commitId, string relativePath)
     {
+        ValidateCommitId(commitId);
         ArgumentException.ThrowIfNullOrWhiteSpace(relativePath);
-        var root = GetCommitDirectory(commitId);
-        var path = _fileSystem.Path.GetFullPath(_fileSystem.Path.Combine(root, relativePath));
-        var relative = _fileSystem.Path.GetRelativePath(root, path);
-
-        if (relative == ".." || relative.StartsWith($"..{_fileSystem.Path.DirectorySeparatorChar}", StringComparison.Ordinal) || _fileSystem.Path.IsPathRooted(relative))
+        if (!TryGetArtifactPath(commitId, relativePath, out var path))
         {
             throw new InvalidDataException("The recovery artifact path escapes its commit directory.");
         }
@@ -266,6 +262,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
     private bool IsValidManifest(WorkspaceCommitManifest manifest, string directory)
     {
         if (manifest.Version != 2
+            || !IsValidCommitId(manifest.CommitId)
             || !string.Equals(manifest.CommitId, _fileSystem.Path.GetFileName(directory), _pathComparison.Comparison)
             || !_fileSystem.Path.IsPathFullyQualified(manifest.LoadedPath)
             || !_fileSystem.Path.IsPathFullyQualified(manifest.WorkspaceRoot)
@@ -275,26 +272,63 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         }
 
         var targets = new HashSet<string>(_pathComparison.Comparer);
+        foreach (var entry in manifest.Entries)
+        {
+            if (!_fileSystem.Path.IsPathFullyQualified(entry.TargetPath)
+                || !IsWithinRoot(manifest.WorkspaceRoot, entry.TargetPath)
+                || !targets.Add(entry.TargetPath)
+                || entry.DeleteMarkerPath is not null && !IsWithinRoot(manifest.WorkspaceRoot, entry.DeleteMarkerPath)
+                || !HasValidArtifactPaths(manifest.CommitId, entry))
+            {
+                return false;
+            }
+        }
+
+        return manifest.CreatedDirectories.All(path =>
+            _fileSystem.Path.IsPathFullyQualified(path)
+            && IsWithinRoot(manifest.WorkspaceRoot, path));
+    }
+
+    private bool HasValidArtifactPaths(string commitId, WorkspaceCommitEntry entry)
+    {
+        return HasValidArtifactPath(commitId, entry.BackupPath)
+            && HasValidArtifactPath(commitId, entry.StagedPath);
+    }
+
+    private bool HasValidArtifactPath(string commitId, string? relativePath)
+    {
+        return relativePath is null
+            || TryGetArtifactPath(commitId, relativePath, out var path)
+            && _fileSystem.Path.IsPathFullyQualified(path);
+    }
+
+    private bool TryGetArtifactPath(
+        string commitId,
+        string? relativePath,
+        [NotNullWhen(true)] out string? path)
+    {
+        path = null;
+        if (string.IsNullOrWhiteSpace(relativePath))
+        {
+            return false;
+        }
+
         try
         {
-            foreach (var entry in manifest.Entries)
+            var root = _fileSystem.Path.Combine(_recoveryDirectory, commitId);
+            var candidate = _fileSystem.Path.GetFullPath(_fileSystem.Path.Combine(root, relativePath));
+            var relative = _fileSystem.Path.GetRelativePath(root, candidate);
+            if (relative == ".."
+                || relative.StartsWith($"..{_fileSystem.Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                || _fileSystem.Path.IsPathRooted(relative))
             {
-                if (!_fileSystem.Path.IsPathFullyQualified(entry.TargetPath)
-                    || !IsWithinRoot(manifest.WorkspaceRoot, entry.TargetPath)
-                    || !targets.Add(entry.TargetPath)
-                    || entry.DeleteMarkerPath is not null && !IsWithinRoot(manifest.WorkspaceRoot, entry.DeleteMarkerPath)
-                    || entry.BackupPath is not null && !_fileSystem.Path.IsPathFullyQualified(GetArtifactPath(manifest.CommitId, entry.BackupPath))
-                    || entry.StagedPath is not null && !_fileSystem.Path.IsPathFullyQualified(GetArtifactPath(manifest.CommitId, entry.StagedPath)))
-                {
-                    return false;
-                }
+                return false;
             }
 
-            return manifest.CreatedDirectories.All(path =>
-                _fileSystem.Path.IsPathFullyQualified(path)
-                && IsWithinRoot(manifest.WorkspaceRoot, path));
+            path = candidate;
+            return true;
         }
-        catch (Exception exception) when (exception is ArgumentException or InvalidDataException)
+        catch (ArgumentException)
         {
             return false;
         }
@@ -325,10 +359,16 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
     private void ValidateCommitId(string commitId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(commitId);
-        if (commitId.IndexOfAny(_fileSystem.Path.GetInvalidFileNameChars()) >= 0)
+        if (!IsValidCommitId(commitId))
         {
             throw new ArgumentException("The commit identifier is not a valid path segment.", nameof(commitId));
         }
+    }
+
+    private bool IsValidCommitId(string commitId)
+    {
+        return !string.IsNullOrWhiteSpace(commitId)
+            && commitId.IndexOfAny(_fileSystem.Path.GetInvalidFileNameChars()) < 0;
     }
 
     private async ValueTask WriteArtifactsAsync(WorkspaceCommitPlan plan, CancellationToken cancellationToken)

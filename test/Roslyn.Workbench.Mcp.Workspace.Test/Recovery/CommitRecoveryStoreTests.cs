@@ -308,7 +308,12 @@ public sealed class CommitRecoveryStoreTests
     [InlineData("duplicate")]
     [InlineData("delete")]
     [InlineData("backup")]
+    [InlineData("backupEmpty")]
     [InlineData("staged")]
+    [InlineData("artifactArgument")]
+    [InlineData("artifactRelative")]
+    [InlineData("invalidCommit")]
+    [InlineData("emptyCommit")]
     [InlineData("created")]
     [InlineData("createdRelative")]
     public async Task GIVEN_UnsafeManifest_WHEN_ReadingManifests_THEN_ShouldReturnRecoveryConflict(string scenario)
@@ -321,6 +326,18 @@ public sealed class CommitRecoveryStoreTests
         _file.Setup(item => item.Exists(path)).Returns(true);
         _file.Setup(item => item.ReadAllTextAsync(path, TestContext.Current.CancellationToken))
             .ReturnsAsync(JsonSerializer.Serialize(manifest, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+        if (scenario == "artifactArgument")
+        {
+            _path.Setup(item => item.GetFullPath(_recoveryDirectory + "/CommitId/invalid"))
+                .Throws<ArgumentException>();
+        }
+        else if (scenario == "artifactRelative")
+        {
+            _path.Setup(item => item.GetFullPath(_recoveryDirectory + "/CommitId/relative"))
+                .Returns("relative");
+            _path.Setup(item => item.GetRelativePath(_recoveryDirectory + "/CommitId", "relative"))
+                .Returns("relative");
+        }
 
         var result = await _target.GetManifestsAsync(TestContext.Current.CancellationToken);
 
@@ -460,7 +477,12 @@ public sealed class CommitRecoveryStoreTests
             "duplicate" => manifest with { Entries = [CreateEntry("/Workspace/File.cs"), CreateEntry("/Workspace/File.cs")], },
             "delete" => manifest with { Entries = [CreateEntry("/Workspace/File.cs") with { DeleteMarkerPath = "/Other/File.cs" }], },
             "backup" => manifest with { Entries = [CreateEntry("/Workspace/File.cs") with { BackupPath = "../File.bin" }], },
+            "backupEmpty" => manifest with { Entries = [CreateEntry("/Workspace/File.cs") with { BackupPath = string.Empty }], },
             "staged" => manifest with { Entries = [CreateEntry("/Workspace/File.cs") with { StagedPath = "../File.bin" }], },
+            "artifactArgument" => manifest with { Entries = [CreateEntry("/Workspace/File.cs") with { StagedPath = "invalid" }], },
+            "artifactRelative" => manifest with { Entries = [CreateEntry("/Workspace/File.cs") with { StagedPath = "relative" }], },
+            "invalidCommit" => manifest with { CommitId = "Invalid*CommitId" },
+            "emptyCommit" => manifest with { CommitId = string.Empty },
             "created" => manifest with { CreatedDirectories = ["/Other/Directory"] },
             "createdRelative" => manifest with { CreatedDirectories = ["Directory"] },
             _ => throw new InvalidOperationException("Unknown scenario."),

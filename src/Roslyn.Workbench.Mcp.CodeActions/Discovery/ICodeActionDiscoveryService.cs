@@ -21,7 +21,6 @@ internal interface ICodeActionDiscoveryService
     ValueTask<IReadOnlyList<DiscoveredCodeAction>> DiscoverProviderCodeFixesAsync(
         string providerId,
         Document document,
-        TextSpan span,
         ImmutableArray<Diagnostic> diagnostics,
         CancellationToken cancellationToken);
 
@@ -34,7 +33,6 @@ internal interface ICodeActionDiscoveryService
     ValueTask<IReadOnlyList<DiscoveredCodeAction>> DiscoverCodeFixesAsync(
         CodeFixProvider provider,
         Document document,
-        TextSpan span,
         ImmutableArray<Diagnostic> diagnostics,
         CancellationToken cancellationToken);
 }

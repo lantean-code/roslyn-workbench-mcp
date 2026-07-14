@@ -2,7 +2,7 @@ namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
 internal interface IWorkspaceCommitPlanner
 {
-    ValueTask<WorkspaceCommitPlan> CreateAsync(
+    ValueTask<WorkspaceCommitPlanResult> CreateAsync(
         string commitId,
         string loadedPath,
         string workspaceRoot,

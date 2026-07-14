@@ -3,30 +3,12 @@ using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.PluginFixtures;
 
+[RoslynPlugin("test.valid.mutation", "Valid Mutation Test Plugin", PluginApiVersions.V1)]
 public sealed class ValidMutationTestPlugin : IRoslynPlugin
 {
-    public PluginMetadata Metadata => new()
+    public void Configure(IPluginConfiguration configuration)
     {
-        PluginId = "test.valid.mutation",
-        DisplayName = "Valid Mutation Test Plugin",
-        Version = "1.0.0",
-        SupportedApiVersion = PluginApiVersions.V1,
-    };
-
-    public void Register(IPluginRegistry registry)
-    {
-        registry.RegisterMutationTool(
-            new ToolRegistrationMetadata
-            {
-                Name = "test-valid-mutation",
-                Title = "Test Valid Mutation",
-                Description = "Returns a predictable mutation proposal for startup tests.",
-                Behavior = new ToolBehaviorHints
-                {
-                    Destructive = false,
-                },
-            },
-            new Handler());
+        _ = configuration.AddMutationTool<Handler>();
     }
 
     public sealed record Request : WorkspaceBoundRequest
@@ -34,6 +16,7 @@ public sealed class ValidMutationTestPlugin : IRoslynPlugin
         public string Summary { get; init; } = string.Empty;
     }
 
+    [RoslynTool("test-valid-mutation", "Test Valid Mutation", "Returns a predictable mutation proposal for startup tests.")]
     private sealed class Handler : IMutationToolHandler<Request>
     {
         public ValueTask<PluginExecutionResult<MutationCandidate>> ExecuteAsync(Request request, IMutationContext context, CancellationToken cancellationToken)

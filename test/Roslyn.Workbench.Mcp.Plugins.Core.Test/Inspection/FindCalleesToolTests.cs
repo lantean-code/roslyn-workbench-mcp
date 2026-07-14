@@ -6,21 +6,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class FindCalleesToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        FindCalleesTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<FindCalleesRequest, CalleeSearchData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "find-callees"
-                && metadata.Title == "Find Callees"
-                && metadata.Description == "Returns symbols directly invoked by a method or selected executable body."),
-            It.IsAny<IQueryToolHandler<FindCalleesRequest, CalleeSearchData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_SymbolAndLocationAreBothMissing_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequestResult()
     {
         var target = new FindCalleesTool();

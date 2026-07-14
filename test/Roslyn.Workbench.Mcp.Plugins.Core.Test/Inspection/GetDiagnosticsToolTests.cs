@@ -7,21 +7,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class GetDiagnosticsToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        GetDiagnosticsTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<GetDiagnosticsRequest, DiagnosticsData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "get-diagnostics"
-                && metadata.Title == "Get Diagnostics"
-                && metadata.Description == "Returns compiler and analyzer diagnostics for a selected scope."),
-            It.IsAny<IQueryToolHandler<GetDiagnosticsRequest, DiagnosticsData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_ResolveDocumentsHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var target = new GetDiagnosticsTool();

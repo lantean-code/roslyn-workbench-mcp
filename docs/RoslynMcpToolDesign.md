@@ -471,16 +471,25 @@ about the server's current limits and tool set. The built-in defaults are
 `StateDirectory` defaults to the host temporary directory under
 `roslyn-workbench-mcp-state`.
 
-### Static plugin registration
+### MEF plugin composition
 
-All query and mutation tools, including those shipped with the server
-distribution, are plugins. Every plugin assembly is treated equally and is
-discovered from configured local paths during startup. Each plugin registers
-its own tool descriptors and executor services. A plugin with an invalid
-contract, incompatible API version, duplicate tool name or load failure is
-disabled; none of its tools are exposed. The server continues to start, and
-`server-status` reports disabled-plugin diagnostics and any unfinished commit
-recovery state. The tool list does not change later.
+Ordinary query and mutation tools are plugins; internal Code Action tools are
+not. Plugins.Core remains a normal Host reference but its `BundledCorePlugin`
+entry point is exported and configured through the same MEF and materialisation
+pipeline as third-party plugins. External `plugin-directory` values are search
+roots. Each immediate child is one package containing exactly one assembly with
+exactly one `RoslynPluginAttribute`; other DLLs are dependencies. Discovery is
+not recursive and no sidecar manifest is used.
+
+Host reads managed PE metadata before loading plugin code. The marker supplies
+the stable ID, display name and exact supported API version, while
+`AssemblyInformationalVersionAttribute` supplies SemVer. Malformed metadata,
+incompatibility, invalid contracts, duplicate identities, deterministic name
+collisions, composition failures or load failures disable the whole plugin.
+The server continues to start, and `server-status` preserves its existing JSON
+shape while reporting enabled warnings and disabled-plugin diagnostics. Code
+Actions remain absent from plugin status and the tool list does not change
+after startup.
 
 Plugins may register only `Query` and `Mutation` tools. Workspace and
 transaction lifecycle tools are server-owned and cannot be replaced or
@@ -488,22 +497,29 @@ extended by a plugin. A plugin receives an immutable Roslyn `Solution` and
 approved query services, but never the `MSBuildWorkspace`, transaction
 coordinator, state machine, file writer or commit journal.
 
-Each plugin assembly contains exactly one `IRoslynPlugin` entry point. Its
-metadata identifies the plugin with a stable ID, display name, semantic version
-and supported plugin API version. The entry point explicitly registers its
-query and mutation handlers with `IPluginRegistry`. Each registration supplies
-typed request and response contracts, tool metadata, and a handler. The registry
-retains the supplied handler for the lifetime of the plugin catalogue. Handlers
-must be stateless, thread-safe, and must not own disposable resources.
+Each plugin entry point exposes only
+`Configure(IPluginConfiguration)`. `AddQueryTool<THandler>()` and
+`AddMutationTool<THandler>()` constrain handlers to the corresponding marker
+interface and public parameterless construction, capture a typed handler factory,
+and return concrete fluent metadata builders. `RoslynToolAttribute` provides handler metadata; fluent
+values override attribute values. Configuration and its builders freeze when
+`Configure` returns. Host validates every handler and all collisions before it
+constructs one handler per enabled tool. Handlers must be thread-safe and must
+not own disposable resources.
+Expected plugin-authoring validation failures accumulate as structured diagnostics
+with stable IDs. A plugin with any error is atomically disabled, while warnings are
+retained on an enabled plugin. Exceptions are reserved for unexpected loading,
+composition, construction and reflection failures rather than validation flow.
 Invocation-scoped services are available through the execution context. The
-registry uses reflection only at startup where needed to inspect that generic
-handler contract and build a `RegisteredTool`. A `RegisteredTool` is the sole internal
+registry uses reflection only at startup to discover the closed generic handler
+contract and materialise its corresponding closed registration; handler construction
+uses the captured typed factory. A `RegisteredTool` is the sole internal
 source of truth for a tool's plugin identity, name, description, behaviour,
 annotations, request and response CLR types, generated JSON schemas, and
 invocation delegate. Tool names are globally unique; invalid handler contracts,
 incompatible API versions and name collisions fail plugin loading.
 
-Registered handlers declare their tool name and description through metadata,
+Configured handlers declare their tool name and description through attributes or fluent metadata,
 while their implemented generic interface determines whether they are a query
 or mutation. The server does not automatically expose every attributed type in
 an assembly. This prevents helpers or unfinished handlers becoming public tools
@@ -519,10 +535,11 @@ custom JSON-RPC handler.
 `PluginMcpServerTool` publishes the `ProtocolTool` name, description,
 annotations, input schema, and optional output schema from `RegisteredTool`.
 When called, it deserializes the MCP argument object using the server's
-configured JSON serializer options and passes the typed request to
-`ToolExecutor`. The executor then acquires the required query or exclusive
-lease, performs lifecycle, transaction, external-change and selector checks,
-constructs `QueryContext` or `MutationContext`, invokes the plugin handler, and
+configured JSON serializer options and passes the typed request through the
+closed generic Host adapter. `PluginExecutionContextFactory` then acquires the
+required query or exclusive lease, performs lifecycle, transaction,
+external-change and selector checks, constructs the plugin query or mutation
+context, invokes the retained typed handler, and
 converts the internal normalized tool result into the published structured
 `CallToolResult` content.
 The plugin handler is never an MCP endpoint and receives neither raw protocol

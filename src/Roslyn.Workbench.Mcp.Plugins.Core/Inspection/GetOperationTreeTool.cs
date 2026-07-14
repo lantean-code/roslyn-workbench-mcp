@@ -4,20 +4,9 @@ using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+[RoslynTool("get-operation-tree", "Get Operation Tree", "Returns a projected IOperation tree for a selected region.")]
 internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRequest, OperationTreeData>
 {
-    private static readonly ToolRegistrationMetadata _metadata = new()
-    {
-        Name = "get-operation-tree",
-        Title = "Get Operation Tree",
-        Description = "Returns a projected IOperation tree for a selected region.",
-    };
-
-    public static void Register(IPluginRegistry registry)
-    {
-        registry.RegisterQueryTool(_metadata, new GetOperationTreeTool());
-    }
-
     protected override async ValueTask<PluginExecutionResult<OperationTreeData>> ExecuteCoreAsync(GetOperationTreeRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         var syntaxNodeResolution = await ResolveSyntaxNodeAsync(request.Location, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);

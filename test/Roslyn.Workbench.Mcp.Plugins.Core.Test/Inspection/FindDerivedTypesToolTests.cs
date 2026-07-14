@@ -5,21 +5,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class FindDerivedTypesToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        FindDerivedTypesTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<FindDerivedTypesRequest, DerivedTypesData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "find-derived-types"
-                && metadata.Title == "Find Derived Types"
-                && metadata.Description == "Finds derived types for a resolved base type."),
-            It.IsAny<IQueryToolHandler<FindDerivedTypesRequest, DerivedTypesData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_ResolveSymbolHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var target = new FindDerivedTypesTool();

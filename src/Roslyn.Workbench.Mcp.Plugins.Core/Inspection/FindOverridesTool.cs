@@ -4,20 +4,9 @@ using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+[RoslynTool("find-overrides", "Find Overrides", "Finds overrides of a virtual or abstract member.")]
 internal sealed class FindOverridesTool : QueryToolHandler<FindOverridesRequest, OverrideSearchData>
 {
-    private static readonly ToolRegistrationMetadata _metadata = new()
-    {
-        Name = "find-overrides",
-        Title = "Find Overrides",
-        Description = "Finds overrides of a virtual or abstract member.",
-    };
-
-    public static void Register(IPluginRegistry registry)
-    {
-        registry.RegisterQueryTool(_metadata, new FindOverridesTool());
-    }
-
     protected override async ValueTask<PluginExecutionResult<OverrideSearchData>> ExecuteCoreAsync(FindOverridesRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
 

@@ -4,16 +4,16 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Discovery;
 
 internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
 {
-    private readonly ICodeActionRuntime _runtime;
+    private readonly ICodeActionProviderCatalog _providerCatalog;
 
-    public CodeActionDiscoveryService(ICodeActionRuntime runtime)
+    public CodeActionDiscoveryService(ICodeActionProviderCatalog providerCatalog)
     {
-        _runtime = runtime;
+        _providerCatalog = providerCatalog;
     }
 
     public IReadOnlyList<CodeRefactoringProvider> GetMatchingRefactoringProviders(string? providerId)
     {
-        return _runtime.RefactoringProviders
+        return _providerCatalog.RefactoringProviders
             .Where(provider => string.IsNullOrWhiteSpace(providerId) || string.Equals(GetProviderId(provider), providerId, StringComparison.Ordinal))
             .OrderBy(GetProviderId, StringComparer.Ordinal)
             .ToArray();
@@ -21,7 +21,7 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
 
     public IReadOnlyList<CodeFixProvider> GetMatchingCodeFixProviders(string? providerId)
     {
-        return _runtime.CodeFixProviders
+        return _providerCatalog.CodeFixProviders
             .Where(provider => string.IsNullOrWhiteSpace(providerId) || string.Equals(GetProviderId(provider), providerId, StringComparison.Ordinal))
             .OrderBy(GetProviderId, StringComparer.Ordinal)
             .ToArray();
@@ -29,7 +29,7 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
 
     public CodeFixProvider? FindCodeFixProvider(string providerId)
     {
-        return _runtime.CodeFixProviders.SingleOrDefault(candidate => string.Equals(GetProviderId(candidate), providerId, StringComparison.Ordinal));
+        return _providerCatalog.CodeFixProviders.SingleOrDefault(candidate => string.Equals(GetProviderId(candidate), providerId, StringComparison.Ordinal));
     }
 
     public string GetProviderId(object provider)
@@ -43,7 +43,7 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         TextSpan span,
         CancellationToken cancellationToken)
     {
-        var provider = _runtime.RefactoringProviders.SingleOrDefault(candidate => string.Equals(GetProviderId(candidate), providerId, StringComparison.Ordinal));
+        var provider = _providerCatalog.RefactoringProviders.SingleOrDefault(candidate => string.Equals(GetProviderId(candidate), providerId, StringComparison.Ordinal));
         return provider is null
             ? []
             : await DiscoverRefactoringsAsync(provider, document, span, cancellationToken).ConfigureAwait(false);
@@ -56,7 +56,7 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         ImmutableArray<Diagnostic> diagnostics,
         CancellationToken cancellationToken)
     {
-        var provider = _runtime.CodeFixProviders.SingleOrDefault(candidate => string.Equals(GetProviderId(candidate), providerId, StringComparison.Ordinal));
+        var provider = _providerCatalog.CodeFixProviders.SingleOrDefault(candidate => string.Equals(GetProviderId(candidate), providerId, StringComparison.Ordinal));
         return provider is null
             ? []
             : await DiscoverCodeFixesAsync(provider, document, span, diagnostics, cancellationToken).ConfigureAwait(false);

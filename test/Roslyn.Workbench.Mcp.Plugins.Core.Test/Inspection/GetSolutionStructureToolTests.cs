@@ -3,21 +3,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class GetSolutionStructureToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        GetSolutionStructureTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<GetSolutionStructureRequest, SolutionStructureData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "get-solution-structure"
-                && metadata.Title == "Get Solution Structure"
-                && metadata.Description == "Returns solution folders, projects, target frameworks and direct project relationships."),
-            It.IsAny<IQueryToolHandler<GetSolutionStructureRequest, SolutionStructureData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_IncludeDocumentsIsFalse_WHEN_CallingExecuteAsync_THEN_ShouldReturnBoundedSolutionStructureWithoutDocuments()
     {
         using var solution = RoslynTestFactory.CreateSolution(

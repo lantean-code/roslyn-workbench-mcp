@@ -1,29 +1,15 @@
-using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 using Roslyn.Workbench.Mcp.Plugins;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.PluginFixtures;
 
+[RoslynPlugin("test.duplicate.tool", "Duplicate Tool Test Plugin", PluginApiVersions.V1)]
 public sealed class DuplicateToolNameTestPlugin : IRoslynPlugin
 {
-    public PluginMetadata Metadata => new()
+    public void Configure(IPluginConfiguration configuration)
     {
-        PluginId = "test.duplicate.tool",
-        DisplayName = "Duplicate Tool Test Plugin",
-        Version = "1.0.0",
-        SupportedApiVersion = PluginApiVersions.V1,
-    };
-
-    public void Register(IPluginRegistry registry)
-    {
-        var metadata = new ToolRegistrationMetadata
-        {
-            Name = "test-duplicate-tool",
-            Title = "Duplicate Tool",
-            Description = "First registration.",
-        };
-
-        registry.RegisterQueryTool(metadata, new Handler());
-        registry.RegisterQueryTool(metadata, new Handler());
+        _ = configuration.AddQueryTool<Handler>();
+        _ = configuration.AddQueryTool<Handler>();
     }
 
     public sealed record Request : WorkspaceBoundRequest
@@ -36,6 +22,7 @@ public sealed class DuplicateToolNameTestPlugin : IRoslynPlugin
         public string Value { get; init; } = string.Empty;
     }
 
+    [RoslynTool("test-duplicate-tool", "Duplicate Tool", "First registration.")]
     private sealed class Handler : IQueryToolHandler<Request, Response>
     {
         public ValueTask<PluginExecutionResult<Response>> ExecuteAsync(Request request, IQueryContext context, CancellationToken cancellationToken)

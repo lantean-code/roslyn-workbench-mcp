@@ -12,7 +12,7 @@ internal sealed class ServerStatusService : IServerStatusService
     private readonly PluginCatalogSnapshot _pluginCatalogSnapshot;
     private readonly CodeActionCatalogSnapshot _codeActionCatalogSnapshot;
     private readonly IMsBuildRegistrationService _msBuildRegistrationService;
-    private readonly ICodeActionRuntime _codeActionRuntime;
+    private readonly ICodeActionProviderCatalog _codeActionProviderCatalog;
     private readonly ICommitRecoveryStore _recoveryStore;
     private readonly int _toolCount;
     private ServerConfiguration? _configuration;
@@ -22,14 +22,14 @@ internal sealed class ServerStatusService : IServerStatusService
         PluginCatalogSnapshot pluginCatalogSnapshot,
         CodeActionCatalogSnapshot codeActionCatalogSnapshot,
         IMsBuildRegistrationService msBuildRegistrationService,
-        ICodeActionRuntime codeActionRuntime,
+        ICodeActionProviderCatalog codeActionProviderCatalog,
         ICommitRecoveryStore recoveryStore)
     {
         _startupOptions = startupOptions.Value;
         _pluginCatalogSnapshot = pluginCatalogSnapshot;
         _codeActionCatalogSnapshot = codeActionCatalogSnapshot;
         _msBuildRegistrationService = msBuildRegistrationService;
-        _codeActionRuntime = codeActionRuntime;
+        _codeActionProviderCatalog = codeActionProviderCatalog;
         _recoveryStore = recoveryStore;
         _toolCount = _pluginCatalogSnapshot.Tools.Count
             + _codeActionCatalogSnapshot.Tools.Count
@@ -53,9 +53,9 @@ internal sealed class ServerStatusService : IServerStatusService
             MsBuild = _msBuildRegistrationService.CurrentStatus,
             CodeActions = new ComponentStatus
             {
-                IsAvailable = _codeActionRuntime.Status.IsAvailable,
-                Version = _codeActionRuntime.Status.Version,
-                Message = _codeActionRuntime.Status.Message,
+                IsAvailable = _codeActionProviderCatalog.Status.IsAvailable,
+                Version = _codeActionProviderCatalog.Status.Version,
+                Message = _codeActionProviderCatalog.Status.Message,
             },
             Configuration = includeExpandedDetail ? GetConfiguration() : null,
             ToolCount = _toolCount,

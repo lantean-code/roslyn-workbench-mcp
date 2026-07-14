@@ -3,21 +3,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class GetPartialDeclarationsToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        GetPartialDeclarationsTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<GetPartialDeclarationsRequest, PartialDeclarationsData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "get-partial-declarations"
-                && metadata.Title == "Get Partial Declarations"
-                && metadata.Description == "Returns the declarations for a partial type or method."),
-            It.IsAny<IQueryToolHandler<GetPartialDeclarationsRequest, PartialDeclarationsData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_ResolveSymbolHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var target = new GetPartialDeclarationsTool();

@@ -18,7 +18,7 @@ public static class WorkspaceCoordinatorFactory
     {
         return CreateCore(
             MapOptions(options),
-            CreateUnavailableCodeActionRuntime(),
+            CreateUnavailableCodeActionProviderCatalog(),
             toolExecutionServices);
     }
 
@@ -35,43 +35,48 @@ public static class WorkspaceCoordinatorFactory
         return Create(options, toolExecutionServices);
     }
 
-    internal static WorkspaceRuntime CreateWithCodeActionRuntime(
-        CodeActionRuntime codeActionRuntime,
-        IToolExecutionServices? toolExecutionServices = null)
+    internal static WorkspaceRuntime CreateWithCodeActionProviderCatalog(
+        ICodeActionProviderCatalog codeActionProviderCatalog,
+        IToolExecutionServices? toolExecutionServices = null,
+        TimeSpan? tokenLifetime = null)
     {
-        return CreateWithCodeActionRuntime(new WorkspaceRuntimeOptions(), codeActionRuntime, toolExecutionServices);
+        return CreateWithCodeActionProviderCatalog(new WorkspaceRuntimeOptions(), codeActionProviderCatalog, toolExecutionServices, tokenLifetime);
     }
 
-    internal static WorkspaceRuntime CreateWithCodeActionRuntime(
+    internal static WorkspaceRuntime CreateWithCodeActionProviderCatalog(
         WorkspaceRuntimeOptions options,
-        CodeActionRuntime codeActionRuntime,
-        IToolExecutionServices? toolExecutionServices = null)
+        ICodeActionProviderCatalog codeActionProviderCatalog,
+        IToolExecutionServices? toolExecutionServices = null,
+        TimeSpan? tokenLifetime = null)
     {
-        return CreateCore(MapOptions(options), codeActionRuntime, toolExecutionServices);
+        return CreateCore(MapOptions(options), codeActionProviderCatalog, toolExecutionServices, tokenLifetime);
     }
 
-    internal static IToolExecutionContextFactory CreateCoordinatorWithCodeActionRuntime(
-        CodeActionRuntime codeActionRuntime,
-        IToolExecutionServices? toolExecutionServices = null)
+    internal static IToolExecutionContextFactory CreateCoordinatorWithCodeActionProviderCatalog(
+        ICodeActionProviderCatalog codeActionProviderCatalog,
+        IToolExecutionServices? toolExecutionServices = null,
+        TimeSpan? tokenLifetime = null)
     {
-        return CreateCoordinatorWithCodeActionRuntime(new WorkspaceRuntimeOptions(), codeActionRuntime, toolExecutionServices);
+        return CreateCoordinatorWithCodeActionProviderCatalog(new WorkspaceRuntimeOptions(), codeActionProviderCatalog, toolExecutionServices, tokenLifetime);
     }
 
-    internal static IToolExecutionContextFactory CreateCoordinatorWithCodeActionRuntime(
+    internal static IToolExecutionContextFactory CreateCoordinatorWithCodeActionProviderCatalog(
         WorkspaceRuntimeOptions options,
-        CodeActionRuntime codeActionRuntime,
-        IToolExecutionServices? toolExecutionServices = null)
+        ICodeActionProviderCatalog codeActionProviderCatalog,
+        IToolExecutionServices? toolExecutionServices = null,
+        TimeSpan? tokenLifetime = null)
     {
-        return CreateWithCodeActionRuntime(options, codeActionRuntime, toolExecutionServices);
+        return CreateWithCodeActionProviderCatalog(options, codeActionProviderCatalog, toolExecutionServices, tokenLifetime);
     }
 
     private static WorkspaceRuntime CreateCore(
         WorkspaceCoordinatorOptions options,
-        CodeActionRuntime codeActionRuntime,
-        IToolExecutionServices? toolExecutionServices)
+        ICodeActionProviderCatalog codeActionProviderCatalog,
+        IToolExecutionServices? toolExecutionServices,
+        TimeSpan? tokenLifetime = null)
     {
         ArgumentNullException.ThrowIfNull(options);
-        ArgumentNullException.ThrowIfNull(codeActionRuntime);
+        ArgumentNullException.ThrowIfNull(codeActionProviderCatalog);
 
         var optionsWrapper = Options.Create(options);
         var executionServices = toolExecutionServices ?? BundledCoreToolExecutionServicesFactory.Create();
@@ -81,7 +86,7 @@ public static class WorkspaceCoordinatorFactory
         var fileSystem = new FileSystem();
         var pathComparison = new WorkspacePathComparison();
         var workspaceLoader = new WorkspaceLoader(
-            new WorkspaceHostServicesAccessor(codeActionRuntime.WorkspaceHostServices),
+            new HostConfiguredMsBuildWorkspaceFactory(codeActionProviderCatalog),
             new WorkspaceProjectCompatibilityInspector());
         var workspaceRootResolver = new WorkspaceRootResolver(fileSystem, pathComparison);
         var workspaceLoadWorkflow = new WorkspaceLoadWorkflow(workspaceLoader, workspaceRootResolver);
@@ -105,7 +110,7 @@ public static class WorkspaceCoordinatorFactory
         var codeActionDiagnosticService = new CodeActionDiagnosticService();
         var codeActionDescriptorRegistry = new CodeActionDescriptorRegistry([ControlledCodeActionDescriptorClassifier.Classify]);
         var codeActionTokenService = new CodeActionTokenService();
-        var codeActionDiscoveryService = new CodeActionDiscoveryService(codeActionRuntime);
+        var codeActionDiscoveryService = new CodeActionDiscoveryService(codeActionProviderCatalog);
         var codeActionResolutionService = new CodeActionResolutionService(
             codeActionDiscoveryService,
             codeActionDiagnosticService,
@@ -115,14 +120,18 @@ public static class WorkspaceCoordinatorFactory
             codeActionDiagnosticService,
             codeActionDescriptorRegistry);
         var codeActionQueryWorkflow = new CodeActionQueryWorkflow(
-            codeActionRuntime,
+            codeActionProviderCatalog,
             codeActionDiscoveryService,
             codeActionDiagnosticService,
             codeActionResolutionService,
             codeActionDescriptorRegistry,
-            codeActionTokenService);
+            codeActionTokenService,
+            Options.Create(new CodeActionExecutionOptions
+            {
+                TokenLifetime = tokenLifetime ?? TimeSpan.FromMinutes(5),
+            }));
         var codeActionMutationWorkflow = new CodeActionMutationWorkflow(
-            codeActionRuntime,
+            codeActionProviderCatalog,
             codeActionDiscoveryService,
             codeActionResolutionService,
             codeActionOperationService,
@@ -186,16 +195,12 @@ public static class WorkspaceCoordinatorFactory
             transactionService);
     }
 
-    private static CodeActionRuntime CreateUnavailableCodeActionRuntime()
+    private static ICodeActionProviderCatalog CreateUnavailableCodeActionProviderCatalog()
     {
-        return new CodeActionRuntime
+        return new MefCodeActionProviderCatalog(Options.Create(new CodeActionCompositionOptions
         {
-            Status = new CodeActionRuntimeStatus
-            {
-                IsAvailable = false,
-                Message = "Code-action composition is unavailable.",
-            },
-        };
+            IncludeBuiltInAssemblies = false,
+        }));
     }
 
     private static WorkspaceCoordinatorOptions MapOptions(WorkspaceRuntimeOptions options)

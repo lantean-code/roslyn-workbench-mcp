@@ -17,24 +17,27 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
         {
             Tools = BundledCodeActionCatalog.Create(),
         };
-        var pluginCatalogSnapshot = new PluginCatalogLoader().Load(
+        var pluginCatalogSnapshot = PluginCatalogComposition.CreateLoader().Load(
             startupOptions,
             [typeof(BundledCorePlugin).Assembly],
-            codeActionCatalogSnapshot.Tools.Select(static tool => tool.Metadata.Name));
+            codeActionCatalogSnapshot.Tools
+                .Select(static tool => tool.Metadata.Name)
+                .Concat(ServerOwnedToolRegistration.ToolNames));
 
-        ConfigureLogging(builder.Logging);
-        AddOptions(builder.Services, startupOptions);
+        builder.Logging.ConfigureLogging();
+        builder.Services.AddOptions(startupOptions);
         builder.Services.AddSingleton(codeActionCatalogSnapshot);
-        AddCoreServices(builder.Services, pluginCatalogSnapshot);
-        AddMcpTools(builder.Services, pluginCatalogSnapshot, codeActionCatalogSnapshot.Tools, startupOptions.ToolOutputSchemaMode);
+        builder.Services.AddCoreServices(pluginCatalogSnapshot);
+        builder.Services.AddMcpTools(pluginCatalogSnapshot, codeActionCatalogSnapshot.Tools, startupOptions.ToolOutputSchemaMode);
 
         builder.Services.AddHostedService<MsBuildRegistrationHostedService>();
+        builder.Services.AddHostedService<WorkspaceCommitRecoveryHostedService>();
         builder.Services.AddMcpServer().WithStdioServerTransport();
 
         return builder;
     }
 
-    private static void ConfigureLogging(ILoggingBuilder loggingBuilder)
+    private static void ConfigureLogging(this ILoggingBuilder loggingBuilder)
     {
         loggingBuilder.ClearProviders();
         loggingBuilder.AddConsole(static options =>
@@ -43,31 +46,37 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
         });
     }
 
-    private static void AddOptions(IServiceCollection services, StartupOptions startupOptions)
+    private static void AddOptions(this IServiceCollection services, StartupOptions startupOptions)
     {
-        services.AddSingleton<IOptions<StartupOptions>>(Options.Create(startupOptions));
-        services.AddSingleton<IOptions<CodeActionRuntimeOptions>>(static serviceProvider =>
-        {
-            var options = serviceProvider.GetRequiredService<IOptions<StartupOptions>>().Value;
-            return Options.Create(new CodeActionRuntimeOptions
+        services.AddOptions<StartupOptions>()
+            .Configure(options =>
             {
-                TokenLifetime = options.CodeActionTokenLifetime,
+                options.PluginDirectories = startupOptions.PluginDirectories;
+                options.DefaultMaxResults = startupOptions.DefaultMaxResults;
+                options.CodeActionTokenLifetime = startupOptions.CodeActionTokenLifetime;
+                options.MaxTransactionRevisions = startupOptions.MaxTransactionRevisions;
+                options.MaxConcurrentQueries = startupOptions.MaxConcurrentQueries;
+                options.ToolOutputSchemaMode = startupOptions.ToolOutputSchemaMode;
+                options.StateDirectory = startupOptions.StateDirectory;
             });
-        });
-        services.AddSingleton<IOptions<WorkspaceCoordinatorOptions>>(static serviceProvider =>
-        {
-            var options = serviceProvider.GetRequiredService<IOptions<StartupOptions>>().Value;
-            return Options.Create(new WorkspaceCoordinatorOptions
+        services.AddOptions<CodeActionCompositionOptions>();
+        services.AddOptions<CodeActionExecutionOptions>()
+            .Configure<IOptions<StartupOptions>>((options, configuredStartupOptions) =>
             {
-                DefaultMaxResults = options.DefaultMaxResults,
-                MaxConcurrentQueries = options.MaxConcurrentQueries,
-                MaxTransactionRevisions = options.MaxTransactionRevisions,
-                StateDirectory = options.StateDirectory,
+                options.TokenLifetime = configuredStartupOptions.Value.CodeActionTokenLifetime;
             });
-        });
+        services.AddOptions<WorkspaceCoordinatorOptions>()
+            .Configure<IOptions<StartupOptions>>((options, configuredStartupOptions) =>
+            {
+                var configured = configuredStartupOptions.Value;
+                options.DefaultMaxResults = configured.DefaultMaxResults;
+                options.MaxConcurrentQueries = configured.MaxConcurrentQueries;
+                options.MaxTransactionRevisions = configured.MaxTransactionRevisions;
+                options.StateDirectory = configured.StateDirectory;
+            });
     }
 
-    private static void AddCoreServices(IServiceCollection services, PluginCatalogSnapshot pluginCatalogSnapshot)
+    private static void AddCoreServices(this IServiceCollection services, PluginCatalogSnapshot pluginCatalogSnapshot)
     {
         services.AddSingleton(pluginCatalogSnapshot);
         services.AddSingleton<IMsBuildRegistrationService, MsBuildRegistrationService>();
@@ -80,18 +89,13 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
         services.AddSingleton<ICodeActionDiagnosticService, CodeActionDiagnosticService>();
         services.AddSingleton<ICodeActionDescriptorRegistry, CodeActionDescriptorRegistry>();
         services.AddSingleton<ICodeActionTokenService, CodeActionTokenService>();
-        services.AddSingleton<ICodeActionRuntimeComposer, CodeActionRuntimeComposer>();
-        services.AddSingleton<CodeActionRuntime>(static serviceProvider => serviceProvider
-            .GetRequiredService<ICodeActionRuntimeComposer>()
-            .Compose(serviceProvider.GetRequiredService<IOptions<CodeActionRuntimeOptions>>().Value));
-        services.AddSingleton<ICodeActionRuntime>(static serviceProvider => serviceProvider.GetRequiredService<CodeActionRuntime>());
+        services.AddSingleton<ICodeActionProviderCatalog, MefCodeActionProviderCatalog>();
         services.AddSingleton<ICodeActionDiscoveryService, CodeActionDiscoveryService>();
         services.AddSingleton<ICodeActionResolutionService, CodeActionResolutionService>();
         services.AddSingleton<ICodeActionOperationService, CodeActionOperationService>();
         services.AddSingleton<ICodeActionQueryWorkflow, CodeActionQueryWorkflow>();
         services.AddSingleton<ICodeActionMutationWorkflow, CodeActionMutationWorkflow>();
-        services.AddSingleton(static serviceProvider => new WorkspaceHostServicesAccessor(
-            serviceProvider.GetRequiredService<ICodeActionRuntime>().WorkspaceHostServices));
+        services.AddSingleton<IMsBuildWorkspaceFactory, HostConfiguredMsBuildWorkspaceFactory>();
         services.AddSingleton<IWorkspaceOperationResultFactory, WorkspaceOperationResultFactory>();
         services.AddSingleton<IFileSystem, FileSystem>();
         services.AddSingleton<IWorkspacePathComparison, WorkspacePathComparison>();
@@ -104,7 +108,6 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
         services.AddSingleton<IWorkspaceCommitLockManager, WorkspaceCommitLockManager>();
         services.AddSingleton<IWorkspaceCommitWriter, WorkspaceCommitWriter>();
         services.AddSingleton<IWorkspaceCommitRecoveryService, WorkspaceCommitRecoveryService>();
-        services.AddHostedService<WorkspaceCommitRecoveryHostedService>();
         services.AddSingleton<IWorkspaceSessionStore, WorkspaceSessionStore>();
         services.AddSingleton<IWorkspaceSelector, WorkspaceSelectorService>();
         services.AddSingleton<IWorkspaceSessionAcquirer, WorkspaceSessionAcquirer>();
@@ -122,20 +125,15 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
         services.AddSingleton<IWorkspaceDiffBuilder, WorkspaceDiffService>();
         services.AddSingleton<ITransactionCommitService, TransactionCommitService>();
         services.AddSingleton<IWorkspaceExecutionContextFactory, WorkspaceExecutionContextFactory>();
-        services.AddSingleton<IToolExecutionContextFactory>(static serviceProvider => new PluginExecutionContextFactory(
-            serviceProvider.GetRequiredService<IWorkspaceExecutionContextFactory>(),
-            serviceProvider.GetRequiredService<IToolExecutionServices>()));
-        services.AddSingleton<ICodeActionExecutionContextFactory>(static serviceProvider => new CodeActionExecutionContextFactory(
-            serviceProvider.GetRequiredService<IWorkspaceExecutionContextFactory>(),
-            serviceProvider.GetRequiredService<ICodeActionQueryWorkflow>(),
-            serviceProvider.GetRequiredService<ICodeActionMutationWorkflow>()));
+        services.AddSingleton<IToolExecutionContextFactory, PluginExecutionContextFactory>();
+        services.AddSingleton<ICodeActionExecutionContextFactory, CodeActionExecutionContextFactory>();
         services.AddSingleton<IWorkspaceLifecycleService, WorkspaceLifecycleService>();
         services.AddSingleton<ITransactionService, TransactionService>();
         services.AddSingleton<IServerStatusService, ServerStatusService>();
     }
 
     private static void AddMcpTools(
-        IServiceCollection services,
+        this IServiceCollection services,
         PluginCatalogSnapshot pluginCatalogSnapshot,
         IReadOnlyList<IRegisteredCodeActionTool> codeActionTools,
         ToolOutputSchemaMode outputSchemaMode)

@@ -2,20 +2,9 @@ using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+[RoslynTool("find-overloads", "Find Overloads", "Returns overload signatures for a resolved method or constructor.")]
 internal sealed class FindOverloadsTool : QueryToolHandler<FindOverloadsRequest, OverloadSearchData>
 {
-    private static readonly ToolRegistrationMetadata _metadata = new()
-    {
-        Name = "find-overloads",
-        Title = "Find Overloads",
-        Description = "Returns overload signatures for a resolved method or constructor.",
-    };
-
-    public static void Register(IPluginRegistry registry)
-    {
-        registry.RegisterQueryTool(_metadata, new FindOverloadsTool());
-    }
-
     protected override async ValueTask<PluginExecutionResult<OverloadSearchData>> ExecuteCoreAsync(FindOverloadsRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<OverloadSearchData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);

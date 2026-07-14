@@ -13,7 +13,7 @@ public sealed class WorkspaceProjectionIntegrationTests
         {
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
-        var registry = BundledPluginRegistryFactory.CreateRegistry();
+        var registry = BundledPluginCatalogueFactory.CreateCatalogue();
 
         var solution = await PluginToolTestHarness.InvokeAsync<SolutionStructureData>(coordinator, registry, "get-solution-structure", new Dictionary<string, JsonElement>());
         var project = await PluginToolTestHarness.InvokeAsync<ProjectDetailsData>(coordinator, registry, "get-project-details", new Dictionary<string, JsonElement>
@@ -51,7 +51,7 @@ public sealed class WorkspaceProjectionIntegrationTests
         {
             Path = fixture.SolutionPath,
         }, CancellationToken.None);
-        var registry = BundledPluginRegistryFactory.CreateRegistry();
+        var registry = BundledPluginCatalogueFactory.CreateCatalogue();
 
         var solution = await PluginToolTestHarness.InvokeAsync<SolutionStructureData>(coordinator, registry, "get-solution-structure", new Dictionary<string, JsonElement>());
         var application = await PluginToolTestHarness.InvokeAsync<ProjectDetailsData>(coordinator, registry, "get-project-details", new Dictionary<string, JsonElement>

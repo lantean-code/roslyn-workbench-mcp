@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins;
 /// <summary>
 /// Describes one tool registration supplied by a plugin.
 /// </summary>
-public sealed record ToolRegistrationMetadata
+internal sealed record ToolRegistrationMetadata
 {
     /// <summary>
     /// Gets the globally unique MCP tool name.

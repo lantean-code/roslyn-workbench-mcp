@@ -13,7 +13,7 @@ internal sealed class WorkspaceStatusTool : ServerOwnedToolBase<WorkspaceStatusR
         IWorkspaceLifecycleService workspaceLifecycleService)
         : base(
             startupOptions: startupOptions,
-            name: "workspace-status",
+            name: ServerOwnedToolRegistration.WorkspaceStatusName,
             title: "Workspace Status",
             description: "Reports the selected workspace lifecycle state.",
             readOnly: true,

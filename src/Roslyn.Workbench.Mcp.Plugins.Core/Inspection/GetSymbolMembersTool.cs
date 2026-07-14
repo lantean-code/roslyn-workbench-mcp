@@ -1,21 +1,11 @@
-using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
-
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+[RoslynTool(
+    name: "get-symbol-members",
+    title: "Get Symbol Members",
+    description: "Lists declared members and optional inherited or interface members for a resolved symbol.")]
 internal sealed class GetSymbolMembersTool : QueryToolHandler<GetSymbolMembersRequest, SymbolMembersData>
 {
-    private static readonly ToolRegistrationMetadata _metadata = new()
-    {
-        Name = "get-symbol-members",
-        Title = "Get Symbol Members",
-        Description = "Lists declared members and optional inherited or interface members for a resolved symbol.",
-    };
-
-    public static void Register(IPluginRegistry registry)
-    {
-        registry.RegisterQueryTool(_metadata, new GetSymbolMembersTool());
-    }
-
     protected override async ValueTask<PluginExecutionResult<SymbolMembersData>> ExecuteCoreAsync(GetSymbolMembersRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<SymbolMembersData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);

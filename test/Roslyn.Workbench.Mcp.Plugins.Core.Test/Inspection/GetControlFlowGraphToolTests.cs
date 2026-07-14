@@ -5,21 +5,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class GetControlFlowGraphToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        GetControlFlowGraphTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<GetControlFlowGraphRequest, ControlFlowGraphData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "get-control-flow-graph"
-                && metadata.Title == "Get Control Flow Graph"
-                && metadata.Description == "Returns a projected control-flow graph for a symbol or selected region."),
-            It.IsAny<IQueryToolHandler<GetControlFlowGraphRequest, ControlFlowGraphData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_SymbolAndLocationAreBothMissing_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequestResult()
     {
         var target = new GetControlFlowGraphTool();

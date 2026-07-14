@@ -1,28 +1,33 @@
+using Microsoft.Extensions.Options;
+
 namespace Roslyn.Workbench.Mcp.CodeActions.Execution;
 
 internal sealed class CodeActionQueryWorkflow : ICodeActionQueryWorkflow
 {
-    private readonly ICodeActionRuntime _runtime;
+    private readonly ICodeActionProviderCatalog _providerCatalog;
     private readonly ICodeActionDiscoveryService _discoveryService;
     private readonly ICodeActionDiagnosticService _diagnosticService;
     private readonly ICodeActionResolutionService _resolutionService;
     private readonly ICodeActionDescriptorRegistry _descriptorRegistry;
     private readonly ICodeActionTokenService _tokenService;
+    private readonly TimeSpan _tokenLifetime;
 
     public CodeActionQueryWorkflow(
-        ICodeActionRuntime runtime,
+        ICodeActionProviderCatalog providerCatalog,
         ICodeActionDiscoveryService discoveryService,
         ICodeActionDiagnosticService diagnosticService,
         ICodeActionResolutionService resolutionService,
         ICodeActionDescriptorRegistry descriptorRegistry,
-        ICodeActionTokenService tokenService)
+        ICodeActionTokenService tokenService,
+        IOptions<CodeActionExecutionOptions> options)
     {
-        _runtime = runtime;
+        _providerCatalog = providerCatalog;
         _discoveryService = discoveryService;
         _diagnosticService = diagnosticService;
         _resolutionService = resolutionService;
         _descriptorRegistry = descriptorRegistry;
         _tokenService = tokenService;
+        _tokenLifetime = options.Value.TokenLifetime;
     }
 
     public async ValueTask<CodeActionExecutionResult<CodeActionListData>> ListCodeActionsAsync(
@@ -154,7 +159,7 @@ internal sealed class CodeActionQueryWorkflow : ICodeActionQueryWorkflow
         TextSpan span,
         CodeActionDescriptorEntry descriptor)
     {
-        var expiresAt = DateTimeOffset.UtcNow.Add(_runtime.TokenLifetime);
+        var expiresAt = DateTimeOffset.UtcNow.Add(_tokenLifetime);
 
         return new CodeActionInfo
         {
@@ -224,7 +229,7 @@ internal sealed class CodeActionQueryWorkflow : ICodeActionQueryWorkflow
 
     private CodeActionExecutionResult<T>? RejectedIfUnavailable<T>()
     {
-        return _runtime.Status.IsAvailable
+        return _providerCatalog.Status.IsAvailable
             ? null
             : Rejected<T>("CodeActionsUnavailable", "Code-action composition is unavailable.");
     }

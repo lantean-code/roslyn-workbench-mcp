@@ -4,20 +4,9 @@ using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+[RoslynTool("find-implementations", "Find Implementations", "Finds implementations of an interface or abstract member.")]
 internal sealed class FindImplementationsTool : QueryToolHandler<FindImplementationsRequest, ImplementationSearchData>
 {
-    private static readonly ToolRegistrationMetadata _metadata = new()
-    {
-        Name = "find-implementations",
-        Title = "Find Implementations",
-        Description = "Finds implementations of an interface or abstract member.",
-    };
-
-    public static void Register(IPluginRegistry registry)
-    {
-        registry.RegisterQueryTool(_metadata, new FindImplementationsTool());
-    }
-
     protected override async ValueTask<PluginExecutionResult<ImplementationSearchData>> ExecuteCoreAsync(FindImplementationsRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<ImplementationSearchData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);

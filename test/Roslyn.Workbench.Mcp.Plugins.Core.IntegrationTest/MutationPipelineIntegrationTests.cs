@@ -14,7 +14,7 @@ public sealed class MutationPipelineIntegrationTests
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
         var startResult = await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
-        var registry = BundledPluginRegistryFactory.CreateRegistry();
+        var registry = BundledPluginCatalogueFactory.CreateCatalogue();
 
         var rename = await PluginToolTestHarness.InvokeAsync<MutationData>(coordinator, registry, "rename-symbol", new Dictionary<string, JsonElement>
         {

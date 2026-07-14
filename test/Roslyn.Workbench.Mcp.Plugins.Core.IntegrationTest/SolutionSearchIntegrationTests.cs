@@ -13,7 +13,7 @@ public sealed class SolutionSearchIntegrationTests
         {
             Path = fixture.SolutionPath,
         }, CancellationToken.None);
-        var registry = BundledPluginRegistryFactory.CreateRegistry();
+        var registry = BundledPluginCatalogueFactory.CreateCatalogue();
 
         var implementations = await PluginToolTestHarness.InvokeAsync<ImplementationSearchData>(coordinator, registry, "find-implementations", new Dictionary<string, JsonElement>
         {

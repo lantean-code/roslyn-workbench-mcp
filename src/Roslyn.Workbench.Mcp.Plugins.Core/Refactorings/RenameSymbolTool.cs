@@ -2,24 +2,9 @@ using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Refactorings;
 
+[RoslynTool("rename-symbol", "Rename Symbol", "Stages a symbol rename across the effective solution.", Destructive = true)]
 internal sealed class RenameSymbolTool : MutationToolHandler<RenameSymbolRequest>
 {
-    private static readonly ToolRegistrationMetadata _metadata = new()
-    {
-        Name = "rename-symbol",
-        Title = "Rename Symbol",
-        Description = "Stages a symbol rename across the effective solution.",
-        Behavior = new ToolBehaviorHints
-        {
-            Destructive = true,
-        },
-    };
-
-    public static void Register(IPluginRegistry registry)
-    {
-        registry.RegisterMutationTool(_metadata, new RenameSymbolTool());
-    }
-
     protected override ValueTask<PluginExecutionResult<MutationCandidate>> ExecuteCoreAsync(RenameSymbolRequest request, IMutationContext context, CancellationToken cancellationToken)
     {
         return ExecuteRenameSymbolAsync(request, context, cancellationToken);

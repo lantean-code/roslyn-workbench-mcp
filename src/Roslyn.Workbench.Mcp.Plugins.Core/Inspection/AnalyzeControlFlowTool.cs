@@ -4,20 +4,9 @@ using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+[RoslynTool("analyze-control-flow", "Analyze Control Flow", "Analyzes control flow for a selected executable region.")]
 internal sealed class AnalyzeControlFlowTool : QueryToolHandler<AnalyzeControlFlowRequest, ControlFlowAnalysisData>
 {
-    private static readonly ToolRegistrationMetadata _metadata = new()
-    {
-        Name = "analyze-control-flow",
-        Title = "Analyze Control Flow",
-        Description = "Analyzes control flow for a selected executable region.",
-    };
-
-    public static void Register(IPluginRegistry registry)
-    {
-        registry.RegisterQueryTool(_metadata, new AnalyzeControlFlowTool());
-    }
-
     protected override async ValueTask<PluginExecutionResult<ControlFlowAnalysisData>> ExecuteCoreAsync(AnalyzeControlFlowRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         var statementResolution = await ResolveStatementAsync(request.Location, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);

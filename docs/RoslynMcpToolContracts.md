@@ -98,6 +98,14 @@ required for normal operation. Tool descriptions may include a short result hint
 when it materially improves discovery, but they do not restate full response
 DTOs or JSON Schema fragments.
 
+External plugins are composed only from immediate package directories beneath
+configured `plugin-directory` search roots. Exactly one assembly in each
+package carries `RoslynPluginAttribute`; the attribute and the entry assembly's
+informational SemVer are the package identity contract, with no JSON manifest.
+MEF configuration is materialised into the same `RegisteredTool` model before
+any MCP adapter is registered, so external composition does not alter the wire
+contracts described here.
+
 For implementation, each input type is named by converting the tool name to
 PascalCase and appending `Request`: for example, `find-references` uses
 `FindReferencesRequest`. Tool handlers still execute against typed C# request
@@ -356,11 +364,11 @@ explicitly and through their snapshot-bound action token.
 
 | Tool | Source | Behaviour | Title and description | Input parameters | `data` output shape |
 |---|---|---|---|---|---|
-| `list-code-actions` | New plugin | Q | **List Code Actions**. Lists applicable installed refactorings and code fixes at a target, but only for built-in Roslyn families that this server build has explicitly audited. Listed actions publish execution metadata that declares whether they are replayable, parameterised or unsupported. This tool is an intentional internal exception and always returns the full applicable action set for the selected location. | `location: LocationSelector`, `expectedSnapshot: SnapshotPrecondition`, `includeRefactorings?: boolean = true`, `includeCodeFixes?: boolean = true`, `diagnosticIds?: string[]`. | `CodeActionListData { actions: CodeActionListItem[] }` |
-| `describe-code-action` | New plugin | Q | **Describe Code Action**. Revalidates one discovered action and returns its descriptor plus any preflight context required before dedicated execution. | `actionId: string`, `expectedSnapshot: SnapshotPrecondition`. | `DescribeCodeActionData { descriptor: CodeActionInfo, context: CodeActionDescriptorContext }` |
-| `stage-code-action` | New plugin | M | **Stage Code Action**. Re-runs the recorded provider and stages exactly one matching replayable refactoring action. Parameterised actions are rejected instead of being replayed generically. | `actionId: string`, `expectedSnapshot: SnapshotPrecondition`. | `MutationData` |
-| `stage-code-fix` | New plugin | M | **Stage Code Fix**. Re-runs the recorded provider and stages exactly one matching code fix. | `actionId: string`, `expectedSnapshot: SnapshotPrecondition`. | `MutationData` |
-| `stage-fix-all` | New plugin | M | **Stage Fix All**. Re-runs the recorded provider and stages one matching code fix across a selected scope, subject to any configured fix-all cap. | `actionId: string`, `scope: ScopeSelector`, `maxChanges?: int`, `expectedSnapshot: SnapshotPrecondition`. | `MutationData` |
+| `list-code-actions` | Internal Code Action | Q | **List Code Actions**. Lists applicable installed refactorings and code fixes at a target, but only for built-in Roslyn families that this server build has explicitly audited. Listed actions publish execution metadata that declares whether they are replayable, parameterised or unsupported. This tool is an intentional internal exception and always returns the full applicable action set for the selected location. | `location: LocationSelector`, `expectedSnapshot: SnapshotPrecondition`, `includeRefactorings?: boolean = true`, `includeCodeFixes?: boolean = true`, `diagnosticIds?: string[]`. | `CodeActionListData { actions: CodeActionListItem[] }` |
+| `describe-code-action` | Internal Code Action | Q | **Describe Code Action**. Revalidates one discovered action and returns its descriptor plus any preflight context required before dedicated execution. | `actionId: string`, `expectedSnapshot: SnapshotPrecondition`. | `DescribeCodeActionData { descriptor: CodeActionInfo, context: CodeActionDescriptorContext }` |
+| `stage-code-action` | Internal Code Action | M | **Stage Code Action**. Re-runs the recorded provider and stages exactly one matching replayable refactoring action. Parameterised actions are rejected instead of being replayed generically. | `actionId: string`, `expectedSnapshot: SnapshotPrecondition`. | `MutationData` |
+| `stage-code-fix` | Internal Code Action | M | **Stage Code Fix**. Re-runs the recorded provider and stages exactly one matching code fix. | `actionId: string`, `expectedSnapshot: SnapshotPrecondition`. | `MutationData` |
+| `stage-fix-all` | Internal Code Action | M | **Stage Fix All**. Re-runs the recorded provider and stages one matching code fix across a selected scope, subject to any configured fix-all cap. | `actionId: string`, `scope: ScopeSelector`, `maxChanges?: int`, `expectedSnapshot: SnapshotPrecondition`. | `MutationData` |
 | `transaction-start` | New server | S | **Start Transaction**. Captures the immutable base solution for one selected workspace and opens an empty staged revision journal. It rejects if another workspace already owns the global transaction slot. | `workspace?: WorkspaceSelector`. | `TransactionStartData { transaction: TransactionInfo }` |
 | `transaction-preview` | Replaces `get-change-set` | Q | **Preview Transaction**. Returns transaction summaries, or a detailed diff for one explicitly selected document. | `document?: DocumentSelector`, `includeDiff?: boolean = false`, `contextLines?: int = 3`. | `TransactionPreviewData { transaction: TransactionInfo, documents: DocumentChange[], diff?: DocumentDiff }` |
 | `transaction-history` | New server | S | **Transaction History**. Moves the staged revision backward or forward. | `direction: Undo|Redo`, `expectedSnapshot: SnapshotPrecondition`. | `TransactionHistoryData { transaction: TransactionInfo }` |

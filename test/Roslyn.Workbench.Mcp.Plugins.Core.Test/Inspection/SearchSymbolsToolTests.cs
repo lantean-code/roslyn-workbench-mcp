@@ -3,21 +3,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class SearchSymbolsToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        SearchSymbolsTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<SearchSymbolsRequest, SymbolSearchData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "search-symbols"
-                && metadata.Title == "Search Symbols"
-                && metadata.Description == "Searches declarations by name, metadata name and optional semantic filters."),
-            It.IsAny<IQueryToolHandler<SearchSymbolsRequest, SymbolSearchData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_ResolveProjectsHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var target = new SearchSymbolsTool();

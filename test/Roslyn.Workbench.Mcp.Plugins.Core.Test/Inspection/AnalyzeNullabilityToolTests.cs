@@ -6,21 +6,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class AnalyzeNullabilityToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        AnalyzeNullabilityTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<AnalyzeNullabilityRequest, NullabilityAnalysisData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "analyze-nullability"
-                && metadata.Title == "Analyze Nullability"
-                && metadata.Description == "Returns nullable-flow diagnostics for a selected scope or location."),
-            It.IsAny<IQueryToolHandler<AnalyzeNullabilityRequest, NullabilityAnalysisData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_LocationAndValidateSnapshotReturnsConflict_WHEN_CallingExecuteAsync_THEN_ShouldReturnConflictResult()
     {
         var target = new AnalyzeNullabilityTool();

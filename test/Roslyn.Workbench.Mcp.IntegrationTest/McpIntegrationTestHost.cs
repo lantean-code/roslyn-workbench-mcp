@@ -27,24 +27,25 @@ internal static class McpIntegrationTestHost
 
     public static async Task<ToolResult<TResponse>> InvokePluginToolAsync<TResponse>(
         IToolExecutionContextFactory contextFactory,
-        PluginRegistry registry,
+        PluginToolCatalogue catalogue,
         string toolName,
         IDictionary<string, JsonElement> arguments,
         bool expectProtocolSuccess = true)
     {
-        var registeredTool = registry.GetRegisteredPluginTool(toolName);
+        var registeredTool = catalogue.Tools.Single(tool => string.Equals(tool.Tool.Metadata.Name, toolName, StringComparison.Ordinal));
         var serverTool = registeredTool.Accept(new PluginMcpServerToolFactory(contextFactory));
         var result = await InvokeServerToolAsync(serverTool, toolName, arguments);
 
         result.IsError.Should().Be(!expectProtocolSuccess);
 
-        return PluginToolTestHarness.DeserializeToolResult<TResponse>(registeredTool.Tool, result.StructuredContent!.Value, toolName);
+        return PluginToolTestHarness.DeserializeToolResult<TResponse>(result.StructuredContent!.Value, toolName);
     }
 
     public static McpServer CreateServer()
     {
         var asyncDisposable = new Mock<IAsyncDisposable>();
         var server = new Mock<McpServer>();
+        var serviceProvider = new Mock<IServiceProvider>();
 
         asyncDisposable.Setup(static disposable => disposable.DisposeAsync()).Returns(ValueTask.CompletedTask);
         server.SetupGet(static value => value.ClientCapabilities).Returns(new ClientCapabilities());
@@ -54,7 +55,7 @@ internal static class McpIntegrationTestHost
             Version = "1.0.0",
         });
         server.SetupGet(static value => value.ServerOptions).Returns(new McpServerOptions());
-        server.SetupGet(static value => value.Services).Returns(Mock.Of<IServiceProvider>());
+        server.SetupGet(static value => value.Services).Returns(serviceProvider.Object);
         server.SetupGet(static value => value.LoggingLevel).Returns((LoggingLevel?)null);
         server.SetupGet(static value => value.SessionId).Returns("session");
         server.SetupGet(static value => value.NegotiatedProtocolVersion).Returns("2025-06-18");

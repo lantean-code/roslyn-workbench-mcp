@@ -3,21 +3,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class GetSymbolMembersToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        GetSymbolMembersTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<GetSymbolMembersRequest, SymbolMembersData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "get-symbol-members"
-                && metadata.Title == "Get Symbol Members"
-                && metadata.Description == "Lists declared members and optional inherited or interface members for a resolved symbol."),
-            It.IsAny<IQueryToolHandler<GetSymbolMembersRequest, SymbolMembersData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_ResolveSymbolHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var target = new GetSymbolMembersTool();

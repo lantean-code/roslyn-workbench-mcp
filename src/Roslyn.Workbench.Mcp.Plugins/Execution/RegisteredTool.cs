@@ -1,6 +1,6 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Execution;
 
-public sealed record RegisteredTool
+internal sealed record RegisteredTool
 {
     public PluginMetadata Plugin { get; init; } = new();
 

@@ -5,21 +5,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class AnalyzeDisposablesToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        AnalyzeDisposablesTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<AnalyzeDisposablesRequest, DisposableAnalysisData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "analyze-disposables"
-                && metadata.Title == "Analyze Disposables"
-                && metadata.Description == "Returns advisory findings for undisposed local disposable values."),
-            It.IsAny<IQueryToolHandler<AnalyzeDisposablesRequest, DisposableAnalysisData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_ResolveDocumentsHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var target = new AnalyzeDisposablesTool();

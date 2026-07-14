@@ -13,7 +13,7 @@ internal sealed class TransactionStartTool : ServerOwnedToolBase<TransactionStar
         ITransactionService transactionService)
         : base(
             startupOptions: startupOptions,
-            name: "transaction-start",
+            name: ServerOwnedToolRegistration.TransactionStartName,
             title: "Transaction Start",
             description: "Starts a new staged transaction.",
             readOnly: false,

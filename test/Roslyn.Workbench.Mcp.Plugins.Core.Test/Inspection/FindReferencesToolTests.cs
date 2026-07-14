@@ -6,21 +6,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class FindReferencesToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        FindReferencesTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<FindReferencesRequest, ReferenceSearchData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "find-references"
-                && metadata.Title == "Find References"
-                && metadata.Description == "Finds source references, optionally including declarations and access classification."),
-            It.IsAny<IQueryToolHandler<FindReferencesRequest, ReferenceSearchData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_ResolveSymbolHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var target = new FindReferencesTool();

@@ -415,7 +415,7 @@ These implementations must not be moved into the unit project merely to improve 
 | --- | --- | --- | --- |
 | `WorkspaceLoader` | Mixed | Coordinator integration covers project/solution load and diagnostics; unit tests cover `NormalizeOpenPath` and `NormalizeAlias` at 100% line and branch | Keep `InspectCompatibility` and `LoadAsync` integration; normalization preserves path casing, recognizes supported extensions case-insensitively and rejects malformed rooted paths without throwing |
 | `WorkspaceProjectCompatibilityInspector` | Integration boundary | SDK and legacy compatibility tests | Malformed project and recoverable I/O failure |
-| `WorkspaceHostServicesAccessor` | Composition/data adapter | Host composition and coordinator integration | No dedicated unit test required unless it gains branching behaviour |
+| `IMsBuildWorkspaceFactory` | Host-supplied creation boundary | Host unit and composition coverage | Keep Workspace loading independent of Code Action composition; real MSBuild loading remains integration coverage |
 | `WorkspaceInputFileFingerprint` | Integration boundary | Indirect manifest/change tests | File path, length and timestamp capture |
 | `WorkspaceInputDirectoryFingerprint` | Integration boundary | Indirect manifest/change tests | Directory path and timestamp capture |
 | `WorkspaceProjectInputResolver` | Integration boundary | Evaluated imported props through `WorkspaceChangeDetectorIntegrationTests` | Implementation owns real MSBuild project evaluation and imported-path discovery without a static forwarding wrapper |

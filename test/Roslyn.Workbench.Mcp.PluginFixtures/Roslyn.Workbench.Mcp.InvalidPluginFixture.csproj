@@ -8,7 +8,6 @@
 
   <ItemGroup>
     <Compile Include="DuplicateToolNameTestPlugin.cs" />
-    <Compile Include="ThrowingRegistrationTestPlugin.cs" />
     <Compile Include="UnsupportedApiVersionTestPlugin.cs" />
     <Compile Include="ValidMutationTestPlugin.cs" />
     <Compile Include="ValidQueryTestPlugin.cs" />

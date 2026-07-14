@@ -1,0 +1,12 @@
+namespace Roslyn.Workbench.Mcp.Plugins;
+
+internal sealed record ConfiguredToolDefinition
+{
+    public required Type HandlerType { get; init; }
+
+    public required Func<object> HandlerFactory { get; init; }
+
+    public required ToolKind Kind { get; init; }
+
+    public required IToolConfigurationBuilderState Builder { get; init; }
+}

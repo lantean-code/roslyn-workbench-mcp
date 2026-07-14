@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.Plugins.Core;
 using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 
@@ -15,29 +16,29 @@ public static class BundledCoreToolTestHarness
 
     public static IWorkspaceRuntime CreateBuiltInCodeActionCoordinator()
     {
-        var runtime = new CodeActionRuntimeComposer()
-            .Compose(new CodeActionRuntimeOptions
-            {
-                IncludeBuiltInAssemblies = true,
-            });
+        var providerCatalog = new MefCodeActionProviderCatalog(Options.Create(new CodeActionCompositionOptions
+        {
+            IncludeBuiltInAssemblies = true,
+        }));
 
-        return WorkspaceCoordinatorFactory.CreateWithCodeActionRuntime(runtime, BundledCoreToolExecutionServicesFactory.Create());
+        return WorkspaceCoordinatorFactory.CreateWithCodeActionProviderCatalog(providerCatalog, BundledCoreToolExecutionServicesFactory.Create());
     }
 
     public static IWorkspaceRuntime CreateTestCodeActionCoordinator(TimeSpan? tokenLifetime = null)
     {
-        var runtime = new CodeActionRuntimeComposer()
-            .Compose(new CodeActionRuntimeOptions
-            {
-                TokenLifetime = tokenLifetime ?? TimeSpan.FromMinutes(5),
-                IncludeBuiltInAssemblies = false,
-                AdditionalAssemblies =
+        var providerCatalog = new MefCodeActionProviderCatalog(Options.Create(new CodeActionCompositionOptions
+        {
+            IncludeBuiltInAssemblies = false,
+            AdditionalAssemblies =
             [
                 typeof(TestRefactoringProvider).Assembly,
             ],
-            });
+        }));
 
-        return WorkspaceCoordinatorFactory.CreateWithCodeActionRuntime(runtime, BundledCoreToolExecutionServicesFactory.Create());
+        return WorkspaceCoordinatorFactory.CreateWithCodeActionProviderCatalog(
+            providerCatalog,
+            BundledCoreToolExecutionServicesFactory.Create(),
+            tokenLifetime);
     }
 
     public static SnapshotPrecondition CreateSnapshot(ToolResult<WorkspaceOpenData> openResult, int? transactionRevision = null)

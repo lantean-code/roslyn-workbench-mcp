@@ -5,21 +5,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class AnalyzeDataFlowToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        AnalyzeDataFlowTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<AnalyzeDataFlowRequest, DataFlowAnalysisData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "analyze-data-flow"
-                && metadata.Title == "Analyze Data Flow"
-                && metadata.Description == "Analyzes data flow for a selected executable region."),
-            It.IsAny<IQueryToolHandler<AnalyzeDataFlowRequest, DataFlowAnalysisData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_ValidateSnapshotReturnsConflict_WHEN_CallingExecuteAsync_THEN_ShouldReturnConflictResult()
     {
         var target = new AnalyzeDataFlowTool();

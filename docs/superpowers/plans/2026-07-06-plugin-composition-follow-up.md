@@ -1,5 +1,7 @@
 # MEF Plugin Composition And Fluent Tool Registration Plan
 
+> **Obsolete:** This plan predates the separation of internal Code Actions from the third-party plugin system and the move of all MCP transport adapters into Host. It is retained for historical context only. Use [2026-07-13-mef-plugin-composition.md](2026-07-13-mef-plugin-composition.md) for implementation.
+
 ## Summary
 
 Replace the current assembly scanning and manually constructed tool registration with a MEF-composed plugin configuration model suitable for third-party authors.

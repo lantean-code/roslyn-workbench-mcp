@@ -15,7 +15,7 @@ The current policy is recorded in `TestingStrategy.md`. The current architecture
 | Workspace contracts and selectors | `Roslyn.Workbench.Mcp.Workspace.Test` | Workspace selector validation and domain behaviour |
 | Inspection contracts and collection limits | `Roslyn.Workbench.Mcp.Plugins.Core.Test` | Inspection DTO validation alongside owning tools |
 | MCP envelopes, schemas and lifecycle contracts | `Roslyn.Workbench.Mcp.Test` | Host-owned serialisation, binding, schema and transport behaviour |
-| Plugin execution and registration | `Roslyn.Workbench.Mcp.Plugins.Test` | Typed registry, visitor and context-adaptation behaviour |
+| Plugin execution and configuration | `Roslyn.Workbench.Mcp.Plugins.Test` | Fluent configuration, handler inspection, materialisation, typed visitor and context-adaptation behaviour |
 | Inspection and normal refactoring tools | `Roslyn.Workbench.Mcp.Plugins.Core.Test` | Per-tool unit coverage and Roslyn algorithm branches |
 | Code-action tools and workflows | `Roslyn.Workbench.Mcp.CodeActions.Test` | Isolated catalogue, discovery, token, workflow and tool behaviour |
 | Server-owned tools | `Roslyn.Workbench.Mcp.Test` | Tool mapping and mock-isolated host service behaviour |
@@ -39,7 +39,8 @@ All four Host adapter families now have focused unit evidence without moving MCP
 
 | Boundary | Current evidence | Position |
 | --- | --- | --- |
-| Plugin closed-generic visitor dispatch | `PluginRegistryTests` | Covered |
+| Plugin fluent configuration, categorised and accumulated handler diagnostics, preparation and closed-generic visitor dispatch | `PluginConfigurationTests`, `PluginHandlerTypeInspectorTests`, `PluginHandlerContractResolverTests`, `PluginHandlerWarningInspectorTests`, `PluginConfigurationPreparerTests`, `PluginToolRegistrationMaterializerTests` | Covered |
+| Plugin catalogue preparation, atomic validation failure, diagnostic publication, collision policy and materialisation | `PluginCandidatePreparerTests`, `PluginEntryPointValidatorTests`, `LoadedPluginPreparerTests`, `PluginCollisionPolicyTests`, `PluginCatalogEntryMaterializerTests`, `PluginCatalogLoaderTests` | Covered |
 | Plugin query MCP adapter | `PluginQueryMcpServerToolTests` | Covered; 100% line and branch coverage |
 | Plugin mutation MCP adapter and separate staging | `PluginMutationMcpServerToolTests` | Covered; 100% line and branch coverage |
 | Code Action closed-generic visitor dispatch and duplicate internal names | `CodeActionToolRegistryTests` | Covered |
@@ -65,7 +66,7 @@ All four Host adapter families now have focused unit evidence without moving MCP
 | Mutation staging | `MutationPipelineIntegrationTests` | Rename, formatting, using changes, preview and transaction staging |
 | Controlled code actions | `ControlledProviderWorkflowIntegrationTests` | List, describe, stage, fix-all, token and snapshot workflows |
 | Built-in code actions | `BuiltInCodeActionStagingIntegrationTests` | Representative built-in provider staging |
-| Code-action composition | `CodeActionRuntimeComposerIntegrationTests` | Runtime composition and provider discovery |
+| Code-action composition | `MefCodeActionProviderCatalogIntegrationTests` | Provider catalogue composition and discovery |
 | Host composition | `HostCompositionIntegrationTests` | Configuration projection, dependency injection and MCP tool registration |
 | Plugin discovery and MCP protocol | `PluginDiscoveryAndMcpToolIntegrationTests`, `RepresentativeMcpToolIntegrationTests` | Fixture assembly loading, metadata, schemas, argument binding and structured results |
 | Host lifecycle | `WorkspaceLifecycleMcpIntegrationTests`, `ServerStatusRecoveryIntegrationTests` | Workspace/transaction MCP flow and persisted recovery diagnostics |
@@ -87,4 +88,4 @@ The following entries remain partial pending a later coverage-focused round. The
 
 These exceptions should be reassessed against an assembly-level coverage report. Approved unreachable defensive branches should be documented rather than exercised through reflection or artificial production hooks.
 
-The Host coverage round also identified deliberate integration boundaries in `Program`, `MsBuildRegistration`, `PluginCatalogLoader`, `RecoveryStatusReader` and `RoslynWorkbenchHostApplicationBuilderExtensions`. Defensive assembly-version fallbacks in `ServerStatusService` and MCP SDK schema-exporter compatibility paths in `ToolSchemaBuilder` cannot be driven through the supported unit surface and remain documented rather than forcing production hooks solely for coverage.
+The Host coverage round also identified deliberate integration boundaries in `Program`, `MsBuildRegistration`, `RecoveryStatusReader` and `RoslynWorkbenchHostApplicationBuilderExtensions`. `PluginCatalogLoader` now has focused unit coverage for orchestration, candidate preparation, collision policy and materialisation, with real MEF and load-context behaviour retained as integration concerns. Defensive assembly-version fallbacks in `ServerStatusService` and MCP SDK schema-exporter compatibility paths in `ToolSchemaBuilder` cannot be driven through the supported unit surface and remain documented rather than forcing production hooks solely for coverage.

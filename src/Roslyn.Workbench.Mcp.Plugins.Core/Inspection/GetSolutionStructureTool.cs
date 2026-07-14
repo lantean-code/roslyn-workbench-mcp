@@ -2,20 +2,9 @@ using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+[RoslynTool("get-solution-structure", "Get Solution Structure", "Returns solution folders, projects, target frameworks and direct project relationships.")]
 internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStructureRequest, SolutionStructureData>
 {
-    private static readonly ToolRegistrationMetadata _metadata = new()
-    {
-        Name = "get-solution-structure",
-        Title = "Get Solution Structure",
-        Description = "Returns solution folders, projects, target frameworks and direct project relationships.",
-    };
-
-    public static void Register(IPluginRegistry registry)
-    {
-        registry.RegisterQueryTool(_metadata, new GetSolutionStructureTool());
-    }
-
     protected override async ValueTask<PluginExecutionResult<SolutionStructureData>> ExecuteCoreAsync(GetSolutionStructureRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         var hierarchy = await context.ToolExecutionServices.ProjectStructureService.GetSolutionHierarchyAsync(context.WorkspaceIdentity.LoadedPath, cancellationToken).ConfigureAwait(false);

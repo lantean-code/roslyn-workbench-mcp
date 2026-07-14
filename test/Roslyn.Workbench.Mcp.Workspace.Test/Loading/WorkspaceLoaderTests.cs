@@ -5,13 +5,15 @@ namespace Roslyn.Workbench.Mcp.Workspace.Test.Loading;
 public sealed class WorkspaceLoaderTests
 {
     private readonly Mock<IWorkspaceProjectCompatibilityInspector> _compatibilityInspector;
+    private readonly Mock<IMsBuildWorkspaceFactory> _workspaceFactory;
     private readonly WorkspaceLoader _target;
 
     public WorkspaceLoaderTests()
     {
         _compatibilityInspector = new Mock<IWorkspaceProjectCompatibilityInspector>();
+        _workspaceFactory = new Mock<IMsBuildWorkspaceFactory>();
         _target = new WorkspaceLoader(
-            new WorkspaceHostServicesAccessor(workspaceHostServices: null),
+            _workspaceFactory.Object,
             _compatibilityInspector.Object);
     }
 

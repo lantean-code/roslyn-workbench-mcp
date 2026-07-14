@@ -12,18 +12,18 @@ public static class PluginToolTestHarness
 
     public static async Task<ToolResult<TResponse>> InvokeAsync<TResponse>(
         IToolExecutionContextFactory contextFactory,
-        PluginRegistry registry,
+        PluginToolCatalogue catalogue,
         string toolName,
         IDictionary<string, JsonElement> arguments,
         bool expectProtocolSuccess = true)
     {
         ArgumentNullException.ThrowIfNull(contextFactory);
-        ArgumentNullException.ThrowIfNull(registry);
+        ArgumentNullException.ThrowIfNull(catalogue);
         ArgumentException.ThrowIfNullOrWhiteSpace(toolName);
         ArgumentNullException.ThrowIfNull(arguments);
 
-        var pluginTool = registry.GetRegisteredPluginTool(toolName);
-        var result = await InvokeRawAsync(contextFactory, registry, toolName, arguments);
+        var pluginTool = GetTool(catalogue.Tools, toolName);
+        var result = await InvokeRawAsync(contextFactory, catalogue, toolName, arguments);
 
         if (result.IsError != !expectProtocolSuccess)
         {
@@ -31,33 +31,23 @@ public static class PluginToolTestHarness
                 $"Expected protocol success to be '{expectProtocolSuccess}', but 'IsError' was '{result.IsError}'.");
         }
 
-        return DeserializeToolResult<TResponse>(pluginTool.Tool, result.StructuredContent!.Value, toolName);
+        return DeserializeToolResult<TResponse>(result.StructuredContent!.Value, toolName);
     }
 
     public static async Task<CallToolResult> InvokeRawAsync(
         IToolExecutionContextFactory contextFactory,
-        PluginRegistry registry,
+        PluginToolCatalogue catalogue,
         string toolName,
         IDictionary<string, JsonElement> arguments)
     {
         ArgumentNullException.ThrowIfNull(contextFactory);
-        ArgumentNullException.ThrowIfNull(registry);
+        ArgumentNullException.ThrowIfNull(catalogue);
         ArgumentException.ThrowIfNullOrWhiteSpace(toolName);
         ArgumentNullException.ThrowIfNull(arguments);
 
-        var pluginTool = registry.GetRegisteredPluginTool(toolName);
+        var pluginTool = GetTool(catalogue.Tools, toolName);
         var serverTool = pluginTool.Accept(new PluginMcpServerToolFactory(contextFactory));
         return await serverTool.InvokeArgumentsAsync(arguments, CancellationToken.None);
-    }
-
-    public static ToolResult<TResponse> DeserializeToolResult<TResponse>(
-        RegisteredTool registeredTool,
-        JsonElement payload,
-        string toolName)
-    {
-        ArgumentNullException.ThrowIfNull(registeredTool);
-
-        return DeserializeToolResult<TResponse>(payload, toolName);
     }
 
     public static ToolResult<TResponse> DeserializeToolResult<TResponse>(
@@ -113,5 +103,10 @@ public static class PluginToolTestHarness
                 }
                 : null,
         };
+    }
+
+    private static IRegisteredPluginTool GetTool(IReadOnlyList<IRegisteredPluginTool> catalogue, string toolName)
+    {
+        return catalogue.Single(tool => string.Equals(tool.Tool.Metadata.Name, toolName, StringComparison.Ordinal));
     }
 }

@@ -13,7 +13,7 @@ internal sealed class WorkspaceOpenTool : ServerOwnedToolBase<WorkspaceOpenReque
         IWorkspaceLifecycleService workspaceLifecycleService)
         : base(
             startupOptions: startupOptions,
-            name: "workspace-open",
+            name: ServerOwnedToolRegistration.WorkspaceOpenName,
             title: "Workspace Open",
             description: "Loads an additional writable workspace.",
             readOnly: false,

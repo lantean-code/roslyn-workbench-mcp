@@ -13,7 +13,7 @@ internal sealed class TransactionCommitTool : ServerOwnedToolBase<TransactionCom
         ITransactionService transactionService)
         : base(
             startupOptions: startupOptions,
-            name: "transaction-commit",
+            name: ServerOwnedToolRegistration.TransactionCommitName,
             title: "Transaction Commit",
             description: "Commits the current staged transaction to disk.",
             readOnly: false,

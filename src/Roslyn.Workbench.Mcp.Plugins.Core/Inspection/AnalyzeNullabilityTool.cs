@@ -3,20 +3,9 @@ using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+[RoslynTool("analyze-nullability", "Analyze Nullability", "Returns nullable-flow diagnostics for a selected scope or location.")]
 internal sealed class AnalyzeNullabilityTool : QueryToolHandler<AnalyzeNullabilityRequest, NullabilityAnalysisData>
 {
-    private static readonly ToolRegistrationMetadata _metadata = new()
-    {
-        Name = "analyze-nullability",
-        Title = "Analyze Nullability",
-        Description = "Returns nullable-flow diagnostics for a selected scope or location.",
-    };
-
-    public static void Register(IPluginRegistry registry)
-    {
-        registry.RegisterQueryTool(_metadata, new AnalyzeNullabilityTool());
-    }
-
     protected override async ValueTask<PluginExecutionResult<NullabilityAnalysisData>> ExecuteCoreAsync(AnalyzeNullabilityRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
 

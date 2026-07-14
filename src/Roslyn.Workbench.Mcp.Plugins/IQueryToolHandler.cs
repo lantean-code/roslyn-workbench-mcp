@@ -3,6 +3,17 @@ using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 namespace Roslyn.Workbench.Mcp.Plugins;
 
 /// <summary>
+/// Identifies a query tool handler for compile-time plugin configuration.
+/// </summary>
+/// <remarks>
+/// Plugin handlers implement the generic <see cref="IQueryToolHandler{TRequest, TResponse}"/> contract rather than
+/// implementing this marker directly.
+/// </remarks>
+public interface IQueryToolHandler
+{
+}
+
+/// <summary>
 /// Executes one registered query tool.
 /// </summary>
 /// <typeparam name="TRequest">The request contract type.</typeparam>
@@ -11,7 +22,7 @@ namespace Roslyn.Workbench.Mcp.Plugins;
 /// Implementations are retained for the lifetime of the plugin catalogue and must be stateless, thread-safe, and must
 /// not own disposable resources. Invocation-scoped services are available through the supplied query context.
 /// </remarks>
-public interface IQueryToolHandler<TRequest, TResponse> where TRequest : WorkspaceBoundRequest
+public interface IQueryToolHandler<TRequest, TResponse> : IQueryToolHandler where TRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Executes the tool for the provided request.

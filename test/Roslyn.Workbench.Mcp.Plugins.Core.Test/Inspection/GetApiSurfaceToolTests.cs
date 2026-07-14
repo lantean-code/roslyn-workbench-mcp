@@ -5,21 +5,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class GetApiSurfaceToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        GetApiSurfaceTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<GetApiSurfaceRequest, ApiSurfaceData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "get-api-surface"
-                && metadata.Title == "Get API Surface"
-                && metadata.Description == "Returns exported API symbols for a selected scope."),
-            It.IsAny<IQueryToolHandler<GetApiSurfaceRequest, ApiSurfaceData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_ResolveDocumentsHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var target = new GetApiSurfaceTool();

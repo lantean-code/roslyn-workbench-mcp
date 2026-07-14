@@ -4,20 +4,9 @@ using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+[RoslynTool("get-symbol-dependents", "Get Symbol Dependents", "Returns symbols that directly depend on a resolved symbol.")]
 internal sealed class GetSymbolDependentsTool : QueryToolHandler<GetSymbolDependentsRequest, SymbolDependentsData>
 {
-    private static readonly ToolRegistrationMetadata _metadata = new()
-    {
-        Name = "get-symbol-dependents",
-        Title = "Get Symbol Dependents",
-        Description = "Returns symbols that directly depend on a resolved symbol.",
-    };
-
-    public static void Register(IPluginRegistry registry)
-    {
-        registry.RegisterQueryTool(_metadata, new GetSymbolDependentsTool());
-    }
-
     protected override async ValueTask<PluginExecutionResult<SymbolDependentsData>> ExecuteCoreAsync(GetSymbolDependentsRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
 

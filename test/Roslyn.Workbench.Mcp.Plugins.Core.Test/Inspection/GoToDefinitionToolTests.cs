@@ -3,21 +3,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class GoToDefinitionToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        GoToDefinitionTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<GoToDefinitionRequest, DefinitionData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "go-to-definition"
-                && metadata.Title == "Go To Definition"
-                && metadata.Description == "Finds source or metadata definitions for a resolved symbol."),
-            It.IsAny<IQueryToolHandler<GoToDefinitionRequest, DefinitionData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_ResolveSymbolHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var target = new GoToDefinitionTool();

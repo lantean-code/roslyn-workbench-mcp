@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Test;
 
 public sealed class ServerStatusServiceTests
 {
-    private readonly Mock<ICodeActionRuntime> _codeActionRuntime = new Mock<ICodeActionRuntime>();
+    private readonly Mock<ICodeActionProviderCatalog> _codeActionProviderCatalog = new Mock<ICodeActionProviderCatalog>();
     private readonly Mock<IMsBuildRegistrationService> _msBuildRegistrationService = new Mock<IMsBuildRegistrationService>();
     private readonly Mock<ICommitRecoveryStore> _recoveryStore = new Mock<ICommitRecoveryStore>();
 
@@ -19,9 +19,9 @@ public sealed class ServerStatusServiceTests
                 Version = "1.0.0",
                 Message = "MSBuildPath",
             });
-        _codeActionRuntime
+        _codeActionProviderCatalog
             .SetupGet(item => item.Status)
-            .Returns(new CodeActionRuntimeStatus
+            .Returns(new CodeActionProviderCatalogStatus
             {
                 IsAvailable = true,
             });
@@ -78,9 +78,9 @@ public sealed class ServerStatusServiceTests
     [Fact]
     public async Task GIVEN_UnavailableCodeActions_WHEN_GettingStatus_THEN_ShouldReturnDisablementDiagnostics()
     {
-        _codeActionRuntime
+        _codeActionProviderCatalog
             .SetupGet(item => item.Status)
-            .Returns(new CodeActionRuntimeStatus
+            .Returns(new CodeActionProviderCatalogStatus
             {
                 IsAvailable = false,
                 Message = "Code-action composition is unavailable.",
@@ -154,7 +154,7 @@ public sealed class ServerStatusServiceTests
             pluginSnapshot,
             codeActionSnapshot ?? new CodeActionCatalogSnapshot(),
             _msBuildRegistrationService.Object,
-            _codeActionRuntime.Object,
+            _codeActionProviderCatalog.Object,
             _recoveryStore.Object);
     }
 

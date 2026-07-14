@@ -13,7 +13,7 @@ internal sealed class ServerStatusTool : ServerOwnedToolBase<ServerStatusRequest
         IServerStatusService serverStatusService)
         : base(
             startupOptions: startupOptions,
-            name: "server-status",
+            name: ServerOwnedToolRegistration.ServerStatusName,
             title: "Server Status",
             description: "Returns server diagnostics without requiring a loaded workspace.",
             readOnly: true,

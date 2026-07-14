@@ -4,20 +4,9 @@ using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+[RoslynTool("get-code-context", "Get Code Context", "Returns a bounded code window with the enclosing semantic context for a selected location.")]
 internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextRequest, CodeContextData>
 {
-    private static readonly ToolRegistrationMetadata _metadata = new()
-    {
-        Name = "get-code-context",
-        Title = "Get Code Context",
-        Description = "Returns a bounded code window with the enclosing semantic context for a selected location.",
-    };
-
-    public static void Register(IPluginRegistry registry)
-    {
-        registry.RegisterQueryTool(_metadata, new GetCodeContextTool());
-    }
-
     protected override async ValueTask<PluginExecutionResult<CodeContextData>> ExecuteCoreAsync(GetCodeContextRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         var locationResolution = await ResolveLocationAsync(request.Location, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);

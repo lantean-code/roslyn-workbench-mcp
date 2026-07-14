@@ -2,24 +2,9 @@ using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Refactorings;
 
+[RoslynTool("sort-usings", "Sort Usings", "Stages an ordered set of using directives for one document.", Destructive = true)]
 internal sealed class SortUsingsTool : MutationToolHandler<SortUsingsRequest>
 {
-    private static readonly ToolRegistrationMetadata _metadata = new()
-    {
-        Name = "sort-usings",
-        Title = "Sort Usings",
-        Description = "Stages an ordered set of using directives for one document.",
-        Behavior = new ToolBehaviorHints
-        {
-            Destructive = true,
-        },
-    };
-
-    public static void Register(IPluginRegistry registry)
-    {
-        registry.RegisterMutationTool(_metadata, new SortUsingsTool());
-    }
-
     protected override async ValueTask<PluginExecutionResult<MutationCandidate>> ExecuteCoreAsync(SortUsingsRequest request, IMutationContext context, CancellationToken cancellationToken)
     {
         var documentResolution = context.ToolExecutionServices.RequestResolver.ResolveDocument<MutationCandidate>(request.Document, context);

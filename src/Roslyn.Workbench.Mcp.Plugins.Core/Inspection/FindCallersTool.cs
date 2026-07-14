@@ -4,20 +4,9 @@ using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+[RoslynTool("find-callers", "Find Callers", "Returns direct source call sites and containing symbols.")]
 internal sealed class FindCallersTool : QueryToolHandler<FindCallersRequest, CallerSearchData>
 {
-    private static readonly ToolRegistrationMetadata _metadata = new()
-    {
-        Name = "find-callers",
-        Title = "Find Callers",
-        Description = "Returns direct source call sites and containing symbols.",
-    };
-
-    public static void Register(IPluginRegistry registry)
-    {
-        registry.RegisterQueryTool(_metadata, new FindCallersTool());
-    }
-
     protected override async ValueTask<PluginExecutionResult<CallerSearchData>> ExecuteCoreAsync(FindCallersRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<CallerSearchData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);

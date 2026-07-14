@@ -13,7 +13,7 @@ internal sealed class TransactionPreviewTool : ServerOwnedToolBase<TransactionPr
         ITransactionService transactionService)
         : base(
             startupOptions: startupOptions,
-            name: "transaction-preview",
+            name: ServerOwnedToolRegistration.TransactionPreviewName,
             title: "Transaction Preview",
             description: "Previews the current staged transaction.",
             readOnly: true,

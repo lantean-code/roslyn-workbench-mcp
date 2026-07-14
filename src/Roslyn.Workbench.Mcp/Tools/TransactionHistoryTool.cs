@@ -13,7 +13,7 @@ internal sealed class TransactionHistoryTool : ServerOwnedToolBase<TransactionHi
         ITransactionService transactionService)
         : base(
             startupOptions: startupOptions,
-            name: "transaction-history",
+            name: ServerOwnedToolRegistration.TransactionHistoryName,
             title: "Transaction History",
             description: "Moves backward or forward through staged transaction history.",
             readOnly: false,

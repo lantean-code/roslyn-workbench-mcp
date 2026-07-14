@@ -39,10 +39,10 @@ public sealed class ServerStatusRecoveryIntegrationTests
                 {
                     IsAvailable = true,
                 });
-            var codeActionRuntime = new Mock<ICodeActionRuntime>();
-            codeActionRuntime
+            var codeActionProviderCatalog = new Mock<ICodeActionProviderCatalog>();
+            codeActionProviderCatalog
                 .SetupGet(item => item.Status)
-                .Returns(new CodeActionRuntimeStatus
+                .Returns(new CodeActionProviderCatalogStatus
                 {
                     IsAvailable = true,
                 });
@@ -51,7 +51,7 @@ public sealed class ServerStatusRecoveryIntegrationTests
                 new PluginCatalogSnapshot(),
                 new CodeActionCatalogSnapshot(),
                 msBuildRegistrationService.Object,
-                codeActionRuntime.Object,
+                codeActionProviderCatalog.Object,
                 recoveryStore);
             var tool = new ServerStatusTool(Options.Create(options), service);
 

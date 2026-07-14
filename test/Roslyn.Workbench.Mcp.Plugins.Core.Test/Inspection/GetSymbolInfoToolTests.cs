@@ -3,21 +3,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class GetSymbolInfoToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        GetSymbolInfoTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<GetSymbolInfoRequest, SymbolInfoData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "get-symbol-info"
-                && metadata.Title == "Get Symbol Info"
-                && metadata.Description == "Returns detailed metadata for a resolved symbol."),
-            It.IsAny<IQueryToolHandler<GetSymbolInfoRequest, SymbolInfoData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_ResolveSymbolHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var target = new GetSymbolInfoTool();

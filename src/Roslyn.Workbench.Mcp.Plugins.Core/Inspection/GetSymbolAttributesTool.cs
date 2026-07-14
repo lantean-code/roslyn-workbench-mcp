@@ -2,20 +2,9 @@ using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+[RoslynTool("get-symbol-attributes", "Get Symbol Attributes", "Returns declared and inherited attributes for a resolved symbol.")]
 internal sealed class GetSymbolAttributesTool : QueryToolHandler<GetSymbolAttributesRequest, SymbolAttributesData>
 {
-    private static readonly ToolRegistrationMetadata _metadata = new()
-    {
-        Name = "get-symbol-attributes",
-        Title = "Get Symbol Attributes",
-        Description = "Returns declared and inherited attributes for a resolved symbol.",
-    };
-
-    public static void Register(IPluginRegistry registry)
-    {
-        registry.RegisterQueryTool(_metadata, new GetSymbolAttributesTool());
-    }
-
     protected override async ValueTask<PluginExecutionResult<SymbolAttributesData>> ExecuteCoreAsync(GetSymbolAttributesRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<SymbolAttributesData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);

@@ -5,21 +5,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class FindOverloadsToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        FindOverloadsTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<FindOverloadsRequest, OverloadSearchData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "find-overloads"
-                && metadata.Title == "Find Overloads"
-                && metadata.Description == "Returns overload signatures for a resolved method or constructor."),
-            It.IsAny<IQueryToolHandler<FindOverloadsRequest, OverloadSearchData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_ResolveSymbolHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var target = new FindOverloadsTool();

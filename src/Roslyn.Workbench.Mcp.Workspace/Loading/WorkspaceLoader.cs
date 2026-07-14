@@ -4,14 +4,14 @@ namespace Roslyn.Workbench.Mcp.Workspace.Loading;
 
 internal sealed class WorkspaceLoader : IWorkspaceLoader
 {
-    private readonly HostServices? _workspaceHostServices;
+    private readonly IMsBuildWorkspaceFactory _workspaceFactory;
     private readonly IWorkspaceProjectCompatibilityInspector _compatibilityInspector;
 
     public WorkspaceLoader(
-        WorkspaceHostServicesAccessor workspaceHostServicesAccessor,
+        IMsBuildWorkspaceFactory workspaceFactory,
         IWorkspaceProjectCompatibilityInspector compatibilityInspector)
     {
-        _workspaceHostServices = workspaceHostServicesAccessor.WorkspaceHostServices;
+        _workspaceFactory = workspaceFactory;
         _compatibilityInspector = compatibilityInspector;
     }
 
@@ -52,9 +52,7 @@ internal sealed class WorkspaceLoader : IWorkspaceLoader
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var workspace = _workspaceHostServices is null
-            ? MSBuildWorkspace.Create()
-            : MSBuildWorkspace.Create(_workspaceHostServices);
+        var workspace = _workspaceFactory.Create();
         var diagnostics = new List<DiagnosticInfo>();
 
         workspace.RegisterWorkspaceFailedHandler(args =>

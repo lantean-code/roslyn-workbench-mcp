@@ -5,21 +5,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class GetOperationTreeToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        GetOperationTreeTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<GetOperationTreeRequest, OperationTreeData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "get-operation-tree"
-                && metadata.Title == "Get Operation Tree"
-                && metadata.Description == "Returns a projected IOperation tree for a selected region."),
-            It.IsAny<IQueryToolHandler<GetOperationTreeRequest, OperationTreeData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_ValidateSnapshotReturnsRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var target = new GetOperationTreeTool();

@@ -6,21 +6,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class GetCodeContextToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        GetCodeContextTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<GetCodeContextRequest, CodeContextData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "get-code-context"
-                && metadata.Title == "Get Code Context"
-                && metadata.Description == "Returns a bounded code window with the enclosing semantic context for a selected location."),
-            It.IsAny<IQueryToolHandler<GetCodeContextRequest, CodeContextData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_ValidateSnapshotReturnsConflict_WHEN_CallingExecuteAsync_THEN_ShouldReturnConflictResult()
     {
         var target = new GetCodeContextTool();

@@ -3,21 +3,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class GetCodeMetricsToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        GetCodeMetricsTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<GetCodeMetricsRequest, CodeMetricsData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "get-code-metrics"
-                && metadata.Title == "Get Code Metrics"
-                && metadata.Description == "Returns projected code metrics for a scope or symbol."),
-            It.IsAny<IQueryToolHandler<GetCodeMetricsRequest, CodeMetricsData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_ResolveSymbolHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var target = new GetCodeMetricsTool();

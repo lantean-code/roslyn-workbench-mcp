@@ -13,7 +13,7 @@ internal sealed class WorkspaceCloseTool : ServerOwnedToolBase<WorkspaceCloseReq
         IWorkspaceLifecycleService workspaceLifecycleService)
         : base(
             startupOptions: startupOptions,
-            name: "workspace-close",
+            name: ServerOwnedToolRegistration.WorkspaceCloseName,
             title: "Workspace Close",
             description: "Closes the selected workspace.",
             readOnly: false,

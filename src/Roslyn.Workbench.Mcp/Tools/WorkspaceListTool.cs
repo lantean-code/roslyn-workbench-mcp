@@ -13,7 +13,7 @@ internal sealed class WorkspaceListTool : ServerOwnedToolBase<WorkspaceListReque
         IWorkspaceLifecycleService workspaceLifecycleService)
         : base(
             startupOptions: startupOptions,
-            name: "workspace-list",
+            name: ServerOwnedToolRegistration.WorkspaceListName,
             title: "Workspace List",
             description: "Lists the currently loaded workspaces.",
             readOnly: true,

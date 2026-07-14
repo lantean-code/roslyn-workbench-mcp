@@ -5,21 +5,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class FindOverridesToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        FindOverridesTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<FindOverridesRequest, OverrideSearchData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "find-overrides"
-                && metadata.Title == "Find Overrides"
-                && metadata.Description == "Finds overrides of a virtual or abstract member."),
-            It.IsAny<IQueryToolHandler<FindOverridesRequest, OverrideSearchData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_ResolveSymbolHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var target = new FindOverridesTool();

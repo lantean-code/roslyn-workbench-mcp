@@ -3,21 +3,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class FindDependencyCyclesToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        FindDependencyCyclesTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<FindDependencyCyclesRequest, DependencyCyclesData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "find-dependency-cycles"
-                && metadata.Title == "Find Dependency Cycles"
-                && metadata.Description == "Returns detected dependency cycles for the selected scope and granularity."),
-            It.IsAny<IQueryToolHandler<FindDependencyCyclesRequest, DependencyCyclesData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_GranularityIsUnsupported_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequestResult()
     {
         var target = new FindDependencyCyclesTool();

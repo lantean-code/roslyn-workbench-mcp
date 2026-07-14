@@ -5,21 +5,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class ResolveSymbolToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        ResolveSymbolTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<ResolveSymbolRequest, ResolveSymbolData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "resolve-symbol"
-                && metadata.Title == "Resolve Symbol"
-                && metadata.Description == "Resolves the symbol at a location or selection and returns its canonical selector."),
-            It.IsAny<IQueryToolHandler<ResolveSymbolRequest, ResolveSymbolData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_SnapshotValidationHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var target = new ResolveSymbolTool();

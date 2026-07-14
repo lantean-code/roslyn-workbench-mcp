@@ -1,28 +1,14 @@
-using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 using Roslyn.Workbench.Mcp.Plugins;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.PluginFixtures;
 
+[RoslynPlugin("test.valid.query", "Valid Query Test Plugin", PluginApiVersions.V1)]
 public sealed class ValidQueryTestPlugin : IRoslynPlugin
 {
-    public PluginMetadata Metadata => new()
+    public void Configure(IPluginConfiguration configuration)
     {
-        PluginId = "test.valid.query",
-        DisplayName = "Valid Query Test Plugin",
-        Version = "1.0.0",
-        SupportedApiVersion = PluginApiVersions.V1,
-    };
-
-    public void Register(IPluginRegistry registry)
-    {
-        registry.RegisterQueryTool(
-            new ToolRegistrationMetadata
-            {
-                Name = "test-valid-query",
-                Title = "Test Valid Query",
-                Description = "Returns a predictable payload for startup tests.",
-            },
-            new Handler());
+        _ = configuration.AddQueryTool<Handler>();
     }
 
     public sealed record Request : WorkspaceBoundRequest
@@ -35,6 +21,7 @@ public sealed class ValidQueryTestPlugin : IRoslynPlugin
         public string Value { get; init; } = string.Empty;
     }
 
+    [RoslynTool("test-valid-query", "Test Valid Query", "Returns a predictable payload for startup tests.")]
     private sealed class Handler : IQueryToolHandler<Request, Response>
     {
         public ValueTask<PluginExecutionResult<Response>> ExecuteAsync(Request request, IQueryContext context, CancellationToken cancellationToken)

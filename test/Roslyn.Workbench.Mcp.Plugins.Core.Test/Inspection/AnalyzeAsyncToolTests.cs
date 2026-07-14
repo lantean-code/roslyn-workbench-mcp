@@ -5,21 +5,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class AnalyzeAsyncToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        AnalyzeAsyncTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<AnalyzeAsyncRequest, AsyncAnalysisData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "analyze-async"
-                && metadata.Title == "Analyze Async"
-                && metadata.Description == "Returns supported async antipattern findings for a selected scope."),
-            It.IsAny<IQueryToolHandler<AnalyzeAsyncRequest, AsyncAnalysisData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_ResolveDocumentsHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var target = new AnalyzeAsyncTool();

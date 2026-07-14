@@ -6,20 +6,9 @@ using ContractReferenceLocation = Roslyn.Workbench.Mcp.Plugins.Core.Contracts.In
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+[RoslynTool("get-change-impact", "Get Change Impact", "Returns a bounded impact summary and supporting source locations for a symbol change.")]
 internal sealed class GetChangeImpactTool : QueryToolHandler<GetChangeImpactRequest, ChangeImpactData>
 {
-    private static readonly ToolRegistrationMetadata _metadata = new()
-    {
-        Name = "get-change-impact",
-        Title = "Get Change Impact",
-        Description = "Returns a bounded impact summary and supporting source locations for a symbol change.",
-    };
-
-    public static void Register(IPluginRegistry registry)
-    {
-        registry.RegisterQueryTool(_metadata, new GetChangeImpactTool());
-    }
-
     protected override async ValueTask<PluginExecutionResult<ChangeImpactData>> ExecuteCoreAsync(GetChangeImpactRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
 

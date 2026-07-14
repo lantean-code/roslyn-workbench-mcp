@@ -13,7 +13,7 @@ public sealed class SelectorAndSnapshotIntegrationTests
         {
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
-        var registry = BundledPluginRegistryFactory.CreateRegistry();
+        var registry = BundledPluginCatalogueFactory.CreateCatalogue();
 
         var result = await PluginToolTestHarness.InvokeAsync<ResolveSymbolData>(coordinator, registry, "resolve-symbol", new Dictionary<string, JsonElement>
         {
@@ -47,7 +47,7 @@ public sealed class SelectorAndSnapshotIntegrationTests
         {
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
-        var registry = BundledPluginRegistryFactory.CreateRegistry();
+        var registry = BundledPluginCatalogueFactory.CreateCatalogue();
 
         var result = await PluginToolTestHarness.InvokeAsync<ResolveSymbolData>(coordinator, registry, "resolve-symbol", new Dictionary<string, JsonElement>
         {
@@ -71,7 +71,7 @@ public sealed class SelectorAndSnapshotIntegrationTests
         {
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
-        var registry = BundledPluginRegistryFactory.CreateRegistry();
+        var registry = BundledPluginCatalogueFactory.CreateCatalogue();
 
         var resolved = await PluginToolTestHarness.InvokeAsync<ResolveSymbolData>(coordinator, registry, "resolve-symbol", new Dictionary<string, JsonElement>
         {

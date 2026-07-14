@@ -9,6 +9,8 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="ModelContextProtocol" />
+    <PackageReference Include="NuGet.Versioning" />
+    <PackageReference Include="System.Composition" />
   </ItemGroup>
 
   <ItemGroup>

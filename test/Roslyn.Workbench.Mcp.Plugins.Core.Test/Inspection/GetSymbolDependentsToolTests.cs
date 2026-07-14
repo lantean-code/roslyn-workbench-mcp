@@ -3,21 +3,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class GetSymbolDependentsToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        GetSymbolDependentsTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<GetSymbolDependentsRequest, SymbolDependentsData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "get-symbol-dependents"
-                && metadata.Title == "Get Symbol Dependents"
-                && metadata.Description == "Returns symbols that directly depend on a resolved symbol."),
-            It.IsAny<IQueryToolHandler<GetSymbolDependentsRequest, SymbolDependentsData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_ResolveSymbolHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var target = new GetSymbolDependentsTool();

@@ -13,7 +13,7 @@ internal sealed class WorkspaceReloadTool : ServerOwnedToolBase<WorkspaceReloadR
         IWorkspaceLifecycleService workspaceLifecycleService)
         : base(
             startupOptions: startupOptions,
-            name: "workspace-reload",
+            name: ServerOwnedToolRegistration.WorkspaceReloadName,
             title: "Workspace Reload",
             description: "Reloads the selected workspace when it is out of date.",
             readOnly: false,

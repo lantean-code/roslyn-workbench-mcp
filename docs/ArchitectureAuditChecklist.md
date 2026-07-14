@@ -92,21 +92,24 @@ The former production Contracts project has been removed. Contracts now live wit
   Notes:
   - Workspace exposes only workspace-owned contexts, failures, mutation candidates and staging results.
 
-- [x] Rework code action runtime composition into a cleaner service boundary.
+- [x] Rework Code Action provider composition into a container-validatable catalogue boundary.
   Files:
-  - `src/Roslyn.Workbench.Mcp.Workspace/CodeActionRuntime.cs`
-  - `src/Roslyn.Workbench.Mcp.Workspace/CodeActionRuntimeComposer.cs`
+  - `src/Roslyn.Workbench.Mcp.CodeActions/Composition/MefCodeActionProviderCatalog.cs`
+  - `src/Roslyn.Workbench.Mcp/HostConfiguredMsBuildWorkspaceFactory.cs`
   Notes:
-  - Code Actions now owns its runtime, contexts, catalogue and result mapping and no longer participates in plugin discovery.
+  - Code Actions owns an immutable MEF provider catalogue; Host bridges its optional Roslyn host services into Workspace creation through constructor-injected services.
 
 ### Host
 
-- [ ] Review plugin loading so it is less dependent on manual activation.
+- [x] Replace manual plugin activation and loose-DLL discovery with validated MEF package composition.
   Files:
   - `src/Roslyn.Workbench.Mcp/PluginCatalogLoader.cs`
   Notes:
-  - `Activator.CreateInstance` bypasses normal DI and lifetime management.
-  - This may be acceptable by design, but it is a deliberate trade-off that stands out.
+  - Host reads `RoslynPluginAttribute` and informational-version PE metadata before loading external code.
+  - Each immediate package directory has one marked entry assembly and one non-collectible `AssemblyLoadContext` with package-local dependency resolution.
+  - Plugins.Core uses the same MEF configuration and materialisation pipeline in the default load context.
+  - Handler contracts and lifecycle rules are inspected before constructors run; closed generic registrations retain reflection-free typed invocation.
+  - Reserved, bundled and external collision outcomes are deterministic and do not depend on filesystem order.
 
 ## P3: Lower Priority
 
@@ -183,7 +186,7 @@ The plugin and host work should follow after the central workspace boundaries ar
 - [x] 1. Split `MefCodeActionService`.
 - [x] 2. Tighten `WorkspaceSelectionResult` into a stricter result shape.
 - [x] 3. Remove remaining plugin result leakage from workspace internals.
-- [x] 4. Rework `CodeActionRuntime` composition into a cleaner service boundary.
+- [x] 4. Replace `CodeActionRuntime` composition with a directly registered provider catalogue.
 - [ ] 5. Sweep remaining workspace null-forgiving and invariant-by-convention cases.
 
 ### Phase 2: Plugin Boundary

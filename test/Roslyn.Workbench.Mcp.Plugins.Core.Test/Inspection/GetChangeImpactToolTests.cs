@@ -6,21 +6,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class GetChangeImpactToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        GetChangeImpactTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<GetChangeImpactRequest, ChangeImpactData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "get-change-impact"
-                && metadata.Title == "Get Change Impact"
-                && metadata.Description == "Returns a bounded impact summary and supporting source locations for a symbol change."),
-            It.IsAny<IQueryToolHandler<GetChangeImpactRequest, ChangeImpactData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_ResolveSymbolHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var target = new GetChangeImpactTool();

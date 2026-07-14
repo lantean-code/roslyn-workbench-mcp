@@ -1,20 +1,9 @@
 using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+[RoslynTool("get-dependency-graph", "Get Dependency Graph", "Returns a bounded dependency graph for the selected scope and granularity.")]
 internal sealed class GetDependencyGraphTool : QueryToolHandler<GetDependencyGraphRequest, DependencyGraphData>
 {
-    private static readonly ToolRegistrationMetadata _metadata = new()
-    {
-        Name = "get-dependency-graph",
-        Title = "Get Dependency Graph",
-        Description = "Returns a bounded dependency graph for the selected scope and granularity.",
-    };
-
-    public static void Register(IPluginRegistry registry)
-    {
-        registry.RegisterQueryTool(_metadata, new GetDependencyGraphTool());
-    }
-
     protected override async ValueTask<PluginExecutionResult<DependencyGraphData>> ExecuteCoreAsync(GetDependencyGraphRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         if (!context.ToolExecutionServices.DependencyAnalysisService.IsSupportedGraphGranularity(request.Granularity))

@@ -3,22 +3,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Refactorings;
 public sealed class FormatDocumentToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        FormatDocumentTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterMutationTool<FormatDocumentRequest>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "format-document"
-                && metadata.Title == "Format Document"
-                && metadata.Description == "Stages Roslyn formatting for one document or one selected range."
-                && metadata.Behavior.Destructive),
-            It.IsAny<IMutationToolHandler<FormatDocumentRequest>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_ResolveDocumentHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var expected = PluginExecutionResult<MutationCandidate>.Rejected(new PluginExecutionError

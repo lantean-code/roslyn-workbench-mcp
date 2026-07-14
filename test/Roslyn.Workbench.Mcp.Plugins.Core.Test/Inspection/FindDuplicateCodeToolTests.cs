@@ -6,21 +6,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class FindDuplicateCodeToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        FindDuplicateCodeTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<FindDuplicateCodeRequest, DuplicateCodeData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "find-duplicate-code"
-                && metadata.Title == "Find Duplicate Code"
-                && metadata.Description == "Returns duplicate executable blocks that normalize to the same statement sequence."),
-            It.IsAny<IQueryToolHandler<FindDuplicateCodeRequest, DuplicateCodeData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_MinimumStatementsIsLessThanOne_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequestResult()
     {
         var target = new FindDuplicateCodeTool();

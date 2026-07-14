@@ -1,28 +1,14 @@
-using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 using Roslyn.Workbench.Mcp.Plugins;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.PluginFixtures;
 
+[RoslynPlugin("test.unsupported.api", "Unsupported API Test Plugin", "9.9")]
 public sealed class UnsupportedApiVersionTestPlugin : IRoslynPlugin
 {
-    public PluginMetadata Metadata => new()
+    public void Configure(IPluginConfiguration configuration)
     {
-        PluginId = "test.unsupported.api",
-        DisplayName = "Unsupported API Test Plugin",
-        Version = "1.0.0",
-        SupportedApiVersion = "9.9",
-    };
-
-    public void Register(IPluginRegistry registry)
-    {
-        registry.RegisterQueryTool(
-            new ToolRegistrationMetadata
-            {
-                Name = "test-unsupported-api",
-                Title = "Unsupported API",
-                Description = "Should never register.",
-            },
-            new Handler());
+        _ = configuration.AddQueryTool<Handler>();
     }
 
     public sealed record Request : WorkspaceBoundRequest
@@ -35,6 +21,7 @@ public sealed class UnsupportedApiVersionTestPlugin : IRoslynPlugin
         public string Value { get; init; } = string.Empty;
     }
 
+    [RoslynTool("test-unsupported-api", "Unsupported API", "Should never register.")]
     private sealed class Handler : IQueryToolHandler<Request, Response>
     {
         public ValueTask<PluginExecutionResult<Response>> ExecuteAsync(Request request, IQueryContext context, CancellationToken cancellationToken)

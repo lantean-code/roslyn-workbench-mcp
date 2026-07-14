@@ -2,20 +2,9 @@ using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+[RoslynTool("analyze-async", "Analyze Async", "Returns supported async antipattern findings for a selected scope.")]
 internal sealed class AnalyzeAsyncTool : QueryToolHandler<AnalyzeAsyncRequest, AsyncAnalysisData>
 {
-    private static readonly ToolRegistrationMetadata _metadata = new()
-    {
-        Name = "analyze-async",
-        Title = "Analyze Async",
-        Description = "Returns supported async antipattern findings for a selected scope.",
-    };
-
-    public static void Register(IPluginRegistry registry)
-    {
-        registry.RegisterQueryTool(_metadata, new AnalyzeAsyncTool());
-    }
-
     protected override async ValueTask<PluginExecutionResult<AsyncAnalysisData>> ExecuteCoreAsync(AnalyzeAsyncRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
 

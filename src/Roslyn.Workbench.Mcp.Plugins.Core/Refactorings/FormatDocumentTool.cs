@@ -2,24 +2,9 @@ using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Refactorings;
 
+[RoslynTool("format-document", "Format Document", "Stages Roslyn formatting for one document or one selected range.", Destructive = true)]
 internal sealed class FormatDocumentTool : MutationToolHandler<FormatDocumentRequest>
 {
-    private static readonly ToolRegistrationMetadata _metadata = new()
-    {
-        Name = "format-document",
-        Title = "Format Document",
-        Description = "Stages Roslyn formatting for one document or one selected range.",
-        Behavior = new ToolBehaviorHints
-        {
-            Destructive = true,
-        },
-    };
-
-    public static void Register(IPluginRegistry registry)
-    {
-        registry.RegisterMutationTool(_metadata, new FormatDocumentTool());
-    }
-
     protected override ValueTask<PluginExecutionResult<MutationCandidate>> ExecuteCoreAsync(FormatDocumentRequest request, IMutationContext context, CancellationToken cancellationToken)
     {
         return ExecuteFormatDocumentAsync(request, context, cancellationToken);

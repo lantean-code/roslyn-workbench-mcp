@@ -6,13 +6,8 @@ namespace Roslyn.Workbench.Mcp.Plugins;
 public interface IRoslynPlugin
 {
     /// <summary>
-    /// Gets the stable metadata describing the plugin.
+    /// Configures the tools supplied by the plugin.
     /// </summary>
-    PluginMetadata Metadata { get; }
-
-    /// <summary>
-    /// Registers the plugin's query and mutation tools.
-    /// </summary>
-    /// <param name="registry">The registry that records tool descriptors and handlers.</param>
-    void Register(IPluginRegistry registry);
+    /// <param name="configuration">The startup-only plugin configuration.</param>
+    void Configure(IPluginConfiguration configuration);
 }

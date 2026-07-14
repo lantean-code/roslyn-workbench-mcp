@@ -4,20 +4,9 @@ using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+[RoslynTool("find-callees", "Find Callees", "Returns symbols directly invoked by a method or selected executable body.")]
 internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, CalleeSearchData>
 {
-    private static readonly ToolRegistrationMetadata _metadata = new()
-    {
-        Name = "find-callees",
-        Title = "Find Callees",
-        Description = "Returns symbols directly invoked by a method or selected executable body.",
-    };
-
-    public static void Register(IPluginRegistry registry)
-    {
-        registry.RegisterQueryTool(_metadata, new FindCalleesTool());
-    }
-
     protected override async ValueTask<PluginExecutionResult<CalleeSearchData>> ExecuteCoreAsync(FindCalleesRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         if (request.Symbol is null == request.Location is null)

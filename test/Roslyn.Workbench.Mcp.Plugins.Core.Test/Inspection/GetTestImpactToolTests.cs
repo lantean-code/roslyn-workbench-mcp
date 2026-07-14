@@ -3,21 +3,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class GetTestImpactToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        GetTestImpactTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<GetTestImpactRequest, TestImpactData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "get-test-impact"
-                && metadata.Title == "Get Test Impact"
-                && metadata.Description == "Returns likely impacted tests for a resolved symbol."),
-            It.IsAny<IQueryToolHandler<GetTestImpactRequest, TestImpactData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_ResolveSymbolHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var target = new GetTestImpactTool();

@@ -23,6 +23,7 @@
     <Project Path="test/Roslyn.Workbench.Mcp.PluginFixtures/Roslyn.Workbench.Mcp.HostMutationPluginFixture.csproj" />
     <Project Path="test/Roslyn.Workbench.Mcp.PluginFixtures/Roslyn.Workbench.Mcp.HostQueryPluginFixture.csproj" />
     <Project Path="test/Roslyn.Workbench.Mcp.PluginFixtures/Roslyn.Workbench.Mcp.InvalidPluginFixture.csproj" />
+    <Project Path="test/Roslyn.Workbench.Mcp.PluginFixtures/Roslyn.Workbench.Mcp.ThrowingPluginFixture.csproj" />
     <Project Path="test/Roslyn.Workbench.Mcp.Plugins.Core.IntegrationTest/Roslyn.Workbench.Mcp.Plugins.Core.IntegrationTest.csproj" />
     <Project Path="test/Roslyn.Workbench.Mcp.Plugins.Core.Test/Roslyn.Workbench.Mcp.Plugins.Core.Test.csproj" />
     <Project Path="test/Roslyn.Workbench.Mcp.Plugins.Test/Roslyn.Workbench.Mcp.Plugins.Test.csproj" />

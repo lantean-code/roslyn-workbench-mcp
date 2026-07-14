@@ -6,20 +6,9 @@ using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+[RoslynTool("get-diagnostics", "Get Diagnostics", "Returns compiler and analyzer diagnostics for a selected scope.")]
 internal sealed class GetDiagnosticsTool : QueryToolHandler<GetDiagnosticsRequest, DiagnosticsData>
 {
-    private static readonly ToolRegistrationMetadata _metadata = new()
-    {
-        Name = "get-diagnostics",
-        Title = "Get Diagnostics",
-        Description = "Returns compiler and analyzer diagnostics for a selected scope.",
-    };
-
-    public static void Register(IPluginRegistry registry)
-    {
-        registry.RegisterQueryTool(_metadata, new GetDiagnosticsTool());
-    }
-
     protected override async ValueTask<PluginExecutionResult<DiagnosticsData>> ExecuteCoreAsync(GetDiagnosticsRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         var documents = context.ToolExecutionServices.RequestResolver.ResolveDocuments<DiagnosticsData>(request.Scope, context);

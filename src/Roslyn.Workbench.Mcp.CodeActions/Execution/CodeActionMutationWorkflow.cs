@@ -2,7 +2,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Execution;
 
 internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
 {
-    private readonly ICodeActionRuntime _runtime;
+    private readonly ICodeActionProviderCatalog _providerCatalog;
     private readonly ICodeActionDiscoveryService _discoveryService;
     private readonly ICodeActionResolutionService _resolutionService;
     private readonly ICodeActionOperationService _operationService;
@@ -11,7 +11,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
     private readonly ICodeActionTokenService _tokenService;
 
     public CodeActionMutationWorkflow(
-        ICodeActionRuntime runtime,
+        ICodeActionProviderCatalog providerCatalog,
         ICodeActionDiscoveryService discoveryService,
         ICodeActionResolutionService resolutionService,
         ICodeActionOperationService operationService,
@@ -19,7 +19,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
         ICodeActionDescriptorRegistry descriptorRegistry,
         ICodeActionTokenService tokenService)
     {
-        _runtime = runtime;
+        _providerCatalog = providerCatalog;
         _discoveryService = discoveryService;
         _resolutionService = resolutionService;
         _operationService = operationService;
@@ -1134,7 +1134,7 @@ internal sealed class CodeActionMutationWorkflow : ICodeActionMutationWorkflow
 
     private CodeActionExecutionResult<WorkspaceMutationCandidate>? RejectedIfUnavailable()
     {
-        return _runtime.Status.IsAvailable
+        return _providerCatalog.Status.IsAvailable
             ? null
             : Rejected<WorkspaceMutationCandidate>("CodeActionsUnavailable", "Code-action composition is unavailable.");
     }

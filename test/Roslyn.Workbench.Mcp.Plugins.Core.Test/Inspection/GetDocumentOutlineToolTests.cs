@@ -3,21 +3,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class GetDocumentOutlineToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        GetDocumentOutlineTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<GetDocumentOutlineRequest, DocumentOutlineData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "get-document-outline"
-                && metadata.Title == "Get Document Outline"
-                && metadata.Description == "Returns a semantic outline for one document."),
-            It.IsAny<IQueryToolHandler<GetDocumentOutlineRequest, DocumentOutlineData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_ResolveDocumentHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var target = new GetDocumentOutlineTool();

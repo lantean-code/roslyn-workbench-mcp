@@ -2,20 +2,9 @@ using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
+[RoslynTool("get-symbol-dependencies", "Get Symbol Dependencies", "Returns the direct symbols used by a resolved symbol.")]
 internal sealed class GetSymbolDependenciesTool : QueryToolHandler<GetSymbolDependenciesRequest, SymbolDependenciesData>
 {
-    private static readonly ToolRegistrationMetadata _metadata = new()
-    {
-        Name = "get-symbol-dependencies",
-        Title = "Get Symbol Dependencies",
-        Description = "Returns the direct symbols used by a resolved symbol.",
-    };
-
-    public static void Register(IPluginRegistry registry)
-    {
-        registry.RegisterQueryTool(_metadata, new GetSymbolDependenciesTool());
-    }
-
     protected override async ValueTask<PluginExecutionResult<SymbolDependenciesData>> ExecuteCoreAsync(GetSymbolDependenciesRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
 

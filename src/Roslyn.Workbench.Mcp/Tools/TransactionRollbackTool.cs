@@ -13,7 +13,7 @@ internal sealed class TransactionRollbackTool : ServerOwnedToolBase<TransactionR
         ITransactionService transactionService)
         : base(
             startupOptions: startupOptions,
-            name: "transaction-rollback",
+            name: ServerOwnedToolRegistration.TransactionRollbackName,
             title: "Transaction Rollback",
             description: "Rolls back the current staged transaction.",
             readOnly: false,

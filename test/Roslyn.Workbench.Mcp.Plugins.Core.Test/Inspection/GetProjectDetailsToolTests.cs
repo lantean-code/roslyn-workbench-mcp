@@ -5,21 +5,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class GetProjectDetailsToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        GetProjectDetailsTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<GetProjectDetailsRequest, ProjectDetailsData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "get-project-details"
-                && metadata.Title == "Get Project Details"
-                && metadata.Description == "Returns project metadata, options and selected document details."),
-            It.IsAny<IQueryToolHandler<GetProjectDetailsRequest, ProjectDetailsData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_ResolveProjectHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var target = new GetProjectDetailsTool();

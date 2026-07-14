@@ -61,7 +61,7 @@ Integration tests prove behaviour that requires real boundaries, including:
 - MSBuild and filesystem-backed workspace loading
 - Workspace lifecycle, selection and transaction persistence
 - real Roslyn cross-project and semantic behaviour
-- plugin assembly discovery
+- plugin package enumeration, PE-metadata discovery, MEF composition and load-context routing
 - Host dependency-injection and MCP composition
 - MCP binding and result publication across an execution path
 - controlled Code Action provider discovery and staging
@@ -99,6 +99,8 @@ Architecture assertions should be behavioural or project-reference based whereve
 - staging remains on the mutation lease, not the handler context
 - duplicate internal Code Action names fail catalogue construction
 - plugins colliding with reserved Code Action or existing plugin names are disabled with diagnostics
+- external packages with duplicate plugin IDs or shared tool names are all disabled deterministically
+- Plugins.Core follows the same MEF configuration and materialisation path while remaining in the default load context
 - Host composes all four adapter families
 - `server-status` excludes CodeActions from plugin status
 
@@ -132,4 +134,3 @@ dotnet test --filter "Category!=Integration&Category!=Audit" --artifacts-path=/t
 Run the affected integration project after changes to a real boundary. Run the Code Action audit when Roslyn dependencies, provider classification, replay behaviour or Code Action discovery changes. Run the full suite before completion of behaviour-affecting work.
 
 Documentation-only changes do not require restore, build or test execution.
-

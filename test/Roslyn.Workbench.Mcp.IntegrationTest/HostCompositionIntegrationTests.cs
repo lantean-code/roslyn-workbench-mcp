@@ -25,7 +25,7 @@ public sealed class HostCompositionIntegrationTests
         using var host = builder.Build();
         var startupOptions = host.Services.GetRequiredService<IOptions<StartupOptions>>().Value;
         var workspaceOptions = host.Services.GetRequiredService<IOptions<WorkspaceCoordinatorOptions>>().Value;
-        var codeActionOptions = host.Services.GetRequiredService<IOptions<CodeActionRuntimeOptions>>().Value;
+        var codeActionOptions = host.Services.GetRequiredService<IOptions<CodeActionExecutionOptions>>().Value;
 
         startupOptions.DefaultMaxResults.Should().Be(123);
         startupOptions.MaxConcurrentQueries.Should().Be(7);
@@ -47,6 +47,11 @@ public sealed class HostCompositionIntegrationTests
 
         builder.AddRoslynWorkbench([]);
 
+        var codeActionProviderCatalogRegistration = builder.Services.Single(
+            static descriptor => descriptor.ServiceType == typeof(ICodeActionProviderCatalog));
+        var workspaceFactoryRegistration = builder.Services.Single(
+            static descriptor => descriptor.ServiceType == typeof(IMsBuildWorkspaceFactory));
+
         using var host = builder.Build();
         var pluginCatalogSnapshot = host.Services.GetRequiredService<PluginCatalogSnapshot>();
         var codeActionCatalogSnapshot = host.Services.GetRequiredService<CodeActionCatalogSnapshot>();
@@ -54,10 +59,14 @@ public sealed class HostCompositionIntegrationTests
 
         host.Services.GetRequiredService<IMsBuildRegistrationService>().Should().NotBeNull();
         host.Services.GetRequiredService<IToolExecutionServices>().Should().NotBeNull();
-        host.Services.GetRequiredService<CodeActionRuntime>().Should().NotBeNull();
-        host.Services.GetRequiredService<IToolExecutionContextFactory>().Should().NotBeNull();
+        host.Services.GetRequiredService<ICodeActionProviderCatalog>().Should().BeOfType<MefCodeActionProviderCatalog>();
+        host.Services.GetRequiredService<IMsBuildWorkspaceFactory>().Should().BeOfType<HostConfiguredMsBuildWorkspaceFactory>();
+        host.Services.GetRequiredService<IToolExecutionContextFactory>().Should().BeOfType<PluginExecutionContextFactory>();
+        host.Services.GetRequiredService<ICodeActionExecutionContextFactory>().Should().BeOfType<CodeActionExecutionContextFactory>();
         host.Services.GetRequiredService<McpServer>().Should().NotBeNull();
         host.Services.GetRequiredService<ICommitRecoveryStore>().Should().NotBeNull();
+        codeActionProviderCatalogRegistration.ImplementationType.Should().Be(typeof(MefCodeActionProviderCatalog));
+        workspaceFactoryRegistration.ImplementationType.Should().Be(typeof(HostConfiguredMsBuildWorkspaceFactory));
 
         mcpTools.Should().HaveCount(pluginCatalogSnapshot.Tools.Count + codeActionCatalogSnapshot.Tools.Count + 11);
         mcpTools.Select(static tool => tool.ProtocolTool.Name).Should().Contain(

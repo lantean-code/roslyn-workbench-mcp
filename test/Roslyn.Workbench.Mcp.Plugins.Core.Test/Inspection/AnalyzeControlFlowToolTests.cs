@@ -6,21 +6,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class AnalyzeControlFlowToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        AnalyzeControlFlowTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<AnalyzeControlFlowRequest, ControlFlowAnalysisData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "analyze-control-flow"
-                && metadata.Title == "Analyze Control Flow"
-                && metadata.Description == "Analyzes control flow for a selected executable region."),
-            It.IsAny<IQueryToolHandler<AnalyzeControlFlowRequest, ControlFlowAnalysisData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_ValidateSnapshotReturnsConflict_WHEN_CallingExecuteAsync_THEN_ShouldReturnConflictResult()
     {
         var target = new AnalyzeControlFlowTool();

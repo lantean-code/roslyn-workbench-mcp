@@ -3,22 +3,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Refactorings;
 public sealed class SortUsingsToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        SortUsingsTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterMutationTool<SortUsingsRequest>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "sort-usings"
-                && metadata.Title == "Sort Usings"
-                && metadata.Description == "Stages an ordered set of using directives for one document."
-                && metadata.Behavior.Destructive),
-            It.IsAny<IMutationToolHandler<SortUsingsRequest>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_ResolveDocumentHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var expected = PluginExecutionResult<MutationCandidate>.Rejected(new PluginExecutionError

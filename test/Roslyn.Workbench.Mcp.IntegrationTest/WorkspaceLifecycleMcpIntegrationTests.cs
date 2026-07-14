@@ -58,7 +58,7 @@ public sealed class WorkspaceLifecycleMcpIntegrationTests
         var historyTool = new TransactionHistoryTool(startupOptions, runtime.TransactionService);
         var commitTool = new TransactionCommitTool(startupOptions, runtime.TransactionService);
         var rollbackTool = new TransactionRollbackTool(startupOptions, runtime.TransactionService);
-        var registry = BundledPluginRegistryFactory.CreateRegistry();
+        var registry = BundledPluginCatalogueFactory.CreateCatalogue();
 
         var start = await McpIntegrationTestHost.InvokeServerToolAsync(startTool, "transaction-start", new Dictionary<string, JsonElement>());
         var rename = await McpIntegrationTestHost.InvokePluginToolAsync<MutationData>(runtime, registry, "rename-symbol", new Dictionary<string, JsonElement>

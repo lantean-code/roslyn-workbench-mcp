@@ -3,21 +3,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class GetTypeHierarchyToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        GetTypeHierarchyTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<GetTypeHierarchyRequest, TypeHierarchyData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "get-type-hierarchy"
-                && metadata.Title == "Get Type Hierarchy"
-                && metadata.Description == "Returns base, interface, and optional derived type relationships for a resolved type."),
-            It.IsAny<IQueryToolHandler<GetTypeHierarchyRequest, TypeHierarchyData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_ResolveSymbolHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var target = new GetTypeHierarchyTool();

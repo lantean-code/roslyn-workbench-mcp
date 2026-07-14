@@ -85,7 +85,7 @@ so its single guard remains.
 All 10 guards are internal catalogue, handler, composition, mapping or
 resolution checks. Remove them from registrations, base handlers,
 `CodeActionToolRegistry`, `CodeActionWorkspaceResultMapper`,
-`CodeActionRuntimeComposer` and `CodeActionDescriptorRegistry`.
+`MefCodeActionProviderCatalog` and `CodeActionDescriptorRegistry`.
 
 ### Plugins
 

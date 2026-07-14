@@ -1,28 +1,16 @@
-using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
+using System.Reflection;
+using NuGet.Versioning;
 using Roslyn.Workbench.Mcp.Plugins;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.TestSupport;
 
+[RoslynPlugin("host.valid.query", "Host Valid Query Plugin", PluginApiVersions.V1)]
 public sealed class HostValidQueryPlugin : IRoslynPlugin
 {
-    public PluginMetadata Metadata => new()
+    public void Configure(IPluginConfiguration configuration)
     {
-        PluginId = "host.valid.query",
-        DisplayName = "Host Valid Query Plugin",
-        Version = "1.0.0",
-        SupportedApiVersion = PluginApiVersions.V1,
-    };
-
-    public void Register(IPluginRegistry registry)
-    {
-        registry.RegisterQueryTool(
-            new ToolRegistrationMetadata
-            {
-                Name = "host-valid-query",
-                Title = "Host Valid Query",
-                Description = "Returns a stable host test payload.",
-            },
-            new Handler());
+        _ = configuration.AddQueryTool<Handler>();
     }
 
     public sealed record Request : WorkspaceBoundRequest
@@ -33,8 +21,11 @@ public sealed class HostValidQueryPlugin : IRoslynPlugin
     public sealed record Response
     {
         public string Value { get; init; } = string.Empty;
+
+        public string PrivateDependencyVersion { get; init; } = string.Empty;
     }
 
+    [RoslynTool("host-valid-query", "Host Valid Query", "Returns a stable host test payload.")]
     private sealed class Handler : IQueryToolHandler<Request, Response>
     {
         public ValueTask<PluginExecutionResult<Response>> ExecuteAsync(Request request, IQueryContext context, CancellationToken cancellationToken)
@@ -45,6 +36,9 @@ public sealed class HostValidQueryPlugin : IRoslynPlugin
             return ValueTask.FromResult(PluginExecutionResult<Response>.Success(new Response
             {
                 Value = request.Name,
+                PrivateDependencyVersion = typeof(NuGetVersion).Assembly
+                    .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+                    ?? string.Empty,
             }));
         }
     }

@@ -3,21 +3,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class GetDependencyGraphToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        GetDependencyGraphTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<GetDependencyGraphRequest, DependencyGraphData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "get-dependency-graph"
-                && metadata.Title == "Get Dependency Graph"
-                && metadata.Description == "Returns a bounded dependency graph for the selected scope and granularity."),
-            It.IsAny<IQueryToolHandler<GetDependencyGraphRequest, DependencyGraphData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_GranularityIsUnsupported_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequestResult()
     {
         var target = new GetDependencyGraphTool();

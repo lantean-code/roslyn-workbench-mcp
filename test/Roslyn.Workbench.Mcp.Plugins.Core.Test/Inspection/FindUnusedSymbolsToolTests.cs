@@ -5,21 +5,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class FindUnusedSymbolsToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        FindUnusedSymbolsTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<FindUnusedSymbolsRequest, UnusedSymbolsData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "find-unused-symbols"
-                && metadata.Title == "Find Unused Symbols"
-                && metadata.Description == "Returns candidate unused locals and members from compiler diagnostics."),
-            It.IsAny<IQueryToolHandler<FindUnusedSymbolsRequest, UnusedSymbolsData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_ResolveDocumentsHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var target = new FindUnusedSymbolsTool();

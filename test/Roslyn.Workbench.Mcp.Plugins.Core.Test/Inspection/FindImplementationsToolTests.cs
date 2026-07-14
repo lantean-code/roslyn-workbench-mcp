@@ -5,21 +5,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class FindImplementationsToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        FindImplementationsTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<FindImplementationsRequest, ImplementationSearchData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "find-implementations"
-                && metadata.Title == "Find Implementations"
-                && metadata.Description == "Finds implementations of an interface or abstract member."),
-            It.IsAny<IQueryToolHandler<FindImplementationsRequest, ImplementationSearchData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_ResolveSymbolHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var target = new FindImplementationsTool();

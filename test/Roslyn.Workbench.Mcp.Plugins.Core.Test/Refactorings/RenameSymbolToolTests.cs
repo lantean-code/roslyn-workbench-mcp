@@ -3,22 +3,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Refactorings;
 public sealed class RenameSymbolToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        RenameSymbolTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterMutationTool<RenameSymbolRequest>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "rename-symbol"
-                && metadata.Title == "Rename Symbol"
-                && metadata.Description == "Stages a symbol rename across the effective solution."
-                && metadata.Behavior.Destructive),
-            It.IsAny<IMutationToolHandler<RenameSymbolRequest>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_ResolveSymbolHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var expected = PluginExecutionResult<MutationCandidate>.Rejected(new PluginExecutionError
@@ -60,6 +44,7 @@ public sealed class RenameSymbolToolTests
             Symbol = new SymbolSelector(),
             NewName = " ",
         };
+        var symbol = new Mock<ISymbol>();
         var target = new RenameSymbolTool();
 
         contextMocks.RequestResolver
@@ -70,7 +55,7 @@ public sealed class RenameSymbolToolTests
                 CancellationToken.None))
             .ReturnsAsync(new ToolResolutionResult<ISymbol, MutationCandidate>
             {
-                Value = Mock.Of<ISymbol>(),
+                Value = symbol.Object,
             });
 
         var result = await target.ExecuteAsync(request, contextMocks.MutationContext.Object, CancellationToken.None);

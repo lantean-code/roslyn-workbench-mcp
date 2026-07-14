@@ -3,21 +3,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class GetSymbolAttributesToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
-    {
-        var registry = new Mock<IPluginRegistry>();
-
-        GetSymbolAttributesTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterQueryTool<GetSymbolAttributesRequest, SymbolAttributesData>(
-            It.Is<ToolRegistrationMetadata>(metadata =>
-                metadata.Name == "get-symbol-attributes"
-                && metadata.Title == "Get Symbol Attributes"
-                && metadata.Description == "Returns declared and inherited attributes for a resolved symbol."),
-            It.IsAny<IQueryToolHandler<GetSymbolAttributesRequest, SymbolAttributesData>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_ResolveSymbolHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var target = new GetSymbolAttributesTool();

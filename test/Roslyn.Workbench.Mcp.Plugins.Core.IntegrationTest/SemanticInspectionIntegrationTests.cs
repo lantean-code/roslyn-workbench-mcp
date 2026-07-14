@@ -13,7 +13,7 @@ public sealed class SemanticInspectionIntegrationTests
         {
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
-        var registry = BundledPluginRegistryFactory.CreateRegistry();
+        var registry = BundledPluginCatalogueFactory.CreateCatalogue();
         var snapshot = new SnapshotPrecondition
         {
             WorkspaceEpoch = openResult.WorkspaceEpoch!.Value,

@@ -302,7 +302,7 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         }
 
         var state = await _commitWriter.RestoreAsync(manifest).ConfigureAwait(false);
-        await TryWriteManifestAsync(manifest with { State = state }).ConfigureAwait(false);
+        _ = await TryWriteManifestAsync(manifest with { State = state }).ConfigureAwait(false);
         if (state == RecoveryState.Restored)
         {
             _recoveryStore.DeleteStatus(manifest.CommitId);
@@ -322,11 +322,12 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         var state = manifest is null
             ? RecoveryState.RecoveryIncomplete
             : await _commitWriter.RestoreAsync(manifest).ConfigureAwait(false);
+        var recoveryStatePersisted = true;
         if (manifest is not null)
         {
             await PublishCommitPhaseAsync(session, transaction.CurrentRevision, commitId, "Restoring").ConfigureAwait(false);
             var recoveredManifest = manifest with { State = state, Message = failureMessage };
-            await TryWriteManifestAsync(recoveredManifest).ConfigureAwait(false);
+            recoveryStatePersisted = await TryWriteManifestAsync(recoveredManifest).ConfigureAwait(false);
             if (state == RecoveryState.Restored)
             {
                 _recoveryStore.DeleteStatus(manifest.CommitId);
@@ -342,9 +343,7 @@ internal sealed class TransactionCommitService : ITransactionCommitService
 
         return _resultFactory.Faulted<TransactionCommitOutcome>(
             applicationStarted ? "CommitFailed" : "CommitPreparationFailed",
-            applicationStarted
-                ? "The transaction commit failed and its changes were restored or retained for recovery."
-                : "The transaction commit could not update its recovery record and no workspace changes were applied.",
+            CreateCommitFailureMessage(applicationStarted, recoveryStatePersisted),
             !applicationStarted || state == RecoveryState.Restored ? RequiredAction.Retry : RequiredAction.ResolveRecovery,
             context);
     }
@@ -381,15 +380,27 @@ internal sealed class TransactionCommitService : ITransactionCommitService
             commitPhase);
     }
 
-    private async ValueTask TryWriteManifestAsync(WorkspaceCommitManifest manifest)
+    private async ValueTask<bool> TryWriteManifestAsync(WorkspaceCommitManifest manifest)
     {
         try
         {
             await _recoveryStore.WriteManifestAsync(manifest, CancellationToken.None).ConfigureAwait(false);
+            return true;
         }
         catch (Exception exception) when (IsRecoverableFileSystemException(exception))
         {
+            return false;
         }
+    }
+
+    private static string CreateCommitFailureMessage(bool applicationStarted, bool recoveryStatePersisted)
+    {
+        var message = applicationStarted
+            ? "The transaction commit failed and its changes were restored or retained for recovery."
+            : "The transaction commit could not update its recovery record and no workspace changes were applied.";
+        return recoveryStatePersisted
+            ? message
+            : $"{message} The final recovery state could not be persisted; any retained recovery record may report an earlier phase.";
     }
 
     private static bool IsRecoverableFileSystemException(Exception exception)

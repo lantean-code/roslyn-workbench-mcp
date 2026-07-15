@@ -23,7 +23,7 @@ public sealed record WorkspaceOpenData
     public int DocumentCount { get; init; }
 
     /// <summary>
-    /// Gets the workspace load diagnostics.
+    /// Gets workspace load and advisory status diagnostics.
     /// </summary>
     public IReadOnlyList<DiagnosticInfo> LoadDiagnostics { get; init; } = [];
 }

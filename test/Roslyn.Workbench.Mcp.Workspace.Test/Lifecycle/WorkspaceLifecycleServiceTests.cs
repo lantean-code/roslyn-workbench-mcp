@@ -41,8 +41,16 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         _instanceStatusPublisher = new Mock<IWorkspaceInstanceStatusPublisher>();
         _sessionStore.Setup(item => item.AllocateWorkspaceId()).Returns("WorkspaceId");
         _instanceStatusPublisher
+            .Setup(item => item.OpenAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<WorkspaceLifecycleState>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(WorkspaceInstanceStatusResult.Empty);
+        _instanceStatusPublisher
             .Setup(item => item.GetOtherLiveInstancesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync([]);
+            .ReturnsAsync(WorkspaceInstanceStatusResult.Empty);
         _target = new WorkspaceLifecycleService(
             Options.Create(new WorkspaceCoordinatorOptions
             {
@@ -392,7 +400,11 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             "/workspace",
             "/workspace/New.sln",
             WorkspaceLifecycleState.Ready,
-            TestContext.Current.CancellationToken)).ReturnsAsync(true);
+            TestContext.Current.CancellationToken)).ReturnsAsync(new WorkspaceInstanceStatusResult(
+                isAvailable: true,
+                hasOtherLiveInstance: true,
+                hasUnreadableLiveInstance: false,
+                instances: []));
         _resultFactory.Setup(item => item.Succeeded(
             It.Is<WorkspaceOpenOutcome>(outcome =>
                 outcome.LoadDiagnostics.Count == 1
@@ -407,6 +419,33 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         _sessionStore.Verify(item => item.TryAddWorkspace(
             It.Is<WorkspaceSessionSnapshot>(session => session.LoadDiagnostics.Count == 0),
             It.IsAny<Func<WorkspaceHostSnapshot, WorkspaceOperationError?>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_InstanceStatusIsUnavailable_WHEN_OpeningWorkspace_THEN_ShouldReturnAdvisoryWarning()
+    {
+        var loadedWorkspace = new Mock<ILoadedWorkspace>();
+        var solution = CreateSolutionWithProject("/workspace/Project.csproj");
+        var expected = CreateResult<WorkspaceOpenOutcome>();
+        SetupOpenPreflight("/workspace/New.sln", alias: null);
+        SetupLoadedWorkspace("/workspace/New.sln", solution, loadedWorkspace);
+        _instanceStatusPublisher.Setup(item => item.OpenAsync(
+            "WorkspaceId",
+            "/workspace",
+            "/workspace/New.sln",
+            WorkspaceLifecycleState.Ready,
+            TestContext.Current.CancellationToken)).ReturnsAsync(WorkspaceInstanceStatusResult.Unavailable);
+        _resultFactory.Setup(item => item.Succeeded(
+            It.Is<WorkspaceOpenOutcome>(outcome =>
+                outcome.LoadDiagnostics.Count == 1
+                && outcome.LoadDiagnostics[0].Id == "WorkspaceInstanceStatusUnavailable"),
+            It.IsAny<WorkspaceOperationContext>(),
+            null,
+            null)).Returns(expected);
+
+        var result = await _target.OpenAsync("Path", null, TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
     }
 
     [Fact]
@@ -760,9 +799,44 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         SetupSelectedSession(session, gate, operationLease, exclusive: false);
         _instanceStatusPublisher
             .Setup(item => item.GetOtherLiveInstancesAsync("Path", TestContext.Current.CancellationToken))
-            .ReturnsAsync([instance]);
+            .ReturnsAsync(new WorkspaceInstanceStatusResult(
+                isAvailable: true,
+                hasOtherLiveInstance: true,
+                hasUnreadableLiveInstance: false,
+                instances: [instance]));
         _resultFactory.Setup(item => item.Succeeded(
             It.Is<WorkspaceStatusOutcome>(outcome => outcome.Instances.Count == 1 && outcome.Instances[0] == instance),
+            It.IsAny<WorkspaceOperationContext>(),
+            null,
+            null)).Returns(expected);
+
+        var result = await _target.GetStatusAsync(null, null, null, StatusDetailLevel.Standard, TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+    }
+
+    [Fact]
+    public async Task GIVEN_UnreadableLiveInstance_WHEN_GettingStandardStatus_THEN_ShouldReturnAdvisoryWarnings()
+    {
+        var operationLease = new Mock<IWorkspaceOperationLease>();
+        var gate = new Mock<IWorkspaceOperationGate>();
+        var session = CreateSession("WorkspaceId", "Path", alias: null, transaction: null) with { OperationGate = gate.Object };
+        var expected = CreateResult<WorkspaceStatusOutcome>();
+        SetupSelectedSession(session, gate, operationLease, exclusive: false);
+        _instanceStatusPublisher
+            .Setup(item => item.GetOtherLiveInstancesAsync("Path", TestContext.Current.CancellationToken))
+            .ReturnsAsync(new WorkspaceInstanceStatusResult(
+                isAvailable: true,
+                hasOtherLiveInstance: true,
+                hasUnreadableLiveInstance: true,
+                instances: []));
+        _resultFactory.Setup(item => item.Succeeded(
+            It.Is<WorkspaceStatusOutcome>(outcome =>
+                outcome.Instances.Count == 0
+                && outcome.LoadDiagnostics != null
+                && outcome.LoadDiagnostics.Count == 2
+                && outcome.LoadDiagnostics[0].Id == "WorkspaceInUse"
+                && outcome.LoadDiagnostics[1].Id == "WorkspaceInstanceStatusUnreadable"),
             It.IsAny<WorkspaceOperationContext>(),
             null,
             null)).Returns(expected);

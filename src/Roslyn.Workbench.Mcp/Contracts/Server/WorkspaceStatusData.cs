@@ -29,7 +29,7 @@ public sealed record WorkspaceStatusData
     public int? DocumentCount { get; init; }
 
     /// <summary>
-    /// Gets the project load diagnostics.
+    /// Gets project load and advisory workspace-status diagnostics.
     /// </summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyList<DiagnosticInfo>? LoadDiagnostics { get; init; }

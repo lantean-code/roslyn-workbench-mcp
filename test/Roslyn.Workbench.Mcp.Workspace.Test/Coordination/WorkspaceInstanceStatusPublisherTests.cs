@@ -37,10 +37,10 @@ public sealed class WorkspaceInstanceStatusPublisherTests
             .Returns(new Mock<FileSystemStream>(stream, "/workspace/instance.json", false) { CallBase = true }.Object);
         await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
 
-        var warning = await target.OpenAsync("workspace", "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
+        var result = await target.OpenAsync("workspace", "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
         await target.UpdateAsync("workspace", WorkspaceLifecycleState.TransactionActive, 2, "commit", "Applying");
 
-        warning.Should().BeFalse();
+        result.Should().BeSameAs(WorkspaceInstanceStatusResult.Empty);
         Encoding.UTF8.GetString(stream.ToArray()).Should().Contain("\"transactionRevision\":2").And.Contain("\"commitPhase\":\"Applying\"");
         await target.CloseAsync("workspace");
         _file.Verify(item => item.Delete(It.Is<string>(path => path.EndsWith("-workspace.json", StringComparison.Ordinal))), Times.Once);
@@ -58,9 +58,10 @@ public sealed class WorkspaceInstanceStatusPublisherTests
             .Returns(new Mock<FileSystemStream>(stream, "/workspace/instance.json", false) { CallBase = true }.Object);
         await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
 
-        var warning = await target.OpenAsync("workspace", "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
+        var result = await target.OpenAsync("workspace", "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
 
-        warning.Should().BeTrue();
+        result.HasOtherLiveInstance.Should().BeTrue();
+        result.HasUnreadableLiveInstance.Should().BeTrue();
         _file.Verify(item => item.Delete("/workspace/live.json"), Times.Never);
     }
 
@@ -86,9 +87,9 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         }, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
         await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
 
-        var instances = await target.GetOtherLiveInstancesAsync("/workspace", TestContext.Current.CancellationToken);
+        var result = await target.GetOtherLiveInstancesAsync("/workspace", TestContext.Current.CancellationToken);
 
-        instances.Should().ContainSingle().Which.Should().BeEquivalentTo(new WorkspaceInstanceInfo
+        result.Instances.Should().ContainSingle().Which.Should().BeEquivalentTo(new WorkspaceInstanceInfo
         {
             InstanceId = "other-instance",
             LoadedPath = "/workspace/solution.slnx",
@@ -107,9 +108,9 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         _directory.Setup(item => item.Exists(It.IsAny<string>())).Returns(false);
         await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
 
-        var instances = await target.GetOtherLiveInstancesAsync("/workspace", TestContext.Current.CancellationToken);
+        var result = await target.GetOtherLiveInstancesAsync("/workspace", TestContext.Current.CancellationToken);
 
-        instances.Should().BeEmpty();
+        result.Should().BeSameAs(WorkspaceInstanceStatusResult.Empty);
         _directory.Verify(item => item.EnumerateFiles(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
@@ -124,47 +125,47 @@ public sealed class WorkspaceInstanceStatusPublisherTests
     }
 
     [Fact]
-    public async Task GIVEN_FileSystemIOException_WHEN_Opening_THEN_ShouldSuppressTheFailure()
+    public async Task GIVEN_FileSystemIOException_WHEN_Opening_THEN_ShouldReportUnavailableStatus()
     {
         _directory.Setup(item => item.CreateDirectory(It.IsAny<string>())).Throws(new IOException());
         await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
 
-        var warning = await target.OpenAsync("workspace", "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
+        var result = await target.OpenAsync("workspace", "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
 
-        warning.Should().BeFalse();
+        result.Should().BeSameAs(WorkspaceInstanceStatusResult.Unavailable);
     }
 
     [Fact]
-    public async Task GIVEN_FileSystemAccessFailure_WHEN_Opening_THEN_ShouldSuppressTheFailure()
+    public async Task GIVEN_FileSystemAccessFailure_WHEN_Opening_THEN_ShouldReportUnavailableStatus()
     {
         _directory.Setup(item => item.CreateDirectory(It.IsAny<string>())).Throws(new UnauthorizedAccessException());
         await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
 
-        var warning = await target.OpenAsync("workspace", "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
+        var result = await target.OpenAsync("workspace", "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
 
-        warning.Should().BeFalse();
+        result.Should().BeSameAs(WorkspaceInstanceStatusResult.Unavailable);
     }
 
     [Fact]
-    public async Task GIVEN_FileSystemIOException_WHEN_Querying_THEN_ShouldReturnNoInstances()
+    public async Task GIVEN_FileSystemIOException_WHEN_Querying_THEN_ShouldReportUnavailableStatus()
     {
         _directory.Setup(item => item.Exists(It.IsAny<string>())).Throws(new IOException());
         await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
 
-        var instances = await target.GetOtherLiveInstancesAsync("/workspace", TestContext.Current.CancellationToken);
+        var result = await target.GetOtherLiveInstancesAsync("/workspace", TestContext.Current.CancellationToken);
 
-        instances.Should().BeEmpty();
+        result.Should().BeSameAs(WorkspaceInstanceStatusResult.Unavailable);
     }
 
     [Fact]
-    public async Task GIVEN_FileSystemAccessFailure_WHEN_Querying_THEN_ShouldReturnNoInstances()
+    public async Task GIVEN_FileSystemAccessFailure_WHEN_Querying_THEN_ShouldReportUnavailableStatus()
     {
         _directory.Setup(item => item.Exists(It.IsAny<string>())).Throws(new UnauthorizedAccessException());
         await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
 
-        var instances = await target.GetOtherLiveInstancesAsync("/workspace", TestContext.Current.CancellationToken);
+        var result = await target.GetOtherLiveInstancesAsync("/workspace", TestContext.Current.CancellationToken);
 
-        instances.Should().BeEmpty();
+        result.Should().BeSameAs(WorkspaceInstanceStatusResult.Unavailable);
     }
 
     [Fact]
@@ -342,7 +343,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
         await target.DisposeAsync();
 
-        var warning = await target.OpenAsync(
+        var result = await target.OpenAsync(
             "workspace",
             "/workspace",
             "/workspace/solution.slnx",
@@ -351,7 +352,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         await target.UpdateAsync("workspace", WorkspaceLifecycleState.Ready, null, null, null);
         await target.DisposeAsync();
 
-        warning.Should().BeFalse();
+        result.Should().BeSameAs(WorkspaceInstanceStatusResult.Unavailable);
         _streams.Verify(
             item => item.New(It.IsAny<string>(), FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read),
             Times.Never);
@@ -428,9 +429,10 @@ public sealed class WorkspaceInstanceStatusPublisherTests
             .ReturnsAsync((string path, CancellationToken _) => JsonSerializer.Serialize(statuses[path], new JsonSerializerOptions(JsonSerializerDefaults.Web)));
         await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
 
-        var instances = await target.GetOtherLiveInstancesAsync("/workspace", TestContext.Current.CancellationToken);
+        var result = await target.GetOtherLiveInstancesAsync("/workspace", TestContext.Current.CancellationToken);
 
-        instances.Select(instance => instance.InstanceId).Should().Equal("a-instance", "b-instance");
+        result.Instances.Select(instance => instance.InstanceId).Should().Equal("a-instance", "b-instance");
+        result.HasUnreadableLiveInstance.Should().BeTrue();
     }
 
     [Fact]
@@ -443,9 +445,11 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         _file.Setup(item => item.ReadAllTextAsync(path, It.IsAny<CancellationToken>())).ThrowsAsync(new IOException());
         await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
 
-        var instances = await target.GetOtherLiveInstancesAsync("/workspace", TestContext.Current.CancellationToken);
+        var result = await target.GetOtherLiveInstancesAsync("/workspace", TestContext.Current.CancellationToken);
 
-        instances.Should().BeEmpty();
+        result.Instances.Should().BeEmpty();
+        result.HasOtherLiveInstance.Should().BeTrue();
+        result.HasUnreadableLiveInstance.Should().BeTrue();
     }
 
     [Fact]
@@ -458,9 +462,11 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         _file.Setup(item => item.ReadAllTextAsync(path, It.IsAny<CancellationToken>())).ThrowsAsync(new UnauthorizedAccessException());
         await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
 
-        var instances = await target.GetOtherLiveInstancesAsync("/workspace", TestContext.Current.CancellationToken);
+        var result = await target.GetOtherLiveInstancesAsync("/workspace", TestContext.Current.CancellationToken);
 
-        instances.Should().BeEmpty();
+        result.Instances.Should().BeEmpty();
+        result.HasOtherLiveInstance.Should().BeTrue();
+        result.HasUnreadableLiveInstance.Should().BeTrue();
     }
 
     [Fact]
@@ -482,9 +488,9 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         _file.Setup(item => item.ReadAllTextAsync(path, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetString(statusStream.ToArray()));
 
-        var instances = await target.GetOtherLiveInstancesAsync("/workspace", TestContext.Current.CancellationToken);
+        var result = await target.GetOtherLiveInstancesAsync("/workspace", TestContext.Current.CancellationToken);
 
-        instances.Should().BeEmpty();
+        result.Instances.Should().BeEmpty();
         _file.Verify(item => item.ReadAllTextAsync(path, It.IsAny<CancellationToken>()), Times.Once);
     }
 

@@ -86,7 +86,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         }
 
         var workspaceId = _sessionStore.AllocateWorkspaceId();
-        var workspaceInUse = await _instanceStatusPublisher.OpenAsync(
+        var instanceStatus = await _instanceStatusPublisher.OpenAsync(
             workspaceId,
             request.WorkspaceRoot,
             request.LoadedPath,
@@ -135,7 +135,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
 
         return CreateOpenSuccessResult(
             session,
-            CreateOpenDiagnostics(session.LoadDiagnostics, workspaceInUse));
+            CreateOpenDiagnostics(session.LoadDiagnostics, instanceStatus));
     }
 
     public ValueTask<WorkspaceOperationResult<WorkspaceOpenOutcome>> OpenAsync(
@@ -230,10 +230,10 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             _sessionStore.ReplaceSession(session);
         }
 
-        var instances = await _instanceStatusPublisher.GetOtherLiveInstancesAsync(
+        var instanceStatus = await _instanceStatusPublisher.GetOtherLiveInstancesAsync(
             session.Workspace.WorkspaceRoot,
             cancellationToken).ConfigureAwait(false);
-        return _resultFactory.Succeeded(CreateStatusOutcome(session, detail, instances), CreateContext(session));
+        return _resultFactory.Succeeded(CreateStatusOutcome(session, detail, instanceStatus), CreateContext(session));
     }
 
     public async ValueTask<WorkspaceOperationResult<WorkspaceReloadOutcome>> ReloadAsync(string? workspaceId, string? alias, string? path, CancellationToken cancellationToken)
@@ -391,16 +391,12 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
 
     private static IReadOnlyList<DiagnosticInfo> CreateOpenDiagnostics(
         IReadOnlyList<DiagnosticInfo> loadDiagnostics,
-        bool workspaceInUse)
+        WorkspaceInstanceStatusResult instanceStatus)
     {
-        return workspaceInUse
-            ? loadDiagnostics.Append(new DiagnosticInfo
-            {
-                Id = "WorkspaceInUse",
-                Severity = Contracts.Results.DiagnosticSeverity.Warning,
-                Message = "Another Roslyn Workbench MCP instance has this workspace open.",
-            }).ToArray()
-            : loadDiagnostics;
+        var instanceDiagnostics = CreateInstanceDiagnostics(instanceStatus);
+        return instanceDiagnostics.Count == 0
+            ? loadDiagnostics
+            : loadDiagnostics.Concat(instanceDiagnostics).ToArray();
     }
 
     private WorkspaceSessionSnapshot CreateSessionSnapshot(
@@ -440,7 +436,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
     private static WorkspaceStatusOutcome CreateStatusOutcome(
         WorkspaceSessionSnapshot session,
         StatusDetailLevel detail,
-        IReadOnlyList<WorkspaceInstanceInfo> instances)
+        WorkspaceInstanceStatusResult instanceStatus)
     {
         return new WorkspaceStatusOutcome
         {
@@ -448,11 +444,63 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             Workspace = session.Workspace,
             ProjectCount = session.ProjectCount,
             DocumentCount = session.DocumentCount,
-            LoadDiagnostics = detail == StatusDetailLevel.Full ? session.LoadDiagnostics : null,
+            LoadDiagnostics = CreateStatusDiagnostics(session.LoadDiagnostics, detail, instanceStatus),
             Transaction = session.Transaction?.ToInfo(session.State == WorkspaceLifecycleState.TransactionConflicted),
             ReloadRequired = session.State == WorkspaceLifecycleState.WorkspaceOutOfDate,
-            Instances = instances,
+            Instances = instanceStatus.Instances,
         };
+    }
+
+    private static IReadOnlyList<DiagnosticInfo>? CreateStatusDiagnostics(
+        IReadOnlyList<DiagnosticInfo> loadDiagnostics,
+        StatusDetailLevel detail,
+        WorkspaceInstanceStatusResult instanceStatus)
+    {
+        var instanceDiagnostics = CreateInstanceDiagnostics(instanceStatus);
+        if (detail != StatusDetailLevel.Full && instanceDiagnostics.Count == 0)
+        {
+            return null;
+        }
+
+        return detail == StatusDetailLevel.Full
+            ? loadDiagnostics.Concat(instanceDiagnostics).ToArray()
+            : instanceDiagnostics;
+    }
+
+    private static IReadOnlyList<DiagnosticInfo> CreateInstanceDiagnostics(WorkspaceInstanceStatusResult instanceStatus)
+    {
+        var diagnostics = new List<DiagnosticInfo>();
+        if (!instanceStatus.IsAvailable)
+        {
+            diagnostics.Add(new DiagnosticInfo
+            {
+                Id = "WorkspaceInstanceStatusUnavailable",
+                Severity = Contracts.Results.DiagnosticSeverity.Warning,
+                Message = "Advisory workspace-instance status could not be published or queried.",
+            });
+        }
+
+        if (instanceStatus.HasOtherLiveInstance)
+        {
+            diagnostics.Add(new DiagnosticInfo
+            {
+                Id = "WorkspaceInUse",
+                Severity = Contracts.Results.DiagnosticSeverity.Warning,
+                Message = "Another Roslyn Workbench MCP instance has this workspace open.",
+            });
+        }
+
+        if (instanceStatus.HasUnreadableLiveInstance)
+        {
+            diagnostics.Add(new DiagnosticInfo
+            {
+                Id = "WorkspaceInstanceStatusUnreadable",
+                Severity = Contracts.Results.DiagnosticSeverity.Warning,
+                Message = "One or more live workspace-instance status files could not be read or validated.",
+            });
+        }
+
+        return diagnostics.ToArray();
     }
 
     private WorkspaceOperationError? ValidateOpenCapacity(WorkspaceHostSnapshot hostSnapshot)

@@ -97,53 +97,14 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
 
     public async ValueTask<IReadOnlyList<WorkspaceCommitOwner>> GetOrphanedCommitOwnersAsync(CancellationToken cancellationToken)
     {
-        var owners = new List<WorkspaceCommitOwner>();
-        if (!_fileSystem.Directory.Exists(_recoveryDirectory))
-        {
-            return owners;
-        }
-
-        foreach (var directory in _fileSystem.Directory.EnumerateDirectories(_recoveryDirectory))
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (_fileSystem.File.Exists(GetManifestPathInDirectory(directory)))
-            {
-                continue;
-            }
-
-            var ownerPath = GetOwnerPathInDirectory(directory);
-            if (!_fileSystem.File.Exists(ownerPath))
-            {
-                continue;
-            }
-
-            try
-            {
-                var json = await _fileSystem.File.ReadAllTextAsync(ownerPath, cancellationToken).ConfigureAwait(false);
-                var owner = JsonSerializer.Deserialize<WorkspaceCommitOwner>(json, _serializerOptions);
-                if (owner is not null
-                    && owner.Version == 2
-                    && string.Equals(
-                        owner.CommitId,
-                        _fileSystem.Path.GetFileName(directory),
-                        _pathComparison.Comparison)
-                    && _fileSystem.Path.IsPathFullyQualified(owner.LoadedPath)
-                    && _fileSystem.Path.IsPathFullyQualified(owner.WorkspaceRoot))
-                {
-                    owners.Add(owner);
-                }
-            }
-            catch (IOException) { }
-            catch (UnauthorizedAccessException) { }
-            catch (JsonException) { }
-        }
-
-        return owners;
+        var evidence = await ReadOrphanedCommitEvidenceAsync(cancellationToken).ConfigureAwait(false);
+        return evidence.Owners;
     }
 
     public async ValueTask<IReadOnlyList<RecoveryStatus>> GetStatusesAsync(CancellationToken cancellationToken)
     {
-        var statuses = (await GetManifestsAsync(cancellationToken).ConfigureAwait(false))
+        var manifests = await GetManifestsAsync(cancellationToken).ConfigureAwait(false);
+        var statuses = manifests
             .Select(manifest => new RecoveryStatus
             {
                 CommitId = manifest.CommitId,
@@ -153,14 +114,9 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
                 Message = manifest.Message,
             }).ToList();
 
-        statuses.AddRange((await GetOrphanedCommitOwnersAsync(cancellationToken).ConfigureAwait(false)).Select(owner => new RecoveryStatus
-        {
-            CommitId = owner.CommitId,
-            SolutionPath = owner.LoadedPath,
-            WorkspaceRoot = owner.WorkspaceRoot,
-            State = RecoveryState.RecoveryConflict,
-            Message = "The commit was interrupted before its durable manifest was prepared.",
-        }));
+        var orphanedEvidence = await ReadOrphanedCommitEvidenceAsync(cancellationToken).ConfigureAwait(false);
+        statuses.AddRange(orphanedEvidence.Owners.Select(CreateOrphanedOwnerStatus));
+        statuses.AddRange(orphanedEvidence.Conflicts);
 
         if (!_fileSystem.Directory.Exists(_recoveryDirectory))
         {
@@ -170,18 +126,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         foreach (var path in _fileSystem.Directory.EnumerateFiles(_recoveryDirectory, "*.json", SearchOption.TopDirectoryOnly))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            try
-            {
-                var json = await _fileSystem.File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
-                var legacy = JsonSerializer.Deserialize<RecoveryStatus>(json, _serializerOptions);
-                if (legacy is not null)
-                {
-                    statuses.Add(legacy with { State = RecoveryState.RecoveryConflict, Message = "Legacy recovery evidence cannot be restored automatically." });
-                }
-            }
-            catch (IOException) { }
-            catch (UnauthorizedAccessException) { }
-            catch (JsonException) { }
+            statuses.Add(await ReadLegacyStatusAsync(path, cancellationToken).ConfigureAwait(false));
         }
 
         return statuses;
@@ -213,6 +158,131 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         {
             _fileSystem.File.Delete(legacy);
         }
+    }
+
+    private async ValueTask<(IReadOnlyList<WorkspaceCommitOwner> Owners, IReadOnlyList<RecoveryStatus> Conflicts)>
+        ReadOrphanedCommitEvidenceAsync(CancellationToken cancellationToken)
+    {
+        var owners = new List<WorkspaceCommitOwner>();
+        var conflicts = new List<RecoveryStatus>();
+        if (!_fileSystem.Directory.Exists(_recoveryDirectory))
+        {
+            return (owners, conflicts);
+        }
+
+        foreach (var directory in _fileSystem.Directory.EnumerateDirectories(_recoveryDirectory))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (_fileSystem.File.Exists(GetManifestPathInDirectory(directory)))
+            {
+                continue;
+            }
+
+            var ownerPath = GetOwnerPathInDirectory(directory);
+            if (!_fileSystem.File.Exists(ownerPath))
+            {
+                continue;
+            }
+
+            try
+            {
+                var json = await _fileSystem.File.ReadAllTextAsync(ownerPath, cancellationToken).ConfigureAwait(false);
+                var owner = JsonSerializer.Deserialize<WorkspaceCommitOwner>(json, _serializerOptions);
+                if (owner is not null
+                    && owner.Version == 2
+                    && string.Equals(
+                        owner.CommitId,
+                        _fileSystem.Path.GetFileName(directory),
+                        _pathComparison.Comparison)
+                    && _fileSystem.Path.IsPathFullyQualified(owner.LoadedPath)
+                    && _fileSystem.Path.IsPathFullyQualified(owner.WorkspaceRoot))
+                {
+                    owners.Add(owner);
+                }
+                else
+                {
+                    conflicts.Add(CreateInvalidOwnerStatus(directory, owner));
+                }
+            }
+            catch (IOException)
+            {
+                conflicts.Add(CreateInvalidOwnerStatus(directory, owner: null));
+            }
+            catch (UnauthorizedAccessException)
+            {
+                conflicts.Add(CreateInvalidOwnerStatus(directory, owner: null));
+            }
+            catch (JsonException)
+            {
+                conflicts.Add(CreateInvalidOwnerStatus(directory, owner: null));
+            }
+        }
+
+        return (owners, conflicts);
+    }
+
+    private async ValueTask<RecoveryStatus> ReadLegacyStatusAsync(string path, CancellationToken cancellationToken)
+    {
+        var commitId = _fileSystem.Path.GetFileNameWithoutExtension(path);
+        try
+        {
+            var json = await _fileSystem.File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
+            var legacy = JsonSerializer.Deserialize<RecoveryStatus>(json, _serializerOptions);
+            return CreateLegacyStatus(commitId, legacy);
+        }
+        catch (IOException)
+        {
+            return CreateLegacyStatus(commitId, legacy: null);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return CreateLegacyStatus(commitId, legacy: null);
+        }
+        catch (JsonException)
+        {
+            return CreateLegacyStatus(commitId, legacy: null);
+        }
+    }
+
+    private RecoveryStatus CreateInvalidOwnerStatus(string directory, WorkspaceCommitOwner? owner)
+    {
+        return new RecoveryStatus
+        {
+            CommitId = _fileSystem.Path.GetFileName(directory),
+            SolutionPath = GetSafeAbsolutePath(owner?.LoadedPath),
+            WorkspaceRoot = GetSafeAbsolutePath(owner?.WorkspaceRoot),
+            State = RecoveryState.RecoveryConflict,
+            Message = "The recovery owner record is malformed or unreadable.",
+        };
+    }
+
+    private static RecoveryStatus CreateOrphanedOwnerStatus(WorkspaceCommitOwner owner)
+    {
+        return new RecoveryStatus
+        {
+            CommitId = owner.CommitId,
+            SolutionPath = owner.LoadedPath,
+            WorkspaceRoot = owner.WorkspaceRoot,
+            State = RecoveryState.RecoveryConflict,
+            Message = "The commit was interrupted before its durable manifest was prepared.",
+        };
+    }
+
+    private static RecoveryStatus CreateLegacyStatus(string commitId, RecoveryStatus? legacy)
+    {
+        return new RecoveryStatus
+        {
+            CommitId = commitId,
+            SolutionPath = legacy?.SolutionPath ?? string.Empty,
+            WorkspaceRoot = legacy?.WorkspaceRoot ?? string.Empty,
+            State = RecoveryState.RecoveryConflict,
+            Message = "Legacy recovery evidence cannot be restored automatically.",
+        };
+    }
+
+    private string GetSafeAbsolutePath(string? path)
+    {
+        return path is not null && _fileSystem.Path.IsPathFullyQualified(path) ? path : string.Empty;
     }
 
     private string GetCommitDirectory(string commitId)

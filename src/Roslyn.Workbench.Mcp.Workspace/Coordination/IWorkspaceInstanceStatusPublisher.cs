@@ -2,7 +2,7 @@ namespace Roslyn.Workbench.Mcp.Workspace.Coordination;
 
 internal interface IWorkspaceInstanceStatusPublisher
 {
-    ValueTask<bool> OpenAsync(
+    ValueTask<WorkspaceInstanceStatusResult> OpenAsync(
         string workspaceId,
         string workspaceRoot,
         string loadedPath,
@@ -11,7 +11,7 @@ internal interface IWorkspaceInstanceStatusPublisher
 
     ValueTask UpdateAsync(string workspaceId, WorkspaceLifecycleState state, long? transactionRevision, string? commitId, string? commitPhase);
 
-    ValueTask<IReadOnlyList<WorkspaceInstanceInfo>> GetOtherLiveInstancesAsync(
+    ValueTask<WorkspaceInstanceStatusResult> GetOtherLiveInstancesAsync(
         string workspaceRoot,
         CancellationToken cancellationToken);
 

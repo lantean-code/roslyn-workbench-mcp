@@ -484,6 +484,34 @@ public sealed class TransactionCommitServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GIVEN_PreApplicationFailureAndRecoveryStateCannotBePersisted_WHEN_Committing_THEN_ShouldReportDurableStateWarning()
+    {
+        var session = CreateSession();
+        var manifest = CreateManifest();
+        var plan = new WorkspaceCommitPlan(manifest, new Dictionary<string, ReadOnlyMemory<byte>>());
+        var expected = CreateResult(WorkspaceOperationStatus.Faulted);
+        SetupProtocol(session, plan);
+        _commitWriter.Setup(item => item.RevalidateAsync(manifest, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new IOException("revalidate"));
+        _commitWriter.Setup(item => item.RestoreAsync(manifest)).ReturnsAsync(RecoveryState.Restored);
+        _recoveryStore.Setup(item => item.WriteManifestAsync(
+            It.Is<WorkspaceCommitManifest>(value => value.State == RecoveryState.Restored),
+            CancellationToken.None)).ThrowsAsync(new UnauthorizedAccessException("recovery manifest"));
+        _resultFactory.Setup(item => item.Faulted<TransactionCommitOutcome>(
+            "CommitPreparationFailed",
+            "The transaction commit could not update its recovery record and no workspace changes were applied. The final recovery state could not be persisted; any retained recovery record may report an earlier phase.",
+            RequiredAction.Retry,
+            It.IsAny<WorkspaceOperationContext>(),
+            null,
+            null)).Returns(expected);
+
+        var result = await _target.CommitAsync(CreateSelection(session), null, TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _recoveryStore.Verify(item => item.DeleteStatus("commit"), Times.Once);
+    }
+
+    [Fact]
     public async Task GIVEN_NonRecoverablePreparationFailure_WHEN_Committing_THEN_ShouldPropagateFailure()
     {
         var session = CreateSession();
@@ -536,7 +564,12 @@ public sealed class TransactionCommitServiceTests : IDisposable
             It.Is<WorkspaceCommitManifest>(value => value.State == RecoveryState.RecoveryConflict),
             CancellationToken.None)).ThrowsAsync(new IOException("recovery manifest"));
         _resultFactory.Setup(item => item.Faulted<TransactionCommitOutcome>(
-            "CommitFailed", It.IsAny<string>(), RequiredAction.ResolveRecovery, It.IsAny<WorkspaceOperationContext>(), null, null)).Returns(expected);
+            "CommitFailed",
+            "The transaction commit failed and its changes were restored or retained for recovery. The final recovery state could not be persisted; any retained recovery record may report an earlier phase.",
+            RequiredAction.ResolveRecovery,
+            It.IsAny<WorkspaceOperationContext>(),
+            null,
+            null)).Returns(expected);
 
         var result = await _target.CommitAsync(CreateSelection(session), null, TestContext.Current.CancellationToken);
 

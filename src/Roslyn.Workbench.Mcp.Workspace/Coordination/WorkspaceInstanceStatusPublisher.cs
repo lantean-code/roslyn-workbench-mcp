@@ -19,7 +19,7 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         _pathComparison = pathComparison;
     }
 
-    public async ValueTask<bool> OpenAsync(
+    public async ValueTask<WorkspaceInstanceStatusResult> OpenAsync(
         string workspaceId,
         string workspaceRoot,
         string loadedPath,
@@ -31,28 +31,28 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         {
             if (_isDisposed)
             {
-                return false;
+                return WorkspaceInstanceStatusResult.Unavailable;
             }
 
             var canonicalWorkspaceRoot = _fileSystem.Path.GetFullPath(workspaceRoot);
             var scan = await PrepareInstanceDirectoryAsync(canonicalWorkspaceRoot, cancellationToken).ConfigureAwait(false);
             if (_handles.ContainsKey(workspaceId))
             {
-                return false;
+                return WorkspaceInstanceStatusResult.Empty;
             }
 
             var handle = CreateHandle(workspaceId, canonicalWorkspaceRoot, loadedPath, state);
             _handles.Add(workspaceId, handle);
             await handle.PublishAsync().ConfigureAwait(false);
-            return scan.HasOtherLiveInstance;
+            return scan;
         }
         catch (IOException)
         {
-            return false;
+            return WorkspaceInstanceStatusResult.Unavailable;
         }
         catch (UnauthorizedAccessException)
         {
-            return false;
+            return WorkspaceInstanceStatusResult.Unavailable;
         }
         finally
         {
@@ -60,7 +60,7 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         }
     }
 
-    public async ValueTask<IReadOnlyList<WorkspaceInstanceInfo>> GetOtherLiveInstancesAsync(
+    public async ValueTask<WorkspaceInstanceStatusResult> GetOtherLiveInstancesAsync(
         string workspaceRoot,
         CancellationToken cancellationToken)
     {
@@ -68,16 +68,15 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         try
         {
             var canonicalWorkspaceRoot = _fileSystem.Path.GetFullPath(workspaceRoot);
-            var scan = await ScanAsync(canonicalWorkspaceRoot, cancellationToken).ConfigureAwait(false);
-            return scan.Instances;
+            return await ScanAsync(canonicalWorkspaceRoot, cancellationToken).ConfigureAwait(false);
         }
         catch (IOException)
         {
-            return [];
+            return WorkspaceInstanceStatusResult.Unavailable;
         }
         catch (UnauthorizedAccessException)
         {
-            return [];
+            return WorkspaceInstanceStatusResult.Unavailable;
         }
     }
 
@@ -166,7 +165,7 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         }
     }
 
-    private async ValueTask<WorkspaceInstanceScanResult> PrepareInstanceDirectoryAsync(
+    private async ValueTask<WorkspaceInstanceStatusResult> PrepareInstanceDirectoryAsync(
         string canonicalWorkspaceRoot,
         CancellationToken cancellationToken)
     {
@@ -193,17 +192,18 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         return new WorkspaceInstanceStatusHandle(filePath, stream, status, _serializerOptions);
     }
 
-    private async ValueTask<WorkspaceInstanceScanResult> ScanAsync(
+    private async ValueTask<WorkspaceInstanceStatusResult> ScanAsync(
         string canonicalWorkspaceRoot,
         CancellationToken cancellationToken)
     {
         var directory = GetInstanceDirectory(canonicalWorkspaceRoot);
         if (!_fileSystem.Directory.Exists(directory))
         {
-            return WorkspaceInstanceScanResult.Empty;
+            return WorkspaceInstanceStatusResult.Empty;
         }
 
         var hasOtherLiveInstance = false;
+        var hasUnreadableLiveInstance = false;
         var instances = new List<WorkspaceInstanceInfo>();
         foreach (var path in _fileSystem.Directory.EnumerateFiles(directory, "*.json"))
         {
@@ -214,22 +214,30 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
             }
 
             var status = await TryReadStatusAsync(path, cancellationToken).ConfigureAwait(false);
-            if (status?.InstanceId == _instanceId)
+            if (status is not null && IsValidStatus(status, canonicalWorkspaceRoot))
             {
+                if (status.InstanceId == _instanceId)
+                {
+                    continue;
+                }
+
+                hasOtherLiveInstance = true;
+                instances.Add(CreateInstanceInfo(status));
                 continue;
             }
 
             hasOtherLiveInstance = true;
-            if (status is not null && IsValidStatus(status, canonicalWorkspaceRoot))
-            {
-                instances.Add(CreateInstanceInfo(status));
-            }
+            hasUnreadableLiveInstance = true;
         }
 
         var orderedInstances = instances
             .OrderBy(instance => instance.InstanceId, StringComparer.Ordinal)
             .ToArray();
-        return new WorkspaceInstanceScanResult(hasOtherLiveInstance, orderedInstances);
+        return new WorkspaceInstanceStatusResult(
+            isAvailable: true,
+            hasOtherLiveInstance,
+            hasUnreadableLiveInstance,
+            orderedInstances);
     }
 
     private bool TryRemoveStaleInstance(string path)

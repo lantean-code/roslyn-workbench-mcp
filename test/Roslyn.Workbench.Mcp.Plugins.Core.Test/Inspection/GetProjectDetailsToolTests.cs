@@ -58,7 +58,7 @@ public sealed class GetProjectDetailsToolTests
             .Returns<string>(item => item);
         projectStructureService
             .Setup(item => item.GetTargetFrameworks(project))
-            .Returns(["TargetFramework"]);
+            .Returns(ProjectTargetFrameworksResult.Succeeded(["TargetFramework"]));
 
         var result = await target.ExecuteAsync(new GetProjectDetailsRequest
         {
@@ -199,7 +199,7 @@ public sealed class GetProjectDetailsToolTests
             });
         projectStructureService
             .Setup(item => item.GetTargetFrameworks(mainProject))
-            .Returns(["net10.0", "net9.0"]);
+            .Returns(ProjectTargetFrameworksResult.Succeeded(["net10.0", "net9.0"]));
 
         var result = await target.ExecuteAsync(new GetProjectDetailsRequest
         {
@@ -234,5 +234,53 @@ public sealed class GetProjectDetailsToolTests
         result.Data.Analyzers.Items.Should().ContainSingle();
         result.Data.Analyzers.Items[0].DisplayName.Should().Be("AAnalyzer");
         result.Data.Analyzers.HasMore.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GIVEN_TargetFrameworksCannotBeEvaluated_WHEN_CallingExecuteAsync_THEN_ShouldReturnRetryableRejection()
+    {
+        using var solution = RoslynTestFactory.CreateSolution(
+        [
+            new InMemoryRoslynProjectDefinition
+            {
+                Name = "Project",
+                Documents =
+                [
+                    new InMemoryRoslynDocumentDefinition
+                    {
+                        Name = "Project.cs",
+                        Source = "public class ProjectType { }",
+                    },
+                ],
+            },
+        ]);
+        var target = new GetProjectDetailsTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var project = solution.Solution.Projects.Single();
+        var projectStructureService = new Mock<IProjectStructureService>();
+        queryContextMocks.ToolExecutionServices
+            .SetupGet(item => item.ProjectStructureService)
+            .Returns(projectStructureService.Object);
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveProject<ProjectDetailsData>(
+                It.IsAny<ProjectSelector?>(),
+                queryContextMocks.QueryContext.Object))
+            .Returns(new ToolResolutionResult<Project, ProjectDetailsData>
+            {
+                Value = project,
+            });
+        projectStructureService
+            .Setup(item => item.GetTargetFrameworks(project))
+            .Returns(ProjectTargetFrameworksResult.Failed("Failure"));
+
+        var result = await target.ExecuteAsync(
+            new GetProjectDetailsRequest(),
+            queryContextMocks.QueryContext.Object,
+            TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error!.Code.Should().Be("ProjectStructureUnavailable");
+        result.Error.Message.Should().Be("Failure");
+        result.RequiredAction.Should().Be(RequiredAction.Retry);
     }
 }

@@ -257,13 +257,24 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         WorkspaceSessionSnapshot session,
         WorkspaceTransaction transaction)
     {
-        return session with
+        var inputManifest = _workspaceChangeDetector.BuildManifest(
+            transaction.CurrentSolution,
+            session.Workspace.LoadedPath);
+        var committedSession = session with
         {
             Transaction = null,
             CurrentSolution = transaction.CurrentSolution,
-            InputManifest = _workspaceChangeDetector.BuildManifest(transaction.CurrentSolution, session.Workspace.LoadedPath),
+            InputManifest = inputManifest,
+            LoadDiagnostics = inputManifest.IsComplete
+                ? session.LoadDiagnostics
+                : session.LoadDiagnostics.Concat(
+                    WorkspaceInputEvaluationDiagnostics.Create(inputManifest.EvaluationFailures)).ToArray(),
             State = _workspaceStateTransitions.Fire(session.State, WorkspaceTrigger.TransactionCommitted),
         };
+
+        return inputManifest.IsComplete
+            ? committedSession
+            : _workspaceStateTransitions.ApplyExternalChangeDetected(committedSession);
     }
 
     private async ValueTask CompleteCommitAsync(

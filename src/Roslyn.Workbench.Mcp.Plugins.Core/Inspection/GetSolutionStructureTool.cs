@@ -8,9 +8,27 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
     protected override async ValueTask<PluginExecutionResult<SolutionStructureData>> ExecuteCoreAsync(GetSolutionStructureRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         var hierarchy = await context.ToolExecutionServices.ProjectStructureService.GetSolutionHierarchyAsync(context.WorkspaceIdentity.LoadedPath, cancellationToken).ConfigureAwait(false);
+        if (!hierarchy.IsSucceeded)
+        {
+            return ToolExecutionHelpers.RejectProjectStructureFailure<SolutionStructureData>(hierarchy.ErrorMessage);
+        }
 
         var projects = context.CurrentSolution.Projects
             .OrderBy(project => context.WorkspaceResolver.NormalizeProjectPath(project.FilePath ?? project.Name), StringComparer.Ordinal)
+            .ToArray();
+        var targetFrameworksByProject = new Dictionary<ProjectId, IReadOnlyList<string>>();
+        foreach (var project in projects)
+        {
+            var targetFrameworks = context.ToolExecutionServices.ProjectStructureService.GetTargetFrameworks(project);
+            if (!targetFrameworks.IsSucceeded)
+            {
+                return ToolExecutionHelpers.RejectProjectStructureFailure<SolutionStructureData>(targetFrameworks.ErrorMessage);
+            }
+
+            targetFrameworksByProject[project.Id] = targetFrameworks.TargetFrameworks;
+        }
+
+        var projectStructures = projects
             .Select(project => new ProjectStructureInfo
             {
                 ProjectId = project.Id.Id.ToString(),
@@ -19,7 +37,7 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
                 SolutionFolderPath = hierarchy.ProjectFolderPaths.TryGetValue(context.WorkspaceResolver.NormalizeProjectPath(project.FilePath ?? project.Name), out var solutionFolderPath)
                     ? solutionFolderPath
                     : null,
-                TargetFrameworks = context.ToolExecutionServices.ProjectStructureService.GetTargetFrameworks(project),
+                TargetFrameworks = targetFrameworksByProject[project.Id],
                 ProjectReferences = project.ProjectReferences
                     .Select(reference => context.CurrentSolution.GetProject(reference.ProjectId))
                     .OfType<Project>()
@@ -43,7 +61,7 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
                 hierarchy.Folders,
                 ToolExecutionHelpers.GetMaxResults(context, request.FoldersLimit)),
             Projects = ToolExecutionHelpers.CreateBoundedCollection(
-                projects,
+                projectStructures,
                 ToolExecutionHelpers.GetMaxResults(context, request.ProjectsLimit)),
         });
     }

@@ -1,6 +1,6 @@
 # Workspace Unit-Test Inventory
 
-Date: 2026-07-10
+Date: 2026-07-15
 
 ## Purpose
 
@@ -21,7 +21,7 @@ The inventory does not treat integration coverage as unit coverage. It also does
 
 Workspace now owns its selectors, resolution results, diagnostics, change/transaction models, neutral execution contexts, mutation candidate and staging boundary. It has no production dependency on Plugins or CodeActions.
 
-The production assembly currently contains 113 C# source files after the contract-family relocation. Data-only contracts are covered through validation, serialisation and owning-service assertions rather than one reflection test per type.
+The production assembly currently contains 173 C# source files after the contract-family relocation and transaction infrastructure work. Data-only contracts are covered through validation, serialisation and owning-service assertions rather than one reflection test per type.
 
 The existing six Workspace unit tests were removed after review because they did not fully meet the current namespace, reusable Roslyn-data setup and coverage standards. The current replacement baseline is:
 
@@ -51,9 +51,9 @@ The existing six Workspace unit tests were removed after review because they did
 | `TransactionServiceTests` | 49 | Start, preview, history, commit, rollback and cancellation: 100% line and branch |
 | `WorkspaceLoaderTests` | 16 | Path and alias normalization plus compatibility-inspector delegation |
 | `WorkspaceLoadWorkflowTests` | 12 | Compatibility, loading, root containment, ownership and cancellation: 100% line and branch |
-| `WorkspaceLifecycleServiceTests` | 56 | Open, list, close, status, reload and cancellation: 100% line and branch |
-| `TransactionCommitServiceTests` | 25 | Commit orchestration, target-drift conflicts, recovery failures and cancellation: 100% line, 98.28% branch |
-| `WorkspaceChangeDetectorTests` | 17 | Manifest creation and comparison: 100% line and branch |
+| `WorkspaceLifecycleServiceTests` | 63 | Open, list, close, status, reload, explicit input-evaluation failures, advisory-file sequencing and cancellation: 100% line and branch |
+| `TransactionCommitServiceTests` | 26 | Commit orchestration, target-drift conflicts, recovery failures, post-commit input-evaluation failure and cancellation: 100% line, 98.28% branch |
+| `WorkspaceChangeDetectorTests` | 18 | Manifest creation, explicit project-input failures and comparison: 100% line and branch |
 | `WorkspaceInstanceStatusPublisherTests` | 24 | Serialised registration, update, close and disposal plus stale/live detection, malformed status, filtering, ordering, cancellation and suppressed filesystem failures: 100% line and branch |
 | `AtomicFileWriterTests` | 12 | 100% line and branch coverage of text, binary, commit and cleanup behaviour |
 | `WorkspaceRootResolverTests` | 14 | Explicit-root validation, Git-root discovery, fallback termination and containment alternatives: 100% line and branch |
@@ -82,7 +82,7 @@ Only three implementations recorded unit coverage before removal:
 
 These figures are retained only as the evidence that motivated this inventory; they are no longer current test coverage. Compiler-generated async classes are not separate test targets and will be covered through their owning public methods.
 
-The 2026-07-14 Workspace unit checkpoint discovers 613 tests and measures 94.49% line and 95.11% branch coverage across the Workspace production assembly. Shared session acquisition, validated workspace loading, lifecycle orchestration, mutation staging, candidate validation, transaction revision behaviour, commit target validation and persisted recovery-path validation each measure 100% line and branch coverage. The remaining assembly gap is concentrated in explicit operating-system and MSBuild integration boundaries, data-only cross-assembly contracts, platform-specific alternatives and the documented defensive Roslyn branches.
+The 2026-07-15 Workspace unit checkpoint discovers 619 tests and measures 94.47% line and 95.25% branch coverage across the Workspace production assembly. Shared session acquisition, validated workspace loading, lifecycle orchestration, mutation staging, candidate validation, transaction revision behaviour, commit target validation and persisted recovery-path validation each measure 100% line and branch coverage. The remaining assembly gap is concentrated in explicit operating-system and MSBuild integration boundaries, data-only cross-assembly contracts, platform-specific alternatives and the documented defensive Roslyn branches. The small line-percentage reduction reflects the new MSBuild-boundary result mapping, which is deliberately covered by real-MSBuild integration tests rather than mocked unit tests.
 
 ### Current class-level coverage gaps
 
@@ -94,7 +94,7 @@ Coverlet emits compiler-generated async and closure classes separately. The tabl
 | `FileStreamWorkspaceFileLockProvider` | 0% | 0% | OS locking and crash-release boundary; retain integration coverage. |
 | `NativeAtomicFileCommitter` | 0% | 0% | OS atomic replacement boundary; retain integration coverage. |
 | `WorkspaceBoundRequest` | 0% | 100% | Data-only contract property; cover through owning request flows. |
-| `WorkspaceProjectInputResolver` | 0% | 100% | Owns real MSBuild import evaluation; retain integration coverage through imported-project discovery. |
+| `WorkspaceProjectInputResolver` | 0% | 0% | Owns real MSBuild import evaluation and maps missing, malformed, I/O and access failures to explicit results; retain focused integration coverage. |
 | `MutationData` | 0% | 100% | Data-only response properties; cover through owning service assertions. |
 | `LoadedWorkspace` | 0% | 100% | Thin `MSBuildWorkspace` lifetime adapter; retain integration coverage. |
 | `AtomicFileWriter` | 100% | 100% | Exact text/binary writes, stream durability options, commit delegation and every cleanup outcome are covered. |
@@ -129,14 +129,16 @@ Keep `NativeAtomicFileCommitter`, `FileStreamWorkspaceFileLockProvider`,
 
 ### Current integration safety net
 
-`Roslyn.Workbench.Mcp.Workspace.IntegrationTest` contains 60 tests:
+`Roslyn.Workbench.Mcp.Workspace.IntegrationTest` contains 62 tests:
 
 | Test class | Tests | Boundary coverage |
 | --- | ---: | --- |
-| `WorkspaceCoordinatorIntegrationTests` | 30 | Open/close/reload/status, multi-workspace selection, transaction workflow, staging, history, commit, encoding, change detection, recovery and cancellation |
+| `WorkspaceCoordinatorIntegrationTests` | 32 | Open/close/reload/status, multi-workspace selection, transaction workflow, staging, history, commit, encoding, change detection, recovery and cancellation |
 | `WorkspaceResolverIntegrationTests` | 9 | Real-workspace project/document ambiguity, snapshots, locations and symbols |
 | `WorkspaceProjectCompatibilityInspectorIntegrationTests` | 3 | SDK-style, legacy and malformed project compatibility |
-| `WorkspaceChangeDetectorIntegrationTests` | 1 | Evaluated MSBuild import tracking through `WorkspaceProjectInputResolver` |
+| `WorkspaceChangeDetectorIntegrationTests` | 3 | Evaluated MSBuild import tracking plus explicit malformed and missing-project failure results through `WorkspaceProjectInputResolver` |
+| `DurableWorkspaceCommitIntegrationTests` | 13 | Real-filesystem multi-file commit, rollback, recovery, divergence and lock behaviour |
+| `AtomicFileWriterIntegrationTests` | 2 | Real-filesystem atomic replacement and failure preservation |
 
 These tests are retained. They prove MSBuild, filesystem, `MSBuildWorkspace`, coordinator and transaction-pipeline behaviour, but they do not provide isolated branch evidence for the production services listed below.
 
@@ -420,8 +422,8 @@ These implementations must not be moved into the unit project merely to improve 
 | `IMsBuildWorkspaceFactory` | Host-supplied creation boundary | Host unit and composition coverage | Keep Workspace loading independent of Code Action composition; real MSBuild loading remains integration coverage |
 | `WorkspaceInputFileFingerprint` | Integration boundary | Indirect manifest/change tests | File path, length and timestamp capture |
 | `WorkspaceInputDirectoryFingerprint` | Integration boundary | Indirect manifest/change tests | Directory path and timestamp capture |
-| `WorkspaceProjectInputResolver` | Integration boundary | Evaluated imported props through `WorkspaceChangeDetectorIntegrationTests` | Implementation owns real MSBuild project evaluation and imported-path discovery without a static forwarding wrapper |
-| `WorkspaceChangeDetector` | Unit-tested filesystem logic plus integration input discovery | 100% line and branch | Manifest construction and validation over `IFileSystem` are unit covered; representative real-MSBuild imported inputs remain integration coverage |
+| `WorkspaceProjectInputResolver` | Integration boundary | Evaluated imports and explicit missing/malformed-project results through `WorkspaceChangeDetectorIntegrationTests` | Implementation owns real MSBuild project evaluation, imported-path discovery and boundary-exception translation without a static forwarding wrapper |
+| `WorkspaceChangeDetector` | Unit-tested filesystem logic plus integration input discovery | 100% line and branch | Manifest construction, incomplete-manifest retention and validation over `IFileSystem` are unit covered; representative real-MSBuild success and failure inputs remain integration coverage |
 | `CommitRecoveryStore` | Unit-tested persistence logic plus integration durability | 100% line and branch | Manifest, artifact, validated-path, orphan and cleanup behaviour is unit covered; exact bytes and restart durability remain integration coverage |
 
 ## Types Requiring No Direct Tests

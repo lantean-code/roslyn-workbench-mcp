@@ -2,11 +2,18 @@ namespace Roslyn.Workbench.Mcp.Workspace.ChangeDetection;
 
 internal sealed class WorkspaceProjectInputResolver : IWorkspaceProjectInputResolver
 {
-    public IReadOnlyList<string> GetEvaluatedInputPaths(string? projectPath)
+    public WorkspaceProjectInputResolution Resolve(string? projectPath)
     {
-        if (string.IsNullOrWhiteSpace(projectPath) || !File.Exists(projectPath))
+        if (string.IsNullOrWhiteSpace(projectPath))
         {
-            return [];
+            return WorkspaceProjectInputResolution.Succeeded();
+        }
+
+        if (!File.Exists(projectPath))
+        {
+            return WorkspaceProjectInputResolution.Failed(
+                projectPath,
+                "The project file does not exist.");
         }
 
         try
@@ -14,17 +21,18 @@ internal sealed class WorkspaceProjectInputResolver : IWorkspaceProjectInputReso
             using var projectCollection = new Microsoft.Build.Evaluation.ProjectCollection();
             var project = projectCollection.LoadProject(projectPath);
 
-            return project.Imports
+            var paths = project.Imports
                 .Select(static import => import.ImportedProject?.FullPath)
                 .Where(static path => !string.IsNullOrWhiteSpace(path))
                 .OfType<string>()
                 .Select(static path => Path.GetFullPath(path))
                 .Distinct(StringComparer.Ordinal)
                 .ToArray();
+            return WorkspaceProjectInputResolution.Succeeded(paths);
         }
         catch (Exception exception) when (exception is Microsoft.Build.Exceptions.InvalidProjectFileException or IOException or UnauthorizedAccessException)
         {
-            return [];
+            return WorkspaceProjectInputResolution.Failed(projectPath, exception.Message);
         }
     }
 }

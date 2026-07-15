@@ -85,8 +85,36 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             return CreateLoadFailureResult<WorkspaceOpenOutcome>(loadedWorkspace, "loaded");
         }
 
+        var workspaceId = _sessionStore.AllocateWorkspaceId();
+        var workspaceInUse = await _instanceStatusPublisher.OpenAsync(
+            workspaceId,
+            request.WorkspaceRoot,
+            request.LoadedPath,
+            WorkspaceLifecycleState.Ready,
+            cancellationToken).ConfigureAwait(false);
+        WorkspaceInputManifest inputManifest;
+        try
+        {
+            inputManifest = _workspaceChangeDetector.BuildManifest(
+                loadedWorkspace.Solution,
+                request.LoadedPath);
+        }
+        catch
+        {
+            await _instanceStatusPublisher.CloseAsync(workspaceId).ConfigureAwait(false);
+            loadedWorkspace.Workspace.Dispose();
+            throw;
+        }
+
+        if (!inputManifest.IsComplete)
+        {
+            await _instanceStatusPublisher.CloseAsync(workspaceId).ConfigureAwait(false);
+            loadedWorkspace.Workspace.Dispose();
+            return CreateInputEvaluationFailureResult<WorkspaceOpenOutcome>(inputManifest);
+        }
+
         var session = CreateSessionSnapshot(
-            _sessionStore.AllocateWorkspaceId(),
+            workspaceId,
             request.Alias,
             loadedWorkspace.Workspace,
             loadedWorkspace.Solution,
@@ -94,17 +122,20 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             request.WorkspaceRoot,
             _sessionStore.AllocateWorkspaceEpoch(),
             loadedWorkspace.Diagnostics,
+            inputManifest,
             operationGate: null);
 
         var latestValidationError = TryRegisterSession(session, request.LoadedPath, request.Alias);
         if (latestValidationError is not null)
         {
+            await _instanceStatusPublisher.CloseAsync(workspaceId).ConfigureAwait(false);
             session.LoadedWorkspace.Dispose();
             return _resultFactory.Rejected<WorkspaceOpenOutcome>(latestValidationError);
         }
 
-        var result = await CompleteOpenAsync(session, cancellationToken).ConfigureAwait(false);
-        return result;
+        return CreateOpenSuccessResult(
+            session,
+            CreateOpenDiagnostics(session.LoadDiagnostics, workspaceInUse));
     }
 
     public ValueTask<WorkspaceOperationResult<WorkspaceOpenOutcome>> OpenAsync(
@@ -246,6 +277,15 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             return CreateLoadFailureResult<WorkspaceReloadOutcome>(loadedWorkspace, "reloaded", context);
         }
 
+        var inputManifest = _workspaceChangeDetector.BuildManifest(
+            loadedWorkspace.Solution,
+            currentSession.Workspace.LoadedPath);
+        if (!inputManifest.IsComplete)
+        {
+            loadedWorkspace.Workspace.Dispose();
+            return CreateInputEvaluationFailureResult<WorkspaceReloadOutcome>(inputManifest, context);
+        }
+
         var reloadedSession = CreateSessionSnapshot(
             currentSession.Workspace.WorkspaceId,
             currentSession.Workspace.Alias,
@@ -255,6 +295,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             currentSession.Workspace.WorkspaceRoot,
             _sessionStore.AllocateWorkspaceEpoch(),
             loadedWorkspace.Diagnostics,
+            inputManifest,
             currentSession.OperationGate);
 
         var oldSession = _sessionStore.ReadSession(acquisition.Selection.WorkspaceId);
@@ -333,30 +374,10 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         });
     }
 
-    private async ValueTask<WorkspaceOperationResult<WorkspaceOpenOutcome>> CompleteOpenAsync(
+    private WorkspaceOperationResult<WorkspaceOpenOutcome> CreateOpenSuccessResult(
         WorkspaceSessionSnapshot session,
-        CancellationToken cancellationToken)
+        IReadOnlyList<DiagnosticInfo> openDiagnostics)
     {
-        var workspaceInUse = await _instanceStatusPublisher.OpenAsync(
-            session.Workspace.WorkspaceId,
-            session.Workspace.WorkspaceRoot,
-            session.Workspace.LoadedPath,
-            session.State,
-            cancellationToken).ConfigureAwait(false);
-        session = session with
-        {
-            InputManifest = _workspaceChangeDetector.BuildManifest(session.CurrentSolution, session.Workspace.LoadedPath),
-        };
-        _sessionStore.ReplaceSession(session);
-        var openDiagnostics = workspaceInUse
-            ? session.LoadDiagnostics.Append(new DiagnosticInfo
-            {
-                Id = "WorkspaceInUse",
-                Severity = Contracts.Results.DiagnosticSeverity.Warning,
-                Message = "Another Roslyn Workbench MCP instance has this workspace open.",
-            }).ToArray()
-            : session.LoadDiagnostics;
-
         return _resultFactory.Succeeded(
             new WorkspaceOpenOutcome
             {
@@ -368,6 +389,20 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             CreateContext(session));
     }
 
+    private static IReadOnlyList<DiagnosticInfo> CreateOpenDiagnostics(
+        IReadOnlyList<DiagnosticInfo> loadDiagnostics,
+        bool workspaceInUse)
+    {
+        return workspaceInUse
+            ? loadDiagnostics.Append(new DiagnosticInfo
+            {
+                Id = "WorkspaceInUse",
+                Severity = Contracts.Results.DiagnosticSeverity.Warning,
+                Message = "Another Roslyn Workbench MCP instance has this workspace open.",
+            }).ToArray()
+            : loadDiagnostics;
+    }
+
     private WorkspaceSessionSnapshot CreateSessionSnapshot(
         string workspaceId,
         string? alias,
@@ -377,6 +412,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         string workspaceRoot,
         long workspaceEpoch,
         IReadOnlyList<DiagnosticInfo> diagnostics,
+        WorkspaceInputManifest inputManifest,
         IWorkspaceOperationGate? operationGate)
     {
         return new WorkspaceSessionSnapshot
@@ -396,7 +432,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             ProjectCount = solution.Projects.Count(),
             DocumentCount = solution.Projects.Sum(static project => project.Documents.Count()),
             LoadDiagnostics = diagnostics,
-            InputManifest = _workspaceChangeDetector.BuildManifest(solution, loadedPath),
+            InputManifest = inputManifest,
             OperationGate = operationGate ?? new WorkspaceOperationGate(_options.MaxConcurrentQueries),
         };
     }
@@ -506,6 +542,18 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
                 context: context),
             _ => throw new InvalidOperationException("The workspace load failure is not supported."),
         };
+    }
+
+    private WorkspaceOperationResult<TOutcome> CreateInputEvaluationFailureResult<TOutcome>(
+        WorkspaceInputManifest manifest,
+        WorkspaceOperationContext? context = null)
+    {
+        return _resultFactory.Faulted<TOutcome>(
+            "WorkspaceInputEvaluationFailed",
+            "The workspace inputs could not be evaluated safely.",
+            RequiredAction.Retry,
+            context,
+            WorkspaceInputEvaluationDiagnostics.Create(manifest.EvaluationFailures));
     }
 
     private static void DisposeFailedAcquisition(WorkspaceSessionAcquisition acquisition)

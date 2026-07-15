@@ -59,7 +59,7 @@ public sealed class GetSolutionStructureToolTests
             .Returns<string>(item => Path.GetFileNameWithoutExtension(item));
         projectStructureService
             .Setup(item => item.GetSolutionHierarchyAsync("/workspace/Sample.slnx", It.IsAny<CancellationToken>()))
-            .ReturnsAsync((
+            .ReturnsAsync(SolutionHierarchyResult.Succeeded(
                 (IReadOnlyList<SolutionFolderInfo>)
                 [
                     new SolutionFolderInfo
@@ -77,10 +77,10 @@ public sealed class GetSolutionStructureToolTests
                 }));
         projectStructureService
             .Setup(item => item.GetTargetFrameworks(It.Is<Project>(project => project.Name == "Main")))
-            .Returns(["net10.0"]);
+            .Returns(ProjectTargetFrameworksResult.Succeeded(["net10.0"]));
         projectStructureService
             .Setup(item => item.GetTargetFrameworks(It.Is<Project>(project => project.Name == "Referenced")))
-            .Returns(["net9.0"]);
+            .Returns(ProjectTargetFrameworksResult.Succeeded(["net9.0"]));
 
         var result = await target.ExecuteAsync(new GetSolutionStructureRequest
         {
@@ -167,12 +167,10 @@ public sealed class GetSolutionStructureToolTests
             });
         projectStructureService
             .Setup(item => item.GetSolutionHierarchyAsync("/workspace/Sample.slnx", It.IsAny<CancellationToken>()))
-            .ReturnsAsync((
-                (IReadOnlyList<SolutionFolderInfo>)[],
-                (IReadOnlyDictionary<string, string?>)new Dictionary<string, string?>(StringComparer.Ordinal)));
+            .ReturnsAsync(SolutionHierarchyResult.Succeeded());
         projectStructureService
             .Setup(item => item.GetTargetFrameworks(It.IsAny<Project>()))
-            .Returns(["net10.0"]);
+            .Returns(ProjectTargetFrameworksResult.Succeeded());
 
         var result = await target.ExecuteAsync(new GetSolutionStructureRequest
         {
@@ -181,6 +179,7 @@ public sealed class GetSolutionStructureToolTests
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Projects.Items.Should().ContainSingle();
+        result.Data.Projects.Items[0].TargetFrameworks.Should().BeEmpty();
         result.Data.Projects.Items[0].Documents.Should().NotBeNull();
         result.Data.Projects.Items[0].Documents!.Select(item => item.Path).Should().Equal("A.cs", "B.cs");
     }
@@ -272,7 +271,7 @@ public sealed class GetSolutionStructureToolTests
             });
         projectStructureService
             .Setup(item => item.GetSolutionHierarchyAsync("/workspace/Sample.slnx", It.IsAny<CancellationToken>()))
-            .ReturnsAsync((
+            .ReturnsAsync(SolutionHierarchyResult.Succeeded(
                 (IReadOnlyList<SolutionFolderInfo>)
                 [
                     new SolutionFolderInfo
@@ -286,13 +285,13 @@ public sealed class GetSolutionStructureToolTests
                 }));
         projectStructureService
             .Setup(item => item.GetTargetFrameworks(referencedA))
-            .Returns(["net8.0"]);
+            .Returns(ProjectTargetFrameworksResult.Succeeded(["net8.0"]));
         projectStructureService
             .Setup(item => item.GetTargetFrameworks(referencedB))
-            .Returns(["net9.0"]);
+            .Returns(ProjectTargetFrameworksResult.Succeeded(["net9.0"]));
         projectStructureService
             .Setup(item => item.GetTargetFrameworks(mainProject))
-            .Returns(["net10.0"]);
+            .Returns(ProjectTargetFrameworksResult.Succeeded(["net10.0"]));
 
         var result = await target.ExecuteAsync(new GetSolutionStructureRequest
         {
@@ -306,5 +305,92 @@ public sealed class GetSolutionStructureToolTests
         mainProjectResult.SolutionFolderPath.Should().Be("/src/core");
         mainProjectResult.ProjectReferences.Select(item => item.Name).Should().Equal("ReferencedB", "ReferencedA");
         mainProjectResult.Documents!.Select(item => item.Path).Should().ContainSingle().Which.Should().Be("Main.cs");
+    }
+
+    [Fact]
+    public async Task GIVEN_SolutionHierarchyCannotBeLoaded_WHEN_CallingExecuteAsync_THEN_ShouldReturnRetryableRejection()
+    {
+        var target = new GetSolutionStructureTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var projectStructureService = new Mock<IProjectStructureService>();
+        queryContextMocks.ToolExecutionServices
+            .SetupGet(item => item.ProjectStructureService)
+            .Returns(projectStructureService.Object);
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.WorkspaceIdentity)
+            .Returns(new WorkspaceIdentity
+            {
+                WorkspaceId = "WorkspaceId",
+                LoadedPath = "/workspace/Sample.slnx",
+            });
+        projectStructureService
+            .Setup(item => item.GetSolutionHierarchyAsync("/workspace/Sample.slnx", TestContext.Current.CancellationToken))
+            .ReturnsAsync(SolutionHierarchyResult.Failed("Failure"));
+
+        var result = await target.ExecuteAsync(
+            new GetSolutionStructureRequest(),
+            queryContextMocks.QueryContext.Object,
+            TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error!.Code.Should().Be("ProjectStructureUnavailable");
+        result.Error.Message.Should().Be("Failure");
+        result.RequiredAction.Should().Be(RequiredAction.Retry);
+        projectStructureService.Verify(item => item.GetTargetFrameworks(It.IsAny<Project>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_ProjectFrameworksCannotBeEvaluated_WHEN_CallingExecuteAsync_THEN_ShouldReturnRetryableRejection()
+    {
+        using var solution = RoslynTestFactory.CreateSolution(
+        [
+            new InMemoryRoslynProjectDefinition
+            {
+                Name = "Main",
+                Documents =
+                [
+                    new InMemoryRoslynDocumentDefinition
+                    {
+                        Name = "Main.cs",
+                        Source = "public class MainType { }",
+                    },
+                ],
+            },
+        ]);
+        var target = new GetSolutionStructureTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var projectStructureService = new Mock<IProjectStructureService>();
+        queryContextMocks.ToolExecutionServices
+            .SetupGet(item => item.ProjectStructureService)
+            .Returns(projectStructureService.Object);
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(solution.Solution);
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.WorkspaceIdentity)
+            .Returns(new WorkspaceIdentity
+            {
+                WorkspaceId = "WorkspaceId",
+                LoadedPath = "/workspace/Sample.slnx",
+            });
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.NormalizeProjectPath(It.IsAny<string>()))
+            .Returns<string>(item => item);
+        projectStructureService
+            .Setup(item => item.GetSolutionHierarchyAsync("/workspace/Sample.slnx", TestContext.Current.CancellationToken))
+            .ReturnsAsync(SolutionHierarchyResult.Succeeded());
+        projectStructureService
+            .Setup(item => item.GetTargetFrameworks(It.IsAny<Project>()))
+            .Returns(ProjectTargetFrameworksResult.Failed("Failure"));
+
+        var result = await target.ExecuteAsync(
+            new GetSolutionStructureRequest(),
+            queryContextMocks.QueryContext.Object,
+            TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error!.Code.Should().Be("ProjectStructureUnavailable");
+        result.Error.Message.Should().Be("Failure");
+        result.RequiredAction.Should().Be(RequiredAction.Retry);
     }
 }

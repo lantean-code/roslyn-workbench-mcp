@@ -73,7 +73,8 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
         }
 
         SetupDirectory(root + "/Project/Source");
-        _projectInputResolver.Setup(item => item.GetEvaluatedInputPaths(projectPath)).Returns([importPath]);
+        _projectInputResolver.Setup(item => item.Resolve(projectPath))
+            .Returns(WorkspaceProjectInputResolution.Succeeded([importPath]));
         _directory.Setup(item => item.EnumerateDirectories(root + "/Project", "*", SearchOption.AllDirectories)).Returns(
             [root + "/Project/Source", root + "/Project/bin", root + "/Project/obj"]);
 
@@ -105,7 +106,8 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
             filePath: "/Missing/Project.csproj"));
         SetupMissingFile("/Missing/Workspace.sln");
         SetupMissingFile("/Missing/Project.csproj");
-        _projectInputResolver.Setup(item => item.GetEvaluatedInputPaths("/Missing/Project.csproj")).Returns([]);
+        _projectInputResolver.Setup(item => item.Resolve("/Missing/Project.csproj"))
+            .Returns(WorkspaceProjectInputResolution.Succeeded());
 
         var result = _target.BuildManifest(solution, "/Missing/Workspace.sln");
 
@@ -129,7 +131,8 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
         SetupMissingFile("/Missing/Workspace.sln");
         SetupFile(projectPath);
         SetupMissingDirectory("/Workspace/Project");
-        _projectInputResolver.Setup(item => item.GetEvaluatedInputPaths(projectPath)).Returns([]);
+        _projectInputResolver.Setup(item => item.Resolve(projectPath))
+            .Returns(WorkspaceProjectInputResolution.Succeeded());
 
         var result = _target.BuildManifest(solution, "/Missing/Workspace.sln");
 
@@ -173,7 +176,8 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
             .AddDocument(DocumentId.CreateNewId(projectId), "Document.cs", SourceText.From("class Document { }"));
         SetupFile("/Workspace/Workspace.sln");
         SetupDirectory("/Workspace");
-        _projectInputResolver.Setup(item => item.GetEvaluatedInputPaths(null)).Returns([]);
+        _projectInputResolver.Setup(item => item.Resolve(null))
+            .Returns(WorkspaceProjectInputResolution.Succeeded());
 
         var result = _target.BuildManifest(solution, "/Workspace/Workspace.sln");
 
@@ -184,6 +188,37 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
     public void GIVEN_NullManifest_WHEN_CheckingForChanges_THEN_ShouldReportNoChange()
     {
         _target.HasChanged(null!, TestContext.Current.CancellationToken).Should().BeFalse();
+    }
+
+    [Fact]
+    public void GIVEN_ProjectInputEvaluationFailure_WHEN_BuildingManifest_THEN_ShouldRetainFailureAndReportChange()
+    {
+        const string projectPath = "/Workspace/Project.csproj";
+        var projectId = ProjectId.CreateNewId();
+        var solution = _workspace.CurrentSolution.AddProject(ProjectInfo.Create(
+            projectId,
+            VersionStamp.Create(),
+            "Project",
+            "Project",
+            LanguageNames.CSharp,
+            filePath: projectPath));
+        SetupFile("/Workspace/Workspace.sln");
+        SetupFile(projectPath);
+        SetupDirectory("/Workspace");
+        _directory.Setup(item => item.EnumerateDirectories("/Workspace", "*", SearchOption.AllDirectories)).Returns([]);
+        _projectInputResolver.Setup(item => item.Resolve(projectPath))
+            .Returns(WorkspaceProjectInputResolution.Failed(projectPath, "Message"));
+
+        var manifest = _target.BuildManifest(solution, "/Workspace/Workspace.sln");
+        var hasChanged = _target.HasChanged(manifest, TestContext.Current.CancellationToken);
+
+        manifest.IsComplete.Should().BeFalse();
+        manifest.EvaluationFailures.Should().ContainSingle().Which.Should().BeEquivalentTo(new WorkspaceProjectInputFailure
+        {
+            ProjectPath = projectPath,
+            Message = "Message",
+        });
+        hasChanged.Should().BeTrue();
     }
 
     [Fact]

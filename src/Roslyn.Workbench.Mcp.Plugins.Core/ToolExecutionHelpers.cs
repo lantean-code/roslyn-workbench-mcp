@@ -43,6 +43,11 @@ internal static class ToolExecutionHelpers
         }, requiredAction);
     }
 
+    public static PluginExecutionResult<T> RejectProjectStructureFailure<T>(string message)
+    {
+        return Rejected<T>("ProjectStructureUnavailable", message, RequiredAction.Retry);
+    }
+
     public static SymbolSelector? CreateSourceSymbolSelector(ISymbol symbol, IWorkspaceResolver resolver)
     {
         var sourceLocation = symbol.Locations.FirstOrDefault(static location => location.IsInSource);

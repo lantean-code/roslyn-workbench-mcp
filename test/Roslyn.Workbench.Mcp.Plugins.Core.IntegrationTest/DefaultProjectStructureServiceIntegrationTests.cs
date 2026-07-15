@@ -1,3 +1,5 @@
+using Microsoft.CodeAnalysis;
+
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test;
 
 public sealed class DefaultProjectStructureServiceIntegrationTests
@@ -9,6 +11,7 @@ public sealed class DefaultProjectStructureServiceIntegrationTests
 
         var result = await target.GetSolutionHierarchyAsync(null, TestContext.Current.CancellationToken);
 
+        result.IsSucceeded.Should().BeTrue();
         result.Folders.Should().BeEmpty();
         result.ProjectFolderPaths.Should().BeEmpty();
     }
@@ -26,6 +29,7 @@ public sealed class DefaultProjectStructureServiceIntegrationTests
 
             var result = await target.GetSolutionHierarchyAsync(solutionPath, TestContext.Current.CancellationToken);
 
+            result.IsSucceeded.Should().BeTrue();
             result.Folders.Should().BeEmpty();
             result.ProjectFolderPaths.Should().BeEmpty();
         }
@@ -36,7 +40,7 @@ public sealed class DefaultProjectStructureServiceIntegrationTests
     }
 
     [Fact]
-    public async Task GIVEN_InvalidSolutionContent_WHEN_GettingSolutionHierarchy_THEN_ShouldReturnEmpty()
+    public async Task GIVEN_InvalidSolutionContent_WHEN_GettingSolutionHierarchy_THEN_ShouldReturnFailure()
     {
         var target = new DefaultProjectStructureService();
         var directoryPath = CreateDirectoryPath();
@@ -48,8 +52,8 @@ public sealed class DefaultProjectStructureServiceIntegrationTests
 
             var result = await target.GetSolutionHierarchyAsync(solutionPath, TestContext.Current.CancellationToken);
 
-            result.Folders.Should().BeEmpty();
-            result.ProjectFolderPaths.Should().BeEmpty();
+            result.IsSucceeded.Should().BeFalse();
+            result.ErrorMessage.Should().Contain(solutionPath);
         }
         finally
         {
@@ -70,6 +74,7 @@ public sealed class DefaultProjectStructureServiceIntegrationTests
 
             var result = await target.GetSolutionHierarchyAsync(solutionPath, TestContext.Current.CancellationToken);
 
+            result.IsSucceeded.Should().BeTrue();
             result.Folders.Should().BeEquivalentTo(
             [
                 new { Name = "src", Path = "src", ParentPath = (string?)null },
@@ -97,6 +102,7 @@ public sealed class DefaultProjectStructureServiceIntegrationTests
 
             var result = await target.GetSolutionHierarchyAsync(solutionPath, TestContext.Current.CancellationToken);
 
+            result.IsSucceeded.Should().BeTrue();
             result.Folders.Should().BeEquivalentTo(
             [
                 new { Name = "src", Path = "src", ParentPath = (string?)null },
@@ -139,12 +145,147 @@ public sealed class DefaultProjectStructureServiceIntegrationTests
 
             var result = target.GetTargetFrameworks(projectPath);
 
-            result.Should().Equal("net10.0", "net9.0");
+            result.IsSucceeded.Should().BeTrue();
+            result.TargetFrameworks.Should().Equal("net10.0", "net9.0");
         }
         finally
         {
             DeleteDirectory(directoryPath);
         }
+    }
+
+    [Fact]
+    public async Task GIVEN_MissingSolutionFile_WHEN_GettingSolutionHierarchy_THEN_ShouldReturnFailure()
+    {
+        var target = new DefaultProjectStructureService();
+        var directoryPath = CreateDirectoryPath();
+        var solutionPath = Path.Combine(directoryPath, "Missing.slnx");
+
+        try
+        {
+            var result = await target.GetSolutionHierarchyAsync(solutionPath, TestContext.Current.CancellationToken);
+
+            result.IsSucceeded.Should().BeFalse();
+            result.ErrorMessage.Should().Contain(solutionPath);
+        }
+        finally
+        {
+            DeleteDirectory(directoryPath);
+        }
+    }
+
+    [Fact]
+    public async Task GIVEN_CancelledToken_WHEN_GettingSolutionHierarchy_THEN_ShouldPropagateCancellation()
+    {
+        var target = new DefaultProjectStructureService();
+        var directoryPath = CreateDirectoryPath();
+
+        try
+        {
+            var solutionPath = Path.Combine(directoryPath, "Sample.slnx");
+            await File.WriteAllTextAsync(solutionPath, CreateSlnxContent(), TestContext.Current.CancellationToken);
+            using var cancellationSource = new CancellationTokenSource();
+            cancellationSource.Cancel();
+
+            var action = async () => await target.GetSolutionHierarchyAsync(solutionPath, cancellationSource.Token);
+
+            await action.Should().ThrowAsync<OperationCanceledException>();
+        }
+        finally
+        {
+            DeleteDirectory(directoryPath);
+        }
+    }
+
+    [Fact]
+    public void GIVEN_MissingProjectFile_WHEN_GettingTargetFrameworks_THEN_ShouldReturnFailure()
+    {
+        var target = new DefaultProjectStructureService();
+        var projectPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("n"), "Missing.csproj");
+
+        var result = target.GetTargetFrameworks(projectPath);
+
+        result.IsSucceeded.Should().BeFalse();
+        result.ErrorMessage.Should().Contain(projectPath);
+    }
+
+    [Fact]
+    public void GIVEN_MalformedProject_WHEN_GettingTargetFrameworks_THEN_ShouldReturnFailure()
+    {
+        var target = new DefaultProjectStructureService();
+        var directoryPath = CreateDirectoryPath();
+
+        try
+        {
+            var projectPath = Path.Combine(directoryPath, "Malformed.csproj");
+            File.WriteAllText(projectPath, "<Project><PropertyGroup>");
+
+            var result = target.GetTargetFrameworks(projectPath);
+
+            result.IsSucceeded.Should().BeFalse();
+            result.ErrorMessage.Should().Contain(projectPath);
+        }
+        finally
+        {
+            DeleteDirectory(directoryPath);
+        }
+    }
+
+    [Fact]
+    public void GIVEN_ProjectWithoutTargetFramework_WHEN_GettingTargetFrameworks_THEN_ShouldReturnSuccessfulEmptyResult()
+    {
+        var target = new DefaultProjectStructureService();
+        var directoryPath = CreateDirectoryPath();
+
+        try
+        {
+            var projectPath = Path.Combine(directoryPath, "Sample.csproj");
+            File.WriteAllText(projectPath, "<Project />");
+
+            var result = target.GetTargetFrameworks(projectPath);
+
+            result.IsSucceeded.Should().BeTrue();
+            result.TargetFrameworks.Should().BeEmpty();
+        }
+        finally
+        {
+            DeleteDirectory(directoryPath);
+        }
+    }
+
+    [Fact]
+    public void GIVEN_ProjectWithSingleTargetFramework_WHEN_GettingTargetFrameworks_THEN_ShouldReturnEvaluatedValue()
+    {
+        var target = new DefaultProjectStructureService();
+        var directoryPath = CreateDirectoryPath();
+
+        try
+        {
+            var projectPath = Path.Combine(directoryPath, "Sample.csproj");
+            File.WriteAllText(projectPath, "<Project><PropertyGroup><TargetFramework> net10.0 </TargetFramework></PropertyGroup></Project>");
+
+            var result = target.GetTargetFrameworks(projectPath);
+
+            result.IsSucceeded.Should().BeTrue();
+            result.TargetFrameworks.Should().ContainSingle().Which.Should().Be("net10.0");
+        }
+        finally
+        {
+            DeleteDirectory(directoryPath);
+        }
+    }
+
+    [Fact]
+    public void GIVEN_ProjectWithoutFilePath_WHEN_GettingTargetFrameworks_THEN_ShouldReturnSuccessfulEmptyResult()
+    {
+        using var workspace = new AdhocWorkspace();
+        var project = workspace.AddProject("Project", LanguageNames.CSharp);
+        var target = new DefaultProjectStructureService();
+
+        var result = target.GetTargetFrameworks(project);
+
+        result.IsSucceeded.Should().BeTrue();
+        result.TargetFrameworks.Should().BeEmpty();
     }
 
     private static string CreateDirectoryPath()

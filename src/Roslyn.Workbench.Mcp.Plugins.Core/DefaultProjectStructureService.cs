@@ -4,16 +4,22 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core;
 
 internal sealed class DefaultProjectStructureService : IProjectStructureService
 {
-    public IReadOnlyList<string> GetTargetFrameworks(Project project)
+    public ProjectTargetFrameworksResult GetTargetFrameworks(Project project)
     {
         return GetTargetFrameworks(project.FilePath);
     }
 
-    public IReadOnlyList<string> GetTargetFrameworks(string? projectPath)
+    public ProjectTargetFrameworksResult GetTargetFrameworks(string? projectPath)
     {
-        if (string.IsNullOrWhiteSpace(projectPath) || !File.Exists(projectPath))
+        if (string.IsNullOrWhiteSpace(projectPath))
         {
-            return [];
+            return ProjectTargetFrameworksResult.Succeeded();
+        }
+
+        if (!File.Exists(projectPath))
+        {
+            return ProjectTargetFrameworksResult.Failed(
+                $"Could not evaluate target frameworks because project file '{projectPath}' does not exist.");
         }
 
         try
@@ -23,36 +29,47 @@ internal sealed class DefaultProjectStructureService : IProjectStructureService
             var multipleTargetFrameworks = project.GetPropertyValue("TargetFrameworks");
             if (!string.IsNullOrWhiteSpace(multipleTargetFrameworks))
             {
-                return multipleTargetFrameworks
+                var evaluatedMultipleTargetFrameworks = multipleTargetFrameworks
                     .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                     .Where(static value => !string.IsNullOrWhiteSpace(value))
                     .ToArray();
+                return ProjectTargetFrameworksResult.Succeeded(evaluatedMultipleTargetFrameworks);
             }
 
             var singleTargetFramework = project.GetPropertyValue("TargetFramework");
-            return string.IsNullOrWhiteSpace(singleTargetFramework)
+            var evaluatedSingleTargetFramework = string.IsNullOrWhiteSpace(singleTargetFramework)
                 ? []
-                : [singleTargetFramework.Trim()];
+                : new[] { singleTargetFramework.Trim() };
+            return ProjectTargetFrameworksResult.Succeeded(evaluatedSingleTargetFramework);
         }
-        catch
+        catch (Exception exception) when (exception is Microsoft.Build.Exceptions.InvalidProjectFileException or IOException or UnauthorizedAccessException)
         {
-            return [];
+            return ProjectTargetFrameworksResult.Failed(
+                $"Could not evaluate target frameworks for '{projectPath}': {exception.Message}");
         }
     }
 
-    public async Task<(IReadOnlyList<SolutionFolderInfo> Folders, IReadOnlyDictionary<string, string?> ProjectFolderPaths)> GetSolutionHierarchyAsync(
+    public async Task<SolutionHierarchyResult> GetSolutionHierarchyAsync(
         string? loadedPath,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(loadedPath) || !File.Exists(loadedPath))
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (string.IsNullOrWhiteSpace(loadedPath))
         {
-            return EmptyHierarchy();
+            return SolutionHierarchyResult.Succeeded();
+        }
+
+        if (!File.Exists(loadedPath))
+        {
+            return SolutionHierarchyResult.Failed(
+                $"Could not load solution hierarchy because workspace file '{loadedPath}' does not exist.");
         }
 
         var serializer = SolutionSerializers.GetSerializerByMoniker(loadedPath);
         if (serializer is null)
         {
-            return EmptyHierarchy();
+            return SolutionHierarchyResult.Succeeded();
         }
 
         try
@@ -67,21 +84,13 @@ internal sealed class DefaultProjectStructureService : IProjectStructureService
                 static project => project.Parent is not null ? NormalizeFolderPath(project.Parent.Path) : null,
                 StringComparer.Ordinal);
 
-            return (folders, projectFolderPaths);
+            return SolutionHierarchyResult.Succeeded(folders, projectFolderPaths);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (Exception exception) when (exception is Microsoft.VisualStudio.SolutionPersistence.Model.SolutionException or System.Xml.XmlException or IOException or UnauthorizedAccessException)
         {
-            throw;
+            return SolutionHierarchyResult.Failed(
+                $"Could not load solution hierarchy for '{loadedPath}': {exception.Message}");
         }
-        catch
-        {
-            return EmptyHierarchy();
-        }
-    }
-
-    private static (IReadOnlyList<SolutionFolderInfo> Folders, IReadOnlyDictionary<string, string?> ProjectFolderPaths) EmptyHierarchy()
-    {
-        return ([], new Dictionary<string, string?>(StringComparer.Ordinal));
     }
 
     private static SolutionFolderInfo CreateSolutionFolderInfo(SolutionFolderModel folder)
@@ -95,18 +104,14 @@ internal sealed class DefaultProjectStructureService : IProjectStructureService
         };
     }
 
-    private static string NormalizeFolderPath(string? path)
+    private static string NormalizeFolderPath(string path)
     {
-        return string.IsNullOrWhiteSpace(path)
-            ? string.Empty
-            : path.Replace('\\', '/').Trim('/').Trim();
+        return path.Replace('\\', '/').Trim('/').Trim();
     }
 
-    private static string NormalizeRelativeProjectPath(string? path)
+    private static string NormalizeRelativeProjectPath(string path)
     {
-        return string.IsNullOrWhiteSpace(path)
-            ? string.Empty
-            : path.Replace('\\', '/').Trim();
+        return path.Replace('\\', '/').Trim();
     }
 
     private static string GetFolderName(string folderPath)

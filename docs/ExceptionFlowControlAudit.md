@@ -46,6 +46,18 @@ Completed remediation on 2026-07-14 covers every confirmed violation family:
   registration and owns its cached status as a DI singleton rather than through
   a separate static state holder. The filtered catch remains only for an
   external registration race between the check and `RegisterDefaults`.
+- `WorkspaceProjectInputResolver` now returns an explicit evaluation result
+  instead of converting MSBuild, I/O and access failures into an empty input
+  list. Open and reload return a retryable Workspace fault before registering
+  an incomplete session. A failure discovered after a durable commit retains
+  the committed solution, publishes diagnostics and marks the session out of
+  date.
+- `DefaultProjectStructureService` now distinguishes successful empty metadata
+  from project or solution evaluation failure. Its public plugin service returns
+  explicit target-framework and hierarchy results; the bundled inspection tools
+  map failures to retryable `ProjectStructureUnavailable` rejections. The
+  remaining catches are limited to genuine MSBuild, solution-format, XML,
+  filesystem and access exceptions.
 
 ## Remaining Confirmed Violations
 
@@ -69,12 +81,6 @@ No confirmed exception-for-flow-control violations remain from this audit.
 The following are not exception-for-flow-control violations, but the audit found
 that they warrant a separate error-reporting review:
 
-- `DefaultProjectStructureService` catches every non-cancellation exception and
-  returns empty framework or hierarchy data. This can make an evaluation failure
-  indistinguishable from a project with no data.
-- `WorkspaceProjectInputResolver` converts MSBuild, I/O and access failures into
-  an empty input list. That can weaken change detection without surfacing why
-  evaluated inputs were unavailable.
 - Several best-effort recovery and advisory-status paths intentionally suppress
   I/O failures. Their behaviour is defensible, but each silent catch should be
   retained only where the caller has no actionable result channel and the

@@ -16,8 +16,13 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
         }
 
         var project = projectResolution.Value;
-        var compilation = await project.GetCompilationAsync(cancellationToken).ConfigureAwait(false);
         var targetFrameworks = context.ToolExecutionServices.ProjectStructureService.GetTargetFrameworks(project);
+        if (!targetFrameworks.IsSucceeded)
+        {
+            return ToolExecutionHelpers.RejectProjectStructureFailure<ProjectDetailsData>(targetFrameworks.ErrorMessage);
+        }
+
+        var compilation = await project.GetCompilationAsync(cancellationToken).ConfigureAwait(false);
         var documents = request.IncludeDocuments
             ? project.Documents
                 .OrderBy(document => context.WorkspaceResolver.NormalizeDocumentPath(document.FilePath ?? document.Name), StringComparer.Ordinal)
@@ -43,7 +48,7 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
 
         return PluginExecutionResult<ProjectDetailsData>.Success(new ProjectDetailsData
         {
-            Project = InspectionProjectionFactory.CreateProjectInfo(project, context.WorkspaceResolver, targetFrameworks),
+            Project = InspectionProjectionFactory.CreateProjectInfo(project, context.WorkspaceResolver, targetFrameworks.TargetFrameworks),
             Documents = documents is null
                 ? null
                 : ToolExecutionHelpers.CreateBoundedCollection(

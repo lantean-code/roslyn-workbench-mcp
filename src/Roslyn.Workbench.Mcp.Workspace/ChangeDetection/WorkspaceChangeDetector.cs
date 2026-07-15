@@ -17,6 +17,7 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
 
         var files = new Dictionary<string, WorkspaceInputFileFingerprint>(StringComparer.Ordinal);
         var directories = new Dictionary<string, WorkspaceInputDirectoryFingerprint>(StringComparer.Ordinal);
+        var evaluationFailures = new List<WorkspaceProjectInputFailure>();
 
         AddFile(files, directories, loadedPath);
 
@@ -40,7 +41,14 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
                 AddFile(files, directories, metadataReference.FilePath);
             }
 
-            foreach (var importPath in _projectInputResolver.GetEvaluatedInputPaths(project.FilePath))
+            var inputResolution = _projectInputResolver.Resolve(project.FilePath);
+            if (!inputResolution.IsSucceeded)
+            {
+                evaluationFailures.Add(inputResolution.Failure);
+                continue;
+            }
+
+            foreach (var importPath in inputResolution.Paths)
             {
                 AddFile(files, directories, importPath);
             }
@@ -49,6 +57,7 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
         return new WorkspaceInputManifest
         {
             Directories = directories.Values.ToArray(),
+            EvaluationFailures = evaluationFailures,
             Files = files.Values.ToArray(),
         };
     }
@@ -58,6 +67,11 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
         if (manifest is null)
         {
             return false;
+        }
+
+        if (!manifest.IsComplete)
+        {
+            return true;
         }
 
         foreach (var directory in manifest.Directories)

@@ -220,6 +220,56 @@ public sealed class TransactionCommitServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GIVEN_InputEvaluationFailureAfterApplyingCommit_WHEN_Committing_THEN_ShouldMarkCommittedWorkspaceOutOfDate()
+    {
+        var session = CreateSession();
+        var transaction = session.Transaction!;
+        var manifest = CreateManifest();
+        var plan = new WorkspaceCommitPlan(manifest, new Dictionary<string, ReadOnlyMemory<byte>>());
+        var inputManifest = new WorkspaceInputManifest
+        {
+            EvaluationFailures =
+            [
+                new WorkspaceProjectInputFailure
+                {
+                    ProjectPath = "/workspace/project.csproj",
+                    Message = "Evaluation failed.",
+                },
+            ],
+        };
+        var expected = CreateResult(WorkspaceOperationStatus.Succeeded);
+        SetupProtocol(session, plan);
+        _changeDetector.Setup(item => item.BuildManifest(transaction.CurrentSolution, "/workspace/solution.slnx"))
+            .Returns(inputManifest);
+        _stateTransitions.Setup(item => item.ApplyExternalChangeDetected(It.Is<WorkspaceSessionSnapshot>(value =>
+                value.State == WorkspaceLifecycleState.Ready
+                && value.Transaction == null
+                && value.CurrentSolution == transaction.CurrentSolution
+                && value.InputManifest == inputManifest
+                && value.LoadDiagnostics.Count == 1
+                && value.LoadDiagnostics[0].Id == "WorkspaceInputEvaluationFailed")))
+            .Returns((WorkspaceSessionSnapshot value) => value with { State = WorkspaceLifecycleState.WorkspaceOutOfDate });
+        _resultFactory.Setup(item => item.Succeeded(
+            It.Is<TransactionCommitOutcome>(outcome => outcome.Committed),
+            It.IsAny<WorkspaceOperationContext>(),
+            null,
+            null)).Returns(expected);
+
+        var result = await _target.CommitAsync(CreateSelection(session), null, TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _sessionStore.Verify(item => item.ReplaceSessionAndSetTransactionOwner(
+            It.Is<WorkspaceSessionSnapshot>(value =>
+                value.State == WorkspaceLifecycleState.WorkspaceOutOfDate
+                && value.Transaction == null
+                && value.CurrentSolution == transaction.CurrentSolution
+                && value.InputManifest == inputManifest
+                && value.LoadDiagnostics.Count == 1
+                && value.LoadDiagnostics[0].Id == "WorkspaceInputEvaluationFailed"),
+            null), Times.Once);
+    }
+
+    [Fact]
     public async Task GIVEN_ApplyFailure_WHEN_Committing_THEN_ShouldRestoreNonCancellablyAndReturnRetryableFault()
     {
         var session = CreateSession();

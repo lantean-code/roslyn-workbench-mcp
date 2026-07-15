@@ -1,6 +1,6 @@
 # Tool Test Inventory
 
-Date: 2026-07-10
+Date: 2026-07-15
 
 ## Purpose
 
@@ -60,7 +60,7 @@ All four Host adapter families now have focused unit evidence without moving MCP
 | Capability or boundary | Integration suite | Representative coverage |
 | --- | --- | --- |
 | Workspace projection | `WorkspaceProjectionIntegrationTests` | Solution structure, project details and document options through a real workspace |
-| Default project structure | `DefaultProjectStructureServiceIntegrationTests` | Real default project-selection behaviour |
+| Default project structure | `DefaultProjectStructureServiceIntegrationTests` | Real MSBuild target-framework and solution-hierarchy success, empty, malformed, missing and cancellation outcomes; consuming tool unit tests cover retryable failure mapping |
 | Semantic inspection | `SemanticInspectionIntegrationTests` | Diagnostics, operation trees and control-flow behaviour |
 | Cross-project search | `SolutionSearchIntegrationTests` | Implementations, references, callers, derived types and dependency relationships |
 | Selector and snapshot semantics | `SelectorAndSnapshotIntegrationTests` | Resolution, search, metadata, bounded results and stale snapshots |

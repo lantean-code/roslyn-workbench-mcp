@@ -39,6 +39,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         _resultFactory = new Mock<IWorkspaceOperationResultFactory>();
         _recoveryStore = new Mock<ICommitRecoveryStore>();
         _instanceStatusPublisher = new Mock<IWorkspaceInstanceStatusPublisher>();
+        _sessionStore.Setup(item => item.AllocateWorkspaceId()).Returns("WorkspaceId");
         _instanceStatusPublisher
             .Setup(item => item.GetOtherLiveInstancesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
@@ -376,6 +377,93 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
                 && session.Workspace.WorkspaceRoot == "/workspace"
                 && session.OperationGate is WorkspaceOperationGate),
             It.IsAny<Func<WorkspaceHostSnapshot, WorkspaceOperationError?>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_OtherLiveInstance_WHEN_OpeningWorkspace_THEN_ShouldReturnWarningWithoutPersistingIt()
+    {
+        var loadedWorkspace = new Mock<ILoadedWorkspace>();
+        var solution = CreateSolutionWithProject("/workspace/Project.csproj");
+        var expected = CreateResult<WorkspaceOpenOutcome>();
+        SetupOpenPreflight("/workspace/New.sln", alias: null);
+        SetupLoadedWorkspace("/workspace/New.sln", solution, loadedWorkspace);
+        _instanceStatusPublisher.Setup(item => item.OpenAsync(
+            "WorkspaceId",
+            "/workspace",
+            "/workspace/New.sln",
+            WorkspaceLifecycleState.Ready,
+            TestContext.Current.CancellationToken)).ReturnsAsync(true);
+        _resultFactory.Setup(item => item.Succeeded(
+            It.Is<WorkspaceOpenOutcome>(outcome =>
+                outcome.LoadDiagnostics.Count == 1
+                && outcome.LoadDiagnostics[0].Id == "WorkspaceInUse"),
+            It.IsAny<WorkspaceOperationContext>(),
+            null,
+            null)).Returns(expected);
+
+        var result = await _target.OpenAsync("Path", null, TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _sessionStore.Verify(item => item.TryAddWorkspace(
+            It.Is<WorkspaceSessionSnapshot>(session => session.LoadDiagnostics.Count == 0),
+            It.IsAny<Func<WorkspaceHostSnapshot, WorkspaceOperationError?>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_ProjectInputsCannotBeEvaluated_WHEN_OpeningWorkspace_THEN_ShouldDisposeAndReturnFault()
+    {
+        var loadedWorkspace = new Mock<ILoadedWorkspace>();
+        var solution = CreateSolutionWithProject("/workspace/Project.csproj");
+        var manifest = CreateIncompleteManifest("/workspace/Project.csproj");
+        var expected = CreateResult<WorkspaceOpenOutcome>();
+        SetupOpenPreflight("/workspace/New.sln", alias: null);
+        SetupLoadedWorkspace("/workspace/New.sln", solution, loadedWorkspace);
+        _changeDetector.Setup(item => item.BuildManifest(solution, "/workspace/New.sln")).Returns(manifest);
+        _resultFactory.Setup(item => item.Faulted<WorkspaceOpenOutcome>(
+            "WorkspaceInputEvaluationFailed",
+            It.IsAny<string>(),
+            RequiredAction.Retry,
+            null,
+            It.Is<IReadOnlyList<DiagnosticInfo>>(diagnostics =>
+                diagnostics.Count == 1
+                && diagnostics[0].Id == "WorkspaceInputEvaluationFailed"
+                && diagnostics[0].Message.Contains("/workspace/Project.csproj", StringComparison.Ordinal)),
+            null)).Returns(expected);
+
+        var result = await _target.OpenAsync("Path", null, TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        loadedWorkspace.Verify(item => item.Dispose(), Times.Once);
+        _sessionStore.Verify(item => item.TryAddWorkspace(
+            It.IsAny<WorkspaceSessionSnapshot>(),
+            It.IsAny<Func<WorkspaceHostSnapshot, WorkspaceOperationError?>>()), Times.Never);
+        _instanceStatusPublisher.Verify(item => item.OpenAsync(
+            "WorkspaceId",
+            "/workspace",
+            "/workspace/New.sln",
+            WorkspaceLifecycleState.Ready,
+            TestContext.Current.CancellationToken), Times.Once);
+        _instanceStatusPublisher.Verify(item => item.CloseAsync("WorkspaceId"), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_UnexpectedManifestFailure_WHEN_OpeningWorkspace_THEN_ShouldCleanUpAndPropagateFailure()
+    {
+        var loadedWorkspace = new Mock<ILoadedWorkspace>();
+        var solution = CreateSolutionWithProject("/workspace/Project.csproj");
+        SetupOpenPreflight("/workspace/New.sln", alias: null);
+        SetupLoadedWorkspace("/workspace/New.sln", solution, loadedWorkspace);
+        _changeDetector.Setup(item => item.BuildManifest(solution, "/workspace/New.sln"))
+            .Throws(new InvalidOperationException("Failure"));
+
+        var action = async () => await _target.OpenAsync("Path", null, TestContext.Current.CancellationToken);
+
+        await action.Should().ThrowAsync<InvalidOperationException>().WithMessage("Failure");
+        _instanceStatusPublisher.Verify(item => item.CloseAsync("WorkspaceId"), Times.Once);
+        loadedWorkspace.Verify(item => item.Dispose(), Times.Once);
+        _sessionStore.Verify(item => item.TryAddWorkspace(
+            It.IsAny<WorkspaceSessionSnapshot>(),
+            It.IsAny<Func<WorkspaceHostSnapshot, WorkspaceOperationError?>>()), Times.Never);
     }
 
     [Fact]
@@ -906,6 +994,41 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GIVEN_ProjectInputsCannotBeEvaluated_WHEN_ReloadingWorkspace_THEN_ShouldRetainOldSessionAndReturnFault()
+    {
+        var operationLease = new Mock<IWorkspaceOperationLease>();
+        var gate = new Mock<IWorkspaceOperationGate>();
+        var oldWorkspace = new Mock<ILoadedWorkspace>();
+        var newWorkspace = new Mock<ILoadedWorkspace>();
+        var solution = CreateSolutionWithProject("/workspace/Project.csproj");
+        var session = CreateSession("WorkspaceId", "/workspace/Solution.sln", alias: null, transaction: null) with
+        {
+            OperationGate = gate.Object,
+            LoadedWorkspace = oldWorkspace.Object,
+            State = WorkspaceLifecycleState.WorkspaceOutOfDate,
+        };
+        var manifest = CreateIncompleteManifest("/workspace/Project.csproj");
+        var expected = CreateResult<WorkspaceReloadOutcome>();
+        SetupSelectedSession(session, gate, operationLease, exclusive: true);
+        SetupLoadedWorkspace("/workspace/Solution.sln", solution, newWorkspace);
+        _changeDetector.Setup(item => item.BuildManifest(solution, "/workspace/Solution.sln")).Returns(manifest);
+        _resultFactory.Setup(item => item.Faulted<WorkspaceReloadOutcome>(
+            "WorkspaceInputEvaluationFailed",
+            It.IsAny<string>(),
+            RequiredAction.Retry,
+            It.IsAny<WorkspaceOperationContext>(),
+            It.Is<IReadOnlyList<DiagnosticInfo>>(diagnostics => diagnostics.Count == 1),
+            null)).Returns(expected);
+
+        var result = await _target.ReloadAsync(null, null, null, TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        newWorkspace.Verify(item => item.Dispose(), Times.Once);
+        oldWorkspace.Verify(item => item.Dispose(), Times.Never);
+        _sessionStore.Verify(item => item.ReplaceSession(It.IsAny<WorkspaceSessionSnapshot>()), Times.Never);
+    }
+
+    [Fact]
     public async Task GIVEN_OldSessionDisappearsAfterReload_WHEN_Reloading_THEN_ShouldStillStoreReloadedSession()
     {
         var operationLease = new Mock<IWorkspaceOperationLease>();
@@ -1022,6 +1145,21 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             RequiredAction = code == WorkspaceErrorCodes.WorkspaceBusy
                 ? RequiredAction.Retry
                 : RequiredAction.OpenWorkspace,
+        };
+    }
+
+    private static WorkspaceInputManifest CreateIncompleteManifest(string projectPath)
+    {
+        return new WorkspaceInputManifest
+        {
+            EvaluationFailures =
+            [
+                new WorkspaceProjectInputFailure
+                {
+                    ProjectPath = projectPath,
+                    Message = "Message",
+                },
+            ],
         };
     }
 

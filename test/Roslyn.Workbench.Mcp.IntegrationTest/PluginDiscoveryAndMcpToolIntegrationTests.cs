@@ -17,8 +17,8 @@ public sealed class PluginDiscoveryAndMcpToolIntegrationTests
             typeof(ValidQueryTestPlugin).Assembly);
 
         var startupOptions = CreateStartupOptions(pluginDirectory);
-        var loader = PluginCatalogComposition.CreateLoader();
-        var snapshot = loader.Load(startupOptions, []);
+        var bootstrap = new PluginCatalogBootstrap();
+        var snapshot = bootstrap.Load(startupOptions, []);
 
         var tools = snapshot.Tools;
         var plugins = snapshot.Plugins;
@@ -41,8 +41,8 @@ public sealed class PluginDiscoveryAndMcpToolIntegrationTests
             DefaultMaxResults = 100,
             ToolOutputSchemaMode = ToolOutputSchemaMode.Full,
         };
-        var loader = PluginCatalogComposition.CreateLoader();
-        var snapshot = loader.Load(startupOptions, []);
+        var bootstrap = new PluginCatalogBootstrap();
+        var snapshot = bootstrap.Load(startupOptions, []);
         var serverTool = PluginToolTestHarness.CreateServerTool(
             CreateExecutionContextFactory(),
             new PluginToolCatalogue(snapshot.Tools),
@@ -80,8 +80,8 @@ public sealed class PluginDiscoveryAndMcpToolIntegrationTests
     public async Task GIVEN_PackagedMutationPlugin_WHEN_InvokingThroughMcp_THEN_ShouldExecuteAndStageProposal()
     {
         var pluginDirectory = CreatePluginDirectory(typeof(HostValidMutationPlugin).Assembly);
-        var loader = PluginCatalogComposition.CreateLoader();
-        var snapshot = loader.Load(CreateStartupOptions(pluginDirectory), []);
+        var bootstrap = new PluginCatalogBootstrap();
+        var snapshot = bootstrap.Load(CreateStartupOptions(pluginDirectory), []);
         using var workspace = new AdhocWorkspace();
         var serverTool = PluginToolTestHarness.CreateServerTool(
             CreateMutationExecutionContextFactory(workspace.CurrentSolution),
@@ -105,9 +105,9 @@ public sealed class PluginDiscoveryAndMcpToolIntegrationTests
     public void GIVEN_PluginToolCollidesWithReservedCodeActionName_WHEN_LoadingCatalog_THEN_ShouldDisablePluginWithDiagnostic()
     {
         var pluginDirectory = CreatePluginDirectory(typeof(HostValidQueryPlugin).Assembly);
-        var loader = PluginCatalogComposition.CreateLoader();
+        var bootstrap = new PluginCatalogBootstrap();
 
-        var snapshot = loader.Load(
+        var snapshot = bootstrap.Load(
             CreateStartupOptions(pluginDirectory),
             [],
             ["host-valid-query"]);
@@ -127,9 +127,9 @@ public sealed class PluginDiscoveryAndMcpToolIntegrationTests
         var pluginDirectory = CreatePluginDirectory(
             typeof(HostValidQueryPlugin).Assembly,
             typeof(HostValidQueryPlugin).Assembly);
-        var loader = PluginCatalogComposition.CreateLoader();
+        var bootstrap = new PluginCatalogBootstrap();
 
-        var snapshot = loader.Load(CreateStartupOptions(pluginDirectory), []);
+        var snapshot = bootstrap.Load(CreateStartupOptions(pluginDirectory), []);
 
         snapshot.Tools.Should().BeEmpty();
         snapshot.Plugins.Should().HaveCount(2);
@@ -144,9 +144,9 @@ public sealed class PluginDiscoveryAndMcpToolIntegrationTests
     [Fact]
     public void GIVEN_NoExternalPluginDirectory_WHEN_LoadingBundledCore_THEN_ShouldComposeBundledCatalogueInDefaultContext()
     {
-        var loader = PluginCatalogComposition.CreateLoader();
+        var bootstrap = new PluginCatalogBootstrap();
 
-        var snapshot = loader.Load(new StartupOptions(), [typeof(BundledCorePlugin).Assembly]);
+        var snapshot = bootstrap.Load(new StartupOptions(), [typeof(BundledCorePlugin).Assembly]);
 
         snapshot.Tools.Should().HaveCount(41);
         snapshot.Plugins.Should().ContainSingle(status => status.PluginId == "roslyn.workbench.core" && status.Enabled);
@@ -157,9 +157,9 @@ public sealed class PluginDiscoveryAndMcpToolIntegrationTests
     public void GIVEN_SingleExportPluginConfigureThrows_WHEN_LoadingCatalog_THEN_ShouldDisablePluginWithoutPublishingExceptionDetails()
     {
         var pluginDirectory = CreatePluginDirectory(typeof(ThrowingConfigurationTestPlugin).Assembly);
-        var loader = PluginCatalogComposition.CreateLoader();
+        var bootstrap = new PluginCatalogBootstrap();
 
-        var snapshot = loader.Load(CreateStartupOptions(pluginDirectory), []);
+        var snapshot = bootstrap.Load(CreateStartupOptions(pluginDirectory), []);
 
         snapshot.Tools.Should().BeEmpty();
         snapshot.Plugins.Should().ContainSingle(status =>

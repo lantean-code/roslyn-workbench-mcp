@@ -1,3 +1,5 @@
+using Roslyn.Workbench.Mcp.Hosting;
+
 namespace Roslyn.Workbench.Mcp;
 
 internal static class Program

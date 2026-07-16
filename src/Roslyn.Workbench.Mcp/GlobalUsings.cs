@@ -16,6 +16,8 @@ global using Roslyn.Workbench.Mcp.CodeActions.Staging;
 global using Roslyn.Workbench.Mcp.CodeActions.Tokens;
 global using Roslyn.Workbench.Mcp.CodeActions.Tools;
 global using Roslyn.Workbench.Mcp.Configuration;
+global using Roslyn.Workbench.Mcp.Hosting;
+global using Roslyn.Workbench.Mcp.PluginLoading;
 global using Roslyn.Workbench.Mcp.Plugins;
 global using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Collections;
 global using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;

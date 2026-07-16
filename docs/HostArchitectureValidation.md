@@ -2,7 +2,7 @@
 
 Date: 2026-07-16
 
-Status: H1-H4 complete; H5-H7 implementation pending
+Status: H1-H5 complete; H6-H7 implementation pending
 
 ## Purpose
 
@@ -240,15 +240,23 @@ Represent pre-DI work as an explicit startup composition containing validated op
 
 Do not build a temporary service provider. Do not introduce interfaces for deterministic registration extensions. Do not split each registration line into a separate class.
 
+### Resolution
+
+`HostStartupComposer` now owns the ordered pre-DI phase and returns an explicit `HostStartupComposition` containing the validated configuration, Code Action catalogue and plugin catalogue. It creates the Code Action catalogue first and passes the combined Code Action and server-owned names into plugin loading as protected names. `PluginCatalogBootstrap` is the named owner of the manual plugin-loading object graph; the former hidden static loader factory has been removed.
+
+The Host builder now reads as the startup sequence described below. Options, Workspace, Plugins, CodeActions, Host services, MCP tools and startup prerequisites are registered through cohesive ownership-based extensions while preserving singleton lifetimes and constructor-visible service dependencies. Host composition remains the only pre-DI coordinator and does not build a temporary service provider.
+
+Host-owned composition types now live under `Hosting`, and external plugin discovery and loading types live under `PluginLoading`, with matching unit-test folders and namespaces. Focused composition coverage validates the startup snapshots, protected-name ordering, complete container with scope and build validation, singleton subsystem services, all registered MCP tools and the framework-level call-tool filter.
+
 ### Working checklist
 
-- [ ] Add an immutable Host startup-composition result for validated options and catalogue snapshots.
-- [ ] Give plugin bootstrap object-graph construction one named owner instead of a hidden static loader factory.
-- [ ] Keep Code Action catalogue creation before plugin collision validation.
-- [ ] Split service registration into cohesive Workspace, Plugins, CodeActions and Host registration groups.
-- [ ] Keep all dependencies constructor visible and preserve singleton lifetimes.
-- [ ] Leave the top-level extension as a short sequence: compose, configure logging/options, register subsystems, register tools, register startup prerequisites and transport.
-- [ ] Add composition tests for the startup result and complete service graph.
+- [x] Add an immutable Host startup-composition result for validated options and catalogue snapshots.
+- [x] Give plugin bootstrap object-graph construction one named owner instead of a hidden static loader factory.
+- [x] Keep Code Action catalogue creation before plugin collision validation.
+- [x] Split service registration into cohesive Workspace, Plugins, CodeActions and Host registration groups.
+- [x] Keep all dependencies constructor visible and preserve singleton lifetimes.
+- [x] Leave the top-level extension as a short sequence: compose, configure logging/options, register subsystems, register tools, register startup prerequisites and transport.
+- [x] Add composition tests for the startup result and complete service graph.
 
 Complexity: high, but mostly structural after H1-H4.
 

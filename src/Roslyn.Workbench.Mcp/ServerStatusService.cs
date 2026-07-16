@@ -9,6 +9,7 @@ internal sealed class ServerStatusService : IServerStatusService
     private static readonly string _roslynVersion = typeof(Microsoft.CodeAnalysis.Workspace).Assembly.GetName().Version?.ToString() ?? "0.0.0.0";
 
     private readonly StartupOptions _startupOptions;
+    private readonly StartupConfigurationSnapshot _startupConfiguration;
     private readonly PluginCatalogSnapshot _pluginCatalogSnapshot;
     private readonly CodeActionCatalogSnapshot _codeActionCatalogSnapshot;
     private readonly IMsBuildRegistrationService _msBuildRegistrationService;
@@ -19,6 +20,7 @@ internal sealed class ServerStatusService : IServerStatusService
 
     public ServerStatusService(
         IOptions<StartupOptions> startupOptions,
+        StartupConfigurationSnapshot startupConfiguration,
         PluginCatalogSnapshot pluginCatalogSnapshot,
         CodeActionCatalogSnapshot codeActionCatalogSnapshot,
         IMsBuildRegistrationService msBuildRegistrationService,
@@ -26,6 +28,7 @@ internal sealed class ServerStatusService : IServerStatusService
         ICommitRecoveryStore recoveryStore)
     {
         _startupOptions = startupOptions.Value;
+        _startupConfiguration = startupConfiguration;
         _pluginCatalogSnapshot = pluginCatalogSnapshot;
         _codeActionCatalogSnapshot = codeActionCatalogSnapshot;
         _msBuildRegistrationService = msBuildRegistrationService;
@@ -58,6 +61,7 @@ internal sealed class ServerStatusService : IServerStatusService
                 Message = _codeActionProviderCatalog.Status.Message,
             },
             Configuration = includeExpandedDetail ? GetConfiguration() : null,
+            StartupWarnings = includeExpandedDetail ? _startupConfiguration.Warnings : null,
             ToolCount = _toolCount,
             Plugins = includeExpandedDetail ? _pluginCatalogSnapshot.Plugins : null,
             Recovery = recovery,

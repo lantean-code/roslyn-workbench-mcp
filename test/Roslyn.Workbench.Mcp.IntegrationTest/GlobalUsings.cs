@@ -10,6 +10,7 @@ global using Roslyn.Workbench.Mcp.CodeActions.Discovery;
 global using Roslyn.Workbench.Mcp.CodeActions.Execution;
 global using Roslyn.Workbench.Mcp.CodeActions.Resolution;
 global using Roslyn.Workbench.Mcp.CodeActions.Tokens;
+global using Roslyn.Workbench.Mcp.Configuration;
 global using Roslyn.Workbench.Mcp.IntegrationTestSupport;
 global using Roslyn.Workbench.Mcp.PluginFixtures;
 global using Roslyn.Workbench.Mcp.Plugins;

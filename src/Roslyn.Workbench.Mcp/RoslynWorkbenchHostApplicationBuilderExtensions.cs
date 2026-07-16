@@ -11,8 +11,9 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
 {
     public static IHostApplicationBuilder AddRoslynWorkbench(this IHostApplicationBuilder builder, string[] args)
     {
-
-        var startupOptions = StartupOptionsParser.Parse(args);
+        var startupConfiguration = StartupOptionsResolver.Resolve(args);
+        var startupOptions = startupConfiguration.Options;
+        new StartupOptionsValidator().EnsureValid(startupOptions);
         var codeActionCatalogSnapshot = new CodeActionCatalogSnapshot
         {
             Tools = BundledCodeActionCatalog.Create(),
@@ -26,10 +27,12 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
 
         builder.Logging.ConfigureLogging();
         builder.Services.AddOptions(startupOptions);
+        builder.Services.AddSingleton(startupConfiguration);
         builder.Services.AddSingleton(codeActionCatalogSnapshot);
         builder.Services.AddCoreServices(pluginCatalogSnapshot);
         builder.Services.AddMcpTools(pluginCatalogSnapshot, codeActionCatalogSnapshot.Tools, startupOptions.ToolOutputSchemaMode);
 
+        builder.Services.AddHostedService<StartupConfigurationReporter>();
         builder.Services.AddHostedService<MsBuildRegistrationHostedService>();
         builder.Services.AddHostedService<WorkspaceCommitRecoveryHostedService>();
         builder.Services.AddMcpServer().WithStdioServerTransport();
@@ -58,7 +61,9 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
                 options.MaxConcurrentQueries = startupOptions.MaxConcurrentQueries;
                 options.ToolOutputSchemaMode = startupOptions.ToolOutputSchemaMode;
                 options.StateDirectory = startupOptions.StateDirectory;
-            });
+            })
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<StartupOptions>, StartupOptionsValidator>();
         services.AddOptions<CodeActionCompositionOptions>();
         services.AddOptions<CodeActionExecutionOptions>()
             .Configure<IOptions<StartupOptions>>((options, configuredStartupOptions) =>

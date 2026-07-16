@@ -1,5 +1,4 @@
-
-namespace Roslyn.Workbench.Mcp;
+namespace Roslyn.Workbench.Mcp.Configuration;
 
 internal sealed class StartupOptions
 {

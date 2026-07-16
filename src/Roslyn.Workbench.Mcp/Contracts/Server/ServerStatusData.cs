@@ -35,6 +35,12 @@ public sealed record ServerStatusData
     public ServerConfiguration? Configuration { get; init; }
 
     /// <summary>
+    /// Gets the startup configuration fallbacks, when expanded detail is requested.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<WarningInfo>? StartupWarnings { get; init; }
+
+    /// <summary>
     /// Gets the loaded tool count.
     /// </summary>
     public int ToolCount { get; init; }

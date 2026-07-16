@@ -48,6 +48,10 @@ public sealed class ServerStatusRecoveryIntegrationTests
                 });
             var service = new ServerStatusService(
                 Options.Create(options),
+                new StartupConfigurationSnapshot
+                {
+                    Options = options,
+                },
                 new PluginCatalogSnapshot(),
                 new CodeActionCatalogSnapshot(),
                 msBuildRegistrationService.Object,

@@ -43,6 +43,7 @@ public sealed class ServerStatusServiceTests
         codeActions.IsAvailable.Should().BeTrue();
         data.Plugins.Should().BeNull();
         data.Configuration.Should().BeNull();
+        data.StartupWarnings.Should().BeNull();
         data.Recovery.Should().BeNull();
         _recoveryStore.Verify(item => item.GetStatusesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -64,13 +65,19 @@ public sealed class ServerStatusServiceTests
         };
         _recoveryStore.Setup(item => item.GetStatusesAsync(TestContext.Current.CancellationToken)).ReturnsAsync([recovery]);
         var pluginSnapshot = CreatePluginSnapshot();
-        var target = CreateTarget(options, pluginSnapshot);
+        var startupWarning = new WarningInfo
+        {
+            Code = "Code",
+            Message = "Message",
+        };
+        var target = CreateTarget(options, pluginSnapshot, startupWarnings: [startupWarning]);
 
         var result = await target.GetStatusAsync(StatusDetailLevel.Full, TestContext.Current.CancellationToken);
 
         var data = result.Data ?? throw new InvalidOperationException("The status response did not contain data.");
         data.Configuration.Should().NotBeNull();
         data.Configuration!.DefaultMaxResults.Should().Be(100);
+        data.StartupWarnings.Should().ContainSingle().Which.Should().Be(startupWarning);
         data.Plugins.Should().BeEquivalentTo(pluginSnapshot.Plugins);
         data.Recovery.Should().ContainSingle().Which.Should().Be(recovery);
     }
@@ -147,10 +154,16 @@ public sealed class ServerStatusServiceTests
     private ServerStatusService CreateTarget(
         StartupOptions options,
         PluginCatalogSnapshot pluginSnapshot,
-        CodeActionCatalogSnapshot? codeActionSnapshot = null)
+        CodeActionCatalogSnapshot? codeActionSnapshot = null,
+        IReadOnlyList<WarningInfo>? startupWarnings = null)
     {
         return new ServerStatusService(
             Options.Create(options),
+            new StartupConfigurationSnapshot
+            {
+                Options = options,
+                Warnings = startupWarnings ?? [],
+            },
             pluginSnapshot,
             codeActionSnapshot ?? new CodeActionCatalogSnapshot(),
             _msBuildRegistrationService.Object,

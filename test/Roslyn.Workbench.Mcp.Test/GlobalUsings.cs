@@ -12,6 +12,7 @@ global using Roslyn.Workbench.Mcp.CodeActions.Resolution;
 global using Roslyn.Workbench.Mcp.CodeActions.Staging;
 global using Roslyn.Workbench.Mcp.CodeActions.Tokens;
 global using Roslyn.Workbench.Mcp.CodeActions.Tools;
+global using Roslyn.Workbench.Mcp.Configuration;
 global using Roslyn.Workbench.Mcp.Plugins;
 global using Roslyn.Workbench.Mcp.Plugins.Core;
 global using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;

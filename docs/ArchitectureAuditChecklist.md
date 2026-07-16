@@ -28,7 +28,7 @@ Host -> Plugins -> Workspace
 
 The former production Contracts project has been removed. Contracts now live with their owner: Code Actions in CodeActions, inspection DTOs in Plugins.Core, Workspace domain models in Workspace, plugin metadata/results in Plugins, and MCP protocol/lifecycle contracts in Host.
 
-The post-facade CodeActions follow-up is maintained in [CodeActionsArchitectureValidation.md](CodeActionsArchitectureValidation.md). Complete that architecture checklist before beginning the next CodeActions unit-test phase.
+The CodeActions follow-up is complete in [CodeActionsArchitectureValidation.md](CodeActionsArchitectureValidation.md). The remaining Host work is maintained, in implementation order, in [HostArchitectureValidation.md](HostArchitectureValidation.md).
 
 ## P1: High Priority
 
@@ -119,7 +119,7 @@ The post-facade CodeActions follow-up is maintained in [CodeActionsArchitectureV
 
 ### Plugins.Core
 
-- [ ] Reduce null-forgiving and weak invariants in first-party plugin tools.
+- [x] Reduce null-forgiving and weak invariants in first-party plugin tools.
   Files:
   - `src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/AnalyzeControlFlowTool.cs`
   - `src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/AnalyzeDataFlowTool.cs`
@@ -136,12 +136,12 @@ The post-facade CodeActions follow-up is maintained in [CodeActionsArchitectureV
   - `src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection/SearchSymbolsTool.cs`
   - `src/Roslyn.Workbench.Mcp.Plugins.Core/ReplayCodeActionExecutor.cs`
   Notes:
-  - Several tools still rely on null-forgiving or `ValueTask.FromResult` short-circuit patterns.
-  - That usually points to contracts or resolver APIs not expressing invariants strongly enough.
+  - The null-forgiving audit and subsequent plugin architecture work removed the identified invariant suppressions.
+  - The former `ValueTask.FromResult` note was a mechanical style observation rather than evidence of a boundary defect.
 
 ### Workspace
 
-- [ ] Reduce null-forgiving and invariant-by-convention in workspace support code.
+- [x] Reduce null-forgiving and invariant-by-convention in workspace support code.
   Files:
   - `src/Roslyn.Workbench.Mcp.Workspace/MefCodeActionService.cs`
   - `src/Roslyn.Workbench.Mcp.Workspace/MutationStagingService.cs`
@@ -150,35 +150,35 @@ The post-facade CodeActions follow-up is maintained in [CodeActionsArchitectureV
   - `src/Roslyn.Workbench.Mcp.Workspace/WorkspaceTransaction.cs`
   - `src/Roslyn.Workbench.Mcp.Workspace/WorkspaceTransactionRevision.cs`
   Notes:
-  - Some of these are harmless mechanically, but they still suggest type invariants are not fully modelled.
+  - The dedicated null-forgiving remediation and the subsequent Workspace service refactors removed the listed suppressions and strengthened result and lease invariants.
 
 ### Host
 
-- [ ] Tighten remaining invariant bridges in server-host mapping code.
+- [x] Tighten remaining invariant bridges in server-host mapping code.
   Files:
   - `src/Roslyn.Workbench.Mcp/WorkspaceToolResultMapper.cs`
   Notes:
-  - The mapper still relies on null-forgiving based on outcome conventions.
+  - The mapper no longer uses null-forgiving. Its remaining default throw reports a violated internal result invariant rather than implementing ordinary flow control.
+  - Broader Host composition and publication findings are tracked in [HostArchitectureValidation.md](HostArchitectureValidation.md).
 
 ## Project Summary
 
 - [ ] `Roslyn.Workbench.Mcp`
   Notes:
-  - Much cleaner after the server-owned tool refactor.
-  - Main remaining concerns are plugin loading and invariant bridges.
+  - Project ownership is correct and plugin loading is now split into focused MEF/package collaborators.
+  - Remaining composition, schema, registration, publication and lifecycle work is tracked in the Host validation document.
 
-- [ ] `Roslyn.Workbench.Mcp.Workspace`
+- [x] `Roslyn.Workbench.Mcp.Workspace`
   Notes:
-  - Still the main architecture hotspot.
-  - Workspace no longer references Plugins or CodeActions; broad unit coverage remains the separately tracked gap.
+  - Workspace no longer references Plugins or CodeActions and its architecture and focused unit programme are complete.
 
-- [ ] `Roslyn.Workbench.Mcp.Plugins`
+- [x] `Roslyn.Workbench.Mcp.Plugins`
   Notes:
-  - Typed registrations and visitors have replaced MCP-aware, runtime-typed execution plumbing.
+  - Typed registrations and visitors have replaced MCP-aware, runtime-typed execution plumbing; MEF configuration and materialisation are complete.
 
-- [ ] `Roslyn.Workbench.Mcp.Plugins.Core`
+- [x] `Roslyn.Workbench.Mcp.Plugins.Core`
   Notes:
-  - Mostly serviceable, but there are still a number of weaker nullability and short-circuit patterns.
+  - Bundled tools use the shared MEF plugin path and the earlier nullability concerns have been remediated.
 
 ## Suggested Working Order
 
@@ -191,7 +191,7 @@ The plugin and host work should follow after the central workspace boundaries ar
 - [x] 2. Tighten `WorkspaceSelectionResult` into a stricter result shape.
 - [x] 3. Remove remaining plugin result leakage from workspace internals.
 - [x] 4. Replace `CodeActionRuntime` composition with a directly registered provider catalogue.
-- [ ] 5. Sweep remaining workspace null-forgiving and invariant-by-convention cases.
+- [x] 5. Sweep remaining workspace null-forgiving and invariant-by-convention cases.
 
 ### Phase 2: Plugin Boundary
 
@@ -200,6 +200,8 @@ The plugin and host work should follow after the central workspace boundaries ar
 
 ### Phase 3: Host And Follow-On Cleanup
 
-- [ ] 8. Review plugin loading so it is less dependent on manual activation.
-- [ ] 9. Tighten remaining invariant bridges in server-host mapping code.
-- [ ] 10. Sweep remaining `Plugins.Core` null-forgiving and `ValueTask.FromResult` cases where the API can be strengthened.
+- [x] 8. Replace loose-DLL/manual activation with validated MEF package composition.
+- [x] 9. Tighten remaining invariant bridges in server-host mapping code.
+- [x] 10. Sweep remaining `Plugins.Core` null-forgiving cases and reassess the mechanical `ValueTask.FromResult` observation.
+
+The next Host phases are defined in [HostArchitectureValidation.md](HostArchitectureValidation.md); that document supersedes this older phase list for Host implementation work.

@@ -135,7 +135,7 @@ public sealed class PluginQueryMcpServerToolTests
     }
 
     [Fact]
-    public async Task GIVEN_HandlerFailureWithoutError_WHEN_InvokingQuery_THEN_ShouldPublishUnhandledFailure()
+    public async Task GIVEN_HandlerFailureWithoutError_WHEN_InvokingQuery_THEN_ShouldPropagateFailure()
     {
         var handler = new Mock<IQueryToolHandler<TestQueryRequest, TestQueryResponse>>();
         var contextFactory = new Mock<IToolExecutionContextFactory>();
@@ -151,13 +151,13 @@ public sealed class PluginQueryMcpServerToolTests
             });
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
-        var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
+        var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
 
-        McpServerToolResultAssertions.AssertUnhandledFailure(result);
+        await action.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
-    public async Task GIVEN_HandlerThrows_WHEN_InvokingQuery_THEN_ShouldPublishUnhandledFailureAndDisposeLease()
+    public async Task GIVEN_HandlerThrows_WHEN_InvokingQuery_THEN_ShouldPropagateFailureAndDisposeLease()
     {
         var handler = new Mock<IQueryToolHandler<TestQueryRequest, TestQueryResponse>>();
         var contextFactory = new Mock<IToolExecutionContextFactory>();
@@ -172,9 +172,9 @@ public sealed class PluginQueryMcpServerToolTests
             .Returns(ValueTask.FromException<PluginExecutionResult<TestQueryResponse>>(new InvalidOperationException("Message")));
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
-        var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
+        var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
 
-        McpServerToolResultAssertions.AssertUnhandledFailure(result);
+        await action.Should().ThrowAsync<InvalidOperationException>();
         operationLease.Verify(item => item.DisposeAsync(), Times.Once);
     }
 
@@ -203,18 +203,18 @@ public sealed class PluginQueryMcpServerToolTests
     }
 
     [Fact]
-    public async Task GIVEN_MalformedArguments_WHEN_InvokingQuery_THEN_ShouldPublishUnhandledFailureWithoutAcquiringContext()
+    public async Task GIVEN_MalformedArguments_WHEN_InvokingQuery_THEN_ShouldPropagateFailureWithoutAcquiringContext()
     {
         var handler = new Mock<IQueryToolHandler<TestQueryRequest, TestQueryResponse>>();
         var contextFactory = new Mock<IToolExecutionContextFactory>();
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
-        var result = await target.InvokeArgumentsAsync(new Dictionary<string, JsonElement>
+        var action = async () => await target.InvokeArgumentsAsync(new Dictionary<string, JsonElement>
         {
             ["name"] = JsonSerializer.SerializeToElement(42),
         }, CancellationToken.None);
 
-        McpServerToolResultAssertions.AssertUnhandledFailure(result);
+        await action.Should().ThrowAsync<JsonException>();
         contextFactory.Verify(item => item.CreateQueryContext(
             It.IsAny<WorkspaceBoundRequest>(),
             It.IsAny<CancellationToken>()), Times.Never);
@@ -224,7 +224,7 @@ public sealed class PluginQueryMcpServerToolTests
             It.IsAny<CancellationToken>()), Times.Never);
     }
 
-    private static PluginQueryMcpServerTool<TestQueryRequest, TestQueryResponse> CreateTarget(
+    private PluginQueryMcpServerTool<TestQueryRequest, TestQueryResponse> CreateTarget(
         IQueryToolHandler<TestQueryRequest, TestQueryResponse> handler,
         IToolExecutionContextFactory contextFactory)
     {

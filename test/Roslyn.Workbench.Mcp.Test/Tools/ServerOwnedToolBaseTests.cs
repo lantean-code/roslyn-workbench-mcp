@@ -3,7 +3,6 @@ using System.Text.Json;
 using Microsoft.Extensions.Options;
 using ModelContextProtocol;
 
-using Roslyn.Workbench.Mcp.Test.ToolExecution;
 using Roslyn.Workbench.Mcp.Tools;
 
 namespace Roslyn.Workbench.Mcp.Test.Tools;
@@ -95,24 +94,6 @@ public sealed class ServerOwnedToolBaseTests
     }
 
     [Fact]
-    public async Task GIVEN_ServiceThrows_WHEN_InvokingTool_THEN_ShouldPublishUnhandledFailure()
-    {
-        var service = new Mock<IWorkspaceLifecycleService>();
-        service
-            .Setup(item => item.ListAsync(CancellationToken.None))
-            .Returns(ValueTask.FromException<WorkspaceOperationResult<WorkspaceListOutcome>>(new InvalidOperationException("Message")));
-        var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
-        var target = new WorkspaceListTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
-
-        var result = await ServerOwnedToolTestSupport.InvokeAsync(
-            target,
-            "workspace-list",
-            cancellationToken: CancellationToken.None);
-
-        McpServerToolResultAssertions.AssertUnhandledFailure(result);
-    }
-
-    [Fact]
     public async Task GIVEN_ServiceCancellation_WHEN_InvokingTool_THEN_ShouldPropagateCancellation()
     {
         var service = new Mock<IWorkspaceLifecycleService>();
@@ -133,13 +114,13 @@ public sealed class ServerOwnedToolBaseTests
     }
 
     [Fact]
-    public async Task GIVEN_MalformedArguments_WHEN_InvokingTool_THEN_ShouldPublishUnhandledFailureWithoutCallingService()
+    public async Task GIVEN_MalformedArguments_WHEN_InvokingTool_THEN_ShouldPropagateFailureWithoutCallingService()
     {
         var service = new Mock<IWorkspaceLifecycleService>();
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var target = new WorkspaceOpenTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
 
-        var result = await ServerOwnedToolTestSupport.InvokeAsync(
+        var action = async () => await ServerOwnedToolTestSupport.InvokeAsync(
             target,
             "workspace-open",
             new Dictionary<string, JsonElement>
@@ -148,7 +129,7 @@ public sealed class ServerOwnedToolBaseTests
             },
             CancellationToken.None);
 
-        McpServerToolResultAssertions.AssertUnhandledFailure(result);
+        await action.Should().ThrowAsync<Exception>();
         service.Verify(item => item.OpenAsync(
             It.IsAny<string>(),
             It.IsAny<string?>(),

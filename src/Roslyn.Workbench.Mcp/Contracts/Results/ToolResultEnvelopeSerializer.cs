@@ -133,15 +133,16 @@ public static class ToolResultEnvelopeSerializer
     /// <summary>
     /// Creates a failed envelope for an unhandled tool exception.
     /// </summary>
+    /// <param name="correlationId">The server-side diagnostic correlation identifier.</param>
     /// <returns>The structured JSON payload.</returns>
-    public static JsonElement CreateUnhandledException()
+    public static JsonElement CreateUnhandledException(string correlationId)
     {
         return CreateFailure(
             new ToolError
             {
                 Code = "UnhandledException",
                 Message = "Tool execution failed.",
-                CorrelationId = Guid.NewGuid().ToString("n"),
+                CorrelationId = correlationId,
             },
             requiredAction: null);
     }

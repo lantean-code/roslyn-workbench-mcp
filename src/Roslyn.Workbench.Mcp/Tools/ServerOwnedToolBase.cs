@@ -37,32 +37,16 @@ internal abstract class ServerOwnedToolBase<TRequest, TResponse> : McpServerTool
 
     public override async ValueTask<CallToolResult> InvokeAsync(RequestContext<CallToolRequestParams> requestContext, CancellationToken cancellationToken)
     {
-        try
-        {
-            var arguments = requestContext.Params.Arguments ?? new Dictionary<string, JsonElement>(StringComparer.Ordinal);
-            var request = ToolRequestBinder.Deserialize<TRequest>(arguments);
-            var result = await ExecuteAsync(request, cancellationToken).ConfigureAwait(false);
+        var arguments = requestContext.Params.Arguments ?? new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        var request = ToolRequestBinder.Deserialize<TRequest>(arguments);
+        var result = await ExecuteAsync(request, cancellationToken).ConfigureAwait(false);
 
-            return new CallToolResult
-            {
-                Content = [],
-                StructuredContent = SerializeResult(result),
-                IsError = result.Outcome.IsError(),
-            };
-        }
-        catch (OperationCanceledException)
+        return new CallToolResult
         {
-            throw;
-        }
-        catch (Exception)
-        {
-            return new CallToolResult
-            {
-                Content = [],
-                StructuredContent = ToolResultEnvelopeSerializer.CreateUnhandledException(),
-                IsError = true,
-            };
-        }
+            Content = [],
+            StructuredContent = SerializeResult(result),
+            IsError = result.Outcome.IsError(),
+        };
     }
 
     protected abstract ValueTask<ToolResult<TResponse>> ExecuteAsync(TRequest request, CancellationToken cancellationToken);

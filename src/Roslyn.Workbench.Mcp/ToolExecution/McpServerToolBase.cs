@@ -28,23 +28,7 @@ internal abstract class McpServerToolBase : McpServerTool
         IDictionary<string, JsonElement> arguments,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            return await InvokeCoreAsync(arguments, cancellationToken).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception)
-        {
-            return new CallToolResult
-            {
-                Content = [],
-                StructuredContent = ToolResultEnvelopeSerializer.CreateUnhandledException(),
-                IsError = true,
-            };
-        }
+        return await InvokeCoreAsync(arguments, cancellationToken).ConfigureAwait(false);
     }
 
     protected abstract ValueTask<CallToolResult> InvokeCoreAsync(

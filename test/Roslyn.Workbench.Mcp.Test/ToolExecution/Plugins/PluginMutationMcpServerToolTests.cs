@@ -83,7 +83,7 @@ public sealed class PluginMutationMcpServerToolTests
     }
 
     [Fact]
-    public async Task GIVEN_HandlerFailureWithoutError_WHEN_InvokingMutation_THEN_ShouldPublishUnhandledFailure()
+    public async Task GIVEN_HandlerFailureWithoutError_WHEN_InvokingMutation_THEN_ShouldPropagateFailure()
     {
         var handler = new Mock<IMutationToolHandler<TestMutationRequest>>();
         var contextFactory = new Mock<IToolExecutionContextFactory>();
@@ -101,9 +101,9 @@ public sealed class PluginMutationMcpServerToolTests
             });
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
-        var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
+        var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
 
-        McpServerToolResultAssertions.AssertUnhandledFailure(result);
+        await action.Should().ThrowAsync<InvalidOperationException>();
         stager.Verify(item => item.StageAsync(
             It.IsAny<string>(),
             It.IsAny<WorkspaceMutationCandidate>(),
@@ -301,7 +301,7 @@ public sealed class PluginMutationMcpServerToolTests
     }
 
     [Fact]
-    public async Task GIVEN_HandlerThrows_WHEN_InvokingMutation_THEN_ShouldPublishUnhandledFailureAndDisposeLease()
+    public async Task GIVEN_HandlerThrows_WHEN_InvokingMutation_THEN_ShouldPropagateFailureAndDisposeLease()
     {
         var handler = new Mock<IMutationToolHandler<TestMutationRequest>>();
         var contextFactory = new Mock<IToolExecutionContextFactory>();
@@ -320,9 +320,9 @@ public sealed class PluginMutationMcpServerToolTests
             .Returns(ValueTask.FromException<PluginExecutionResult<MutationCandidate>>(new InvalidOperationException("Message")));
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
-        var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
+        var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
 
-        McpServerToolResultAssertions.AssertUnhandledFailure(result);
+        await action.Should().ThrowAsync<InvalidOperationException>();
         operationLease.Verify(item => item.Dispose(), Times.Once);
     }
 
@@ -355,7 +355,7 @@ public sealed class PluginMutationMcpServerToolTests
     }
 
     [Fact]
-    public async Task GIVEN_StagerThrows_WHEN_InvokingMutation_THEN_ShouldPublishUnhandledFailureAndDisposeLease()
+    public async Task GIVEN_StagerThrows_WHEN_InvokingMutation_THEN_ShouldPropagateFailureAndDisposeLease()
     {
         var handler = new Mock<IMutationToolHandler<TestMutationRequest>>();
         var contextFactory = new Mock<IToolExecutionContextFactory>();
@@ -386,9 +386,9 @@ public sealed class PluginMutationMcpServerToolTests
             .Returns(ValueTask.FromException<WorkspaceOperationResult<MutationStagingOutcome>>(new InvalidOperationException("Message")));
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
-        var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
+        var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
 
-        McpServerToolResultAssertions.AssertUnhandledFailure(result);
+        await action.Should().ThrowAsync<InvalidOperationException>();
         operationLease.Verify(item => item.Dispose(), Times.Once);
     }
 
@@ -433,18 +433,18 @@ public sealed class PluginMutationMcpServerToolTests
     }
 
     [Fact]
-    public async Task GIVEN_MalformedArguments_WHEN_InvokingMutation_THEN_ShouldPublishUnhandledFailureWithoutAcquiringContext()
+    public async Task GIVEN_MalformedArguments_WHEN_InvokingMutation_THEN_ShouldPropagateFailureWithoutAcquiringContext()
     {
         var handler = new Mock<IMutationToolHandler<TestMutationRequest>>();
         var contextFactory = new Mock<IToolExecutionContextFactory>();
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
-        var result = await target.InvokeArgumentsAsync(new Dictionary<string, JsonElement>
+        var action = async () => await target.InvokeArgumentsAsync(new Dictionary<string, JsonElement>
         {
             ["name"] = JsonSerializer.SerializeToElement(42),
         }, CancellationToken.None);
 
-        McpServerToolResultAssertions.AssertUnhandledFailure(result);
+        await action.Should().ThrowAsync<JsonException>();
         contextFactory.Verify(item => item.CreateMutationContext(
             It.IsAny<WorkspaceBoundRequest>(),
             It.IsAny<CancellationToken>()), Times.Never);
@@ -454,7 +454,7 @@ public sealed class PluginMutationMcpServerToolTests
             It.IsAny<CancellationToken>()), Times.Never);
     }
 
-    private static PluginMutationMcpServerTool<TestMutationRequest> CreateTarget(
+    private PluginMutationMcpServerTool<TestMutationRequest> CreateTarget(
         IMutationToolHandler<TestMutationRequest> handler,
         IToolExecutionContextFactory contextFactory)
     {

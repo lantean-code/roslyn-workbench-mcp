@@ -37,7 +37,19 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
         builder.Services.AddHostedService<StartupConfigurationReporter>();
         builder.Services.AddHostedService<MsBuildRegistrationHostedService>();
         builder.Services.AddHostedService<WorkspaceCommitRecoveryHostedService>();
-        builder.Services.AddMcpServer().WithStdioServerTransport();
+        builder.Services
+            .AddMcpServer()
+            .WithRequestFilters(static requestFilters =>
+            {
+                requestFilters.AddCallToolFilter(static next => async (context, cancellationToken) =>
+                {
+                    var services = context.Services
+                        ?? throw new InvalidOperationException("The MCP call-tool filter requires a configured service provider.");
+                    var filter = services.GetRequiredService<UnhandledToolExceptionFilter>();
+                    return await filter.InvokeAsync(next, context, cancellationToken).ConfigureAwait(false);
+                });
+            })
+            .WithStdioServerTransport();
 
         return builder;
     }
@@ -90,6 +102,7 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
         services.AddSingleton<IMcpSdkSchemaProvider, McpSdkSchemaProvider>();
         services.AddSingleton<ToolSchemaFactory>();
         services.AddSingleton<IMcpToolProtocolFactory, McpToolProtocolFactory>();
+        services.AddSingleton<UnhandledToolExceptionFilter>();
         services.AddSingleton<IMsBuildRegistrationService, MsBuildRegistrationService>();
         services.AddSingleton<IToolRequestResolver, DefaultToolRequestResolver>();
         services.AddSingleton<ICompilerDiagnosticService, DefaultCompilerDiagnosticService>();

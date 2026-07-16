@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Roslyn.Workbench.Mcp.Test;
 
@@ -10,19 +11,21 @@ internal static class McpIntegrationTestHost
         string toolName,
         IDictionary<string, JsonElement> arguments)
     {
-        return await tool.InvokeAsync(
-            new RequestContext<CallToolRequestParams>(
-                CreateServer(),
-                new JsonRpcRequest
-                {
-                    Method = "tools/call",
-                },
-                new CallToolRequestParams
-                {
-                    Name = toolName,
-                    Arguments = arguments,
-                }),
-            CancellationToken.None);
+        var context = new RequestContext<CallToolRequestParams>(
+            CreateServer(),
+            new JsonRpcRequest
+            {
+                Method = "tools/call",
+            },
+            new CallToolRequestParams
+            {
+                Name = toolName,
+                Arguments = arguments,
+            });
+        var filter = new UnhandledToolExceptionFilter(
+            NullLogger<UnhandledToolExceptionFilter>.Instance);
+
+        return await filter.InvokeAsync(tool.InvokeAsync, context, CancellationToken.None);
     }
 
     public static async Task<ToolResult<TResponse>> InvokePluginToolAsync<TResponse>(
@@ -80,4 +83,5 @@ internal static class McpIntegrationTestHost
     {
         return new McpToolProtocolFactory(new ToolSchemaFactory(new McpSdkSchemaProvider()));
     }
+
 }

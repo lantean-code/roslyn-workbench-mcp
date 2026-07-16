@@ -2,7 +2,7 @@
 
 Date: 2026-07-16
 
-Status: H1-H3 complete; H4-H7 implementation pending
+Status: H1-H4 complete; H5-H7 implementation pending
 
 ## Purpose
 
@@ -31,7 +31,7 @@ Validated evidence:
 - Plugin and Code Action invocation remains closed-generic after catalogue materialisation.
 - No Host production code uses null-forgiving operators or builds a temporary service provider.
 
-The project boundary does not need redesign. The remaining work is concentrated in Host composition, protocol construction, adapter registration, failure publication and startup sequencing.
+The project boundary does not need redesign. The remaining work is concentrated in Host composition, protocol construction, adapter registration, exception filtering and startup sequencing.
 
 ## Executive Assessment
 
@@ -192,36 +192,38 @@ Complexity: medium after H2.
 - Unit tests mirror the same `ToolExecution`, `ToolExecution/Plugins` and `ToolExecution/CodeActions` structure beneath `test/Roslyn.Workbench.Mcp.Test`.
 - Harness-only construction belongs in the owning integration-test-support feature, not in a production `Factories` folder.
 
-## H4: Unhandled MCP Failure Publication
+## H4: Unhandled MCP Exception Handling
 
 ### Finding
 
-`McpServerToolBase` and `ServerOwnedToolBase` both catch unhandled exceptions and publish a sanitized `UnhandledException` response containing a new correlation identifier. The exception and that identifier are not logged, so the identifier cannot be used to diagnose the failure.
+`McpServerToolBase` and `ServerOwnedToolBase` previously caught unhandled exceptions independently and returned a sanitized `UnhandledException` response containing a new correlation identifier. That duplicated a transport-level concern across both tool families and required every concrete tool to receive an exception-handling dependency.
 
-Cancellation is correctly rethrown and must remain outside failure publication.
+Cancellation is correctly rethrown and must remain outside exception translation.
 
 ### Decision
 
-Add one Host-owned failure publisher that creates the correlation identifier, logs the exception and tool identity with that identifier, and returns the unchanged sanitized MCP envelope. Inject it into both base classes.
+Add one Host-owned `CallTool` request filter at the MCP server boundary. The filter creates the correlation identifier, logs the exception and requested tool identity with that identifier, and returns the unchanged sanitized MCP envelope. Register it once through the MCP SDK request-filter builder. Tool classes and their base classes do not participate in unhandled exception translation.
 
 Do not merge the two base classes solely to remove a small amount of orchestration: one binds server-owned request contracts and one delegates pre-bound plugin/Code Action arguments. Their execution responsibilities are meaningfully different.
 
 ### Working checklist
 
-- [ ] Introduce one focused unhandled-tool-failure publisher with `ILogger`.
-- [ ] Log the exception, tool name and generated correlation identifier without exposing exception details to MCP clients.
-- [ ] Use the publisher from both MCP base classes.
-- [ ] Continue to rethrow `OperationCanceledException`.
-- [ ] Preserve the current `UnhandledException` code, public message, envelope and `IsError` behaviour.
-- [ ] Cover correlation matching, logging, cancellation and sanitized publication.
+- [x] Introduce one focused `CallTool` exception filter with `ILogger`.
+- [x] Register the filter through the MCP SDK `WithRequestFilters` API.
+- [x] Log the exception, tool name and generated correlation identifier without exposing exception details to MCP clients.
+- [x] Register the filter once around the MCP server's tool-call pipeline.
+- [x] Remove unhandled exception handling dependencies from all tools, adapters and tool base classes.
+- [x] Continue to rethrow `OperationCanceledException`.
+- [x] Preserve the current `UnhandledException` code, public message, envelope and `IsError` behaviour.
+- [x] Cover correlation matching, logging, cancellation and sanitized publication.
 
 Complexity: medium.
 
 ### Recommended location
 
-- Shared unhandled failure publisher and transport-level failure handling: `src/Roslyn.Workbench.Mcp/ToolExecution`.
+- Shared call-tool exception filtering: `src/Roslyn.Workbench.Mcp/ToolExecution`; registration remains in Host composition.
 - Plugin and Code Action adapter-specific result mapping remains in their respective `ToolExecution/Plugins` and `ToolExecution/CodeActions` folders.
-- Server-owned tool execution remains in `src/Roslyn.Workbench.Mcp/Tools`; do not move all server-owned tools merely because their base consumes the shared failure publisher.
+- Server-owned tool execution remains in `src/Roslyn.Workbench.Mcp/Tools`; those tools contain no exception-filtering dependency.
 - Unit tests mirror the production owner under `test/Roslyn.Workbench.Mcp.Test/ToolExecution` or `Tools` as appropriate.
 
 ## H5: Host Composition Root
@@ -330,7 +332,7 @@ Priority groups should be:
 1. startup options, startup composition and lifecycle prerequisites;
 2. schema provider and protocol construction;
 3. typed registration visitors and all four MCP adapters;
-4. unhandled failure publication and server-owned tool base behaviour;
+4. unhandled tool exception filtering and server-owned tool base behaviour;
 5. plugin package discovery, metadata, preparation, collision and catalogue orchestration; and
 6. status projection, result mapping, binding and serializers.
 

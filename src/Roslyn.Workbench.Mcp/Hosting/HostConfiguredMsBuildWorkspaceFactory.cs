@@ -1,6 +1,6 @@
 using Microsoft.CodeAnalysis.MSBuild;
 
-namespace Roslyn.Workbench.Mcp;
+namespace Roslyn.Workbench.Mcp.Hosting;
 
 internal sealed class HostConfiguredMsBuildWorkspaceFactory : IMsBuildWorkspaceFactory
 {

@@ -1,6 +1,6 @@
 using Microsoft.CodeAnalysis.Host.Mef;
 
-namespace Roslyn.Workbench.Mcp.Test;
+namespace Roslyn.Workbench.Mcp.Test.Hosting;
 
 public sealed class HostConfiguredMsBuildWorkspaceFactoryTests
 {

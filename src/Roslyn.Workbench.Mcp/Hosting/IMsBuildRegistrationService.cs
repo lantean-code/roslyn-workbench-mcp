@@ -1,5 +1,5 @@
 
-namespace Roslyn.Workbench.Mcp;
+namespace Roslyn.Workbench.Mcp.Hosting;
 
 internal interface IMsBuildRegistrationService
 {

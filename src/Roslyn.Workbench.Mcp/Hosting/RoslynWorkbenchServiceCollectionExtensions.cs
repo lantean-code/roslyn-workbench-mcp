@@ -143,8 +143,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
     public static void AddStartupPrerequisites(this IServiceCollection services)
     {
         services.AddHostedService<StartupConfigurationReporter>();
-        services.AddHostedService<MsBuildRegistrationHostedService>();
-        services.AddHostedService<WorkspaceCommitRecoveryHostedService>();
+        services.AddHostedService<StartupPrerequisiteLifecycleService>();
     }
 
     public static void ConfigureRoslynWorkbenchLogging(this ILoggingBuilder loggingBuilder)

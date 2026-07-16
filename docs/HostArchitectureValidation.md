@@ -2,7 +2,7 @@
 
 Date: 2026-07-16
 
-Status: H1-H5 complete; H6-H7 implementation pending
+Status: H1-H6 complete; H7 implementation pending
 
 ## Purpose
 
@@ -280,13 +280,21 @@ The Generic Host lifecycle provides a distinct `StartingAsync` phase before host
 
 Make recovery-before-transport explicit through a Host startup-prerequisite lifecycle boundary. MSBuild registration may participate in the same prerequisite phase or remain a separate service if no ordering exists between it and recovery. Ordinary MSBuild unavailability should continue to produce component status rather than terminate the server; an unrecoverable recovery conflict must continue to block Workspace opening according to Workspace policy.
 
+### Resolution
+
+`StartupPrerequisiteLifecycleService` now owns the Host's prerequisite `IHostedLifecycleService.StartingAsync` phase. It records MSBuild availability through the existing registration service and then awaits durable Workspace recovery with the Host cancellation token. The Generic Host completes every lifecycle service's `StartingAsync` phase before invoking any hosted service's `StartAsync`, so the stdio MCP transport cannot accept tool calls before recovery finishes.
+
+The former independent MSBuild-registration and recovery hosted services have been removed. Their underlying services remain separate: MSBuild registration continues to translate ordinary discovery failures into component status, while Workspace recovery retains its existing recovery-conflict and Workspace-opening policy. The Host-specific MSBuild bridge and registration types now live with the lifecycle coordinator under `Hosting`.
+
+Focused tests cover prerequisite execution, pre-start cancellation, no-op lifecycle phases and the real Generic Host ordering against a transport hosted service.
+
 ### Working checklist
 
-- [ ] Replace implicit hosted-service ordering with an explicit startup-prerequisite lifecycle boundary.
-- [ ] Ensure recovery completes before any MCP transport can accept tool calls.
-- [ ] Preserve graceful cancellation during startup.
-- [ ] Keep MSBuild availability reporting separate from recovery outcomes.
-- [ ] Add a focused Host lifecycle test proving prerequisite completion precedes transport startup.
+- [x] Replace implicit hosted-service ordering with an explicit startup-prerequisite lifecycle boundary.
+- [x] Ensure recovery completes before any MCP transport can accept tool calls.
+- [x] Preserve graceful cancellation during startup.
+- [x] Keep MSBuild availability reporting separate from recovery outcomes.
+- [x] Add a focused Host lifecycle test proving prerequisite completion precedes transport startup.
 
 Complexity: low to medium.
 

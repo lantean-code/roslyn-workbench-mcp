@@ -3,22 +3,6 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Refactorings;
 public sealed class ConvertAutoPropertyToFullPropertyToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
-    {
-        var registry = new Mock<ICodeActionToolRegistry>();
-
-        ConvertAutoPropertyToFullPropertyTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterMutationTool<ConvertAutoPropertyToFullPropertyRequest>(
-            It.Is<CodeActionToolMetadata>(metadata =>
-                metadata.Name == "convert-auto-property-to-full-property"
-                && metadata.Title == "Convert Auto Property To Full Property"
-                && metadata.Description == "Converts a supported auto-property to a full property through Roslyn refactoring composition."
-                && metadata.Behavior.Destructive),
-            It.IsAny<ICodeActionMutationToolHandler<ConvertAutoPropertyToFullPropertyRequest>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_ConvertAutoPropertyToFullPropertyRequest_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithFullPropertyProvider()
     {
         var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
@@ -31,13 +15,15 @@ public sealed class ConvertAutoPropertyToFullPropertyToolTests
                 WorkspaceEpoch = 1,
             },
         };
-        var target = new ConvertAutoPropertyToFullPropertyTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new ConvertAutoPropertyToFullPropertyTool(replayService.Object);
 
-        context
-            .Setup(item => item.StageReplaySelectionAsync(
+        replayService
+            .Setup(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
                 CancellationToken.None,
+                context.Object,
                 "Microsoft.CodeAnalysis.CSharp.ConvertAutoPropertyToFullProperty.CSharpConvertAutoPropertyToFullPropertyCodeRefactoringProvider",
                 "Convert to full property",
                 null,
@@ -49,10 +35,11 @@ public sealed class ConvertAutoPropertyToFullPropertyToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        context.Verify(item => item.StageReplaySelectionAsync(
+        replayService.Verify(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
                 CancellationToken.None,
+                context.Object,
                 "Microsoft.CodeAnalysis.CSharp.ConvertAutoPropertyToFullProperty.CSharpConvertAutoPropertyToFullPropertyCodeRefactoringProvider",
                 "Convert to full property",
                 null,

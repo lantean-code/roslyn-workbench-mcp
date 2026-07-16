@@ -6,6 +6,10 @@ internal static class BundledCodeActionCatalog
     {
         var registry = new CodeActionToolRegistry();
         BundledCodeActionToolRegistrar.RegisterAll(registry);
-        return registry.Tools;
+        return registry.Tools
+            .Where(tool =>
+                !BuiltInCodeActionLedger.IsDedicatedTool(tool.Metadata.Name)
+                || BuiltInCodeActionLedger.IsDedicatedToolVisible(tool.Metadata.Name))
+            .ToArray();
     }
 }

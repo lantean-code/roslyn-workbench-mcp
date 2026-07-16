@@ -4,24 +4,15 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Tools;
 
 internal sealed class StageCodeActionTool : CodeActionMutationToolHandler<StageCodeActionRequest>
 {
-    private static readonly CodeActionToolMetadata _metadata = new()
-    {
-        Name = "stage-code-action",
-        Title = "Stage Code Action",
-        Description = "Revalidates and stages one selected refactoring action into the active transaction.",
-        Behavior = new CodeActionToolBehavior
-        {
-            Destructive = true,
-        },
-    };
+    private readonly ICodeActionReplayService _replayService;
 
-    public static void Register(ICodeActionToolRegistry registry)
+    public StageCodeActionTool(ICodeActionReplayService replayService)
     {
-        registry.RegisterMutationTool(_metadata, new StageCodeActionTool());
+        _replayService = replayService;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(StageCodeActionRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
-        return context.StageCodeActionAsync(request, cancellationToken);
+        return _replayService.StageCodeActionAsync(request, context, cancellationToken);
     }
 }

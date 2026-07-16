@@ -6,28 +6,20 @@ internal sealed class ConvertBetweenRegularAndVerbatimInterpolatedStringTool : C
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertBetweenRegularAndVerbatimString.ConvertBetweenRegularAndVerbatimInterpolatedStringCodeRefactoringProvider";
 
-    private static readonly CodeActionToolMetadata _metadata = new()
-    {
-        Name = "convert-between-regular-and-verbatim-interpolated-string",
-        Title = "Convert Between Regular And Verbatim Interpolated String",
-        Description = "Converts a supported interpolated string between regular and verbatim forms through Roslyn refactoring composition.",
-        Behavior = new CodeActionToolBehavior
-        {
-            Destructive = true,
-        },
-    };
+    private readonly ICodeActionReplayService _replayService;
 
-    public static void Register(ICodeActionToolRegistry registry)
+    public ConvertBetweenRegularAndVerbatimInterpolatedStringTool(ICodeActionReplayService replayService)
     {
-        registry.RegisterMutationTool(_metadata, new ConvertBetweenRegularAndVerbatimInterpolatedStringTool());
+        _replayService = replayService;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(LocationRefactoringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
-        return context.StageReplaySelectionAsync(
+        return _replayService.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             cancellationToken,
+            context,
             ProviderId);
     }
 }

@@ -1,14 +1,12 @@
 namespace Roslyn.Workbench.Mcp.CodeActions;
 
-internal sealed class CodeActionQueryRegistration<TRequest, TResponse> : IRegisteredCodeActionTool
+internal sealed class CodeActionQueryRegistration<THandler, TRequest, TResponse> : IRegisteredCodeActionTool
+    where THandler : class, ICodeActionQueryToolHandler<TRequest, TResponse>
     where TRequest : WorkspaceBoundRequest
 {
-    public CodeActionQueryRegistration(
-        CodeActionToolMetadata metadata,
-        ICodeActionQueryToolHandler<TRequest, TResponse> handler)
+    public CodeActionQueryRegistration(CodeActionToolMetadata metadata)
     {
         Metadata = metadata;
-        Handler = handler;
     }
 
     public CodeActionToolMetadata Metadata { get; }
@@ -19,11 +17,8 @@ internal sealed class CodeActionQueryRegistration<TRequest, TResponse> : IRegist
 
     public Type ResponseType => typeof(TResponse);
 
-    public ICodeActionQueryToolHandler<TRequest, TResponse> Handler { get; }
-
     public TResult Accept<TResult>(ICodeActionToolRegistrationVisitor<TResult> visitor)
     {
-
         return visitor.VisitQuery(this);
     }
 }

@@ -6,20 +6,11 @@ internal sealed class ConvertAnonymousTypeToClassTool : CodeActionMutationToolHa
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertAnonymousType.CSharpConvertAnonymousTypeToClassCodeRefactoringProvider";
 
-    private static readonly CodeActionToolMetadata _metadata = new()
-    {
-        Name = "convert-anonymous-type-to-class",
-        Title = "Convert Anonymous Type To Class",
-        Description = "Converts a supported anonymous type to a generated class or record through Roslyn refactoring composition.",
-        Behavior = new CodeActionToolBehavior
-        {
-            Destructive = true,
-        },
-    };
+    private readonly ICodeActionReplayService _replayService;
 
-    public static void Register(ICodeActionToolRegistry registry)
+    public ConvertAnonymousTypeToClassTool(ICodeActionReplayService replayService)
     {
-        registry.RegisterMutationTool(_metadata, new ConvertAnonymousTypeToClassTool());
+        _replayService = replayService;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(ConvertAnonymousTypeToClassRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
@@ -28,10 +19,11 @@ internal sealed class ConvertAnonymousTypeToClassTool : CodeActionMutationToolHa
             ? "Convert to record"
             : "Convert to class";
 
-        return context.StageReplaySelectionAsync(
+        return _replayService.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             cancellationToken,
+            context,
             ProviderId,
             title: title);
     }

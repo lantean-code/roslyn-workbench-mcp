@@ -9,33 +9,29 @@ internal sealed class ConvertPropertyTool : CodeActionMutationToolHandler<Conver
     private const string UseAutoPropertyAnalyzerTypeName = "Microsoft.CodeAnalysis.CSharp.UseAutoProperty.CSharpUseAutoPropertyAnalyzer";
     private const string UseAutoPropertyDiagnosticId = "IDE0032";
 
-    private static readonly CodeActionToolMetadata _metadata = new()
-    {
-        Name = "convert-property",
-        Title = "Convert Property",
-        Description = "Converts one selected property between supported auto-property and full-property forms through Roslyn composition.",
-        Behavior = new CodeActionToolBehavior
-        {
-            Destructive = true,
-        },
-    };
+    private readonly ICodeActionReplayService _replayService;
+    private readonly ICodeActionLocationFixService _locationFixService;
 
-    public static void Register(ICodeActionToolRegistry registry)
+    public ConvertPropertyTool(
+        ICodeActionReplayService replayService,
+        ICodeActionLocationFixService locationFixService)
     {
-        registry.RegisterMutationTool(_metadata, new ConvertPropertyTool());
+        _replayService = replayService;
+        _locationFixService = locationFixService;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(ConvertPropertyRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         return request.Direction switch
         {
-            ConvertPropertyDirection.ToFull => context.StageReplaySelectionAsync(
+            ConvertPropertyDirection.ToFull => _replayService.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
-                                cancellationToken,
+                cancellationToken,
+                context,
                 ConvertToFullProviderId,
                 title: "Convert to full property"),
-            ConvertPropertyDirection.ToAutoWhenSafe => context.StageLocationCodeFixAsync(new LocationCodeFixRequest
+            ConvertPropertyDirection.ToAutoWhenSafe => _locationFixService.StageLocationCodeFixAsync(new LocationCodeFixRequest
             {
                 Location = request.Selection,
                 ExpectedSnapshot = request.ExpectedSnapshot,
@@ -44,8 +40,8 @@ internal sealed class ConvertPropertyTool : CodeActionMutationToolHandler<Conver
                 Title = "Use auto property",
                 AnalyzerTypeName = UseAutoPropertyAnalyzerTypeName,
                 SyntheticDiagnosticId = UseAutoPropertyDiagnosticId,
-            }, cancellationToken),
-            _ => ValueTask.FromResult(ToolExecutionHelpers.Rejected<WorkspaceMutationCandidate>("InvalidRequest", "The requested property conversion direction is not supported.")),
+            }, context, cancellationToken),
+            _ => ValueTask.FromResult(CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>("InvalidRequest", "The requested property conversion direction is not supported.")),
         };
     }
 }

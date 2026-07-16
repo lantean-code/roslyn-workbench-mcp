@@ -6,30 +6,21 @@ internal sealed class AddMissingUsingsTool : CodeActionMutationToolHandler<AddMi
 {
     private const string AddImportProviderId = "Microsoft.CodeAnalysis.CSharp.AddImport.CSharpAddImportCodeFixProvider";
 
-    private static readonly CodeActionToolMetadata _metadata = new()
-    {
-        Name = "add-missing-usings",
-        Title = "Add Missing Usings",
-        Description = "Adds missing using directives across a selected scope through Roslyn code-fix composition.",
-        Behavior = new CodeActionToolBehavior
-        {
-            Destructive = true,
-        },
-    };
+    private readonly ICodeActionScopedFixService _scopedFixService;
 
-    public static void Register(ICodeActionToolRegistry registry)
+    public AddMissingUsingsTool(ICodeActionScopedFixService scopedFixService)
     {
-        registry.RegisterMutationTool(_metadata, new AddMissingUsingsTool());
+        _scopedFixService = scopedFixService;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(AddMissingUsingsRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         if (request.PreferGlobalUsings)
         {
-            return ValueTask.FromResult(ToolExecutionHelpers.Rejected<WorkspaceMutationCandidate>("UnsupportedOption", "The preferGlobalUsings option is not supported by the current Roslyn add-import backend."));
+            return ValueTask.FromResult(CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>("UnsupportedOption", "The preferGlobalUsings option is not supported by the current Roslyn add-import backend."));
         }
 
-        return context.StageScopedCodeFixAsync(new ScopedCodeFixRequest
+        return _scopedFixService.StageScopedCodeFixAsync(new ScopedCodeFixRequest
         {
             Scope = request.Scope,
             ExpectedSnapshot = request.ExpectedSnapshot,
@@ -39,6 +30,6 @@ internal sealed class AddMissingUsingsTool : CodeActionMutationToolHandler<AddMi
                 "CS0246",
             ],
             ProviderId = AddImportProviderId,
-        }, cancellationToken);
+        }, context, cancellationToken);
     }
 }

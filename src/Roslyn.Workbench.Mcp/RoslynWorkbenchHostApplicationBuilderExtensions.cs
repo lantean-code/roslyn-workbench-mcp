@@ -79,6 +79,7 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
     private static void AddCoreServices(this IServiceCollection services, PluginCatalogSnapshot pluginCatalogSnapshot)
     {
         services.AddSingleton(pluginCatalogSnapshot);
+        services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IMsBuildRegistrationService, MsBuildRegistrationService>();
         services.AddSingleton<IToolRequestResolver, DefaultToolRequestResolver>();
         services.AddSingleton<ICompilerDiagnosticService, DefaultCompilerDiagnosticService>();
@@ -86,15 +87,22 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
         services.AddSingleton<IProjectStructureService, DefaultProjectStructureService>();
         services.AddSingleton<IDependencyAnalysisService, DefaultDependencyAnalysisService>();
         services.AddSingleton<IToolExecutionServices, ToolExecutionServices>();
+        services.AddSingleton<ICodeActionAnalyzerActivator, CodeActionAnalyzerActivator>();
         services.AddSingleton<ICodeActionDiagnosticService, CodeActionDiagnosticService>();
         services.AddSingleton<ICodeActionDescriptorRegistry, CodeActionDescriptorRegistry>();
         services.AddSingleton<ICodeActionTokenService, CodeActionTokenService>();
+        services.AddSingleton<ICodeActionInfoFactory, CodeActionInfoFactory>();
+        services.AddSingleton<IMefHostExportProviderCompatibilityAdapter, MefHostExportProviderCompatibilityAdapter>();
         services.AddSingleton<ICodeActionProviderCatalog, MefCodeActionProviderCatalog>();
         services.AddSingleton<ICodeActionDiscoveryService, CodeActionDiscoveryService>();
         services.AddSingleton<ICodeActionResolutionService, CodeActionResolutionService>();
         services.AddSingleton<ICodeActionOperationService, CodeActionOperationService>();
-        services.AddSingleton<ICodeActionQueryWorkflow, CodeActionQueryWorkflow>();
-        services.AddSingleton<ICodeActionMutationWorkflow, CodeActionMutationWorkflow>();
+        services.AddSingleton<ICodeActionSolutionChangeCounter, CodeActionSolutionChangeCounter>();
+        services.AddSingleton<ICodeActionReplayService, CodeActionReplayService>();
+        services.AddSingleton<ICodeActionScopeResolver, CodeActionScopeResolver>();
+        services.AddSingleton<ICodeActionFixAllService, CodeActionFixAllService>();
+        services.AddSingleton<ICodeActionScopedFixService, CodeActionScopedFixService>();
+        services.AddSingleton<ICodeActionLocationFixService, CodeActionLocationFixService>();
         services.AddSingleton<IMsBuildWorkspaceFactory, HostConfiguredMsBuildWorkspaceFactory>();
         services.AddSingleton<IWorkspaceOperationResultFactory, WorkspaceOperationResultFactory>();
         services.AddSingleton<IFileSystem, FileSystem>();
@@ -144,7 +152,7 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
             _ = registeredTool.Accept(pluginVisitor);
         }
 
-        var codeActionVisitor = new CodeActionMcpToolRegistrationVisitor(services, outputSchemaMode);
+        var codeActionVisitor = new CodeActionMcpToolRegistrationVisitor(services);
         foreach (var registeredTool in codeActionTools)
         {
             _ = registeredTool.Accept(codeActionVisitor);

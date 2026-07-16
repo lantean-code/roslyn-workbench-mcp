@@ -3,22 +3,6 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Refactorings;
 public sealed class ConvertToInterpolatedStringToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
-    {
-        var registry = new Mock<ICodeActionToolRegistry>();
-
-        ConvertToInterpolatedStringTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterMutationTool<ConvertToInterpolatedStringRequest>(
-            It.Is<CodeActionToolMetadata>(metadata =>
-                metadata.Name == "convert-to-interpolated-string"
-                && metadata.Title == "Convert To Interpolated String"
-                && metadata.Description == "Converts a supported string expression to an interpolated string through Roslyn refactoring composition."
-                && metadata.Behavior.Destructive),
-            It.IsAny<ICodeActionMutationToolHandler<ConvertToInterpolatedStringRequest>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_SnapshotValidationReturnsRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnSnapshotRejection()
     {
         var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Conflict(new CodeActionExecutionError
@@ -36,7 +20,8 @@ public sealed class ConvertToInterpolatedStringToolTests
                 WorkspaceEpoch = 1,
             },
         };
-        var target = new ConvertToInterpolatedStringTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new ConvertToInterpolatedStringTool(replayService.Object);
 
         context
             .Setup(item => item.WorkspaceResolver)
@@ -51,7 +36,7 @@ public sealed class ConvertToInterpolatedStringToolTests
         workspaceResolver.Verify(
             item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()),
             Times.Never);
-        context.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        replayService.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), context.Object, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -67,7 +52,8 @@ public sealed class ConvertToInterpolatedStringToolTests
                 WorkspaceEpoch = 1,
             },
         };
-        var target = new ConvertToInterpolatedStringTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new ConvertToInterpolatedStringTool(replayService.Object);
 
         context
             .Setup(item => item.WorkspaceResolver)
@@ -84,7 +70,7 @@ public sealed class ConvertToInterpolatedStringToolTests
         workspaceResolver.Verify(
             item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()),
             Times.Never);
-        context.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        replayService.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), context.Object, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -100,7 +86,8 @@ public sealed class ConvertToInterpolatedStringToolTests
                 WorkspaceEpoch = 1,
             },
         };
-        var target = new ConvertToInterpolatedStringTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new ConvertToInterpolatedStringTool(replayService.Object);
 
         context
             .Setup(item => item.WorkspaceResolver)
@@ -117,7 +104,7 @@ public sealed class ConvertToInterpolatedStringToolTests
         result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
         result.Error.Should().NotBeNull();
         result.Error!.Code.Should().Be("LocationNotFound");
-        context.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        replayService.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), context.Object, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -135,7 +122,8 @@ public sealed class ConvertToInterpolatedStringToolTests
                 WorkspaceEpoch = 1,
             },
         };
-        var target = new ConvertToInterpolatedStringTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new ConvertToInterpolatedStringTool(replayService.Object);
 
         context
             .Setup(item => item.WorkspaceResolver)
@@ -146,25 +134,25 @@ public sealed class ConvertToInterpolatedStringToolTests
         workspaceResolver
             .Setup(item => item.ResolveLocationAsync(request.Selection, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
-        context
+        replayService
             .Setup(item => item.StageReplayCodeActionAsync(
                 It.Is<ReplayCodeActionRequest>(replayRequest =>
                     replayRequest.Location == request.Selection
                     && replayRequest.ExpectedSnapshot == request.ExpectedSnapshot
                     && replayRequest.Title == "Convert to interpolated string"
                     && replayRequest.EquivalenceKey == "Convert_to_interpolated_string"),
-                CancellationToken.None))
+                context.Object, CancellationToken.None))
             .ReturnsAsync(expected);
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        context.Verify(item => item.StageReplayCodeActionAsync(
+        replayService.Verify(item => item.StageReplayCodeActionAsync(
             It.Is<ReplayCodeActionRequest>(replayRequest =>
                 replayRequest.Location == request.Selection
                 && replayRequest.ExpectedSnapshot == request.ExpectedSnapshot
                 && replayRequest.Title == "Convert to interpolated string"
                 && replayRequest.EquivalenceKey == "Convert_to_interpolated_string"),
-            CancellationToken.None), Times.Once);
+            context.Object, CancellationToken.None), Times.Once);
     }
 }

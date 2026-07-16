@@ -1,39 +1,155 @@
-namespace Roslyn.Workbench.Mcp.CodeActions.Test.CodeActions;
+using Microsoft.CodeAnalysis.Text;
+
+namespace Roslyn.Workbench.Mcp.CodeActions.Test.Tools;
 
 public sealed class DescribeCodeActionToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterQueryTool()
+    public async Task GIVEN_CodeActionsAreUnavailable_WHEN_Executing_THEN_ShouldRejectWithoutResolvingAction()
     {
-        var registry = new Mock<ICodeActionToolRegistry>();
+        var providerCatalog = new Mock<ICodeActionProviderCatalog>();
+        var resolutionService = new Mock<ICodeActionResolutionService>();
+        var infoFactory = new Mock<ICodeActionInfoFactory>();
+        var context = new Mock<ICodeActionQueryContext>();
+        providerCatalog.SetupGet(item => item.Status).Returns(new CodeActionProviderCatalogStatus
+        {
+            IsAvailable = false,
+        });
+        var target = new DescribeCodeActionTool(providerCatalog.Object, resolutionService.Object, infoFactory.Object);
 
-        DescribeCodeActionTool.Register(registry.Object);
+        var result = await target.ExecuteAsync(
+            new DescribeCodeActionRequest
+            {
+                ActionId = "ActionId",
+            },
+            context.Object,
+            CancellationToken.None);
 
-        registry.Verify(item => item.RegisterQueryTool<DescribeCodeActionRequest, DescribeCodeActionData>(
-            It.Is<CodeActionToolMetadata>(metadata =>
-                metadata.Name == "describe-code-action"
-                && metadata.Title == "Describe Code Action"
-                && metadata.Description == "Revalidates one discovered code action and returns its execution descriptor and preflight context."),
-            It.IsAny<ICodeActionQueryToolHandler<DescribeCodeActionRequest, DescribeCodeActionData>>()), Times.Once);
+        result.Error!.Code.Should().Be("CodeActionsUnavailable");
+        resolutionService.Verify(item => item.ResolveActionAsync<DescribeCodeActionData>(
+            It.IsAny<string>(),
+            It.IsAny<SnapshotPrecondition?>(),
+            It.IsAny<DiscoveredActionKind?>(),
+            It.IsAny<ICodeActionExecutionContext>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
-    public async Task GIVEN_QueryContextReturnsResult_WHEN_CallingExecuteAsync_THEN_ShouldReturnQueryContextResult()
+    public async Task GIVEN_ActionResolutionIsRejected_WHEN_Executing_THEN_ShouldReturnRejectionWithoutCreatingInfo()
     {
-        var target = new DescribeCodeActionTool();
+        var providerCatalog = new Mock<ICodeActionProviderCatalog>();
+        var resolutionService = new Mock<ICodeActionResolutionService>();
+        var infoFactory = new Mock<ICodeActionInfoFactory>();
         var context = new Mock<ICodeActionQueryContext>();
-        var request = new DescribeCodeActionRequest
+        var expectedSnapshot = new SnapshotPrecondition();
+        var rejection = CodeActionExecutionResult<DescribeCodeActionData>.Rejected(new CodeActionExecutionError
         {
-            ActionId = "ActionId",
+            Code = "ErrorCode",
+            Message = "Message",
+        });
+        providerCatalog.SetupGet(item => item.Status).Returns(new CodeActionProviderCatalogStatus
+        {
+            IsAvailable = true,
+        });
+        resolutionService
+            .Setup(item => item.ResolveActionAsync<DescribeCodeActionData>(
+                "ActionId",
+                expectedSnapshot,
+                null,
+                context.Object,
+                CancellationToken.None))
+            .ReturnsAsync(new CodeActionResolution<DescribeCodeActionData>
+            {
+                Rejection = rejection,
+            });
+        var target = new DescribeCodeActionTool(providerCatalog.Object, resolutionService.Object, infoFactory.Object);
+
+        var result = await target.ExecuteAsync(
+            new DescribeCodeActionRequest
+            {
+                ActionId = "ActionId",
+                ExpectedSnapshot = expectedSnapshot,
+            },
+            context.Object,
+            CancellationToken.None);
+
+        result.Should().BeSameAs(rejection);
+        infoFactory.Verify(item => item.Create(
+            It.IsAny<DiscoveredCodeAction>(),
+            It.IsAny<ICodeActionExecutionContext>(),
+            It.IsAny<Document>(),
+            It.IsAny<TextSpan>(),
+            It.IsAny<CodeActionDescriptorEntry>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_ActionResolves_WHEN_Executing_THEN_ShouldReturnRefreshedDescriptorAndContext()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var providerCatalog = new Mock<ICodeActionProviderCatalog>();
+        var resolutionService = new Mock<ICodeActionResolutionService>();
+        var infoFactory = new Mock<ICodeActionInfoFactory>();
+        var context = new Mock<ICodeActionQueryContext>();
+        var action = CreateDiscoveredAction(roslyn.Solution);
+        var descriptor = new CodeActionDescriptorEntry
+        {
+            ContextKind = CodeActionDescriptorContextKind.MemberSelection,
+            Message = "Message",
         };
-        var expected = CodeActionExecutionResult<DescribeCodeActionData>.Success(new DescribeCodeActionData());
+        var info = new CodeActionInfo
+        {
+            ActionId = "RefreshedActionId",
+            Title = "Title",
+            ProviderId = "ProviderId",
+            ExpiresAt = "2000-01-01T00:00:00.0000000+00:00",
+        };
+        providerCatalog.SetupGet(item => item.Status).Returns(new CodeActionProviderCatalogStatus
+        {
+            IsAvailable = true,
+        });
+        resolutionService
+            .Setup(item => item.ResolveActionAsync<DescribeCodeActionData>(
+                "ActionId",
+                null,
+                null,
+                context.Object,
+                CancellationToken.None))
+            .ReturnsAsync(new CodeActionResolution<DescribeCodeActionData>
+            {
+                Action = action,
+                Descriptor = descriptor,
+                Document = roslyn.Document,
+                Span = new TextSpan(1, 2),
+            });
+        infoFactory
+            .Setup(item => item.Create(action, context.Object, roslyn.Document, new TextSpan(1, 2), descriptor))
+            .Returns(info);
+        var target = new DescribeCodeActionTool(providerCatalog.Object, resolutionService.Object, infoFactory.Object);
 
-        context
-            .Setup(item => item.DescribeCodeActionAsync(request, TestContext.Current.CancellationToken))
-            .ReturnsAsync(expected);
+        var result = await target.ExecuteAsync(
+            new DescribeCodeActionRequest
+            {
+                ActionId = "ActionId",
+            },
+            context.Object,
+            CancellationToken.None);
 
-        var result = await target.ExecuteAsync(request, context.Object, TestContext.Current.CancellationToken);
+        result.Outcome.Should().Be(CodeActionExecutionOutcome.Succeeded);
+        result.Data!.Descriptor.Should().BeSameAs(info);
+        result.Data.Context!.Kind.Should().Be(CodeActionDescriptorContextKind.MemberSelection);
+        result.Data.Context.Message.Should().Be("Message");
+        infoFactory.Verify(item => item.Create(action, context.Object, roslyn.Document, new TextSpan(1, 2), descriptor), Times.Once);
+    }
 
-        result.Should().BeEquivalentTo(expected);
+    private static DiscoveredCodeAction CreateDiscoveredAction(Solution solution)
+    {
+        return new DiscoveredCodeAction
+        {
+            Action = Microsoft.CodeAnalysis.CodeActions.CodeAction.Create("Title", _ => Task.FromResult(solution), "EquivalenceKey"),
+            Kind = DiscoveredActionKind.Refactoring,
+            ProviderId = "ProviderId",
+            Title = "Title",
+            EquivalenceKey = "EquivalenceKey",
+        };
     }
 }

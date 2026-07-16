@@ -10,27 +10,18 @@ internal sealed class ExtractMethodTool : CodeActionMutationToolHandler<ExtractM
     private const string LocalFunctionTitle = "Extract local function";
     private const string LocalFunctionEquivalenceKey = "Extract_local_function";
 
-    private static readonly CodeActionToolMetadata _metadata = new()
-    {
-        Name = "extract-method",
-        Title = "Extract Method",
-        Description = "Extracts a selected statement or expression block through Roslyn refactoring composition.",
-        Behavior = new CodeActionToolBehavior
-        {
-            Destructive = true,
-        },
-    };
+    private readonly ICodeActionReplayService _replayService;
 
-    public static void Register(ICodeActionToolRegistry registry)
+    public ExtractMethodTool(ICodeActionReplayService replayService)
     {
-        registry.RegisterMutationTool(_metadata, new ExtractMethodTool());
+        _replayService = replayService;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(ExtractMethodRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         if (request.Selection is null)
         {
-            return ValueTask.FromResult(ToolExecutionHelpers.Rejected<WorkspaceMutationCandidate>("InvalidRequest", "A location selector is required."));
+            return ValueTask.FromResult(CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>("InvalidRequest", "A location selector is required."));
         }
 
         var (title, equivalenceKey) = request.TargetKind switch
@@ -39,13 +30,13 @@ internal sealed class ExtractMethodTool : CodeActionMutationToolHandler<ExtractM
             _ => (MethodTitle, MethodEquivalenceKey),
         };
 
-        return context.StageReplayCodeActionAsync(new ReplayCodeActionRequest
+        return _replayService.StageReplayCodeActionAsync(new ReplayCodeActionRequest
         {
             Location = request.Selection,
             ExpectedSnapshot = request.ExpectedSnapshot,
             ProviderId = ProviderId,
             Title = title,
             EquivalenceKey = equivalenceKey,
-        }, cancellationToken);
+        }, context, cancellationToken);
     }
 }

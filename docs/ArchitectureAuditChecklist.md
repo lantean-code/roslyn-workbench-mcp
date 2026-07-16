@@ -28,6 +28,8 @@ Host -> Plugins -> Workspace
 
 The former production Contracts project has been removed. Contracts now live with their owner: Code Actions in CodeActions, inspection DTOs in Plugins.Core, Workspace domain models in Workspace, plugin metadata/results in Plugins, and MCP protocol/lifecycle contracts in Host.
 
+The post-facade CodeActions follow-up is maintained in [CodeActionsArchitectureValidation.md](CodeActionsArchitectureValidation.md). Complete that architecture checklist before beginning the next CodeActions unit-test phase.
+
 ## P1: High Priority
 
 ### Workspace
@@ -98,6 +100,8 @@ The former production Contracts project has been removed. Contracts now live wit
   - `src/Roslyn.Workbench.Mcp/HostConfiguredMsBuildWorkspaceFactory.cs`
   Notes:
   - Code Actions owns an immutable MEF provider catalogue; Host bridges its optional Roslyn host services into Workspace creation through constructor-injected services.
+  - Code Action tool registrations retain closed handler, request and response generic types without constructing handlers during catalogue creation. Host registers the handler and closed MCP adapter with DI, allowing constructor validation.
+  - Query and mutation execution contexts contain only invocation-specific Workspace state. List and describe handlers own their orchestration and receive focused collaborators; mutation handlers receive replay, fix-all, scoped-fix or location-fix services directly through constructor injection. There are no aggregated query- or mutation-workflow façades.
 
 ### Host
 

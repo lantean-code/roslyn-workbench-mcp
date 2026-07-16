@@ -6,28 +6,20 @@ internal sealed class ConvertAnonymousTypeToTupleTool : CodeActionMutationToolHa
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertAnonymousType.CSharpConvertAnonymousTypeToTupleCodeRefactoringProvider";
 
-    private static readonly CodeActionToolMetadata _metadata = new()
-    {
-        Name = "convert-anonymous-type-to-tuple",
-        Title = "Convert Anonymous Type To Tuple",
-        Description = "Converts a supported anonymous type to a tuple through Roslyn refactoring composition.",
-        Behavior = new CodeActionToolBehavior
-        {
-            Destructive = true,
-        },
-    };
+    private readonly ICodeActionReplayService _replayService;
 
-    public static void Register(ICodeActionToolRegistry registry)
+    public ConvertAnonymousTypeToTupleTool(ICodeActionReplayService replayService)
     {
-        registry.RegisterMutationTool(_metadata, new ConvertAnonymousTypeToTupleTool());
+        _replayService = replayService;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(LocationRefactoringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
-        return context.StageReplaySelectionAsync(
+        return _replayService.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             cancellationToken,
+            context,
             ProviderId,
             title: "Convert to tuple");
     }

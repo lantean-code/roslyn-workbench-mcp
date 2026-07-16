@@ -3,22 +3,6 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Refactorings;
 public sealed class ConvertAnonymousTypeToTupleToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
-    {
-        var registry = new Mock<ICodeActionToolRegistry>();
-
-        ConvertAnonymousTypeToTupleTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterMutationTool<LocationRefactoringRequest>(
-            It.Is<CodeActionToolMetadata>(metadata =>
-                metadata.Name == "convert-anonymous-type-to-tuple"
-                && metadata.Title == "Convert Anonymous Type To Tuple"
-                && metadata.Description == "Converts a supported anonymous type to a tuple through Roslyn refactoring composition."
-                && metadata.Behavior.Destructive),
-            It.IsAny<ICodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_LocationRefactoringRequest_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithTupleProvider()
     {
         var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
@@ -31,13 +15,15 @@ public sealed class ConvertAnonymousTypeToTupleToolTests
                 WorkspaceEpoch = 1,
             },
         };
-        var target = new ConvertAnonymousTypeToTupleTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new ConvertAnonymousTypeToTupleTool(replayService.Object);
 
-        context
-            .Setup(item => item.StageReplaySelectionAsync(
+        replayService
+            .Setup(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
                 CancellationToken.None,
+                context.Object,
                 "Microsoft.CodeAnalysis.CSharp.ConvertAnonymousType.CSharpConvertAnonymousTypeToTupleCodeRefactoringProvider",
                 "Convert to tuple",
                 null,
@@ -49,10 +35,11 @@ public sealed class ConvertAnonymousTypeToTupleToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        context.Verify(item => item.StageReplaySelectionAsync(
+        replayService.Verify(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
                 CancellationToken.None,
+                context.Object,
                 "Microsoft.CodeAnalysis.CSharp.ConvertAnonymousType.CSharpConvertAnonymousTypeToTupleCodeRefactoringProvider",
                 "Convert to tuple",
                 null,

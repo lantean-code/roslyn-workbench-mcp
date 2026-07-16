@@ -8,11 +8,6 @@ internal interface ICodeActionOperationService
         ICodeActionExecutionContext context,
         CancellationToken cancellationToken);
 
-    ValueTask<int> CountChangedSourceDocumentsAsync(
-        Solution before,
-        Solution after,
-        CancellationToken cancellationToken);
-
     Task<CodeActionApplyResult> ApplyFixAllAsync(
         CodeFixProvider provider,
         FixAllProvider fixAllProvider,

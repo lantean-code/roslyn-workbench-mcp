@@ -6,28 +6,20 @@ internal sealed class InvertConditionalTool : CodeActionMutationToolHandler<Loca
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.InvertConditional.CSharpInvertConditionalCodeRefactoringProvider";
 
-    private static readonly CodeActionToolMetadata _metadata = new()
-    {
-        Name = "invert-conditional",
-        Title = "Invert Conditional",
-        Description = "Inverts a supported conditional expression through Roslyn refactoring composition.",
-        Behavior = new CodeActionToolBehavior
-        {
-            Destructive = true,
-        },
-    };
+    private readonly ICodeActionReplayService _replayService;
 
-    public static void Register(ICodeActionToolRegistry registry)
+    public InvertConditionalTool(ICodeActionReplayService replayService)
     {
-        registry.RegisterMutationTool(_metadata, new InvertConditionalTool());
+        _replayService = replayService;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(LocationRefactoringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
-        return context.StageReplaySelectionAsync(
+        return _replayService.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             cancellationToken,
+            context,
             ProviderId,
             title: "Invert conditional");
     }

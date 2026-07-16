@@ -6,28 +6,20 @@ internal sealed class ReplaceConditionalWithStatementsTool : CodeActionMutationT
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.ReplaceConditionalWithStatements.CSharpReplaceConditionalWithStatementsCodeRefactoringProvider";
 
-    private static readonly CodeActionToolMetadata _metadata = new()
-    {
-        Name = "replace-conditional-with-statements",
-        Title = "Replace Conditional With Statements",
-        Description = "Rewrites a supported conditional expression into statements through Roslyn refactoring composition.",
-        Behavior = new CodeActionToolBehavior
-        {
-            Destructive = true,
-        },
-    };
+    private readonly ICodeActionReplayService _replayService;
 
-    public static void Register(ICodeActionToolRegistry registry)
+    public ReplaceConditionalWithStatementsTool(ICodeActionReplayService replayService)
     {
-        registry.RegisterMutationTool(_metadata, new ReplaceConditionalWithStatementsTool());
+        _replayService = replayService;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(LocationRefactoringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
-        return context.StageReplaySelectionAsync(
+        return _replayService.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             cancellationToken,
+            context,
             ProviderId,
             title: "Replace conditional expression with statements");
     }

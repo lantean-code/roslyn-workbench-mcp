@@ -8,38 +8,31 @@ internal sealed class ConvertExpressionBodyTool : CodeActionMutationToolHandler<
     private const string UseExpressionBodyProviderId = "Microsoft.CodeAnalysis.CSharp.UseExpressionBody.UseExpressionBodyCodeRefactoringProvider";
     private const string UseExpressionBodyForLambdaProviderId = "Microsoft.CodeAnalysis.CSharp.UseExpressionBodyForLambda.UseExpressionBodyForLambdaCodeRefactoringProvider";
 
-    private static readonly CodeActionToolMetadata _metadata = new()
-    {
-        Name = "convert-expression-body",
-        Title = "Convert Expression Body",
-        Description = "Stages a supported Roslyn block-body or expression-body conversion at the selected declaration.",
-        Behavior = new CodeActionToolBehavior
-        {
-            Destructive = true,
-        },
-    };
+    private readonly ICodeActionReplayService _replayService;
 
-    public static void Register(ICodeActionToolRegistry registry)
+    public ConvertExpressionBodyTool(ICodeActionReplayService replayService)
     {
-        registry.RegisterMutationTool(_metadata, new ConvertExpressionBodyTool());
+        _replayService = replayService;
     }
 
     protected override async ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(LocationRefactoringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
-        var result = await context.StageReplaySelectionAsync(
+        var result = await _replayService.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             cancellationToken,
+            context,
             UseExpressionBodyProviderId).ConfigureAwait(false);
         if (!ShouldTryLambdaProvider(result))
         {
             return result;
         }
 
-        return await context.StageReplaySelectionAsync(
+        return await _replayService.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             cancellationToken,
+            context,
             UseExpressionBodyForLambdaProviderId).ConfigureAwait(false);
     }
 

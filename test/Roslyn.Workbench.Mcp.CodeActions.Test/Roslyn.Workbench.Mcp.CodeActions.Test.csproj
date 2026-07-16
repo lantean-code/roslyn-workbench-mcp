@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <AssemblyMetadata Include="RepositoryRoot" Value="$(MSBuildProjectDirectory)\..\.." />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\Roslyn.Workbench.Mcp.CodeActions\Roslyn.Workbench.Mcp.CodeActions.csproj" />
     <ProjectReference Include="..\Roslyn.Workbench.Mcp.TestSupport\Roslyn.Workbench.Mcp.TestSupport.csproj" />
   </ItemGroup>

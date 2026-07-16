@@ -2,9 +2,11 @@ namespace Roslyn.Workbench.Mcp.CodeActions;
 
 internal interface ICodeActionToolRegistrationVisitor<out TResult>
 {
-    TResult VisitQuery<TRequest, TResponse>(CodeActionQueryRegistration<TRequest, TResponse> registration)
+    TResult VisitQuery<THandler, TRequest, TResponse>(CodeActionQueryRegistration<THandler, TRequest, TResponse> registration)
+        where THandler : class, ICodeActionQueryToolHandler<TRequest, TResponse>
         where TRequest : WorkspaceBoundRequest;
 
-    TResult VisitMutation<TRequest>(CodeActionMutationRegistration<TRequest> registration)
+    TResult VisitMutation<THandler, TRequest>(CodeActionMutationRegistration<THandler, TRequest> registration)
+        where THandler : class, ICodeActionMutationToolHandler<TRequest>
         where TRequest : WorkspaceBoundRequest;
 }

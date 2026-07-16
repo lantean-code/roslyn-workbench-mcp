@@ -3,22 +3,6 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Refactorings;
 public sealed class MoveDeclarationNearReferenceToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
-    {
-        var registry = new Mock<ICodeActionToolRegistry>();
-
-        MoveDeclarationNearReferenceTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterMutationTool<LocationRefactoringRequest>(
-            It.Is<CodeActionToolMetadata>(metadata =>
-                metadata.Name == "move-declaration-near-reference"
-                && metadata.Title == "Move Declaration Near Reference"
-                && metadata.Description == "Moves a supported local declaration nearer to its first use through Roslyn refactoring composition."
-                && metadata.Behavior.Destructive),
-            It.IsAny<ICodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_LocationRefactoringRequest_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithMoveDeclarationProvider()
     {
         var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
@@ -31,13 +15,15 @@ public sealed class MoveDeclarationNearReferenceToolTests
                 WorkspaceEpoch = 1,
             },
         };
-        var target = new MoveDeclarationNearReferenceTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new MoveDeclarationNearReferenceTool(replayService.Object);
 
-        context
-            .Setup(item => item.StageReplaySelectionAsync(
+        replayService
+            .Setup(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
                 CancellationToken.None,
+                context.Object,
                 "Microsoft.CodeAnalysis.CSharp.MoveDeclarationNearReference.CSharpMoveDeclarationNearReferenceCodeRefactoringProvider",
                 null,
                 "Move declaration near reference",
@@ -49,10 +35,11 @@ public sealed class MoveDeclarationNearReferenceToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        context.Verify(item => item.StageReplaySelectionAsync(
+        replayService.Verify(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
                 CancellationToken.None,
+                context.Object,
                 "Microsoft.CodeAnalysis.CSharp.MoveDeclarationNearReference.CSharpMoveDeclarationNearReferenceCodeRefactoringProvider",
                 null,
                 "Move declaration near reference",

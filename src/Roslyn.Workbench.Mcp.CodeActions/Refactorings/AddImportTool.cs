@@ -6,30 +6,22 @@ internal sealed class AddImportTool : CodeActionMutationToolHandler<AddImportReq
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.AddImport.CSharpAddImportCodeRefactoringProvider";
 
-    private static readonly CodeActionToolMetadata _metadata = new()
-    {
-        Name = "add-import",
-        Title = "Add Import",
-        Description = "Adds a supported using directive through Roslyn refactoring composition.",
-        Behavior = new CodeActionToolBehavior
-        {
-            Destructive = true,
-        },
-    };
+    private readonly ICodeActionReplayService _replayService;
 
-    public static void Register(ICodeActionToolRegistry registry)
+    public AddImportTool(ICodeActionReplayService replayService)
     {
-        registry.RegisterMutationTool(_metadata, new AddImportTool());
+        _replayService = replayService;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(AddImportRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         var titleDoesNotContain = request.SimplifyAllOccurrences ? null : "simplify all occurrences";
 
-        return context.StageReplaySelectionAsync(
+        return _replayService.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             cancellationToken,
+            context,
             ProviderId,
             titleStartsWith: "Add 'using ",
             titleDoesNotContain: titleDoesNotContain);

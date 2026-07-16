@@ -6,28 +6,20 @@ internal sealed class ConvertForEachToForTool : CodeActionMutationToolHandler<Lo
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertForEachToFor.CSharpConvertForEachToForCodeRefactoringProvider";
 
-    private static readonly CodeActionToolMetadata _metadata = new()
-    {
-        Name = "convert-foreach-to-for",
-        Title = "Convert Foreach To For",
-        Description = "Converts a supported foreach loop to a for loop through Roslyn refactoring composition.",
-        Behavior = new CodeActionToolBehavior
-        {
-            Destructive = true,
-        },
-    };
+    private readonly ICodeActionReplayService _replayService;
 
-    public static void Register(ICodeActionToolRegistry registry)
+    public ConvertForEachToForTool(ICodeActionReplayService replayService)
     {
-        registry.RegisterMutationTool(_metadata, new ConvertForEachToForTool());
+        _replayService = replayService;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(LocationRefactoringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
-        return context.StageReplaySelectionAsync(
+        return _replayService.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             cancellationToken,
+            context,
             ProviderId,
             title: "Convert to 'for'");
     }

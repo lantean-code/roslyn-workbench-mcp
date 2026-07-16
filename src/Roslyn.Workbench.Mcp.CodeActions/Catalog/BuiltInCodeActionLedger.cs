@@ -625,6 +625,13 @@ internal static class BuiltInCodeActionLedger
 
     public static IReadOnlyList<BuiltInCodeActionFamily> Families => _families;
 
+    public static bool IsDedicatedTool(string toolName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(toolName);
+
+        return _families.Any(family => string.Equals(family.ToolName, toolName, StringComparison.Ordinal));
+    }
+
     public static bool IsDedicatedToolVisible(string toolName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(toolName);

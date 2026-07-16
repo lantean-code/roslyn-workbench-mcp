@@ -1,23 +1,60 @@
 using Roslyn.Workbench.Mcp.CodeActions.Contracts;
+using static Roslyn.Workbench.Mcp.CodeActions.Execution.CodeActionExecutionResultFactory;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Tools;
 
 internal sealed class DescribeCodeActionTool : CodeActionQueryToolHandler<DescribeCodeActionRequest, DescribeCodeActionData>
 {
-    private static readonly CodeActionToolMetadata _metadata = new()
-    {
-        Name = "describe-code-action",
-        Title = "Describe Code Action",
-        Description = "Revalidates one discovered code action and returns its execution descriptor and preflight context.",
-    };
+    private readonly ICodeActionProviderCatalog _providerCatalog;
+    private readonly ICodeActionResolutionService _resolutionService;
+    private readonly ICodeActionInfoFactory _infoFactory;
 
-    public static void Register(ICodeActionToolRegistry registry)
+    public DescribeCodeActionTool(
+        ICodeActionProviderCatalog providerCatalog,
+        ICodeActionResolutionService resolutionService,
+        ICodeActionInfoFactory infoFactory)
     {
-        registry.RegisterQueryTool(_metadata, new DescribeCodeActionTool());
+        _providerCatalog = providerCatalog;
+        _resolutionService = resolutionService;
+        _infoFactory = infoFactory;
     }
 
-    protected override ValueTask<CodeActionExecutionResult<DescribeCodeActionData>> ExecuteCoreAsync(DescribeCodeActionRequest request, ICodeActionQueryContext context, CancellationToken cancellationToken)
+    protected override async ValueTask<CodeActionExecutionResult<DescribeCodeActionData>> ExecuteCoreAsync(
+        DescribeCodeActionRequest request,
+        ICodeActionQueryContext context,
+        CancellationToken cancellationToken)
     {
-        return context.DescribeCodeActionAsync(request, cancellationToken);
+        if (!_providerCatalog.Status.IsAvailable)
+        {
+            return CodeActionsUnavailable<DescribeCodeActionData>();
+        }
+
+        var resolvedAction = await _resolutionService.ResolveActionAsync<DescribeCodeActionData>(
+            request.ActionId,
+            request.ExpectedSnapshot,
+            expectedKind: null,
+            context,
+            cancellationToken).ConfigureAwait(false);
+        if (resolvedAction.HasRejection)
+        {
+            return resolvedAction.Rejection;
+        }
+
+        var data = new DescribeCodeActionData
+        {
+            Descriptor = _infoFactory.Create(
+                resolvedAction.Action,
+                context,
+                resolvedAction.Document,
+                resolvedAction.Span,
+                resolvedAction.Descriptor),
+            Context = new CodeActionDescriptorContext
+            {
+                Kind = resolvedAction.Descriptor.ContextKind,
+                Message = resolvedAction.Descriptor.Message,
+            },
+        };
+
+        return CodeActionExecutionResult<DescribeCodeActionData>.Success(data);
     }
 }

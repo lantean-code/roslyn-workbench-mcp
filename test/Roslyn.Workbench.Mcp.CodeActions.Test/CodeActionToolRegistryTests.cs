@@ -7,12 +7,12 @@ public sealed class CodeActionToolRegistryTests
     {
         var target = new CodeActionToolRegistry();
 
-        target.RegisterQueryTool(CreateMetadata("query"), new TestQueryHandler());
-        target.RegisterMutationTool(CreateMetadata("mutation"), new TestMutationHandler());
+        target.RegisterQueryTool<TestQueryHandler, TestRequest, TestResponse>(CreateMetadata("query"));
+        target.RegisterMutationTool<TestMutationHandler, TestRequest>(CreateMetadata("mutation"));
 
         target.Tools.Should().HaveCount(2);
-        target.Tools[0].Should().BeOfType<CodeActionQueryRegistration<TestRequest, TestResponse>>();
-        target.Tools[1].Should().BeOfType<CodeActionMutationRegistration<TestRequest>>();
+        target.Tools[0].Should().BeOfType<CodeActionQueryRegistration<TestQueryHandler, TestRequest, TestResponse>>();
+        target.Tools[1].Should().BeOfType<CodeActionMutationRegistration<TestMutationHandler, TestRequest>>();
     }
 
     [Fact]
@@ -20,8 +20,8 @@ public sealed class CodeActionToolRegistryTests
     {
         var target = new CodeActionToolRegistry();
         var visitor = new Mock<ICodeActionToolRegistrationVisitor<bool>>();
-        target.RegisterQueryTool(CreateMetadata("query"), new TestQueryHandler());
-        var registration = (CodeActionQueryRegistration<TestRequest, TestResponse>)target.Tools.Single();
+        target.RegisterQueryTool<TestQueryHandler, TestRequest, TestResponse>(CreateMetadata("query"));
+        var registration = (CodeActionQueryRegistration<TestQueryHandler, TestRequest, TestResponse>)target.Tools.Single();
         visitor
             .Setup(item => item.VisitQuery(registration))
             .Returns(true);
@@ -36,9 +36,9 @@ public sealed class CodeActionToolRegistryTests
     public void GIVEN_DuplicateName_WHEN_RegisteringSecondTool_THEN_ShouldThrowInvalidOperationException()
     {
         var target = new CodeActionToolRegistry();
-        target.RegisterQueryTool(CreateMetadata("tool"), new TestQueryHandler());
+        target.RegisterQueryTool<TestQueryHandler, TestRequest, TestResponse>(CreateMetadata("tool"));
 
-        var action = () => target.RegisterMutationTool(CreateMetadata("tool"), new TestMutationHandler());
+        var action = () => target.RegisterMutationTool<TestMutationHandler, TestRequest>(CreateMetadata("tool"));
 
         action.Should().Throw<InvalidOperationException>();
     }

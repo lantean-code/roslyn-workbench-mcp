@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Microsoft.Extensions.Options;
+
 namespace Roslyn.Workbench.Mcp.Test;
 
 public sealed class RepresentativeMcpToolIntegrationTests
@@ -35,14 +35,14 @@ public sealed class RepresentativeMcpToolIntegrationTests
     public async Task GIVEN_ControlledCodeActionProvider_WHEN_ListingAndStagingThroughMcp_THEN_ShouldStageRepresentativeCodeAction()
     {
         using var fixture = await InspectionSampleFixture.CreateAsync();
-        var codeActionProviderCatalog = new MefCodeActionProviderCatalog(Options.Create(new CodeActionCompositionOptions
+        var codeActionProviderCatalog = CodeActionProviderCatalogFactory.Create(new CodeActionCompositionOptions
         {
             IncludeBuiltInAssemblies = false,
             AdditionalAssemblies =
                 [
                     typeof(TestRefactoringProvider).Assembly,
                 ],
-        }));
+        });
         var coordinator = WorkspaceCoordinatorFactory.CreateWithCodeActionProviderCatalog(
             codeActionProviderCatalog,
             BundledCoreToolExecutionServicesFactory.Create());

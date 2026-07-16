@@ -3,22 +3,6 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Refactorings;
 public sealed class ConvertExpressionBodyToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
-    {
-        var registry = new Mock<ICodeActionToolRegistry>();
-
-        ConvertExpressionBodyTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterMutationTool<LocationRefactoringRequest>(
-            It.Is<CodeActionToolMetadata>(metadata =>
-                metadata.Name == "convert-expression-body"
-                && metadata.Title == "Convert Expression Body"
-                && metadata.Description == "Stages a supported Roslyn block-body or expression-body conversion at the selected declaration."
-                && metadata.Behavior.Destructive),
-            It.IsAny<ICodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_PrimaryProviderReturnsNonUnavailableResult_WHEN_CallingExecuteAsync_THEN_ShouldReturnPrimaryResult()
     {
         var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
@@ -31,13 +15,15 @@ public sealed class ConvertExpressionBodyToolTests
                 WorkspaceEpoch = 1,
             },
         };
-        var target = new ConvertExpressionBodyTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new ConvertExpressionBodyTool(replayService.Object);
 
-        context
-            .Setup(item => item.StageReplaySelectionAsync(
+        replayService
+            .Setup(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
                 CancellationToken.None,
+                context.Object,
                 "Microsoft.CodeAnalysis.CSharp.UseExpressionBody.UseExpressionBodyCodeRefactoringProvider",
                 null,
                 null,
@@ -49,20 +35,22 @@ public sealed class ConvertExpressionBodyToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        context.Verify(item => item.StageReplaySelectionAsync(
+        replayService.Verify(item => item.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             CancellationToken.None,
+            context.Object,
             "Microsoft.CodeAnalysis.CSharp.UseExpressionBody.UseExpressionBodyCodeRefactoringProvider",
             null,
             null,
             null,
             null,
             null), Times.Once);
-        context.Verify(item => item.StageReplaySelectionAsync(
+        replayService.Verify(item => item.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             CancellationToken.None,
+            context.Object,
             "Microsoft.CodeAnalysis.CSharp.UseExpressionBodyForLambda.UseExpressionBodyForLambdaCodeRefactoringProvider",
             null,
             null,
@@ -88,13 +76,15 @@ public sealed class ConvertExpressionBodyToolTests
                 WorkspaceEpoch = 1,
             },
         };
-        var target = new ConvertExpressionBodyTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new ConvertExpressionBodyTool(replayService.Object);
 
-        context
-            .Setup(item => item.StageReplaySelectionAsync(
+        replayService
+            .Setup(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
                 CancellationToken.None,
+                context.Object,
                 "Microsoft.CodeAnalysis.CSharp.UseExpressionBody.UseExpressionBodyCodeRefactoringProvider",
                 null,
                 null,
@@ -106,20 +96,22 @@ public sealed class ConvertExpressionBodyToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        context.Verify(item => item.StageReplaySelectionAsync(
+        replayService.Verify(item => item.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             CancellationToken.None,
+            context.Object,
             "Microsoft.CodeAnalysis.CSharp.UseExpressionBody.UseExpressionBodyCodeRefactoringProvider",
             null,
             null,
             null,
             null,
             null), Times.Once);
-        context.Verify(item => item.StageReplaySelectionAsync(
+        replayService.Verify(item => item.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             CancellationToken.None,
+            context.Object,
             "Microsoft.CodeAnalysis.CSharp.UseExpressionBodyForLambda.UseExpressionBodyForLambdaCodeRefactoringProvider",
             null,
             null,
@@ -144,13 +136,15 @@ public sealed class ConvertExpressionBodyToolTests
                 WorkspaceEpoch = 1,
             },
         };
-        var target = new ConvertExpressionBodyTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new ConvertExpressionBodyTool(replayService.Object);
 
-        context
-            .Setup(item => item.StageReplaySelectionAsync(
+        replayService
+            .Setup(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
                 CancellationToken.None,
+                context.Object,
                 "Microsoft.CodeAnalysis.CSharp.UseExpressionBody.UseExpressionBodyCodeRefactoringProvider",
                 null,
                 null,
@@ -162,20 +156,22 @@ public sealed class ConvertExpressionBodyToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        context.Verify(item => item.StageReplaySelectionAsync(
+        replayService.Verify(item => item.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             CancellationToken.None,
+            context.Object,
             "Microsoft.CodeAnalysis.CSharp.UseExpressionBody.UseExpressionBodyCodeRefactoringProvider",
             null,
             null,
             null,
             null,
             null), Times.Once);
-        context.Verify(item => item.StageReplaySelectionAsync(
+        replayService.Verify(item => item.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             CancellationToken.None,
+            context.Object,
             "Microsoft.CodeAnalysis.CSharp.UseExpressionBodyForLambda.UseExpressionBodyForLambdaCodeRefactoringProvider",
             null,
             null,
@@ -197,13 +193,15 @@ public sealed class ConvertExpressionBodyToolTests
                 WorkspaceEpoch = 1,
             },
         };
-        var target = new ConvertExpressionBodyTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new ConvertExpressionBodyTool(replayService.Object);
 
-        context
-            .Setup(item => item.StageReplaySelectionAsync(
+        replayService
+            .Setup(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
                 CancellationToken.None,
+                context.Object,
                 "Microsoft.CodeAnalysis.CSharp.UseExpressionBody.UseExpressionBodyCodeRefactoringProvider",
                 null,
                 null,
@@ -215,11 +213,12 @@ public sealed class ConvertExpressionBodyToolTests
                 Code = "CodeActionUnavailable",
                 Message = "CodeActionUnavailable",
             }));
-        context
-            .Setup(item => item.StageReplaySelectionAsync(
+        replayService
+            .Setup(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
                 CancellationToken.None,
+                context.Object,
                 "Microsoft.CodeAnalysis.CSharp.UseExpressionBodyForLambda.UseExpressionBodyForLambdaCodeRefactoringProvider",
                 null,
                 null,
@@ -231,20 +230,22 @@ public sealed class ConvertExpressionBodyToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        context.Verify(item => item.StageReplaySelectionAsync(
+        replayService.Verify(item => item.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             CancellationToken.None,
+            context.Object,
             "Microsoft.CodeAnalysis.CSharp.UseExpressionBody.UseExpressionBodyCodeRefactoringProvider",
             null,
             null,
             null,
             null,
             null), Times.Once);
-        context.Verify(item => item.StageReplaySelectionAsync(
+        replayService.Verify(item => item.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             CancellationToken.None,
+            context.Object,
             "Microsoft.CodeAnalysis.CSharp.UseExpressionBodyForLambda.UseExpressionBodyForLambdaCodeRefactoringProvider",
             null,
             null,

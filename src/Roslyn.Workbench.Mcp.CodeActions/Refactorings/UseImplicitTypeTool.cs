@@ -6,28 +6,20 @@ internal sealed class UseImplicitTypeTool : CodeActionMutationToolHandler<Locati
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.UseImplicitType.UseImplicitTypeCodeRefactoringProvider";
 
-    private static readonly CodeActionToolMetadata _metadata = new()
-    {
-        Name = "use-implicit-type",
-        Title = "Use Implicit Type",
-        Description = "Converts a supported declaration to an implicit type through Roslyn refactoring composition.",
-        Behavior = new CodeActionToolBehavior
-        {
-            Destructive = true,
-        },
-    };
+    private readonly ICodeActionReplayService _replayService;
 
-    public static void Register(ICodeActionToolRegistry registry)
+    public UseImplicitTypeTool(ICodeActionReplayService replayService)
     {
-        registry.RegisterMutationTool(_metadata, new UseImplicitTypeTool());
+        _replayService = replayService;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(LocationRefactoringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
-        return context.StageReplaySelectionAsync(
+        return _replayService.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             cancellationToken,
+            context,
             ProviderId,
             title: "Use implicit type");
     }

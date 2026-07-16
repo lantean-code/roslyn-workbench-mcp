@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using System.Text.Json;
-using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.CodeActions.Contracts;
 using Roslyn.Workbench.Mcp.Plugins;
 using Roslyn.Workbench.Mcp.Plugins.Core;
@@ -33,10 +32,10 @@ public static class BuiltInCodeActionAuditHarness
         ArgumentNullException.ThrowIfNull(auditCase);
 
         using var fixture = await auditCase.FixtureFactory();
-        var providerCatalog = new MefCodeActionProviderCatalog(Options.Create(new CodeActionCompositionOptions
+        var providerCatalog = CodeActionProviderCatalogFactory.Create(new CodeActionCompositionOptions
         {
             IncludeBuiltInAssemblies = true,
-        }));
+        });
         var coordinator = WorkspaceCoordinatorFactory.CreateWithCodeActionProviderCatalog(providerCatalog, BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {

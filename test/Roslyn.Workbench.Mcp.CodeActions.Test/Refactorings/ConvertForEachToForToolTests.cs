@@ -3,22 +3,6 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Refactorings;
 public sealed class ConvertForEachToForToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
-    {
-        var registry = new Mock<ICodeActionToolRegistry>();
-
-        ConvertForEachToForTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterMutationTool<LocationRefactoringRequest>(
-            It.Is<CodeActionToolMetadata>(metadata =>
-                metadata.Name == "convert-foreach-to-for"
-                && metadata.Title == "Convert Foreach To For"
-                && metadata.Description == "Converts a supported foreach loop to a for loop through Roslyn refactoring composition."
-                && metadata.Behavior.Destructive),
-            It.IsAny<ICodeActionMutationToolHandler<LocationRefactoringRequest>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_LocationRefactoringRequest_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithForProvider()
     {
         var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
@@ -31,13 +15,15 @@ public sealed class ConvertForEachToForToolTests
                 WorkspaceEpoch = 1,
             },
         };
-        var target = new ConvertForEachToForTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new ConvertForEachToForTool(replayService.Object);
 
-        context
-            .Setup(item => item.StageReplaySelectionAsync(
+        replayService
+            .Setup(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
                 CancellationToken.None,
+                context.Object,
                 "Microsoft.CodeAnalysis.CSharp.ConvertForEachToFor.CSharpConvertForEachToForCodeRefactoringProvider",
                 "Convert to 'for'",
                 null,
@@ -49,10 +35,11 @@ public sealed class ConvertForEachToForToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        context.Verify(item => item.StageReplaySelectionAsync(
+        replayService.Verify(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
                 CancellationToken.None,
+                context.Object,
                 "Microsoft.CodeAnalysis.CSharp.ConvertForEachToFor.CSharpConvertForEachToForCodeRefactoringProvider",
                 "Convert to 'for'",
                 null,

@@ -21,7 +21,9 @@ public static class CodeActionToolTestHarness
 
         var registration = BundledCodeActionCatalog.Create()
             .Single(tool => string.Equals(tool.Metadata.Name, toolName, StringComparison.Ordinal));
-        var serverTool = registration.Accept(new CodeActionMcpServerToolFactory(runtime.CodeActionContextFactory));
+        var serverTool = registration.Accept(new CodeActionMcpServerToolFactory(
+            runtime.CodeActionHandlerServices,
+            runtime.CodeActionContextFactory));
         var result = await serverTool.InvokeArgumentsAsync(arguments, CancellationToken.None);
 
         if (result.IsError != !expectProtocolSuccess)

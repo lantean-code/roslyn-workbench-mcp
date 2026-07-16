@@ -3,22 +3,6 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Refactorings;
 public sealed class UseNamedArgumentsToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
-    {
-        var registry = new Mock<ICodeActionToolRegistry>();
-
-        UseNamedArgumentsTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterMutationTool<UseNamedArgumentsRequest>(
-            It.Is<CodeActionToolMetadata>(metadata =>
-                metadata.Name == "use-named-arguments"
-                && metadata.Title == "Use Named Arguments"
-                && metadata.Description == "Adds a supported argument name through Roslyn refactoring composition."
-                && metadata.Behavior.Destructive),
-            It.IsAny<ICodeActionMutationToolHandler<UseNamedArgumentsRequest>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_UseNamedArgumentsRequestWithoutTrailingArguments_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithoutTrailingArgumentsTitle()
     {
         var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
@@ -32,13 +16,15 @@ public sealed class UseNamedArgumentsToolTests
             },
             IncludeTrailingArguments = false,
         };
-        var target = new UseNamedArgumentsTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new UseNamedArgumentsTool(replayService.Object);
 
-        context
-            .Setup(item => item.StageReplaySelectionAsync(
+        replayService
+            .Setup(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
                 CancellationToken.None,
+                context.Object,
                 "Microsoft.CodeAnalysis.CSharp.UseNamedArguments.CSharpUseNamedArgumentsCodeRefactoringProvider",
                 null,
                 "Add argument name '",
@@ -50,10 +36,11 @@ public sealed class UseNamedArgumentsToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        context.Verify(item => item.StageReplaySelectionAsync(
+        replayService.Verify(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
                 CancellationToken.None,
+                context.Object,
                 "Microsoft.CodeAnalysis.CSharp.UseNamedArguments.CSharpUseNamedArgumentsCodeRefactoringProvider",
                 null,
                 "Add argument name '",
@@ -77,13 +64,15 @@ public sealed class UseNamedArgumentsToolTests
             },
             IncludeTrailingArguments = true,
         };
-        var target = new UseNamedArgumentsTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new UseNamedArgumentsTool(replayService.Object);
 
-        context
-            .Setup(item => item.StageReplaySelectionAsync(
+        replayService
+            .Setup(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
                 CancellationToken.None,
+                context.Object,
                 "Microsoft.CodeAnalysis.CSharp.UseNamedArguments.CSharpUseNamedArgumentsCodeRefactoringProvider",
                 null,
                 "Add argument name '",
@@ -95,10 +84,11 @@ public sealed class UseNamedArgumentsToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        context.Verify(item => item.StageReplaySelectionAsync(
+        replayService.Verify(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
                 CancellationToken.None,
+                context.Object,
                 "Microsoft.CodeAnalysis.CSharp.UseNamedArguments.CSharpUseNamedArgumentsCodeRefactoringProvider",
                 null,
                 "Add argument name '",

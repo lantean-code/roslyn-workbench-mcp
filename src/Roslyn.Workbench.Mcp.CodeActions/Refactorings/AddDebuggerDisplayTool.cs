@@ -6,28 +6,20 @@ internal sealed class AddDebuggerDisplayTool : CodeActionMutationToolHandler<Loc
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.AddDebuggerDisplay.CSharpAddDebuggerDisplayCodeRefactoringProvider";
 
-    private static readonly CodeActionToolMetadata _metadata = new()
-    {
-        Name = "add-debugger-display",
-        Title = "Add Debugger Display",
-        Description = "Adds a DebuggerDisplay attribute through Roslyn refactoring composition.",
-        Behavior = new CodeActionToolBehavior
-        {
-            Destructive = true,
-        },
-    };
+    private readonly ICodeActionReplayService _replayService;
 
-    public static void Register(ICodeActionToolRegistry registry)
+    public AddDebuggerDisplayTool(ICodeActionReplayService replayService)
     {
-        registry.RegisterMutationTool(_metadata, new AddDebuggerDisplayTool());
+        _replayService = replayService;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(LocationRefactoringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
-        return context.StageReplaySelectionAsync(
+        return _replayService.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             cancellationToken,
+            context,
             ProviderId,
             title: "Add 'DebuggerDisplay' attribute");
     }

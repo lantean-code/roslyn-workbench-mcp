@@ -4,13 +4,21 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Discovery;
 
 internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
 {
+    private readonly ICodeActionAnalyzerActivator _analyzerActivator;
+
+    public CodeActionDiagnosticService(ICodeActionAnalyzerActivator analyzerActivator)
+    {
+        _analyzerActivator = analyzerActivator;
+    }
+
     public async Task<ImmutableArray<Diagnostic>> GetDocumentDiagnosticsAsync(
         Document document,
         TextSpan span,
         IReadOnlyList<string>? diagnosticIds,
         CancellationToken cancellationToken)
     {
-        return (await GetDocumentDiagnosticsAsync(document, diagnosticIds, cancellationToken).ConfigureAwait(false))
+        var diagnostics = await GetDocumentDiagnosticsAsync(document, diagnosticIds, cancellationToken).ConfigureAwait(false);
+        return diagnostics
             .Where(diagnostic => diagnostic.Location.SourceSpan.IntersectsWith(span))
             .ToImmutableArray();
     }
@@ -26,18 +34,10 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
             return [];
         }
 
-        var diagnostics = compilation.GetDiagnostics(cancellationToken).ToList();
-        var analyzers = document.Project.AnalyzerReferences
-            .SelectMany(reference => reference.GetAnalyzers(document.Project.Language))
-            .ToImmutableArray();
-        if (!analyzers.IsDefaultOrEmpty)
-        {
-            diagnostics.AddRange(await compilation
-                .WithAnalyzers(analyzers, document.Project.AnalyzerOptions)
-                .GetAnalyzerDiagnosticsAsync(cancellationToken)
-                .ConfigureAwait(false));
-        }
-
+        var diagnostics = await GetCompilationDiagnosticsAsync(
+            document.Project,
+            compilation,
+            cancellationToken).ConfigureAwait(false);
         var syntaxTree = await document.GetSyntaxTreeAsync(cancellationToken).ConfigureAwait(false);
 
         return diagnostics
@@ -105,25 +105,36 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
             return [];
         }
 
-        var diagnostics = compilation.GetDiagnostics(cancellationToken).ToList();
-        var analyzers = project.AnalyzerReferences
-            .SelectMany(reference => reference.GetAnalyzers(project.Language))
-            .ToImmutableArray();
-        if (!analyzers.IsDefaultOrEmpty)
-        {
-            diagnostics.AddRange(await compilation
-                .WithAnalyzers(analyzers, project.AnalyzerOptions)
-                .GetAnalyzerDiagnosticsAsync(cancellationToken)
-                .ConfigureAwait(false));
-        }
-
+        var diagnostics = await GetCompilationDiagnosticsAsync(project, compilation, cancellationToken).ConfigureAwait(false);
         return diagnostics
             .Where(static diagnostic => !diagnostic.Location.IsInSource)
             .Where(diagnostic => diagnosticIds is null || diagnosticIds.Count == 0 || diagnosticIds.Contains(diagnostic.Id, StringComparer.Ordinal))
             .ToImmutableArray();
     }
 
-    private static async Task<ImmutableArray<Diagnostic>> GetAdditionalAnalyzerDiagnosticsAsync(
+    private static async Task<ImmutableArray<Diagnostic>> GetCompilationDiagnosticsAsync(
+        Project project,
+        Compilation compilation,
+        CancellationToken cancellationToken)
+    {
+        var diagnostics = compilation.GetDiagnostics(cancellationToken).ToBuilder();
+        var analyzers = project.AnalyzerReferences
+            .SelectMany(reference => reference.GetAnalyzers(project.Language))
+            .ToImmutableArray();
+        if (analyzers.IsDefaultOrEmpty)
+        {
+            return diagnostics.ToImmutable();
+        }
+
+        var analyzerDiagnostics = await compilation
+            .WithAnalyzers(analyzers, project.AnalyzerOptions)
+            .GetAnalyzerDiagnosticsAsync(cancellationToken)
+            .ConfigureAwait(false);
+        diagnostics.AddRange(analyzerDiagnostics);
+        return diagnostics.ToImmutable();
+    }
+
+    private async Task<ImmutableArray<Diagnostic>> GetAdditionalAnalyzerDiagnosticsAsync(
         Document document,
         TextSpan? span,
         IReadOnlyList<string> diagnosticIds,
@@ -135,8 +146,8 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
             return [];
         }
 
-        var analyzer = CreateDiagnosticAnalyzer(analyzerTypeName);
-        if (analyzer is null)
+        var activation = _analyzerActivator.Activate(analyzerTypeName);
+        if (!activation.IsAvailable)
         {
             return [];
         }
@@ -154,7 +165,7 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
         }
 
         var diagnostics = await compilation
-            .WithAnalyzers([analyzer], document.Project.AnalyzerOptions)
+            .WithAnalyzers([activation.Analyzer], document.Project.AnalyzerOptions)
             .GetAnalyzerDiagnosticsAsync(cancellationToken)
             .ConfigureAwait(false);
 
@@ -163,27 +174,6 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
             .Where(diagnostic => diagnosticIds.Count == 0 || diagnosticIds.Contains(diagnostic.Id, StringComparer.Ordinal))
             .Where(diagnostic => span is null || diagnostic.Location.SourceSpan.IntersectsWith(span.Value))
             .ToImmutableArray();
-    }
-
-    private static DiagnosticAnalyzer? CreateDiagnosticAnalyzer(string analyzerTypeName)
-    {
-        try
-        {
-            var analyzerType = AppDomain.CurrentDomain
-                .GetAssemblies()
-                .Select(assembly => assembly.GetType(analyzerTypeName, throwOnError: false, ignoreCase: false))
-                .FirstOrDefault(static candidate => candidate is not null);
-            if (analyzerType is null || !typeof(DiagnosticAnalyzer).IsAssignableFrom(analyzerType))
-            {
-                return null;
-            }
-
-            return Activator.CreateInstance(analyzerType, nonPublic: true) as DiagnosticAnalyzer;
-        }
-        catch
-        {
-            return null;
-        }
     }
 
     private static async Task<Diagnostic?> CreateSyntheticDiagnosticAsync(

@@ -6,28 +6,20 @@ internal sealed class ReplaceDocCommentTextWithTagTool : CodeActionMutationToolH
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.ReplaceDocCommentTextWithTag.CSharpReplaceDocCommentTextWithTagCodeRefactoringProvider";
 
-    private static readonly CodeActionToolMetadata _metadata = new()
-    {
-        Name = "replace-doc-comment-text-with-tag",
-        Title = "Replace Doc Comment Text With Tag",
-        Description = "Replaces supported XML doc comment text with a documentation tag through Roslyn refactoring composition.",
-        Behavior = new CodeActionToolBehavior
-        {
-            Destructive = true,
-        },
-    };
+    private readonly ICodeActionReplayService _replayService;
 
-    public static void Register(ICodeActionToolRegistry registry)
+    public ReplaceDocCommentTextWithTagTool(ICodeActionReplayService replayService)
     {
-        registry.RegisterMutationTool(_metadata, new ReplaceDocCommentTextWithTagTool());
+        _replayService = replayService;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(LocationRefactoringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
-        return context.StageReplaySelectionAsync(
+        return _replayService.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             cancellationToken,
+            context,
             ProviderId,
             titleStartsWith: "Use <");
     }

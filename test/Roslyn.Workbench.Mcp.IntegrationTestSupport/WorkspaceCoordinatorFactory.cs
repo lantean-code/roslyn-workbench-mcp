@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.Plugins;
 using Roslyn.Workbench.Mcp.Workspace.Coordination;
@@ -107,37 +108,69 @@ public static class WorkspaceCoordinatorFactory
             workspaceResolverFactory,
             instanceStatusPublisher,
             new WorkspaceMutationCandidateValidator(pathComparison));
-        var codeActionDiagnosticService = new CodeActionDiagnosticService();
+        var codeActionAnalyzerActivator = new CodeActionAnalyzerActivator();
+        var codeActionDiagnosticService = new CodeActionDiagnosticService(codeActionAnalyzerActivator);
         var codeActionDescriptorRegistry = new CodeActionDescriptorRegistry([ControlledCodeActionDescriptorClassifier.Classify]);
         var codeActionTokenService = new CodeActionTokenService();
+        var timeProvider = TimeProvider.System;
+        var codeActionOptions = Options.Create(new CodeActionExecutionOptions
+        {
+            TokenLifetime = tokenLifetime ?? TimeSpan.FromMinutes(5),
+        });
+        var codeActionInfoFactory = new CodeActionInfoFactory(codeActionTokenService, timeProvider, codeActionOptions);
         var codeActionDiscoveryService = new CodeActionDiscoveryService(codeActionProviderCatalog);
         var codeActionResolutionService = new CodeActionResolutionService(
             codeActionDiscoveryService,
             codeActionDiagnosticService,
             codeActionDescriptorRegistry,
-            codeActionTokenService);
+            codeActionTokenService,
+            timeProvider);
         var codeActionOperationService = new CodeActionOperationService(
             codeActionDiagnosticService,
             codeActionDescriptorRegistry);
-        var codeActionQueryWorkflow = new CodeActionQueryWorkflow(
-            codeActionProviderCatalog,
-            codeActionDiscoveryService,
-            codeActionDiagnosticService,
-            codeActionResolutionService,
-            codeActionDescriptorRegistry,
-            codeActionTokenService,
-            Options.Create(new CodeActionExecutionOptions
-            {
-                TokenLifetime = tokenLifetime ?? TimeSpan.FromMinutes(5),
-            }));
-        var codeActionMutationWorkflow = new CodeActionMutationWorkflow(
+        var codeActionSolutionChangeCounter = new CodeActionSolutionChangeCounter();
+        var codeActionReplayService = new CodeActionReplayService(
             codeActionProviderCatalog,
             codeActionDiscoveryService,
             codeActionResolutionService,
             codeActionOperationService,
+            codeActionDescriptorRegistry);
+        var codeActionScopeResolver = new CodeActionScopeResolver();
+        var codeActionFixAllService = new CodeActionFixAllService(
+            codeActionProviderCatalog,
+            codeActionDiscoveryService,
+            codeActionResolutionService,
+            codeActionOperationService,
+            codeActionScopeResolver,
+            codeActionSolutionChangeCounter);
+        var codeActionScopedFixService = new CodeActionScopedFixService(
+            codeActionProviderCatalog,
+            codeActionDiscoveryService,
+            codeActionOperationService,
             codeActionDiagnosticService,
-            codeActionDescriptorRegistry,
-            codeActionTokenService);
+            codeActionScopeResolver,
+            codeActionSolutionChangeCounter);
+        var codeActionLocationFixService = new CodeActionLocationFixService(
+            codeActionProviderCatalog,
+            codeActionDiscoveryService,
+            codeActionOperationService,
+            codeActionDiagnosticService,
+            codeActionDescriptorRegistry);
+        var codeActionHandlerServices = new ServiceCollection()
+            .AddSingleton<ICodeActionProviderCatalog>(codeActionProviderCatalog)
+            .AddSingleton<ICodeActionAnalyzerActivator>(codeActionAnalyzerActivator)
+            .AddSingleton<ICodeActionDiscoveryService>(codeActionDiscoveryService)
+            .AddSingleton<ICodeActionDiagnosticService>(codeActionDiagnosticService)
+            .AddSingleton<ICodeActionDescriptorRegistry>(codeActionDescriptorRegistry)
+            .AddSingleton<ICodeActionResolutionService>(codeActionResolutionService)
+            .AddSingleton<ICodeActionInfoFactory>(codeActionInfoFactory)
+            .AddSingleton<ICodeActionReplayService>(codeActionReplayService)
+            .AddSingleton<ICodeActionScopeResolver>(codeActionScopeResolver)
+            .AddSingleton<ICodeActionSolutionChangeCounter>(codeActionSolutionChangeCounter)
+            .AddSingleton<ICodeActionFixAllService>(codeActionFixAllService)
+            .AddSingleton<ICodeActionScopedFixService>(codeActionScopedFixService)
+            .AddSingleton<ICodeActionLocationFixService>(codeActionLocationFixService)
+            .BuildServiceProvider();
         var transactionCommitService = new TransactionCommitService(
             sessionStore,
             workspaceChangeDetector,
@@ -160,10 +193,7 @@ public static class WorkspaceCoordinatorFactory
             mutationStagingService,
             workspaceResolverFactory);
         var pluginContextFactory = new PluginExecutionContextFactory(workspaceContextFactory, executionServices);
-        var codeActionContextFactory = new CodeActionExecutionContextFactory(
-            workspaceContextFactory,
-            codeActionQueryWorkflow,
-            codeActionMutationWorkflow);
+        var codeActionContextFactory = new CodeActionExecutionContextFactory(workspaceContextFactory);
         var workspaceLifecycleService = new WorkspaceLifecycleService(
             optionsWrapper,
             sessionStore,
@@ -191,16 +221,17 @@ public static class WorkspaceCoordinatorFactory
         return new WorkspaceRuntime(
             pluginContextFactory,
             codeActionContextFactory,
+            codeActionHandlerServices,
             workspaceLifecycleService,
             transactionService);
     }
 
     private static ICodeActionProviderCatalog CreateUnavailableCodeActionProviderCatalog()
     {
-        return new MefCodeActionProviderCatalog(Options.Create(new CodeActionCompositionOptions
+        return CodeActionProviderCatalogFactory.Create(new CodeActionCompositionOptions
         {
             IncludeBuiltInAssemblies = false,
-        }));
+        });
     }
 
     private static WorkspaceCoordinatorOptions MapOptions(WorkspaceRuntimeOptions options)

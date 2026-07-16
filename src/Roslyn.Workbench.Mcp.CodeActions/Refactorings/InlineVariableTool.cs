@@ -9,30 +9,21 @@ internal sealed class InlineVariableTool : CodeActionMutationToolHandler<InlineV
     private const string Title = "Inline temporary variable";
     private const string EquivalenceKey = "Inline_temporary_variable";
 
-    private static readonly CodeActionToolMetadata _metadata = new()
-    {
-        Name = "inline-variable",
-        Title = "Inline Variable",
-        Description = "Inlines a local variable through Roslyn refactoring composition.",
-        Behavior = new CodeActionToolBehavior
-        {
-            Destructive = true,
-        },
-    };
+    private readonly ICodeActionReplayService _replayService;
 
-    public static void Register(ICodeActionToolRegistry registry)
+    public InlineVariableTool(ICodeActionReplayService replayService)
     {
-        registry.RegisterMutationTool(_metadata, new InlineVariableTool());
+        _replayService = replayService;
     }
 
     protected override async ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(InlineVariableRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         if (!request.RemoveDeclaration)
         {
-            return ToolExecutionHelpers.Rejected<WorkspaceMutationCandidate>("UnsupportedOption", "The removeDeclaration option is not supported by the current Roslyn inline-variable backend.");
+            return CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>("UnsupportedOption", "The removeDeclaration option is not supported by the current Roslyn inline-variable backend.");
         }
 
-        var symbolResolution = await ToolExecutionHelpers.ResolveSymbolAsync<WorkspaceMutationCandidate>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await CodeActionSelectorHelpers.ResolveSymbolAsync<WorkspaceMutationCandidate>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
@@ -40,29 +31,29 @@ internal sealed class InlineVariableTool : CodeActionMutationToolHandler<InlineV
 
         if (symbolResolution.Value is not ILocalSymbol localSymbol)
         {
-            return ToolExecutionHelpers.Rejected<WorkspaceMutationCandidate>("SymbolNotSupported", "The selected symbol is not a local variable.", RequiredAction.ResolveTargetAgain);
+            return CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>("SymbolNotSupported", "The selected symbol is not a local variable.", RequiredAction.ResolveTargetAgain);
         }
 
         var sourceLocation = localSymbol.Locations.FirstOrDefault(static location => location.IsInSource);
         if (sourceLocation is null)
         {
-            return ToolExecutionHelpers.Rejected<WorkspaceMutationCandidate>("SymbolNotSupported", "The selected symbol does not resolve to a source location.", RequiredAction.ResolveTargetAgain);
+            return CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>("SymbolNotSupported", "The selected symbol does not resolve to a source location.", RequiredAction.ResolveTargetAgain);
         }
 
         var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(sourceLocation);
-        var locationSelector = ToolExecutionHelpers.CreateLocationSelector(resolvedLocation);
+        var locationSelector = CodeActionSelectorHelpers.CreateLocationSelector(resolvedLocation);
         if (locationSelector is null)
         {
-            return ToolExecutionHelpers.Rejected<WorkspaceMutationCandidate>("SymbolNotSupported", "The selected symbol does not resolve to a replayable source span.", RequiredAction.ResolveTargetAgain);
+            return CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>("SymbolNotSupported", "The selected symbol does not resolve to a replayable source span.", RequiredAction.ResolveTargetAgain);
         }
 
-        return await context.StageReplayCodeActionAsync(new ReplayCodeActionRequest
+        return await _replayService.StageReplayCodeActionAsync(new ReplayCodeActionRequest
         {
             Location = locationSelector,
             ExpectedSnapshot = request.ExpectedSnapshot,
             ProviderId = ProviderId,
             Title = Title,
             EquivalenceKey = EquivalenceKey,
-        }, cancellationToken).ConfigureAwait(false);
+        }, context, cancellationToken).ConfigureAwait(false);
     }
 }

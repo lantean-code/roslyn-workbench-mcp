@@ -3,22 +3,6 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Refactorings;
 public sealed class ConvertAnonymousTypeToClassToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
-    {
-        var registry = new Mock<ICodeActionToolRegistry>();
-
-        ConvertAnonymousTypeToClassTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterMutationTool<ConvertAnonymousTypeToClassRequest>(
-            It.Is<CodeActionToolMetadata>(metadata =>
-                metadata.Name == "convert-anonymous-type-to-class"
-                && metadata.Title == "Convert Anonymous Type To Class"
-                && metadata.Description == "Converts a supported anonymous type to a generated class or record through Roslyn refactoring composition."
-                && metadata.Behavior.Destructive),
-            It.IsAny<ICodeActionMutationToolHandler<ConvertAnonymousTypeToClassRequest>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_ClassKind_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithClassTitle()
     {
         var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
@@ -32,13 +16,15 @@ public sealed class ConvertAnonymousTypeToClassToolTests
             },
             Kind = ConvertAnonymousTypeToClassKind.Class,
         };
-        var target = new ConvertAnonymousTypeToClassTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new ConvertAnonymousTypeToClassTool(replayService.Object);
 
-        context
-            .Setup(item => item.StageReplaySelectionAsync(
+        replayService
+            .Setup(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
                 CancellationToken.None,
+                context.Object,
                 "Microsoft.CodeAnalysis.CSharp.ConvertAnonymousType.CSharpConvertAnonymousTypeToClassCodeRefactoringProvider",
                 "Convert to class",
                 null,
@@ -50,10 +36,11 @@ public sealed class ConvertAnonymousTypeToClassToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        context.Verify(item => item.StageReplaySelectionAsync(
+        replayService.Verify(item => item.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             CancellationToken.None,
+            context.Object,
             "Microsoft.CodeAnalysis.CSharp.ConvertAnonymousType.CSharpConvertAnonymousTypeToClassCodeRefactoringProvider",
             "Convert to class",
             null,
@@ -76,13 +63,15 @@ public sealed class ConvertAnonymousTypeToClassToolTests
             },
             Kind = ConvertAnonymousTypeToClassKind.Record,
         };
-        var target = new ConvertAnonymousTypeToClassTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new ConvertAnonymousTypeToClassTool(replayService.Object);
 
-        context
-            .Setup(item => item.StageReplaySelectionAsync(
+        replayService
+            .Setup(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
                 CancellationToken.None,
+                context.Object,
                 "Microsoft.CodeAnalysis.CSharp.ConvertAnonymousType.CSharpConvertAnonymousTypeToClassCodeRefactoringProvider",
                 "Convert to record",
                 null,
@@ -94,10 +83,11 @@ public sealed class ConvertAnonymousTypeToClassToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        context.Verify(item => item.StageReplaySelectionAsync(
+        replayService.Verify(item => item.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             CancellationToken.None,
+            context.Object,
             "Microsoft.CodeAnalysis.CSharp.ConvertAnonymousType.CSharpConvertAnonymousTypeToClassCodeRefactoringProvider",
             "Convert to record",
             null,

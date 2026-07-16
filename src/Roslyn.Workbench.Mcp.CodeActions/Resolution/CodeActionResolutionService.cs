@@ -1,3 +1,6 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+
 namespace Roslyn.Workbench.Mcp.CodeActions.Resolution;
 
 internal sealed class CodeActionResolutionService : ICodeActionResolutionService
@@ -6,17 +9,20 @@ internal sealed class CodeActionResolutionService : ICodeActionResolutionService
     private readonly ICodeActionDiagnosticService _diagnosticService;
     private readonly ICodeActionDescriptorRegistry _descriptorRegistry;
     private readonly ICodeActionTokenService _tokenService;
+    private readonly TimeProvider _timeProvider;
 
     public CodeActionResolutionService(
         ICodeActionDiscoveryService discoveryService,
         ICodeActionDiagnosticService diagnosticService,
         ICodeActionDescriptorRegistry descriptorRegistry,
-        ICodeActionTokenService tokenService)
+        ICodeActionTokenService tokenService,
+        TimeProvider timeProvider)
     {
         _discoveryService = discoveryService;
         _diagnosticService = diagnosticService;
         _descriptorRegistry = descriptorRegistry;
         _tokenService = tokenService;
+        _timeProvider = timeProvider;
     }
 
     public async ValueTask<CodeActionResolution<T>> ResolveActionAsync<T>(
@@ -28,40 +34,64 @@ internal sealed class CodeActionResolutionService : ICodeActionResolutionService
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var snapshotRejection = ValidateSnapshot<T>(context.WorkspaceResolver, expectedSnapshot);
+        var snapshotRejection = CodeActionExecutionResultFactory.ValidateSnapshot<T>(
+            context.WorkspaceResolver,
+            expectedSnapshot);
         if (snapshotRejection is not null)
         {
-            return new CodeActionResolution<T>
-            {
-                Rejection = snapshotRejection,
-            };
+            return RejectedResolution(snapshotRejection);
         }
 
-        if (!_tokenService.TryDecode(actionId, out var payload))
+        var tokenResolution = ResolveTokenContext(actionId, expectedKind, context);
+        if (!tokenResolution.IsResolved)
         {
-            return RejectedResolution<T>(ActionExpired<T>());
+            return RejectedResolution(CodeActionExecutionResultFactory.ActionExpired<T>());
         }
 
-        if (!Enum.TryParse<DiscoveredActionKind>(payload.Kind, ignoreCase: false, out var actualKind))
+        var rediscovery = await RediscoverActionsAsync(tokenResolution.Context, cancellationToken).ConfigureAwait(false);
+        if (!rediscovery.ProviderAvailable)
         {
-            return RejectedResolution<T>(ActionExpired<T>());
+            return RejectedResolution(
+                ActionAmbiguous<T>(),
+                CodeActionResolutionFailureKind.ProviderUnavailable);
         }
 
-        if (expectedKind is not null && actualKind != expectedKind.Value)
+        var action = SelectUniqueAction(rediscovery.Actions, tokenResolution.Context.Payload);
+        if (action is null)
         {
-            return RejectedResolution<T>(ActionExpired<T>());
+            return RejectedResolution(ActionAmbiguous<T>());
         }
 
-        if (!DateTimeOffset.TryParse(payload.ExpiresAt, out var expiresAt) || expiresAt < DateTimeOffset.UtcNow)
+        var descriptor = _descriptorRegistry.Classify(action.Action, action.ProviderId, action.Title);
+        if (!descriptor.IsVisible)
         {
-            return RejectedResolution<T>(ActionExpired<T>());
+            return RejectedResolution(CodeActionExecutionResultFactory.Rejected<T>(
+                "ActionUnavailable",
+                "The selected action is not available in this server build.",
+                RequiredAction.ResolveTargetAgain));
         }
 
-        if (!string.Equals(payload.WorkspaceId, context.WorkspaceIdentity.WorkspaceId, StringComparison.Ordinal)
-            || payload.WorkspaceEpoch != context.WorkspaceIdentity.WorkspaceEpoch
-            || payload.TransactionRevision != context.TransactionRevision)
+        return new CodeActionResolution<T>
         {
-            return RejectedResolution<T>(ActionExpired<T>());
+            Action = action,
+            Descriptor = descriptor,
+            Document = tokenResolution.Context.Document,
+            Span = tokenResolution.Context.Span,
+        };
+    }
+
+    private CodeActionTokenContextResolution ResolveTokenContext(
+        string actionId,
+        DiscoveredActionKind? expectedKind,
+        ICodeActionExecutionContext context)
+    {
+        if (!_tokenService.TryDecode(actionId, out var payload)
+            || !Enum.TryParse<DiscoveredActionKind>(payload.Kind, ignoreCase: false, out var actualKind)
+            || expectedKind is not null && actualKind != expectedKind.Value
+            || !HasValidExpiry(payload)
+            || !MatchesWorkspace(payload, context))
+        {
+            return new CodeActionTokenContextResolution();
         }
 
         var documentResolution = context.WorkspaceResolver.ResolveDocument(new DocumentSelector
@@ -70,89 +100,140 @@ internal sealed class CodeActionResolutionService : ICodeActionResolutionService
         });
         if (documentResolution.Status != SelectorResolveStatus.Resolved || documentResolution.Value is null)
         {
-            return RejectedResolution<T>(ActionExpired<T>());
+            return new CodeActionTokenContextResolution();
         }
 
-        var document = documentResolution.Value;
-        var span = new TextSpan(payload.Start, payload.Length);
-        var actions = actualKind == DiscoveredActionKind.Refactoring
-            ? await _discoveryService.DiscoverProviderRefactoringsAsync(payload.ProviderId, document, span, cancellationToken).ConfigureAwait(false)
-            : await _discoveryService.DiscoverProviderCodeFixesAsync(
-                payload.ProviderId,
-                document,
-                await _diagnosticService.GetDocumentDiagnosticsAsync(document, span, payload.DiagnosticIds, cancellationToken).ConfigureAwait(false),
-                cancellationToken).ConfigureAwait(false);
+        return new CodeActionTokenContextResolution
+        {
+            Context = new CodeActionTokenContext
+            {
+                Payload = payload,
+                Kind = actualKind,
+                Document = documentResolution.Value,
+                Span = new TextSpan(payload.Start, payload.Length),
+            },
+        };
+    }
 
+    private bool HasValidExpiry(CodeActionTokenPayload payload)
+    {
+        return DateTimeOffset.TryParseExact(
+                payload.ExpiresAt,
+                "O",
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.RoundtripKind,
+                out var expiresAt)
+            && expiresAt >= _timeProvider.GetUtcNow();
+    }
+
+    private static bool MatchesWorkspace(
+        CodeActionTokenPayload payload,
+        ICodeActionExecutionContext context)
+    {
+        return string.Equals(payload.WorkspaceId, context.WorkspaceIdentity.WorkspaceId, StringComparison.Ordinal)
+            && payload.WorkspaceEpoch == context.WorkspaceIdentity.WorkspaceEpoch
+            && payload.TransactionRevision == context.TransactionRevision;
+    }
+
+    private async ValueTask<CodeActionRediscovery> RediscoverActionsAsync(
+        CodeActionTokenContext tokenContext,
+        CancellationToken cancellationToken)
+    {
+        if (tokenContext.Kind == DiscoveredActionKind.Refactoring)
+        {
+            var providers = _discoveryService.GetMatchingRefactoringProviders(tokenContext.Payload.ProviderId);
+            return providers.Count == 1
+                ? new CodeActionRediscovery
+                {
+                    ProviderAvailable = true,
+                    Actions = await _discoveryService.DiscoverRefactoringsAsync(
+                        providers[0],
+                        tokenContext.Document,
+                        tokenContext.Span,
+                        cancellationToken).ConfigureAwait(false),
+                }
+                : new CodeActionRediscovery();
+        }
+
+        var codeFixProviders = _discoveryService.GetMatchingCodeFixProviders(tokenContext.Payload.ProviderId);
+        if (codeFixProviders.Count != 1)
+        {
+            return new CodeActionRediscovery();
+        }
+
+        var diagnostics = await _diagnosticService.GetDocumentDiagnosticsAsync(
+            tokenContext.Document,
+            tokenContext.Span,
+            tokenContext.Payload.DiagnosticIds,
+            cancellationToken).ConfigureAwait(false);
+        return new CodeActionRediscovery
+        {
+            ProviderAvailable = true,
+            Actions = await _discoveryService.DiscoverCodeFixesAsync(
+                codeFixProviders[0],
+                tokenContext.Document,
+                diagnostics,
+                cancellationToken).ConfigureAwait(false),
+        };
+    }
+
+    private static DiscoveredCodeAction? SelectUniqueAction(
+        IReadOnlyList<DiscoveredCodeAction> actions,
+        CodeActionTokenPayload payload)
+    {
         var matches = actions
             .Where(action =>
                 string.Equals(action.Title, payload.Title, StringComparison.Ordinal)
                 && string.Equals(action.EquivalenceKey, payload.EquivalenceKey, StringComparison.Ordinal)
                 && action.ActionPath.SequenceEqual(payload.ActionPath)
                 && action.DiagnosticIds.SequenceEqual(payload.DiagnosticIds, StringComparer.Ordinal))
+            .Take(2)
             .ToArray();
-
-        if (matches.Length != 1)
-        {
-            return RejectedResolution<T>(CodeActionExecutionResult<T>.Rejected(new CodeActionExecutionError
-            {
-                Code = "ActionAmbiguous",
-                Message = "The requested action could not be reproduced uniquely.",
-            }, RequiredAction.ResolveTargetAgain));
-        }
-
-        var descriptor = _descriptorRegistry.Classify(matches[0].Action, matches[0].ProviderId, matches[0].Title);
-        if (!descriptor.IsVisible)
-        {
-            return RejectedResolution<T>(Rejected<T>(
-                "ActionUnavailable",
-                "The selected action is not available in this server build.",
-                RequiredAction.ResolveTargetAgain));
-        }
-
-        return new CodeActionResolution<T>
-        {
-            Action = matches[0],
-            Descriptor = descriptor,
-            Document = document,
-            Span = span,
-        };
+        return matches.Length == 1 ? matches[0] : null;
     }
 
-    private static CodeActionResolution<T> RejectedResolution<T>(CodeActionExecutionResult<T> rejection)
+    private static CodeActionResolution<T> RejectedResolution<T>(
+        CodeActionExecutionResult<T> rejection,
+        CodeActionResolutionFailureKind failureKind = CodeActionResolutionFailureKind.None)
     {
         return new CodeActionResolution<T>
         {
             Rejection = rejection,
+            FailureKind = failureKind,
         };
     }
 
-    private static CodeActionExecutionResult<T>? ValidateSnapshot<T>(IWorkspaceResolver resolver, SnapshotPrecondition? expectedSnapshot)
+    private static CodeActionExecutionResult<T> ActionAmbiguous<T>()
     {
-        var result = resolver.ValidateSnapshot(expectedSnapshot);
-        return result.Kind == SnapshotMatchKind.Matched
-            ? null
-            : CodeActionExecutionResult<T>.Conflict(new CodeActionExecutionError
-            {
-                Code = "SnapshotMismatch",
-                Message = "The request snapshot does not match the current workspace snapshot.",
-            }, RequiredAction.ResolveTargetAgain);
+        return CodeActionExecutionResultFactory.Rejected<T>(
+            "ActionAmbiguous",
+            "The requested action could not be reproduced uniquely.",
+            RequiredAction.ResolveTargetAgain);
     }
 
-    private static CodeActionExecutionResult<T> Rejected<T>(string code, string message, RequiredAction? requiredAction = null)
+    private sealed record CodeActionTokenContextResolution
     {
-        return CodeActionExecutionResult<T>.Rejected(new CodeActionExecutionError
-        {
-            Code = code,
-            Message = message,
-        }, requiredAction);
+        public CodeActionTokenContext? Context { get; init; }
+
+        [MemberNotNullWhen(true, nameof(Context))]
+        public bool IsResolved => Context is not null;
     }
 
-    private static CodeActionExecutionResult<T> ActionExpired<T>()
+    private sealed record CodeActionTokenContext
     {
-        return CodeActionExecutionResult<T>.Rejected(new CodeActionExecutionError
-        {
-            Code = "ActionExpired",
-            Message = "The requested action token is no longer valid.",
-        }, RequiredAction.ResolveTargetAgain);
+        public required CodeActionTokenPayload Payload { get; init; }
+
+        public required DiscoveredActionKind Kind { get; init; }
+
+        public required Document Document { get; init; }
+
+        public required TextSpan Span { get; init; }
+    }
+
+    private sealed record CodeActionRediscovery
+    {
+        public bool ProviderAvailable { get; init; }
+
+        public IReadOnlyList<DiscoveredCodeAction> Actions { get; init; } = [];
     }
 }

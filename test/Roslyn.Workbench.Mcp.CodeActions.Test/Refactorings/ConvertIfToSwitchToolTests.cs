@@ -3,22 +3,6 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Refactorings;
 public sealed class ConvertIfToSwitchToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
-    {
-        var registry = new Mock<ICodeActionToolRegistry>();
-
-        ConvertIfToSwitchTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterMutationTool<ConvertIfToSwitchRequest>(
-            It.Is<CodeActionToolMetadata>(metadata =>
-                metadata.Name == "convert-if-to-switch"
-                && metadata.Title == "Convert If To Switch"
-                && metadata.Description == "Converts a supported if-chain to a switch statement or switch expression through Roslyn refactoring composition."
-                && metadata.Behavior.Destructive),
-            It.IsAny<ICodeActionMutationToolHandler<ConvertIfToSwitchRequest>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_StatementKind_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithSwitchStatementTitle()
     {
         var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
@@ -32,13 +16,15 @@ public sealed class ConvertIfToSwitchToolTests
             },
             Kind = ConvertIfToSwitchKind.Statement,
         };
-        var target = new ConvertIfToSwitchTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new ConvertIfToSwitchTool(replayService.Object);
 
-        context
-            .Setup(item => item.StageReplaySelectionAsync(
+        replayService
+            .Setup(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
                 CancellationToken.None,
+                context.Object,
                 "Microsoft.CodeAnalysis.CSharp.ConvertIfToSwitch.CSharpConvertIfToSwitchCodeRefactoringProvider",
                 "Convert to 'switch' statement",
                 null,
@@ -50,10 +36,11 @@ public sealed class ConvertIfToSwitchToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        context.Verify(item => item.StageReplaySelectionAsync(
+        replayService.Verify(item => item.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             CancellationToken.None,
+            context.Object,
             "Microsoft.CodeAnalysis.CSharp.ConvertIfToSwitch.CSharpConvertIfToSwitchCodeRefactoringProvider",
             "Convert to 'switch' statement",
             null,
@@ -76,13 +63,15 @@ public sealed class ConvertIfToSwitchToolTests
             },
             Kind = ConvertIfToSwitchKind.Expression,
         };
-        var target = new ConvertIfToSwitchTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new ConvertIfToSwitchTool(replayService.Object);
 
-        context
-            .Setup(item => item.StageReplaySelectionAsync(
+        replayService
+            .Setup(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
                 CancellationToken.None,
+                context.Object,
                 "Microsoft.CodeAnalysis.CSharp.ConvertIfToSwitch.CSharpConvertIfToSwitchCodeRefactoringProvider",
                 "Convert to 'switch' expression",
                 null,
@@ -94,10 +83,11 @@ public sealed class ConvertIfToSwitchToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        context.Verify(item => item.StageReplaySelectionAsync(
+        replayService.Verify(item => item.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             CancellationToken.None,
+            context.Object,
             "Microsoft.CodeAnalysis.CSharp.ConvertIfToSwitch.CSharpConvertIfToSwitchCodeRefactoringProvider",
             "Convert to 'switch' expression",
             null,

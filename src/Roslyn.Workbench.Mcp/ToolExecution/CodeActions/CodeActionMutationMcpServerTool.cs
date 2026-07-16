@@ -1,22 +1,28 @@
 using System.Text.Json;
+using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.ToolExecution.CodeActions;
 
-internal sealed class CodeActionMutationMcpServerTool<TRequest> : McpServerToolBase
+internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpServerToolBase
+    where THandler : class, ICodeActionMutationToolHandler<TRequest>
     where TRequest : WorkspaceBoundRequest
 {
     private readonly CodeActionToolMetadata _metadata;
-    private readonly ICodeActionMutationToolHandler<TRequest> _handler;
+    private readonly THandler _handler;
     private readonly ICodeActionExecutionContextFactory _contextFactory;
 
     public CodeActionMutationMcpServerTool(
-        Tool protocolTool,
-        CodeActionToolMetadata metadata,
-        ICodeActionMutationToolHandler<TRequest> handler,
-        ICodeActionExecutionContextFactory contextFactory)
-        : base(protocolTool)
+        CodeActionMutationRegistration<THandler, TRequest> registration,
+        THandler handler,
+        ICodeActionExecutionContextFactory contextFactory,
+        IOptions<StartupOptions> options)
+        : base(McpToolProtocolFactory.CreateCodeActionTool<TRequest>(
+            registration.Metadata,
+            registration.Kind,
+            registration.ResponseType,
+            options.Value.ToolOutputSchemaMode))
     {
-        _metadata = metadata;
+        _metadata = registration.Metadata;
         _handler = handler;
         _contextFactory = contextFactory;
     }

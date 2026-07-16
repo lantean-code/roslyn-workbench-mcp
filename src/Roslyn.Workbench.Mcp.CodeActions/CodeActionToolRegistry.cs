@@ -7,27 +7,24 @@ internal sealed class CodeActionToolRegistry : ICodeActionToolRegistry
 
     public IReadOnlyList<IRegisteredCodeActionTool> Tools => _tools;
 
-    public void RegisterQueryTool<TRequest, TResponse>(
-        CodeActionToolMetadata metadata,
-        ICodeActionQueryToolHandler<TRequest, TResponse> handler)
+    public void RegisterQueryTool<THandler, TRequest, TResponse>(CodeActionToolMetadata metadata)
+        where THandler : class, ICodeActionQueryToolHandler<TRequest, TResponse>
         where TRequest : WorkspaceBoundRequest
     {
         Validate(metadata);
-        _tools.Add(new CodeActionQueryRegistration<TRequest, TResponse>(metadata, handler));
+        _tools.Add(new CodeActionQueryRegistration<THandler, TRequest, TResponse>(metadata));
     }
 
-    public void RegisterMutationTool<TRequest>(
-        CodeActionToolMetadata metadata,
-        ICodeActionMutationToolHandler<TRequest> handler)
+    public void RegisterMutationTool<THandler, TRequest>(CodeActionToolMetadata metadata)
+        where THandler : class, ICodeActionMutationToolHandler<TRequest>
         where TRequest : WorkspaceBoundRequest
     {
         Validate(metadata);
-        _tools.Add(new CodeActionMutationRegistration<TRequest>(metadata, handler));
+        _tools.Add(new CodeActionMutationRegistration<THandler, TRequest>(metadata));
     }
 
     private void Validate(CodeActionToolMetadata metadata)
     {
-
         if (string.IsNullOrWhiteSpace(metadata.Name)
             || string.IsNullOrWhiteSpace(metadata.Title)
             || string.IsNullOrWhiteSpace(metadata.Description))

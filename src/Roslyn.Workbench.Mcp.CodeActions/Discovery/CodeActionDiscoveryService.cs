@@ -37,30 +37,6 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         return provider.GetType().ToString();
     }
 
-    public async ValueTask<IReadOnlyList<DiscoveredCodeAction>> DiscoverProviderRefactoringsAsync(
-        string providerId,
-        Document document,
-        TextSpan span,
-        CancellationToken cancellationToken)
-    {
-        var provider = _providerCatalog.RefactoringProviders.SingleOrDefault(candidate => string.Equals(GetProviderId(candidate), providerId, StringComparison.Ordinal));
-        return provider is null
-            ? []
-            : await DiscoverRefactoringsAsync(provider, document, span, cancellationToken).ConfigureAwait(false);
-    }
-
-    public async ValueTask<IReadOnlyList<DiscoveredCodeAction>> DiscoverProviderCodeFixesAsync(
-        string providerId,
-        Document document,
-        ImmutableArray<Diagnostic> diagnostics,
-        CancellationToken cancellationToken)
-    {
-        var provider = _providerCatalog.CodeFixProviders.SingleOrDefault(candidate => string.Equals(GetProviderId(candidate), providerId, StringComparison.Ordinal));
-        return provider is null
-            ? []
-            : await DiscoverCodeFixesAsync(provider, document, diagnostics, cancellationToken).ConfigureAwait(false);
-    }
-
     public async ValueTask<IReadOnlyList<DiscoveredCodeAction>> DiscoverRefactoringsAsync(
         CodeRefactoringProvider provider,
         Document document,

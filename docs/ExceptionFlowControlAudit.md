@@ -2,7 +2,7 @@
 
 ## Scope
 
-This audit covers production C# beneath `src` as of 2026-07-14. It reviews
+This audit covers production C# beneath `src` as of 2026-07-15. It reviews
 explicit `throw`, `ThrowIf*` and `catch` sites, together with callers where a
 locally thrown exception is translated into a result. Test code is excluded
 because exception assertions and deliberately throwing fakes are test
@@ -14,6 +14,14 @@ violation count. Cancellation, invariant enforcement and translation of
 genuine framework, operating-system, filesystem, Roslyn, MSBuild, MEF or plugin
 failures remain valid uses of exceptions.
 
+The final repeat scan found 154 candidate lines across 62 production files: 89
+explicit throw or guard lines and 65 catch lines. Every remaining candidate is
+covered by the completed classifications below. The reduced throw/guard count
+reflects the explicit-result and validation work completed during remediation;
+the stable catch count reflects retained external-boundary translation,
+resource cleanup, cancellation and invariant handling rather than unresolved
+flow-control violations.
+
 The classification follows the .NET guidance to handle routine conditions in
 ordinary code and reserve exceptions for unusual or unexpected failures:
 
@@ -22,7 +30,7 @@ ordinary code and reserve exceptions for unusual or unexpected failures:
 
 ## Completed Remediation
 
-Completed remediation on 2026-07-14 covers every confirmed violation family:
+Completed remediation through 2026-07-15 covers every confirmed violation family:
 
 - `PluginAssemblyMetadataReader` now returns explicit validation failures from
   custom-attribute parsing. Its outer exception boundary remains responsible
@@ -58,6 +66,17 @@ Completed remediation on 2026-07-14 covers every confirmed violation family:
   map failures to retryable `ProjectStructureUnavailable` rejections. The
   remaining catches are limited to genuine MSBuild, solution-format, XML,
   filesystem and access exceptions.
+- `CommitRecoveryStore` now treats every malformed or unreadable owner and
+  legacy status record as authoritative `RecoveryConflict` evidence. Only
+  validated orphan owners are eligible for automatic cleanup, so persisted
+  evidence can no longer disappear through an empty catch.
+- `WorkspaceInstanceStatusPublisher` now returns an explicit status result that
+  distinguishes availability, known live instances and unreadable live hints.
+  Workspace open and status responses publish advisory diagnostics without
+  turning advisory-file failures into authoritative recovery failures.
+- `TransactionCommitService` now observes whether the final recovery state was
+  persisted and enriches commit faults when retained recovery evidence may
+  still report an earlier phase.
 
 ## Remaining Confirmed Violations
 
@@ -76,23 +95,26 @@ No confirmed exception-for-flow-control violations remain from this audit.
 | Exhaustive switches and discriminated-state accessors | Throws for unsupported enum states or missing data in a successful state enforce internal invariants. They should remain unreachable through valid construction. |
 | Public configuration freeze checks | Throwing when a plugin mutates configuration after `Configure` returns reports misuse of the public plugin contract, not a normal configuration outcome. |
 
-## Additional Error-Handling Concerns
+## Completed Diagnostic-Fidelity Review
 
-The following are not exception-for-flow-control violations, but the audit found
-that they warrant a separate error-reporting review:
+The separate review of best-effort recovery and advisory-status paths is
+complete:
 
-- Several best-effort recovery and advisory-status paths intentionally suppress
-  I/O failures. Their behaviour is defensible, but each silent catch should be
-  retained only where the caller has no actionable result channel and the
-  failure cannot compromise authoritative recovery state.
+- Authoritative recovery reads never suppress malformed, inaccessible or
+  unreadable evidence; they return a blocking conflict.
+- Advisory instance publication and scanning remain non-blocking, but failures
+  and unreadable live hints are visible through workspace diagnostics.
+- Recovery-state persistence failure is included in the existing commit fault
+  channel.
+- Empty catches remain only for secondary temporary-file cleanup and advisory
+  update/delete cleanup where propagating the cleanup failure would hide the
+  primary failure or incorrectly fail an otherwise safe operation. Stale
+  advisory files remain discoverable and removable by later scans.
 
-## Recommended Remediation Order
+## Ongoing Enforcement
 
-Review the silent-degradation findings independently. They concern diagnostic
-fidelity rather than flow-control mechanics and should not be treated as
-unfinished work from this remediation.
-
-After remediation, repeat the source scan and update this document with the
-remaining reviewed exception boundaries. An analyser can guard simple syntactic
-patterns, but caller-aware review is still required because the principal
-violation can be a throw in one type and result conversion in another.
+No remediation item remains from this audit. Future changes should retain the
+source guidance prohibiting exceptions for expected flow control. An analyser
+can guard simple syntactic patterns, but caller-aware review remains necessary
+because a violation can consist of a throw in one type and result conversion in
+another.

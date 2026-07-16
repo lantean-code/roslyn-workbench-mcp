@@ -6,20 +6,11 @@ internal sealed class UseNamedArgumentsTool : CodeActionMutationToolHandler<UseN
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.UseNamedArguments.CSharpUseNamedArgumentsCodeRefactoringProvider";
 
-    private static readonly CodeActionToolMetadata _metadata = new()
-    {
-        Name = "use-named-arguments",
-        Title = "Use Named Arguments",
-        Description = "Adds a supported argument name through Roslyn refactoring composition.",
-        Behavior = new CodeActionToolBehavior
-        {
-            Destructive = true,
-        },
-    };
+    private readonly ICodeActionReplayService _replayService;
 
-    public static void Register(ICodeActionToolRegistry registry)
+    public UseNamedArgumentsTool(ICodeActionReplayService replayService)
     {
-        registry.RegisterMutationTool(_metadata, new UseNamedArgumentsTool());
+        _replayService = replayService;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(UseNamedArgumentsRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
@@ -29,10 +20,11 @@ internal sealed class UseNamedArgumentsTool : CodeActionMutationToolHandler<UseN
             ? "Add argument name '"
             : "Add argument name '";
 
-        return context.StageReplaySelectionAsync(
+        return _replayService.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             cancellationToken,
+            context,
             ProviderId,
             titleStartsWith: titleStartsWith,
             titleDoesNotContain: titleDoesNotContain);

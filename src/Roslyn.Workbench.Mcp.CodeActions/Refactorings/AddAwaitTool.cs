@@ -6,20 +6,11 @@ internal sealed class AddAwaitTool : CodeActionMutationToolHandler<AddAwaitReque
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.AddAwait.CSharpAddAwaitCodeRefactoringProvider";
 
-    private static readonly CodeActionToolMetadata _metadata = new()
-    {
-        Name = "add-await",
-        Title = "Add Await",
-        Description = "Stages one supported add-await refactoring through Roslyn refactoring composition.",
-        Behavior = new CodeActionToolBehavior
-        {
-            Destructive = true,
-        },
-    };
+    private readonly ICodeActionReplayService _replayService;
 
-    public static void Register(ICodeActionToolRegistry registry)
+    public AddAwaitTool(ICodeActionReplayService replayService)
     {
-        registry.RegisterMutationTool(_metadata, new AddAwaitTool());
+        _replayService = replayService;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(AddAwaitRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
@@ -31,10 +22,11 @@ internal sealed class AddAwaitTool : CodeActionMutationToolHandler<AddAwaitReque
             ? new[] { 1 }
             : new[] { 0 };
 
-        return context.StageReplaySelectionAsync(
+        return _replayService.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             cancellationToken,
+            context,
             ProviderId,
             title: title,
             actionPath: actionPath);

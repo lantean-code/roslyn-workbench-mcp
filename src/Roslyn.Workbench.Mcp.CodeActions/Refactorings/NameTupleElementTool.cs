@@ -6,28 +6,20 @@ internal sealed class NameTupleElementTool : CodeActionMutationToolHandler<Locat
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.NameTupleElement.CSharpNameTupleElementCodeRefactoringProvider";
 
-    private static readonly CodeActionToolMetadata _metadata = new()
-    {
-        Name = "name-tuple-element",
-        Title = "Name Tuple Element",
-        Description = "Adds a supported tuple element name through Roslyn refactoring composition.",
-        Behavior = new CodeActionToolBehavior
-        {
-            Destructive = true,
-        },
-    };
+    private readonly ICodeActionReplayService _replayService;
 
-    public static void Register(ICodeActionToolRegistry registry)
+    public NameTupleElementTool(ICodeActionReplayService replayService)
     {
-        registry.RegisterMutationTool(_metadata, new NameTupleElementTool());
+        _replayService = replayService;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(LocationRefactoringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
-        return context.StageReplaySelectionAsync(
+        return _replayService.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             cancellationToken,
+            context,
             ProviderId,
             titleStartsWith: "Add tuple element name '");
     }

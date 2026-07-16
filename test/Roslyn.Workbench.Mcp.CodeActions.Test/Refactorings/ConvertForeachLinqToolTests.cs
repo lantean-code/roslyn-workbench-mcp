@@ -3,34 +3,19 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Refactorings;
 public sealed class ConvertForeachLinqToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
-    {
-        var registry = new Mock<ICodeActionToolRegistry>();
-
-        ConvertForeachLinqTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterMutationTool<ConvertForeachLinqRequest>(
-            It.Is<CodeActionToolMetadata>(metadata =>
-                metadata.Name == "convert-foreach-linq"
-                && metadata.Title == "Convert Foreach LINQ"
-                && metadata.Description == "Stages one supported Roslyn foreach or LINQ conversion through refactoring composition."
-                && metadata.Behavior.Destructive),
-            It.IsAny<ICodeActionMutationToolHandler<ConvertForeachLinqRequest>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_SelectionIsNull_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequest()
     {
         var context = new Mock<ICodeActionMutationContext>();
-        var target = new ConvertForeachLinqTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new ConvertForeachLinqTool(replayService.Object);
 
         var result = await target.ExecuteAsync(new ConvertForeachLinqRequest(), context.Object, CancellationToken.None);
 
         result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("InvalidRequest");
-        context.Verify(item => item.StageReplayCodeActionAsync(
+        replayService.Verify(item => item.StageReplayCodeActionAsync(
             It.IsAny<ReplayCodeActionRequest>(),
-            It.IsAny<CancellationToken>()), Times.Never);
+            context.Object, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -47,9 +32,10 @@ public sealed class ConvertForeachLinqToolTests
             },
             ConversionKind = ConvertForeachLinqKind.ForeachToCallForm,
         };
-        var target = new ConvertForeachLinqTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new ConvertForeachLinqTool(replayService.Object);
 
-        context
+        replayService
             .Setup(item => item.StageReplayCodeActionAsync(
                 It.Is<ReplayCodeActionRequest>(stageRequest =>
                     stageRequest.Location == request.Selection
@@ -57,20 +43,20 @@ public sealed class ConvertForeachLinqToolTests
                     && stageRequest.ProviderId == "Microsoft.CodeAnalysis.CSharp.ConvertLinq.ConvertForEachToLinqQuery.CSharpConvertForEachToLinqQueryProvider"
                     && stageRequest.Title == "Convert to LINQ call form"
                     && stageRequest.EquivalenceKey == "Convert_to_linq_call_form"),
-                CancellationToken.None))
+                context.Object, CancellationToken.None))
             .ReturnsAsync(expected);
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        context.Verify(item => item.StageReplayCodeActionAsync(
+        replayService.Verify(item => item.StageReplayCodeActionAsync(
             It.Is<ReplayCodeActionRequest>(stageRequest =>
                 stageRequest.Location == request.Selection
                 && stageRequest.ExpectedSnapshot == request.ExpectedSnapshot
                 && stageRequest.ProviderId == "Microsoft.CodeAnalysis.CSharp.ConvertLinq.ConvertForEachToLinqQuery.CSharpConvertForEachToLinqQueryProvider"
                 && stageRequest.Title == "Convert to LINQ call form"
                 && stageRequest.EquivalenceKey == "Convert_to_linq_call_form"),
-            CancellationToken.None), Times.Once);
+            context.Object, CancellationToken.None), Times.Once);
     }
 
     [Fact]
@@ -87,9 +73,10 @@ public sealed class ConvertForeachLinqToolTests
             },
             ConversionKind = ConvertForeachLinqKind.LinqToForeach,
         };
-        var target = new ConvertForeachLinqTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new ConvertForeachLinqTool(replayService.Object);
 
-        context
+        replayService
             .Setup(item => item.StageReplayCodeActionAsync(
                 It.Is<ReplayCodeActionRequest>(stageRequest =>
                     stageRequest.Location == request.Selection
@@ -97,20 +84,20 @@ public sealed class ConvertForeachLinqToolTests
                     && stageRequest.ProviderId == "Microsoft.CodeAnalysis.CSharp.ConvertLinq.CSharpConvertLinqQueryToForEachProvider"
                     && stageRequest.Title == "Convert to foreach"
                     && stageRequest.EquivalenceKey == "Convert_to_foreach"),
-                CancellationToken.None))
+                context.Object, CancellationToken.None))
             .ReturnsAsync(expected);
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        context.Verify(item => item.StageReplayCodeActionAsync(
+        replayService.Verify(item => item.StageReplayCodeActionAsync(
             It.Is<ReplayCodeActionRequest>(stageRequest =>
                 stageRequest.Location == request.Selection
                 && stageRequest.ExpectedSnapshot == request.ExpectedSnapshot
                 && stageRequest.ProviderId == "Microsoft.CodeAnalysis.CSharp.ConvertLinq.CSharpConvertLinqQueryToForEachProvider"
                 && stageRequest.Title == "Convert to foreach"
                 && stageRequest.EquivalenceKey == "Convert_to_foreach"),
-            CancellationToken.None), Times.Once);
+            context.Object, CancellationToken.None), Times.Once);
     }
 
     [Fact]
@@ -127,9 +114,10 @@ public sealed class ConvertForeachLinqToolTests
             },
             ConversionKind = ConvertForeachLinqKind.ForeachToQuery,
         };
-        var target = new ConvertForeachLinqTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new ConvertForeachLinqTool(replayService.Object);
 
-        context
+        replayService
             .Setup(item => item.StageReplayCodeActionAsync(
                 It.Is<ReplayCodeActionRequest>(stageRequest =>
                     stageRequest.Location == request.Selection
@@ -137,19 +125,19 @@ public sealed class ConvertForeachLinqToolTests
                     && stageRequest.ProviderId == "Microsoft.CodeAnalysis.CSharp.ConvertLinq.ConvertForEachToLinqQuery.CSharpConvertForEachToLinqQueryProvider"
                     && stageRequest.Title == "Convert to LINQ"
                     && stageRequest.EquivalenceKey == "Convert_to_linq"),
-                CancellationToken.None))
+                context.Object, CancellationToken.None))
             .ReturnsAsync(expected);
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        context.Verify(item => item.StageReplayCodeActionAsync(
+        replayService.Verify(item => item.StageReplayCodeActionAsync(
             It.Is<ReplayCodeActionRequest>(stageRequest =>
                 stageRequest.Location == request.Selection
                 && stageRequest.ExpectedSnapshot == request.ExpectedSnapshot
                 && stageRequest.ProviderId == "Microsoft.CodeAnalysis.CSharp.ConvertLinq.ConvertForEachToLinqQuery.CSharpConvertForEachToLinqQueryProvider"
                 && stageRequest.Title == "Convert to LINQ"
                 && stageRequest.EquivalenceKey == "Convert_to_linq"),
-            CancellationToken.None), Times.Once);
+            context.Object, CancellationToken.None), Times.Once);
     }
 }

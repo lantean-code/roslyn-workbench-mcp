@@ -6,20 +6,11 @@ internal sealed class ConvertIfToSwitchTool : CodeActionMutationToolHandler<Conv
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertIfToSwitch.CSharpConvertIfToSwitchCodeRefactoringProvider";
 
-    private static readonly CodeActionToolMetadata _metadata = new()
-    {
-        Name = "convert-if-to-switch",
-        Title = "Convert If To Switch",
-        Description = "Converts a supported if-chain to a switch statement or switch expression through Roslyn refactoring composition.",
-        Behavior = new CodeActionToolBehavior
-        {
-            Destructive = true,
-        },
-    };
+    private readonly ICodeActionReplayService _replayService;
 
-    public static void Register(ICodeActionToolRegistry registry)
+    public ConvertIfToSwitchTool(ICodeActionReplayService replayService)
     {
-        registry.RegisterMutationTool(_metadata, new ConvertIfToSwitchTool());
+        _replayService = replayService;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(ConvertIfToSwitchRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
@@ -28,10 +19,11 @@ internal sealed class ConvertIfToSwitchTool : CodeActionMutationToolHandler<Conv
             ? "Convert to 'switch' expression"
             : "Convert to 'switch' statement";
 
-        return context.StageReplaySelectionAsync(
+        return _replayService.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             cancellationToken,
+            context,
             ProviderId,
             title: title);
     }

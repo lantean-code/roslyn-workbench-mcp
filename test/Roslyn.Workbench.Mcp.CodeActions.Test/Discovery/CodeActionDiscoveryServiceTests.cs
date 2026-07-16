@@ -112,20 +112,6 @@ public sealed class CodeActionDiscoveryServiceTests
     }
 
     [Fact]
-    public async Task GIVEN_UnknownRefactoringProvider_WHEN_DiscoveringProviderRefactorings_THEN_ShouldReturnEmptyCollection()
-    {
-        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
-
-        var result = await _target.DiscoverProviderRefactoringsAsync(
-            "ProviderId",
-            roslyn.Document,
-            new TextSpan(0, 1),
-            TestContext.Current.CancellationToken);
-
-        result.Should().BeEmpty();
-    }
-
-    [Fact]
     public async Task GIVEN_RefactoringProviderWithNestedActions_WHEN_DiscoveringRefactorings_THEN_ShouldFlattenLeafActions()
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
@@ -146,10 +132,8 @@ public sealed class CodeActionDiscoveryServiceTests
                 return Task.CompletedTask;
             });
         var providerId = _target.GetProviderId(provider.Object);
-        _providerCatalog.SetupGet(item => item.RefactoringProviders).Returns([provider.Object]);
-
-        var result = await _target.DiscoverProviderRefactoringsAsync(
-            providerId,
+        var result = await _target.DiscoverRefactoringsAsync(
+            provider.Object,
             roslyn.Document,
             new TextSpan(0, 1),
             TestContext.Current.CancellationToken);
@@ -160,20 +144,6 @@ public sealed class CodeActionDiscoveryServiceTests
             item.Kind == DiscoveredActionKind.Refactoring
             && item.ProviderId == providerId
             && item.DiagnosticIds.Count == 0);
-    }
-
-    [Fact]
-    public async Task GIVEN_UnknownCodeFixProvider_WHEN_DiscoveringProviderCodeFixes_THEN_ShouldReturnEmptyCollection()
-    {
-        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
-
-        var result = await _target.DiscoverProviderCodeFixesAsync(
-            "ProviderId",
-            roslyn.Document,
-            [],
-            TestContext.Current.CancellationToken);
-
-        result.Should().BeEmpty();
     }
 
     [Fact]
@@ -219,10 +189,8 @@ public sealed class CodeActionDiscoveryServiceTests
                 return Task.CompletedTask;
             });
         var providerId = _target.GetProviderId(provider.Object);
-        _providerCatalog.SetupGet(item => item.CodeFixProviders).Returns([provider.Object]);
-
-        var result = await _target.DiscoverProviderCodeFixesAsync(
-            providerId,
+        var result = await _target.DiscoverCodeFixesAsync(
+            provider.Object,
             roslyn.Document,
             [firstDiagnostic, secondDiagnostic, thirdDiagnostic, ignoredDiagnostic],
             TestContext.Current.CancellationToken);

@@ -51,33 +51,6 @@ internal sealed class CodeActionOperationService : ICodeActionOperationService
         });
     }
 
-    public async ValueTask<int> CountChangedSourceDocumentsAsync(
-        Solution before,
-        Solution after,
-        CancellationToken cancellationToken)
-    {
-        var count = 0;
-
-        foreach (var document in before.Projects.SelectMany(static project => project.Documents))
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var updatedDocument = after.GetDocument(document.Id);
-            if (updatedDocument is null)
-            {
-                continue;
-            }
-
-            var originalText = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
-            var updatedText = await updatedDocument.GetTextAsync(cancellationToken).ConfigureAwait(false);
-            if (!originalText.ContentEquals(updatedText))
-            {
-                count++;
-            }
-        }
-
-        return count;
-    }
-
     public Task<CodeActionApplyResult> ApplyFixAllAsync(
         CodeFixProvider provider,
         FixAllProvider fixAllProvider,
@@ -192,6 +165,7 @@ internal sealed class CodeActionOperationService : ICodeActionOperationService
 
     private static bool IsIgnorableAuxiliaryOperation(CodeActionOperation operation)
     {
+        // Roslyn wrapping actions emit this bookkeeping operation alongside their single source mutation.
         return string.Equals(
             operation.GetType().FullName,
             "Microsoft.CodeAnalysis.Wrapping.WrapItemsAction+RecordCodeActionOperation",

@@ -95,7 +95,7 @@ Architecture assertions should be behavioural or project-reference based whereve
 - plugin and Code Action query/mutation registrations dispatch to the correct typed visitor overload
 - Workspace execution contexts expose only neutral Workspace capabilities
 - plugin contexts add only plugin execution services
-- Code Action contexts add only Code Action workflow services
+- Code Action contexts expose only invocation-specific Workspace execution state; stable Code Action services are constructor-injected into their handlers
 - staging remains on the mutation lease, not the handler context
 - duplicate internal Code Action names fail catalogue construction
 - plugins colliding with reserved Code Action or existing plugin names are disabled with diagnostics

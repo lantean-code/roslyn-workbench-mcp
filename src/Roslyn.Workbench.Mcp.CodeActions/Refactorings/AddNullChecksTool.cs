@@ -6,28 +6,20 @@ internal sealed class AddNullChecksTool : CodeActionMutationToolHandler<Location
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.InitializeParameter.CSharpAddParameterCheckCodeRefactoringProvider";
 
-    private static readonly CodeActionToolMetadata _metadata = new()
-    {
-        Name = "add-null-checks",
-        Title = "Add Null Checks",
-        Description = "Stages the supported Roslyn parameter null-check refactoring at the selected parameter location.",
-        Behavior = new CodeActionToolBehavior
-        {
-            Destructive = true,
-        },
-    };
+    private readonly ICodeActionReplayService _replayService;
 
-    public static void Register(ICodeActionToolRegistry registry)
+    public AddNullChecksTool(ICodeActionReplayService replayService)
     {
-        registry.RegisterMutationTool(_metadata, new AddNullChecksTool());
+        _replayService = replayService;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(LocationRefactoringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
-        return context.StageReplaySelectionAsync(
+        return _replayService.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             cancellationToken,
+            context,
             ProviderId,
             title: "Add null check");
     }

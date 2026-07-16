@@ -3,22 +3,6 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Refactorings;
 public sealed class ConvertPropertyToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
-    {
-        var registry = new Mock<ICodeActionToolRegistry>();
-
-        ConvertPropertyTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterMutationTool<ConvertPropertyRequest>(
-            It.Is<CodeActionToolMetadata>(metadata =>
-                metadata.Name == "convert-property"
-                && metadata.Title == "Convert Property"
-                && metadata.Description == "Converts one selected property between supported auto-property and full-property forms through Roslyn composition."
-                && metadata.Behavior.Destructive),
-            It.IsAny<ICodeActionMutationToolHandler<ConvertPropertyRequest>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_ToFullDirection_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithFullPropertyProvider()
     {
         var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
@@ -32,13 +16,16 @@ public sealed class ConvertPropertyToolTests
             },
             Direction = ConvertPropertyDirection.ToFull,
         };
-        var target = new ConvertPropertyTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var locationFixService = new Mock<ICodeActionLocationFixService>();
+        var target = new ConvertPropertyTool(replayService.Object, locationFixService.Object);
 
-        context
-            .Setup(item => item.StageReplaySelectionAsync(
+        replayService
+            .Setup(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
                 CancellationToken.None,
+                context.Object,
                 "Microsoft.CodeAnalysis.CSharp.ConvertAutoPropertyToFullProperty.CSharpConvertAutoPropertyToFullPropertyCodeRefactoringProvider",
                 "Convert to full property",
                 null,
@@ -50,10 +37,11 @@ public sealed class ConvertPropertyToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        context.Verify(item => item.StageReplaySelectionAsync(
+        replayService.Verify(item => item.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             CancellationToken.None,
+            context.Object,
             "Microsoft.CodeAnalysis.CSharp.ConvertAutoPropertyToFullProperty.CSharpConvertAutoPropertyToFullPropertyCodeRefactoringProvider",
             "Convert to full property",
             null,
@@ -76,9 +64,11 @@ public sealed class ConvertPropertyToolTests
             },
             Direction = ConvertPropertyDirection.ToAutoWhenSafe,
         };
-        var target = new ConvertPropertyTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var locationFixService = new Mock<ICodeActionLocationFixService>();
+        var target = new ConvertPropertyTool(replayService.Object, locationFixService.Object);
 
-        context
+        locationFixService
             .Setup(item => item.StageLocationCodeFixAsync(
                 It.Is<LocationCodeFixRequest>(stageRequest =>
                     stageRequest.Location == request.Selection
@@ -89,13 +79,14 @@ public sealed class ConvertPropertyToolTests
                     && stageRequest.DiagnosticIds.Count == 1
                     && stageRequest.DiagnosticIds[0] == "IDE0032"
                     && stageRequest.Title == "Use auto property"),
+                context.Object,
                 CancellationToken.None))
             .ReturnsAsync(expected);
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        context.Verify(item => item.StageLocationCodeFixAsync(
+        locationFixService.Verify(item => item.StageLocationCodeFixAsync(
             It.Is<LocationCodeFixRequest>(stageRequest =>
                 stageRequest.Location == request.Selection
                 && stageRequest.ExpectedSnapshot == request.ExpectedSnapshot
@@ -105,6 +96,7 @@ public sealed class ConvertPropertyToolTests
                 && stageRequest.DiagnosticIds.Count == 1
                 && stageRequest.DiagnosticIds[0] == "IDE0032"
                 && stageRequest.Title == "Use auto property"),
+            context.Object,
             CancellationToken.None), Times.Once);
     }
 
@@ -117,24 +109,28 @@ public sealed class ConvertPropertyToolTests
             Selection = new LocationSelector(),
             Direction = (ConvertPropertyDirection)999,
         };
-        var target = new ConvertPropertyTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var locationFixService = new Mock<ICodeActionLocationFixService>();
+        var target = new ConvertPropertyTool(replayService.Object, locationFixService.Object);
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("InvalidRequest");
-        context.Verify(item => item.StageReplaySelectionAsync(
+        replayService.Verify(item => item.StageSelectionAsync(
             It.IsAny<LocationSelector?>(),
             It.IsAny<SnapshotPrecondition?>(),
             It.IsAny<CancellationToken>(),
+            context.Object,
             It.IsAny<string>(),
             It.IsAny<string?>(),
             It.IsAny<string?>(),
             It.IsAny<string?>(),
             It.IsAny<string?>(),
             It.IsAny<IReadOnlyList<int>?>()), Times.Never);
-        context.Verify(item => item.StageLocationCodeFixAsync(
+        locationFixService.Verify(item => item.StageLocationCodeFixAsync(
             It.IsAny<LocationCodeFixRequest>(),
+            context.Object,
             It.IsAny<CancellationToken>()), Times.Never);
     }
 }

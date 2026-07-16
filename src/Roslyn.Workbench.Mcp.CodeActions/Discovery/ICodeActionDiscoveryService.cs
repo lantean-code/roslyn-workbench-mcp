@@ -12,18 +12,6 @@ internal interface ICodeActionDiscoveryService
 
     string GetProviderId(object provider);
 
-    ValueTask<IReadOnlyList<DiscoveredCodeAction>> DiscoverProviderRefactoringsAsync(
-        string providerId,
-        Document document,
-        TextSpan span,
-        CancellationToken cancellationToken);
-
-    ValueTask<IReadOnlyList<DiscoveredCodeAction>> DiscoverProviderCodeFixesAsync(
-        string providerId,
-        Document document,
-        ImmutableArray<Diagnostic> diagnostics,
-        CancellationToken cancellationToken);
-
     ValueTask<IReadOnlyList<DiscoveredCodeAction>> DiscoverRefactoringsAsync(
         CodeRefactoringProvider provider,
         Document document,

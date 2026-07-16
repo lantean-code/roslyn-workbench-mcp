@@ -3,28 +3,13 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Refactorings;
 public sealed class MoveTypeToFileToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
-    {
-        var registry = new Mock<ICodeActionToolRegistry>();
-
-        MoveTypeToFileTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterMutationTool<MoveTypeToFileRequest>(
-            It.Is<CodeActionToolMetadata>(metadata =>
-                metadata.Name == "move-type-to-file"
-                && metadata.Title == "Move Type To File"
-                && metadata.Description == "Moves one selected type into its own Roslyn-chosen file within the current project."
-                && metadata.Behavior.Destructive),
-            It.IsAny<ICodeActionMutationToolHandler<MoveTypeToFileRequest>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_PreserveNamespaceIsFalse_WHEN_CallingExecuteAsync_THEN_ShouldReturnUnsupportedOptionRejection()
     {
         var workspaceResolver = new Mock<IWorkspaceResolver>();
         var context = CreateContext(workspaceResolver);
         var request = CreateRequest(preserveNamespace: false);
-        var target = new MoveTypeToFileTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new MoveTypeToFileTool(replayService.Object);
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
@@ -34,7 +19,7 @@ public sealed class MoveTypeToFileToolTests
         workspaceResolver.Verify(item => item.ResolveSymbolAsync(
             It.IsAny<SymbolSelector>(),
             It.IsAny<CancellationToken>()), Times.Never);
-        context.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        replayService.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), context.Object, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -48,7 +33,8 @@ public sealed class MoveTypeToFileToolTests
         var workspaceResolver = new Mock<IWorkspaceResolver>();
         var context = CreateContext(workspaceResolver);
         var request = CreateRequest();
-        var target = new MoveTypeToFileTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new MoveTypeToFileTool(replayService.Object);
 
         workspaceResolver
             .Setup(item => item.ResolveSymbolAsync(request.Type!, CancellationToken.None))
@@ -58,7 +44,7 @@ public sealed class MoveTypeToFileToolTests
 
         result.Should().BeEquivalentTo(expected);
         workspaceResolver.Verify(item => item.CreateResolvedLocation(It.IsAny<Location>()), Times.Never);
-        context.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        replayService.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), context.Object, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -68,7 +54,8 @@ public sealed class MoveTypeToFileToolTests
         var context = CreateContext(workspaceResolver);
         var request = CreateRequest();
         var symbol = new Mock<ISymbol>();
-        var target = new MoveTypeToFileTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new MoveTypeToFileTool(replayService.Object);
 
         workspaceResolver
             .Setup(item => item.ResolveSymbolAsync(request.Type!, CancellationToken.None))
@@ -80,7 +67,7 @@ public sealed class MoveTypeToFileToolTests
         result.Error.Should().NotBeNull();
         result.Error!.Code.Should().Be("SymbolNotSupported");
         workspaceResolver.Verify(item => item.CreateResolvedLocation(It.IsAny<Location>()), Times.Never);
-        context.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        replayService.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), context.Object, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -90,7 +77,8 @@ public sealed class MoveTypeToFileToolTests
         var context = CreateContext(workspaceResolver);
         var request = CreateRequest();
         var type = CreateNamedTypeSymbol([]);
-        var target = new MoveTypeToFileTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new MoveTypeToFileTool(replayService.Object);
 
         workspaceResolver
             .Setup(item => item.ResolveSymbolAsync(request.Type!, CancellationToken.None))
@@ -102,7 +90,7 @@ public sealed class MoveTypeToFileToolTests
         result.Error.Should().NotBeNull();
         result.Error!.Code.Should().Be("SymbolNotSupported");
         workspaceResolver.Verify(item => item.CreateResolvedLocation(It.IsAny<Location>()), Times.Never);
-        context.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        replayService.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), context.Object, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -113,7 +101,8 @@ public sealed class MoveTypeToFileToolTests
         var request = CreateRequest();
         var location = RoslynTestFactory.CreateSourceLocation();
         var type = CreateNamedTypeSymbol([location]);
-        var target = new MoveTypeToFileTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new MoveTypeToFileTool(replayService.Object);
 
         workspaceResolver
             .Setup(item => item.ResolveSymbolAsync(request.Type!, CancellationToken.None))
@@ -127,7 +116,7 @@ public sealed class MoveTypeToFileToolTests
         result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
         result.Error.Should().NotBeNull();
         result.Error!.Code.Should().Be("SymbolNotSupported");
-        context.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        replayService.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), context.Object, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -140,7 +129,8 @@ public sealed class MoveTypeToFileToolTests
         var location = RoslynTestFactory.CreateSourceLocation();
         var resolvedLocation = SelectorTestFactory.CreateResolvedLocation(location, "Code.cs");
         var type = CreateNamedTypeSymbol([location]);
-        var target = new MoveTypeToFileTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new MoveTypeToFileTool(replayService.Object);
 
         workspaceResolver
             .Setup(item => item.ResolveSymbolAsync(request.Type!, CancellationToken.None))
@@ -148,26 +138,26 @@ public sealed class MoveTypeToFileToolTests
         workspaceResolver
             .Setup(item => item.CreateResolvedLocation(location))
             .Returns(resolvedLocation);
-        context
+        replayService
             .Setup(item => item.StageReplayCodeActionAsync(
                 It.Is<ReplayCodeActionRequest>(replayRequest =>
                     replayRequest.ExpectedSnapshot == request.ExpectedSnapshot
                     && replayRequest.ProviderId == "Microsoft.CodeAnalysis.CodeRefactorings.MoveType.MoveTypeCodeRefactoringProvider"
                     && replayRequest.TitleStartsWith == "Move type to "
                     && replayRequest.Location != null),
-                CancellationToken.None))
+                context.Object, CancellationToken.None))
             .ReturnsAsync(expected);
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        context.Verify(item => item.StageReplayCodeActionAsync(
+        replayService.Verify(item => item.StageReplayCodeActionAsync(
             It.Is<ReplayCodeActionRequest>(replayRequest =>
                 replayRequest.ExpectedSnapshot == request.ExpectedSnapshot
                 && replayRequest.ProviderId == "Microsoft.CodeAnalysis.CodeRefactorings.MoveType.MoveTypeCodeRefactoringProvider"
                 && replayRequest.TitleStartsWith == "Move type to "
                 && replayRequest.Location != null),
-            CancellationToken.None), Times.Once);
+            context.Object, CancellationToken.None), Times.Once);
     }
 
     private static Mock<ICodeActionMutationContext> CreateContext(Mock<IWorkspaceResolver> workspaceResolver)

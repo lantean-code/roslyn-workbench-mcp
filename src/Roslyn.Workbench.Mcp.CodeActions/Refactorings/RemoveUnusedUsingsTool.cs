@@ -6,31 +6,22 @@ internal sealed class RemoveUnusedUsingsTool : CodeActionMutationToolHandler<Rem
 {
     private const string FixableDiagnosticId = "RemoveUnnecessaryImportsFixable";
 
-    private static readonly CodeActionToolMetadata _metadata = new()
-    {
-        Name = "remove-unused-usings",
-        Title = "Remove Unused Usings",
-        Description = "Removes unused using directives across a selected scope through Roslyn code-fix composition.",
-        Behavior = new CodeActionToolBehavior
-        {
-            Destructive = true,
-        },
-    };
+    private readonly ICodeActionScopedFixService _scopedFixService;
 
-    public static void Register(ICodeActionToolRegistry registry)
+    public RemoveUnusedUsingsTool(ICodeActionScopedFixService scopedFixService)
     {
-        registry.RegisterMutationTool(_metadata, new RemoveUnusedUsingsTool());
+        _scopedFixService = scopedFixService;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(RemoveUnusedUsingsRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
-        return context.StageScopedCodeFixAsync(new ScopedCodeFixRequest
+        return _scopedFixService.StageScopedCodeFixAsync(new ScopedCodeFixRequest
         {
             Scope = request.Scope,
             ExpectedSnapshot = request.ExpectedSnapshot,
             DiagnosticIds = [FixableDiagnosticId],
             Title = "Remove unnecessary usings",
             SyntheticDiagnosticId = FixableDiagnosticId,
-        }, cancellationToken);
+        }, context, cancellationToken);
     }
 }

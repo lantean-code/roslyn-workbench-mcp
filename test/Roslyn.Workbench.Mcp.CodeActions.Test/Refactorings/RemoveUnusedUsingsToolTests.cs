@@ -3,22 +3,6 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Refactorings;
 public sealed class RemoveUnusedUsingsToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
-    {
-        var registry = new Mock<ICodeActionToolRegistry>();
-
-        RemoveUnusedUsingsTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterMutationTool<RemoveUnusedUsingsRequest>(
-            It.Is<CodeActionToolMetadata>(metadata =>
-                metadata.Name == "remove-unused-usings"
-                && metadata.Title == "Remove Unused Usings"
-                && metadata.Description == "Removes unused using directives across a selected scope through Roslyn code-fix composition."
-                && metadata.Behavior.Destructive),
-            It.IsAny<ICodeActionMutationToolHandler<RemoveUnusedUsingsRequest>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_RemoveUnusedUsingsRequest_WHEN_CallingExecuteAsync_THEN_ShouldStageScopedCodeFixForUnusedUsings()
     {
         var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
@@ -34,9 +18,10 @@ public sealed class RemoveUnusedUsingsToolTests
                 WorkspaceEpoch = 1,
             },
         };
-        var target = new RemoveUnusedUsingsTool();
+        var scopedFixService = new Mock<ICodeActionScopedFixService>();
+        var target = new RemoveUnusedUsingsTool(scopedFixService.Object);
 
-        context
+        scopedFixService
             .Setup(item => item.StageScopedCodeFixAsync(
                 It.Is<ScopedCodeFixRequest>(stageRequest =>
                     stageRequest.Scope == request.Scope
@@ -45,13 +30,14 @@ public sealed class RemoveUnusedUsingsToolTests
                     && stageRequest.DiagnosticIds[0] == "RemoveUnnecessaryImportsFixable"
                     && stageRequest.Title == "Remove unnecessary usings"
                     && stageRequest.SyntheticDiagnosticId == "RemoveUnnecessaryImportsFixable"),
+                context.Object,
                 CancellationToken.None))
             .ReturnsAsync(expected);
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        context.Verify(item => item.StageScopedCodeFixAsync(
+        scopedFixService.Verify(item => item.StageScopedCodeFixAsync(
             It.Is<ScopedCodeFixRequest>(stageRequest =>
                 stageRequest.Scope == request.Scope
                 && stageRequest.ExpectedSnapshot == request.ExpectedSnapshot
@@ -59,6 +45,7 @@ public sealed class RemoveUnusedUsingsToolTests
                 && stageRequest.DiagnosticIds[0] == "RemoveUnnecessaryImportsFixable"
                 && stageRequest.Title == "Remove unnecessary usings"
                 && stageRequest.SyntheticDiagnosticId == "RemoveUnnecessaryImportsFixable"),
+            context.Object,
             CancellationToken.None), Times.Once);
     }
 }

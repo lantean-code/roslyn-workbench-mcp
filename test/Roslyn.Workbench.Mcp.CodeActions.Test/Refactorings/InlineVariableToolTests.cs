@@ -3,28 +3,13 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Refactorings;
 public sealed class InlineVariableToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
-    {
-        var registry = new Mock<ICodeActionToolRegistry>();
-
-        InlineVariableTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterMutationTool<InlineVariableRequest>(
-            It.Is<CodeActionToolMetadata>(metadata =>
-                metadata.Name == "inline-variable"
-                && metadata.Title == "Inline Variable"
-                && metadata.Description == "Inlines a local variable through Roslyn refactoring composition."
-                && metadata.Behavior.Destructive),
-            It.IsAny<ICodeActionMutationToolHandler<InlineVariableRequest>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_RemoveDeclarationIsFalse_WHEN_CallingExecuteAsync_THEN_ShouldReturnUnsupportedOptionRejection()
     {
         var workspaceResolver = new Mock<IWorkspaceResolver>();
         var context = CreateContext(workspaceResolver);
         var request = CreateRequest(removeDeclaration: false);
-        var target = new InlineVariableTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new InlineVariableTool(replayService.Object);
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
@@ -34,7 +19,7 @@ public sealed class InlineVariableToolTests
         workspaceResolver.Verify(item => item.ResolveSymbolAsync(
             It.IsAny<SymbolSelector>(),
             It.IsAny<CancellationToken>()), Times.Never);
-        context.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        replayService.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), context.Object, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -48,7 +33,8 @@ public sealed class InlineVariableToolTests
         var workspaceResolver = new Mock<IWorkspaceResolver>();
         var context = CreateContext(workspaceResolver);
         var request = CreateRequest();
-        var target = new InlineVariableTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new InlineVariableTool(replayService.Object);
 
         workspaceResolver
             .Setup(item => item.ResolveSymbolAsync(request.Symbol!, CancellationToken.None))
@@ -58,7 +44,7 @@ public sealed class InlineVariableToolTests
 
         result.Should().BeEquivalentTo(expected);
         workspaceResolver.Verify(item => item.CreateResolvedLocation(It.IsAny<Location>()), Times.Never);
-        context.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        replayService.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), context.Object, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -68,7 +54,8 @@ public sealed class InlineVariableToolTests
         var context = CreateContext(workspaceResolver);
         var request = CreateRequest();
         var symbol = new Mock<ISymbol>();
-        var target = new InlineVariableTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new InlineVariableTool(replayService.Object);
 
         workspaceResolver
             .Setup(item => item.ResolveSymbolAsync(request.Symbol!, CancellationToken.None))
@@ -80,7 +67,7 @@ public sealed class InlineVariableToolTests
         result.Error.Should().NotBeNull();
         result.Error!.Code.Should().Be("SymbolNotSupported");
         workspaceResolver.Verify(item => item.CreateResolvedLocation(It.IsAny<Location>()), Times.Never);
-        context.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        replayService.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), context.Object, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -90,7 +77,8 @@ public sealed class InlineVariableToolTests
         var context = CreateContext(workspaceResolver);
         var request = CreateRequest();
         var local = CreateLocalSymbol([]);
-        var target = new InlineVariableTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new InlineVariableTool(replayService.Object);
 
         workspaceResolver
             .Setup(item => item.ResolveSymbolAsync(request.Symbol!, CancellationToken.None))
@@ -102,7 +90,7 @@ public sealed class InlineVariableToolTests
         result.Error.Should().NotBeNull();
         result.Error!.Code.Should().Be("SymbolNotSupported");
         workspaceResolver.Verify(item => item.CreateResolvedLocation(It.IsAny<Location>()), Times.Never);
-        context.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        replayService.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), context.Object, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -113,7 +101,8 @@ public sealed class InlineVariableToolTests
         var request = CreateRequest();
         var location = RoslynTestFactory.CreateSourceLocation();
         var local = CreateLocalSymbol([location]);
-        var target = new InlineVariableTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new InlineVariableTool(replayService.Object);
 
         workspaceResolver
             .Setup(item => item.ResolveSymbolAsync(request.Symbol!, CancellationToken.None))
@@ -127,7 +116,7 @@ public sealed class InlineVariableToolTests
         result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
         result.Error.Should().NotBeNull();
         result.Error!.Code.Should().Be("SymbolNotSupported");
-        context.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        replayService.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), context.Object, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -140,7 +129,8 @@ public sealed class InlineVariableToolTests
         var location = RoslynTestFactory.CreateSourceLocation();
         var resolvedLocation = SelectorTestFactory.CreateResolvedLocation(location, "Code.cs");
         var local = CreateLocalSymbol([location]);
-        var target = new InlineVariableTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new InlineVariableTool(replayService.Object);
 
         workspaceResolver
             .Setup(item => item.ResolveSymbolAsync(request.Symbol!, CancellationToken.None))
@@ -148,7 +138,7 @@ public sealed class InlineVariableToolTests
         workspaceResolver
             .Setup(item => item.CreateResolvedLocation(location))
             .Returns(resolvedLocation);
-        context
+        replayService
             .Setup(item => item.StageReplayCodeActionAsync(
                 It.Is<ReplayCodeActionRequest>(replayRequest =>
                     replayRequest.ExpectedSnapshot == request.ExpectedSnapshot
@@ -156,20 +146,20 @@ public sealed class InlineVariableToolTests
                     && replayRequest.Title == "Inline temporary variable"
                     && replayRequest.EquivalenceKey == "Inline_temporary_variable"
                     && replayRequest.Location != null),
-                CancellationToken.None))
+                context.Object, CancellationToken.None))
             .ReturnsAsync(expected);
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        context.Verify(item => item.StageReplayCodeActionAsync(
+        replayService.Verify(item => item.StageReplayCodeActionAsync(
             It.Is<ReplayCodeActionRequest>(replayRequest =>
                 replayRequest.ExpectedSnapshot == request.ExpectedSnapshot
                 && replayRequest.ProviderId == "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.InlineTemporary.CSharpInlineTemporaryCodeRefactoringProvider"
                 && replayRequest.Title == "Inline temporary variable"
                 && replayRequest.EquivalenceKey == "Inline_temporary_variable"
                 && replayRequest.Location != null),
-            CancellationToken.None), Times.Once);
+            context.Object, CancellationToken.None), Times.Once);
     }
 
     private static Mock<ICodeActionMutationContext> CreateContext(Mock<IWorkspaceResolver> workspaceResolver)

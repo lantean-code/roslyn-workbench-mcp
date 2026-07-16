@@ -9,27 +9,18 @@ internal sealed class IntroduceParameterTool : CodeActionMutationToolHandler<Int
     private const string IntoExtractedMethodTitle = "into extracted method to invoke at call sites";
     private const string IntoNewOverloadTitle = "into new overload";
 
-    private static readonly CodeActionToolMetadata _metadata = new()
-    {
-        Name = "introduce-parameter",
-        Title = "Introduce Parameter",
-        Description = "Promotes a selected expression to a parameter through Roslyn refactoring composition.",
-        Behavior = new CodeActionToolBehavior
-        {
-            Destructive = true,
-        },
-    };
+    private readonly ICodeActionReplayService _replayService;
 
-    public static void Register(ICodeActionToolRegistry registry)
+    public IntroduceParameterTool(ICodeActionReplayService replayService)
     {
-        registry.RegisterMutationTool(_metadata, new IntroduceParameterTool());
+        _replayService = replayService;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(IntroduceParameterRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         if (request.Selection is null)
         {
-            return ValueTask.FromResult(ToolExecutionHelpers.Rejected<WorkspaceMutationCandidate>("InvalidRequest", "A location selector is required."));
+            return ValueTask.FromResult(CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>("InvalidRequest", "A location selector is required."));
         }
 
         var title = request.Strategy switch
@@ -46,7 +37,7 @@ internal sealed class IntroduceParameterTool : CodeActionMutationToolHandler<Int
             _ => request.AllOccurrences ? [1, 0] : [0, 0],
         };
 
-        return context.StageReplayCodeActionAsync(new ReplayCodeActionRequest
+        return _replayService.StageReplayCodeActionAsync(new ReplayCodeActionRequest
         {
             Location = request.Selection,
             ExpectedSnapshot = request.ExpectedSnapshot,
@@ -54,6 +45,6 @@ internal sealed class IntroduceParameterTool : CodeActionMutationToolHandler<Int
             Title = title,
             EquivalenceKey = title,
             ActionPath = actionPath,
-        }, cancellationToken);
+        }, context, cancellationToken);
     }
 }

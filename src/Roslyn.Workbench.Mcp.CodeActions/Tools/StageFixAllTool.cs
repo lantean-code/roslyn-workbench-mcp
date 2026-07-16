@@ -4,24 +4,15 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Tools;
 
 internal sealed class StageFixAllTool : CodeActionMutationToolHandler<StageFixAllRequest>
 {
-    private static readonly CodeActionToolMetadata _metadata = new()
-    {
-        Name = "stage-fix-all",
-        Title = "Stage Fix All",
-        Description = "Revalidates one selected code fix and stages its fix-all variant into the active transaction.",
-        Behavior = new CodeActionToolBehavior
-        {
-            Destructive = true,
-        },
-    };
+    private readonly ICodeActionFixAllService _fixAllService;
 
-    public static void Register(ICodeActionToolRegistry registry)
+    public StageFixAllTool(ICodeActionFixAllService fixAllService)
     {
-        registry.RegisterMutationTool(_metadata, new StageFixAllTool());
+        _fixAllService = fixAllService;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(StageFixAllRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
-        return context.StageFixAllAsync(request, cancellationToken);
+        return _fixAllService.StageFixAllAsync(request, context, cancellationToken);
     }
 }

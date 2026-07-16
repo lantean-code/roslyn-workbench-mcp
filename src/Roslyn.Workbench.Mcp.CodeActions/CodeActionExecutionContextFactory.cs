@@ -3,17 +3,10 @@ namespace Roslyn.Workbench.Mcp.CodeActions;
 internal sealed class CodeActionExecutionContextFactory : ICodeActionExecutionContextFactory
 {
     private readonly IWorkspaceExecutionContextFactory _workspaceFactory;
-    private readonly ICodeActionQueryWorkflow _queryWorkflow;
-    private readonly ICodeActionMutationWorkflow _mutationWorkflow;
 
-    public CodeActionExecutionContextFactory(
-        IWorkspaceExecutionContextFactory workspaceFactory,
-        ICodeActionQueryWorkflow queryWorkflow,
-        ICodeActionMutationWorkflow mutationWorkflow)
+    public CodeActionExecutionContextFactory(IWorkspaceExecutionContextFactory workspaceFactory)
     {
         _workspaceFactory = workspaceFactory;
-        _queryWorkflow = queryWorkflow;
-        _mutationWorkflow = mutationWorkflow;
     }
 
     public CodeActionQueryExecutionLease CreateQueryContext(
@@ -23,7 +16,7 @@ internal sealed class CodeActionExecutionContextFactory : ICodeActionExecutionCo
         var workspaceLease = _workspaceFactory.CreateQueryContext(request.Workspace, cancellationToken);
         var context = workspaceLease.Context is null
             ? null
-            : new CodeActionQueryContext(workspaceLease.Context, _queryWorkflow);
+            : new CodeActionQueryContext(workspaceLease.Context);
         return new CodeActionQueryExecutionLease(
             workspaceLease,
             context,
@@ -37,7 +30,7 @@ internal sealed class CodeActionExecutionContextFactory : ICodeActionExecutionCo
         var workspaceLease = _workspaceFactory.CreateMutationContext(request.Workspace, cancellationToken);
         var context = workspaceLease.Context is null
             ? null
-            : new CodeActionMutationContext(workspaceLease.Context, _mutationWorkflow);
+            : new CodeActionMutationContext(workspaceLease.Context);
         return new CodeActionMutationExecutionLease(
             workspaceLease,
             context,

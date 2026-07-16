@@ -3,34 +3,19 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Refactorings;
 public sealed class ExtractMethodToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
-    {
-        var registry = new Mock<ICodeActionToolRegistry>();
-
-        ExtractMethodTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterMutationTool<ExtractMethodRequest>(
-            It.Is<CodeActionToolMetadata>(metadata =>
-                metadata.Name == "extract-method"
-                && metadata.Title == "Extract Method"
-                && metadata.Description == "Extracts a selected statement or expression block through Roslyn refactoring composition."
-                && metadata.Behavior.Destructive),
-            It.IsAny<ICodeActionMutationToolHandler<ExtractMethodRequest>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_SelectionIsNull_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequest()
     {
         var context = new Mock<ICodeActionMutationContext>();
-        var target = new ExtractMethodTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new ExtractMethodTool(replayService.Object);
 
         var result = await target.ExecuteAsync(new ExtractMethodRequest(), context.Object, CancellationToken.None);
 
         result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("InvalidRequest");
-        context.Verify(item => item.StageReplayCodeActionAsync(
+        replayService.Verify(item => item.StageReplayCodeActionAsync(
             It.IsAny<ReplayCodeActionRequest>(),
-            It.IsAny<CancellationToken>()), Times.Never);
+            context.Object, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -47,9 +32,10 @@ public sealed class ExtractMethodToolTests
             },
             TargetKind = ExtractMethodTargetKind.LocalFunction,
         };
-        var target = new ExtractMethodTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new ExtractMethodTool(replayService.Object);
 
-        context
+        replayService
             .Setup(item => item.StageReplayCodeActionAsync(
                 It.Is<ReplayCodeActionRequest>(stageRequest =>
                     stageRequest.Location == request.Selection
@@ -57,20 +43,20 @@ public sealed class ExtractMethodToolTests
                     && stageRequest.ProviderId == "Microsoft.CodeAnalysis.CodeRefactorings.ExtractMethod.ExtractMethodCodeRefactoringProvider"
                     && stageRequest.Title == "Extract local function"
                     && stageRequest.EquivalenceKey == "Extract_local_function"),
-                CancellationToken.None))
+                context.Object, CancellationToken.None))
             .ReturnsAsync(expected);
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        context.Verify(item => item.StageReplayCodeActionAsync(
+        replayService.Verify(item => item.StageReplayCodeActionAsync(
             It.Is<ReplayCodeActionRequest>(stageRequest =>
                 stageRequest.Location == request.Selection
                 && stageRequest.ExpectedSnapshot == request.ExpectedSnapshot
                 && stageRequest.ProviderId == "Microsoft.CodeAnalysis.CodeRefactorings.ExtractMethod.ExtractMethodCodeRefactoringProvider"
                 && stageRequest.Title == "Extract local function"
                 && stageRequest.EquivalenceKey == "Extract_local_function"),
-            CancellationToken.None), Times.Once);
+            context.Object, CancellationToken.None), Times.Once);
     }
 
     [Fact]
@@ -87,9 +73,10 @@ public sealed class ExtractMethodToolTests
             },
             TargetKind = ExtractMethodTargetKind.Method,
         };
-        var target = new ExtractMethodTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new ExtractMethodTool(replayService.Object);
 
-        context
+        replayService
             .Setup(item => item.StageReplayCodeActionAsync(
                 It.Is<ReplayCodeActionRequest>(stageRequest =>
                     stageRequest.Location == request.Selection
@@ -97,19 +84,19 @@ public sealed class ExtractMethodToolTests
                     && stageRequest.ProviderId == "Microsoft.CodeAnalysis.CodeRefactorings.ExtractMethod.ExtractMethodCodeRefactoringProvider"
                     && stageRequest.Title == "Extract method"
                     && stageRequest.EquivalenceKey == "Extract_method"),
-                CancellationToken.None))
+                context.Object, CancellationToken.None))
             .ReturnsAsync(expected);
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        context.Verify(item => item.StageReplayCodeActionAsync(
+        replayService.Verify(item => item.StageReplayCodeActionAsync(
             It.Is<ReplayCodeActionRequest>(stageRequest =>
                 stageRequest.Location == request.Selection
                 && stageRequest.ExpectedSnapshot == request.ExpectedSnapshot
                 && stageRequest.ProviderId == "Microsoft.CodeAnalysis.CodeRefactorings.ExtractMethod.ExtractMethodCodeRefactoringProvider"
                 && stageRequest.Title == "Extract method"
                 && stageRequest.EquivalenceKey == "Extract_method"),
-            CancellationToken.None), Times.Once);
+            context.Object, CancellationToken.None), Times.Once);
     }
 }

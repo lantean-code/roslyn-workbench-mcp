@@ -1,23 +1,7 @@
-namespace Roslyn.Workbench.Mcp.CodeActions.Test.CodeActions;
+namespace Roslyn.Workbench.Mcp.CodeActions.Test.Tools;
 
 public sealed class StageCodeFixToolTests
 {
-    [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
-    {
-        var registry = new Mock<ICodeActionToolRegistry>();
-
-        StageCodeFixTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterMutationTool<StageCodeFixRequest>(
-            It.Is<CodeActionToolMetadata>(metadata =>
-                metadata.Name == "stage-code-fix"
-                && metadata.Title == "Stage Code Fix"
-                && metadata.Description == "Revalidates and stages one selected code fix into the active transaction."
-                && metadata.Behavior.Destructive),
-            It.IsAny<ICodeActionMutationToolHandler<StageCodeFixRequest>>()), Times.Once);
-    }
-
     [Fact]
     public async Task GIVEN_MutationContextReturnsResult_WHEN_CallingExecuteAsync_THEN_ShouldReturnMutationContextResult()
     {
@@ -27,15 +11,16 @@ public sealed class StageCodeFixToolTests
             ActionId = "ActionId",
         };
         var context = new Mock<ICodeActionMutationContext>();
-        var target = new StageCodeFixTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new StageCodeFixTool(replayService.Object);
 
-        context
-            .Setup(item => item.StageCodeFixAsync(request, CancellationToken.None))
+        replayService
+            .Setup(item => item.StageCodeFixAsync(request, context.Object, CancellationToken.None))
             .ReturnsAsync(expected);
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        context.Verify(item => item.StageCodeFixAsync(request, CancellationToken.None), Times.Once);
+        replayService.Verify(item => item.StageCodeFixAsync(request, context.Object, CancellationToken.None), Times.Once);
     }
 }

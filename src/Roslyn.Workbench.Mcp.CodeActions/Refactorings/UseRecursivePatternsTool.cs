@@ -6,28 +6,20 @@ internal sealed class UseRecursivePatternsTool : CodeActionMutationToolHandler<L
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.UseRecursivePatterns.UseRecursivePatternsCodeRefactoringProvider";
 
-    private static readonly CodeActionToolMetadata _metadata = new()
-    {
-        Name = "use-recursive-patterns",
-        Title = "Use Recursive Patterns",
-        Description = "Converts a supported pattern expression to recursive patterns through Roslyn refactoring composition.",
-        Behavior = new CodeActionToolBehavior
-        {
-            Destructive = true,
-        },
-    };
+    private readonly ICodeActionReplayService _replayService;
 
-    public static void Register(ICodeActionToolRegistry registry)
+    public UseRecursivePatternsTool(ICodeActionReplayService replayService)
     {
-        registry.RegisterMutationTool(_metadata, new UseRecursivePatternsTool());
+        _replayService = replayService;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(LocationRefactoringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
-        return context.StageReplaySelectionAsync(
+        return _replayService.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             cancellationToken,
+            context,
             ProviderId,
             title: "Use recursive patterns");
     }

@@ -3,20 +3,17 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 public sealed class CodeActionExecutionContextFactoryTests
 {
     [Fact]
-    public void GIVEN_AcquiredWorkspaceQuery_WHEN_CreatingCodeActionContext_THEN_ShouldAdaptNarrowContextAndWorkflow()
+    public void GIVEN_AcquiredWorkspaceQuery_WHEN_CreatingCodeActionContext_THEN_ShouldAdaptNarrowContext()
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
         var workspaceFactory = new Mock<IWorkspaceExecutionContextFactory>();
-        var queryWorkflow = new Mock<ICodeActionQueryWorkflow>();
-        var workspaceContext = CreateWorkspaceContext(roslyn.Solution);
+        var resolver = new Mock<IWorkspaceResolver>();
+        var workspaceContext = CreateWorkspaceContext(roslyn.Solution, resolver.Object);
         var request = new TestRequest();
         workspaceFactory
             .Setup(item => item.CreateQueryContext(null, CancellationToken.None))
             .Returns(WorkspaceExecutionContextLease.Acquired(workspaceContext));
-        var target = new CodeActionExecutionContextFactory(
-            workspaceFactory.Object,
-            queryWorkflow.Object,
-            Mock.Of<ICodeActionMutationWorkflow>());
+        var target = new CodeActionExecutionContextFactory(workspaceFactory.Object);
 
         var result = target.CreateQueryContext(request, CancellationToken.None);
 
@@ -40,10 +37,7 @@ public sealed class CodeActionExecutionContextFactoryTests
                     Message = "Message",
                 },
             }));
-        var target = new CodeActionExecutionContextFactory(
-            workspaceFactory.Object,
-            Mock.Of<ICodeActionQueryWorkflow>(),
-            Mock.Of<ICodeActionMutationWorkflow>());
+        var target = new CodeActionExecutionContextFactory(workspaceFactory.Object);
 
         var result = target.CreateMutationContext(new TestRequest(), CancellationToken.None);
 
@@ -54,7 +48,9 @@ public sealed class CodeActionExecutionContextFactoryTests
 
     public sealed record TestRequest : WorkspaceBoundRequest;
 
-    private static WorkspaceExecutionContext CreateWorkspaceContext(Solution solution)
+    private static WorkspaceExecutionContext CreateWorkspaceContext(
+        Solution solution,
+        IWorkspaceResolver resolver)
     {
         return new WorkspaceExecutionContext(
             solution,
@@ -65,6 +61,6 @@ public sealed class CodeActionExecutionContextFactoryTests
             },
             transactionRevision: null,
             defaultMaxResults: 100,
-            Mock.Of<IWorkspaceResolver>());
+            resolver);
     }
 }

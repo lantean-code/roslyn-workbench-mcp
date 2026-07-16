@@ -15,91 +15,93 @@ internal sealed class MefCodeActionProviderCatalog : ICodeActionProviderCatalog
 
     public IReadOnlyList<CodeFixProvider> CodeFixProviders => _composition.CodeFixProviders;
 
-    public MefCodeActionProviderCatalog(IOptions<CodeActionCompositionOptions> options)
+    public MefCodeActionProviderCatalog(
+        IOptions<CodeActionCompositionOptions> options,
+        IMefHostExportProviderCompatibilityAdapter exportProvider)
     {
-        _composition = Compose(options.Value);
+        _composition = Compose(options.Value, exportProvider);
     }
 
-    private static CodeActionProviderCatalogComposition Compose(CodeActionCompositionOptions options)
+    private static CodeActionProviderCatalogComposition Compose(
+        CodeActionCompositionOptions options,
+        IMefHostExportProviderCompatibilityAdapter exportProvider)
     {
         if (!options.IncludeBuiltInAssemblies && options.AdditionalAssemblies.Count == 0)
         {
             return Unavailable("No code-action provider assemblies were configured.");
         }
 
+        IReadOnlyList<Assembly> assemblies;
         try
         {
-            var assemblies = ResolveAssemblies(options);
-            if (assemblies.Count == 0)
-            {
-                return Unavailable("No code-action assemblies were configured.");
-            }
-
-            var hostServices = MefHostServices.Create(assemblies);
-            var refactorings = GetExports<CodeRefactoringProvider>(hostServices)
-                .Where(IsCSharpProvider)
-                .ToArray();
-            var codeFixes = GetExports<CodeFixProvider>(hostServices)
-                .Where(IsCSharpProvider)
-                .ToArray();
-
-            if (refactorings.Length == 0 && codeFixes.Length == 0)
-            {
-                return Unavailable("No C# code-action providers were composed.");
-            }
-
-            return new CodeActionProviderCatalogComposition
-            {
-                Status = new CodeActionProviderCatalogStatus
-                {
-                    IsAvailable = true,
-                    Version = typeof(Microsoft.CodeAnalysis.Workspace).Assembly.GetName().Version?.ToString(),
-                    Message = $"Composed {refactorings.Length} refactoring providers and {codeFixes.Length} code-fix providers.",
-                },
-                WorkspaceHostServices = hostServices,
-                RefactoringProviders = refactorings,
-                CodeFixProviders = codeFixes,
-            };
+            assemblies = ResolveAssemblies(options);
         }
         catch (Exception exception)
         {
-            return Unavailable(exception.Message);
+            // Provider assemblies are external startup inputs; composition failure is published as component status.
+            return Unavailable(StageFailure("resolving code-action provider assemblies", exception));
         }
+
+        if (assemblies.Count == 0)
+        {
+            return Unavailable("No code-action assemblies were configured.");
+        }
+
+        MefHostServices hostServices;
+        try
+        {
+            hostServices = MefHostServices.Create(assemblies);
+        }
+        catch (Exception exception)
+        {
+            // Roslyn MEF composition is an external compatibility boundary and must not prevent server startup.
+            return Unavailable(StageFailure("creating Roslyn MEF host services", exception));
+        }
+
+        var refactoringExports = exportProvider.ReadExports<CodeRefactoringProvider>(hostServices);
+        if (!refactoringExports.IsSuccessful)
+        {
+            return Unavailable($"Failed while reading Roslyn refactoring exports: {refactoringExports.Error}");
+        }
+
+        var codeFixExports = exportProvider.ReadExports<CodeFixProvider>(hostServices);
+        if (!codeFixExports.IsSuccessful)
+        {
+            return Unavailable($"Failed while reading Roslyn code-fix exports: {codeFixExports.Error}");
+        }
+
+        IReadOnlyList<CodeRefactoringProvider> refactorings;
+        IReadOnlyList<CodeFixProvider> codeFixes;
+        try
+        {
+            refactorings = refactoringExports.Exports.Where(IsCSharpProvider).ToArray();
+            codeFixes = codeFixExports.Exports.Where(IsCSharpProvider).ToArray();
+        }
+        catch (Exception exception)
+        {
+            // Provider metadata comes from external assemblies; invalid metadata disables only Code Actions.
+            return Unavailable(StageFailure("reading code-action provider metadata", exception));
+        }
+
+        if (refactorings.Count == 0 && codeFixes.Count == 0)
+        {
+            return Unavailable("No C# code-action providers were composed.");
+        }
+
+        return Available(hostServices, refactorings, codeFixes);
     }
 
     private static IReadOnlyList<Assembly> ResolveAssemblies(CodeActionCompositionOptions options)
     {
-        var assemblies = new List<Assembly>();
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        void AddAssembly(Assembly assembly)
-        {
-            var key = string.IsNullOrWhiteSpace(assembly.Location)
-                ? assembly.FullName ?? assembly.GetName().Name ?? Guid.NewGuid().ToString("n")
-                : assembly.Location;
-            if (seen.Add(key))
-            {
-                assemblies.Add(assembly);
-            }
-        }
-
-        foreach (var assembly in MefHostServices.DefaultAssemblies)
-        {
-            AddAssembly(assembly);
-        }
-
+        var assemblies = new List<Assembly>(MefHostServices.DefaultAssemblies);
         if (options.IncludeBuiltInAssemblies)
         {
-            AddAssembly(Assembly.Load("Microsoft.CodeAnalysis.Features"));
-            AddAssembly(Assembly.Load("Microsoft.CodeAnalysis.CSharp.Features"));
+            assemblies.Add(Assembly.Load("Microsoft.CodeAnalysis.Features"));
+            assemblies.Add(Assembly.Load("Microsoft.CodeAnalysis.CSharp.Features"));
         }
 
-        foreach (var assembly in options.AdditionalAssemblies)
-        {
-            AddAssembly(assembly);
-        }
-
-        return assemblies;
+        assemblies.AddRange(options.AdditionalAssemblies);
+        return assemblies.Distinct(CodeActionAssemblyIdentityComparer.Instance).ToArray();
     }
 
     private static bool IsCSharpProvider(object provider)
@@ -113,6 +115,25 @@ internal sealed class MefCodeActionProviderCatalog : ICodeActionProviderCatalog
 
         var refactoring = type.GetCustomAttributes<ExportCodeRefactoringProviderAttribute>(inherit: false).FirstOrDefault();
         return refactoring is not null && refactoring.Languages.Contains(LanguageNames.CSharp, StringComparer.Ordinal);
+    }
+
+    private static CodeActionProviderCatalogComposition Available(
+        HostServices hostServices,
+        IReadOnlyList<CodeRefactoringProvider> refactorings,
+        IReadOnlyList<CodeFixProvider> codeFixes)
+    {
+        return new CodeActionProviderCatalogComposition
+        {
+            Status = new CodeActionProviderCatalogStatus
+            {
+                IsAvailable = true,
+                Version = typeof(Microsoft.CodeAnalysis.Workspace).Assembly.GetName().Version?.ToString(),
+                Message = $"Composed {refactorings.Count} refactoring providers and {codeFixes.Count} code-fix providers.",
+            },
+            WorkspaceHostServices = hostServices,
+            RefactoringProviders = refactorings,
+            CodeFixProviders = codeFixes,
+        };
     }
 
     private static CodeActionProviderCatalogComposition Unavailable(string message)
@@ -130,26 +151,8 @@ internal sealed class MefCodeActionProviderCatalog : ICodeActionProviderCatalog
         };
     }
 
-    private static IReadOnlyList<T> GetExports<T>(MefHostServices hostServices)
+    private static string StageFailure(string stage, Exception exception)
     {
-        var method = typeof(MefHostServices)
-            .GetMethods(BindingFlags.Instance | BindingFlags.NonPublic)
-            .Single(candidate =>
-                candidate.Name.Contains("IMefHostExportProvider.GetExports", StringComparison.Ordinal)
-                && candidate.IsGenericMethodDefinition
-                && candidate.GetGenericArguments().Length == 1);
-        var closedMethod = method.MakeGenericMethod(typeof(T));
-        var exports = (System.Collections.IEnumerable?)closedMethod.Invoke(hostServices, null) ?? Array.Empty<object>();
-        var values = new List<T>();
-
-        foreach (var export in exports)
-        {
-            if (export?.GetType().GetProperty("Value")?.GetValue(export) is T value)
-            {
-                values.Add(value);
-            }
-        }
-
-        return values;
+        return $"Failed while {stage} ({exception.GetType().Name}).";
     }
 }

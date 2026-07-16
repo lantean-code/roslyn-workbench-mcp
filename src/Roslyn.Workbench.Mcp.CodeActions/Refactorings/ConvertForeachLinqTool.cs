@@ -7,27 +7,18 @@ internal sealed class ConvertForeachLinqTool : CodeActionMutationToolHandler<Con
     private const string ForEachToLinqProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertLinq.ConvertForEachToLinqQuery.CSharpConvertForEachToLinqQueryProvider";
     private const string LinqToForEachProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertLinq.CSharpConvertLinqQueryToForEachProvider";
 
-    private static readonly CodeActionToolMetadata _metadata = new()
-    {
-        Name = "convert-foreach-linq",
-        Title = "Convert Foreach LINQ",
-        Description = "Stages one supported Roslyn foreach or LINQ conversion through refactoring composition.",
-        Behavior = new CodeActionToolBehavior
-        {
-            Destructive = true,
-        },
-    };
+    private readonly ICodeActionReplayService _replayService;
 
-    public static void Register(ICodeActionToolRegistry registry)
+    public ConvertForeachLinqTool(ICodeActionReplayService replayService)
     {
-        registry.RegisterMutationTool(_metadata, new ConvertForeachLinqTool());
+        _replayService = replayService;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(ConvertForeachLinqRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         if (request.Selection is null)
         {
-            return ValueTask.FromResult(ToolExecutionHelpers.Rejected<WorkspaceMutationCandidate>("InvalidRequest", "A location selector is required."));
+            return ValueTask.FromResult(CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>("InvalidRequest", "A location selector is required."));
         }
 
         var replayRequest = request.ConversionKind switch
@@ -58,6 +49,6 @@ internal sealed class ConvertForeachLinqTool : CodeActionMutationToolHandler<Con
             },
         };
 
-        return context.StageReplayCodeActionAsync(replayRequest, cancellationToken);
+        return _replayService.StageReplayCodeActionAsync(replayRequest, context, cancellationToken);
     }
 }

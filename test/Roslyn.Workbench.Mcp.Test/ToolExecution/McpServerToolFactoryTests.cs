@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Roslyn.Workbench.Mcp.ToolExecution.CodeActions;
 using Roslyn.Workbench.Mcp.ToolExecution.Plugins;
 
@@ -41,15 +42,13 @@ public sealed class McpServerToolFactoryTests
     public void GIVEN_CodeActionQueryRegistration_WHEN_VisitingFactory_THEN_ShouldCreateTypedQueryAdapter()
     {
         var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
-        var handler = new Mock<ICodeActionQueryToolHandler<TestRequest, TestResponse>>();
-        var registration = new CodeActionQueryRegistration<TestRequest, TestResponse>(
-            CreateCodeActionMetadata(),
-            handler.Object);
-        var target = new CodeActionMcpServerToolFactory(contextFactory.Object);
+        var registration = new CodeActionQueryRegistration<TestQueryHandler, TestRequest, TestResponse>(CreateCodeActionMetadata());
+        using var serviceProvider = new ServiceCollection().BuildServiceProvider();
+        var target = new CodeActionMcpServerToolFactory(serviceProvider, contextFactory.Object);
 
         var result = target.VisitQuery(registration);
 
-        result.Should().BeOfType<CodeActionQueryMcpServerTool<TestRequest, TestResponse>>();
+        result.Should().BeOfType<CodeActionQueryMcpServerTool<TestQueryHandler, TestRequest, TestResponse>>();
         result.ProtocolTool.Name.Should().Be("test-tool");
     }
 
@@ -57,15 +56,13 @@ public sealed class McpServerToolFactoryTests
     public void GIVEN_CodeActionMutationRegistration_WHEN_VisitingFactory_THEN_ShouldCreateTypedMutationAdapter()
     {
         var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
-        var handler = new Mock<ICodeActionMutationToolHandler<TestRequest>>();
-        var registration = new CodeActionMutationRegistration<TestRequest>(
-            CreateCodeActionMetadata(),
-            handler.Object);
-        var target = new CodeActionMcpServerToolFactory(contextFactory.Object);
+        var registration = new CodeActionMutationRegistration<TestMutationHandler, TestRequest>(CreateCodeActionMetadata());
+        using var serviceProvider = new ServiceCollection().BuildServiceProvider();
+        var target = new CodeActionMcpServerToolFactory(serviceProvider, contextFactory.Object);
 
         var result = target.VisitMutation(registration);
 
-        result.Should().BeOfType<CodeActionMutationMcpServerTool<TestRequest>>();
+        result.Should().BeOfType<CodeActionMutationMcpServerTool<TestMutationHandler, TestRequest>>();
         result.ProtocolTool.Name.Should().Be("test-tool");
     }
 
@@ -109,5 +106,27 @@ public sealed class McpServerToolFactoryTests
     public sealed record TestResponse
     {
         public string Value { get; init; } = string.Empty;
+    }
+
+    private sealed class TestQueryHandler : CodeActionQueryToolHandler<TestRequest, TestResponse>
+    {
+        protected override ValueTask<CodeActionExecutionResult<TestResponse>> ExecuteCoreAsync(
+            TestRequest request,
+            ICodeActionQueryContext context,
+            CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(CodeActionExecutionResult<TestResponse>.Success(new TestResponse()));
+        }
+    }
+
+    private sealed class TestMutationHandler : CodeActionMutationToolHandler<TestRequest>
+    {
+        protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(
+            TestRequest request,
+            ICodeActionMutationContext context,
+            CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(CodeActionExecutionResult<WorkspaceMutationCandidate>.NoChange());
+        }
     }
 }

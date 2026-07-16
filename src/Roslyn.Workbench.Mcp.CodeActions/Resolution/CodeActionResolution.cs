@@ -6,6 +6,8 @@ internal sealed record CodeActionResolution<T>
 {
     public CodeActionExecutionResult<T>? Rejection { get; init; }
 
+    public CodeActionResolutionFailureKind FailureKind { get; init; }
+
     public DiscoveredCodeAction? Action { get; init; }
 
     public CodeActionDescriptorEntry? Descriptor { get; init; }

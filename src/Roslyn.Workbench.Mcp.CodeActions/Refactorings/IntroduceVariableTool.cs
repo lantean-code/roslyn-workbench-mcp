@@ -4,27 +4,18 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 
 internal sealed class IntroduceVariableTool : CodeActionMutationToolHandler<IntroduceVariableRequest>
 {
-    private static readonly CodeActionToolMetadata _metadata = new()
-    {
-        Name = "introduce-variable",
-        Title = "Introduce Variable",
-        Description = "Stages one supported Roslyn introduce-variable leaf action through refactoring composition.",
-        Behavior = new CodeActionToolBehavior
-        {
-            Destructive = true,
-        },
-    };
+    private readonly ICodeActionReplayService _replayService;
 
-    public static void Register(ICodeActionToolRegistry registry)
+    public IntroduceVariableTool(ICodeActionReplayService replayService)
     {
-        registry.RegisterMutationTool(_metadata, new IntroduceVariableTool());
+        _replayService = replayService;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(IntroduceVariableRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         if (request.Selection is null)
         {
-            return ValueTask.FromResult(ToolExecutionHelpers.Rejected<WorkspaceMutationCandidate>("InvalidRequest", "A location selector is required."));
+            return ValueTask.FromResult(CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>("InvalidRequest", "A location selector is required."));
         }
 
         var replayRequest = request.Kind switch
@@ -41,7 +32,7 @@ internal sealed class IntroduceVariableTool : CodeActionMutationToolHandler<Intr
             _ => CreateReplayRequest(request, "Introduce local for ", "all occurrences"),
         };
 
-        return context.StageReplayCodeActionAsync(replayRequest, cancellationToken);
+        return _replayService.StageReplayCodeActionAsync(replayRequest, context, cancellationToken);
     }
 
     private static ReplayCodeActionRequest CreateReplayRequest(IntroduceVariableRequest request, string titleStartsWith, string? titleDoesNotContain = null)

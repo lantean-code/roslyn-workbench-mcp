@@ -3,22 +3,6 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Refactorings;
 public sealed class AddMissingUsingsToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
-    {
-        var registry = new Mock<ICodeActionToolRegistry>();
-
-        AddMissingUsingsTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterMutationTool<AddMissingUsingsRequest>(
-            It.Is<CodeActionToolMetadata>(metadata =>
-                metadata.Name == "add-missing-usings"
-                && metadata.Title == "Add Missing Usings"
-                && metadata.Description == "Adds missing using directives across a selected scope through Roslyn code-fix composition."
-                && metadata.Behavior.Destructive),
-            It.IsAny<ICodeActionMutationToolHandler<AddMissingUsingsRequest>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_PreferGlobalUsingsIsTrue_WHEN_CallingExecuteAsync_THEN_ShouldReturnUnsupportedOption()
     {
         var context = new Mock<ICodeActionMutationContext>();
@@ -26,14 +10,16 @@ public sealed class AddMissingUsingsToolTests
         {
             PreferGlobalUsings = true,
         };
-        var target = new AddMissingUsingsTool();
+        var scopedFixService = new Mock<ICodeActionScopedFixService>();
+        var target = new AddMissingUsingsTool(scopedFixService.Object);
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("UnsupportedOption");
-        context.Verify(item => item.StageScopedCodeFixAsync(
+        scopedFixService.Verify(item => item.StageScopedCodeFixAsync(
             It.IsAny<ScopedCodeFixRequest>(),
+            context.Object,
             It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -54,9 +40,10 @@ public sealed class AddMissingUsingsToolTests
             },
             PreferGlobalUsings = false,
         };
-        var target = new AddMissingUsingsTool();
+        var scopedFixService = new Mock<ICodeActionScopedFixService>();
+        var target = new AddMissingUsingsTool(scopedFixService.Object);
 
-        context
+        scopedFixService
             .Setup(item => item.StageScopedCodeFixAsync(
                 It.Is<ScopedCodeFixRequest>(stageRequest =>
                     stageRequest.Scope == request.Scope
@@ -65,13 +52,14 @@ public sealed class AddMissingUsingsToolTests
                     && stageRequest.DiagnosticIds.Count == 2
                     && stageRequest.DiagnosticIds[0] == "CS0103"
                     && stageRequest.DiagnosticIds[1] == "CS0246"),
+                context.Object,
                 CancellationToken.None))
             .ReturnsAsync(expected);
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        context.Verify(item => item.StageScopedCodeFixAsync(
+        scopedFixService.Verify(item => item.StageScopedCodeFixAsync(
             It.Is<ScopedCodeFixRequest>(stageRequest =>
                 stageRequest.Scope == request.Scope
                 && stageRequest.ExpectedSnapshot == request.ExpectedSnapshot
@@ -79,6 +67,7 @@ public sealed class AddMissingUsingsToolTests
                 && stageRequest.DiagnosticIds.Count == 2
                 && stageRequest.DiagnosticIds[0] == "CS0103"
                 && stageRequest.DiagnosticIds[1] == "CS0246"),
+            context.Object,
             CancellationToken.None), Times.Once);
     }
 }

@@ -3,34 +3,19 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Refactorings;
 public sealed class IntroduceParameterToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
-    {
-        var registry = new Mock<ICodeActionToolRegistry>();
-
-        IntroduceParameterTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterMutationTool<IntroduceParameterRequest>(
-            It.Is<CodeActionToolMetadata>(metadata =>
-                metadata.Name == "introduce-parameter"
-                && metadata.Title == "Introduce Parameter"
-                && metadata.Description == "Promotes a selected expression to a parameter through Roslyn refactoring composition."
-                && metadata.Behavior.Destructive),
-            It.IsAny<ICodeActionMutationToolHandler<IntroduceParameterRequest>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_SelectionIsNull_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequest()
     {
         var context = new Mock<ICodeActionMutationContext>();
-        var target = new IntroduceParameterTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new IntroduceParameterTool(replayService.Object);
 
         var result = await target.ExecuteAsync(new IntroduceParameterRequest(), context.Object, CancellationToken.None);
 
         result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("InvalidRequest");
-        context.Verify(item => item.StageReplayCodeActionAsync(
+        replayService.Verify(item => item.StageReplayCodeActionAsync(
             It.IsAny<ReplayCodeActionRequest>(),
-            It.IsAny<CancellationToken>()), Times.Never);
+            context.Object, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Theory]
@@ -59,9 +44,10 @@ public sealed class IntroduceParameterToolTests
             Strategy = strategy,
             AllOccurrences = allOccurrences,
         };
-        var target = new IntroduceParameterTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new IntroduceParameterTool(replayService.Object);
 
-        context
+        replayService
             .Setup(item => item.StageReplayCodeActionAsync(
                 It.Is<ReplayCodeActionRequest>(stageRequest =>
                     stageRequest.Location == request.Selection
@@ -73,13 +59,13 @@ public sealed class IntroduceParameterToolTests
                     && stageRequest.ActionPath.Count == 2
                     && stageRequest.ActionPath[0] == firstPathSegment
                     && stageRequest.ActionPath[1] == secondPathSegment),
-                CancellationToken.None))
+                context.Object, CancellationToken.None))
             .ReturnsAsync(expected);
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        context.Verify(item => item.StageReplayCodeActionAsync(
+        replayService.Verify(item => item.StageReplayCodeActionAsync(
             It.Is<ReplayCodeActionRequest>(stageRequest =>
                 stageRequest.Location == request.Selection
                 && stageRequest.ExpectedSnapshot == request.ExpectedSnapshot
@@ -90,6 +76,6 @@ public sealed class IntroduceParameterToolTests
                 && stageRequest.ActionPath.Count == 2
                 && stageRequest.ActionPath[0] == firstPathSegment
                 && stageRequest.ActionPath[1] == secondPathSegment),
-            CancellationToken.None), Times.Once);
+            context.Object, CancellationToken.None), Times.Once);
     }
 }

@@ -6,28 +6,20 @@ internal sealed class MakeLocalFunctionStaticTool : CodeActionMutationToolHandle
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.MakeLocalFunctionStatic.MakeLocalFunctionStaticCodeRefactoringProvider";
 
-    private static readonly CodeActionToolMetadata _metadata = new()
-    {
-        Name = "make-local-function-static",
-        Title = "Make Local Function Static",
-        Description = "Marks a supported local function as static through Roslyn refactoring composition.",
-        Behavior = new CodeActionToolBehavior
-        {
-            Destructive = true,
-        },
-    };
+    private readonly ICodeActionReplayService _replayService;
 
-    public static void Register(ICodeActionToolRegistry registry)
+    public MakeLocalFunctionStaticTool(ICodeActionReplayService replayService)
     {
-        registry.RegisterMutationTool(_metadata, new MakeLocalFunctionStaticTool());
+        _replayService = replayService;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(LocationRefactoringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
-        return context.StageReplaySelectionAsync(
+        return _replayService.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             cancellationToken,
+            context,
             ProviderId,
             title: "Make local function 'static'");
     }

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 using Roslyn.Workbench.Mcp.ToolExecution.CodeActions;
 using Roslyn.Workbench.Mcp.ToolExecution.Plugins;
@@ -50,45 +51,59 @@ public sealed class McpToolRegistrationVisitorTests
     }
 
     [Fact]
-    public void GIVEN_CodeActionQueryRegistration_WHEN_VisitingServices_THEN_ShouldRegisterTypedQueryAdapterFactory()
+    public void GIVEN_CodeActionQueryRegistration_WHEN_VisitingServices_THEN_ShouldRegisterContainerValidatedQueryAdapter()
     {
         var services = new ServiceCollection();
         var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
-        var handler = new Mock<ICodeActionQueryToolHandler<TestRequest, TestResponse>>();
-        var registration = new CodeActionQueryRegistration<TestRequest, TestResponse>(
-            CreateCodeActionMetadata(),
-            handler.Object);
-        var target = new CodeActionMcpToolRegistrationVisitor(services, ToolOutputSchemaMode.Omit);
+        var registration = new CodeActionQueryRegistration<TestQueryHandler, TestRequest, TestResponse>(CreateCodeActionMetadata());
+        var target = new CodeActionMcpToolRegistrationVisitor(services);
 
         var result = target.VisitQuery(registration);
 
         result.Should().BeTrue();
-        var descriptor = services.Should().ContainSingle().Subject;
-        descriptor.ServiceType.Should().Be(typeof(McpServerTool));
-        descriptor.Lifetime.Should().Be(ServiceLifetime.Singleton);
-        descriptor.ImplementationFactory.Should().NotBeNull();
-        ResolveRegisteredTool(descriptor, contextFactory.Object).Should().BeOfType<CodeActionQueryMcpServerTool<TestRequest, TestResponse>>();
+        services.Should().Contain(descriptor => descriptor.ServiceType == typeof(CodeActionQueryRegistration<TestQueryHandler, TestRequest, TestResponse>));
+        services.Should().Contain(descriptor => descriptor.ServiceType == typeof(TestQueryHandler));
+        services.Should().Contain(descriptor =>
+            descriptor.ServiceType == typeof(McpServerTool)
+            && descriptor.ImplementationType == typeof(CodeActionQueryMcpServerTool<TestQueryHandler, TestRequest, TestResponse>)
+            && descriptor.Lifetime == ServiceLifetime.Singleton);
+
+        services.AddSingleton(contextFactory.Object);
+        services.AddSingleton(Options.Create(new StartupOptions()));
+        using var serviceProvider = services.BuildServiceProvider(new ServiceProviderOptions
+        {
+            ValidateOnBuild = true,
+        });
+        serviceProvider.GetRequiredService<McpServerTool>()
+            .Should().BeOfType<CodeActionQueryMcpServerTool<TestQueryHandler, TestRequest, TestResponse>>();
     }
 
     [Fact]
-    public void GIVEN_CodeActionMutationRegistration_WHEN_VisitingServices_THEN_ShouldRegisterTypedMutationAdapterFactory()
+    public void GIVEN_CodeActionMutationRegistration_WHEN_VisitingServices_THEN_ShouldRegisterContainerValidatedMutationAdapter()
     {
         var services = new ServiceCollection();
         var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
-        var handler = new Mock<ICodeActionMutationToolHandler<TestRequest>>();
-        var registration = new CodeActionMutationRegistration<TestRequest>(
-            CreateCodeActionMetadata(),
-            handler.Object);
-        var target = new CodeActionMcpToolRegistrationVisitor(services, ToolOutputSchemaMode.Omit);
+        var registration = new CodeActionMutationRegistration<TestMutationHandler, TestRequest>(CreateCodeActionMetadata());
+        var target = new CodeActionMcpToolRegistrationVisitor(services);
 
         var result = target.VisitMutation(registration);
 
         result.Should().BeTrue();
-        var descriptor = services.Should().ContainSingle().Subject;
-        descriptor.ServiceType.Should().Be(typeof(McpServerTool));
-        descriptor.Lifetime.Should().Be(ServiceLifetime.Singleton);
-        descriptor.ImplementationFactory.Should().NotBeNull();
-        ResolveRegisteredTool(descriptor, contextFactory.Object).Should().BeOfType<CodeActionMutationMcpServerTool<TestRequest>>();
+        services.Should().Contain(descriptor => descriptor.ServiceType == typeof(CodeActionMutationRegistration<TestMutationHandler, TestRequest>));
+        services.Should().Contain(descriptor => descriptor.ServiceType == typeof(TestMutationHandler));
+        services.Should().Contain(descriptor =>
+            descriptor.ServiceType == typeof(McpServerTool)
+            && descriptor.ImplementationType == typeof(CodeActionMutationMcpServerTool<TestMutationHandler, TestRequest>)
+            && descriptor.Lifetime == ServiceLifetime.Singleton);
+
+        services.AddSingleton(contextFactory.Object);
+        services.AddSingleton(Options.Create(new StartupOptions()));
+        using var serviceProvider = services.BuildServiceProvider(new ServiceProviderOptions
+        {
+            ValidateOnBuild = true,
+        });
+        serviceProvider.GetRequiredService<McpServerTool>()
+            .Should().BeOfType<CodeActionMutationMcpServerTool<TestMutationHandler, TestRequest>>();
     }
 
     private static McpServerTool ResolveRegisteredTool<TContextFactory>(
@@ -144,5 +159,27 @@ public sealed class McpToolRegistrationVisitorTests
     public sealed record TestResponse
     {
         public string Value { get; init; } = string.Empty;
+    }
+
+    private sealed class TestQueryHandler : CodeActionQueryToolHandler<TestRequest, TestResponse>
+    {
+        protected override ValueTask<CodeActionExecutionResult<TestResponse>> ExecuteCoreAsync(
+            TestRequest request,
+            ICodeActionQueryContext context,
+            CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(CodeActionExecutionResult<TestResponse>.Success(new TestResponse()));
+        }
+    }
+
+    private sealed class TestMutationHandler : CodeActionMutationToolHandler<TestRequest>
+    {
+        protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(
+            TestRequest request,
+            ICodeActionMutationContext context,
+            CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(CodeActionExecutionResult<WorkspaceMutationCandidate>.NoChange());
+        }
     }
 }

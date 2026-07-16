@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Options;
 
 using Roslyn.Workbench.Mcp.Test.ToolExecution;
 using Roslyn.Workbench.Mcp.ToolExecution.CodeActions;
@@ -435,7 +436,7 @@ public sealed class CodeActionMutationMcpServerToolTests
             It.IsAny<CancellationToken>()), Times.Never);
     }
 
-    private static CodeActionMutationMcpServerTool<TestMutationRequest> CreateTarget(
+    private static CodeActionMutationMcpServerTool<ICodeActionMutationToolHandler<TestMutationRequest>, TestMutationRequest> CreateTarget(
         ICodeActionMutationToolHandler<TestMutationRequest> handler,
         ICodeActionExecutionContextFactory contextFactory)
     {
@@ -446,11 +447,11 @@ public sealed class CodeActionMutationMcpServerToolTests
             Description = "Description",
         };
 
-        return new CodeActionMutationMcpServerTool<TestMutationRequest>(
-            McpServerToolTestData.CreateProtocolTool(metadata.Name),
-            metadata,
+        return new CodeActionMutationMcpServerTool<ICodeActionMutationToolHandler<TestMutationRequest>, TestMutationRequest>(
+            new CodeActionMutationRegistration<ICodeActionMutationToolHandler<TestMutationRequest>, TestMutationRequest>(metadata),
             handler,
-            contextFactory);
+            contextFactory,
+            Options.Create(new StartupOptions()));
     }
 
     public sealed record TestMutationRequest : WorkspaceBoundRequest

@@ -2,13 +2,11 @@ namespace Roslyn.Workbench.Mcp.CodeActions;
 
 internal interface ICodeActionToolRegistry
 {
-    void RegisterQueryTool<TRequest, TResponse>(
-        CodeActionToolMetadata metadata,
-        ICodeActionQueryToolHandler<TRequest, TResponse> handler)
+    void RegisterQueryTool<THandler, TRequest, TResponse>(CodeActionToolMetadata metadata)
+        where THandler : class, ICodeActionQueryToolHandler<TRequest, TResponse>
         where TRequest : WorkspaceBoundRequest;
 
-    void RegisterMutationTool<TRequest>(
-        CodeActionToolMetadata metadata,
-        ICodeActionMutationToolHandler<TRequest> handler)
+    void RegisterMutationTool<THandler, TRequest>(CodeActionToolMetadata metadata)
+        where THandler : class, ICodeActionMutationToolHandler<TRequest>
         where TRequest : WorkspaceBoundRequest;
 }

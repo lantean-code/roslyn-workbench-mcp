@@ -3,34 +3,19 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Refactorings;
 public sealed class IntroduceVariableToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
-    {
-        var registry = new Mock<ICodeActionToolRegistry>();
-
-        IntroduceVariableTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterMutationTool<IntroduceVariableRequest>(
-            It.Is<CodeActionToolMetadata>(metadata =>
-                metadata.Name == "introduce-variable"
-                && metadata.Title == "Introduce Variable"
-                && metadata.Description == "Stages one supported Roslyn introduce-variable leaf action through refactoring composition."
-                && metadata.Behavior.Destructive),
-            It.IsAny<ICodeActionMutationToolHandler<IntroduceVariableRequest>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_SelectionIsNull_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequest()
     {
         var context = new Mock<ICodeActionMutationContext>();
-        var target = new IntroduceVariableTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new IntroduceVariableTool(replayService.Object);
 
         var result = await target.ExecuteAsync(new IntroduceVariableRequest(), context.Object, CancellationToken.None);
 
         result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("InvalidRequest");
-        context.Verify(item => item.StageReplayCodeActionAsync(
+        replayService.Verify(item => item.StageReplayCodeActionAsync(
             It.IsAny<ReplayCodeActionRequest>(),
-            It.IsAny<CancellationToken>()), Times.Never);
+            context.Object, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Theory]
@@ -60,27 +45,28 @@ public sealed class IntroduceVariableToolTests
             },
             Kind = kind,
         };
-        var target = new IntroduceVariableTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new IntroduceVariableTool(replayService.Object);
 
-        context
+        replayService
             .Setup(item => item.StageReplayCodeActionAsync(
                 It.Is<ReplayCodeActionRequest>(stageRequest =>
                     stageRequest.Location == request.Selection
                     && stageRequest.ExpectedSnapshot == request.ExpectedSnapshot
                     && stageRequest.TitleStartsWith == titleStartsWith
                     && stageRequest.TitleDoesNotContain == titleDoesNotContain),
-                CancellationToken.None))
+                context.Object, CancellationToken.None))
             .ReturnsAsync(expected);
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        context.Verify(item => item.StageReplayCodeActionAsync(
+        replayService.Verify(item => item.StageReplayCodeActionAsync(
             It.Is<ReplayCodeActionRequest>(stageRequest =>
                 stageRequest.Location == request.Selection
                 && stageRequest.ExpectedSnapshot == request.ExpectedSnapshot
                 && stageRequest.TitleStartsWith == titleStartsWith
                 && stageRequest.TitleDoesNotContain == titleDoesNotContain),
-            CancellationToken.None), Times.Once);
+            context.Object, CancellationToken.None), Times.Once);
     }
 }

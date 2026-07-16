@@ -3,22 +3,6 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Refactorings;
 public sealed class AddImportToolTests
 {
     [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
-    {
-        var registry = new Mock<ICodeActionToolRegistry>();
-
-        AddImportTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterMutationTool<AddImportRequest>(
-            It.Is<CodeActionToolMetadata>(metadata =>
-                metadata.Name == "add-import"
-                && metadata.Title == "Add Import"
-                && metadata.Description == "Adds a supported using directive through Roslyn refactoring composition."
-                && metadata.Behavior.Destructive),
-            It.IsAny<ICodeActionMutationToolHandler<AddImportRequest>>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GIVEN_AddImportRequestWithoutSimplifyAllOccurrences_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithoutSimplifyAllOccurrencesTitle()
     {
         var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
@@ -32,13 +16,15 @@ public sealed class AddImportToolTests
             },
             SimplifyAllOccurrences = false,
         };
-        var target = new AddImportTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new AddImportTool(replayService.Object);
 
-        context
-            .Setup(item => item.StageReplaySelectionAsync(
+        replayService
+            .Setup(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
                 CancellationToken.None,
+                context.Object,
                 "Microsoft.CodeAnalysis.CSharp.AddImport.CSharpAddImportCodeRefactoringProvider",
                 null,
                 "Add 'using ",
@@ -50,10 +36,11 @@ public sealed class AddImportToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        context.Verify(item => item.StageReplaySelectionAsync(
+        replayService.Verify(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
                 CancellationToken.None,
+                context.Object,
                 "Microsoft.CodeAnalysis.CSharp.AddImport.CSharpAddImportCodeRefactoringProvider",
                 null,
                 "Add 'using ",
@@ -77,13 +64,15 @@ public sealed class AddImportToolTests
             },
             SimplifyAllOccurrences = true,
         };
-        var target = new AddImportTool();
+        var replayService = new Mock<ICodeActionReplayService>();
+        var target = new AddImportTool(replayService.Object);
 
-        context
-            .Setup(item => item.StageReplaySelectionAsync(
+        replayService
+            .Setup(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
                 CancellationToken.None,
+                context.Object,
                 "Microsoft.CodeAnalysis.CSharp.AddImport.CSharpAddImportCodeRefactoringProvider",
                 null,
                 "Add 'using ",
@@ -95,10 +84,11 @@ public sealed class AddImportToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        context.Verify(item => item.StageReplaySelectionAsync(
+        replayService.Verify(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
                 CancellationToken.None,
+                context.Object,
                 "Microsoft.CodeAnalysis.CSharp.AddImport.CSharpAddImportCodeRefactoringProvider",
                 null,
                 "Add 'using ",

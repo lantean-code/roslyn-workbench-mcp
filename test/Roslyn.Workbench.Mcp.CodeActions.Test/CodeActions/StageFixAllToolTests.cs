@@ -1,23 +1,7 @@
-namespace Roslyn.Workbench.Mcp.CodeActions.Test.CodeActions;
+namespace Roslyn.Workbench.Mcp.CodeActions.Test.Tools;
 
 public sealed class StageFixAllToolTests
 {
-    [Fact]
-    public void GIVEN_PluginRegistry_WHEN_CallingRegister_THEN_ShouldRegisterMutationTool()
-    {
-        var registry = new Mock<ICodeActionToolRegistry>();
-
-        StageFixAllTool.Register(registry.Object);
-
-        registry.Verify(item => item.RegisterMutationTool<StageFixAllRequest>(
-            It.Is<CodeActionToolMetadata>(metadata =>
-                metadata.Name == "stage-fix-all"
-                && metadata.Title == "Stage Fix All"
-                && metadata.Description == "Revalidates one selected code fix and stages its fix-all variant into the active transaction."
-                && metadata.Behavior.Destructive),
-            It.IsAny<ICodeActionMutationToolHandler<StageFixAllRequest>>()), Times.Once);
-    }
-
     [Fact]
     public async Task GIVEN_MutationContextReturnsResult_WHEN_CallingExecuteAsync_THEN_ShouldReturnMutationContextResult()
     {
@@ -27,15 +11,16 @@ public sealed class StageFixAllToolTests
             ActionId = "ActionId",
         };
         var context = new Mock<ICodeActionMutationContext>();
-        var target = new StageFixAllTool();
+        var fixAllService = new Mock<ICodeActionFixAllService>();
+        var target = new StageFixAllTool(fixAllService.Object);
 
-        context
-            .Setup(item => item.StageFixAllAsync(request, CancellationToken.None))
+        fixAllService
+            .Setup(item => item.StageFixAllAsync(request, context.Object, CancellationToken.None))
             .ReturnsAsync(expected);
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        context.Verify(item => item.StageFixAllAsync(request, CancellationToken.None), Times.Once);
+        fixAllService.Verify(item => item.StageFixAllAsync(request, context.Object, CancellationToken.None), Times.Once);
     }
 }

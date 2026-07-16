@@ -47,8 +47,10 @@ All four Host adapter families now have focused unit evidence without moving MCP
 | Code Action provider matching, nested-action flattening and exact-span diagnostic grouping | `CodeActionDiscoveryServiceTests` | Covered; 100% line and branch coverage without exception-driven registration retries |
 | Code Action query MCP adapter | `CodeActionQueryMcpServerToolTests` | Covered; 100% line and branch coverage |
 | Code Action mutation MCP adapter and separate staging | `CodeActionMutationMcpServerToolTests` | Covered; 100% line and branch coverage |
+| Code Action list/describe orchestration and action-info projection | `ListCodeActionsToolTests`, `DescribeCodeActionToolTests`, `CodeActionInfoFactoryTests` | Covered; 100% line and branch coverage, including deterministic ordering, classification, token projection and rejection paths |
 | Plugin adaptation of neutral Workspace contexts and failures | `PluginExecutionContextFactoryTests`, `PluginExecutionContextTests` | Covered |
-| Code Action adaptation of neutral Workspace contexts and failures | `CodeActionExecutionContextFactoryTests`, `CodeActionExecutionContextTests` | Covered |
+| Code Action adaptation of neutral Workspace contexts and failures | `CodeActionExecutionContextFactoryTests`, `CodeActionExecutionContextTests` | Covered; contexts expose Workspace execution state only and handlers receive stable services through constructor injection |
+| Code Action candidate identity and replay, fix-all, scoped-fix and location-fix services | `CodeActionCandidateIdentityTests`, `CodeActionReplayServiceTests`, `CodeActionFixAllServiceTests`, `CodeActionScopedFixServiceTests`, `CodeActionLocationFixServiceTests` | Covered; 100% line and branch coverage, including value-based duplicate candidate handling and every scoped application path |
 | Stager separate from Workspace handler context | `WorkspaceExecutionLeaseTests` | Covered at lease boundary |
 | Reserved Code Action name disables a colliding plugin | `PluginDiscoveryAndMcpToolIntegrationTests` | Covered |
 | Host constructs all tool families | `HostCompositionIntegrationTests` | Covered at composition boundary |

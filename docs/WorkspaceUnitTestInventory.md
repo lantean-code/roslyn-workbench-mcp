@@ -51,13 +51,13 @@ The existing six Workspace unit tests were removed after review because they did
 | `TransactionServiceTests` | 49 | Start, preview, history, commit, rollback and cancellation: 100% line and branch |
 | `WorkspaceLoaderTests` | 16 | Path and alias normalization plus compatibility-inspector delegation |
 | `WorkspaceLoadWorkflowTests` | 12 | Compatibility, loading, root containment, ownership and cancellation: 100% line and branch |
-| `WorkspaceLifecycleServiceTests` | 63 | Open, list, close, status, reload, explicit input-evaluation failures, advisory-file sequencing and cancellation: 100% line and branch |
-| `TransactionCommitServiceTests` | 26 | Commit orchestration, target-drift conflicts, recovery failures, post-commit input-evaluation failure and cancellation: 100% line, 98.28% branch |
+| `WorkspaceLifecycleServiceTests` | 65 | Open, list, close, status, reload, explicit input-evaluation failures, advisory availability/readability diagnostics and cancellation: 100% line and branch |
+| `TransactionCommitServiceTests` | 27 | Commit orchestration, target-drift conflicts, recovery failures, recovery-state persistence diagnostics, post-commit input-evaluation failure and cancellation: 100% line and branch |
 | `WorkspaceChangeDetectorTests` | 18 | Manifest creation, explicit project-input failures and comparison: 100% line and branch |
-| `WorkspaceInstanceStatusPublisherTests` | 24 | Serialised registration, update, close and disposal plus stale/live detection, malformed status, filtering, ordering, cancellation and suppressed filesystem failures: 100% line and branch |
+| `WorkspaceInstanceStatusPublisherTests` | 24 | Serialised registration, update, close and disposal plus stale/live detection, availability, unreadable hints, filtering, ordering and cancellation: 100% line and branch |
 | `AtomicFileWriterTests` | 12 | 100% line and branch coverage of text, binary, commit and cleanup behaviour |
 | `WorkspaceRootResolverTests` | 14 | Explicit-root validation, Git-root discovery, fallback termination and containment alternatives: 100% line and branch |
-| `CommitRecoveryStoreTests` | 56 | 100% line and branch coverage through the injected path-comparison policy and explicit persisted-artifact validation |
+| `CommitRecoveryStoreTests` | 65 | 100% line and branch coverage through the injected path-comparison policy, explicit persisted-artifact validation and conservative malformed/unreadable recovery evidence handling |
 | `WorkspacePathComparisonTests` | 1 | Platform-default policy projection; opposite OS branch remains platform coverage |
 | `WorkspaceCommitRecoveryServiceTests` | 10 | Startup recovery orchestration |
 | `WorkspaceCommitLockAcquisitionTests` | 5 | Acquired, contended and failed result invariants |
@@ -82,7 +82,7 @@ Only three implementations recorded unit coverage before removal:
 
 These figures are retained only as the evidence that motivated this inventory; they are no longer current test coverage. Compiler-generated async classes are not separate test targets and will be covered through their owning public methods.
 
-The 2026-07-15 Workspace unit checkpoint discovers 619 tests and measures 94.47% line and 95.25% branch coverage across the Workspace production assembly. Shared session acquisition, validated workspace loading, lifecycle orchestration, mutation staging, candidate validation, transaction revision behaviour, commit target validation and persisted recovery-path validation each measure 100% line and branch coverage. The remaining assembly gap is concentrated in explicit operating-system and MSBuild integration boundaries, data-only cross-assembly contracts, platform-specific alternatives and the documented defensive Roslyn branches. The small line-percentage reduction reflects the new MSBuild-boundary result mapping, which is deliberately covered by real-MSBuild integration tests rather than mocked unit tests.
+The final 2026-07-15 Workspace unit checkpoint discovers 631 tests and measures 94.60% line and 95.35% branch coverage across the Workspace production assembly. Shared session acquisition, validated workspace loading, lifecycle orchestration, mutation staging, candidate validation, transaction revision behaviour, commit target validation, persisted recovery-path validation and advisory instance-status reporting each measure 100% line and branch coverage. The remaining assembly gap is concentrated in explicit operating-system and MSBuild integration boundaries, data-only cross-assembly contracts, platform-specific alternatives and the documented defensive Roslyn branches. The remaining percentage gap therefore reflects deliberate integration or contract boundaries rather than unfinished logic-bearing unit coverage.
 
 ### Current class-level coverage gaps
 
@@ -99,19 +99,19 @@ Coverlet emits compiler-generated async and closure classes separately. The tabl
 | `LoadedWorkspace` | 0% | 100% | Thin `MSBuildWorkspace` lifetime adapter; retain integration coverage. |
 | `AtomicFileWriter` | 100% | 100% | Exact text/binary writes, stream durability options, commit delegation and every cleanup outcome are covered. |
 | `WorkspaceLoader` | 31.08% | 66.67% | Normalisation is unit covered; MSBuild loading and compatibility inspection remain integration boundaries. |
-| `CommitRecoveryStore` | 100% | 100% | Recovery persistence and explicit safe artifact-path validation are covered through the injected filesystem and Workspace path-comparison policy. |
+| `CommitRecoveryStore` | 100% | 100% | Recovery persistence, explicit safe artifact-path validation and conservative conflicts for malformed or unreadable owner/legacy evidence are covered through the injected filesystem and Workspace path-comparison policy. |
 | `WorkspacePathComparison` | 100% | 50% | Projects the platform default; the opposite Windows/Linux policy arm executes in the corresponding platform run. |
 | `WorkspaceOperationResult<T>` | 100% | 100% | Successful/error evidence properties are asserted through factory-created results. |
 | `WorkspaceCommitWriter` | 100% | 100% | Explicit revalidation outcomes, application, delete-marker races, reverse restoration, divergence preservation, directory cleanup and recoverable failures are covered. |
-| `WorkspaceInstanceStatusPublisher` | 100% | 100% | One publisher-wide asynchronous gate serialises handle registration, update, close and disposal; every advisory-file scan outcome is covered. |
+| `WorkspaceInstanceStatusPublisher` | 100% | 100% | One publisher-wide asynchronous gate serialises handle registration, update, close and disposal; availability, known instances, unreadable live hints and every advisory-file scan outcome are covered. |
 | `WorkspaceCommitLockManager` | 100% | 100% | Successful, contended, directory-failure and provider-failure acquisition paths are covered. |
 | `WorkspaceRootResolver` | 100% | 100% | Explicit-root, repository discovery, fallback termination and containment alternatives are covered. |
 | `WorkspaceCommitPlanner` | 100% | 100% | Create/replace/delete planning, target-drift results and every invariant-validation alternative are covered. |
 | `WorkspaceChangeDetector` | 100% | 100% | Manifest construction, tracked-directory filtering and fingerprint comparison are covered. |
 | `WorkspaceResolver` | 98.62% | 92.96% | Remaining lines are the approved defensive Roslyn semantic-model/compilation guards; generated condition branches remain recorded. |
-| `WorkspaceLifecycleService` | 100% | 100% | Open, list, close, status, reload and cancellation alternatives are covered. |
+| `WorkspaceLifecycleService` | 100% | 100% | Open, list, close, status, reload, cancellation and advisory-instance diagnostic alternatives are covered. |
 | `WorkspaceCommitEntry` | 100% | 100% | Valid operation artifacts and all missing-artifact invariant failures are covered. |
-| `TransactionCommitService` | 100% | 98.28% | Planning, pre-apply and apply-time drift map to conflict outcomes; genuine filesystem recovery and non-recoverable failures are covered. Only compiler-reported catch-filter alternatives remain. |
+| `TransactionCommitService` | 100% | 100% | Planning, pre-apply and apply-time drift map to conflict outcomes; genuine filesystem recovery, non-recoverable failures and final recovery-state persistence diagnostics are covered. |
 | `WorkspaceDiffBuilder` | 100% | 96.88% | The remaining branch is the defensive Roslyn `SolutionChanges` consistency guard. |
 | `TransactionService` | 100% | 100% | Known transaction values are retained through start and history operations. |
 | `MutationStagingService` | 100% | 100% | Candidate validation, revision creation and staging publication are covered. |
@@ -393,7 +393,7 @@ After approval, `TransactionServiceTests` should cover every branch of:
 
 ### `TransactionCommitService`
 
-Filesystem creation, writing, deletion and encoding preservation are owned by the injected `IWorkspaceCommitWriter`. Recovery writes/deletes use the lifecycle-owned `ICommitRecoveryStore`. `TransactionCommitServiceTests` execute every source line and measure 98.28% branch coverage, including absent sessions, both recoverable filesystem exception families, cancellation before and after plan creation, non-recoverable exception propagation and explicit target-drift results from planning, pre-apply revalidation and application. A planning or pre-apply mismatch transitions directly to `TransactionConflicted`; an apply-time mismatch restores already-applied targets before transitioning to conflict, or reports a recovery fault when restoration cannot complete safely. The remaining reported alternatives are compiler-emitted catch-filter branches. Concrete writer and recovery durability remain integration responsibilities.
+Filesystem creation, writing, deletion and encoding preservation are owned by the injected `IWorkspaceCommitWriter`. Recovery writes/deletes use the lifecycle-owned `ICommitRecoveryStore`. `TransactionCommitServiceTests` execute every source line and branch, including absent sessions, both recoverable filesystem exception families, cancellation before and after plan creation, non-recoverable exception propagation, final recovery-state persistence failure and explicit target-drift results from planning, pre-apply revalidation and application. A planning or pre-apply mismatch transitions directly to `TransactionConflicted`; an apply-time mismatch restores already-applied targets before transitioning to conflict, or reports a recovery fault when restoration cannot complete safely. Concrete writer and recovery durability remain integration responsibilities.
 
 `TransactionCommitServiceTests` cover:
 
@@ -407,6 +407,7 @@ Filesystem creation, writing, deletion and encoding preservation are owned by th
 - prepared/applying/recovery-incomplete recovery state sequence
 - successful writer invocation, workspace apply, manifest rebuild, state transition, session replacement, owner clearing and recovery deletion
 - writer `IOException` and `UnauthorizedAccessException` fault mapping
+- final recovery-state persistence success and diagnostic failure mapping
 - cancellation before work and during write
 
 Concrete file creation, modification, deletion, encoding preservation and recovery durability remain integration tests for the extracted boundary implementations.

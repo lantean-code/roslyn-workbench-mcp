@@ -9,17 +9,20 @@ public sealed class WorkspaceRuntime : IWorkspaceRuntime
 {
     private readonly IToolExecutionContextFactory _coordinator;
     private readonly ICodeActionExecutionContextFactory _codeActionContextFactory;
+    private readonly IServiceProvider _codeActionHandlerServices;
     private readonly IWorkspaceLifecycleService _workspaceLifecycleService;
     private readonly ITransactionService _transactionService;
 
     internal WorkspaceRuntime(
         IToolExecutionContextFactory coordinator,
         ICodeActionExecutionContextFactory codeActionContextFactory,
+        IServiceProvider codeActionHandlerServices,
         IWorkspaceLifecycleService workspaceLifecycleService,
         ITransactionService transactionService)
     {
         _coordinator = coordinator ?? throw new ArgumentNullException(nameof(coordinator));
         _codeActionContextFactory = codeActionContextFactory ?? throw new ArgumentNullException(nameof(codeActionContextFactory));
+        _codeActionHandlerServices = codeActionHandlerServices ?? throw new ArgumentNullException(nameof(codeActionHandlerServices));
         _workspaceLifecycleService = workspaceLifecycleService ?? throw new ArgumentNullException(nameof(workspaceLifecycleService));
         _transactionService = transactionService ?? throw new ArgumentNullException(nameof(transactionService));
     }
@@ -37,6 +40,11 @@ public sealed class WorkspaceRuntime : IWorkspaceRuntime
     internal ICodeActionExecutionContextFactory CodeActionContextFactory
     {
         get { return _codeActionContextFactory; }
+    }
+
+    internal IServiceProvider CodeActionHandlerServices
+    {
+        get { return _codeActionHandlerServices; }
     }
 
     public PluginMutationExecutionLease CreateMutationContext(WorkspaceBoundRequest request, CancellationToken cancellationToken)

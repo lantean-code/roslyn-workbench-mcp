@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Options;
 
 using Roslyn.Workbench.Mcp.Test.ToolExecution;
 using Roslyn.Workbench.Mcp.ToolExecution.CodeActions;
@@ -251,14 +252,20 @@ public sealed class CodeActionQueryMcpServerToolTests
             It.IsAny<CancellationToken>()), Times.Never);
     }
 
-    private static CodeActionQueryMcpServerTool<TestQueryRequest, TestQueryResponse> CreateTarget(
+    private static CodeActionQueryMcpServerTool<ICodeActionQueryToolHandler<TestQueryRequest, TestQueryResponse>, TestQueryRequest, TestQueryResponse> CreateTarget(
         ICodeActionQueryToolHandler<TestQueryRequest, TestQueryResponse> handler,
         ICodeActionExecutionContextFactory contextFactory)
     {
-        return new CodeActionQueryMcpServerTool<TestQueryRequest, TestQueryResponse>(
-            McpServerToolTestData.CreateProtocolTool("test-code-action-query"),
+        return new CodeActionQueryMcpServerTool<ICodeActionQueryToolHandler<TestQueryRequest, TestQueryResponse>, TestQueryRequest, TestQueryResponse>(
+            new CodeActionQueryRegistration<ICodeActionQueryToolHandler<TestQueryRequest, TestQueryResponse>, TestQueryRequest, TestQueryResponse>(new CodeActionToolMetadata
+            {
+                Name = "test-code-action-query",
+                Title = "Test Code Action Query",
+                Description = "Description",
+            }),
             handler,
-            contextFactory);
+            contextFactory,
+            Options.Create(new StartupOptions()));
     }
 
     public sealed record TestQueryRequest : WorkspaceBoundRequest

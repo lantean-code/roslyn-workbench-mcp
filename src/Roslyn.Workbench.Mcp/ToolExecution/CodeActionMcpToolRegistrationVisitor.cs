@@ -5,44 +5,29 @@ namespace Roslyn.Workbench.Mcp.ToolExecution;
 internal sealed class CodeActionMcpToolRegistrationVisitor : ICodeActionToolRegistrationVisitor<bool>
 {
     private readonly IServiceCollection _services;
-    private readonly ToolOutputSchemaMode _outputSchemaMode;
 
-    public CodeActionMcpToolRegistrationVisitor(
-        IServiceCollection services,
-        ToolOutputSchemaMode outputSchemaMode)
+    public CodeActionMcpToolRegistrationVisitor(IServiceCollection services)
     {
         _services = services;
-        _outputSchemaMode = outputSchemaMode;
     }
 
-    public bool VisitQuery<TRequest, TResponse>(CodeActionQueryRegistration<TRequest, TResponse> registration)
+    public bool VisitQuery<THandler, TRequest, TResponse>(CodeActionQueryRegistration<THandler, TRequest, TResponse> registration)
+        where THandler : class, ICodeActionQueryToolHandler<TRequest, TResponse>
         where TRequest : WorkspaceBoundRequest
     {
-        var protocolTool = McpToolProtocolFactory.CreateCodeActionTool<TRequest>(
-            registration.Metadata,
-            registration.Kind,
-            registration.ResponseType,
-            _outputSchemaMode);
-        _services.AddSingleton<McpServerTool>(serviceProvider => new CodeActionQueryMcpServerTool<TRequest, TResponse>(
-            protocolTool,
-            registration.Handler,
-            serviceProvider.GetRequiredService<ICodeActionExecutionContextFactory>()));
+        _services.AddSingleton(registration);
+        _services.AddSingleton<THandler>();
+        _services.AddSingleton<McpServerTool, CodeActionQueryMcpServerTool<THandler, TRequest, TResponse>>();
         return true;
     }
 
-    public bool VisitMutation<TRequest>(CodeActionMutationRegistration<TRequest> registration)
+    public bool VisitMutation<THandler, TRequest>(CodeActionMutationRegistration<THandler, TRequest> registration)
+        where THandler : class, ICodeActionMutationToolHandler<TRequest>
         where TRequest : WorkspaceBoundRequest
     {
-        var protocolTool = McpToolProtocolFactory.CreateCodeActionTool<TRequest>(
-            registration.Metadata,
-            registration.Kind,
-            registration.ResponseType,
-            _outputSchemaMode);
-        _services.AddSingleton<McpServerTool>(serviceProvider => new CodeActionMutationMcpServerTool<TRequest>(
-            protocolTool,
-            registration.Metadata,
-            registration.Handler,
-            serviceProvider.GetRequiredService<ICodeActionExecutionContextFactory>()));
+        _services.AddSingleton(registration);
+        _services.AddSingleton<THandler>();
+        _services.AddSingleton<McpServerTool, CodeActionMutationMcpServerTool<THandler, TRequest>>();
         return true;
     }
 }

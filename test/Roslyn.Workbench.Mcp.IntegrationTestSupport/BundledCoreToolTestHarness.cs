@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.Plugins.Core;
 using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 
@@ -16,24 +15,24 @@ public static class BundledCoreToolTestHarness
 
     public static IWorkspaceRuntime CreateBuiltInCodeActionCoordinator()
     {
-        var providerCatalog = new MefCodeActionProviderCatalog(Options.Create(new CodeActionCompositionOptions
+        var providerCatalog = CodeActionProviderCatalogFactory.Create(new CodeActionCompositionOptions
         {
             IncludeBuiltInAssemblies = true,
-        }));
+        });
 
         return WorkspaceCoordinatorFactory.CreateWithCodeActionProviderCatalog(providerCatalog, BundledCoreToolExecutionServicesFactory.Create());
     }
 
     public static IWorkspaceRuntime CreateTestCodeActionCoordinator(TimeSpan? tokenLifetime = null)
     {
-        var providerCatalog = new MefCodeActionProviderCatalog(Options.Create(new CodeActionCompositionOptions
+        var providerCatalog = CodeActionProviderCatalogFactory.Create(new CodeActionCompositionOptions
         {
             IncludeBuiltInAssemblies = false,
             AdditionalAssemblies =
             [
                 typeof(TestRefactoringProvider).Assembly,
             ],
-        }));
+        });
 
         return WorkspaceCoordinatorFactory.CreateWithCodeActionProviderCatalog(
             providerCatalog,

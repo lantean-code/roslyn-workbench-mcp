@@ -7,26 +7,17 @@ internal sealed class ConvertToInterpolatedStringTool : CodeActionMutationToolHa
     private const string Title = "Convert to interpolated string";
     private const string EquivalenceKey = "Convert_to_interpolated_string";
 
-    private static readonly CodeActionToolMetadata _metadata = new()
-    {
-        Name = "convert-to-interpolated-string",
-        Title = "Convert To Interpolated String",
-        Description = "Converts a supported string expression to an interpolated string through Roslyn refactoring composition.",
-        Behavior = new CodeActionToolBehavior
-        {
-            Destructive = true,
-        },
-    };
+    private readonly ICodeActionReplayService _replayService;
 
-    public static void Register(ICodeActionToolRegistry registry)
+    public ConvertToInterpolatedStringTool(ICodeActionReplayService replayService)
     {
-        registry.RegisterMutationTool(_metadata, new ConvertToInterpolatedStringTool());
+        _replayService = replayService;
     }
 
     protected override async ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(ConvertToInterpolatedStringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
 
-        var snapshotRejection = ToolExecutionHelpers.ValidateSnapshot<WorkspaceMutationCandidate>(context, request.ExpectedSnapshot);
+        var snapshotRejection = CodeActionExecutionResultFactory.ValidateSnapshot<WorkspaceMutationCandidate>(context.WorkspaceResolver, request.ExpectedSnapshot);
         if (snapshotRejection is not null)
         {
             return snapshotRejection;
@@ -34,21 +25,21 @@ internal sealed class ConvertToInterpolatedStringTool : CodeActionMutationToolHa
 
         if (request.Selection is null)
         {
-            return ToolExecutionHelpers.Rejected<WorkspaceMutationCandidate>("InvalidRequest", "A location selector is required.");
+            return CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>("InvalidRequest", "A location selector is required.");
         }
 
         var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(request.Selection, cancellationToken).ConfigureAwait(false);
         if (locationResolution.Status != SelectorResolveStatus.Resolved)
         {
-            return ToolExecutionHelpers.RejectFromStatus<WorkspaceMutationCandidate>(locationResolution.Status, "Location");
+            return CodeActionExecutionResultFactory.RejectFromStatus<WorkspaceMutationCandidate>(locationResolution.Status, "Location");
         }
 
-        return await context.StageReplayCodeActionAsync(new ReplayCodeActionRequest
+        return await _replayService.StageReplayCodeActionAsync(new ReplayCodeActionRequest
         {
             Location = request.Selection,
             ExpectedSnapshot = request.ExpectedSnapshot,
             Title = Title,
             EquivalenceKey = EquivalenceKey,
-        }, cancellationToken).ConfigureAwait(false);
+        }, context, cancellationToken).ConfigureAwait(false);
     }
 }

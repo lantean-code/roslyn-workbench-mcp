@@ -84,4 +84,24 @@ public sealed class HostCompositionIntegrationTests
             "transaction-rollback",
         ]);
     }
+
+    [Fact]
+    public async Task GIVEN_ComposedCodeActions_WHEN_RequestingFullServerStatus_THEN_ShouldNotPublishCodeActionsAsPlugin()
+    {
+        var builder = Host.CreateApplicationBuilder([]);
+        builder.AddRoslynWorkbench([]);
+
+        using var host = builder.Build();
+        var pluginCatalogSnapshot = host.Services.GetRequiredService<PluginCatalogSnapshot>();
+        var codeActionCatalogSnapshot = host.Services.GetRequiredService<CodeActionCatalogSnapshot>();
+        var target = host.Services.GetRequiredService<IServerStatusService>();
+
+        var result = await target.GetStatusAsync(StatusDetailLevel.Full, TestContext.Current.CancellationToken);
+
+        codeActionCatalogSnapshot.Tools.Should().NotBeEmpty();
+        result.Data!.CodeActions.Should().NotBeNull();
+        result.Data.Plugins.Should().BeEquivalentTo(pluginCatalogSnapshot.Plugins);
+        result.Data.Plugins.Should().NotContain(static plugin =>
+            string.Equals(plugin.PluginId, "roslyn.workbench.codeactions", StringComparison.Ordinal));
+    }
 }

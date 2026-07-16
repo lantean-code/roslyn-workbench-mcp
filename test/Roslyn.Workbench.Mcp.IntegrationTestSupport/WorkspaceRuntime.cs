@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Roslyn.Workbench.Mcp;
 using Roslyn.Workbench.Mcp.Plugins;
 using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
@@ -9,14 +10,14 @@ public sealed class WorkspaceRuntime : IWorkspaceRuntime
 {
     private readonly IToolExecutionContextFactory _coordinator;
     private readonly ICodeActionExecutionContextFactory _codeActionContextFactory;
-    private readonly IServiceProvider _codeActionHandlerServices;
+    private readonly IReadOnlyList<ServiceDescriptor> _codeActionHandlerServices;
     private readonly IWorkspaceLifecycleService _workspaceLifecycleService;
     private readonly ITransactionService _transactionService;
 
     internal WorkspaceRuntime(
         IToolExecutionContextFactory coordinator,
         ICodeActionExecutionContextFactory codeActionContextFactory,
-        IServiceProvider codeActionHandlerServices,
+        IReadOnlyList<ServiceDescriptor> codeActionHandlerServices,
         IWorkspaceLifecycleService workspaceLifecycleService,
         ITransactionService transactionService)
     {
@@ -42,7 +43,7 @@ public sealed class WorkspaceRuntime : IWorkspaceRuntime
         get { return _codeActionContextFactory; }
     }
 
-    internal IServiceProvider CodeActionHandlerServices
+    internal IReadOnlyList<ServiceDescriptor> CodeActionHandlerServices
     {
         get { return _codeActionHandlerServices; }
     }

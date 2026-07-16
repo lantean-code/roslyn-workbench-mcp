@@ -228,10 +228,14 @@ public sealed class PluginQueryMcpServerToolTests
         IQueryToolHandler<TestQueryRequest, TestQueryResponse> handler,
         IToolExecutionContextFactory contextFactory)
     {
+        var registration = McpServerToolTestData.CreatePluginQueryRegistration(handler, "test-query");
+        var protocolFactory = McpServerToolTestData.CreateProtocolFactory(
+            McpServerToolTestData.CreateProtocolTool("test-query"));
         return new PluginQueryMcpServerTool<TestQueryRequest, TestQueryResponse>(
-            McpServerToolTestData.CreateProtocolTool("test-query"),
-            handler,
-            contextFactory);
+            registration,
+            contextFactory,
+            protocolFactory.Object,
+            McpServerToolTestData.CreateOptions());
     }
 
     public sealed record TestQueryRequest : WorkspaceBoundRequest

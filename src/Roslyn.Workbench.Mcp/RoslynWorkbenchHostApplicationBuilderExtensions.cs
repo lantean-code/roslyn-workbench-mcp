@@ -3,6 +3,8 @@ using Roslyn.Workbench.Mcp.CodeActions;
 using Roslyn.Workbench.Mcp.Plugins;
 using Roslyn.Workbench.Mcp.Plugins.Core;
 using Roslyn.Workbench.Mcp.ToolExecution;
+using Roslyn.Workbench.Mcp.ToolExecution.CodeActions;
+using Roslyn.Workbench.Mcp.ToolExecution.Plugins;
 using Roslyn.Workbench.Mcp.Tools;
 
 namespace Roslyn.Workbench.Mcp;
@@ -30,7 +32,7 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
         builder.Services.AddSingleton(startupConfiguration);
         builder.Services.AddSingleton(codeActionCatalogSnapshot);
         builder.Services.AddCoreServices(pluginCatalogSnapshot);
-        builder.Services.AddMcpTools(pluginCatalogSnapshot, codeActionCatalogSnapshot.Tools, startupOptions.ToolOutputSchemaMode);
+        builder.Services.AddMcpTools(pluginCatalogSnapshot, codeActionCatalogSnapshot.Tools);
 
         builder.Services.AddHostedService<StartupConfigurationReporter>();
         builder.Services.AddHostedService<MsBuildRegistrationHostedService>();
@@ -151,10 +153,9 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
     private static void AddMcpTools(
         this IServiceCollection services,
         PluginCatalogSnapshot pluginCatalogSnapshot,
-        IReadOnlyList<IRegisteredCodeActionTool> codeActionTools,
-        ToolOutputSchemaMode outputSchemaMode)
+        IReadOnlyList<IRegisteredCodeActionTool> codeActionTools)
     {
-        var pluginVisitor = new PluginMcpToolRegistrationVisitor(services, outputSchemaMode);
+        var pluginVisitor = new PluginMcpToolRegistrationVisitor(services);
         foreach (var registeredTool in pluginCatalogSnapshot.Tools)
         {
             _ = registeredTool.Accept(pluginVisitor);

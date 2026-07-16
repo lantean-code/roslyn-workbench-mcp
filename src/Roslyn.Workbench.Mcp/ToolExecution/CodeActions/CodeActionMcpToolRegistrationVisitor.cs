@@ -1,6 +1,4 @@
-using Roslyn.Workbench.Mcp.ToolExecution.CodeActions;
-
-namespace Roslyn.Workbench.Mcp.ToolExecution;
+namespace Roslyn.Workbench.Mcp.ToolExecution.CodeActions;
 
 internal sealed class CodeActionMcpToolRegistrationVisitor : ICodeActionToolRegistrationVisitor<bool>
 {

@@ -32,10 +32,7 @@ internal static class McpIntegrationTestHost
         IDictionary<string, JsonElement> arguments,
         bool expectProtocolSuccess = true)
     {
-        var registeredTool = catalogue.Tools.Single(tool => string.Equals(tool.Tool.Metadata.Name, toolName, StringComparison.Ordinal));
-        var serverTool = registeredTool.Accept(new PluginMcpServerToolFactory(
-            contextFactory,
-            new McpToolProtocolFactory(new ToolSchemaFactory(new McpSdkSchemaProvider()))));
+        var serverTool = PluginToolTestHarness.CreateServerTool(contextFactory, catalogue, toolName);
         var result = await InvokeServerToolAsync(serverTool, toolName, arguments);
 
         result.IsError.Should().Be(!expectProtocolSuccess);

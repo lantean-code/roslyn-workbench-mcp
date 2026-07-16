@@ -1,6 +1,8 @@
 using System.Text.Json;
 using ModelContextProtocol.Protocol;
+using ModelContextProtocol.Server;
 using Roslyn.Workbench.Mcp.CodeActions.Contracts;
+using Roslyn.Workbench.Mcp.IntegrationTestSupport.ToolExecution.Plugins;
 using Roslyn.Workbench.Mcp.Plugins;
 using Roslyn.Workbench.Mcp.Protocol;
 using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
@@ -23,7 +25,6 @@ public static class PluginToolTestHarness
         ArgumentException.ThrowIfNullOrWhiteSpace(toolName);
         ArgumentNullException.ThrowIfNull(arguments);
 
-        var pluginTool = GetTool(catalogue.Tools, toolName);
         var result = await InvokeRawAsync(contextFactory, catalogue, toolName, arguments);
 
         if (result.IsError != !expectProtocolSuccess)
@@ -46,11 +47,34 @@ public static class PluginToolTestHarness
         ArgumentException.ThrowIfNullOrWhiteSpace(toolName);
         ArgumentNullException.ThrowIfNull(arguments);
 
-        var pluginTool = GetTool(catalogue.Tools, toolName);
-        var serverTool = pluginTool.Accept(new PluginMcpServerToolFactory(
-            contextFactory,
-            CreateProtocolFactory()));
+        var serverTool = CreateServerToolCore(contextFactory, catalogue, toolName, ToolOutputSchemaMode.Omit);
         return await serverTool.InvokeArgumentsAsync(arguments, CancellationToken.None);
+    }
+
+    public static McpServerTool CreateServerTool(
+        IToolExecutionContextFactory contextFactory,
+        PluginToolCatalogue catalogue,
+        string toolName,
+        ToolOutputSchemaMode outputSchemaMode = ToolOutputSchemaMode.Omit)
+    {
+        ArgumentNullException.ThrowIfNull(contextFactory);
+        ArgumentNullException.ThrowIfNull(catalogue);
+        ArgumentException.ThrowIfNullOrWhiteSpace(toolName);
+
+        return CreateServerToolCore(contextFactory, catalogue, toolName, outputSchemaMode);
+    }
+
+    private static McpServerToolBase CreateServerToolCore(
+        IToolExecutionContextFactory contextFactory,
+        PluginToolCatalogue catalogue,
+        string toolName,
+        ToolOutputSchemaMode outputSchemaMode)
+    {
+        var pluginTool = GetTool(catalogue.Tools, toolName);
+        return pluginTool.Accept(new PluginMcpServerToolTestVisitor(
+            contextFactory,
+            CreateProtocolFactory(),
+            outputSchemaMode));
     }
 
     public static ToolResult<TResponse> DeserializeToolResult<TResponse>(

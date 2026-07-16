@@ -458,32 +458,14 @@ public sealed class PluginMutationMcpServerToolTests
         IMutationToolHandler<TestMutationRequest> handler,
         IToolExecutionContextFactory contextFactory)
     {
-        var metadata = new ToolRegistrationMetadata
-        {
-            Name = "test-mutation",
-            Title = "Test Mutation",
-            Description = "Description",
-        };
-        var registeredTool = new RegisteredTool
-        {
-            Plugin = new PluginMetadata
-            {
-                PluginId = "plugin.test",
-                DisplayName = "Plugin Test",
-                Version = "1.0.0",
-                SupportedApiVersion = PluginApiVersions.V1,
-            },
-            Metadata = metadata,
-            Kind = ToolKind.Mutation,
-            RequestType = typeof(TestMutationRequest),
-            ResponseType = typeof(MutationData),
-        };
-
+        var registration = McpServerToolTestData.CreatePluginMutationRegistration(handler, "test-mutation");
+        var protocolFactory = McpServerToolTestData.CreateProtocolFactory(
+            McpServerToolTestData.CreateProtocolTool("test-mutation"));
         return new PluginMutationMcpServerTool<TestMutationRequest>(
-            McpServerToolTestData.CreateProtocolTool(metadata.Name),
-            registeredTool,
-            handler,
-            contextFactory);
+            registration,
+            contextFactory,
+            protocolFactory.Object,
+            McpServerToolTestData.CreateOptions());
     }
 
     public sealed record TestMutationRequest : WorkspaceBoundRequest

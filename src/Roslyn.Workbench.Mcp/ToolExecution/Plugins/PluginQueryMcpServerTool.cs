@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.ToolExecution.Plugins;
 
@@ -9,12 +10,15 @@ internal sealed class PluginQueryMcpServerTool<TRequest, TResponse> : McpServerT
     private readonly IToolExecutionContextFactory _contextFactory;
 
     public PluginQueryMcpServerTool(
-        Tool protocolTool,
-        IQueryToolHandler<TRequest, TResponse> handler,
-        IToolExecutionContextFactory contextFactory)
-        : base(protocolTool)
+        PluginQueryRegistration<TRequest, TResponse> registration,
+        IToolExecutionContextFactory contextFactory,
+        IMcpToolProtocolFactory protocolFactory,
+        IOptions<StartupOptions> options)
+        : base(protocolFactory.CreatePluginTool<TRequest>(
+            registration.Tool,
+            options.Value.ToolOutputSchemaMode))
     {
-        _handler = handler;
+        _handler = registration.Handler;
         _contextFactory = contextFactory;
     }
 

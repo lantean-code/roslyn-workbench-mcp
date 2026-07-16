@@ -2,7 +2,7 @@
 
 Date: 2026-07-16
 
-Status: H1-H2 complete; H3-H7 implementation pending
+Status: H1-H3 complete; H4-H7 implementation pending
 
 ## Purpose
 
@@ -174,13 +174,13 @@ Test and integration-support code should either construct adapters from explicit
 
 ### Working checklist
 
-- [ ] Register each closed `PluginQueryRegistration<TRequest, TResponse>` or `PluginMutationRegistration<TRequest>` as an instance.
-- [ ] Register plugin MCP adapters by implementation type without `IServiceProvider` factory lambdas.
-- [ ] Retain the existing direct Code Action registration pattern.
-- [ ] Remove `PluginMcpServerToolFactory` and `CodeActionMcpServerToolFactory` from production.
-- [ ] Replace their unit tests with tests of the real registration visitors and resolvable service descriptors.
-- [ ] Move any necessary harness-only construction into integration test support with explicit dependencies.
-- [ ] Add a Host composition test that enables dependency and scope validation and resolves all registered MCP tools.
+- [x] Register each closed `PluginQueryRegistration<TRequest, TResponse>` or `PluginMutationRegistration<TRequest>` as an instance.
+- [x] Register plugin MCP adapters by implementation type without `IServiceProvider` factory lambdas.
+- [x] Retain the existing direct Code Action registration pattern.
+- [x] Remove `PluginMcpServerToolFactory` and `CodeActionMcpServerToolFactory` from production.
+- [x] Replace their unit tests with tests of the real registration visitors and resolvable service descriptors.
+- [x] Move any necessary harness-only construction into integration test support with explicit dependencies.
+- [x] Add a Host composition test that enables dependency and scope validation and resolves all registered MCP tools.
 
 Complexity: medium after H2.
 

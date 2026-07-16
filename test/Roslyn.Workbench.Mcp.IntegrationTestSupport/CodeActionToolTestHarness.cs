@@ -1,5 +1,10 @@
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using ModelContextProtocol.Server;
+using Roslyn.Workbench.Mcp.Configuration;
 using Roslyn.Workbench.Mcp.Protocol;
+using Roslyn.Workbench.Mcp.ToolExecution.CodeActions;
 
 namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
@@ -22,10 +27,23 @@ public static class CodeActionToolTestHarness
 
         var registration = BundledCodeActionCatalog.Create()
             .Single(tool => string.Equals(tool.Metadata.Name, toolName, StringComparison.Ordinal));
-        var serverTool = registration.Accept(new CodeActionMcpServerToolFactory(
-            runtime.CodeActionHandlerServices,
-            runtime.CodeActionContextFactory,
-            new McpToolProtocolFactory(new ToolSchemaFactory(new McpSdkSchemaProvider()))));
+        var services = new ServiceCollection();
+        foreach (var descriptor in runtime.CodeActionHandlerServices)
+        {
+            ((ICollection<ServiceDescriptor>)services).Add(descriptor);
+        }
+
+        _ = registration.Accept(new CodeActionMcpToolRegistrationVisitor(services));
+        services.AddSingleton(runtime.CodeActionContextFactory);
+        services.AddSingleton<IMcpToolProtocolFactory>(new McpToolProtocolFactory(
+            new ToolSchemaFactory(new McpSdkSchemaProvider())));
+        services.AddSingleton<IOptions<StartupOptions>>(Options.Create(new StartupOptions()));
+        using var serviceProvider = services.BuildServiceProvider(new ServiceProviderOptions
+        {
+            ValidateOnBuild = true,
+            ValidateScopes = true,
+        });
+        var serverTool = (McpServerToolBase)serviceProvider.GetRequiredService<McpServerTool>();
         var result = await serverTool.InvokeArgumentsAsync(arguments, CancellationToken.None);
 
         if (result.IsError != !expectProtocolSuccess)

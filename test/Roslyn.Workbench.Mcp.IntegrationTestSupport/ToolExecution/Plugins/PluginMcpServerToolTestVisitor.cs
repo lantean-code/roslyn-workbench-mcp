@@ -1,39 +1,47 @@
+using Microsoft.Extensions.Options;
+using ModelContextProtocol.Server;
+using Roslyn.Workbench.Mcp.Configuration;
+using Roslyn.Workbench.Mcp.Protocol;
 using Roslyn.Workbench.Mcp.ToolExecution.Plugins;
 
-namespace Roslyn.Workbench.Mcp.ToolExecution;
+namespace Roslyn.Workbench.Mcp.IntegrationTestSupport.ToolExecution.Plugins;
 
-internal sealed class PluginMcpServerToolFactory : IPluginToolRegistrationVisitor<McpServerToolBase>
+internal sealed class PluginMcpServerToolTestVisitor : IPluginToolRegistrationVisitor<McpServerToolBase>
 {
     private readonly IToolExecutionContextFactory _contextFactory;
     private readonly IMcpToolProtocolFactory _protocolFactory;
-    private readonly ToolOutputSchemaMode _outputSchemaMode;
+    private readonly IOptions<StartupOptions> _options;
 
-    public PluginMcpServerToolFactory(
+    public PluginMcpServerToolTestVisitor(
         IToolExecutionContextFactory contextFactory,
         IMcpToolProtocolFactory protocolFactory,
-        ToolOutputSchemaMode outputSchemaMode = ToolOutputSchemaMode.Omit)
+        ToolOutputSchemaMode outputSchemaMode)
     {
         _contextFactory = contextFactory;
         _protocolFactory = protocolFactory;
-        _outputSchemaMode = outputSchemaMode;
+        _options = Options.Create(new StartupOptions
+        {
+            ToolOutputSchemaMode = outputSchemaMode,
+        });
     }
 
     public McpServerToolBase VisitQuery<TRequest, TResponse>(PluginQueryRegistration<TRequest, TResponse> registration)
         where TRequest : WorkspaceBoundRequest
     {
         return new PluginQueryMcpServerTool<TRequest, TResponse>(
-            _protocolFactory.CreatePluginTool<TRequest>(registration.Tool, _outputSchemaMode),
-            registration.Handler,
-            _contextFactory);
+            registration,
+            _contextFactory,
+            _protocolFactory,
+            _options);
     }
 
     public McpServerToolBase VisitMutation<TRequest>(PluginMutationRegistration<TRequest> registration)
         where TRequest : WorkspaceBoundRequest
     {
         return new PluginMutationMcpServerTool<TRequest>(
-            _protocolFactory.CreatePluginTool<TRequest>(registration.Tool, _outputSchemaMode),
-            registration.Tool,
-            registration.Handler,
-            _contextFactory);
+            registration,
+            _contextFactory,
+            _protocolFactory,
+            _options);
     }
 }

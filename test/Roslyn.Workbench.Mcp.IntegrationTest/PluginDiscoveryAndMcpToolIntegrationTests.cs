@@ -43,11 +43,11 @@ public sealed class PluginDiscoveryAndMcpToolIntegrationTests
         };
         var loader = PluginCatalogComposition.CreateLoader();
         var snapshot = loader.Load(startupOptions, []);
-        var tool = snapshot.Tools.Single();
-        var serverTool = tool.Accept(new PluginMcpServerToolFactory(
+        var serverTool = PluginToolTestHarness.CreateServerTool(
             CreateExecutionContextFactory(),
-            new McpToolProtocolFactory(new ToolSchemaFactory(new McpSdkSchemaProvider())),
-            ToolOutputSchemaMode.Full));
+            new PluginToolCatalogue(snapshot.Tools),
+            "host-valid-query",
+            ToolOutputSchemaMode.Full);
 
         serverTool.ProtocolTool.Name.Should().Be("host-valid-query");
         serverTool.ProtocolTool.Title.Should().Be("Host Valid Query");
@@ -82,12 +82,12 @@ public sealed class PluginDiscoveryAndMcpToolIntegrationTests
         var pluginDirectory = CreatePluginDirectory(typeof(HostValidMutationPlugin).Assembly);
         var loader = PluginCatalogComposition.CreateLoader();
         var snapshot = loader.Load(CreateStartupOptions(pluginDirectory), []);
-        var tool = snapshot.Tools.Single();
         using var workspace = new AdhocWorkspace();
-        var serverTool = tool.Accept(new PluginMcpServerToolFactory(
+        var serverTool = PluginToolTestHarness.CreateServerTool(
             CreateMutationExecutionContextFactory(workspace.CurrentSolution),
-            new McpToolProtocolFactory(new ToolSchemaFactory(new McpSdkSchemaProvider())),
-            ToolOutputSchemaMode.Full));
+            new PluginToolCatalogue(snapshot.Tools),
+            "host-valid-mutation",
+            ToolOutputSchemaMode.Full);
 
         var result = await McpIntegrationTestHost.InvokeServerToolAsync(serverTool, "host-valid-mutation", new Dictionary<string, JsonElement>
         {

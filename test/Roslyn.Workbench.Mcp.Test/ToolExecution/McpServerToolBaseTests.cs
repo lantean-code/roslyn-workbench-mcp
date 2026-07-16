@@ -13,10 +13,13 @@ public sealed class McpServerToolBaseTests
         var protocolTool = McpServerToolTestData.CreateProtocolTool("test-query");
         var handler = new Mock<IQueryToolHandler<TestRequest, TestResponse>>();
         var contextFactory = new Mock<IToolExecutionContextFactory>();
+        var registration = McpServerToolTestData.CreatePluginQueryRegistration(handler.Object, "test-query");
+        var protocolFactory = McpServerToolTestData.CreateProtocolFactory(protocolTool);
         var target = new PluginQueryMcpServerTool<TestRequest, TestResponse>(
-            protocolTool,
-            handler.Object,
-            contextFactory.Object);
+            registration,
+            contextFactory.Object,
+            protocolFactory.Object,
+            McpServerToolTestData.CreateOptions());
 
         target.ProtocolTool.Should().BeSameAs(protocolTool);
         target.Metadata.Should().BeEmpty();
@@ -42,10 +45,14 @@ public sealed class McpServerToolBaseTests
             {
                 Value = "Value",
             }));
+        var registration = McpServerToolTestData.CreatePluginQueryRegistration(handler.Object, "test-query");
+        var protocolFactory = McpServerToolTestData.CreateProtocolFactory(
+            McpServerToolTestData.CreateProtocolTool("test-query"));
         var target = new PluginQueryMcpServerTool<TestRequest, TestResponse>(
-            McpServerToolTestData.CreateProtocolTool("test-query"),
-            handler.Object,
-            contextFactory.Object);
+            registration,
+            contextFactory.Object,
+            protocolFactory.Object,
+            McpServerToolTestData.CreateOptions());
         var requestContext = new RequestContext<CallToolRequestParams>(
             ServerOwnedToolTestSupport.CreateServer(),
             new JsonRpcRequest

@@ -170,7 +170,7 @@ public static class WorkspaceCoordinatorFactory
             .AddSingleton<ICodeActionFixAllService>(codeActionFixAllService)
             .AddSingleton<ICodeActionScopedFixService>(codeActionScopedFixService)
             .AddSingleton<ICodeActionLocationFixService>(codeActionLocationFixService)
-            .BuildServiceProvider();
+            .ToArray();
         var transactionCommitService = new TransactionCommitService(
             sessionStore,
             workspaceChangeDetector,

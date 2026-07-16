@@ -39,20 +39,19 @@ internal sealed class PluginExecutionContextFactory : IToolExecutionContextFacto
         CancellationToken cancellationToken)
     {
         var workspaceLease = _workspaceFactory.CreateQueryContext(request.Workspace, cancellationToken);
-        var context = workspaceLease.Context is null
-            ? null
-            : new PluginQueryContext(workspaceLease.Context, _toolExecutionServices);
-
-        if (workspaceLease.Failure is { } failure)
+        if (workspaceLease.HasFailure)
         {
+            var context = workspaceLease.Context is null
+                ? null
+                : new PluginQueryContext(workspaceLease.Context, _toolExecutionServices);
             return ToolExecutionContextLease<IQueryContext>.Rejected(
-                PluginWorkspaceResultMapper.MapFailure(failure),
+                PluginWorkspaceResultMapper.MapFailure(workspaceLease.Failure),
                 context,
                 workspaceLease);
         }
 
         return ToolExecutionContextLease<IQueryContext>.Acquired(
-            context ?? throw new InvalidOperationException("Workspace query acquisition completed without a context."),
+            new PluginQueryContext(workspaceLease.Context, _toolExecutionServices),
             workspaceLease);
     }
 }

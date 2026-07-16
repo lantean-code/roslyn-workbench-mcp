@@ -2,7 +2,7 @@
 
 Date: 2026-07-16
 
-Status: H1-H6 complete; H7 implementation pending
+Status: Complete — H1-H7 complete
 
 ## Purpose
 
@@ -319,14 +319,26 @@ The remaining Host services are generally cohesive. In particular:
 
 There is small duplicated `CallToolResult` construction across the four plugin and Code Action adapters, and the Host friend-assembly list should be checked after removal of the production test factories.
 
+### Resolution
+
+The four plugin and Code Action adapters now use one protected `McpServerToolBase.CreateStructuredResult` helper for the identical MCP result projection. Their query, mutation, failure and staging orchestration remains in the owning closed-generic adapters.
+
+The final invariant audit also found that the Code Action query lease still permitted construction of a successful lease without a context. Query leases now use the same acquired/rejected factory and `MemberNotNullWhen` pattern as the mutation path. The neutral Workspace query lease exposes the corresponding state relationship, allowing both Code Action and plugin context factories to remove redundant impossible-state throws.
+
+The exception review retained broad catches only at intentional isolation boundaries: unhandled MCP transport failures are logged and correlated; plugin code loading, configuration and materialisation failures disable only the affected plugin with diagnostics; and MSBuild discovery failures remain component-status data. PE inspection, package discovery and path validation retain filtered catches for their documented external failure sets. No expected Host workflow uses exceptions as flow control.
+
+`Roslyn.Workbench.Mcp.TestSupport` no longer has Host friend access because it does not reference or consume Host internals. New architecture coverage locks the remaining direct consumers and asserts that only Host owns the MCP SDK package. The existing production dependency-graph checks remain green.
+
+Status projection now lives under `Status`, and the Workspace-to-tool result mapper lives with server-owned `Tools`, with matching unit-test folders and namespaces. The final null-forgiving, constructor-guard and getter audits found no Host violations.
+
 ### Working checklist
 
-- [ ] Move genuinely identical adapter result construction into `McpServerToolBase` without hiding plugin or Code Action orchestration.
-- [ ] Re-audit exception filters at external plugin, MEF and MSBuild boundaries and retain broad catches only where startup isolation is intentional and diagnosed.
-- [ ] Review Host `InternalsVisibleTo` entries after test-support construction changes and remove stale access.
-- [ ] Re-run the forbidden dependency and MCP ownership architecture tests.
-- [ ] Re-run the null-forgiving, constructor-guard, flow-control-exception and expression-bodied-property audits for changed Host files.
-- [ ] Mark this document complete only after the production re-audit finds no unresolved Host architecture issues.
+- [x] Move genuinely identical adapter result construction into `McpServerToolBase` without hiding plugin or Code Action orchestration.
+- [x] Re-audit exception filters at external plugin, MEF and MSBuild boundaries and retain broad catches only where startup isolation is intentional and diagnosed.
+- [x] Review Host `InternalsVisibleTo` entries after test-support construction changes and remove stale access.
+- [x] Re-run the forbidden dependency and MCP ownership architecture tests.
+- [x] Re-run the null-forgiving, constructor-guard, flow-control-exception and expression-bodied-property audits for changed Host files.
+- [x] Mark this document complete only after the production re-audit finds no unresolved Host architecture issues.
 
 Complexity: low.
 

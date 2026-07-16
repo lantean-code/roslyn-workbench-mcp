@@ -33,28 +33,17 @@ internal sealed class CodeActionQueryMcpServerTool<THandler, TRequest, TResponse
         var request = ToolRequestBinder.Deserialize<TRequest>(arguments);
         var contextLease = _contextFactory.CreateQueryContext(request, cancellationToken);
         await using var _ = contextLease.ConfigureAwait(false);
-        if (contextLease.Failure is not null)
+        if (contextLease.HasFailure)
         {
-            return CreateResult(
+            return CreateStructuredResult(
                 McpPublishedResultSerializer.SerializeCodeActionFailure(contextLease.Failure),
                 isError: true);
         }
 
-        var context = contextLease.Context
-            ?? throw new InvalidOperationException("Code Action query acquisition completed without a context.");
+        var context = contextLease.Context;
         var result = await _handler.ExecuteAsync(request, context, cancellationToken).ConfigureAwait(false);
-        return CreateResult(
+        return CreateStructuredResult(
             McpPublishedResultSerializer.SerializeCodeActionQuery(result),
             result.Outcome.IsError());
-    }
-
-    private static CallToolResult CreateResult(JsonElement content, bool isError)
-    {
-        return new CallToolResult
-        {
-            Content = [],
-            StructuredContent = content,
-            IsError = isError,
-        };
     }
 }

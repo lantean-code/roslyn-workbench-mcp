@@ -37,37 +37,13 @@ public sealed class CodeActionQueryMcpServerToolTests
             .Setup(item => item.CreateQueryContext(
                 It.Is<TestQueryRequest>(request => request.Name == "Name"),
                 CancellationToken.None))
-            .Returns(new CodeActionQueryExecutionLease(workspaceLease, context: null, failure));
+            .Returns(CodeActionQueryExecutionLease.Rejected(workspaceLease, failure));
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
         var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
 
         result.IsError.Should().BeTrue();
         result.StructuredContent!.Value.GetProperty("error").GetProperty("code").GetString().Should().Be("WorkspaceBusy");
-        handler.Verify(item => item.ExecuteAsync(
-            It.IsAny<TestQueryRequest>(),
-            It.IsAny<ICodeActionQueryContext>(),
-            It.IsAny<CancellationToken>()), Times.Never);
-        operationLease.Verify(item => item.Dispose(), Times.Once);
-    }
-
-    [Fact]
-    public async Task GIVEN_AcquiredLeaseWithoutContext_WHEN_InvokingQuery_THEN_ShouldPropagateFailureAndDisposeLease()
-    {
-        var handler = new Mock<ICodeActionQueryToolHandler<TestQueryRequest, TestQueryResponse>>();
-        var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
-        var operationLease = new Mock<IWorkspaceOperationLease>();
-        var workspaceLease = WorkspaceExecutionContextLease.Acquired(
-            new Mock<IWorkspaceExecutionContext>().Object,
-            operationLease.Object);
-        contextFactory
-            .Setup(item => item.CreateQueryContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
-            .Returns(new CodeActionQueryExecutionLease(workspaceLease, context: null, failure: null));
-        var target = CreateTarget(handler.Object, contextFactory.Object);
-
-        var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
-
-        await action.Should().ThrowAsync<InvalidOperationException>();
         handler.Verify(item => item.ExecuteAsync(
             It.IsAny<TestQueryRequest>(),
             It.IsAny<ICodeActionQueryContext>(),
@@ -92,7 +68,7 @@ public sealed class CodeActionQueryMcpServerToolTests
                     && request.Workspace != null
                     && request.Workspace.WorkspaceId == "WorkspaceId"),
                 CancellationToken.None))
-            .Returns(new CodeActionQueryExecutionLease(workspaceLease, context.Object, failure: null));
+            .Returns(CodeActionQueryExecutionLease.Acquired(workspaceLease, context.Object));
         handler
             .Setup(item => item.ExecuteAsync(
                 It.Is<TestQueryRequest>(request => request.Name == "Name"),
@@ -124,7 +100,7 @@ public sealed class CodeActionQueryMcpServerToolTests
         var workspaceLease = WorkspaceExecutionContextLease.Acquired(new Mock<IWorkspaceExecutionContext>().Object);
         contextFactory
             .Setup(item => item.CreateQueryContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
-            .Returns(new CodeActionQueryExecutionLease(workspaceLease, context.Object, failure: null));
+            .Returns(CodeActionQueryExecutionLease.Acquired(workspaceLease, context.Object));
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestQueryRequest>(), context.Object, CancellationToken.None))
             .ReturnsAsync(CodeActionExecutionResult<TestQueryResponse>.NoChange());
@@ -150,7 +126,7 @@ public sealed class CodeActionQueryMcpServerToolTests
         var workspaceLease = WorkspaceExecutionContextLease.Acquired(new Mock<IWorkspaceExecutionContext>().Object);
         contextFactory
             .Setup(item => item.CreateQueryContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
-            .Returns(new CodeActionQueryExecutionLease(workspaceLease, context.Object, failure: null));
+            .Returns(CodeActionQueryExecutionLease.Acquired(workspaceLease, context.Object));
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestQueryRequest>(), context.Object, CancellationToken.None))
             .ReturnsAsync(new CodeActionExecutionResult<TestQueryResponse>
@@ -181,7 +157,7 @@ public sealed class CodeActionQueryMcpServerToolTests
         var workspaceLease = WorkspaceExecutionContextLease.Acquired(new Mock<IWorkspaceExecutionContext>().Object);
         contextFactory
             .Setup(item => item.CreateQueryContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
-            .Returns(new CodeActionQueryExecutionLease(workspaceLease, context.Object, failure: null));
+            .Returns(CodeActionQueryExecutionLease.Acquired(workspaceLease, context.Object));
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestQueryRequest>(), context.Object, CancellationToken.None))
             .ReturnsAsync(new CodeActionExecutionResult<TestQueryResponse>
@@ -205,7 +181,7 @@ public sealed class CodeActionQueryMcpServerToolTests
         var workspaceLease = WorkspaceExecutionContextLease.Acquired(new Mock<IWorkspaceExecutionContext>().Object, operationLease.Object);
         contextFactory
             .Setup(item => item.CreateQueryContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
-            .Returns(new CodeActionQueryExecutionLease(workspaceLease, context.Object, failure: null));
+            .Returns(CodeActionQueryExecutionLease.Acquired(workspaceLease, context.Object));
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestQueryRequest>(), context.Object, CancellationToken.None))
             .Returns(ValueTask.FromException<CodeActionExecutionResult<TestQueryResponse>>(new InvalidOperationException("Message")));
@@ -229,7 +205,7 @@ public sealed class CodeActionQueryMcpServerToolTests
         var workspaceLease = WorkspaceExecutionContextLease.Acquired(new Mock<IWorkspaceExecutionContext>().Object, operationLease.Object);
         contextFactory
             .Setup(item => item.CreateQueryContext(It.IsAny<WorkspaceBoundRequest>(), cancellationSource.Token))
-            .Returns(new CodeActionQueryExecutionLease(workspaceLease, context.Object, failure: null));
+            .Returns(CodeActionQueryExecutionLease.Acquired(workspaceLease, context.Object));
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestQueryRequest>(), context.Object, cancellationSource.Token))
             .Returns(ValueTask.FromCanceled<CodeActionExecutionResult<TestQueryResponse>>(cancellationSource.Token));

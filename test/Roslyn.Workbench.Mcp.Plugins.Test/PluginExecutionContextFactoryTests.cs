@@ -7,7 +7,7 @@ public sealed class PluginExecutionContextFactoryTests
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
         var workspaceFactory = new Mock<IWorkspaceExecutionContextFactory>();
-        var services = Mock.Of<IToolExecutionServices>();
+        var services = new Mock<IToolExecutionServices>();
         var workspaceContext = CreateWorkspaceContext(roslyn.Solution);
         var request = new TestRequest
         {
@@ -19,12 +19,12 @@ public sealed class PluginExecutionContextFactoryTests
         workspaceFactory
             .Setup(item => item.CreateQueryContext(request.Workspace, CancellationToken.None))
             .Returns(WorkspaceExecutionContextLease.Acquired(workspaceContext));
-        var target = new PluginExecutionContextFactory(workspaceFactory.Object, services);
+        var target = new PluginExecutionContextFactory(workspaceFactory.Object, services.Object);
 
         var result = target.CreateQueryContext(request, CancellationToken.None);
 
         result.Context.Should().NotBeNull();
-        result.Context!.ToolExecutionServices.Should().BeSameAs(services);
+        result.Context!.ToolExecutionServices.Should().BeSameAs(services.Object);
         result.Context.CurrentSolution.Should().BeSameAs(roslyn.Solution);
         result.ShortCircuitResult.Should().BeNull();
     }
@@ -45,13 +45,125 @@ public sealed class PluginExecutionContextFactoryTests
                     Message = "Message",
                 },
             }));
-        var target = new PluginExecutionContextFactory(workspaceFactory.Object, Mock.Of<IToolExecutionServices>());
+        var toolExecutionServices = new Mock<IToolExecutionServices>();
+        var target = new PluginExecutionContextFactory(workspaceFactory.Object, toolExecutionServices.Object);
 
         var result = target.CreateMutationContext(request, CancellationToken.None);
 
         result.Context.Should().BeNull();
         result.Failure!.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
         result.Failure.Error.Code.Should().Be("Code");
+    }
+
+    [Fact]
+    public void GIVEN_RejectedWorkspaceQuery_WHEN_CreatingPluginContext_THEN_ShouldMapFailureWithoutContext()
+    {
+        var workspaceFactory = new Mock<IWorkspaceExecutionContextFactory>();
+        var request = new TestRequest();
+        workspaceFactory
+            .Setup(item => item.CreateQueryContext(null, CancellationToken.None))
+            .Returns(WorkspaceExecutionContextLease.Rejected(new WorkspaceExecutionFailure
+            {
+                Status = WorkspaceOperationStatus.Rejected,
+                Error = new WorkspaceOperationError
+                {
+                    Code = "Code",
+                    Message = "Message",
+                },
+            }));
+        var toolExecutionServices = new Mock<IToolExecutionServices>();
+        var target = new PluginExecutionContextFactory(workspaceFactory.Object, toolExecutionServices.Object);
+
+        var result = target.CreateQueryContext(request, CancellationToken.None);
+
+        result.Context.Should().BeNull();
+        result.ShortCircuitResult!.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.ShortCircuitResult.Error.Code.Should().Be("Code");
+    }
+
+    [Fact]
+    public void GIVEN_RejectedWorkspaceQueryWithContext_WHEN_CreatingPluginContext_THEN_ShouldRetainNarrowContext()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var workspaceFactory = new Mock<IWorkspaceExecutionContextFactory>();
+        var workspaceContext = CreateWorkspaceContext(roslyn.Solution);
+        var request = new TestRequest();
+        workspaceFactory
+            .Setup(item => item.CreateQueryContext(null, CancellationToken.None))
+            .Returns(WorkspaceExecutionContextLease.Rejected(
+                new WorkspaceExecutionFailure
+                {
+                    Status = WorkspaceOperationStatus.Rejected,
+                    Error = new WorkspaceOperationError
+                    {
+                        Code = "Code",
+                        Message = "Message",
+                    },
+                },
+                workspaceContext));
+        var toolExecutionServices = new Mock<IToolExecutionServices>();
+        var target = new PluginExecutionContextFactory(workspaceFactory.Object, toolExecutionServices.Object);
+
+        var result = target.CreateQueryContext(request, CancellationToken.None);
+
+        result.Context.Should().NotBeNull();
+        result.Context!.CurrentSolution.Should().BeSameAs(roslyn.Solution);
+        result.Context.ToolExecutionServices.Should().BeSameAs(toolExecutionServices.Object);
+        result.ShortCircuitResult.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void GIVEN_AcquiredWorkspaceMutation_WHEN_CreatingPluginContext_THEN_ShouldAdaptNarrowContextAndServices()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var workspaceFactory = new Mock<IWorkspaceExecutionContextFactory>();
+        var workspaceContext = CreateWorkspaceContext(roslyn.Solution);
+        var request = new TestRequest();
+        workspaceFactory
+            .Setup(item => item.CreateMutationContext(null, CancellationToken.None))
+            .Returns(WorkspaceMutationExecutionLease.Acquired(
+                workspaceContext,
+                new Mock<IWorkspaceMutationStager>().Object));
+        var toolExecutionServices = new Mock<IToolExecutionServices>();
+        var target = new PluginExecutionContextFactory(workspaceFactory.Object, toolExecutionServices.Object);
+
+        var result = target.CreateMutationContext(request, CancellationToken.None);
+
+        result.Context.Should().NotBeNull();
+        result.Context!.CurrentSolution.Should().BeSameAs(roslyn.Solution);
+        result.Context.ToolExecutionServices.Should().BeSameAs(toolExecutionServices.Object);
+        result.Failure.Should().BeNull();
+    }
+
+    [Fact]
+    public void GIVEN_RejectedWorkspaceMutationWithContext_WHEN_CreatingPluginContext_THEN_ShouldRetainNarrowContext()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var workspaceFactory = new Mock<IWorkspaceExecutionContextFactory>();
+        var workspaceContext = CreateWorkspaceContext(roslyn.Solution);
+        var request = new TestRequest();
+        workspaceFactory
+            .Setup(item => item.CreateMutationContext(null, CancellationToken.None))
+            .Returns(WorkspaceMutationExecutionLease.Rejected(
+                new WorkspaceExecutionFailure
+                {
+                    Status = WorkspaceOperationStatus.Conflict,
+                    Error = new WorkspaceOperationError
+                    {
+                        Code = "Code",
+                        Message = "Message",
+                    },
+                },
+                workspaceContext));
+        var toolExecutionServices = new Mock<IToolExecutionServices>();
+        var target = new PluginExecutionContextFactory(workspaceFactory.Object, toolExecutionServices.Object);
+
+        var result = target.CreateMutationContext(request, CancellationToken.None);
+
+        result.Context.Should().NotBeNull();
+        result.Context!.CurrentSolution.Should().BeSameAs(roslyn.Solution);
+        result.Context.ToolExecutionServices.Should().BeSameAs(toolExecutionServices.Object);
+        result.Failure.Should().NotBeNull();
     }
 
     public sealed record TestRequest : WorkspaceBoundRequest;
@@ -67,6 +179,6 @@ public sealed class PluginExecutionContextFactoryTests
             },
             transactionRevision: null,
             defaultMaxResults: 100,
-            Mock.Of<IWorkspaceResolver>());
+            new Mock<IWorkspaceResolver>().Object);
     }
 }

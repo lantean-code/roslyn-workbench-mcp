@@ -31,25 +31,15 @@ internal sealed class PluginQueryMcpServerTool<TRequest, TResponse> : McpServerT
         await using var _ = contextLease.ConfigureAwait(false);
         if (contextLease.HasShortCircuitResult)
         {
-            return CreateResult(
+            return CreateStructuredResult(
                 McpPublishedResultSerializer.SerializePluginFailure(contextLease.ShortCircuitResult),
                 isError: true);
         }
 
         var context = contextLease.Context;
         var result = await _handler.ExecuteAsync(request, context, cancellationToken).ConfigureAwait(false);
-        return CreateResult(
+        return CreateStructuredResult(
             McpPublishedResultSerializer.SerializePluginQuery(result),
             result.Outcome.IsError());
-    }
-
-    private static CallToolResult CreateResult(JsonElement content, bool isError)
-    {
-        return new CallToolResult
-        {
-            Content = [],
-            StructuredContent = content,
-            IsError = isError,
-        };
     }
 }

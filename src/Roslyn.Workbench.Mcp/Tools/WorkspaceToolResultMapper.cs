@@ -1,12 +1,11 @@
 using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
 
-namespace Roslyn.Workbench.Mcp;
+namespace Roslyn.Workbench.Mcp.Tools;
 
 internal static class WorkspaceToolResultMapper
 {
     public static ToolResult<TTarget> Map<TSource, TTarget>(WorkspaceOperationResult<TSource> result, Func<TSource, TTarget> mapData)
     {
-
         var workspaceId = result.Context.WorkspaceId;
         var workspaceEpoch = result.Context.WorkspaceEpoch;
         var transactionRevision = result.Context.TransactionRevision;

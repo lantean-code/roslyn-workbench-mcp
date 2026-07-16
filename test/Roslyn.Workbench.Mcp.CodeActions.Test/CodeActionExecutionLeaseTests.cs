@@ -11,10 +11,13 @@ public sealed class CodeActionExecutionLeaseTests
         var workspaceLease = WorkspaceExecutionContextLease.Acquired(
             new Mock<IWorkspaceExecutionContext>().Object,
             operationLease.Object);
-        var target = new CodeActionQueryExecutionLease(workspaceLease, new Mock<ICodeActionQueryContext>().Object, null);
+        var target = CodeActionQueryExecutionLease.Acquired(
+            workspaceLease,
+            new Mock<ICodeActionQueryContext>().Object);
 
         await target.DisposeAsync();
 
+        target.HasFailure.Should().BeFalse();
         operationLease.Verify(item => item.Dispose(), Times.Once);
     }
 

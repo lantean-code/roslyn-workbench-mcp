@@ -26,6 +26,7 @@ global using Roslyn.Workbench.Mcp.Plugins.Services;
 global using Roslyn.Workbench.Mcp.Protocol;
 global using Roslyn.Workbench.Mcp.Protocol.Results;
 global using Roslyn.Workbench.Mcp.Server.Contracts;
+global using Roslyn.Workbench.Mcp.Status;
 global using Roslyn.Workbench.Mcp.Transaction.Contracts;
 global using Roslyn.Workbench.Mcp.Workspace.ChangeDetection;
 global using Roslyn.Workbench.Mcp.Workspace.Configuration;

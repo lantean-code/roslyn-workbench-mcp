@@ -34,4 +34,14 @@ internal abstract class McpServerToolBase : McpServerTool
     protected abstract ValueTask<CallToolResult> InvokeCoreAsync(
         IDictionary<string, JsonElement> arguments,
         CancellationToken cancellationToken);
+
+    protected static CallToolResult CreateStructuredResult(JsonElement content, bool isError)
+    {
+        return new CallToolResult
+        {
+            Content = [],
+            StructuredContent = content,
+            IsError = isError,
+        };
+    }
 }

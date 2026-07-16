@@ -14,13 +14,20 @@ internal sealed class CodeActionExecutionContextFactory : ICodeActionExecutionCo
         CancellationToken cancellationToken)
     {
         var workspaceLease = _workspaceFactory.CreateQueryContext(request.Workspace, cancellationToken);
-        var context = workspaceLease.Context is null
-            ? null
-            : new CodeActionQueryContext(workspaceLease.Context);
-        return new CodeActionQueryExecutionLease(
+        if (workspaceLease.HasFailure)
+        {
+            var context = workspaceLease.Context is null
+                ? null
+                : new CodeActionQueryContext(workspaceLease.Context);
+            return CodeActionQueryExecutionLease.Rejected(
+                workspaceLease,
+                CodeActionWorkspaceResultMapper.MapFailure(workspaceLease.Failure),
+                context);
+        }
+
+        return CodeActionQueryExecutionLease.Acquired(
             workspaceLease,
-            context,
-            workspaceLease.Failure is null ? null : CodeActionWorkspaceResultMapper.MapFailure(workspaceLease.Failure));
+            new CodeActionQueryContext(workspaceLease.Context));
     }
 
     public CodeActionMutationExecutionLease CreateMutationContext(

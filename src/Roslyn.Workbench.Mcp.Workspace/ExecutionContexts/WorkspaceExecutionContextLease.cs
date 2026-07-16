@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Roslyn.Workbench.Mcp.Workspace.ExecutionContexts;
 
 internal sealed class WorkspaceExecutionContextLease : IAsyncDisposable
@@ -17,6 +19,10 @@ internal sealed class WorkspaceExecutionContextLease : IAsyncDisposable
     public IWorkspaceExecutionContext? Context { get; }
 
     public WorkspaceExecutionFailure? Failure { get; }
+
+    [MemberNotNullWhen(true, nameof(Failure))]
+    [MemberNotNullWhen(false, nameof(Context))]
+    public bool HasFailure => Failure is not null;
 
     public static WorkspaceExecutionContextLease Acquired(
         IWorkspaceExecutionContext context,

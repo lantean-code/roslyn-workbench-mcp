@@ -33,7 +33,7 @@ internal sealed class PluginMutationMcpServerTool<TRequest> : McpServerToolBase
         await using var _ = contextLease.ConfigureAwait(false);
         if (contextLease.HasFailure)
         {
-            return CreateResult(
+            return CreateStructuredResult(
                 McpPublishedResultSerializer.SerializePluginFailure(contextLease.Failure),
                 isError: true);
         }
@@ -51,7 +51,7 @@ internal sealed class PluginMutationMcpServerTool<TRequest> : McpServerToolBase
                 Diagnostics = proposalResult.Diagnostics,
                 Warnings = proposalResult.Warnings,
             };
-            return CreateResult(McpPublishedResultSerializer.SerializePluginFailure(failure), isError: true);
+            return CreateStructuredResult(McpPublishedResultSerializer.SerializePluginFailure(failure), isError: true);
         }
 
         if (proposalResult.Outcome == PluginExecutionOutcome.NoChange || proposalResult.Data is null)
@@ -59,7 +59,7 @@ internal sealed class PluginMutationMcpServerTool<TRequest> : McpServerToolBase
             var noChange = PluginExecutionResult<MutationData>.NoChange(
                 diagnostics: proposalResult.Diagnostics,
                 warnings: proposalResult.Warnings);
-            return CreateResult(McpPublishedResultSerializer.SerializePluginMutation(noChange), isError: false);
+            return CreateStructuredResult(McpPublishedResultSerializer.SerializePluginMutation(noChange), isError: false);
         }
 
         var stagedResult = await contextLease.StageAsync(
@@ -68,18 +68,8 @@ internal sealed class PluginMutationMcpServerTool<TRequest> : McpServerToolBase
             proposalResult.Diagnostics,
             proposalResult.Warnings,
             cancellationToken).ConfigureAwait(false);
-        return CreateResult(
+        return CreateStructuredResult(
             McpPublishedResultSerializer.SerializePluginMutation(stagedResult),
             stagedResult.Outcome.IsError());
-    }
-
-    private static CallToolResult CreateResult(JsonElement content, bool isError)
-    {
-        return new CallToolResult
-        {
-            Content = [],
-            StructuredContent = content,
-            IsError = isError,
-        };
     }
 }

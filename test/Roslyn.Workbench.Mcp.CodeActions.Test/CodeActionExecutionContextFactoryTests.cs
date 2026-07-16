@@ -71,6 +71,34 @@ public sealed class CodeActionExecutionContextFactoryTests
     }
 
     [Fact]
+    public void GIVEN_RejectedWorkspaceQueryWithContext_WHEN_CreatingCodeActionContext_THEN_ShouldRetainNarrowContext()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var workspaceFactory = new Mock<IWorkspaceExecutionContextFactory>();
+        var workspaceContext = CreateWorkspaceContext(roslyn.Solution, new Mock<IWorkspaceResolver>().Object);
+        workspaceFactory
+            .Setup(item => item.CreateQueryContext(null, CancellationToken.None))
+            .Returns(WorkspaceExecutionContextLease.Rejected(
+                new WorkspaceExecutionFailure
+                {
+                    Status = WorkspaceOperationStatus.Rejected,
+                    Error = new WorkspaceOperationError
+                    {
+                        Code = "Code",
+                        Message = "Message",
+                    },
+                },
+                workspaceContext));
+        var target = new CodeActionExecutionContextFactory(workspaceFactory.Object);
+
+        var result = target.CreateQueryContext(new TestRequest(), CancellationToken.None);
+
+        result.Context.Should().NotBeNull();
+        result.Context!.CurrentSolution.Should().BeSameAs(roslyn.Solution);
+        result.Failure.Should().NotBeNull();
+    }
+
+    [Fact]
     public void GIVEN_AcquiredWorkspaceMutation_WHEN_CreatingCodeActionContext_THEN_ShouldAdaptNarrowContext()
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
@@ -89,6 +117,34 @@ public sealed class CodeActionExecutionContextFactoryTests
         result.Context.Should().NotBeNull();
         result.Context!.CurrentSolution.Should().BeSameAs(roslyn.Solution);
         result.Failure.Should().BeNull();
+    }
+
+    [Fact]
+    public void GIVEN_RejectedWorkspaceMutationWithContext_WHEN_CreatingCodeActionContext_THEN_ShouldRetainNarrowContext()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var workspaceFactory = new Mock<IWorkspaceExecutionContextFactory>();
+        var workspaceContext = CreateWorkspaceContext(roslyn.Solution, new Mock<IWorkspaceResolver>().Object);
+        workspaceFactory
+            .Setup(item => item.CreateMutationContext(null, CancellationToken.None))
+            .Returns(WorkspaceMutationExecutionLease.Rejected(
+                new WorkspaceExecutionFailure
+                {
+                    Status = WorkspaceOperationStatus.Conflict,
+                    Error = new WorkspaceOperationError
+                    {
+                        Code = "Code",
+                        Message = "Message",
+                    },
+                },
+                workspaceContext));
+        var target = new CodeActionExecutionContextFactory(workspaceFactory.Object);
+
+        var result = target.CreateMutationContext(new TestRequest(), CancellationToken.None);
+
+        result.Context.Should().NotBeNull();
+        result.Context!.CurrentSolution.Should().BeSameAs(roslyn.Solution);
+        result.Failure.Should().NotBeNull();
     }
 
     public sealed record TestRequest : WorkspaceBoundRequest;

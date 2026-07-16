@@ -1,4 +1,4 @@
-namespace Roslyn.Workbench.Mcp.Test;
+namespace Roslyn.Workbench.Mcp.Test.Tools;
 
 public sealed class WorkspaceToolResultMapperTests
 {

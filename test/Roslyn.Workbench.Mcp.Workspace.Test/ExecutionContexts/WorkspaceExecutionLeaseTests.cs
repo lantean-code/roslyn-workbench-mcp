@@ -15,6 +15,7 @@ public sealed class WorkspaceExecutionLeaseTests
 
         target.Context.Should().NotBeNull();
         target.Failure.Should().BeNull();
+        target.HasFailure.Should().BeFalse();
         operationLease.Verify(item => item.Dispose(), Times.Once);
     }
 
@@ -41,6 +42,7 @@ public sealed class WorkspaceExecutionLeaseTests
 
         target.Context.Should().BeSameAs(context.Object);
         target.Failure.Should().BeSameAs(failure);
+        target.HasFailure.Should().BeTrue();
     }
 
     [Fact]

@@ -37,7 +37,7 @@ internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpS
         await using var _ = contextLease.ConfigureAwait(false);
         if (contextLease.HasFailure)
         {
-            return CreateResult(
+            return CreateStructuredResult(
                 McpPublishedResultSerializer.SerializeCodeActionFailure(contextLease.Failure),
                 isError: true);
         }
@@ -53,7 +53,7 @@ internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpS
                     ?? throw new InvalidOperationException("Code Action mutation failure must provide an error."),
                 RequiredAction = proposalResult.RequiredAction,
             };
-            return CreateResult(McpPublishedResultSerializer.SerializeCodeActionFailure(failure), isError: true);
+            return CreateStructuredResult(McpPublishedResultSerializer.SerializeCodeActionFailure(failure), isError: true);
         }
 
         if (proposalResult.Outcome == CodeActionExecutionOutcome.NoChange || proposalResult.Data is null)
@@ -61,7 +61,7 @@ internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpS
             var noChange = CodeActionExecutionResult<MutationData>.NoChange(
                 diagnostics: proposalResult.Diagnostics,
                 warnings: proposalResult.Warnings);
-            return CreateResult(McpPublishedResultSerializer.SerializeCodeActionMutation(noChange), isError: false);
+            return CreateStructuredResult(McpPublishedResultSerializer.SerializeCodeActionMutation(noChange), isError: false);
         }
 
         var stagedResult = await contextLease.StageAsync(
@@ -70,18 +70,8 @@ internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpS
             proposalResult.Diagnostics,
             proposalResult.Warnings,
             cancellationToken).ConfigureAwait(false);
-        return CreateResult(
+        return CreateStructuredResult(
             McpPublishedResultSerializer.SerializeCodeActionMutation(stagedResult),
             stagedResult.Outcome.IsError());
-    }
-
-    private static CallToolResult CreateResult(JsonElement content, bool isError)
-    {
-        return new CallToolResult
-        {
-            Content = [],
-            StructuredContent = content,
-            IsError = isError,
-        };
     }
 }

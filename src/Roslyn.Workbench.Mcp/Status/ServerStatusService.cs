@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
 
-namespace Roslyn.Workbench.Mcp;
+namespace Roslyn.Workbench.Mcp.Status;
 
 internal sealed class ServerStatusService : IServerStatusService
 {

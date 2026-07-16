@@ -25,6 +25,20 @@ public sealed class CodeActionWorkspaceResultMapperTests
         result.RequiredAction.Should().Be(RequiredAction.Retry);
     }
 
+    [Fact]
+    public void GIVEN_NonFailureWorkspaceStatus_WHEN_MappingFailure_THEN_ShouldThrowInvalidOperationException()
+    {
+        var failure = new WorkspaceExecutionFailure
+        {
+            Status = WorkspaceOperationStatus.Succeeded,
+            Error = CreateError(),
+        };
+
+        var action = () => CodeActionWorkspaceResultMapper.MapFailure(failure);
+
+        action.Should().Throw<InvalidOperationException>();
+    }
+
     [Theory]
     [InlineData(0, 0)]
     [InlineData(4, 1)]
@@ -43,11 +57,21 @@ public sealed class CodeActionWorkspaceResultMapperTests
         if (status == WorkspaceOperationStatus.Succeeded)
         {
             result.Data!.Operation.Should().Be("Operation");
+            result.Data.Summary.Should().Be("Summary");
+            result.Data.Transaction!.Revision.Should().Be(1);
+            result.Data.Preview!.Summary.Should().Be("PreviewSummary");
+            result.Changes!.Modified.Should().ContainSingle();
         }
         else if (status is WorkspaceOperationStatus.Rejected or WorkspaceOperationStatus.Conflict or WorkspaceOperationStatus.Faulted)
         {
             result.Error!.Code.Should().Be("Code");
+            result.Error.Message.Should().Be("Message");
+            result.RequiredAction.Should().Be(RequiredAction.Retry);
         }
+
+
+        result.Diagnostics.Should().ContainSingle().Which.Id.Should().Be("DiagnosticId");
+        result.Warnings.Should().ContainSingle().Which.Code.Should().Be("WarningCode");
     }
 
     [Fact]
@@ -69,11 +93,25 @@ public sealed class CodeActionWorkspaceResultMapperTests
                 {
                     Operation = "Operation",
                     Summary = "Summary",
+                    Transaction = new TransactionInfo { Revision = 1 },
+                    Preview = new MutationPreview { Summary = "PreviewSummary" },
+                    Changes = new ChangeSummary
+                    {
+                        Modified =
+                        [
+                            new DocumentChange
+                            {
+                                Document = new DocumentReference { Path = "DocumentPath" },
+                            },
+                        ],
+                    },
                 }
                 : null,
             Error = status is WorkspaceOperationStatus.Rejected or WorkspaceOperationStatus.Conflict or WorkspaceOperationStatus.Faulted
                 ? CreateError()
                 : null,
+            Diagnostics = [new DiagnosticInfo { Id = "DiagnosticId", Message = "DiagnosticMessage" }],
+            Warnings = [new WarningInfo { Code = "WarningCode", Message = "WarningMessage" }],
         };
     }
 

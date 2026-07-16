@@ -2,7 +2,7 @@
 
 Date: 2026-07-16
 
-Status: Planned
+Status: Unit testing complete; integration-test redesign deferred
 
 ## Purpose
 
@@ -33,19 +33,21 @@ No production change is authorised by this inventory. Any seam or defensive-bran
 
 ## Measured Baseline
 
-The baseline was captured from the CodeActions unit project with Coverlet after the architecture suite completed.
+The current measurement was captured from the CodeActions unit project with Coverlet after C6 completed.
 
 | Measure | Current value |
 | --- | ---: |
 | Production C# files | 181 |
 | Files with executable sequence points | 135 |
 | Interfaces, enums and other files without sequence points | 46 |
-| Discovered unit tests | 377 |
-| Line coverage | 83.25% |
-| Branch coverage | 70.49% |
-| Executable files at 100% line and branch | 107 |
-| Executable files with partial coverage | 12 |
-| Executable files with zero unit coverage | 16 |
+| Discovered unit tests | 496 |
+| Covered executable lines | 4,081 / 4,263 |
+| Line coverage | 95.73% |
+| Covered branches | 685 / 762 |
+| Branch coverage | 89.94% |
+| Executable files at 100% line and branch | 126 |
+| Executable files with partial coverage | 6 |
+| Executable files with zero unit coverage | 3 |
 
 Coverlet emits compiler-generated async and closure classes separately. The figures and tables in this document aggregate their sequence points into the owning source file.
 
@@ -63,6 +65,8 @@ The current CodeActions unit project follows the active test pattern after the c
 - test namespaces mirror their production namespaces; and
 - the architecture test uses assembly metadata only to locate the repository before inspecting project files, rather than reflecting over runtime implementation shape.
 
+The C6 repository-wide scan also found no expression-bodied test members or test methods outside the required `GIVEN_..._WHEN_..._THEN_Should...` naming pattern. Controlled `DiagnosticAnalyzer`, `CodeAction`, operation and typed-handler subclasses are Roslyn or registration input fixtures; they do not replace production collaborators.
+
 The nested query and mutation handlers in registry tests are typed registration fixtures, not substitutes for production collaborators.
 
 ## Completed Coverage Families
@@ -77,6 +81,19 @@ The following production families need no broad replacement tests. Future work s
 | Scope resolution | Dedicated `CodeActionScopeResolverTests` at 100% line and branch; consumers mock the boundary | Complete |
 | Action resolution | `CodeActionResolutionServiceTests` cover token context, provider rediscovery, replay identity, visibility and success at 100% line and branch | Complete |
 | Discovery | `CodeActionDiscoveryService` at 100% line and branch | Complete |
+| Diagnostics | `CodeActionDiagnosticServiceTests` cover compiler, configured analyzer, additional analyzer, document/project, ID/span, synthetic, unavailable and cancellation paths; only the defensive null syntax-tree result after a successful C# compilation remains | Complete with approved defensive gap |
+| Analyzer activation | Available, incompatible, missing and four construction-failure shapes covered; external assembly-inspection failures and impossible assignable-type null construction remain approved defensive gaps | Complete with approved defensive gaps |
+| Operation application | `CodeActionOperationServiceTests` cover mutation materialisation, absent, multiple and unsupported operations, recognised wrapping bookkeeping, null fix-all actions, document/project fix-all contexts and successful candidates at 100% line and branch | Complete |
+| Solution change counting | `CodeActionSolutionChangeCounterTests` cover unchanged, changed, multiple and missing candidate documents plus cancellation at 100% line and branch | Complete |
+| Fix-all diagnostic projection | `WorkspaceFixAllDiagnosticProviderTests` cover document and project delegation plus ordered all-diagnostic aggregation at 100% line and branch | Complete |
+| Fix-all orchestration | `CodeActionFixAllServiceTests` cover all reachable paths, including an inconsistent project-set result from the mocked scope boundary; only the defensive invalid-scope default remains | Complete with approved defensive gap |
+| Token encoding and validation | `CodeActionTokenServiceTests` cover complete payload round-trip, process-local signing, missing and malformed parts, tampering and unpadded Base64Url output; only the approved correctly-signed `null` JSON payload guard remains | Complete with approved defensive gap |
+| Execution leases and context adaptation | Query/mutation disposal, staging delegation, missing-stager invariant and all acquired/rejected context-factory paths at 100% line and branch | Complete |
+| Typed registration and registry | Query/mutation metadata, contract types, visitor dispatch, duplicate names, individual required metadata validation and optional defaults at 100% line and branch | Complete |
+| Workspace result mapping and outcome classification | Every operation status, full success/failure payload projection, invalid statuses and every error classification at 100% line and branch | Complete |
+| Selector projection | Missing, mismatched, resolved, not-found and ambiguous symbol resolution plus every resolved-location projection shape at 100% line and branch | Complete |
+| Descriptor and built-in family classification | Overrides, title normalisation, special using families, replay, parameterised, hidden, blank and unknown providers plus every family-derived state at 100% line and branch | Complete |
+| MEF unit boundary | Empty configuration, unavailable catalogue projection, export-read success/failure invariants, composition options and result/status shapes, and assembly identity comparison at 100% line and branch for the selected isolated targets | Complete |
 | Result construction and identity | Execution result factory, information factory and candidate identity at 100% line and branch | Complete |
 | Internal catalogue and ledger | Catalogue, registrar and ledger at 100% line and branch; one contract snapshot locks every published registration and metadata value; architecture and audit evidence retained | Complete |
 | Context capability shape | Query and mutation context projection at 100% line and branch | Complete |
@@ -85,27 +102,19 @@ Data-only contracts that already execute through these tests do not need one tes
 
 ## Zero-Coverage Logic Inventory
 
-| Target | Line | Branch | Complexity | Disposition and required behaviour |
-| --- | ---: | ---: | --- | --- |
-| `CodeActionDiagnosticService` | 0% | 0% | High | Add. Use in-memory Roslyn documents with a mocked analyzer activator. Cover compiler, configured analyzer, scoped analyzer and synthetic diagnostics; document, project, ID and span filtering; missing compilation; unavailable analyzers and cancellation. |
-| `CodeActionOperationService` | 0% | 0% | High | Add. Cover action operation materialisation, no/multiple apply operations, unsupported auxiliary operations, the documented wrapping operation, null fix-all actions, document/project fix-all contexts and successful candidates. |
-| `CodeActionTokenService` | 0% | 0% | Medium | Add round-trip, independent-instance rejection, tampering, malformed separators/Base64, payload preservation and URL-safe encoding. Review the signed-null payload guard separately because the current public flow cannot produce a valid signature for malformed JSON. |
-| `CodeActionAnalyzerActivator` | 0% | 0% | Medium, mixed boundary | Add normal type-not-found, incompatible, available and construction-failed behaviour using controlled analyzer types. Treat unreadable loaded-assembly inspection as an external-runtime defensive branch unless a normal supported test path is found. |
-| `CodeActionSolutionChangeCounter` | 0% | 0% | Low | Add using in-memory multi-document solutions. Cover unchanged, changed, missing and multiple documents plus cancellation. |
-| `WorkspaceFixAllDiagnosticProvider` | 0% | 0% | Low | Add with a mocked diagnostic service. Cover document, project and all-diagnostic aggregation, ordering and cancellation propagation. |
-| `CodeActionAssemblyIdentityComparer` | 0% | 0% | Low | Add identity equality, reference equality, null alternatives, case-insensitive full identity, distinct identities and stable hash behaviour. Record the no-full-name fallback only if a supported assembly instance can expose it. |
-| `CodeActionExecutionOutcomeExtensions` | 0% | 0% | Low | Add one visible theory covering success, no-change, rejected, conflict and faulted outcomes. |
+No uncovered logic-bearing target in this section remains suitable for ordinary unit testing. The remaining zero-coverage files are the real-MEF compatibility adapter and the two unused contract types recorded below.
 
 ## MEF Composition Boundary
 
 | Target | Line | Branch | Disposition |
 | --- | ---: | ---: | --- |
-| `MefCodeActionProviderCatalog` | 0% | 0% | Mixed. Unit-test the no-assemblies result and any paths reachable with the existing export-provider seam. Keep host creation, export enumeration, C# metadata filtering and real provider composition in integration/audit coverage. Do not mock a real MEF graph merely to raise coverage. |
+| `MefCodeActionProviderCatalog` | 28.57% | 9.09% | Unit portion complete. Empty configuration and complete unavailable catalogue projection are covered without constructing MEF. Every remaining branch creates or consumes a real `MefHostServices`, including assembly resolution, export reads, metadata filtering and available composition; defer those branches to the later integration-test pattern. |
 | `MefHostExportProviderCompatibilityAdapter` | 0% | 0% | Integration boundary. Its behaviour depends on Roslyn's non-public runtime export shape. Retain and expand the focused real-MEF integration test for successful enumeration and actionable failure reporting when feasible. |
-| `CodeActionCompositionOptions` | 0% | 100% | Data/default shape. Assert defaults through catalogue composition rather than a property-only test. |
-| `CodeActionProviderCatalogComposition` | 0% | 100% | Internal result shape. Cover through catalogue outcomes. |
-| `CodeActionProviderCatalogStatus` | 33.33% | 100% | Internal status shape. Cover availability, message and version through catalogue and Host status tests. |
-| `MefHostExportReadResult<T>` | 0% | 100% | Internal result invariant. Cover success and failure factories through adapter/catalogue tests. |
+| `CodeActionCompositionOptions` | 100% | 100% | Complete through empty catalogue configuration. |
+| `CodeActionProviderCatalogComposition` | 100% | 100% | Complete through the unavailable catalogue outcome. |
+| `CodeActionProviderCatalogStatus` | 100% | 100% | Complete through the unavailable catalogue outcome and existing consumers. |
+| `MefHostExportReadResult<T>` | 100% | 100% | Complete through explicit success and failure factory behaviour. |
+| `CodeActionAssemblyIdentityComparer` | 100% | 100% | Complete for reference/null equality, identity equality, missing identities and both hashing strategies. |
 
 Real MEF execution does not become a unit test merely because it is in the unit assembly. Coverage for this boundary must remain correctly categorised.
 
@@ -113,21 +122,12 @@ Real MEF execution does not become a unit test merely because it is in the unit 
 
 | Target | Line | Branch | Complexity | Remaining work |
 | --- | ---: | ---: | --- | --- |
-| `CodeActionMutationExecutionLease` | 44.00% | 0% | Low | Cover staging delegation, mapped result, disposal and the invalid acquired-without-stager invariant. |
-| `CodeActionQueryExecutionLease` | 78.57% | 100% | Low | Cover disposal of the underlying Workspace lease. |
-| `CodeActionMutationRegistration<THandler,TRequest>` | 45.45% | 100% | Low | Assert metadata, kind, request/response types and mutation visitor dispatch. |
-| `CodeActionQueryRegistration<THandler,TRequest,TResponse>` | 72.73% | 100% | Low | Assert metadata, kind and request/response types in addition to existing query visitor dispatch. |
-| `CodeActionExecutionContextFactory` | 100% | 50% | Low | Add the complementary rejected-query and acquired-mutation paths so context and failure conditions are independently covered. |
-| `CodeActionSelectorHelpers` | 80.39% | 72.22% | Medium | Cover missing selector, location snapshot rejection, resolved/unresolved symbols, missing location data and document-ID versus path projection. Use the normal helper entry points only. |
-| `CodeActionToolRegistry` | 90.48% | 62.50% | Low | Add mutation visitor evidence and separate blank name, title and description validation cases. |
-| `CodeActionWorkspaceResultMapper` | 98.39% | 94.44% | Low | Cover the invalid failure-status invariant and assert complete data, diagnostics and warning projection for every supported result. |
-| `CodeActionDescriptorRegistry` | 66.67% | 60.00% | Medium | Cover overrides, title normalisation, add-import/remove-using special cases, supported parameterised families, hidden ledger families, unknown and blank providers, and descriptor details. |
-| `BuiltInCodeActionFamily` | 60.00% | 37.50% | Low | Cover every support-state execution mode and dedicated-tool visibility combination through catalogue/descriptor tests. |
-| `CodeActionFixAllService` | 97.66% | 95.12% | Medium expansion | Cover an inconsistent project-set result through the mocked scope boundary. Record the unsupported-scope default only if it is unreachable after `CodeActionScopeResolver` validation. |
-| `CodeActionToolMetadata` | 80.00% | 100% | Data/default shape | Assert default behaviour through registry tests. |
-| `CodeActionDescriptorContext` | 50.00% | 100% | Data-only contract | Assert populated context through describe-tool outcomes. |
-| `CodeActionListItem` and `CodeActionNameOptionInfo` | 0% | 100% | Data-only contracts | Assert their output properties through list/describe tool scenarios; do not add reflection or property-only tests. |
-| `CodeActionAnalyzerActivationResult` | 0% | 100% | Internal result shape | Cover through analyzer activator and diagnostic-service outcomes. |
+| `CodeActionAnalyzerActivator` | 84.34% | 52.63% | Approved external-runtime gaps | Available, missing, incompatible and four supported construction-failure shapes are covered. The remaining lines are the loaded-assembly inspection-exception path; remaining branches distinguish runtime exception types that normal loaded assemblies and analyzer construction cannot deterministically produce. |
+| `CodeActionDiagnosticService` | 98.28% | 97.92% | Approved Roslyn defensive gap | Lines 163-164 handle `GetSyntaxTreeAsync` returning `null` after the same source document successfully produced a C# compilation. Supported in-memory and loaded-workspace flows cannot produce that inconsistent Roslyn state. |
+| `CodeActionFixAllService` | 98.60% | 97.56% | Approved defensive gap | All reachable behaviour is covered. Lines 145-147 are the unsupported-scope default; the real `CodeActionScopeResolver` rejects invalid `ScopeKind` values before this method is called. Covering it would require an inconsistent mocked boundary and would duplicate the resolver's validation rather than model production behaviour. |
+| `CodeActionTokenService` | 95.56% | 90.00% | Approved defensive gap | All supported token behaviours are covered. Lines 45-46 reject a correctly signed JSON `null`; the process-local secret and valid-payload encoder make that input unreachable through the supported API. |
+| `CodeActionDescriptorContext` | 50.00% | 100% | Production review required | `Kind` and `Message` are published and asserted by `DescribeCodeActionToolTests`; `NameOptions` and `Members` are never populated by production code. Do not add property-only tests. |
+| `CodeActionListItem` and `CodeActionNameOptionInfo` | 0% | 100% | Production review required | Neither type is constructed or consumed anywhere in production. They are dead-contract candidates rather than missing unit-test scenarios. |
 
 ## Files Requiring No Direct Tests
 
@@ -137,11 +137,15 @@ The remaining data-only request/response records are likewise covered through th
 
 ## Production Decisions Requiring Approval
 
-The first coverage pass may expose three cases that must be reviewed before changing production code:
+The coverage passes exposed the following cases that must be reviewed before changing production code:
 
 1. `CodeActionTokenService` cannot receive a correctly signed malformed or `null` JSON payload through its supported API because its secret is process-local and generated internally. Do not add a test-only key constructor. Decide whether the defensive deserialisation branch should remain documented or whether token encoding/signing has a runtime reason to be separated.
-2. `CodeActionAnalyzerActivator` obtains assemblies from `AppDomain.CurrentDomain`. Normal tests can cover known, missing, incompatible and construction-failing types, but forcing an assembly's `GetType` to throw would be artificial. Treat `InspectionFailed` as a defensive external-runtime branch unless a real supported scenario demonstrates it.
+2. Resolved: `CodeActionAnalyzerActivator` covers known, missing, incompatible and construction-failing types. `InspectionFailed`, the associated expected-exception alternatives and the assignable-type construction-to-null branch remain documented defensive runtime gaps because normal loaded assemblies cannot produce them and `Activator.CreateInstance` cannot return `null` for a successfully constructed `DiagnosticAnalyzer` type.
 3. The MEF compatibility adapter and most catalogue composition paths require Roslyn's real internal export-provider implementation. Keep those paths in integration/audit coverage unless a production abstraction is justified independently of testing.
+4. Resolved under the existing Roslyn defensive-guard exception: after `Document.Project.GetCompilationAsync` returns a C# compilation for a source document, the same document's `GetSyntaxTreeAsync` cannot return `null` through a supported in-memory or loaded-workspace path. The additional-analyzer guard remains defensive and is not covered with a fake Roslyn document.
+5. Resolved: `CodeActionFixAllService.ApplyScopeAsync` retains an unsupported-scope default as a local defensive guard. The real `CodeActionScopeResolver` rejects invalid `ScopeKind` values first, so the default is not reachable through the production flow and does not justify a production seam.
+6. Resolved with user approval: `CodeActionTokenService.TryDecode` retains the correctly-signed JSON `null` guard. The public encoder cannot create that payload and the signing secret is deliberately process-local, so no key exposure or test-only seam will be introduced.
+7. `CodeActionListItem` and `CodeActionNameOptionInfo` are unused production contracts. `CodeActionDescriptorContext.NameOptions` and `Members` are likewise never populated. Decide whether to remove these surfaces or implement their intended owning behaviour before testing them.
 
 No production change should be made during this testing phase without explicit confirmation.
 
@@ -153,36 +157,36 @@ Complete. `CodeActionResolutionServiceTests` use mocked token, descriptor, disco
 
 ### C2: Diagnostics and activation
 
-Add `CodeActionDiagnosticServiceTests` and `CodeActionAnalyzerActivatorTests`. Keep analyzer activation findings explicit and do not hide real Roslyn compilation setup behind a service harness.
+Complete. `CodeActionDiagnosticServiceTests` use in-memory Roslyn documents with visible analyzer and analyzer-reference mocks and cover every supported compiler, configured-analyzer, additional-analyzer, filtering, synthetic and cancellation path. `CodeActionAnalyzerActivatorTests` use controlled analyzer types for available, incompatible, missing, constructorless, throwing, abstract and open-generic outcomes. The exact Roslyn and external-runtime defensive gaps are recorded above; no production seam or test-only hook was introduced.
 
 ### C3: Operation application
 
-Add `CodeActionOperationServiceTests`, `CodeActionSolutionChangeCounterTests` and `WorkspaceFixAllDiagnosticProviderTests`, then close the two remaining `CodeActionFixAllService` paths. This group shares operation and fix-all data but each target retains separate collaborators and assertions.
+Complete. `CodeActionOperationServiceTests`, `CodeActionSolutionChangeCounterTests` and `WorkspaceFixAllDiagnosticProviderTests` retain separate collaborators and assertions while covering each target at 100% line and branch. `CodeActionFixAllServiceTests` now cover the remaining reachable inconsistent-project-set path. The exact invalid-scope defensive gap is recorded above. No production change or test-only seam was introduced.
 
 ### C4: Tokens and small execution boundaries
 
-Add `CodeActionTokenServiceTests` and complete the execution outcome, registration, lease, context-factory, registry, selector-helper, mapper, descriptor and built-in-family gaps. These are mostly low-complexity tests and can be delivered as a group after any token design decision is approved.
+Complete. `CodeActionTokenServiceTests` cover every supported token behaviour with the exact approved defensive exception recorded above. Execution outcomes, registrations, leases, context adaptation, registry validation, selector projection, Workspace result mapping, descriptor classification and built-in-family properties now measure 100% line and branch. No production seam was introduced. The unused contract surfaces discovered by owner-based testing are recorded as a separate production decision rather than covered with property-only tests.
 
 ### C5: MEF boundary checkpoint
 
-Add only the catalogue/result unit cases that are truly isolated. Expand the existing CodeActions MEF integration coverage for runtime export compatibility rather than disguising composition as unit testing. Retain the audit suite for built-in provider and ledger compatibility.
+Unit portion complete. `MefCodeActionProviderCatalogTests` cover empty configuration and the complete unavailable projection without constructing MEF, plus export-read success/failure invariants. `CodeActionAssemblyIdentityComparerTests` cover every equality and hashing branch. Composition options, result and status shapes now measure 100% line and branch through their owners. All paths that create or interrogate a real Roslyn `MefHostServices`, including the compatibility adapter, remain deferred until the integration-test pattern is redesigned; no new integration tests were added in this round.
 
-### C6: Final coverage and pattern audit
+### C6: Final unit-coverage and pattern audit
 
-Re-run file-aggregated line and branch coverage. Assert data-only properties through owners where currently missing, document any approved defensive branches, sample the new tests against the test pattern, then run the CodeActions unit, integration and audit projects followed by the full suite.
+Complete. File-aggregated coverage identifies 126 fully covered files, six partial files and three zero-coverage files. Every non-full file now has an exact approved defensive, external-runtime, real-MEF or unused-contract disposition. The repository-wide CodeActions unit scan found no prohibited mocking, null-forgiving input, timing, invocation-history, reflection-invocation, comment, expression-body or test-naming pattern. Data-only properties are asserted through owners where production uses them; unused surfaces are recorded for production review rather than covered artificially. Integration-test structure remains unchanged and deferred.
 
 ## Completion Criteria
 
-The CodeActions unit-testing round is complete when:
+The CodeActions unit-testing round is complete:
 
-- every executable source file has a completed disposition;
-- every unit-testable logic-bearing target reaches 100% line and branch coverage or has an explicitly approved exact defensive branch;
-- all data-only output properties are exercised through an owning tool or service where they are actually used;
-- unit tests retain visible Moq collaborators and use real Roslyn objects only as data;
-- real MEF composition and provider compatibility remain integration/audit evidence;
-- no production hook, broader interface or reflection path exists solely for tests;
-- test categorisation and the fast-loop filter remain correct; and
-- formatting, build, focused coverage, affected integration/audit projects and the full suite are green.
+- [x] Every executable source file has a completed disposition.
+- [x] Every unit-testable logic-bearing target reaches 100% line and branch coverage or has an explicitly approved exact defensive/runtime branch.
+- [x] Data-only output properties are exercised through an owning tool or service wherever production uses them; unused surfaces are recorded for production review.
+- [x] Unit tests retain visible Moq collaborators and use real Roslyn objects only as data.
+- [x] Real MEF composition and provider compatibility remain integration/audit evidence.
+- [x] No production hook, broader interface or reflection path exists solely for tests.
+- [x] Test categorisation and the fast-loop filter remain correct.
+- [x] Formatting, build, focused coverage and the full regression suite are green.
 
 ## Measurement Commands
 

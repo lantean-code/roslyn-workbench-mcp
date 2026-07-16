@@ -11,8 +11,18 @@ public sealed class CodeActionToolRegistryTests
         target.RegisterMutationTool<TestMutationHandler, TestRequest>(CreateMetadata("mutation"));
 
         target.Tools.Should().HaveCount(2);
-        target.Tools[0].Should().BeOfType<CodeActionQueryRegistration<TestQueryHandler, TestRequest, TestResponse>>();
-        target.Tools[1].Should().BeOfType<CodeActionMutationRegistration<TestMutationHandler, TestRequest>>();
+        var query = target.Tools[0].Should().BeOfType<CodeActionQueryRegistration<TestQueryHandler, TestRequest, TestResponse>>().Subject;
+        query.Metadata.Should().BeSameAs(target.Tools[0].Metadata);
+        query.Metadata.Name.Should().Be("query");
+        query.Kind.Should().Be(CodeActionToolKind.Query);
+        query.RequestType.Should().Be(typeof(TestRequest));
+        query.ResponseType.Should().Be(typeof(TestResponse));
+        var mutation = target.Tools[1].Should().BeOfType<CodeActionMutationRegistration<TestMutationHandler, TestRequest>>().Subject;
+        mutation.Metadata.Should().BeSameAs(target.Tools[1].Metadata);
+        mutation.Metadata.Name.Should().Be("mutation");
+        mutation.Kind.Should().Be(CodeActionToolKind.Mutation);
+        mutation.RequestType.Should().Be(typeof(TestRequest));
+        mutation.ResponseType.Should().Be(typeof(MutationData));
     }
 
     [Fact]
@@ -41,6 +51,57 @@ public sealed class CodeActionToolRegistryTests
         var action = () => target.RegisterMutationTool<TestMutationHandler, TestRequest>(CreateMetadata("tool"));
 
         action.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void GIVEN_MutationRegistration_WHEN_AcceptingVisitor_THEN_ShouldDispatchClosedGenericRegistration()
+    {
+        var target = new CodeActionToolRegistry();
+        var visitor = new Mock<ICodeActionToolRegistrationVisitor<bool>>();
+        target.RegisterMutationTool<TestMutationHandler, TestRequest>(CreateMetadata("mutation"));
+        var registration = (CodeActionMutationRegistration<TestMutationHandler, TestRequest>)target.Tools.Single();
+        visitor
+            .Setup(item => item.VisitMutation(registration))
+            .Returns(true);
+
+        var result = registration.Accept(visitor.Object);
+
+        result.Should().BeTrue();
+        visitor.Verify(item => item.VisitMutation(registration), Times.Once);
+    }
+
+    [Theory]
+    [InlineData("", "Title", "Description")]
+    [InlineData("Name", " ", "Description")]
+    [InlineData("Name", "Title", "")]
+    public void GIVEN_BlankRequiredMetadata_WHEN_Registering_THEN_ShouldThrowInvalidOperationException(
+        string name,
+        string title,
+        string description)
+    {
+        var target = new CodeActionToolRegistry();
+        var metadata = new CodeActionToolMetadata
+        {
+            Name = name,
+            Title = title,
+            Description = description,
+        };
+
+        var action = () => target.RegisterQueryTool<TestQueryHandler, TestRequest, TestResponse>(metadata);
+
+        action.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void GIVEN_MinimumMetadata_WHEN_Registering_THEN_ShouldRetainOptionalDefaults()
+    {
+        var target = new CodeActionToolRegistry();
+        var metadata = CreateMetadata("query");
+
+        target.RegisterQueryTool<TestQueryHandler, TestRequest, TestResponse>(metadata);
+
+        metadata.ResultSummary.Should().BeNull();
+        metadata.Behavior.Should().BeEquivalentTo(new CodeActionToolBehavior());
     }
 
     private static CodeActionToolMetadata CreateMetadata(string name)

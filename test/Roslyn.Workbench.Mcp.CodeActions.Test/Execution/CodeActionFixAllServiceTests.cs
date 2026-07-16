@@ -442,6 +442,38 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GIVEN_TargetProjectInSetIsMissingFromWorkingSolution_WHEN_StagingProjectsFixAll_THEN_ShouldRejectProject()
+    {
+        using var otherRoslyn = RoslynTestFactory.CreateDocument("class D { }");
+        var selector = new ProjectSelector { Name = "ProjectName" };
+        _scopeResolver
+            .Setup(item => item.Resolve(
+                It.Is<ScopeSelector>(scope => scope.Kind == ScopeKind.Projects),
+                _roslyn.Solution,
+                _workspaceResolver.Object))
+            .Returns(new CodeActionScopeResolution
+            {
+                Documents = [otherRoslyn.Document],
+                Projects = [otherRoslyn.Document.Project],
+            });
+
+        var result = await _target.StageFixAllAsync(
+            CreateProjectRequest(ScopeKind.Projects, [selector]),
+            _context.Object,
+            CancellationToken.None);
+
+        result.Error!.Code.Should().Be("ProjectNotFound");
+        _operationService.Verify(item => item.ApplyFixAllAsync(
+            It.IsAny<CodeFixProvider>(),
+            It.IsAny<FixAllProvider>(),
+            It.IsAny<Project>(),
+            It.IsAny<IReadOnlyList<string>>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task GIVEN_MultipleProjectsAreSelected_WHEN_StagingProjectsFixAll_THEN_ShouldApplyEachProject()
     {
         using var solution = CodeActionExecutionTestFactory.CreateTwoProjectSolution();

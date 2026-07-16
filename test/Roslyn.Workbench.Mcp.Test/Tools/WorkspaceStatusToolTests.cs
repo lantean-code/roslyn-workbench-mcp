@@ -52,7 +52,8 @@ public sealed class WorkspaceStatusToolTests
                     ],
                 },
             });
-        var target = new WorkspaceStatusTool(Options.Create(new StartupOptions()), service.Object);
+        var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
+        var target = new WorkspaceStatusTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
         var arguments = ServerOwnedToolTestData.CreateWorkspaceArguments(includeWorkspace);
         arguments["detail"] = JsonSerializer.SerializeToElement(StatusDetailLevel.Full);
 

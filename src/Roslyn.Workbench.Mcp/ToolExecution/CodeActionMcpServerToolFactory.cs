@@ -6,16 +6,19 @@ namespace Roslyn.Workbench.Mcp.ToolExecution;
 internal sealed class CodeActionMcpServerToolFactory : ICodeActionToolRegistrationVisitor<McpServerToolBase>
 {
     private readonly ICodeActionExecutionContextFactory _contextFactory;
+    private readonly IMcpToolProtocolFactory _protocolFactory;
     private readonly IServiceProvider _serviceProvider;
     private readonly ToolOutputSchemaMode _outputSchemaMode;
 
     public CodeActionMcpServerToolFactory(
         IServiceProvider serviceProvider,
         ICodeActionExecutionContextFactory contextFactory,
+        IMcpToolProtocolFactory protocolFactory,
         ToolOutputSchemaMode outputSchemaMode = ToolOutputSchemaMode.Omit)
     {
         _serviceProvider = serviceProvider;
         _contextFactory = contextFactory;
+        _protocolFactory = protocolFactory;
         _outputSchemaMode = outputSchemaMode;
     }
 
@@ -27,6 +30,7 @@ internal sealed class CodeActionMcpServerToolFactory : ICodeActionToolRegistrati
             registration,
             ActivatorUtilities.CreateInstance<THandler>(_serviceProvider),
             _contextFactory,
+            _protocolFactory,
             Options.Create(new StartupOptions
             {
                 ToolOutputSchemaMode = _outputSchemaMode,
@@ -41,6 +45,7 @@ internal sealed class CodeActionMcpServerToolFactory : ICodeActionToolRegistrati
             registration,
             ActivatorUtilities.CreateInstance<THandler>(_serviceProvider),
             _contextFactory,
+            _protocolFactory,
             Options.Create(new StartupOptions
             {
                 ToolOutputSchemaMode = _outputSchemaMode,

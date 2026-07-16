@@ -7,12 +7,60 @@ namespace Roslyn.Workbench.Mcp.Test.Protocol;
 
 public sealed class ToolSchemaFactoryTests
 {
+    private readonly Mock<IMcpSdkSchemaProvider> _schemaProvider;
+    private readonly ToolSchemaFactory _target;
+
+    public ToolSchemaFactoryTests()
+    {
+        _schemaProvider = new Mock<IMcpSdkSchemaProvider>();
+        _schemaProvider
+            .Setup(item => item.GetValueSchema<ToolError>())
+            .Returns(CreateObjectSchema("code"));
+        _schemaProvider
+            .Setup(item => item.GetValueSchema<RequiredAction>())
+            .Returns(CreatePrimitiveSchema("string"));
+        _target = new ToolSchemaFactory(_schemaProvider.Object);
+    }
+
+    [Fact]
+    public void GIVEN_InputContract_WHEN_CreatingInputSchema_THEN_ShouldReturnProviderSchema()
+    {
+        var expected = CreateObjectSchema("value");
+        _schemaProvider
+            .Setup(item => item.GetInputSchema<TestRequest>())
+            .Returns(expected);
+
+        var result = _target.CreateInputSchema<TestRequest>();
+
+        result.GetRawText().Should().Be(expected.GetRawText());
+        _schemaProvider.Verify(item => item.GetInputSchema<TestRequest>(), Times.Once);
+    }
+
+    [Fact]
+    public void GIVEN_DirectResponseContract_WHEN_CreatingSchemaTwice_THEN_ShouldCacheComposedSchema()
+    {
+        _schemaProvider
+            .Setup(item => item.GetValueSchema(typeof(TestResponse)))
+            .Returns(CreateObjectSchema("value"));
+
+        var first = _target.CreateDirectOutputSchema(typeof(TestResponse));
+        var second = _target.CreateDirectOutputSchema(typeof(TestResponse));
+
+        first.GetRawText().Should().Be(second.GetRawText());
+        first.GetRawText().Should().Contain("value");
+        _schemaProvider.Verify(item => item.GetValueSchema(typeof(TestResponse)), Times.Once);
+        _schemaProvider.Verify(item => item.GetValueSchema<ToolError>(), Times.Once);
+        _schemaProvider.Verify(item => item.GetValueSchema<RequiredAction>(), Times.Once);
+    }
+
     [Fact]
     public void GIVEN_QueryResponseSchema_WHEN_InspectingSharedControlProperties_THEN_ShouldPublishOkDataAndErrorBranches()
     {
-        var schema = ToolSchemaFactory.CreateOutputSchema(
-            PublishedToolKind.Query,
-            typeof(TestResponse));
+        _schemaProvider
+            .Setup(item => item.GetValueSchema(typeof(TestResponse)))
+            .Returns(CreateObjectSchema("value"));
+
+        var schema = _target.CreateOutputSchema(PublishedToolKind.Query, typeof(TestResponse));
         var variants = schema.GetProperty("oneOf").EnumerateArray().ToArray();
         var successVariant = variants.Single(variant => variant.GetProperty("properties").GetProperty("ok").GetProperty("const").GetBoolean());
         var failureVariant = variants.Single(variant => !variant.GetProperty("properties").GetProperty("ok").GetProperty("const").GetBoolean());
@@ -26,9 +74,7 @@ public sealed class ToolSchemaFactoryTests
     [Fact]
     public void GIVEN_MutationResponseSchema_WHEN_InspectingSuccessBranch_THEN_ShouldPublishMinimalStagedShape()
     {
-        var schema = ToolSchemaFactory.CreateOutputSchema(
-            PublishedToolKind.Mutation,
-            typeof(MutationData));
+        var schema = _target.CreateOutputSchema(PublishedToolKind.Mutation, typeof(MutationData));
         var successVariant = schema.GetProperty("oneOf")
             .EnumerateArray()
             .Single(variant => variant.GetProperty("properties").GetProperty("ok").GetProperty("const").GetBoolean());
@@ -38,21 +84,7 @@ public sealed class ToolSchemaFactoryTests
         successVariant.GetProperty("properties").TryGetProperty("transaction", out _).Should().BeTrue();
         successVariant.GetRawText().Should().NotContain("changes");
         successVariant.GetRawText().Should().NotContain("preview");
-    }
-
-    [Fact]
-    public void GIVEN_ToolResultSchema_WHEN_Creating_THEN_ShouldPublishEveryOutcomeVariant()
-    {
-        var schema = ToolSchemaFactory.CreateToolResultSchema<TestResponse>();
-
-        var outcomes = schema.GetProperty("oneOf")
-            .EnumerateArray()
-            .Select(variant => variant.GetProperty("properties").GetProperty("outcome").GetProperty("const").GetString())
-            .ToArray();
-        outcomes.Should().Equal("Succeeded", "NoChange", "Rejected", "Conflict", "Faulted");
-        schema.GetRawText().Should().Contain("diagnostics");
-        schema.GetRawText().Should().Contain("warnings");
-        schema.GetRawText().Should().Contain("requiredAction");
+        _schemaProvider.Verify(item => item.GetValueSchema(typeof(MutationData)), Times.Never);
     }
 
     private static bool AllowsNull(JsonElement propertySchema)
@@ -68,6 +100,35 @@ public sealed class ToolSchemaFactoryTests
             JsonValueKind.Array => typeProperty.EnumerateArray().Any(value => value.GetString() == "null"),
             _ => false,
         };
+    }
+
+    private static JsonElement CreateObjectSchema(string propertyName)
+    {
+        return JsonSerializer.SerializeToElement(new
+        {
+            type = "object",
+            required = new[] { propertyName },
+            properties = new Dictionary<string, object>
+            {
+                [propertyName] = new
+                {
+                    type = "string",
+                },
+            },
+        });
+    }
+
+    private static JsonElement CreatePrimitiveSchema(string type)
+    {
+        return JsonSerializer.SerializeToElement(new
+        {
+            type,
+        });
+    }
+
+    private sealed record TestRequest
+    {
+        public string Value { get; init; } = string.Empty;
     }
 
     private sealed record TestResponse

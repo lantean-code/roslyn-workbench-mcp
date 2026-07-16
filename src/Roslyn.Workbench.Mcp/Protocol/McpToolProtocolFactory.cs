@@ -1,13 +1,49 @@
 namespace Roslyn.Workbench.Mcp.Protocol;
 
-internal static class McpToolProtocolFactory
+internal sealed class McpToolProtocolFactory : IMcpToolProtocolFactory
 {
-    public static Tool CreatePluginTool<TRequest>(
-        RegisteredTool tool,
+    private readonly ToolSchemaFactory _schemaFactory;
+
+    public McpToolProtocolFactory(ToolSchemaFactory schemaFactory)
+    {
+        _schemaFactory = schemaFactory;
+    }
+
+    public Tool CreateServerOwnedTool<TRequest, TResponse>(
+        string name,
+        string title,
+        string description,
+        bool readOnly,
+        bool destructive,
+        string? resultSummary,
         ToolOutputSchemaMode outputSchemaMode)
+        where TRequest : class
+    {
+        var publishedDescription = CreatePublishedDescription(description, resultSummary);
+        return new Tool
+        {
+            Name = name,
+            Title = title,
+            Description = publishedDescription,
+            InputSchema = _schemaFactory.CreateInputSchema<TRequest>(),
+            OutputSchema = outputSchemaMode == ToolOutputSchemaMode.Full
+                ? _schemaFactory.CreateDirectOutputSchema(typeof(TResponse))
+                : null,
+            Annotations = new ToolAnnotations
+            {
+                Title = title,
+                ReadOnlyHint = readOnly,
+                IdempotentHint = readOnly,
+                OpenWorldHint = false,
+                DestructiveHint = destructive,
+            },
+        };
+    }
+
+    public Tool CreatePluginTool<TRequest>(RegisteredTool tool, ToolOutputSchemaMode outputSchemaMode)
         where TRequest : WorkspaceBoundRequest
     {
-        return Create<TRequest>(
+        return CreateCatalogueTool<TRequest>(
             tool.Metadata.Name,
             tool.Metadata.Title,
             tool.Metadata.Description,
@@ -18,14 +54,14 @@ internal static class McpToolProtocolFactory
             outputSchemaMode);
     }
 
-    public static Tool CreateCodeActionTool<TRequest>(
+    public Tool CreateCodeActionTool<TRequest>(
         CodeActionToolMetadata metadata,
         CodeActionToolKind kind,
         Type responseType,
         ToolOutputSchemaMode outputSchemaMode)
         where TRequest : WorkspaceBoundRequest
     {
-        return Create<TRequest>(
+        return CreateCatalogueTool<TRequest>(
             metadata.Name,
             metadata.Title,
             metadata.Description,
@@ -36,7 +72,7 @@ internal static class McpToolProtocolFactory
             outputSchemaMode);
     }
 
-    private static Tool Create<TRequest>(
+    private Tool CreateCatalogueTool<TRequest>(
         string name,
         string title,
         string description,
@@ -47,17 +83,15 @@ internal static class McpToolProtocolFactory
         ToolOutputSchemaMode outputSchemaMode)
         where TRequest : WorkspaceBoundRequest
     {
-        var publishedDescription = string.IsNullOrWhiteSpace(resultSummary)
-            ? description
-            : $"{description} Result: {resultSummary}";
+        var publishedDescription = CreatePublishedDescription(description, resultSummary);
         return new Tool
         {
             Name = name,
             Title = title,
             Description = publishedDescription,
-            InputSchema = ToolSchemaFactory.CreateInputSchema<TRequest>(),
+            InputSchema = _schemaFactory.CreateInputSchema<TRequest>(),
             OutputSchema = outputSchemaMode == ToolOutputSchemaMode.Full
-                ? ToolSchemaFactory.CreateOutputSchema(kind, responseType)
+                ? _schemaFactory.CreateOutputSchema(kind, responseType)
                 : null,
             Annotations = new ToolAnnotations
             {
@@ -68,5 +102,12 @@ internal static class McpToolProtocolFactory
                 DestructiveHint = kind == PublishedToolKind.Mutation && destructive,
             },
         };
+    }
+
+    private static string CreatePublishedDescription(string description, string? resultSummary)
+    {
+        return string.IsNullOrWhiteSpace(resultSummary)
+            ? description
+            : $"{description} Result: {resultSummary}";
     }
 }

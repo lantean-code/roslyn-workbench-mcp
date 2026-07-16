@@ -31,7 +31,8 @@ public sealed class TransactionCommitToolTests
                     },
                 },
             });
-        var target = new TransactionCommitTool(Options.Create(new StartupOptions()), service.Object);
+        var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
+        var target = new TransactionCommitTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
 
         var result = await ServerOwnedToolTestSupport.InvokeAsync(
             target,

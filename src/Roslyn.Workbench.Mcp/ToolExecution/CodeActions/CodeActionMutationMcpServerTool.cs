@@ -15,8 +15,9 @@ internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpS
         CodeActionMutationRegistration<THandler, TRequest> registration,
         THandler handler,
         ICodeActionExecutionContextFactory contextFactory,
+        IMcpToolProtocolFactory protocolFactory,
         IOptions<StartupOptions> options)
-        : base(McpToolProtocolFactory.CreateCodeActionTool<TRequest>(
+        : base(protocolFactory.CreateCodeActionTool<TRequest>(
             registration.Metadata,
             registration.Kind,
             registration.ResponseType,
@@ -34,15 +35,14 @@ internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpS
         var request = ToolRequestBinder.Deserialize<TRequest>(arguments);
         var contextLease = _contextFactory.CreateMutationContext(request, cancellationToken);
         await using var _ = contextLease.ConfigureAwait(false);
-        if (contextLease.Failure is not null)
+        if (contextLease.HasFailure)
         {
             return CreateResult(
                 McpPublishedResultSerializer.SerializeCodeActionFailure(contextLease.Failure),
                 isError: true);
         }
 
-        var context = contextLease.Context
-            ?? throw new InvalidOperationException("Code Action mutation acquisition completed without a context.");
+        var context = contextLease.Context;
         var proposalResult = await _handler.ExecuteAsync(request, context, cancellationToken).ConfigureAwait(false);
         if (proposalResult.Outcome.IsError())
         {

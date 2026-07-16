@@ -12,11 +12,12 @@ public sealed class WorkspaceLifecycleMcpIntegrationTests
         using var fixture = await TestWorkspaceFixture.CreateAsync();
         var runtime = WorkspaceCoordinatorFactory.Create();
         var startupOptions = CreateStartupOptions();
-        var openTool = new WorkspaceOpenTool(startupOptions, runtime.WorkspaceLifecycleService);
-        var listTool = new WorkspaceListTool(startupOptions, runtime.WorkspaceLifecycleService);
-        var statusTool = new WorkspaceStatusTool(startupOptions, runtime.WorkspaceLifecycleService);
-        var reloadTool = new WorkspaceReloadTool(startupOptions, runtime.WorkspaceLifecycleService);
-        var closeTool = new WorkspaceCloseTool(startupOptions, runtime.WorkspaceLifecycleService);
+        var protocolFactory = McpIntegrationTestHost.CreateProtocolFactory();
+        var openTool = new WorkspaceOpenTool(startupOptions, protocolFactory, runtime.WorkspaceLifecycleService);
+        var listTool = new WorkspaceListTool(startupOptions, protocolFactory, runtime.WorkspaceLifecycleService);
+        var statusTool = new WorkspaceStatusTool(startupOptions, protocolFactory, runtime.WorkspaceLifecycleService);
+        var reloadTool = new WorkspaceReloadTool(startupOptions, protocolFactory, runtime.WorkspaceLifecycleService);
+        var closeTool = new WorkspaceCloseTool(startupOptions, protocolFactory, runtime.WorkspaceLifecycleService);
 
         var open = await McpIntegrationTestHost.InvokeServerToolAsync(openTool, "workspace-open", new Dictionary<string, JsonElement>
         {
@@ -53,11 +54,12 @@ public sealed class WorkspaceLifecycleMcpIntegrationTests
             Path = fixture.ProjectPath,
         }, CancellationToken.None);
         var startupOptions = CreateStartupOptions();
-        var startTool = new TransactionStartTool(startupOptions, runtime.TransactionService);
-        var previewTool = new TransactionPreviewTool(startupOptions, runtime.TransactionService);
-        var historyTool = new TransactionHistoryTool(startupOptions, runtime.TransactionService);
-        var commitTool = new TransactionCommitTool(startupOptions, runtime.TransactionService);
-        var rollbackTool = new TransactionRollbackTool(startupOptions, runtime.TransactionService);
+        var protocolFactory = McpIntegrationTestHost.CreateProtocolFactory();
+        var startTool = new TransactionStartTool(startupOptions, protocolFactory, runtime.TransactionService);
+        var previewTool = new TransactionPreviewTool(startupOptions, protocolFactory, runtime.TransactionService);
+        var historyTool = new TransactionHistoryTool(startupOptions, protocolFactory, runtime.TransactionService);
+        var commitTool = new TransactionCommitTool(startupOptions, protocolFactory, runtime.TransactionService);
+        var rollbackTool = new TransactionRollbackTool(startupOptions, protocolFactory, runtime.TransactionService);
         var registry = BundledPluginCatalogueFactory.CreateCatalogue();
 
         var start = await McpIntegrationTestHost.InvokeServerToolAsync(startTool, "transaction-start", new Dictionary<string, JsonElement>());
@@ -125,7 +127,10 @@ public sealed class WorkspaceLifecycleMcpIntegrationTests
     public async Task GIVEN_InvalidLifecycleArguments_WHEN_InvokingThroughMcp_THEN_ShouldReturnStructuredBindingError()
     {
         var service = new Mock<IWorkspaceLifecycleService>();
-        var tool = new WorkspaceOpenTool(CreateStartupOptions(), service.Object);
+        var tool = new WorkspaceOpenTool(
+            CreateStartupOptions(),
+            McpIntegrationTestHost.CreateProtocolFactory(),
+            service.Object);
 
         var result = await McpIntegrationTestHost.InvokeServerToolAsync(tool, "workspace-open", new Dictionary<string, JsonElement>
         {
@@ -152,7 +157,10 @@ public sealed class WorkspaceLifecycleMcpIntegrationTests
                 It.IsAny<StatusDetailLevel>(),
                 It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Boom"));
-        var tool = new WorkspaceStatusTool(CreateStartupOptions(), service.Object);
+        var tool = new WorkspaceStatusTool(
+            CreateStartupOptions(),
+            McpIntegrationTestHost.CreateProtocolFactory(),
+            service.Object);
 
         var result = await McpIntegrationTestHost.InvokeServerToolAsync(tool, "workspace-status", new Dictionary<string, JsonElement>());
 

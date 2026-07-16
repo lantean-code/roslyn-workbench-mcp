@@ -14,7 +14,8 @@ public sealed class McpServerToolFactoryTests
         var registration = new PluginQueryRegistration<TestRequest, TestResponse>(
             CreatePluginTool(ToolKind.Query, typeof(TestResponse)),
             handler.Object);
-        var target = new PluginMcpServerToolFactory(contextFactory.Object);
+        var protocolFactory = CreateProtocolFactory();
+        var target = new PluginMcpServerToolFactory(contextFactory.Object, protocolFactory.Object);
 
         var result = target.VisitQuery(registration);
 
@@ -30,7 +31,8 @@ public sealed class McpServerToolFactoryTests
         var registration = new PluginMutationRegistration<TestRequest>(
             CreatePluginTool(ToolKind.Mutation, typeof(MutationData)),
             handler.Object);
-        var target = new PluginMcpServerToolFactory(contextFactory.Object);
+        var protocolFactory = CreateProtocolFactory();
+        var target = new PluginMcpServerToolFactory(contextFactory.Object, protocolFactory.Object);
 
         var result = target.VisitMutation(registration);
 
@@ -44,7 +46,8 @@ public sealed class McpServerToolFactoryTests
         var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
         var registration = new CodeActionQueryRegistration<TestQueryHandler, TestRequest, TestResponse>(CreateCodeActionMetadata());
         using var serviceProvider = new ServiceCollection().BuildServiceProvider();
-        var target = new CodeActionMcpServerToolFactory(serviceProvider, contextFactory.Object);
+        var protocolFactory = CreateProtocolFactory();
+        var target = new CodeActionMcpServerToolFactory(serviceProvider, contextFactory.Object, protocolFactory.Object);
 
         var result = target.VisitQuery(registration);
 
@@ -58,7 +61,8 @@ public sealed class McpServerToolFactoryTests
         var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
         var registration = new CodeActionMutationRegistration<TestMutationHandler, TestRequest>(CreateCodeActionMetadata());
         using var serviceProvider = new ServiceCollection().BuildServiceProvider();
-        var target = new CodeActionMcpServerToolFactory(serviceProvider, contextFactory.Object);
+        var protocolFactory = CreateProtocolFactory();
+        var target = new CodeActionMcpServerToolFactory(serviceProvider, contextFactory.Object, protocolFactory.Object);
 
         var result = target.VisitMutation(registration);
 
@@ -97,6 +101,16 @@ public sealed class McpServerToolFactoryTests
             Title = "Test Tool",
             Description = "Description",
         };
+    }
+
+    private static Mock<IMcpToolProtocolFactory> CreateProtocolFactory()
+    {
+        var protocolFactory = new Mock<IMcpToolProtocolFactory>();
+        protocolFactory.SetReturnsDefault(new Tool
+        {
+            Name = "test-tool",
+        });
+        return protocolFactory;
     }
 
     public sealed record TestRequest : WorkspaceBoundRequest

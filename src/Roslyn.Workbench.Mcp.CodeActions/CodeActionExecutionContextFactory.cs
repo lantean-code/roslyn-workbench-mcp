@@ -28,12 +28,19 @@ internal sealed class CodeActionExecutionContextFactory : ICodeActionExecutionCo
         CancellationToken cancellationToken)
     {
         var workspaceLease = _workspaceFactory.CreateMutationContext(request.Workspace, cancellationToken);
-        var context = workspaceLease.Context is null
-            ? null
-            : new CodeActionMutationContext(workspaceLease.Context);
-        return new CodeActionMutationExecutionLease(
+        if (workspaceLease.HasFailure)
+        {
+            var context = workspaceLease.Context is null
+                ? null
+                : new CodeActionMutationContext(workspaceLease.Context);
+            return CodeActionMutationExecutionLease.Rejected(
+                workspaceLease,
+                CodeActionWorkspaceResultMapper.MapFailure(workspaceLease.Failure),
+                context);
+        }
+
+        return CodeActionMutationExecutionLease.Acquired(
             workspaceLease,
-            context,
-            workspaceLease.Failure is null ? null : CodeActionWorkspaceResultMapper.MapFailure(workspaceLease.Failure));
+            new CodeActionMutationContext(workspaceLease.Context));
     }
 }

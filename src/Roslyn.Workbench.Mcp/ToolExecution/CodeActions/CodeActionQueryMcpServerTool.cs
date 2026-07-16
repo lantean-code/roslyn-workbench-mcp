@@ -14,8 +14,9 @@ internal sealed class CodeActionQueryMcpServerTool<THandler, TRequest, TResponse
         CodeActionQueryRegistration<THandler, TRequest, TResponse> registration,
         THandler handler,
         ICodeActionExecutionContextFactory contextFactory,
+        IMcpToolProtocolFactory protocolFactory,
         IOptions<StartupOptions> options)
-        : base(McpToolProtocolFactory.CreateCodeActionTool<TRequest>(
+        : base(protocolFactory.CreateCodeActionTool<TRequest>(
             registration.Metadata,
             registration.Kind,
             registration.ResponseType,

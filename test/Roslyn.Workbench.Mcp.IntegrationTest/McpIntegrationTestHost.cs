@@ -33,7 +33,9 @@ internal static class McpIntegrationTestHost
         bool expectProtocolSuccess = true)
     {
         var registeredTool = catalogue.Tools.Single(tool => string.Equals(tool.Tool.Metadata.Name, toolName, StringComparison.Ordinal));
-        var serverTool = registeredTool.Accept(new PluginMcpServerToolFactory(contextFactory));
+        var serverTool = registeredTool.Accept(new PluginMcpServerToolFactory(
+            contextFactory,
+            new McpToolProtocolFactory(new ToolSchemaFactory(new McpSdkSchemaProvider()))));
         var result = await InvokeServerToolAsync(serverTool, toolName, arguments);
 
         result.IsError.Should().Be(!expectProtocolSuccess);
@@ -75,5 +77,10 @@ internal static class McpIntegrationTestHost
         server.Setup(static value => value.DisposeAsync()).Returns(ValueTask.CompletedTask);
 
         return server.Object;
+    }
+
+    public static IMcpToolProtocolFactory CreateProtocolFactory()
+    {
+        return new McpToolProtocolFactory(new ToolSchemaFactory(new McpSdkSchemaProvider()));
     }
 }

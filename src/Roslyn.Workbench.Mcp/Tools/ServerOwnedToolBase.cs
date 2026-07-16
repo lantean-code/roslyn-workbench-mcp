@@ -13,6 +13,7 @@ internal abstract class ServerOwnedToolBase<TRequest, TResponse> : McpServerTool
 
     protected ServerOwnedToolBase(
         IOptions<StartupOptions> startupOptions,
+        IMcpToolProtocolFactory protocolFactory,
         string name,
         string title,
         string description,
@@ -20,27 +21,14 @@ internal abstract class ServerOwnedToolBase<TRequest, TResponse> : McpServerTool
         bool destructive,
         string? resultSummary = null)
     {
-        var publishedDescription = string.IsNullOrWhiteSpace(resultSummary)
-            ? description
-            : $"{description} Result: {resultSummary}";
-        _protocolTool = new Tool
-        {
-            Name = name,
-            Title = title,
-            Description = publishedDescription,
-            InputSchema = ToolSchemaBuilder.CreateInputSchema<TRequest>(),
-            OutputSchema = startupOptions.Value.ToolOutputSchemaMode == ToolOutputSchemaMode.Full
-                ? ToolSchemaBuilder.CreateDirectOutputSchema(typeof(TResponse))
-                : null,
-            Annotations = new ToolAnnotations
-            {
-                Title = title,
-                ReadOnlyHint = readOnly,
-                IdempotentHint = readOnly,
-                OpenWorldHint = false,
-                DestructiveHint = destructive,
-            },
-        };
+        _protocolTool = protocolFactory.CreateServerOwnedTool<TRequest, TResponse>(
+            name,
+            title,
+            description,
+            readOnly,
+            destructive,
+            resultSummary,
+            startupOptions.Value.ToolOutputSchemaMode);
     }
 
     public override Tool ProtocolTool => _protocolTool;

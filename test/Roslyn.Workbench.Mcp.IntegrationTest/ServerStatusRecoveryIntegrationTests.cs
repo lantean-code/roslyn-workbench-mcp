@@ -57,7 +57,10 @@ public sealed class ServerStatusRecoveryIntegrationTests
                 msBuildRegistrationService.Object,
                 codeActionProviderCatalog.Object,
                 recoveryStore);
-            var tool = new ServerStatusTool(Options.Create(options), service);
+            var tool = new ServerStatusTool(
+                Options.Create(options),
+                McpIntegrationTestHost.CreateProtocolFactory(),
+                service);
 
             var result = await McpIntegrationTestHost.InvokeServerToolAsync(tool, "server-status", new Dictionary<string, JsonElement>
             {

@@ -26,7 +26,8 @@ public sealed class WorkspaceCloseToolTests
                     ClosedPath = "/workspace/Sample.csproj",
                 },
             });
-        var target = new WorkspaceCloseTool(Options.Create(new StartupOptions()), service.Object);
+        var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
+        var target = new WorkspaceCloseTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
 
         var result = await ServerOwnedToolTestSupport.InvokeAsync(
             target,

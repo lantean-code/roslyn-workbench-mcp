@@ -18,9 +18,9 @@ internal sealed class PluginMcpToolRegistrationVisitor : IPluginToolRegistration
     public bool VisitQuery<TRequest, TResponse>(PluginQueryRegistration<TRequest, TResponse> registration)
         where TRequest : WorkspaceBoundRequest
     {
-        var protocolTool = McpToolProtocolFactory.CreatePluginTool<TRequest>(registration.Tool, _outputSchemaMode);
         _services.AddSingleton<McpServerTool>(serviceProvider => new PluginQueryMcpServerTool<TRequest, TResponse>(
-            protocolTool,
+            serviceProvider.GetRequiredService<IMcpToolProtocolFactory>()
+                .CreatePluginTool<TRequest>(registration.Tool, _outputSchemaMode),
             registration.Handler,
             serviceProvider.GetRequiredService<IToolExecutionContextFactory>()));
         return true;
@@ -29,9 +29,9 @@ internal sealed class PluginMcpToolRegistrationVisitor : IPluginToolRegistration
     public bool VisitMutation<TRequest>(PluginMutationRegistration<TRequest> registration)
         where TRequest : WorkspaceBoundRequest
     {
-        var protocolTool = McpToolProtocolFactory.CreatePluginTool<TRequest>(registration.Tool, _outputSchemaMode);
         _services.AddSingleton<McpServerTool>(serviceProvider => new PluginMutationMcpServerTool<TRequest>(
-            protocolTool,
+            serviceProvider.GetRequiredService<IMcpToolProtocolFactory>()
+                .CreatePluginTool<TRequest>(registration.Tool, _outputSchemaMode),
             registration.Tool,
             registration.Handler,
             serviceProvider.GetRequiredService<IToolExecutionContextFactory>()));

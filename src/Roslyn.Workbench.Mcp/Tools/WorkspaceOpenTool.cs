@@ -10,9 +10,11 @@ internal sealed class WorkspaceOpenTool : ServerOwnedToolBase<WorkspaceOpenReque
 
     public WorkspaceOpenTool(
         IOptions<StartupOptions> startupOptions,
+        IMcpToolProtocolFactory protocolFactory,
         IWorkspaceLifecycleService workspaceLifecycleService)
         : base(
             startupOptions: startupOptions,
+            protocolFactory: protocolFactory,
             name: ServerOwnedToolRegistration.WorkspaceOpenName,
             title: "Workspace Open",
             description: "Loads an additional writable workspace.",

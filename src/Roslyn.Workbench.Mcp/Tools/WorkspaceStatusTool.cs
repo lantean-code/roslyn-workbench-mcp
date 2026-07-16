@@ -10,9 +10,11 @@ internal sealed class WorkspaceStatusTool : ServerOwnedToolBase<WorkspaceStatusR
 
     public WorkspaceStatusTool(
         IOptions<StartupOptions> startupOptions,
+        IMcpToolProtocolFactory protocolFactory,
         IWorkspaceLifecycleService workspaceLifecycleService)
         : base(
             startupOptions: startupOptions,
+            protocolFactory: protocolFactory,
             name: ServerOwnedToolRegistration.WorkspaceStatusName,
             title: "Workspace Status",
             description: "Reports the selected workspace lifecycle state.",

@@ -26,10 +26,11 @@ public sealed class CodeActionExecutionLeaseTests
             new Mock<IWorkspaceExecutionContext>().Object,
             new Mock<IWorkspaceMutationStager>().Object,
             operationLease.Object);
-        var target = new CodeActionMutationExecutionLease(workspaceLease, new Mock<ICodeActionMutationContext>().Object, null);
+        var target = CodeActionMutationExecutionLease.Acquired(workspaceLease, new Mock<ICodeActionMutationContext>().Object);
 
         await target.DisposeAsync();
 
+        target.HasFailure.Should().BeFalse();
         operationLease.Verify(item => item.Dispose(), Times.Once);
     }
 
@@ -59,7 +60,7 @@ public sealed class CodeActionExecutionLeaseTests
         var workspaceLease = WorkspaceMutationExecutionLease.Acquired(
             new Mock<IWorkspaceExecutionContext>().Object,
             stager.Object);
-        var target = new CodeActionMutationExecutionLease(workspaceLease, new Mock<ICodeActionMutationContext>().Object, null);
+        var target = CodeActionMutationExecutionLease.Acquired(workspaceLease, new Mock<ICodeActionMutationContext>().Object);
 
         var result = await target.StageAsync(
             "OperationName",
@@ -90,7 +91,17 @@ public sealed class CodeActionExecutionLeaseTests
                 Message = "Message",
             },
         });
-        var target = new CodeActionMutationExecutionLease(workspaceLease, null, null);
+        var target = CodeActionMutationExecutionLease.Rejected(
+            workspaceLease,
+            new CodeActionExecutionFailure
+            {
+                Outcome = CodeActionExecutionOutcome.Rejected,
+                Error = new CodeActionExecutionError
+                {
+                    Code = "Code",
+                    Message = "Message",
+                },
+            });
 
         Func<Task> action = async () => await target.StageAsync(
             "OperationName",
@@ -99,6 +110,7 @@ public sealed class CodeActionExecutionLeaseTests
             [],
             TestContext.Current.CancellationToken);
 
+        target.HasFailure.Should().BeTrue();
         await action.Should().ThrowAsync<InvalidOperationException>();
     }
 }

@@ -11,7 +11,11 @@ public sealed class WorkspaceListToolTests
     public async Task GIVEN_LoadedWorkspaces_WHEN_CallingExecuteAsync_THEN_ShouldReturnStructuredWorkspaceInventory()
     {
         var workspaceLifecycleService = new Mock<IWorkspaceLifecycleService>();
-        var target = new WorkspaceListTool(Options.Create(new StartupOptions()), workspaceLifecycleService.Object);
+        var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
+        var target = new WorkspaceListTool(
+            Options.Create(new StartupOptions()),
+            protocolFactory.Object,
+            workspaceLifecycleService.Object);
 
         workspaceLifecycleService
             .Setup(service => service.ListAsync(CancellationToken.None))
@@ -45,28 +49,4 @@ public sealed class WorkspaceListToolTests
         workspaceLifecycleService.Verify(service => service.ListAsync(CancellationToken.None), Times.Once);
     }
 
-    [Fact]
-    public void GIVEN_DefaultOutputSchemaMode_WHEN_CallingExecuteAsync_THEN_ShouldOmitOutputSchema()
-    {
-        var workspaceLifecycleService = new Mock<IWorkspaceLifecycleService>();
-        var target = new WorkspaceListTool(Options.Create(new StartupOptions()), workspaceLifecycleService.Object);
-
-        target.ProtocolTool.OutputSchema.Should().BeNull();
-        target.ProtocolTool.Description.Should().Be("Lists the currently loaded workspaces.");
-    }
-
-    [Fact]
-    public void GIVEN_FullOutputSchemaMode_WHEN_CallingExecuteAsync_THEN_ShouldPublishOutputSchema()
-    {
-        var workspaceLifecycleService = new Mock<IWorkspaceLifecycleService>();
-        var target = new WorkspaceListTool(
-            Options.Create(new StartupOptions
-            {
-                ToolOutputSchemaMode = ToolOutputSchemaMode.Full,
-            }),
-            workspaceLifecycleService.Object);
-
-        target.ProtocolTool.OutputSchema.Should().NotBeNull();
-        target.ProtocolTool.OutputSchema!.Value.GetProperty("oneOf").ValueKind.Should().Be(JsonValueKind.Array);
-    }
 }

@@ -17,7 +17,11 @@ public sealed class ServerStatusToolTests
             {
                 ToolCount = 5,
             }));
-        var target = new ServerStatusTool(Options.Create(new StartupOptions()), service.Object);
+        var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
+        var target = new ServerStatusTool(
+            Options.Create(new StartupOptions()),
+            protocolFactory.Object,
+            service.Object);
 
         var result = await ServerOwnedToolTestSupport.InvokeAsync(
             target,
@@ -33,27 +37,4 @@ public sealed class ServerStatusToolTests
         service.Verify(item => item.GetStatusAsync(StatusDetailLevel.Full, CancellationToken.None), Times.Once);
     }
 
-    [Fact]
-    public void GIVEN_DefaultOutputSchemaMode_WHEN_CreatingServerStatusTool_THEN_ShouldOmitOutputSchemaAndAppendResultHint()
-    {
-        var service = new Mock<IServerStatusService>();
-        var target = new ServerStatusTool(Options.Create(new StartupOptions()), service.Object);
-
-        target.ProtocolTool.OutputSchema.Should().BeNull();
-        target.ProtocolTool.Description.Should().Be("Returns server diagnostics without requiring a loaded workspace. Result: server diagnostics, effective configuration, plugin status, and unfinished recovery state.");
-    }
-
-    [Fact]
-    public void GIVEN_FullOutputSchemaMode_WHEN_CreatingServerStatusTool_THEN_ShouldPublishOutputSchema()
-    {
-        var options = new StartupOptions
-        {
-            ToolOutputSchemaMode = ToolOutputSchemaMode.Full,
-        };
-        var service = new Mock<IServerStatusService>();
-        var target = new ServerStatusTool(Options.Create(options), service.Object);
-
-        target.ProtocolTool.OutputSchema.Should().NotBeNull();
-        target.ProtocolTool.OutputSchema!.Value.GetProperty("oneOf").ValueKind.Should().Be(JsonValueKind.Array);
-    }
 }

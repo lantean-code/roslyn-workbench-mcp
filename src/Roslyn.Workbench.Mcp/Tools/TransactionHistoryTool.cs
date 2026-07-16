@@ -10,9 +10,11 @@ internal sealed class TransactionHistoryTool : ServerOwnedToolBase<TransactionHi
 
     public TransactionHistoryTool(
         IOptions<StartupOptions> startupOptions,
+        IMcpToolProtocolFactory protocolFactory,
         ITransactionService transactionService)
         : base(
             startupOptions: startupOptions,
+            protocolFactory: protocolFactory,
             name: ServerOwnedToolRegistration.TransactionHistoryName,
             title: "Transaction History",
             description: "Moves backward or forward through staged transaction history.",

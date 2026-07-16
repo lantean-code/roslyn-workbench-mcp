@@ -33,7 +33,8 @@ public sealed class TransactionHistoryToolTests
                     },
                 },
             });
-        var target = new TransactionHistoryTool(Options.Create(new StartupOptions()), service.Object);
+        var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
+        var target = new TransactionHistoryTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
         var arguments = ServerOwnedToolTestData.CreateWorkspaceArguments(includeWorkspace);
         arguments["direction"] = JsonSerializer.SerializeToElement(TransactionHistoryDirection.Undo);
 

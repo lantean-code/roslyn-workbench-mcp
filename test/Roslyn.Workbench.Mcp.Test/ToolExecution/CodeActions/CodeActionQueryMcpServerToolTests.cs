@@ -8,6 +8,13 @@ namespace Roslyn.Workbench.Mcp.Test.ToolExecution.CodeActions;
 
 public sealed class CodeActionQueryMcpServerToolTests
 {
+    private readonly Mock<IMcpToolProtocolFactory> _protocolFactory;
+
+    public CodeActionQueryMcpServerToolTests()
+    {
+        _protocolFactory = McpToolProtocolFactoryMockFactory.Create();
+    }
+
     [Fact]
     public async Task GIVEN_ContextAcquisitionFailure_WHEN_InvokingQuery_THEN_ShouldPublishFailureWithoutCallingHandlerAndDisposeLease()
     {
@@ -252,7 +259,7 @@ public sealed class CodeActionQueryMcpServerToolTests
             It.IsAny<CancellationToken>()), Times.Never);
     }
 
-    private static CodeActionQueryMcpServerTool<ICodeActionQueryToolHandler<TestQueryRequest, TestQueryResponse>, TestQueryRequest, TestQueryResponse> CreateTarget(
+    private CodeActionQueryMcpServerTool<ICodeActionQueryToolHandler<TestQueryRequest, TestQueryResponse>, TestQueryRequest, TestQueryResponse> CreateTarget(
         ICodeActionQueryToolHandler<TestQueryRequest, TestQueryResponse> handler,
         ICodeActionExecutionContextFactory contextFactory)
     {
@@ -265,6 +272,7 @@ public sealed class CodeActionQueryMcpServerToolTests
             }),
             handler,
             contextFactory,
+            _protocolFactory.Object,
             Options.Create(new StartupOptions()));
     }
 

@@ -10,9 +10,11 @@ internal sealed class WorkspaceReloadTool : ServerOwnedToolBase<WorkspaceReloadR
 
     public WorkspaceReloadTool(
         IOptions<StartupOptions> startupOptions,
+        IMcpToolProtocolFactory protocolFactory,
         IWorkspaceLifecycleService workspaceLifecycleService)
         : base(
             startupOptions: startupOptions,
+            protocolFactory: protocolFactory,
             name: ServerOwnedToolRegistration.WorkspaceReloadName,
             title: "Workspace Reload",
             description: "Reloads the selected workspace when it is out of date.",

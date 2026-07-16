@@ -10,9 +10,11 @@ internal sealed class WorkspaceCloseTool : ServerOwnedToolBase<WorkspaceCloseReq
 
     public WorkspaceCloseTool(
         IOptions<StartupOptions> startupOptions,
+        IMcpToolProtocolFactory protocolFactory,
         IWorkspaceLifecycleService workspaceLifecycleService)
         : base(
             startupOptions: startupOptions,
+            protocolFactory: protocolFactory,
             name: ServerOwnedToolRegistration.WorkspaceCloseName,
             title: "Workspace Close",
             description: "Closes the selected workspace.",

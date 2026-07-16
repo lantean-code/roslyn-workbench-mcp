@@ -1,22 +1,42 @@
+using Roslyn.Workbench.Mcp.Workspace.State;
+
 namespace Roslyn.Workbench.Mcp.Plugins.Test;
 
 public sealed class PluginExecutionContextTests
 {
     [Fact]
+    public async Task GIVEN_MutationLeaseOwnsWorkspaceOperationLease_WHEN_Disposing_THEN_ShouldDisposeWorkspaceOperationLease()
+    {
+        var operationLease = new Mock<IWorkspaceOperationLease>();
+        var workspaceContext = new Mock<IWorkspaceExecutionContext>();
+        var stager = new Mock<IWorkspaceMutationStager>();
+        var context = new Mock<IMutationContext>();
+        var workspaceLease = WorkspaceMutationExecutionLease.Acquired(
+            workspaceContext.Object,
+            stager.Object,
+            operationLease.Object);
+        var target = PluginMutationExecutionLease.Acquired(workspaceLease, context.Object);
+
+        await target.DisposeAsync();
+
+        operationLease.Verify(item => item.Dispose(), Times.Once);
+    }
+
+    [Fact]
     public void GIVEN_WorkspaceContext_WHEN_AdaptingQueryContext_THEN_ShouldExposePluginServicesWithoutStagingCapability()
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
-        var services = Mock.Of<IToolExecutionServices>();
+        var services = new Mock<IToolExecutionServices>();
         var workspaceContext = CreateWorkspaceContext(roslyn.Solution);
 
-        var target = new PluginQueryContext(workspaceContext, services);
+        var target = new PluginQueryContext(workspaceContext, services.Object);
 
         target.CurrentSolution.Should().BeSameAs(roslyn.Solution);
         target.WorkspaceIdentity.Should().BeSameAs(workspaceContext.WorkspaceIdentity);
         target.TransactionRevision.Should().Be(2);
         target.DefaultMaxResults.Should().Be(100);
         target.WorkspaceResolver.Should().BeSameAs(workspaceContext.WorkspaceResolver);
-        target.ToolExecutionServices.Should().BeSameAs(services);
+        target.ToolExecutionServices.Should().BeSameAs(services.Object);
         ((object)target).Should().NotBeAssignableTo<IWorkspaceMutationStager>();
     }
 
@@ -53,13 +73,15 @@ public sealed class PluginExecutionContextTests
                 Data = outcome,
             });
         var workspaceLease = WorkspaceMutationExecutionLease.Acquired(workspaceContext, stager.Object);
-        var target = new PluginMutationExecutionLease(
+        var toolExecutionServices = new Mock<IToolExecutionServices>();
+        var target = PluginMutationExecutionLease.Acquired(
             workspaceLease,
-            new PluginMutationContext(workspaceContext, Mock.Of<IToolExecutionServices>()),
-            failure: null);
+            new PluginMutationContext(workspaceContext, toolExecutionServices.Object));
 
         var result = await target.StageAsync("Operation", proposal, [], [], CancellationToken.None);
 
+        target.HasFailure.Should().BeFalse();
+        target.Context.Should().BeOfType<PluginMutationContext>();
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Operation.Should().Be("Operation");
         result.Data.Transaction!.Revision.Should().Be(1);
@@ -69,6 +91,38 @@ public sealed class PluginExecutionContextTests
             It.IsAny<IReadOnlyList<DiagnosticInfo>>(),
             It.IsAny<IReadOnlyList<WarningInfo>>(),
             CancellationToken.None), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_RejectedMutationLease_WHEN_StagingCandidate_THEN_ShouldRejectInvalidUse()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var workspaceFailure = new WorkspaceExecutionFailure
+        {
+            Status = WorkspaceOperationStatus.Rejected,
+            Error = new WorkspaceOperationError
+            {
+                Code = "Code",
+                Message = "Message",
+            },
+        };
+        var workspaceLease = WorkspaceMutationExecutionLease.Rejected(workspaceFailure);
+        var failure = PluginWorkspaceResultMapper.MapFailure(workspaceFailure);
+        var target = PluginMutationExecutionLease.Rejected(workspaceLease, failure);
+
+        Func<Task> action = async () => await target.StageAsync(
+            "Operation",
+            new MutationCandidate
+            {
+                CandidateSolution = roslyn.Solution,
+            },
+            [],
+            [],
+            CancellationToken.None);
+
+        target.HasFailure.Should().BeTrue();
+        target.Failure.Should().BeSameAs(failure);
+        await action.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
@@ -104,6 +158,6 @@ public sealed class PluginExecutionContextTests
             },
             transactionRevision: 2,
             defaultMaxResults: 100,
-            Mock.Of<IWorkspaceResolver>());
+            new Mock<IWorkspaceResolver>().Object);
     }
 }

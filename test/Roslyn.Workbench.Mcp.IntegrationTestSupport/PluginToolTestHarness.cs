@@ -2,6 +2,7 @@ using System.Text.Json;
 using ModelContextProtocol.Protocol;
 using Roslyn.Workbench.Mcp.CodeActions.Contracts;
 using Roslyn.Workbench.Mcp.Plugins;
+using Roslyn.Workbench.Mcp.Protocol;
 using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
 
 namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
@@ -46,7 +47,9 @@ public static class PluginToolTestHarness
         ArgumentNullException.ThrowIfNull(arguments);
 
         var pluginTool = GetTool(catalogue.Tools, toolName);
-        var serverTool = pluginTool.Accept(new PluginMcpServerToolFactory(contextFactory));
+        var serverTool = pluginTool.Accept(new PluginMcpServerToolFactory(
+            contextFactory,
+            CreateProtocolFactory()));
         return await serverTool.InvokeArgumentsAsync(arguments, CancellationToken.None);
     }
 
@@ -86,6 +89,11 @@ public static class PluginToolTestHarness
         }
 
         return JsonSerializer.Deserialize<TResponse>(payload.GetProperty("data").GetRawText(), SerializerOptions)!;
+    }
+
+    private static IMcpToolProtocolFactory CreateProtocolFactory()
+    {
+        return new McpToolProtocolFactory(new ToolSchemaFactory(new McpSdkSchemaProvider()));
     }
 
     private static MutationData DeserializeMutationData(JsonElement payload, string toolName)

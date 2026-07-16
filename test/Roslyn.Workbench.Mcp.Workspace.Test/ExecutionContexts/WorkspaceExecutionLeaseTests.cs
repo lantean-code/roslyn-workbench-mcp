@@ -54,6 +54,7 @@ public sealed class WorkspaceExecutionLeaseTests
         target.Context.Should().BeSameAs(context.Object);
         target.Stager.Should().BeSameAs(stager.Object);
         target.Failure.Should().BeNull();
+        target.HasFailure.Should().BeFalse();
         ((object)context.Object).Should().NotBeAssignableTo<IWorkspaceMutationStager>();
     }
 
@@ -96,6 +97,7 @@ public sealed class WorkspaceExecutionLeaseTests
         target.Context.Should().BeNull();
         target.Stager.Should().BeNull();
         target.Failure.Should().BeSameAs(failure);
+        target.HasFailure.Should().BeTrue();
         operationLease.Verify(item => item.Dispose(), Times.Once);
     }
 }

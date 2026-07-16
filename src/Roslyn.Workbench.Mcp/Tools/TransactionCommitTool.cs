@@ -10,9 +10,11 @@ internal sealed class TransactionCommitTool : ServerOwnedToolBase<TransactionCom
 
     public TransactionCommitTool(
         IOptions<StartupOptions> startupOptions,
+        IMcpToolProtocolFactory protocolFactory,
         ITransactionService transactionService)
         : base(
             startupOptions: startupOptions,
+            protocolFactory: protocolFactory,
             name: ServerOwnedToolRegistration.TransactionCommitName,
             title: "Transaction Commit",
             description: "Commits the current staged transaction to disk.",

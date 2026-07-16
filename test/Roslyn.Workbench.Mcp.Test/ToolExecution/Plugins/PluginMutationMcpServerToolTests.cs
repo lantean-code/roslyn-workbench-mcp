@@ -29,7 +29,7 @@ public sealed class PluginMutationMcpServerToolTests
             .Setup(item => item.CreateMutationContext(
                 It.Is<TestMutationRequest>(request => request.Name == "Name"),
                 CancellationToken.None))
-            .Returns(new PluginMutationExecutionLease(workspaceLease, context: null, failure));
+            .Returns(PluginMutationExecutionLease.Rejected(workspaceLease, failure));
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
         var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
@@ -37,32 +37,6 @@ public sealed class PluginMutationMcpServerToolTests
         result.IsError.Should().BeTrue();
         result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeFalse();
         result.StructuredContent.Value.GetProperty("error").GetProperty("code").GetString().Should().Be("WorkspaceBusy");
-        handler.Verify(item => item.ExecuteAsync(
-            It.IsAny<TestMutationRequest>(),
-            It.IsAny<IMutationContext>(),
-            It.IsAny<CancellationToken>()), Times.Never);
-        operationLease.Verify(item => item.Dispose(), Times.Once);
-    }
-
-    [Fact]
-    public async Task GIVEN_AcquiredLeaseWithoutContext_WHEN_InvokingMutation_THEN_ShouldPublishUnhandledFailureAndDisposeLease()
-    {
-        var handler = new Mock<IMutationToolHandler<TestMutationRequest>>();
-        var contextFactory = new Mock<IToolExecutionContextFactory>();
-        var stager = new Mock<IWorkspaceMutationStager>();
-        var operationLease = new Mock<IWorkspaceOperationLease>();
-        var workspaceLease = WorkspaceMutationExecutionLease.Acquired(
-            new Mock<IWorkspaceExecutionContext>().Object,
-            stager.Object,
-            operationLease.Object);
-        contextFactory
-            .Setup(item => item.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
-            .Returns(new PluginMutationExecutionLease(workspaceLease, context: null, failure: null));
-        var target = CreateTarget(handler.Object, contextFactory.Object);
-
-        var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
-
-        McpServerToolResultAssertions.AssertUnhandledFailure(result);
         handler.Verify(item => item.ExecuteAsync(
             It.IsAny<TestMutationRequest>(),
             It.IsAny<IMutationContext>(),
@@ -80,7 +54,7 @@ public sealed class PluginMutationMcpServerToolTests
         var workspaceLease = WorkspaceMutationExecutionLease.Acquired(new Mock<IWorkspaceExecutionContext>().Object, stager.Object);
         contextFactory
             .Setup(item => item.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
-            .Returns(new PluginMutationExecutionLease(workspaceLease, context.Object, failure: null));
+            .Returns(PluginMutationExecutionLease.Acquired(workspaceLease, context.Object));
         handler
             .Setup(item => item.ExecuteAsync(
                 It.Is<TestMutationRequest>(request => request.Name == "Name"),
@@ -118,7 +92,7 @@ public sealed class PluginMutationMcpServerToolTests
         var workspaceLease = WorkspaceMutationExecutionLease.Acquired(new Mock<IWorkspaceExecutionContext>().Object, stager.Object);
         contextFactory
             .Setup(item => item.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
-            .Returns(new PluginMutationExecutionLease(workspaceLease, context.Object, failure: null));
+            .Returns(PluginMutationExecutionLease.Acquired(workspaceLease, context.Object));
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestMutationRequest>(), context.Object, CancellationToken.None))
             .ReturnsAsync(new PluginExecutionResult<MutationCandidate>
@@ -148,7 +122,7 @@ public sealed class PluginMutationMcpServerToolTests
         var workspaceLease = WorkspaceMutationExecutionLease.Acquired(new Mock<IWorkspaceExecutionContext>().Object, stager.Object);
         contextFactory
             .Setup(item => item.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
-            .Returns(new PluginMutationExecutionLease(workspaceLease, context.Object, failure: null));
+            .Returns(PluginMutationExecutionLease.Acquired(workspaceLease, context.Object));
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestMutationRequest>(), context.Object, CancellationToken.None))
             .ReturnsAsync(PluginExecutionResult<MutationCandidate>.NoChange());
@@ -177,7 +151,7 @@ public sealed class PluginMutationMcpServerToolTests
         var workspaceLease = WorkspaceMutationExecutionLease.Acquired(new Mock<IWorkspaceExecutionContext>().Object, stager.Object);
         contextFactory
             .Setup(item => item.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
-            .Returns(new PluginMutationExecutionLease(workspaceLease, context.Object, failure: null));
+            .Returns(PluginMutationExecutionLease.Acquired(workspaceLease, context.Object));
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestMutationRequest>(), context.Object, CancellationToken.None))
             .ReturnsAsync(new PluginExecutionResult<MutationCandidate>
@@ -233,7 +207,7 @@ public sealed class PluginMutationMcpServerToolTests
             operationLease.Object);
         contextFactory
             .Setup(item => item.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
-            .Returns(new PluginMutationExecutionLease(workspaceLease, context.Object, failure: null));
+            .Returns(PluginMutationExecutionLease.Acquired(workspaceLease, context.Object));
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestMutationRequest>(), context.Object, CancellationToken.None))
             .ReturnsAsync(PluginExecutionResult<MutationCandidate>.Success(
@@ -291,7 +265,7 @@ public sealed class PluginMutationMcpServerToolTests
         var workspaceLease = WorkspaceMutationExecutionLease.Acquired(new Mock<IWorkspaceExecutionContext>().Object, stager.Object);
         contextFactory
             .Setup(item => item.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
-            .Returns(new PluginMutationExecutionLease(workspaceLease, context.Object, failure: null));
+            .Returns(PluginMutationExecutionLease.Acquired(workspaceLease, context.Object));
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestMutationRequest>(), context.Object, CancellationToken.None))
             .ReturnsAsync(PluginExecutionResult<MutationCandidate>.Success(new MutationCandidate
@@ -340,7 +314,7 @@ public sealed class PluginMutationMcpServerToolTests
             operationLease.Object);
         contextFactory
             .Setup(item => item.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
-            .Returns(new PluginMutationExecutionLease(workspaceLease, context.Object, failure: null));
+            .Returns(PluginMutationExecutionLease.Acquired(workspaceLease, context.Object));
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestMutationRequest>(), context.Object, CancellationToken.None))
             .Returns(ValueTask.FromException<PluginExecutionResult<MutationCandidate>>(new InvalidOperationException("Message")));
@@ -368,7 +342,7 @@ public sealed class PluginMutationMcpServerToolTests
             operationLease.Object);
         contextFactory
             .Setup(item => item.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), cancellationSource.Token))
-            .Returns(new PluginMutationExecutionLease(workspaceLease, context.Object, failure: null));
+            .Returns(PluginMutationExecutionLease.Acquired(workspaceLease, context.Object));
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestMutationRequest>(), context.Object, cancellationSource.Token))
             .Returns(ValueTask.FromCanceled<PluginExecutionResult<MutationCandidate>>(cancellationSource.Token));
@@ -394,7 +368,7 @@ public sealed class PluginMutationMcpServerToolTests
             operationLease.Object);
         contextFactory
             .Setup(item => item.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
-            .Returns(new PluginMutationExecutionLease(workspaceLease, context.Object, failure: null));
+            .Returns(PluginMutationExecutionLease.Acquired(workspaceLease, context.Object));
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestMutationRequest>(), context.Object, CancellationToken.None))
             .ReturnsAsync(PluginExecutionResult<MutationCandidate>.Success(new MutationCandidate
@@ -434,7 +408,7 @@ public sealed class PluginMutationMcpServerToolTests
             operationLease.Object);
         contextFactory
             .Setup(item => item.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), cancellationSource.Token))
-            .Returns(new PluginMutationExecutionLease(workspaceLease, context.Object, failure: null));
+            .Returns(PluginMutationExecutionLease.Acquired(workspaceLease, context.Object));
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestMutationRequest>(), context.Object, cancellationSource.Token))
             .ReturnsAsync(PluginExecutionResult<MutationCandidate>.Success(new MutationCandidate

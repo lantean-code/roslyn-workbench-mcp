@@ -38,7 +38,8 @@ public sealed class TransactionPreviewToolTests
                     },
                 },
             });
-        var target = new TransactionPreviewTool(Options.Create(new StartupOptions()), service.Object);
+        var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
+        var target = new TransactionPreviewTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
         var arguments = ServerOwnedToolTestData.CreateWorkspaceArguments(includeWorkspace);
         arguments["includeDiff"] = JsonSerializer.SerializeToElement(true);
         arguments["contextLines"] = JsonSerializer.SerializeToElement(2);

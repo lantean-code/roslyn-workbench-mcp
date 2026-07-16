@@ -1,10 +1,12 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Roslyn.Workbench.Mcp.CodeActions;
 
 internal sealed class CodeActionMutationExecutionLease : IAsyncDisposable
 {
     private readonly WorkspaceMutationExecutionLease _workspaceLease;
 
-    public CodeActionMutationExecutionLease(
+    private CodeActionMutationExecutionLease(
         WorkspaceMutationExecutionLease workspaceLease,
         ICodeActionMutationContext? context,
         CodeActionExecutionFailure? failure)
@@ -18,6 +20,10 @@ internal sealed class CodeActionMutationExecutionLease : IAsyncDisposable
 
     public CodeActionExecutionFailure? Failure { get; }
 
+    [MemberNotNullWhen(true, nameof(Failure))]
+    [MemberNotNullWhen(false, nameof(Context))]
+    public bool HasFailure => Failure is not null;
+
     public async ValueTask<CodeActionExecutionResult<MutationData>> StageAsync(
         string operationName,
         WorkspaceMutationCandidate candidate,
@@ -25,9 +31,12 @@ internal sealed class CodeActionMutationExecutionLease : IAsyncDisposable
         IReadOnlyList<WarningInfo> warnings,
         CancellationToken cancellationToken)
     {
-        var stager = _workspaceLease.Stager
-            ?? throw new InvalidOperationException("Code Action mutation acquisition completed without a mutation stager.");
-        var result = await stager.StageAsync(
+        if (_workspaceLease.HasFailure)
+        {
+            throw new InvalidOperationException("A rejected Code Action mutation lease cannot stage changes.");
+        }
+
+        var result = await _workspaceLease.Stager.StageAsync(
             operationName,
             candidate,
             diagnostics,
@@ -40,5 +49,20 @@ internal sealed class CodeActionMutationExecutionLease : IAsyncDisposable
     public ValueTask DisposeAsync()
     {
         return _workspaceLease.DisposeAsync();
+    }
+
+    public static CodeActionMutationExecutionLease Acquired(
+        WorkspaceMutationExecutionLease workspaceLease,
+        ICodeActionMutationContext context)
+    {
+        return new CodeActionMutationExecutionLease(workspaceLease, context, null);
+    }
+
+    public static CodeActionMutationExecutionLease Rejected(
+        WorkspaceMutationExecutionLease workspaceLease,
+        CodeActionExecutionFailure failure,
+        ICodeActionMutationContext? context = null)
+    {
+        return new CodeActionMutationExecutionLease(workspaceLease, context, failure);
     }
 }

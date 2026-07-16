@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Roslyn.Workbench.Mcp.Protocol;
 
 namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
@@ -23,7 +24,8 @@ public static class CodeActionToolTestHarness
             .Single(tool => string.Equals(tool.Metadata.Name, toolName, StringComparison.Ordinal));
         var serverTool = registration.Accept(new CodeActionMcpServerToolFactory(
             runtime.CodeActionHandlerServices,
-            runtime.CodeActionContextFactory));
+            runtime.CodeActionContextFactory,
+            new McpToolProtocolFactory(new ToolSchemaFactory(new McpSdkSchemaProvider()))));
         var result = await serverTool.InvokeArgumentsAsync(arguments, CancellationToken.None);
 
         if (result.IsError != !expectProtocolSuccess)

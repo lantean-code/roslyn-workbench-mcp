@@ -2,7 +2,7 @@
 
 Date: 2026-07-16
 
-Status: Analysis complete; implementation pending
+Status: H1-H2 complete; H3-H7 implementation pending
 
 ## Purpose
 
@@ -117,11 +117,13 @@ Complexity: medium.
 
 ## H2: MCP Protocol and Schema Boundary
 
+Status: Complete
+
 ### Finding
 
-`ToolSchemaBuilder` is not a pure static helper. It owns process-wide caches, reflects over MCP SDK compatibility shapes, invokes generic SDK methods, exports schemas and rewrites them for the published contract. `McpToolProtocolFactory` and `ServerOwnedToolBase` call this global implementation directly.
+The original `ToolSchemaBuilder` was not a pure static helper. It owned process-wide caches, reflected over MCP SDK compatibility shapes, invoked generic SDK methods, exported schemas and rewrote them for the published contract. `McpToolProtocolFactory` and `ServerOwnedToolBase` called this global implementation directly.
 
-`ToolSchemaFactory`, `ToolResultEnvelopeSerializer`, `McpPublishedResultSerializer`, `QueryResponseContractInspector` and `WorkspaceToolResultMapper` are deterministic transformations with no external resource ownership. Their static form is appropriate. The older null-forgiving concern in `WorkspaceToolResultMapper` is no longer present; its remaining exception represents an invalid internal result invariant.
+`ToolResultEnvelopeSerializer`, `McpPublishedResultSerializer`, `QueryResponseContractInspector` and `WorkspaceToolResultMapper` remain deterministic transformations with no external resource ownership. Their static form is appropriate. The older null-forgiving concern in `WorkspaceToolResultMapper` is no longer present; its remaining exception represents an invalid internal result invariant.
 
 ### Decision
 
@@ -129,15 +131,23 @@ Isolate SDK reflection and caching behind one Host-owned schema provider. Keep e
 
 This should be a small number of cohesive services, not an interface per schema operation. Startup-only reflection remains acceptable and must not enter invocation.
 
+### Resolution
+
+`McpSdkSchemaProvider` now owns the MCP SDK probes, compatibility reflection and input/value schema caches behind `IMcpSdkSchemaProvider`. `ToolSchemaBuilder` contains only deterministic JSON schema composition and normalization. The instance `ToolSchemaFactory` coordinates those two responsibilities and caches composed direct-response schemas without exposing SDK reflection to callers.
+
+`McpToolProtocolFactory` is now an injected `IMcpToolProtocolFactory` implementation. Server-owned tools, plugin registration and both Code Action adapters construct protocol metadata through that same boundary. Protocol construction remains startup work, while invocation continues through the existing closed-generic adapters without reflection.
+
+Focused unit tests cover the pure schema composer, schema-factory orchestration, caching and all server-owned/plugin/Code Action protocol metadata branches. Real MCP SDK export is covered in `McpSdkSchemaProviderIntegrationTests`, including request, object, bounded-collection and nullable-value contracts. Existing Host schema and MCP integration coverage continues to lock the published wire shapes.
+
 ### Working checklist
 
-- [ ] Extract MCP SDK schema export, compatibility reflection and caches from `ToolSchemaBuilder` into one focused provider.
-- [ ] Retain pure JSON schema composition separately from SDK export.
-- [ ] Convert `McpToolProtocolFactory` into a constructor-injected Host service, or an equivalent instance boundary, that consumes the schema provider.
-- [ ] Make server-owned, plugin and Code Action tool protocol construction use the same boundary.
-- [ ] Preserve every existing input schema, optional full output schema, annotation, title and description.
-- [ ] Keep reflection and generic materialisation at startup only.
-- [ ] Add focused unit coverage for cache-independent composition and integration/audit evidence for the real MCP SDK exporter.
+- [x] Extract MCP SDK schema export, compatibility reflection and caches from `ToolSchemaBuilder` into one focused provider.
+- [x] Retain pure JSON schema composition separately from SDK export.
+- [x] Convert `McpToolProtocolFactory` into a constructor-injected Host service, or an equivalent instance boundary, that consumes the schema provider.
+- [x] Make server-owned, plugin and Code Action tool protocol construction use the same boundary.
+- [x] Preserve every existing input schema, optional full output schema, annotation, title and description.
+- [x] Keep reflection and generic materialisation at startup only.
+- [x] Add focused unit coverage for cache-independent composition and integration/audit evidence for the real MCP SDK exporter.
 
 Complexity: high.
 

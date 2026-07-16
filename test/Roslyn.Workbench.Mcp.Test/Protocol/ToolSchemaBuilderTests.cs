@@ -1,8 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Collections;
-
 namespace Roslyn.Workbench.Mcp.Test.Protocol;
 
 public sealed class ToolSchemaBuilderTests
@@ -16,12 +14,17 @@ public sealed class ToolSchemaBuilderTests
     }
 
     [Fact]
+    public void GIVEN_PrimitiveType_WHEN_CreatingNullablePrimitiveSchema_THEN_ShouldIncludePrimitiveAndNull()
+    {
+        var result = ToolSchemaBuilder.CreateNullablePrimitiveSchema("string");
+
+        result["type"]!.AsArray().Select(item => item!.GetValue<string>()).Should().Equal("string", "null");
+    }
+
+    [Fact]
     public void GIVEN_PrimitiveTypeSchema_WHEN_AllowingNull_THEN_ShouldAppendNullType()
     {
-        var schema = JsonSerializer.SerializeToElement(new
-        {
-            type = "string",
-        });
+        var schema = CreatePrimitiveSchema("string");
 
         var result = ToolSchemaBuilder.AllowNull(schema).AsObject();
 
@@ -76,60 +79,34 @@ public sealed class ToolSchemaBuilderTests
     }
 
     [Fact]
-    public void GIVEN_ObjectOutput_WHEN_CreatingDirectSchema_THEN_ShouldFlattenObjectProperties()
+    public void GIVEN_ObjectOutput_WHEN_CreatingDirectSchema_THEN_ShouldFlattenObjectPropertiesAndRequiredNames()
     {
-        var result = ToolSchemaBuilder.CreateDirectOutputSchema(typeof(TestResponse));
+        var valueSchemaNode = JsonNode.Parse(CreateObjectSchema("value").GetRawText())!.AsObject();
+        valueSchemaNode["properties"]!.AsObject()["optional"] = null;
+        var valueSchema = JsonSerializer.SerializeToElement(valueSchemaNode);
 
-        result.GetRawText().Should().Contain("value");
+        var result = ToolSchemaBuilder.CreateDirectOutputSchema(
+            valueSchema,
+            CreateObjectSchema("code"),
+            CreatePrimitiveSchema("string"));
+        var success = GetSuccessVariant(result);
+
+        success.GetProperty("properties").TryGetProperty("value", out _).Should().BeTrue();
+        success.GetProperty("properties").GetProperty("optional").ValueKind.Should().Be(JsonValueKind.Null);
+        success.GetProperty("required").EnumerateArray().Select(item => item.GetString()).Should().Contain(["ok", "value"]);
     }
 
     [Fact]
-    public void GIVEN_ScalarOutput_WHEN_CreatingDirectSchema_THEN_ShouldNotPublishObjectProperties()
+    public void GIVEN_ScalarOutput_WHEN_CreatingDirectSchema_THEN_ShouldPublishOnlyOkOnSuccess()
     {
-        var result = ToolSchemaBuilder.CreateDirectOutputSchema(typeof(string));
+        var result = ToolSchemaBuilder.CreateDirectOutputSchema(
+            CreatePrimitiveSchema("string"),
+            CreateObjectSchema("code"),
+            CreatePrimitiveSchema("string"));
+        var success = GetSuccessVariant(result);
 
-        result.GetRawText().Should().NotContain("value");
-    }
-
-    [Fact]
-    public void GIVEN_PrimitiveBoundedCollection_WHEN_CreatingValueSchema_THEN_ShouldPublishItemsAndHasMore()
-    {
-        var result = ToolSchemaBuilder.CreateValueSchema(typeof(BoundedCollection<string>));
-
-        result.GetRawText().Should().Contain("items");
-        result.GetRawText().Should().Contain("hasMore");
-    }
-
-    [Fact]
-    public void GIVEN_ObjectBoundedCollection_WHEN_CreatingValueSchema_THEN_ShouldPublishItemProperties()
-    {
-        var result = ToolSchemaBuilder.CreateValueSchema(typeof(BoundedCollection<TestResponse>));
-
-        result.GetRawText().Should().Contain("value");
-    }
-
-    [Fact]
-    public void GIVEN_ComplexValueType_WHEN_CreatingValueSchema_THEN_ShouldPreserveProperties()
-    {
-        var result = ToolSchemaBuilder.CreateValueSchema<TypeHierarchyNode>();
-
-        result.GetRawText().Should().Contain("derivedTypes");
-    }
-
-    [Fact]
-    public void GIVEN_NullableValueType_WHEN_CreatingValueSchema_THEN_ShouldPublishObjectType()
-    {
-        var result = ToolSchemaBuilder.CreateValueSchema(typeof(TestStruct?));
-
-        result.GetProperty("type").GetString().Should().Be("object");
-    }
-
-    [Fact]
-    public void GIVEN_ComplexBoundedCollection_WHEN_CreatingValueSchema_THEN_ShouldPreserveItemProperties()
-    {
-        var result = ToolSchemaBuilder.CreateValueSchema(typeof(BoundedCollection<TypeHierarchyNode>));
-
-        result.GetRawText().Should().Contain("derivedTypes");
+        success.GetProperty("properties").EnumerateObject().Select(item => item.Name).Should().Equal("ok");
+        success.GetProperty("required").EnumerateArray().Select(item => item.GetString()).Should().Equal("ok");
     }
 
     [Fact]
@@ -140,7 +117,9 @@ public sealed class ToolSchemaBuilderTests
             {
                 ["type"] = "object",
             },
-            []);
+            [],
+            CreateObjectSchema("code"),
+            CreatePrimitiveSchema("string"));
 
         result.TryGetProperty("$defs", out _).Should().BeFalse();
     }
@@ -148,38 +127,47 @@ public sealed class ToolSchemaBuilderTests
     [Fact]
     public void GIVEN_ResponseComponentsWithDefinitions_WHEN_CreatingResponseSchema_THEN_ShouldMergeDefinitions()
     {
-        var component = JsonSerializer.SerializeToElement(new JsonObject
-        {
-            ["type"] = "object",
-            ["$defs"] = new JsonObject
-            {
-                ["TestDefinition"] = new JsonObject
-                {
-                    ["type"] = "string",
-                },
-                ["NullDefinition"] = null,
-            },
-        });
-        var componentWithoutDefinitions = JsonSerializer.SerializeToElement(new JsonObject
-        {
-            ["type"] = "string",
-        });
+        var component = CreateSchemaWithDefinitions("ComponentDefinition");
+        var error = CreateSchemaWithDefinitions("ErrorDefinition");
+        var next = CreateSchemaWithDefinitions("NextDefinition");
 
         var result = ToolSchemaBuilder.CreateResponseSchema(
             new JsonObject
             {
                 ["type"] = "object",
             },
-            [component, componentWithoutDefinitions]);
+            [component, CreatePrimitiveSchema("string")],
+            error,
+            next);
 
-        result.TryGetProperty("$defs", out var definitions).Should().BeTrue();
-        definitions.EnumerateObject().Should().NotBeEmpty();
+        var definitions = result.GetProperty("$defs");
+        definitions.TryGetProperty("ComponentDefinition", out _).Should().BeTrue();
+        definitions.TryGetProperty("ErrorDefinition", out _).Should().BeTrue();
+        definitions.TryGetProperty("NextDefinition", out _).Should().BeTrue();
+    }
+
+    [Fact]
+    public void GIVEN_ItemSchemaWithoutDefinitions_WHEN_CreatingBoundedCollectionSchema_THEN_ShouldPublishItemsAndHasMore()
+    {
+        var result = ToolSchemaBuilder.CreateBoundedCollectionSchema(CreatePrimitiveSchema("string"));
+
+        result.GetProperty("properties").GetProperty("items").GetProperty("type").GetString().Should().Be("array");
+        result.GetProperty("properties").GetProperty("hasMore").GetProperty("type").GetString().Should().Be("boolean");
+        result.TryGetProperty("$defs", out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public void GIVEN_ItemSchemaWithDefinitions_WHEN_CreatingBoundedCollectionSchema_THEN_ShouldPreserveDefinitions()
+    {
+        var result = ToolSchemaBuilder.CreateBoundedCollectionSchema(CreateSchemaWithDefinitions("ItemDefinition"));
+
+        result.GetProperty("$defs").TryGetProperty("ItemDefinition", out _).Should().BeTrue();
     }
 
     [Fact]
     public void GIVEN_ArrayItemSchema_WHEN_CreatingArraySchema_THEN_ShouldPreserveItems()
     {
-        var itemSchema = ToolSchemaBuilder.CreateValueSchema<string>();
+        var itemSchema = CreatePrimitiveSchema("string");
 
         var result = ToolSchemaBuilder.CreateArraySchema(itemSchema);
 
@@ -187,13 +175,98 @@ public sealed class ToolSchemaBuilderTests
         result["items"]!.ToJsonString().Should().Be(itemSchema.GetRawText());
     }
 
-    public sealed record TestResponse
+    [Fact]
+    public void GIVEN_NullableObjectExportWithRootDefinitions_WHEN_Normalizing_THEN_ShouldUseObjectTypeAndCopyDefinitions()
     {
-        public string Value { get; init; } = string.Empty;
+        var schema = JsonSerializer.SerializeToElement(new JsonObject
+        {
+            ["type"] = new JsonArray(null, "object", "null"),
+        });
+        var root = CreateSchemaWithDefinitions("Definition");
+
+        var result = ToolSchemaBuilder.NormalizeExportedSchema(schema, root);
+
+        result.GetProperty("type").GetString().Should().Be("object");
+        result.GetProperty("$defs").TryGetProperty("Definition", out _).Should().BeTrue();
     }
 
-    public readonly record struct TestStruct
+    [Fact]
+    public void GIVEN_SimpleExportWithoutDefinitions_WHEN_Normalizing_THEN_ShouldPreserveSchema()
     {
-        public string Value { get; init; }
+        var schema = CreatePrimitiveSchema("string");
+
+        var result = ToolSchemaBuilder.NormalizeExportedSchema(schema, CreatePrimitiveSchema("object"));
+
+        result.GetRawText().Should().Be(schema.GetRawText());
+    }
+
+    [Fact]
+    public void GIVEN_NonObjectTypeArray_WHEN_Normalizing_THEN_ShouldPreserveTypeArray()
+    {
+        var schema = JsonSerializer.SerializeToElement(new JsonObject
+        {
+            ["type"] = new JsonArray("string", "null"),
+        });
+
+        var result = ToolSchemaBuilder.NormalizeExportedSchema(schema, CreatePrimitiveSchema("object"));
+
+        result.GetProperty("type").EnumerateArray().Select(item => item.GetString()).Should().Equal("string", "null");
+    }
+
+    [Fact]
+    public void GIVEN_NonObjectSchema_WHEN_Composing_THEN_ShouldRejectInvalidSchema()
+    {
+        var schema = JsonSerializer.SerializeToElement("string");
+
+        var action = () => ToolSchemaBuilder.AllowNull(schema);
+
+        action.Should().Throw<InvalidOperationException>();
+    }
+
+    private static JsonElement GetSuccessVariant(JsonElement schema)
+    {
+        return schema.GetProperty("oneOf")
+            .EnumerateArray()
+            .Single(item => item.GetProperty("properties").GetProperty("ok").GetProperty("const").GetBoolean());
+    }
+
+    private static JsonElement CreateObjectSchema(string propertyName)
+    {
+        return JsonSerializer.SerializeToElement(new JsonObject
+        {
+            ["type"] = "object",
+            ["required"] = new JsonArray(propertyName, null),
+            ["properties"] = new JsonObject
+            {
+                [propertyName] = new JsonObject
+                {
+                    ["type"] = "string",
+                },
+            },
+        });
+    }
+
+    private static JsonElement CreatePrimitiveSchema(string type)
+    {
+        return JsonSerializer.SerializeToElement(new JsonObject
+        {
+            ["type"] = type,
+        });
+    }
+
+    private static JsonElement CreateSchemaWithDefinitions(string definitionName)
+    {
+        return JsonSerializer.SerializeToElement(new JsonObject
+        {
+            ["type"] = "object",
+            ["$defs"] = new JsonObject
+            {
+                [definitionName] = new JsonObject
+                {
+                    ["type"] = "string",
+                },
+                ["NullDefinition"] = null,
+            },
+        });
     }
 }

@@ -46,6 +46,7 @@ public sealed class PluginDiscoveryAndMcpToolIntegrationTests
         var tool = snapshot.Tools.Single();
         var serverTool = tool.Accept(new PluginMcpServerToolFactory(
             CreateExecutionContextFactory(),
+            new McpToolProtocolFactory(new ToolSchemaFactory(new McpSdkSchemaProvider())),
             ToolOutputSchemaMode.Full));
 
         serverTool.ProtocolTool.Name.Should().Be("host-valid-query");
@@ -85,6 +86,7 @@ public sealed class PluginDiscoveryAndMcpToolIntegrationTests
         using var workspace = new AdhocWorkspace();
         var serverTool = tool.Accept(new PluginMcpServerToolFactory(
             CreateMutationExecutionContextFactory(workspace.CurrentSolution),
+            new McpToolProtocolFactory(new ToolSchemaFactory(new McpSdkSchemaProvider())),
             ToolOutputSchemaMode.Full));
 
         var result = await McpIntegrationTestHost.InvokeServerToolAsync(serverTool, "host-valid-mutation", new Dictionary<string, JsonElement>
@@ -257,7 +259,7 @@ public sealed class PluginDiscoveryAndMcpToolIntegrationTests
         var workspaceLease = WorkspaceMutationExecutionLease.Acquired(workspaceContext.Object, stager.Object);
         factory
             .Setup(static value => value.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), It.IsAny<CancellationToken>()))
-            .Returns(new PluginMutationExecutionLease(workspaceLease, context.Object, failure: null));
+            .Returns(PluginMutationExecutionLease.Acquired(workspaceLease, context.Object));
         return factory.Object;
     }
 

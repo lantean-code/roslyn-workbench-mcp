@@ -11,33 +11,52 @@ namespace Roslyn.Workbench.Mcp.Test.Tools;
 public sealed class ServerOwnedToolBaseTests
 {
     [Fact]
-    public void GIVEN_ReadOnlyTool_WHEN_InspectingProtocolMetadata_THEN_ShouldPublishExpectedAnnotations()
+    public void GIVEN_ReadOnlyTool_WHEN_CreatingTool_THEN_ShouldRequestExpectedProtocolMetadata()
     {
+        var protocolTool = new Tool
+        {
+            Name = "workspace-list",
+        };
+        var protocolFactory = new Mock<IMcpToolProtocolFactory>();
+        protocolFactory
+            .Setup(item => item.CreateServerOwnedTool<WorkspaceListRequest, WorkspaceListData>(
+                "workspace-list",
+                "Workspace List",
+                "Lists the currently loaded workspaces.",
+                true,
+                false,
+                null,
+                ToolOutputSchemaMode.Omit))
+            .Returns(protocolTool);
         var service = new Mock<IWorkspaceLifecycleService>();
         var target = new WorkspaceListTool(
             Options.Create(new StartupOptions()),
+            protocolFactory.Object,
             service.Object);
 
-        target.ProtocolTool.Name.Should().Be("workspace-list");
-        target.ProtocolTool.Title.Should().Be("Workspace List");
-        target.ProtocolTool.Annotations!.ReadOnlyHint.Should().BeTrue();
-        target.ProtocolTool.Annotations.IdempotentHint.Should().BeTrue();
-        target.ProtocolTool.Annotations.DestructiveHint.Should().BeFalse();
-        target.ProtocolTool.Annotations.OpenWorldHint.Should().BeFalse();
+        target.ProtocolTool.Should().BeSameAs(protocolTool);
         target.Metadata.Should().BeEmpty();
+        protocolFactory.VerifyAll();
     }
 
     [Fact]
-    public void GIVEN_DestructiveTool_WHEN_InspectingProtocolMetadata_THEN_ShouldPublishExpectedAnnotations()
+    public void GIVEN_DestructiveTool_WHEN_CreatingTool_THEN_ShouldRequestExpectedProtocolMetadata()
     {
+        var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var service = new Mock<ITransactionService>();
         var target = new TransactionCommitTool(
             Options.Create(new StartupOptions()),
+            protocolFactory.Object,
             service.Object);
 
-        target.ProtocolTool.Annotations!.ReadOnlyHint.Should().BeFalse();
-        target.ProtocolTool.Annotations.IdempotentHint.Should().BeFalse();
-        target.ProtocolTool.Annotations.DestructiveHint.Should().BeTrue();
+        protocolFactory.Verify(item => item.CreateServerOwnedTool<TransactionCommitRequest, TransactionCommitData>(
+            "transaction-commit",
+            "Transaction Commit",
+            "Commits the current staged transaction to disk.",
+            false,
+            true,
+            null,
+            ToolOutputSchemaMode.Omit), Times.Once);
     }
 
     [Theory]
@@ -61,7 +80,8 @@ public sealed class ServerOwnedToolBaseTests
                     RequiredAction = RequiredAction.Retry,
                 },
             });
-        var target = new WorkspaceListTool(Options.Create(new StartupOptions()), service.Object);
+        var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
+        var target = new WorkspaceListTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
 
         var result = await ServerOwnedToolTestSupport.InvokeAsync(
             target,
@@ -81,7 +101,8 @@ public sealed class ServerOwnedToolBaseTests
         service
             .Setup(item => item.ListAsync(CancellationToken.None))
             .Returns(ValueTask.FromException<WorkspaceOperationResult<WorkspaceListOutcome>>(new InvalidOperationException("Message")));
-        var target = new WorkspaceListTool(Options.Create(new StartupOptions()), service.Object);
+        var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
+        var target = new WorkspaceListTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
 
         var result = await ServerOwnedToolTestSupport.InvokeAsync(
             target,
@@ -100,7 +121,8 @@ public sealed class ServerOwnedToolBaseTests
         service
             .Setup(item => item.ListAsync(cancellationSource.Token))
             .Returns(ValueTask.FromCanceled<WorkspaceOperationResult<WorkspaceListOutcome>>(cancellationSource.Token));
-        var target = new WorkspaceListTool(Options.Create(new StartupOptions()), service.Object);
+        var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
+        var target = new WorkspaceListTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
 
         var action = async () => await ServerOwnedToolTestSupport.InvokeAsync(
             target,
@@ -114,7 +136,8 @@ public sealed class ServerOwnedToolBaseTests
     public async Task GIVEN_MalformedArguments_WHEN_InvokingTool_THEN_ShouldPublishUnhandledFailureWithoutCallingService()
     {
         var service = new Mock<IWorkspaceLifecycleService>();
-        var target = new WorkspaceOpenTool(Options.Create(new StartupOptions()), service.Object);
+        var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
+        var target = new WorkspaceOpenTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
 
         var result = await ServerOwnedToolTestSupport.InvokeAsync(
             target,
@@ -144,7 +167,8 @@ public sealed class ServerOwnedToolBaseTests
                 Status = WorkspaceOperationStatus.Succeeded,
                 Data = new WorkspaceListOutcome(),
             });
-        var target = new WorkspaceListTool(Options.Create(new StartupOptions()), service.Object);
+        var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
+        var target = new WorkspaceListTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
         var requestContext = new RequestContext<CallToolRequestParams>(
             ServerOwnedToolTestSupport.CreateServer(),
             new JsonRpcRequest

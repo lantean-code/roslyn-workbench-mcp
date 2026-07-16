@@ -28,15 +28,14 @@ internal sealed class PluginMutationMcpServerTool<TRequest> : McpServerToolBase
         var request = ToolRequestBinder.Deserialize<TRequest>(arguments);
         var contextLease = _contextFactory.CreateMutationContext(request, cancellationToken);
         await using var _ = contextLease.ConfigureAwait(false);
-        if (contextLease.Failure is not null)
+        if (contextLease.HasFailure)
         {
             return CreateResult(
                 McpPublishedResultSerializer.SerializePluginFailure(contextLease.Failure),
                 isError: true);
         }
 
-        var context = contextLease.Context
-            ?? throw new InvalidOperationException("Plugin mutation acquisition completed without a context.");
+        var context = contextLease.Context;
         var proposalResult = await _handler.ExecuteAsync(request, context, cancellationToken).ConfigureAwait(false);
         if (proposalResult.Outcome.IsError())
         {

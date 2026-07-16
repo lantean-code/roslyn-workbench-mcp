@@ -13,6 +13,7 @@ public sealed class McpToolRegistrationVisitorTests
     {
         var services = new ServiceCollection();
         var contextFactory = new Mock<IToolExecutionContextFactory>();
+        var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var handler = new Mock<IQueryToolHandler<TestRequest, TestResponse>>();
         var registration = new PluginQueryRegistration<TestRequest, TestResponse>(
             CreatePluginTool(ToolKind.Query, typeof(TestResponse)),
@@ -26,7 +27,8 @@ public sealed class McpToolRegistrationVisitorTests
         descriptor.ServiceType.Should().Be(typeof(McpServerTool));
         descriptor.Lifetime.Should().Be(ServiceLifetime.Singleton);
         descriptor.ImplementationFactory.Should().NotBeNull();
-        ResolveRegisteredTool(descriptor, contextFactory.Object).Should().BeOfType<PluginQueryMcpServerTool<TestRequest, TestResponse>>();
+        ResolveRegisteredTool(descriptor, contextFactory.Object, protocolFactory.Object)
+            .Should().BeOfType<PluginQueryMcpServerTool<TestRequest, TestResponse>>();
     }
 
     [Fact]
@@ -34,6 +36,7 @@ public sealed class McpToolRegistrationVisitorTests
     {
         var services = new ServiceCollection();
         var contextFactory = new Mock<IToolExecutionContextFactory>();
+        var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var handler = new Mock<IMutationToolHandler<TestRequest>>();
         var registration = new PluginMutationRegistration<TestRequest>(
             CreatePluginTool(ToolKind.Mutation, typeof(MutationData)),
@@ -47,7 +50,8 @@ public sealed class McpToolRegistrationVisitorTests
         descriptor.ServiceType.Should().Be(typeof(McpServerTool));
         descriptor.Lifetime.Should().Be(ServiceLifetime.Singleton);
         descriptor.ImplementationFactory.Should().NotBeNull();
-        ResolveRegisteredTool(descriptor, contextFactory.Object).Should().BeOfType<PluginMutationMcpServerTool<TestRequest>>();
+        ResolveRegisteredTool(descriptor, contextFactory.Object, protocolFactory.Object)
+            .Should().BeOfType<PluginMutationMcpServerTool<TestRequest>>();
     }
 
     [Fact]
@@ -68,7 +72,9 @@ public sealed class McpToolRegistrationVisitorTests
             && descriptor.ImplementationType == typeof(CodeActionQueryMcpServerTool<TestQueryHandler, TestRequest, TestResponse>)
             && descriptor.Lifetime == ServiceLifetime.Singleton);
 
+        var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         services.AddSingleton(contextFactory.Object);
+        services.AddSingleton(protocolFactory.Object);
         services.AddSingleton(Options.Create(new StartupOptions()));
         using var serviceProvider = services.BuildServiceProvider(new ServiceProviderOptions
         {
@@ -96,7 +102,9 @@ public sealed class McpToolRegistrationVisitorTests
             && descriptor.ImplementationType == typeof(CodeActionMutationMcpServerTool<TestMutationHandler, TestRequest>)
             && descriptor.Lifetime == ServiceLifetime.Singleton);
 
+        var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         services.AddSingleton(contextFactory.Object);
+        services.AddSingleton(protocolFactory.Object);
         services.AddSingleton(Options.Create(new StartupOptions()));
         using var serviceProvider = services.BuildServiceProvider(new ServiceProviderOptions
         {
@@ -108,13 +116,17 @@ public sealed class McpToolRegistrationVisitorTests
 
     private static McpServerTool ResolveRegisteredTool<TContextFactory>(
         ServiceDescriptor descriptor,
-        TContextFactory contextFactory)
+        TContextFactory contextFactory,
+        IMcpToolProtocolFactory protocolFactory)
         where TContextFactory : class
     {
         var serviceProvider = new Mock<IServiceProvider>();
         serviceProvider
             .Setup(item => item.GetService(typeof(TContextFactory)))
             .Returns(contextFactory);
+        serviceProvider
+            .Setup(item => item.GetService(typeof(IMcpToolProtocolFactory)))
+            .Returns(protocolFactory);
 
         return (McpServerTool)descriptor.ImplementationFactory!(serviceProvider.Object);
     }

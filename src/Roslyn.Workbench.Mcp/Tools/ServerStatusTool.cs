@@ -10,9 +10,11 @@ internal sealed class ServerStatusTool : ServerOwnedToolBase<ServerStatusRequest
 
     public ServerStatusTool(
         IOptions<StartupOptions> startupOptions,
+        IMcpToolProtocolFactory protocolFactory,
         IServerStatusService serverStatusService)
         : base(
             startupOptions: startupOptions,
+            protocolFactory: protocolFactory,
             name: ServerOwnedToolRegistration.ServerStatusName,
             title: "Server Status",
             description: "Returns server diagnostics without requiring a loaded workspace.",

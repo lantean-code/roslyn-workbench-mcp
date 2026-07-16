@@ -26,7 +26,8 @@ public sealed class TransactionRollbackToolTests
                     State = TransactionRollbackState.Ready,
                 },
             });
-        var target = new TransactionRollbackTool(Options.Create(new StartupOptions()), service.Object);
+        var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
+        var target = new TransactionRollbackTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
 
         var result = await ServerOwnedToolTestSupport.InvokeAsync(
             target,

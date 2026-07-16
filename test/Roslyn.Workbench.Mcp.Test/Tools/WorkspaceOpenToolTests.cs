@@ -31,7 +31,8 @@ public sealed class WorkspaceOpenToolTests
                     DocumentCount = 5,
                 },
             });
-        var target = new WorkspaceOpenTool(Options.Create(new StartupOptions()), service.Object);
+        var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
+        var target = new WorkspaceOpenTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
 
         var result = await ServerOwnedToolTestSupport.InvokeAsync(
             target,

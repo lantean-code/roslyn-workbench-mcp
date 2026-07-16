@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Roslyn.Workbench.Mcp.Plugins.Execution;
 
 /// <summary>
@@ -7,7 +9,7 @@ public sealed class PluginMutationExecutionLease : IAsyncDisposable
 {
     private readonly WorkspaceMutationExecutionLease _workspaceLease;
 
-    internal PluginMutationExecutionLease(
+    private PluginMutationExecutionLease(
         WorkspaceMutationExecutionLease workspaceLease,
         IMutationContext? context,
         ToolExecutionFailureResult? failure)
@@ -23,6 +25,11 @@ public sealed class PluginMutationExecutionLease : IAsyncDisposable
     /// <summary>Gets the normalized acquisition failure when acquisition was rejected.</summary>
     public ToolExecutionFailureResult? Failure { get; }
 
+    /// <summary>Gets a value indicating whether mutation context acquisition failed.</summary>
+    [MemberNotNullWhen(true, nameof(Failure))]
+    [MemberNotNullWhen(false, nameof(Context))]
+    public bool HasFailure => Failure is not null;
+
     /// <summary>Stages a candidate returned by the plugin handler.</summary>
     /// <param name="operationName">The registered operation name.</param>
     /// <param name="candidate">The plugin mutation candidate.</param>
@@ -37,9 +44,12 @@ public sealed class PluginMutationExecutionLease : IAsyncDisposable
         IReadOnlyList<WarningInfo> warnings,
         CancellationToken cancellationToken)
     {
-        var stager = _workspaceLease.Stager
-            ?? throw new InvalidOperationException("Mutation context acquisition completed without a mutation stager.");
-        var result = await stager.StageAsync(
+        if (_workspaceLease.HasFailure)
+        {
+            throw new InvalidOperationException("A rejected mutation lease cannot stage changes.");
+        }
+
+        var result = await _workspaceLease.Stager.StageAsync(
             operationName,
             new WorkspaceMutationCandidate
             {
@@ -59,5 +69,20 @@ public sealed class PluginMutationExecutionLease : IAsyncDisposable
     public ValueTask DisposeAsync()
     {
         return _workspaceLease.DisposeAsync();
+    }
+
+    internal static PluginMutationExecutionLease Acquired(
+        WorkspaceMutationExecutionLease workspaceLease,
+        IMutationContext context)
+    {
+        return new PluginMutationExecutionLease(workspaceLease, context, null);
+    }
+
+    internal static PluginMutationExecutionLease Rejected(
+        WorkspaceMutationExecutionLease workspaceLease,
+        ToolExecutionFailureResult failure,
+        IMutationContext? context = null)
+    {
+        return new PluginMutationExecutionLease(workspaceLease, context, failure);
     }
 }

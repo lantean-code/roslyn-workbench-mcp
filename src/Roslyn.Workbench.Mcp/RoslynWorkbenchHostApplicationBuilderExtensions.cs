@@ -85,6 +85,9 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
     {
         services.AddSingleton(pluginCatalogSnapshot);
         services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<IMcpSdkSchemaProvider, McpSdkSchemaProvider>();
+        services.AddSingleton<ToolSchemaFactory>();
+        services.AddSingleton<IMcpToolProtocolFactory, McpToolProtocolFactory>();
         services.AddSingleton<IMsBuildRegistrationService, MsBuildRegistrationService>();
         services.AddSingleton<IToolRequestResolver, DefaultToolRequestResolver>();
         services.AddSingleton<ICompilerDiagnosticService, DefaultCompilerDiagnosticService>();

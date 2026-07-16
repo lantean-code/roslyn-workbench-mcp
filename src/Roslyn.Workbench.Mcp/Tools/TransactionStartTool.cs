@@ -10,9 +10,11 @@ internal sealed class TransactionStartTool : ServerOwnedToolBase<TransactionStar
 
     public TransactionStartTool(
         IOptions<StartupOptions> startupOptions,
+        IMcpToolProtocolFactory protocolFactory,
         ITransactionService transactionService)
         : base(
             startupOptions: startupOptions,
+            protocolFactory: protocolFactory,
             name: ServerOwnedToolRegistration.TransactionStartName,
             title: "Transaction Start",
             description: "Starts a new staged transaction.",

@@ -58,6 +58,6 @@ internal abstract class ServerOwnedToolBase<TRequest, TResponse> : McpServerTool
             return ToolResultEnvelopeSerializer.CreateFailure(result.Error, result.RequiredAction);
         }
 
-        return ToolResultEnvelopeSerializer.CreateFlattenedSuccess(result.Data);
+        return ToolResultEnvelopeSerializer.CreateSuccess(result.Data);
     }
 }

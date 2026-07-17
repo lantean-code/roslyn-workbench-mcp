@@ -97,8 +97,9 @@ public sealed class PluginDiscoveryAndMcpToolIntegrationTests
         result.IsError.Should().BeFalse();
         var content = result.StructuredContent ?? throw new InvalidOperationException("The mutation result did not contain structured content.");
         content.GetProperty("ok").GetBoolean().Should().BeTrue();
-        content.GetProperty("staged").GetBoolean().Should().BeTrue();
-        content.GetProperty("summary").GetString().Should().Be("Summary");
+        var data = content.GetProperty("data");
+        data.GetProperty("staged").GetBoolean().Should().BeTrue();
+        data.GetProperty("summary").GetString().Should().Be("Summary");
     }
 
     [Fact]

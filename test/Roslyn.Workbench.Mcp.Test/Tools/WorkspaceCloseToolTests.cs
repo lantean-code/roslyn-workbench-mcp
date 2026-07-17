@@ -36,7 +36,7 @@ public sealed class WorkspaceCloseToolTests
             CancellationToken.None);
 
         result.IsError.Should().BeFalse();
-        result.StructuredContent!.Value.GetProperty("closedPath").GetString().Should().Be("/workspace/Sample.csproj");
+        result.StructuredContent!.Value.GetProperty("data").GetProperty("closedPath").GetString().Should().Be("/workspace/Sample.csproj");
         service.Verify(item => item.CloseAsync(
             ServerOwnedToolTestData.GetWorkspaceId(includeWorkspace),
             ServerOwnedToolTestData.GetWorkspaceAlias(includeWorkspace),

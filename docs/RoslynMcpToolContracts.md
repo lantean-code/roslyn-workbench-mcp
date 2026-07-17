@@ -129,11 +129,13 @@ base:
 }
 ```
 
-Successful results are then published by family:
+Every successful result uses the same outer envelope and publishes its family-specific payload under `data`:
 
-- Direct lifecycle and status results: existing structured tool-result envelopes
+- Direct lifecycle and status results: `{ ok: true, data: { ...response dto... } }`
 - Query tools: `{ ok: true, data: { ...response dto... } }`
-- Staged mutations: `{ ok: true, staged: boolean, summary?: string, transaction?: { revision: int } }`
+- Staged mutations: `{ ok: true, data: { staged: boolean, summary?: string, transaction?: { revision: int } } }`
+
+Clients therefore need only one boundary rule: inspect `ok`, then read `data` on success or `error` and optional `next` on failure. Payloads remain compact and family-specific within `data`; the host does not expose the richer internal `ToolResult<TData>` envelope.
 
 Top-level agent-facing query collections should use `BoundedCollection<TItem>`
 inside the response DTO. When `ToolOutputSchemaMode` is `Full`,

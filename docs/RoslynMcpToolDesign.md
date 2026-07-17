@@ -638,7 +638,7 @@ canonical diffs, staged revisions, validation records or disk-write plans.
 ### Tool response and error contract
 
 Every workspace, transaction and plugin-tool invocation now publishes a compact
-family-specific MCP result instead of one universal success envelope. A plugin
+family-specific payload within one universal success envelope. A plugin
 must still return structured data; it must not substitute prose for structured
 results or invent an incompatible success or error shape.
 
@@ -655,11 +655,13 @@ All tools share the same minimal failure and continuation base:
 }
 ```
 
-Successful payloads are shaped by family:
+Every successful result publishes its family-specific payload under the same `data` property:
 
-- direct lifecycle and status tools publish their existing structured envelopes
+- direct lifecycle and status tools publish `{ ok: true, data: { ...response dto... } }`
 - query tools publish `{ ok: true, data: { ...response dto... } }`
-- staged mutations publish `{ ok: true, staged, summary?, transaction? }`
+- staged mutations publish `{ ok: true, data: { staged, summary?, transaction? } }`
+
+This gives clients a uniform outer parsing rule without restoring the verbose internal `ToolResult<TData>` envelope. The payload within `data` remains compact and specific to the tool family.
 
 This keeps the default path compact:
 

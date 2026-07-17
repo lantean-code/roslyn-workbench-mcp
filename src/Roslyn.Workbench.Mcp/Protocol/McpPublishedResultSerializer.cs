@@ -20,7 +20,7 @@ internal static class McpPublishedResultSerializer
 
         return result.Outcome.IsError()
             ? SerializePluginFailure(CreatePluginFailure(result, "Query"))
-            : ToolResultEnvelopeSerializer.CreateNestedSuccess("data", result.Data);
+            : ToolResultEnvelopeSerializer.CreateSuccess(result.Data);
     }
 
     public static JsonElement SerializePluginMutation(PluginExecutionResult<MutationData> result)
@@ -49,7 +49,7 @@ internal static class McpPublishedResultSerializer
 
         return result.Outcome.IsError()
             ? SerializeCodeActionFailure(CreateCodeActionFailure(result, "Query"))
-            : ToolResultEnvelopeSerializer.CreateNestedSuccess("data", result.Data);
+            : ToolResultEnvelopeSerializer.CreateSuccess(result.Data);
     }
 
     public static JsonElement SerializeCodeActionMutation(CodeActionExecutionResult<MutationData> result)

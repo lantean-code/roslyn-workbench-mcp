@@ -46,9 +46,10 @@ public sealed class WorkspaceOpenToolTests
             CancellationToken.None);
 
         result.IsError.Should().BeFalse();
-        result.StructuredContent!.Value.GetProperty("workspace").GetProperty("workspaceId").GetString().Should().Be("WorkspaceId");
-        result.StructuredContent.Value.GetProperty("projectCount").GetInt32().Should().Be(2);
-        result.StructuredContent.Value.GetProperty("documentCount").GetInt32().Should().Be(5);
+        var data = result.StructuredContent!.Value.GetProperty("data");
+        data.GetProperty("workspace").GetProperty("workspaceId").GetString().Should().Be("WorkspaceId");
+        data.GetProperty("projectCount").GetInt32().Should().Be(2);
+        data.GetProperty("documentCount").GetInt32().Should().Be(5);
         service.Verify(item => item.OpenAsync("/workspace/Sample.csproj", "Alias", "/workspace", CancellationToken.None), Times.Once);
     }
 }

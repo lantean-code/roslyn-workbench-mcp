@@ -32,12 +32,13 @@ public sealed class WorkspaceLifecycleMcpIntegrationTests
         var close = await McpIntegrationTestHost.InvokeServerToolAsync(closeTool, TestContext.Current.CancellationToken, "workspace-close", new Dictionary<string, JsonElement>());
 
         open.IsError.Should().BeFalse();
-        open.StructuredContent!.Value.GetProperty("workspace").GetProperty("loadedPath").GetString().Should().Be(fixture.ProjectPath);
+        open.StructuredContent!.Value.GetProperty("data").GetProperty("workspace").GetProperty("loadedPath").GetString().Should().Be(fixture.ProjectPath);
         list.IsError.Should().BeFalse();
-        list.StructuredContent!.Value.GetProperty("workspaces").GetArrayLength().Should().Be(1);
+        list.StructuredContent!.Value.GetProperty("data").GetProperty("workspaces").GetArrayLength().Should().Be(1);
         status.IsError.Should().BeFalse();
-        status.StructuredContent!.Value.GetProperty("state").GetString().Should().Be(nameof(WorkspaceLifecycleState.Ready));
-        status.StructuredContent.Value.GetProperty("loadDiagnostics").ValueKind.Should().Be(JsonValueKind.Array);
+        var statusData = status.StructuredContent!.Value.GetProperty("data");
+        statusData.GetProperty("state").GetString().Should().Be(nameof(WorkspaceLifecycleState.Ready));
+        statusData.GetProperty("loadDiagnostics").ValueKind.Should().Be(JsonValueKind.Array);
         reload.IsError.Should().BeTrue();
         reload.StructuredContent!.Value.GetProperty("error").GetProperty("code").GetString().Should().Be("WorkspaceReloadNotRequired");
         close.IsError.Should().BeFalse();
@@ -107,20 +108,20 @@ public sealed class WorkspaceLifecycleMcpIntegrationTests
         var rollback = await McpIntegrationTestHost.InvokeServerToolAsync(rollbackTool, TestContext.Current.CancellationToken, "transaction-rollback", new Dictionary<string, JsonElement>());
 
         start.IsError.Should().BeFalse();
-        start.StructuredContent!.Value.GetProperty("transaction").GetProperty("revision").GetInt32().Should().Be(0);
+        start.StructuredContent!.Value.GetProperty("data").GetProperty("transaction").GetProperty("revision").GetInt32().Should().Be(0);
         rename.Outcome.Should().Be(ToolOutcome.Succeeded);
         rename.Data!.Transaction!.Revision.Should().Be(1);
         preview.IsError.Should().BeFalse();
-        preview.StructuredContent!.Value.GetProperty("documents").GetArrayLength().Should().Be(1);
+        preview.StructuredContent!.Value.GetProperty("data").GetProperty("documents").GetArrayLength().Should().Be(1);
         undo.IsError.Should().BeFalse();
-        undo.StructuredContent!.Value.GetProperty("transaction").GetProperty("revision").GetInt32().Should().Be(0);
+        undo.StructuredContent!.Value.GetProperty("data").GetProperty("transaction").GetProperty("revision").GetInt32().Should().Be(0);
         redo.IsError.Should().BeFalse();
-        redo.StructuredContent!.Value.GetProperty("transaction").GetProperty("revision").GetInt32().Should().Be(1);
+        redo.StructuredContent!.Value.GetProperty("data").GetProperty("transaction").GetProperty("revision").GetInt32().Should().Be(1);
         commit.IsError.Should().BeFalse();
-        commit.StructuredContent!.Value.GetProperty("committed").GetBoolean().Should().BeTrue();
+        commit.StructuredContent!.Value.GetProperty("data").GetProperty("committed").GetBoolean().Should().BeTrue();
         secondStart.IsError.Should().BeFalse();
         rollback.IsError.Should().BeFalse();
-        rollback.StructuredContent!.Value.GetProperty("state").GetString().Should().Be(nameof(TransactionRollbackState.Ready));
+        rollback.StructuredContent!.Value.GetProperty("data").GetProperty("state").GetString().Should().Be(nameof(TransactionRollbackState.Ready));
     }
 
     [Fact]

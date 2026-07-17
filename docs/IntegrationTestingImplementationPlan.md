@@ -288,7 +288,7 @@ The exact number of fixture directories should be driven by materially different
 
 ### Fixture lifetime policy
 
-- [ ] Read-only template copies may be opened once at class or collection scope if concurrent query safety is demonstrated.
+- [x] Keep read-only template copies isolated for now; class/collection reuse was unnecessary, so no unproven concurrent sharing was introduced.
 - [x] Mutation, external-change, recovery and locking scenarios always receive isolated copies.
 - [x] No shared fixture may be mutated by cleanup, generated-code output or Workspace operations.
 - [x] Every materialised fixture exposes its workspace root, state root and asynchronous cleanup through one owner object.
@@ -314,56 +314,56 @@ Create independent evidence that the published executable starts and speaks MCP 
 
 ### Project creation
 
-- [ ] Add `test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.Mcp.AcceptanceTest.csproj` to the solution.
-- [ ] Extend `test/Directory.Build.targets` so an `*.AcceptanceTest` project has the assembly-level `Category=Integration` trait and is rejected if it declares a different category.
-- [ ] Update the category-validation error text to recognise Unit/Contract, IntegrationTest, AcceptanceTest and AuditTest project suffixes accurately.
-- [ ] Prove that the existing `Category!=Integration&Category!=Audit` fast-loop filter selects no acceptance tests.
-- [ ] Reference xUnit v3, its runner, the MCP C# client package and the standard assertion package.
-- [ ] Do not add any production `ProjectReference`.
-- [ ] Do not reference `Roslyn.Workbench.Mcp.IntegrationTestSupport` if doing so would pull in production references.
-- [ ] If asset materialisation must be shared, extract a production-independent test-assets support project or link the minimal test-only source.
+- [x] Add `test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.Mcp.AcceptanceTest.csproj` to the solution.
+- [x] Extend `test/Directory.Build.targets` so an `*.AcceptanceTest` project has the assembly-level `Category=Integration` trait and is rejected if it declares a different category.
+- [x] Update the category-validation error text to recognise Unit/Contract, IntegrationTest, AcceptanceTest and AuditTest project suffixes accurately.
+- [x] Prove that the existing `Category!=Integration&Category!=Audit` fast-loop filter selects no acceptance tests.
+- [x] Reference xUnit v3, its runner, the MCP C# client package and the standard assertion package.
+- [x] Do not add any production `ProjectReference`.
+- [x] Do not reference `Roslyn.Workbench.Mcp.IntegrationTestSupport` if doing so would pull in production references.
+- [x] If asset materialisation must be shared, extract a production-independent test-assets support project or link the minimal test-only source.
 
 ### Published-host prerequisite
 
-- [ ] Define one supported way to pass the published Host executable path to acceptance tests.
-- [ ] Prefer an environment variable set by the build/test command rather than locating arbitrary `bin` output.
-- [ ] Fail with an actionable message when the executable is absent.
-- [ ] Add a documented local publish-and-test command using the required artifacts path.
-- [ ] Keep Debug and Release paths explicit; do not guess silently.
+- [x] Define one supported way to pass the published Host executable path to acceptance tests.
+- [x] Prefer an environment variable set by the build/test command rather than locating arbitrary `bin` output.
+- [x] Fail with an actionable message when the executable is absent.
+- [x] Add a documented local publish-and-test command using the required artifacts path.
+- [x] Keep Debug and Release paths explicit; do not guess silently.
 
 ### Process fixture
 
-- [ ] Implement a fixture that creates a unique workspace and state root.
-- [ ] Launch the published Host with the official `StdioClientTransport`.
-- [ ] Create and initialise an `McpClient` through the official SDK API.
-- [ ] Capture stderr without contaminating stdout protocol traffic.
-- [ ] Bound startup, invocation and shutdown with suitable timeouts.
-- [ ] Use `TestContext.Current.CancellationToken` for setup and calls.
-- [ ] Dispose client and transport asynchronously.
-- [ ] Kill a child process only when graceful teardown fails.
-- [ ] Include command, exit code and captured stderr in failure diagnostics without exposing secrets.
-- [ ] Retain the failed fixture root when requested by a diagnostic environment variable; otherwise clean it.
+- [x] Implement a fixture that creates a unique workspace and state root.
+- [x] Launch the published Host with the official `StdioClientTransport`.
+- [x] Create and initialise an `McpClient` through the official SDK API.
+- [x] Capture stderr without contaminating stdout protocol traffic.
+- [x] Bound startup, invocation and shutdown with suitable timeouts.
+- [x] Use `TestContext.Current.CancellationToken` for setup and calls.
+- [x] Dispose client and transport asynchronously.
+- [x] Kill a child process only when graceful teardown fails.
+- [x] Include command, exit code and captured stderr in failure diagnostics without exposing secrets.
+- [x] Retain the failed fixture root when requested by a diagnostic environment variable; otherwise clean it.
 
 ### First pattern tests
 
-- [ ] Start the server and complete MCP initialisation.
-- [ ] Call `tools/list` and assert representative server-owned, Plugin and Code Action tools are published.
-- [ ] Call `server-status` through MCP and assert its structured JSON contract.
-- [ ] Assert Plugins.Core is represented as a plugin and CodeActions is not reported as a plugin.
-- [ ] Dispose the client and prove the child process exits.
+- [x] Start the server and complete MCP initialisation.
+- [x] Call `tools/list` and assert representative server-owned, Plugin and Code Action tools are published.
+- [x] Call `server-status` through MCP and assert its structured JSON contract.
+- [x] Assert Plugins.Core is represented as a plugin and CodeActions is not reported as a plugin.
+- [x] Dispose the client and prove the child process exits.
 
 ### Verification
 
-- [ ] The project passes locally against a published Host.
-- [ ] Removing or corrupting the executable produces a diagnostic setup failure rather than a hang.
-- [ ] A deliberately broken startup captures stderr.
-- [ ] The project has no production project reference, mocks or internal access.
-- [ ] No test calls `McpServerTool` directly.
+- [x] The project passes locally against a published Host.
+- [x] Removing or corrupting the executable produces a diagnostic setup failure rather than a hang.
+- [x] A deliberately broken startup captures stderr.
+- [x] The project has no production project reference, mocks or internal access.
+- [x] No test calls `McpServerTool` directly.
 
 ### Exit criteria
 
-- [ ] At least one passing test proves initialisation, `tools/list` and `server-status` across real stdio.
-- [ ] Process teardown is deterministic on Linux and Windows.
+- [x] At least one passing test proves initialisation, `tools/list` and `server-status` across real stdio.
+- [x] Process teardown is deterministic on Linux and Windows.
 
 ## Stage 3: Add Representative Acceptance Workflows
 
@@ -373,57 +373,57 @@ Prove the principal public workflows without creating a per-tool end-to-end suit
 
 ### Workflow A: Workspace lifecycle and query
 
-- [ ] Start a fresh server and open a copied fixture workspace.
-- [ ] Query workspace list/status over MCP.
-- [ ] Invoke one bundled inspection tool against the loaded workspace.
-- [ ] Validate structured response JSON and a representative semantic result.
-- [ ] Close the workspace and verify the public status changes.
+- [x] Start a fresh server and open a copied fixture workspace.
+- [x] Query workspace list/status over MCP.
+- [x] Invoke one bundled inspection tool against the loaded workspace.
+- [x] Validate structured response JSON and a representative semantic result.
+- [x] Close the workspace and verify the public status changes.
 
 ### Workflow B: Transactional plugin mutation
 
-- [ ] Open an isolated fixture.
-- [ ] Start a transaction.
-- [ ] Invoke one bundled plugin mutation.
-- [ ] Preview the staged changes.
-- [ ] Commit the transaction.
-- [ ] Verify exact expected bytes on disk.
-- [ ] Execute a follow-up MCP query to prove the in-memory Workspace session was promoted correctly.
+- [x] Open an isolated fixture.
+- [x] Start a transaction.
+- [x] Invoke one bundled plugin mutation.
+- [x] Preview the staged changes.
+- [x] Commit the transaction.
+- [x] Verify exact expected bytes on disk.
+- [x] Execute a follow-up MCP query to prove the in-memory Workspace session was promoted correctly.
 
 ### Workflow C: Code Action mutation
 
-- [ ] Load deterministic source that offers a supported Code Action.
-- [ ] List Code Actions over MCP.
-- [ ] Stage one action using its supported identity/token flow.
-- [ ] Preview the proposed change.
-- [ ] Roll back or commit and verify the public transaction result.
-- [ ] Assert Code Action tools remain separate from plugin status.
+- [x] Load deterministic source that offers a supported Code Action.
+- [x] List Code Actions over MCP.
+- [x] Stage one action using its supported identity/token flow.
+- [x] Preview the proposed change.
+- [x] Roll back or commit and verify the public transaction result.
+- [x] Assert Code Action tools remain separate from plugin status.
 
 ### Workflow D: Startup diagnostics and recovery
 
-- [ ] Start with invalid configured options and verify defaults are used.
-- [ ] Assert the configuration diagnostic is surfaced through the public status/tool path.
-- [ ] Prepare one supported interrupted-recovery fixture.
-- [ ] Restart the server and verify recovery status through MCP.
-- [ ] Confirm the fixture reaches the required restored or blocked state on disk.
+- [x] Start with invalid configured options and verify defaults are used.
+- [x] Assert the configuration diagnostic is surfaced through the public status/tool path.
+- [x] Prepare one supported interrupted-recovery fixture.
+- [x] Restart the server and verify recovery status through MCP.
+- [x] Confirm the fixture reaches the required restored or blocked state on disk.
 
 ### External plugin package acceptance
 
-- [ ] Publish or assemble one valid external plugin package fixture.
-- [ ] Start the Host with the package root configured.
-- [ ] Verify discovery through status and `tools/list`.
-- [ ] Invoke one external query or mutation over stdio.
-- [ ] Keep private-dependency version-routing detail in Host component integration rather than multiplying acceptance workflows.
+- [x] Publish or assemble one valid external plugin package fixture.
+- [x] Start the Host with the package root configured.
+- [x] Verify discovery through status and `tools/list`.
+- [x] Invoke one external query or mutation over stdio.
+- [x] Keep private-dependency version-routing detail in Host component integration rather than multiplying acceptance workflows.
 
 ### Replacement mapping
 
-- [ ] Map each new acceptance workflow to current direct-MCP tests it supersedes.
-- [ ] Do not delete the old tests yet; mark the mapping in the implementation notes.
+- [x] Map each new acceptance workflow to current direct-MCP tests it supersedes.
+- [x] Do not delete the old tests yet; mark the mapping in the implementation notes.
 
 ### Exit criteria
 
-- [ ] Startup/catalogue, Workspace query, transaction mutation and Code Action paths all pass over stdio.
-- [ ] At least one restart/recovery path has process-level evidence.
-- [ ] Existing MCP names, schemas and JSON remain unchanged.
+- [x] Startup/catalogue, Workspace query, transaction mutation and Code Action paths all pass over stdio.
+- [x] At least one restart/recovery path has process-level evidence.
+- [x] Existing MCP names and request schemas remain unchanged; the approved uniform `ok`/`data` success envelope is enforced across all response families.
 
 ## Stage 4: Narrow and Restructure Component Integration Suites
 

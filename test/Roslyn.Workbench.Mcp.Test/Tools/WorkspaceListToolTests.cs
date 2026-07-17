@@ -42,10 +42,11 @@ public sealed class WorkspaceListToolTests
 
         result.IsError.Should().BeFalse();
         result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeTrue();
-        result.StructuredContent.Value.GetProperty("workspaces").GetArrayLength().Should().Be(1);
-        result.StructuredContent.Value.GetProperty("workspaces")[0].GetProperty("workspaceId").GetString().Should().Be("WorkspaceId");
-        result.StructuredContent.Value.GetProperty("workspaces")[0].GetProperty("alias").GetString().Should().Be("Alias");
-        result.StructuredContent.Value.GetProperty("transactionOwnerWorkspaceId").GetString().Should().Be("WorkspaceId");
+        var data = result.StructuredContent.Value.GetProperty("data");
+        data.GetProperty("workspaces").GetArrayLength().Should().Be(1);
+        data.GetProperty("workspaces")[0].GetProperty("workspaceId").GetString().Should().Be("WorkspaceId");
+        data.GetProperty("workspaces")[0].GetProperty("alias").GetString().Should().Be("Alias");
+        data.GetProperty("transactionOwnerWorkspaceId").GetString().Should().Be("WorkspaceId");
         workspaceLifecycleService.Verify(service => service.ListAsync(CancellationToken.None), Times.Once);
     }
 

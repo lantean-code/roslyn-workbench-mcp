@@ -125,13 +125,15 @@ public static class PluginToolTestHarness
 
     private static MutationData DeserializeMutationData(JsonElement payload, string toolName)
     {
+        var data = payload.GetProperty("data");
+
         return new MutationData
         {
             Operation = toolName,
-            Summary = payload.TryGetProperty("summary", out var summaryElement) && summaryElement.ValueKind == JsonValueKind.String
+            Summary = data.TryGetProperty("summary", out var summaryElement) && summaryElement.ValueKind == JsonValueKind.String
                 ? summaryElement.GetString() ?? string.Empty
                 : string.Empty,
-            Transaction = payload.TryGetProperty("transaction", out var transactionElement)
+            Transaction = data.TryGetProperty("transaction", out var transactionElement)
                 ? new TransactionInfo
                 {
                     Revision = transactionElement.GetProperty("revision").GetInt32(),

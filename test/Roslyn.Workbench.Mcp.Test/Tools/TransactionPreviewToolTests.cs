@@ -51,8 +51,9 @@ public sealed class TransactionPreviewToolTests
             CancellationToken.None);
 
         result.IsError.Should().BeFalse();
-        result.StructuredContent!.Value.GetProperty("transaction").GetProperty("revision").GetInt32().Should().Be(2);
-        result.StructuredContent.Value.GetProperty("diff").GetProperty("truncated").GetBoolean().Should().BeFalse();
+        var data = result.StructuredContent!.Value.GetProperty("data");
+        data.GetProperty("transaction").GetProperty("revision").GetInt32().Should().Be(2);
+        data.GetProperty("diff").GetProperty("truncated").GetBoolean().Should().BeFalse();
         service.Verify(item => item.PreviewAsync(
             ServerOwnedToolTestData.GetWorkspaceId(includeWorkspace),
             ServerOwnedToolTestData.GetWorkspaceAlias(includeWorkspace),

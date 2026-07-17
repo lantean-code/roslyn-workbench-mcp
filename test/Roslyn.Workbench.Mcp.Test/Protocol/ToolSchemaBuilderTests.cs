@@ -79,7 +79,7 @@ public sealed class ToolSchemaBuilderTests
     }
 
     [Fact]
-    public void GIVEN_ObjectOutput_WHEN_CreatingDirectSchema_THEN_ShouldFlattenObjectPropertiesAndRequiredNames()
+    public void GIVEN_ObjectOutput_WHEN_CreatingDirectSchema_THEN_ShouldPublishObjectUnderData()
     {
         var valueSchemaNode = JsonNode.Parse(CreateObjectSchema("value").GetRawText())!.AsObject();
         valueSchemaNode["properties"]!.AsObject()["optional"] = null;
@@ -91,13 +91,14 @@ public sealed class ToolSchemaBuilderTests
             CreatePrimitiveSchema("string"));
         var success = GetSuccessVariant(result);
 
-        success.GetProperty("properties").TryGetProperty("value", out _).Should().BeTrue();
-        success.GetProperty("properties").GetProperty("optional").ValueKind.Should().Be(JsonValueKind.Null);
-        success.GetProperty("required").EnumerateArray().Select(item => item.GetString()).Should().Contain(["ok", "value"]);
+        var data = success.GetProperty("properties").GetProperty("data");
+        data.GetProperty("properties").TryGetProperty("value", out _).Should().BeTrue();
+        data.GetProperty("properties").GetProperty("optional").ValueKind.Should().Be(JsonValueKind.Null);
+        success.GetProperty("required").EnumerateArray().Select(item => item.GetString()).Should().Contain(["ok", "data"]);
     }
 
     [Fact]
-    public void GIVEN_ScalarOutput_WHEN_CreatingDirectSchema_THEN_ShouldPublishOnlyOkOnSuccess()
+    public void GIVEN_ScalarOutput_WHEN_CreatingDirectSchema_THEN_ShouldPublishScalarUnderData()
     {
         var result = ToolSchemaBuilder.CreateDirectOutputSchema(
             CreatePrimitiveSchema("string"),
@@ -105,8 +106,9 @@ public sealed class ToolSchemaBuilderTests
             CreatePrimitiveSchema("string"));
         var success = GetSuccessVariant(result);
 
-        success.GetProperty("properties").EnumerateObject().Select(item => item.Name).Should().Equal("ok");
-        success.GetProperty("required").EnumerateArray().Select(item => item.GetString()).Should().Equal("ok");
+        success.GetProperty("properties").EnumerateObject().Select(item => item.Name).Should().Equal("ok", "data");
+        success.GetProperty("properties").GetProperty("data").GetProperty("type").GetString().Should().Be("string");
+        success.GetProperty("required").EnumerateArray().Select(item => item.GetString()).Should().Equal("ok", "data");
     }
 
     [Fact]

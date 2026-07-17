@@ -59,34 +59,44 @@ internal sealed class ToolSchemaFactory
 
     private JsonElement CreateMutationResponseSchema()
     {
+        var mutationDataSchema = new JsonObject
+        {
+            ["type"] = "object",
+            ["required"] = new JsonArray("staged"),
+            ["properties"] = new JsonObject
+            {
+                ["staged"] = new JsonObject
+                {
+                    ["type"] = "boolean",
+                },
+                ["summary"] = ToolSchemaBuilder.CreateNullablePrimitiveSchema("string"),
+                ["transaction"] = new JsonObject
+                {
+                    ["type"] = new JsonArray("object", "null"),
+                    ["required"] = new JsonArray("revision"),
+                    ["properties"] = new JsonObject
+                    {
+                        ["revision"] = new JsonObject
+                        {
+                            ["type"] = "integer",
+                        },
+                    },
+                },
+            },
+        };
+
         return CreateResponseSchema(
             new JsonObject
             {
                 ["type"] = "object",
-                ["required"] = new JsonArray("ok", "staged"),
+                ["required"] = new JsonArray("ok", "data"),
                 ["properties"] = new JsonObject
                 {
                     ["ok"] = new JsonObject
                     {
                         ["const"] = true,
                     },
-                    ["staged"] = new JsonObject
-                    {
-                        ["type"] = "boolean",
-                    },
-                    ["summary"] = ToolSchemaBuilder.CreateNullablePrimitiveSchema("string"),
-                    ["transaction"] = new JsonObject
-                    {
-                        ["type"] = new JsonArray("object", "null"),
-                        ["required"] = new JsonArray("revision"),
-                        ["properties"] = new JsonObject
-                        {
-                            ["revision"] = new JsonObject
-                            {
-                                ["type"] = "integer",
-                            },
-                        },
-                    },
+                    ["data"] = mutationDataSchema,
                 },
             },
             []);

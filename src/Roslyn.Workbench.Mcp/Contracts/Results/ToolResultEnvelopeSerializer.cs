@@ -11,47 +11,18 @@ public static class ToolResultEnvelopeSerializer
     private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
 
     /// <summary>
-    /// Creates a successful envelope that flattens the published response object into the top level payload.
+    /// Creates a successful envelope that publishes the response payload under the shared data property.
     /// </summary>
     /// <param name="data">The successful response payload.</param>
     /// <returns>The structured JSON payload.</returns>
     /// <typeparam name="TData">The successful response payload type.</typeparam>
-    public static JsonElement CreateFlattenedSuccess<TData>(TData? data)
+    public static JsonElement CreateSuccess<TData>(TData? data)
     {
         return BuildPayload(writer =>
         {
             writer.WriteStartObject();
             writer.WriteBoolean("ok", true);
-
-            if (data is not null)
-            {
-                var serialized = SerializeObject(data);
-                foreach (var property in serialized.EnumerateObject())
-                {
-                    property.WriteTo(writer);
-                }
-            }
-
-            writer.WriteEndObject();
-        });
-    }
-
-    /// <summary>
-    /// Creates a successful envelope that publishes the response payload under a named property.
-    /// </summary>
-    /// <param name="propertyName">The name of the published property.</param>
-    /// <param name="data">The successful response payload.</param>
-    /// <returns>The structured JSON payload.</returns>
-    /// <typeparam name="TData">The successful response payload type.</typeparam>
-    public static JsonElement CreateNestedSuccess<TData>(string propertyName, TData? data)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(propertyName);
-
-        return BuildPayload(writer =>
-        {
-            writer.WriteStartObject();
-            writer.WriteBoolean("ok", true);
-            writer.WritePropertyName(propertyName);
+            writer.WritePropertyName("data");
 
             if (data is null)
             {
@@ -78,6 +49,7 @@ public static class ToolResultEnvelopeSerializer
         {
             writer.WriteStartObject();
             writer.WriteBoolean("ok", true);
+            writer.WriteStartObject("data");
             writer.WriteBoolean("staged", staged);
 
             if (staged && data is not null)
@@ -93,6 +65,7 @@ public static class ToolResultEnvelopeSerializer
                 }
             }
 
+            writer.WriteEndObject();
             writer.WriteEndObject();
         });
     }

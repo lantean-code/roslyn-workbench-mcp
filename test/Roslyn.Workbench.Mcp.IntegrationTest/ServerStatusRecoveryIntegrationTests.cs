@@ -64,7 +64,7 @@ public sealed class ServerStatusRecoveryIntegrationTests
         });
 
         result.IsError.Should().BeFalse();
-        result.StructuredContent!.Value.GetProperty("recovery").EnumerateArray().Should().ContainSingle(
+        result.StructuredContent!.Value.GetProperty("data").GetProperty("recovery").EnumerateArray().Should().ContainSingle(
             static status => status.GetProperty("commitId").GetString() == "commit-id");
     }
 }

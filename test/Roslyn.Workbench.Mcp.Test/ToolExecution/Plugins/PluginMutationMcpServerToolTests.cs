@@ -132,7 +132,7 @@ public sealed class PluginMutationMcpServerToolTests
 
         result.IsError.Should().BeFalse();
         result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeTrue();
-        result.StructuredContent.Value.GetProperty("staged").GetBoolean().Should().BeFalse();
+        result.StructuredContent.Value.GetProperty("data").GetProperty("staged").GetBoolean().Should().BeFalse();
         stager.Verify(item => item.StageAsync(
             It.IsAny<string>(),
             It.IsAny<WorkspaceMutationCandidate>(),
@@ -163,7 +163,7 @@ public sealed class PluginMutationMcpServerToolTests
         var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
 
         result.IsError.Should().BeFalse();
-        result.StructuredContent!.Value.GetProperty("staged").GetBoolean().Should().BeFalse();
+        result.StructuredContent!.Value.GetProperty("data").GetProperty("staged").GetBoolean().Should().BeFalse();
         stager.Verify(item => item.StageAsync(
             It.IsAny<string>(),
             It.IsAny<WorkspaceMutationCandidate>(),
@@ -243,9 +243,10 @@ public sealed class PluginMutationMcpServerToolTests
 
         result.IsError.Should().BeFalse();
         result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeTrue();
-        result.StructuredContent.Value.GetProperty("staged").GetBoolean().Should().BeTrue();
-        result.StructuredContent.Value.GetProperty("summary").GetString().Should().Be("StagedSummary");
-        result.StructuredContent.Value.GetProperty("transaction").GetProperty("revision").GetInt32().Should().Be(2);
+        var data = result.StructuredContent.Value.GetProperty("data");
+        data.GetProperty("staged").GetBoolean().Should().BeTrue();
+        data.GetProperty("summary").GetString().Should().Be("StagedSummary");
+        data.GetProperty("transaction").GetProperty("revision").GetInt32().Should().Be(2);
         stager.Verify(item => item.StageAsync(
             "test-mutation",
             It.IsAny<WorkspaceMutationCandidate>(),

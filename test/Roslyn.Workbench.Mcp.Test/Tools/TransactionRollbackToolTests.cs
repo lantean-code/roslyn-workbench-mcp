@@ -36,7 +36,7 @@ public sealed class TransactionRollbackToolTests
             CancellationToken.None);
 
         result.IsError.Should().BeFalse();
-        result.StructuredContent!.Value.GetProperty("state").GetString().Should().Be("Ready");
+        result.StructuredContent!.Value.GetProperty("data").GetProperty("state").GetString().Should().Be("Ready");
         service.Verify(item => item.RollbackAsync(
             ServerOwnedToolTestData.GetWorkspaceId(includeWorkspace),
             ServerOwnedToolTestData.GetWorkspaceAlias(includeWorkspace),

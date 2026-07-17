@@ -33,7 +33,7 @@ public sealed class ServerStatusToolTests
             CancellationToken.None);
 
         result.IsError.Should().BeFalse();
-        result.StructuredContent!.Value.GetProperty("toolCount").GetInt32().Should().Be(5);
+        result.StructuredContent!.Value.GetProperty("data").GetProperty("toolCount").GetInt32().Should().Be(5);
         service.Verify(item => item.GetStatusAsync(StatusDetailLevel.Full, CancellationToken.None), Times.Once);
     }
 

@@ -10,41 +10,19 @@ internal static class ToolSchemaBuilder
         JsonElement errorSchema,
         JsonElement nextSchema)
     {
-        var valueObject = ParseObject(valueSchema);
-        var successProperties = new JsonObject
-        {
-            ["ok"] = new JsonObject
-            {
-                ["const"] = true,
-            },
-        };
-        var successRequired = new JsonArray("ok");
-
-        if (valueObject["properties"] is JsonObject valueProperties)
-        {
-            foreach (var property in valueProperties)
-            {
-                successProperties[property.Key] = property.Value?.DeepClone();
-            }
-        }
-
-        if (valueObject["required"] is JsonArray requiredProperties)
-        {
-            foreach (var requiredProperty in requiredProperties)
-            {
-                if (requiredProperty is not null)
-                {
-                    successRequired.Add(requiredProperty.DeepClone());
-                }
-            }
-        }
-
         return CreateResponseSchema(
             new JsonObject
             {
                 ["type"] = "object",
-                ["required"] = successRequired,
-                ["properties"] = successProperties,
+                ["required"] = new JsonArray("ok", "data"),
+                ["properties"] = new JsonObject
+                {
+                    ["ok"] = new JsonObject
+                    {
+                        ["const"] = true,
+                    },
+                    ["data"] = JsonNode.Parse(valueSchema.GetRawText()),
+                },
             },
             [valueSchema],
             errorSchema,

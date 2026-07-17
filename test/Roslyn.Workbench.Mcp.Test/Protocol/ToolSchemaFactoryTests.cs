@@ -47,7 +47,11 @@ public sealed class ToolSchemaFactoryTests
         var second = _target.CreateDirectOutputSchema(typeof(TestResponse));
 
         first.GetRawText().Should().Be(second.GetRawText());
-        first.GetRawText().Should().Contain("value");
+        var successVariant = first.GetProperty("oneOf")
+            .EnumerateArray()
+            .Single(variant => variant.GetProperty("properties").GetProperty("ok").GetProperty("const").GetBoolean());
+        successVariant.GetProperty("required").EnumerateArray().Select(static value => value.GetString()).Should().Contain(["ok", "data"]);
+        successVariant.GetProperty("properties").GetProperty("data").GetRawText().Should().Contain("value");
         _schemaProvider.Verify(item => item.GetValueSchema(typeof(TestResponse)), Times.Once);
         _schemaProvider.Verify(item => item.GetValueSchema<ToolError>(), Times.Once);
         _schemaProvider.Verify(item => item.GetValueSchema<RequiredAction>(), Times.Once);
@@ -79,9 +83,11 @@ public sealed class ToolSchemaFactoryTests
             .EnumerateArray()
             .Single(variant => variant.GetProperty("properties").GetProperty("ok").GetProperty("const").GetBoolean());
 
-        successVariant.GetProperty("properties").TryGetProperty("staged", out _).Should().BeTrue();
-        successVariant.GetProperty("properties").TryGetProperty("summary", out _).Should().BeTrue();
-        successVariant.GetProperty("properties").TryGetProperty("transaction", out _).Should().BeTrue();
+        var data = successVariant.GetProperty("properties").GetProperty("data");
+        successVariant.GetProperty("required").EnumerateArray().Select(static value => value.GetString()).Should().Contain(["ok", "data"]);
+        data.GetProperty("properties").TryGetProperty("staged", out _).Should().BeTrue();
+        data.GetProperty("properties").TryGetProperty("summary", out _).Should().BeTrue();
+        data.GetProperty("properties").TryGetProperty("transaction", out _).Should().BeTrue();
         successVariant.GetRawText().Should().NotContain("changes");
         successVariant.GetRawText().Should().NotContain("preview");
         _schemaProvider.Verify(item => item.GetValueSchema(typeof(MutationData)), Times.Never);

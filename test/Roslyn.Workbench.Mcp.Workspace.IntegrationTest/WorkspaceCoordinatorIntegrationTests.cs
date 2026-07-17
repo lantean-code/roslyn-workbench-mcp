@@ -850,7 +850,8 @@ public sealed class WorkspaceCoordinatorIntegrationTests
                     : null);
         }
 
-        var transaction = payload.TryGetProperty("transaction", out var transactionElement)
+        var data = payload.GetProperty("data");
+        var transaction = data.TryGetProperty("transaction", out var transactionElement)
             ? new TransactionInfo
             {
                 Revision = transactionElement.GetProperty("revision").GetInt32(),
@@ -861,7 +862,7 @@ public sealed class WorkspaceCoordinatorIntegrationTests
             new MutationData
             {
                 Operation = toolName,
-                Summary = payload.TryGetProperty("summary", out var summaryElement) && summaryElement.ValueKind == JsonValueKind.String
+                Summary = data.TryGetProperty("summary", out var summaryElement) && summaryElement.ValueKind == JsonValueKind.String
                     ? summaryElement.GetString() ?? string.Empty
                     : string.Empty,
                 Transaction = transaction,

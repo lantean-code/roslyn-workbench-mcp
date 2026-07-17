@@ -5,12 +5,26 @@ using ModelContextProtocol.Protocol;
 
 namespace Roslyn.Workbench.Mcp.AcceptanceTest;
 
+internal enum AcceptanceWorkspaceAsset
+{
+    SdkProject,
+    InspectionSample,
+}
+
+internal enum AcceptancePluginAsset
+{
+    HostQuery,
+}
+
 internal sealed class AcceptanceProcessFixture : IAsyncDisposable
 {
     private const string RetainRootEnvironmentVariableName = "ROSLYN_WORKBENCH_MCP_ACCEPTANCE_RETAIN_ROOT";
     private const string PendingStateRootArgument = "{acceptance-state-root}";
+    private const string PendingPluginRootArgument = "{acceptance-plugin-root}";
     private static readonly TimeSpan _initializationTimeout = TimeSpan.FromSeconds(45);
     private static readonly TimeSpan _invocationTimeout = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan _cleanupTimeout = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan _cleanupRetryInterval = TimeSpan.FromMilliseconds(50);
 
     // MCP C# SDK 1.4.1 waits before closing stdin, so keep its forced-cleanup fallback short; direct EOF coverage owns graceful Host shutdown evidence.
     private static readonly TimeSpan _shutdownTimeout = TimeSpan.FromSeconds(2);
@@ -40,14 +54,30 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
 
     public string StateRoot { get; }
 
-    public static Task<AcceptanceProcessFixture> StartPublishedHostAsync(CancellationToken cancellationToken)
+    public static Task<AcceptanceProcessFixture> StartPublishedHostAsync(
+        CancellationToken cancellationToken,
+        AcceptanceWorkspaceAsset workspaceAsset = AcceptanceWorkspaceAsset.SdkProject,
+        IReadOnlyList<string>? additionalArguments = null,
+        AcceptancePluginAsset? pluginAsset = null)
     {
         var executablePath = PublishedHostExecutable.ResolveFromEnvironment();
+        var arguments = new List<string>
+        {
+            "--state-directory",
+            PendingStateRootArgument,
+        };
+        arguments.AddRange(additionalArguments ?? []);
+        if (pluginAsset is not null)
+        {
+            arguments.Add("--plugin-directory");
+            arguments.Add(PendingPluginRootArgument);
+        }
 
         return StartAsync(
             executablePath,
-            ["--state-directory", PendingStateRootArgument],
-            copyWorkspaceAsset: true,
+            arguments,
+            workspaceAsset,
+            pluginAsset,
             cancellationToken);
     }
 
@@ -56,7 +86,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         IReadOnlyList<string> arguments,
         CancellationToken cancellationToken)
     {
-        return StartAsync(command, arguments, copyWorkspaceAsset: false, cancellationToken);
+        return StartAsync(command, arguments, workspaceAsset: null, pluginAsset: null, cancellationToken);
     }
 
     public async Task<IList<McpClientTool>> ListToolsAsync(CancellationToken cancellationToken)
@@ -98,6 +128,14 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
     public void RetainRootOnFailure()
     {
         _retainRoot = true;
+    }
+
+    public async Task RestartAsync(CancellationToken cancellationToken)
+    {
+        await StopAsync();
+        _completion = null;
+        _completionDetails = null;
+        await ConnectAsync(cancellationToken);
     }
 
     public async Task<StdioClientCompletionDetails> StopAsync()
@@ -158,7 +196,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         {
             if (!ShouldRetainRoot())
             {
-                Directory.Delete(ScenarioRoot, recursive: true);
+                await DeleteScenarioRootAsync();
             }
         }
     }
@@ -166,7 +204,8 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
     private static async Task<AcceptanceProcessFixture> StartAsync(
         string command,
         IReadOnlyList<string> arguments,
-        bool copyWorkspaceAsset,
+        AcceptanceWorkspaceAsset? workspaceAsset,
+        AcceptancePluginAsset? pluginAsset,
         CancellationToken cancellationToken)
     {
         var scenarioRoot = Path.Combine(
@@ -174,41 +213,58 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
             "roslyn-workbench-mcp-acceptance",
             Guid.NewGuid().ToString("N"));
         var stateRoot = Path.Combine(scenarioRoot, "state");
+        var pluginRoot = Path.Combine(scenarioRoot, "plugins");
         var effectiveArguments = arguments
-            .Select(argument => string.Equals(argument, PendingStateRootArgument, StringComparison.Ordinal)
-                ? stateRoot
-                : argument)
+            .Select(argument => argument switch
+            {
+                PendingStateRootArgument => stateRoot,
+                PendingPluginRootArgument => pluginRoot,
+                _ => argument,
+            })
             .ToArray();
         var target = new AcceptanceProcessFixture(command, effectiveArguments, scenarioRoot);
 
         Directory.CreateDirectory(target.WorkspaceRoot);
         Directory.CreateDirectory(target.StateRoot);
 
-        if (copyWorkspaceAsset)
+        if (workspaceAsset is not null)
         {
             CopyDirectory(
-                Path.Combine(AppContext.BaseDirectory, "TestAssets", "Workspaces", "SdkProject"),
+                GetWorkspaceAssetPath(workspaceAsset.Value),
                 target.WorkspaceRoot);
         }
 
+        if (pluginAsset is not null)
+        {
+            CopyDirectory(
+                GetPluginAssetPath(pluginAsset.Value),
+                Path.Combine(pluginRoot, "host-query"));
+        }
+
+        await target.ConnectAsync(cancellationToken);
+        return target;
+    }
+
+    private async Task ConnectAsync(CancellationToken cancellationToken)
+    {
         var transport = new StdioClientTransport(
             new StdioClientTransportOptions
             {
                 Name = "Roslyn Workbench acceptance Host",
-                Command = command,
-                Arguments = effectiveArguments,
-                WorkingDirectory = target.WorkspaceRoot,
+                Command = _command,
+                Arguments = _arguments.ToArray(),
+                WorkingDirectory = WorkspaceRoot,
                 InheritEnvironmentVariables = false,
                 EnvironmentVariables = StdioClientTransportOptions.GetDefaultEnvironmentVariables(),
                 ShutdownTimeout = _shutdownTimeout,
-                StandardErrorLines = target.CaptureStandardError,
+                StandardErrorLines = CaptureStandardError,
             },
             NullLoggerFactory.Instance);
         using var timeoutSource = CreateTimeoutSource(cancellationToken, _initializationTimeout);
 
         try
         {
-            target._client = await McpClient.CreateAsync(
+            _client = await McpClient.CreateAsync(
                 transport,
                 new McpClientOptions
                 {
@@ -216,22 +272,43 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
                 },
                 NullLoggerFactory.Instance,
                 timeoutSource.Token);
-            target._completion = target._client.Completion;
-
-            return target;
+            _completion = _client.Completion;
         }
         catch (Exception exception)
         {
             if (exception is ClientTransportClosedException transportClosedException)
             {
-                target._completionDetails = transportClosedException.Details;
+                _completionDetails = transportClosedException.Details;
             }
 
-            target._retainRoot = true;
-            var diagnosticException = target.CreateDiagnosticException("MCP initialization failed", exception);
-            await target.DisposeAsync();
+            _retainRoot = true;
+            var diagnosticException = CreateDiagnosticException("MCP initialization failed", exception);
+            await DisposeAsync();
             throw diagnosticException;
         }
+    }
+
+    private static string GetWorkspaceAssetPath(AcceptanceWorkspaceAsset workspaceAsset)
+    {
+        var assetDirectory = workspaceAsset switch
+        {
+            AcceptanceWorkspaceAsset.SdkProject => "SdkProject",
+            AcceptanceWorkspaceAsset.InspectionSample => Path.Combine("InspectionSample", "Base"),
+            _ => throw new ArgumentOutOfRangeException(nameof(workspaceAsset), workspaceAsset, "Unknown acceptance workspace asset."),
+        };
+
+        return Path.Combine(AppContext.BaseDirectory, "TestAssets", "Workspaces", assetDirectory);
+    }
+
+    private static string GetPluginAssetPath(AcceptancePluginAsset pluginAsset)
+    {
+        var assetDirectory = pluginAsset switch
+        {
+            AcceptancePluginAsset.HostQuery => "HostQuery",
+            _ => throw new ArgumentOutOfRangeException(nameof(pluginAsset), pluginAsset, "Unknown acceptance plugin asset."),
+        };
+
+        return Path.Combine(AppContext.BaseDirectory, "TestAssets", "Plugins", assetDirectory);
     }
 
     private static CancellationTokenSource CreateTimeoutSource(
@@ -321,5 +398,34 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         var configuredValue = Environment.GetEnvironmentVariable(RetainRootEnvironmentVariableName);
         return string.Equals(configuredValue, "1", StringComparison.Ordinal)
             || string.Equals(configuredValue, "true", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task DeleteScenarioRootAsync()
+    {
+        using var retryTimer = new PeriodicTimer(_cleanupRetryInterval);
+        var elapsed = System.Diagnostics.Stopwatch.StartNew();
+        Exception? lastException = null;
+
+        do
+        {
+            try
+            {
+                if (!Directory.Exists(ScenarioRoot))
+                {
+                    return;
+                }
+
+                Directory.Delete(ScenarioRoot, recursive: true);
+                return;
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                lastException = exception;
+            }
+        }
+        while (elapsed.Elapsed < _cleanupTimeout
+            && await retryTimer.WaitForNextTickAsync());
+
+        throw new IOException($"The acceptance scenario root '{ScenarioRoot}' could not be removed.", lastException);
     }
 }

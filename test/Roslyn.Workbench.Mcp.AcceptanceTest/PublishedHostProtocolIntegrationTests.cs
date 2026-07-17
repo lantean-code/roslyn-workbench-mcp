@@ -27,7 +27,7 @@ public sealed class PublishedHostProtocolIntegrationTests
             statusResult.IsError.Should().NotBeTrue();
             statusResult.StructuredContent.Should().NotBeNull();
 
-            var status = statusResult.StructuredContent!.Value;
+            var status = statusResult.StructuredContent!.Value.GetProperty("data");
             status.GetProperty("serverVersion").GetString().Should().NotBeNullOrWhiteSpace();
             status.GetProperty("roslynVersion").GetString().Should().NotBeNullOrWhiteSpace();
             status.GetProperty("toolCount").GetInt32().Should().Be(toolNames.Length);

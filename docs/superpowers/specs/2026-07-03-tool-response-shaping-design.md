@@ -1,6 +1,6 @@
 # Tool Response Shaping Design
 
-**Status:** Draft for review. No production or test code changes are part of this document.
+**Status:** Implemented. Amended on 2026-07-17 to standardise the outer success envelope after process-level acceptance testing exposed avoidable client branching.
 
 **Goal:** Redesign tool metadata, request contracts, and runtime response contracts so the server returns the smallest agent-useful payload by default, while still allowing richer follow-up detail when a tool genuinely needs it.
 
@@ -12,8 +12,8 @@ Today, both plugin tools and server-owned tools are normalised into `ToolResult<
 
 The server should move to:
 
-- a tiny shared control/failure base
-- family-specific success contracts
+- a tiny shared success/failure envelope
+- family-specific payload contracts under `data`
 - opt-in request shaping for heavy branches
 - dedicated follow-up tools where large detail is not needed on the first call
 - slim `tools/list` publication by default, with accurate `inputSchema` and optional `outputSchema`
@@ -105,8 +105,8 @@ Returning this data by default makes the common path more expensive than it need
 - Optimise the tool surface for agent consumption rather than human readability.
 - Keep default responses compact and semantically focused.
 - Preserve strong machine parsing and explicit contracts.
-- Use one tiny shared base only for true cross-tool control semantics.
-- Let tool families define their own success shapes.
+- Use one tiny shared envelope only for true cross-tool control semantics.
+- Let tool families define their own payload shapes within `data`.
 - Move large optional branches behind explicit request parameters or follow-up tools.
 - Keep `inputSchema` accurate and useful for discovery.
 - Keep `outputSchema` accurate when published, but omit it by default for a slim `tools/list`.
@@ -129,6 +129,7 @@ Every tool should share only the smallest cross-tool control semantics.
 Recommended shared fields:
 
 - `ok`
+- `data`, when `ok` is `true`
 - `error`, when `ok` is `false`
 - `next`, when a specific machine-meaningful follow-up hint is needed
 
@@ -156,11 +157,11 @@ This shared base should not automatically include:
 
 Those belong only on tool families that genuinely need them.
 
-### Layer 2: Family-specific success contracts
+### Layer 2: Family-specific success payloads
 
-Each tool family should define its own success shape.
+Each tool family should define its own payload inside `data`.
 
-Outlier tools may use dedicated success contracts and reuse only the minimal failure/control base.
+Outlier tools may use dedicated payload contracts while retaining the minimal shared envelope.
 
 ## Tool Family Design
 
@@ -189,8 +190,10 @@ Recommended default shape:
 ```json
 {
   "ok": true,
-  "items": [ ... ],
-  "hasMore": true
+  "data": {
+    "items": [ ... ],
+    "hasMore": true
+  }
 }
 ```
 
@@ -226,7 +229,9 @@ Recommended default shape:
 ```json
 {
   "ok": true,
-  "value": { ... }
+  "data": {
+    "value": { ... }
+  }
 }
 ```
 
@@ -247,10 +252,12 @@ Recommended default shape:
 ```json
 {
   "ok": true,
-  "staged": true,
-  "summary": "Extracted method",
-  "transaction": {
-    "revision": 3
+  "data": {
+    "staged": true,
+    "summary": "Extracted method",
+    "transaction": {
+      "revision": 3
+    }
   }
 }
 ```
@@ -276,20 +283,20 @@ Use for:
 - `workspace-reload`
 - `workspace-list`
 
-These results should be direct and operational.
+These payloads should be direct and operational within the shared success envelope.
 
 Examples:
 
 ```json
-{ "ok": true, "transaction": { "revision": 1 } }
+{ "ok": true, "data": { "transaction": { "revision": 1 } } }
 ```
 
 ```json
-{ "ok": true, "committed": true }
+{ "ok": true, "data": { "committed": true } }
 ```
 
 ```json
-{ "ok": true, "workspace": { ... }, "projectCount": 5, "documentCount": 42 }
+{ "ok": true, "data": { "workspace": { ... }, "projectCount": 5, "documentCount": 42 } }
 ```
 
 They should not inherit rich query framing by default.
@@ -466,9 +473,9 @@ The server should move from:
 
 to:
 
-- one tiny shared failure/control base
-- multiple family success shapes
-- per-tool response registration that points to the correct family or dedicated contract
+- one tiny shared success/failure envelope
+- multiple family payload shapes under `data`
+- per-tool response registration that points to the correct family or dedicated payload contract
 
 ## Recommended Migration Order
 
@@ -498,7 +505,7 @@ Adopt minimal staged-success results and stop returning large mutation framing b
 
 ### Phase 4: Convert collection query tools
 
-Standardise collection success contracts and remove repeated metadata such as `ReturnedCount` where it is redundant.
+Standardise collection payload contracts and remove repeated metadata such as `ReturnedCount` where it is redundant.
 
 ### Phase 5: Convert singleton semantic queries
 
@@ -521,7 +528,8 @@ The test model should change from:
 
 to:
 
-- each tool deserialises as its declared family or dedicated contract
+- each successful tool reads its declared family or dedicated contract from `data`
+- the outer `ok`/`data` or `ok`/`error` branch is consistent for every tool
 - shared failure/control semantics are consistent everywhere
 - default responses are compact
 - opt-in request parameters add only the requested branches
@@ -544,9 +552,9 @@ Key test areas:
 
 ## Decision Summary
 
-- Keep one tiny shared control and failure base.
-- Do not keep one universal success envelope.
-- Use family-specific success contracts by default.
+- Keep one tiny shared success, control and failure envelope.
+- Use `data` as the single location for every successful payload.
+- Use family-specific payload contracts within `data` by default.
 - Allow dedicated outlier contracts when family fitting would make the response worse.
 - Keep default responses minimal and agent-oriented.
 - Move rich optional data behind request-shaping controls or separate follow-up tools.

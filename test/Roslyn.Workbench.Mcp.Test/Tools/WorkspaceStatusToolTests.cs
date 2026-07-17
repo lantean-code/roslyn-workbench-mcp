@@ -64,11 +64,12 @@ public sealed class WorkspaceStatusToolTests
             CancellationToken.None);
 
         result.IsError.Should().BeFalse();
-        result.StructuredContent!.Value.GetProperty("state").GetString().Should().Be("Ready");
-        result.StructuredContent.Value.GetProperty("reloadRequired").GetBoolean().Should().BeTrue();
-        result.StructuredContent.Value.GetProperty("transaction").GetProperty("revision").GetInt32().Should().Be(9);
-        result.StructuredContent.Value.GetProperty("instances")[0].GetProperty("instanceId").GetString().Should().Be("other-instance");
-        result.StructuredContent.Value.GetProperty("instances")[0].GetProperty("commitPhase").GetString().Should().Be("Applying");
+        var data = result.StructuredContent!.Value.GetProperty("data");
+        data.GetProperty("state").GetString().Should().Be("Ready");
+        data.GetProperty("reloadRequired").GetBoolean().Should().BeTrue();
+        data.GetProperty("transaction").GetProperty("revision").GetInt32().Should().Be(9);
+        data.GetProperty("instances")[0].GetProperty("instanceId").GetString().Should().Be("other-instance");
+        data.GetProperty("instances")[0].GetProperty("commitPhase").GetString().Should().Be("Applying");
         service.Verify(item => item.GetStatusAsync(
             ServerOwnedToolTestData.GetWorkspaceId(includeWorkspace),
             ServerOwnedToolTestData.GetWorkspaceAlias(includeWorkspace),

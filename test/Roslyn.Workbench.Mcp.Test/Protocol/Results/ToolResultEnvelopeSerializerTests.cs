@@ -5,20 +5,12 @@ namespace Roslyn.Workbench.Mcp.Test.Protocol.Results;
 public sealed class ToolResultEnvelopeSerializerTests
 {
     [Fact]
-    public void GIVEN_NullFlattenedData_WHEN_Serializing_THEN_ShouldPublishOnlySuccessFlag()
+    public void GIVEN_NullData_WHEN_SerializingSuccess_THEN_ShouldPublishNullData()
     {
-        var result = ToolResultEnvelopeSerializer.CreateFlattenedSuccess<TestData>(null);
+        var result = ToolResultEnvelopeSerializer.CreateSuccess<TestData>(null);
 
         result.GetProperty("ok").GetBoolean().Should().BeTrue();
-        result.EnumerateObject().Should().ContainSingle();
-    }
-
-    [Fact]
-    public void GIVEN_BlankNestedPropertyName_WHEN_Serializing_THEN_ShouldThrowArgumentException()
-    {
-        var action = () => ToolResultEnvelopeSerializer.CreateNestedSuccess<TestData>(string.Empty, new TestData());
-
-        action.Should().Throw<ArgumentException>();
+        result.GetProperty("data").ValueKind.Should().Be(System.Text.Json.JsonValueKind.Null);
     }
 
     [Fact]
@@ -26,8 +18,9 @@ public sealed class ToolResultEnvelopeSerializerTests
     {
         var result = ToolResultEnvelopeSerializer.CreateMutationSuccess(data: null, staged: true);
 
-        result.GetProperty("staged").GetBoolean().Should().BeTrue();
-        result.TryGetProperty("summary", out _).Should().BeFalse();
+        var data = result.GetProperty("data");
+        data.GetProperty("staged").GetBoolean().Should().BeTrue();
+        data.TryGetProperty("summary", out _).Should().BeFalse();
     }
 
     [Fact]
@@ -40,8 +33,9 @@ public sealed class ToolResultEnvelopeSerializerTests
             },
             staged: true);
 
-        result.GetProperty("summary").GetString().Should().Be("Summary");
-        result.TryGetProperty("transaction", out _).Should().BeFalse();
+        var data = result.GetProperty("data");
+        data.GetProperty("summary").GetString().Should().Be("Summary");
+        data.TryGetProperty("transaction", out _).Should().BeFalse();
     }
 
     [Fact]

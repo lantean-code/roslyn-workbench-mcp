@@ -2,6 +2,8 @@
 
 These tests launch a published Roslyn Workbench MCP executable through the official MCP C# `StdioClientTransport`. They consume only the executable and its public MCP protocol; the project has no production project references.
 
+The acceptance build also assembles the existing `HostQueryPluginFixture` into `TestAssets/Plugins/HostQuery` using a build-only project reference with `ReferenceOutputAssembly=false`. The acceptance test assembly receives no production or plugin-fixture compile reference. Only the plugin entry assembly, dependency manifest and deliberately private `NuGet.Versioning` dependency are copied into the external package asset.
+
 Set `ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH` to the exact executable produced by the configuration being tested. The suite does not guess between Debug and Release output.
 
 ## Linux and macOS
@@ -38,3 +40,16 @@ $env:ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH = Join-Path $artifactsPath 'publi
 ```
 
 Set `ROSLYN_WORKBENCH_MCP_ACCEPTANCE_RETAIN_ROOT=true` while diagnosing a failure to retain a failed scenario root. Without it, scenario workspaces and state are removed during asynchronous fixture disposal.
+
+## Published response envelope
+
+Every successful tool response uses the same outer structured-content shape:
+
+```json
+{
+  "ok": true,
+  "data": {}
+}
+```
+
+The object inside `data` remains specific to lifecycle, query or mutation tools. Failed tool responses use `ok: false`, `error` and optional `next` instead.

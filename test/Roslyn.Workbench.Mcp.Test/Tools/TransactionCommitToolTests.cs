@@ -41,8 +41,9 @@ public sealed class TransactionCommitToolTests
             CancellationToken.None);
 
         result.IsError.Should().BeFalse();
-        result.StructuredContent!.Value.GetProperty("committed").GetBoolean().Should().BeTrue();
-        result.StructuredContent.Value.GetProperty("transaction").GetProperty("revision").GetInt32().Should().Be(4);
+        var data = result.StructuredContent!.Value.GetProperty("data");
+        data.GetProperty("committed").GetBoolean().Should().BeTrue();
+        data.GetProperty("transaction").GetProperty("revision").GetInt32().Should().Be(4);
         service.Verify(item => item.CommitAsync(
             ServerOwnedToolTestData.GetWorkspaceId(includeWorkspace),
             ServerOwnedToolTestData.GetWorkspaceAlias(includeWorkspace),

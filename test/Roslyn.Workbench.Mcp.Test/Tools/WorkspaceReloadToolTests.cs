@@ -43,8 +43,9 @@ public sealed class WorkspaceReloadToolTests
             CancellationToken.None);
 
         result.IsError.Should().BeFalse();
-        result.StructuredContent!.Value.GetProperty("workspace").GetProperty("workspaceEpoch").GetInt64().Should().Be(4);
-        result.StructuredContent.Value.GetProperty("projectCount").GetInt32().Should().Be(4);
+        var data = result.StructuredContent!.Value.GetProperty("data");
+        data.GetProperty("workspace").GetProperty("workspaceEpoch").GetInt64().Should().Be(4);
+        data.GetProperty("projectCount").GetInt32().Should().Be(4);
         service.Verify(item => item.ReloadAsync(
             ServerOwnedToolTestData.GetWorkspaceId(includeWorkspace),
             ServerOwnedToolTestData.GetWorkspaceAlias(includeWorkspace),

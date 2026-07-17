@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 
 public sealed class BuiltInCodeActionStagingIntegrationTests
@@ -9,23 +7,24 @@ public sealed class BuiltInCodeActionStagingIntegrationTests
     {
         await using var fixture = await InspectionSampleFixture.CreateAsync();
         await using var coordinator = BundledCoreToolTestHarness.CreateBuiltInCodeActionCoordinator();
+        await using var session = CodeActionComponentTestSession.Create(coordinator);
         var open = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
         }, TestContext.Current.CancellationToken);
         await coordinator.StartTransactionAsync(new TransactionStartRequest(), TestContext.Current.CancellationToken);
-        var result = await CodeActionToolTestHarness.InvokeAsync<MutationData>(coordinator, TestContext.Current.CancellationToken, "remove-unused-usings", new Dictionary<string, JsonElement>
+        var result = await session.RemoveUnusedUsingsAsync(new RemoveUnusedUsingsRequest
         {
-            ["scope"] = JsonSerializer.SerializeToElement(new ScopeSelector
+            Scope = new ScopeSelector
             {
                 Kind = ScopeKind.Document,
                 Document = new DocumentSelector
                 {
                     Path = "Usings.cs",
                 },
-            }),
-            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(BundledCoreToolTestHarness.CreateSnapshot(open, 0)),
-        });
+            },
+            ExpectedSnapshot = BundledCoreToolTestHarness.CreateSnapshot(open, 0),
+        }, TestContext.Current.CancellationToken);
         var preview = await coordinator.PreviewTransactionAsync(new TransactionPreviewRequest
         {
             IncludeDiff = true,

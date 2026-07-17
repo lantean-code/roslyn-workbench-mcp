@@ -2,7 +2,7 @@ using Roslyn.Workbench.Mcp.PluginFixtures;
 
 namespace Roslyn.Workbench.Mcp.Test.PluginLoading;
 
-public sealed class MefPluginComposerTests
+public sealed class MefPluginComposerIntegrationTests
 {
     private readonly MefPluginComposer _target = new();
 

@@ -1,6 +1,6 @@
 namespace Roslyn.Workbench.Mcp.Test.PluginLoading;
 
-public sealed class PluginCatalogBootstrapTests
+public sealed class PluginCatalogBootstrapIntegrationTests
 {
     [Fact]
     public void GIVEN_BundledPluginAssembly_WHEN_LoadingCatalogue_THEN_ShouldReturnConfiguredSnapshot()

@@ -93,40 +93,6 @@ public sealed class WorkspaceChangeDetectorIntegrationTests
         }
     }
 
-    [Fact]
-    public void GIVEN_MissingProject_WHEN_BuildingManifest_THEN_ShouldRetainEvaluationFailure()
-    {
-        var directoryPath = CreateDirectoryPath();
-
-        try
-        {
-            var projectPath = Path.Combine(directoryPath, "Missing.csproj");
-            using var workspace = new AdhocWorkspace();
-            var projectId = ProjectId.CreateNewId();
-            var solution = workspace.CurrentSolution.AddProject(ProjectInfo.Create(
-                projectId,
-                VersionStamp.Create(),
-                "Missing",
-                "Missing",
-                LanguageNames.CSharp,
-                filePath: projectPath));
-            var target = new WorkspaceChangeDetector(new FileSystem(), new WorkspaceProjectInputResolver());
-
-            var manifest = target.BuildManifest(solution, projectPath);
-
-            manifest.IsComplete.Should().BeFalse();
-            manifest.EvaluationFailures.Should().ContainSingle().Which.Should().BeEquivalentTo(new WorkspaceProjectInputFailure
-            {
-                ProjectPath = projectPath,
-                Message = "The project file does not exist.",
-            });
-        }
-        finally
-        {
-            DeleteDirectory(directoryPath);
-        }
-    }
-
     private static string CreateDirectoryPath()
     {
         var directoryPath = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-manifest-tests", Guid.NewGuid().ToString("n"));

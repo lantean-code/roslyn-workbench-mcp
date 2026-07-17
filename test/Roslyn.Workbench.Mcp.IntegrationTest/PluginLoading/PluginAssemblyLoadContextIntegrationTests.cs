@@ -6,7 +6,7 @@ using Roslyn.Workbench.Mcp.TestSupport;
 
 namespace Roslyn.Workbench.Mcp.Test.PluginLoading;
 
-public sealed class PluginAssemblyLoadContextTests
+public sealed class PluginAssemblyLoadContextIntegrationTests
 {
     [Fact]
     public void GIVEN_ExternalEntryAssembly_WHEN_CreatingLoadContext_THEN_ShouldLoadPluginWithSharedContractIdentity()

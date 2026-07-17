@@ -1,14 +1,17 @@
-using System.Text.Json;
+using Roslyn.Workbench.Mcp.CodeActions.Composition;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 
 public sealed class ControlledProviderWorkflowIntegrationTests
 {
+    private static readonly ICodeActionProviderCatalog _providerCatalog = BundledCoreToolTestHarness.CreateTestCodeActionProviderCatalog();
+
     [Fact]
     public async Task GIVEN_ControlledProviderActions_WHEN_ListingDescribingAndStagingParameterisedAction_THEN_ShouldPreserveWorkflowContracts()
     {
         await using var fixture = await InspectionSampleFixture.CreateAsync();
-        await using var coordinator = BundledCoreToolTestHarness.CreateTestCodeActionCoordinator();
+        await using var coordinator = BundledCoreToolTestHarness.CreateTestCodeActionCoordinator(_providerCatalog);
+        await using var session = CodeActionComponentTestSession.Create(coordinator);
         var open = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
@@ -16,22 +19,22 @@ public sealed class ControlledProviderWorkflowIntegrationTests
         await coordinator.StartTransactionAsync(new TransactionStartRequest(), TestContext.Current.CancellationToken);
         var snapshot = BundledCoreToolTestHarness.CreateSnapshot(open, 0);
 
-        var listed = await InvokeAsync<CodeActionListData>(coordinator, "list-code-actions", new Dictionary<string, JsonElement>
+        var listed = await session.ListAsync(new ListCodeActionsRequest
         {
-            ["location"] = JsonSerializer.SerializeToElement(fixture.GetLocation("StateHolder")),
-            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(snapshot),
-        });
+            Location = fixture.GetLocation("StateHolder"),
+            ExpectedSnapshot = snapshot,
+        }, TestContext.Current.CancellationToken);
         var parameterisedAction = listed.Data!.Actions.Single(static action => action.Title == "Change signature test refactoring");
-        var described = await InvokeAsync<DescribeCodeActionData>(coordinator, "describe-code-action", new Dictionary<string, JsonElement>
+        var described = await session.DescribeAsync(new DescribeCodeActionRequest
         {
-            ["actionId"] = JsonSerializer.SerializeToElement(parameterisedAction.ActionId),
-            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(snapshot),
-        });
-        var staged = await InvokeAsync<MutationData>(coordinator, "stage-code-action", new Dictionary<string, JsonElement>
+            ActionId = parameterisedAction.ActionId,
+            ExpectedSnapshot = snapshot,
+        }, TestContext.Current.CancellationToken);
+        var staged = await session.StageCodeActionAsync(new StageCodeActionRequest
         {
-            ["actionId"] = JsonSerializer.SerializeToElement(parameterisedAction.ActionId),
-            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(snapshot),
-        }, expectProtocolSuccess: false);
+            ActionId = parameterisedAction.ActionId,
+            ExpectedSnapshot = snapshot,
+        }, TestContext.Current.CancellationToken);
 
         listed.Data.Actions.Should().OnlyContain(static action => !string.IsNullOrWhiteSpace(action.ActionId));
         described.Outcome.Should().Be(ToolOutcome.Succeeded);
@@ -45,25 +48,26 @@ public sealed class ControlledProviderWorkflowIntegrationTests
     public async Task GIVEN_ControlledRefactoringAndCodeFix_WHEN_StagingBoth_THEN_ShouldAdvanceRevisionsAndPreviewChanges()
     {
         await using var fixture = await InspectionSampleFixture.CreateAsync();
-        await using var coordinator = BundledCoreToolTestHarness.CreateTestCodeActionCoordinator();
+        await using var coordinator = BundledCoreToolTestHarness.CreateTestCodeActionCoordinator(_providerCatalog);
+        await using var session = CodeActionComponentTestSession.Create(coordinator);
         var open = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
         }, TestContext.Current.CancellationToken);
         await coordinator.StartTransactionAsync(new TransactionStartRequest(), TestContext.Current.CancellationToken);
 
-        var refactorings = await ListActionsAsync(coordinator, fixture.GetLocation("StateHolder"), open, 0, includeCodeFixes: false);
-        var stagedRefactoring = await InvokeAsync<MutationData>(coordinator, "stage-code-action", new Dictionary<string, JsonElement>
+        var refactorings = await ListActionsAsync(session, fixture.GetLocation("StateHolder"), open, 0, includeCodeFixes: false);
+        var stagedRefactoring = await session.StageCodeActionAsync(new StageCodeActionRequest
         {
-            ["actionId"] = JsonSerializer.SerializeToElement(refactorings.Data!.Actions.Single(static action => action.Title == "Apply test refactoring").ActionId),
-            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(BundledCoreToolTestHarness.CreateSnapshot(open, 0)),
-        });
-        var codeFixes = await ListActionsAsync(coordinator, fixture.GetLocation("unused"), open, 1, includeRefactorings: false);
-        var stagedCodeFix = await InvokeAsync<MutationData>(coordinator, "stage-code-fix", new Dictionary<string, JsonElement>
+            ActionId = refactorings.Data!.Actions.Single(static action => action.Title == "Apply test refactoring").ActionId,
+            ExpectedSnapshot = BundledCoreToolTestHarness.CreateSnapshot(open, 0),
+        }, TestContext.Current.CancellationToken);
+        var codeFixes = await ListActionsAsync(session, fixture.GetLocation("unused"), open, 1, includeRefactorings: false);
+        var stagedCodeFix = await session.StageCodeFixAsync(new StageCodeFixRequest
         {
-            ["actionId"] = JsonSerializer.SerializeToElement(codeFixes.Data!.Actions.Single(static action => action.Title == "Apply test code fix").ActionId),
-            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(BundledCoreToolTestHarness.CreateSnapshot(open, 1)),
-        });
+            ActionId = codeFixes.Data!.Actions.Single(static action => action.Title == "Apply test code fix").ActionId,
+            ExpectedSnapshot = BundledCoreToolTestHarness.CreateSnapshot(open, 1),
+        }, TestContext.Current.CancellationToken);
         var preview = await coordinator.PreviewTransactionAsync(new TransactionPreviewRequest(), TestContext.Current.CancellationToken);
 
         stagedRefactoring.Data!.Transaction!.Revision.Should().Be(1);
@@ -72,158 +76,48 @@ public sealed class ControlledProviderWorkflowIntegrationTests
         preview.Data.Documents.Should().ContainSingle(static change => change.Document!.Path == "Formatting.cs");
     }
 
-    [Theory]
-    [InlineData(ScopeKind.Document)]
-    [InlineData(ScopeKind.Project)]
-    [InlineData(ScopeKind.Solution)]
-    public async Task GIVEN_ControlledCodeFix_WHEN_StagingFixAllAtSupportedScope_THEN_ShouldStageRequestedScope(ScopeKind scopeKind)
+    [Fact]
+    public async Task GIVEN_ControlledCodeFix_WHEN_StagingSolutionFixAll_THEN_ShouldStageSolutionScope()
     {
         await using var fixture = await InspectionSampleFixture.CreateAsync();
-        await using var coordinator = BundledCoreToolTestHarness.CreateTestCodeActionCoordinator();
+        await using var coordinator = BundledCoreToolTestHarness.CreateTestCodeActionCoordinator(_providerCatalog);
+        await using var session = CodeActionComponentTestSession.Create(coordinator);
         var open = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
         }, TestContext.Current.CancellationToken);
         await coordinator.StartTransactionAsync(new TransactionStartRequest(), TestContext.Current.CancellationToken);
-        var codeFixes = await ListActionsAsync(coordinator, fixture.GetLocation("unused"), open, 0, includeRefactorings: false);
+        var codeFixes = await ListActionsAsync(session, fixture.GetLocation("unused"), open, 0, includeRefactorings: false);
 
-        var result = await InvokeAsync<MutationData>(coordinator, "stage-fix-all", new Dictionary<string, JsonElement>
+        var result = await session.StageFixAllAsync(new StageFixAllRequest
         {
-            ["actionId"] = JsonSerializer.SerializeToElement(codeFixes.Data!.Actions.Single(static action => action.Title == "Apply test code fix").ActionId),
-            ["scope"] = JsonSerializer.SerializeToElement(CreateScope(scopeKind)),
-            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(BundledCoreToolTestHarness.CreateSnapshot(open, 0)),
-        });
+            ActionId = codeFixes.Data!.Actions.Single(static action => action.Title == "Apply test code fix").ActionId,
+            Scope = new ScopeSelector
+            {
+                Kind = ScopeKind.Solution,
+            },
+            ExpectedSnapshot = BundledCoreToolTestHarness.CreateSnapshot(open, 0),
+        }, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
         result.Data!.Summary.Should().Be("Fix all: Apply test code fix");
         result.Data.Transaction!.Revision.Should().Be(1);
     }
 
-    [Fact]
-    public async Task GIVEN_TamperedExpiredOrStaleActionTokens_WHEN_Staging_THEN_ShouldRejectEachToken()
-    {
-        await using var tamperedFixture = await InspectionSampleFixture.CreateAsync();
-        await using var tamperedCoordinator = BundledCoreToolTestHarness.CreateTestCodeActionCoordinator();
-        var tamperedOpen = await tamperedCoordinator.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = tamperedFixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
-        await tamperedCoordinator.StartTransactionAsync(new TransactionStartRequest(), TestContext.Current.CancellationToken);
-        var tamperedActions = await ListActionsAsync(tamperedCoordinator, tamperedFixture.GetLocation("StateHolder"), tamperedOpen, 0, includeCodeFixes: false);
-        var actionId = tamperedActions.Data!.Actions.Single(static action => action.Title == "Apply test refactoring").ActionId;
-
-        var tampered = await StageCodeActionAsync(tamperedCoordinator, string.Concat(actionId, "tampered"), tamperedOpen, 0, expectProtocolSuccess: false);
-
-        await using var expiredFixture = await InspectionSampleFixture.CreateAsync();
-        await using var expiredCoordinator = BundledCoreToolTestHarness.CreateTestCodeActionCoordinator(TimeSpan.FromMinutes(-1));
-        var expiredOpen = await expiredCoordinator.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = expiredFixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
-        await expiredCoordinator.StartTransactionAsync(new TransactionStartRequest(), TestContext.Current.CancellationToken);
-        var expiredActions = await ListActionsAsync(expiredCoordinator, expiredFixture.GetLocation("StateHolder"), expiredOpen, 0, includeCodeFixes: false);
-        var expiredActionId = expiredActions.Data!.Actions.Single(static action => action.Title == "Apply test refactoring").ActionId;
-
-        var expired = await StageCodeActionAsync(expiredCoordinator, expiredActionId, expiredOpen, 0, expectProtocolSuccess: false);
-
-        await using var staleFixture = await InspectionSampleFixture.CreateAsync();
-        await using var staleCoordinator = BundledCoreToolTestHarness.CreateTestCodeActionCoordinator();
-        var staleOpen = await staleCoordinator.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = staleFixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
-        await staleCoordinator.StartTransactionAsync(new TransactionStartRequest(), TestContext.Current.CancellationToken);
-        var staleActions = await ListActionsAsync(staleCoordinator, staleFixture.GetLocation("StateHolder"), staleOpen, 0, includeCodeFixes: false);
-        var staleActionId = staleActions.Data!.Actions.Single(static action => action.Title == "Apply test refactoring").ActionId;
-        await StageCodeActionAsync(staleCoordinator, staleActionId, staleOpen, 0);
-
-        var stale = await StageCodeActionAsync(staleCoordinator, staleActionId, staleOpen, 1, expectProtocolSuccess: false);
-
-        tampered.Error!.Code.Should().Be("ActionExpired");
-        expired.Error!.Code.Should().Be("ActionExpired");
-        stale.Error!.Code.Should().Be("ActionExpired");
-    }
-
-    [Fact]
-    public async Task GIVEN_StaleSnapshot_WHEN_ListingControlledActions_THEN_ShouldRejectSnapshotMismatch()
-    {
-        await using var fixture = await InspectionSampleFixture.CreateAsync();
-        await using var coordinator = BundledCoreToolTestHarness.CreateTestCodeActionCoordinator();
-        var open = await coordinator.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
-
-        var result = await InvokeAsync<CodeActionListData>(coordinator, "list-code-actions", new Dictionary<string, JsonElement>
-        {
-            ["location"] = JsonSerializer.SerializeToElement(fixture.GetLocation("StateHolder")),
-            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition
-            {
-                WorkspaceEpoch = open.WorkspaceEpoch!.Value + 1,
-            }),
-        }, expectProtocolSuccess: false);
-
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.Error!.Code.Should().Be("SnapshotMismatch");
-    }
-
-    private static ScopeSelector CreateScope(ScopeKind scopeKind)
-    {
-        return new ScopeSelector
-        {
-            Kind = scopeKind,
-            Document = scopeKind == ScopeKind.Document
-                ? new DocumentSelector
-                {
-                    Path = "Formatting.cs",
-                }
-                : null,
-            Project = scopeKind == ScopeKind.Project
-                ? new ProjectSelector
-                {
-                    Path = "Sample.csproj",
-                }
-                : null,
-        };
-    }
-
     private static async Task<ToolResult<CodeActionListData>> ListActionsAsync(
-        IWorkspaceRuntime coordinator,
+        CodeActionComponentTestSession session,
         LocationSelector location,
         ToolResult<WorkspaceOpenData> open,
         int transactionRevision,
         bool includeRefactorings = true,
         bool includeCodeFixes = true)
     {
-        return await InvokeAsync<CodeActionListData>(coordinator, "list-code-actions", new Dictionary<string, JsonElement>
+        return await session.ListAsync(new ListCodeActionsRequest
         {
-            ["location"] = JsonSerializer.SerializeToElement(location),
-            ["includeRefactorings"] = JsonSerializer.SerializeToElement(includeRefactorings),
-            ["includeCodeFixes"] = JsonSerializer.SerializeToElement(includeCodeFixes),
-            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(BundledCoreToolTestHarness.CreateSnapshot(open, transactionRevision)),
-        });
-    }
-
-    private static async Task<ToolResult<MutationData>> StageCodeActionAsync(
-        IWorkspaceRuntime coordinator,
-        string actionId,
-        ToolResult<WorkspaceOpenData> open,
-        int transactionRevision,
-        bool expectProtocolSuccess = true)
-    {
-        return await InvokeAsync<MutationData>(coordinator, "stage-code-action", new Dictionary<string, JsonElement>
-        {
-            ["actionId"] = JsonSerializer.SerializeToElement(actionId),
-            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(BundledCoreToolTestHarness.CreateSnapshot(open, transactionRevision)),
-        }, expectProtocolSuccess);
-    }
-
-    private static async Task<ToolResult<TResponse>> InvokeAsync<TResponse>(
-        IWorkspaceRuntime coordinator,
-        string toolName,
-        IDictionary<string, JsonElement> arguments,
-        bool expectProtocolSuccess = true)
-    {
-        return await CodeActionToolTestHarness.InvokeAsync<TResponse>(coordinator, TestContext.Current.CancellationToken, toolName, arguments, expectProtocolSuccess);
+            Location = location,
+            IncludeRefactorings = includeRefactorings,
+            IncludeCodeFixes = includeCodeFixes,
+            ExpectedSnapshot = BundledCoreToolTestHarness.CreateSnapshot(open, transactionRevision),
+        }, TestContext.Current.CancellationToken);
     }
 }

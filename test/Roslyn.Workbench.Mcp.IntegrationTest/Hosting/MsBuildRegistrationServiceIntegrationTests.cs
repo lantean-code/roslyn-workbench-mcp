@@ -1,6 +1,6 @@
 namespace Roslyn.Workbench.Mcp.Test.Hosting;
 
-public sealed class MsBuildRegistrationServiceTests
+public sealed class MsBuildRegistrationServiceIntegrationTests
 {
     [Fact]
     public void GIVEN_UninitialisedService_WHEN_GettingStatus_THEN_ShouldReportUnavailable()

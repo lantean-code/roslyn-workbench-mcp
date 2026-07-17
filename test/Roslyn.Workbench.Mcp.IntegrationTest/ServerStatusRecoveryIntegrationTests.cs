@@ -1,14 +1,12 @@
-using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.CodeActions.Contracts;
-using Roslyn.Workbench.Mcp.Tools;
 
 namespace Roslyn.Workbench.Mcp.Test;
 
 public sealed class ServerStatusRecoveryIntegrationTests
 {
     [Fact]
-    public async Task GIVEN_UnfinishedRecoveryRecord_WHEN_RequestingFullServerStatus_THEN_ShouldReturnPersistedRecoveryDiagnostics()
+    public async Task GIVEN_UnfinishedRecoveryRecord_WHEN_RequestingFullServerStatus_THEN_ShouldMapPersistedRecoveryDiagnostics()
     {
         await using var stateDirectory = TemporaryDirectory.Create("roslyn-workbench-mcp-status-tests");
         var fileSystem = new FileSystem();
@@ -53,18 +51,9 @@ public sealed class ServerStatusRecoveryIntegrationTests
             msBuildRegistrationService.Object,
             codeActionProviderCatalog.Object,
             recoveryStore);
-        var tool = new ServerStatusTool(
-            Options.Create(options),
-            McpIntegrationTestHost.CreateProtocolFactory(),
-            service);
+        var result = await service.GetStatusAsync(StatusDetailLevel.Full, TestContext.Current.CancellationToken);
 
-        var result = await McpIntegrationTestHost.InvokeServerToolAsync(tool, TestContext.Current.CancellationToken, "server-status", new Dictionary<string, JsonElement>
-        {
-            ["detail"] = JsonSerializer.SerializeToElement(StatusDetailLevel.Full),
-        });
-
-        result.IsError.Should().BeFalse();
-        result.StructuredContent!.Value.GetProperty("data").GetProperty("recovery").EnumerateArray().Should().ContainSingle(
-            static status => status.GetProperty("commitId").GetString() == "commit-id");
+        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Data!.Recovery.Should().ContainSingle(static status => status.CommitId == "commit-id");
     }
 }

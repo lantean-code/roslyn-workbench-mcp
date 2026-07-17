@@ -4,7 +4,6 @@
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <NoWarn>$(NoWarn);MCPEXP002</NoWarn>
-    <ArtifactConfiguration>$([System.String]::Copy('$(Configuration)').ToLowerInvariant())</ArtifactConfiguration>
   </PropertyGroup>
 
   <ItemGroup>
@@ -29,17 +28,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Roslyn.Workbench.Mcp\Roslyn.Workbench.Mcp.csproj" />
     <ProjectReference Include="..\Roslyn.Workbench.Mcp.TestSupport\Roslyn.Workbench.Mcp.TestSupport.csproj" />
-    <ProjectReference Include="..\Roslyn.Workbench.Mcp.PluginFixtures\Roslyn.Workbench.Mcp.InvalidPluginFixture.csproj" />
-    <ProjectReference Include="..\Roslyn.Workbench.Mcp.PluginFixtures\Roslyn.Workbench.Mcp.HostQueryPluginFixture.csproj" />
   </ItemGroup>
-
-  <Target Name="CopyHostQueryPluginPackageAssets" AfterTargets="Build">
-    <ItemGroup>
-      <HostQueryPluginPackageAsset Include="$(ArtifactsPath)/bin/Roslyn.Workbench.Mcp.HostQueryPluginFixture/$(ArtifactConfiguration)/Roslyn.Workbench.Mcp.HostQueryPluginFixture.dll" />
-      <HostQueryPluginPackageAsset Include="$(ArtifactsPath)/bin/Roslyn.Workbench.Mcp.HostQueryPluginFixture/$(ArtifactConfiguration)/Roslyn.Workbench.Mcp.HostQueryPluginFixture.deps.json" />
-      <HostQueryPluginPackageAsset Include="$(ArtifactsPath)/bin/Roslyn.Workbench.Mcp.HostQueryPluginFixture/$(ArtifactConfiguration)/NuGet.Versioning.dll" />
-    </ItemGroup>
-    <Copy SourceFiles="@(HostQueryPluginPackageAsset)" DestinationFolder="$(OutDir)/PluginFixtureAssets/HostQuery" />
-  </Target>
 
 </Project>

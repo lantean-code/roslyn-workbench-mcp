@@ -7,13 +7,13 @@ using Roslyn.Workbench.Mcp.PluginFixtures;
 
 namespace Roslyn.Workbench.Mcp.Test.PluginLoading;
 
-public sealed class PluginAssemblyMetadataReaderTests
+public sealed class PluginAssemblyMetadataReaderIntegrationTests
 {
     private readonly Mock<IFileSystem> _fileSystem;
     private readonly Mock<IFile> _file;
     private readonly PluginAssemblyMetadataReader _target;
 
-    public PluginAssemblyMetadataReaderTests()
+    public PluginAssemblyMetadataReaderIntegrationTests()
     {
         _fileSystem = new Mock<IFileSystem>();
         _file = new Mock<IFile>();

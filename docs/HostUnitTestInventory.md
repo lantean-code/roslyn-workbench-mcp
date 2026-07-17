@@ -2,11 +2,13 @@
 
 Date: 2026-07-17
 
-Status: Unit testing complete; integration-test redesign deferred
+Status: Unit testing complete; boundary migration completed in Stage 4D
 
 ## Purpose
 
 This document inventories unit-test coverage for `Roslyn.Workbench.Mcp` after completion of the H1-H7 Host architecture review. It separates isolated unit evidence from tests that currently exercise real Host, MSBuild, PE-metadata, MEF or assembly-load-context boundaries, records the measured baseline, and identifies the remaining decisions before the Host unit-testing round can be closed.
+
+The measurements below preserve the Host unit-test baseline at the time of this inventory. Stage 4D subsequently moved all 24 recorded boundary cases to `Roslyn.Workbench.Mcp.IntegrationTest`; the migration result and current counts are recorded in `IntegrationTestingStage4Results-2026-07-17.md`.
 
 The inventory follows `TestingStrategy.md` and `test/AGENTS.md`:
 
@@ -136,7 +138,7 @@ Data-only request and response records with generated accessors are asserted thr
 ## Decisions Requiring Approval
 
 1. Resolved: `ServerStatusData.ServerVersion` and `RoslynVersion` now mirror the framework's nullable `AssemblyName.Version` contract and publish explicit JSON nulls when metadata is unavailable. The two concrete-assembly null paths remain approved external-runtime gaps; no test-only assembly/version seam is introduced.
-2. Keep the 24 boundary tests unchanged until the integration-test redesign, while excluding them from unit-coverage claims; then move or recategorise them as part of that redesign. Moving them now would begin the explicitly deferred integration restructuring.
+2. Resolved: Stage 4D moved all 24 boundary tests into Host integration coverage and removed the unit project's fixture-only references.
 3. Treat the ten external/composition files as integration-owned rather than introducing wrappers around `MSBuildLocator`, the MCP SDK, MEF, PE metadata or `AssemblyLoadContext` solely to improve unit percentages.
 
 No production change should be made during the testing phase without explicit confirmation.
@@ -153,7 +155,9 @@ Complete. The isolated coverage filter and prohibited-pattern scans are green. A
 
 ### Deferred Host integration redesign
 
-Move or categorise the 24 boundary tests, then add the missing real-boundary scenarios in the integration phase:
+Completed in Stage 4D. The 24 recorded cases are now integration-classified, and published-process workflows are owned by the acceptance suite. See `IntegrationTestingStage4Results-2026-07-17.md` for the retention map and verification evidence.
+
+The completed component and acceptance redesign covers:
 
 - process startup and stdio transport;
 - real Host DI and MCP publication;
@@ -184,7 +188,7 @@ The final HUT2 audit completed successfully on 2026-07-17:
 - [x] Real Host, MSBuild, MEF, PE metadata and load-context execution is separated from isolated coverage reporting.
 - [x] The exact `ServerStatusService` framework-nullable gap is approved and recorded.
 - [x] The final isolated coverage and pattern audit is green.
-- [ ] Boundary tests are moved or recategorised during the deferred integration-test redesign.
+- [x] Boundary tests are moved or recategorised during the deferred integration-test redesign.
 
 ## Measurement Commands
 

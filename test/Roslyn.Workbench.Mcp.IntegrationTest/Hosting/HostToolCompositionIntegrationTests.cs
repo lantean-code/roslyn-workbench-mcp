@@ -4,7 +4,7 @@ using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.Test.Hosting;
 
-public sealed class HostToolCompositionTests
+public sealed class HostToolCompositionIntegrationTests
 {
     [Fact]
     public async Task GIVEN_CompleteHostComposition_WHEN_ValidatingContainer_THEN_ShouldResolveEveryRegisteredMcpTool()

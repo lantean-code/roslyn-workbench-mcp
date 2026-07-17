@@ -437,115 +437,115 @@ Do not count integration tests toward unit line/branch coverage.
 
 #### Keep
 
-- [ ] `AtomicFileWriterIntegrationTests`: real create/replace and exact-byte behaviour.
-- [ ] `DurableWorkspaceCommitIntegrationTests`: multi-file success, restoration, divergence, restart recovery, directory cleanup and inter-process lock release.
-- [ ] Representative SDK project, solution-format and imported-build-input loading.
-- [ ] Real filesystem/import changes in change detection.
-- [ ] Real open/close and multiple-workspace behaviour.
-- [ ] Real external change during a transaction.
-- [ ] Real source/metadata, cross-project, ambiguity and documentation-ID resolution.
+- [x] `AtomicFileWriterIntegrationTests`: real create/replace and exact-byte behaviour.
+- [x] `DurableWorkspaceCommitIntegrationTests`: multi-file success, restoration, divergence, restart recovery, directory cleanup and inter-process lock release.
+- [x] Representative SDK project, solution-format and imported-build-input loading.
+- [x] Real filesystem/import changes in change detection.
+- [x] Real open/close and multiple-workspace behaviour.
+- [x] Real external change during a transaction.
+- [x] Real source/metadata, cross-project, ambiguity and documentation-ID resolution.
 
 #### Consolidate or remove
 
-- [ ] Coordinator rejection, status and cancellation branches already covered by unit tests.
-- [ ] Pure comparison branches in change detection.
-- [ ] Resolver snapshot/status failures already covered by unit tests.
-- [ ] Direct Plugin/MCP harness usage that does not add a Workspace boundary.
+- [x] Coordinator rejection, status and cancellation branches already covered by unit tests.
+- [x] Pure comparison branches in change detection.
+- [x] Resolver snapshot/status failures already covered by unit tests.
+- [x] Direct Plugin/MCP harness usage that does not add a Workspace boundary.
 
 #### Restructure
 
-- [ ] Split `WorkspaceCoordinatorIntegrationTests` by lifecycle, external-change and transaction capability.
-- [ ] Keep mutation/recovery classes isolated.
-- [ ] Share only proven immutable read-only fixtures.
+- [x] Split `WorkspaceCoordinatorIntegrationTests` by lifecycle, external-change and transaction capability.
+- [x] Keep mutation/recovery classes isolated.
+- [x] Share only proven immutable read-only fixtures.
 
 ### 4B: Plugins.Core component integration
 
 #### Keep
 
-- [ ] One solution/project/document projection flow.
-- [ ] Diagnostics plus representative operation/control-flow semantics.
-- [ ] Representative cross-project references/implementations.
-- [ ] One dependency graph/search family flow.
-- [ ] Real selector ambiguity/cross-project behaviour.
-- [ ] Representative rename plus formatting/sort staging.
-- [ ] Solution/project format and imported-property structure cases.
+- [x] One solution/project/document projection flow.
+- [x] Diagnostics plus representative operation/control-flow semantics.
+- [x] Representative cross-project references/implementations.
+- [x] One dependency graph/search family flow.
+- [x] Real selector ambiguity/cross-project behaviour.
+- [x] Representative rename plus formatting/sort staging.
+- [x] Solution/project format and imported-property structure cases.
 
 #### Consolidate or remove
 
-- [ ] Malformed/missing/cancellation branches covered by service unit tests.
-- [ ] A separate integration test for every query tool.
-- [ ] Snapshot and selector response branches that do not depend on real Workspace behaviour.
+- [x] Audit malformed/missing/cancellation branches against service unit coverage; retain cases without a unit replacement.
+- [x] A separate integration test for every query tool.
+- [x] Snapshot and selector response branches that do not depend on real Workspace behaviour.
 
 #### Restructure
 
-- [ ] Split the 13-case default-project-structure class into retained capability cases or consolidate equivalent inputs.
-- [ ] Use a collection-scoped read-only fixture only after concurrent query safety is demonstrated.
-- [ ] Keep mutation tests on isolated fixture copies.
+- [x] Split the 13-case default-project-structure class into retained capability cases or consolidate equivalent inputs.
+- [x] Use a collection-scoped read-only fixture only after concurrent query safety is demonstrated.
+- [x] Keep mutation tests on isolated fixture copies.
 
 ### 4C: CodeActions component integration
 
 #### Keep
 
-- [ ] Real MEF provider catalogue composition.
-- [ ] Controlled-provider list/describe/stage workflow.
-- [ ] Controlled fix-all across a real solution.
-- [ ] One representative supported bundled action reaching Workspace staging.
+- [x] Real MEF provider catalogue composition.
+- [x] Controlled-provider list/describe/stage workflow.
+- [x] Controlled fix-all across a real solution.
+- [x] One representative supported bundled action reaching Workspace staging.
 
 #### Consolidate or remove
 
-- [ ] Token tampering, expiry and staleness branches covered by unit tests.
-- [ ] Duplicate provider scenarios already governed by the compatibility audit.
-- [ ] Direct MCP publication assertions moved to acceptance.
+- [x] Token tampering, expiry and staleness branches covered by unit tests.
+- [x] Duplicate provider scenarios already governed by the compatibility audit.
+- [x] Direct MCP publication assertions moved to acceptance.
 
 #### Restructure
 
-- [ ] Compose an immutable provider catalogue once at the narrowest safe fixture scope.
-- [ ] Split independent provider families into separate classes.
-- [ ] Never run mutations concurrently against the same Workspace.
+- [x] Compose an immutable provider catalogue once at the narrowest safe fixture scope.
+- [x] Split independent provider families into separate classes.
+- [x] Never run mutations concurrently against the same Workspace.
 
 ### 4D: Host component integration
 
 #### Keep
 
-- [ ] Complete DI/container validation and tool-catalogue composition.
-- [ ] Options fallback composition.
-- [ ] Plugin package enumeration and metadata validation.
-- [ ] MEF composition and generic materialisation.
-- [ ] Assembly-load-context shared/private dependency routing.
-- [ ] Real MCP SDK schema exporter compatibility.
-- [ ] Recovery persistence-to-service mapping.
+- [x] Complete DI/container validation and tool-catalogue composition.
+- [x] Options fallback composition.
+- [x] Plugin package enumeration and metadata validation.
+- [x] MEF composition and generic materialisation.
+- [x] Assembly-load-context shared/private dependency routing.
+- [x] Real MCP SDK schema exporter compatibility.
+- [x] Recovery persistence-to-service mapping.
 
 #### Move from Host unit tests
 
-- [ ] `HostToolCompositionTests`: two complete composition cases.
-- [ ] `MefPluginComposerTests`: three real composition cases.
-- [ ] `PluginCatalogBootstrapTests`: one real bootstrap case.
-- [ ] `PluginAssemblyLoadContextTests`: six load-context cases.
-- [ ] `PluginAssemblyMetadataReaderTests`: nine real PE metadata cases.
-- [ ] `MsBuildRegistrationServiceTests`: two registration cases.
-- [ ] The Generic Host lifecycle-ordering case identified in `HostUnitTestInventory.md`.
+- [x] `HostToolCompositionTests`: two complete composition cases.
+- [x] `MefPluginComposerTests`: three real composition cases.
+- [x] `PluginCatalogBootstrapTests`: one real bootstrap case.
+- [x] `PluginAssemblyLoadContextTests`: six load-context cases.
+- [x] `PluginAssemblyMetadataReaderTests`: nine real PE metadata cases.
+- [x] `MsBuildRegistrationServiceTests`: two registration cases.
+- [x] The Generic Host lifecycle-ordering case identified in `HostUnitTestInventory.md`.
 
 Reconfirm the exact count before moving; the current inventory records 24 boundary tests.
 
 #### Replace or split
 
-- [ ] `RepresentativeMcpToolIntegrationTests`: replace protocol assertions with acceptance workflows.
-- [ ] `WorkspaceLifecycleMcpIntegrationTests`: replace protocol workflow with stdio acceptance.
-- [ ] `PluginDiscoveryAndMcpToolIntegrationTests`: retain package discovery, remove direct protocol duplication after acceptance.
-- [ ] `ServerStatusRecoveryIntegrationTests`: retain persistence/service boundary; leave JSON shape to contract and acceptance tests.
+- [x] `RepresentativeMcpToolIntegrationTests`: replace protocol assertions with acceptance workflows.
+- [x] `WorkspaceLifecycleMcpIntegrationTests`: replace protocol workflow with stdio acceptance.
+- [x] `PluginDiscoveryAndMcpToolIntegrationTests`: retain package discovery, remove direct protocol duplication after acceptance.
+- [x] `ServerStatusRecoveryIntegrationTests`: retain persistence/service boundary; leave JSON shape to contract and acceptance tests.
 
 ### Verification for every substage
 
-- [ ] Run the affected unit project to prove removed integration branches remain covered.
-- [ ] Run the affected integration project.
-- [ ] Record before/after scenario count and wall time.
-- [ ] Explain every deleted or consolidated scenario in the stage notes.
+- [x] Run the affected unit project to prove removed integration branches remain covered.
+- [x] Run the affected integration project.
+- [x] Record before/after scenario count and wall time.
+- [x] Explain every deleted or consolidated scenario in the stage notes.
 
 ### Exit criteria
 
-- [ ] Every retained component test has a named real boundary.
-- [ ] No component project relies on a full test-owned application composition root.
-- [ ] The 24 Host boundary cases are correctly classified.
+- [x] Every retained component test has a named real boundary.
+- [x] No component project relies on a full test-owned application composition root.
+- [x] The 24 Host boundary cases are correctly classified.
 
 ## Stage 5: Remove Obsolete Harnesses and Narrow Shared Support
 

@@ -23,9 +23,9 @@ public static class BundledCoreToolTestHarness
         return WorkspaceCoordinatorFactory.CreateWithCodeActionProviderCatalog(providerCatalog, BundledCoreToolExecutionServicesFactory.Create());
     }
 
-    public static IWorkspaceRuntime CreateTestCodeActionCoordinator(TimeSpan? tokenLifetime = null)
+    internal static ICodeActionProviderCatalog CreateTestCodeActionProviderCatalog()
     {
-        var providerCatalog = CodeActionProviderCatalogFactory.Create(new CodeActionCompositionOptions
+        return CodeActionProviderCatalogFactory.Create(new CodeActionCompositionOptions
         {
             IncludeBuiltInAssemblies = false,
             AdditionalAssemblies =
@@ -33,11 +33,13 @@ public static class BundledCoreToolTestHarness
                 typeof(TestRefactoringProvider).Assembly,
             ],
         });
+    }
 
+    internal static IWorkspaceRuntime CreateTestCodeActionCoordinator(ICodeActionProviderCatalog providerCatalog)
+    {
         return WorkspaceCoordinatorFactory.CreateWithCodeActionProviderCatalog(
             providerCatalog,
-            BundledCoreToolExecutionServicesFactory.Create(),
-            tokenLifetime);
+            BundledCoreToolExecutionServicesFactory.Create());
     }
 
     public static SnapshotPrecondition CreateSnapshot(ToolResult<WorkspaceOpenData> openResult, int? transactionRevision = null)

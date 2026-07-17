@@ -7,6 +7,27 @@ namespace Roslyn.Workbench.Mcp.Test;
 public sealed class HostCompositionIntegrationTests
 {
     [Fact]
+    public void GIVEN_InvalidCommandLineOption_WHEN_ComposingHost_THEN_ShouldRegisterFallbackOptionsAndWarning()
+    {
+        var builder = Host.CreateApplicationBuilder([]);
+
+        builder.AddRoslynWorkbench(["--default-max-results", "invalid"]);
+
+        using var host = builder.Build();
+        var startupOptions = host.Services.GetRequiredService<IOptions<StartupOptions>>().Value;
+        var startupConfiguration = host.Services.GetRequiredService<StartupConfigurationSnapshot>();
+        var workspaceOptions = host.Services.GetRequiredService<IOptions<WorkspaceCoordinatorOptions>>().Value;
+
+        startupOptions.DefaultMaxResults.Should().Be(100);
+        workspaceOptions.DefaultMaxResults.Should().Be(100);
+        startupConfiguration.Warnings.Should().ContainSingle().Which.Should().BeEquivalentTo(new WarningInfo
+        {
+            Code = "StartupConfigurationFallback",
+            Message = "Configuration '--default-max-results' is invalid; using default '100'.",
+        });
+    }
+
+    [Fact]
     public void GIVEN_CommandLineOptions_WHEN_ComposingHost_THEN_ShouldProjectDerivedOptionsIntoTheContainer()
     {
         using var stateDirectory = TemporaryDirectory.Create("roslyn-workbench-mcp-tests");

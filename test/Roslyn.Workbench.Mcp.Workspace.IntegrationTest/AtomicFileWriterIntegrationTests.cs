@@ -1,23 +1,22 @@
-using System.Text;
-
 namespace Roslyn.Workbench.Mcp.Workspace.Test;
 
 public sealed class AtomicFileWriterIntegrationTests
 {
     [Fact]
-    public async Task GIVEN_ExistingDestination_WHEN_WritingAtomically_THEN_ShouldReplaceContentWithoutLeavingTemporaryFile()
+    public async Task GIVEN_ExistingDestination_WHEN_WritingAtomically_THEN_ShouldReplaceExactBytesWithoutLeavingTemporaryFile()
     {
         var directoryPath = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-atomic-writer-tests", Guid.NewGuid().ToString("n"));
         var destinationPath = Path.Combine(directoryPath, "Status.json");
         Directory.CreateDirectory(directoryPath);
-        await File.WriteAllTextAsync(destinationPath, "Before", TestContext.Current.CancellationToken);
+        await File.WriteAllBytesAsync(destinationPath, [0x00, 0x01], TestContext.Current.CancellationToken);
         var target = new AtomicFileWriter(new FileSystem(), new NativeAtomicFileCommitter());
+        byte[] expected = [0x00, 0xff, 0x80, 0x0d, 0x0a];
 
         try
         {
-            await target.WriteAllTextAsync(destinationPath, "After", Encoding.UTF8, TestContext.Current.CancellationToken);
+            await target.WriteAllBytesAsync(destinationPath, expected, TestContext.Current.CancellationToken);
 
-            (await File.ReadAllTextAsync(destinationPath, TestContext.Current.CancellationToken)).Should().Be("After");
+            (await File.ReadAllBytesAsync(destinationPath, TestContext.Current.CancellationToken)).Should().Equal(expected);
             Directory.EnumerateFiles(directoryPath, "*.tmp").Should().BeEmpty();
         }
         finally
@@ -27,27 +26,24 @@ public sealed class AtomicFileWriterIntegrationTests
     }
 
     [Fact]
-    public async Task GIVEN_ReplacementFailure_WHEN_WritingAtomically_THEN_ShouldRemoveTemporaryFile()
+    public async Task GIVEN_MissingDestination_WHEN_WritingAtomically_THEN_ShouldCreateExactBytesWithoutLeavingTemporaryFile()
     {
-        var parentPath = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-atomic-writer-tests", Guid.NewGuid().ToString("n"));
-        var destinationDirectoryPath = Path.Combine(parentPath, "Destination");
-        Directory.CreateDirectory(destinationDirectoryPath);
+        var directoryPath = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-atomic-writer-tests", Guid.NewGuid().ToString("n"));
+        var destinationPath = Path.Combine(directoryPath, "Status.json");
+        Directory.CreateDirectory(directoryPath);
         var target = new AtomicFileWriter(new FileSystem(), new NativeAtomicFileCommitter());
+        byte[] expected = [0xef, 0xbb, 0xbf, 0x7b, 0x7d];
 
         try
         {
-            var action = async () => await target.WriteAllTextAsync(
-                destinationDirectoryPath,
-                "Contents",
-                Encoding.UTF8,
-                TestContext.Current.CancellationToken);
+            await target.WriteAllBytesAsync(destinationPath, expected, TestContext.Current.CancellationToken);
 
-            await action.Should().ThrowAsync<IOException>();
-            Directory.EnumerateFiles(parentPath, "*.tmp").Should().BeEmpty();
+            (await File.ReadAllBytesAsync(destinationPath, TestContext.Current.CancellationToken)).Should().Equal(expected);
+            Directory.EnumerateFiles(directoryPath, "*.tmp").Should().BeEmpty();
         }
         finally
         {
-            Directory.Delete(parentPath, recursive: true);
+            Directory.Delete(directoryPath, recursive: true);
         }
     }
 }

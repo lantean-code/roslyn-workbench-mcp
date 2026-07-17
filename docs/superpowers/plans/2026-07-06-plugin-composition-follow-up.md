@@ -499,7 +499,7 @@ Tests:
 
 - `test/Roslyn.Workbench.Mcp.Plugins.Test`
 - `test/Roslyn.Workbench.Mcp.IntegrationTest/PluginDiscoveryAndMcpToolTests.cs`
-- `test/Roslyn.Workbench.Mcp.PluginFixtures`
+- `test/TestFixtures/Plugins`
 - host composition tests under `test/Roslyn.Workbench.Mcp.Test`
 
 ## Acceptance Criteria

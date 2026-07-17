@@ -1,0 +1,41 @@
+name: Code-action compatibility audit
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/code-action-audit.yml
+      - Directory.Packages.props
+      - global.json
+      - src/Roslyn.Workbench.Mcp.CodeActions/**
+      - test/Roslyn.Workbench.Mcp.CodeActions.AuditTest/**
+      - test/Roslyn.Workbench.Mcp.IntegrationTestSupport/**
+      - test/TestAssets/Workspaces/InspectionSample/**
+      - docs/RoslynCodeActionsAudit.md
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: code-action-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ARTIFACTS_PATH: /tmp/artifacts/roslyn-workbench-mcp
+
+jobs:
+  audit:
+    name: Provider and replay compatibility
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - run: dotnet restore test/Roslyn.Workbench.Mcp.CodeActions.AuditTest/Roslyn.Workbench.Mcp.CodeActions.AuditTest.csproj --artifacts-path="$ARTIFACTS_PATH"
+      - run: dotnet test test/Roslyn.Workbench.Mcp.CodeActions.AuditTest/Roslyn.Workbench.Mcp.CodeActions.AuditTest.csproj --no-restore --artifacts-path="$ARTIFACTS_PATH"

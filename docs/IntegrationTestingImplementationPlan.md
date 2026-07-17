@@ -591,27 +591,29 @@ Make the expensive Code Action audit exclusively about version-sensitive Roslyn 
 
 ### Work
 
-- [ ] Keep built-in provider visibility/replay compatibility in `Roslyn.Workbench.Mcp.CodeActions.AuditTest`.
-- [ ] Keep the supported/impossible provider ledger as the audit source of truth.
-- [ ] Move `InternalArgumentNullGuardAuditTests` to fast architecture/governance coverage.
-- [ ] Move `ProductionNullForgivingOperatorAuditTests` to the same fast ownership area.
-- [ ] Do not change the source rules or replace the tests with analysers without a separate decision.
-- [ ] Share immutable audit catalogue/setup where safe.
-- [ ] Split provider or replay families into independently schedulable classes.
-- [ ] Set a measured concurrency limit that prevents the current greater-than-1-GiB peak from multiplying uncontrollably.
-- [ ] Verify supported-provider cases remain deterministic under the chosen grouping.
+- [x] Keep built-in provider visibility/replay compatibility in `Roslyn.Workbench.Mcp.CodeActions.AuditTest`.
+- [x] Keep the supported/impossible provider ledger as the audit source of truth.
+- [x] Move `InternalArgumentNullGuardAuditTests` to fast architecture/governance coverage.
+- [x] Move `ProductionNullForgivingOperatorAuditTests` to the same fast ownership area.
+- [x] Do not change the source rules or replace the tests with analysers without a separate decision.
+- [x] Share immutable audit catalogue/setup where safe.
+- [x] Split provider or replay families into independently schedulable classes.
+- [x] Set a measured concurrency limit that prevents the current greater-than-1-GiB peak from multiplying uncontrollably.
+- [x] Verify supported-provider cases remain deterministic under the chosen grouping.
 
 ### CI policy
 
-- [ ] Run the complete audit on schedule and main.
-- [ ] On pull requests, run it when CodeActions, Roslyn dependencies, provider classification, replay logic or audit infrastructure changes.
-- [ ] Keep a scheduled full run so path filtering cannot permanently hide drift.
+- [x] Run the complete audit on schedule and main.
+- [x] On pull requests, run it when CodeActions, Roslyn dependencies, provider classification, replay logic or audit infrastructure changes.
+- [x] Keep a scheduled full run so path filtering cannot permanently hide drift.
 
 ### Exit criteria
 
-- [ ] The audit project contains compatibility checks only.
-- [ ] Source-governance checks remain in the fast loop.
-- [ ] Audit runtime and memory are recorded after restructuring.
+- [x] The audit project contains compatibility checks only.
+- [x] Source-governance checks remain in the fast loop.
+- [x] Audit runtime and memory are recorded after restructuring.
+
+Completion evidence: `IntegrationTestingStage6Results-2026-07-17.md`.
 
 ## Stage 7: Optimise Execution and CI
 

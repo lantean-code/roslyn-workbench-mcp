@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Roslyn.Workbench.Mcp.PluginFixtures\Roslyn.Workbench.Mcp.HostQueryPluginFixture.csproj"
+    <ProjectReference Include="..\TestFixtures\Plugins\Roslyn.Workbench.Mcp.HostQueryPluginFixture.csproj"
                       ReferenceOutputAssembly="false" />
   </ItemGroup>
 

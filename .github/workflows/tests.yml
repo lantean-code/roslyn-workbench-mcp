@@ -53,14 +53,3 @@ jobs:
           global-json-file: global.json
       - run: dotnet restore "${{ matrix.project }}" --artifacts-path="$ARTIFACTS_PATH"
       - run: dotnet test "${{ matrix.project }}" --no-restore --artifacts-path="$ARTIFACTS_PATH"
-
-  code-action-audit:
-    name: Code-action compatibility audit
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
-        with:
-          global-json-file: global.json
-      - run: dotnet restore test/Roslyn.Workbench.Mcp.CodeActions.AuditTest/Roslyn.Workbench.Mcp.CodeActions.AuditTest.csproj --artifacts-path="$ARTIFACTS_PATH"
-      - run: dotnet test test/Roslyn.Workbench.Mcp.CodeActions.AuditTest/Roslyn.Workbench.Mcp.CodeActions.AuditTest.csproj --no-restore --artifacts-path="$ARTIFACTS_PATH"

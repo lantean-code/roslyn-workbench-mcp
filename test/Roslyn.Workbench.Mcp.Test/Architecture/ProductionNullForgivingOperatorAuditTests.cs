@@ -1,11 +1,11 @@
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
-namespace Roslyn.Workbench.Mcp.CodeActions.Test;
+namespace Roslyn.Workbench.Mcp.Test.Architecture;
 
 public sealed class ProductionNullForgivingOperatorAuditTests
 {
     [Fact]
-    [Trait("Category", "Audit")]
     public void GIVEN_ProductionSource_WHEN_InspectingNullableSuppressionSyntax_THEN_ShouldContainNoNullForgivingOperators()
     {
         var findings = ProductionSourceAudit

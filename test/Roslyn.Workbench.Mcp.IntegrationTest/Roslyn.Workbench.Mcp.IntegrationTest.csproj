@@ -27,10 +27,10 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Roslyn.Workbench.Mcp\Roslyn.Workbench.Mcp.csproj" />
     <ProjectReference Include="..\Roslyn.Workbench.Mcp.IntegrationTestSupport\Roslyn.Workbench.Mcp.IntegrationTestSupport.csproj" />
-    <ProjectReference Include="..\Roslyn.Workbench.Mcp.PluginFixtures\Roslyn.Workbench.Mcp.HostMutationPluginFixture.csproj" />
-    <ProjectReference Include="..\Roslyn.Workbench.Mcp.PluginFixtures\Roslyn.Workbench.Mcp.HostQueryPluginFixture.csproj" />
-    <ProjectReference Include="..\Roslyn.Workbench.Mcp.PluginFixtures\Roslyn.Workbench.Mcp.InvalidPluginFixture.csproj" />
-    <ProjectReference Include="..\Roslyn.Workbench.Mcp.PluginFixtures\Roslyn.Workbench.Mcp.ThrowingPluginFixture.csproj" />
+    <ProjectReference Include="..\TestFixtures\Plugins\Roslyn.Workbench.Mcp.HostMutationPluginFixture.csproj" />
+    <ProjectReference Include="..\TestFixtures\Plugins\Roslyn.Workbench.Mcp.HostQueryPluginFixture.csproj" />
+    <ProjectReference Include="..\TestFixtures\Plugins\Roslyn.Workbench.Mcp.InvalidPluginFixture.csproj" />
+    <ProjectReference Include="..\TestFixtures\Plugins\Roslyn.Workbench.Mcp.ThrowingPluginFixture.csproj" />
   </ItemGroup>
 
   <Target Name="CopyHostQueryPluginPackageAssets" AfterTargets="Build">

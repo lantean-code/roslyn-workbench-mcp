@@ -21,10 +21,6 @@
     <Project Path="test/Roslyn.Workbench.Mcp.CodeActions.Test/Roslyn.Workbench.Mcp.CodeActions.Test.csproj" />
     <Project Path="test/Roslyn.Workbench.Mcp.IntegrationTest/Roslyn.Workbench.Mcp.IntegrationTest.csproj" />
     <Project Path="test/Roslyn.Workbench.Mcp.IntegrationTestSupport/Roslyn.Workbench.Mcp.IntegrationTestSupport.csproj" />
-    <Project Path="test/Roslyn.Workbench.Mcp.PluginFixtures/Roslyn.Workbench.Mcp.HostMutationPluginFixture.csproj" />
-    <Project Path="test/Roslyn.Workbench.Mcp.PluginFixtures/Roslyn.Workbench.Mcp.HostQueryPluginFixture.csproj" />
-    <Project Path="test/Roslyn.Workbench.Mcp.PluginFixtures/Roslyn.Workbench.Mcp.InvalidPluginFixture.csproj" />
-    <Project Path="test/Roslyn.Workbench.Mcp.PluginFixtures/Roslyn.Workbench.Mcp.ThrowingPluginFixture.csproj" />
     <Project Path="test/Roslyn.Workbench.Mcp.Plugins.Core.IntegrationTest/Roslyn.Workbench.Mcp.Plugins.Core.IntegrationTest.csproj" />
     <Project Path="test/Roslyn.Workbench.Mcp.Plugins.Core.Test/Roslyn.Workbench.Mcp.Plugins.Core.Test.csproj" />
     <Project Path="test/Roslyn.Workbench.Mcp.Plugins.Test/Roslyn.Workbench.Mcp.Plugins.Test.csproj" />
@@ -33,6 +29,13 @@
     <Project Path="test/Roslyn.Workbench.Mcp.Workspace.Test/Roslyn.Workbench.Mcp.Workspace.Test.csproj" />
     <Project Path="test/Roslyn.Workbench.Mcp.Workspace.IntegrationTest/Roslyn.Workbench.Mcp.Workspace.IntegrationTest.csproj" />
     <Project Path="test/Roslyn.Workbench.Mcp.Workspace.LockFixture/Roslyn.Workbench.Mcp.Workspace.LockFixture.csproj" />
+  </Folder>
+  <Folder Name="/Test Fixtures/">
+    <File Path="test/TestFixtures/README.md" />
+    <Project Path="test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.HostMutationPluginFixture.csproj" />
+    <Project Path="test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.HostQueryPluginFixture.csproj" />
+    <Project Path="test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.InvalidPluginFixture.csproj" />
+    <Project Path="test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.ThrowingPluginFixture.csproj" />
   </Folder>
   <Folder Name="/Tools/" />
 </Solution>

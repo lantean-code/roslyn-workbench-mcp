@@ -107,8 +107,8 @@ Cross-project test ownership and execution-path policy are defined in `../docs/T
 - `Unit` tests are the default. They must not create temporary projects, open real workspaces, or drive real coordinator or transaction flows.
 - `Contract` tests deliberately lock schema shape, validation rules, serialisation, MCP metadata, or the supported public plugin surface. Contract tests live with the production assembly that owns the contract; there is no shared Contracts test project.
 - `Integration` tests use the real file system, Roslyn workspace, coordinator, plugin assembly discovery, transaction pipeline, Host composition, MCP publication, or an equivalent multi-component runtime flow.
-- `Audit` tests validate built-in provider coverage, replay families, promotion ledgers, or other governance-style compatibility expectations.
-- New tests that create temporary directories, open real workspaces, or execute full tool flows must be marked with `[Trait("Category", "Integration")]` unless they are specifically governance coverage, in which case use `[Trait("Category", "Audit")]`.
+- `Audit` tests validate built-in provider coverage, replay families and promotion ledgers. Source-governance checks belong in the normal fast architecture suite.
+- New tests that create temporary directories, open real workspaces, or execute full tool flows must be marked with `[Trait("Category", "Integration")]` unless they are specifically Roslyn compatibility-audit coverage, in which case use `[Trait("Category", "Audit")]`.
 - Schema locks and deliberate public-surface metadata locks should be marked with `[Trait("Category", "Contract")]` when they are not ordinary behaviour-focused unit tests. Do not use reflection to lock internal runtime shapes or to compensate for missing behavioural coverage.
 - Roslyn fixture or coordinator coverage belongs in the integration test projects and should use `IntegrationTests` class suffixes, not `Tests`.
 

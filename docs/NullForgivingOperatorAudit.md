@@ -52,3 +52,6 @@ nullable projections use checked locals or `OfType<T>`.
 fails when it finds a `SuppressNullableWarningExpression`. There is no baseline
 or allow-list: production code must remain at zero. Any proposed exception must
 first update the production guidance and this audit with a written justification.
+The enforcement test lives in the Host test project's `Architecture` area and
+runs in the default fast loop; it is source governance, not part of the Code
+Action compatibility audit.

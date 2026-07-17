@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace Roslyn.Workbench.Mcp.CodeActions.Test;
+namespace Roslyn.Workbench.Mcp.Test.Architecture;
 
 internal static class ProductionSourceAudit
 {

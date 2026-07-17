@@ -70,7 +70,7 @@ Integration tests are capability-focused. A production tool does not need a same
 
 ### Audit
 
-Audit tests govern the supported built-in Roslyn provider catalogue and replay families. They are compatibility checks, not unit branch coverage or general integration tests. They run outside the default development loop.
+Audit tests govern the supported built-in Roslyn provider catalogue and replay families. They are compatibility checks, not source-governance checks, unit branch coverage or general integration tests. Source-governance checks live in the fast architecture suite. Compatibility audits run outside the default development loop.
 
 ## Execution-Path Coverage
 
@@ -131,6 +131,6 @@ Fast development loop:
 dotnet test --filter "Category!=Integration&Category!=Audit" --artifacts-path=/tmp/artifacts/roslyn-workbench-mcp
 ```
 
-Run the affected integration project after changes to a real boundary. Run the Code Action audit when Roslyn dependencies, provider classification, replay behaviour or Code Action discovery changes. Run the full suite before completion of behaviour-affecting work.
+Run the affected integration project after changes to a real boundary. Run the Code Action audit when Roslyn dependencies, provider classification, replay behaviour or Code Action discovery changes. CI runs that audit for matching pull-request paths, every push to `main`, a weekly schedule and manual dispatch. Run the full suite before completion of behaviour-affecting work.
 
 Documentation-only changes do not require restore, build or test execution.

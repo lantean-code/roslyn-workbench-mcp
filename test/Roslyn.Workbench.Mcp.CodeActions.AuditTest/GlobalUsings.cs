@@ -5,7 +5,6 @@ global using Microsoft.CodeAnalysis.CodeFixes;
 global using Microsoft.CodeAnalysis.CodeRefactorings;
 global using Microsoft.CodeAnalysis.Diagnostics;
 global using Microsoft.CodeAnalysis.Text;
-global using Moq;
 global using Roslyn.Workbench.Mcp.CodeActions;
 global using Roslyn.Workbench.Mcp.CodeActions.Catalog;
 global using Roslyn.Workbench.Mcp.CodeActions.Composition;

@@ -1,12 +1,12 @@
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace Roslyn.Workbench.Mcp.CodeActions.Test;
+namespace Roslyn.Workbench.Mcp.Test.Architecture;
 
 public sealed class InternalArgumentNullGuardAuditTests
 {
     [Fact]
-    [Trait("Category", "Audit")]
     public void GIVEN_InternalProductionTypes_WHEN_InspectingArgumentNullGuards_THEN_ShouldContainNoRedundantGuards()
     {
         var findings = ProductionSourceAudit

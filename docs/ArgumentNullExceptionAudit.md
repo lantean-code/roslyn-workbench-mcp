@@ -123,4 +123,6 @@ when an internal type contains `ArgumentNullException.ThrowIfNull(...)` or
 constructs `ArgumentNullException`. Publicly callable contract types remain
 outside that rule and retain their reviewed boundary validation. The test
 guidance separately prohibits `null!`-driven tests for internal constructor and
-method contracts.
+method contracts. The enforcement test lives in the Host test project's
+`Architecture` area and runs in the default fast loop; it is source governance,
+not part of the Code Action compatibility audit.

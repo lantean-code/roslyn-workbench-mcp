@@ -8,7 +8,7 @@ A `.csproj`, `.sln` or `.slnx` file in this directory is test data. Its presence
 
 Asset files are included by test-support projects as `Content` and copied to their output directories. Tests must then materialise a unique temporary copy before explicitly loading a project or solution through Roslyn and MSBuild. Any design-time build output must be created under that temporary copy, never under this directory.
 
-Do not add an asset project to the repository solution or reference it with `ProjectReference` unless it is intentionally a compiled test-fixture project rather than a source-workspace asset.
+Do not add an asset project to the repository solution or reference it with `ProjectReference`. Intentionally compiled fixture projects belong under `../TestFixtures` instead.
 
 ## Authoring rules
 

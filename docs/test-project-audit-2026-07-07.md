@@ -15,7 +15,7 @@ Completed structural changes:
 3. Split bundled-core workflow coverage into `test/Roslyn.Workbench.Mcp.Plugins.Core.IntegrationTest`.
 4. Removed the host unit project's direct references to other test projects.
 5. Moved the reusable `TestWorkspaceFixture` into `Roslyn.Workbench.Mcp.TestSupport`.
-6. Added dedicated one-plugin fixture assemblies under `test/Roslyn.Workbench.Mcp.PluginFixtures` so plugin-discovery integration tests load clean assemblies that match the loader contract.
+6. Added dedicated one-plugin fixture assemblies, now located under `test/TestFixtures/Plugins`, so plugin-discovery integration tests load clean assemblies that match the loader contract.
 7. Added explicit xUnit category traits to the moved and reclassified tests.
 8. Added targeted `InternalsVisibleTo` entries for the new integration assemblies where internal access was required.
 

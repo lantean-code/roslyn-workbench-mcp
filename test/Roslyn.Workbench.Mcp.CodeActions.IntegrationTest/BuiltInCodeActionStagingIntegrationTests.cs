@@ -7,14 +7,14 @@ public sealed class BuiltInCodeActionStagingIntegrationTests
     [Fact]
     public async Task GIVEN_BuiltInCodeFixProvider_WHEN_RemovingUnusedUsings_THEN_ShouldStageRepresentativeBuiltInMutation()
     {
-        using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = BundledCoreToolTestHarness.CreateBuiltInCodeActionCoordinator();
+        await using var fixture = await InspectionSampleFixture.CreateAsync();
+        await using var coordinator = BundledCoreToolTestHarness.CreateBuiltInCodeActionCoordinator();
         var open = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
-        }, CancellationToken.None);
-        await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
-        var result = await CodeActionToolTestHarness.InvokeAsync<MutationData>(coordinator, "remove-unused-usings", new Dictionary<string, JsonElement>
+        }, TestContext.Current.CancellationToken);
+        await coordinator.StartTransactionAsync(new TransactionStartRequest(), TestContext.Current.CancellationToken);
+        var result = await CodeActionToolTestHarness.InvokeAsync<MutationData>(coordinator, TestContext.Current.CancellationToken, "remove-unused-usings", new Dictionary<string, JsonElement>
         {
             ["scope"] = JsonSerializer.SerializeToElement(new ScopeSelector
             {
@@ -33,7 +33,7 @@ public sealed class BuiltInCodeActionStagingIntegrationTests
             {
                 Path = "Usings.cs",
             },
-        }, CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
         result.Data!.Transaction!.Revision.Should().Be(1);

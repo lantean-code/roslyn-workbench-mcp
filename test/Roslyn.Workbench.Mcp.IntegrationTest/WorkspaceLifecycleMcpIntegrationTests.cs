@@ -9,8 +9,8 @@ public sealed class WorkspaceLifecycleMcpIntegrationTests
     [Fact]
     public async Task GIVEN_WorkspaceLifecycleTools_WHEN_OpeningListingReadingReloadingAndClosing_THEN_ShouldReturnStructuredResults()
     {
-        using var fixture = await TestWorkspaceFixture.CreateAsync();
-        var runtime = WorkspaceCoordinatorFactory.Create();
+        await using var fixture = await TestWorkspaceFixture.CreateAsync();
+        await using var runtime = WorkspaceCoordinatorFactory.Create();
         var startupOptions = CreateStartupOptions();
         var protocolFactory = McpIntegrationTestHost.CreateProtocolFactory();
         var openTool = new WorkspaceOpenTool(startupOptions, protocolFactory, runtime.WorkspaceLifecycleService);
@@ -19,17 +19,17 @@ public sealed class WorkspaceLifecycleMcpIntegrationTests
         var reloadTool = new WorkspaceReloadTool(startupOptions, protocolFactory, runtime.WorkspaceLifecycleService);
         var closeTool = new WorkspaceCloseTool(startupOptions, protocolFactory, runtime.WorkspaceLifecycleService);
 
-        var open = await McpIntegrationTestHost.InvokeServerToolAsync(openTool, "workspace-open", new Dictionary<string, JsonElement>
+        var open = await McpIntegrationTestHost.InvokeServerToolAsync(openTool, TestContext.Current.CancellationToken, "workspace-open", new Dictionary<string, JsonElement>
         {
             ["path"] = JsonSerializer.SerializeToElement(fixture.ProjectPath),
         });
-        var list = await McpIntegrationTestHost.InvokeServerToolAsync(listTool, "workspace-list", new Dictionary<string, JsonElement>());
-        var status = await McpIntegrationTestHost.InvokeServerToolAsync(statusTool, "workspace-status", new Dictionary<string, JsonElement>
+        var list = await McpIntegrationTestHost.InvokeServerToolAsync(listTool, TestContext.Current.CancellationToken, "workspace-list", new Dictionary<string, JsonElement>());
+        var status = await McpIntegrationTestHost.InvokeServerToolAsync(statusTool, TestContext.Current.CancellationToken, "workspace-status", new Dictionary<string, JsonElement>
         {
             ["detail"] = JsonSerializer.SerializeToElement(StatusDetailLevel.Full),
         });
-        var reload = await McpIntegrationTestHost.InvokeServerToolAsync(reloadTool, "workspace-reload", new Dictionary<string, JsonElement>());
-        var close = await McpIntegrationTestHost.InvokeServerToolAsync(closeTool, "workspace-close", new Dictionary<string, JsonElement>());
+        var reload = await McpIntegrationTestHost.InvokeServerToolAsync(reloadTool, TestContext.Current.CancellationToken, "workspace-reload", new Dictionary<string, JsonElement>());
+        var close = await McpIntegrationTestHost.InvokeServerToolAsync(closeTool, TestContext.Current.CancellationToken, "workspace-close", new Dictionary<string, JsonElement>());
 
         open.IsError.Should().BeFalse();
         open.StructuredContent!.Value.GetProperty("workspace").GetProperty("loadedPath").GetString().Should().Be(fixture.ProjectPath);
@@ -47,12 +47,12 @@ public sealed class WorkspaceLifecycleMcpIntegrationTests
     [Fact]
     public async Task GIVEN_OpenedWorkspace_WHEN_InvokingMutationAndTransactionToolsThroughMcp_THEN_ShouldCompleteTransactionWorkflows()
     {
-        using var fixture = await InspectionSampleFixture.CreateAsync();
-        var runtime = WorkspaceCoordinatorFactory.Create(toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        await using var fixture = await InspectionSampleFixture.CreateAsync();
+        await using var runtime = WorkspaceCoordinatorFactory.Create(toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var open = await runtime.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
-        }, CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
         var startupOptions = CreateStartupOptions();
         var protocolFactory = McpIntegrationTestHost.CreateProtocolFactory();
         var startTool = new TransactionStartTool(startupOptions, protocolFactory, runtime.TransactionService);
@@ -62,8 +62,8 @@ public sealed class WorkspaceLifecycleMcpIntegrationTests
         var rollbackTool = new TransactionRollbackTool(startupOptions, protocolFactory, runtime.TransactionService);
         var registry = BundledPluginCatalogueFactory.CreateCatalogue();
 
-        var start = await McpIntegrationTestHost.InvokeServerToolAsync(startTool, "transaction-start", new Dictionary<string, JsonElement>());
-        var rename = await McpIntegrationTestHost.InvokePluginToolAsync<MutationData>(runtime, registry, "rename-symbol", new Dictionary<string, JsonElement>
+        var start = await McpIntegrationTestHost.InvokeServerToolAsync(startTool, TestContext.Current.CancellationToken, "transaction-start", new Dictionary<string, JsonElement>());
+        var rename = await McpIntegrationTestHost.InvokePluginToolAsync<MutationData>(runtime, TestContext.Current.CancellationToken, registry, "rename-symbol", new Dictionary<string, JsonElement>
         {
             ["symbol"] = JsonSerializer.SerializeToElement(new SymbolSelector
             {
@@ -76,8 +76,8 @@ public sealed class WorkspaceLifecycleMcpIntegrationTests
                 TransactionRevision = 0,
             }),
         });
-        var preview = await McpIntegrationTestHost.InvokeServerToolAsync(previewTool, "transaction-preview", new Dictionary<string, JsonElement>());
-        var undo = await McpIntegrationTestHost.InvokeServerToolAsync(historyTool, "transaction-history", new Dictionary<string, JsonElement>
+        var preview = await McpIntegrationTestHost.InvokeServerToolAsync(previewTool, TestContext.Current.CancellationToken, "transaction-preview", new Dictionary<string, JsonElement>());
+        var undo = await McpIntegrationTestHost.InvokeServerToolAsync(historyTool, TestContext.Current.CancellationToken, "transaction-history", new Dictionary<string, JsonElement>
         {
             ["direction"] = JsonSerializer.SerializeToElement(TransactionHistoryDirection.Undo),
             ["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition
@@ -86,7 +86,7 @@ public sealed class WorkspaceLifecycleMcpIntegrationTests
                 TransactionRevision = 1,
             }),
         });
-        var redo = await McpIntegrationTestHost.InvokeServerToolAsync(historyTool, "transaction-history", new Dictionary<string, JsonElement>
+        var redo = await McpIntegrationTestHost.InvokeServerToolAsync(historyTool, TestContext.Current.CancellationToken, "transaction-history", new Dictionary<string, JsonElement>
         {
             ["direction"] = JsonSerializer.SerializeToElement(TransactionHistoryDirection.Redo),
             ["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition
@@ -95,7 +95,7 @@ public sealed class WorkspaceLifecycleMcpIntegrationTests
                 TransactionRevision = 0,
             }),
         });
-        var commit = await McpIntegrationTestHost.InvokeServerToolAsync(commitTool, "transaction-commit", new Dictionary<string, JsonElement>
+        var commit = await McpIntegrationTestHost.InvokeServerToolAsync(commitTool, TestContext.Current.CancellationToken, "transaction-commit", new Dictionary<string, JsonElement>
         {
             ["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition
             {
@@ -103,8 +103,8 @@ public sealed class WorkspaceLifecycleMcpIntegrationTests
                 TransactionRevision = 1,
             }),
         });
-        var secondStart = await McpIntegrationTestHost.InvokeServerToolAsync(startTool, "transaction-start", new Dictionary<string, JsonElement>());
-        var rollback = await McpIntegrationTestHost.InvokeServerToolAsync(rollbackTool, "transaction-rollback", new Dictionary<string, JsonElement>());
+        var secondStart = await McpIntegrationTestHost.InvokeServerToolAsync(startTool, TestContext.Current.CancellationToken, "transaction-start", new Dictionary<string, JsonElement>());
+        var rollback = await McpIntegrationTestHost.InvokeServerToolAsync(rollbackTool, TestContext.Current.CancellationToken, "transaction-rollback", new Dictionary<string, JsonElement>());
 
         start.IsError.Should().BeFalse();
         start.StructuredContent!.Value.GetProperty("transaction").GetProperty("revision").GetInt32().Should().Be(0);
@@ -132,7 +132,7 @@ public sealed class WorkspaceLifecycleMcpIntegrationTests
             McpIntegrationTestHost.CreateProtocolFactory(),
             service.Object);
 
-        var result = await McpIntegrationTestHost.InvokeServerToolAsync(tool, "workspace-open", new Dictionary<string, JsonElement>
+        var result = await McpIntegrationTestHost.InvokeServerToolAsync(tool, TestContext.Current.CancellationToken, "workspace-open", new Dictionary<string, JsonElement>
         {
             ["path"] = JsonSerializer.SerializeToElement(new
             {
@@ -162,7 +162,7 @@ public sealed class WorkspaceLifecycleMcpIntegrationTests
             McpIntegrationTestHost.CreateProtocolFactory(),
             service.Object);
 
-        var result = await McpIntegrationTestHost.InvokeServerToolAsync(tool, "workspace-status", new Dictionary<string, JsonElement>());
+        var result = await McpIntegrationTestHost.InvokeServerToolAsync(tool, TestContext.Current.CancellationToken, "workspace-status", new Dictionary<string, JsonElement>());
 
         result.IsError.Should().BeTrue();
         result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeFalse();

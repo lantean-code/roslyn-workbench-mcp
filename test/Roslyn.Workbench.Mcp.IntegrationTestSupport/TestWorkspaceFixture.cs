@@ -1,6 +1,6 @@
 namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
-public sealed class TestWorkspaceFixture : IDisposable
+public sealed class TestWorkspaceFixture : IAsyncDisposable
 {
     private readonly string _directoryPath;
 
@@ -219,11 +219,8 @@ public sealed class TestWorkspaceFixture : IDisposable
         return WorkspaceCoordinatorFactory.Create();
     }
 
-    public void Dispose()
+    public ValueTask DisposeAsync()
     {
-        if (Directory.Exists(_directoryPath))
-        {
-            Directory.Delete(_directoryPath, recursive: true);
-        }
+        return TemporaryDirectory.Attach(_directoryPath).DisposeAsync();
     }
 }

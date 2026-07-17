@@ -75,15 +75,15 @@ public sealed class ReplayRefactoringToolsTests
         string toolName)
     {
         var testCase = ReplayMutationCases[toolName];
-        using var fixture = await (testCase.FixtureFactory?.Invoke() ?? InspectionSampleFixture.CreateAsync());
-        var coordinator = CreateBuiltInCoordinator();
+        await using var fixture = await (testCase.FixtureFactory?.Invoke() ?? InspectionSampleFixture.CreateAsync());
+        await using var coordinator = CreateBuiltInCoordinator();
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
-        }, CancellationToken.None);
-        await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
+        await coordinator.StartTransactionAsync(new TransactionStartRequest(), TestContext.Current.CancellationToken);
         var result = await ExecuteAsync(coordinator, toolName, testCase.RequestFactory(fixture, openResult));
-        var preview = await coordinator.PreviewTransactionAsync(new TransactionPreviewRequest(), CancellationToken.None);
+        var preview = await coordinator.PreviewTransactionAsync(new TransactionPreviewRequest(), TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
         result.Data!.Transaction!.Revision.Should().Be(1);
@@ -101,15 +101,15 @@ public sealed class ReplayRefactoringToolsTests
     [Fact]
     public async Task GIVEN_ActiveTransactionAndBuiltInCodeActions_WHEN_ExecutingMoveTypeToFile_THEN_ShouldStageNewDocumentAndSourceUpdate()
     {
-        using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = CreateBuiltInCoordinator();
+        await using var fixture = await InspectionSampleFixture.CreateAsync();
+        await using var coordinator = CreateBuiltInCoordinator();
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
-        }, CancellationToken.None);
-        await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
+        await coordinator.StartTransactionAsync(new TransactionStartRequest(), TestContext.Current.CancellationToken);
         var result = await ExecuteAsync(coordinator, "move-type-to-file", CreateMoveTypeToFileRequest(fixture.GetLocation("AutoPropertySamples"), openResult));
-        var preview = await coordinator.PreviewTransactionAsync(new TransactionPreviewRequest(), CancellationToken.None);
+        var preview = await coordinator.PreviewTransactionAsync(new TransactionPreviewRequest(), TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
         result.Data!.Operation.Should().Be("move-type-to-file");
@@ -120,15 +120,15 @@ public sealed class ReplayRefactoringToolsTests
     [Fact]
     public async Task GIVEN_ActiveTransactionAndBuiltInCodeActions_WHEN_ExecutingConvertPropertyToFull_THEN_ShouldStageStructuredMutation()
     {
-        using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = CreateBuiltInCoordinator();
+        await using var fixture = await InspectionSampleFixture.CreateAsync();
+        await using var coordinator = CreateBuiltInCoordinator();
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
-        }, CancellationToken.None);
-        await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
+        await coordinator.StartTransactionAsync(new TransactionStartRequest(), TestContext.Current.CancellationToken);
         var result = await ExecuteAsync(coordinator, "convert-property", CreateConvertPropertyRequest(fixture.GetLocation("Goo"), openResult, ConvertPropertyDirection.ToFull));
-        var preview = await coordinator.PreviewTransactionAsync(new TransactionPreviewRequest(), CancellationToken.None);
+        var preview = await coordinator.PreviewTransactionAsync(new TransactionPreviewRequest(), TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
         result.Data!.Operation.Should().Be("convert-property");
@@ -138,18 +138,18 @@ public sealed class ReplayRefactoringToolsTests
     [Fact]
     public async Task GIVEN_ActiveTransactionAndBuiltInCodeActions_WHEN_ExecutingConvertPropertyToAutoWhenSafe_THEN_ShouldStageStructuredMutation()
     {
-        using var fixture = await InspectionSampleFixture.CreateAsync(new InspectionSampleFixtureOptions
+        await using var fixture = await InspectionSampleFixture.CreateAsync(new InspectionSampleFixtureOptions
         {
             AdditionalEditorConfigText = "dotnet_style_prefer_auto_properties = true:suggestion",
         });
-        var coordinator = CreateBuiltInCoordinator();
+        await using var coordinator = CreateBuiltInCoordinator();
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
-        }, CancellationToken.None);
-        await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
+        await coordinator.StartTransactionAsync(new TransactionStartRequest(), TestContext.Current.CancellationToken);
         var result = await ExecuteAsync(coordinator, "convert-property", CreateConvertPropertyRequest(fixture.GetLocation("Score"), openResult, ConvertPropertyDirection.ToAutoWhenSafe));
-        var preview = await coordinator.PreviewTransactionAsync(new TransactionPreviewRequest(), CancellationToken.None);
+        var preview = await coordinator.PreviewTransactionAsync(new TransactionPreviewRequest(), TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);
         result.Data!.Operation.Should().Be("convert-property");
@@ -275,7 +275,7 @@ public sealed class ReplayRefactoringToolsTests
         string toolName,
         IDictionary<string, JsonElement> arguments)
     {
-        var result = await CodeActionToolTestHarness.InvokeAsync<MutationData>(coordinator, toolName, arguments);
+        var result = await CodeActionToolTestHarness.InvokeAsync<MutationData>(coordinator, TestContext.Current.CancellationToken, toolName, arguments);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded, result.Error?.Message);
         return result;

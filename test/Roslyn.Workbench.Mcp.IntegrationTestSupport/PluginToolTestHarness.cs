@@ -16,6 +16,7 @@ public static class PluginToolTestHarness
 
     public static async Task<ToolResult<TResponse>> InvokeAsync<TResponse>(
         IToolExecutionContextFactory contextFactory,
+        CancellationToken cancellationToken,
         PluginToolCatalogue catalogue,
         string toolName,
         IDictionary<string, JsonElement> arguments,
@@ -26,7 +27,7 @@ public static class PluginToolTestHarness
         ArgumentException.ThrowIfNullOrWhiteSpace(toolName);
         ArgumentNullException.ThrowIfNull(arguments);
 
-        var result = await InvokeRawAsync(contextFactory, catalogue, toolName, arguments);
+        var result = await InvokeRawAsync(contextFactory, cancellationToken, catalogue, toolName, arguments);
 
         if (result.IsError != !expectProtocolSuccess)
         {
@@ -39,6 +40,7 @@ public static class PluginToolTestHarness
 
     public static async Task<CallToolResult> InvokeRawAsync(
         IToolExecutionContextFactory contextFactory,
+        CancellationToken cancellationToken,
         PluginToolCatalogue catalogue,
         string toolName,
         IDictionary<string, JsonElement> arguments)
@@ -49,7 +51,7 @@ public static class PluginToolTestHarness
         ArgumentNullException.ThrowIfNull(arguments);
 
         var serverTool = CreateServerToolCore(contextFactory, catalogue, toolName, ToolOutputSchemaMode.Omit);
-        return await serverTool.InvokeArgumentsAsync(arguments, CancellationToken.None);
+        return await serverTool.InvokeArgumentsAsync(arguments, cancellationToken);
     }
 
     public static McpServerTool CreateServerTool(

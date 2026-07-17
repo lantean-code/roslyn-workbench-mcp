@@ -3,8 +3,10 @@ using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
 
 namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
-public interface IWorkspaceRuntime : IToolExecutionContextFactory
+public interface IWorkspaceRuntime : IToolExecutionContextFactory, IAsyncDisposable
 {
+    string StateDirectory { get; }
+
     ValueTask<ToolResult<WorkspaceOpenData>> OpenAsync(WorkspaceOpenRequest request, CancellationToken cancellationToken);
 
     ValueTask<ToolResult<WorkspaceListData>> ListAsync(WorkspaceListRequest request, CancellationToken cancellationToken);

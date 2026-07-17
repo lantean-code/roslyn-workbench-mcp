@@ -3,6 +3,7 @@ using Roslyn.Workbench.Mcp;
 using Roslyn.Workbench.Mcp.Plugins;
 using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
 using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
+using Roslyn.Workbench.Mcp.Workspace.Coordination;
 
 namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
@@ -13,20 +14,34 @@ public sealed class WorkspaceRuntime : IWorkspaceRuntime
     private readonly IReadOnlyList<ServiceDescriptor> _codeActionHandlerServices;
     private readonly IWorkspaceLifecycleService _workspaceLifecycleService;
     private readonly ITransactionService _transactionService;
+    private readonly IWorkspaceSessionStore _sessionStore;
+    private readonly WorkspaceInstanceStatusPublisher _instanceStatusPublisher;
+    private readonly TemporaryDirectory? _ownedStateDirectory;
+    private int _isDisposed;
 
     internal WorkspaceRuntime(
         IToolExecutionContextFactory coordinator,
         ICodeActionExecutionContextFactory codeActionContextFactory,
         IReadOnlyList<ServiceDescriptor> codeActionHandlerServices,
         IWorkspaceLifecycleService workspaceLifecycleService,
-        ITransactionService transactionService)
+        ITransactionService transactionService,
+        IWorkspaceSessionStore sessionStore,
+        WorkspaceInstanceStatusPublisher instanceStatusPublisher,
+        string stateDirectory,
+        TemporaryDirectory? ownedStateDirectory)
     {
         _coordinator = coordinator ?? throw new ArgumentNullException(nameof(coordinator));
         _codeActionContextFactory = codeActionContextFactory ?? throw new ArgumentNullException(nameof(codeActionContextFactory));
         _codeActionHandlerServices = codeActionHandlerServices ?? throw new ArgumentNullException(nameof(codeActionHandlerServices));
         _workspaceLifecycleService = workspaceLifecycleService ?? throw new ArgumentNullException(nameof(workspaceLifecycleService));
         _transactionService = transactionService ?? throw new ArgumentNullException(nameof(transactionService));
+        _sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
+        _instanceStatusPublisher = instanceStatusPublisher ?? throw new ArgumentNullException(nameof(instanceStatusPublisher));
+        StateDirectory = stateDirectory ?? throw new ArgumentNullException(nameof(stateDirectory));
+        _ownedStateDirectory = ownedStateDirectory;
     }
+
+    public string StateDirectory { get; }
 
     internal IWorkspaceLifecycleService WorkspaceLifecycleService
     {
@@ -106,6 +121,65 @@ public sealed class WorkspaceRuntime : IWorkspaceRuntime
     public ValueTask<ToolResult<TransactionRollbackData>> RollbackTransactionAsync(TransactionRollbackRequest request, CancellationToken cancellationToken)
     {
         return RollbackTransactionCoreAsync(request, cancellationToken);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (Interlocked.Exchange(ref _isDisposed, 1) != 0)
+        {
+            return;
+        }
+
+        Exception? disposalFailure = null;
+        var workspaceIds = _sessionStore.ReadSnapshot().Workspaces.Keys.ToArray();
+        foreach (var workspaceId in workspaceIds)
+        {
+            try
+            {
+                await _instanceStatusPublisher.CloseAsync(workspaceId).ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                disposalFailure ??= exception;
+            }
+
+            try
+            {
+                _sessionStore.RemoveWorkspace(workspaceId)?.LoadedWorkspace.Dispose();
+            }
+            catch (Exception exception)
+            {
+                disposalFailure ??= exception;
+            }
+        }
+
+        try
+        {
+            await _instanceStatusPublisher.DisposeAsync().ConfigureAwait(false);
+        }
+        catch (Exception exception)
+        {
+            disposalFailure ??= exception;
+        }
+
+        try
+        {
+            if (_ownedStateDirectory is not null)
+            {
+                await _ownedStateDirectory.DisposeAsync().ConfigureAwait(false);
+            }
+        }
+        catch (Exception exception)
+        {
+            disposalFailure ??= exception;
+        }
+
+        if (disposalFailure is not null)
+        {
+            throw new InvalidOperationException(
+                $"Failed to dispose the test Workspace runtime that owns state directory '{StateDirectory}'.",
+                disposalFailure);
+        }
     }
 
     private async ValueTask<ToolResult<WorkspaceOpenData>> OpenCoreAsync(WorkspaceOpenRequest request, CancellationToken cancellationToken)

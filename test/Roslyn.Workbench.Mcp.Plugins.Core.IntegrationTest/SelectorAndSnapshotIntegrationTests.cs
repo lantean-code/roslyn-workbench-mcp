@@ -7,15 +7,15 @@ public sealed class SelectorAndSnapshotIntegrationTests
     [Fact]
     public async Task GIVEN_AmbiguousTextSelection_WHEN_ResolvingSymbol_THEN_ShouldRejectAmbiguousLocation()
     {
-        using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = BundledCoreToolTestHarness.CreateInspectionCoordinator();
+        await using var fixture = await InspectionSampleFixture.CreateAsync();
+        await using var coordinator = BundledCoreToolTestHarness.CreateInspectionCoordinator();
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
-        }, CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
         var registry = BundledPluginCatalogueFactory.CreateCatalogue();
 
-        var result = await PluginToolTestHarness.InvokeAsync<ResolveSymbolData>(coordinator, registry, "resolve-symbol", new Dictionary<string, JsonElement>
+        var result = await PluginToolTestHarness.InvokeAsync<ResolveSymbolData>(coordinator, TestContext.Current.CancellationToken, registry, "resolve-symbol", new Dictionary<string, JsonElement>
         {
             ["location"] = JsonSerializer.SerializeToElement(new LocationSelector
             {
@@ -41,15 +41,15 @@ public sealed class SelectorAndSnapshotIntegrationTests
     [Fact]
     public async Task GIVEN_StaleSnapshot_WHEN_ResolvingSymbol_THEN_ShouldRejectSnapshotMismatch()
     {
-        using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = BundledCoreToolTestHarness.CreateInspectionCoordinator();
+        await using var fixture = await InspectionSampleFixture.CreateAsync();
+        await using var coordinator = BundledCoreToolTestHarness.CreateInspectionCoordinator();
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
-        }, CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
         var registry = BundledPluginCatalogueFactory.CreateCatalogue();
 
-        var result = await PluginToolTestHarness.InvokeAsync<ResolveSymbolData>(coordinator, registry, "resolve-symbol", new Dictionary<string, JsonElement>
+        var result = await PluginToolTestHarness.InvokeAsync<ResolveSymbolData>(coordinator, TestContext.Current.CancellationToken, registry, "resolve-symbol", new Dictionary<string, JsonElement>
         {
             ["location"] = JsonSerializer.SerializeToElement(fixture.GetLocation("GreetingFormatter")),
             ["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition
@@ -65,15 +65,15 @@ public sealed class SelectorAndSnapshotIntegrationTests
     [Fact]
     public async Task GIVEN_MetadataSymbolAndBoundedSearch_WHEN_InspectingSelectors_THEN_ShouldProjectMetadataAndTruncation()
     {
-        using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = BundledCoreToolTestHarness.CreateInspectionCoordinator();
+        await using var fixture = await InspectionSampleFixture.CreateAsync();
+        await using var coordinator = BundledCoreToolTestHarness.CreateInspectionCoordinator();
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
-        }, CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
         var registry = BundledPluginCatalogueFactory.CreateCatalogue();
 
-        var resolved = await PluginToolTestHarness.InvokeAsync<ResolveSymbolData>(coordinator, registry, "resolve-symbol", new Dictionary<string, JsonElement>
+        var resolved = await PluginToolTestHarness.InvokeAsync<ResolveSymbolData>(coordinator, TestContext.Current.CancellationToken, registry, "resolve-symbol", new Dictionary<string, JsonElement>
         {
             ["location"] = JsonSerializer.SerializeToElement(fixture.GetLocation("ToUpperInvariant")),
             ["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition
@@ -81,11 +81,11 @@ public sealed class SelectorAndSnapshotIntegrationTests
                 WorkspaceEpoch = openResult.WorkspaceEpoch!.Value,
             }),
         });
-        var definition = await PluginToolTestHarness.InvokeAsync<DefinitionData>(coordinator, registry, "go-to-definition", new Dictionary<string, JsonElement>
+        var definition = await PluginToolTestHarness.InvokeAsync<DefinitionData>(coordinator, TestContext.Current.CancellationToken, registry, "go-to-definition", new Dictionary<string, JsonElement>
         {
             ["symbol"] = JsonSerializer.SerializeToElement(resolved.Data!.Selector),
         });
-        var search = await PluginToolTestHarness.InvokeAsync<SymbolSearchData>(coordinator, registry, "search-symbols", new Dictionary<string, JsonElement>
+        var search = await PluginToolTestHarness.InvokeAsync<SymbolSearchData>(coordinator, TestContext.Current.CancellationToken, registry, "search-symbols", new Dictionary<string, JsonElement>
         {
             ["query"] = JsonSerializer.SerializeToElement("Format"),
             ["symbolsLimit"] = JsonSerializer.SerializeToElement(new CollectionLimit

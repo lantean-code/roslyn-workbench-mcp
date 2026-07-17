@@ -2,7 +2,7 @@ using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
-public sealed class InspectionSampleFixture : IDisposable
+public sealed class InspectionSampleFixture : IAsyncDisposable
 {
     private readonly string _directoryPath;
 
@@ -1173,11 +1173,8 @@ public sealed class InspectionSampleFixture : IDisposable
         };
     }
 
-    public void Dispose()
+    public ValueTask DisposeAsync()
     {
-        if (Directory.Exists(_directoryPath))
-        {
-            Directory.Delete(_directoryPath, recursive: true);
-        }
+        return TemporaryDirectory.Attach(_directoryPath).DisposeAsync();
     }
 }

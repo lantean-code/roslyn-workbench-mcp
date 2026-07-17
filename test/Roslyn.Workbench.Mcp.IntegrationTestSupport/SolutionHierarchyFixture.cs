@@ -1,6 +1,6 @@
 namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
-public sealed class SolutionHierarchyFixture : IDisposable
+public sealed class SolutionHierarchyFixture : IAsyncDisposable
 {
     private readonly string _directoryPath;
 
@@ -89,11 +89,8 @@ public sealed class SolutionHierarchyFixture : IDisposable
         return new SolutionHierarchyFixture(directoryPath, solutionPath);
     }
 
-    public void Dispose()
+    public ValueTask DisposeAsync()
     {
-        if (Directory.Exists(_directoryPath))
-        {
-            Directory.Delete(_directoryPath, recursive: true);
-        }
+        return TemporaryDirectory.Attach(_directoryPath).DisposeAsync();
     }
 }

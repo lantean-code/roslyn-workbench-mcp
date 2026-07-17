@@ -31,20 +31,20 @@ public static class BuiltInCodeActionAuditHarness
     {
         ArgumentNullException.ThrowIfNull(auditCase);
 
-        using var fixture = await auditCase.FixtureFactory();
+        await using var fixture = await auditCase.FixtureFactory();
         var providerCatalog = CodeActionProviderCatalogFactory.Create(new CodeActionCompositionOptions
         {
             IncludeBuiltInAssemblies = true,
         });
-        var coordinator = WorkspaceCoordinatorFactory.CreateWithCodeActionProviderCatalog(providerCatalog, BundledCoreToolExecutionServicesFactory.Create());
+        await using var coordinator = WorkspaceCoordinatorFactory.CreateWithCodeActionProviderCatalog(providerCatalog, BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
-        }, CancellationToken.None);
-        await using var queryLease = coordinator.CreateQueryContext(new ListCodeActionsRequest(), CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
+        await using var queryLease = coordinator.CreateQueryContext(new ListCodeActionsRequest(), TestContext.Current.CancellationToken);
         var queryContext = queryLease.Context!;
         var location = auditCase.LocationFactory(fixture);
-        var resolution = await queryContext.WorkspaceResolver.ResolveLocationAsync(location, CancellationToken.None);
+        var resolution = await queryContext.WorkspaceResolver.ResolveLocationAsync(location, TestContext.Current.CancellationToken);
         if (resolution.Status != SelectorResolveStatus.Resolved || resolution.Value is null)
         {
             return new BuiltInCodeActionAuditProbe
@@ -72,12 +72,12 @@ public static class BuiltInCodeActionAuditHarness
         ImmutableArray<Diagnostic> codeFixDiagnostics = [];
         if (auditCase.Kind == BuiltInCodeActionAuditKind.CodeFix)
         {
-            codeFixDiagnostics = await GetDocumentDiagnosticsAsync(document, resolution.Value.SourceSpan, CancellationToken.None);
+            codeFixDiagnostics = await GetDocumentDiagnosticsAsync(document, resolution.Value.SourceSpan, TestContext.Current.CancellationToken);
             discovered = await DiscoverCodeFixesAsync(
                 providerCatalog.CodeFixProviders.Single(candidate => string.Equals(GetProviderId(candidate), auditCase.ProviderId, StringComparison.Ordinal)),
                 document,
                 codeFixDiagnostics,
-                CancellationToken.None);
+                TestContext.Current.CancellationToken);
         }
         else
         {
@@ -85,7 +85,7 @@ public static class BuiltInCodeActionAuditHarness
                 providerCatalog.RefactoringProviders.Single(candidate => string.Equals(GetProviderId(candidate), auditCase.ProviderId, StringComparison.Ordinal)),
                 document,
                 resolution.Value.SourceSpan,
-                CancellationToken.None);
+                TestContext.Current.CancellationToken);
         }
         var matching = discovered
             .Where(action => MatchesTitle(auditCase, action.Title))
@@ -93,6 +93,7 @@ public static class BuiltInCodeActionAuditHarness
             .ToArray();
         var visibilityResult = await CodeActionToolTestHarness.InvokeAsync<CodeActionListData>(
             coordinator,
+            TestContext.Current.CancellationToken,
             "list-code-actions",
             new Dictionary<string, JsonElement>
             {
@@ -123,7 +124,7 @@ public static class BuiltInCodeActionAuditHarness
 
         try
         {
-            var operations = await matching[0].Action.GetOperationsAsync(queryContext.CurrentSolution, new Progress<CodeAnalysisProgress>(), CancellationToken.None);
+            var operations = await matching[0].Action.GetOperationsAsync(queryContext.CurrentSolution, new Progress<CodeAnalysisProgress>(), TestContext.Current.CancellationToken);
             if (TryGetSupportedApplyChangesOperation(operations, out var applyChanges))
             {
                 var changedDocumentCount = await CountChangedSourceDocumentsAsync(queryContext.CurrentSolution, applyChanges!.ChangedSolution);
@@ -151,6 +152,10 @@ public static class BuiltInCodeActionAuditHarness
                 CandidateTitles = discovered.Select(static action => action.Title).Distinct(StringComparer.Ordinal).OrderBy(static title => title, StringComparer.Ordinal).ToArray(),
                 FailureMessage = "The matched action produced unsupported operations.",
             };
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception exception)
         {
@@ -306,8 +311,8 @@ public static class BuiltInCodeActionAuditHarness
                 continue;
             }
 
-            var originalText = await document.GetTextAsync(CancellationToken.None);
-            var updatedText = await updatedDocument.GetTextAsync(CancellationToken.None);
+            var originalText = await document.GetTextAsync(TestContext.Current.CancellationToken);
+            var updatedText = await updatedDocument.GetTextAsync(TestContext.Current.CancellationToken);
             if (!originalText.ContentEquals(updatedText))
             {
                 count++;

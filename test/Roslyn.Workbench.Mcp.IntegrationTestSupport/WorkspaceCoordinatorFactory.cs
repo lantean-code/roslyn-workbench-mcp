@@ -17,10 +17,7 @@ public static class WorkspaceCoordinatorFactory
         WorkspaceRuntimeOptions options,
         IToolExecutionServices? toolExecutionServices = null)
     {
-        return CreateCore(
-            MapOptions(options),
-            CreateUnavailableCodeActionProviderCatalog(),
-            toolExecutionServices);
+        return CreateOwnedRuntime(options, CreateUnavailableCodeActionProviderCatalog(), toolExecutionServices);
     }
 
     public static IToolExecutionContextFactory CreateCoordinator(
@@ -50,7 +47,7 @@ public static class WorkspaceCoordinatorFactory
         IToolExecutionServices? toolExecutionServices = null,
         TimeSpan? tokenLifetime = null)
     {
-        return CreateCore(MapOptions(options), codeActionProviderCatalog, toolExecutionServices, tokenLifetime);
+        return CreateOwnedRuntime(options, codeActionProviderCatalog, toolExecutionServices, tokenLifetime);
     }
 
     internal static IToolExecutionContextFactory CreateCoordinatorWithCodeActionProviderCatalog(
@@ -74,6 +71,7 @@ public static class WorkspaceCoordinatorFactory
         WorkspaceCoordinatorOptions options,
         ICodeActionProviderCatalog codeActionProviderCatalog,
         IToolExecutionServices? toolExecutionServices,
+        TemporaryDirectory? ownedStateDirectory,
         TimeSpan? tokenLifetime = null)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -223,7 +221,38 @@ public static class WorkspaceCoordinatorFactory
             codeActionContextFactory,
             codeActionHandlerServices,
             workspaceLifecycleService,
-            transactionService);
+            transactionService,
+            sessionStore,
+            instanceStatusPublisher,
+            options.StateDirectory,
+            ownedStateDirectory);
+    }
+
+    private static WorkspaceRuntime CreateOwnedRuntime(
+        WorkspaceRuntimeOptions options,
+        ICodeActionProviderCatalog codeActionProviderCatalog,
+        IToolExecutionServices? toolExecutionServices,
+        TimeSpan? tokenLifetime = null)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        var ownedStateDirectory = options.StateDirectory is null
+            ? TemporaryDirectory.Create("roslyn-workbench-mcp-state")
+            : null;
+        try
+        {
+            return CreateCore(
+                MapOptions(options, ownedStateDirectory?.DirectoryPath),
+                codeActionProviderCatalog,
+                toolExecutionServices,
+                ownedStateDirectory,
+                tokenLifetime);
+        }
+        catch
+        {
+            ownedStateDirectory?.Dispose();
+            throw;
+        }
     }
 
     private static ICodeActionProviderCatalog CreateUnavailableCodeActionProviderCatalog()
@@ -234,7 +263,7 @@ public static class WorkspaceCoordinatorFactory
         });
     }
 
-    private static WorkspaceCoordinatorOptions MapOptions(WorkspaceRuntimeOptions options)
+    private static WorkspaceCoordinatorOptions MapOptions(WorkspaceRuntimeOptions options, string? ownedStateDirectory)
     {
         ArgumentNullException.ThrowIfNull(options);
 
@@ -244,7 +273,9 @@ public static class WorkspaceCoordinatorFactory
             MaxConcurrentQueries = options.MaxConcurrentQueries,
             MaxLoadedWorkspaces = options.MaxLoadedWorkspaces,
             MaxTransactionRevisions = options.MaxTransactionRevisions,
-            StateDirectory = options.StateDirectory ?? Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-state"),
+            StateDirectory = options.StateDirectory
+                ?? ownedStateDirectory
+                ?? throw new InvalidOperationException("A test Workspace runtime requires an isolated state directory."),
         };
     }
 }

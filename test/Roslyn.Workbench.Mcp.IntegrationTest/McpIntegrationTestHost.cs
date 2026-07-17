@@ -8,6 +8,7 @@ internal static class McpIntegrationTestHost
 {
     public static async Task<CallToolResult> InvokeServerToolAsync(
         McpServerTool tool,
+        CancellationToken cancellationToken,
         string toolName,
         IDictionary<string, JsonElement> arguments)
     {
@@ -25,18 +26,19 @@ internal static class McpIntegrationTestHost
         var filter = new UnhandledToolExceptionFilter(
             NullLogger<UnhandledToolExceptionFilter>.Instance);
 
-        return await filter.InvokeAsync(tool.InvokeAsync, context, CancellationToken.None);
+        return await filter.InvokeAsync(tool.InvokeAsync, context, cancellationToken);
     }
 
     public static async Task<ToolResult<TResponse>> InvokePluginToolAsync<TResponse>(
         IToolExecutionContextFactory contextFactory,
+        CancellationToken cancellationToken,
         PluginToolCatalogue catalogue,
         string toolName,
         IDictionary<string, JsonElement> arguments,
         bool expectProtocolSuccess = true)
     {
         var serverTool = PluginToolTestHarness.CreateServerTool(contextFactory, catalogue, toolName);
-        var result = await InvokeServerToolAsync(serverTool, toolName, arguments);
+        var result = await InvokeServerToolAsync(serverTool, cancellationToken, toolName, arguments);
 
         result.IsError.Should().Be(!expectProtocolSuccess);
 

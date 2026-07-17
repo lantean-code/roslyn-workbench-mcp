@@ -7,14 +7,14 @@ public sealed class WorkspaceResolverIntegrationTests
     [Fact]
     public async Task GIVEN_WorkspaceRelativeProjectPath_WHEN_ResolvingProject_THEN_ShouldResolveAgainstWorkspaceRoot()
     {
-        using var fixture = await TestWorkspaceFixture.CreateAsync();
-        var target = fixture.CreateCoordinator();
+        await using var fixture = await TestWorkspaceFixture.CreateAsync();
+        await using var target = fixture.CreateCoordinator();
         await target.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
-        }, CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
 
-        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), CancellationToken.None);
+        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), TestContext.Current.CancellationToken);
         var resolution = contextLease.Context!.WorkspaceResolver.ResolveProject(new ProjectSelector
         {
             Path = "Sample.csproj",
@@ -28,14 +28,14 @@ public sealed class WorkspaceResolverIntegrationTests
     [Fact]
     public async Task GIVEN_AmbiguousProjectSelector_WHEN_ResolvingProject_THEN_ShouldReturnAmbiguous()
     {
-        using var fixture = await TestWorkspaceFixture.CreateAmbiguousAsync();
-        var target = fixture.CreateCoordinator();
+        await using var fixture = await TestWorkspaceFixture.CreateAmbiguousAsync();
+        await using var target = fixture.CreateCoordinator();
         await target.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
-        }, CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
 
-        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), CancellationToken.None);
+        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), TestContext.Current.CancellationToken);
         var resolution = contextLease.Context!.WorkspaceResolver.ResolveProject(new ProjectSelector
         {
             Name = "Sample",
@@ -48,14 +48,14 @@ public sealed class WorkspaceResolverIntegrationTests
     [Fact]
     public async Task GIVEN_AmbiguousDocumentPath_WHEN_ResolvingDocument_THEN_ShouldReturnAmbiguous()
     {
-        using var fixture = await TestWorkspaceFixture.CreateAmbiguousAsync();
-        var target = fixture.CreateCoordinator();
+        await using var fixture = await TestWorkspaceFixture.CreateAmbiguousAsync();
+        await using var target = fixture.CreateCoordinator();
         await target.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
-        }, CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
 
-        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), CancellationToken.None);
+        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), TestContext.Current.CancellationToken);
         var resolution = contextLease.Context!.WorkspaceResolver.ResolveDocument(new DocumentSelector
         {
             Path = fixture.SharedDocumentPath!,
@@ -68,14 +68,14 @@ public sealed class WorkspaceResolverIntegrationTests
     [Fact]
     public async Task GIVEN_MissingDocumentSelector_WHEN_ResolvingDocument_THEN_ShouldReturnNotFound()
     {
-        using var fixture = await TestWorkspaceFixture.CreateAsync();
-        var target = fixture.CreateCoordinator();
+        await using var fixture = await TestWorkspaceFixture.CreateAsync();
+        await using var target = fixture.CreateCoordinator();
         await target.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
-        }, CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
 
-        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), CancellationToken.None);
+        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), TestContext.Current.CancellationToken);
         var resolution = contextLease.Context!.WorkspaceResolver.ResolveDocument(new DocumentSelector
         {
             Path = "Missing.cs",
@@ -88,14 +88,14 @@ public sealed class WorkspaceResolverIntegrationTests
     [Fact]
     public async Task GIVEN_ValidWorkspaceEpochWithoutTransactionRevision_WHEN_ValidatingSnapshot_THEN_ShouldMatch()
     {
-        using var fixture = await TestWorkspaceFixture.CreateAsync();
-        var target = fixture.CreateCoordinator();
+        await using var fixture = await TestWorkspaceFixture.CreateAsync();
+        await using var target = fixture.CreateCoordinator();
         await target.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
-        }, CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
 
-        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), CancellationToken.None);
+        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), TestContext.Current.CancellationToken);
         var result = contextLease.Context!.WorkspaceResolver.ValidateSnapshot(new SnapshotPrecondition
         {
             WorkspaceEpoch = contextLease.Context.WorkspaceIdentity.WorkspaceEpoch,
@@ -107,14 +107,14 @@ public sealed class WorkspaceResolverIntegrationTests
     [Fact]
     public async Task GIVEN_MismatchedWorkspaceEpoch_WHEN_ValidatingSnapshot_THEN_ShouldReportWorkspaceEpochMismatch()
     {
-        using var fixture = await TestWorkspaceFixture.CreateAsync();
-        var target = fixture.CreateCoordinator();
+        await using var fixture = await TestWorkspaceFixture.CreateAsync();
+        await using var target = fixture.CreateCoordinator();
         await target.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
-        }, CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
 
-        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), CancellationToken.None);
+        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), TestContext.Current.CancellationToken);
         var result = contextLease.Context!.WorkspaceResolver.ValidateSnapshot(new SnapshotPrecondition
         {
             WorkspaceEpoch = contextLease.Context.WorkspaceIdentity.WorkspaceEpoch + 1,
@@ -126,14 +126,14 @@ public sealed class WorkspaceResolverIntegrationTests
     [Fact]
     public async Task GIVEN_SuppliedTransactionRevision_WHEN_ValidatingSnapshot_THEN_ShouldReportTransactionRevisionMismatch()
     {
-        using var fixture = await TestWorkspaceFixture.CreateAsync();
-        var target = fixture.CreateCoordinator();
+        await using var fixture = await TestWorkspaceFixture.CreateAsync();
+        await using var target = fixture.CreateCoordinator();
         await target.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
-        }, CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
 
-        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), CancellationToken.None);
+        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), TestContext.Current.CancellationToken);
         var result = contextLease.Context!.WorkspaceResolver.ValidateSnapshot(new SnapshotPrecondition
         {
             WorkspaceEpoch = contextLease.Context.WorkspaceIdentity.WorkspaceEpoch,
@@ -146,16 +146,16 @@ public sealed class WorkspaceResolverIntegrationTests
     [Fact]
     public async Task GIVEN_TextSpanLocationSelector_WHEN_ResolvingLocation_THEN_ShouldReturnSourceLocation()
     {
-        using var fixture = await TestWorkspaceFixture.CreateAsync();
-        var target = fixture.CreateCoordinator();
+        await using var fixture = await TestWorkspaceFixture.CreateAsync();
+        await using var target = fixture.CreateCoordinator();
         await target.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
-        }, CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
         var sourceText = await File.ReadAllTextAsync(fixture.DocumentPath, TestContext.Current.CancellationToken);
         var start = sourceText.IndexOf("Class1", StringComparison.Ordinal);
 
-        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), CancellationToken.None);
+        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), TestContext.Current.CancellationToken);
         var resolution = await contextLease.Context!.WorkspaceResolver.ResolveLocationAsync(new LocationSelector
         {
             Span = new TextSpanSelector
@@ -167,7 +167,7 @@ public sealed class WorkspaceResolverIntegrationTests
                 Start = start,
                 Length = "Class1".Length,
             },
-        }, CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
 
         resolution.Status.Should().Be(SelectorResolveStatus.Resolved);
         resolution.Value.Should().NotBeNull();
@@ -183,16 +183,16 @@ public sealed class WorkspaceResolverIntegrationTests
     [Fact]
     public async Task GIVEN_LocationBasedSymbolSelector_WHEN_ResolvingSymbol_THEN_ShouldReturnCanonicalSymbolReference()
     {
-        using var fixture = await TestWorkspaceFixture.CreateAsync();
-        var target = fixture.CreateCoordinator();
+        await using var fixture = await TestWorkspaceFixture.CreateAsync();
+        await using var target = fixture.CreateCoordinator();
         await target.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
-        }, CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
         var sourceText = await File.ReadAllTextAsync(fixture.DocumentPath, TestContext.Current.CancellationToken);
         var start = sourceText.IndexOf("Class1", StringComparison.Ordinal);
 
-        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), CancellationToken.None);
+        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), TestContext.Current.CancellationToken);
         var resolution = await contextLease.Context!.WorkspaceResolver.ResolveSymbolAsync(new SymbolSelector
         {
             Location = new LocationSelector
@@ -207,7 +207,7 @@ public sealed class WorkspaceResolverIntegrationTests
                     Length = "Class1".Length,
                 },
             },
-        }, CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
 
         resolution.Status.Should().Be(SelectorResolveStatus.Resolved);
         resolution.Value.Should().NotBeNull();

@@ -11,12 +11,12 @@ public sealed class PluginDiscoveryAndMcpToolIntegrationTests
     [Fact]
     public void GIVEN_PluginDirectoryAssemblies_WHEN_LoadingCatalog_THEN_ShouldKeepEnabledToolsAndDisabledDiagnostics()
     {
-        var pluginDirectory = CreatePluginDirectory(
+        using var pluginDirectory = CreatePluginDirectory(
             typeof(HostValidQueryPlugin).Assembly,
             typeof(HostValidMutationPlugin).Assembly,
             typeof(ValidQueryTestPlugin).Assembly);
 
-        var startupOptions = CreateStartupOptions(pluginDirectory);
+        var startupOptions = CreateStartupOptions(pluginDirectory.DirectoryPath);
         var bootstrap = new PluginCatalogBootstrap();
         var snapshot = bootstrap.Load(startupOptions, []);
 
@@ -34,10 +34,10 @@ public sealed class PluginDiscoveryAndMcpToolIntegrationTests
     [Fact]
     public async Task GIVEN_LoadedRegisteredTool_WHEN_PublishingAndInvokingThroughMcp_THEN_ShouldExposeProtocolMetadataSchemaAndStructuredContent()
     {
-        var pluginDirectory = CreatePluginDirectory(typeof(HostValidQueryPlugin).Assembly);
+        using var pluginDirectory = CreatePluginDirectory(typeof(HostValidQueryPlugin).Assembly);
         var startupOptions = new StartupOptions
         {
-            PluginDirectories = [pluginDirectory],
+            PluginDirectories = [pluginDirectory.DirectoryPath],
             DefaultMaxResults = 100,
             ToolOutputSchemaMode = ToolOutputSchemaMode.Full,
         };
@@ -56,7 +56,7 @@ public sealed class PluginDiscoveryAndMcpToolIntegrationTests
         serverTool.ProtocolTool.OutputSchema.Should().NotBeNull();
         serverTool.ProtocolTool.OutputSchema!.Value.GetProperty("oneOf").ValueKind.Should().Be(JsonValueKind.Array);
 
-        var result = await McpIntegrationTestHost.InvokeServerToolAsync(serverTool, "host-valid-query", new Dictionary<string, JsonElement>
+        var result = await McpIntegrationTestHost.InvokeServerToolAsync(serverTool, TestContext.Current.CancellationToken, "host-valid-query", new Dictionary<string, JsonElement>
         {
             ["name"] = JsonSerializer.SerializeToElement("Name"),
         });
@@ -79,9 +79,9 @@ public sealed class PluginDiscoveryAndMcpToolIntegrationTests
     [Fact]
     public async Task GIVEN_PackagedMutationPlugin_WHEN_InvokingThroughMcp_THEN_ShouldExecuteAndStageProposal()
     {
-        var pluginDirectory = CreatePluginDirectory(typeof(HostValidMutationPlugin).Assembly);
+        using var pluginDirectory = CreatePluginDirectory(typeof(HostValidMutationPlugin).Assembly);
         var bootstrap = new PluginCatalogBootstrap();
-        var snapshot = bootstrap.Load(CreateStartupOptions(pluginDirectory), []);
+        var snapshot = bootstrap.Load(CreateStartupOptions(pluginDirectory.DirectoryPath), []);
         using var workspace = new AdhocWorkspace();
         var serverTool = PluginToolTestHarness.CreateServerTool(
             CreateMutationExecutionContextFactory(workspace.CurrentSolution),
@@ -89,7 +89,7 @@ public sealed class PluginDiscoveryAndMcpToolIntegrationTests
             "host-valid-mutation",
             ToolOutputSchemaMode.Full);
 
-        var result = await McpIntegrationTestHost.InvokeServerToolAsync(serverTool, "host-valid-mutation", new Dictionary<string, JsonElement>
+        var result = await McpIntegrationTestHost.InvokeServerToolAsync(serverTool, TestContext.Current.CancellationToken, "host-valid-mutation", new Dictionary<string, JsonElement>
         {
             ["summary"] = JsonSerializer.SerializeToElement("Summary"),
         });
@@ -104,11 +104,11 @@ public sealed class PluginDiscoveryAndMcpToolIntegrationTests
     [Fact]
     public void GIVEN_PluginToolCollidesWithReservedCodeActionName_WHEN_LoadingCatalog_THEN_ShouldDisablePluginWithDiagnostic()
     {
-        var pluginDirectory = CreatePluginDirectory(typeof(HostValidQueryPlugin).Assembly);
+        using var pluginDirectory = CreatePluginDirectory(typeof(HostValidQueryPlugin).Assembly);
         var bootstrap = new PluginCatalogBootstrap();
 
         var snapshot = bootstrap.Load(
-            CreateStartupOptions(pluginDirectory),
+            CreateStartupOptions(pluginDirectory.DirectoryPath),
             [],
             ["host-valid-query"]);
 
@@ -124,12 +124,12 @@ public sealed class PluginDiscoveryAndMcpToolIntegrationTests
     [Fact]
     public void GIVEN_MultiplePackagesWithSamePluginId_WHEN_LoadingCatalog_THEN_ShouldDisableEveryPackageDeterministically()
     {
-        var pluginDirectory = CreatePluginDirectory(
+        using var pluginDirectory = CreatePluginDirectory(
             typeof(HostValidQueryPlugin).Assembly,
             typeof(HostValidQueryPlugin).Assembly);
         var bootstrap = new PluginCatalogBootstrap();
 
-        var snapshot = bootstrap.Load(CreateStartupOptions(pluginDirectory), []);
+        var snapshot = bootstrap.Load(CreateStartupOptions(pluginDirectory.DirectoryPath), []);
 
         snapshot.Tools.Should().BeEmpty();
         snapshot.Plugins.Should().HaveCount(2);
@@ -156,10 +156,10 @@ public sealed class PluginDiscoveryAndMcpToolIntegrationTests
     [Fact]
     public void GIVEN_SingleExportPluginConfigureThrows_WHEN_LoadingCatalog_THEN_ShouldDisablePluginWithoutPublishingExceptionDetails()
     {
-        var pluginDirectory = CreatePluginDirectory(typeof(ThrowingConfigurationTestPlugin).Assembly);
+        using var pluginDirectory = CreatePluginDirectory(typeof(ThrowingConfigurationTestPlugin).Assembly);
         var bootstrap = new PluginCatalogBootstrap();
 
-        var snapshot = bootstrap.Load(CreateStartupOptions(pluginDirectory), []);
+        var snapshot = bootstrap.Load(CreateStartupOptions(pluginDirectory.DirectoryPath), []);
 
         snapshot.Tools.Should().BeEmpty();
         snapshot.Plugins.Should().ContainSingle(status =>
@@ -171,10 +171,10 @@ public sealed class PluginDiscoveryAndMcpToolIntegrationTests
                 && !diagnostic.Message.Contains("Configuration failed", StringComparison.Ordinal)));
     }
 
-    private static string CreatePluginDirectory(params Assembly[] assemblies)
+    private static TemporaryDirectory CreatePluginDirectory(params Assembly[] assemblies)
     {
-        var searchRoot = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-plugin-tests", Guid.NewGuid().ToString("n"));
-        Directory.CreateDirectory(searchRoot);
+        var directory = TemporaryDirectory.Create("roslyn-workbench-mcp-plugin-tests");
+        var searchRoot = directory.DirectoryPath;
 
         for (var index = 0; index < assemblies.Length; index++)
         {
@@ -196,7 +196,7 @@ public sealed class PluginDiscoveryAndMcpToolIntegrationTests
             }
         }
 
-        return searchRoot;
+        return directory;
     }
 
     private static StartupOptions CreateStartupOptions(string pluginDirectory)

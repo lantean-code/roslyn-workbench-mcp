@@ -7,13 +7,13 @@ public sealed class ControlledProviderWorkflowIntegrationTests
     [Fact]
     public async Task GIVEN_ControlledProviderActions_WHEN_ListingDescribingAndStagingParameterisedAction_THEN_ShouldPreserveWorkflowContracts()
     {
-        using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = BundledCoreToolTestHarness.CreateTestCodeActionCoordinator();
+        await using var fixture = await InspectionSampleFixture.CreateAsync();
+        await using var coordinator = BundledCoreToolTestHarness.CreateTestCodeActionCoordinator();
         var open = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
-        }, CancellationToken.None);
-        await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
+        await coordinator.StartTransactionAsync(new TransactionStartRequest(), TestContext.Current.CancellationToken);
         var snapshot = BundledCoreToolTestHarness.CreateSnapshot(open, 0);
 
         var listed = await InvokeAsync<CodeActionListData>(coordinator, "list-code-actions", new Dictionary<string, JsonElement>
@@ -44,13 +44,13 @@ public sealed class ControlledProviderWorkflowIntegrationTests
     [Fact]
     public async Task GIVEN_ControlledRefactoringAndCodeFix_WHEN_StagingBoth_THEN_ShouldAdvanceRevisionsAndPreviewChanges()
     {
-        using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = BundledCoreToolTestHarness.CreateTestCodeActionCoordinator();
+        await using var fixture = await InspectionSampleFixture.CreateAsync();
+        await using var coordinator = BundledCoreToolTestHarness.CreateTestCodeActionCoordinator();
         var open = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
-        }, CancellationToken.None);
-        await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
+        await coordinator.StartTransactionAsync(new TransactionStartRequest(), TestContext.Current.CancellationToken);
 
         var refactorings = await ListActionsAsync(coordinator, fixture.GetLocation("StateHolder"), open, 0, includeCodeFixes: false);
         var stagedRefactoring = await InvokeAsync<MutationData>(coordinator, "stage-code-action", new Dictionary<string, JsonElement>
@@ -64,7 +64,7 @@ public sealed class ControlledProviderWorkflowIntegrationTests
             ["actionId"] = JsonSerializer.SerializeToElement(codeFixes.Data!.Actions.Single(static action => action.Title == "Apply test code fix").ActionId),
             ["expectedSnapshot"] = JsonSerializer.SerializeToElement(BundledCoreToolTestHarness.CreateSnapshot(open, 1)),
         });
-        var preview = await coordinator.PreviewTransactionAsync(new TransactionPreviewRequest(), CancellationToken.None);
+        var preview = await coordinator.PreviewTransactionAsync(new TransactionPreviewRequest(), TestContext.Current.CancellationToken);
 
         stagedRefactoring.Data!.Transaction!.Revision.Should().Be(1);
         stagedCodeFix.Data!.Transaction!.Revision.Should().Be(2);
@@ -78,13 +78,13 @@ public sealed class ControlledProviderWorkflowIntegrationTests
     [InlineData(ScopeKind.Solution)]
     public async Task GIVEN_ControlledCodeFix_WHEN_StagingFixAllAtSupportedScope_THEN_ShouldStageRequestedScope(ScopeKind scopeKind)
     {
-        using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = BundledCoreToolTestHarness.CreateTestCodeActionCoordinator();
+        await using var fixture = await InspectionSampleFixture.CreateAsync();
+        await using var coordinator = BundledCoreToolTestHarness.CreateTestCodeActionCoordinator();
         var open = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
-        }, CancellationToken.None);
-        await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
+        await coordinator.StartTransactionAsync(new TransactionStartRequest(), TestContext.Current.CancellationToken);
         var codeFixes = await ListActionsAsync(coordinator, fixture.GetLocation("unused"), open, 0, includeRefactorings: false);
 
         var result = await InvokeAsync<MutationData>(coordinator, "stage-fix-all", new Dictionary<string, JsonElement>
@@ -102,37 +102,37 @@ public sealed class ControlledProviderWorkflowIntegrationTests
     [Fact]
     public async Task GIVEN_TamperedExpiredOrStaleActionTokens_WHEN_Staging_THEN_ShouldRejectEachToken()
     {
-        using var tamperedFixture = await InspectionSampleFixture.CreateAsync();
-        var tamperedCoordinator = BundledCoreToolTestHarness.CreateTestCodeActionCoordinator();
+        await using var tamperedFixture = await InspectionSampleFixture.CreateAsync();
+        await using var tamperedCoordinator = BundledCoreToolTestHarness.CreateTestCodeActionCoordinator();
         var tamperedOpen = await tamperedCoordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = tamperedFixture.ProjectPath,
-        }, CancellationToken.None);
-        await tamperedCoordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
+        await tamperedCoordinator.StartTransactionAsync(new TransactionStartRequest(), TestContext.Current.CancellationToken);
         var tamperedActions = await ListActionsAsync(tamperedCoordinator, tamperedFixture.GetLocation("StateHolder"), tamperedOpen, 0, includeCodeFixes: false);
         var actionId = tamperedActions.Data!.Actions.Single(static action => action.Title == "Apply test refactoring").ActionId;
 
         var tampered = await StageCodeActionAsync(tamperedCoordinator, string.Concat(actionId, "tampered"), tamperedOpen, 0, expectProtocolSuccess: false);
 
-        using var expiredFixture = await InspectionSampleFixture.CreateAsync();
-        var expiredCoordinator = BundledCoreToolTestHarness.CreateTestCodeActionCoordinator(TimeSpan.FromMinutes(-1));
+        await using var expiredFixture = await InspectionSampleFixture.CreateAsync();
+        await using var expiredCoordinator = BundledCoreToolTestHarness.CreateTestCodeActionCoordinator(TimeSpan.FromMinutes(-1));
         var expiredOpen = await expiredCoordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = expiredFixture.ProjectPath,
-        }, CancellationToken.None);
-        await expiredCoordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
+        await expiredCoordinator.StartTransactionAsync(new TransactionStartRequest(), TestContext.Current.CancellationToken);
         var expiredActions = await ListActionsAsync(expiredCoordinator, expiredFixture.GetLocation("StateHolder"), expiredOpen, 0, includeCodeFixes: false);
         var expiredActionId = expiredActions.Data!.Actions.Single(static action => action.Title == "Apply test refactoring").ActionId;
 
         var expired = await StageCodeActionAsync(expiredCoordinator, expiredActionId, expiredOpen, 0, expectProtocolSuccess: false);
 
-        using var staleFixture = await InspectionSampleFixture.CreateAsync();
-        var staleCoordinator = BundledCoreToolTestHarness.CreateTestCodeActionCoordinator();
+        await using var staleFixture = await InspectionSampleFixture.CreateAsync();
+        await using var staleCoordinator = BundledCoreToolTestHarness.CreateTestCodeActionCoordinator();
         var staleOpen = await staleCoordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = staleFixture.ProjectPath,
-        }, CancellationToken.None);
-        await staleCoordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
+        await staleCoordinator.StartTransactionAsync(new TransactionStartRequest(), TestContext.Current.CancellationToken);
         var staleActions = await ListActionsAsync(staleCoordinator, staleFixture.GetLocation("StateHolder"), staleOpen, 0, includeCodeFixes: false);
         var staleActionId = staleActions.Data!.Actions.Single(static action => action.Title == "Apply test refactoring").ActionId;
         await StageCodeActionAsync(staleCoordinator, staleActionId, staleOpen, 0);
@@ -147,12 +147,12 @@ public sealed class ControlledProviderWorkflowIntegrationTests
     [Fact]
     public async Task GIVEN_StaleSnapshot_WHEN_ListingControlledActions_THEN_ShouldRejectSnapshotMismatch()
     {
-        using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = BundledCoreToolTestHarness.CreateTestCodeActionCoordinator();
+        await using var fixture = await InspectionSampleFixture.CreateAsync();
+        await using var coordinator = BundledCoreToolTestHarness.CreateTestCodeActionCoordinator();
         var open = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
-        }, CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
 
         var result = await InvokeAsync<CodeActionListData>(coordinator, "list-code-actions", new Dictionary<string, JsonElement>
         {
@@ -224,6 +224,6 @@ public sealed class ControlledProviderWorkflowIntegrationTests
         IDictionary<string, JsonElement> arguments,
         bool expectProtocolSuccess = true)
     {
-        return await CodeActionToolTestHarness.InvokeAsync<TResponse>(coordinator, toolName, arguments, expectProtocolSuccess);
+        return await CodeActionToolTestHarness.InvokeAsync<TResponse>(coordinator, TestContext.Current.CancellationToken, toolName, arguments, expectProtocolSuccess);
     }
 }

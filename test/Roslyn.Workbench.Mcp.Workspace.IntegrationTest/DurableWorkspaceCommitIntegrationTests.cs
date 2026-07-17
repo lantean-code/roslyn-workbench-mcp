@@ -4,8 +4,9 @@ using Moq;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test;
 
-public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
+public sealed class DurableWorkspaceCommitIntegrationTests : IAsyncDisposable
 {
+    private static readonly TimeSpan _processTimeout = TimeSpan.FromSeconds(10);
     private readonly string _root = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-durable-commit-tests", Guid.NewGuid().ToString("n"));
     private readonly string _stateDirectory;
     private readonly IFileSystem _fileSystem = new FileSystem();
@@ -174,18 +175,24 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
         manager.Acquire(_root).Lock!.Dispose();
         var lockPath = GetLockPath();
         using var process = await StartLockOwnerAsync(lockPath);
+        try
+        {
+            var contended = manager.Acquire(_root);
 
-        var contended = manager.Acquire(_root);
-
-        contended.Status.Should().Be(
-            WorkspaceCommitLockAcquisitionStatus.Contended,
-            contended.ErrorMessage);
-        await process.StandardInput.WriteLineAsync();
-        await process.StandardInput.FlushAsync(TestContext.Current.CancellationToken);
-        await process.WaitForExitAsync(TestContext.Current.CancellationToken);
-        process.ExitCode.Should().Be(0);
-        using var reacquired = manager.Acquire(_root).Lock;
-        reacquired.Should().NotBeNull();
+            contended.Status.Should().Be(
+                WorkspaceCommitLockAcquisitionStatus.Contended,
+                contended.ErrorMessage);
+            await process.StandardInput.WriteLineAsync();
+            await process.StandardInput.FlushAsync(TestContext.Current.CancellationToken);
+            await WaitForExitAsync(process, TestContext.Current.CancellationToken);
+            process.ExitCode.Should().Be(0);
+            using var reacquired = manager.Acquire(_root).Lock;
+            reacquired.Should().NotBeNull();
+        }
+        finally
+        {
+            await EnsureProcessExitAsync(process);
+        }
     }
 
     [Fact]
@@ -209,21 +216,24 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
         var manager = CreateLockManager(_fileSystem);
         manager.Acquire(_root).Lock!.Dispose();
         using var process = await StartLockOwnerAsync(GetLockPath());
+        try
+        {
+            manager.Acquire(_root).Status.Should().Be(WorkspaceCommitLockAcquisitionStatus.Contended);
+            process.Kill(entireProcessTree: true);
+            await WaitForExitAsync(process, TestContext.Current.CancellationToken);
 
-        manager.Acquire(_root).Status.Should().Be(WorkspaceCommitLockAcquisitionStatus.Contended);
-        process.Kill(entireProcessTree: true);
-        await process.WaitForExitAsync(TestContext.Current.CancellationToken);
-
-        using var recovered = manager.Acquire(_root).Lock;
-        recovered.Should().NotBeNull();
+            using var recovered = manager.Acquire(_root).Lock;
+            recovered.Should().NotBeNull();
+        }
+        finally
+        {
+            await EnsureProcessExitAsync(process);
+        }
     }
 
-    public void Dispose()
+    public ValueTask DisposeAsync()
     {
-        if (Directory.Exists(_root))
-        {
-            Directory.Delete(_root, recursive: true);
-        }
+        return TemporaryDirectory.Attach(_root).DisposeAsync();
     }
 
     private IWorkspaceCommitRecoveryService CreateFreshRecoveryService()
@@ -264,10 +274,52 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
             UseShellExecute = false,
         };
         startInfo.ArgumentList.Add(lockPath);
-        var process = Process.Start(startInfo)!;
-        var signal = await process.StandardOutput.ReadLineAsync(TestContext.Current.CancellationToken);
-        signal.Should().Be("LOCKED");
-        return process;
+        var process = Process.Start(startInfo) ?? throw new InvalidOperationException("Failed to start the Workspace lock fixture process.");
+        try
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+            timeout.CancelAfter(_processTimeout);
+            var signal = await process.StandardOutput.ReadLineAsync(timeout.Token);
+            signal.Should().Be("LOCKED");
+            return process;
+        }
+        catch
+        {
+            await EnsureProcessExitAsync(process);
+            process.Dispose();
+            throw;
+        }
+    }
+
+    private static async Task WaitForExitAsync(Process process, CancellationToken cancellationToken)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(_processTimeout);
+        await process.WaitForExitAsync(timeout.Token);
+    }
+
+    private static async Task EnsureProcessExitAsync(Process process)
+    {
+        if (process.HasExited)
+        {
+            return;
+        }
+
+        // Teardown uses its own timeout so a cancelled test cannot leave the lock-owner process alive.
+        process.StandardInput.Close();
+        using var gracefulTimeout = new CancellationTokenSource(_processTimeout);
+        try
+        {
+            await process.WaitForExitAsync(gracefulTimeout.Token);
+            return;
+        }
+        catch (OperationCanceledException)
+        {
+        }
+
+        process.Kill(entireProcessTree: true);
+        using var forcedTimeout = new CancellationTokenSource(_processTimeout);
+        await process.WaitForExitAsync(forcedTimeout.Token);
     }
 
     private async Task<TransactionFixture> CreateTransactionAsync(RecoveryState state)

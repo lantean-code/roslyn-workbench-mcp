@@ -7,16 +7,17 @@ public sealed class RepresentativeMcpToolIntegrationTests
     [Fact]
     public async Task GIVEN_InspectionWorkspace_WHEN_InvokingRepresentativeQueryThroughMcp_THEN_ShouldReturnStructuredResult()
     {
-        using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = WorkspaceCoordinatorFactory.Create(toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
+        await using var fixture = await InspectionSampleFixture.CreateAsync();
+        await using var coordinator = WorkspaceCoordinatorFactory.Create(toolExecutionServices: BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
-        }, CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
         var registry = BundledPluginCatalogueFactory.CreateCatalogue();
 
         var result = await McpIntegrationTestHost.InvokePluginToolAsync<DiagnosticsData>(
             coordinator,
+            TestContext.Current.CancellationToken,
             registry,
             "get-diagnostics",
             new Dictionary<string, JsonElement>
@@ -34,7 +35,7 @@ public sealed class RepresentativeMcpToolIntegrationTests
     [Fact]
     public async Task GIVEN_ControlledCodeActionProvider_WHEN_ListingAndStagingThroughMcp_THEN_ShouldStageRepresentativeCodeAction()
     {
-        using var fixture = await InspectionSampleFixture.CreateAsync();
+        await using var fixture = await InspectionSampleFixture.CreateAsync();
         var codeActionProviderCatalog = CodeActionProviderCatalogFactory.Create(new CodeActionCompositionOptions
         {
             IncludeBuiltInAssemblies = false,
@@ -43,14 +44,14 @@ public sealed class RepresentativeMcpToolIntegrationTests
                     typeof(TestRefactoringProvider).Assembly,
                 ],
         });
-        var coordinator = WorkspaceCoordinatorFactory.CreateWithCodeActionProviderCatalog(
+        await using var coordinator = WorkspaceCoordinatorFactory.CreateWithCodeActionProviderCatalog(
             codeActionProviderCatalog,
             BundledCoreToolExecutionServicesFactory.Create());
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
-        }, CancellationToken.None);
-        await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
+        await coordinator.StartTransactionAsync(new TransactionStartRequest(), TestContext.Current.CancellationToken);
         var snapshot = new SnapshotPrecondition
         {
             WorkspaceEpoch = openResult.WorkspaceEpoch!.Value,
@@ -59,6 +60,7 @@ public sealed class RepresentativeMcpToolIntegrationTests
 
         var listed = await CodeActionToolTestHarness.InvokeAsync<CodeActionListData>(
             coordinator,
+            TestContext.Current.CancellationToken,
             "list-code-actions",
             new Dictionary<string, JsonElement>
             {
@@ -69,13 +71,14 @@ public sealed class RepresentativeMcpToolIntegrationTests
         var action = listed.Data!.Actions.Single(static candidate => candidate.Title == "Apply test refactoring");
         var staged = await CodeActionToolTestHarness.InvokeAsync<MutationData>(
             coordinator,
+            TestContext.Current.CancellationToken,
             "stage-code-action",
             new Dictionary<string, JsonElement>
             {
                 ["actionId"] = JsonSerializer.SerializeToElement(action.ActionId),
                 ["expectedSnapshot"] = JsonSerializer.SerializeToElement(snapshot),
             });
-        var preview = await coordinator.PreviewTransactionAsync(new TransactionPreviewRequest(), CancellationToken.None);
+        var preview = await coordinator.PreviewTransactionAsync(new TransactionPreviewRequest(), TestContext.Current.CancellationToken);
 
         listed.Outcome.Should().Be(ToolOutcome.Succeeded);
         staged.Outcome.Should().Be(ToolOutcome.Succeeded);

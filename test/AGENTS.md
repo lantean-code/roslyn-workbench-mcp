@@ -5,7 +5,7 @@ Cross-project test ownership and execution-path policy are defined in `../docs/T
 - Frameworks: xUnit, Moq, AwesomeAssertions.
 - Use Moq for test doubles; do not introduce hand-written fake or stub implementations unless explicitly approved.
 - Moq callbacks should only be used when verifying the same behaviour is impossible with `Verify`.
-- Do not add comments to test code.
+- Write self-documenting test code. Do not add structural comments such as `Arrange`, `Act`, or `Assert`. Use inline comments sparingly when needed to explain a non-obvious constraint, deliberate exception, or justification that naming and code structure cannot convey.
 - Braces must never be omitted.
 - Expression-bodied members are not permitted in tests.
 
@@ -128,7 +128,7 @@ Cross-project test ownership and execution-path policy are defined in `../docs/T
 
 ## Pre-flight checklist (must confirm all before generating tests)
 - [ ] I am using xUnit, Moq, and AwesomeAssertions.
-- [ ] No comments will be included in the test code.
+- [ ] Any test-code comment explains necessary non-obvious intent; no structural or narration comments are included.
 - [ ] Class name is `<ClassName>Tests`.
 - [ ] Namespace mirrors the product namespace with `.Test` inserted appropriately.
 - [ ] Methods follow `GIVEN_..._WHEN_..._THEN_...` naming.

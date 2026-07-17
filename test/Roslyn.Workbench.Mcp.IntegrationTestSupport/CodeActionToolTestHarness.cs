@@ -13,6 +13,7 @@ public static class CodeActionToolTestHarness
 {
     public static async Task<ToolResult<TResponse>> InvokeAsync<TResponse>(
         IWorkspaceRuntime workspaceRuntime,
+        CancellationToken cancellationToken,
         string toolName,
         IDictionary<string, JsonElement> arguments,
         bool expectProtocolSuccess = true)
@@ -39,13 +40,13 @@ public static class CodeActionToolTestHarness
         services.AddSingleton<IMcpToolProtocolFactory>(new McpToolProtocolFactory(
             new ToolSchemaFactory(new McpSdkSchemaProvider())));
         services.AddSingleton<IOptions<StartupOptions>>(Options.Create(new StartupOptions()));
-        using var serviceProvider = services.BuildServiceProvider(new ServiceProviderOptions
+        await using var serviceProvider = services.BuildServiceProvider(new ServiceProviderOptions
         {
             ValidateOnBuild = true,
             ValidateScopes = true,
         });
         var serverTool = (McpServerToolBase)serviceProvider.GetRequiredService<McpServerTool>();
-        var result = await serverTool.InvokeArgumentsAsync(arguments, CancellationToken.None);
+        var result = await serverTool.InvokeArgumentsAsync(arguments, cancellationToken);
 
         if (result.IsError != !expectProtocolSuccess)
         {

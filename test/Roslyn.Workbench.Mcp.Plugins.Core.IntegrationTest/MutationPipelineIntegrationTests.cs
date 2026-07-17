@@ -7,16 +7,16 @@ public sealed class MutationPipelineIntegrationTests
     [Fact]
     public async Task GIVEN_ActiveTransaction_WHEN_ExecutingBundledMutations_THEN_ShouldStageRevisionsAndPreviewResultingContent()
     {
-        using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = BundledCoreToolTestHarness.CreateInspectionCoordinator();
+        await using var fixture = await InspectionSampleFixture.CreateAsync();
+        await using var coordinator = BundledCoreToolTestHarness.CreateInspectionCoordinator();
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
-        }, CancellationToken.None);
-        var startResult = await coordinator.StartTransactionAsync(new TransactionStartRequest(), CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
+        var startResult = await coordinator.StartTransactionAsync(new TransactionStartRequest(), TestContext.Current.CancellationToken);
         var registry = BundledPluginCatalogueFactory.CreateCatalogue();
 
-        var rename = await PluginToolTestHarness.InvokeAsync<MutationData>(coordinator, registry, "rename-symbol", new Dictionary<string, JsonElement>
+        var rename = await PluginToolTestHarness.InvokeAsync<MutationData>(coordinator, TestContext.Current.CancellationToken, registry, "rename-symbol", new Dictionary<string, JsonElement>
         {
             ["symbol"] = JsonSerializer.SerializeToElement(new SymbolSelector
             {
@@ -25,7 +25,7 @@ public sealed class MutationPipelineIntegrationTests
             ["newName"] = JsonSerializer.SerializeToElement("SessionState"),
             ["expectedSnapshot"] = JsonSerializer.SerializeToElement(BundledCoreToolTestHarness.CreateSnapshot(openResult, startResult.Data!.Transaction!.Revision)),
         });
-        var sortUsings = await PluginToolTestHarness.InvokeAsync<MutationData>(coordinator, registry, "sort-usings", new Dictionary<string, JsonElement>
+        var sortUsings = await PluginToolTestHarness.InvokeAsync<MutationData>(coordinator, TestContext.Current.CancellationToken, registry, "sort-usings", new Dictionary<string, JsonElement>
         {
             ["document"] = JsonSerializer.SerializeToElement(new DocumentSelector
             {
@@ -33,7 +33,7 @@ public sealed class MutationPipelineIntegrationTests
             }),
             ["expectedSnapshot"] = JsonSerializer.SerializeToElement(BundledCoreToolTestHarness.CreateSnapshot(openResult, rename.Data!.Transaction!.Revision)),
         });
-        var formatDocument = await PluginToolTestHarness.InvokeAsync<MutationData>(coordinator, registry, "format-document", new Dictionary<string, JsonElement>
+        var formatDocument = await PluginToolTestHarness.InvokeAsync<MutationData>(coordinator, TestContext.Current.CancellationToken, registry, "format-document", new Dictionary<string, JsonElement>
         {
             ["document"] = JsonSerializer.SerializeToElement(new DocumentSelector
             {
@@ -41,7 +41,7 @@ public sealed class MutationPipelineIntegrationTests
             }),
             ["expectedSnapshot"] = JsonSerializer.SerializeToElement(BundledCoreToolTestHarness.CreateSnapshot(openResult, sortUsings.Data!.Transaction!.Revision)),
         });
-        var transactionPreview = await coordinator.PreviewTransactionAsync(new TransactionPreviewRequest(), CancellationToken.None);
+        var transactionPreview = await coordinator.PreviewTransactionAsync(new TransactionPreviewRequest(), TestContext.Current.CancellationToken);
         var usingsPreview = await coordinator.PreviewTransactionAsync(new TransactionPreviewRequest
         {
             Document = new DocumentSelector
@@ -49,7 +49,7 @@ public sealed class MutationPipelineIntegrationTests
                 Path = "Usings.cs",
             },
             IncludeDiff = true,
-        }, CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
         var renamePreview = await coordinator.PreviewTransactionAsync(new TransactionPreviewRequest
         {
             Document = new DocumentSelector
@@ -57,7 +57,7 @@ public sealed class MutationPipelineIntegrationTests
                 Path = "Formatting.cs",
             },
             IncludeDiff = true,
-        }, CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
 
         rename.Data!.Transaction!.Revision.Should().Be(1);
         sortUsings.Data!.Transaction!.Revision.Should().Be(2);

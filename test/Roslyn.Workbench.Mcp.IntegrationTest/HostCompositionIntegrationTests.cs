@@ -9,7 +9,7 @@ public sealed class HostCompositionIntegrationTests
     [Fact]
     public void GIVEN_CommandLineOptions_WHEN_ComposingHost_THEN_ShouldProjectDerivedOptionsIntoTheContainer()
     {
-        var stateDirectory = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-tests", Guid.NewGuid().ToString("n"));
+        using var stateDirectory = TemporaryDirectory.Create("roslyn-workbench-mcp-tests");
         var builder = Host.CreateApplicationBuilder([]);
 
         builder.AddRoslynWorkbench(
@@ -18,7 +18,7 @@ public sealed class HostCompositionIntegrationTests
             "--max-concurrent-queries", "7",
             "--max-transaction-revisions", "8",
             "--code-action-token-lifetime", "00:00:09",
-            "--state-directory", stateDirectory,
+            "--state-directory", stateDirectory.DirectoryPath,
             "--tool-output-schema-mode", "Full",
         ]);
 
@@ -31,12 +31,12 @@ public sealed class HostCompositionIntegrationTests
         startupOptions.MaxConcurrentQueries.Should().Be(7);
         startupOptions.MaxTransactionRevisions.Should().Be(8);
         startupOptions.CodeActionTokenLifetime.Should().Be(TimeSpan.FromSeconds(9));
-        startupOptions.StateDirectory.Should().Be(stateDirectory);
+        startupOptions.StateDirectory.Should().Be(stateDirectory.DirectoryPath);
         startupOptions.ToolOutputSchemaMode.Should().Be(ToolOutputSchemaMode.Full);
         workspaceOptions.DefaultMaxResults.Should().Be(123);
         workspaceOptions.MaxConcurrentQueries.Should().Be(7);
         workspaceOptions.MaxTransactionRevisions.Should().Be(8);
-        workspaceOptions.StateDirectory.Should().Be(stateDirectory);
+        workspaceOptions.StateDirectory.Should().Be(stateDirectory.DirectoryPath);
         codeActionOptions.TokenLifetime.Should().Be(TimeSpan.FromSeconds(9));
     }
 

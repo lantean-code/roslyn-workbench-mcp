@@ -7,16 +7,16 @@ public sealed class WorkspaceProjectionIntegrationTests
     [Fact]
     public async Task GIVEN_LoadedProject_WHEN_ProjectingWorkspaceDetails_THEN_ShouldIncludeDocumentsOptionsAndMetadataReferences()
     {
-        using var fixture = await InspectionSampleFixture.CreateAsync();
-        var coordinator = BundledCoreToolTestHarness.CreateInspectionCoordinator();
+        await using var fixture = await InspectionSampleFixture.CreateAsync();
+        await using var coordinator = BundledCoreToolTestHarness.CreateInspectionCoordinator();
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.ProjectPath,
-        }, CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
         var registry = BundledPluginCatalogueFactory.CreateCatalogue();
 
-        var solution = await PluginToolTestHarness.InvokeAsync<SolutionStructureData>(coordinator, registry, "get-solution-structure", new Dictionary<string, JsonElement>());
-        var project = await PluginToolTestHarness.InvokeAsync<ProjectDetailsData>(coordinator, registry, "get-project-details", new Dictionary<string, JsonElement>
+        var solution = await PluginToolTestHarness.InvokeAsync<SolutionStructureData>(coordinator, TestContext.Current.CancellationToken, registry, "get-solution-structure", new Dictionary<string, JsonElement>());
+        var project = await PluginToolTestHarness.InvokeAsync<ProjectDetailsData>(coordinator, TestContext.Current.CancellationToken, registry, "get-project-details", new Dictionary<string, JsonElement>
         {
             ["project"] = JsonSerializer.SerializeToElement(new ProjectSelector
             {
@@ -24,7 +24,7 @@ public sealed class WorkspaceProjectionIntegrationTests
             }),
             ["includeDocuments"] = JsonSerializer.SerializeToElement(true),
         });
-        var document = await PluginToolTestHarness.InvokeAsync<DocumentOptionsData>(coordinator, registry, "get-document-options", new Dictionary<string, JsonElement>
+        var document = await PluginToolTestHarness.InvokeAsync<DocumentOptionsData>(coordinator, TestContext.Current.CancellationToken, registry, "get-document-options", new Dictionary<string, JsonElement>
         {
             ["document"] = JsonSerializer.SerializeToElement(new DocumentSelector
             {
@@ -45,16 +45,16 @@ public sealed class WorkspaceProjectionIntegrationTests
     [Fact]
     public async Task GIVEN_MultiProjectSolution_WHEN_ProjectingWorkspace_THEN_ShouldIncludeFoldersAndProjectReferences()
     {
-        using var fixture = await SolutionHierarchyFixture.CreateAsync();
-        var coordinator = BundledCoreToolTestHarness.CreateInspectionCoordinator();
+        await using var fixture = await SolutionHierarchyFixture.CreateAsync();
+        await using var coordinator = BundledCoreToolTestHarness.CreateInspectionCoordinator();
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {
             Path = fixture.SolutionPath,
-        }, CancellationToken.None);
+        }, TestContext.Current.CancellationToken);
         var registry = BundledPluginCatalogueFactory.CreateCatalogue();
 
-        var solution = await PluginToolTestHarness.InvokeAsync<SolutionStructureData>(coordinator, registry, "get-solution-structure", new Dictionary<string, JsonElement>());
-        var application = await PluginToolTestHarness.InvokeAsync<ProjectDetailsData>(coordinator, registry, "get-project-details", new Dictionary<string, JsonElement>
+        var solution = await PluginToolTestHarness.InvokeAsync<SolutionStructureData>(coordinator, TestContext.Current.CancellationToken, registry, "get-solution-structure", new Dictionary<string, JsonElement>());
+        var application = await PluginToolTestHarness.InvokeAsync<ProjectDetailsData>(coordinator, TestContext.Current.CancellationToken, registry, "get-project-details", new Dictionary<string, JsonElement>
         {
             ["project"] = JsonSerializer.SerializeToElement(new ProjectSelector
             {

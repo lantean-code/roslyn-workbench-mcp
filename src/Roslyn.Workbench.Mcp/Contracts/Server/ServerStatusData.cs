@@ -9,14 +9,14 @@ namespace Roslyn.Workbench.Mcp.Server.Contracts;
 public sealed record ServerStatusData
 {
     /// <summary>
-    /// Gets the server version.
+    /// Gets the server version, when available from assembly metadata.
     /// </summary>
-    public string ServerVersion { get; init; } = string.Empty;
+    public string? ServerVersion { get; init; }
 
     /// <summary>
-    /// Gets the Roslyn version.
+    /// Gets the Roslyn version, when available from assembly metadata.
     /// </summary>
-    public string RoslynVersion { get; init; } = string.Empty;
+    public string? RoslynVersion { get; init; }
 
     /// <summary>
     /// Gets the MSBuild component status.

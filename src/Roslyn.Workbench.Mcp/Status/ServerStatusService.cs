@@ -5,8 +5,8 @@ namespace Roslyn.Workbench.Mcp.Status;
 
 internal sealed class ServerStatusService : IServerStatusService
 {
-    private static readonly string _serverVersion = typeof(ServerStatusService).Assembly.GetName().Version?.ToString() ?? "0.0.0.0";
-    private static readonly string _roslynVersion = typeof(Microsoft.CodeAnalysis.Workspace).Assembly.GetName().Version?.ToString() ?? "0.0.0.0";
+    private static readonly string? _serverVersion = typeof(ServerStatusService).Assembly.GetName().Version?.ToString();
+    private static readonly string? _roslynVersion = typeof(Microsoft.CodeAnalysis.Workspace).Assembly.GetName().Version?.ToString();
 
     private readonly StartupOptions _startupOptions;
     private readonly StartupConfigurationSnapshot _startupConfiguration;

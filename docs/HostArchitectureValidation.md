@@ -353,7 +353,7 @@ Complexity: low.
 
 ## Unit Testing Next Step
 
-After H1-H7 are complete, create or refresh the Host unit-test inventory against the final classes. The inventory should record each logic-bearing Host class, existing line and branch coverage, pattern compliance and missing scenarios.
+The Host unit-test inventory and current coverage analysis are recorded in `HostUnitTestInventory.md`. It records each logic-bearing Host family, existing line and branch coverage, pattern compliance, external-boundary dispositions and the remaining approval needed to close the unit-testing round.
 
 Priority groups should be:
 

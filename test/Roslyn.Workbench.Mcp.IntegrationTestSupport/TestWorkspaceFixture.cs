@@ -2,22 +2,24 @@ namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
 public sealed class TestWorkspaceFixture : IAsyncDisposable
 {
-    private readonly string _directoryPath;
+    private readonly MaterializedWorkspaceAsset _asset;
 
     private TestWorkspaceFixture(
-        string directoryPath,
+        MaterializedWorkspaceAsset asset,
         string projectPath,
         string documentPath,
         string directoryBuildPropsPath,
         string editorConfigPath,
         string? sharedDocumentPath = null)
     {
-        _directoryPath = directoryPath;
-        ProjectPath = projectPath;
-        DocumentPath = documentPath;
-        DirectoryBuildPropsPath = directoryBuildPropsPath;
-        EditorConfigPath = editorConfigPath;
-        SharedDocumentPath = sharedDocumentPath;
+        _asset = asset;
+        ProjectPath = Path.Combine(asset.WorkspaceRoot, projectPath);
+        DocumentPath = Path.Combine(asset.WorkspaceRoot, documentPath);
+        DirectoryBuildPropsPath = Path.Combine(asset.WorkspaceRoot, directoryBuildPropsPath);
+        EditorConfigPath = Path.Combine(asset.WorkspaceRoot, editorConfigPath);
+        SharedDocumentPath = sharedDocumentPath is null
+            ? null
+            : Path.Combine(asset.WorkspaceRoot, sharedDocumentPath);
     }
 
     public string DocumentPath { get; }
@@ -30,197 +32,90 @@ public sealed class TestWorkspaceFixture : IAsyncDisposable
 
     public string? SharedDocumentPath { get; }
 
-    public static async Task<TestWorkspaceFixture> CreateAsync()
+    public string StateRoot
     {
-        var directoryPath = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-tests", Guid.NewGuid().ToString("n"));
-        Directory.CreateDirectory(directoryPath);
-        Directory.CreateDirectory(Path.Combine(directoryPath, ".git"));
-
-        var projectPath = Path.Combine(directoryPath, "Sample.csproj");
-        var documentPath = Path.Combine(directoryPath, "Class1.cs");
-        var directoryBuildPropsPath = Path.Combine(directoryPath, "Directory.Build.props");
-        var editorConfigPath = Path.Combine(directoryPath, ".editorconfig");
-
-        await File.WriteAllTextAsync(projectPath, """
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup>
-                <TargetFramework>net10.0</TargetFramework>
-                <Nullable>enable</Nullable>
-              </PropertyGroup>
-            </Project>
-            """);
-        await File.WriteAllTextAsync(documentPath, """
-            namespace Sample;
-
-            public sealed class Class1
-            {
-            }
-            """);
-        await File.WriteAllTextAsync(directoryBuildPropsPath, """
-            <Project>
-              <PropertyGroup>
-                <LangVersion>preview</LangVersion>
-              </PropertyGroup>
-            </Project>
-            """);
-        await File.WriteAllTextAsync(editorConfigPath, """
-            root = true
-
-            [*.cs]
-            dotnet_diagnostic.IDE0005.severity = warning
-            """);
-
-        return new TestWorkspaceFixture(directoryPath, projectPath, documentPath, directoryBuildPropsPath, editorConfigPath);
+        get
+        {
+            return _asset.StateRoot;
+        }
     }
 
-    public static async Task<TestWorkspaceFixture> CreateLegacyProjectAsync()
+    public string WorkspaceRoot
     {
-        var directoryPath = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-tests", Guid.NewGuid().ToString("n"));
-        Directory.CreateDirectory(directoryPath);
-        Directory.CreateDirectory(Path.Combine(directoryPath, ".git"));
-
-        var projectPath = Path.Combine(directoryPath, "Legacy.csproj");
-        var documentPath = Path.Combine(directoryPath, "Class1.cs");
-        var directoryBuildPropsPath = Path.Combine(directoryPath, "Directory.Build.props");
-        var editorConfigPath = Path.Combine(directoryPath, ".editorconfig");
-
-        await File.WriteAllTextAsync(projectPath, """
-            <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-              <PropertyGroup>
-                <OutputType>Library</OutputType>
-                <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
-              </PropertyGroup>
-              <ItemGroup>
-                <Compile Include="Class1.cs" />
-              </ItemGroup>
-            </Project>
-            """);
-        await File.WriteAllTextAsync(documentPath, """
-            public class Class1
-            {
-            }
-            """);
-        await File.WriteAllTextAsync(directoryBuildPropsPath, "<Project />");
-        await File.WriteAllTextAsync(editorConfigPath, "root = true");
-
-        return new TestWorkspaceFixture(directoryPath, projectPath, documentPath, directoryBuildPropsPath, editorConfigPath);
+        get
+        {
+            return _asset.WorkspaceRoot;
+        }
     }
 
-    public static async Task<TestWorkspaceFixture> CreateMalformedProjectAsync()
+    public static Task<TestWorkspaceFixture> CreateAsync()
     {
-        var directoryPath = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-tests", Guid.NewGuid().ToString("n"));
-        Directory.CreateDirectory(directoryPath);
-        Directory.CreateDirectory(Path.Combine(directoryPath, ".git"));
-
-        var projectPath = Path.Combine(directoryPath, "Broken.csproj");
-        var documentPath = Path.Combine(directoryPath, "Class1.cs");
-        var directoryBuildPropsPath = Path.Combine(directoryPath, "Directory.Build.props");
-        var editorConfigPath = Path.Combine(directoryPath, ".editorconfig");
-
-        await File.WriteAllTextAsync(projectPath, """
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup>
-                <TargetFramework>net10.0</TargetFramework>
-            """);
-        await File.WriteAllTextAsync(documentPath, """
-            namespace Sample;
-
-            public sealed class Class1
-            {
-            }
-            """);
-        await File.WriteAllTextAsync(directoryBuildPropsPath, "<Project />");
-        await File.WriteAllTextAsync(editorConfigPath, "root = true");
-
-        return new TestWorkspaceFixture(directoryPath, projectPath, documentPath, directoryBuildPropsPath, editorConfigPath);
+        return Task.FromResult(Create(
+            "SdkProject",
+            "Sample.csproj",
+            "Class1.cs",
+            "Directory.Build.props",
+            ".editorconfig"));
     }
 
-    public static async Task<TestWorkspaceFixture> CreateAmbiguousAsync()
+    public static Task<TestWorkspaceFixture> CreateLegacyProjectAsync()
     {
-        var directoryPath = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-tests", Guid.NewGuid().ToString("n"));
-        var projectOneDirectoryPath = Path.Combine(directoryPath, "ProjectOne");
-        var projectTwoDirectoryPath = Path.Combine(directoryPath, "ProjectTwo");
-        var sharedDirectoryPath = Path.Combine(directoryPath, "Shared");
-        Directory.CreateDirectory(projectOneDirectoryPath);
-        Directory.CreateDirectory(projectTwoDirectoryPath);
-        Directory.CreateDirectory(sharedDirectoryPath);
+        return Task.FromResult(Create(
+            "CompatibilitySamples/LegacyNet472",
+            "Legacy.csproj",
+            "Class1.cs",
+            "Directory.Build.props",
+            ".editorconfig"));
+    }
 
-        var projectPath = Path.Combine(projectOneDirectoryPath, "Sample.csproj");
-        var projectTwoPath = Path.Combine(projectTwoDirectoryPath, "Sample.csproj");
-        var documentPath = Path.Combine(projectOneDirectoryPath, "Class1.cs");
-        var projectTwoDocumentPath = Path.Combine(projectTwoDirectoryPath, "Class1.cs");
-        var sharedDocumentPath = Path.Combine(sharedDirectoryPath, "SharedClass.cs");
-        var directoryBuildPropsPath = Path.Combine(directoryPath, "Directory.Build.props");
-        var editorConfigPath = Path.Combine(directoryPath, ".editorconfig");
+    public static Task<TestWorkspaceFixture> CreateMalformedProjectAsync()
+    {
+        return Task.FromResult(Create(
+            "CompatibilitySamples/MalformedSdkProject",
+            "Broken.csproj",
+            "Class1.cs",
+            "Directory.Build.props",
+            ".editorconfig"));
+    }
 
-        await File.WriteAllTextAsync(projectPath, """
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup>
-                <TargetFramework>net10.0</TargetFramework>
-                <Nullable>enable</Nullable>
-              </PropertyGroup>
-              <ItemGroup>
-                <ProjectReference Include="..\ProjectTwo\Sample.csproj" />
-                <Compile Include="..\Shared\SharedClass.cs" Link="SharedClass.cs" />
-              </ItemGroup>
-            </Project>
-            """);
-        await File.WriteAllTextAsync(projectTwoPath, """
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup>
-                <TargetFramework>net10.0</TargetFramework>
-                <Nullable>enable</Nullable>
-              </PropertyGroup>
-              <ItemGroup>
-                <Compile Include="..\Shared\SharedClass.cs" Link="SharedClass.cs" />
-              </ItemGroup>
-            </Project>
-            """);
-        await File.WriteAllTextAsync(documentPath, """
-            namespace Sample.ProjectOne;
-
-            public sealed class Class1
-            {
-            }
-            """);
-        await File.WriteAllTextAsync(projectTwoDocumentPath, """
-            namespace Sample.ProjectTwo;
-
-            public sealed class Class1
-            {
-            }
-            """);
-        await File.WriteAllTextAsync(sharedDocumentPath, """
-            namespace Sample.Shared;
-
-            public sealed class SharedClass
-            {
-            }
-            """);
-        await File.WriteAllTextAsync(directoryBuildPropsPath, """
-            <Project>
-              <PropertyGroup>
-                <LangVersion>preview</LangVersion>
-              </PropertyGroup>
-            </Project>
-            """);
-        await File.WriteAllTextAsync(editorConfigPath, """
-            root = true
-
-            [*.cs]
-            dotnet_diagnostic.IDE0005.severity = warning
-            """);
-
-        return new TestWorkspaceFixture(directoryPath, projectPath, documentPath, directoryBuildPropsPath, editorConfigPath, sharedDocumentPath);
+    public static Task<TestWorkspaceFixture> CreateAmbiguousAsync()
+    {
+        return Task.FromResult(Create(
+            "CompatibilitySamples/AmbiguousProjectGraph",
+            "ProjectOne/Sample.csproj",
+            "ProjectOne/Class1.cs",
+            "Directory.Build.props",
+            ".editorconfig",
+            "Shared/SharedClass.cs"));
     }
 
     public IWorkspaceRuntime CreateCoordinator()
     {
-        return WorkspaceCoordinatorFactory.Create();
+        return WorkspaceCoordinatorFactory.Create(new WorkspaceRuntimeOptions
+        {
+            StateDirectory = StateRoot,
+        });
     }
 
     public ValueTask DisposeAsync()
     {
-        return TemporaryDirectory.Attach(_directoryPath).DisposeAsync();
+        return _asset.DisposeAsync();
+    }
+
+    private static TestWorkspaceFixture Create(
+        string templateName,
+        string projectPath,
+        string documentPath,
+        string directoryBuildPropsPath,
+        string editorConfigPath,
+        string? sharedDocumentPath = null)
+    {
+        return new TestWorkspaceFixture(
+            WorkspaceAssetMaterializer.Materialize(templateName),
+            projectPath,
+            documentPath,
+            directoryBuildPropsPath,
+            editorConfigPath,
+            sharedDocumentPath);
     }
 }

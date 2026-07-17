@@ -624,10 +624,7 @@ public static class BuiltInCodeActionAuditCases
             Title = "Enable nullable reference types in project",
             SourceNote = "EnableNullable.cs nullable directive in nullable-disabled project",
             ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
-            FixtureFactory = static () => InspectionSampleFixture.CreateAsync(new InspectionSampleFixtureOptions
-            {
-                Nullable = "disable",
-            }),
+            FixtureFactory = static () => InspectionSampleFixture.CreateAsync(InspectionSampleProfile.NullableDisabled),
             LocationFactory = static fixture => fixture.GetCursorInDocument("EnableNullable.cs", "#nullable enable"),
         },
         new()
@@ -644,10 +641,7 @@ public static class BuiltInCodeActionAuditCases
             TitlePrefix = "Convert to file-scoped namespace",
             SourceNote = "NamespaceConversion.cs block-scoped namespace declaration",
             ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
-            FixtureFactory = static () => InspectionSampleFixture.CreateAsync(new InspectionSampleFixtureOptions
-            {
-                AdditionalEditorConfigText = "csharp_style_namespace_declarations = block_scoped:suggestion",
-            }),
+            FixtureFactory = static () => InspectionSampleFixture.CreateAsync(InspectionSampleProfile.BlockScopedNamespaces),
             LocationFactory = static fixture => fixture.GetCursorInDocument("NamespaceConversion.cs", "namespace Sample.Nested"),
         },
         new()
@@ -656,12 +650,7 @@ public static class BuiltInCodeActionAuditCases
             Title = "Convert to 'Program.Main' style program",
             SourceNote = "ConsoleTopLevel.cs top-level statement in console application",
             ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
-            FixtureFactory = static () => InspectionSampleFixture.CreateAsync(new InspectionSampleFixtureOptions
-            {
-                OutputType = "Exe",
-                AdditionalEditorConfigText = "csharp_style_prefer_top_level_statements = true:suggestion",
-                IncludeConsoleProgramMainDocument = false,
-            }),
+            FixtureFactory = static () => InspectionSampleFixture.CreateAsync(InspectionSampleProfile.TopLevelToProgramMainRefactoring),
             LocationFactory = static fixture => fixture.GetCursorInDocument("ConsoleTopLevel.cs", "System.Console.WriteLine(0);"),
         },
         new()
@@ -670,12 +659,7 @@ public static class BuiltInCodeActionAuditCases
             Title = "Convert to top-level statements",
             SourceNote = "ConsoleProgramMain.cs Main method in console application",
             ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
-            FixtureFactory = static () => InspectionSampleFixture.CreateAsync(new InspectionSampleFixtureOptions
-            {
-                OutputType = "Exe",
-                AdditionalEditorConfigText = "csharp_style_prefer_top_level_statements = false:suggestion",
-                IncludeConsoleTopLevelDocument = false,
-            }),
+            FixtureFactory = static () => InspectionSampleFixture.CreateAsync(InspectionSampleProfile.ProgramMainToTopLevelRefactoring),
             LocationFactory = static fixture => fixture.GetCursorInDocument("ConsoleProgramMain.cs", "Main"),
         },
         new()
@@ -726,16 +710,7 @@ public static class BuiltInCodeActionAuditCases
             Title = "Convert to 'Program.Main' style program",
             SourceNote = "ConsoleTopLevel.cs top-level statements when Program.Main is preferred",
             ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
-            FixtureFactory = static () => InspectionSampleFixture.CreateAsync(new InspectionSampleFixtureOptions
-            {
-                OutputType = "Exe",
-                AdditionalProjectPropertiesText = """
-                    <EnableNETAnalyzers>true</EnableNETAnalyzers>
-                    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-                    """,
-                AdditionalEditorConfigText = "csharp_style_prefer_top_level_statements = false:warning",
-                IncludeConsoleProgramMainDocument = false,
-            }),
+            FixtureFactory = static () => InspectionSampleFixture.CreateAsync(InspectionSampleProfile.TopLevelToProgramMainCodeFix),
             LocationFactory = static fixture => fixture.GetCursorInDocument("ConsoleTopLevel.cs", "System.Console.WriteLine(0);"),
         },
         new()
@@ -745,16 +720,7 @@ public static class BuiltInCodeActionAuditCases
             Title = "Convert to top-level statements",
             SourceNote = "ConsoleProgramMain.cs Program.Main when top-level statements are preferred",
             ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
-            FixtureFactory = static () => InspectionSampleFixture.CreateAsync(new InspectionSampleFixtureOptions
-            {
-                OutputType = "Exe",
-                AdditionalProjectPropertiesText = """
-                    <EnableNETAnalyzers>true</EnableNETAnalyzers>
-                    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-                    """,
-                AdditionalEditorConfigText = "csharp_style_prefer_top_level_statements = true:warning",
-                IncludeConsoleTopLevelDocument = false,
-            }),
+            FixtureFactory = static () => InspectionSampleFixture.CreateAsync(InspectionSampleProfile.ProgramMainToTopLevelCodeFix),
             LocationFactory = static fixture => fixture.GetCursorInDocument("ConsoleProgramMain.cs", "Main"),
         },
         new()

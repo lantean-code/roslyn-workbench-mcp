@@ -512,7 +512,15 @@ public sealed class WorkspaceCoordinatorIntegrationTests
     public async Task GIVEN_StagedTransaction_WHEN_Committing_THEN_ShouldPersistDocumentChangesToDisk()
     {
         await using var fixture = await TestWorkspaceFixture.CreateAsync();
-        await using var target = await CreateCoordinatorWithOneStagedRevisionAsync(fixture);
+        var originalDocumentBytes = await File.ReadAllBytesAsync(fixture.DocumentPath, TestContext.Current.CancellationToken);
+        await using var target = fixture.CreateCoordinator();
+        await target.OpenAsync(new WorkspaceOpenRequest
+        {
+            Path = fixture.ProjectPath,
+        }, TestContext.Current.CancellationToken);
+        await target.StartTransactionAsync(new TransactionStartRequest(), TestContext.Current.CancellationToken);
+        var registry = CreateStageMutationTool();
+        await PluginToolTestHarness.InvokeRawAsync(target, TestContext.Current.CancellationToken, registry, "test-stage-mutation", new Dictionary<string, JsonElement>());
         var preview = await target.PreviewTransactionAsync(new TransactionPreviewRequest(), TestContext.Current.CancellationToken);
 
         var commit = await target.CommitTransactionAsync(new TransactionCommitRequest
@@ -526,11 +534,16 @@ public sealed class WorkspaceCoordinatorIntegrationTests
         }, TestContext.Current.CancellationToken);
         var status = await target.GetStatusAsync(new WorkspaceStatusRequest(), TestContext.Current.CancellationToken);
         var text = await File.ReadAllTextAsync(fixture.DocumentPath, TestContext.Current.CancellationToken);
+        await using var pristineFixture = await TestWorkspaceFixture.CreateAsync();
+        var pristineDocumentBytes = await File.ReadAllBytesAsync(pristineFixture.DocumentPath, TestContext.Current.CancellationToken);
 
         commit.Outcome.Should().Be(ToolOutcome.Succeeded);
         commit.Data!.Committed.Should().BeTrue();
         status.Data!.State.Should().Be(WorkspaceLifecycleState.Ready);
         text.Should().Contain("TransactionMarker");
+        pristineFixture.WorkspaceRoot.Should().NotBe(fixture.WorkspaceRoot);
+        pristineFixture.StateRoot.Should().NotBe(fixture.StateRoot);
+        pristineDocumentBytes.Should().Equal(originalDocumentBytes);
     }
 
     [Fact]

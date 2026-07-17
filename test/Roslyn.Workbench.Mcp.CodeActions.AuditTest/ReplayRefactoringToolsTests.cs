@@ -138,10 +138,7 @@ public sealed class ReplayRefactoringToolsTests
     [Fact]
     public async Task GIVEN_ActiveTransactionAndBuiltInCodeActions_WHEN_ExecutingConvertPropertyToAutoWhenSafe_THEN_ShouldStageStructuredMutation()
     {
-        await using var fixture = await InspectionSampleFixture.CreateAsync(new InspectionSampleFixtureOptions
-        {
-            AdditionalEditorConfigText = "dotnet_style_prefer_auto_properties = true:suggestion",
-        });
+        await using var fixture = await InspectionSampleFixture.CreateAsync(InspectionSampleProfile.AutoProperties);
         await using var coordinator = CreateBuiltInCoordinator();
         var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
         {

@@ -8,6 +8,7 @@ public sealed class WorkspaceResolverIntegrationTests
     public async Task GIVEN_WorkspaceRelativeProjectPath_WHEN_ResolvingProject_THEN_ShouldResolveAgainstWorkspaceRoot()
     {
         await using var fixture = await TestWorkspaceFixture.CreateAsync();
+        var originalDocumentBytes = await File.ReadAllBytesAsync(fixture.DocumentPath, TestContext.Current.CancellationToken);
         await using var target = fixture.CreateCoordinator();
         await target.OpenAsync(new WorkspaceOpenRequest
         {
@@ -23,6 +24,9 @@ public sealed class WorkspaceResolverIntegrationTests
         resolution.Status.Should().Be(SelectorResolveStatus.Resolved);
         resolution.Value.Should().NotBeNull();
         contextLease.Context.WorkspaceResolver.NormalizeProjectPath(resolution.Value!.FilePath!).Should().Be("Sample.csproj");
+        fixture.WorkspaceRoot.Should().Be(Path.GetDirectoryName(fixture.ProjectPath));
+        Directory.Exists(fixture.StateRoot).Should().BeTrue();
+        (await File.ReadAllBytesAsync(fixture.DocumentPath, TestContext.Current.CancellationToken)).Should().Equal(originalDocumentBytes);
     }
 
     [Fact]

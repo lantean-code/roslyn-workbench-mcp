@@ -2,6 +2,7 @@
 
   <PropertyGroup Condition="'$(IsTestProject)' == 'true'">
     <ExpectedTestCategory Condition="$([System.String]::Copy('$(MSBuildProjectName)').EndsWith('.IntegrationTest'))">Integration</ExpectedTestCategory>
+    <ExpectedTestCategory Condition="$([System.String]::Copy('$(MSBuildProjectName)').EndsWith('.AcceptanceTest'))">Integration</ExpectedTestCategory>
     <ExpectedTestCategory Condition="$([System.String]::Copy('$(MSBuildProjectName)').EndsWith('.AuditTest'))">Audit</ExpectedTestCategory>
   </PropertyGroup>
 
@@ -16,7 +17,7 @@
     <Error Condition="'$(ExpectedTestCategory)' != '' And '$(TestCategory)' != '$(ExpectedTestCategory)'"
            Text="Test project '$(MSBuildProjectName)' must set TestCategory to '$(ExpectedTestCategory)'." />
     <Error Condition="'$(ExpectedTestCategory)' == '' And '$(TestCategory)' != ''"
-           Text="Test project '$(MSBuildProjectName)' must use an IntegrationTest or AuditTest suffix when TestCategory is set." />
+           Text="Test project '$(MSBuildProjectName)' may set TestCategory only when its name ends with IntegrationTest, AcceptanceTest or AuditTest; Unit and Contract projects must leave TestCategory empty." />
   </Target>
 
   <Target Name="ValidateTestSupportProjectReferences" BeforeTargets="ResolveProjectReferences">

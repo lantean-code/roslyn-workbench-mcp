@@ -15,7 +15,6 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Build.Locator" />
-    <PackageReference Include="Moq" />
   </ItemGroup>
 
   <ItemGroup>

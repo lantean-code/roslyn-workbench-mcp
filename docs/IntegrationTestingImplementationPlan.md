@@ -555,36 +555,33 @@ Remove the parallel application and protocol implementation only after replaceme
 
 ### Work
 
-- [ ] Confirm all mappings from old direct-MCP tests to Stage 3 acceptance workflows.
-- [ ] Remove `McpIntegrationTestHost` when it has no unique boundary consumer.
-- [ ] Remove direct protocol responsibilities from `PluginToolTestHarness`.
-- [ ] Remove direct protocol responsibilities from `CodeActionToolTestHarness`.
-- [ ] Remove `WorkspaceCoordinatorFactory` after owner tests no longer need the full parallel graph.
-- [ ] Remove `WorkspaceRuntime` and `IWorkspaceRuntime` if no narrow component use remains.
-- [ ] Remove per-invocation service-provider construction.
-- [ ] Remove orphaned integration-support factories and DTO adapters.
-- [ ] Keep only:
+- [x] Confirm all mappings from old direct-MCP tests to Stage 3 acceptance workflows.
+- [x] Remove `McpIntegrationTestHost` when it has no unique boundary consumer.
+- [x] Remove direct protocol responsibilities from `PluginToolTestHarness`.
+- [x] Remove direct protocol responsibilities from `CodeActionToolTestHarness`.
+- [x] Remove `WorkspaceCoordinatorFactory` after owner tests no longer need the full parallel graph.
+- [x] Remove `WorkspaceRuntime` and `IWorkspaceRuntime` if no narrow component use remains.
+- [x] Remove per-invocation service-provider construction.
+- [x] Remove orphaned integration-support factories and DTO adapters.
+- [x] Keep only:
   - production-independent asset materialisation;
   - unique temporary-root ownership;
   - documented early MSBuild registration;
   - controlled Code Action providers/classification;
-  - small compiled plugin fixture projects where real assemblies are required.
-- [ ] Recheck project references so normal unit support cannot reference integration support and acceptance cannot reference production.
+  - small compiled plugin fixture projects where real assemblies are required;
+  - one component-scoped lifetime adapter over the production registration extensions; and
+  - typed component sessions with no MCP publication, JSON binding or published-result mapping.
+- [x] Recheck project references so normal unit support cannot reference integration support and acceptance cannot reference production.
 
 ### Production-change gate
 
-If tests still require a large production graph after full workflows have moved to Host/acceptance:
-
-- [ ] Document why component-level construction is insufficient.
-- [ ] Propose the smallest production DI/composition seam.
-- [ ] Explain its production value independently of testing.
-- [ ] Obtain explicit user approval before implementing it.
+The gate was not triggered. Component tests use the existing production service-registration extensions with a small test-owned lifetime adapter; no new production DI or composition seam was required.
 
 ### Exit criteria
 
-- [ ] Integration support no longer duplicates Host composition.
-- [ ] No test-owned class manually implements MCP transport publication.
-- [ ] Shared support has a small, coherent responsibility set.
+- [x] Integration support no longer duplicates Host composition.
+- [x] No test-owned class manually implements MCP transport publication.
+- [x] Shared support has a small, coherent responsibility set.
 
 ## Stage 6: Separate Compatibility Audit from Governance Checks
 

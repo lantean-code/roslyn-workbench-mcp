@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test;
 
 public sealed class WorkspaceProjectionIntegrationTests
@@ -8,31 +6,35 @@ public sealed class WorkspaceProjectionIntegrationTests
     public async Task GIVEN_LoadedProject_WHEN_ProjectingWorkspaceDetails_THEN_ShouldIncludeDocumentsOptionsAndMetadataReferences()
     {
         await using var fixture = await InspectionSampleFixture.CreateAsync();
-        await using var coordinator = BundledCoreToolTestHarness.CreateInspectionCoordinator();
-        var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
-        var registry = BundledPluginCatalogueFactory.CreateCatalogue();
+        await using var coordinator = BundledComponentWorkspaceFactory.CreateInspectionWorkspace();
+        var openResult = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        var session = new PluginComponentTestSession(coordinator, BundledPluginCatalogueFactory.CreateCatalogue());
 
-        var solution = await PluginToolTestHarness.InvokeAsync<SolutionStructureData>(coordinator, TestContext.Current.CancellationToken, registry, "get-solution-structure", new Dictionary<string, JsonElement>());
-        var project = await PluginToolTestHarness.InvokeAsync<ProjectDetailsData>(coordinator, TestContext.Current.CancellationToken, registry, "get-project-details", new Dictionary<string, JsonElement>
-        {
-            ["project"] = JsonSerializer.SerializeToElement(new ProjectSelector
+        var solution = await session.ExecuteQueryAsync<GetSolutionStructureRequest, SolutionStructureData>(
+            "get-solution-structure",
+            new GetSolutionStructureRequest(),
+            TestContext.Current.CancellationToken);
+        var project = await session.ExecuteQueryAsync<GetProjectDetailsRequest, ProjectDetailsData>(
+            "get-project-details",
+            new GetProjectDetailsRequest
             {
-                Path = "Sample.csproj",
-            }),
-            ["includeDocuments"] = JsonSerializer.SerializeToElement(true),
-        });
-        var document = await PluginToolTestHarness.InvokeAsync<DocumentOptionsData>(coordinator, TestContext.Current.CancellationToken, registry, "get-document-options", new Dictionary<string, JsonElement>
-        {
-            ["document"] = JsonSerializer.SerializeToElement(new DocumentSelector
+                Project = new ProjectSelector
+                {
+                    Path = "Sample.csproj",
+                },
+                IncludeDocuments = true,
+            }, TestContext.Current.CancellationToken);
+        var document = await session.ExecuteQueryAsync<GetDocumentOptionsRequest, DocumentOptionsData>(
+            "get-document-options",
+            new GetDocumentOptionsRequest
             {
-                Path = "Formatting.cs",
-            }),
-        });
+                Document = new DocumentSelector
+                {
+                    Path = "Formatting.cs",
+                },
+            }, TestContext.Current.CancellationToken);
 
-        openResult.Outcome.Should().Be(ToolOutcome.Succeeded);
+        openResult.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
         solution.Data!.Projects.Items.Should().ContainSingle(static item => item.Name == "Sample");
         project.Data!.Project!.Name.Should().Be("Sample");
         project.Data.Documents!.Items.Should().Contain(static item => item.Path == "Formatting.cs");
@@ -46,23 +48,25 @@ public sealed class WorkspaceProjectionIntegrationTests
     public async Task GIVEN_MultiProjectSolution_WHEN_ProjectingWorkspace_THEN_ShouldIncludeFoldersAndProjectReferences()
     {
         await using var fixture = await SolutionHierarchyFixture.CreateAsync();
-        await using var coordinator = BundledCoreToolTestHarness.CreateInspectionCoordinator();
-        var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.SolutionPath,
-        }, TestContext.Current.CancellationToken);
-        var registry = BundledPluginCatalogueFactory.CreateCatalogue();
+        await using var coordinator = BundledComponentWorkspaceFactory.CreateInspectionWorkspace();
+        var openResult = await coordinator.OpenAsync(fixture.SolutionPath, TestContext.Current.CancellationToken);
+        var session = new PluginComponentTestSession(coordinator, BundledPluginCatalogueFactory.CreateCatalogue());
 
-        var solution = await PluginToolTestHarness.InvokeAsync<SolutionStructureData>(coordinator, TestContext.Current.CancellationToken, registry, "get-solution-structure", new Dictionary<string, JsonElement>());
-        var application = await PluginToolTestHarness.InvokeAsync<ProjectDetailsData>(coordinator, TestContext.Current.CancellationToken, registry, "get-project-details", new Dictionary<string, JsonElement>
-        {
-            ["project"] = JsonSerializer.SerializeToElement(new ProjectSelector
+        var solution = await session.ExecuteQueryAsync<GetSolutionStructureRequest, SolutionStructureData>(
+            "get-solution-structure",
+            new GetSolutionStructureRequest(),
+            TestContext.Current.CancellationToken);
+        var application = await session.ExecuteQueryAsync<GetProjectDetailsRequest, ProjectDetailsData>(
+            "get-project-details",
+            new GetProjectDetailsRequest
             {
-                Path = "App/App.csproj",
-            }),
-        });
+                Project = new ProjectSelector
+                {
+                    Path = "App/App.csproj",
+                },
+            }, TestContext.Current.CancellationToken);
 
-        openResult.Outcome.Should().Be(ToolOutcome.Succeeded);
+        openResult.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
         solution.Data!.Folders.Items.Should().Contain(static folder => folder.Path == "src/core" && folder.ParentPath == "src");
         solution.Data.Folders.Items.Should().Contain(static folder => folder.Path == "src/apps" && folder.ParentPath == "src");
         solution.Data.Projects.Items.Should().ContainSingle(static project => project.Name == "Lib" && project.SolutionFolderPath == "src/core");

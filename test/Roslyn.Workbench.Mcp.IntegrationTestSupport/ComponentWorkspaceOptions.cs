@@ -1,7 +1,9 @@
 namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
-public sealed record WorkspaceRuntimeOptions
+internal sealed record ComponentWorkspaceOptions
 {
+    public ComponentWorkspaceBoundary Boundary { get; init; } = ComponentWorkspaceBoundary.Workspace;
+
     public int MaxConcurrentQueries { get; init; } = 2;
 
     public int DefaultMaxResults { get; init; } = 100;
@@ -11,4 +13,11 @@ public sealed record WorkspaceRuntimeOptions
     public int MaxLoadedWorkspaces { get; init; } = 4;
 
     public string? StateDirectory { get; init; }
+}
+
+internal enum ComponentWorkspaceBoundary
+{
+    Workspace,
+    Plugins,
+    CodeActions,
 }

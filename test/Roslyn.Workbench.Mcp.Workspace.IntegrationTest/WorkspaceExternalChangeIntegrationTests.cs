@@ -6,16 +6,13 @@ public sealed class WorkspaceExternalChangeIntegrationTests
     public async Task GIVEN_ChangedWorkspaceInput_WHEN_GettingStatus_THEN_ShouldTransitionToWorkspaceOutOfDate()
     {
         await using var fixture = await TestWorkspaceFixture.CreateAsync();
-        await using var target = fixture.CreateCoordinator();
-        await target.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
+        await using var target = fixture.CreateWorkspace();
+        await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         await File.AppendAllTextAsync(fixture.DocumentPath, Environment.NewLine + "class Added { }", TestContext.Current.CancellationToken);
 
-        var result = await target.GetStatusAsync(new WorkspaceStatusRequest(), TestContext.Current.CancellationToken);
+        var result = await target.GetStatusAsync(TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
         result.Data!.State.Should().Be(WorkspaceLifecycleState.WorkspaceOutOfDate);
         result.Data.ReloadRequired.Should().BeTrue();
     }
@@ -24,11 +21,8 @@ public sealed class WorkspaceExternalChangeIntegrationTests
     public async Task GIVEN_AddedWorkspaceInput_WHEN_GettingStatus_THEN_ShouldTransitionToWorkspaceOutOfDate()
     {
         await using var fixture = await TestWorkspaceFixture.CreateAsync();
-        await using var target = fixture.CreateCoordinator();
-        await target.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
+        await using var target = fixture.CreateWorkspace();
+        await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
 
         var addedDocumentPath = Path.Combine(Path.GetDirectoryName(fixture.DocumentPath)!, "Added.cs");
         await File.WriteAllTextAsync(addedDocumentPath, """
@@ -39,9 +33,9 @@ public sealed class WorkspaceExternalChangeIntegrationTests
             }
             """, TestContext.Current.CancellationToken);
 
-        var result = await target.GetStatusAsync(new WorkspaceStatusRequest(), TestContext.Current.CancellationToken);
+        var result = await target.GetStatusAsync(TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
         result.Data!.State.Should().Be(WorkspaceLifecycleState.WorkspaceOutOfDate);
         result.Data.ReloadRequired.Should().BeTrue();
     }
@@ -50,16 +44,13 @@ public sealed class WorkspaceExternalChangeIntegrationTests
     public async Task GIVEN_ChangedDirectoryBuildProps_WHEN_GettingStatus_THEN_ShouldTransitionToWorkspaceOutOfDate()
     {
         await using var fixture = await TestWorkspaceFixture.CreateAsync();
-        await using var target = fixture.CreateCoordinator();
-        await target.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
+        await using var target = fixture.CreateWorkspace();
+        await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         await File.AppendAllTextAsync(fixture.DirectoryBuildPropsPath, Environment.NewLine + "<!-- changed -->", TestContext.Current.CancellationToken);
 
-        var result = await target.GetStatusAsync(new WorkspaceStatusRequest(), TestContext.Current.CancellationToken);
+        var result = await target.GetStatusAsync(TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
         result.Data!.State.Should().Be(WorkspaceLifecycleState.WorkspaceOutOfDate);
         result.Data.ReloadRequired.Should().BeTrue();
     }
@@ -68,14 +59,11 @@ public sealed class WorkspaceExternalChangeIntegrationTests
     public async Task GIVEN_ChangedEditorConfig_WHEN_CreatingQueryContext_THEN_ShouldRejectAsWorkspaceOutOfDate()
     {
         await using var fixture = await TestWorkspaceFixture.CreateAsync();
-        await using var target = fixture.CreateCoordinator();
-        await target.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
+        await using var target = fixture.CreateWorkspace();
+        await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         await File.AppendAllTextAsync(fixture.EditorConfigPath, Environment.NewLine + "dotnet_diagnostic.CS0168.severity = warning", TestContext.Current.CancellationToken);
 
-        await using var result = target.CreateQueryContext(new WorkspaceStatusRequest(), TestContext.Current.CancellationToken);
+        await using var result = target.CreateQueryContext(new QueryRequest(), TestContext.Current.CancellationToken);
 
         result.ShortCircuitResult.Should().NotBeNull();
         result.ShortCircuitResult!.Error!.Code.Should().Be("WorkspaceOutOfDate");
@@ -86,20 +74,17 @@ public sealed class WorkspaceExternalChangeIntegrationTests
     public async Task GIVEN_OutOfDateWorkspace_WHEN_Reloading_THEN_ShouldTransitionBackToReady()
     {
         await using var fixture = await TestWorkspaceFixture.CreateAsync();
-        await using var target = fixture.CreateCoordinator();
-        await target.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
+        await using var target = fixture.CreateWorkspace();
+        await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         await File.AppendAllTextAsync(fixture.DocumentPath, Environment.NewLine + "class Added { }", TestContext.Current.CancellationToken);
-        await target.GetStatusAsync(new WorkspaceStatusRequest(), TestContext.Current.CancellationToken);
+        await target.GetStatusAsync(TestContext.Current.CancellationToken);
 
-        var result = await target.ReloadAsync(new WorkspaceReloadRequest(), TestContext.Current.CancellationToken);
+        var result = await target.ReloadAsync(TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
         result.Data!.Workspace.Should().NotBeNull();
 
-        var status = await target.GetStatusAsync(new WorkspaceStatusRequest(), TestContext.Current.CancellationToken);
+        var status = await target.GetStatusAsync(TestContext.Current.CancellationToken);
 
         status.Data!.State.Should().Be(WorkspaceLifecycleState.Ready);
         status.Data.ReloadRequired.Should().BeFalse();
@@ -110,22 +95,21 @@ public sealed class WorkspaceExternalChangeIntegrationTests
     public async Task GIVEN_MalformedProjectAfterExternalChange_WHEN_ReloadingWorkspace_THEN_ShouldReturnStructuredLoadDiagnostics()
     {
         await using var fixture = await TestWorkspaceFixture.CreateAsync();
-        await using var target = fixture.CreateCoordinator();
-        await target.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
+        await using var target = fixture.CreateWorkspace();
+        await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         await File.WriteAllTextAsync(fixture.ProjectPath, """
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
                 <TargetFramework>net10.0</TargetFramework>
             """, TestContext.Current.CancellationToken);
-        await target.GetStatusAsync(new WorkspaceStatusRequest(), TestContext.Current.CancellationToken);
+        await target.GetStatusAsync(TestContext.Current.CancellationToken);
 
-        var result = await target.ReloadAsync(new WorkspaceReloadRequest(), TestContext.Current.CancellationToken);
+        var result = await target.ReloadAsync(TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Status.Should().Be(WorkspaceOperationStatus.Rejected);
         result.Error!.Code.Should().Be("WorkspaceLoadFailed");
         result.Diagnostics.Should().NotBeEmpty();
     }
+
+    private sealed record QueryRequest : WorkspaceBoundRequest;
 }

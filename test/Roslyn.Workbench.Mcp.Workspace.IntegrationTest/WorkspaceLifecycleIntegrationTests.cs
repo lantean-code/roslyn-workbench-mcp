@@ -8,44 +8,38 @@ public sealed class WorkspaceLifecycleIntegrationTests
     public async Task GIVEN_UnloadedCoordinator_WHEN_OpeningWorkspace_THEN_ShouldTransitionToReady()
     {
         await using var fixture = await TestWorkspaceFixture.CreateAsync();
-        await using var target = fixture.CreateCoordinator();
+        await using var target = fixture.CreateWorkspace();
 
-        var result = await target.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
+        var result = await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
         result.Data.Should().NotBeNull();
         result.Data!.Workspace.Should().NotBeNull();
         result.Data.ProjectCount.Should().Be(1);
         result.Data.DocumentCount.Should().BeGreaterThan(0);
 
-        var status = await target.GetStatusAsync(new WorkspaceStatusRequest(), TestContext.Current.CancellationToken);
+        var status = await target.GetStatusAsync(TestContext.Current.CancellationToken);
 
         status.Data!.State.Should().Be(WorkspaceLifecycleState.Ready);
         status.Data.Workspace!.LoadedPath.Should().Be(fixture.ProjectPath);
-        status.WorkspaceEpoch.Should().BeGreaterThan(0);
+        status.Context.WorkspaceEpoch.Should().BeGreaterThan(0);
     }
 
     [Fact]
     public async Task GIVEN_ReadyCoordinator_WHEN_ClosingWorkspace_THEN_ShouldTransitionToUnloaded()
     {
         await using var fixture = await TestWorkspaceFixture.CreateAsync();
-        await using var target = fixture.CreateCoordinator();
-        await target.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
+        await using var target = fixture.CreateWorkspace();
+        await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
 
-        var result = await target.CloseAsync(new WorkspaceCloseRequest(), TestContext.Current.CancellationToken);
+        var result = await target.CloseAsync(TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
         result.Data!.ClosedPath.Should().Be(fixture.ProjectPath);
 
-        var status = await target.GetStatusAsync(new WorkspaceStatusRequest(), TestContext.Current.CancellationToken);
+        var status = await target.GetStatusAsync(TestContext.Current.CancellationToken);
 
-        status.Outcome.Should().Be(ToolOutcome.Rejected);
+        status.Status.Should().Be(WorkspaceOperationStatus.Rejected);
         status.Error!.Code.Should().Be("WorkspaceNotOpen");
     }
 
@@ -55,27 +49,27 @@ public sealed class WorkspaceLifecycleIntegrationTests
         await using var fixture = await TestWorkspaceFixture.CreateAsync();
         await using var firstStateDirectory = TemporaryDirectory.Create("roslyn-workbench-mcp-state-tests");
         await using var secondStateDirectory = TemporaryDirectory.Create("roslyn-workbench-mcp-state-tests");
-        await using var first = WorkspaceCoordinatorFactory.Create(new WorkspaceRuntimeOptions
+        await using var first = ComponentWorkspace.Create(new ComponentWorkspaceOptions
         {
             StateDirectory = firstStateDirectory.DirectoryPath,
         });
-        await using var second = WorkspaceCoordinatorFactory.Create(new WorkspaceRuntimeOptions
+        await using var second = ComponentWorkspace.Create(new ComponentWorkspaceOptions
         {
             StateDirectory = secondStateDirectory.DirectoryPath,
         });
-        await first.OpenAsync(new WorkspaceOpenRequest { Path = fixture.ProjectPath }, TestContext.Current.CancellationToken);
+        await first.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
 
-        var secondOpen = await second.OpenAsync(new WorkspaceOpenRequest { Path = fixture.ProjectPath }, TestContext.Current.CancellationToken);
-        var status = await second.GetStatusAsync(new WorkspaceStatusRequest(), TestContext.Current.CancellationToken);
+        var secondOpen = await second.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        var status = await second.GetStatusAsync(TestContext.Current.CancellationToken);
 
-        secondOpen.Outcome.Should().Be(ToolOutcome.Succeeded);
+        secondOpen.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
         secondOpen.Data!.LoadDiagnostics.Should().Contain(diagnostic => diagnostic.Id == "WorkspaceInUse");
         status.Data!.Instances.Should().ContainSingle();
         status.Data.Instances[0].LoadedPath.Should().Be(fixture.ProjectPath);
         status.Data.Instances[0].WorkspaceState.Should().Be(WorkspaceLifecycleState.Ready);
 
-        await second.CloseAsync(new WorkspaceCloseRequest(), TestContext.Current.CancellationToken);
-        await first.CloseAsync(new WorkspaceCloseRequest(), TestContext.Current.CancellationToken);
+        await second.CloseAsync(TestContext.Current.CancellationToken);
+        await first.CloseAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -83,9 +77,9 @@ public sealed class WorkspaceLifecycleIntegrationTests
     {
         string firstStateDirectory;
         string secondStateDirectory;
-        await using (var first = WorkspaceCoordinatorFactory.Create())
+        await using (var first = ComponentWorkspace.Create())
         {
-            await using (var second = WorkspaceCoordinatorFactory.Create())
+            await using (var second = ComponentWorkspace.Create())
             {
                 firstStateDirectory = first.StateDirectory;
                 secondStateDirectory = second.StateDirectory;
@@ -106,35 +100,29 @@ public sealed class WorkspaceLifecycleIntegrationTests
     {
         await using var fixtureA = await TestWorkspaceFixture.CreateAsync();
         await using var fixtureB = await TestWorkspaceFixture.CreateAsync();
-        await using var target = fixtureA.CreateCoordinator();
+        await using var target = fixtureA.CreateWorkspace();
 
-        var openA = await target.OpenAsync(new WorkspaceOpenRequest
-        {
-            Alias = "alpha",
-            Path = fixtureA.ProjectPath,
-        }, TestContext.Current.CancellationToken);
-        var openB = await target.OpenAsync(new WorkspaceOpenRequest
-        {
-            Alias = "beta",
-            Path = fixtureB.ProjectPath,
-        }, TestContext.Current.CancellationToken);
+        var openA = await target.OpenAsync(
+            fixtureA.ProjectPath,
+            TestContext.Current.CancellationToken,
+            alias: "alpha");
+        var openB = await target.OpenAsync(
+            fixtureB.ProjectPath,
+            TestContext.Current.CancellationToken,
+            alias: "beta");
 
-        var list = await target.ListAsync(new WorkspaceListRequest(), TestContext.Current.CancellationToken);
-        var ambiguousStatus = await target.GetStatusAsync(new WorkspaceStatusRequest(), TestContext.Current.CancellationToken);
-        var selectedStatus = await target.GetStatusAsync(new WorkspaceStatusRequest
-        {
-            Workspace = new WorkspaceSelector
-            {
-                WorkspaceId = openB.Data!.Workspace!.WorkspaceId,
-            },
-        }, TestContext.Current.CancellationToken);
+        var list = await target.ListAsync(TestContext.Current.CancellationToken);
+        var ambiguousStatus = await target.GetStatusAsync(TestContext.Current.CancellationToken);
+        var selectedStatus = await target.GetStatusAsync(
+            TestContext.Current.CancellationToken,
+            workspaceId: openB.Data!.Workspace.WorkspaceId);
 
-        list.Outcome.Should().Be(ToolOutcome.Succeeded);
+        list.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
         list.Data!.Workspaces.Should().HaveCount(2);
-        list.Data.Workspaces.Select(static workspace => workspace.WorkspaceId).Should().Contain([openA.Data!.Workspace!.WorkspaceId, openB.Data!.Workspace!.WorkspaceId]);
-        ambiguousStatus.Outcome.Should().Be(ToolOutcome.Rejected);
+        list.Data.Workspaces.Select(static workspace => workspace.WorkspaceId).Should().Contain([openA.Data!.Workspace.WorkspaceId, openB.Data!.Workspace.WorkspaceId]);
+        ambiguousStatus.Status.Should().Be(WorkspaceOperationStatus.Rejected);
         ambiguousStatus.Error!.Code.Should().Be("WorkspaceSelectorRequired");
-        selectedStatus.Outcome.Should().Be(ToolOutcome.Succeeded);
+        selectedStatus.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
         selectedStatus.Data!.Workspace!.WorkspaceId.Should().Be(openB.Data!.Workspace!.WorkspaceId);
         selectedStatus.Data.Workspace.Alias.Should().Be("beta");
     }
@@ -143,14 +131,11 @@ public sealed class WorkspaceLifecycleIntegrationTests
     public async Task GIVEN_NonSdkStyleProject_WHEN_OpeningWorkspace_THEN_ShouldRejectRequest()
     {
         await using var fixture = await TestWorkspaceFixture.CreateLegacyProjectAsync();
-        await using var target = fixture.CreateCoordinator();
+        await using var target = fixture.CreateWorkspace();
 
-        var result = await target.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
+        var result = await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Status.Should().Be(WorkspaceOperationStatus.Rejected);
         result.Error!.Code.Should().Be("WorkspaceNotSupported");
     }
 
@@ -158,14 +143,11 @@ public sealed class WorkspaceLifecycleIntegrationTests
     public async Task GIVEN_MalformedProject_WHEN_OpeningWorkspace_THEN_ShouldReturnStructuredLoadDiagnostics()
     {
         await using var fixture = await TestWorkspaceFixture.CreateMalformedProjectAsync();
-        await using var target = fixture.CreateCoordinator();
+        await using var target = fixture.CreateWorkspace();
 
-        var result = await target.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
+        var result = await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Status.Should().Be(WorkspaceOperationStatus.Rejected);
         result.Error!.Code.Should().Be("WorkspaceLoadFailed");
         result.Diagnostics.Should().NotBeEmpty();
     }
@@ -189,17 +171,14 @@ public sealed class WorkspaceLifecycleIntegrationTests
             State = RecoveryState.RecoveryIncomplete,
             Message = "Message",
         }, TestContext.Current.CancellationToken);
-        await using var target = WorkspaceCoordinatorFactory.Create(new WorkspaceRuntimeOptions
+        await using var target = ComponentWorkspace.Create(new ComponentWorkspaceOptions
         {
             StateDirectory = stateDirectory.DirectoryPath,
         });
 
-        var result = await target.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
+        var result = await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
-        result.RequiredAction.Should().Be(RequiredAction.ResolveRecovery);
+        result.Status.Should().Be(WorkspaceOperationStatus.Rejected);
+        result.Error!.RequiredAction.Should().Be(RequiredAction.ResolveRecovery);
     }
 }

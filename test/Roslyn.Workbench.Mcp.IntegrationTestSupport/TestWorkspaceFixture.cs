@@ -89,9 +89,9 @@ public sealed class TestWorkspaceFixture : IAsyncDisposable
             "Shared/SharedClass.cs"));
     }
 
-    public IWorkspaceRuntime CreateCoordinator()
+    internal ComponentWorkspace CreateWorkspace()
     {
-        return WorkspaceCoordinatorFactory.Create(new WorkspaceRuntimeOptions
+        return ComponentWorkspace.Create(new ComponentWorkspaceOptions
         {
             StateDirectory = StateRoot,
         });

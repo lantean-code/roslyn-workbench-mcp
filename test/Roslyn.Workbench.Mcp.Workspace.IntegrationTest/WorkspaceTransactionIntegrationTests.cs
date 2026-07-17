@@ -11,74 +11,53 @@ public sealed class WorkspaceTransactionIntegrationTests
     {
         await using var fixtureA = await TestWorkspaceFixture.CreateAsync();
         await using var fixtureB = await TestWorkspaceFixture.CreateAsync();
-        await using var target = fixtureA.CreateCoordinator();
+        await using var target = fixtureA.CreateWorkspace();
 
-        var openA = await target.OpenAsync(new WorkspaceOpenRequest
-        {
-            Alias = "alpha",
-            Path = fixtureA.ProjectPath,
-        }, TestContext.Current.CancellationToken);
-        var openB = await target.OpenAsync(new WorkspaceOpenRequest
-        {
-            Alias = "beta",
-            Path = fixtureB.ProjectPath,
-        }, TestContext.Current.CancellationToken);
+        var openA = await target.OpenAsync(
+            fixtureA.ProjectPath,
+            TestContext.Current.CancellationToken,
+            alias: "alpha");
+        var openB = await target.OpenAsync(
+            fixtureB.ProjectPath,
+            TestContext.Current.CancellationToken,
+            alias: "beta");
 
-        var startA = await target.StartTransactionAsync(new TransactionStartRequest
-        {
-            Workspace = new WorkspaceSelector
-            {
-                WorkspaceId = openA.Data!.Workspace!.WorkspaceId,
-            },
-        }, TestContext.Current.CancellationToken);
-        var startBRejected = await target.StartTransactionAsync(new TransactionStartRequest
-        {
-            Workspace = new WorkspaceSelector
-            {
-                WorkspaceId = openB.Data!.Workspace!.WorkspaceId,
-            },
-        }, TestContext.Current.CancellationToken);
-        var rollbackA = await target.RollbackTransactionAsync(new TransactionRollbackRequest
-        {
-            Workspace = new WorkspaceSelector
-            {
-                WorkspaceId = openA.Data!.Workspace!.WorkspaceId,
-            },
-        }, TestContext.Current.CancellationToken);
-        var startBAfterRollback = await target.StartTransactionAsync(new TransactionStartRequest
-        {
-            Workspace = new WorkspaceSelector
-            {
-                WorkspaceId = openB.Data!.Workspace!.WorkspaceId,
-            },
-        }, TestContext.Current.CancellationToken);
+        var startA = await target.StartTransactionAsync(
+            TestContext.Current.CancellationToken,
+            workspaceId: openA.Data!.Workspace.WorkspaceId);
+        var startBRejected = await target.StartTransactionAsync(
+            TestContext.Current.CancellationToken,
+            workspaceId: openB.Data!.Workspace.WorkspaceId);
+        var rollbackA = await target.RollbackTransactionAsync(
+            TestContext.Current.CancellationToken,
+            workspaceId: openA.Data.Workspace.WorkspaceId);
+        var startBAfterRollback = await target.StartTransactionAsync(
+            TestContext.Current.CancellationToken,
+            workspaceId: openB.Data.Workspace.WorkspaceId);
 
-        startA.Outcome.Should().Be(ToolOutcome.Succeeded);
-        startBRejected.Outcome.Should().Be(ToolOutcome.Rejected);
+        startA.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
+        startBRejected.Status.Should().Be(WorkspaceOperationStatus.Rejected);
         startBRejected.Error!.Code.Should().Be("TransactionOwnedByWorkspace");
         startBRejected.Error.Message.Should().Contain("alpha");
-        rollbackA.Outcome.Should().Be(ToolOutcome.Succeeded);
-        startBAfterRollback.Outcome.Should().Be(ToolOutcome.Succeeded);
-        startBAfterRollback.WorkspaceId.Should().Be(openB.Data!.Workspace!.WorkspaceId);
+        rollbackA.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
+        startBAfterRollback.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
+        startBAfterRollback.Context.WorkspaceId.Should().Be(openB.Data.Workspace.WorkspaceId);
     }
 
     [Fact]
     public async Task GIVEN_ReadyWorkspace_WHEN_StartingTransaction_THEN_ShouldReportActiveTransactionCapabilities()
     {
         await using var fixture = await TestWorkspaceFixture.CreateAsync();
-        await using var target = fixture.CreateCoordinator();
-        var openResult = await target.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
+        await using var target = fixture.CreateWorkspace();
+        var openResult = await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
 
-        var result = await target.StartTransactionAsync(new TransactionStartRequest(), TestContext.Current.CancellationToken);
-        var status = await target.GetStatusAsync(new WorkspaceStatusRequest(), TestContext.Current.CancellationToken);
+        var result = await target.StartTransactionAsync(TestContext.Current.CancellationToken);
+        var status = await target.GetStatusAsync(TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
-        result.WorkspaceEpoch.Should().Be(openResult.WorkspaceEpoch);
-        result.TransactionRevision.Should().Be(0);
-        result.Data!.Transaction!.Revision.Should().Be(0);
+        result.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
+        result.Context.WorkspaceEpoch.Should().Be(openResult.Context.WorkspaceEpoch);
+        result.Context.TransactionRevision.Should().Be(0);
+        result.Data!.Transaction.Revision.Should().Be(0);
         result.Data.Transaction.RevisionCount.Should().Be(0);
         status.Data!.State.Should().Be(WorkspaceLifecycleState.TransactionActive);
         status.Data.Transaction!.CanMutate.Should().BeTrue();
@@ -89,21 +68,17 @@ public sealed class WorkspaceTransactionIntegrationTests
     public async Task GIVEN_ActiveTransaction_WHEN_ExecutingMutationTool_THEN_ShouldStageRevisionAndPreviewChanges()
     {
         await using var fixture = await TestWorkspaceFixture.CreateAsync();
-        await using var target = fixture.CreateCoordinator();
-        await target.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
-        await target.StartTransactionAsync(new TransactionStartRequest(), TestContext.Current.CancellationToken);
+        await using var target = fixture.CreateWorkspace();
+        await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        await target.StartTransactionAsync(TestContext.Current.CancellationToken);
         var result = await StageMutationAsync(target);
-        var preview = await target.PreviewTransactionAsync(new TransactionPreviewRequest
-        {
-            IncludeDiff = true,
-            Document = new Contracts.Selectors.DocumentSelector
+        var preview = await target.PreviewTransactionAsync(
+            TestContext.Current.CancellationToken,
+            document: new Contracts.Selectors.DocumentSelector
             {
                 Path = "Class1.cs",
             },
-        }, TestContext.Current.CancellationToken);
+            includeDiff: true);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Transaction!.Revision.Should().Be(1);
@@ -119,28 +94,26 @@ public sealed class WorkspaceTransactionIntegrationTests
     {
         await using var fixture = await TestWorkspaceFixture.CreateAsync();
         await using var target = await CreateCoordinatorWithOneStagedRevisionAsync(fixture);
-        var preview = await target.PreviewTransactionAsync(new TransactionPreviewRequest(), TestContext.Current.CancellationToken);
+        var preview = await target.PreviewTransactionAsync(TestContext.Current.CancellationToken);
 
-        var undo = await target.MoveTransactionHistoryAsync(new TransactionHistoryRequest
-        {
-            Direction = TransactionHistoryDirection.Undo,
-            ExpectedSnapshot = new Contracts.Selectors.SnapshotPrecondition
+        var undo = await target.MoveTransactionHistoryAsync(
+            TransactionHistoryDirection.Undo,
+            TestContext.Current.CancellationToken,
+            expectedSnapshot: new Contracts.Selectors.SnapshotPrecondition
             {
-                WorkspaceId = preview.WorkspaceId,
-                WorkspaceEpoch = preview.WorkspaceEpoch!.Value,
-                TransactionRevision = preview.TransactionRevision,
-            },
-        }, TestContext.Current.CancellationToken);
-        var redo = await target.MoveTransactionHistoryAsync(new TransactionHistoryRequest
-        {
-            Direction = TransactionHistoryDirection.Redo,
-            ExpectedSnapshot = new Contracts.Selectors.SnapshotPrecondition
+                WorkspaceId = preview.Context.WorkspaceId,
+                WorkspaceEpoch = preview.Context.WorkspaceEpoch!.Value,
+                TransactionRevision = preview.Context.TransactionRevision,
+            });
+        var redo = await target.MoveTransactionHistoryAsync(
+            TransactionHistoryDirection.Redo,
+            TestContext.Current.CancellationToken,
+            expectedSnapshot: new Contracts.Selectors.SnapshotPrecondition
             {
-                WorkspaceId = undo.WorkspaceId,
-                WorkspaceEpoch = undo.WorkspaceEpoch!.Value,
-                TransactionRevision = undo.TransactionRevision,
-            },
-        }, TestContext.Current.CancellationToken);
+                WorkspaceId = undo.Context.WorkspaceId,
+                WorkspaceEpoch = undo.Context.WorkspaceEpoch!.Value,
+                TransactionRevision = undo.Context.TransactionRevision,
+            });
 
         undo.Data!.Transaction!.Revision.Should().Be(0);
         undo.Data.Transaction.CanRedo.Should().BeTrue();
@@ -154,10 +127,10 @@ public sealed class WorkspaceTransactionIntegrationTests
         await using var fixture = await TestWorkspaceFixture.CreateAsync();
         await using var target = await CreateCoordinatorWithOneStagedRevisionAsync(fixture);
 
-        var rollback = await target.RollbackTransactionAsync(new TransactionRollbackRequest(), TestContext.Current.CancellationToken);
-        var status = await target.GetStatusAsync(new WorkspaceStatusRequest(), TestContext.Current.CancellationToken);
+        var rollback = await target.RollbackTransactionAsync(TestContext.Current.CancellationToken);
+        var status = await target.GetStatusAsync(TestContext.Current.CancellationToken);
 
-        rollback.Outcome.Should().Be(ToolOutcome.Succeeded);
+        rollback.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
         rollback.Data!.State.Should().Be(TransactionRollbackState.Ready);
         status.Data!.State.Should().Be(WorkspaceLifecycleState.Ready);
         status.Data.Transaction.Should().BeNull();
@@ -168,30 +141,26 @@ public sealed class WorkspaceTransactionIntegrationTests
     {
         await using var fixture = await TestWorkspaceFixture.CreateAsync();
         var originalDocumentBytes = await File.ReadAllBytesAsync(fixture.DocumentPath, TestContext.Current.CancellationToken);
-        await using var target = fixture.CreateCoordinator();
-        await target.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
-        await target.StartTransactionAsync(new TransactionStartRequest(), TestContext.Current.CancellationToken);
+        await using var target = fixture.CreateWorkspace();
+        await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        await target.StartTransactionAsync(TestContext.Current.CancellationToken);
         await StageMutationAsync(target);
-        var preview = await target.PreviewTransactionAsync(new TransactionPreviewRequest(), TestContext.Current.CancellationToken);
+        var preview = await target.PreviewTransactionAsync(TestContext.Current.CancellationToken);
 
-        var commit = await target.CommitTransactionAsync(new TransactionCommitRequest
-        {
-            ExpectedSnapshot = new Contracts.Selectors.SnapshotPrecondition
+        var commit = await target.CommitTransactionAsync(
+            TestContext.Current.CancellationToken,
+            expectedSnapshot: new Contracts.Selectors.SnapshotPrecondition
             {
-                WorkspaceId = preview.WorkspaceId,
-                WorkspaceEpoch = preview.WorkspaceEpoch!.Value,
-                TransactionRevision = preview.TransactionRevision,
-            },
-        }, TestContext.Current.CancellationToken);
-        var status = await target.GetStatusAsync(new WorkspaceStatusRequest(), TestContext.Current.CancellationToken);
+                WorkspaceId = preview.Context.WorkspaceId,
+                WorkspaceEpoch = preview.Context.WorkspaceEpoch!.Value,
+                TransactionRevision = preview.Context.TransactionRevision,
+            });
+        var status = await target.GetStatusAsync(TestContext.Current.CancellationToken);
         var text = await File.ReadAllTextAsync(fixture.DocumentPath, TestContext.Current.CancellationToken);
         await using var pristineFixture = await TestWorkspaceFixture.CreateAsync();
         var pristineDocumentBytes = await File.ReadAllBytesAsync(pristineFixture.DocumentPath, TestContext.Current.CancellationToken);
 
-        commit.Outcome.Should().Be(ToolOutcome.Succeeded);
+        commit.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
         commit.Data!.Committed.Should().BeTrue();
         status.Data!.State.Should().Be(WorkspaceLifecycleState.Ready);
         text.Should().Contain("TransactionMarker");
@@ -207,14 +176,14 @@ public sealed class WorkspaceTransactionIntegrationTests
         var secondPath = Path.Combine(Path.GetDirectoryName(fixture.ProjectPath)!, "Class2.cs");
         await File.WriteAllTextAsync(secondPath, "namespace Sample; public sealed class Class2 { }", TestContext.Current.CancellationToken);
         await using var stateDirectory = TemporaryDirectory.Create("roslyn-workbench-mcp-transaction-tests");
-        await using var target = WorkspaceCoordinatorFactory.Create(new WorkspaceRuntimeOptions { StateDirectory = stateDirectory.DirectoryPath });
-        await target.OpenAsync(new WorkspaceOpenRequest { Path = fixture.ProjectPath }, TestContext.Current.CancellationToken);
-        await target.StartTransactionAsync(new TransactionStartRequest(), TestContext.Current.CancellationToken);
+        await using var target = ComponentWorkspace.Create(new ComponentWorkspaceOptions { StateDirectory = stateDirectory.DirectoryPath });
+        await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        await target.StartTransactionAsync(TestContext.Current.CancellationToken);
         await StageMutationAsync(target, stageEveryDocument: true);
 
-        var commit = await target.CommitTransactionAsync(new TransactionCommitRequest(), TestContext.Current.CancellationToken);
+        var commit = await target.CommitTransactionAsync(TestContext.Current.CancellationToken);
 
-        commit.Outcome.Should().Be(ToolOutcome.Succeeded);
+        commit.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
         (await File.ReadAllTextAsync(fixture.DocumentPath, TestContext.Current.CancellationToken)).Should().Contain("TransactionMarker");
         (await File.ReadAllTextAsync(secondPath, TestContext.Current.CancellationToken)).Should().Contain("TransactionMarker");
         Directory.Exists(Path.Combine(stateDirectory.DirectoryPath, "recovery")).Should().BeTrue();
@@ -235,21 +204,20 @@ public sealed class WorkspaceTransactionIntegrationTests
             """, encoding, TestContext.Current.CancellationToken);
 
         await using var target = await CreateCoordinatorWithOneStagedRevisionAsync(fixture);
-        var preview = await target.PreviewTransactionAsync(new TransactionPreviewRequest(), TestContext.Current.CancellationToken);
+        var preview = await target.PreviewTransactionAsync(TestContext.Current.CancellationToken);
 
-        var commit = await target.CommitTransactionAsync(new TransactionCommitRequest
-        {
-            ExpectedSnapshot = new Contracts.Selectors.SnapshotPrecondition
+        var commit = await target.CommitTransactionAsync(
+            TestContext.Current.CancellationToken,
+            expectedSnapshot: new Contracts.Selectors.SnapshotPrecondition
             {
-                WorkspaceId = preview.WorkspaceId,
-                WorkspaceEpoch = preview.WorkspaceEpoch!.Value,
-                TransactionRevision = preview.TransactionRevision,
-            },
-        }, TestContext.Current.CancellationToken);
+                WorkspaceId = preview.Context.WorkspaceId,
+                WorkspaceEpoch = preview.Context.WorkspaceEpoch!.Value,
+                TransactionRevision = preview.Context.TransactionRevision,
+            });
         var text = await File.ReadAllTextAsync(fixture.DocumentPath, TestContext.Current.CancellationToken);
         var bytes = await File.ReadAllBytesAsync(fixture.DocumentPath, TestContext.Current.CancellationToken);
 
-        commit.Outcome.Should().Be(ToolOutcome.Succeeded);
+        commit.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
         bytes.Should().StartWith(encoding.GetPreamble());
         text.Should().Contain("TransactionMarker");
     }
@@ -261,27 +229,24 @@ public sealed class WorkspaceTransactionIntegrationTests
         await using var target = await CreateCoordinatorWithOneStagedRevisionAsync(fixture);
         await File.AppendAllTextAsync(fixture.DocumentPath, Environment.NewLine + "class ExternalChange { }", TestContext.Current.CancellationToken);
 
-        var status = await target.GetStatusAsync(new WorkspaceStatusRequest(), TestContext.Current.CancellationToken);
+        var status = await target.GetStatusAsync(TestContext.Current.CancellationToken);
 
         status.Data!.State.Should().Be(WorkspaceLifecycleState.TransactionConflicted);
         status.Data.Transaction!.CanMutate.Should().BeFalse();
     }
 
-    private static async Task<IWorkspaceRuntime> CreateCoordinatorWithOneStagedRevisionAsync(TestWorkspaceFixture fixture)
+    private static async Task<ComponentWorkspace> CreateCoordinatorWithOneStagedRevisionAsync(TestWorkspaceFixture fixture)
     {
-        var target = fixture.CreateCoordinator();
-        await target.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
-        await target.StartTransactionAsync(new TransactionStartRequest(), TestContext.Current.CancellationToken);
+        var target = fixture.CreateWorkspace();
+        await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        await target.StartTransactionAsync(TestContext.Current.CancellationToken);
         await StageMutationAsync(target);
 
         return target;
     }
 
     private static async Task<PluginExecutionResult<MutationData>> StageMutationAsync(
-        IWorkspaceRuntime target,
+        ComponentWorkspace target,
         bool stageEveryDocument = false)
     {
         await using var lease = target.CreateMutationContext(new StageMutationRequest(), TestContext.Current.CancellationToken);

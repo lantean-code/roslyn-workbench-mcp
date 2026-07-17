@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test;
 
 public sealed class SelectorAndSnapshotIntegrationTests
@@ -8,33 +6,32 @@ public sealed class SelectorAndSnapshotIntegrationTests
     public async Task GIVEN_AmbiguousTextSelection_WHEN_ResolvingSymbol_THEN_ShouldRejectAmbiguousLocation()
     {
         await using var fixture = await InspectionSampleFixture.CreateAsync();
-        await using var coordinator = BundledCoreToolTestHarness.CreateInspectionCoordinator();
-        var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
-        var registry = BundledPluginCatalogueFactory.CreateCatalogue();
+        await using var coordinator = BundledComponentWorkspaceFactory.CreateInspectionWorkspace();
+        var openResult = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        var session = new PluginComponentTestSession(coordinator, BundledPluginCatalogueFactory.CreateCatalogue());
 
-        var result = await PluginToolTestHarness.InvokeAsync<ResolveSymbolData>(coordinator, TestContext.Current.CancellationToken, registry, "resolve-symbol", new Dictionary<string, JsonElement>
-        {
-            ["location"] = JsonSerializer.SerializeToElement(new LocationSelector
+        var result = await session.ExecuteQueryAsync<ResolveSymbolRequest, ResolveSymbolData>(
+            "resolve-symbol",
+            new ResolveSymbolRequest
             {
-                Selection = new TextSelectionSelector
+                Location = new LocationSelector
                 {
-                    Document = new DocumentSelector
+                    Selection = new TextSelectionSelector
                     {
-                        Path = "Formatting.cs",
+                        Document = new DocumentSelector
+                        {
+                            Path = "Formatting.cs",
+                        },
+                        SelectedText = "Format",
                     },
-                    SelectedText = "Format",
                 },
-            }),
-            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition
-            {
-                WorkspaceEpoch = openResult.WorkspaceEpoch!.Value,
-            }),
-        }, expectProtocolSuccess: false);
+                ExpectedSnapshot = new SnapshotPrecondition
+                {
+                    WorkspaceEpoch = openResult.Context.WorkspaceEpoch!.Value,
+                },
+            }, TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Rejected);
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("LocationAmbiguous");
     }
 
@@ -42,33 +39,36 @@ public sealed class SelectorAndSnapshotIntegrationTests
     public async Task GIVEN_MetadataSymbolAndBoundedSearch_WHEN_InspectingSelectors_THEN_ShouldProjectMetadataAndTruncation()
     {
         await using var fixture = await InspectionSampleFixture.CreateAsync();
-        await using var coordinator = BundledCoreToolTestHarness.CreateInspectionCoordinator();
-        var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
-        var registry = BundledPluginCatalogueFactory.CreateCatalogue();
+        await using var coordinator = BundledComponentWorkspaceFactory.CreateInspectionWorkspace();
+        var openResult = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        var session = new PluginComponentTestSession(coordinator, BundledPluginCatalogueFactory.CreateCatalogue());
 
-        var resolved = await PluginToolTestHarness.InvokeAsync<ResolveSymbolData>(coordinator, TestContext.Current.CancellationToken, registry, "resolve-symbol", new Dictionary<string, JsonElement>
-        {
-            ["location"] = JsonSerializer.SerializeToElement(fixture.GetLocation("ToUpperInvariant")),
-            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition
+        var resolved = await session.ExecuteQueryAsync<ResolveSymbolRequest, ResolveSymbolData>(
+            "resolve-symbol",
+            new ResolveSymbolRequest
             {
-                WorkspaceEpoch = openResult.WorkspaceEpoch!.Value,
-            }),
-        });
-        var definition = await PluginToolTestHarness.InvokeAsync<DefinitionData>(coordinator, TestContext.Current.CancellationToken, registry, "go-to-definition", new Dictionary<string, JsonElement>
-        {
-            ["symbol"] = JsonSerializer.SerializeToElement(resolved.Data!.Selector),
-        });
-        var search = await PluginToolTestHarness.InvokeAsync<SymbolSearchData>(coordinator, TestContext.Current.CancellationToken, registry, "search-symbols", new Dictionary<string, JsonElement>
-        {
-            ["query"] = JsonSerializer.SerializeToElement("Format"),
-            ["symbolsLimit"] = JsonSerializer.SerializeToElement(new CollectionLimit
+                Location = fixture.GetLocation("ToUpperInvariant"),
+                ExpectedSnapshot = new SnapshotPrecondition
+                {
+                    WorkspaceEpoch = openResult.Context.WorkspaceEpoch!.Value,
+                },
+            }, TestContext.Current.CancellationToken);
+        var definition = await session.ExecuteQueryAsync<GoToDefinitionRequest, DefinitionData>(
+            "go-to-definition",
+            new GoToDefinitionRequest
             {
-                MaxResults = 1,
-            }),
-        });
+                Symbol = resolved.Data!.Selector,
+            }, TestContext.Current.CancellationToken);
+        var search = await session.ExecuteQueryAsync<SearchSymbolsRequest, SymbolSearchData>(
+            "search-symbols",
+            new SearchSymbolsRequest
+            {
+                Query = "Format",
+                SymbolsLimit = new CollectionLimit
+                {
+                    MaxResults = 1,
+                },
+            }, TestContext.Current.CancellationToken);
 
         definition.Data!.Definitions.Should().ContainSingle(static location => location.IsMetadata);
         search.Data!.Symbols.Items.Should().HaveCount(1);

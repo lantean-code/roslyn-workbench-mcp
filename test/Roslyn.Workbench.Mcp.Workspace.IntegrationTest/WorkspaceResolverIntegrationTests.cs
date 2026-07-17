@@ -9,13 +9,10 @@ public sealed class WorkspaceResolverIntegrationTests
     {
         await using var fixture = await TestWorkspaceFixture.CreateAsync();
         var originalDocumentBytes = await File.ReadAllBytesAsync(fixture.DocumentPath, TestContext.Current.CancellationToken);
-        await using var target = fixture.CreateCoordinator();
-        await target.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
+        await using var target = fixture.CreateWorkspace();
+        await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
 
-        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), TestContext.Current.CancellationToken);
+        await using var contextLease = target.CreateQueryContext(new QueryRequest(), TestContext.Current.CancellationToken);
         var resolution = contextLease.Context!.WorkspaceResolver.ResolveProject(new ProjectSelector
         {
             Path = "Sample.csproj",
@@ -33,13 +30,10 @@ public sealed class WorkspaceResolverIntegrationTests
     public async Task GIVEN_AmbiguousProjectSelector_WHEN_ResolvingProject_THEN_ShouldReturnAmbiguous()
     {
         await using var fixture = await TestWorkspaceFixture.CreateAmbiguousAsync();
-        await using var target = fixture.CreateCoordinator();
-        await target.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
+        await using var target = fixture.CreateWorkspace();
+        await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
 
-        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), TestContext.Current.CancellationToken);
+        await using var contextLease = target.CreateQueryContext(new QueryRequest(), TestContext.Current.CancellationToken);
         var resolution = contextLease.Context!.WorkspaceResolver.ResolveProject(new ProjectSelector
         {
             Name = "Sample",
@@ -53,13 +47,10 @@ public sealed class WorkspaceResolverIntegrationTests
     public async Task GIVEN_AmbiguousDocumentPath_WHEN_ResolvingDocument_THEN_ShouldReturnAmbiguous()
     {
         await using var fixture = await TestWorkspaceFixture.CreateAmbiguousAsync();
-        await using var target = fixture.CreateCoordinator();
-        await target.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
+        await using var target = fixture.CreateWorkspace();
+        await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
 
-        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), TestContext.Current.CancellationToken);
+        await using var contextLease = target.CreateQueryContext(new QueryRequest(), TestContext.Current.CancellationToken);
         var resolution = contextLease.Context!.WorkspaceResolver.ResolveDocument(new DocumentSelector
         {
             Path = fixture.SharedDocumentPath!,
@@ -73,15 +64,12 @@ public sealed class WorkspaceResolverIntegrationTests
     public async Task GIVEN_TextSpanLocationSelector_WHEN_ResolvingLocation_THEN_ShouldReturnSourceLocation()
     {
         await using var fixture = await TestWorkspaceFixture.CreateAsync();
-        await using var target = fixture.CreateCoordinator();
-        await target.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
+        await using var target = fixture.CreateWorkspace();
+        await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         var sourceText = await File.ReadAllTextAsync(fixture.DocumentPath, TestContext.Current.CancellationToken);
         var start = sourceText.IndexOf("Class1", StringComparison.Ordinal);
 
-        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), TestContext.Current.CancellationToken);
+        await using var contextLease = target.CreateQueryContext(new QueryRequest(), TestContext.Current.CancellationToken);
         var resolution = await contextLease.Context!.WorkspaceResolver.ResolveLocationAsync(new LocationSelector
         {
             Span = new TextSpanSelector
@@ -110,15 +98,12 @@ public sealed class WorkspaceResolverIntegrationTests
     public async Task GIVEN_LocationBasedSymbolSelector_WHEN_ResolvingSymbol_THEN_ShouldReturnCanonicalSymbolReference()
     {
         await using var fixture = await TestWorkspaceFixture.CreateAsync();
-        await using var target = fixture.CreateCoordinator();
-        await target.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
+        await using var target = fixture.CreateWorkspace();
+        await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         var sourceText = await File.ReadAllTextAsync(fixture.DocumentPath, TestContext.Current.CancellationToken);
         var start = sourceText.IndexOf("Class1", StringComparison.Ordinal);
 
-        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), TestContext.Current.CancellationToken);
+        await using var contextLease = target.CreateQueryContext(new QueryRequest(), TestContext.Current.CancellationToken);
         var resolution = await contextLease.Context!.WorkspaceResolver.ResolveSymbolAsync(new SymbolSelector
         {
             Location = new LocationSelector
@@ -152,14 +137,11 @@ public sealed class WorkspaceResolverIntegrationTests
         await using var fixture = await TestWorkspaceFixture.CreateAsync();
         const string source = "namespace Sample; public sealed class Class1 { public System.String Value { get; } = System.String.Empty; }";
         await File.WriteAllTextAsync(fixture.DocumentPath, source, TestContext.Current.CancellationToken);
-        await using var target = fixture.CreateCoordinator();
-        await target.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
+        await using var target = fixture.CreateWorkspace();
+        await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         var start = source.IndexOf("String", StringComparison.Ordinal);
 
-        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), TestContext.Current.CancellationToken);
+        await using var contextLease = target.CreateQueryContext(new QueryRequest(), TestContext.Current.CancellationToken);
         var resolution = await contextLease.Context!.WorkspaceResolver.ResolveSymbolAsync(new SymbolSelector
         {
             Location = new LocationSelector
@@ -190,13 +172,10 @@ public sealed class WorkspaceResolverIntegrationTests
     public async Task GIVEN_ReferencedProjectDocumentationId_WHEN_ResolvingSymbol_THEN_ShouldResolveAcrossProjectBoundary()
     {
         await using var fixture = await TestWorkspaceFixture.CreateAmbiguousAsync();
-        await using var target = fixture.CreateCoordinator();
-        await target.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
+        await using var target = fixture.CreateWorkspace();
+        await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
 
-        await using var contextLease = target.CreateQueryContext(new WorkspaceStatusRequest(), TestContext.Current.CancellationToken);
+        await using var contextLease = target.CreateQueryContext(new QueryRequest(), TestContext.Current.CancellationToken);
         var resolution = await contextLease.Context!.WorkspaceResolver.ResolveSymbolAsync(new SymbolSelector
         {
             DocumentationCommentId = "T:Sample.ProjectTwo.Class1",
@@ -211,4 +190,6 @@ public sealed class WorkspaceResolverIntegrationTests
         reference.Location.Should().NotBeNull();
         reference.Location!.Document!.Path.Should().Be("../ProjectTwo/Class1.cs");
     }
+
+    private sealed record QueryRequest : WorkspaceBoundRequest;
 }

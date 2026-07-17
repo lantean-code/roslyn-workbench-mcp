@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test;
 
 public sealed class SemanticInspectionIntegrationTests
@@ -8,54 +6,61 @@ public sealed class SemanticInspectionIntegrationTests
     public async Task GIVEN_LoadedSemanticWorkspace_WHEN_InspectingDiagnosticsOperationsAndFlow_THEN_ShouldReturnRoslynProjections()
     {
         await using var fixture = await InspectionSampleFixture.CreateAsync();
-        await using var coordinator = BundledCoreToolTestHarness.CreateInspectionCoordinator();
-        var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
-        var registry = BundledPluginCatalogueFactory.CreateCatalogue();
+        await using var coordinator = BundledComponentWorkspaceFactory.CreateInspectionWorkspace();
+        var openResult = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        var session = new PluginComponentTestSession(coordinator, BundledPluginCatalogueFactory.CreateCatalogue());
         var snapshot = new SnapshotPrecondition
         {
-            WorkspaceEpoch = openResult.WorkspaceEpoch!.Value,
+            WorkspaceEpoch = openResult.Context.WorkspaceEpoch!.Value,
         };
 
-        var diagnostics = await PluginToolTestHarness.InvokeAsync<DiagnosticsData>(coordinator, TestContext.Current.CancellationToken, registry, "get-diagnostics", new Dictionary<string, JsonElement>
-        {
-            ["scope"] = JsonSerializer.SerializeToElement(new ScopeSelector
+        var diagnostics = await session.ExecuteQueryAsync<GetDiagnosticsRequest, DiagnosticsData>(
+            "get-diagnostics",
+            new GetDiagnosticsRequest
             {
-                Kind = ScopeKind.Document,
-                Document = new DocumentSelector
+                Scope = new ScopeSelector
                 {
-                    Path = "Formatting.cs",
+                    Kind = ScopeKind.Document,
+                    Document = new DocumentSelector
+                    {
+                        Path = "Formatting.cs",
+                    },
                 },
-            }),
-            ["ids"] = JsonSerializer.SerializeToElement(new[] { "CS0219" }),
-        });
-        var operation = await PluginToolTestHarness.InvokeAsync<OperationTreeData>(coordinator, TestContext.Current.CancellationToken, registry, "get-operation-tree", new Dictionary<string, JsonElement>
-        {
-            ["location"] = JsonSerializer.SerializeToElement(fixture.GetLocation("formatter.Format(\"hi\")")),
-            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(snapshot),
-        });
-        var flow = await PluginToolTestHarness.InvokeAsync<ControlFlowAnalysisData>(coordinator, TestContext.Current.CancellationToken, registry, "analyze-control-flow", new Dictionary<string, JsonElement>
-        {
-            ["location"] = JsonSerializer.SerializeToElement(fixture.GetLocation("if (trimmed.Length == 0)")),
-            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(snapshot),
-        });
-        var exceptionalGraph = await PluginToolTestHarness.InvokeAsync<ControlFlowGraphData>(coordinator, TestContext.Current.CancellationToken, registry, "get-control-flow-graph", new Dictionary<string, JsonElement>
-        {
-            ["symbol"] = JsonSerializer.SerializeToElement(new SymbolSelector
+                Ids = ["CS0219"],
+            }, TestContext.Current.CancellationToken);
+        var operation = await session.ExecuteQueryAsync<GetOperationTreeRequest, OperationTreeData>(
+            "get-operation-tree",
+            new GetOperationTreeRequest
             {
-                DocumentationCommentId = "M:Sample.FlowSamples.AnalyseExceptional(System.String)",
-            }),
-        });
-        var boundedGraph = await PluginToolTestHarness.InvokeAsync<ControlFlowGraphData>(coordinator, TestContext.Current.CancellationToken, registry, "get-control-flow-graph", new Dictionary<string, JsonElement>
-        {
-            ["symbol"] = JsonSerializer.SerializeToElement(new SymbolSelector
+                Location = fixture.GetLocation("formatter.Format(\"hi\")"),
+                ExpectedSnapshot = snapshot,
+            }, TestContext.Current.CancellationToken);
+        var flow = await session.ExecuteQueryAsync<AnalyzeControlFlowRequest, ControlFlowAnalysisData>(
+            "analyze-control-flow",
+            new AnalyzeControlFlowRequest
             {
-                DocumentationCommentId = "M:Sample.FlowSamples.Analyse(System.String)",
-            }),
-            ["maxBlocks"] = JsonSerializer.SerializeToElement(1),
-        });
+                Location = fixture.GetLocation("if (trimmed.Length == 0)"),
+                ExpectedSnapshot = snapshot,
+            }, TestContext.Current.CancellationToken);
+        var exceptionalGraph = await session.ExecuteQueryAsync<GetControlFlowGraphRequest, ControlFlowGraphData>(
+            "get-control-flow-graph",
+            new GetControlFlowGraphRequest
+            {
+                Symbol = new SymbolSelector
+                {
+                    DocumentationCommentId = "M:Sample.FlowSamples.AnalyseExceptional(System.String)",
+                },
+            }, TestContext.Current.CancellationToken);
+        var boundedGraph = await session.ExecuteQueryAsync<GetControlFlowGraphRequest, ControlFlowGraphData>(
+            "get-control-flow-graph",
+            new GetControlFlowGraphRequest
+            {
+                Symbol = new SymbolSelector
+                {
+                    DocumentationCommentId = "M:Sample.FlowSamples.Analyse(System.String)",
+                },
+                MaxBlocks = 1,
+            }, TestContext.Current.CancellationToken);
 
         diagnostics.Data!.Diagnostics.Items.Should().ContainSingle(static diagnostic => diagnostic.Id == "CS0219");
         operation.Data!.Root!.Kind.Should().Contain("Invocation");

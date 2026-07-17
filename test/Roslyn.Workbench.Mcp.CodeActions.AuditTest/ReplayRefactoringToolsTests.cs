@@ -1,6 +1,5 @@
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
+
 namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 
 [Trait("Category", "Audit")]
@@ -39,7 +38,7 @@ public sealed class ReplayRefactoringToolsTests
                 { "convert-for-to-foreach", new(static (fixture, open) => CreateLocationRequest(fixture.GetLocation("for (var i = 0; i < values.Length; i++)", 0), open), "Formatting.cs") },
                 { "convert-anonymous-type-to-tuple", new(static (fixture, open) => CreateLocationRequest(fixture.GetLocation("new { Name = \"Alpha\", Count = 1 }"), open), "Formatting.cs") },
                 { "convert-anonymous-type-to-class", new(static (fixture, open) => CreateAnonymousTypeToClassRequest(fixture.GetLocation("new { Name = \"Alpha\", Count = 1 }"), open, ConvertAnonymousTypeToClassKind.Class), "Formatting.cs") },
-                { "convert-auto-property-to-full-property", new(static (fixture, open) => CreateLocationRequest(fixture.GetLocation("Goo"), open), "Formatting.cs") },
+                { "convert-auto-property-to-full-property", new(static (fixture, open) => CreateAutoPropertyRequest(fixture.GetLocation("Goo"), open), "Formatting.cs") },
                 { "convert-to-record", new(static (fixture, open) => CreateLocationRequest(fixture.GetLocation("ConvertibleToRecord"), open), "Formatting.cs") },
                 { "convert-direct-cast-to-try-cast", new(static (fixture, open) => CreateLocationRequest(fixture.GetLocation("(object)1"), open), "Formatting.cs") },
                 { "convert-expression-body", new(static (fixture, open) => CreateLocationRequest(fixture.GetLocation("Square"), open), "Formatting.cs") },
@@ -77,15 +76,12 @@ public sealed class ReplayRefactoringToolsTests
         var testCase = ReplayMutationCases[toolName];
         await using var fixture = await (testCase.FixtureFactory?.Invoke() ?? InspectionSampleFixture.CreateAsync());
         await using var coordinator = CreateBuiltInCoordinator();
-        var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
-        await coordinator.StartTransactionAsync(new TransactionStartRequest(), TestContext.Current.CancellationToken);
+        var openResult = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        await coordinator.StartTransactionAsync(TestContext.Current.CancellationToken);
         var result = await ExecuteAsync(coordinator, toolName, testCase.RequestFactory(fixture, openResult));
-        var preview = await coordinator.PreviewTransactionAsync(new TransactionPreviewRequest(), TestContext.Current.CancellationToken);
+        var preview = await coordinator.PreviewTransactionAsync(TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(CodeActionExecutionOutcome.Succeeded);
         result.Data!.Transaction!.Revision.Should().Be(1);
         result.Data.Operation.Should().Be(toolName);
         preview.Data!.Documents.Should().ContainSingle(change => change.Document!.Path == testCase.ExpectedDocumentPath);
@@ -93,8 +89,8 @@ public sealed class ReplayRefactoringToolsTests
         (documentPreview.AddedLines + documentPreview.RemovedLines + documentPreview.ChangedLines).Should().BeGreaterThan(0);
     }
 
-    public sealed record ReplayMutationCaseDefinition(
-        Func<InspectionSampleFixture, ToolResult<WorkspaceOpenData>, Dictionary<string, JsonElement>> RequestFactory,
+    private sealed record ReplayMutationCaseDefinition(
+        Func<InspectionSampleFixture, WorkspaceOperationResult<WorkspaceOpenOutcome>, WorkspaceBoundRequest> RequestFactory,
         string ExpectedDocumentPath,
         Func<Task<InspectionSampleFixture>>? FixtureFactory = null);
 
@@ -103,15 +99,12 @@ public sealed class ReplayRefactoringToolsTests
     {
         await using var fixture = await InspectionSampleFixture.CreateAsync();
         await using var coordinator = CreateBuiltInCoordinator();
-        var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
-        await coordinator.StartTransactionAsync(new TransactionStartRequest(), TestContext.Current.CancellationToken);
+        var openResult = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        await coordinator.StartTransactionAsync(TestContext.Current.CancellationToken);
         var result = await ExecuteAsync(coordinator, "move-type-to-file", CreateMoveTypeToFileRequest(fixture.GetLocation("AutoPropertySamples"), openResult));
-        var preview = await coordinator.PreviewTransactionAsync(new TransactionPreviewRequest(), TestContext.Current.CancellationToken);
+        var preview = await coordinator.PreviewTransactionAsync(TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(CodeActionExecutionOutcome.Succeeded);
         result.Data!.Operation.Should().Be("move-type-to-file");
         preview.Data!.Documents.Should().Contain(change => change.Document!.Path == "Formatting.cs");
         preview.Data.Documents.Should().Contain(change => change.Document!.Path == "AutoPropertySamples.cs");
@@ -122,15 +115,12 @@ public sealed class ReplayRefactoringToolsTests
     {
         await using var fixture = await InspectionSampleFixture.CreateAsync();
         await using var coordinator = CreateBuiltInCoordinator();
-        var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
-        await coordinator.StartTransactionAsync(new TransactionStartRequest(), TestContext.Current.CancellationToken);
+        var openResult = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        await coordinator.StartTransactionAsync(TestContext.Current.CancellationToken);
         var result = await ExecuteAsync(coordinator, "convert-property", CreateConvertPropertyRequest(fixture.GetLocation("Goo"), openResult, ConvertPropertyDirection.ToFull));
-        var preview = await coordinator.PreviewTransactionAsync(new TransactionPreviewRequest(), TestContext.Current.CancellationToken);
+        var preview = await coordinator.PreviewTransactionAsync(TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(CodeActionExecutionOutcome.Succeeded);
         result.Data!.Operation.Should().Be("convert-property");
         preview.Data!.Documents.Should().ContainSingle(static change => change.Document!.Path == "Formatting.cs");
     }
@@ -140,141 +130,192 @@ public sealed class ReplayRefactoringToolsTests
     {
         await using var fixture = await InspectionSampleFixture.CreateAsync(InspectionSampleProfile.AutoProperties);
         await using var coordinator = CreateBuiltInCoordinator();
-        var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
-        await coordinator.StartTransactionAsync(new TransactionStartRequest(), TestContext.Current.CancellationToken);
+        var openResult = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        await coordinator.StartTransactionAsync(TestContext.Current.CancellationToken);
         var result = await ExecuteAsync(coordinator, "convert-property", CreateConvertPropertyRequest(fixture.GetLocation("Score"), openResult, ConvertPropertyDirection.ToAutoWhenSafe));
-        var preview = await coordinator.PreviewTransactionAsync(new TransactionPreviewRequest(), TestContext.Current.CancellationToken);
+        var preview = await coordinator.PreviewTransactionAsync(TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded);
+        result.Outcome.Should().Be(CodeActionExecutionOutcome.Succeeded);
         result.Data!.Operation.Should().Be("convert-property");
         preview.Data!.Documents.Should().ContainSingle(static change => change.Document!.Path == "Formatting.cs");
     }
 
-    private static Dictionary<string, JsonElement> CreateLocationRequest(LocationSelector selection, ToolResult<WorkspaceOpenData> openResult)
+    private static LocationRefactoringRequest CreateLocationRequest(
+        LocationSelector selection,
+        WorkspaceOperationResult<WorkspaceOpenOutcome> openResult)
     {
-        return new Dictionary<string, JsonElement>
+        return new LocationRefactoringRequest
         {
-            ["selection"] = JsonSerializer.SerializeToElement(selection),
-            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(CreateSnapshot(openResult)),
+            Selection = selection,
+            ExpectedSnapshot = CreateSnapshot(openResult),
         };
     }
 
-    private static Dictionary<string, JsonElement> CreateAnonymousTypeToClassRequest(
+    private static ConvertAnonymousTypeToClassRequest CreateAnonymousTypeToClassRequest(
         LocationSelector selection,
-        ToolResult<WorkspaceOpenData> openResult,
+        WorkspaceOperationResult<WorkspaceOpenOutcome> openResult,
         ConvertAnonymousTypeToClassKind kind)
     {
-        return new Dictionary<string, JsonElement>
+        return new ConvertAnonymousTypeToClassRequest
         {
-            ["selection"] = JsonSerializer.SerializeToElement(selection),
-            ["kind"] = JsonSerializer.SerializeToElement(kind),
-            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(CreateSnapshot(openResult)),
+            Selection = selection,
+            Kind = kind,
+            ExpectedSnapshot = CreateSnapshot(openResult),
         };
     }
 
-    private static Dictionary<string, JsonElement> CreateAddAwaitRequest(
+    private static ConvertAutoPropertyToFullPropertyRequest CreateAutoPropertyRequest(
         LocationSelector selection,
-        ToolResult<WorkspaceOpenData> openResult,
+        WorkspaceOperationResult<WorkspaceOpenOutcome> openResult)
+    {
+        return new ConvertAutoPropertyToFullPropertyRequest
+        {
+            Selection = selection,
+            ExpectedSnapshot = CreateSnapshot(openResult),
+        };
+    }
+
+    private static AddAwaitRequest CreateAddAwaitRequest(
+        LocationSelector selection,
+        WorkspaceOperationResult<WorkspaceOpenOutcome> openResult,
         AddAwaitKind kind)
     {
-        return new Dictionary<string, JsonElement>
+        return new AddAwaitRequest
         {
-            ["selection"] = JsonSerializer.SerializeToElement(selection),
-            ["kind"] = JsonSerializer.SerializeToElement(kind),
-            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(CreateSnapshot(openResult)),
+            Selection = selection,
+            Kind = kind,
+            ExpectedSnapshot = CreateSnapshot(openResult),
         };
     }
 
-    private static Dictionary<string, JsonElement> CreateAddImportRequest(
+    private static AddImportRequest CreateAddImportRequest(
         LocationSelector selection,
-        ToolResult<WorkspaceOpenData> openResult,
+        WorkspaceOperationResult<WorkspaceOpenOutcome> openResult,
         bool simplifyAllOccurrences)
     {
-        return new Dictionary<string, JsonElement>
+        return new AddImportRequest
         {
-            ["selection"] = JsonSerializer.SerializeToElement(selection),
-            ["simplifyAllOccurrences"] = JsonSerializer.SerializeToElement(simplifyAllOccurrences),
-            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(CreateSnapshot(openResult)),
+            Selection = selection,
+            SimplifyAllOccurrences = simplifyAllOccurrences,
+            ExpectedSnapshot = CreateSnapshot(openResult),
         };
     }
 
-    private static Dictionary<string, JsonElement> CreateConvertIfToSwitchRequest(
+    private static ConvertIfToSwitchRequest CreateConvertIfToSwitchRequest(
         LocationSelector selection,
-        ToolResult<WorkspaceOpenData> openResult,
+        WorkspaceOperationResult<WorkspaceOpenOutcome> openResult,
         ConvertIfToSwitchKind kind)
     {
-        return new Dictionary<string, JsonElement>
+        return new ConvertIfToSwitchRequest
         {
-            ["selection"] = JsonSerializer.SerializeToElement(selection),
-            ["kind"] = JsonSerializer.SerializeToElement(kind),
-            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(CreateSnapshot(openResult)),
+            Selection = selection,
+            Kind = kind,
+            ExpectedSnapshot = CreateSnapshot(openResult),
         };
     }
 
-    private static Dictionary<string, JsonElement> CreateUseNamedArgumentsRequest(
+    private static UseNamedArgumentsRequest CreateUseNamedArgumentsRequest(
         LocationSelector selection,
-        ToolResult<WorkspaceOpenData> openResult,
+        WorkspaceOperationResult<WorkspaceOpenOutcome> openResult,
         bool includeTrailingArguments)
     {
-        return new Dictionary<string, JsonElement>
+        return new UseNamedArgumentsRequest
         {
-            ["selection"] = JsonSerializer.SerializeToElement(selection),
-            ["includeTrailingArguments"] = JsonSerializer.SerializeToElement(includeTrailingArguments),
-            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(CreateSnapshot(openResult)),
+            Selection = selection,
+            IncludeTrailingArguments = includeTrailingArguments,
+            ExpectedSnapshot = CreateSnapshot(openResult),
         };
     }
 
-    private static Dictionary<string, JsonElement> CreateMoveTypeToFileRequest(LocationSelector selection, ToolResult<WorkspaceOpenData> openResult)
+    private static MoveTypeToFileRequest CreateMoveTypeToFileRequest(
+        LocationSelector selection,
+        WorkspaceOperationResult<WorkspaceOpenOutcome> openResult)
     {
-        return new Dictionary<string, JsonElement>
+        return new MoveTypeToFileRequest
         {
-            ["type"] = JsonSerializer.SerializeToElement(new SymbolSelector
+            Type = new SymbolSelector
             {
                 Location = selection,
-            }),
-            ["preserveNamespace"] = JsonSerializer.SerializeToElement(true),
-            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(CreateSnapshot(openResult)),
+            },
+            PreserveNamespace = true,
+            ExpectedSnapshot = CreateSnapshot(openResult),
         };
     }
 
-    private static Dictionary<string, JsonElement> CreateConvertPropertyRequest(
+    private static ConvertPropertyRequest CreateConvertPropertyRequest(
         LocationSelector selection,
-        ToolResult<WorkspaceOpenData> openResult,
+        WorkspaceOperationResult<WorkspaceOpenOutcome> openResult,
         ConvertPropertyDirection direction)
     {
-        return new Dictionary<string, JsonElement>
+        return new ConvertPropertyRequest
         {
-            ["selection"] = JsonSerializer.SerializeToElement(selection),
-            ["direction"] = JsonSerializer.SerializeToElement(direction),
-            ["expectedSnapshot"] = JsonSerializer.SerializeToElement(CreateSnapshot(openResult)),
+            Selection = selection,
+            Direction = direction,
+            ExpectedSnapshot = CreateSnapshot(openResult),
         };
     }
 
-    private static SnapshotPrecondition CreateSnapshot(ToolResult<WorkspaceOpenData> openResult)
+    private static SnapshotPrecondition CreateSnapshot(WorkspaceOperationResult<WorkspaceOpenOutcome> openResult)
     {
         return new SnapshotPrecondition
         {
-            WorkspaceEpoch = openResult.WorkspaceEpoch!.Value,
+            WorkspaceEpoch = openResult.Context.WorkspaceEpoch!.Value,
             TransactionRevision = 0,
         };
     }
 
-    private static IWorkspaceRuntime CreateBuiltInCoordinator()
+    private static ComponentWorkspace CreateBuiltInCoordinator()
     {
-        return BundledCoreToolTestHarness.CreateBuiltInCodeActionCoordinator();
+        return BundledComponentWorkspaceFactory.CreateBuiltInCodeActionWorkspace();
     }
 
-    private static async Task<ToolResult<MutationData>> ExecuteAsync(
-        IWorkspaceRuntime coordinator,
+    private static async Task<CodeActionExecutionResult<MutationData>> ExecuteAsync(
+        ComponentWorkspace coordinator,
         string toolName,
-        IDictionary<string, JsonElement> arguments)
+        WorkspaceBoundRequest request)
     {
-        var result = await CodeActionToolTestHarness.InvokeAsync<MutationData>(coordinator, TestContext.Current.CancellationToken, toolName, arguments);
+        var session = new CodeActionComponentTestSession(coordinator);
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var result = (toolName, request) switch
+        {
+            ("convert-between-regular-and-verbatim-interpolated-string", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<ConvertBetweenRegularAndVerbatimInterpolatedStringTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
+            ("convert-between-regular-and-verbatim-string", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<ConvertBetweenRegularAndVerbatimStringTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
+            ("convert-foreach-to-for", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<ConvertForEachToForTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
+            ("convert-for-to-foreach", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<ConvertForToForeachTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
+            ("convert-anonymous-type-to-tuple", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<ConvertAnonymousTypeToTupleTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
+            ("convert-anonymous-type-to-class", ConvertAnonymousTypeToClassRequest typed) => await session.ExecuteMutationAsync<ConvertAnonymousTypeToClassTool, ConvertAnonymousTypeToClassRequest>(toolName, typed, cancellationToken),
+            ("convert-auto-property-to-full-property", ConvertAutoPropertyToFullPropertyRequest typed) => await session.ExecuteMutationAsync<ConvertAutoPropertyToFullPropertyTool, ConvertAutoPropertyToFullPropertyRequest>(toolName, typed, cancellationToken),
+            ("convert-to-record", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<ConvertToRecordTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
+            ("convert-direct-cast-to-try-cast", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<ConvertDirectCastToTryCastTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
+            ("convert-expression-body", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<ConvertExpressionBodyTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
+            ("convert-local-function-to-method", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<ConvertLocalFunctionToMethodTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
+            ("convert-primary-to-regular-constructor", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<ConvertPrimaryToRegularConstructorTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
+            ("convert-try-cast-to-direct-cast", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<ConvertTryCastToDirectCastTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
+            ("invert-conditional", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<InvertConditionalTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
+            ("invert-if", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<InvertIfTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
+            ("make-local-function-static", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<MakeLocalFunctionStaticTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
+            ("move-declaration-near-reference", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<MoveDeclarationNearReferenceTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
+            ("name-tuple-element", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<NameTupleElementTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
+            ("replace-doc-comment-text-with-tag", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<ReplaceDocCommentTextWithTagTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
+            ("reverse-for-statement", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<ReverseForStatementTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
+            ("use-explicit-type", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<UseExplicitTypeTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
+            ("use-implicit-type", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<UseImplicitTypeTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
+            ("use-named-arguments", UseNamedArgumentsRequest typed) => await session.ExecuteMutationAsync<UseNamedArgumentsTool, UseNamedArgumentsRequest>(toolName, typed, cancellationToken),
+            ("use-recursive-patterns", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<UseRecursivePatternsTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
+            ("add-await", AddAwaitRequest typed) => await session.ExecuteMutationAsync<AddAwaitTool, AddAwaitRequest>(toolName, typed, cancellationToken),
+            ("add-debugger-display", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<AddDebuggerDisplayTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
+            ("add-import", AddImportRequest typed) => await session.ExecuteMutationAsync<AddImportTool, AddImportRequest>(toolName, typed, cancellationToken),
+            ("add-null-checks", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<AddNullChecksTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
+            ("convert-if-to-switch", ConvertIfToSwitchRequest typed) => await session.ExecuteMutationAsync<ConvertIfToSwitchTool, ConvertIfToSwitchRequest>(toolName, typed, cancellationToken),
+            ("invert-logical", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<InvertLogicalTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
+            ("introduce-using-statement", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<IntroduceUsingStatementTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
+            ("replace-conditional-with-statements", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<ReplaceConditionalWithStatementsTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
+            ("move-type-to-file", MoveTypeToFileRequest typed) => await session.ExecuteMutationAsync<MoveTypeToFileTool, MoveTypeToFileRequest>(toolName, typed, cancellationToken),
+            ("convert-property", ConvertPropertyRequest typed) => await session.ExecuteMutationAsync<ConvertPropertyTool, ConvertPropertyRequest>(toolName, typed, cancellationToken),
+            _ => throw new InvalidOperationException($"Replay case '{toolName}' does not have a typed component handler mapping."),
+        };
 
-        result.Outcome.Should().Be(ToolOutcome.Succeeded, result.Error?.Message);
+        result.Outcome.Should().Be(CodeActionExecutionOutcome.Succeeded, result.Error?.Message);
         return result;
     }
 }

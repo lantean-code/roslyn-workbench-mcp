@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test;
 
 public sealed class SolutionSearchIntegrationTests
@@ -8,64 +6,73 @@ public sealed class SolutionSearchIntegrationTests
     public async Task GIVEN_CrossProjectSolution_WHEN_SearchingRelationships_THEN_ShouldResolveAcrossProjectBoundary()
     {
         await using var fixture = await SolutionHierarchyFixture.CreateAsync();
-        await using var coordinator = BundledCoreToolTestHarness.CreateInspectionCoordinator();
-        var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.SolutionPath,
-        }, TestContext.Current.CancellationToken);
-        var registry = BundledPluginCatalogueFactory.CreateCatalogue();
+        await using var coordinator = BundledComponentWorkspaceFactory.CreateInspectionWorkspace();
+        var openResult = await coordinator.OpenAsync(fixture.SolutionPath, TestContext.Current.CancellationToken);
+        var session = new PluginComponentTestSession(coordinator, BundledPluginCatalogueFactory.CreateCatalogue());
 
-        var implementations = await PluginToolTestHarness.InvokeAsync<ImplementationSearchData>(coordinator, TestContext.Current.CancellationToken, registry, "find-implementations", new Dictionary<string, JsonElement>
-        {
-            ["symbol"] = JsonSerializer.SerializeToElement(new SymbolSelector
+        var implementations = await session.ExecuteQueryAsync<FindImplementationsRequest, ImplementationSearchData>(
+            "find-implementations",
+            new FindImplementationsRequest
             {
-                DocumentationCommentId = "T:Sample.IMessageFormatter",
-            }),
-        });
-        var references = await PluginToolTestHarness.InvokeAsync<ReferenceSearchData>(coordinator, TestContext.Current.CancellationToken, registry, "find-references", new Dictionary<string, JsonElement>
-        {
-            ["symbol"] = JsonSerializer.SerializeToElement(new SymbolSelector
-            {
-                DocumentationCommentId = "T:Sample.IMessageFormatter",
-            }),
-            ["includeDefinitions"] = JsonSerializer.SerializeToElement(false),
-        });
-        var callers = await PluginToolTestHarness.InvokeAsync<CallerSearchData>(coordinator, TestContext.Current.CancellationToken, registry, "find-callers", new Dictionary<string, JsonElement>
-        {
-            ["symbol"] = JsonSerializer.SerializeToElement(new SymbolSelector
-            {
-                DocumentationCommentId = "M:Sample.AppFormatter.Format(System.String)",
-            }),
-        });
-        var derivedTypes = await PluginToolTestHarness.InvokeAsync<DerivedTypesData>(coordinator, TestContext.Current.CancellationToken, registry, "find-derived-types", new Dictionary<string, JsonElement>
-        {
-            ["symbol"] = JsonSerializer.SerializeToElement(new SymbolSelector
-            {
-                DocumentationCommentId = "T:Sample.IMessageFormatter",
-            }),
-        });
-        var dependencies = await PluginToolTestHarness.InvokeAsync<SymbolDependenciesData>(coordinator, TestContext.Current.CancellationToken, registry, "get-symbol-dependencies", new Dictionary<string, JsonElement>
-        {
-            ["symbol"] = JsonSerializer.SerializeToElement(new SymbolSelector
-            {
-                DocumentationCommentId = "T:Sample.AppFormatter",
-            }),
-        });
-        var graph = await PluginToolTestHarness.InvokeAsync<DependencyGraphData>(coordinator, TestContext.Current.CancellationToken, registry, "get-dependency-graph", new Dictionary<string, JsonElement>
-        {
-            ["scope"] = JsonSerializer.SerializeToElement(new ScopeSelector
-            {
-                Kind = ScopeKind.Project,
-                Project = new ProjectSelector
+                Symbol = new SymbolSelector
                 {
-                    Path = "App/App.csproj",
+                    DocumentationCommentId = "T:Sample.IMessageFormatter",
                 },
-            }),
-            ["granularity"] = JsonSerializer.SerializeToElement("Type"),
-            ["maxDepth"] = JsonSerializer.SerializeToElement(2),
-        });
+            }, TestContext.Current.CancellationToken);
+        var references = await session.ExecuteQueryAsync<FindReferencesRequest, ReferenceSearchData>(
+            "find-references",
+            new FindReferencesRequest
+            {
+                Symbol = new SymbolSelector
+                {
+                    DocumentationCommentId = "T:Sample.IMessageFormatter",
+                },
+                IncludeDefinitions = false,
+            }, TestContext.Current.CancellationToken);
+        var callers = await session.ExecuteQueryAsync<FindCallersRequest, CallerSearchData>(
+            "find-callers",
+            new FindCallersRequest
+            {
+                Symbol = new SymbolSelector
+                {
+                    DocumentationCommentId = "M:Sample.AppFormatter.Format(System.String)",
+                },
+            }, TestContext.Current.CancellationToken);
+        var derivedTypes = await session.ExecuteQueryAsync<FindDerivedTypesRequest, DerivedTypesData>(
+            "find-derived-types",
+            new FindDerivedTypesRequest
+            {
+                Symbol = new SymbolSelector
+                {
+                    DocumentationCommentId = "T:Sample.IMessageFormatter",
+                },
+            }, TestContext.Current.CancellationToken);
+        var dependencies = await session.ExecuteQueryAsync<GetSymbolDependenciesRequest, SymbolDependenciesData>(
+            "get-symbol-dependencies",
+            new GetSymbolDependenciesRequest
+            {
+                Symbol = new SymbolSelector
+                {
+                    DocumentationCommentId = "T:Sample.AppFormatter",
+                },
+            }, TestContext.Current.CancellationToken);
+        var graph = await session.ExecuteQueryAsync<GetDependencyGraphRequest, DependencyGraphData>(
+            "get-dependency-graph",
+            new GetDependencyGraphRequest
+            {
+                Scope = new ScopeSelector
+                {
+                    Kind = ScopeKind.Project,
+                    Project = new ProjectSelector
+                    {
+                        Path = "App/App.csproj",
+                    },
+                },
+                Granularity = "Type",
+                MaxDepth = 2,
+            }, TestContext.Current.CancellationToken);
 
-        openResult.Outcome.Should().Be(ToolOutcome.Succeeded);
+        openResult.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
         implementations.Data!.Implementations.Items.Should().Contain(static symbol => symbol.DisplayName.Contains("AppFormatter", StringComparison.Ordinal));
         references.Data!.References.Items.Should().Contain(static reference => reference.Location != null && reference.Location.Document != null && reference.Location.Document.Path.EndsWith("AppFormatter.cs", StringComparison.Ordinal));
         callers.Data!.Callers.Items.Should().Contain(static caller => caller.Caller!.DisplayName.Contains("AppCaller.Call", StringComparison.Ordinal));

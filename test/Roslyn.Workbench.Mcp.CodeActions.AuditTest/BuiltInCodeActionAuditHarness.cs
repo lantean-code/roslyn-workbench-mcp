@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using System.Text.Json;
 using Roslyn.Workbench.Mcp.CodeActions.Contracts;
 using Roslyn.Workbench.Mcp.Plugins;
 using Roslyn.Workbench.Mcp.Plugins.Core;
@@ -8,11 +7,11 @@ using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 
-public sealed record BuiltInCodeActionAuditProbe
+internal sealed record BuiltInCodeActionAuditProbe
 {
     public SelectorResolveStatus LocationStatus { get; init; }
 
-    public ToolOutcome VisibilityOutcome { get; init; }
+    public CodeActionExecutionOutcome VisibilityOutcome { get; init; }
 
     public BuiltInCodeActionRuntimeAuditOutcome RuntimeOutcome { get; init; }
 
@@ -25,7 +24,7 @@ public sealed record BuiltInCodeActionAuditProbe
     public string? FailureMessage { get; init; }
 }
 
-public static class BuiltInCodeActionAuditHarness
+internal static class BuiltInCodeActionAuditHarness
 {
     public static async Task<BuiltInCodeActionAuditProbe> ProbeAsync(BuiltInCodeActionAuditCase auditCase)
     {
@@ -36,12 +35,17 @@ public static class BuiltInCodeActionAuditHarness
         {
             IncludeBuiltInAssemblies = true,
         });
-        await using var coordinator = WorkspaceCoordinatorFactory.CreateWithCodeActionProviderCatalog(providerCatalog, BundledCoreToolExecutionServicesFactory.Create());
-        var openResult = await coordinator.OpenAsync(new WorkspaceOpenRequest
-        {
-            Path = fixture.ProjectPath,
-        }, TestContext.Current.CancellationToken);
-        await using var queryLease = coordinator.CreateQueryContext(new ListCodeActionsRequest(), TestContext.Current.CancellationToken);
+        await using var coordinator = ComponentWorkspace.Create(
+            new ComponentWorkspaceOptions
+            {
+                Boundary = ComponentWorkspaceBoundary.CodeActions,
+            },
+            providerCatalog);
+        var session = new CodeActionComponentTestSession(coordinator);
+        var openResult = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        await using var queryLease = coordinator.CodeActionContextFactory.CreateQueryContext(
+            new ListCodeActionsRequest(),
+            TestContext.Current.CancellationToken);
         var queryContext = queryLease.Context!;
         var location = auditCase.LocationFactory(fixture);
         var resolution = await queryContext.WorkspaceResolver.ResolveLocationAsync(location, TestContext.Current.CancellationToken);
@@ -50,7 +54,7 @@ public static class BuiltInCodeActionAuditHarness
             return new BuiltInCodeActionAuditProbe
             {
                 LocationStatus = resolution.Status,
-                VisibilityOutcome = ToolOutcome.Rejected,
+                VisibilityOutcome = CodeActionExecutionOutcome.Rejected,
                 RuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.NotOffered,
                 FailureMessage = "The audit location selector did not resolve.",
             };
@@ -62,7 +66,7 @@ public static class BuiltInCodeActionAuditHarness
             return new BuiltInCodeActionAuditProbe
             {
                 LocationStatus = SelectorResolveStatus.NotFound,
-                VisibilityOutcome = ToolOutcome.Rejected,
+                VisibilityOutcome = CodeActionExecutionOutcome.Rejected,
                 RuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.NotOffered,
                 FailureMessage = "The resolved location did not map to a source document.",
             };
@@ -91,20 +95,18 @@ public static class BuiltInCodeActionAuditHarness
             .Where(action => MatchesTitle(auditCase, action.Title))
             .Where(action => auditCase.ActionPath.Count == 0 || action.ActionPath.SequenceEqual(auditCase.ActionPath))
             .ToArray();
-        var visibilityResult = await CodeActionToolTestHarness.InvokeAsync<CodeActionListData>(
-            coordinator,
-            TestContext.Current.CancellationToken,
-            "list-code-actions",
-            new Dictionary<string, JsonElement>
+        var visibilityResult = await session.ListAsync(
+            new ListCodeActionsRequest
             {
-                ["location"] = JsonSerializer.SerializeToElement(location),
-                ["includeCodeFixes"] = JsonSerializer.SerializeToElement(auditCase.Kind == BuiltInCodeActionAuditKind.CodeFix),
-                ["includeRefactorings"] = JsonSerializer.SerializeToElement(auditCase.Kind == BuiltInCodeActionAuditKind.Refactoring),
-                ["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition
+                Location = location,
+                IncludeCodeFixes = auditCase.Kind == BuiltInCodeActionAuditKind.CodeFix,
+                IncludeRefactorings = auditCase.Kind == BuiltInCodeActionAuditKind.Refactoring,
+                ExpectedSnapshot = new SnapshotPrecondition
                 {
-                    WorkspaceEpoch = openResult.WorkspaceEpoch!.Value,
-                }),
-            });
+                    WorkspaceEpoch = openResult.Context.WorkspaceEpoch!.Value,
+                },
+            },
+            TestContext.Current.CancellationToken);
 
         if (matching.Length == 0)
         {
@@ -355,7 +357,7 @@ public static class BuiltInCodeActionAuditHarness
         return applyChanges is not null;
     }
 
-    private static bool IsVisible(ToolResult<CodeActionListData> result, BuiltInCodeActionAuditCase auditCase)
+    private static bool IsVisible(CodeActionExecutionResult<CodeActionListData> result, BuiltInCodeActionAuditCase auditCase)
     {
         return result.Data?.Actions.Any(action =>
             string.Equals(action.ProviderId, auditCase.ProviderId, StringComparison.Ordinal)

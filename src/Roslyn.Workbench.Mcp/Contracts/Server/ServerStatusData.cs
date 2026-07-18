@@ -1,5 +1,4 @@
 using System.Text.Json.Serialization;
-using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
 
 namespace Roslyn.Workbench.Mcp.Server.Contracts;
 

@@ -1,12 +1,7 @@
-using System.Collections.Immutable;
-
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CodeRefactorings;
 using Microsoft.CodeAnalysis.Text;
-
-using Roslyn.Workbench.Mcp.CodeActions.Composition;
-using Roslyn.Workbench.Mcp.CodeActions.Discovery;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Test.Discovery;
 

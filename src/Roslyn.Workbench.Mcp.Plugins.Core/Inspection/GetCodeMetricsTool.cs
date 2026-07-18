@@ -1,6 +1,3 @@
-using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
-using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
-
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
 [RoslynTool("get-code-metrics", "Get Code Metrics", "Returns projected code metrics for a scope or symbol.")]

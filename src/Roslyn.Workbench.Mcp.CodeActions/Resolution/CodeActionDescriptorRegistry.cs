@@ -1,4 +1,3 @@
-using Roslyn.Workbench.Mcp.CodeActions.Contracts;
 namespace Roslyn.Workbench.Mcp.CodeActions.Resolution;
 
 internal sealed class CodeActionDescriptorRegistry : ICodeActionDescriptorRegistry

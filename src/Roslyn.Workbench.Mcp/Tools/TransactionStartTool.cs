@@ -1,6 +1,4 @@
 using Microsoft.Extensions.Options;
-using Roslyn.Workbench.Mcp;
-using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
 
 namespace Roslyn.Workbench.Mcp.Tools;
 

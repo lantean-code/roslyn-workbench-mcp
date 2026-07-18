@@ -1,5 +1,3 @@
-using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
-
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
 [RoslynTool("get-solution-structure", "Get Solution Structure", "Returns solution folders, projects, target frameworks and direct project relationships.")]

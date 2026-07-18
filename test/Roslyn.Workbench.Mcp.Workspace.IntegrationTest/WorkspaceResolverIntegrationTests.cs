@@ -1,5 +1,3 @@
-using Roslyn.Workbench.Mcp.Plugins;
-
 namespace Roslyn.Workbench.Mcp.Workspace.Test;
 
 public sealed class WorkspaceResolverIntegrationTests

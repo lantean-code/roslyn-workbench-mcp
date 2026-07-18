@@ -1,5 +1,3 @@
-using Roslyn.Workbench.Mcp.PluginFixtures;
-
 namespace Roslyn.Workbench.Mcp.Test.PluginLoading;
 
 public sealed class MefPluginComposerIntegrationTests

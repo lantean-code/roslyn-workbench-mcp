@@ -1,5 +1,3 @@
-using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
-
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
 [RoslynTool("analyze-disposables", "Analyze Disposables", "Returns advisory findings for undisposed local disposable values.")]

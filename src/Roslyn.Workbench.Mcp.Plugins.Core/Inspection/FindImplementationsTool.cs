@@ -1,7 +1,5 @@
 using System.Collections.Immutable;
 
-using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
-
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
 [RoslynTool("find-implementations", "Find Implementations", "Finds implementations of an interface or abstract member.")]

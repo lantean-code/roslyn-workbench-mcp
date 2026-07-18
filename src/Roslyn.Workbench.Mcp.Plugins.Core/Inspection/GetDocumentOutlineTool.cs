@@ -1,5 +1,3 @@
-using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
-
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
 [RoslynTool("get-document-outline", "Get Document Outline", "Returns a semantic outline for one document.")]

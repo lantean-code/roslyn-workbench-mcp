@@ -3,7 +3,6 @@ using Roslyn.Workbench.Mcp.Plugins.Core;
 using Roslyn.Workbench.Mcp.ToolExecution;
 using Roslyn.Workbench.Mcp.ToolExecution.CodeActions;
 using Roslyn.Workbench.Mcp.ToolExecution.Plugins;
-using Roslyn.Workbench.Mcp.Tools;
 
 namespace Roslyn.Workbench.Mcp.Hosting;
 

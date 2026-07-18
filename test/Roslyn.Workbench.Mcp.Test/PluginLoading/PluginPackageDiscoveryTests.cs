@@ -1,5 +1,4 @@
 using System.IO.Abstractions;
-using Roslyn.Workbench.Mcp.Workspace.IO;
 
 namespace Roslyn.Workbench.Mcp.Test.PluginLoading;
 

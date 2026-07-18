@@ -1,5 +1,3 @@
-using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
-
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
 [RoslynTool("get-document-options", "Get Document Options", "Returns language, parse and analyzer-config options for a document.")]

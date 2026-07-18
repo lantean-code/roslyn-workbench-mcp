@@ -1,5 +1,3 @@
-using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
-
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Refactorings;
 
 [RoslynTool("sort-usings", "Sort Usings", "Stages an ordered set of using directives for one document.", Destructive = true)]

@@ -1,7 +1,4 @@
 global using Microsoft.CodeAnalysis;
-global using Microsoft.CodeAnalysis.CodeActions;
-global using Microsoft.CodeAnalysis.CodeFixes;
-global using Microsoft.CodeAnalysis.CodeRefactorings;
 global using Microsoft.CodeAnalysis.CSharp;
 global using Microsoft.CodeAnalysis.CSharp.Syntax;
 global using Microsoft.CodeAnalysis.Diagnostics;
@@ -13,7 +10,6 @@ global using Microsoft.CodeAnalysis.Rename;
 global using Microsoft.CodeAnalysis.Text;
 global using Microsoft.VisualStudio.SolutionPersistence.Model;
 global using Microsoft.VisualStudio.SolutionPersistence.Serializer;
-global using Roslyn.Workbench.Mcp.Plugins;
 global using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Collections;
 global using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 global using Roslyn.Workbench.Mcp.Plugins.Execution;

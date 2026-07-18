@@ -1,5 +1,4 @@
 using System.Reflection;
-using System.Text.Json;
 
 using Roslyn.Workbench.Mcp.Test.Contracts.Schema;
 

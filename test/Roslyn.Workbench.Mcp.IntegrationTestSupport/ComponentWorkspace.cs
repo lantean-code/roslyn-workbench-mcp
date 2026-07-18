@@ -1,9 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
-using Roslyn.Workbench.Mcp.CodeActions.Contracts;
-using Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
-using Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 using Roslyn.Workbench.Mcp.Configuration;
-using Roslyn.Workbench.Mcp.Hosting;
 using Roslyn.Workbench.Mcp.Workspace.Coordination;
 
 namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;

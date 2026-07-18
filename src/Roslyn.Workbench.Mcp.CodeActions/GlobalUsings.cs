@@ -6,7 +6,6 @@ global using Microsoft.CodeAnalysis.Diagnostics;
 global using Microsoft.CodeAnalysis.Host;
 global using Microsoft.CodeAnalysis.Host.Mef;
 global using Microsoft.CodeAnalysis.Text;
-global using Roslyn.Workbench.Mcp.CodeActions;
 global using Roslyn.Workbench.Mcp.CodeActions.Catalog;
 global using Roslyn.Workbench.Mcp.CodeActions.Composition;
 global using Roslyn.Workbench.Mcp.CodeActions.Contracts;

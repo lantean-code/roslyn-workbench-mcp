@@ -1,7 +1,5 @@
 using System.Collections.Immutable;
 
-using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
-
 using ContractReferenceLocation = Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection.ReferenceLocation;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;

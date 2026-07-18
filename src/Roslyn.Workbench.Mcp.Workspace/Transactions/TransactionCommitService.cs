@@ -1,7 +1,3 @@
-using Microsoft.Extensions.Options;
-using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
-using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
-
 namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
 internal sealed class TransactionCommitService : ITransactionCommitService

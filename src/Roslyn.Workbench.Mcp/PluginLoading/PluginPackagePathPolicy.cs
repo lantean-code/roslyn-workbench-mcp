@@ -1,5 +1,3 @@
-using System.IO.Abstractions;
-
 namespace Roslyn.Workbench.Mcp.PluginLoading;
 
 internal sealed class PluginPackagePathPolicy : IPluginPackagePathPolicy

@@ -1,8 +1,6 @@
 using System.Composition;
 using System.Reflection;
-using System.Runtime.Loader;
 using Microsoft.CodeAnalysis;
-using Roslyn.Workbench.Mcp.TestSupport;
 
 namespace Roslyn.Workbench.Mcp.Test.PluginLoading;
 

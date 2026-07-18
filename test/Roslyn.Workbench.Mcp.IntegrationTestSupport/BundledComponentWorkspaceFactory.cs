@@ -1,6 +1,3 @@
-using Roslyn.Workbench.Mcp.Plugins.Core;
-using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
-
 namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
 internal static class BundledComponentWorkspaceFactory

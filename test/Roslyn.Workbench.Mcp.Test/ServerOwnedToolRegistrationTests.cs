@@ -1,7 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 
-using Roslyn.Workbench.Mcp.Tools;
-
 namespace Roslyn.Workbench.Mcp.Test;
 
 public sealed class ServerOwnedToolRegistrationTests

@@ -1,5 +1,3 @@
-using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
-
 namespace Roslyn.Workbench.Mcp.Test.Contracts.Schema;
 
 public sealed class ContractSchemaProbeRequest

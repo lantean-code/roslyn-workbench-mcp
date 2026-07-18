@@ -1,8 +1,5 @@
 using System.Text.Json;
 
-using Roslyn.Workbench.Mcp.Protocol.Results;
-using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
-
 namespace Roslyn.Workbench.Mcp.Test.Protocol;
 
 public sealed class ToolSchemaFactoryTests

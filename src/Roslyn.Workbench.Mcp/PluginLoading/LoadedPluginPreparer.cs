@@ -1,5 +1,4 @@
 using System.Reflection;
-using Roslyn.Workbench.Mcp.Plugins;
 
 namespace Roslyn.Workbench.Mcp.PluginLoading;
 

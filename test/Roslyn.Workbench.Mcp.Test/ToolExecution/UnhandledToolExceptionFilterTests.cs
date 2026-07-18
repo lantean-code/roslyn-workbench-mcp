@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using ModelContextProtocol;
 
 namespace Roslyn.Workbench.Mcp.Test.ToolExecution;
 

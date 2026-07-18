@@ -1,9 +1,7 @@
 using System.Composition;
-using System.IO.Abstractions;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Roslyn.Workbench.Mcp.PluginFixtures;
 
 namespace Roslyn.Workbench.Mcp.Test.PluginLoading;
 

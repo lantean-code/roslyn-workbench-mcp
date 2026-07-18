@@ -1,4 +1,3 @@
-using Roslyn.Workbench.Mcp.CodeActions.Contracts;
 using static Roslyn.Workbench.Mcp.CodeActions.Execution.CodeActionExecutionResultFactory;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Tools;

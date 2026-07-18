@@ -1,7 +1,5 @@
 using System.Collections.Immutable;
 
-using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
-
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
 [RoslynTool("find-overrides", "Find Overrides", "Finds overrides of a virtual or abstract member.")]

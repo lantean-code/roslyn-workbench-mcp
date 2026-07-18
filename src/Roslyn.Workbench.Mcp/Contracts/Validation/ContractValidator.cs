@@ -1,5 +1,3 @@
-using Roslyn.Workbench.Mcp.Protocol.Results;
-
 namespace Roslyn.Workbench.Mcp.Protocol.Validation;
 
 /// <summary>

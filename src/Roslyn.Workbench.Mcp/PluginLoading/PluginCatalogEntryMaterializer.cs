@@ -1,6 +1,3 @@
-using Roslyn.Workbench.Mcp.Plugins;
-using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
-
 namespace Roslyn.Workbench.Mcp.PluginLoading;
 
 internal sealed class PluginCatalogEntryMaterializer : IPluginCatalogEntryMaterializer

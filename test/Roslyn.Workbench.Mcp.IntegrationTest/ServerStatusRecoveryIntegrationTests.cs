@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Options;
-using Roslyn.Workbench.Mcp.CodeActions.Contracts;
 
 namespace Roslyn.Workbench.Mcp.Test;
 

@@ -1,7 +1,4 @@
-using Roslyn.Workbench.Mcp.CodeActions.Contracts;
 using Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
-using Roslyn.Workbench.Mcp.CodeActions.Refactorings;
-using Roslyn.Workbench.Mcp.CodeActions.Tools;
 
 namespace Roslyn.Workbench.Mcp.CodeActions;
 

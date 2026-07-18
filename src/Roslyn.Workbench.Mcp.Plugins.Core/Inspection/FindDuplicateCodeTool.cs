@@ -1,5 +1,3 @@
-using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
-
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
 [RoslynTool("find-duplicate-code", "Find Duplicate Code", "Returns duplicate executable blocks that normalize to the same statement sequence.")]

@@ -1,7 +1,5 @@
 using System.Collections.Immutable;
 
-using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
-
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
 [RoslynTool("get-symbol-dependents", "Get Symbol Dependents", "Returns symbols that directly depend on a resolved symbol.")]

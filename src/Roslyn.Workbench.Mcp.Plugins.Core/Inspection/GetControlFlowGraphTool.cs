@@ -1,7 +1,3 @@
-using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
-using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
-using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
-
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
 [RoslynTool("get-control-flow-graph", "Get Control Flow Graph", "Returns a projected control-flow graph for a symbol or selected region.")]

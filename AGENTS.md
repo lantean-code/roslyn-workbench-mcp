@@ -33,6 +33,11 @@
 - Restore and build:
   - `dotnet restore`
   - `dotnet build`
+- Run the full .NET analyzer set after modifying C# source or tests:
+  - Run `dotnet build <affected-project> --no-restore -p:AnalysisLevel=latest-all -p:EnforceCodeStyleInBuild=true -p:TreatWarningsAsErrors=false`, applying the WSL-specific artifacts path above when required.
+  - This analyzer build is additional to the normal build. `AnalysisLevel=latest-all` exposes default-disabled `CAxxxx` diagnostics that the IDE can show even when the normal build reports no warnings.
+  - Review analyzer diagnostics for every C# file changed in the current task. Fix diagnostics that apply, or record a concise rationale when retaining the code is intentional.
+  - Do not expand a scoped change into repository-wide analyzer cleanup merely because referenced projects report existing diagnostics.
 - Run tests:
   - `dotnet test`
 - After each behavior-affecting set of changes:

@@ -1,5 +1,3 @@
-using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
-
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Refactorings;
 
 [RoslynTool("format-document", "Format Document", "Stages Roslyn formatting for one document or one selected range.", Destructive = true)]

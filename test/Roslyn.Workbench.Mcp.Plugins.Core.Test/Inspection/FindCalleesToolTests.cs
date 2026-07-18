@@ -1,5 +1,4 @@
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Operations;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 

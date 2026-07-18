@@ -1,5 +1,3 @@
-using ModelContextProtocol;
-
 using Roslyn.Workbench.Mcp.Test.Tools;
 using Roslyn.Workbench.Mcp.ToolExecution.Plugins;
 

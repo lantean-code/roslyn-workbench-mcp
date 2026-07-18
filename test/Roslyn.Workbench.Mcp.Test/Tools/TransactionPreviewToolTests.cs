@@ -2,8 +2,6 @@ using System.Text.Json;
 
 using Microsoft.Extensions.Options;
 
-using Roslyn.Workbench.Mcp.Tools;
-
 namespace Roslyn.Workbench.Mcp.Test.Tools;
 
 public sealed class TransactionPreviewToolTests

@@ -1,5 +1,3 @@
-using Roslyn.Workbench.Mcp.CodeActions.Contracts;
-
 namespace Roslyn.Workbench.Mcp.CodeActions.Catalog;
 
 internal sealed record BuiltInCodeActionFamily

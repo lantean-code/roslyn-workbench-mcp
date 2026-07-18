@@ -1,5 +1,3 @@
-using Roslyn.Workbench.Mcp.CodeActions.Contracts;
-
 namespace Roslyn.Workbench.Mcp.CodeActions.Tools;
 
 internal sealed class StageFixAllTool : CodeActionMutationToolHandler<StageFixAllRequest>

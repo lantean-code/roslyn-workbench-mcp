@@ -1,7 +1,6 @@
 global using AwesomeAssertions;
 global using Microsoft.CodeAnalysis;
 global using Moq;
-global using Roslyn.Workbench.Mcp.CodeActions;
 global using Roslyn.Workbench.Mcp.CodeActions.Catalog;
 global using Roslyn.Workbench.Mcp.CodeActions.Composition;
 global using Roslyn.Workbench.Mcp.CodeActions.Contracts;
@@ -13,9 +12,6 @@ global using Roslyn.Workbench.Mcp.CodeActions.Resolution;
 global using Roslyn.Workbench.Mcp.CodeActions.Staging;
 global using Roslyn.Workbench.Mcp.CodeActions.Tokens;
 global using Roslyn.Workbench.Mcp.CodeActions.Tools;
-global using Roslyn.Workbench.Mcp.Plugins;
-global using Roslyn.Workbench.Mcp.Plugins.Execution;
-global using Roslyn.Workbench.Mcp.Plugins.Services;
 global using Roslyn.Workbench.Mcp.TestSupport;
 global using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
 global using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;

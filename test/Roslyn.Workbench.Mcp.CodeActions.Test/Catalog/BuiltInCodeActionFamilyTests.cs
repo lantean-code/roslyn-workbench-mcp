@@ -1,5 +1,3 @@
-using Roslyn.Workbench.Mcp.CodeActions.Contracts;
-
 namespace Roslyn.Workbench.Mcp.CodeActions.Test.Catalog;
 
 public sealed class BuiltInCodeActionFamilyTests

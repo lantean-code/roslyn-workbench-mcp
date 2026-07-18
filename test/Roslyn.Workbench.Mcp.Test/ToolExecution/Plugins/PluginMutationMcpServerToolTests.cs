@@ -1,6 +1,4 @@
 using System.Text.Json;
-
-using Roslyn.Workbench.Mcp.Test.ToolExecution;
 using Roslyn.Workbench.Mcp.ToolExecution.Plugins;
 
 namespace Roslyn.Workbench.Mcp.Test.ToolExecution.Plugins;

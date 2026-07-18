@@ -1,9 +1,6 @@
 using System.Text.Json;
 
 using Microsoft.Extensions.Options;
-using ModelContextProtocol;
-
-using Roslyn.Workbench.Mcp.Tools;
 
 namespace Roslyn.Workbench.Mcp.Test.Tools;
 

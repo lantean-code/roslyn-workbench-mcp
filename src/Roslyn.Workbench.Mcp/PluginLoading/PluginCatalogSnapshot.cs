@@ -1,5 +1,4 @@
 using System.Runtime.Loader;
-using Roslyn.Workbench.Mcp.Plugins;
 
 namespace Roslyn.Workbench.Mcp.PluginLoading;
 

@@ -1,5 +1,4 @@
 using System.Reflection;
-using NuGet.Versioning;
 using Roslyn.Workbench.Mcp.Plugins;
 using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 

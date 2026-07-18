@@ -1,7 +1,5 @@
 using System.Collections.Immutable;
 
-using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
-
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
 [RoslynTool("find-derived-types", "Find Derived Types", "Finds derived types for a resolved base type.")]

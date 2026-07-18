@@ -1,6 +1,3 @@
-using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
-using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
-
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
 [RoslynTool("analyze-nullability", "Analyze Nullability", "Returns nullable-flow diagnostics for a selected scope or location.")]

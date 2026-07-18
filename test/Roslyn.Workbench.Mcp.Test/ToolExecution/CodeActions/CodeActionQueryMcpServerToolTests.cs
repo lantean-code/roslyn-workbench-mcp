@@ -1,7 +1,5 @@
 using System.Text.Json;
 using Microsoft.Extensions.Options;
-
-using Roslyn.Workbench.Mcp.Test.ToolExecution;
 using Roslyn.Workbench.Mcp.ToolExecution.CodeActions;
 
 namespace Roslyn.Workbench.Mcp.Test.ToolExecution.CodeActions;

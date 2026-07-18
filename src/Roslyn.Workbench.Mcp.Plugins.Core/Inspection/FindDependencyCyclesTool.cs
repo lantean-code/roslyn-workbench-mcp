@@ -1,5 +1,3 @@
-using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
-
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
 [RoslynTool("find-dependency-cycles", "Find Dependency Cycles", "Returns detected dependency cycles for the selected scope and granularity.")]

@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Roslyn.Workbench.Mcp.Protocol.Validation;
-using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
 
 namespace Roslyn.Workbench.Mcp.Test.Protocol.Results;
 

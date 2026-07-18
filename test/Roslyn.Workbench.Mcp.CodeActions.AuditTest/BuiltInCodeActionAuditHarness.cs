@@ -1,9 +1,4 @@
 using System.Collections.Immutable;
-using Roslyn.Workbench.Mcp.CodeActions.Contracts;
-using Roslyn.Workbench.Mcp.Plugins;
-using Roslyn.Workbench.Mcp.Plugins.Core;
-using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
-using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 

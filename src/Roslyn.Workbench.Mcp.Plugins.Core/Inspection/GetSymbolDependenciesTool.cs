@@ -1,5 +1,3 @@
-using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
-
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
 [RoslynTool("get-symbol-dependencies", "Get Symbol Dependencies", "Returns the direct symbols used by a resolved symbol.")]

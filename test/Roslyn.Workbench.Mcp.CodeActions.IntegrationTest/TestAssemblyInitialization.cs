@@ -1,7 +1,5 @@
 using System.Runtime.CompilerServices;
 
-using Roslyn.Workbench.Mcp.IntegrationTestSupport;
-
 namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 
 public static class TestAssemblyInitialization

@@ -1,5 +1,3 @@
-using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
-
 namespace Roslyn.Workbench.Mcp.Test.Protocol.Results;
 
 public sealed class ToolResultEnvelopeSerializerTests

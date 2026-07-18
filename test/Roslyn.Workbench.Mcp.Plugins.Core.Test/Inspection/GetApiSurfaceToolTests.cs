@@ -1,5 +1,3 @@
-using Microsoft.CodeAnalysis.Text;
-
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 
 public sealed class GetApiSurfaceToolTests

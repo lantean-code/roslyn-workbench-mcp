@@ -319,4 +319,87 @@ public sealed class GetCodeMetricsToolTests
         result.Data.Metrics.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Formatter._field");
         result.Data.Metrics.Items.Select(item => item.Symbol!.DisplayName).Should().NotContain("local");
     }
+
+    [Fact]
+    public async Task GIVEN_DelegateAndNestedStatements_WHEN_CallingExecuteAsync_THEN_ShouldReturnDelegateAndNestingMetrics()
+    {
+        using var document = RoslynTestFactory.CreateDocument("""
+            public delegate void Notify();
+
+            public class Formatter
+            {
+                public void Run(System.Collections.Generic.IEnumerable<int> values, object gate)
+                {
+                    if (values is not null)
+                    {
+                        for (var index = 0; index < 1; index++)
+                        {
+                            foreach (var value in values)
+                            {
+                                while (false)
+                                {
+                                }
+
+                                do
+                                {
+                                }
+                                while (false);
+
+                                switch (value)
+                                {
+                                    case 0:
+                                        break;
+                                }
+
+                                try
+                                {
+                                    using (var stream = new System.IO.MemoryStream())
+                                    {
+                                        lock (gate)
+                                        {
+                                        }
+                                    }
+                                }
+                                catch (System.Exception)
+                                {
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            """);
+
+        var target = new GetCodeMetricsTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.DefaultMaxResults)
+            .Returns(10);
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveDocuments<CodeMetricsData>(
+                It.IsAny<ScopeSelector?>(),
+                queryContextMocks.QueryContext.Object))
+            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, CodeMetricsData>
+            {
+                Value = [document.Document],
+            });
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(item => new SymbolReference
+            {
+                DisplayName = item.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat),
+                Kind = item.Kind.ToString(),
+                DocumentationCommentId = item.GetDocumentationCommentId(),
+            });
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
+            .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, document.Document.Name));
+
+        var result = await target.ExecuteAsync(new GetCodeMetricsRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        result.Data!.Metrics.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Notify");
+        result.Data.Metrics.Items.Should().ContainSingle(item => item.Symbol!.DisplayName == "Formatter.Run(System.Collections.Generic.IEnumerable<int>, object)" && item.MaxNestingDepth == 6);
+    }
 }

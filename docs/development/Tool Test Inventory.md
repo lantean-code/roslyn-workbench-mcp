@@ -81,20 +81,77 @@ All four Host adapter families now have focused unit evidence without moving MCP
 
 Acceptance remains representative rather than per-tool. Its ten cases cover prerequisite diagnostics, startup stderr, protocol/catalogue publication, Workspace lifecycle and semantic query, plugin transaction commit, Code Action stage/rollback, an external plugin with a private dependency, restart/recovery diagnostics and end-of-stdin process lifetime. Ordinary request variants and branch outcomes remain with the owning Unit/Contract project.
 
-## Known Partial Branch Coverage
+## Partial Branch Reassessment
 
-The following entries remain partial pending a later coverage-focused round. They are unit-coverage concerns, not reasons to restore deleted per-tool integration tests.
+The 2026-07-18 coverage-focused round is complete. A fresh
+`Roslyn.Workbench.Mcp.Plugins.Core.Test` Coverlet run passed 272 tests. The raw
+Plugins.Core assembly result moved from 78.12% line/67.44% branch coverage to
+78.17% line/68.27% branch coverage. These assembly-wide percentages include
+contracts, registrations, compiler-lowered conditions and defensive Roslyn
+guards; they are evidence for investigation rather than a release threshold.
 
-- `FindUnusedSymbolsTool`: reachable accessibility-filter combinations in `ShouldIncludeSymbol(...)`.
-- `GetApiSurfaceTool`: additional declared-symbol, accessibility and attribute combinations.
-- `GetCodeMetricsTool`: unreachable delegate/nesting paths and a defensive missing-source-location guard need an explicit implementation decision.
-- `GetControlFlowGraphTool`: defensive missing syntax-root or semantic-model handling is not reachable through the supported public flow.
-- `GetDiagnosticsTool`: the null arm of `DiagnosticComparer.Equals(...)` is defensive and not reached with Roslyn's non-null diagnostics.
-- `GetDocumentOptionsTool`: a non-null, non-C# parse-options fixture is not covered.
-- `GetOperationTreeTool`: defensive missing syntax-root or semantic-model handling is not reachable through the supported public flow.
-- `RenameSymbolTool`: the same-solution no-change branch is not reachable for a valid source symbol.
-- `SortUsingsTool`: defensive null handling for `UsingDirectiveSyntax.Name` is not reachable with parsed or factory-created directives.
+| Tool | Reassessment and disposition |
+| --- | --- |
+| `FindUnusedSymbolsTool` | Focused coverage now proves `Internal`, `ProtectedOrInternal` and `ProtectedAndInternal` inclusion plus private/local inclusion and protected/public exclusion. Remaining uncovered paths require a selected C# document to lose its syntax root or semantic model, or a source diagnostic candidate to lose its source projection. Those states cannot be produced through the supported resolver and Roslyn document flow and are approved defensive guards. |
+| `GetApiSurfaceTool` | Existing tests cover every supported declaration family, all three thresholds, containing-type accessibility, obsolete inclusion/exclusion and malformed local declarations. Remaining alternatives require an unattached variable declarator, a null attribute class or `NotApplicable` accessibility on a declaration family admitted by the tool. They are approved defensive Roslyn-shape guards. |
+| `GetCodeMetricsTool` | The audit found real behaviour gaps: delegate declarations were supported by projection but excluded from selection, and nesting traversal stopped at non-nesting container nodes. Production traversal now descends through all syntax nodes while incrementing only supported nesting statements, delegate selection is enabled, and one focused test covers every supported nesting statement kind. File branch coverage improved from 113/126 to 128/130. The remaining field-parent and missing-source-location alternatives protect Roslyn symbol invariants and are approved defensive guards. |
+| `GetControlFlowGraphTool` | Missing syntax-root or semantic-model paths cannot occur after the resolver returns a source location in a supported C# document. The successful resolution also structurally contains both the node and semantic model. These guards remain because Roslyn services are external boundaries; fake Roslyn objects or test-only production seams are not justified. |
+| `GetDiagnosticsTool` | `Distinct` receives non-null Roslyn diagnostics, so the comparer null arm is not reachable. Negative equality alternatives after an equal combined hash depend on incidental hash collisions rather than a supported diagnostic outcome. The null and collision-only paths are approved defensive comparer behaviour. |
+| `GetDocumentOptionsTool` | The Host supports C# SDK-style projects. C# options and the missing-language-services fallback are covered; a non-null non-C# `ParseOptions` instance cannot enter the supported tool flow and is approved as an out-of-scope defensive projection. |
+| `GetOperationTreeTool` | Missing syntax-root or semantic-model paths cannot occur after resolving a source location in a supported C# document, and a successful internal resolution structurally contains both values. The guards are approved external-boundary defences. |
+| `RenameSymbolTool` | For a valid source symbol, Roslyn's renamer returns a candidate `Solution`; the reference-equal no-change result cannot be produced through the supported API flow. The guard remains as defensive handling for future Roslyn behaviour and is approved without a fake symbol or test hook. |
+| `SortUsingsTool` | Roslyn supplies a `NameSyntax` node even for a parsed missing name; the existing malformed `using ;` test proves that recovery shape. A null `UsingDirectiveSyntax.Name` cannot be produced by supported parsing or factory creation, so the fallback remains an approved defensive guard. |
 
-These exceptions should be reassessed against an assembly-level coverage report. Approved unreachable defensive branches should be documented rather than exercised through reflection or artificial production hooks.
+No reachable case from the previous nine-entry partial-branch inventory remains
+open. Raw condition coverage can report compiler-lowered nullable and ordering
+fallback alternatives; those are not separate supported behaviours and must
+not be forced through reflection, fake Roslyn runtime objects or production
+test hooks.
+
+## Comprehensive Tool Coverage Ledger
+
+The same 2026-07-18 report was audited across every `*Tool.cs` file. The table
+records raw uncovered executable lines and branch counts after the final test
+changes. `Covered` means the supported alternative now has direct evidence.
+`Approved defensive` means the remaining raw alternatives require a state that
+cannot enter through the supported C# Workspace, resolver or Roslyn API flow.
+
+| Tool | Raw lines | Raw branches | Final disposition |
+| --- | ---: | ---: | --- |
+| `AnalyzeAsyncTool` | 2 | 42/50 | All four supported Task/ValueTask return families, awaited and unawaited calls, non-task calls and missing executable bodies are covered. Remaining alternatives require a method invocation without a Roslyn named return type or absent projected ordering fields. Approved defensive. |
+| `AnalyzeControlFlowTool` | 11 | 26/34 | Snapshot, selector, location, source-document, no-statement, successful analysis and null return projection are covered. Remaining lines are successful-result invariants, Roslyn's nullable analysis-result guard and missing C# syntax/semantic services after source resolution. Approved defensive. |
+| `AnalyzeDataFlowTool` | 11 | 26/34 | Snapshot, selector, location, source-document, no-statement and successful analysis outputs are covered. Remaining lines are successful-result invariants, Roslyn's nullable analysis-result guard and missing C# syntax/semantic services after source resolution. Approved defensive. |
+| `AnalyzeDisposablesTool` | 0 | 48/56 | Method, local-function and top-level disposable locals; using declarations/statements; synchronous and asynchronous disposal; non-disposable values; ordering and bounds are covered. The top-level case was added in this round. Remaining alternatives are nullable projection fallbacks and impossible ancestor/body combinations for a local declaration. Approved defensive. |
+| `FindCalleesTool` | 24 | 80/92 | Symbol/location validation, every supported executable-body syntax, direct and indirect traversal, foreign declarations and non-executable targets are covered. Remaining lines guard absent Roslyn semantic/operation results, impossible successful-result shapes, missing enclosing symbols and an internally unreachable null selector. Approved defensive. |
+| `FindCallersTool` | 0 | 18/22 | Caller discovery, document filtering, optional context and ordered projection are covered. Remaining alternatives require a source caller location without a source tree/current document or a resolved location without ordering fields. Approved defensive. |
+| `FindDuplicateCodeTool` | 4 | 34/38 | Supported/unsupported documents, minimum statement bounds, all supported executable block types, skipped projections, ordering and bounds are covered. A qualifying statement sequence cannot normalise to blank, and a source executable block has an enclosing symbol. Approved defensive. |
+| `FindReferencesTool` | 4 | 46/54 | Definitions, context, filtered projections and read/write classification for assignment, increment/decrement, `ref` and `out` are covered. Remaining lines require a source `ReferenceLocation` without a document/syntax root or nullable ordering fields after a successful projection. Approved defensive. |
+| `FindUnusedSymbolsTool` | 2 | 36/48 | Local, private, internal, protected, protected-internal, private-protected and public accessibility outcomes are covered. Missing C# syntax/semantic services and nullable candidate ordering projections cannot arise after a supported compiler diagnostic resolves to its source document. Approved defensive. |
+| `GetApiSurfaceTool` | 0 | 69/72 | All supported declaration families, thresholds, containing accessibility and obsolete alternatives are covered. Remaining alternatives require an unattached variable declarator, null attribute class or `NotApplicable` accessibility on an admitted declaration. Approved defensive. |
+| `GetChangeImpactTool` | 0 | 39/46 | Reference, caller, override, implementation, private-surface and filtered-location behaviour is covered. Remaining alternatives require a source reference without a document/semantic model or absent ordering fields after successful location projection. Approved defensive. |
+| `GetCodeContextTool` | 23 | 34/72 | Snapshot/location failures, code windows, enclosing symbols and real diagnostics are behaviourally covered. Some projection lambda sequence points remain reported as uncovered despite the diagnostic assertions executing them. Other alternatives are successful-result invariants, comparer null/hash-collision paths and nullable ordering fallbacks. Approved defensive/tooling artefact. |
+| `GetCodeMetricsTool` | 2 | 128/130 | Delegate selection and traversal through every supported nesting statement were corrected and covered in this round. Remaining alternatives require a field declarator without its Roslyn parent chain or a declared source symbol without a source location. Approved defensive. |
+| `GetControlFlowGraphTool` | 11 | 44/54 | Symbol and location modes, unsupported targets, exceptional regions, bounded blocks/regions and location failures are covered. Remaining lines protect successful-result invariants and missing Roslyn syntax, semantic or enclosing-symbol results after source resolution. Approved defensive. |
+| `GetDependencyGraphTool` | 0 | 22/22 | Validation, graph construction, node/edge bounds and all included/excluded edge short-circuit alternatives are covered. Covered. |
+| `GetDiagnosticsTool` | 2 | 48/60 | Project/document scopes, compiler/analyser diagnostics, filters, ordering, bounds and duplicate removal are covered. Remaining alternatives are comparer null/hash-collision paths and nullable ordering/projection fallbacks. Approved defensive. |
+| `GetDocumentOptionsTool` | 0 | 9/10 | C# options and the missing-language-services fallback are covered. A non-null non-C# `ParseOptions` instance cannot enter the supported C# Host flow. Approved out-of-scope defensive. |
+| `GetOperationTreeTool` | 7 | 33/40 | Snapshot/location failures, missing operations, child-operation fallback, constants and depth truncation are covered. Remaining lines protect successful-result invariants and missing C# syntax/semantic services after source resolution. Approved defensive. |
+| `GetPartialDeclarationsTool` | 0 | 4/6 | Resolution, skipped projections, ordering and bounds are covered. Remaining alternatives require a retained resolved source location without document/span ordering fields. Approved defensive. |
+| `GetProjectDetailsTool` | 0 | 16/18 | Compilation fallback, documents, project/metadata references, analysers, ordering, bounds and target-framework failures are covered across unit and component tests. Remaining alternatives are path/display fallbacks whose opposite sides are owned by real MSBuild/analyser integration shapes. Approved boundary coverage. |
+| `GetSymbolAttributesTool` | 0 | 16/20 | Declared/inherited attributes, bounds and null constructor/named argument values are covered. Remaining alternatives require Roslyn `AttributeData` with no attribute class or a typed constant without a type. Approved defensive. |
+| `GetSymbolDependenciesTool` | 2 | 64/66 | Signature and operation dependencies across methods, properties, fields, named types, local functions, accessors and anonymous functions are covered. Remaining lines require a resolved C# source declaration without a semantic model or a nullable ordering projection. Approved defensive. |
+| `GetSymbolDependentsTool` | 2 | 11/14 | Resolution, document filtering, recursion/self-exclusion, ordering and bounds are covered. Remaining lines require SymbolFinder to return a source reference without its document or a supported document without a semantic model. Approved defensive. |
+| `GetSymbolInfoTool` | 0 | 10/12 | Method/type metadata, documentation options, skipped locations and ordered source declarations are covered. Remaining alternatives require a retained resolved source location without document/span ordering fields. Approved defensive. |
+| `GetSymbolMembersTool` | 0 | 15/16 | Invalid targets, declared/inherited/interface members, implicit filtering, deduplication and ordering are covered. The remaining alternative is the empty-path fallback for a projected member location. Approved defensive ordering fallback. |
+| `GoToDefinitionTool` | 0 | 8/12 | Source and metadata definitions, skipped null projections and ordering are covered. Remaining alternatives require a retained definition with missing document/span ordering fields. Approved defensive. |
+| `RenameSymbolTool` | 2 | 5/6 | Resolution, name validation and successful rename are covered. Roslyn does not return the original `Solution` reference for a valid source rename; the no-change arm is retained for future Roslyn behaviour. Approved defensive. |
+| `ResolveSymbolTool` | 0 | 12/14 | Snapshot/location/symbol failures, source selectors/declarations and metadata fallback are covered. Remaining alternatives require a retained resolved source location without document/span ordering fields. Approved defensive. |
+| `SearchSymbolsTool` | 0 | 41/44 | Query and metadata-name modes, kind/accessibility/namespace filters, global namespace, missing projections, ordering and bounds are covered. Remaining alternatives are the post-validation missing-pattern invariant and a null containing namespace that Roslyn symbols do not expose. Approved defensive. |
+| `SortUsingsTool` | 0 | 17/20 | Validation, no-change, normal/system-first ordering, aliases and malformed missing-name syntax are covered. Roslyn still supplies a missing `NameSyntax` node for `using ;`; a null name and associated ordering fallback cannot be produced by parsing or factory creation. Approved defensive. |
+
+The comprehensive ledger contains no untested supported tool behaviour known
+from the fresh report. Future production changes must add behaviour-focused
+coverage, and Roslyn/MSBuild upgrades should rerun this ledger before comparing
+performance results.
 
 The Host coverage round also identified deliberate integration boundaries in `Program`, `MsBuildRegistrationService`, `RecoveryStatusReader` and `RoslynWorkbenchHostApplicationBuilderExtensions`. `MsBuildRegistrationService` owns its cached state as the registered DI singleton and handles the ordinary already-registered state explicitly; actual locator discovery, registration failures and the external registration race remain integration boundaries. `PluginCatalogLoader` now has focused unit coverage for orchestration, candidate preparation, collision policy and materialisation, with real MEF and load-context behaviour retained as integration concerns. Defensive assembly-version fallbacks in `ServerStatusService` and MCP SDK schema-exporter compatibility paths in `ToolSchemaBuilder` cannot be driven through the supported unit surface and remain documented rather than forcing production hooks solely for coverage.

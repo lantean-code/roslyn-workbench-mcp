@@ -122,8 +122,7 @@ internal sealed class GetCodeMetricsTool : QueryToolHandler<GetCodeMetricsReques
     private static int GetMaxNestingDepthCore(SyntaxNode syntaxNode, int depth)
     {
         var childDepths = syntaxNode.ChildNodes()
-            .Where(IsNestingNode)
-            .Select(child => GetMaxNestingDepthCore(child, depth + 1))
+            .Select(child => GetMaxNestingDepthCore(child, IsNestingNode(child) ? depth + 1 : depth))
             .DefaultIfEmpty(depth);
 
         return Math.Max(depth, childDepths.Max());
@@ -153,6 +152,7 @@ internal sealed class GetCodeMetricsTool : QueryToolHandler<GetCodeMetricsReques
     private static bool IsMetricDeclarationNode(SyntaxNode node)
     {
         return node is BaseTypeDeclarationSyntax
+            or DelegateDeclarationSyntax
             or BaseMethodDeclarationSyntax
             or LocalFunctionStatementSyntax
             or PropertyDeclarationSyntax

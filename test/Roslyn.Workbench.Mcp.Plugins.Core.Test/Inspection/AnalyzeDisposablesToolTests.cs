@@ -423,4 +423,47 @@ public sealed class AnalyzeDisposablesToolTests
         result.Data!.Findings.Items.Should().ContainSingle();
         result.Data.Findings.Items[0].Symbol!.DisplayName.Should().Be("disposable");
     }
+
+    [Fact]
+    public async Task GIVEN_TopLevelDisposableLocalIsNotDisposed_WHEN_CallingExecuteAsync_THEN_ShouldReturnUndisposedLocalFinding()
+    {
+        using var document = RoslynTestFactory.CreateDocument("""
+            using System;
+
+            var disposable = new Disposable();
+
+            sealed class Disposable : IDisposable
+            {
+                public void Dispose()
+                {
+                }
+            }
+            """);
+
+        var target = new AnalyzeDisposablesTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.DefaultMaxResults)
+            .Returns(10);
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveDocuments<DisposableAnalysisData>(
+                It.IsAny<ScopeSelector?>(),
+                queryContextMocks.QueryContext.Object))
+            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, DisposableAnalysisData>
+            {
+                Value = [document.Document],
+            });
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
+            .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, document.Document.Name));
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
+        var result = await target.ExecuteAsync(new AnalyzeDisposablesRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        result.Data!.Findings.Items.Should().ContainSingle(item => item.Symbol!.DisplayName == "disposable");
+    }
 }

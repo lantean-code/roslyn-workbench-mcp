@@ -59,7 +59,7 @@ public sealed class GetSymbolAttributesToolTests
             {
             }
 
-            [Marker("Derived", Note = "DerivedNote")]
+            [Marker(null, Note = null)]
             public class DerivedType : BaseType
             {
             }
@@ -101,8 +101,8 @@ public sealed class GetSymbolAttributesToolTests
         result.Data.Attributes.Items.Should().ContainSingle();
         result.Data.Attributes.Items[0].Name.Should().Be("MarkerAttribute");
         result.Data.Attributes.Items[0].Inherited.Should().BeFalse();
-        result.Data.Attributes.Items[0].ConstructorArguments.Should().ContainSingle(item => item.Value == "Derived");
-        result.Data.Attributes.Items[0].NamedArguments.Should().ContainSingle(item => item.Name == "Note" && item.Value == "DerivedNote");
+        result.Data.Attributes.Items[0].ConstructorArguments.Should().ContainSingle(item => item.Value == null);
+        result.Data.Attributes.Items[0].NamedArguments.Should().ContainSingle(item => item.Name == "Note" && item.Value == null);
         result.Data.Attributes.HasMore.Should().BeTrue();
     }
 

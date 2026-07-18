@@ -247,6 +247,14 @@ public sealed class GetDependencyGraphToolTests
                 ToDisplayName = "C",
                 Kind = "Contains",
             },
+            new GraphEdge
+            {
+                FromId = "C",
+                FromDisplayName = "C",
+                ToId = "A",
+                ToDisplayName = "A",
+                Kind = "Contains",
+            },
         };
 
         queryContextMocks.QueryContext

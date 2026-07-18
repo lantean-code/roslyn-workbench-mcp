@@ -1,8 +1,40 @@
 # Roslyn Workbench Whole-Project Roadmap Design
 
+**Status:** Superseded on 2026-07-18 as an active implementation checklist.
+
+This document remains a historical record of the dependency-led sequence used
+to build the initial system. It is not authoritative for the current
+architecture, supported catalogue or release backlog. Current unfinished work
+is maintained in [Future Tasks](../../FutureTasks.md), and the documentation
+intended for release starts at the [release documentation index](../../../README.md).
+
 **Goal:** Define a dependency-led, testable implementation roadmap for the entire Roslyn Workbench MCP project, with one eventual release and an early internal deliverable focused on workspace and inspection capabilities.
 
 **Chosen planning shape:** One release, one early deliverable, and multiple internal implementation stages sequenced by dependency, testability, and complexity.
+
+## Closure Audit
+
+The 2026-07-18 audit closed the two remaining stage boxes against the current
+repository and release scope. Later architecture decisions supersede original
+details such as the shared Contracts project, single-workspace product shape,
+fixed catalogue target and fixed response-size model; those historical details
+must not be used to infer the current public contract.
+
+| Original stage or requirement | Current disposition | Evidence |
+| --- | --- | --- |
+| Stage 7 custom mutation and read-only catalogue expansion | Complete for the supported catalogue. Bundled inspection and mutation tools have family-owned unit and component coverage. | [Tool implementation matrix](../../RoslynMcpToolImplementationMatrix.md), [Tool test inventory](../../Tool%20Test%20Inventory.md) |
+| Stage 7 MEF-backed catalogue expansion | Complete. Every built-in C# refactoring and code-fix family in the audited Roslyn source has a supported or intentionally hidden state; unsupported public-API-dependent families remain conditional capability work rather than an unfinished Stage 7 batch. | [Roslyn Code Actions audit](../../RoslynCodeActionsAudit.md), [Code Action compatibility results](../../IntegrationTestingStage6Results-2026-07-17.md) |
+| Stage 7 reusable semantic and mutation infrastructure | Complete. Query tools use the shared Workspace projection/resolution boundaries, while mutations and Code Actions stage through the transaction pipeline. | [Architecture audit](../../ArchitectureAuditChecklist.md), [Test architecture re-audit](../../TestArchitectureReaudit-2026-07-18.md) |
+| Stage 8 metadata, schema and contract hardening | Complete for the published surface. Contract tests own names, schemas and JSON shapes, and published-process acceptance samples catalogue publication and representative workflows. | [Tool test inventory](../../Tool%20Test%20Inventory.md), [Integration Testing Stage 8 results](../../IntegrationTestingStage8Results-2026-07-18.md) |
+| Stage 8 operational diagnostics, plugin failures and recovery | Complete. Startup fallbacks, package validation and failure isolation, disabled/colliding plugins, persisted recovery and public status projection have owner-aligned and published-process evidence. | [Host architecture validation](../../HostArchitectureValidation.md), [Test architecture re-audit](../../TestArchitectureReaudit-2026-07-18.md) |
+| Stage 8 cancellation, concurrency and bounded results | Complete at the functional and integration boundaries used for release confidence. Cancellation paths, isolated mutable state, bounded search and controlled concurrent test execution are covered. A deeper representative tool-performance programme remains P1 work, not an unchecked roadmap stage. | [Tool test inventory](../../Tool%20Test%20Inventory.md), [Integration Testing Stage 7 results](../../IntegrationTestingStage7Results-2026-07-18.md), [Future Tasks](../../FutureTasks.md#establish-and-execute-a-tool-performance-tuning-programme) |
+| Stage 8 coverage and end-to-end verification | Complete at the architecture-programme level: 1,952 tests passed across Unit/Contract, component integration, published-Host acceptance and compatibility audit layers. The later partial-branch round added reachable coverage, corrected code-metrics behaviour and explicitly approved defensive Roslyn-only paths. | [Integration Testing Stage 8 results](../../IntegrationTestingStage8Results-2026-07-18.md), [Tool test inventory](../../Tool%20Test%20Inventory.md#partial-branch-reassessment) |
+| Stage 8 operational and plugin documentation | Complete for the initial release-documentation baseline. The release index, getting-started, configuration, tool-discovery, workspace/transaction and plugin-authoring guides are separate from the historical engineering records. | [Release documentation index](../../../README.md) |
+
+This closes the original roadmap as a release-decision blocker. It does not
+declare every desirable hardening or ecosystem improvement complete. The
+remaining performance, coverage, platform, plugin-authoring and engineering
+efficiency work is deliberately prioritised in [Future Tasks](../../FutureTasks.md).
 
 ## Planning Decisions
 
@@ -52,8 +84,8 @@ These stages should be tracked as implementation checkpoints. Each box must be t
 - [x] `Stage 4: Deliverable 1 inspection capability slice`
 - [x] `Stage 5: Transaction platform and staged revision model`
 - [x] `Stage 6: MEF composition and action staging infrastructure`
-- [ ] `Stage 7: Mutation tools and catalogue expansion`
-- [ ] `Stage 8: Hardening, compatibility, and release readiness`
+- [x] `Stage 7: Mutation tools and catalogue expansion` — closed by the 2026-07-18 audit
+- [x] `Stage 8: Hardening, compatibility, and release readiness` — closed by the 2026-07-18 audit
 
 ## Sequencing Rules
 
@@ -299,6 +331,11 @@ You chose MEF as a mid-stage concern. That allows the transaction platform to ex
 
 ### Stage 7: Mutation tools and catalogue expansion
 
+**Closure:** Complete for the supported catalogue. The final classification
+and evidence are recorded in the [closure audit](#closure-audit); this stage
+does not require implementation of families blocked by unsupported public
+Roslyn APIs or host-only interaction models.
+
 **Purpose**
 
 Expand from the transaction platform into the broader mutation and analysis catalogue using the shared seams already validated.
@@ -332,6 +369,10 @@ Within this stage, tools should be batched by shared semantic building blocks an
 - Contract tests that assert tool metadata stays aligned with the contract catalogue.
 
 ### Stage 8: Hardening, compatibility, and release readiness
+
+**Closure:** Complete as an implementation and release-readiness stage. The
+[closure audit](#closure-audit) records the later evidence and separates
+genuine follow-up work from this historical stage.
 
 **Purpose**
 

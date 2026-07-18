@@ -336,6 +336,70 @@ public sealed class FindUnusedSymbolsToolTests
     }
 
     [Fact]
+    public async Task GIVEN_AssemblyVisibleAndPublicFields_WHEN_CallingExecuteAsync_THEN_ShouldIncludeOnlyAssemblyVisibleCandidates()
+    {
+        using var document = RoslynTestFactory.CreateDocument("""
+            class Formatter
+            {
+                protected internal int protectedInternalField;
+                private protected int privateProtectedField;
+                public int publicField;
+            }
+            """);
+
+        var target = new FindUnusedSymbolsTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var compilerDiagnosticService = new Mock<ICompilerDiagnosticService>();
+        var syntaxTree = await document.Document.GetSyntaxTreeAsync(TestContext.Current.CancellationToken);
+        var source = (await document.Document.GetTextAsync(TestContext.Current.CancellationToken)).ToString();
+        var protectedInternalStart = source.IndexOf("protectedInternalField", StringComparison.Ordinal);
+        var privateProtectedStart = source.IndexOf("privateProtectedField", StringComparison.Ordinal);
+        var publicStart = source.IndexOf("publicField", StringComparison.Ordinal);
+
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(document.Solution);
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.DefaultMaxResults)
+            .Returns(10);
+        queryContextMocks.ToolExecutionServices
+            .SetupGet(item => item.CompilerDiagnosticService)
+            .Returns(compilerDiagnosticService.Object);
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveDocuments<UnusedSymbolsData>(
+                It.IsAny<ScopeSelector?>(),
+                queryContextMocks.QueryContext.Object))
+            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, UnusedSymbolsData>
+            {
+                Value = [document.Document],
+            });
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
+            .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, document.Document.Name));
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+        compilerDiagnosticService
+            .Setup(item => item.GetCompilerDiagnosticsAsync(
+                It.IsAny<IReadOnlyList<Document>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                RoslynTestFactory.CreateDiagnostic("CS0169", syntaxTree!, protectedInternalStart, "protectedInternalField".Length),
+                RoslynTestFactory.CreateDiagnostic("CS0169", syntaxTree!, privateProtectedStart, "privateProtectedField".Length),
+                RoslynTestFactory.CreateDiagnostic("CS0169", syntaxTree!, publicStart, "publicField".Length),
+            ]);
+
+        var result = await target.ExecuteAsync(new FindUnusedSymbolsRequest
+        {
+            IncludeInternal = true,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        result.Data!.Candidates.Items.Select(item => item.Symbol!.DisplayName).Should().BeEquivalentTo("privateProtectedField", "protectedInternalField");
+    }
+
+    [Fact]
     public async Task GIVEN_UnusedInternalFieldAndUnusedCatchVariable_WHEN_CallingExecuteAsync_THEN_ShouldReturnOrderedCandidates()
     {
         using var solution = RoslynTestFactory.CreateSolution(

@@ -24,15 +24,7 @@ When a task is completed, remove it from this document rather than retaining a c
 
 ## P0 — Release Decisions and Blockers
 
-### Close or supersede the original whole-project roadmap
-
-**Status:** Started
-
-The original roadmap still leaves Stage 7 (catalogue expansion) and Stage 8 (hardening and release readiness) unchecked. Much of both stages is now implemented through later architecture, unit-coverage, integration, compatibility and acceptance programmes. Re-audit the roadmap against the current repository, link the later evidence, and retain only genuine release-readiness gaps rather than treating its stale stage boxes as an executable checklist.
-
-Closing this provides the explicit release-readiness decision after the architecture and test programmes.
-
-Source: [2026-06-24-whole-project-roadmap-design.md](superpowers/specs/2026-06-24-whole-project-roadmap-design.md#internal-stages)
+No open P0 release decisions or blockers remain from the documentation audit.
 
 ## P1 — Production Confidence and Performance
 
@@ -54,25 +46,6 @@ The programme should:
 - record comparative evidence without introducing brittle elapsed-time assertions into functional tests.
 
 Re-run the baseline after material Roslyn, MSBuild or MCP SDK upgrades and retain dated results so regressions can be distinguished from environment variance.
-
-### Reassess remaining partial tool branch coverage
-
-**Status:** Started
-
-The coverage round measured and classified the remaining branches. Run a fresh assembly-level report, add tests for reachable behaviour, and explicitly approve defensive branches that cannot occur through supported Roslyn flows. Do not add reflection or production test hooks solely to reach them.
-
-Current cases:
-
-- reachable `FindUnusedSymbolsTool` accessibility-filter combinations;
-- additional `GetApiSurfaceTool` declared-symbol, accessibility and attribute combinations;
-- `GetCodeMetricsTool` delegate/nesting paths and its missing-source-location guard;
-- defensive missing syntax-root or semantic-model paths in `GetControlFlowGraphTool` and `GetOperationTreeTool`;
-- the defensive null arm in `GetDiagnosticsTool.DiagnosticComparer`;
-- a non-null, non-C# parse-options case in `GetDocumentOptionsTool`;
-- the same-solution no-change path in `RenameSymbolTool`; and
-- defensive null handling for `UsingDirectiveSyntax.Name` in `SortUsingsTool`.
-
-Source: [Tool Test Inventory.md](Tool%20Test%20Inventory.md#known-partial-branch-coverage)
 
 ## P2 — Release Support and Plugin Ecosystem
 

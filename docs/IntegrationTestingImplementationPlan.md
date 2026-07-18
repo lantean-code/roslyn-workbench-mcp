@@ -619,69 +619,71 @@ Completion evidence: `IntegrationTestingStage6Results-2026-07-17.md`.
 
 ### Local execution optimisation order
 
-- [ ] Re-measure after isolation and deterministic disposal.
-- [ ] Re-measure after asset migration.
-- [ ] Re-measure after scenario consolidation.
-- [ ] Re-measure after immutable fixture reuse.
-- [ ] Split serial monoliths and enable only safe class-level parallelism.
-- [ ] Keep explicit serial collections for process-global or mutable shared state.
-- [ ] Avoid disabling parallelism for an entire assembly unless measured evidence requires it.
+- [x] Re-measure after isolation and deterministic disposal.
+- [x] Re-measure after asset migration.
+- [x] Re-measure after scenario consolidation.
+- [x] Re-measure after immutable fixture reuse.
+- [x] Split serial monoliths and enable only safe class-level parallelism.
+- [x] Keep explicit serial collections for process-global or mutable shared state.
+- [x] Avoid disabling parallelism for an entire assembly unless measured evidence requires it.
 
 ### CI build/test flow
 
-- [ ] Restore once per job.
-- [ ] Build once per job or consume a verified build artifact.
-- [ ] Publish the Host once for acceptance tests.
-- [ ] Run test projects with `--no-build --no-restore` where outputs are already available.
-- [ ] Compare an owner matrix with a consolidated component job using total CI duration, queue/startup overhead and failure isolation.
-- [ ] Preserve owner-specific reporting even if execution is consolidated.
+- [x] Restore once per job.
+- [x] Build once per job or consume a verified build artifact.
+- [x] Publish the Host once for acceptance tests.
+- [x] Run test projects with `--no-build --no-restore` where outputs are already available.
+- [x] Compare an owner matrix with a consolidated component job using total CI duration, queue/startup overhead and failure isolation.
+- [x] Preserve owner-specific reporting even if execution is consolidated.
 
 ### Operating-system coverage
 
-- [ ] Run acceptance on Ubuntu and Windows for pull requests.
-- [ ] Run atomic file, multi-file transaction, recovery and inter-process lock scenarios on Ubuntu and Windows.
-- [ ] Add macOS on schedule initially.
-- [ ] Promote macOS to a pull-request gate only after runtime and reliability evidence supports it.
+- [x] Run acceptance on Ubuntu and Windows for pull requests.
+- [x] Run atomic file, multi-file transaction, recovery and inter-process lock scenarios on Ubuntu and Windows.
+- [x] Add macOS on schedule initially.
+- [x] Promote macOS to a pull-request gate only after runtime and reliability evidence supports it; Stage 7 retains scheduled-only coverage pending that evidence.
 
 ### Failure diagnostics
 
-- [ ] Write TRX or equivalent structured results for every project.
-- [ ] Upload results even when a test step fails.
-- [ ] Upload server stderr and process details for failed acceptance tests.
-- [ ] Upload failed fixture/recovery state where it is useful and free of secrets.
-- [ ] Add hang detection appropriate to Roslyn/MSBuild operations.
-- [ ] Add a minimum expected test count so filters cannot yield a green empty run.
+- [x] Write TRX or equivalent structured results for every project.
+- [x] Upload results even when a test step fails.
+- [x] Upload server stderr and process details for failed acceptance tests.
+- [x] Upload failed fixture/recovery state where it is useful and free of secrets.
+- [x] Add hang detection appropriate to Roslyn/MSBuild operations.
+- [x] Add a minimum expected test count so filters cannot yield a green empty run.
 
 ### Microsoft.Testing.Platform evaluation
 
 Perform this only after structural timings stabilise.
 
-- [ ] Create an isolated MTP evaluation change using the .NET 10 `global.json` runner setting.
-- [ ] Verify every xUnit project and runner package supports it.
-- [ ] Verify category filtering, coverage, IDE execution and result reporting.
-- [ ] Evaluate `--test-modules`, module parallelism and `--minimum-expected-tests`.
-- [ ] Compare median clean and warm timings with VSTest.
-- [ ] Adopt MTP only when compatibility is complete and the gain is material.
-- [ ] Keep the runner decision separate in history so regressions are attributable.
+- [x] Create an isolated MTP evaluation change using the .NET 10 `global.json` runner setting.
+- [x] Verify every xUnit project and runner package supports it.
+- [x] Verify category filtering, coverage, IDE execution and result reporting.
+- [x] Evaluate `--test-modules`, module parallelism and `--minimum-expected-tests`.
+- [x] Compare median clean and warm timings with VSTest.
+- [x] Adopt MTP only when compatibility is complete and the gain is material; retain VSTest because neither condition is met.
+- [x] Keep the runner decision separate in history so regressions are attributable; the evaluation made no repository runner change.
 
 ### NuGet caching decision
 
-- [ ] Do not enable `setup-dotnet` package caching without lock files.
-- [ ] Evaluate lock-file policy as a separate repository dependency-management decision.
-- [ ] Enable caching only if the approved lock-file policy makes it reliable.
+- [x] Do not enable `setup-dotnet` package caching without lock files.
+- [x] Evaluate lock-file policy as a separate repository dependency-management decision.
+- [x] Enable caching only if the approved lock-file policy makes it reliable; Stage 7 leaves caching disabled because no policy or lock files exist.
 
 ### Performance target
 
-- [ ] Reduce median normal component-integration wall time by at least 40% from the approximately 49-second sequential warm baseline, or document why retained real-boundary cost makes a lower improvement the correct trade-off.
-- [ ] Keep acceptance small enough to run on every pull request.
-- [ ] Do not enforce timing as a brittle test assertion.
+- [x] Reduce median normal component-integration wall time by at least 40% from the approximately 49-second sequential warm baseline, or document why retained real-boundary cost makes a lower improvement the correct trade-off.
+- [x] Keep acceptance small enough to run on every pull request.
+- [x] Do not enforce timing as a brittle test assertion.
 
 ### Exit criteria
 
-- [ ] CI and local commands execute the same test projects and test logic.
-- [ ] Results and process failures are diagnosable from artifacts.
-- [ ] Platform-sensitive behaviour has Windows and Linux evidence.
-- [ ] Final timings are materially improved and documented.
+- [x] CI and local commands execute the same test projects and test logic.
+- [x] Results and process failures are diagnosable from artifacts.
+- [x] Platform-sensitive behaviour has Windows and Linux evidence.
+- [x] Final timings are materially improved and documented.
+
+Completion evidence: `IntegrationTestingStage7Results-2026-07-18.md`.
 
 ## Stage 8: Final Re-audit and Documentation
 
@@ -762,26 +764,27 @@ dotnet test --no-build --no-restore --filter "Category!=Integration&Category!=Au
 
 The implementing agent must not silently resolve these during an unrelated stage:
 
-- [ ] VSTest versus Microsoft.Testing.Platform: decide after the structural benchmark.
-- [ ] One integration CI job versus a project matrix: decide from end-to-end CI measurements.
+- [x] VSTest versus Microsoft.Testing.Platform: retain VSTest after the isolated Stage 7 evaluation.
+- [x] One integration CI job versus a project matrix: use the owner matrix for shorter critical-path feedback and isolated reporting.
 - [ ] Collection-scoped concurrent Workspace reuse: prove thread safety first.
 - [ ] NuGet lock files and caching: make a separate dependency-policy decision.
 - [ ] macOS pull-request gating: decide after scheduled evidence.
 - [ ] New production composition seams: require explicit approval.
 - [ ] Replacing source-policy tests with analysers: outside this plan.
+- [ ] Cross-instance mutation guidance: decide whether `WorkspaceInUse` and transaction tool metadata should explicitly recommend query-only use or coordination while another live instance is present.
 
 ## Stage Progress Summary
 
 | Stage | Description | Status |
 | --- | --- | --- |
 | 0 | Existing-suite safety and reproducible baseline | Complete |
-| 1 | Checked-in fixture assets | Not started |
-| 2 | Out-of-process acceptance foundation | Not started |
-| 3 | Representative acceptance workflows | Not started |
-| 4 | Component integration migration | Not started |
-| 5 | Obsolete harness removal and support narrowing | Not started |
-| 6 | Compatibility/governance separation | Not started |
-| 7 | Performance, runner evaluation and CI | Not started |
+| 1 | Checked-in fixture assets | Complete |
+| 2 | Out-of-process acceptance foundation | Complete |
+| 3 | Representative acceptance workflows | Complete |
+| 4 | Component integration migration | Complete |
+| 5 | Obsolete harness removal and support narrowing | Complete |
+| 6 | Compatibility/governance separation | Complete |
+| 7 | Performance, runner evaluation and CI | Complete |
 | 8 | Final re-audit and canonical documentation | Not started |
 
 Update this table and the detailed checkboxes as work is completed. A stage is complete only when its exit criteria and verification items are satisfied, not merely when its code changes have been written.

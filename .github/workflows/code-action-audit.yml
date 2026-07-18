@@ -25,17 +25,34 @@ concurrency:
   group: code-action-audit-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  ARTIFACTS_PATH: /tmp/artifacts/roslyn-workbench-mcp
-
 jobs:
   audit:
     name: Provider and replay compatibility
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
-      - run: dotnet restore test/Roslyn.Workbench.Mcp.CodeActions.AuditTest/Roslyn.Workbench.Mcp.CodeActions.AuditTest.csproj --artifacts-path="$ARTIFACTS_PATH"
-      - run: dotnet test test/Roslyn.Workbench.Mcp.CodeActions.AuditTest/Roslyn.Workbench.Mcp.CodeActions.AuditTest.csproj --no-restore --artifacts-path="$ARTIFACTS_PATH"
+      - name: Restore
+        run: dotnet restore test/Roslyn.Workbench.Mcp.CodeActions.AuditTest/Roslyn.Workbench.Mcp.CodeActions.AuditTest.csproj
+      - name: Build
+        run: dotnet build test/Roslyn.Workbench.Mcp.CodeActions.AuditTest/Roslyn.Workbench.Mcp.CodeActions.AuditTest.csproj --no-restore
+      - name: Test
+        run: >-
+          dotnet test test/Roslyn.Workbench.Mcp.CodeActions.AuditTest/Roslyn.Workbench.Mcp.CodeActions.AuditTest.csproj
+          --no-build --no-restore
+          --logger "trx;LogFileName=code-action-audit.trx"
+          --results-directory TestResults/code-action-audit
+          --blame-hang --blame-hang-timeout 5m --blame-hang-dump-type none
+      - name: Verify test count
+        shell: pwsh
+        run: ./eng/Assert-TrxTestCount.ps1 -Path TestResults/code-action-audit -Minimum 93
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-code-action-audit
+          path: TestResults/code-action-audit
+          if-no-files-found: error

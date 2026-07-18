@@ -34,12 +34,15 @@ public sealed class PublishedHostLifetimeIntegrationTests
         };
         process.StartInfo.ArgumentList.Add("--state-directory");
         process.StartInfo.ArgumentList.Add(stateRoot);
+        var retainRoot = false;
+        var standardError = string.Empty;
+        Task<string>? standardErrorTask = null;
 
         try
         {
             process.Start().Should().BeTrue();
             var standardOutputTask = process.StandardOutput.ReadToEndAsync(TestContext.Current.CancellationToken);
-            var standardErrorTask = process.StandardError.ReadToEndAsync(TestContext.Current.CancellationToken);
+            standardErrorTask = process.StandardError.ReadToEndAsync(TestContext.Current.CancellationToken);
 
             process.StandardInput.Close();
 
@@ -47,9 +50,14 @@ public sealed class PublishedHostLifetimeIntegrationTests
             timeoutSource.CancelAfter(_exitTimeout);
             await process.WaitForExitAsync(timeoutSource.Token);
             await standardOutputTask;
-            var standardError = await standardErrorTask;
+            standardError = await standardErrorTask;
 
             process.ExitCode.Should().Be(0, $"the published Host should stop gracefully after stdin EOF; stderr: {standardError}");
+        }
+        catch
+        {
+            retainRoot = true;
+            throw;
         }
         finally
         {
@@ -59,7 +67,23 @@ public sealed class PublishedHostLifetimeIntegrationTests
                 await process.WaitForExitAsync(CancellationToken.None);
             }
 
-            Directory.Delete(scenarioRoot, recursive: true);
+            if (retainRoot && AcceptanceFailureDiagnostics.IsRetentionEnabled())
+            {
+                if (standardErrorTask is not null)
+                {
+                    standardError = await standardErrorTask;
+                }
+
+                await AcceptanceFailureDiagnostics.WriteAsync(
+                    scenarioRoot,
+                    $"{executablePath} --state-directory {stateRoot}",
+                    process.HasExited ? process.ExitCode : null,
+                    standardError);
+            }
+            else
+            {
+                Directory.Delete(scenarioRoot, recursive: true);
+            }
         }
     }
 }

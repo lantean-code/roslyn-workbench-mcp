@@ -1,6 +1,6 @@
 # Testing Strategy
 
-Date: 2026-07-10
+Date: 2026-07-18
 
 ## Purpose
 
@@ -128,9 +128,25 @@ Coverage reports must be used to find gaps after tests are written; production c
 Fast development loop:
 
 ```bash
-dotnet test --filter "Category!=Integration&Category!=Audit" --artifacts-path=/tmp/artifacts/roslyn-workbench-mcp
+dotnet test --filter "Category!=Integration&Category!=Audit"
 ```
 
 Run the affected integration project after changes to a real boundary. Run the Code Action audit when Roslyn dependencies, provider classification, replay behaviour or Code Action discovery changes. CI runs that audit for matching pull-request paths, every push to `main`, a weekly schedule and manual dispatch. Run the full suite before completion of behaviour-affecting work.
 
 Documentation-only changes do not require restore, build or test execution.
+
+## Continuous Integration
+
+Pull-request CI separates fast coverage, component integration and published-Host acceptance:
+
+- the fast Ubuntu job runs Unit and Contract tests after one restore and build;
+- four Ubuntu component jobs preserve Workspace, Plugins.Core, CodeActions and Host ownership;
+- Ubuntu and Windows acceptance jobs test the explicitly published Release Host over stdio;
+- the Windows acceptance job also runs the full Workspace integration project for filesystem, durability, recovery and inter-process-lock evidence; and
+- scheduled macOS coverage runs Workspace integration and published-Host acceptance without acting as a pull-request gate.
+
+Tests run with `--no-build --no-restore` after their job has produced the required outputs. Every test job writes structured results, verifies a minimum expected count and uploads those results even when testing fails. Roslyn/MSBuild test runs use bounded hang detection. Failed acceptance runs additionally retain and upload the Host's stderr, process details and isolated scenario state.
+
+The Code Action compatibility audit remains a separate workflow because it is slower, version-sensitive coverage rather than part of the normal component-integration path.
+
+VSTest remains the selected runner. The Stage 7 MTP evaluation found that migration would require executable test projects and changes to filtering, reporting, coverage and CI commands for a modest measured gain. NuGet caching remains disabled until the repository adopts an explicit lock-file policy.

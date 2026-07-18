@@ -53,7 +53,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         _directory.Setup(item => item.Exists(It.IsAny<string>())).Returns(true);
         _directory.Setup(item => item.EnumerateFiles(It.IsAny<string>(), "*.json")).Returns(["/workspace/live.json"]);
         _streams.Setup(item => item.New("/workspace/live.json", FileMode.Open, FileAccess.ReadWrite, FileShare.None)).Throws(new IOException());
-        _file.Setup(item => item.ReadAllTextAsync("/workspace/live.json", It.IsAny<CancellationToken>())).ReturnsAsync("{");
+        SetupReadableStatus("/workspace/live.json", "{");
         _streams.Setup(item => item.New(It.Is<string>(path => path != "/workspace/live.json"), FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read))
             .Returns(new Mock<FileSystemStream>(stream, "/workspace/instance.json", false) { CallBase = true }.Object);
         await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
@@ -75,7 +75,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         _streams.Setup(item => item.New(stalePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
             .Returns(new Mock<FileSystemStream>(new MemoryStream(), stalePath, false) { CallBase = true }.Object);
         _streams.Setup(item => item.New(livePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None)).Throws(new IOException());
-        _file.Setup(item => item.ReadAllTextAsync(livePath, It.IsAny<CancellationToken>())).ReturnsAsync(JsonSerializer.Serialize(new WorkspaceInstanceStatus
+        SetupReadableStatus(livePath, JsonSerializer.Serialize(new WorkspaceInstanceStatus
         {
             InstanceId = "other-instance",
             LoadedPath = "/workspace/solution.slnx",
@@ -425,8 +425,10 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         _directory.Setup(item => item.Exists(It.IsAny<string>())).Returns(true);
         _directory.Setup(item => item.EnumerateFiles(It.IsAny<string>(), "*.json")).Returns(statuses.Keys);
         _streams.Setup(item => item.New(It.IsAny<string>(), FileMode.Open, FileAccess.ReadWrite, FileShare.None)).Throws(new IOException());
-        _file.Setup(item => item.ReadAllTextAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string path, CancellationToken _) => JsonSerializer.Serialize(statuses[path], new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+        foreach (var (path, status) in statuses)
+        {
+            SetupReadableStatus(path, JsonSerializer.Serialize(status, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+        }
         await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
 
         var result = await target.GetOtherLiveInstancesAsync("/workspace", TestContext.Current.CancellationToken);
@@ -442,7 +444,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         _directory.Setup(item => item.Exists(It.IsAny<string>())).Returns(true);
         _directory.Setup(item => item.EnumerateFiles(It.IsAny<string>(), "*.json")).Returns([path]);
         _streams.Setup(item => item.New(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None)).Throws(new UnauthorizedAccessException());
-        _file.Setup(item => item.ReadAllTextAsync(path, It.IsAny<CancellationToken>())).ThrowsAsync(new IOException());
+        _streams.Setup(item => item.New(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete)).Throws(new IOException());
         await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
 
         var result = await target.GetOtherLiveInstancesAsync("/workspace", TestContext.Current.CancellationToken);
@@ -459,7 +461,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         _directory.Setup(item => item.Exists(It.IsAny<string>())).Returns(true);
         _directory.Setup(item => item.EnumerateFiles(It.IsAny<string>(), "*.json")).Returns([path]);
         _streams.Setup(item => item.New(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None)).Throws(new IOException());
-        _file.Setup(item => item.ReadAllTextAsync(path, It.IsAny<CancellationToken>())).ThrowsAsync(new UnauthorizedAccessException());
+        _streams.Setup(item => item.New(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete)).Throws(new UnauthorizedAccessException());
         await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
 
         var result = await target.GetOtherLiveInstancesAsync("/workspace", TestContext.Current.CancellationToken);
@@ -485,13 +487,24 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         _directory.Setup(item => item.Exists(It.IsAny<string>())).Returns(true);
         _directory.Setup(item => item.EnumerateFiles(It.IsAny<string>(), "*.json")).Returns([path]);
         _streams.Setup(item => item.New(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None)).Throws(new IOException());
-        _file.Setup(item => item.ReadAllTextAsync(path, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Encoding.UTF8.GetString(statusStream.ToArray()));
+        SetupReadableStatus(path, Encoding.UTF8.GetString(statusStream.ToArray()));
 
         var result = await target.GetOtherLiveInstancesAsync("/workspace", TestContext.Current.CancellationToken);
 
         result.Instances.Should().BeEmpty();
-        _file.Verify(item => item.ReadAllTextAsync(path, It.IsAny<CancellationToken>()), Times.Once);
+        _streams.Verify(
+            item => item.New(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete),
+            Times.Once);
+    }
+
+    private void SetupReadableStatus(string path, string json)
+    {
+        _streams.Setup(item => item.New(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+            .Returns(() => new Mock<FileSystemStream>(
+                new MemoryStream(Encoding.UTF8.GetBytes(json)),
+                path,
+                false)
+            { CallBase = true }.Object);
     }
 
     private static WorkspaceInstanceStatus CreateStatus(string instanceId, string workspaceRoot, int version)

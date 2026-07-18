@@ -18,7 +18,6 @@ internal enum AcceptancePluginAsset
 
 internal sealed class AcceptanceProcessFixture : IAsyncDisposable
 {
-    private const string RetainRootEnvironmentVariableName = "ROSLYN_WORKBENCH_MCP_ACCEPTANCE_RETAIN_ROOT";
     private const string PendingStateRootArgument = "{acceptance-state-root}";
     private const string PendingPluginRootArgument = "{acceptance-plugin-root}";
     private static readonly TimeSpan _initializationTimeout = TimeSpan.FromSeconds(45);
@@ -33,16 +32,22 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
     private readonly StringBuilder _standardError = new();
     private readonly string _command;
     private readonly IReadOnlyList<string> _arguments;
+    private readonly bool _retainInitializationFailure;
     private McpClient? _client;
     private Task<ClientCompletionDetails>? _completion;
     private ClientCompletionDetails? _completionDetails;
     private bool _retainRoot;
     private bool _disposed;
 
-    private AcceptanceProcessFixture(string command, IReadOnlyList<string> arguments, string scenarioRoot)
+    private AcceptanceProcessFixture(
+        string command,
+        IReadOnlyList<string> arguments,
+        string scenarioRoot,
+        bool retainInitializationFailure)
     {
         _command = command;
         _arguments = arguments;
+        _retainInitializationFailure = retainInitializationFailure;
         ScenarioRoot = scenarioRoot;
         WorkspaceRoot = Path.Combine(scenarioRoot, "workspace");
         StateRoot = Path.Combine(scenarioRoot, "state");
@@ -78,6 +83,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
             arguments,
             workspaceAsset,
             pluginAsset,
+            retainInitializationFailure: true,
             cancellationToken);
     }
 
@@ -86,7 +92,13 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         IReadOnlyList<string> arguments,
         CancellationToken cancellationToken)
     {
-        return StartAsync(command, arguments, workspaceAsset: null, pluginAsset: null, cancellationToken);
+        return StartAsync(
+            command,
+            arguments,
+            workspaceAsset: null,
+            pluginAsset: null,
+            retainInitializationFailure: false,
+            cancellationToken);
     }
 
     public async Task<IList<McpClientTool>> ListToolsAsync(CancellationToken cancellationToken)
@@ -194,7 +206,15 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         }
         finally
         {
-            if (!ShouldRetainRoot())
+            if (ShouldRetainRoot())
+            {
+                await AcceptanceFailureDiagnostics.WriteAsync(
+                    ScenarioRoot,
+                    FormatCommand(),
+                    (_completionDetails as StdioClientCompletionDetails)?.ExitCode,
+                    GetStandardError());
+            }
+            else
             {
                 await DeleteScenarioRootAsync();
             }
@@ -206,6 +226,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         IReadOnlyList<string> arguments,
         AcceptanceWorkspaceAsset? workspaceAsset,
         AcceptancePluginAsset? pluginAsset,
+        bool retainInitializationFailure,
         CancellationToken cancellationToken)
     {
         var scenarioRoot = Path.Combine(
@@ -222,7 +243,11 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
                 _ => argument,
             })
             .ToArray();
-        var target = new AcceptanceProcessFixture(command, effectiveArguments, scenarioRoot);
+        var target = new AcceptanceProcessFixture(
+            command,
+            effectiveArguments,
+            scenarioRoot,
+            retainInitializationFailure);
 
         Directory.CreateDirectory(target.WorkspaceRoot);
         Directory.CreateDirectory(target.StateRoot);
@@ -281,7 +306,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
                 _completionDetails = transportClosedException.Details;
             }
 
-            _retainRoot = true;
+            _retainRoot = _retainInitializationFailure;
             var diagnosticException = CreateDiagnosticException("MCP initialization failed", exception);
             await DisposeAsync();
             throw diagnosticException;
@@ -395,9 +420,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
             return false;
         }
 
-        var configuredValue = Environment.GetEnvironmentVariable(RetainRootEnvironmentVariableName);
-        return string.Equals(configuredValue, "1", StringComparison.Ordinal)
-            || string.Equals(configuredValue, "true", StringComparison.OrdinalIgnoreCase);
+        return AcceptanceFailureDiagnostics.IsRetentionEnabled();
     }
 
     private async Task DeleteScenarioRootAsync()

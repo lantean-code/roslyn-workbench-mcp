@@ -11,15 +11,15 @@ Set `ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH` to the exact executable produced
 Debug:
 
 ```bash
-dotnet publish src/Roslyn.Workbench.Mcp/Roslyn.Workbench.Mcp.csproj -c Debug --artifacts-path=/tmp/artifacts/roslyn-workbench-mcp
-ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH=/tmp/artifacts/roslyn-workbench-mcp/publish/Roslyn.Workbench.Mcp/debug/Roslyn.Workbench.Mcp \
-  dotnet test test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.Mcp.AcceptanceTest.csproj -c Debug --artifacts-path=/tmp/artifacts/roslyn-workbench-mcp
+dotnet publish src/Roslyn.Workbench.Mcp/Roslyn.Workbench.Mcp.csproj -c Debug
+ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH="$PWD/src/Roslyn.Workbench.Mcp/bin/Debug/net10.0/publish/Roslyn.Workbench.Mcp" \
+  dotnet test test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.Mcp.AcceptanceTest.csproj -c Debug
 ```
 
 Release uses `-c Release` for both commands and this explicit path:
 
 ```text
-/tmp/artifacts/roslyn-workbench-mcp/publish/Roslyn.Workbench.Mcp/release/Roslyn.Workbench.Mcp
+src/Roslyn.Workbench.Mcp/bin/Release/net10.0/publish/Roslyn.Workbench.Mcp
 ```
 
 ## Windows PowerShell
@@ -27,19 +27,19 @@ Release uses `-c Release` for both commands and this explicit path:
 Debug:
 
 ```powershell
-$artifactsPath = Join-Path ([System.IO.Path]::GetTempPath()) 'artifacts\roslyn-workbench-mcp'
-dotnet publish src/Roslyn.Workbench.Mcp/Roslyn.Workbench.Mcp.csproj -c Debug --artifacts-path=$artifactsPath
-$env:ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH = Join-Path $artifactsPath 'publish\Roslyn.Workbench.Mcp\debug\Roslyn.Workbench.Mcp.exe'
-dotnet test test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.Mcp.AcceptanceTest.csproj -c Debug --artifacts-path=$artifactsPath
+dotnet publish src/Roslyn.Workbench.Mcp/Roslyn.Workbench.Mcp.csproj -c Debug
+$env:ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH = Join-Path $PWD 'src\Roslyn.Workbench.Mcp\bin\Debug\net10.0\publish\Roslyn.Workbench.Mcp.exe'
+dotnet test test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.Mcp.AcceptanceTest.csproj -c Debug
 ```
 
 Release uses `-c Release` for both commands and this explicit assignment:
 
 ```powershell
-$env:ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH = Join-Path $artifactsPath 'publish\Roslyn.Workbench.Mcp\release\Roslyn.Workbench.Mcp.exe'
+$env:ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH = Join-Path $PWD 'src\Roslyn.Workbench.Mcp\bin\Release\net10.0\publish\Roslyn.Workbench.Mcp.exe'
 ```
 
 Set `ROSLYN_WORKBENCH_MCP_ACCEPTANCE_RETAIN_ROOT=true` while diagnosing a failure to retain a failed scenario root. Without it, scenario workspaces and state are removed during asynchronous fixture disposal.
+Retained failure roots include `process.txt` and `server.stderr.log` alongside the scenario workspace and state.
 
 ## Published response envelope
 

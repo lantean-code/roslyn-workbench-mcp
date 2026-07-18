@@ -267,8 +267,15 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
     {
         try
         {
-            var json = await _fileSystem.File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
-            return JsonSerializer.Deserialize<WorkspaceInstanceStatus>(json, _serializerOptions);
+            await using var stream = _fileSystem.FileStream.New(
+                path,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.ReadWrite | FileShare.Delete);
+            return await JsonSerializer.DeserializeAsync<WorkspaceInstanceStatus>(
+                stream,
+                _serializerOptions,
+                cancellationToken).ConfigureAwait(false);
         }
         catch (IOException)
         {

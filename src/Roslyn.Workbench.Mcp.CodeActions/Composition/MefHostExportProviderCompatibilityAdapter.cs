@@ -1,10 +1,15 @@
 using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Composition;
 
 internal sealed class MefHostExportProviderCompatibilityAdapter : IMefHostExportProviderCompatibilityAdapter
 {
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "Enumerating Roslyn MEF exports activates external providers; any provider-defined activation failure must make only the Code Action catalogue unavailable.")]
     public MefHostExportReadResult<T> ReadExports<T>(MefHostServices hostServices)
     {
         var methods = typeof(MefHostServices)

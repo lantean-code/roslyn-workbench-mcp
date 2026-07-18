@@ -23,7 +23,7 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
             ? GetEnclosingSymbols(locationResolution.SemanticModel, locationResolution.Node, context)
             : [];
         var diagnostics = request.IncludeDiagnostics
-            ? locationResolution.SemanticModel.GetDiagnostics(locationResolution.Location.SourceSpan)
+            ? locationResolution.SemanticModel.GetDiagnostics(locationResolution.Location.SourceSpan, cancellationToken)
                 .Distinct(DiagnosticLocationComparer.Instance)
                 .Select(diagnostic => new DiagnosticInfo
                 {

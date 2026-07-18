@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Roslyn.Workbench.Mcp.ToolExecution;
 
 internal sealed class UnhandledToolExceptionFilter
@@ -9,6 +11,10 @@ internal sealed class UnhandledToolExceptionFilter
         _logger = logger;
     }
 
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "This is the top-level MCP tool boundary; unexpected non-cancellation failures are logged and converted to a correlated error envelope so they do not terminate the server.")]
     public async ValueTask<CallToolResult> InvokeAsync(
         McpRequestHandler<CallToolRequestParams, CallToolResult> next,
         RequestContext<CallToolRequestParams> context,

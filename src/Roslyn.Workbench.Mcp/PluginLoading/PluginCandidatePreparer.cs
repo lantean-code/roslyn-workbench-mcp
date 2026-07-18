@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.Loader;
 
@@ -60,6 +61,10 @@ internal sealed class PluginCandidatePreparer : IPluginCandidatePreparer
         };
     }
 
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "Bundled plugin preparation executes plugin-owned configuration; any plugin-defined failure must disable only that plugin and be reported through catalogue status.")]
     private void PrepareBundledAssembly(
         Assembly assembly,
         ICollection<PreparedCatalogPlugin> plugins,
@@ -141,6 +146,10 @@ internal sealed class PluginCandidatePreparer : IPluginCandidatePreparer
         PrepareExternalCandidate(candidate, plugins, statuses, loadContexts);
     }
 
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "External plugin loading and preparation execute third-party code; any plugin-defined failure must disable only that plugin and be reported through catalogue status.")]
     private void PrepareExternalCandidate(
         PluginPackageCandidate candidate,
         ICollection<PreparedCatalogPlugin> plugins,

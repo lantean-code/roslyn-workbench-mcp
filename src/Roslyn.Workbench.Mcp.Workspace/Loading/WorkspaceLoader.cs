@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Roslyn.Workbench.Mcp.Workspace.Loading;
 
 internal sealed class WorkspaceLoader : IWorkspaceLoader
@@ -46,6 +48,10 @@ internal sealed class WorkspaceLoader : IWorkspaceLoader
         return _compatibilityInspector.Inspect(projectPath);
     }
 
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "MSBuild workspace loading is an external compatibility boundary; non-cancellation failures are returned as workspace diagnostics after the partially loaded workspace is disposed.")]
     public async ValueTask<WorkspaceLoadResult> LoadAsync(string path, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();

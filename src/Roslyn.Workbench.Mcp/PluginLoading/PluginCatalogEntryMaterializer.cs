@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Roslyn.Workbench.Mcp.PluginLoading;
 
 internal sealed class PluginCatalogEntryMaterializer : IPluginCatalogEntryMaterializer
@@ -9,6 +11,10 @@ internal sealed class PluginCatalogEntryMaterializer : IPluginCatalogEntryMateri
         _toolRegistrationMaterializer = toolRegistrationMaterializer;
     }
 
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "Tool materialization executes third-party plugin configuration; any plugin-defined failure must disable only that plugin and be reported through catalogue diagnostics.")]
     public PluginCatalogEntryMaterialization Materialize(PreparedCatalogPlugin plugin)
     {
         try

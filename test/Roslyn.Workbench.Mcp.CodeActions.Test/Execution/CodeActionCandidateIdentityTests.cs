@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Roslyn.Workbench.Mcp.CodeActions.Test.Execution;
 
 public sealed class CodeActionCandidateIdentityTests
@@ -54,6 +56,10 @@ public sealed class CodeActionCandidateIdentityTests
         equals.Should().BeFalse();
     }
 
+    [SuppressMessage(
+        "Maintainability",
+        "CA1508:Avoid dead conditional code",
+        Justification = "The assertion deliberately verifies the typed equality contract for a null operand even though static analysis can determine the result.")]
     [Fact]
     public void GIVEN_OtherIdentityIsMissing_WHEN_ComparingIdentities_THEN_ShouldNotBeEqual()
     {

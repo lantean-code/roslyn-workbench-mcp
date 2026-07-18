@@ -85,12 +85,15 @@ internal sealed partial class NativeAtomicFileCommitter : IAtomicFileCommitter
             ?? throw new InvalidOperationException($"The path '{path}' does not have a parent directory.");
     }
 
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
     [LibraryImport("kernel32", EntryPoint = "MoveFileExW", StringMarshalling = StringMarshalling.Utf16, SetLastError = true)]
     private static partial int MoveFileEx(string existingFileName, string newFileName, uint flags);
 
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
     [LibraryImport("libc", EntryPoint = "open", StringMarshalling = StringMarshalling.Utf8, SetLastError = true)]
     private static partial int Open(string path, int flags);
 
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
     [LibraryImport("libc", EntryPoint = "fsync", SetLastError = true)]
     private static partial int Fsync(int fileDescriptor);
 

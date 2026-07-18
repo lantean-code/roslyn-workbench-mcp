@@ -613,12 +613,12 @@ internal static class DependencyAnalysisHelpers
         };
     }
 
-    private static INamedTypeSymbol? GetOwningTypeSymbol(ISymbol? symbol)
+    private static INamedTypeSymbol? GetOwningTypeSymbol(ISymbol symbol)
     {
         return symbol switch
         {
             INamedTypeSymbol namedTypeSymbol => NormalizeNamedTypeSymbol(namedTypeSymbol),
-            _ => symbol?.ContainingType is { } containingType
+            _ => symbol.ContainingType is { } containingType
                 ? NormalizeNamedTypeSymbol(containingType)
                 : null,
         };

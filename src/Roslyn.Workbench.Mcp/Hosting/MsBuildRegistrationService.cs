@@ -1,4 +1,6 @@
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace Roslyn.Workbench.Mcp.Hosting;
 
 internal sealed class MsBuildRegistrationService : IMsBuildRegistrationService
@@ -12,6 +14,10 @@ internal sealed class MsBuildRegistrationService : IMsBuildRegistrationService
         Message = "MSBuild has not been registered.",
     };
 
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "MSBuild discovery is a host startup prerequisite boundary; any locator failure is published as unavailable component status instead of terminating the MCP server.")]
     public ComponentStatus EnsureRegistered()
     {
         lock (_syncRoot)

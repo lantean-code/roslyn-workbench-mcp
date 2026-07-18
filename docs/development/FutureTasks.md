@@ -28,6 +28,16 @@ No open P0 release decisions or blockers remain from the documentation audit.
 
 ## P1 — Production Confidence and Performance
 
+### Triage and remediate the solution-wide .NET analyzer baseline
+
+**Status:** Started
+
+The complete `latest-all` baseline began with 2,205 findings across 379 files and 22 projects. The current inventory contains 717 findings across 207 files; six diagnostic families are resolved. Establish narrow policy for intentional test conventions and fixtures, then remediate production correctness, lifetime, determinism and performance findings in cohesive batches. Do not apply API-design or concrete-type suggestions mechanically where they would weaken public contracts, plugin discovery or architectural boundaries.
+
+Complete the high-priority production batches before recording performance baselines because analyzer-driven changes can affect allocations, cancellation and execution timing.
+
+Source: [Analyzer Inventory.md](Analyzer%20Inventory.md)
+
 ### Establish and execute a tool performance-tuning programme
 
 **Status:** Not started

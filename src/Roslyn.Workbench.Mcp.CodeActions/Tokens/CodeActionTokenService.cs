@@ -49,7 +49,15 @@ internal sealed class CodeActionTokenService : ICodeActionTokenService
             payload = parsed;
             return true;
         }
-        catch
+        catch (FormatException)
+        {
+            return false;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+        catch (NotSupportedException)
         {
             return false;
         }

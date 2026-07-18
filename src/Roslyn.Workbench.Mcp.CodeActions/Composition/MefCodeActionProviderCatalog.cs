@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Microsoft.Extensions.Options;
 
@@ -22,6 +23,10 @@ internal sealed class MefCodeActionProviderCatalog : ICodeActionProviderCatalog
         _composition = Compose(options.Value, exportProvider);
     }
 
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "Code Action assemblies and providers are external startup inputs; composition failures must disable only the Code Action component and remain visible through component status.")]
     private static CodeActionProviderCatalogComposition Compose(
         CodeActionCompositionOptions options,
         IMefHostExportProviderCompatibilityAdapter exportProvider)

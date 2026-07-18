@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.ExceptionServices;
 using System.Text.Json;
 
@@ -9,6 +10,10 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
     private readonly IFileSystem _fileSystem;
     private readonly IWorkspacePathComparison _pathComparison;
     private readonly Dictionary<string, WorkspaceInstanceStatusHandle> _handles = new(StringComparer.Ordinal);
+    [SuppressMessage(
+        "Usage",
+        "CA2213:Disposable fields should be disposed",
+        Justification = "The semaphore remains usable after logical disposal so queued and repeated lifecycle calls can observe disposed state without ObjectDisposedException; AvailableWaitHandle is never accessed.")]
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly string _instanceId = $"{Environment.ProcessId}-{Guid.NewGuid():n}";
     private bool _isDisposed;
@@ -130,6 +135,10 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         }
     }
 
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "Disposal must attempt every workspace status handle, retain the first failure, and rethrow it after all handles have been closed.")]
     public async ValueTask DisposeAsync()
     {
         await _gate.WaitAsync().ConfigureAwait(false);

@@ -212,7 +212,10 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
 
         var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
         var node = syntaxRoot?.FindNode(locationResolution.Value.Span, getInnermostNodeForTie: true);
-        symbol = node is null ? null : semanticModel.GetDeclaredSymbol(node) ?? semanticModel.GetSymbolInfo(node).Symbol;
+        symbol = node is null
+            ? null
+            : semanticModel.GetDeclaredSymbol(node, cancellationToken)
+                ?? semanticModel.GetSymbolInfo(node, cancellationToken).Symbol;
 
         return symbol is null
             ? SelectorResolveResult<ISymbol>.NotFound()

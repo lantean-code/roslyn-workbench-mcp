@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 
@@ -21,6 +22,10 @@ internal sealed record BuiltInCodeActionAuditProbe
 
 internal static class BuiltInCodeActionAuditHarness
 {
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "The compatibility audit deliberately probes arbitrary built-in Roslyn providers and records provider-defined runtime failures as audit outcomes while allowing cancellation to propagate.")]
     public static async Task<BuiltInCodeActionAuditProbe> ProbeAsync(BuiltInCodeActionAuditCase auditCase)
     {
         ArgumentNullException.ThrowIfNull(auditCase);

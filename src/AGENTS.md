@@ -102,7 +102,7 @@
 - Do not run `unix2dos` on files that are intentionally LF per `.gitattributes` or repository convention.
 - Before finishing, verify every changed CRLF-governed file is `crlf` and not `mixed`.
 - After modifying source files, run `dotnet format --include <changed files>` for the files changed in the current task only, following the environment-specific artifacts-path rule in the repository root `AGENTS.md`.
-- Run the full .NET analyzer build defined in the repository root `AGENTS.md` and address applicable `CAxxxx` diagnostics in every changed source file. A normal build with zero warnings is not sufficient because the IDE reports additional default-disabled rules.
+- Run the SDK `latest-all` .NET analyzer build defined in the repository root `AGENTS.md` and address applicable `CAxxxx` diagnostics in every changed source file. A normal build with zero warnings is not sufficient because the IDE reports additional default-disabled rules.
 - Treat analyzer fixes as design changes: preserve public contracts, architectural boundaries, and intentional abstractions rather than applying suggestions mechanically. If a diagnostic should remain, state the specific reason in the task hand-off.
 - Do not format unrelated files.
 
@@ -124,5 +124,5 @@
 - [ ] Design follows DI, SOLID, DRY, and avoids security pitfalls.
 - [ ] Positional records are not used; explicit properties and constructors are used and constructor parameters are camelCase.
 - [ ] Query and mutation tools are kept in plugin projects, not server-owned lifecycle projects.
-- [ ] The full .NET analyzer set has been run and applicable diagnostics in changed source files are fixed or explicitly justified.
+- [ ] The SDK `latest-all` .NET analyzer set has been run and applicable diagnostics in changed source files are fixed or explicitly justified.
 - [ ] Any conflicts with existing code or docs are reported for clarification.

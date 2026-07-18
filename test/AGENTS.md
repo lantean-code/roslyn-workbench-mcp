@@ -88,7 +88,7 @@ Cross-project test ownership and execution-path policy are defined in `../docs/d
 
 ## Formatting
 - After modifying test files, run `dotnet format --include <changed files>` for the files changed in the current task only, following the environment-specific artifacts-path rule in the repository root `AGENTS.md`.
-- Run the full .NET analyzer build defined in the repository root `AGENTS.md` and address applicable `CAxxxx` diagnostics in every changed test file. A normal build with zero warnings is not sufficient because the IDE reports additional default-disabled rules.
+- Run the SDK `latest-all` .NET analyzer build defined in the repository root `AGENTS.md` and address applicable `CAxxxx` diagnostics in every changed test file. A normal build with zero warnings is not sufficient because the IDE reports additional default-disabled rules.
 - Retain test-specific clarity and the repository's test conventions when evaluating analyzer suggestions; explicitly justify any diagnostic intentionally left in a changed test file.
 - Do not format unrelated files.
 

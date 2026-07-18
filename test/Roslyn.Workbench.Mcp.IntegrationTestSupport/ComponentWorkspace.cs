@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 using Roslyn.Workbench.Mcp.Configuration;
 using Roslyn.Workbench.Mcp.Workspace.Coordination;
@@ -244,6 +245,10 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
         return GetRequiredService<ITransactionService>().RollbackAsync(workspaceId, alias, path, cancellationToken);
     }
 
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "The integration fixture must attempt every independent cleanup step, retain the first failure, and report it after all owned resources have been released.")]
     public async ValueTask DisposeAsync()
     {
         if (Interlocked.Exchange(ref _isDisposed, 1) != 0)

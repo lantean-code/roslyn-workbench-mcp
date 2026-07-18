@@ -31,7 +31,7 @@ internal sealed class ConvertToInterpolatedStringTool : CodeActionMutationToolHa
         var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(request.Selection, cancellationToken).ConfigureAwait(false);
         if (locationResolution.Status != SelectorResolveStatus.Resolved)
         {
-            return CodeActionExecutionResultFactory.RejectFromStatus<WorkspaceMutationCandidate>(locationResolution.Status, "Location");
+            return CodeActionExecutionResultFactory.RejectFromStatus<WorkspaceMutationCandidate>(locationResolution.Status, "Location", "location");
         }
 
         return await _replayService.StageReplayCodeActionAsync(new ReplayCodeActionRequest

@@ -68,7 +68,7 @@ public sealed class SolutionHierarchyServiceIntegrationTests
         try
         {
             var solutionPath = Path.Combine(directoryPath, "Sample.sln");
-            await File.WriteAllTextAsync(solutionPath, CreateSlnContent().Replace("\n", Environment.NewLine), TestContext.Current.CancellationToken);
+            await File.WriteAllTextAsync(solutionPath, CreateSlnContent().Replace("\n", Environment.NewLine, StringComparison.Ordinal), TestContext.Current.CancellationToken);
 
             var result = await target.GetSolutionHierarchyAsync(solutionPath, TestContext.Current.CancellationToken);
 
@@ -96,7 +96,7 @@ public sealed class SolutionHierarchyServiceIntegrationTests
         try
         {
             var solutionPath = Path.Combine(directoryPath, "Sample.slnx");
-            await File.WriteAllTextAsync(solutionPath, CreateSlnxContent().Replace("\n", Environment.NewLine), TestContext.Current.CancellationToken);
+            await File.WriteAllTextAsync(solutionPath, CreateSlnxContent().Replace("\n", Environment.NewLine, StringComparison.Ordinal), TestContext.Current.CancellationToken);
 
             var result = await target.GetSolutionHierarchyAsync(solutionPath, TestContext.Current.CancellationToken);
 

@@ -76,7 +76,7 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
         {
             return new SyntaxNodeResolution
             {
-                Rejection = ToolExecutionHelpers.RejectFromStatus<OperationTreeData>(locationResolution.Status, "Location"),
+                Rejection = ToolExecutionHelpers.RejectFromStatus<OperationTreeData>(locationResolution.Status, "Location", "location"),
             };
         }
 

@@ -74,7 +74,7 @@ internal static class StartupOptionsResolver
             }
 
             var content = argument[2..];
-            var separatorIndex = content.IndexOf('=');
+            var separatorIndex = content.IndexOf('=', StringComparison.Ordinal);
             string key;
             string? value;
 

@@ -8,7 +8,7 @@ internal static class CompilerDiagnosticHelpers
         {
             Id = diagnostic.Id,
             Severity = InspectionProjectionFactory.MapSeverity(diagnostic.Severity),
-            Message = diagnostic.GetMessage(),
+            Message = diagnostic.GetMessage(CultureInfo.InvariantCulture),
             Location = diagnostic.Location.IsInSource ? context.WorkspaceResolver.CreateResolvedLocation(diagnostic.Location) : null,
         };
     }

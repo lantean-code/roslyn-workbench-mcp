@@ -134,7 +134,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
         {
             return new SyntaxNodeResolution
             {
-                Rejection = ToolExecutionHelpers.RejectFromStatus<ControlFlowGraphData>(locationResolution.Status, "Location"),
+                Rejection = ToolExecutionHelpers.RejectFromStatus<ControlFlowGraphData>(locationResolution.Status, "Location", "location"),
             };
         }
 

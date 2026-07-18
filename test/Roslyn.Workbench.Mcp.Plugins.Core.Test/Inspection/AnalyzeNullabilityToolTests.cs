@@ -194,7 +194,7 @@ public sealed class AnalyzeNullabilityToolTests
         var syntaxTree = await selectedDocument.GetSyntaxTreeAsync(TestContext.Current.CancellationToken);
         var selectedStart = selectedLocation.SourceSpan.Start;
         var selectedLength = selectedLocation.SourceSpan.Length;
-        var outsideLocation = document.GetSingleNodeLocation<ReturnStatementSyntax>(item => item.ToString().Contains("return value.ToString()"));
+        var outsideLocation = document.GetSingleNodeLocation<ReturnStatementSyntax>(item => item.ToString().Contains("return value.ToString()", StringComparison.Ordinal));
         var projectedSelectedLocation = SelectorTestFactory.CreateResolvedLocation(selectedLocation, "Code.cs");
 
         queryContextMocks.QueryContext

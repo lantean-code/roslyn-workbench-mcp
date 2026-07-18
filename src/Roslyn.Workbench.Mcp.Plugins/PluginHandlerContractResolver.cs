@@ -27,9 +27,10 @@ internal sealed class PluginHandlerContractResolver : IPluginHandlerContractReso
 
         if (matchingContracts.Length != 1 || hasMismatchedContract)
         {
+            var handlerFamily = definition.Kind == ToolKind.Query ? "query" : "mutation";
             contract = null;
             diagnostic = CreateDiagnostic(
-                $"Plugin handler '{definition.HandlerType.FullName}' must implement exactly one {definition.Kind.ToString().ToLowerInvariant()} handler contract and no handler contract from the other family.");
+                $"Plugin handler '{definition.HandlerType.FullName}' must implement exactly one {handlerFamily} handler contract and no handler contract from the other family.");
             return false;
         }
 

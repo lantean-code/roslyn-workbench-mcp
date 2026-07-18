@@ -376,7 +376,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
             .Append("Command: ")
             .AppendLine(FormatCommand())
             .Append("Exit code: ")
-            .AppendLine((_completionDetails as StdioClientCompletionDetails)?.ExitCode?.ToString() ?? "unavailable")
+            .AppendLine((_completionDetails as StdioClientCompletionDetails)?.ExitCode?.ToString(CultureInfo.InvariantCulture) ?? "unavailable")
             .AppendLine("Standard error:")
             .Append(GetStandardError())
             .ToString();

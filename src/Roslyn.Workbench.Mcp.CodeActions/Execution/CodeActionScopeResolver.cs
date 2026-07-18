@@ -37,7 +37,7 @@ internal sealed class CodeActionScopeResolver : ICodeActionScopeResolver
             {
                 Documents = [resolution.Value],
             }
-            : Reject(RejectFromStatus<WorkspaceMutationCandidate>(resolution.Status, "Document"));
+            : Reject(RejectFromStatus<WorkspaceMutationCandidate>(resolution.Status, "Document", "document"));
     }
 
     private static CodeActionScopeResolution ResolveProject(
@@ -52,7 +52,7 @@ internal sealed class CodeActionScopeResolver : ICodeActionScopeResolver
         var resolution = workspaceResolver.ResolveProject(selector);
         return resolution.Status == SelectorResolveStatus.Resolved && resolution.Value is not null
             ? FromProject(resolution.Value)
-            : Reject(RejectFromStatus<WorkspaceMutationCandidate>(resolution.Status, "Project"));
+            : Reject(RejectFromStatus<WorkspaceMutationCandidate>(resolution.Status, "Project", "project"));
     }
 
     private static CodeActionScopeResolution ResolveProjects(
@@ -70,7 +70,7 @@ internal sealed class CodeActionScopeResolver : ICodeActionScopeResolver
             var resolution = workspaceResolver.ResolveProject(selector);
             if (resolution.Status != SelectorResolveStatus.Resolved || resolution.Value is null)
             {
-                return Reject(RejectFromStatus<WorkspaceMutationCandidate>(resolution.Status, "Project"));
+                return Reject(RejectFromStatus<WorkspaceMutationCandidate>(resolution.Status, "Project", "project"));
             }
 
             projects.Add(resolution.Value);

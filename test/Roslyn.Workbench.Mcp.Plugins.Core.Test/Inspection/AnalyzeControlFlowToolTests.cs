@@ -142,7 +142,7 @@ public sealed class AnalyzeControlFlowToolTests
 
         var target = new AnalyzeControlFlowTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var selectedLocation = document.GetSingleNodeLocation<IfStatementSyntax>(item => item.ToString().Contains("return 1;"));
+        var selectedLocation = document.GetSingleNodeLocation<IfStatementSyntax>(item => item.ToString().Contains("return 1;", StringComparison.Ordinal));
 
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
@@ -194,7 +194,7 @@ public sealed class AnalyzeControlFlowToolTests
 
         var target = new AnalyzeControlFlowTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var selectedLocation = document.GetSingleNodeLocation<IfStatementSyntax>(item => item.ToString().Contains("return 1;"));
+        var selectedLocation = document.GetSingleNodeLocation<IfStatementSyntax>(item => item.ToString().Contains("return 1;", StringComparison.Ordinal));
 
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
@@ -295,7 +295,7 @@ public sealed class AnalyzeControlFlowToolTests
 
         var target = new AnalyzeControlFlowTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var selectedLocation = document.GetSingleNodeLocation<IfStatementSyntax>(item => item.ToString().Contains("return 1;"));
+        var selectedLocation = document.GetSingleNodeLocation<IfStatementSyntax>(item => item.ToString().Contains("return 1;", StringComparison.Ordinal));
         var returnLocation = document.GetSingleNodeLocation<ReturnStatementSyntax>(item => item.ToString() == "return 1;");
         var region = SelectorTestFactory.CreateResolvedLocation(selectedLocation, "Code.cs");
         var projectedReturn = SelectorTestFactory.CreateResolvedLocation(returnLocation, "Code.cs");
@@ -365,7 +365,7 @@ public sealed class AnalyzeControlFlowToolTests
 
         var target = new AnalyzeControlFlowTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var selectedLocation = document.GetSingleNodeLocation<IfStatementSyntax>(item => item.ToString().Contains("return 1;"));
+        var selectedLocation = document.GetSingleNodeLocation<IfStatementSyntax>(item => item.ToString().Contains("return 1;", StringComparison.Ordinal));
         var returnLocation = document.GetSingleNodeLocation<ReturnStatementSyntax>(item => item.ToString() == "return 1;");
         var region = SelectorTestFactory.CreateResolvedLocation(selectedLocation, "Code.cs");
         var projectedExit = SelectorTestFactory.CreateResolvedLocation(returnLocation, "Code.cs");

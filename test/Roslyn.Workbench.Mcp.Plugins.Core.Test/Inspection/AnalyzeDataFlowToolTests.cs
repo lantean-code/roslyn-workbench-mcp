@@ -140,7 +140,7 @@ public sealed class AnalyzeDataFlowToolTests
 
         var target = new AnalyzeDataFlowTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var selectedLocation = document.GetSingleNodeLocation<LocalDeclarationStatementSyntax>(item => item.ToString().Contains("Func<string> get"));
+        var selectedLocation = document.GetSingleNodeLocation<LocalDeclarationStatementSyntax>(item => item.ToString().Contains("Func<string> get", StringComparison.Ordinal));
 
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
@@ -191,7 +191,7 @@ public sealed class AnalyzeDataFlowToolTests
 
         var target = new AnalyzeDataFlowTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var selectedLocation = document.GetSingleNodeLocation<LocalDeclarationStatementSyntax>(item => item.ToString().Contains("Func<string> get"));
+        var selectedLocation = document.GetSingleNodeLocation<LocalDeclarationStatementSyntax>(item => item.ToString().Contains("Func<string> get", StringComparison.Ordinal));
 
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
@@ -290,7 +290,7 @@ public sealed class AnalyzeDataFlowToolTests
 
         var target = new AnalyzeDataFlowTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var selectedLocation = document.GetSingleNodeLocation<LocalDeclarationStatementSyntax>(item => item.ToString().Contains("Func<string> get"));
+        var selectedLocation = document.GetSingleNodeLocation<LocalDeclarationStatementSyntax>(item => item.ToString().Contains("Func<string> get", StringComparison.Ordinal));
         var region = SelectorTestFactory.CreateResolvedLocation(selectedLocation, "Code.cs");
 
         queryContextMocks.QueryContext

@@ -30,12 +30,12 @@ The clean baseline build succeeded with zero compiler errors.
 
 | Measure | Baseline | Remaining |
 | --- | ---: | ---: |
-| Analyzer findings | 2,205 | 578 |
-| Diagnostic IDs | 32 | 17 |
-| Files | 379 | 189 |
+| Analyzer findings | 2,205 | 546 |
+| Diagnostic IDs | 32 | 14 |
+| Files | 379 | 178 |
 | Projects | 22 | 19 |
-| Production findings | 149 | 123 |
-| Test and fixture findings | 2,056 | 455 |
+| Production findings | 149 | 103 |
+| Test and fixture findings | 2,056 | 443 |
 
 The remaining counts come from the latest successful solution-wide analyzer build. Resolved diagnostics are excluded from the active inventory and recorded separately below.
 
@@ -50,9 +50,6 @@ Of the six IDE findings that triggered this audit for `GetCodeContextTool`, the 
 | `CA1000` | Avoid static members on generic types because callers must specify the containing type argument | 15 | 15 | 0 | Review generic factory APIs; preserve intentional fluent contracts | Design/API |
 | `CA1040` | Empty interfaces do not define a behavioural contract | 2 | 2 | 0 | Review marker-interface intent and document or suppress if required | Design/API |
 | `CA1068` | A `CancellationToken` parameter should be the final parameter | 2 | 1 | 1 | Review cancellation-token ordering with contract compatibility | Design/API |
-| `CA1305` | Supply an `IFormatProvider` when formatting values or messages | 15 | 13 | 2 | Use explicit culture for stable diagnostics and comparisons | Determinism |
-| `CA1307` | Supply an explicit `StringComparison` for string operations | 12 | 2 | 10 | Supply explicit string comparison semantics | Determinism |
-| `CA1308` | Prefer uppercase for normalised strings because lowercase mappings can lose information | 5 | 5 | 0 | Review protocol normalisation; retain lowercase only with explicit rationale | Determinism |
 | `CA1515` | Types in application assemblies can often be internal instead of public | 91 | 32 | 59 | Internalise implementation types; preserve real contracts and discovery surfaces | Design/API |
 | `CA1711` | Type names should not use suffixes that imply a different kind of type | 2 | 1 | 1 | Review established contract names before renaming | Design/API |
 | `CA1802` | A readonly field holding a compile-time value can be a constant | 1 | 0 | 1 | Use a constant where it does not weaken the test scenario | Performance |
@@ -75,6 +72,9 @@ Of the six IDE findings that triggered this audit for `GetCodeContextTool`, the 
 | `CA1034` | 54 | Suppressed for test and plugin-fixture builds because externally visible nested request, response and handler types are deliberate reflection and contract-validation fixtures |
 | `CA1062` | 16 | Internalised Host execution leases and shared-test implementation types, made nested serialisation fixtures private, documented the xUnit-supplied theory value, and retained validation only at genuine plugin entry-point boundaries |
 | `CA1065` | 1 | Documented the intentional temporary-directory disposal exception, which must surface test cleanup failures instead of hiding them |
+| `CA1305` | 15 | Used invariant culture for published Roslyn diagnostics, diagnostic equality and acceptance-process values so output is stable across environments |
+| `CA1307` | 12 | Added explicit ordinal semantics to protocol delimiters, source-fragment matching and test line-ending normalisation |
+| `CA1308` | 5 | Replaced lowercase normalisation with explicit code and display labels for selector failures and an explicit query/mutation vocabulary for plugin contract diagnostics |
 | `CA1508` | 2 | Removed the redundant production null path and added a method-scoped suppression for the deliberate equality-contract test |
 | `CA1707` | 1,462 | Suppressed for `IsTestProject` builds because GIVEN/WHEN/THEN names are mandated |
 | `CA1812` | 33 | Audited every finding and added source-local pragma scopes around eight fixture groups used through reflection, DI, closed-generic registration, schema metadata or deliberate activation failures; no dead types were found |
@@ -89,19 +89,19 @@ Of the six IDE findings that triggered this audit for `GetCodeContextTool`, the 
 
 | Project | Remaining | IDs | Files |
 | --- | ---: | ---: | ---: |
-| `src/Roslyn.Workbench.Mcp` | 49 | 6 | 41 |
-| `src/Roslyn.Workbench.Mcp.CodeActions` | 10 | 4 | 5 |
-| `src/Roslyn.Workbench.Mcp.Plugins` | 10 | 4 | 6 |
-| `src/Roslyn.Workbench.Mcp.Plugins.Core` | 30 | 5 | 13 |
+| `src/Roslyn.Workbench.Mcp` | 48 | 5 | 41 |
+| `src/Roslyn.Workbench.Mcp.CodeActions` | 7 | 2 | 3 |
+| `src/Roslyn.Workbench.Mcp.Plugins` | 9 | 3 | 5 |
+| `src/Roslyn.Workbench.Mcp.Plugins.Core` | 15 | 3 | 8 |
 | `src/Roslyn.Workbench.Mcp.Workspace` | 24 | 4 | 11 |
-| `test/Roslyn.Workbench.Mcp.AcceptanceTest` | 28 | 3 | 9 |
+| `test/Roslyn.Workbench.Mcp.AcceptanceTest` | 26 | 2 | 9 |
 | `test/Roslyn.Workbench.Mcp.CodeActions.AuditTest` | 61 | 3 | 5 |
 | `test/Roslyn.Workbench.Mcp.CodeActions.IntegrationTest` | 6 | 2 | 3 |
 | `test/Roslyn.Workbench.Mcp.CodeActions.Test` | 38 | 6 | 16 |
 | `test/Roslyn.Workbench.Mcp.IntegrationTest` | 8 | 3 | 4 |
 | `test/Roslyn.Workbench.Mcp.IntegrationTestSupport` | 21 | 2 | 4 |
-| `test/Roslyn.Workbench.Mcp.Plugins.Core.IntegrationTest` | 12 | 4 | 7 |
-| `test/Roslyn.Workbench.Mcp.Plugins.Core.Test` | 24 | 4 | 10 |
+| `test/Roslyn.Workbench.Mcp.Plugins.Core.IntegrationTest` | 10 | 3 | 7 |
+| `test/Roslyn.Workbench.Mcp.Plugins.Core.Test` | 16 | 3 | 7 |
 | `test/Roslyn.Workbench.Mcp.Plugins.Test` | 22 | 4 | 10 |
 | `test/Roslyn.Workbench.Mcp.Test` | 71 | 8 | 22 |
 | `test/Roslyn.Workbench.Mcp.TestSupport` | 2 | 1 | 2 |
@@ -113,12 +113,11 @@ Of the six IDE findings that triggered this audit for `GetCodeContextTool`, the 
 
 Use cohesive batches and rerun the full analyzer baseline after each batch. Do not mix unrelated analyzer cleanup with performance measurements.
 
-1. Address production determinism findings: `CA1305`, `CA1307` and `CA1308`.
-2. Address production async findings before changing test-wide async policy: production `CA2007` and `CA1849`.
-3. Establish the test async policy for test `CA2007` and `CA1849` findings.
-4. Address production performance findings using measurements where a suggestion changes abstractions: `CA1848` and `CA1859`.
-5. Review design/API findings individually. Do not rename public contracts, remove discovery types or change collection shapes solely to satisfy an analyzer.
-6. Clean up remaining test-only performance and assertion findings after production remediation is stable.
+1. Address production async findings before changing test-wide async policy: production `CA2007` and `CA1849`.
+2. Establish the test async policy for test `CA2007` and `CA1849` findings.
+3. Address production performance findings using measurements where a suggestion changes abstractions: `CA1848` and `CA1859`.
+4. Review design/API findings individually. Do not rename public contracts, remove discovery types or change collection shapes solely to satisfy an analyzer.
+5. Clean up remaining test-only performance and assertion findings after production remediation is stable.
 
 The performance-tuning baseline should be recorded only after production determinism, async and performance findings are resolved or explicitly accepted, because those changes can affect allocations, cancellation and execution timing.
 

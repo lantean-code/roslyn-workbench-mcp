@@ -19,7 +19,7 @@ internal sealed class AnalyzeNullabilityTool : QueryToolHandler<AnalyzeNullabili
             var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(request.Location, cancellationToken).ConfigureAwait(false);
             if (locationResolution.Status != SelectorResolveStatus.Resolved)
             {
-                return ToolExecutionHelpers.RejectFromStatus<NullabilityAnalysisData>(locationResolution.Status, "Location");
+                return ToolExecutionHelpers.RejectFromStatus<NullabilityAnalysisData>(locationResolution.Status, "Location", "location");
             }
 
             if (locationResolution.Value is null || context.CurrentSolution.GetDocument(locationResolution.Value.SourceTree) is not { } document)

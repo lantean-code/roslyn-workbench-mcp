@@ -19,7 +19,7 @@ internal static class AcceptanceFailureDiagnostics
     {
         Directory.CreateDirectory(scenarioRoot);
 
-        var processDetails = $"Command: {command}{Environment.NewLine}Exit code: {exitCode?.ToString() ?? "unavailable"}{Environment.NewLine}";
+        var processDetails = $"Command: {command}{Environment.NewLine}Exit code: {exitCode?.ToString(CultureInfo.InvariantCulture) ?? "unavailable"}{Environment.NewLine}";
         await File.WriteAllTextAsync(Path.Combine(scenarioRoot, "process.txt"), processDetails);
         await File.WriteAllTextAsync(Path.Combine(scenarioRoot, "server.stderr.log"), standardError);
     }

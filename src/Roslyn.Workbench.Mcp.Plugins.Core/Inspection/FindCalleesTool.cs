@@ -224,7 +224,7 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
         {
             return new LocationResolution
             {
-                Rejection = ToolExecutionHelpers.RejectFromStatus<CalleeSearchData>(location.Status, "Location"),
+                Rejection = ToolExecutionHelpers.RejectFromStatus<CalleeSearchData>(location.Status, "Location", "location"),
             };
         }
 

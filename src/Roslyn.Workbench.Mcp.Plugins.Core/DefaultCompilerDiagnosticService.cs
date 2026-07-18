@@ -57,7 +57,7 @@ internal sealed class DefaultCompilerDiagnosticService : ICompilerDiagnosticServ
             }
 
             return string.Equals(x.Id, y.Id, StringComparison.Ordinal)
-                && string.Equals(x.GetMessage(), y.GetMessage(), StringComparison.Ordinal)
+                && string.Equals(x.GetMessage(CultureInfo.InvariantCulture), y.GetMessage(CultureInfo.InvariantCulture), StringComparison.Ordinal)
                 && x.Severity == y.Severity
                 && x.Location.SourceSpan.Equals(y.Location.SourceSpan)
                 && string.Equals(x.Location.SourceTree?.FilePath, y.Location.SourceTree?.FilePath, StringComparison.Ordinal);
@@ -67,7 +67,7 @@ internal sealed class DefaultCompilerDiagnosticService : ICompilerDiagnosticServ
         {
             return HashCode.Combine(
                 obj.Id,
-                obj.GetMessage(),
+                obj.GetMessage(CultureInfo.InvariantCulture),
                 obj.Severity,
                 obj.Location.SourceSpan,
                 obj.Location.SourceTree?.FilePath);

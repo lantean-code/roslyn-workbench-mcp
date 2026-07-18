@@ -61,7 +61,7 @@ internal sealed class FindUnusedSymbolsTool : QueryToolHandler<FindUnusedSymbols
                 Reasons =
                 [
                     diagnostic.Id,
-                    diagnostic.GetMessage(),
+                    diagnostic.GetMessage(CultureInfo.InvariantCulture),
                 ],
             });
         }

@@ -24,7 +24,7 @@ internal sealed class CodeActionTokenService : ICodeActionTokenService
     public bool TryDecode(string token, out CodeActionTokenPayload payload)
     {
         payload = new CodeActionTokenPayload();
-        var separatorIndex = token.IndexOf('.');
+        var separatorIndex = token.IndexOf('.', StringComparison.Ordinal);
         if (separatorIndex <= 0 || separatorIndex == token.Length - 1)
         {
             return false;

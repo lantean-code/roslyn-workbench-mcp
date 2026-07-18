@@ -34,7 +34,7 @@ internal static class CodeActionSelectorHelpers
             ? new CodeActionToolResolutionResult<ISymbol, TResponse> { Value = resolution.Value }
             : new CodeActionToolResolutionResult<ISymbol, TResponse>
             {
-                Rejection = CodeActionExecutionResultFactory.RejectFromStatus<TResponse>(resolution.Status, "Symbol"),
+                Rejection = CodeActionExecutionResultFactory.RejectFromStatus<TResponse>(resolution.Status, "Symbol", "symbol"),
             };
     }
 

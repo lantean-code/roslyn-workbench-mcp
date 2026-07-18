@@ -19,7 +19,7 @@ internal sealed class DefaultToolRequestResolver : IToolRequestResolver
         var resolution = context.WorkspaceResolver.ResolveDocument(selector);
         return resolution.IsResolved
             ? new ToolResolutionResult<Document, TResponse> { Value = resolution.Value }
-            : new ToolResolutionResult<Document, TResponse> { Rejection = ToolExecutionHelpers.RejectFromStatus<TResponse>(resolution.Status, "Document") };
+            : new ToolResolutionResult<Document, TResponse> { Rejection = ToolExecutionHelpers.RejectFromStatus<TResponse>(resolution.Status, "Document", "document") };
     }
 
     public ToolResolutionResult<Project, TResponse> ResolveProject<TResponse>(ProjectSelector? selector, IToolExecutionContext context)
@@ -35,7 +35,7 @@ internal sealed class DefaultToolRequestResolver : IToolRequestResolver
         var resolution = context.WorkspaceResolver.ResolveProject(selector);
         return resolution.IsResolved
             ? new ToolResolutionResult<Project, TResponse> { Value = resolution.Value }
-            : new ToolResolutionResult<Project, TResponse> { Rejection = ToolExecutionHelpers.RejectFromStatus<TResponse>(resolution.Status, "Project") };
+            : new ToolResolutionResult<Project, TResponse> { Rejection = ToolExecutionHelpers.RejectFromStatus<TResponse>(resolution.Status, "Project", "project") };
     }
 
     public ToolResolutionResult<IReadOnlyList<Document>, TResponse> ResolveDocuments<TResponse>(ScopeSelector? scope, IToolExecutionContext context)
@@ -140,7 +140,7 @@ internal sealed class DefaultToolRequestResolver : IToolRequestResolver
         var resolution = await context.WorkspaceResolver.ResolveSymbolAsync(selector, cancellationToken).ConfigureAwait(false);
         return resolution.IsResolved
             ? new ToolResolutionResult<ISymbol, TResponse> { Value = resolution.Value }
-            : new ToolResolutionResult<ISymbol, TResponse> { Rejection = ToolExecutionHelpers.RejectFromStatus<TResponse>(resolution.Status, "Symbol") };
+            : new ToolResolutionResult<ISymbol, TResponse> { Rejection = ToolExecutionHelpers.RejectFromStatus<TResponse>(resolution.Status, "Symbol", "symbol") };
     }
 
     public PluginExecutionResult<TResponse>? ValidateSnapshot<TResponse>(IToolExecutionContext context, SnapshotPrecondition? expectedSnapshot)

@@ -64,7 +64,7 @@ internal sealed class CodeActionReplayService : ICodeActionReplayService
         var location = await context.WorkspaceResolver.ResolveLocationAsync(request.Location, cancellationToken).ConfigureAwait(false);
         if (location.Status != SelectorResolveStatus.Resolved || location.Value is null)
         {
-            return RejectFromStatus<WorkspaceMutationCandidate>(location.Status, "Location");
+            return RejectFromStatus<WorkspaceMutationCandidate>(location.Status, "Location", "location");
         }
 
         var document = context.CurrentSolution.GetDocument(location.Value.SourceTree);

@@ -21,7 +21,7 @@ internal sealed class ConvertExpressionBodyTool : CodeActionMutationToolHandler<
             request.ExpectedSnapshot,
             cancellationToken,
             context,
-            UseExpressionBodyProviderId).ConfigureAwait(false);
+            UseExpressionBodyProviderId);
         if (!ShouldTryLambdaProvider(result))
         {
             return result;
@@ -32,7 +32,7 @@ internal sealed class ConvertExpressionBodyTool : CodeActionMutationToolHandler<
             request.ExpectedSnapshot,
             cancellationToken,
             context,
-            UseExpressionBodyForLambdaProviderId).ConfigureAwait(false);
+            UseExpressionBodyForLambdaProviderId);
     }
 
     private static bool ShouldTryLambdaProvider(CodeActionExecutionResult<WorkspaceMutationCandidate> result)

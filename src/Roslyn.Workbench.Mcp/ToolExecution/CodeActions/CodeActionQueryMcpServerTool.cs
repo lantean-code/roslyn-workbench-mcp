@@ -32,7 +32,7 @@ internal sealed class CodeActionQueryMcpServerTool<THandler, TRequest, TResponse
     {
         var request = ToolRequestBinder.Deserialize<TRequest>(arguments);
         var contextLease = _contextFactory.CreateQueryContext(request, cancellationToken);
-        await using var _ = contextLease.ConfigureAwait(false);
+        await using var _ = contextLease;
         if (contextLease.HasFailure)
         {
             return CreateStructuredResult(
@@ -41,7 +41,7 @@ internal sealed class CodeActionQueryMcpServerTool<THandler, TRequest, TResponse
         }
 
         var context = contextLease.Context;
-        var result = await _handler.ExecuteAsync(request, context, cancellationToken).ConfigureAwait(false);
+        var result = await _handler.ExecuteAsync(request, context, cancellationToken);
         return CreateStructuredResult(
             McpPublishedResultSerializer.SerializeCodeActionQuery(result),
             result.Outcome.IsError());

@@ -52,7 +52,7 @@ internal sealed class CodeActionLocationFixService : ICodeActionLocationFixServi
             return Rejected<WorkspaceMutationCandidate>("InvalidRequest", "At least one diagnostic ID is required.");
         }
 
-        var location = await context.WorkspaceResolver.ResolveLocationAsync(request.Location, cancellationToken).ConfigureAwait(false);
+        var location = await context.WorkspaceResolver.ResolveLocationAsync(request.Location, cancellationToken);
         if (location.Status != SelectorResolveStatus.Resolved || location.Value is null)
         {
             return RejectFromStatus<WorkspaceMutationCandidate>(location.Status, "Location", "location");
@@ -77,7 +77,7 @@ internal sealed class CodeActionLocationFixService : ICodeActionLocationFixServi
             request.DiagnosticIds,
             request.AnalyzerTypeName,
             request.SyntheticDiagnosticId,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
         if (diagnostics.IsDefaultOrEmpty)
         {
             return Rejected<WorkspaceMutationCandidate>("CodeFixUnavailable", "No matching code fix was available at the selected location.");
@@ -86,7 +86,7 @@ internal sealed class CodeActionLocationFixService : ICodeActionLocationFixServi
         var candidates = new List<ClassifiedCodeAction>();
         foreach (var provider in matchingProviders)
         {
-            var actions = await _discoveryService.DiscoverCodeFixesAsync(provider, document, diagnostics, cancellationToken).ConfigureAwait(false);
+            var actions = await _discoveryService.DiscoverCodeFixesAsync(provider, document, diagnostics, cancellationToken);
             foreach (var action in actions)
             {
                 if (!string.IsNullOrWhiteSpace(request.Title)
@@ -141,8 +141,8 @@ internal sealed class CodeActionLocationFixService : ICodeActionLocationFixServi
         var candidate = distinctCandidates[0];
         return candidate.Descriptor.ExecutionMode switch
         {
-            CodeActionExecutionMode.Replay => await _operationService.CreateMutationCandidateAsync(candidate.Action.Action, candidate.Action.Title, context, cancellationToken).ConfigureAwait(false),
-            CodeActionExecutionMode.Parameterised => await _operationService.CreateMutationCandidateAsync(candidate.Action.Action, candidate.Action.Title, context, cancellationToken).ConfigureAwait(false),
+            CodeActionExecutionMode.Replay => await _operationService.CreateMutationCandidateAsync(candidate.Action.Action, candidate.Action.Title, context, cancellationToken),
+            CodeActionExecutionMode.Parameterised => await _operationService.CreateMutationCandidateAsync(candidate.Action.Action, candidate.Action.Title, context, cancellationToken),
             _ => Rejected<WorkspaceMutationCandidate>("CodeFixUnavailable", "The selected action is not replayable in this server build.", RequiredAction.ResolveTargetAgain),
         };
     }

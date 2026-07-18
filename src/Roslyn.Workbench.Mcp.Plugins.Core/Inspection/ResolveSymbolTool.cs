@@ -16,7 +16,7 @@ internal sealed class ResolveSymbolTool : QueryToolHandler<ResolveSymbolRequest,
             return ToolExecutionHelpers.Rejected<ResolveSymbolData>("InvalidRequest", "Resolve symbol requires location.");
         }
 
-        var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(request.Location, cancellationToken).ConfigureAwait(false);
+        var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(request.Location, cancellationToken);
         if (!locationResolution.IsResolved)
         {
             return ToolExecutionHelpers.RejectFromStatus<ResolveSymbolData>(locationResolution.Status, "Location", "location");
@@ -25,7 +25,7 @@ internal sealed class ResolveSymbolTool : QueryToolHandler<ResolveSymbolRequest,
         var symbolResolution = await context.WorkspaceResolver.ResolveSymbolAsync(new SymbolSelector
         {
             Location = request.Location,
-        }, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
         if (!symbolResolution.IsResolved)
         {
             return ToolExecutionHelpers.RejectFromStatus<ResolveSymbolData>(symbolResolution.Status, "Symbol", "symbol");

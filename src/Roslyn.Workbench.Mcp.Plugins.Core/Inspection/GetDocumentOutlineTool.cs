@@ -12,8 +12,8 @@ internal sealed class GetDocumentOutlineTool : QueryToolHandler<GetDocumentOutli
         }
 
         var document = documentResolution.Value;
-        var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-        var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+        var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
+        var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
         var data = new DocumentOutlineData
         {
             Document = context.WorkspaceResolver.CreateDocumentReference(document),

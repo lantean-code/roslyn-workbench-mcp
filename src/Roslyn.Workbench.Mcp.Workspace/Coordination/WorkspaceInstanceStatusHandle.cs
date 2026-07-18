@@ -24,7 +24,7 @@ internal sealed class WorkspaceInstanceStatusHandle : IDisposable
 
     public async ValueTask PublishAsync()
     {
-        await WriteAsync().ConfigureAwait(false);
+        await WriteAsync();
     }
 
     public async ValueTask UpdateAsync(
@@ -40,7 +40,7 @@ internal sealed class WorkspaceInstanceStatusHandle : IDisposable
             CommitId = commitId,
             CommitPhase = commitPhase,
         };
-        await WriteAsync().ConfigureAwait(false);
+        await WriteAsync();
     }
 
     public void Dispose()
@@ -56,8 +56,8 @@ internal sealed class WorkspaceInstanceStatusHandle : IDisposable
             _stream,
             _status,
             _serializerOptions,
-            CancellationToken.None).ConfigureAwait(false);
-        await _stream.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+            CancellationToken.None);
+        await _stream.FlushAsync(CancellationToken.None);
         _stream.Flush();
     }
 }

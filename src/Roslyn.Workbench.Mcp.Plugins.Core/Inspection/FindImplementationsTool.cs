@@ -7,7 +7,7 @@ internal sealed class FindImplementationsTool : QueryToolHandler<FindImplementat
 {
     protected override async ValueTask<PluginExecutionResult<ImplementationSearchData>> ExecuteCoreAsync(FindImplementationsRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<ImplementationSearchData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<ImplementationSearchData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
@@ -21,7 +21,7 @@ internal sealed class FindImplementationsTool : QueryToolHandler<FindImplementat
         }
 
         var projects = scopeResolution.Value.ToImmutableHashSet();
-        var implementations = (await SymbolFinder.FindImplementationsAsync(symbol, context.CurrentSolution, projects, cancellationToken).ConfigureAwait(false))
+        var implementations = (await SymbolFinder.FindImplementationsAsync(symbol, context.CurrentSolution, projects, cancellationToken))
             .Distinct(SymbolEqualityComparer.Default)
             .OrderBy(implementation => context.WorkspaceResolver.CreateSymbolReference(implementation).DisplayName, StringComparer.Ordinal)
             .Select(context.WorkspaceResolver.CreateSymbolReference)

@@ -52,7 +52,7 @@ public sealed class McpServerToolBaseTests
             protocolFactory.Object,
             McpServerToolTestData.CreateOptions());
         var server = ServerOwnedToolTestSupport.CreateServer();
-        await using var serverDisposal = server.ConfigureAwait(false);
+        await using var serverDisposal = server;
         var requestContext = new RequestContext<CallToolRequestParams>(
             server,
             new JsonRpcRequest

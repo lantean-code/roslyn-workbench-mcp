@@ -208,7 +208,7 @@ internal static class BuiltInCodeActionAuditHarness
                 diagnosticGroup.Key,
                 diagnosticGroup.ToImmutableArray(),
                 discovered,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken);
         }
 
         return discovered
@@ -225,7 +225,7 @@ internal static class BuiltInCodeActionAuditHarness
         CancellationToken cancellationToken)
     {
         var context = new CodeFixContext(document, requestedSpan, diagnostics, (action, actionDiagnostics) => discovered.Add((action, actionDiagnostics)), cancellationToken);
-        await provider.RegisterCodeFixesAsync(context).ConfigureAwait(false);
+        await provider.RegisterCodeFixesAsync(context);
     }
 
     private static async Task<ImmutableArray<Diagnostic>> GetDocumentDiagnosticsAsync(
@@ -233,7 +233,7 @@ internal static class BuiltInCodeActionAuditHarness
         TextSpan span,
         CancellationToken cancellationToken)
     {
-        var compilation = await document.Project.GetCompilationAsync(cancellationToken).ConfigureAwait(false);
+        var compilation = await document.Project.GetCompilationAsync(cancellationToken);
         if (compilation is null)
         {
             return [];
@@ -248,10 +248,10 @@ internal static class BuiltInCodeActionAuditHarness
             diagnostics.AddRange(await compilation
                 .WithAnalyzers(analyzers, document.Project.AnalyzerOptions)
                 .GetAnalyzerDiagnosticsAsync(cancellationToken)
-                .ConfigureAwait(false));
+                );
         }
 
-        var syntaxTree = await document.GetSyntaxTreeAsync(cancellationToken).ConfigureAwait(false);
+        var syntaxTree = await document.GetSyntaxTreeAsync(cancellationToken);
         return diagnostics
             .Where(diagnostic => diagnostic.Location.IsInSource && diagnostic.Location.SourceTree == syntaxTree)
             .Where(diagnostic => diagnostic.Location.SourceSpan.IntersectsWith(span))

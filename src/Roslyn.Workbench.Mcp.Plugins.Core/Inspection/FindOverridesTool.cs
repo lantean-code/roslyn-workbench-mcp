@@ -8,7 +8,7 @@ internal sealed class FindOverridesTool : QueryToolHandler<FindOverridesRequest,
     protected override async ValueTask<PluginExecutionResult<OverrideSearchData>> ExecuteCoreAsync(FindOverridesRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
 
-        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<OverrideSearchData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<OverrideSearchData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
@@ -26,7 +26,7 @@ internal sealed class FindOverridesTool : QueryToolHandler<FindOverridesRequest,
             return scopeResolution.Rejection;
         }
 
-        var overrides = (await SymbolFinder.FindOverridesAsync(symbol, context.CurrentSolution, scopeResolution.Value.ToImmutableHashSet(), cancellationToken).ConfigureAwait(false))
+        var overrides = (await SymbolFinder.FindOverridesAsync(symbol, context.CurrentSolution, scopeResolution.Value.ToImmutableHashSet(), cancellationToken))
             .Distinct(SymbolEqualityComparer.Default)
             .OrderBy(item => context.WorkspaceResolver.CreateSymbolReference(item).DisplayName, StringComparer.Ordinal)
             .Select(context.WorkspaceResolver.CreateSymbolReference)

@@ -31,7 +31,7 @@ internal sealed class TransactionCommitTool : ServerOwnedToolBase<TransactionCom
             request.Workspace?.Alias,
             request.Workspace?.Path,
             request.ExpectedSnapshot,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
 
         return WorkspaceToolResultMapper.Map(result, static data => new TransactionCommitData
         {

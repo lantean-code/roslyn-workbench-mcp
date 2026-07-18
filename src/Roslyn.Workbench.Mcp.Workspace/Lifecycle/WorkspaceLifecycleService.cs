@@ -65,7 +65,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         var hasPendingRecovery = await HasPendingRecoveryAsync(
             request.LoadedPath,
             request.WorkspaceRoot,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
         if (hasPendingRecovery)
         {
             return _resultFactory.Rejected<WorkspaceOpenOutcome>(
@@ -77,7 +77,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         var loadedWorkspace = await _workspaceLoadWorkflow.LoadAsync(
             request.LoadedPath,
             request.WorkspaceRoot,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
         if (loadedWorkspace.HasFailure)
         {
             return CreateLoadFailureResult<WorkspaceOpenOutcome>(loadedWorkspace, "loaded");
@@ -89,7 +89,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             request.WorkspaceRoot,
             request.LoadedPath,
             WorkspaceLifecycleState.Ready,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
         WorkspaceInputManifest inputManifest;
         try
         {
@@ -99,14 +99,14 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         }
         catch
         {
-            await _instanceStatusPublisher.CloseAsync(workspaceId).ConfigureAwait(false);
+            await _instanceStatusPublisher.CloseAsync(workspaceId);
             loadedWorkspace.Workspace.Dispose();
             throw;
         }
 
         if (!inputManifest.IsComplete)
         {
-            await _instanceStatusPublisher.CloseAsync(workspaceId).ConfigureAwait(false);
+            await _instanceStatusPublisher.CloseAsync(workspaceId);
             loadedWorkspace.Workspace.Dispose();
             return CreateInputEvaluationFailureResult<WorkspaceOpenOutcome>(inputManifest);
         }
@@ -126,7 +126,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         var latestValidationError = TryRegisterSession(session, request.LoadedPath, request.Alias);
         if (latestValidationError is not null)
         {
-            await _instanceStatusPublisher.CloseAsync(workspaceId).ConfigureAwait(false);
+            await _instanceStatusPublisher.CloseAsync(workspaceId);
             session.LoadedWorkspace.Dispose();
             return _resultFactory.Rejected<WorkspaceOpenOutcome>(latestValidationError);
         }
@@ -192,7 +192,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
                 RequiredAction.OpenWorkspace);
         }
 
-        await _instanceStatusPublisher.CloseAsync(removedSession.Workspace.WorkspaceId).ConfigureAwait(false);
+        await _instanceStatusPublisher.CloseAsync(removedSession.Workspace.WorkspaceId);
         removedSession.LoadedWorkspace.Dispose();
         return _resultFactory.Succeeded(
             new WorkspaceCloseOutcome
@@ -230,7 +230,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
 
         var instanceStatus = await _instanceStatusPublisher.GetOtherLiveInstancesAsync(
             session.Workspace.WorkspaceRoot,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
         return _resultFactory.Succeeded(CreateStatusOutcome(session, detail, instanceStatus), CreateContext(session));
     }
 
@@ -269,7 +269,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         var loadedWorkspace = await _workspaceLoadWorkflow.LoadAsync(
             currentSession.Workspace.LoadedPath,
             currentSession.Workspace.WorkspaceRoot,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
         if (loadedWorkspace.HasFailure)
         {
             return CreateLoadFailureResult<WorkspaceReloadOutcome>(loadedWorkspace, "reloaded", context);
@@ -351,7 +351,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         string workspaceRoot,
         CancellationToken cancellationToken)
     {
-        var statuses = await _recoveryStore.GetStatusesAsync(cancellationToken).ConfigureAwait(false);
+        var statuses = await _recoveryStore.GetStatusesAsync(cancellationToken);
         return statuses.Any(status =>
             (string.IsNullOrWhiteSpace(status.SolutionPath)
                 || string.Equals(Path.GetFullPath(status.SolutionPath), loadedPath, StringComparison.Ordinal)

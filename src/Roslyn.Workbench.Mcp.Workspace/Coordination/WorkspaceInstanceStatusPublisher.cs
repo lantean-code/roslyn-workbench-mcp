@@ -31,7 +31,7 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         WorkspaceLifecycleState state,
         CancellationToken cancellationToken)
     {
-        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await _gate.WaitAsync(cancellationToken);
         try
         {
             if (_isDisposed)
@@ -40,7 +40,7 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
             }
 
             var canonicalWorkspaceRoot = _fileSystem.Path.GetFullPath(workspaceRoot);
-            var scan = await PrepareInstanceDirectoryAsync(canonicalWorkspaceRoot, cancellationToken).ConfigureAwait(false);
+            var scan = await PrepareInstanceDirectoryAsync(canonicalWorkspaceRoot, cancellationToken);
             if (_handles.ContainsKey(workspaceId))
             {
                 return WorkspaceInstanceStatusResult.Empty;
@@ -48,7 +48,7 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
 
             var handle = CreateHandle(workspaceId, canonicalWorkspaceRoot, loadedPath, state);
             _handles.Add(workspaceId, handle);
-            await handle.PublishAsync().ConfigureAwait(false);
+            await handle.PublishAsync();
             return scan;
         }
         catch (IOException)
@@ -73,7 +73,7 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         try
         {
             var canonicalWorkspaceRoot = _fileSystem.Path.GetFullPath(workspaceRoot);
-            return await ScanAsync(canonicalWorkspaceRoot, cancellationToken).ConfigureAwait(false);
+            return await ScanAsync(canonicalWorkspaceRoot, cancellationToken);
         }
         catch (IOException)
         {
@@ -92,7 +92,7 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         string? commitId,
         string? commitPhase)
     {
-        await _gate.WaitAsync().ConfigureAwait(false);
+        await _gate.WaitAsync();
         try
         {
             if (_isDisposed || !_handles.TryGetValue(workspaceId, out var handle))
@@ -102,7 +102,7 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
 
             try
             {
-                await handle.UpdateAsync(state, transactionRevision, commitId, commitPhase).ConfigureAwait(false);
+                await handle.UpdateAsync(state, transactionRevision, commitId, commitPhase);
             }
             catch (IOException)
             {
@@ -119,7 +119,7 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
 
     public async ValueTask CloseAsync(string workspaceId)
     {
-        await _gate.WaitAsync().ConfigureAwait(false);
+        await _gate.WaitAsync();
         try
         {
             if (!_handles.Remove(workspaceId, out var handle))
@@ -141,7 +141,7 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         Justification = "Disposal must attempt every workspace status handle, retain the first failure, and rethrow it after all handles have been closed.")]
     public async ValueTask DisposeAsync()
     {
-        await _gate.WaitAsync().ConfigureAwait(false);
+        await _gate.WaitAsync();
         try
         {
             if (_isDisposed)
@@ -179,7 +179,7 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         CancellationToken cancellationToken)
     {
         _fileSystem.Directory.CreateDirectory(GetInstanceDirectory(canonicalWorkspaceRoot));
-        return await ScanAsync(canonicalWorkspaceRoot, cancellationToken).ConfigureAwait(false);
+        return await ScanAsync(canonicalWorkspaceRoot, cancellationToken);
     }
 
     private WorkspaceInstanceStatusHandle CreateHandle(
@@ -222,7 +222,7 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
                 continue;
             }
 
-            var status = await TryReadStatusAsync(path, cancellationToken).ConfigureAwait(false);
+            var status = await TryReadStatusAsync(path, cancellationToken);
             if (status is not null && IsValidStatus(status, canonicalWorkspaceRoot))
             {
                 if (status.InstanceId == _instanceId)
@@ -284,7 +284,7 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
             return await JsonSerializer.DeserializeAsync<WorkspaceInstanceStatus>(
                 stream,
                 _serializerOptions,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken);
         }
         catch (IOException)
         {

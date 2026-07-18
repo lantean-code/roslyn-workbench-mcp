@@ -19,7 +19,7 @@ internal static class DependencyAnalysisHelpers
         IQueryContext context,
         CancellationToken cancellationToken)
     {
-        var graph = await BuildSourceGraphAsync(granularity, projects, documents, context, cancellationToken).ConfigureAwait(false);
+        var graph = await BuildSourceGraphAsync(granularity, projects, documents, context, cancellationToken);
         var adjacency = graph.Edges
             .GroupBy(static edge => edge.FromId, StringComparer.Ordinal)
             .ToDictionary(
@@ -111,8 +111,8 @@ internal static class DependencyAnalysisHelpers
         foreach (var document in documents.OrderBy(static item => item.FilePath, StringComparer.Ordinal))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-            var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+            var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
+            var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
             if (syntaxRoot is null || semanticModel is null)
             {
                 continue;
@@ -128,7 +128,7 @@ internal static class DependencyAnalysisHelpers
                     continue;
                 }
 
-                var dependencies = await CollectSymbolDependenciesAsync(methodSymbol, context.CurrentSolution, cancellationToken).ConfigureAwait(false);
+                var dependencies = await CollectSymbolDependenciesAsync(methodSymbol, context.CurrentSolution, cancellationToken);
                 var hasDirectImpact = dependencies.Any(dependency =>
                     SymbolsMatch(dependency, normalizedTarget)
                     || (normalizedTargetType is not null && SymbolsMatch(GetOwningTypeSymbol(dependency), normalizedTargetType)));
@@ -163,7 +163,7 @@ internal static class DependencyAnalysisHelpers
         IQueryContext context,
         CancellationToken cancellationToken)
     {
-        var graph = await BuildSourceGraphAsync(granularity, projects, documents, context, cancellationToken).ConfigureAwait(false);
+        var graph = await BuildSourceGraphAsync(granularity, projects, documents, context, cancellationToken);
         return (graph.Nodes, graph.Edges);
     }
 
@@ -176,13 +176,13 @@ internal static class DependencyAnalysisHelpers
         foreach (var syntaxReference in symbol.DeclaringSyntaxReferences)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var syntax = await syntaxReference.GetSyntaxAsync(cancellationToken).ConfigureAwait(false);
+            var syntax = await syntaxReference.GetSyntaxAsync(cancellationToken);
             if (solution.GetDocument(syntax.SyntaxTree) is not { } document)
             {
                 continue;
             }
 
-            var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+            var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
             if (semanticModel is null)
             {
                 continue;
@@ -199,14 +199,14 @@ internal static class DependencyAnalysisHelpers
     {
         var dependencies = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
 
-        foreach (var dependency in await CollectSymbolDependenciesAsync(symbol, solution, cancellationToken).ConfigureAwait(false))
+        foreach (var dependency in await CollectSymbolDependenciesAsync(symbol, solution, cancellationToken))
         {
             AddOwningType(dependency, dependencies);
         }
 
         foreach (var member in symbol.GetMembers().Where(static member => !member.IsImplicitlyDeclared))
         {
-            foreach (var dependency in await CollectSymbolDependenciesAsync(member, solution, cancellationToken).ConfigureAwait(false))
+            foreach (var dependency in await CollectSymbolDependenciesAsync(member, solution, cancellationToken))
             {
                 AddOwningType(dependency, dependencies);
             }
@@ -226,9 +226,9 @@ internal static class DependencyAnalysisHelpers
         return granularity switch
         {
             "Project" => BuildProjectGraph(projects),
-            "Namespace" => await BuildNamespaceGraphAsync(documents, context, cancellationToken).ConfigureAwait(false),
-            "Type" => await BuildTypeGraphAsync(documents, context, cancellationToken).ConfigureAwait(false),
-            "Symbol" => await BuildSymbolGraphAsync(documents, context, cancellationToken).ConfigureAwait(false),
+            "Namespace" => await BuildNamespaceGraphAsync(documents, context, cancellationToken),
+            "Type" => await BuildTypeGraphAsync(documents, context, cancellationToken),
+            "Symbol" => await BuildSymbolGraphAsync(documents, context, cancellationToken),
             _ => throw new InvalidOperationException("Unsupported dependency graph granularity."),
         };
     }
@@ -269,7 +269,7 @@ internal static class DependencyAnalysisHelpers
 
     private static async ValueTask<SourceGraph> BuildNamespaceGraphAsync(IReadOnlyList<Document> documents, IQueryContext context, CancellationToken cancellationToken)
     {
-        var sourceTypes = await GetSourceTypesAsync(documents, cancellationToken).ConfigureAwait(false);
+        var sourceTypes = await GetSourceTypesAsync(documents, cancellationToken);
         var namespaces = sourceTypes
             .Select(GetNamespaceName)
             .Distinct(StringComparer.Ordinal)
@@ -290,7 +290,7 @@ internal static class DependencyAnalysisHelpers
         {
             cancellationToken.ThrowIfCancellationRequested();
             var fromNamespace = GetNamespaceName(sourceType);
-            foreach (var dependency in await CollectTypeDependenciesAsync(sourceType, context.CurrentSolution, cancellationToken).ConfigureAwait(false))
+            foreach (var dependency in await CollectTypeDependenciesAsync(sourceType, context.CurrentSolution, cancellationToken))
             {
                 var toNamespace = GetNamespaceName(dependency);
                 var edge = (CreateNamespaceId(fromNamespace), CreateNamespaceId(toNamespace));
@@ -319,7 +319,7 @@ internal static class DependencyAnalysisHelpers
 
     private static async ValueTask<SourceGraph> BuildTypeGraphAsync(IReadOnlyList<Document> documents, IQueryContext context, CancellationToken cancellationToken)
     {
-        var sourceTypes = await GetSourceTypesAsync(documents, cancellationToken).ConfigureAwait(false);
+        var sourceTypes = await GetSourceTypesAsync(documents, cancellationToken);
         var typeNodes = new Dictionary<INamedTypeSymbol, GraphNode>(SymbolEqualityComparer.Default);
         foreach (var sourceType in sourceTypes)
         {
@@ -332,7 +332,7 @@ internal static class DependencyAnalysisHelpers
         foreach (var sourceType in sourceTypes.OrderBy(static item => item.Name, StringComparer.Ordinal))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            foreach (var dependency in await CollectTypeDependenciesAsync(sourceType, context.CurrentSolution, cancellationToken).ConfigureAwait(false))
+            foreach (var dependency in await CollectTypeDependenciesAsync(sourceType, context.CurrentSolution, cancellationToken))
             {
                 if (typeNodes.TryGetValue(NormalizeNamedTypeSymbol(dependency), out var dependencyNode))
                 {
@@ -359,7 +359,7 @@ internal static class DependencyAnalysisHelpers
 
     private static async ValueTask<SourceGraph> BuildSymbolGraphAsync(IReadOnlyList<Document> documents, IQueryContext context, CancellationToken cancellationToken)
     {
-        var sourceSymbols = await GetSourceSymbolsAsync(documents, cancellationToken).ConfigureAwait(false);
+        var sourceSymbols = await GetSourceSymbolsAsync(documents, cancellationToken);
         var symbolNodes = new Dictionary<ISymbol, GraphNode>(SymbolEqualityComparer.Default);
         foreach (var sourceSymbol in sourceSymbols)
         {
@@ -372,7 +372,7 @@ internal static class DependencyAnalysisHelpers
         foreach (var sourceSymbol in sourceSymbols.OrderBy(static item => item.Name, StringComparer.Ordinal))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            foreach (var dependency in await CollectSymbolDependenciesAsync(sourceSymbol, context.CurrentSolution, cancellationToken).ConfigureAwait(false))
+            foreach (var dependency in await CollectSymbolDependenciesAsync(sourceSymbol, context.CurrentSolution, cancellationToken))
             {
                 var normalizedDependency = NormalizeSymbol(dependency);
                 if (symbolNodes.TryGetValue(normalizedDependency, out var dependencyNode))
@@ -414,8 +414,8 @@ internal static class DependencyAnalysisHelpers
         foreach (var document in orderedDocuments)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-            var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+            var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
+            var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
             if (syntaxRoot is null || semanticModel is null)
             {
                 continue;
@@ -443,8 +443,8 @@ internal static class DependencyAnalysisHelpers
         foreach (var document in orderedDocuments)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-            var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+            var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
+            var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
             if (syntaxRoot is null || semanticModel is null)
             {
                 continue;

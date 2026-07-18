@@ -28,7 +28,7 @@ internal sealed class WorkspaceLoadWorkflow : IWorkspaceLoadWorkflow
             }
         }
 
-        var loadedWorkspace = await _workspaceLoader.LoadAsync(loadedPath, cancellationToken).ConfigureAwait(false);
+        var loadedWorkspace = await _workspaceLoader.LoadAsync(loadedPath, cancellationToken);
         if (loadedWorkspace.Solution is null || loadedWorkspace.Workspace is null)
         {
             loadedWorkspace.Workspace?.Dispose();

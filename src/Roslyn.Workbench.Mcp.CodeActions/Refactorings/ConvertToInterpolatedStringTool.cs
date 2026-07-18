@@ -28,7 +28,7 @@ internal sealed class ConvertToInterpolatedStringTool : CodeActionMutationToolHa
             return CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>("InvalidRequest", "A location selector is required.");
         }
 
-        var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(request.Selection, cancellationToken).ConfigureAwait(false);
+        var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(request.Selection, cancellationToken);
         if (locationResolution.Status != SelectorResolveStatus.Resolved)
         {
             return CodeActionExecutionResultFactory.RejectFromStatus<WorkspaceMutationCandidate>(locationResolution.Status, "Location", "location");
@@ -40,6 +40,6 @@ internal sealed class ConvertToInterpolatedStringTool : CodeActionMutationToolHa
             ExpectedSnapshot = request.ExpectedSnapshot,
             Title = Title,
             EquivalenceKey = EquivalenceKey,
-        }, context, cancellationToken).ConfigureAwait(false);
+        }, context, cancellationToken);
     }
 }

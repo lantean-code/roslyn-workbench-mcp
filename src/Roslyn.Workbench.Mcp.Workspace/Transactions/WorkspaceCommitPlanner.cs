@@ -33,7 +33,7 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
                 projectChange,
                 baselineSolution,
                 currentSolution,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken);
             if (!validation.IsValid)
             {
                 return WorkspaceCommitPlanResult.Failed(validation.ErrorMessage);
@@ -76,7 +76,7 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
                 context,
                 document,
                 WorkspaceFileOperation.Replace,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken);
             if (!validation.IsValid)
             {
                 return validation;
@@ -92,7 +92,7 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
                 context,
                 document,
                 WorkspaceFileOperation.Create,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken);
             if (!validation.IsValid)
             {
                 return validation;
@@ -104,7 +104,7 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
             .OfType<Document>();
         foreach (var document in removedDocuments)
         {
-            var validation = await AddDeleteAsync(context, document, cancellationToken).ConfigureAwait(false);
+            var validation = await AddDeleteAsync(context, document, cancellationToken);
             if (!validation.IsValid)
             {
                 return validation;
@@ -135,9 +135,9 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         }
 
         var originalContents = originalExists
-            ? await _fileSystem.File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false)
+            ? await _fileSystem.File.ReadAllBytesAsync(path, cancellationToken)
             : null;
-        var intendedContents = await GetDocumentBytesAsync(document, cancellationToken).ConfigureAwait(false);
+        var intendedContents = await GetDocumentBytesAsync(document, cancellationToken);
         var artifactIndex = GetArtifactIndex(context);
         var backupPath = originalExists ? $"backup/{artifactIndex}.bin" : null;
         var stagedPath = $"staged/{artifactIndex}.bin";
@@ -179,7 +179,7 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
             return WorkspaceCommitValidationResult.Invalid($"The target '{path}' no longer exists.");
         }
 
-        var originalContents = await _fileSystem.File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
+        var originalContents = await _fileSystem.File.ReadAllBytesAsync(path, cancellationToken);
         var artifactIndex = GetArtifactIndex(context);
         var backupPath = $"backup/{artifactIndex}.bin";
         var deleteMarkerPath = $"{path}.{context.CommitId}.delete";
@@ -297,7 +297,7 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         Document document,
         CancellationToken cancellationToken)
     {
-        var text = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
+        var text = await document.GetTextAsync(cancellationToken);
         var encoding = text.Encoding ?? Encoding.UTF8;
         return [.. encoding.GetPreamble(), .. encoding.GetBytes(text.ToString())];
     }

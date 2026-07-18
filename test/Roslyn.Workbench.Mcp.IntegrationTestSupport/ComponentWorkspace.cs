@@ -264,7 +264,7 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
         {
             try
             {
-                await instanceStatusPublisher.CloseAsync(workspaceId).ConfigureAwait(false);
+                await instanceStatusPublisher.CloseAsync(workspaceId);
             }
             catch (Exception exception)
             {
@@ -283,7 +283,7 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
 
         try
         {
-            await _serviceProvider.DisposeAsync().ConfigureAwait(false);
+            await _serviceProvider.DisposeAsync();
         }
         catch (Exception exception)
         {
@@ -294,7 +294,7 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
         {
             if (_ownedStateDirectory is not null)
             {
-                await _ownedStateDirectory.DisposeAsync().ConfigureAwait(false);
+                await _ownedStateDirectory.DisposeAsync();
             }
         }
         catch (Exception exception)

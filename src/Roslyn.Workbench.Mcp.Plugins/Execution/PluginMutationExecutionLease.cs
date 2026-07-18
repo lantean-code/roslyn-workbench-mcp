@@ -59,7 +59,7 @@ internal sealed class PluginMutationExecutionLease : IAsyncDisposable
             },
             diagnostics,
             warnings,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
 
         return PluginWorkspaceResultMapper.MapMutation(result);
     }

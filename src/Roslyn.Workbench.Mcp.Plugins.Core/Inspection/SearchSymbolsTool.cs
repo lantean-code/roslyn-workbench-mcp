@@ -21,7 +21,7 @@ internal sealed class SearchSymbolsTool : QueryToolHandler<SearchSymbolsRequest,
         var matchedSymbols = new List<ISymbol>();
         foreach (var project in scopeResolution.Value)
         {
-            var declarations = await SymbolFinder.FindSourceDeclarationsWithPatternAsync(project, pattern, SymbolFilter.TypeAndMember, cancellationToken).ConfigureAwait(false);
+            var declarations = await SymbolFinder.FindSourceDeclarationsWithPatternAsync(project, pattern, SymbolFilter.TypeAndMember, cancellationToken);
             matchedSymbols.AddRange(declarations.Where(symbol => MatchesSymbolFilters(symbol, request)));
         }
 

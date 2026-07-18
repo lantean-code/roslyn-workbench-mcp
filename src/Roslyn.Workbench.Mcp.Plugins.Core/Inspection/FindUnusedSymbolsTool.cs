@@ -22,7 +22,7 @@ internal sealed class FindUnusedSymbolsTool : QueryToolHandler<FindUnusedSymbols
         var selectedDocuments = request.ExcludeGenerated
             ? documents.Value.Where(static document => !CompilerDiagnosticHelpers.IsGeneratedDocument(document)).ToArray()
             : documents.Value.ToArray();
-        var diagnostics = await context.ToolExecutionServices.CompilerDiagnosticService.GetCompilerDiagnosticsAsync(selectedDocuments, cancellationToken).ConfigureAwait(false);
+        var diagnostics = await context.ToolExecutionServices.CompilerDiagnosticService.GetCompilerDiagnosticsAsync(selectedDocuments, cancellationToken);
         var candidates = new List<UnusedSymbolCandidate>();
 
         foreach (var diagnostic in diagnostics.Where(diagnostic => _unusedDiagnosticIds.Contains(diagnostic.Id)))
@@ -39,8 +39,8 @@ internal sealed class FindUnusedSymbolsTool : QueryToolHandler<FindUnusedSymbols
                 continue;
             }
 
-            var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-            var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+            var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
+            var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
             if (syntaxRoot is null || semanticModel is null)
             {
                 continue;

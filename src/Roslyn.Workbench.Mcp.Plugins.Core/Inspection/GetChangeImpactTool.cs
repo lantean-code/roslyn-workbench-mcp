@@ -10,7 +10,7 @@ internal sealed class GetChangeImpactTool : QueryToolHandler<GetChangeImpactRequ
     protected override async ValueTask<PluginExecutionResult<ChangeImpactData>> ExecuteCoreAsync(GetChangeImpactRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
 
-        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<ChangeImpactData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<ChangeImpactData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
@@ -29,7 +29,7 @@ internal sealed class GetChangeImpactTool : QueryToolHandler<GetChangeImpactRequ
             return projects.Rejection;
         }
 
-        var referencedSymbols = await SymbolFinder.FindReferencesAsync(symbol, context.CurrentSolution, documents.Value.ToImmutableHashSet(), cancellationToken).ConfigureAwait(false);
+        var referencedSymbols = await SymbolFinder.FindReferencesAsync(symbol, context.CurrentSolution, documents.Value.ToImmutableHashSet(), cancellationToken);
         var locations = new List<ContractReferenceLocation>();
 
         foreach (var referencedSymbol in referencedSymbols)
@@ -44,8 +44,8 @@ internal sealed class GetChangeImpactTool : QueryToolHandler<GetChangeImpactRequ
 
                 var containingSymbol = reference.Document is null
                     ? null
-                    : await GetEnclosingSymbolAsync(reference.Document, reference.Location.SourceSpan.Start, cancellationToken).ConfigureAwait(false);
-                var contextLine = await context.ToolExecutionServices.InspectionContextService.ReadContextAsync(reference.Document, reference.Location.SourceSpan, cancellationToken).ConfigureAwait(false);
+                    : await GetEnclosingSymbolAsync(reference.Document, reference.Location.SourceSpan.Start, cancellationToken);
+                var contextLine = await context.ToolExecutionServices.InspectionContextService.ReadContextAsync(reference.Document, reference.Location.SourceSpan, cancellationToken);
 
                 locations.Add(new ContractReferenceLocation
                 {
@@ -58,15 +58,15 @@ internal sealed class GetChangeImpactTool : QueryToolHandler<GetChangeImpactRequ
 
         var referenceCount = locations.Count;
         var callerCount = symbol is IMethodSymbol
-            ? (await SymbolFinder.FindCallersAsync(symbol, context.CurrentSolution, documents.Value.ToImmutableHashSet(), cancellationToken).ConfigureAwait(false)).Count()
+            ? (await SymbolFinder.FindCallersAsync(symbol, context.CurrentSolution, documents.Value.ToImmutableHashSet(), cancellationToken)).Count()
             : 0;
         var overrideCount = symbol is IMethodSymbol or IPropertySymbol or IEventSymbol
-            ? (await SymbolFinder.FindOverridesAsync(symbol, context.CurrentSolution, projects.Value.ToImmutableHashSet(), cancellationToken).ConfigureAwait(false)).Distinct(SymbolEqualityComparer.Default).Count()
+            ? (await SymbolFinder.FindOverridesAsync(symbol, context.CurrentSolution, projects.Value.ToImmutableHashSet(), cancellationToken)).Distinct(SymbolEqualityComparer.Default).Count()
             : 0;
         var implementationCount = symbol switch
         {
             INamedTypeSymbol namedTypeSymbol when namedTypeSymbol.TypeKind == TypeKind.Interface
-                => (await SymbolFinder.FindImplementationsAsync(namedTypeSymbol, context.CurrentSolution, projects.Value.ToImmutableHashSet(), cancellationToken).ConfigureAwait(false)).Distinct(SymbolEqualityComparer.Default).Count(),
+                => (await SymbolFinder.FindImplementationsAsync(namedTypeSymbol, context.CurrentSolution, projects.Value.ToImmutableHashSet(), cancellationToken)).Distinct(SymbolEqualityComparer.Default).Count(),
             _ => 0,
         };
 
@@ -103,7 +103,7 @@ internal sealed class GetChangeImpactTool : QueryToolHandler<GetChangeImpactRequ
 
     private static async ValueTask<ISymbol?> GetEnclosingSymbolAsync(Document document, int position, CancellationToken cancellationToken)
     {
-        var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+        var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
         return semanticModel?.GetEnclosingSymbol(position, cancellationToken);
     }
 }

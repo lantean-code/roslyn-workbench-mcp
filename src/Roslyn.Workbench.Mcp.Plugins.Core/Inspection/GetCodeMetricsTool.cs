@@ -9,7 +9,7 @@ internal sealed class GetCodeMetricsTool : QueryToolHandler<GetCodeMetricsReques
 
         if (request.Symbol is not null)
         {
-            var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<CodeMetricsData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+            var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<CodeMetricsData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken);
             if (symbolResolution.HasRejection)
             {
                 return symbolResolution.Rejection;
@@ -28,8 +28,8 @@ internal sealed class GetCodeMetricsTool : QueryToolHandler<GetCodeMetricsReques
             foreach (var document in documents.Value.OrderBy(static item => item.FilePath, StringComparer.Ordinal))
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-                var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+                var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
+                var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
                 if (syntaxRoot is null || semanticModel is null)
                 {
                     continue;

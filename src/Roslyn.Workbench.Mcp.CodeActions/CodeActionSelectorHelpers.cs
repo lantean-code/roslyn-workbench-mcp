@@ -29,7 +29,7 @@ internal static class CodeActionSelectorHelpers
 
         var resolution = await context.WorkspaceResolver
             .ResolveSymbolAsync(selector, cancellationToken)
-            .ConfigureAwait(false);
+            ;
         return resolution.IsResolved
             ? new CodeActionToolResolutionResult<ISymbol, TResponse> { Value = resolution.Value }
             : new CodeActionToolResolutionResult<ISymbol, TResponse>

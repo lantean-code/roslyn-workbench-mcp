@@ -13,7 +13,7 @@ internal sealed class DefaultCompilerDiagnosticService : ICompilerDiagnosticServ
 
         foreach (var project in selectedDocuments.Select(static document => document.Project).DistinctBy(static project => project.Id))
         {
-            var compilation = await project.GetCompilationAsync(cancellationToken).ConfigureAwait(false);
+            var compilation = await project.GetCompilationAsync(cancellationToken);
             if (compilation is null)
             {
                 continue;

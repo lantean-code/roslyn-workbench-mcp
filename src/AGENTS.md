@@ -59,7 +59,8 @@
 - Always specify access modifiers, even when the default applies.
 - Use `async` only when needed.
 - Async methods should follow normal .NET naming and generally end with `Async`, except for well-known event handlers or framework-required signatures.
-- Assign an awaited result to a clearly named local before querying it or accessing members. Avoid constructs such as `(await operation.ConfigureAwait(false)).Any(...)`; separate the asynchronous operation from the subsequent synchronous processing.
+- Do not use `ConfigureAwait(false)`. Production code in this repository executes within the console-hosted application, which does not install a synchronization context; await tasks directly.
+- Assign an awaited result to a clearly named local before querying it or accessing members. Avoid constructs such as `(await operation).Any(...)`; separate the asynchronous operation from the subsequent synchronous processing.
 - Prefer LINQ for simple operations; use loops for complex logic or hot paths where clarity or allocation control matters.
 - Do not use exceptions for flow control. Expected validation failures, unavailable capabilities, contention, malformed external input, and other anticipated outcomes must be represented by explicit results, diagnostics, status values, `Try*` patterns, or ordinary branching.
 - Do not throw an exception locally only for a caller or enclosing `catch` to translate it into an expected result. Accumulating validation should return all applicable diagnostics instead of throwing on the first finding.

@@ -101,7 +101,7 @@ internal sealed class TransactionService : ITransactionService
             updatedSession.State,
             transaction.CurrentRevision,
             null,
-            null).ConfigureAwait(false);
+            null);
 
         return _resultFactory.Succeeded(
             new TransactionStartOutcome
@@ -245,7 +245,7 @@ internal sealed class TransactionService : ITransactionService
             updatedSession.State,
             updatedTransaction.CurrentRevision,
             null,
-            null).ConfigureAwait(false);
+            null);
 
         return _resultFactory.Succeeded(
             new TransactionHistoryOutcome
@@ -272,7 +272,7 @@ internal sealed class TransactionService : ITransactionService
         }
 
         using var leaseScope = acquisition.Lease;
-        return await _transactionCommitService.CommitAsync(acquisition.Selection, expectedSnapshot, cancellationToken).ConfigureAwait(false);
+        return await _transactionCommitService.CommitAsync(acquisition.Selection, expectedSnapshot, cancellationToken);
     }
 
     public async ValueTask<WorkspaceOperationResult<TransactionRollbackOutcome>> RollbackAsync(string? workspaceId, string? alias, string? path, CancellationToken cancellationToken)
@@ -317,7 +317,7 @@ internal sealed class TransactionService : ITransactionService
             updatedSession.State,
             null,
             null,
-            null).ConfigureAwait(false);
+            null);
 
         return _resultFactory.Succeeded(
             new TransactionRollbackOutcome

@@ -28,7 +28,7 @@ internal sealed class PluginQueryMcpServerTool<TRequest, TResponse> : McpServerT
     {
         var request = ToolRequestBinder.Deserialize<TRequest>(arguments);
         var contextLease = _contextFactory.CreateQueryContext(request, cancellationToken);
-        await using var _ = contextLease.ConfigureAwait(false);
+        await using var _ = contextLease;
         if (contextLease.HasShortCircuitResult)
         {
             return CreateStructuredResult(
@@ -37,7 +37,7 @@ internal sealed class PluginQueryMcpServerTool<TRequest, TResponse> : McpServerT
         }
 
         var context = contextLease.Context;
-        var result = await _handler.ExecuteAsync(request, context, cancellationToken).ConfigureAwait(false);
+        var result = await _handler.ExecuteAsync(request, context, cancellationToken);
         return CreateStructuredResult(
             McpPublishedResultSerializer.SerializePluginQuery(result),
             result.Outcome.IsError());

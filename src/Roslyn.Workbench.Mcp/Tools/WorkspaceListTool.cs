@@ -26,7 +26,7 @@ internal sealed class WorkspaceListTool : ServerOwnedToolBase<WorkspaceListReque
         WorkspaceListRequest request,
         CancellationToken cancellationToken)
     {
-        var result = await _workspaceLifecycleService.ListAsync(cancellationToken).ConfigureAwait(false);
+        var result = await _workspaceLifecycleService.ListAsync(cancellationToken);
 
         return WorkspaceToolResultMapper.Map(result, static data => new WorkspaceListData
         {

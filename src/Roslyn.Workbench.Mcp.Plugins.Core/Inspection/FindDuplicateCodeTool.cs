@@ -20,7 +20,7 @@ internal sealed class FindDuplicateCodeTool : QueryToolHandler<FindDuplicateCode
             documents.Value,
             context,
             request.MinimumStatements,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
 
         return PluginExecutionResult<DuplicateCodeData>.Success(new DuplicateCodeData
         {
@@ -40,8 +40,8 @@ internal sealed class FindDuplicateCodeTool : QueryToolHandler<FindDuplicateCode
         foreach (var document in documents.OrderBy(static item => item.FilePath, StringComparer.Ordinal))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-            var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+            var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
+            var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
             if (syntaxRoot is null || semanticModel is null)
             {
                 continue;

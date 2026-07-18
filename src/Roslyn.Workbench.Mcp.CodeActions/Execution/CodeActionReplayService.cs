@@ -61,7 +61,7 @@ internal sealed class CodeActionReplayService : ICodeActionReplayService
             return Rejected<WorkspaceMutationCandidate>("InvalidRequest", "A location selector is required.");
         }
 
-        var location = await context.WorkspaceResolver.ResolveLocationAsync(request.Location, cancellationToken).ConfigureAwait(false);
+        var location = await context.WorkspaceResolver.ResolveLocationAsync(request.Location, cancellationToken);
         if (location.Status != SelectorResolveStatus.Resolved || location.Value is null)
         {
             return RejectFromStatus<WorkspaceMutationCandidate>(location.Status, "Location", "location");
@@ -83,7 +83,7 @@ internal sealed class CodeActionReplayService : ICodeActionReplayService
         var candidates = new List<ClassifiedCodeAction>();
         foreach (var provider in matchingProviders)
         {
-            var actions = await _discoveryService.DiscoverRefactoringsAsync(provider, document, span, cancellationToken).ConfigureAwait(false);
+            var actions = await _discoveryService.DiscoverRefactoringsAsync(provider, document, span, cancellationToken);
             foreach (var action in actions)
             {
                 if (!string.IsNullOrWhiteSpace(request.Title)
@@ -155,7 +155,7 @@ internal sealed class CodeActionReplayService : ICodeActionReplayService
         var candidate = distinctCandidates[0];
         return candidate.Descriptor.ExecutionMode switch
         {
-            CodeActionExecutionMode.Replay => await _operationService.CreateMutationCandidateAsync(candidate.Action.Action, candidate.Action.Title, context, cancellationToken).ConfigureAwait(false),
+            CodeActionExecutionMode.Replay => await _operationService.CreateMutationCandidateAsync(candidate.Action.Action, candidate.Action.Title, context, cancellationToken),
             CodeActionExecutionMode.Parameterised => CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
             {
                 Code = "ActionRequiresParameters",
@@ -223,7 +223,7 @@ internal sealed class CodeActionReplayService : ICodeActionReplayService
             expectedSnapshot,
             expectedKind,
             context,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
         if (resolvedAction.HasRejection)
         {
             return resolvedAction.Rejection;
@@ -242,7 +242,7 @@ internal sealed class CodeActionReplayService : ICodeActionReplayService
             resolvedAction.Action.Action,
             resolvedAction.Action.Title,
             context,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
     }
 
     private CodeActionExecutionResult<WorkspaceMutationCandidate>? RejectedIfUnavailable()

@@ -5,7 +5,7 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
 {
     protected override async ValueTask<PluginExecutionResult<SolutionStructureData>> ExecuteCoreAsync(GetSolutionStructureRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        var hierarchy = await context.ToolExecutionServices.ProjectStructureService.GetSolutionHierarchyAsync(context.WorkspaceIdentity.LoadedPath, cancellationToken).ConfigureAwait(false);
+        var hierarchy = await context.ToolExecutionServices.ProjectStructureService.GetSolutionHierarchyAsync(context.WorkspaceIdentity.LoadedPath, cancellationToken);
         if (!hierarchy.IsSucceeded)
         {
             return ToolExecutionHelpers.RejectProjectStructureFailure<SolutionStructureData>(hierarchy.ErrorMessage);

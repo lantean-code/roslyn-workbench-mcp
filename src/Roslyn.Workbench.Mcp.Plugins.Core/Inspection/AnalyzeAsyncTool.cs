@@ -16,8 +16,8 @@ internal sealed class AnalyzeAsyncTool : QueryToolHandler<AnalyzeAsyncRequest, A
         foreach (var document in documents.Value.OrderBy(static item => item.FilePath, StringComparer.Ordinal))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-            var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+            var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
+            var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
             if (syntaxRoot is null || semanticModel is null)
             {
                 continue;

@@ -9,7 +9,7 @@ internal static class InspectionProjectionFactory
     public static async ValueTask<AnalyzerConfigInfo> CreateAnalyzerConfigInfoAsync(Document document, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var syntaxTree = await document.GetSyntaxTreeAsync(cancellationToken).ConfigureAwait(false);
+        var syntaxTree = await document.GetSyntaxTreeAsync(cancellationToken);
         var optionsProvider = document.Project.AnalyzerOptions.AnalyzerConfigOptionsProvider;
         var options = syntaxTree is null
             ? new Dictionary<string, string>(StringComparer.Ordinal)

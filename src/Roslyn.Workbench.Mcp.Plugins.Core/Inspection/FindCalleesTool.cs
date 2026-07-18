@@ -15,7 +15,7 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
 
         if (request.Symbol is not null)
         {
-            var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<CalleeSearchData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+            var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<CalleeSearchData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken);
             if (symbolResolution.HasRejection)
             {
                 return symbolResolution.Rejection;
@@ -26,13 +26,13 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
             foreach (var syntaxReference in sourceSymbol.DeclaringSyntaxReferences)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var syntax = await syntaxReference.GetSyntaxAsync(cancellationToken).ConfigureAwait(false);
+                var syntax = await syntaxReference.GetSyntaxAsync(cancellationToken);
                 if (context.CurrentSolution.GetDocument(syntax.SyntaxTree) is not { } document)
                 {
                     continue;
                 }
 
-                var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+                var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
                 if (semanticModel is null)
                 {
                     continue;
@@ -61,7 +61,7 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
         }
         else
         {
-            var locationResolution = await ResolveLocationAsync(request.Location, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+            var locationResolution = await ResolveLocationAsync(request.Location, request.ExpectedSnapshot, context, cancellationToken);
             if (locationResolution.Rejection is not null)
             {
                 return locationResolution.Rejection;
@@ -89,7 +89,7 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
 
         if (request.IncludeIndirect)
         {
-            await ExpandIndirectCalleesAsync(directCallees, context, cancellationToken).ConfigureAwait(false);
+            await ExpandIndirectCalleesAsync(directCallees, context, cancellationToken);
         }
 
         var orderedCallees = directCallees
@@ -133,13 +133,13 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
             var symbol = pending.Dequeue();
             foreach (var syntaxReference in symbol.DeclaringSyntaxReferences)
             {
-                var syntax = await syntaxReference.GetSyntaxAsync(cancellationToken).ConfigureAwait(false);
+                var syntax = await syntaxReference.GetSyntaxAsync(cancellationToken);
                 if (context.CurrentSolution.GetDocument(syntax.SyntaxTree) is not { } document)
                 {
                     continue;
                 }
 
-                var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+                var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
                 if (semanticModel is null)
                 {
                     continue;
@@ -219,7 +219,7 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
             };
         }
 
-        var location = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken).ConfigureAwait(false);
+        var location = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken);
         if (!location.IsResolved)
         {
             return new LocationResolution
@@ -240,8 +240,8 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
             };
         }
 
-        var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-        var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+        var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
+        var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
         if (syntaxRoot is null || semanticModel is null)
         {
             return new LocationResolution

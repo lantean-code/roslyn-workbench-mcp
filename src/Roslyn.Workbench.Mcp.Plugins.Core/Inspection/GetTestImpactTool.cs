@@ -5,7 +5,7 @@ internal sealed class GetTestImpactTool : QueryToolHandler<GetTestImpactRequest,
 {
     protected override async ValueTask<PluginExecutionResult<TestImpactData>> ExecuteCoreAsync(GetTestImpactRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<TestImpactData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<TestImpactData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
@@ -23,7 +23,7 @@ internal sealed class GetTestImpactTool : QueryToolHandler<GetTestImpactRequest,
             documents.Value,
             request.IncludeReasons,
             context,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
 
         return PluginExecutionResult<TestImpactData>.Success(new TestImpactData
         {

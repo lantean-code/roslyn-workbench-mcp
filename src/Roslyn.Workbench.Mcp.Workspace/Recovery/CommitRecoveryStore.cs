@@ -35,9 +35,9 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
     public async ValueTask PersistPlanAsync(WorkspaceCommitPlan plan, CancellationToken cancellationToken)
     {
         _fileSystem.Directory.CreateDirectory(GetCommitDirectory(plan.Manifest.CommitId));
-        await WriteOwnerAsync(plan.Manifest, cancellationToken).ConfigureAwait(false);
-        await WriteArtifactsAsync(plan, cancellationToken).ConfigureAwait(false);
-        await WriteManifestAsync(plan.Manifest, cancellationToken).ConfigureAwait(false);
+        await WriteOwnerAsync(plan.Manifest, cancellationToken);
+        await WriteArtifactsAsync(plan, cancellationToken);
+        await WriteManifestAsync(plan.Manifest, cancellationToken);
     }
 
     public ValueTask WriteManifestAsync(WorkspaceCommitManifest manifest, CancellationToken cancellationToken)
@@ -66,7 +66,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
 
             try
             {
-                var json = await _fileSystem.File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
+                var json = await _fileSystem.File.ReadAllTextAsync(path, cancellationToken);
                 var manifest = JsonSerializer.Deserialize<WorkspaceCommitManifest>(json, _serializerOptions);
                 if (manifest is not null && IsValidManifest(manifest, directory))
                 {
@@ -96,13 +96,13 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
 
     public async ValueTask<IReadOnlyList<WorkspaceCommitOwner>> GetOrphanedCommitOwnersAsync(CancellationToken cancellationToken)
     {
-        var evidence = await ReadOrphanedCommitEvidenceAsync(cancellationToken).ConfigureAwait(false);
+        var evidence = await ReadOrphanedCommitEvidenceAsync(cancellationToken);
         return evidence.Owners;
     }
 
     public async ValueTask<IReadOnlyList<RecoveryStatus>> GetStatusesAsync(CancellationToken cancellationToken)
     {
-        var manifests = await GetManifestsAsync(cancellationToken).ConfigureAwait(false);
+        var manifests = await GetManifestsAsync(cancellationToken);
         var statuses = manifests
             .Select(manifest => new RecoveryStatus
             {
@@ -113,7 +113,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
                 Message = manifest.Message,
             }).ToList();
 
-        var orphanedEvidence = await ReadOrphanedCommitEvidenceAsync(cancellationToken).ConfigureAwait(false);
+        var orphanedEvidence = await ReadOrphanedCommitEvidenceAsync(cancellationToken);
         statuses.AddRange(orphanedEvidence.Owners.Select(CreateOrphanedOwnerStatus));
         statuses.AddRange(orphanedEvidence.Conflicts);
 
@@ -125,7 +125,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         foreach (var path in _fileSystem.Directory.EnumerateFiles(_recoveryDirectory, "*.json", SearchOption.TopDirectoryOnly))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            statuses.Add(await ReadLegacyStatusAsync(path, cancellationToken).ConfigureAwait(false));
+            statuses.Add(await ReadLegacyStatusAsync(path, cancellationToken));
         }
 
         return statuses;
@@ -141,7 +141,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
 
     public async ValueTask<byte[]> ReadArtifactAsync(string commitId, string relativePath, CancellationToken cancellationToken)
     {
-        return await _fileSystem.File.ReadAllBytesAsync(GetArtifactPath(commitId, relativePath), cancellationToken).ConfigureAwait(false);
+        return await _fileSystem.File.ReadAllBytesAsync(GetArtifactPath(commitId, relativePath), cancellationToken);
     }
 
     public void DeleteStatus(string commitId)
@@ -185,7 +185,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
 
             try
             {
-                var json = await _fileSystem.File.ReadAllTextAsync(ownerPath, cancellationToken).ConfigureAwait(false);
+                var json = await _fileSystem.File.ReadAllTextAsync(ownerPath, cancellationToken);
                 var owner = JsonSerializer.Deserialize<WorkspaceCommitOwner>(json, _serializerOptions);
                 if (owner is not null
                     && owner.Version == 2
@@ -225,7 +225,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         var commitId = _fileSystem.Path.GetFileNameWithoutExtension(path);
         try
         {
-            var json = await _fileSystem.File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
+            var json = await _fileSystem.File.ReadAllTextAsync(path, cancellationToken);
             var legacy = JsonSerializer.Deserialize<RecoveryStatus>(json, _serializerOptions);
             return CreateLegacyStatus(commitId, legacy);
         }
@@ -450,7 +450,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
                 ?? throw new InvalidOperationException($"The recovery artifact '{path}' does not have a parent directory.");
 
             _fileSystem.Directory.CreateDirectory(artifactDirectory);
-            await _atomicFileWriter.WriteAllBytesAsync(path, artifact.Value, cancellationToken).ConfigureAwait(false);
+            await _atomicFileWriter.WriteAllBytesAsync(path, artifact.Value, cancellationToken);
         }
     }
 

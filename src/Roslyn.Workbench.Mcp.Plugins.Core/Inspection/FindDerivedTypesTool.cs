@@ -7,7 +7,7 @@ internal sealed class FindDerivedTypesTool : QueryToolHandler<FindDerivedTypesRe
 {
     protected override async ValueTask<PluginExecutionResult<DerivedTypesData>> ExecuteCoreAsync(FindDerivedTypesRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<DerivedTypesData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<DerivedTypesData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
@@ -24,7 +24,7 @@ internal sealed class FindDerivedTypesTool : QueryToolHandler<FindDerivedTypesRe
             return scopeResolution.Rejection;
         }
 
-        var derivedTypes = (await FindDerivedTypeSymbolsAsync(namedType, context.CurrentSolution, scopeResolution.Value.ToImmutableHashSet(), cancellationToken).ConfigureAwait(false))
+        var derivedTypes = (await FindDerivedTypeSymbolsAsync(namedType, context.CurrentSolution, scopeResolution.Value.ToImmutableHashSet(), cancellationToken))
             .Distinct(SymbolEqualityComparer.Default)
             .OfType<INamedTypeSymbol>()
             .OrderBy(symbol => context.WorkspaceResolver.CreateSymbolReference(symbol).DisplayName, StringComparer.Ordinal)
@@ -48,12 +48,12 @@ internal sealed class FindDerivedTypesTool : QueryToolHandler<FindDerivedTypesRe
     {
         if (root.TypeKind == TypeKind.Interface)
         {
-            return (await SymbolFinder.FindImplementationsAsync(root, solution, projects, cancellationToken).ConfigureAwait(false))
+            return (await SymbolFinder.FindImplementationsAsync(root, solution, projects, cancellationToken))
                 .OfType<INamedTypeSymbol>()
                 .ToArray();
         }
 
-        return (await SymbolFinder.FindDerivedClassesAsync(root, solution, projects, cancellationToken).ConfigureAwait(false))
+        return (await SymbolFinder.FindDerivedClassesAsync(root, solution, projects, cancellationToken))
             .ToArray();
     }
 

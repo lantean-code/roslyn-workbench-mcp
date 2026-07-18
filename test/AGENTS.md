@@ -123,6 +123,7 @@ Cross-project test ownership and execution-path policy are defined in `../docs/d
 - Integration tests own plugin discovery, reserved-name collisions, full Host composition and the absence of CodeActions from plugin status.
 
 ## Execution policy
+- Do not use `ConfigureAwait(false)`. Tests should await tasks directly, consistent with the console-hosted production execution model.
 - Default local development loop: run unit and contract coverage, excluding integration and audit categories.
 - Integration coverage should run for touched areas during development and in CI for broader regression confidence.
 - Audit coverage should run in broader CI or release gates, not in the default local loop.

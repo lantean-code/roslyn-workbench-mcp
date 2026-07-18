@@ -9,13 +9,13 @@ internal sealed class DefaultInspectionContextService : IInspectionContextServic
             return null;
         }
 
-        var text = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
+        var text = await document.GetTextAsync(cancellationToken);
         var line = text.Lines.GetLineFromPosition(span.Start);
         return line.ToString().Trim();
     }
 
     public async ValueTask<ISymbol?> TryCreateContainingSymbolAsync(Document document, int position, CancellationToken cancellationToken)
     {
-        return await SymbolFinder.FindSymbolAtPositionAsync(document, position, cancellationToken).ConfigureAwait(false);
+        return await SymbolFinder.FindSymbolAtPositionAsync(document, position, cancellationToken);
     }
 }

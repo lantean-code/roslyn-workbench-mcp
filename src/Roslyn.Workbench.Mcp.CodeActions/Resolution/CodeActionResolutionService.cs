@@ -48,7 +48,7 @@ internal sealed class CodeActionResolutionService : ICodeActionResolutionService
             return RejectedResolution(CodeActionExecutionResultFactory.ActionExpired<T>());
         }
 
-        var rediscovery = await RediscoverActionsAsync(tokenResolution.Context, cancellationToken).ConfigureAwait(false);
+        var rediscovery = await RediscoverActionsAsync(tokenResolution.Context, cancellationToken);
         if (!rediscovery.ProviderAvailable)
         {
             return RejectedResolution(
@@ -150,7 +150,7 @@ internal sealed class CodeActionResolutionService : ICodeActionResolutionService
                         providers[0],
                         tokenContext.Document,
                         tokenContext.Span,
-                        cancellationToken).ConfigureAwait(false),
+                        cancellationToken),
                 }
                 : new CodeActionRediscovery();
         }
@@ -165,7 +165,7 @@ internal sealed class CodeActionResolutionService : ICodeActionResolutionService
             tokenContext.Document,
             tokenContext.Span,
             tokenContext.Payload.DiagnosticIds,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
         return new CodeActionRediscovery
         {
             ProviderAvailable = true,
@@ -173,7 +173,7 @@ internal sealed class CodeActionResolutionService : ICodeActionResolutionService
                 codeFixProviders[0],
                 tokenContext.Document,
                 diagnostics,
-                cancellationToken).ConfigureAwait(false),
+                cancellationToken),
         };
     }
 

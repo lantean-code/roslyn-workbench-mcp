@@ -22,7 +22,7 @@ internal sealed class UnhandledToolExceptionFilter
     {
         try
         {
-            return await next(context, cancellationToken).ConfigureAwait(false);
+            return await next(context, cancellationToken);
         }
         catch (OperationCanceledException)
         {

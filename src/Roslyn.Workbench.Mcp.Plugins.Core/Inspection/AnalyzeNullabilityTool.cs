@@ -16,7 +16,7 @@ internal sealed class AnalyzeNullabilityTool : QueryToolHandler<AnalyzeNullabili
                 return snapshotRejection;
             }
 
-            var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(request.Location, cancellationToken).ConfigureAwait(false);
+            var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(request.Location, cancellationToken);
             if (locationResolution.Status != SelectorResolveStatus.Resolved)
             {
                 return ToolExecutionHelpers.RejectFromStatus<NullabilityAnalysisData>(locationResolution.Status, "Location", "location");
@@ -41,7 +41,7 @@ internal sealed class AnalyzeNullabilityTool : QueryToolHandler<AnalyzeNullabili
             documents = documentResolution.Value;
         }
 
-        var diagnostics = await context.ToolExecutionServices.CompilerDiagnosticService.GetCompilerDiagnosticsAsync(documents, cancellationToken).ConfigureAwait(false);
+        var diagnostics = await context.ToolExecutionServices.CompilerDiagnosticService.GetCompilerDiagnosticsAsync(documents, cancellationToken);
         var findings = diagnostics
             .Where(static diagnostic => diagnostic.Id.StartsWith("CS86", StringComparison.Ordinal))
             .Where(diagnostic => selectedSpan is null || diagnostic.Location.SourceSpan.IntersectsWith(selectedSpan.Value))

@@ -5,7 +5,7 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
 {
     protected override async ValueTask<PluginExecutionResult<OperationTreeData>> ExecuteCoreAsync(GetOperationTreeRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        var syntaxNodeResolution = await ResolveSyntaxNodeAsync(request.Location, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var syntaxNodeResolution = await ResolveSyntaxNodeAsync(request.Location, request.ExpectedSnapshot, context, cancellationToken);
         if (syntaxNodeResolution.Rejection is not null)
         {
             return syntaxNodeResolution.Rejection;
@@ -71,7 +71,7 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
             };
         }
 
-        var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken).ConfigureAwait(false);
+        var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken);
         if (!locationResolution.IsResolved)
         {
             return new SyntaxNodeResolution
@@ -101,8 +101,8 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
             };
         }
 
-        var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-        var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+        var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
+        var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
         if (syntaxRoot is null || semanticModel is null)
         {
             return new SyntaxNodeResolution

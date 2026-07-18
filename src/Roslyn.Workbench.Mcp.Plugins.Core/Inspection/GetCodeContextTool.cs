@@ -5,7 +5,7 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
 {
     protected override async ValueTask<PluginExecutionResult<CodeContextData>> ExecuteCoreAsync(GetCodeContextRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        var locationResolution = await ResolveLocationAsync(request.Location, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var locationResolution = await ResolveLocationAsync(request.Location, request.ExpectedSnapshot, context, cancellationToken);
         if (locationResolution.Rejection is not null)
         {
             return locationResolution.Rejection;
@@ -38,7 +38,7 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
                 .ToArray()
             : [];
 
-        var text = await locationResolution.Document.GetTextAsync(cancellationToken).ConfigureAwait(false);
+        var text = await locationResolution.Document.GetTextAsync(cancellationToken);
         var lines = text.Lines;
         var startLine = lines.GetLineFromPosition(locationResolution.Location.SourceSpan.Start).LineNumber;
         var endPosition = Math.Max(locationResolution.Location.SourceSpan.Start, locationResolution.Location.SourceSpan.End - 1);
@@ -93,7 +93,7 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
             };
         }
 
-        var location = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken).ConfigureAwait(false);
+        var location = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken);
         if (!location.IsResolved)
         {
             return new LocationResolution
@@ -115,8 +115,8 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
             };
         }
 
-        var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-        var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+        var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
+        var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
         if (syntaxRoot is null || semanticModel is null)
         {
             return new LocationResolution

@@ -33,7 +33,7 @@ internal sealed class TransactionPreviewTool : ServerOwnedToolBase<TransactionPr
             request.Document,
             request.IncludeDiff,
             request.ContextLines,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
 
         return WorkspaceToolResultMapper.Map(result, static data => new TransactionPreviewData
         {

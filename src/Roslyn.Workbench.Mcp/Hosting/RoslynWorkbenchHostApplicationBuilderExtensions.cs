@@ -35,7 +35,7 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
                     var requestServices = context.Services
                         ?? throw new InvalidOperationException("The MCP call-tool filter requires a configured service provider.");
                     var filter = requestServices.GetRequiredService<UnhandledToolExceptionFilter>();
-                    return await filter.InvokeAsync(next, context, cancellationToken).ConfigureAwait(false);
+                    return await filter.InvokeAsync(next, context, cancellationToken);
                 });
             })
             .WithStdioServerTransport();

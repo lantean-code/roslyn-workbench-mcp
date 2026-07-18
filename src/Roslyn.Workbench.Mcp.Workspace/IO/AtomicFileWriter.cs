@@ -22,7 +22,7 @@ internal sealed class AtomicFileWriter : IAtomicFileWriter
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
         cancellationToken.ThrowIfCancellationRequested();
 
-        await WriteAllBytesAsync(destinationPath, encoding.GetBytes(contents), cancellationToken).ConfigureAwait(false);
+        await WriteAllBytesAsync(destinationPath, encoding.GetBytes(contents), cancellationToken);
     }
 
     public async ValueTask WriteAllBytesAsync(
@@ -50,8 +50,8 @@ internal sealed class AtomicFileWriter : IAtomicFileWriter
             };
             await using (var stream = _fileSystem.FileStream.New(temporaryPath, options))
             {
-                await stream.WriteAsync(contents, cancellationToken).ConfigureAwait(false);
-                await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+                await stream.WriteAsync(contents, cancellationToken);
+                await stream.FlushAsync(cancellationToken);
                 stream.Flush(flushToDisk: true);
             }
 

@@ -31,7 +31,7 @@ internal sealed class WorkspaceStatusTool : ServerOwnedToolBase<WorkspaceStatusR
             request.Workspace?.Alias,
             request.Workspace?.Path,
             request.Detail,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
 
         return WorkspaceToolResultMapper.Map(result, static data => new WorkspaceStatusData
         {

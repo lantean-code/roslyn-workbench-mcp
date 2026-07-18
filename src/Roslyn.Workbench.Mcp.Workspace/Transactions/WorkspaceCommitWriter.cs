@@ -27,7 +27,7 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
     {
         foreach (var entry in manifest.Entries)
         {
-            var validation = await RevalidateEntryAsync(entry, cancellationToken).ConfigureAwait(false);
+            var validation = await RevalidateEntryAsync(entry, cancellationToken);
             if (!validation.IsValid)
             {
                 return validation;
@@ -46,7 +46,7 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
 
         foreach (var entry in manifest.Entries)
         {
-            var validation = await RevalidateEntryAsync(entry, CancellationToken.None).ConfigureAwait(false);
+            var validation = await RevalidateEntryAsync(entry, CancellationToken.None);
             if (!validation.IsValid)
             {
                 return validation;
@@ -56,8 +56,8 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
             {
                 case WorkspaceFileOperation.Create:
                 case WorkspaceFileOperation.Replace:
-                    var contents = await _recoveryStore.ReadArtifactAsync(manifest.CommitId, entry.GetRequiredStagedPath(), CancellationToken.None).ConfigureAwait(false);
-                    await _atomicFileWriter.WriteAllBytesAsync(entry.TargetPath, contents, CancellationToken.None).ConfigureAwait(false);
+                    var contents = await _recoveryStore.ReadArtifactAsync(manifest.CommitId, entry.GetRequiredStagedPath(), CancellationToken.None);
+                    await _atomicFileWriter.WriteAllBytesAsync(entry.TargetPath, contents, CancellationToken.None);
                     break;
                 case WorkspaceFileOperation.Delete:
                     if (_fileSystem.File.Exists(entry.GetRequiredDeleteMarkerPath()))
@@ -106,7 +106,7 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
             foreach (var entry in manifest.Entries.Reverse())
             {
                 var exists = _fileSystem.File.Exists(entry.TargetPath);
-                var currentHash = exists ? await HashFileAsync(entry.TargetPath, CancellationToken.None).ConfigureAwait(false) : null;
+                var currentHash = exists ? await HashFileAsync(entry.TargetPath, CancellationToken.None) : null;
                 if (entry.OriginalExists)
                 {
                     if (entry.Operation == WorkspaceFileOperation.Delete)
@@ -146,11 +146,11 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
                         continue;
                     }
 
-                    var backup = await _recoveryStore.ReadArtifactAsync(manifest.CommitId, entry.GetRequiredBackupPath(), CancellationToken.None).ConfigureAwait(false);
+                    var backup = await _recoveryStore.ReadArtifactAsync(manifest.CommitId, entry.GetRequiredBackupPath(), CancellationToken.None);
                     var targetDirectory = _fileSystem.Path.GetDirectoryName(entry.TargetPath)
                         ?? throw new InvalidOperationException($"The target '{entry.TargetPath}' does not have a parent directory.");
                     _fileSystem.Directory.CreateDirectory(targetDirectory);
-                    await _atomicFileWriter.WriteAllBytesAsync(entry.TargetPath, backup, CancellationToken.None).ConfigureAwait(false);
+                    await _atomicFileWriter.WriteAllBytesAsync(entry.TargetPath, backup, CancellationToken.None);
                 }
                 else if (exists)
                 {
@@ -187,7 +187,7 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
 
     private async ValueTask<string> HashFileAsync(string path, CancellationToken cancellationToken)
     {
-        var contents = await _fileSystem.File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
+        var contents = await _fileSystem.File.ReadAllBytesAsync(path, cancellationToken);
         return Convert.ToHexString(SHA256.HashData(contents));
     }
 
@@ -210,7 +210,7 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
         }
 
         if (entry.OriginalExists && !string.Equals(
-            await HashFileAsync(entry.TargetPath, cancellationToken).ConfigureAwait(false),
+            await HashFileAsync(entry.TargetPath, cancellationToken),
             entry.OriginalHash,
             StringComparison.Ordinal))
         {

@@ -45,7 +45,7 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
             return Rejected<CodeActionListData>("InvalidRequest", "A location selector is required.");
         }
 
-        var location = await context.WorkspaceResolver.ResolveLocationAsync(request.Location, cancellationToken).ConfigureAwait(false);
+        var location = await context.WorkspaceResolver.ResolveLocationAsync(request.Location, cancellationToken);
         if (location.Status != SelectorResolveStatus.Resolved || location.Value is null)
         {
             return RejectFromStatus<CodeActionListData>(location.Status, "Location", "location");
@@ -67,7 +67,7 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
             foreach (var provider in _discoveryService.GetMatchingRefactoringProviders(providerId: null))
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var actions = await _discoveryService.DiscoverRefactoringsAsync(provider, document, span, cancellationToken).ConfigureAwait(false);
+                var actions = await _discoveryService.DiscoverRefactoringsAsync(provider, document, span, cancellationToken);
                 discovered.AddRange(actions);
             }
         }
@@ -78,11 +78,11 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
                 document,
                 span,
                 request.DiagnosticIds,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken);
             foreach (var provider in _discoveryService.GetMatchingCodeFixProviders(providerId: null))
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var actions = await _discoveryService.DiscoverCodeFixesAsync(provider, document, diagnostics, cancellationToken).ConfigureAwait(false);
+                var actions = await _discoveryService.DiscoverCodeFixesAsync(provider, document, diagnostics, cancellationToken);
                 discovered.AddRange(actions);
             }
         }

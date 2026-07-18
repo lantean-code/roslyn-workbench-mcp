@@ -148,7 +148,7 @@ public sealed class ServerOwnedToolBaseTests
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var target = new WorkspaceListTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
         var server = ServerOwnedToolTestSupport.CreateServer();
-        await using var serverDisposal = server.ConfigureAwait(false);
+        await using var serverDisposal = server;
         var requestContext = new RequestContext<CallToolRequestParams>(
             server,
             new JsonRpcRequest

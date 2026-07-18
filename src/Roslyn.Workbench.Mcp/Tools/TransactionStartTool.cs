@@ -30,7 +30,7 @@ internal sealed class TransactionStartTool : ServerOwnedToolBase<TransactionStar
             request.Workspace?.WorkspaceId,
             request.Workspace?.Alias,
             request.Workspace?.Path,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
 
         return WorkspaceToolResultMapper.Map(result, static data => new TransactionStartData
         {

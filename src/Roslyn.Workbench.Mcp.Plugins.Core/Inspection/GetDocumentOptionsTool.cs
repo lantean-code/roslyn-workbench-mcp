@@ -19,7 +19,7 @@ internal sealed class GetDocumentOptionsTool : QueryToolHandler<GetDocumentOptio
             LanguageVersion = parseOptions is CSharpParseOptions csharpParseOptions ? csharpParseOptions.LanguageVersion.ToDisplayString() : parseOptions?.Language ?? string.Empty,
             NullableContext = document.Project.CompilationOptions is CSharpCompilationOptions csharpCompilationOptions ? csharpCompilationOptions.NullableContextOptions.ToString() : string.Empty,
             ParseOptions = InspectionProjectionFactory.CreateParseOptionsInfo(parseOptions),
-            AnalyzerConfig = await InspectionProjectionFactory.CreateAnalyzerConfigInfoAsync(document, cancellationToken).ConfigureAwait(false),
+            AnalyzerConfig = await InspectionProjectionFactory.CreateAnalyzerConfigInfoAsync(document, cancellationToken),
         };
 
         return PluginExecutionResult<DocumentOptionsData>.Success(data);

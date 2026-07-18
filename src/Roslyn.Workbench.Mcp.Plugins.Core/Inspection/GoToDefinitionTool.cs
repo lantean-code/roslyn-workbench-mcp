@@ -5,14 +5,14 @@ internal sealed class GoToDefinitionTool : QueryToolHandler<GoToDefinitionReques
 {
     protected override async ValueTask<PluginExecutionResult<DefinitionData>> ExecuteCoreAsync(GoToDefinitionRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<DefinitionData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<DefinitionData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
         }
 
         var symbol = symbolResolution.Value;
-        var sourceDefinition = await SymbolFinder.FindSourceDefinitionAsync(symbol, context.CurrentSolution, cancellationToken).ConfigureAwait(false) ?? symbol;
+        var sourceDefinition = await SymbolFinder.FindSourceDefinitionAsync(symbol, context.CurrentSolution, cancellationToken) ?? symbol;
         var definitions = sourceDefinition.Locations.Any(static location => location.IsInSource)
             ? sourceDefinition.Locations
                 .Where(static location => location.IsInSource)

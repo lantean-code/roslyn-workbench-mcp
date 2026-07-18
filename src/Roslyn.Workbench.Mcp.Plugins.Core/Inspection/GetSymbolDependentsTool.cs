@@ -8,7 +8,7 @@ internal sealed class GetSymbolDependentsTool : QueryToolHandler<GetSymbolDepend
     protected override async ValueTask<PluginExecutionResult<SymbolDependentsData>> ExecuteCoreAsync(GetSymbolDependentsRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
 
-        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<SymbolDependentsData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<SymbolDependentsData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
@@ -21,7 +21,7 @@ internal sealed class GetSymbolDependentsTool : QueryToolHandler<GetSymbolDepend
             return documents.Rejection;
         }
 
-        var referencedSymbols = await SymbolFinder.FindReferencesAsync(symbol, context.CurrentSolution, documents.Value.ToImmutableHashSet(), cancellationToken).ConfigureAwait(false);
+        var referencedSymbols = await SymbolFinder.FindReferencesAsync(symbol, context.CurrentSolution, documents.Value.ToImmutableHashSet(), cancellationToken);
         var dependents = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
         foreach (var referencedSymbol in referencedSymbols)
         {
@@ -32,7 +32,7 @@ internal sealed class GetSymbolDependentsTool : QueryToolHandler<GetSymbolDepend
                     continue;
                 }
 
-                var containingSymbol = await GetEnclosingSymbolAsync(location.Document, location.Location.SourceSpan.Start, cancellationToken).ConfigureAwait(false);
+                var containingSymbol = await GetEnclosingSymbolAsync(location.Document, location.Location.SourceSpan.Start, cancellationToken);
                 if (containingSymbol is null || SymbolEqualityComparer.Default.Equals(containingSymbol, symbol))
                 {
                     continue;
@@ -58,7 +58,7 @@ internal sealed class GetSymbolDependentsTool : QueryToolHandler<GetSymbolDepend
 
     private static async ValueTask<ISymbol?> GetEnclosingSymbolAsync(Document document, int position, CancellationToken cancellationToken)
     {
-        var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+        var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
         return semanticModel?.GetEnclosingSymbol(position, cancellationToken);
     }
 }

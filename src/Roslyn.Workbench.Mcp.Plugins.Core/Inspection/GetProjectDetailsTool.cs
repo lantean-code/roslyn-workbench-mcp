@@ -18,7 +18,7 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
             return ToolExecutionHelpers.RejectProjectStructureFailure<ProjectDetailsData>(targetFrameworks.ErrorMessage);
         }
 
-        var compilation = await project.GetCompilationAsync(cancellationToken).ConfigureAwait(false);
+        var compilation = await project.GetCompilationAsync(cancellationToken);
         var documents = request.IncludeDocuments
             ? project.Documents
                 .OrderBy(document => context.WorkspaceResolver.NormalizeDocumentPath(document.FilePath ?? document.Name), StringComparer.Ordinal)

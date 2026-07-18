@@ -16,7 +16,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
         ISymbol ownerSymbol;
         if (request.Symbol is not null)
         {
-            var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<ControlFlowGraphData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+            var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<ControlFlowGraphData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken);
             if (symbolResolution.HasRejection)
             {
                 return symbolResolution.Rejection;
@@ -29,8 +29,8 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
                 return ToolExecutionHelpers.Rejected<ControlFlowGraphData>("LocationNotFound", "The symbol does not have a source declaration.", RequiredAction.ResolveTargetAgain);
             }
 
-            var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-            var resolvedSemanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+            var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
+            var resolvedSemanticModel = await document.GetSemanticModelAsync(cancellationToken);
             if (syntaxRoot is null || resolvedSemanticModel is null)
             {
                 return ToolExecutionHelpers.Rejected<ControlFlowGraphData>("LocationNotFound", "The symbol source declaration could not be analysed.", RequiredAction.ResolveTargetAgain);
@@ -43,7 +43,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
         {
             var location = request.Location
                 ?? throw new InvalidOperationException("A validated control-flow graph request must contain a location.");
-            var syntaxNodeResolution = await ResolveSyntaxNodeAsync(location, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+            var syntaxNodeResolution = await ResolveSyntaxNodeAsync(location, request.ExpectedSnapshot, context, cancellationToken);
             if (syntaxNodeResolution.Rejection is not null)
             {
                 return syntaxNodeResolution.Rejection;
@@ -129,7 +129,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
             };
         }
 
-        var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken).ConfigureAwait(false);
+        var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken);
         if (!locationResolution.IsResolved)
         {
             return new SyntaxNodeResolution
@@ -159,8 +159,8 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
             };
         }
 
-        var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-        var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+        var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
+        var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
         if (syntaxRoot is null || semanticModel is null)
         {
             return new SyntaxNodeResolution

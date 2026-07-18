@@ -45,7 +45,7 @@ internal sealed class ServerStatusService : IServerStatusService
         var includeExpandedDetail = detail == StatusDetailLevel.Full;
 
         var recovery = includeExpandedDetail
-            ? await _recoveryStore.GetStatusesAsync(cancellationToken).ConfigureAwait(false)
+            ? await _recoveryStore.GetStatusesAsync(cancellationToken)
             : null;
 
         return ToolResult<ServerStatusData>.Succeeded(new ServerStatusData

@@ -150,10 +150,10 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
     public async ValueTask<SelectorResolveResult<Location>> ResolveLocationAsync(LocationSelector selector, CancellationToken cancellationToken)
     {
 
-        var resolution = await ResolveDocumentSpanAsync(selector, cancellationToken).ConfigureAwait(false);
+        var resolution = await ResolveDocumentSpanAsync(selector, cancellationToken);
         if (resolution.IsResolved)
         {
-            var syntaxTree = await resolution.Value.Document.GetSyntaxTreeAsync(cancellationToken).ConfigureAwait(false);
+            var syntaxTree = await resolution.Value.Document.GetSyntaxTreeAsync(cancellationToken);
             return syntaxTree is null
                 ? SelectorResolveResult<Location>.NotFound()
                 : SelectorResolveResult<Location>.Resolved(syntaxTree.GetLocation(resolution.Value.Span));
@@ -181,7 +181,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
 
         if (!string.IsNullOrWhiteSpace(selector.DocumentationCommentId))
         {
-            return await ResolveSymbolByDocumentationCommentIdAsync(selector.DocumentationCommentId, cancellationToken).ConfigureAwait(false);
+            return await ResolveSymbolByDocumentationCommentIdAsync(selector.DocumentationCommentId, cancellationToken);
         }
 
         if (selector.Location is null)
@@ -189,7 +189,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
             return SelectorResolveResult<ISymbol>.NotFound();
         }
 
-        var locationResolution = await ResolveDocumentSpanAsync(selector.Location, cancellationToken).ConfigureAwait(false);
+        var locationResolution = await ResolveDocumentSpanAsync(selector.Location, cancellationToken);
         if (!locationResolution.IsResolved)
         {
             return locationResolution.Status == SelectorResolveStatus.Ambiguous
@@ -198,19 +198,19 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         }
 
         var document = locationResolution.Value.Document;
-        var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+        var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
         if (semanticModel is null)
         {
             return SelectorResolveResult<ISymbol>.NotFound();
         }
 
-        var symbol = await SymbolFinder.FindSymbolAtPositionAsync(semanticModel, locationResolution.Value.Span.Start, _solution.Workspace, cancellationToken).ConfigureAwait(false);
+        var symbol = await SymbolFinder.FindSymbolAtPositionAsync(semanticModel, locationResolution.Value.Span.Start, _solution.Workspace, cancellationToken);
         if (symbol is not null)
         {
             return SelectorResolveResult<ISymbol>.Resolved(symbol);
         }
 
-        var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+        var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
         var node = syntaxRoot?.FindNode(locationResolution.Value.Span, getInnermostNodeForTie: true);
         symbol = node is null
             ? null
@@ -268,7 +268,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         }
 
         var document = documentResolution.Value;
-        var sourceText = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
+        var sourceText = await document.GetTextAsync(cancellationToken);
         var text = sourceText.ToString();
         var matches = new List<int>();
         var searchStart = 0;
@@ -317,7 +317,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         }
 
         var document = documentResolution.Value;
-        var sourceText = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
+        var sourceText = await document.GetTextAsync(cancellationToken);
         if (selector.Start < 0 || selector.Length < 0 || selector.Start + selector.Length > sourceText.Length)
         {
             return SelectorResolveResult<ResolvedDocumentSpan>.NotFound();
@@ -336,7 +336,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         foreach (var project in _solution.Projects.Where(static project => project.SupportsCompilation))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var compilation = await project.GetCompilationAsync(cancellationToken).ConfigureAwait(false);
+            var compilation = await project.GetCompilationAsync(cancellationToken);
             if (compilation is null)
             {
                 continue;

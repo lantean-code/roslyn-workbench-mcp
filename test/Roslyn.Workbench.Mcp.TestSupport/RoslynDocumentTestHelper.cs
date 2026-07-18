@@ -21,7 +21,7 @@ public static class RoslynDocumentTestHelper
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(predicate);
 
-        var syntaxRoot = await GetRequiredSyntaxRootAsync(document, cancellationToken).ConfigureAwait(false);
+        var syntaxRoot = await GetRequiredSyntaxRootAsync(document, cancellationToken);
         var node = syntaxRoot
             .DescendantNodes()
             .OfType<TNode>()
@@ -47,7 +47,7 @@ public static class RoslynDocumentTestHelper
         ArgumentNullException.ThrowIfNull(document);
         ArgumentException.ThrowIfNullOrWhiteSpace(methodName);
 
-        var (syntaxRoot, semanticModel) = await GetRequiredSyntaxRootAndSemanticModelAsync(document, cancellationToken).ConfigureAwait(false);
+        var (syntaxRoot, semanticModel) = await GetRequiredSyntaxRootAndSemanticModelAsync(document, cancellationToken);
         var method = syntaxRoot.DescendantNodes()
             .OfType<MethodDeclarationSyntax>()
             .Single(item => item.Identifier.ValueText == methodName
@@ -69,7 +69,7 @@ public static class RoslynDocumentTestHelper
         ArgumentNullException.ThrowIfNull(document);
         ArgumentException.ThrowIfNullOrWhiteSpace(propertyName);
 
-        var (syntaxRoot, semanticModel) = await GetRequiredSyntaxRootAndSemanticModelAsync(document, cancellationToken).ConfigureAwait(false);
+        var (syntaxRoot, semanticModel) = await GetRequiredSyntaxRootAndSemanticModelAsync(document, cancellationToken);
         var property = syntaxRoot.DescendantNodes()
             .OfType<PropertyDeclarationSyntax>()
             .Single(item => item.Identifier.ValueText == propertyName);
@@ -90,7 +90,7 @@ public static class RoslynDocumentTestHelper
         ArgumentNullException.ThrowIfNull(document);
         ArgumentException.ThrowIfNullOrWhiteSpace(typeName);
 
-        var (syntaxRoot, semanticModel) = await GetRequiredSyntaxRootAndSemanticModelAsync(document, cancellationToken).ConfigureAwait(false);
+        var (syntaxRoot, semanticModel) = await GetRequiredSyntaxRootAndSemanticModelAsync(document, cancellationToken);
         var type = syntaxRoot.DescendantNodes()
             .OfType<TypeDeclarationSyntax>()
             .Single(item => item.Identifier.ValueText == typeName);
@@ -114,7 +114,7 @@ public static class RoslynDocumentTestHelper
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(predicate);
 
-        var (syntaxRoot, semanticModel) = await GetRequiredSyntaxRootAndSemanticModelAsync(document, cancellationToken).ConfigureAwait(false);
+        var (syntaxRoot, semanticModel) = await GetRequiredSyntaxRootAndSemanticModelAsync(document, cancellationToken);
         var invocation = syntaxRoot
             .DescendantNodes()
             .OfType<InvocationExpressionSyntax>()
@@ -141,7 +141,7 @@ public static class RoslynDocumentTestHelper
         ArgumentNullException.ThrowIfNull(document);
         ArgumentException.ThrowIfNullOrWhiteSpace(functionName);
 
-        var (syntaxRoot, semanticModel) = await GetRequiredSyntaxRootAndSemanticModelAsync(document, cancellationToken).ConfigureAwait(false);
+        var (syntaxRoot, semanticModel) = await GetRequiredSyntaxRootAndSemanticModelAsync(document, cancellationToken);
         var function = syntaxRoot
             .DescendantNodes()
             .OfType<LocalFunctionStatementSyntax>()
@@ -161,7 +161,7 @@ public static class RoslynDocumentTestHelper
     {
         ArgumentNullException.ThrowIfNull(document);
 
-        var (syntaxRoot, semanticModel) = await GetRequiredSyntaxRootAndSemanticModelAsync(document, cancellationToken).ConfigureAwait(false);
+        var (syntaxRoot, semanticModel) = await GetRequiredSyntaxRootAndSemanticModelAsync(document, cancellationToken);
         var anonymousFunction = syntaxRoot
             .DescendantNodes()
             .OfType<AnonymousFunctionExpressionSyntax>()
@@ -174,13 +174,13 @@ public static class RoslynDocumentTestHelper
 
     private static async Task<SyntaxNode> GetRequiredSyntaxRootAsync(Document document, CancellationToken cancellationToken)
     {
-        return await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false)
+        return await document.GetSyntaxRootAsync(cancellationToken)
             ?? throw new InvalidOperationException($"The syntax root for '{document.Name}' could not be resolved.");
     }
 
     private static async Task<SemanticModel> GetRequiredSemanticModelAsync(Document document, CancellationToken cancellationToken)
     {
-        return await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false)
+        return await document.GetSemanticModelAsync(cancellationToken)
             ?? throw new InvalidOperationException($"The semantic model for '{document.Name}' could not be resolved.");
     }
 
@@ -188,8 +188,8 @@ public static class RoslynDocumentTestHelper
         Document document,
         CancellationToken cancellationToken)
     {
-        var syntaxRoot = await GetRequiredSyntaxRootAsync(document, cancellationToken).ConfigureAwait(false);
-        var semanticModel = await GetRequiredSemanticModelAsync(document, cancellationToken).ConfigureAwait(false);
+        var syntaxRoot = await GetRequiredSyntaxRootAsync(document, cancellationToken);
+        var semanticModel = await GetRequiredSemanticModelAsync(document, cancellationToken);
 
         return (syntaxRoot, semanticModel);
     }

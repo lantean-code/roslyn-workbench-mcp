@@ -57,9 +57,9 @@ internal sealed class MutationStagingService : IMutationStagingService
             candidate,
             session,
             transaction,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
         _sessionStore.ReplaceSession(stagedMutation.Session);
-        await PublishStatusAsync(stagedMutation).ConfigureAwait(false);
+        await PublishStatusAsync(stagedMutation);
 
         return CreateSuccessResult(operationName, candidate, stagedMutation, diagnostics, warnings);
     }
@@ -75,7 +75,7 @@ internal sealed class MutationStagingService : IMutationStagingService
             transaction.BaselineSolution,
             candidate.CandidateSolution,
             _resolverFactory.Create(candidate.CandidateSolution, session.Workspace, transaction.CurrentRevision + 1),
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
         var revision = CreateRevision(operationName, candidate, changes);
         var updatedTransaction = transaction.Append(revision);
         var updatedSession = session with

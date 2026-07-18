@@ -34,7 +34,7 @@ internal sealed class CodeActionOperationService : ICodeActionOperationService
         var operations = await action.GetOperationsAsync(
             context.CurrentSolution,
             new Progress<CodeAnalysisProgress>(),
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
         if (!TryGetSupportedApplyChangesOperation(operations, out var applyChanges))
         {
             return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
@@ -101,7 +101,7 @@ internal sealed class CodeActionOperationService : ICodeActionOperationService
         FixAllContext fixAllContext,
         CancellationToken cancellationToken)
     {
-        var fixAllAction = await fixAllProvider.GetFixAsync(fixAllContext).ConfigureAwait(false);
+        var fixAllAction = await fixAllProvider.GetFixAsync(fixAllContext);
         if (fixAllAction is null)
         {
             return new CodeActionApplyResult
@@ -113,7 +113,7 @@ internal sealed class CodeActionOperationService : ICodeActionOperationService
         var operations = await fixAllAction.GetOperationsAsync(
             fixAllContext.Solution,
             new Progress<CodeAnalysisProgress>(),
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
         if (!TryGetSupportedApplyChangesOperation(operations, out var applyChanges))
         {
             return new CodeActionApplyResult

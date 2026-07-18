@@ -30,9 +30,9 @@ internal static class Program
         stream.Lock(0, 1);
         try
         {
-            await Console.Out.WriteLineAsync("LOCKED").ConfigureAwait(false);
-            await Console.Out.FlushAsync().ConfigureAwait(false);
-            _ = await Console.In.ReadLineAsync().ConfigureAwait(false);
+            await Console.Out.WriteLineAsync("LOCKED");
+            await Console.Out.FlushAsync();
+            _ = await Console.In.ReadLineAsync();
             return 0;
         }
         finally

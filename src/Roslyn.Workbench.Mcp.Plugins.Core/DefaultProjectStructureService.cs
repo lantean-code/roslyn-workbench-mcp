@@ -72,7 +72,7 @@ internal sealed class DefaultProjectStructureService : IProjectStructureService
 
         try
         {
-            var model = await serializer.OpenAsync(loadedPath, cancellationToken).ConfigureAwait(false);
+            var model = await serializer.OpenAsync(loadedPath, cancellationToken);
             var folders = model.SolutionFolders
                 .Select(static folder => CreateSolutionFolderInfo(folder))
                 .OrderBy(static folder => folder.Path, StringComparer.Ordinal)

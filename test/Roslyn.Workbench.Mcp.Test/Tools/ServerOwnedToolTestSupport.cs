@@ -12,7 +12,7 @@ internal static class ServerOwnedToolTestSupport
         CancellationToken cancellationToken = default)
     {
         var server = CreateServer();
-        await using var serverDisposal = server.ConfigureAwait(false);
+        await using var serverDisposal = server;
         return await tool.InvokeAsync(
             new RequestContext<CallToolRequestParams>(
                 server,
@@ -25,7 +25,7 @@ internal static class ServerOwnedToolTestSupport
                     Name = toolName,
                     Arguments = arguments ?? new Dictionary<string, JsonElement>(StringComparer.Ordinal),
                 }),
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
     }
 
     public static McpServer CreateServer()

@@ -7,7 +7,7 @@ internal sealed class FindCallersTool : QueryToolHandler<FindCallersRequest, Cal
 {
     protected override async ValueTask<PluginExecutionResult<CallerSearchData>> ExecuteCoreAsync(FindCallersRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<CallerSearchData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<CallerSearchData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
@@ -20,7 +20,7 @@ internal sealed class FindCallersTool : QueryToolHandler<FindCallersRequest, Cal
             return documents.Rejection;
         }
 
-        var discoveredCallers = await SymbolFinder.FindCallersAsync(symbol, context.CurrentSolution, documents.Value.ToImmutableHashSet(), cancellationToken).ConfigureAwait(false);
+        var discoveredCallers = await SymbolFinder.FindCallersAsync(symbol, context.CurrentSolution, documents.Value.ToImmutableHashSet(), cancellationToken);
         var callers = new List<CallerInfo>();
         foreach (var caller in discoveredCallers)
         {
@@ -32,7 +32,7 @@ internal sealed class FindCallersTool : QueryToolHandler<FindCallersRequest, Cal
                     var document = location.SourceTree is null
                         ? null
                         : context.CurrentSolution.GetDocument(location.SourceTree);
-                    var contextLine = await context.ToolExecutionServices.InspectionContextService.ReadContextAsync(document, location.SourceSpan, cancellationToken).ConfigureAwait(false);
+                    var contextLine = await context.ToolExecutionServices.InspectionContextService.ReadContextAsync(document, location.SourceSpan, cancellationToken);
                     if (!string.IsNullOrWhiteSpace(contextLine))
                     {
                         contexts.Add(contextLine);

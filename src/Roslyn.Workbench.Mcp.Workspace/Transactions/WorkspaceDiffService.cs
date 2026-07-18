@@ -12,7 +12,7 @@ internal sealed class WorkspaceDiffService : IWorkspaceDiffBuilder
             baselineSolution,
             currentSolution,
             resolver,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
     }
 
     public async ValueTask<DocumentDiff?> CreateDocumentDiffAsync(
@@ -29,6 +29,6 @@ internal sealed class WorkspaceDiffService : IWorkspaceDiffBuilder
             documentReference,
             resolver,
             contextLines,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
     }
 }

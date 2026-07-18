@@ -45,7 +45,7 @@ internal sealed class CodeActionFixAllService : ICodeActionFixAllService
             return Rejected<WorkspaceMutationCandidate>("InvalidRequest", "A scope selector is required.");
         }
 
-        var resolution = await ResolveActionAsync(request, context, cancellationToken).ConfigureAwait(false);
+        var resolution = await ResolveActionAsync(request, context, cancellationToken);
         if (resolution.HasRejection)
         {
             return MapResolutionRejection(resolution.FailureKind, resolution.Rejection);
@@ -86,7 +86,7 @@ internal sealed class CodeActionFixAllService : ICodeActionFixAllService
             operation,
             scopeResolution,
             context.CurrentSolution,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
         if (application.HasRejection)
         {
             return application.Rejection;
@@ -96,7 +96,7 @@ internal sealed class CodeActionFixAllService : ICodeActionFixAllService
             request.MaxChanges,
             context.CurrentSolution,
             application.CandidateSolution,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
         return limitRejection ?? CreateSuccess(operation.Action, application.CandidateSolution);
     }
 
@@ -163,7 +163,7 @@ internal sealed class CodeActionFixAllService : ICodeActionFixAllService
             operation,
             originDocument,
             FixAllScope.Solution,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
     }
 
     private async ValueTask<CodeActionApplyResult> ApplyDocumentAsync(
@@ -185,7 +185,7 @@ internal sealed class CodeActionFixAllService : ICodeActionFixAllService
             operation,
             targetDocument,
             FixAllScope.Document,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
     }
 
     private async ValueTask<CodeActionApplyResult> ApplyProjectAsync(
@@ -203,7 +203,7 @@ internal sealed class CodeActionFixAllService : ICodeActionFixAllService
         return await ApplyProjectFixAllAsync(
             operation,
             targetProject,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
     }
 
     private async ValueTask<CodeActionApplyResult> ApplyProjectsAsync(
@@ -223,7 +223,7 @@ internal sealed class CodeActionFixAllService : ICodeActionFixAllService
             var application = await ApplyProjectFixAllAsync(
                 operation,
                 targetProject,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken);
             if (application.HasRejection)
             {
                 return application;
@@ -253,7 +253,7 @@ internal sealed class CodeActionFixAllService : ICodeActionFixAllService
             operation.Action.DiagnosticIds,
             operation.Action.EquivalenceKey,
             syntheticDiagnosticId: null,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
     }
 
     private async ValueTask<CodeActionApplyResult> ApplyProjectFixAllAsync(
@@ -268,7 +268,7 @@ internal sealed class CodeActionFixAllService : ICodeActionFixAllService
             operation.Action.DiagnosticIds,
             operation.Action.EquivalenceKey,
             syntheticDiagnosticId: null,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
     }
 
     private async ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>?> EnforceChangeLimitAsync(
@@ -280,7 +280,7 @@ internal sealed class CodeActionFixAllService : ICodeActionFixAllService
         var changedDocumentCount = await _solutionChangeCounter.CountChangedSourceDocumentsAsync(
             originalSolution,
             candidateSolution,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
         if (maxChanges is null || changedDocumentCount <= maxChanges.Value)
         {
             return null;

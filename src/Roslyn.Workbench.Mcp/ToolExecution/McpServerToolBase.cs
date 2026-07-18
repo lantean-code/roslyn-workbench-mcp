@@ -21,14 +21,14 @@ internal abstract class McpServerToolBase : McpServerTool
     {
         var arguments = requestContext.Params.Arguments
             ?? new Dictionary<string, JsonElement>(StringComparer.Ordinal);
-        return await InvokeArgumentsAsync(arguments, cancellationToken).ConfigureAwait(false);
+        return await InvokeArgumentsAsync(arguments, cancellationToken);
     }
 
     internal async ValueTask<CallToolResult> InvokeArgumentsAsync(
         IDictionary<string, JsonElement> arguments,
         CancellationToken cancellationToken)
     {
-        return await InvokeCoreAsync(arguments, cancellationToken).ConfigureAwait(false);
+        return await InvokeCoreAsync(arguments, cancellationToken);
     }
 
     protected abstract ValueTask<CallToolResult> InvokeCoreAsync(

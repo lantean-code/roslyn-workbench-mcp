@@ -19,7 +19,7 @@ internal sealed class GetDiagnosticsTool : QueryToolHandler<GetDiagnosticsReques
         var diagnostics = new List<Diagnostic>();
         foreach (var project in selectedDocuments.Select(static document => document.Project).DistinctBy(static project => project.Id))
         {
-            diagnostics.AddRange(await GetProjectDiagnosticsAsync(project, selectedDocumentIds, restrictToSelectedDocuments, cancellationToken).ConfigureAwait(false));
+            diagnostics.AddRange(await GetProjectDiagnosticsAsync(project, selectedDocumentIds, restrictToSelectedDocuments, cancellationToken));
         }
         var projectedDiagnostics = diagnostics
             .Where(diagnostic => MatchesDiagnosticFilters(diagnostic, request))
@@ -45,7 +45,7 @@ internal sealed class GetDiagnosticsTool : QueryToolHandler<GetDiagnosticsReques
 
     private static async ValueTask<IReadOnlyList<Diagnostic>> GetProjectDiagnosticsAsync(Project project, ImmutableHashSet<DocumentId> selectedDocumentIds, bool restrictToSelectedDocuments, CancellationToken cancellationToken)
     {
-        var compilation = await project.GetCompilationAsync(cancellationToken).ConfigureAwait(false);
+        var compilation = await project.GetCompilationAsync(cancellationToken);
         if (compilation is null)
         {
             return [];
@@ -61,7 +61,7 @@ internal sealed class GetDiagnosticsTool : QueryToolHandler<GetDiagnosticsReques
             diagnostics.AddRange(await compilation
                 .WithAnalyzers(analyzers, project.AnalyzerOptions)
                 .GetAnalyzerDiagnosticsAsync(cancellationToken)
-                .ConfigureAwait(false));
+                );
         }
 
         return diagnostics

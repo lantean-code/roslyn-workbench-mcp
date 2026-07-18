@@ -6,7 +6,7 @@ internal sealed class GetSymbolDependenciesTool : QueryToolHandler<GetSymbolDepe
     protected override async ValueTask<PluginExecutionResult<SymbolDependenciesData>> ExecuteCoreAsync(GetSymbolDependenciesRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
 
-        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<SymbolDependenciesData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<SymbolDependenciesData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
@@ -20,13 +20,13 @@ internal sealed class GetSymbolDependenciesTool : QueryToolHandler<GetSymbolDepe
         foreach (var syntaxReference in symbol.DeclaringSyntaxReferences)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var syntax = await syntaxReference.GetSyntaxAsync(cancellationToken).ConfigureAwait(false);
+            var syntax = await syntaxReference.GetSyntaxAsync(cancellationToken);
             if (context.CurrentSolution.GetDocument(syntax.SyntaxTree) is not { } document)
             {
                 continue;
             }
 
-            var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+            var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
             if (semanticModel is null)
             {
                 continue;

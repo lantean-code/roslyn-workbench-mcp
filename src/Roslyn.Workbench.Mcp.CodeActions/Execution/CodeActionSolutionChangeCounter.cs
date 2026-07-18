@@ -18,8 +18,8 @@ internal sealed class CodeActionSolutionChangeCounter : ICodeActionSolutionChang
                 continue;
             }
 
-            var originalText = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
-            var updatedText = await updatedDocument.GetTextAsync(cancellationToken).ConfigureAwait(false);
+            var originalText = await document.GetTextAsync(cancellationToken);
+            var updatedText = await updatedDocument.GetTextAsync(cancellationToken);
             if (!originalText.ContentEquals(updatedText))
             {
                 count++;

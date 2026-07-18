@@ -30,7 +30,7 @@ internal sealed class WorkspaceOpenTool : ServerOwnedToolBase<WorkspaceOpenReque
             request.Path,
             request.Alias,
             request.WorkspaceRoot,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
 
         return WorkspaceToolResultMapper.Map(result, static data => new WorkspaceOpenData
         {

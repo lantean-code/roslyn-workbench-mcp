@@ -32,7 +32,7 @@ internal sealed class TransactionHistoryTool : ServerOwnedToolBase<TransactionHi
             request.Workspace?.Path,
             request.Direction,
             request.ExpectedSnapshot,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
 
         return WorkspaceToolResultMapper.Map(result, static data => new TransactionHistoryData
         {

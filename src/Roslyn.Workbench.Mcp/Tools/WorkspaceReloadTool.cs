@@ -30,7 +30,7 @@ internal sealed class WorkspaceReloadTool : ServerOwnedToolBase<WorkspaceReloadR
             request.Workspace?.WorkspaceId,
             request.Workspace?.Alias,
             request.Workspace?.Path,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
 
         return WorkspaceToolResultMapper.Map(result, static data => new WorkspaceReloadData
         {

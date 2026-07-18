@@ -17,7 +17,7 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
         IReadOnlyList<string>? diagnosticIds,
         CancellationToken cancellationToken)
     {
-        var diagnostics = await GetDocumentDiagnosticsAsync(document, diagnosticIds, cancellationToken).ConfigureAwait(false);
+        var diagnostics = await GetDocumentDiagnosticsAsync(document, diagnosticIds, cancellationToken);
         return diagnostics
             .Where(diagnostic => diagnostic.Location.SourceSpan.IntersectsWith(span))
             .ToImmutableArray();
@@ -28,7 +28,7 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
         IReadOnlyList<string>? diagnosticIds,
         CancellationToken cancellationToken)
     {
-        var compilation = await document.Project.GetCompilationAsync(cancellationToken).ConfigureAwait(false);
+        var compilation = await document.Project.GetCompilationAsync(cancellationToken);
         if (compilation is null)
         {
             return [];
@@ -37,8 +37,8 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
         var diagnostics = await GetCompilationDiagnosticsAsync(
             document.Project,
             compilation,
-            cancellationToken).ConfigureAwait(false);
-        var syntaxTree = await document.GetSyntaxTreeAsync(cancellationToken).ConfigureAwait(false);
+            cancellationToken);
+        var syntaxTree = await document.GetSyntaxTreeAsync(cancellationToken);
 
         return diagnostics
             .Where(diagnostic => diagnostic.Location.IsInSource && diagnostic.Location.SourceTree == syntaxTree)
@@ -53,20 +53,20 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
         string? syntheticDiagnosticId,
         CancellationToken cancellationToken)
     {
-        var diagnostics = await GetDocumentDiagnosticsAsync(document, diagnosticIds, cancellationToken).ConfigureAwait(false);
+        var diagnostics = await GetDocumentDiagnosticsAsync(document, diagnosticIds, cancellationToken);
         if (!diagnostics.IsDefaultOrEmpty)
         {
             return diagnostics;
         }
 
-        diagnostics = await GetAdditionalAnalyzerDiagnosticsAsync(document, span: null, diagnosticIds, analyzerTypeName, cancellationToken).ConfigureAwait(false);
+        diagnostics = await GetAdditionalAnalyzerDiagnosticsAsync(document, span: null, diagnosticIds, analyzerTypeName, cancellationToken);
         if (!diagnostics.IsDefaultOrEmpty || string.IsNullOrWhiteSpace(syntheticDiagnosticId))
         {
             return diagnostics;
         }
 
-        var sourceText = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
-        var syntheticDiagnostic = await CreateSyntheticDiagnosticAsync(document, new TextSpan(0, sourceText.Length), syntheticDiagnosticId, cancellationToken).ConfigureAwait(false);
+        var sourceText = await document.GetTextAsync(cancellationToken);
+        var syntheticDiagnostic = await CreateSyntheticDiagnosticAsync(document, new TextSpan(0, sourceText.Length), syntheticDiagnosticId, cancellationToken);
         return syntheticDiagnostic is null ? [] : [syntheticDiagnostic];
     }
 
@@ -78,19 +78,19 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
         string? syntheticDiagnosticId,
         CancellationToken cancellationToken)
     {
-        var diagnostics = await GetDocumentDiagnosticsAsync(document, span, diagnosticIds, cancellationToken).ConfigureAwait(false);
+        var diagnostics = await GetDocumentDiagnosticsAsync(document, span, diagnosticIds, cancellationToken);
         if (!diagnostics.IsDefaultOrEmpty)
         {
             return diagnostics;
         }
 
-        diagnostics = await GetAdditionalAnalyzerDiagnosticsAsync(document, span, diagnosticIds, analyzerTypeName, cancellationToken).ConfigureAwait(false);
+        diagnostics = await GetAdditionalAnalyzerDiagnosticsAsync(document, span, diagnosticIds, analyzerTypeName, cancellationToken);
         if (!diagnostics.IsDefaultOrEmpty || string.IsNullOrWhiteSpace(syntheticDiagnosticId))
         {
             return diagnostics;
         }
 
-        var syntheticDiagnostic = await CreateSyntheticDiagnosticAsync(document, span, syntheticDiagnosticId, cancellationToken).ConfigureAwait(false);
+        var syntheticDiagnostic = await CreateSyntheticDiagnosticAsync(document, span, syntheticDiagnosticId, cancellationToken);
         return syntheticDiagnostic is null ? [] : [syntheticDiagnostic];
     }
 
@@ -99,13 +99,13 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
         IReadOnlyList<string>? diagnosticIds,
         CancellationToken cancellationToken)
     {
-        var compilation = await project.GetCompilationAsync(cancellationToken).ConfigureAwait(false);
+        var compilation = await project.GetCompilationAsync(cancellationToken);
         if (compilation is null)
         {
             return [];
         }
 
-        var diagnostics = await GetCompilationDiagnosticsAsync(project, compilation, cancellationToken).ConfigureAwait(false);
+        var diagnostics = await GetCompilationDiagnosticsAsync(project, compilation, cancellationToken);
         return diagnostics
             .Where(static diagnostic => !diagnostic.Location.IsInSource)
             .Where(diagnostic => diagnosticIds is null || diagnosticIds.Count == 0 || diagnosticIds.Contains(diagnostic.Id, StringComparer.Ordinal))
@@ -129,7 +129,7 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
         var analyzerDiagnostics = await compilation
             .WithAnalyzers(analyzers, project.AnalyzerOptions)
             .GetAnalyzerDiagnosticsAsync(cancellationToken)
-            .ConfigureAwait(false);
+            ;
         diagnostics.AddRange(analyzerDiagnostics);
         return diagnostics.ToImmutable();
     }
@@ -152,13 +152,13 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
             return [];
         }
 
-        var compilation = await document.Project.GetCompilationAsync(cancellationToken).ConfigureAwait(false);
+        var compilation = await document.Project.GetCompilationAsync(cancellationToken);
         if (compilation is null)
         {
             return [];
         }
 
-        var syntaxTree = await document.GetSyntaxTreeAsync(cancellationToken).ConfigureAwait(false);
+        var syntaxTree = await document.GetSyntaxTreeAsync(cancellationToken);
         if (syntaxTree is null)
         {
             return [];
@@ -167,7 +167,7 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
         var diagnostics = await compilation
             .WithAnalyzers([activation.Analyzer], document.Project.AnalyzerOptions)
             .GetAnalyzerDiagnosticsAsync(cancellationToken)
-            .ConfigureAwait(false);
+            ;
 
         return diagnostics
             .Where(diagnostic => diagnostic.Location.IsInSource && diagnostic.Location.SourceTree == syntaxTree)
@@ -182,7 +182,7 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
         string diagnosticId,
         CancellationToken cancellationToken)
     {
-        var syntaxTree = await document.GetSyntaxTreeAsync(cancellationToken).ConfigureAwait(false);
+        var syntaxTree = await document.GetSyntaxTreeAsync(cancellationToken);
         if (syntaxTree is null)
         {
             return null;

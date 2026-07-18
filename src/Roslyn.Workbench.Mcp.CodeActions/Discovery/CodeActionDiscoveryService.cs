@@ -45,7 +45,7 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
     {
         var rootActions = new List<CodeAction>();
         var context = new CodeRefactoringContext(document, span, action => rootActions.Add(action), cancellationToken);
-        await provider.ComputeRefactoringsAsync(context).ConfigureAwait(false);
+        await provider.ComputeRefactoringsAsync(context);
 
         return Flatten(rootActions, GetProviderId(provider), DiscoveredActionKind.Refactoring, []);
     }
@@ -74,7 +74,7 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
                 diagnosticGroup.Key,
                 groupedDiagnostics,
                 discovered,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken);
         }
 
         return discovered
@@ -103,7 +103,7 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
             diagnostics,
             (action, actionDiagnostics) => discovered.Add((action, actionDiagnostics)),
             cancellationToken);
-        await provider.RegisterCodeFixesAsync(context).ConfigureAwait(false);
+        await provider.RegisterCodeFixesAsync(context);
     }
 
     private static IReadOnlyList<DiscoveredCodeAction> Flatten(

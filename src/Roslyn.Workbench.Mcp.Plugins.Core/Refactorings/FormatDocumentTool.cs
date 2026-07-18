@@ -26,16 +26,16 @@ internal sealed class FormatDocumentTool : MutationToolHandler<FormatDocumentReq
         Document? formattedDocument;
         if (request.Range is null)
         {
-            formattedDocument = await Formatter.FormatAsync(document, cancellationToken: cancellationToken).ConfigureAwait(false);
+            formattedDocument = await Formatter.FormatAsync(document, cancellationToken: cancellationToken);
         }
         else
         {
             var span = new TextSpan(request.Range.Start, request.Range.Length);
-            formattedDocument = await Formatter.FormatAsync(document, span, cancellationToken: cancellationToken).ConfigureAwait(false);
+            formattedDocument = await Formatter.FormatAsync(document, span, cancellationToken: cancellationToken);
         }
 
-        var originalText = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
-        var formattedText = await formattedDocument.GetTextAsync(cancellationToken).ConfigureAwait(false);
+        var originalText = await document.GetTextAsync(cancellationToken);
+        var formattedText = await formattedDocument.GetTextAsync(cancellationToken);
         if (string.Equals(originalText.ToString(), formattedText.ToString(), StringComparison.Ordinal))
         {
             return PluginExecutionResult<MutationCandidate>.NoChange();

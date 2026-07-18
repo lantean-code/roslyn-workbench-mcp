@@ -34,8 +34,8 @@ internal sealed class GetApiSurfaceTool : QueryToolHandler<GetApiSurfaceRequest,
         foreach (var document in documents.Value)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-            var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+            var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
+            var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
             if (syntaxRoot is null || semanticModel is null)
             {
                 continue;

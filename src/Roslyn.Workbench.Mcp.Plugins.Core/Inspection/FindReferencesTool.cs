@@ -9,7 +9,7 @@ internal sealed class FindReferencesTool : QueryToolHandler<FindReferencesReques
 {
     protected override async ValueTask<PluginExecutionResult<ReferenceSearchData>> ExecuteCoreAsync(FindReferencesRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<ReferenceSearchData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<ReferenceSearchData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
@@ -26,7 +26,7 @@ internal sealed class FindReferencesTool : QueryToolHandler<FindReferencesReques
                 symbol,
                 context.CurrentSolution,
                 documents.Value.ToImmutableHashSet(),
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken);
         var references = new List<ContractReferenceLocation>();
 
         foreach (var referencedSymbol in referencedSymbols)
@@ -52,9 +52,9 @@ internal sealed class FindReferencesTool : QueryToolHandler<FindReferencesReques
             {
                 var containingSymbol = reference.Document is null
                     ? null
-                    : await context.ToolExecutionServices.InspectionContextService.TryCreateContainingSymbolAsync(reference.Document, reference.Location.SourceSpan.Start, cancellationToken).ConfigureAwait(false);
+                    : await context.ToolExecutionServices.InspectionContextService.TryCreateContainingSymbolAsync(reference.Document, reference.Location.SourceSpan.Start, cancellationToken);
                 var contextLine = request.IncludeContext
-                    ? await context.ToolExecutionServices.InspectionContextService.ReadContextAsync(reference.Document, reference.Location.SourceSpan, cancellationToken).ConfigureAwait(false)
+                    ? await context.ToolExecutionServices.InspectionContextService.ReadContextAsync(reference.Document, reference.Location.SourceSpan, cancellationToken)
                     : null;
 
                 var location = context.WorkspaceResolver.CreateResolvedLocation(reference.Location);
@@ -67,7 +67,7 @@ internal sealed class FindReferencesTool : QueryToolHandler<FindReferencesReques
                 {
                     Location = location,
                     ContainingSymbol = containingSymbol is null ? null : context.WorkspaceResolver.CreateSymbolReference(containingSymbol),
-                    IsWrite = await IsWriteReferenceAsync(reference, cancellationToken).ConfigureAwait(false),
+                    IsWrite = await IsWriteReferenceAsync(reference, cancellationToken),
                     Context = contextLine,
                 });
             }
@@ -95,7 +95,7 @@ internal sealed class FindReferencesTool : QueryToolHandler<FindReferencesReques
             return false;
         }
 
-        var syntaxRoot = await reference.Document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+        var syntaxRoot = await reference.Document.GetSyntaxRootAsync(cancellationToken);
         if (syntaxRoot is null)
         {
             return false;

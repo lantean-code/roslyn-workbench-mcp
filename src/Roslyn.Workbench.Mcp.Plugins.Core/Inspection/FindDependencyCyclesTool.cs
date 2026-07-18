@@ -27,7 +27,7 @@ internal sealed class FindDependencyCyclesTool : QueryToolHandler<FindDependency
             projects.Value,
             documents.Value,
             context,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
 
         return PluginExecutionResult<DependencyCyclesData>.Success(new DependencyCyclesData
         {

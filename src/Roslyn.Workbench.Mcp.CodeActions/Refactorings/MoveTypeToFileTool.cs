@@ -21,7 +21,7 @@ internal sealed class MoveTypeToFileTool : CodeActionMutationToolHandler<MoveTyp
             return CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>("UnsupportedOption", "The preserveNamespace option must remain true for the current move-type-to-file backend.");
         }
 
-        var symbolResolution = await CodeActionSelectorHelpers.ResolveSymbolAsync<WorkspaceMutationCandidate>(request.Type, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await CodeActionSelectorHelpers.ResolveSymbolAsync<WorkspaceMutationCandidate>(request.Type, request.ExpectedSnapshot, context, cancellationToken);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
@@ -50,6 +50,6 @@ internal sealed class MoveTypeToFileTool : CodeActionMutationToolHandler<MoveTyp
             ExpectedSnapshot = request.ExpectedSnapshot,
             ProviderId = ProviderId,
             TitleStartsWith = TitlePrefix,
-        }, context, cancellationToken).ConfigureAwait(false);
+        }, context, cancellationToken);
     }
 }

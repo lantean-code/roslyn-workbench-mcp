@@ -41,7 +41,7 @@ internal sealed class CodeActionMutationExecutionLease : IAsyncDisposable
             candidate,
             diagnostics,
             warnings,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
 
         return CodeActionWorkspaceResultMapper.MapMutation(result);
     }

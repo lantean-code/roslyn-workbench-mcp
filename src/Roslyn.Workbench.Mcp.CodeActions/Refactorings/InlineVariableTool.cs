@@ -22,7 +22,7 @@ internal sealed class InlineVariableTool : CodeActionMutationToolHandler<InlineV
             return CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>("UnsupportedOption", "The removeDeclaration option is not supported by the current Roslyn inline-variable backend.");
         }
 
-        var symbolResolution = await CodeActionSelectorHelpers.ResolveSymbolAsync<WorkspaceMutationCandidate>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await CodeActionSelectorHelpers.ResolveSymbolAsync<WorkspaceMutationCandidate>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
@@ -53,6 +53,6 @@ internal sealed class InlineVariableTool : CodeActionMutationToolHandler<InlineV
             ProviderId = ProviderId,
             Title = Title,
             EquivalenceKey = EquivalenceKey,
-        }, context, cancellationToken).ConfigureAwait(false);
+        }, context, cancellationToken);
     }
 }

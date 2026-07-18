@@ -22,14 +22,14 @@ internal sealed class WorkspaceFixAllDiagnosticProvider : FixAllContext.Diagnost
     {
         return await _diagnosticService
             .GetScopedCodeFixDiagnosticsAsync(document, _diagnosticIds, analyzerTypeName: null, _syntheticDiagnosticId, cancellationToken)
-            .ConfigureAwait(false);
+            ;
     }
 
     public override async Task<IEnumerable<Diagnostic>> GetProjectDiagnosticsAsync(Project project, CancellationToken cancellationToken)
     {
         return await _diagnosticService
             .GetProjectDiagnosticsAsync(project, _diagnosticIds, cancellationToken)
-            .ConfigureAwait(false);
+            ;
     }
 
     public override async Task<IEnumerable<Diagnostic>> GetAllDiagnosticsAsync(Project project, CancellationToken cancellationToken)
@@ -39,12 +39,12 @@ internal sealed class WorkspaceFixAllDiagnosticProvider : FixAllContext.Diagnost
         {
             documentDiagnostics.AddRange(await _diagnosticService
                 .GetDocumentDiagnosticsAsync(document, _diagnosticIds, cancellationToken)
-                .ConfigureAwait(false));
+                );
         }
 
         documentDiagnostics.AddRange(await _diagnosticService
             .GetProjectDiagnosticsAsync(project, _diagnosticIds, cancellationToken)
-            .ConfigureAwait(false));
+            );
 
         return documentDiagnostics.ToImmutableArray();
     }

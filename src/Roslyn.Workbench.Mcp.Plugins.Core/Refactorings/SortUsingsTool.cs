@@ -18,7 +18,7 @@ internal sealed class SortUsingsTool : MutationToolHandler<SortUsingsRequest>
         }
 
         var document = documentResolution.Value;
-        var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false) as CompilationUnitSyntax;
+        var root = await document.GetSyntaxRootAsync(cancellationToken) as CompilationUnitSyntax;
         if (root is null)
         {
             return ToolExecutionHelpers.Rejected<MutationCandidate>("InvalidRequest", "Sort usings requires a compilation unit root.");

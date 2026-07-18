@@ -33,7 +33,7 @@ internal sealed class DescribeCodeActionTool : CodeActionQueryToolHandler<Descri
             request.ExpectedSnapshot,
             expectedKind: null,
             context,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
         if (resolvedAction.HasRejection)
         {
             return resolvedAction.Rejection;

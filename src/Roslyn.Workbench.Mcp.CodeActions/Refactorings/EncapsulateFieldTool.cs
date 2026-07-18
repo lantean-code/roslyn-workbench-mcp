@@ -15,7 +15,7 @@ internal sealed class EncapsulateFieldTool : CodeActionMutationToolHandler<Encap
 
     protected override async ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(EncapsulateFieldRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
-        var symbolResolution = await CodeActionSelectorHelpers.ResolveSymbolAsync<WorkspaceMutationCandidate>(request.Field, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var symbolResolution = await CodeActionSelectorHelpers.ResolveSymbolAsync<WorkspaceMutationCandidate>(request.Field, request.ExpectedSnapshot, context, cancellationToken);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
@@ -49,6 +49,6 @@ internal sealed class EncapsulateFieldTool : CodeActionMutationToolHandler<Encap
             ProviderId = ProviderId,
             Title = title,
             EquivalenceKey = equivalenceKey,
-        }, context, cancellationToken).ConfigureAwait(false);
+        }, context, cancellationToken);
     }
 }

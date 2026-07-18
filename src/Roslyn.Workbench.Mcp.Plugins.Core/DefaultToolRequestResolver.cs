@@ -137,7 +137,7 @@ internal sealed class DefaultToolRequestResolver : IToolRequestResolver
             };
         }
 
-        var resolution = await context.WorkspaceResolver.ResolveSymbolAsync(selector, cancellationToken).ConfigureAwait(false);
+        var resolution = await context.WorkspaceResolver.ResolveSymbolAsync(selector, cancellationToken);
         return resolution.IsResolved
             ? new ToolResolutionResult<ISymbol, TResponse> { Value = resolution.Value }
             : new ToolResolutionResult<ISymbol, TResponse> { Rejection = ToolExecutionHelpers.RejectFromStatus<TResponse>(resolution.Status, "Symbol", "symbol") };

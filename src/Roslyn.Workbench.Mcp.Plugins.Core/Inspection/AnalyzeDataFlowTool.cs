@@ -5,7 +5,7 @@ internal sealed class AnalyzeDataFlowTool : QueryToolHandler<AnalyzeDataFlowRequ
 {
     protected override async ValueTask<PluginExecutionResult<DataFlowAnalysisData>> ExecuteCoreAsync(AnalyzeDataFlowRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        var statementResolution = await ResolveStatementAsync(request.Location, request.ExpectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var statementResolution = await ResolveStatementAsync(request.Location, request.ExpectedSnapshot, context, cancellationToken);
         if (statementResolution.Rejection is not null)
         {
             return statementResolution.Rejection;
@@ -36,7 +36,7 @@ internal sealed class AnalyzeDataFlowTool : QueryToolHandler<AnalyzeDataFlowRequ
 
     private static async ValueTask<StatementResolution> ResolveStatementAsync(LocationSelector? selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)
     {
-        var syntaxNodeResolution = await ResolveSyntaxNodeAsync(selector, expectedSnapshot, context, cancellationToken).ConfigureAwait(false);
+        var syntaxNodeResolution = await ResolveSyntaxNodeAsync(selector, expectedSnapshot, context, cancellationToken);
         if (syntaxNodeResolution.Rejection is not null)
         {
             return new StatementResolution
@@ -86,7 +86,7 @@ internal sealed class AnalyzeDataFlowTool : QueryToolHandler<AnalyzeDataFlowRequ
             };
         }
 
-        var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken).ConfigureAwait(false);
+        var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken);
         if (!locationResolution.IsResolved)
         {
             return new SyntaxNodeResolution
@@ -116,8 +116,8 @@ internal sealed class AnalyzeDataFlowTool : QueryToolHandler<AnalyzeDataFlowRequ
             };
         }
 
-        var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-        var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+        var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
+        var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
         if (syntaxRoot is null || semanticModel is null)
         {
             return new SyntaxNodeResolution

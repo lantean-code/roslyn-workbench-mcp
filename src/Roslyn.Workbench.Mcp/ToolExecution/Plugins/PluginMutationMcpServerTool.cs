@@ -30,7 +30,7 @@ internal sealed class PluginMutationMcpServerTool<TRequest> : McpServerToolBase
     {
         var request = ToolRequestBinder.Deserialize<TRequest>(arguments);
         var contextLease = _contextFactory.CreateMutationContext(request, cancellationToken);
-        await using var _ = contextLease.ConfigureAwait(false);
+        await using var _ = contextLease;
         if (contextLease.HasFailure)
         {
             return CreateStructuredResult(
@@ -39,7 +39,7 @@ internal sealed class PluginMutationMcpServerTool<TRequest> : McpServerToolBase
         }
 
         var context = contextLease.Context;
-        var proposalResult = await _handler.ExecuteAsync(request, context, cancellationToken).ConfigureAwait(false);
+        var proposalResult = await _handler.ExecuteAsync(request, context, cancellationToken);
         if (proposalResult.Outcome.IsError())
         {
             var failure = new ToolExecutionFailureResult
@@ -67,7 +67,7 @@ internal sealed class PluginMutationMcpServerTool<TRequest> : McpServerToolBase
             proposalResult.Data,
             proposalResult.Diagnostics,
             proposalResult.Warnings,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
         return CreateStructuredResult(
             McpPublishedResultSerializer.SerializePluginMutation(stagedResult),
             stagedResult.Outcome.IsError());

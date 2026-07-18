@@ -36,7 +36,7 @@ internal abstract class ServerOwnedToolBase<TRequest, TResponse> : McpServerTool
     {
         var arguments = requestContext.Params.Arguments ?? new Dictionary<string, JsonElement>(StringComparer.Ordinal);
         var request = ToolRequestBinder.Deserialize<TRequest>(arguments);
-        var result = await ExecuteAsync(request, cancellationToken).ConfigureAwait(false);
+        var result = await ExecuteAsync(request, cancellationToken);
 
         return new CallToolResult
         {

@@ -75,7 +75,7 @@ internal sealed class CodeActionScopedFixService : ICodeActionScopedFixService
             scopeResolution.Documents,
             matchingProviders,
             context.WorkspaceResolver,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
         if (!discovery.HadDiagnostics)
         {
             return CodeActionExecutionResult<WorkspaceMutationCandidate>.NoChange();
@@ -110,7 +110,7 @@ internal sealed class CodeActionScopedFixService : ICodeActionScopedFixService
             request.Scope.Kind,
             scopeResolution,
             context,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
         if (application.HasRejection)
         {
             return application.Rejection;
@@ -119,7 +119,7 @@ internal sealed class CodeActionScopedFixService : ICodeActionScopedFixService
         var changedDocumentCount = await _solutionChangeCounter.CountChangedSourceDocumentsAsync(
             context.CurrentSolution,
             application.CandidateSolution,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
         if (request.MaxChanges is int maxChanges && changedDocumentCount > maxChanges)
         {
             return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
@@ -157,19 +157,19 @@ internal sealed class CodeActionScopedFixService : ICodeActionScopedFixService
                 request.DiagnosticIds,
                 request.AnalyzerTypeName,
                 request.SyntheticDiagnosticId,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken);
             if (diagnostics.IsDefaultOrEmpty)
             {
                 continue;
             }
 
             hadDiagnostics = true;
-            var sourceText = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
+            var sourceText = await document.GetTextAsync(cancellationToken);
             var documentSpan = new TextSpan(0, sourceText.Length);
 
             foreach (var provider in matchingProviders)
             {
-                var actions = await _discoveryService.DiscoverCodeFixesAsync(provider, document, diagnostics, cancellationToken).ConfigureAwait(false);
+                var actions = await _discoveryService.DiscoverCodeFixesAsync(provider, document, diagnostics, cancellationToken);
                 foreach (var action in actions)
                 {
                     if (!string.IsNullOrWhiteSpace(request.Title)
@@ -250,7 +250,7 @@ internal sealed class CodeActionScopedFixService : ICodeActionScopedFixService
             candidate.DiagnosticIds,
             candidate.EquivalenceKey,
             request.SyntheticDiagnosticId,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
     }
 
     private async ValueTask<CodeActionApplyResult> ApplyDocumentFixAsync(
@@ -271,7 +271,7 @@ internal sealed class CodeActionScopedFixService : ICodeActionScopedFixService
                 context,
                 request.AnalyzerTypeName,
                 request.SyntheticDiagnosticId,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken);
         }
 
         return await _operationService.ApplyFixAllAsync(
@@ -283,7 +283,7 @@ internal sealed class CodeActionScopedFixService : ICodeActionScopedFixService
             candidate.DiagnosticIds,
             candidate.EquivalenceKey,
             request.SyntheticDiagnosticId,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
     }
 
     private async ValueTask<CodeActionApplyResult> ApplyProjectFixAsync(
@@ -307,7 +307,7 @@ internal sealed class CodeActionScopedFixService : ICodeActionScopedFixService
             candidate.DiagnosticIds,
             candidate.EquivalenceKey,
             request.SyntheticDiagnosticId,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
     }
 
     private async ValueTask<CodeActionApplyResult> ApplyProjectsFixAsync(
@@ -341,7 +341,7 @@ internal sealed class CodeActionScopedFixService : ICodeActionScopedFixService
                 candidate.DiagnosticIds,
                 candidate.EquivalenceKey,
                 request.SyntheticDiagnosticId,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken);
             if (fixAllResult.HasRejection)
             {
                 return fixAllResult;
@@ -369,13 +369,13 @@ internal sealed class CodeActionScopedFixService : ICodeActionScopedFixService
             candidate.DiagnosticIds,
             analyzerTypeName,
             syntheticDiagnosticId,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
         if (diagnostics.IsDefaultOrEmpty)
         {
             return RejectedApplication(Rejected<WorkspaceMutationCandidate>("CodeFixUnavailable", "No matching code fix was available for the selected scope."));
         }
 
-        var discovered = await _discoveryService.DiscoverCodeFixesAsync(candidate.Provider, targetDocument, diagnostics, cancellationToken).ConfigureAwait(false);
+        var discovered = await _discoveryService.DiscoverCodeFixesAsync(candidate.Provider, targetDocument, diagnostics, cancellationToken);
         var matches = discovered
             .Where(action =>
                 string.Equals(action.Title, candidate.Title, StringComparison.OrdinalIgnoreCase)
@@ -395,7 +395,7 @@ internal sealed class CodeActionScopedFixService : ICodeActionScopedFixService
             }));
         }
 
-        var proposalResult = await _operationService.CreateMutationCandidateAsync(matches[0].Action, matches[0].Title, context, cancellationToken).ConfigureAwait(false);
+        var proposalResult = await _operationService.CreateMutationCandidateAsync(matches[0].Action, matches[0].Title, context, cancellationToken);
         if (proposalResult.Outcome != CodeActionExecutionOutcome.Succeeded || proposalResult.Data?.CandidateSolution is null)
         {
             return RejectedApplication(proposalResult);

@@ -18,7 +18,7 @@ internal sealed class WorkspaceCommitRecoveryService : IWorkspaceCommitRecoveryS
 
     public async ValueTask RecoverAsync(CancellationToken cancellationToken)
     {
-        foreach (var owner in await _store.GetOrphanedCommitOwnersAsync(cancellationToken).ConfigureAwait(false))
+        foreach (var owner in await _store.GetOrphanedCommitOwnersAsync(cancellationToken))
         {
             cancellationToken.ThrowIfCancellationRequested();
             var orphanLock = _lockManager.Acquire(owner.WorkspaceRoot);
@@ -29,14 +29,14 @@ internal sealed class WorkspaceCommitRecoveryService : IWorkspaceCommitRecoveryS
             }
         }
 
-        foreach (var manifest in await _store.GetManifestsAsync(cancellationToken).ConfigureAwait(false))
+        foreach (var manifest in await _store.GetManifestsAsync(cancellationToken))
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (manifest.State is RecoveryState.Committed or RecoveryState.Restored)
             {
                 if (manifest.State == RecoveryState.Committed)
                 {
-                    if (!await _writer.CompleteAsync(manifest).ConfigureAwait(false))
+                    if (!await _writer.CompleteAsync(manifest))
                     {
                         continue;
                     }
@@ -58,9 +58,9 @@ internal sealed class WorkspaceCommitRecoveryService : IWorkspaceCommitRecoveryS
 
             using var ownership = commitLock.Lock;
 
-            var state = await _writer.RestoreAsync(manifest).ConfigureAwait(false);
+            var state = await _writer.RestoreAsync(manifest);
             var updated = manifest with { State = state };
-            await _store.WriteManifestAsync(updated, CancellationToken.None).ConfigureAwait(false);
+            await _store.WriteManifestAsync(updated, CancellationToken.None);
             if (state == RecoveryState.Restored)
             {
                 _store.DeleteStatus(manifest.CommitId);

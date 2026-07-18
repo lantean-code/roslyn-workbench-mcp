@@ -37,7 +37,7 @@ internal sealed class GetDependencyGraphTool : QueryToolHandler<GetDependencyGra
             projects.Value,
             documents.Value,
             context,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
         var nodes = ToolExecutionHelpers.CreateBoundedCollection(
             graph.Nodes,
             ToolExecutionHelpers.GetMaxResults(context, request.NodesLimit));

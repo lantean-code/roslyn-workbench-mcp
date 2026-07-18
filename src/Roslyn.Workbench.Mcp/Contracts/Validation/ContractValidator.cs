@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Protocol.Validation;
 /// <summary>
 /// Provides non-throwing validation for Host-owned MCP result-envelope invariants.
 /// </summary>
-public static class ContractValidator
+internal static class ContractValidator
 {
     /// <summary>
     /// Validates a tool result.

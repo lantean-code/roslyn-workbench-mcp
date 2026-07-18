@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Roslyn.Workbench.Mcp.TestSupport;
 
@@ -13,6 +14,10 @@ public static class RoslynTestFactory
     /// <param name="source">The C# source text to load into the document.</param>
     /// <param name="documentName">The logical document name.</param>
     /// <returns>The created in-memory document wrapper.</returns>
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "Ownership of the AdhocWorkspace created by CreateSolution is transferred to the returned InMemoryRoslynDocument, which disposes it.")]
     public static InMemoryRoslynDocument CreateDocument(string source, string documentName = "Code.cs")
     {
         ArgumentNullException.ThrowIfNull(source);

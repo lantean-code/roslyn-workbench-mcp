@@ -1,19 +1,19 @@
 namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 
-public enum BuiltInCodeActionRuntimeAuditOutcome
+internal enum BuiltInCodeActionRuntimeAuditOutcome
 {
     NotOffered,
     OfferedButNotReplayable,
     OfferedAndReplayable,
 }
 
-public enum BuiltInCodeActionAuditKind
+internal enum BuiltInCodeActionAuditKind
 {
     Refactoring,
     CodeFix,
 }
 
-public sealed record BuiltInCodeActionAuditCase
+internal sealed record BuiltInCodeActionAuditCase
 {
     public string? ToolName { get; init; }
 
@@ -36,7 +36,7 @@ public sealed record BuiltInCodeActionAuditCase
     public Func<InspectionSampleFixture, LocationSelector> LocationFactory { get; init; } = static fixture => fixture.GetLocation("GreetingFormatter");
 }
 
-public static class BuiltInCodeActionAuditCases
+internal static class BuiltInCodeActionAuditCases
 {
     private static readonly IReadOnlyList<BuiltInCodeActionAuditCase> _replayMetadata =
     [

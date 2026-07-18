@@ -2,7 +2,7 @@ using System.Text;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test.IO;
 
-public sealed class AtomicFileWriterTests
+public sealed class AtomicFileWriterTests : IDisposable
 {
     private const string _destinationPath = "/Directory/File.txt";
 
@@ -33,6 +33,11 @@ public sealed class AtomicFileWriterTests
         _fileStreamFactory.Setup(item => item.New(It.IsAny<string>(), It.IsAny<FileStreamOptions>()))
             .Returns(stream.Object);
         _target = new AtomicFileWriter(_fileSystem.Object, _fileCommitter.Object);
+    }
+
+    public void Dispose()
+    {
+        _memoryStream.Dispose();
     }
 
     [Theory]

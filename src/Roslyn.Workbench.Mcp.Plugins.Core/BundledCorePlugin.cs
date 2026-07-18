@@ -15,6 +15,8 @@ public sealed class BundledCorePlugin : IRoslynPlugin
     /// <param name="configuration">The plugin configuration.</param>
     public void Configure(IPluginConfiguration configuration)
     {
+        ArgumentNullException.ThrowIfNull(configuration);
+
         _ = configuration.AddQueryTool<GetSolutionStructureTool>();
         _ = configuration.AddQueryTool<GetProjectDetailsTool>();
         _ = configuration.AddQueryTool<GetDocumentOptionsTool>();

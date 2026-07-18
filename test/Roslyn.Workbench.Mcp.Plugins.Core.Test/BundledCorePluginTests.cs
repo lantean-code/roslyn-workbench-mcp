@@ -3,6 +3,16 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test;
 public sealed class BundledCorePluginTests
 {
     [Fact]
+    public void GIVEN_NullConfiguration_WHEN_Configuring_THEN_ShouldThrowArgumentNullException()
+    {
+        var target = new BundledCorePlugin();
+
+        var action = () => target.Configure(null!);
+
+        action.Should().Throw<ArgumentNullException>().WithParameterName("configuration");
+    }
+
+    [Fact]
     public void GIVEN_BundledPlugin_WHEN_ConfiguringAndMaterialising_THEN_ShouldPublishEveryExpectedToolExactlyOnce()
     {
         var plugin = new BundledCorePlugin();

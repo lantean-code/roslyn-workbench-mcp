@@ -8,6 +8,8 @@ public sealed class HostValidMutationPlugin : IRoslynPlugin
 {
     public void Configure(IPluginConfiguration configuration)
     {
+        ArgumentNullException.ThrowIfNull(configuration);
+
         _ = configuration.AddMutationTool<Handler>();
     }
 

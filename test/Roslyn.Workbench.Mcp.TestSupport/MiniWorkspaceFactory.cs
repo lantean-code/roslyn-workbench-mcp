@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 
 namespace Roslyn.Workbench.Mcp.TestSupport;
 
-public static class MiniWorkspaceFactory
+internal static class MiniWorkspaceFactory
 {
     public static MiniWorkspace CreateCSharp(string source)
     {
@@ -14,8 +14,6 @@ public static class MiniWorkspaceFactory
 
     public static MiniWorkspace CreateCSharp(IReadOnlyList<(string Path, string Source)> documents)
     {
-        ArgumentNullException.ThrowIfNull(documents);
-
         if (documents.Count == 0)
         {
             throw new ArgumentException("At least one document is required.", nameof(documents));

@@ -43,7 +43,7 @@ public sealed class DefaultInspectionContextServiceTests
         var target = new DefaultInspectionContextService();
         var document = workspace.Solution.Projects.Single().Documents.Single();
 
-        var result = await target.TryCreateContainingSymbolAsync(document, 0, workspace.Solution, TestContext.Current.CancellationToken);
+        var result = await target.TryCreateContainingSymbolAsync(document, 0, TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
     }
@@ -66,7 +66,7 @@ public sealed class DefaultInspectionContextServiceTests
         var document = workspace.Solution.Projects.Single().Documents.Single();
         var selector = workspace.GetLocationSelector("Trim");
 
-        var result = await target.TryCreateContainingSymbolAsync(document, selector.Span!.Start, workspace.Solution, TestContext.Current.CancellationToken);
+        var result = await target.TryCreateContainingSymbolAsync(document, selector.Span!.Start, TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.Name.Should().Be("Trim");

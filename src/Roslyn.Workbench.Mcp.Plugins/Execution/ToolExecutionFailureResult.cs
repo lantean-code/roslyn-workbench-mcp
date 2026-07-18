@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Execution;
 /// <summary>
 /// Represents a host-generated failure result that short-circuits plugin execution.
 /// </summary>
-public sealed record ToolExecutionFailureResult
+internal sealed record ToolExecutionFailureResult
 {
     /// <summary>
     /// Gets the normalized tool outcome.

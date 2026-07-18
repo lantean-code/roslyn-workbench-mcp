@@ -289,7 +289,6 @@ public sealed class FindReferencesToolTests
             .Setup(item => item.TryCreateContainingSymbolAsync(
                 It.IsAny<Document>(),
                 It.IsAny<int>(),
-                It.IsAny<Solution>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((ISymbol?)null);
         inspectionContextService
@@ -476,7 +475,6 @@ public sealed class FindReferencesToolTests
             .Setup(item => item.TryCreateContainingSymbolAsync(
                 It.IsAny<Document>(),
                 It.IsAny<int>(),
-                It.IsAny<Solution>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(await RoslynDocumentTestHelper.GetRequiredMethodSymbolAsync(
                 codeDocument,

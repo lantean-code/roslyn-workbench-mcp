@@ -24,12 +24,10 @@ public interface IInspectionContextService
     /// </summary>
     /// <param name="document">The source document.</param>
     /// <param name="position">The source position.</param>
-    /// <param name="currentSolution">The current solution.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The containing symbol when one can be resolved; otherwise <see langword="null" />.</returns>
     ValueTask<ISymbol?> TryCreateContainingSymbolAsync(
         Document document,
         int position,
-        Solution currentSolution,
         CancellationToken cancellationToken);
 }

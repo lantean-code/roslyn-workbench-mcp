@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Execution;
 /// <summary>
 /// Identifies whether a registered plugin tool is a query or a mutation.
 /// </summary>
-public enum ToolKind
+internal enum ToolKind
 {
     /// <summary>
     /// The tool is read-only.

@@ -8,6 +8,8 @@ public sealed class ValidQueryTestPlugin : IRoslynPlugin
 {
     public void Configure(IPluginConfiguration configuration)
     {
+        ArgumentNullException.ThrowIfNull(configuration);
+
         _ = configuration.AddQueryTool<Handler>();
     }
 

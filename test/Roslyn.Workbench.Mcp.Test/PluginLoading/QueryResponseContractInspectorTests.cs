@@ -5,12 +5,13 @@ namespace Roslyn.Workbench.Mcp.Test.PluginLoading;
 public sealed class QueryResponseContractInspectorTests
 {
     [Theory]
-    [InlineData(ToolKind.Mutation, "mutation")]
-    [InlineData(ToolKind.Query, "list-code-actions")]
+    [InlineData(true, "mutation")]
+    [InlineData(false, "list-code-actions")]
     public void GIVEN_ExcludedTool_WHEN_Inspecting_THEN_ShouldReturnNoDiagnostics(
-        ToolKind kind,
+        bool isMutation,
         string name)
     {
+        var kind = isMutation ? ToolKind.Mutation : ToolKind.Query;
         var tool = CreateTool(kind, name, typeof(RawCollectionResponse));
 
         var result = QueryResponseContractInspector.Inspect(tool);

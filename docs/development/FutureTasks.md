@@ -32,7 +32,7 @@ No open P0 release decisions or blockers remain from the documentation audit.
 
 **Status:** Started
 
-The complete `latest-all` baseline began with 2,205 findings across 379 files and 22 projects. The current inventory contains 717 findings across 207 files; six diagnostic families are resolved. Establish narrow policy for intentional test conventions and fixtures, then remediate production correctness, lifetime, determinism and performance findings in cohesive batches. Do not apply API-design or concrete-type suggestions mechanically where they would weaken public contracts, plugin discovery or architectural boundaries.
+The complete `latest-all` baseline began with 2,205 findings across 379 files and 22 projects. The current inventory contains 667 findings across 197 files; eleven diagnostic families are resolved. Establish narrow policy for intentional test conventions and fixtures, then remediate production determinism, async and performance findings in cohesive batches. Do not apply API-design or concrete-type suggestions mechanically where they would weaken public contracts, plugin discovery or architectural boundaries.
 
 Complete the high-priority production batches before recording performance baselines because analyzer-driven changes can affect allocations, cancellation and execution timing.
 
@@ -65,9 +65,20 @@ Re-run the baseline after material Roslyn, MSBuild or MCP SDK upgrades and retai
 
 Create an analyser for handler contract and lifetime rules that are useful during plugin development but cannot be proven safely by runtime structural heuristics. Generic constraints remain authoritative for family membership and construction eligibility; runtime validation remains authoritative for objectively detectable package and handler errors.
 
+Include diagnostics that protect the immutable session-snapshot model without restricting legitimate Roslyn queries:
+
+- report direct calls to `Workspace.TryApplyChanges` as errors because they bypass mutation validation, staging, revision history and commit handling;
+- report use of `Workspace.CurrentSolution` when it replaces the request's `CurrentSolution`, because the live Workspace may have advanced beyond the session snapshot;
+- continue to permit normal reads and immutable transformations through the request's `CurrentSolution`; and
+- permit access to its associated `Workspace` when a Roslyn query API genuinely requires it rather than prohibiting the property itself.
+
+Ship the analyser with the plugin-authoring package so diagnostics run in the IDE and at build time. Treat it as an engineering guardrail rather than a security boundary: plugins remain trusted in-process code and deliberate suppression, reflection or indirection cannot be prevented by an analyser.
+
+Pair the authoring diagnostics with Host-side detection of unexpected live Workspace changes. First establish whether the existing snapshot and external-change guards already cover an uncoordinated `TryApplyChanges`; add focused coverage or invalidation behaviour where necessary so an affected session becomes stale or conflicted instead of continuing against divergent state. Detection is containment after a change, not permission for plugins to mutate the live Workspace.
+
 This should precede a release that actively promotes third-party plugin authoring, but it need not block a Host release that clearly labels the plugin authoring experience and runtime validation guarantees.
 
-Source: [2026-07-13-mef-plugin-composition.md](superpowers/plans/2026-07-13-mef-plugin-composition.md)
+Sources: [2026-07-13-mef-plugin-composition.md](superpowers/plans/2026-07-13-mef-plugin-composition.md), [PluginApiSurfaceAudit-2026-07-18.md](PluginApiSurfaceAudit-2026-07-18.md)
 
 ### Decide whether macOS should gate pull requests
 

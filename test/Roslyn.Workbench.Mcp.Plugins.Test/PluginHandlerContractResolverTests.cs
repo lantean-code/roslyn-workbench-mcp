@@ -10,15 +10,16 @@ public sealed class PluginHandlerContractResolverTests
     }
 
     [Theory]
-    [InlineData(typeof(QueryHandler), ToolKind.Query, typeof(IQueryToolHandler<Request, Response>))]
-    [InlineData(typeof(MutationHandler), ToolKind.Mutation, typeof(IMutationToolHandler<Request>))]
-    [InlineData(typeof(PublicResponseQueryHandler), ToolKind.Query, typeof(IQueryToolHandler<Request, string>))]
-    [InlineData(typeof(PublicGenericResponseQueryHandler), ToolKind.Query, typeof(IQueryToolHandler<Request, IReadOnlyList<Response>>))]
+    [InlineData(typeof(QueryHandler), false, typeof(IQueryToolHandler<Request, Response>))]
+    [InlineData(typeof(MutationHandler), true, typeof(IMutationToolHandler<Request>))]
+    [InlineData(typeof(PublicResponseQueryHandler), false, typeof(IQueryToolHandler<Request, string>))]
+    [InlineData(typeof(PublicGenericResponseQueryHandler), false, typeof(IQueryToolHandler<Request, IReadOnlyList<Response>>))]
     public void GIVEN_ValidHandlerContract_WHEN_Resolving_THEN_ShouldReturnContract(
         Type handlerType,
-        ToolKind kind,
+        bool isMutation,
         Type expectedContract)
     {
+        var kind = isMutation ? ToolKind.Mutation : ToolKind.Query;
         var definition = CreateDefinition(handlerType, kind);
 
         var result = _target.TryResolve(definition, out var contract, out var diagnostic);
@@ -29,12 +30,12 @@ public sealed class PluginHandlerContractResolverTests
     }
 
     [Theory]
-    [InlineData(typeof(MissingContractHandler), ToolKind.Query, "exactly one query")]
-    [InlineData(typeof(DualFamilyHandler), ToolKind.Query, "other family")]
-    [InlineData(typeof(MultipleQueryContractsHandler), ToolKind.Query, "exactly one query")]
-    public void GIVEN_InvalidHandlerContract_WHEN_Resolving_THEN_ShouldRejectHandler(Type handlerType, ToolKind kind, string message)
+    [InlineData(typeof(MissingContractHandler), "exactly one query")]
+    [InlineData(typeof(DualFamilyHandler), "other family")]
+    [InlineData(typeof(MultipleQueryContractsHandler), "exactly one query")]
+    public void GIVEN_InvalidHandlerContract_WHEN_Resolving_THEN_ShouldRejectHandler(Type handlerType, string message)
     {
-        var definition = CreateDefinition(handlerType, kind);
+        var definition = CreateDefinition(handlerType, ToolKind.Query);
 
         var result = _target.TryResolve(definition, out var contract, out var diagnostic);
 

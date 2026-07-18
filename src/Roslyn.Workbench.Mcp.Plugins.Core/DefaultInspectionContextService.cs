@@ -14,14 +14,8 @@ internal sealed class DefaultInspectionContextService : IInspectionContextServic
         return line.ToString().Trim();
     }
 
-    public async ValueTask<ISymbol?> TryCreateContainingSymbolAsync(Document document, int position, Solution currentSolution, CancellationToken cancellationToken)
+    public async ValueTask<ISymbol?> TryCreateContainingSymbolAsync(Document document, int position, CancellationToken cancellationToken)
     {
-        var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
-        if (semanticModel is null)
-        {
-            return null;
-        }
-
-        return await SymbolFinder.FindSymbolAtPositionAsync(semanticModel, position, currentSolution.Workspace, cancellationToken).ConfigureAwait(false);
+        return await SymbolFinder.FindSymbolAtPositionAsync(document, position, cancellationToken).ConfigureAwait(false);
     }
 }

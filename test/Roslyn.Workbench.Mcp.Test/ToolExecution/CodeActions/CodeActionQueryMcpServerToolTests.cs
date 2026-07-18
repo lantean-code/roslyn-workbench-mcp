@@ -182,7 +182,7 @@ public sealed class CodeActionQueryMcpServerToolTests
             .Returns(CodeActionQueryExecutionLease.Acquired(workspaceLease, context.Object));
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestQueryRequest>(), context.Object, CancellationToken.None))
-            .Returns(ValueTask.FromException<CodeActionExecutionResult<TestQueryResponse>>(new InvalidOperationException("Message")));
+            .Returns(() => ValueTask.FromException<CodeActionExecutionResult<TestQueryResponse>>(new InvalidOperationException("Message")));
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
         var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
@@ -206,7 +206,7 @@ public sealed class CodeActionQueryMcpServerToolTests
             .Returns(CodeActionQueryExecutionLease.Acquired(workspaceLease, context.Object));
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestQueryRequest>(), context.Object, cancellationSource.Token))
-            .Returns(ValueTask.FromCanceled<CodeActionExecutionResult<TestQueryResponse>>(cancellationSource.Token));
+            .Returns(() => ValueTask.FromCanceled<CodeActionExecutionResult<TestQueryResponse>>(cancellationSource.Token));
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
         var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), cancellationSource.Token);

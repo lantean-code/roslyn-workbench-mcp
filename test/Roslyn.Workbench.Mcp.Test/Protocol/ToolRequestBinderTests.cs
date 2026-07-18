@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -24,17 +25,29 @@ public sealed class ToolRequestBinderTests
         action.Should().Throw<JsonException>();
     }
 
-    public sealed record TestRequest
+    [SuppressMessage(
+        "Performance",
+        "CA1812:Avoid uninstantiated internal classes",
+        Justification = "System.Text.Json creates the request through the generic deserialisation path exercised by this test.")]
+    private sealed record TestRequest
     {
         public string Value { get; init; } = string.Empty;
     }
 
     [JsonConverter(typeof(NullRequestConverter))]
-    public sealed record NullRequest
+    [SuppressMessage(
+        "Performance",
+        "CA1812:Avoid uninstantiated internal classes",
+        Justification = "System.Text.Json creates the request through the generic deserialisation path exercised by this test.")]
+    private sealed record NullRequest
     {
     }
 
-    public sealed class NullRequestConverter : JsonConverter<NullRequest>
+    [SuppressMessage(
+        "Performance",
+        "CA1812:Avoid uninstantiated internal classes",
+        Justification = "System.Text.Json creates the converter declared by JsonConverterAttribute.")]
+    private sealed class NullRequestConverter : JsonConverter<NullRequest>
     {
         public override NullRequest? Read(
             ref Utf8JsonReader reader,

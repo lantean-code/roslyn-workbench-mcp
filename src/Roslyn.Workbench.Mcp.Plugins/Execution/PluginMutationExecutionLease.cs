@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Execution;
 /// <summary>
 /// Holds a plugin mutation context separately from the staging capability retained by Host.
 /// </summary>
-public sealed class PluginMutationExecutionLease : IAsyncDisposable
+internal sealed class PluginMutationExecutionLease : IAsyncDisposable
 {
     private readonly WorkspaceMutationExecutionLease _workspaceLease;
 

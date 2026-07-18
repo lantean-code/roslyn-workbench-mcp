@@ -98,7 +98,7 @@ public sealed class ServerOwnedToolBaseTests
         cancellationSource.Cancel();
         service
             .Setup(item => item.ListAsync(cancellationSource.Token))
-            .Returns(ValueTask.FromCanceled<WorkspaceOperationResult<WorkspaceListOutcome>>(cancellationSource.Token));
+            .Returns(() => ValueTask.FromCanceled<WorkspaceOperationResult<WorkspaceListOutcome>>(cancellationSource.Token));
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var target = new WorkspaceListTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
 
@@ -147,8 +147,10 @@ public sealed class ServerOwnedToolBaseTests
             });
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var target = new WorkspaceListTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
+        var server = ServerOwnedToolTestSupport.CreateServer();
+        await using var serverDisposal = server.ConfigureAwait(false);
         var requestContext = new RequestContext<CallToolRequestParams>(
-            ServerOwnedToolTestSupport.CreateServer(),
+            server,
             new JsonRpcRequest
             {
                 Method = "tools/call",

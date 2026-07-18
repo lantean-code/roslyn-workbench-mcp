@@ -52,7 +52,7 @@ internal sealed class FindReferencesTool : QueryToolHandler<FindReferencesReques
             {
                 var containingSymbol = reference.Document is null
                     ? null
-                    : await context.ToolExecutionServices.InspectionContextService.TryCreateContainingSymbolAsync(reference.Document, reference.Location.SourceSpan.Start, context.CurrentSolution, cancellationToken).ConfigureAwait(false);
+                    : await context.ToolExecutionServices.InspectionContextService.TryCreateContainingSymbolAsync(reference.Document, reference.Location.SourceSpan.Start, cancellationToken).ConfigureAwait(false);
                 var contextLine = request.IncludeContext
                     ? await context.ToolExecutionServices.InspectionContextService.ReadContextAsync(reference.Document, reference.Location.SourceSpan, cancellationToken).ConfigureAwait(false)
                     : null;

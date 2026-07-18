@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
 public sealed class TemporaryDirectory : IDisposable, IAsyncDisposable
@@ -30,6 +32,10 @@ public sealed class TemporaryDirectory : IDisposable, IAsyncDisposable
         return new TemporaryDirectory(directoryPath);
     }
 
+    [SuppressMessage(
+        "Design",
+        "CA1065:Do not raise exceptions in unexpected locations",
+        Justification = "Test cleanup failures must fail the owning test with the temporary path and disposal guidance instead of being silently ignored.")]
     public void Dispose()
     {
         if (Interlocked.Exchange(ref _isDisposed, 1) != 0 || !Directory.Exists(DirectoryPath))

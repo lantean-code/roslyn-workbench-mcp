@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins;
 /// <summary>
 /// Describes a plugin entry point and its compatibility contract.
 /// </summary>
-public sealed record PluginMetadata
+internal sealed record PluginMetadata
 {
     /// <summary>
     /// Gets the stable plugin identifier.

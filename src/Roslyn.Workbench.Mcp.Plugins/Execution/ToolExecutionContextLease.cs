@@ -6,7 +6,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Execution;
 /// Represents the leased execution context for one tool invocation.
 /// </summary>
 /// <typeparam name="TContext">The context type.</typeparam>
-public sealed class ToolExecutionContextLease<TContext> : IAsyncDisposable
+internal sealed class ToolExecutionContextLease<TContext> : IAsyncDisposable
     where TContext : class, IToolExecutionContext
 {
     private readonly IAsyncDisposable? _lease;
@@ -43,8 +43,6 @@ public sealed class ToolExecutionContextLease<TContext> : IAsyncDisposable
     /// <returns>The leased execution context.</returns>
     public static ToolExecutionContextLease<TContext> Acquired(TContext context, IAsyncDisposable? lease = null)
     {
-        ArgumentNullException.ThrowIfNull(context);
-
         return new ToolExecutionContextLease<TContext>(context, null, lease);
     }
 
@@ -60,8 +58,6 @@ public sealed class ToolExecutionContextLease<TContext> : IAsyncDisposable
         TContext? context = null,
         IAsyncDisposable? lease = null)
     {
-        ArgumentNullException.ThrowIfNull(result);
-
         return new ToolExecutionContextLease<TContext>(context, result, lease);
     }
 

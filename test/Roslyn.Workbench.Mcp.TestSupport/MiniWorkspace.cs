@@ -1,6 +1,6 @@
 namespace Roslyn.Workbench.Mcp.TestSupport;
 
-public sealed class MiniWorkspace : IDisposable
+internal sealed class MiniWorkspace : IDisposable
 {
     private readonly AdhocWorkspace _workspace;
     private readonly IReadOnlyDictionary<string, DocumentId> _documentIdsByPath;

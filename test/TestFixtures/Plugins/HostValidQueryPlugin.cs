@@ -10,6 +10,8 @@ public sealed class HostValidQueryPlugin : IRoslynPlugin
 {
     public void Configure(IPluginConfiguration configuration)
     {
+        ArgumentNullException.ThrowIfNull(configuration);
+
         _ = configuration.AddQueryTool<Handler>();
     }
 

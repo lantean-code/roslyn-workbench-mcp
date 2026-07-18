@@ -60,6 +60,14 @@ Preparation diagnostics use stable IDs for handler contracts, lifetime, composit
 
 Runtime capabilities come only from `IQueryContext` or `IMutationContext`. Mutation handlers return a candidate solution and summary; Host stages the proposal through Workspace after the handler returns. Plugins do not receive Host dependency injection, MCP objects, file writers, workspace coordinators or Code Action services.
 
+## Supported API and trust boundary
+
+The supported third-party API consists of plugin and tool attributes, configuration builders, handler contracts, execution contexts, execution results, mutation candidates, selector and result contracts, and the read-only analysis services exposed through `IToolExecutionServices`. Host composition, registration, execution leases, staging, result mapping and plugin-catalogue metadata are implementation details and are not public API.
+
+`IQueryContext` and `IMutationContext` expose the same immutable Roslyn solution snapshot and read-only resolution and analysis capabilities. `IMutationContext` does not expose a stager. Returning a `MutationCandidate` is the only supported way for a plugin to propose source changes; Host validates and stages that candidate through the active transaction.
+
+Plugins are trusted in-process code, not a security sandbox. Treat `CurrentSolution` as query-only and do not call `CurrentSolution.Workspace.TryApplyChanges`, mutate its associated Roslyn workspace, write source files directly, use reflection to reach Host internals, or otherwise bypass the transaction pipeline. A Roslyn `Solution` exposes its associated `Workspace` transitively, and in-process code can also use ordinary file and reflection APIs, so the Host cannot enforce adversarial isolation while loading plugins into its process. Plugins that are not fully trusted must not be loaded.
+
 Query plugins own the logical size and shape of their results. Collection-returning tools should expose explicit request limits, choose sensible defaults with `IQueryContext.DefaultMaxResults` available as the Host baseline, return deterministic bounded collections with `HasMore`, and let agents request more results or narrow the query when needed. Host does not impose a global serialised response-size ceiling, so plugin authors must also cap or summarise unusually verbose per-item fields rather than relying on byte-led truncation.
 
 ## Package layout

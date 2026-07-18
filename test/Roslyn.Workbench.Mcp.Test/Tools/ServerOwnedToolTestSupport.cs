@@ -11,9 +11,11 @@ internal static class ServerOwnedToolTestSupport
         IDictionary<string, JsonElement>? arguments = null,
         CancellationToken cancellationToken = default)
     {
+        var server = CreateServer();
+        await using var serverDisposal = server.ConfigureAwait(false);
         return await tool.InvokeAsync(
             new RequestContext<CallToolRequestParams>(
-                CreateServer(),
+                server,
                 new JsonRpcRequest
                 {
                     Method = "tools/call",
@@ -23,7 +25,7 @@ internal static class ServerOwnedToolTestSupport
                     Name = toolName,
                     Arguments = arguments ?? new Dictionary<string, JsonElement>(StringComparer.Ordinal),
                 }),
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
     }
 
     public static McpServer CreateServer()

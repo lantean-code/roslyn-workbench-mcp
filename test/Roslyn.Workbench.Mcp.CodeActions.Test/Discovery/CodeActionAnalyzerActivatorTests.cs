@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Test.Discovery;
@@ -47,6 +48,10 @@ public sealed class CodeActionAnalyzerActivatorTests
     [InlineData(typeof(ThrowingAnalyzer))]
     [InlineData(typeof(AbstractAnalyzer))]
     [InlineData(typeof(GenericAnalyzer<>))]
+    [SuppressMessage(
+        "Design",
+        "CA1062:Validate arguments of public methods",
+        Justification = "xUnit requires public test methods and supplies the non-null Type values declared by the InlineData attributes.")]
     public void GIVEN_AnalyzerCannotBeConstructed_WHEN_Activating_THEN_ShouldReportConstructionFailed(Type analyzerType)
     {
         var result = _target.Activate(GetTypeName(analyzerType));

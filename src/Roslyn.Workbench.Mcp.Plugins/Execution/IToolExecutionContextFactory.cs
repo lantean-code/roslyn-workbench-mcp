@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Execution;
 /// <summary>
 /// Acquires plugin execution contexts over the neutral Workspace boundary.
 /// </summary>
-public interface IToolExecutionContextFactory
+internal interface IToolExecutionContextFactory
 {
     /// <summary>Acquires a query context for a plugin request.</summary>
     /// <param name="request">The workspace-bound request.</param>

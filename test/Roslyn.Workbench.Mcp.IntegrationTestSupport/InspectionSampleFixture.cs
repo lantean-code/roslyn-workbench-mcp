@@ -1,6 +1,6 @@
 namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
-public sealed class InspectionSampleFixture : IAsyncDisposable
+internal sealed class InspectionSampleFixture : IAsyncDisposable
 {
     private readonly MaterializedWorkspaceAsset _asset;
     private readonly string _directoryPath;

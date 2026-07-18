@@ -4,6 +4,7 @@ public static class QueryContextMockHelper
 {
     public static QueryContextMockGraph Create()
     {
+        using var workspace = new AdhocWorkspace();
         var queryContext = new Mock<IQueryContext>();
         var workspaceResolver = new Mock<IWorkspaceResolver>();
         var toolExecutionServices = new Mock<IToolExecutionServices>();
@@ -20,7 +21,7 @@ public static class QueryContextMockHelper
             .Returns(toolExecutionServices.Object);
         queryContext
             .SetupGet(item => item.CurrentSolution)
-            .Returns(new AdhocWorkspace().CurrentSolution);
+            .Returns(workspace.CurrentSolution);
 
         return new QueryContextMockGraph(
             queryContext,

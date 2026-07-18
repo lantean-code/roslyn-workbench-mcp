@@ -24,16 +24,6 @@ When a task is completed, remove it from this document rather than retaining a c
 
 ## P0 — Release Decisions and Blockers
 
-### Reconcile the planned tool catalogues with the shipping surface
-
-**Status:** Not started
-
-`RoslynMcpToolDesign.md` and `RoslynMcpToolContracts.md` still describe several tools as deferred even though the bundled plugin or Code Action catalogue now registers them. Audit the published tool list and update the catalogue, contract execution-surface note, counts and implementation matrix together. In particular, verify the nine analysis tools formerly listed as deferred plus `move-type-to-file` and `convert-property`.
-
-Accurate public contracts and capability documentation are required before release; users and agents must not be told that shipping tools are unavailable.
-
-Sources: [RoslynMcpToolDesign.md](RoslynMcpToolDesign.md#current-execution-surface-note-2026-07-02), [RoslynMcpToolContracts.md](RoslynMcpToolContracts.md#current-execution-surface-note-2026-07-02), [RoslynMcpToolImplementationMatrix.md](RoslynMcpToolImplementationMatrix.md)
-
 ### Close or supersede the original whole-project roadmap
 
 **Status:** Started

@@ -3,6 +3,12 @@
 Roslyn MCP server with a transaction-based workspace model for safe local
 analysis and refactoring.
 
+## Documentation
+
+Start with the [documentation](docs/README.md) for setup, configuration, tool
+discovery and safe workspace operation. Historical plans, audits and
+implementation evidence are kept separately under `docs/development`.
+
 ## External plugins
 
 Pass one or more `--plugin-directory <search-root>` options when starting the server. Each immediate child directory beneath a search root is one plugin package; DLLs directly in the search root and recursively nested packages are ignored.

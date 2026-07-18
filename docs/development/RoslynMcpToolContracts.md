@@ -1,5 +1,10 @@
 # Roslyn MCP Server - Tool Contract Catalogue
 
+> **Engineering record:** This catalogue guided contract implementation and
+> includes aspirational or historical entries. It is not the release inventory
+> for a running server. MCP `tools/list` is authoritative for the current
+> process; see [Tool discovery](../ToolDiscovery.md).
+
 ## Purpose
 
 This document defines the MCP metadata, request contracts and structured output

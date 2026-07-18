@@ -1,5 +1,10 @@
 # Roslyn MCP Server - Tool Implementation Matrix
 
+> **Engineering record:** This matrix records implementation planning and
+> historical capability decisions. It is not the release inventory for a
+> running server. MCP `tools/list` is authoritative for the current process;
+> see [Tool discovery](../ToolDiscovery.md).
+
 ## Purpose
 
 This matrix records the planned implementation source for every public tool.

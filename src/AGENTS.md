@@ -101,7 +101,7 @@
 - After editing any source file that is expected to use CRLF, run `unix2dos <changed files>` to normalize the entire file and eliminate any LF or mixed endings introduced by patching tools.
 - Do not run `unix2dos` on files that are intentionally LF per `.gitattributes` or repository convention.
 - Before finishing, verify every changed CRLF-governed file is `crlf` and not `mixed`.
-- After modifying source files, run `dotnet format --include <changed files> --artifacts-path=/tmp/artifacts/roslyn-workbench-mcp` for the files changed in the current task only.
+- After modifying source files, run `dotnet format --include <changed files>` for the files changed in the current task only, following the environment-specific artifacts-path rule in the repository root `AGENTS.md`.
 - Do not format unrelated files.
 
 ## Enforcement

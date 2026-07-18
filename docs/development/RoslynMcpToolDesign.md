@@ -1,5 +1,10 @@
 # Roslyn Workbench - Complete Tool Catalogue
 
+> **Engineering record:** This catalogue guided implementation and includes
+> aspirational or historical entries. It is not the release inventory for a
+> running server. MCP `tools/list` is authoritative for the current process;
+> see [Tool discovery](../ToolDiscovery.md).
+
 ## Purpose
 
 This is the complete planned capability catalogue for a local, stdio-based

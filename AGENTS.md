@@ -10,7 +10,8 @@
 
 ## Repository layout
 - Solution: `Roslyn.Workbench.Mcp.slnx`
-- Docs: `./docs`
+- Release docs: `./docs`
+- Development plans, audits and evidence: `./docs/development`
 - Projects:
   - `Roslyn.Workbench.Mcp` — executable host, bootstrap, and server-owned core MCP lifecycle tools.
   - `Roslyn.Workbench.Mcp.Workspace` — workspace contracts, loading, neutral execution leases, transaction coordination, and commit/reload infrastructure.
@@ -24,17 +25,18 @@
 - Prerequisites: .NET 10 SDK (use the version pinned by `global.json`).
   - Agents must verify the pinned SDK is available in the current environment.
   - If `dotnet --info` does not list the required version, install it before running restore/build/test commands.
-  - Agents must include `--artifacts-path=/tmp/artifacts/roslyn-workbench-mcp` on all `dotnet` commands, including `dotnet format`.
+  - When operating under WSL, agents must append `--artifacts-path=/tmp/artifacts/roslyn-workbench-mcp` to repository `dotnet` commands, including `dotnet format`, to keep generated artifacts off the shared Windows filesystem.
+  - When operating directly on Windows or Linux, agents must omit `--artifacts-path`; the WSL-specific routing is not needed.
 - After modifying code or tests:
-  - Run `dotnet format --include <changed files> --artifacts-path=/tmp/artifacts/roslyn-workbench-mcp` for the files changed in the current task only.
+  - Run `dotnet format --include <changed files>` for the files changed in the current task only, applying the WSL-specific artifacts path above when required.
   - Do not format unrelated files.
 - Restore and build:
-  - `dotnet restore --artifacts-path=/tmp/artifacts/roslyn-workbench-mcp`
-  - `dotnet build --artifacts-path=/tmp/artifacts/roslyn-workbench-mcp`
+  - `dotnet restore`
+  - `dotnet build`
 - Run tests:
-  - `dotnet test --artifacts-path=/tmp/artifacts/roslyn-workbench-mcp`
+  - `dotnet test`
 - After each behavior-affecting set of changes:
-  - Run `dotnet test --artifacts-path=/tmp/artifacts/roslyn-workbench-mcp`.
+  - Run `dotnet test`, applying the WSL-specific artifacts path above when required.
   - Behavior-affecting includes edits to production code, test code, project/package/build configuration, tool contracts, plugin registration, or other runtime-impacting assets.
   - Docs-only or markdown-only edits do not require restore/build/test unless explicitly requested.
 
@@ -57,7 +59,7 @@
 
 ## How to work in this repo (for agents)
 1. Read this file, then the relevant folder `AGENTS.md` (`src` or `test`).
-2. Read the relevant design docs under `./docs` before making structural or contract changes.
+2. Read the relevant design docs under `./docs/development` before making structural or contract changes.
 3. When working on C#, .NET SDK, Roslyn, or MCP contract behaviour:
    - Use Microsoft Learn for current official .NET guidance.
    - Use Roslyn-backed tooling for solution inspection, symbol lookup, and safe refactor planning where available.

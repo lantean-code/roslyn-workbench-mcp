@@ -1,6 +1,6 @@
 # Unit Testing Rules (xUnit + Moq + AwesomeAssertions)
 
-Cross-project test ownership and execution-path policy are defined in `../docs/TestingStrategy.md`; this file defines the implementation rules for tests under `test`.
+Cross-project test ownership and execution-path policy are defined in `../docs/development/TestingStrategy.md`; this file defines the implementation rules for tests under `test`.
 
 - Frameworks: xUnit, Moq, AwesomeAssertions.
 - Use Moq for test doubles; do not introduce hand-written fake or stub implementations unless explicitly approved.
@@ -87,7 +87,7 @@ Cross-project test ownership and execution-path policy are defined in `../docs/T
 - Before finishing, verify every changed CRLF-governed file is `crlf` and not `mixed`.
 
 ## Formatting
-- After modifying test files, run `dotnet format --include <changed files> --artifacts-path=/tmp/artifacts/roslyn-workbench-mcp` for the files changed in the current task only.
+- After modifying test files, run `dotnet format --include <changed files>` for the files changed in the current task only, following the environment-specific artifacts-path rule in the repository root `AGENTS.md`.
 - Do not format unrelated files.
 
 ## Test execution
@@ -124,7 +124,7 @@ Cross-project test ownership and execution-path policy are defined in `../docs/T
 - Default local development loop: run unit and contract coverage, excluding integration and audit categories.
 - Integration coverage should run for touched areas during development and in CI for broader regression confidence.
 - Audit coverage should run in broader CI or release gates, not in the default local loop.
-- Preferred fast-loop command: `dotnet test --filter "Category!=Integration&Category!=Audit" --artifacts-path=/tmp/artifacts/roslyn-workbench-mcp`
+- Preferred fast-loop command: `dotnet test --filter "Category!=Integration&Category!=Audit"`, with the WSL-specific artifacts path from the repository root `AGENTS.md` when required.
 
 ## Pre-flight checklist (must confirm all before generating tests)
 - [ ] I am using xUnit, Moq, and AwesomeAssertions.

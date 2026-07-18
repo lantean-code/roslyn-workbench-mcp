@@ -58,6 +58,5 @@ internal sealed class WorkspaceInstanceStatusHandle : IDisposable
             _serializerOptions,
             CancellationToken.None);
         await _stream.FlushAsync(CancellationToken.None);
-        _stream.Flush();
     }
 }

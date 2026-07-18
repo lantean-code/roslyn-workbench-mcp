@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 namespace Roslyn.Workbench.Mcp.Workspace.IO;
@@ -25,6 +26,10 @@ internal sealed class AtomicFileWriter : IAtomicFileWriter
         await WriteAllBytesAsync(destinationPath, encoding.GetBytes(contents), cancellationToken);
     }
 
+    [SuppressMessage(
+        "Performance",
+        "CA1849:Call async methods when in an async method",
+        Justification = "FileStream.FlushAsync does not expose flushToDisk; the synchronous flush is required before the atomic commit to guarantee durable storage.")]
     public async ValueTask WriteAllBytesAsync(
         string destinationPath,
         ReadOnlyMemory<byte> contents,

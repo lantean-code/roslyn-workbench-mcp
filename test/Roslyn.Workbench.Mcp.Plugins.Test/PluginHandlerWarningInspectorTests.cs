@@ -39,6 +39,7 @@ public sealed class PluginHandlerWarningInspectorTests
         result.Should().ContainSingle(static diagnostic => diagnostic.Id == "PluginHandlerInstanceState");
     }
 
+#pragma warning disable CA1812 // Handler fixtures are inspected for reflected state and legacy registration shapes.
     private sealed class StatefulLegacyHandler
     {
         private const int _constantState = 1;
@@ -92,4 +93,5 @@ public sealed class PluginHandlerWarningInspectorTests
             UpdateState();
         }
     }
+#pragma warning restore CA1812
 }

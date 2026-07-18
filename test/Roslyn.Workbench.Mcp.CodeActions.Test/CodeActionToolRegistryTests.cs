@@ -118,6 +118,7 @@ public sealed class CodeActionToolRegistryTests
 
     public sealed record TestResponse;
 
+#pragma warning disable CA1812 // Handler fixtures are consumed as closed generic registration metadata.
     private sealed class TestQueryHandler : CodeActionQueryToolHandler<TestRequest, TestResponse>
     {
         protected override ValueTask<CodeActionExecutionResult<TestResponse>> ExecuteCoreAsync(
@@ -139,4 +140,5 @@ public sealed class CodeActionToolRegistryTests
             return ValueTask.FromResult(CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate()));
         }
     }
+#pragma warning restore CA1812
 }

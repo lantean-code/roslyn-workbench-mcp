@@ -83,6 +83,7 @@ public sealed class PluginHandlerContractResolverTests
 
     public sealed record Response;
 
+#pragma warning disable CA1812 // Contract fixtures are inspected as Type metadata and are not runtime handler instances.
     private sealed record PrivateRequest : WorkspaceBoundRequest;
 
     private sealed record PrivateResponse;
@@ -195,4 +196,5 @@ public sealed class PluginHandlerContractResolverTests
             return ValueTask.FromResult(PluginExecutionResult<PrivateResponse[]>.Success([]));
         }
     }
+#pragma warning restore CA1812
 }

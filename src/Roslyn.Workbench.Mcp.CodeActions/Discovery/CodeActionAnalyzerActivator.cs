@@ -39,29 +39,42 @@ internal sealed class CodeActionAnalyzerActivator : ICodeActionAnalyzerActivator
                 continue;
             }
 
-            return typeof(DiagnosticAnalyzer).IsAssignableFrom(analyzerType)
-                ? AnalyzerTypeResolution.Available(analyzerType)
-                : AnalyzerTypeResolution.Unavailable(CodeActionAnalyzerActivationStatus.IncompatibleType);
+            if (typeof(DiagnosticAnalyzer).IsAssignableFrom(analyzerType))
+            {
+                return AnalyzerTypeResolution.Available(analyzerType);
+            }
+            else
+            {
+                return AnalyzerTypeResolution.Unavailable(CodeActionAnalyzerActivationStatus.IncompatibleType);
+            }
         }
 
-        return AnalyzerTypeResolution.Unavailable(
-            inspectionFailed
-                ? CodeActionAnalyzerActivationStatus.InspectionFailed
-                : CodeActionAnalyzerActivationStatus.TypeNotFound);
+        if (inspectionFailed)
+        {
+            return AnalyzerTypeResolution.Unavailable(CodeActionAnalyzerActivationStatus.InspectionFailed);
+        }
+        else
+        {
+            return AnalyzerTypeResolution.Unavailable(CodeActionAnalyzerActivationStatus.TypeNotFound);
+        }
     }
 
     private static CodeActionAnalyzerActivationResult CreateAnalyzer(Type analyzerType)
     {
         try
         {
-            var analyzer = Activator.CreateInstance(analyzerType, nonPublic: true) as DiagnosticAnalyzer;
-            return analyzer is null
-                ? Unavailable(CodeActionAnalyzerActivationStatus.ConstructionFailed)
-                : new CodeActionAnalyzerActivationResult
+            if (Activator.CreateInstance(analyzerType, nonPublic: true) is not DiagnosticAnalyzer analyzer)
+            {
+                return Unavailable(CodeActionAnalyzerActivationStatus.ConstructionFailed);
+            }
+            else
+            {
+                return new CodeActionAnalyzerActivationResult
                 {
                     Status = CodeActionAnalyzerActivationStatus.Available,
                     Analyzer = analyzer,
                 };
+            }
         }
         catch (Exception exception) when (IsExpectedConstructionFailure(exception))
         {

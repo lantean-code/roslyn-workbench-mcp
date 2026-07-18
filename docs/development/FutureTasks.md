@@ -32,7 +32,7 @@ No open P0 release decisions or blockers remain from the documentation audit.
 
 **Status:** Started
 
-The complete `latest-all` baseline began with 2,205 findings across 379 files and 22 projects. The current inventory contains 667 findings across 197 files; eleven diagnostic families are resolved. Establish narrow policy for intentional test conventions and fixtures, then remediate production determinism, async and performance findings in cohesive batches. Do not apply API-design or concrete-type suggestions mechanically where they would weaken public contracts, plugin discovery or architectural boundaries.
+The complete `latest-all` baseline began with 2,205 findings across 379 files and 22 projects. The current inventory contains 578 findings across 189 files; fifteen diagnostic families are resolved. Remediate production determinism, async and performance findings in cohesive batches, then establish any broader test policy deliberately. Do not apply API-design or concrete-type suggestions mechanically where they would weaken public contracts, plugin discovery or architectural boundaries.
 
 Complete the high-priority production batches before recording performance baselines because analyzer-driven changes can affect allocations, cancellation and execution timing.
 

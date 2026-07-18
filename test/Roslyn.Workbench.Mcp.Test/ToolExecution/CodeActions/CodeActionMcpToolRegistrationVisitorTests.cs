@@ -102,6 +102,7 @@ public sealed class CodeActionMcpToolRegistrationVisitorTests
         public string Value { get; init; } = string.Empty;
     }
 
+#pragma warning disable CA1812 // Handler fixtures are activated indirectly by the dependency-injection container.
     private sealed class TestQueryHandler : CodeActionQueryToolHandler<TestRequest, TestResponse>
     {
         protected override ValueTask<CodeActionExecutionResult<TestResponse>> ExecuteCoreAsync(
@@ -123,4 +124,5 @@ public sealed class CodeActionMcpToolRegistrationVisitorTests
             return ValueTask.FromResult(CodeActionExecutionResult<WorkspaceMutationCandidate>.NoChange());
         }
     }
+#pragma warning restore CA1812
 }

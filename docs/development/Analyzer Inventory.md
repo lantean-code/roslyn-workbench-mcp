@@ -30,12 +30,12 @@ The clean baseline build succeeded with zero compiler errors.
 
 | Measure | Baseline | Remaining |
 | --- | ---: | ---: |
-| Analyzer findings | 2,205 | 667 |
-| Diagnostic IDs | 32 | 21 |
-| Files | 379 | 197 |
-| Projects | 22 | 22 |
+| Analyzer findings | 2,205 | 578 |
+| Diagnostic IDs | 32 | 17 |
+| Files | 379 | 189 |
+| Projects | 22 | 19 |
 | Production findings | 149 | 123 |
-| Test and fixture findings | 2,056 | 544 |
+| Test and fixture findings | 2,056 | 455 |
 
 The remaining counts come from the latest successful solution-wide analyzer build. Resolved diagnostics are excluded from the active inventory and recorded separately below.
 
@@ -48,8 +48,6 @@ Of the six IDE findings that triggered this audit for `GetCodeContextTool`, the 
 | Diagnostic | Rule meaning | Total | Production | Tests | Initial treatment | Batch |
 | --- | --- | ---: | ---: | ---: | --- | --- |
 | `CA1000` | Avoid static members on generic types because callers must specify the containing type argument | 15 | 15 | 0 | Review generic factory APIs; preserve intentional fluent contracts | Design/API |
-| `CA1002` | Public APIs should not expose mutable `List<T>` implementations | 1 | 0 | 1 | Intentional invalid-contract fixture; use a narrow suppression | Test policy |
-| `CA1034` | Externally visible types should not be nested inside other types | 54 | 0 | 54 | Predominantly nested request/response fixtures; use scoped test policy | Test policy |
 | `CA1040` | Empty interfaces do not define a behavioural contract | 2 | 2 | 0 | Review marker-interface intent and document or suppress if required | Design/API |
 | `CA1068` | A `CancellationToken` parameter should be the final parameter | 2 | 1 | 1 | Review cancellation-token ordering with contract compatibility | Design/API |
 | `CA1305` | Supply an `IFormatProvider` when formatting values or messages | 15 | 13 | 2 | Use explicit culture for stable diagnostics and comparisons | Determinism |
@@ -58,8 +56,6 @@ Of the six IDE findings that triggered this audit for `GetCodeContextTool`, the 
 | `CA1515` | Types in application assemblies can often be internal instead of public | 91 | 32 | 59 | Internalise implementation types; preserve real contracts and discovery surfaces | Design/API |
 | `CA1711` | Type names should not use suffixes that imply a different kind of type | 2 | 1 | 1 | Review established contract names before renaming | Design/API |
 | `CA1802` | A readonly field holding a compile-time value can be a constant | 1 | 0 | 1 | Use a constant where it does not weaken the test scenario | Performance |
-| `CA1812` | An internal type appears never to be instantiated | 33 | 0 | 33 | Reflection/discovery fixtures are expected; suppress narrowly after verification | Test policy |
-| `CA1819` | Public properties should not return mutable arrays | 1 | 0 | 1 | Preserve the intentional array-contract fixture with a narrow suppression | Test policy |
 | `CA1822` | An instance member that uses no instance state can be static | 6 | 0 | 6 | Make helpers static where test clarity is unchanged | Performance |
 | `CA1848` | High-performance logging should use cached `LoggerMessage` delegates | 2 | 2 | 0 | Replace hot logging calls with cached `LoggerMessage` delegates | Performance |
 | `CA1849` | Async methods should call asynchronous APIs instead of blocking synchronous ones | 42 | 2 | 40 | Review synchronous I/O; preserve explicitly required durable flush semantics | Performance/async |
@@ -74,11 +70,15 @@ Of the six IDE findings that triggered this audit for `GetCodeContextTool`, the 
 | Diagnostic | Baseline | Resolution |
 | --- | ---: | --- |
 | `CA1001` | 1 | Made the owning test class disposable and disposed its reusable memory stream |
+| `CA1002` | 1 | Suppressed for test and plugin-fixture builds because the mutable `List<T>` contract is an intentional negative contract-inspection scenario |
 | `CA1031` | 17 | Narrowed token parsing catches and added symbol-scoped rationale to genuine plugin, Roslyn, workspace, disposal, audit and top-level MCP isolation boundaries |
+| `CA1034` | 54 | Suppressed for test and plugin-fixture builds because externally visible nested request, response and handler types are deliberate reflection and contract-validation fixtures |
 | `CA1062` | 16 | Internalised Host execution leases and shared-test implementation types, made nested serialisation fixtures private, documented the xUnit-supplied theory value, and retained validation only at genuine plugin entry-point boundaries |
 | `CA1065` | 1 | Documented the intentional temporary-directory disposal exception, which must surface test cleanup failures instead of hiding them |
 | `CA1508` | 2 | Removed the redundant production null path and added a method-scoped suppression for the deliberate equality-contract test |
 | `CA1707` | 1,462 | Suppressed for `IsTestProject` builds because GIVEN/WHEN/THEN names are mandated |
+| `CA1812` | 33 | Audited every finding and added source-local pragma scopes around eight fixture groups used through reflection, DI, closed-generic registration, schema metadata or deliberate activation failures; no dead types were found |
+| `CA1819` | 1 | Suppressed for test and plugin-fixture builds because the mutable array contract is an intentional negative contract-inspection scenario |
 | `CA2000` | 5 | Disposed server and workspace test resources and documented the Roslyn wrapper's explicit workspace-ownership transfer |
 | `CA2012` | 13 | Changed Moq setups to create a fresh faulted or cancelled `ValueTask` for every invocation instead of storing reusable instances |
 | `CA2016` | 3 | Forwarded the execution cancellation token to all three Roslyn operations |
@@ -97,32 +97,28 @@ Of the six IDE findings that triggered this audit for `GetCodeContextTool`, the 
 | `test/Roslyn.Workbench.Mcp.AcceptanceTest` | 28 | 3 | 9 |
 | `test/Roslyn.Workbench.Mcp.CodeActions.AuditTest` | 61 | 3 | 5 |
 | `test/Roslyn.Workbench.Mcp.CodeActions.IntegrationTest` | 6 | 2 | 3 |
-| `test/Roslyn.Workbench.Mcp.CodeActions.Test` | 48 | 8 | 17 |
-| `test/Roslyn.Workbench.Mcp.IntegrationTest` | 11 | 4 | 4 |
+| `test/Roslyn.Workbench.Mcp.CodeActions.Test` | 38 | 6 | 16 |
+| `test/Roslyn.Workbench.Mcp.IntegrationTest` | 8 | 3 | 4 |
 | `test/Roslyn.Workbench.Mcp.IntegrationTestSupport` | 21 | 2 | 4 |
 | `test/Roslyn.Workbench.Mcp.Plugins.Core.IntegrationTest` | 12 | 4 | 7 |
 | `test/Roslyn.Workbench.Mcp.Plugins.Core.Test` | 24 | 4 | 10 |
-| `test/Roslyn.Workbench.Mcp.Plugins.Test` | 60 | 6 | 11 |
-| `test/Roslyn.Workbench.Mcp.Test` | 98 | 12 | 22 |
+| `test/Roslyn.Workbench.Mcp.Plugins.Test` | 22 | 4 | 10 |
+| `test/Roslyn.Workbench.Mcp.Test` | 71 | 8 | 22 |
 | `test/Roslyn.Workbench.Mcp.TestSupport` | 2 | 1 | 2 |
 | `test/Roslyn.Workbench.Mcp.Workspace.IntegrationTest` | 58 | 3 | 6 |
 | `test/Roslyn.Workbench.Mcp.Workspace.LockFixture` | 1 | 1 | 1 |
-| `test/Roslyn.Workbench.Mcp.Workspace.Test` | 104 | 7 | 14 |
-| `test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.HostMutationPluginFixture` | 1 | 1 | 1 |
-| `test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.HostQueryPluginFixture` | 2 | 1 | 1 |
-| `test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.InvalidPluginFixture` | 7 | 1 | 4 |
+| `test/Roslyn.Workbench.Mcp.Workspace.Test` | 103 | 6 | 14 |
 
 ## Remediation Order
 
 Use cohesive batches and rerun the full analyzer baseline after each batch. Do not mix unrelated analyzer cleanup with performance measurements.
 
-1. Continue establishing narrow test policy for intentional negative fixtures.
-2. Address production determinism findings: `CA1305`, `CA1307` and `CA1308`.
-3. Address production async findings before changing test-wide async policy: production `CA2007` and `CA1849`.
-4. Establish the test async policy for test `CA2007` and `CA1849` findings.
-5. Address production performance findings using measurements where a suggestion changes abstractions: `CA1848` and `CA1859`.
-6. Review design/API findings individually. Do not rename public contracts, remove discovery types or change collection shapes solely to satisfy an analyzer.
-7. Clean up remaining test-only performance and assertion findings after production remediation is stable.
+1. Address production determinism findings: `CA1305`, `CA1307` and `CA1308`.
+2. Address production async findings before changing test-wide async policy: production `CA2007` and `CA1849`.
+3. Establish the test async policy for test `CA2007` and `CA1849` findings.
+4. Address production performance findings using measurements where a suggestion changes abstractions: `CA1848` and `CA1859`.
+5. Review design/API findings individually. Do not rename public contracts, remove discovery types or change collection shapes solely to satisfy an analyzer.
+6. Clean up remaining test-only performance and assertion findings after production remediation is stable.
 
 The performance-tuning baseline should be recorded only after production determinism, async and performance findings are resolved or explicitly accepted, because those changes can affect allocations, cancellation and execution timing.
 

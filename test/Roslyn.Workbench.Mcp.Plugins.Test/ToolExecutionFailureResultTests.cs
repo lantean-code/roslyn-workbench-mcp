@@ -57,8 +57,10 @@ public sealed class ToolExecutionFailureResultTests
         result.Error.CorrelationId.Should().NotBeNullOrWhiteSpace();
     }
 
+#pragma warning disable CA1812 // The response fixture is consumed only as a generic result type argument.
     private sealed record TestResponse
     {
         public string Value { get; init; } = string.Empty;
     }
+#pragma warning restore CA1812
 }

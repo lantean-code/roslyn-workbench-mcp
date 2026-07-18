@@ -129,6 +129,7 @@ public sealed class ToolSchemaFactoryTests
         });
     }
 
+#pragma warning disable CA1812 // Contract fixtures are consumed as schema type metadata without object construction.
     private sealed record TestRequest
     {
         public string Value { get; init; } = string.Empty;
@@ -138,4 +139,5 @@ public sealed class ToolSchemaFactoryTests
     {
         public string Value { get; init; } = string.Empty;
     }
+#pragma warning restore CA1812
 }

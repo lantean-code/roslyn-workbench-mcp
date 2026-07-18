@@ -48,6 +48,7 @@ public sealed class PluginHandlerTypeInspectorTests
 
     public sealed record Response;
 
+#pragma warning disable CA1812 // Handler fixtures are inspected for lifetime and composition metadata without activation.
     private sealed class QueryHandler : IQueryToolHandler<Request, Response>
     {
         public ValueTask<PluginExecutionResult<Response>> ExecuteAsync(Request request, IQueryContext context, CancellationToken cancellationToken)
@@ -136,5 +137,5 @@ public sealed class PluginHandlerTypeInspectorTests
             return ValueTask.FromResult(PluginExecutionResult<Response>.Success(new Response()));
         }
     }
-
+#pragma warning restore CA1812
 }

@@ -66,6 +66,7 @@ public sealed class CodeActionAnalyzerActivatorTests
         return type.FullName ?? throw new InvalidOperationException("The test analyzer type has no full name.");
     }
 
+#pragma warning disable CA1812 // Analyzer fixtures are activated or deliberately rejected through reflection.
 #pragma warning disable RS1001
     private sealed class AvailableAnalyzer : DiagnosticAnalyzer
     {
@@ -127,4 +128,5 @@ public sealed class CodeActionAnalyzerActivatorTests
         }
     }
 #pragma warning restore RS1001
+#pragma warning restore CA1812
 }

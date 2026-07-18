@@ -2,7 +2,7 @@
 
 Date: 2026-07-10
 
-> **Completed and superseded:** This plan records the pre-boundary-refactor baseline and the phases used to reorganise it. Project names, counts and ownership statements below are historical and must not be used as current guidance. Use `TestingStrategy.md` for policy, `TestArchitectureReaudit-2026-07-10.md` for the current topology and gaps, and `Tool Test Inventory.md` for current ownership.
+> **Completed and superseded:** This plan records the pre-boundary-refactor baseline and the phases used to reorganise it. Project names, counts and ownership statements below are historical and must not be used as current guidance. Use `TestingStrategy.md` for policy, `TestArchitectureReaudit-2026-07-18.md` for the current topology and findings, and `Tool Test Inventory.md` for current ownership.
 
 ## Purpose
 

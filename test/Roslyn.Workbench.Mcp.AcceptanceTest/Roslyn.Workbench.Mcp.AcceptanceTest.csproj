@@ -36,13 +36,20 @@
   </ItemGroup>
 
   <Target Name="CopyHostQueryPluginPackageAssets" AfterTargets="Build">
-    <PropertyGroup>
-      <AcceptanceArtifactConfiguration>$([System.String]::Copy('$(Configuration)').ToLowerInvariant())</AcceptanceArtifactConfiguration>
-    </PropertyGroup>
     <ItemGroup>
-      <HostQueryPluginPackageAsset Include="$(ArtifactsPath)/bin/Roslyn.Workbench.Mcp.HostQueryPluginFixture/$(AcceptanceArtifactConfiguration)/Roslyn.Workbench.Mcp.HostQueryPluginFixture.dll" />
-      <HostQueryPluginPackageAsset Include="$(ArtifactsPath)/bin/Roslyn.Workbench.Mcp.HostQueryPluginFixture/$(AcceptanceArtifactConfiguration)/Roslyn.Workbench.Mcp.HostQueryPluginFixture.deps.json" />
-      <HostQueryPluginPackageAsset Include="$(ArtifactsPath)/bin/Roslyn.Workbench.Mcp.HostQueryPluginFixture/$(AcceptanceArtifactConfiguration)/NuGet.Versioning.dll" />
+      <HostQueryPluginProject Include="@(ProjectReference)"
+                              Condition="'%(Filename)' == 'Roslyn.Workbench.Mcp.HostQueryPluginFixture'" />
+    </ItemGroup>
+    <MSBuild Projects="@(HostQueryPluginProject)"
+             Targets="GetTargetPath"
+             BuildInParallel="$(BuildInParallel)"
+             Properties="Configuration=$(Configuration);Platform=$(Platform);ArtifactsPath=$(ArtifactsPath)">
+      <Output TaskParameter="TargetOutputs" ItemName="HostQueryPluginAssembly" />
+    </MSBuild>
+    <ItemGroup>
+      <HostQueryPluginPackageAsset Include="@(HostQueryPluginAssembly)" />
+      <HostQueryPluginPackageAsset Include="@(HostQueryPluginAssembly->'%(RootDir)%(Directory)%(Filename).deps.json')" />
+      <HostQueryPluginPackageAsset Include="@(HostQueryPluginAssembly->'%(RootDir)%(Directory)NuGet.Versioning.dll')" />
     </ItemGroup>
     <Copy SourceFiles="@(HostQueryPluginPackageAsset)" DestinationFolder="$(OutDir)/TestAssets/Plugins/HostQuery" />
   </Target>

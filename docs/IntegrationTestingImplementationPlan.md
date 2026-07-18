@@ -1,7 +1,7 @@
 # Integration Testing Redesign Implementation Plan
 
-Date: 2026-07-17
-Status: Ready for implementation
+Date: 2026-07-18
+Status: Complete; final evidence is recorded in `IntegrationTestingStage8Results-2026-07-18.md`
 Source audit: `IntegrationTestingStrategyProposal.md`
 
 ## Purpose
@@ -52,16 +52,16 @@ The agreed testing direction is:
 
 ## Objectives
 
-- [ ] Every integration test names a real component or infrastructure boundary that a unit test cannot faithfully prove.
-- [ ] Genuine acceptance tests cover the published executable over stdio and JSON-RPC.
-- [ ] Integration suites no longer duplicate ordinary unit branches.
-- [ ] Test-owned infrastructure does not reproduce the entire production composition root.
-- [ ] Every workspace, service provider, MEF container, client and child process has deterministic lifetime management.
-- [ ] Every stateful scenario has an isolated workspace and recovery root.
-- [ ] Read-only expensive fixtures are reused safely; mutable fixtures remain isolated.
-- [ ] CI provides Windows and Linux evidence for platform-sensitive durability and acceptance behaviour.
-- [ ] Failures retain actionable TRX, stderr and failed-fixture diagnostics.
-- [ ] Normal integration feedback becomes materially faster without sacrificing retained boundary scenarios.
+- [x] Every integration test names a real component or infrastructure boundary that a unit test cannot faithfully prove.
+- [x] Genuine acceptance tests cover the published executable over stdio and JSON-RPC.
+- [x] Integration suites no longer duplicate ordinary unit branches.
+- [x] Test-owned infrastructure does not reproduce the entire production composition root.
+- [x] Every workspace, service provider, MEF container, client and child process has deterministic lifetime management.
+- [x] Every stateful scenario has an isolated workspace and recovery root.
+- [x] Read-only expensive fixtures are reused safely; mutable fixtures remain isolated.
+- [x] CI provides Windows and Linux evidence for platform-sensitive durability and acceptance behaviour.
+- [x] Failures retain actionable TRX, stderr and failed-fixture diagnostics.
+- [x] Normal integration feedback becomes materially faster without sacrificing retained boundary scenarios.
 
 ## Non-goals
 
@@ -689,82 +689,82 @@ Completion evidence: `IntegrationTestingStage7Results-2026-07-18.md`.
 
 ### Architecture audit
 
-- [ ] Verify every integration class states the real boundary it protects.
-- [ ] Verify no acceptance project references production code, mocks or internals.
-- [ ] Verify Host alone owns production MCP transport composition.
-- [ ] Verify component tests do not reconstruct the entire Host.
-- [ ] Verify every fixture and child process is deterministically disposed.
-- [ ] Verify every scenario has isolated mutable state.
-- [ ] Verify no removed integration scenario left an uncovered unit branch.
-- [ ] Verify transaction success, rollback/restoration, recovery, divergence and locking retain real-filesystem evidence.
-- [ ] Verify plugin discovery and private dependency routing retain real assembly evidence.
-- [ ] Verify controlled and bundled Code Action evidence remains.
-- [ ] Verify existing MCP names, schemas and JSON contracts remain unchanged.
+- [x] Verify every integration class states the real boundary it protects.
+- [x] Verify no acceptance project references production code, mocks or internals.
+- [x] Verify Host alone owns production MCP transport composition.
+- [x] Verify component tests do not reconstruct the entire Host.
+- [x] Verify every fixture and child process is deterministically disposed.
+- [x] Verify every scenario has isolated mutable state.
+- [x] Verify no removed integration scenario left an uncovered unit branch.
+- [x] Verify transaction success, rollback/restoration, recovery, divergence and locking retain real-filesystem evidence.
+- [x] Verify plugin discovery and private dependency routing retain real assembly evidence.
+- [x] Verify controlled and bundled Code Action evidence remains.
+- [x] Verify existing MCP names, schemas and JSON contracts remain unchanged.
 
 ### Documentation
 
-- [ ] Update `TestingStrategy.md` with the final component/acceptance model.
-- [ ] Mark `IntegrationTestingStrategyProposal.md` implemented and link to final evidence.
-- [ ] Mark this implementation plan complete stage by stage.
-- [ ] Update `TestArchitectureReaudit-2026-07-10.md` or add a dated replacement re-audit rather than silently editing historical evidence.
-- [ ] Update `HostUnitTestInventory.md` after moving boundary tests.
-- [ ] Update tool/capability inventories for retained integration and acceptance ownership.
-- [ ] Update contributor commands and `.github/workflows/tests.yml` documentation.
-- [ ] Record final project counts, scenario counts, median timings and peak memory.
+- [x] Update `TestingStrategy.md` with the final component/acceptance model.
+- [x] Mark `IntegrationTestingStrategyProposal.md` implemented and link to final evidence.
+- [x] Mark this implementation plan complete stage by stage.
+- [x] Add `TestArchitectureReaudit-2026-07-18.md` as a dated replacement rather than silently editing historical evidence.
+- [x] Update `HostUnitTestInventory.md` after moving boundary tests.
+- [x] Update tool/capability inventories for retained integration and acceptance ownership.
+- [x] Update contributor commands and `.github/workflows/tests.yml` documentation.
+- [x] Record final project counts, scenario counts, median timings and peak memory.
 
 ### Full verification
 
-- [ ] Format only changed C# files:
+- [x] Format only changed C# files (not applicable in Stage 8; no C# file changed):
 
 ```bash
 dotnet format --include <changed-files> --artifacts-path=/tmp/artifacts/roslyn-workbench-mcp
 ```
 
-- [ ] Restore:
+- [x] Restore:
 
 ```bash
 dotnet restore --artifacts-path=/tmp/artifacts/roslyn-workbench-mcp
 ```
 
-- [ ] Build:
+- [x] Build:
 
 ```bash
 dotnet build --no-restore --artifacts-path=/tmp/artifacts/roslyn-workbench-mcp
 ```
 
-- [ ] Run unit and contract tests:
+- [x] Run unit and contract tests:
 
 ```bash
 dotnet test --no-build --no-restore --filter "Category!=Integration&Category!=Audit" --artifacts-path=/tmp/artifacts/roslyn-workbench-mcp
 ```
 
-- [ ] Run every component integration project explicitly.
-- [ ] Publish the Host and run the acceptance project explicitly.
-- [ ] Run the Code Action audit explicitly.
-- [ ] Run the full suite.
-- [ ] Verify governed changed files are CRLF and not mixed.
-- [ ] Inspect final test-project references and categories.
+- [x] Run every component integration project explicitly.
+- [x] Publish the Host and run the acceptance project explicitly.
+- [x] Run the Code Action audit explicitly.
+- [x] Run the full suite.
+- [x] Verify governed changed files are CRLF and not mixed.
+- [x] Inspect final test-project references and categories.
 
 ### Completion criteria
 
-- [ ] The published executable is tested through real stdio with the official MCP client.
-- [ ] No test described as acceptance invokes a tool object directly.
-- [ ] Integration support does not reproduce Host composition.
-- [ ] Test assets are checked in, readable and copied into isolated scenario roots.
-- [ ] All stateful resources are deterministically disposed.
-- [ ] Every retained component test proves a named external or multi-component boundary.
-- [ ] Ordinary branch variants remain unit-test responsibilities.
-- [ ] Compatibility audit and source governance have separate ownership.
-- [ ] CI cannot silently pass with zero selected tests.
-- [ ] CI preserves diagnostics for failed processes and fixtures.
-- [ ] Final timing and memory evidence is recorded.
-- [ ] Canonical documentation describes the resulting system rather than the historical suite.
+- [x] The published executable is tested through real stdio with the official MCP client.
+- [x] No test described as acceptance invokes a tool object directly.
+- [x] Integration support does not reproduce Host composition.
+- [x] Test assets are checked in, readable and copied into isolated scenario roots.
+- [x] All stateful resources are deterministically disposed.
+- [x] Every retained component test proves a named external or multi-component boundary.
+- [x] Ordinary branch variants remain unit-test responsibilities.
+- [x] Compatibility audit and source governance have separate ownership.
+- [x] CI cannot silently pass with zero selected tests.
+- [x] CI preserves diagnostics for failed processes and fixtures.
+- [x] Final timing and memory evidence is recorded.
+- [x] Canonical documentation describes the resulting system rather than the historical suite.
 
 ## Decisions Deliberately Deferred
 
 The implementing agent must not silently resolve these during an unrelated stage:
 
-- [x] VSTest versus Microsoft.Testing.Platform: retain VSTest after the isolated Stage 7 evaluation.
+- [x] VSTest versus Microsoft.Testing.Platform: retain VSTest after the isolated Stage 7 evaluation; defer the intended MTP v2 direction until xUnit 4 is stable.
 - [x] One integration CI job versus a project matrix: use the owner matrix for shorter critical-path feedback and isolated reporting.
 - [ ] Collection-scoped concurrent Workspace reuse: prove thread safety first.
 - [ ] NuGet lock files and caching: make a separate dependency-policy decision.
@@ -785,6 +785,6 @@ The implementing agent must not silently resolve these during an unrelated stage
 | 5 | Obsolete harness removal and support narrowing | Complete |
 | 6 | Compatibility/governance separation | Complete |
 | 7 | Performance, runner evaluation and CI | Complete |
-| 8 | Final re-audit and canonical documentation | Not started |
+| 8 | Final re-audit and canonical documentation | Complete |
 
 Update this table and the detailed checkboxes as work is completed. A stage is complete only when its exit criteria and verification items are satisfied, not merely when its code changes have been written.

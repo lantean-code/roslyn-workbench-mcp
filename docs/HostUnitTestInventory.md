@@ -1,14 +1,14 @@
 # Host Unit-Test Inventory
 
-Date: 2026-07-17
+Date: 2026-07-18
 
-Status: Unit testing complete; boundary migration completed in Stage 4D
+Status: Unit testing complete; boundary migration and final integration re-audit complete
 
 ## Purpose
 
 This document inventories unit-test coverage for `Roslyn.Workbench.Mcp` after completion of the H1-H7 Host architecture review. It separates isolated unit evidence from tests that currently exercise real Host, MSBuild, PE-metadata, MEF or assembly-load-context boundaries, records the measured baseline, and identifies the remaining decisions before the Host unit-testing round can be closed.
 
-The measurements below preserve the Host unit-test baseline at the time of this inventory. Stage 4D subsequently moved all 24 recorded boundary cases to `Roslyn.Workbench.Mcp.IntegrationTest`; the migration result and current counts are recorded in `IntegrationTestingStage4Results-2026-07-17.md`.
+The measurements below preserve the Host unit-test baseline at the time of this inventory. Stage 4D subsequently moved all 24 recorded boundary cases to `Roslyn.Workbench.Mcp.IntegrationTest`; the migration result is recorded in `IntegrationTestingStage4Results-2026-07-17.md`, and the final topology is recorded in `TestArchitectureReaudit-2026-07-18.md`.
 
 The inventory follows `TestingStrategy.md` and `test/AGENTS.md`:
 
@@ -170,7 +170,9 @@ The completed component and acceptance redesign covers:
 
 ## Final Audit Result
 
-The final HUT2 audit completed successfully on 2026-07-17:
+The final HUT2 audit completed successfully on 2026-07-17. The Stage 8 architecture re-audit on 2026-07-18 additionally confirmed that the Host split remains intact: 277 isolated Unit/Contract tests own Host logic and contracts, while 40 component-integration tests own real Host, MSBuild, MCP SDK, MEF, PE-metadata and load-context boundaries. Published stdio behaviour is separately owned by the ten-test acceptance project.
+
+The HUT2 evidence remains:
 
 - all 276 isolation-only tests passed;
 - 82 isolated executable files remain at 100% line and branch coverage;

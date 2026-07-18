@@ -2,7 +2,7 @@
 
 Date: 2026-07-07
 
-> **Superseded:** This document describes the pre-reorganisation test layout and is retained for historical context only. Use `TestArchitectureReaudit-2026-07-10.md` for the current project topology, boundary rules, coverage map and outstanding work.
+> **Superseded:** This document describes the pre-reorganisation test layout and is retained for historical context only. Use `TestArchitectureReaudit-2026-07-18.md` for the current project topology, boundary rules and final findings.
 
 Implementation status note, 2026-07-08:
 

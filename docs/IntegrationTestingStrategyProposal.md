@@ -1,13 +1,13 @@
 # Integration Testing Strategy Proposal
 
 Date: 2026-07-17
-Status: Accepted; superseded as an execution guide by `IntegrationTestingImplementationPlan.md`
+Status: Implemented on 2026-07-18; final evidence is recorded in `IntegrationTestingStage8Results-2026-07-18.md`
 
-> The audit and rationale in this document have been converted into the standalone, staged `IntegrationTestingImplementationPlan.md`. Use that plan for implementation order, checklists, approval gates and completion criteria.
+> The audit and rationale in this document were converted into the standalone, staged `IntegrationTestingImplementationPlan.md`. `TestingStrategy.md` now describes the implemented model; this proposal remains the design rationale and historical baseline.
 
 ## Purpose
 
-This document audits the current integration and audit test landscape and proposes its replacement execution model. It does not replace `TestingStrategy.md` until the proposal is approved and implemented.
+This document audited the former integration and audit test landscape and proposed its replacement execution model. The proposal is implemented; current policy lives in `TestingStrategy.md` and final verification is recorded in `IntegrationTestingStage8Results-2026-07-18.md`.
 
 The objectives are to:
 
@@ -447,65 +447,65 @@ CI action-version and NuGet cache updates should be made during workflow impleme
 
 ### Phase 0: Correctness and baseline
 
-- [ ] Give every runtime and fixture a unique workspace and recovery root.
-- [ ] Make all stateful test fixtures asynchronously disposable and close loaded workspaces deterministically.
-- [ ] Replace accidental `CancellationToken.None` usages.
-- [ ] Add failure diagnostics for undeleted roots, live processes and stderr.
-- [ ] Capture three-run timing and memory baselines by project and slowest test.
+- [x] Give every runtime and fixture a unique workspace and recovery root.
+- [x] Make all stateful test fixtures asynchronously disposable and close loaded workspaces deterministically.
+- [x] Replace accidental `CancellationToken.None` usages.
+- [x] Add failure diagnostics for undeleted roots, live processes and stderr.
+- [x] Capture three-run timing and memory baselines by project and slowest test.
 
 This phase should not increase parallelism.
 
 ### Phase 1: Introduce real acceptance coverage
 
-- [ ] Add `Roslyn.Workbench.Mcp.AcceptanceTest` without production project references.
-- [ ] Publish the Host as an explicit test prerequisite.
-- [ ] Implement the stdio process fixture with the official MCP client.
-- [ ] Add startup/catalogue and workspace-query workflows.
-- [ ] Add transaction and Code Action workflows.
-- [ ] Add restart/recovery coverage and robust process diagnostics.
+- [x] Add `Roslyn.Workbench.Mcp.AcceptanceTest` without production project references.
+- [x] Publish the Host as an explicit test prerequisite.
+- [x] Implement the stdio process fixture with the official MCP client.
+- [x] Add startup/catalogue and workspace-query workflows.
+- [x] Add transaction and Code Action workflows.
+- [x] Add restart/recovery coverage and robust process diagnostics.
 
 Keep the old direct Host integration cases until equivalent acceptance evidence is green.
 
 ### Phase 2: Replace fixture infrastructure
 
-- [ ] Extract checked-in workspace and plugin-package assets.
-- [ ] Replace `InspectionSampleFixture` with a small asset materialiser.
-- [ ] Remove the test-owned full composition root.
-- [ ] Make owner integration tests construct only the boundary under proof.
-- [ ] Use Host composition or process acceptance for full-system workflows.
-- [ ] Narrow `IntegrationTestSupport` to asset, lifetime, MSBuild and controlled-provider responsibilities.
+- [x] Extract checked-in workspace and plugin-package assets.
+- [x] Replace `InspectionSampleFixture` with a small asset materialiser.
+- [x] Remove the test-owned full composition root.
+- [x] Make owner integration tests construct only the boundary under proof.
+- [x] Use Host composition or process acceptance for full-system workflows.
+- [x] Narrow `IntegrationTestSupport` to asset, lifetime, MSBuild and controlled-provider responsibilities.
 
 If removing the parallel composition root reveals a need for a new production DI-registration seam, stop and request approval before changing production code. The preferred first approach is to move full-system evidence to Host/acceptance rather than add a test-driven production abstraction.
 
 ### Phase 3: Reclassify and consolidate scenarios
 
-- [ ] Apply the retention tables in this document test by test.
-- [ ] Move the 24 Host boundary tests from the unit project.
-- [ ] Remove direct MCP harness cases only after acceptance replacements pass.
-- [ ] Move source-policy scans out of the Code Action compatibility audit.
-- [ ] Split large serial classes by capability.
-- [ ] Add explicit serial collections only where state genuinely requires them.
+- [x] Apply the retention tables in this document test by test.
+- [x] Move the 24 Host boundary tests from the unit project.
+- [x] Remove direct MCP harness cases only after acceptance replacements pass.
+- [x] Move source-policy scans out of the Code Action compatibility audit.
+- [x] Split large serial classes by capability.
+- [x] Add explicit serial collections only where state genuinely requires them.
 
 ### Phase 4: Optimise execution and CI
 
-- [ ] Reuse immutable read-only fixtures and catalogues.
-- [ ] Build/publish once per workflow and test without build/restore.
-- [ ] Add Windows acceptance and durability coverage.
-- [ ] Add result, stderr and failed-fixture artifacts.
-- [ ] Add hang diagnostics and minimum-test-count protection.
-- [ ] Benchmark matrix versus consolidated jobs.
-- [ ] Benchmark MTP and make a separate adoption decision.
-- [ ] Evaluate NuGet lock files and caching separately.
+- [x] Reuse immutable read-only fixtures and catalogues.
+- [x] Build/publish once per workflow and test without build/restore.
+- [x] Add Windows acceptance and durability coverage.
+- [x] Add result, stderr and failed-fixture artifacts.
+- [x] Add hang diagnostics and minimum-test-count protection.
+- [x] Benchmark matrix versus consolidated jobs.
+- [x] Benchmark MTP and make a separate adoption decision.
+- [x] Evaluate NuGet lock files and caching separately.
 
 ### Phase 5: Final audit and documentation
 
-- [ ] Re-audit every integration case against a named external boundary.
-- [ ] Verify acceptance has no production references, mocks or internal access.
-- [ ] Verify every fixture is isolated and deterministically disposed.
-- [ ] Record final timings, memory and retained scenario counts.
-- [ ] Update `TestingStrategy.md` as the canonical policy.
-- [ ] Supersede stale topology/count statements in the prior re-audit while retaining historical plans.
-- [ ] Update contributor commands and CI documentation.
+- [x] Re-audit every integration case against a named external boundary.
+- [x] Verify acceptance has no production references, mocks or internal access.
+- [x] Verify every fixture is isolated and deterministically disposed.
+- [x] Record final timings, memory and retained scenario counts.
+- [x] Update `TestingStrategy.md` as the canonical policy.
+- [x] Supersede stale topology/count statements in the prior re-audit while retaining historical plans.
+- [x] Update contributor commands and CI documentation.
 
 ## Completion Criteria
 
@@ -524,13 +524,11 @@ The redesign is complete when:
 - normal component-integration wall time is materially lower than the recorded baseline;
 - the Code Action audit is compatibility-focused and has a measured memory-safe parallelism policy.
 
-## Decisions Deferred Until Implementation Evidence
+## Implementation Decisions
 
-- VSTest versus Microsoft.Testing.Platform.
-- One component-integration CI job versus an owner matrix.
-- Whether read-only Workspace queries are safe enough for collection-scoped concurrent reuse.
-- Whether NuGet lock files and package caching fit the repository's dependency policy.
-- Whether macOS acceptance should become a pull-request gate.
-- Whether any production composition seam is needed after the test-owned composition root is removed.
-
-None of these decisions blocks Phase 0 or the first stdio acceptance tests.
+- VSTest remains selected; MTP v2 is the intended direction after xUnit 4 is stable.
+- CI uses a four-owner component matrix.
+- Collection-scoped concurrent Workspace reuse remains deferred pending thread-safety evidence.
+- NuGet lock files and package caching remain a separate dependency-policy decision.
+- macOS acceptance is scheduled but remains non-gating pending reliability evidence.
+- No new production composition seam was needed.

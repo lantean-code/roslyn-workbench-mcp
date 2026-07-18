@@ -1,12 +1,12 @@
 # Tool Test Inventory
 
-Date: 2026-07-15
+Date: 2026-07-18
 
 ## Purpose
 
 This inventory records current test ownership after the integration-test reorganisation. Unit projects own each tool's request handling, collaborator interaction, reachable branches and Roslyn algorithm behaviour. Integration projects prove shared runtime capabilities and boundaries; they do not provide a duplicate one-class-per-tool matrix.
 
-The current policy is recorded in `TestingStrategy.md`. The current architecture and outstanding cross-project findings are recorded in `TestArchitectureReaudit-2026-07-10.md`.
+The current policy is recorded in `TestingStrategy.md`. The implemented architecture and final cross-project findings are recorded in `TestArchitectureReaudit-2026-07-18.md`.
 
 ## Unit Ownership
 
@@ -52,7 +52,7 @@ All four Host adapter families now have focused unit evidence without moving MCP
 | Code Action adaptation of neutral Workspace contexts and failures | `CodeActionExecutionContextFactoryTests`, `CodeActionExecutionContextTests` | Covered; contexts expose Workspace execution state only and handlers receive stable services through constructor injection |
 | Code Action candidate identity and replay, fix-all, scoped-fix and location-fix services | `CodeActionCandidateIdentityTests`, `CodeActionReplayServiceTests`, `CodeActionFixAllServiceTests`, `CodeActionScopedFixServiceTests`, `CodeActionLocationFixServiceTests` | Covered; 100% line and branch coverage, including value-based duplicate candidate handling and every scoped application path |
 | Stager separate from Workspace handler context | `WorkspaceExecutionLeaseTests` | Covered at lease boundary |
-| Reserved Code Action name disables a colliding plugin | `PluginDiscoveryAndMcpToolIntegrationTests` | Covered |
+| Reserved Code Action name disables a colliding plugin | `PluginPackageDiscoveryIntegrationTests` | Covered with a real fixture package |
 | Host constructs all tool families | `HostCompositionIntegrationTests` | Covered at composition boundary |
 | CodeActions excluded from plugin discovery/status | Separate Code Action catalogue and status mapping tests | Covered behaviourally; keep explicit when status tests change |
 | Forbidden production dependency directions | Manual project-reference inspection | Automate with a project-reference/build check in a later architecture-test round |
@@ -62,7 +62,8 @@ All four Host adapter families now have focused unit evidence without moving MCP
 | Capability or boundary | Integration suite | Representative coverage |
 | --- | --- | --- |
 | Workspace projection | `WorkspaceProjectionIntegrationTests` | Solution structure, project details and document options through a real workspace |
-| Default project structure | `DefaultProjectStructureServiceIntegrationTests` | Real MSBuild target-framework and solution-hierarchy success, empty, malformed, missing and cancellation outcomes; consuming tool unit tests cover retryable failure mapping |
+| Solution hierarchy | `SolutionHierarchyServiceIntegrationTests` | Real solution-persistence success, empty, malformed, missing and cancellation outcomes; consuming tool unit tests cover retryable failure mapping |
+| Project target frameworks | `ProjectTargetFrameworkServiceIntegrationTests` | Real MSBuild evaluation of imported, single, absent, malformed and missing target-framework inputs |
 | Semantic inspection | `SemanticInspectionIntegrationTests` | Diagnostics, operation trees and control-flow behaviour |
 | Cross-project search | `SolutionSearchIntegrationTests` | Implementations, references, callers, derived types and dependency relationships |
 | Selector and snapshot semantics | `SelectorAndSnapshotIntegrationTests` | Resolution, search, metadata, bounded results and stale snapshots |
@@ -71,9 +72,14 @@ All four Host adapter families now have focused unit evidence without moving MCP
 | Built-in code actions | `BuiltInCodeActionStagingIntegrationTests` | Representative built-in provider staging |
 | Code-action composition | `MefCodeActionProviderCatalogIntegrationTests` | Provider catalogue composition and discovery |
 | Host composition | `HostCompositionIntegrationTests` | Configuration projection, dependency injection and MCP tool registration |
-| Plugin discovery and MCP protocol | `PluginDiscoveryAndMcpToolIntegrationTests`, `RepresentativeMcpToolIntegrationTests` | Fixture assembly loading, metadata, schemas, argument binding and structured results |
-| Host lifecycle | `WorkspaceLifecycleMcpIntegrationTests`, `ServerStatusRecoveryIntegrationTests` | Workspace/transaction MCP flow and persisted recovery diagnostics |
+| Plugin package discovery | `PluginPackageDiscoveryIntegrationTests`, `PluginAssemblyMetadataReaderIntegrationTests`, `PluginAssemblyLoadContextIntegrationTests`, `MefPluginComposerIntegrationTests` | Fixture assembly loading, PE metadata, private dependency routing, MEF composition, collisions and failure isolation |
+| MCP protocol and published workflows | `PublishedHostProtocolIntegrationTests`, `WorkspaceWorkflowIntegrationTests`, `ExternalPluginWorkflowIntegrationTests`, `CodeActionWorkflowIntegrationTests` | Real stdio initialisation, catalogue/schema publication, query, plugin mutation, Code Action mutation and external plugin invocation |
+| Host lifecycle and recovery | `PublishedHostLifetimeIntegrationTests`, `StartupAndRecoveryWorkflowIntegrationTests`, `ServerStatusRecoveryIntegrationTests` | End-of-stdin lifetime, restart/configuration fallback and persisted recovery diagnostics |
 | Built-in compatibility governance | `Roslyn.Workbench.Mcp.CodeActions.AuditTest` | Provider ledger, matching and replay-wrapper compatibility |
+
+## Acceptance Ownership
+
+Acceptance remains representative rather than per-tool. Its ten cases cover prerequisite diagnostics, startup stderr, protocol/catalogue publication, Workspace lifecycle and semantic query, plugin transaction commit, Code Action stage/rollback, an external plugin with a private dependency, restart/recovery diagnostics and end-of-stdin process lifetime. Ordinary request variants and branch outcomes remain with the owning Unit/Contract project.
 
 ## Known Partial Branch Coverage
 

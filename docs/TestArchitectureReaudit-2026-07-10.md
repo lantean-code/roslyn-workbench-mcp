@@ -2,9 +2,11 @@
 
 Date: 2026-07-10
 
+> **Superseded:** This document preserves the architecture state after the earlier reorganisation. Use `TestArchitectureReaudit-2026-07-18.md` for the implemented integration/acceptance model, final counts and current findings.
+
 ## Purpose
 
-This document records the test architecture after phases 1-6 of `IntegrationTestReorganisationPlan.md` and the subsequent production-boundary refactor. It is the current description of project ownership, execution categories and remaining gaps. Policy and test-layer rules are defined in `TestingStrategy.md`.
+This document records the test architecture after phases 1-6 of `IntegrationTestReorganisationPlan.md` and the subsequent production-boundary refactor. It is retained as historical evidence. Policy and current test-layer rules are defined in `TestingStrategy.md`.
 
 This document supersedes the structural conclusions in `test-project-audit-2026-07-07.md`. Tool-level ownership and known partial branches are recorded in `Tool Test Inventory.md`.
 

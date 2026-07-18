@@ -108,7 +108,9 @@ Do not add reflection-only tests for internal interface shape. If a least-privil
 
 ## Project and Category Layout
 
-The current project map, test counts and remaining gaps are maintained in `TestArchitectureReaudit-2026-07-10.md`. Tool and capability ownership is maintained in `Tool Test Inventory.md`. The deferred broad Workspace programme is maintained in `WorkspaceUnitTestInventory.md`.
+The current project map, final test counts and architecture findings are maintained in `TestArchitectureReaudit-2026-07-18.md`. The earlier `TestArchitectureReaudit-2026-07-10.md` is historical evidence. Tool and capability ownership is maintained in `Tool Test Inventory.md`; detailed unit-coverage dispositions remain in the owning inventories.
+
+The suite has five Unit/Contract projects, four component-integration projects, one published-Host acceptance project and one compatibility-audit project. Acceptance has no production project reference or internal access: it launches the published executable, communicates through the official MCP client over stdio and copies checked-in assets into an isolated scenario root. Component integration constructs only the owner boundary under test and does not reproduce Host transport composition.
 
 Category policy:
 
@@ -149,4 +151,4 @@ Tests run with `--no-build --no-restore` after their job has produced the requir
 
 The Code Action compatibility audit remains a separate workflow because it is slower, version-sensitive coverage rather than part of the normal component-integration path.
 
-VSTest remains the selected runner. The Stage 7 MTP evaluation found that migration would require executable test projects and changes to filtering, reporting, coverage and CI commands for a modest measured gain. NuGet caching remains disabled until the repository adopts an explicit lock-file policy.
+VSTest remains the selected runner. The Stage 7 MTP evaluation found that migration would require executable test projects and changes to filtering, reporting, coverage and CI commands for a modest measured gain. MTP v2 remains the intended future direction, but migration is deferred until xUnit 4 is stable rather than adopting its prerelease packages. NuGet caching remains disabled until the repository adopts an explicit lock-file policy.

@@ -34,36 +34,6 @@ Accurate public contracts and capability documentation are required before relea
 
 Sources: [RoslynMcpToolDesign.md](RoslynMcpToolDesign.md#current-execution-surface-note-2026-07-02), [RoslynMcpToolContracts.md](RoslynMcpToolContracts.md#current-execution-surface-note-2026-07-02), [RoslynMcpToolImplementationMatrix.md](RoslynMcpToolImplementationMatrix.md)
 
-### Add explicit cross-instance mutation guidance
-
-**Status:** Not started
-
-Decide whether `WorkspaceInUse`, workspace lifecycle descriptions and transaction tool metadata should tell agents to remain query-only or coordinate with the other live instance before starting a transaction. The advisory status file is readable across Windows processes and exposes live instance state, but the warning currently says only that another instance has the workspace open.
-
-This is a release safety decision because two agents can independently start transactions against the same workspace even though durable commit locking still protects the final write boundary.
-
-Sources: [IntegrationTestingImplementationPlan.md](IntegrationTestingImplementationPlan.md#decisions-deliberately-deferred), [RoslynMcpToolContracts.md](RoslynMcpToolContracts.md)
-
-### Finish and reconcile the query result-bounding design
-
-**Status:** Started
-
-Count-first `BoundedCollection<T>` behaviour and deterministic `HasMore` semantics are implemented, and the former serialise-and-shrink path is no longer present. The deferred proposal still records a remaining last-resort hard response-size ceiling and structured `ResponseLimitExceeded` rejection. Decide whether that emergency brake is still required, implement it if approved, and update the proposal to describe the actual result.
-
-The release needs an explicit position because unexpectedly large responses can affect memory, client parsing and model-context usage even when item counts are bounded.
-
-Source: [2026-06-26-query-result-bounding-design.md](superpowers/specs/2026-06-26-query-result-bounding-design.md)
-
-### Resolve or accept the MCP client shutdown-ordering limitation
-
-**Status:** Started
-
-The MCP C# client currently waits for the child process before closing redirected stdin. The Host therefore cannot observe EOF during normal client disposal and the acceptance fixture relies on a two-second forced-cleanup fallback. The behaviour has been diagnosed, documented and isolated from the direct-EOF lifetime test.
-
-Before release, check the current upstream SDK, retain the workaround if it is still required, and document the operational consequence explicitly. Remove the workaround when the upstream SDK closes stdin before waiting for process exit.
-
-Source: [IntegrationTestingStage2Results.md](IntegrationTestingStage2Results.md#open-follow-up-mcp-c-client-shutdown-ordering)
-
 ### Close or supersede the original whole-project roadmap
 
 **Status:** Started

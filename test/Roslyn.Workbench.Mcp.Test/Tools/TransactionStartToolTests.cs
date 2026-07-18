@@ -45,5 +45,13 @@ public sealed class TransactionStartToolTests
             ServerOwnedToolTestData.GetWorkspaceAlias(includeWorkspace),
             ServerOwnedToolTestData.GetWorkspacePath(includeWorkspace),
             CancellationToken.None), Times.Once);
+        protocolFactory.Verify(item => item.CreateServerOwnedTool<TransactionStartRequest, TransactionStartData>(
+            "transaction-start",
+            "Transaction Start",
+            "Starts a new staged transaction. Check workspace-status first and do not mutate a workspace that is or may be in use elsewhere unless mutation ownership has been coordinated.",
+            false,
+            false,
+            null,
+            ToolOutputSchemaMode.Omit), Times.Once);
     }
 }

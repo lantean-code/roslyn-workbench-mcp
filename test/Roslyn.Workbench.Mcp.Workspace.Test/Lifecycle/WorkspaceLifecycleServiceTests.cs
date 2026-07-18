@@ -408,7 +408,8 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         _resultFactory.Setup(item => item.Succeeded(
             It.Is<WorkspaceOpenOutcome>(outcome =>
                 outcome.LoadDiagnostics.Count == 1
-                && outcome.LoadDiagnostics[0].Id == "WorkspaceInUse"),
+                && outcome.LoadDiagnostics[0].Id == "WorkspaceInUse"
+                && outcome.LoadDiagnostics[0].Message == "Another Roslyn Workbench MCP instance has this workspace open. Treat this workspace as query-only, use it only when necessary, and expect query results to become stale. Coordinate mutation ownership before starting a transaction."),
             It.IsAny<WorkspaceOperationContext>(),
             null,
             null)).Returns(expected);
@@ -438,7 +439,8 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         _resultFactory.Setup(item => item.Succeeded(
             It.Is<WorkspaceOpenOutcome>(outcome =>
                 outcome.LoadDiagnostics.Count == 1
-                && outcome.LoadDiagnostics[0].Id == "WorkspaceInstanceStatusUnavailable"),
+                && outcome.LoadDiagnostics[0].Id == "WorkspaceInstanceStatusUnavailable"
+                && outcome.LoadDiagnostics[0].Message == "Advisory workspace-instance status could not be published or queried. Treat this workspace as potentially in use: remain query-only, use it only when necessary, and expect query results to become stale. Coordinate mutation ownership before starting a transaction."),
             It.IsAny<WorkspaceOperationContext>(),
             null,
             null)).Returns(expected);
@@ -836,7 +838,9 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
                 && outcome.LoadDiagnostics != null
                 && outcome.LoadDiagnostics.Count == 2
                 && outcome.LoadDiagnostics[0].Id == "WorkspaceInUse"
-                && outcome.LoadDiagnostics[1].Id == "WorkspaceInstanceStatusUnreadable"),
+                && outcome.LoadDiagnostics[0].Message == "Another Roslyn Workbench MCP instance has this workspace open. Treat this workspace as query-only, use it only when necessary, and expect query results to become stale. Coordinate mutation ownership before starting a transaction."
+                && outcome.LoadDiagnostics[1].Id == "WorkspaceInstanceStatusUnreadable"
+                && outcome.LoadDiagnostics[1].Message == "One or more live workspace-instance status files could not be read or validated. Treat this workspace as potentially in use: remain query-only, use it only when necessary, and expect query results to become stale. Coordinate mutation ownership before starting a transaction."),
             It.IsAny<WorkspaceOperationContext>(),
             null,
             null)).Returns(expected);

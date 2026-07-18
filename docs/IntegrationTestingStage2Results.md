@@ -20,15 +20,19 @@ The fixture uses `StdioClientTransport` and `McpClient.CreateAsync`, captures st
 
 Client disposal owns transport disposal. The official transport waits for the configured fallback period before terminating a process that remains active. Completion details prove that the child exited and retain its process ID, exit code and stderr tail. Failures report the command, exit code and captured stderr. Failed roots are retained only when `ROSLYN_WORKBENCH_MCP_ACCEPTANCE_RETAIN_ROOT` is set to `true` or `1`; otherwise all scenario files are removed asynchronously.
 
-## Open follow-up: MCP C# client shutdown ordering
+## Accepted limitation: MCP C# client shutdown ordering
 
-Status: Open upstream SDK behaviour
+Status: Accepted for release on 2026-07-18
 
 The initial acceptance run took 11 seconds on both Linux and Windows because the fixture configured a 10-second `StdioClientTransportOptions.ShutdownTimeout`. Inspection of MCP C# SDK 1.4.1 showed that `StdioClientSessionTransport` waits for the server process to exit before process disposal closes the redirected stdin stream. The Host therefore cannot observe EOF during that wait, and the client terminates it when the fallback expires.
 
 The Host is configured correctly. `WithStdioServerTransport` registers the SDK's single-session hosted service, which requests application shutdown when its MCP session completes. A separate acceptance test now starts the published executable, closes stdin directly and asserts a natural zero exit. That test passes on Linux and Windows.
 
-The fixture fallback is set to two seconds, with an explanatory code comment, so each isolated acceptance workflow does not inherit a 10-second teardown penalty. It remains long enough to bound SDK cleanup but is not treated as evidence of graceful Host shutdown; the direct-EOF test owns that evidence. Revisit the workaround when the upstream SDK closes stdin before waiting for process exit.
+The repository now uses MCP C# SDK 1.4.1, the latest stable release checked on 2026-07-18. Its `StdioClientSessionTransport` still waits for the child process before redirected stdin is disposed, so the ordering limitation remains. The 2.0 line is prerelease and is not adopted solely to revisit acceptance-fixture cleanup.
+
+The fixture fallback remains set to two seconds, with an explanatory code comment, so each isolated acceptance workflow does not inherit a longer teardown penalty. This means disposal through the official client normally terminates the acceptance Host after the fallback instead of demonstrating a graceful EOF-driven exit. It remains long enough to bound SDK cleanup but is not treated as evidence of graceful Host shutdown; the direct-EOF test owns that evidence. Revisit and remove the workaround when a supported stable upstream SDK closes stdin before waiting for process exit.
+
+Upstream evidence: [ModelContextProtocol package versions](https://www.nuget.org/packages/ModelContextProtocol/) and [`StdioClientSessionTransport` in v1.4.1](https://github.com/modelcontextprotocol/csharp-sdk/blob/2b7fd35fbe58dfb9f00eae8b3393e1a7361b5e01/src/ModelContextProtocol.Core/Client/StdioClientSessionTransport.cs).
 
 ## Protocol evidence
 

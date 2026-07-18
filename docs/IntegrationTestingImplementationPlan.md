@@ -771,7 +771,7 @@ The implementing agent must not silently resolve these during an unrelated stage
 - [ ] macOS pull-request gating: decide after scheduled evidence.
 - [ ] New production composition seams: require explicit approval.
 - [ ] Replacing source-policy tests with analysers: outside this plan.
-- [ ] Cross-instance mutation guidance: decide whether `WorkspaceInUse` and transaction tool metadata should explicitly recommend query-only use or coordination while another live instance is present.
+- [x] Cross-instance mutation guidance: `WorkspaceInUse`, unavailable or unreadable instance-state diagnostics, and workspace/transaction tool metadata explicitly require query-only use, warn that results may become stale, and require coordinated mutation ownership before a transaction starts.
 
 ## Stage Progress Summary
 

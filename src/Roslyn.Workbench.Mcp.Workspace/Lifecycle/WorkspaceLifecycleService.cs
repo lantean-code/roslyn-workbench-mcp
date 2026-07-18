@@ -476,7 +476,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             {
                 Id = "WorkspaceInstanceStatusUnavailable",
                 Severity = Contracts.Results.DiagnosticSeverity.Warning,
-                Message = "Advisory workspace-instance status could not be published or queried.",
+                Message = "Advisory workspace-instance status could not be published or queried. Treat this workspace as potentially in use: remain query-only, use it only when necessary, and expect query results to become stale. Coordinate mutation ownership before starting a transaction.",
             });
         }
 
@@ -486,7 +486,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             {
                 Id = "WorkspaceInUse",
                 Severity = Contracts.Results.DiagnosticSeverity.Warning,
-                Message = "Another Roslyn Workbench MCP instance has this workspace open.",
+                Message = "Another Roslyn Workbench MCP instance has this workspace open. Treat this workspace as query-only, use it only when necessary, and expect query results to become stale. Coordinate mutation ownership before starting a transaction.",
             });
         }
 
@@ -496,7 +496,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             {
                 Id = "WorkspaceInstanceStatusUnreadable",
                 Severity = Contracts.Results.DiagnosticSeverity.Warning,
-                Message = "One or more live workspace-instance status files could not be read or validated.",
+                Message = "One or more live workspace-instance status files could not be read or validated. Treat this workspace as potentially in use: remain query-only, use it only when necessary, and expect query results to become stale. Coordinate mutation ownership before starting a transaction.",
             });
         }
 

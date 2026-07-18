@@ -1,12 +1,12 @@
 # Query Result Bounding Design
 
-**Status:** Deferred proposal for later implementation.
+**Status:** Resolved on 2026-07-18. Count-first bounding is implemented; a global serialised response-size ceiling is not planned.
 
-**Goal:** Replace byte-size-led query truncation as the primary behaviour with a more predictable result-bounding model that is easier for agents to reason about, cheaper for the server to execute, and clearer to document in tool contracts.
+**Goal:** Use predictable, tool-owned collection limits that agents can increase or narrow explicitly, without a global byte-size rejection policy.
 
 ## Problem Statement
 
-The current query helper in [ToolExecutionHelpers.cs](/mnt/c/Users/alexj/source/repos/roslyn-workbench-mcp/src/Roslyn.Workbench.Mcp.Plugins.Core/ToolExecutionHelpers.cs) implements `CreateBoundedCollectionResult(...)` by:
+The former query helper implemented `CreateBoundedCollectionResult(...)` by:
 
 - starting from the largest allowed item count,
 - serialising the full payload,
@@ -32,27 +32,21 @@ For a local stdio MCP server, the most important constraint is usually not trans
 
 ## Current Behaviour
 
-Today, query tools that return collections typically rely on `CreateBoundedCollectionResult(...)` to combine:
+Query tools now use count-first `BoundedCollection<T>` results. Each tool applies its named request limit, or a sensible default chosen by the tool author with the Host-provided `DefaultMaxResults` available as the common baseline. The collection returns a deterministic prefix and sets `HasMore` when additional matching items exist.
 
-- a result-count ceiling via `maxResults`, and
-- a serialised response-size ceiling via `context.MaxResponseBytes`.
-
-The helper attempts to keep the response within both limits by repeatedly shrinking the item list until the serialised payload fits.
-
-This means a request can return fewer than `maxResults` items even when the request-level limit is not reached, simply because the current payload shape serialises above the configured byte threshold.
+There is no `MaxResponseBytes` execution-context capability, serialise-and-shrink loop or global `ResponseLimitExceeded` rejection. Agents can request a larger collection when useful or narrow the request when a broad result would be unhelpful.
 
 ## Design Goals
 
 - Make result truncation predictable from the tool contract.
 - Prefer element limits over serialised byte limits as the normal control surface.
 - Keep deterministic ordering and `HasMore` semantics.
-- Preserve a last-resort safeguard against pathological payloads.
 - Avoid repeated serialise-and-shrink loops in the normal path.
 - Keep the model understandable for both human users and LLM agents.
 
 ## Non-Goals
 
-- This proposal does not remove all response-size safeguards.
+- This design does not impose a global serialised response-size safeguard.
 - This proposal does not introduce continuation tokens or cursor paging at this stage.
 - This proposal does not redesign every existing response DTO.
 - This proposal does not change mutation payload semantics.
@@ -95,16 +89,11 @@ Examples:
 
 This reduces payload variance while keeping the item count meaningful.
 
-### 4. Retain a hard response-size ceiling as an emergency brake
+### 4. Do not add a global response-size ceiling
 
-A hard serialised response-size ceiling should still exist, but it should be a final safety mechanism rather than the main truncation algorithm.
+The Host does not reject a successful query solely because its serialised response crosses a fixed byte threshold. Such a limit is difficult to apply predictably across varied response shapes and can reject useful results without improving the logical contract.
 
-If the bounded and shaped response still exceeds the configured maximum, the tool should fail clearly with a structured rejection such as:
-
-- `ResponseLimitExceeded`
-- `RequiredAction.NarrowRequest`
-
-The server should not repeatedly serialise smaller and smaller payloads to force success in the normal path.
+Tool and plugin authors instead own sensible collection defaults and explicit shape controls for unusually verbose fields. Agents remain able to request larger bounded collections when the additional context is useful.
 
 ## Recommended Behaviour Model
 
@@ -113,14 +102,13 @@ The preferred long-term model for collection-returning query tools is:
 1. Compute the full ordered logical result set.
 2. Apply the requested or configured item limit.
 3. Build a shaped DTO for that bounded result.
-4. Serialise once for enforcement.
-5. If the single bounded payload exceeds the hard maximum, reject with `ResponseLimitExceeded`.
+4. Return the bounded, shaped result without a second byte-led truncation or rejection pass.
 
 This model is intentionally simple:
 
 - count controls normal result size,
 - DTO shape controls verbosity,
-- byte limit protects against pathological results.
+- tool-owned shape and count limits keep the response useful.
 
 ## Alternatives Considered
 
@@ -138,11 +126,11 @@ This would reduce repeated work while preserving “largest fitting prefix” se
 
 However, it still keeps bytes as the primary truncation control, which this proposal considers the wrong default model.
 
-### Alternative C: Count-first plus last-resort hard size rejection
+### Alternative C: Count-first without a global hard size rejection
 
-**Recommended**
+**Selected**
 
-This gives the clearest contract, the cheapest steady-state execution path, and the most predictable behaviour for callers.
+This gives the clearest contract, avoids a difficult cross-tool byte policy, and leaves each tool author responsible for meaningful count and shape defaults.
 
 ## Contract and API Implications
 
@@ -151,25 +139,19 @@ No catalogue-wide rename is proposed.
 However, existing query DTOs should consistently use:
 
 - explicit item arrays,
-- `ReturnedCount`,
 - `HasMore`,
 - existing limit selectors where already defined.
 
 Where a tool is especially prone to large payloads, future contract work may add explicit verbosity controls instead of relying on byte-size truncation side effects.
 
-## Suggested Implementation Approach
+## Implemented Approach
 
-When this work is scheduled:
+1. `BoundedCollection<T>` provides count-first prefix bounding and deterministic `HasMore` semantics.
+2. Bundled query tools expose named collection limits and use the Host default when their request omits a limit.
+3. The old iterative byte-shrinking helper and `MaxResponseBytes` context capability were removed.
+4. New and third-party query tools are expected to choose sensible defaults, expose explicit limits where agents may need more results, and shape verbose fields deliberately.
 
-1. Introduce a dedicated collection-bounding helper built around count-first semantics.
-2. Migrate one representative query tool first, such as `search-symbols`.
-3. Add targeted shape controls only where needed.
-4. Replace remaining collection query tools in small batches.
-5. Remove or narrow the old iterative byte-shrinking helper once no longer needed.
-
-If transitional compatibility is required, the existing helper can be retained temporarily, but new tools should not be built around it.
-
-## Test Plan For Later Work
+## Test Position
 
 Add direct unit coverage for the new count-first helper:
 
@@ -177,25 +159,19 @@ Add direct unit coverage for the new count-first helper:
 - truncates to the requested limit,
 - sets `HasMore` correctly when truncating,
 - preserves deterministic ordering,
-- rejects when the already bounded payload exceeds the hard size ceiling,
 - does not retry by shrinking one item at a time.
 
 Add integration coverage for representative tools:
 
 - `search-symbols` with count-based truncation,
 - `find-references` with broad-scope narrowing expectations,
-- one verbose tool with shape controls,
-- MCP-facing tests that verify the returned structured result and rejection behaviour.
-
-## Migration Risks
-
-- Some existing tests may assume byte-driven success instead of explicit rejection.
-- A few tools may need additional shaping controls before count-first semantics are practical.
-- Very small `MaxResponseBytes` values in tests may need revisiting if they currently depend on iterative shrinking behaviour.
+- one verbose tool with shape controls; and
+- MCP-facing tests that verify the returned structured bounded result.
 
 ## Decision Summary
 
 - Byte size should not be the primary query truncation model.
 - Element limits should be the normal way collection query tools are bounded.
-- Response size should remain as a hard safeguard only.
-- The current iterative serialise-and-shrink loop should be treated as a temporary design, not a preferred long-term pattern.
+- There is no global hard serialised response-size ceiling or `ResponseLimitExceeded` policy.
+- Tool and plugin authors own sensible defaults and response shaping; agents can request more results or narrow requests as needed.
+- The former iterative serialise-and-shrink loop is removed and must not be reintroduced.

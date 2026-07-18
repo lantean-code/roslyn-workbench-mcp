@@ -17,7 +17,7 @@ internal sealed class TransactionStartTool : ServerOwnedToolBase<TransactionStar
             protocolFactory: protocolFactory,
             name: ServerOwnedToolRegistration.TransactionStartName,
             title: "Transaction Start",
-            description: "Starts a new staged transaction.",
+            description: "Starts a new staged transaction. Check workspace-status first and do not mutate a workspace that is or may be in use elsewhere unless mutation ownership has been coordinated.",
             readOnly: false,
             destructive: false)
     {

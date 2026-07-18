@@ -17,7 +17,7 @@ internal sealed class WorkspaceStatusTool : ServerOwnedToolBase<WorkspaceStatusR
             protocolFactory: protocolFactory,
             name: ServerOwnedToolRegistration.WorkspaceStatusName,
             title: "Workspace Status",
-            description: "Reports the selected workspace lifecycle state.",
+            description: "Reports the selected workspace lifecycle and cross-instance state. Treat a workspace that is or may be in use elsewhere as query-only, use it only when necessary, and expect results to become stale.",
             readOnly: true,
             destructive: false)
     {

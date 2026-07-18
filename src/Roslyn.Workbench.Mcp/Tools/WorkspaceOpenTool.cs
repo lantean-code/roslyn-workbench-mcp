@@ -17,7 +17,7 @@ internal sealed class WorkspaceOpenTool : ServerOwnedToolBase<WorkspaceOpenReque
             protocolFactory: protocolFactory,
             name: ServerOwnedToolRegistration.WorkspaceOpenName,
             title: "Workspace Open",
-            description: "Loads an additional writable workspace.",
+            description: "Loads an additional writable workspace. If instance status reports that it is or may be in use elsewhere, use it only for necessary queries, expect results to become stale, and coordinate mutation ownership before starting a transaction.",
             readOnly: false,
             destructive: false)
     {

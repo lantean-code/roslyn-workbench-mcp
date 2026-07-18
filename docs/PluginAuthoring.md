@@ -60,6 +60,8 @@ Preparation diagnostics use stable IDs for handler contracts, lifetime, composit
 
 Runtime capabilities come only from `IQueryContext` or `IMutationContext`. Mutation handlers return a candidate solution and summary; Host stages the proposal through Workspace after the handler returns. Plugins do not receive Host dependency injection, MCP objects, file writers, workspace coordinators or Code Action services.
 
+Query plugins own the logical size and shape of their results. Collection-returning tools should expose explicit request limits, choose sensible defaults with `IQueryContext.DefaultMaxResults` available as the Host baseline, return deterministic bounded collections with `HasMore`, and let agents request more results or narrow the query when needed. Host does not impose a global serialised response-size ceiling, so plugin authors must also cap or summarise unusually verbose per-item fields rather than relying on byte-led truncation.
+
 ## Package layout
 
 Each `--plugin-directory` value is a search root. Every immediate child directory is one package:

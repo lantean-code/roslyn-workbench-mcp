@@ -201,10 +201,10 @@ The existing registry contains the following 41 tools.
 | Tool | Status | Purpose |
 |---|---|---|
 | `server-status` | New | Report server and MCP protocol versions, Roslyn/MSBuild availability, effective non-sensitive startup configuration, loaded tool count, plugin load diagnostics, and unfinished commit recovery state. It works without a loaded workspace. |
-| `workspace-open` | New | Load an additional `.sln`, `.slnx` or `.csproj`, reject non-SDK-style C# projects, report load failures, and keep the resulting workspace available for selected queries or transactions. It does not start a transaction. |
+| `workspace-open` | New | Load an additional `.sln`, `.slnx` or `.csproj`, reject non-SDK-style C# projects, report load failures, and keep the resulting workspace available for selected queries or transactions. It does not start a transaction. If cross-instance status reports that the workspace is or may be in use elsewhere, agents treat it as query-only, use it only when necessary, expect results to become stale, and coordinate mutation ownership before starting a transaction. |
 | `workspace-list` | New | Enumerate the currently loaded workspaces and identify which one, if any, owns the global transaction slot. |
 | `workspace-close` | New | Dispose one selected loaded workspace after its active transaction has been committed or rolled back. |
-| `workspace-status` | Replaces `diagnose` | Report one selected workspace's lifecycle state, project-load status, external-change state, active transaction state, revision capacity and reload requirement. |
+| `workspace-status` | Replaces `diagnose` | Report one selected workspace's lifecycle state, project-load status, external-change state, active transaction state, revision capacity, reload requirement and advisory cross-instance state. A workspace that is or may be in use elsewhere is query-only unless mutation ownership has been coordinated. |
 | `workspace-reload` | New | Reload one selected workspace after external changes. It is unavailable while that workspace owns an active transaction. |
 | `get-solution-structure` | New | Return solution folders, projects, target frameworks and direct project relationships. |
 | `get-project-details` | New | Return project properties, documents, direct references, analyzers and compilation options. |
@@ -320,7 +320,7 @@ bounded preview. The operation does not write to disk.
 | `stage-code-action` | New | Revalidate and stage a selected replayable refactoring action into the active transaction. Parameterised actions are rejected and must use a dedicated executor when one lands. |
 | `stage-code-fix` | New | Revalidate a diagnostic and stage a selected code fix into the active transaction. |
 | `stage-fix-all` | New | Stage a selected fix across document, project or solution scope, subject to configured caps. |
-| `transaction-start` | New | Start a transaction on one selected workspace, capture its immutable base solution, and create an empty staged revision history. It is rejected if another loaded workspace already owns the global transaction slot. |
+| `transaction-start` | New | Start a transaction on one selected workspace, capture its immutable base solution, and create an empty staged revision history. It is rejected if another loaded workspace already owns the global transaction slot. Agents check `workspace-status` first and do not mutate a workspace that is or may be in use by another instance unless mutation ownership has been coordinated. |
 | `transaction-preview` | Replaces `get-change-set` | Return changed-document and affected-symbol summaries for the current staged revision; return a detailed diff only for an explicitly selected document. |
 | `transaction-history` | New | Move the current revision backward or forward using an `undo` or `redo` direction. It exposes the bounded revision count and remaining capacity. |
 | `transaction-commit` | Replaces `apply-change-set` | Recheck the final derived file manifest against the transaction baseline, then run the durable apply-and-recover protocol without compiling the solution. |
@@ -570,6 +570,14 @@ server-side queue: an attempted shared or exclusive lease that cannot be
 acquired immediately returns `WorkspaceBusy` and `Retry`. An exclusive lease
 is held for the whole operation, ensuring every mutation begins from a stable
 revision with no query in flight.
+
+Cross-instance status remains advisory rather than an operation gate. When
+`workspace-open` or `workspace-status` reports another live instance,
+unreadable live-instance data or unavailable instance status, an agent treats
+the workspace as query-only, uses it only when necessary and expects results to
+become stale as the other instance changes the workspace. The agent coordinates
+mutation ownership before starting a transaction; the Host does not infer that
+coordination or reject `transaction-start` solely from advisory instance state.
 
 The tool executor resolves the plugin and delegates queries or candidate source
 changes to the coordinator. Long-running Roslyn work occurs outside state entry

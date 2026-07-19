@@ -30,7 +30,7 @@ public sealed class GetProjectDetailsToolTests
     }
 
     [Fact]
-    public async Task GIVEN_ProjectCompilationIsNullAndIncludeDocumentsIsFalse_WHEN_CallingExecuteAsync_THEN_ShouldReturnProjectDetailsWithoutDocuments()
+    public async Task GIVEN_ProjectCompilationOptionsAreUnavailableAndIncludeDocumentsIsFalse_WHEN_CallingExecuteAsync_THEN_ShouldReturnProjectDetailsWithoutDocuments()
     {
         using var document = RoslynTestFactory.CreateUnsupportedDocument();
 
@@ -116,6 +116,11 @@ public sealed class GetProjectDetailsToolTests
                     {
                         Name = "A.cs",
                         Source = "public class FirstDocument { }",
+                    },
+                    new InMemoryRoslynDocumentDefinition
+                    {
+                        Name = "C.cs",
+                        Source = "public class ThirdDocument { }",
                     },
                 ],
             },
@@ -218,11 +223,82 @@ public sealed class GetProjectDetailsToolTests
         result.Data.Documents.HasMore.Should().BeTrue();
         result.Data.ProjectReferences.Items.Should().ContainSingle();
         result.Data.ProjectReferences.Items[0].Name.Should().Be("AnotherReferenced");
+        result.Data.ProjectReferences.HasMore.Should().BeTrue();
         result.Data.MetadataReferences.Items.Should().Contain(item => item.Path == null);
         result.Data.MetadataReferences.Items.Should().Contain(item => item.Path != null);
         result.Data.Analyzers.Items.Should().ContainSingle();
         result.Data.Analyzers.Items[0].DisplayName.Should().Be("AAnalyzer");
         result.Data.Analyzers.HasMore.Should().BeTrue();
+        queryContextMocks.WorkspaceResolver.Verify(item => item.CreateDocumentReference(It.IsAny<Document>()), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task GIVEN_DocumentCannotBeProjectedAndMetadataLimitIsZero_WHEN_CallingExecuteAsync_THEN_ShouldReturnEmptyBoundedCollections()
+    {
+        using var solution = RoslynTestFactory.CreateSolution(
+        [
+            new InMemoryRoslynProjectDefinition
+            {
+                Name = "Project",
+                Documents =
+                [
+                    new InMemoryRoslynDocumentDefinition
+                    {
+                        Name = "Project.cs",
+                        Source = "public class ProjectType { }",
+                    },
+                ],
+            },
+        ]);
+
+        var project = solution.Solution.Projects.Single();
+        solution.Workspace.TryApplyChanges(
+            solution.Solution.AddMetadataReference(
+                project.Id,
+                MetadataReference.CreateFromFile(typeof(object).Assembly.Location)));
+        project = solution.Workspace.CurrentSolution.Projects.Single();
+
+        var target = new GetProjectDetailsTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var projectStructureService = new Mock<IProjectStructureService>();
+        queryContextMocks.ToolExecutionServices
+            .SetupGet(item => item.ProjectStructureService)
+            .Returns(projectStructureService.Object);
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(solution.Workspace.CurrentSolution);
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveProject<ProjectDetailsData>(
+                It.IsAny<ProjectSelector?>(),
+                queryContextMocks.QueryContext.Object))
+            .Returns(new ToolResolutionResult<Project, ProjectDetailsData>
+            {
+                Value = project,
+            });
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.NormalizeDocumentPath(It.IsAny<string>()))
+            .Returns<string>(item => item);
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.NormalizeProjectPath(It.IsAny<string>()))
+            .Returns<string>(item => item);
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateDocumentReference(It.IsAny<Document>()))
+            .Returns((DocumentReference?)null);
+        projectStructureService
+            .Setup(item => item.GetTargetFrameworks(project))
+            .Returns(ProjectTargetFrameworksResult.Succeeded([]));
+
+        var result = await target.ExecuteAsync(new GetProjectDetailsRequest
+        {
+            IncludeDocuments = true,
+            MetadataReferencesLimit = 0,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        result.Data!.Documents!.Items.Should().BeEmpty();
+        result.Data.Documents.HasMore.Should().BeFalse();
+        result.Data.MetadataReferences.Items.Should().BeEmpty();
+        result.Data.MetadataReferences.HasMore.Should().BeTrue();
     }
 
     [Fact]

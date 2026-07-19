@@ -5,7 +5,7 @@ internal sealed class GetCodeMetricsTool : QueryToolHandler<GetCodeMetricsReques
 {
     protected override async ValueTask<PluginExecutionResult<CodeMetricsData>> ExecuteCoreAsync(GetCodeMetricsRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        var metricTargets = new List<MetricTarget>();
+        var metricCandidates = new List<MetricCandidate>();
 
         if (request.Symbol is not null)
         {
@@ -15,7 +15,7 @@ internal sealed class GetCodeMetricsTool : QueryToolHandler<GetCodeMetricsReques
                 return symbolResolution.Rejection;
             }
 
-            AddMetricTargets(symbolResolution.Value, request.IncludeChildren, metricTargets, context);
+            AddMetricCandidates(symbolResolution.Value, request.IncludeChildren, metricCandidates);
         }
         else
         {
@@ -25,7 +25,9 @@ internal sealed class GetCodeMetricsTool : QueryToolHandler<GetCodeMetricsReques
                 return documents.Rejection;
             }
 
-            foreach (var document in documents.Value.OrderBy(static item => item.FilePath, StringComparer.Ordinal))
+            var orderedDocuments = new List<Document>(documents.Value);
+            orderedDocuments.Sort(static (left, right) => StringComparer.Ordinal.Compare(left.FilePath, right.FilePath));
+            foreach (var document in orderedDocuments)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
@@ -35,35 +37,57 @@ internal sealed class GetCodeMetricsTool : QueryToolHandler<GetCodeMetricsReques
                     continue;
                 }
 
-                foreach (var declaration in syntaxRoot.DescendantNodes().Where(IsMetricDeclarationNode))
+                foreach (var declaration in syntaxRoot.DescendantNodes())
                 {
+                    if (!IsMetricDeclarationNode(declaration))
+                    {
+                        continue;
+                    }
+
                     if (GetDeclaredSymbol(semanticModel, declaration, cancellationToken) is { } symbol && !symbol.IsImplicitlyDeclared)
                     {
-                        AddMetricTargets(symbol, includeChildren: false, metricTargets, context);
+                        AddMetricCandidates(symbol, includeChildren: false, metricCandidates);
                     }
                 }
             }
         }
 
-        var metrics = metricTargets
-            .DistinctBy(static target => target.SymbolReference.DocumentationCommentId ?? target.SymbolReference.DisplayName, StringComparer.Ordinal)
-            .OrderBy(static target => target.SymbolReference.DisplayName, StringComparer.Ordinal)
-            .Select(CreateMetricInfo)
-            .ToArray();
-
-        return PluginExecutionResult<CodeMetricsData>.Success(new CodeMetricsData
+        var maxResults = ToolExecutionHelpers.GetMaxResults(request.MetricsLimit, GetCodeMetricsRequest._defaultMetricsMaxResults);
+        var uniqueCandidates = new Dictionary<string, MetricCandidate>(StringComparer.Ordinal);
+        foreach (var candidate in metricCandidates)
         {
-            Metrics = ToolExecutionHelpers.CreateBoundedCollection(
-                metrics,
-                ToolExecutionHelpers.GetMaxResults(request.MetricsLimit, GetCodeMetricsRequest._defaultMetricsMaxResults)),
-        });
+            uniqueCandidates.TryAdd(candidate.Identity, candidate);
+        }
+
+        var orderedCandidates = new List<MetricCandidate>(uniqueCandidates.Values);
+        orderedCandidates.Sort(static (left, right) => StringComparer.Ordinal.Compare(left.DisplayName, right.DisplayName));
+
+        var metrics = new List<MetricInfo>();
+        var hasMore = false;
+        foreach (var candidate in orderedCandidates)
+        {
+            if (metrics.Count == maxResults)
+            {
+                hasMore = true;
+                break;
+            }
+
+            metrics.Add(CreateMetricInfo(candidate, context));
+        }
+
+        var data = new CodeMetricsData
+        {
+            Metrics = ToolExecutionHelpers.CreatePreboundedCollection(metrics, hasMore),
+        };
+
+        return PluginExecutionResult<CodeMetricsData>.Success(data);
     }
 
-    private static void AddMetricTargets(ISymbol symbol, bool includeChildren, ICollection<MetricTarget> targets, IQueryContext context)
+    private static void AddMetricCandidates(ISymbol symbol, bool includeChildren, ICollection<MetricCandidate> candidates)
     {
-        if (TryCreateMetricTarget(symbol, context) is { } target)
+        if (TryCreateMetricCandidate(symbol) is { } candidate)
         {
-            targets.Add(target);
+            candidates.Add(candidate);
         }
 
         if (!includeChildren || symbol is not INamedTypeSymbol namedType)
@@ -71,27 +95,37 @@ internal sealed class GetCodeMetricsTool : QueryToolHandler<GetCodeMetricsReques
             return;
         }
 
-        foreach (var child in namedType.GetMembers().Where(static member => !member.IsImplicitlyDeclared))
+        foreach (var child in namedType.GetMembers())
         {
-            if (TryCreateMetricTarget(child, context) is { } childTarget)
+            if (child.IsImplicitlyDeclared)
             {
-                targets.Add(childTarget);
+                continue;
+            }
+
+            if (TryCreateMetricCandidate(child) is { } childCandidate)
+            {
+                candidates.Add(childCandidate);
             }
         }
     }
 
-    private static MetricInfo CreateMetricInfo(MetricTarget target)
+    private static MetricInfo CreateMetricInfo(MetricCandidate candidate, IQueryContext context)
     {
-        var maintainabilityIndex = Math.Clamp(100 - (target.CyclomaticComplexity * 5) - target.LogicalLines - (target.MaxNestingDepth * 3) - (target.Coupling * 2), 0, 100);
+        var syntaxNode = candidate.SyntaxReference.GetSyntax();
+        var logicalLines = CountLogicalLines(syntaxNode);
+        var cyclomaticComplexity = GetCyclomaticComplexity(syntaxNode);
+        var maxNestingDepth = GetMaxNestingDepth(syntaxNode);
+        var coupling = CountCoupling(candidate.Symbol);
+        var maintainabilityIndex = Math.Clamp(100 - (cyclomaticComplexity * 5) - logicalLines - (maxNestingDepth * 3) - (coupling * 2), 0, 100);
 
         return new MetricInfo
         {
-            Symbol = target.SymbolReference,
-            Location = target.Location,
-            LogicalLines = target.LogicalLines,
-            CyclomaticComplexity = target.CyclomaticComplexity,
-            MaxNestingDepth = target.MaxNestingDepth,
-            Coupling = target.Coupling,
+            Symbol = context.WorkspaceResolver.CreateSymbolReference(candidate.Symbol),
+            Location = context.WorkspaceResolver.CreateResolvedLocation(candidate.SourceLocation),
+            LogicalLines = logicalLines,
+            CyclomaticComplexity = cyclomaticComplexity,
+            MaxNestingDepth = maxNestingDepth,
+            Coupling = coupling,
             MaintainabilityIndex = maintainabilityIndex,
         };
     }
@@ -118,11 +152,14 @@ internal sealed class GetCodeMetricsTool : QueryToolHandler<GetCodeMetricsReques
 
     private static int GetMaxNestingDepthCore(SyntaxNode syntaxNode, int depth)
     {
-        var childDepths = syntaxNode.ChildNodes()
-            .Select(child => GetMaxNestingDepthCore(child, IsNestingNode(child) ? depth + 1 : depth))
-            .DefaultIfEmpty(depth);
+        var maxDepth = depth;
+        foreach (var child in syntaxNode.ChildNodes())
+        {
+            var childDepth = IsNestingNode(child) ? depth + 1 : depth;
+            maxDepth = Math.Max(maxDepth, GetMaxNestingDepthCore(child, childDepth));
+        }
 
-        return Math.Max(depth, childDepths.Max());
+        return maxDepth;
     }
 
     private static int GetCyclomaticComplexity(SyntaxNode syntaxNode)
@@ -173,11 +210,18 @@ internal sealed class GetCodeMetricsTool : QueryToolHandler<GetCodeMetricsReques
 
     private static int CountLogicalLines(SyntaxNode syntaxNode)
     {
-        return syntaxNode
-            .ToString()
-            .Split(Environment.NewLine, StringSplitOptions.None)
-            .Select(static line => line.Trim())
-            .Count(static line => !string.IsNullOrWhiteSpace(line) && line is not "{" and not "}");
+        var lines = syntaxNode.ToString().Split(Environment.NewLine, StringSplitOptions.None);
+        var logicalLines = 0;
+        foreach (var line in lines)
+        {
+            var trimmedLine = line.Trim();
+            if (!string.IsNullOrWhiteSpace(trimmedLine) && trimmedLine is not "{" and not "}")
+            {
+                logicalLines++;
+            }
+        }
+
+        return logicalLines;
     }
 
     private static int CountCoupling(ISymbol symbol)
@@ -222,7 +266,7 @@ internal sealed class GetCodeMetricsTool : QueryToolHandler<GetCodeMetricsReques
         }
     }
 
-    private static MetricTarget? TryCreateMetricTarget(ISymbol symbol, IQueryContext context)
+    private static MetricCandidate? TryCreateMetricCandidate(ISymbol symbol)
     {
         var syntaxReference = symbol.DeclaringSyntaxReferences.FirstOrDefault();
         if (syntaxReference is null)
@@ -230,36 +274,45 @@ internal sealed class GetCodeMetricsTool : QueryToolHandler<GetCodeMetricsReques
             return null;
         }
 
-        var syntaxNode = syntaxReference.GetSyntax();
         var sourceLocation = symbol.Locations.FirstOrDefault(static location => location.IsInSource);
         if (sourceLocation is null)
         {
             return null;
         }
 
-        return new MetricTarget
-        {
-            SymbolReference = context.WorkspaceResolver.CreateSymbolReference(symbol),
-            Location = context.WorkspaceResolver.CreateResolvedLocation(sourceLocation),
-            LogicalLines = CountLogicalLines(syntaxNode),
-            CyclomaticComplexity = GetCyclomaticComplexity(syntaxNode),
-            MaxNestingDepth = GetMaxNestingDepth(syntaxNode),
-            Coupling = CountCoupling(symbol),
-        };
+        var displayName = symbol.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat);
+        return new MetricCandidate(
+            symbol,
+            symbol.GetDocumentationCommentId() ?? displayName,
+            displayName,
+            syntaxReference,
+            sourceLocation);
     }
 
-    private sealed record MetricTarget
+    private sealed record MetricCandidate
     {
-        public SymbolReference SymbolReference { get; init; } = new();
+        public ISymbol Symbol { get; }
 
-        public ResolvedLocation? Location { get; init; }
+        public string Identity { get; }
 
-        public int LogicalLines { get; init; }
+        public string DisplayName { get; }
 
-        public int CyclomaticComplexity { get; init; }
+        public SyntaxReference SyntaxReference { get; }
 
-        public int MaxNestingDepth { get; init; }
+        public Location SourceLocation { get; }
 
-        public int Coupling { get; init; }
+        public MetricCandidate(
+            ISymbol symbol,
+            string identity,
+            string displayName,
+            SyntaxReference syntaxReference,
+            Location sourceLocation)
+        {
+            Symbol = symbol;
+            Identity = identity;
+            DisplayName = displayName;
+            SyntaxReference = syntaxReference;
+            SourceLocation = sourceLocation;
+        }
     }
 }

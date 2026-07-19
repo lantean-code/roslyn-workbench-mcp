@@ -5,8 +5,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
 {
     protected override async ValueTask<PluginExecutionResult<ControlFlowGraphData>> ExecuteCoreAsync(GetControlFlowGraphRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-
-        if (request.Symbol is null == request.Location is null)
+        if (request.Symbol is not null && request.Location is not null)
         {
             return ToolExecutionHelpers.Rejected<ControlFlowGraphData>("InvalidRequest", "Specify exactly one of symbol or location.");
         }
@@ -39,23 +38,16 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
             semanticModel = resolvedSemanticModel;
             node = syntaxRoot.FindNode(sourceLocation.SourceSpan, getInnermostNodeForTie: true);
         }
-        else
+        else if (request.Location is { } location)
         {
-            var location = request.Location
-                ?? throw new InvalidOperationException("A validated control-flow graph request must contain a location.");
             var syntaxNodeResolution = await ResolveSyntaxNodeAsync(location, request.ExpectedSnapshot, context, cancellationToken);
-            if (syntaxNodeResolution.Rejection is not null)
+            if (syntaxNodeResolution.HasRejection)
             {
                 return syntaxNodeResolution.Rejection;
             }
 
-            if (syntaxNodeResolution.Node is null || syntaxNodeResolution.SemanticModel is null)
-            {
-                throw new InvalidOperationException("A successful syntax-node resolution must contain a node and semantic model.");
-            }
-
-            node = syntaxNodeResolution.Node;
-            semanticModel = syntaxNodeResolution.SemanticModel;
+            node = syntaxNodeResolution.Value.Node;
+            semanticModel = syntaxNodeResolution.Value.SemanticModel;
             var enclosingSymbol = semanticModel.GetEnclosingSymbol(node.SpanStart, cancellationToken);
             if (enclosingSymbol is null)
             {
@@ -64,6 +56,10 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
 
             ownerSymbol = enclosingSymbol;
         }
+        else
+        {
+            return ToolExecutionHelpers.Rejected<ControlFlowGraphData>("InvalidRequest", "Specify exactly one of symbol or location.");
+        }
 
         var graph = ControlFlowGraph.Create(node, semanticModel, cancellationToken);
         if (graph is null)
@@ -71,39 +67,68 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
             return ToolExecutionHelpers.Rejected<ControlFlowGraphData>("InvalidRequest", "The selected target does not support control-flow graph generation.");
         }
 
-        var blocks = graph.Blocks.Select(static block => new BasicBlockInfo
-        {
-            Ordinal = block.Ordinal,
-            Kind = block.Kind.ToString(),
-            IsReachable = block.IsReachable,
-            Operations = block.Operations.Select(static operation => operation.Syntax.ToString()).ToArray(),
-            FallThroughSuccessor = block.FallThroughSuccessor?.Destination is { } fallThroughDestination ? fallThroughDestination.Ordinal : null,
-            ConditionalSuccessor = block.ConditionalSuccessor?.Destination is { } conditionalDestination ? conditionalDestination.Ordinal : null,
-        }).ToArray();
-        var regions = CreateRegions(graph).ToArray();
-        var boundedBlocks = blocks.Take(request.MaxBlocks).ToArray();
-        var boundedRegions = regions.Take(request.MaxRegions).ToArray();
+        var maxBlocks = Math.Max(0, request.MaxBlocks);
+        var blocks = CreateBlocks(graph, maxBlocks);
+        var regions = CreateRegions(graph, Math.Max(0, request.MaxRegions), out var regionsTruncated);
 
-        return PluginExecutionResult<ControlFlowGraphData>.Success(new ControlFlowGraphData
+        var data = new ControlFlowGraphData
         {
             Owner = context.WorkspaceResolver.CreateSymbolReference(ownerSymbol),
-            Blocks = boundedBlocks,
-            BlocksTruncated = boundedBlocks.Length < blocks.Length,
-            Regions = boundedRegions,
-            RegionsTruncated = boundedRegions.Length < regions.Length,
-        });
+            Blocks = blocks,
+            BlocksTruncated = blocks.Count < graph.Blocks.Length,
+            Regions = regions,
+            RegionsTruncated = regionsTruncated,
+        };
+
+        return PluginExecutionResult<ControlFlowGraphData>.Success(data);
     }
 
-    private static List<FlowRegionInfo> CreateRegions(ControlFlowGraph graph)
+    private static List<BasicBlockInfo> CreateBlocks(ControlFlowGraph graph, int maxBlocks)
+    {
+        var blocks = new List<BasicBlockInfo>();
+        foreach (var block in graph.Blocks)
+        {
+            if (blocks.Count == maxBlocks)
+            {
+                break;
+            }
+
+            var operations = new string[block.Operations.Length];
+            for (var index = 0; index < block.Operations.Length; index++)
+            {
+                operations[index] = block.Operations[index].Syntax.ToString();
+            }
+
+            var blockInfo = new BasicBlockInfo
+            {
+                Ordinal = block.Ordinal,
+                Kind = block.Kind.ToString(),
+                IsReachable = block.IsReachable,
+                Operations = operations,
+                FallThroughSuccessor = block.FallThroughSuccessor?.Destination is { } fallThroughDestination ? fallThroughDestination.Ordinal : null,
+                ConditionalSuccessor = block.ConditionalSuccessor?.Destination is { } conditionalDestination ? conditionalDestination.Ordinal : null,
+            };
+            blocks.Add(blockInfo);
+        }
+
+        return blocks;
+    }
+
+    private static List<FlowRegionInfo> CreateRegions(ControlFlowGraph graph, int maxRegions, out bool hasMore)
     {
         var regions = new List<FlowRegionInfo>();
         var nextId = 0;
-        AddRegion(graph.Root, regions, ref nextId);
+        hasMore = !AddRegion(graph.Root, regions, maxRegions, ref nextId);
         return regions;
     }
 
-    private static void AddRegion(ControlFlowRegion region, ICollection<FlowRegionInfo> regions, ref int nextId)
+    private static bool AddRegion(ControlFlowRegion region, ICollection<FlowRegionInfo> regions, int maxRegions, ref int nextId)
     {
+        if (regions.Count == maxRegions)
+        {
+            return false;
+        }
+
         regions.Add(new FlowRegionInfo
         {
             Id = nextId++,
@@ -114,16 +139,21 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
 
         foreach (var nestedRegion in region.NestedRegions)
         {
-            AddRegion(nestedRegion, regions, ref nextId);
+            if (!AddRegion(nestedRegion, regions, maxRegions, ref nextId))
+            {
+                return false;
+            }
         }
+
+        return true;
     }
 
-    private static async ValueTask<SyntaxNodeResolution> ResolveSyntaxNodeAsync(LocationSelector selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)
+    private static async ValueTask<ToolResolutionResult<ResolvedSyntaxNode, ControlFlowGraphData>> ResolveSyntaxNodeAsync(LocationSelector selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)
     {
         var rejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<ControlFlowGraphData>(context, expectedSnapshot);
         if (rejection is not null)
         {
-            return new SyntaxNodeResolution
+            return new ToolResolutionResult<ResolvedSyntaxNode, ControlFlowGraphData>
             {
                 Rejection = rejection,
             };
@@ -132,7 +162,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
         var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken);
         if (!locationResolution.IsResolved)
         {
-            return new SyntaxNodeResolution
+            return new ToolResolutionResult<ResolvedSyntaxNode, ControlFlowGraphData>
             {
                 Rejection = ToolExecutionHelpers.RejectFromStatus<ControlFlowGraphData>(locationResolution.Status, "Location", "location"),
             };
@@ -142,7 +172,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
         var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(location);
         if (resolvedLocation?.Document?.Path is null)
         {
-            return new SyntaxNodeResolution
+            return new ToolResolutionResult<ResolvedSyntaxNode, ControlFlowGraphData>
             {
                 Rejection = ToolExecutionHelpers.Rejected<ControlFlowGraphData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
             };
@@ -153,7 +183,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
             : context.CurrentSolution.GetDocument(location.SourceTree);
         if (document is null)
         {
-            return new SyntaxNodeResolution
+            return new ToolResolutionResult<ResolvedSyntaxNode, ControlFlowGraphData>
             {
                 Rejection = ToolExecutionHelpers.Rejected<ControlFlowGraphData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
             };
@@ -163,25 +193,29 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
         if (syntaxRoot is null || semanticModel is null)
         {
-            return new SyntaxNodeResolution
+            return new ToolResolutionResult<ResolvedSyntaxNode, ControlFlowGraphData>
             {
                 Rejection = ToolExecutionHelpers.Rejected<ControlFlowGraphData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
             };
         }
 
-        return new SyntaxNodeResolution
+        var node = syntaxRoot.FindNode(location.SourceSpan, getInnermostNodeForTie: true);
+        return new ToolResolutionResult<ResolvedSyntaxNode, ControlFlowGraphData>
         {
-            Node = syntaxRoot.FindNode(location.SourceSpan, getInnermostNodeForTie: true),
-            SemanticModel = semanticModel,
+            Value = new ResolvedSyntaxNode(node, semanticModel),
         };
     }
 
-    private sealed record SyntaxNodeResolution
+    private sealed record ResolvedSyntaxNode
     {
-        public PluginExecutionResult<ControlFlowGraphData>? Rejection { get; init; }
+        public SyntaxNode Node { get; }
 
-        public SyntaxNode? Node { get; init; }
+        public SemanticModel SemanticModel { get; }
 
-        public SemanticModel? SemanticModel { get; init; }
+        public ResolvedSyntaxNode(SyntaxNode node, SemanticModel semanticModel)
+        {
+            Node = node;
+            SemanticModel = semanticModel;
+        }
     }
 }

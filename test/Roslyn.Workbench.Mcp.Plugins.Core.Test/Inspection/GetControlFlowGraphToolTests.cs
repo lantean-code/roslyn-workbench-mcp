@@ -21,6 +21,26 @@ public sealed class GetControlFlowGraphToolTests
     }
 
     [Fact]
+    public async Task GIVEN_SymbolAndLocationAreBothProvided_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequestResult()
+    {
+        var target = new GetControlFlowGraphTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+
+        var result = await target.ExecuteAsync(new GetControlFlowGraphRequest
+        {
+            Symbol = new SymbolSelector(),
+            Location = new LocationSelector(),
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
+        {
+            Code = "InvalidRequest",
+            Message = "Specify exactly one of symbol or location.",
+        });
+    }
+
+    [Fact]
     public async Task GIVEN_ResolveSymbolHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var target = new GetControlFlowGraphTool();
@@ -221,6 +241,64 @@ public sealed class GetControlFlowGraphToolTests
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Regions.Should().ContainSingle();
         result.Data.RegionsTruncated.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GIVEN_SymbolResolvesToExceptionalFlowWithinRegionLimit_WHEN_CallingExecuteAsync_THEN_ShouldReturnCompleteRegions()
+    {
+        using var document = RoslynTestFactory.CreateDocument("""
+            using System;
+
+            class Formatter
+            {
+                void Run(string value)
+                {
+                    try
+                    {
+                        value = value.Trim();
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        value = string.Empty;
+                    }
+                }
+            }
+            """);
+
+        var target = new GetControlFlowGraphTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+        var symbol = await RoslynDocumentTestHelper.GetRequiredMethodSymbolAsync(
+            document.Document,
+            "Run",
+            null,
+            TestContext.Current.CancellationToken);
+
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(document.Solution);
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveSymbolAsync<ControlFlowGraphData>(
+                It.IsAny<SymbolSelector?>(),
+                It.IsAny<SnapshotPrecondition?>(),
+                queryContextMocks.QueryContext.Object,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ToolResolutionResult<ISymbol, ControlFlowGraphData>
+            {
+                Value = symbol,
+            });
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
+        var result = await target.ExecuteAsync(new GetControlFlowGraphRequest
+        {
+            Symbol = new SymbolSelector(),
+            MaxRegions = 32,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        result.Data!.Regions.Should().HaveCountGreaterThan(1);
+        result.Data.RegionsTruncated.Should().BeFalse();
     }
 
     [Fact]

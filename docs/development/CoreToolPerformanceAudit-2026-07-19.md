@@ -239,8 +239,16 @@ The five existing pre-bounded paths are `find-references`, `get-change-impact`, 
 - `analyze-async` now scans in deterministic response order, stops when the next valid finding establishes `HasMore`, and resolves task-like framework symbols once per analysed document rather than once per invocation.
 - `analyze-disposables` now applies the same ordered early bound, resolves disposable framework symbols once per document, and calculates disposed local symbols once per executable body rather than rescanning the body for every local.
 - Both tools now publish through `CreatePreboundedCollection` without projecting the additional finding used to establish truncation.
-- The current inspection-handler count is 28 `CreateBoundedCollection` calls and seven `CreatePreboundedCollection` calls.
+- After this step, the inspection-handler count was 28 `CreateBoundedCollection` calls and seven `CreatePreboundedCollection` calls.
 - A later cross-tool optimisation should introduce request-local reuse of compilation-derived framework symbols. The current inventory contains six `GetTypeByMetadataName` lookups: `Task`, `Task<T>`, `ValueTask`, `ValueTask<T>`, `IDisposable` and `IAsyncDisposable`. Cache results once per project/compilation within a request, include future well-known type lookups in the same audit, and do not retain symbols in process-wide static state because that would retain or mix workspace snapshots and project reference contexts.
+
+### 2026-07-19 — Direct eager projections
+
+- `get-api-surface` now orders lightweight Roslyn symbols, selects the bounded set, and projects only returned API DTOs. Accessibility-chain and obsolete-attribute checks no longer allocate per-symbol LINQ intermediates.
+- `get-code-metrics` now retains lightweight candidates through deduplication, ordering and bounding. Syntax retrieval, location and symbol projection, and metric traversal run only for returned candidates; logical-line and multi-traversal algorithm changes remain deferred for separate measurement.
+- `get-control-flow-graph` now projects only requested blocks and stops region traversal when the next region establishes truncation.
+- `get-project-details` now bounds lazy document, project-reference, metadata-reference and analyser projections and reads `Project.CompilationOptions` directly instead of creating a compilation.
+- Batch 2 is complete. The current textual inspection-handler count is 22 `CreateBoundedCollection` calls and eleven `CreatePreboundedCollection` calls; the two terminal call sites in the project-details pre-bounding helper serve four independently bounded response collections.
 
 ## Recommended implementation batches
 
@@ -253,16 +261,16 @@ The five existing pre-bounded paths are `find-references`, `get-change-impact`, 
 - Made unused-symbol analysis ordered, bounded and document-state-aware.
 - Centralised non-negative result-limit resolution.
 
-### Batch 2 — Source scanners and direct eager projections
+### Batch 2 — Source scanners and direct eager projections — completed 2026-07-19
 
 Implement the high-confidence changes in:
 
 - `analyze-async` — completed 2026-07-19;
 - `analyze-disposables` — completed 2026-07-19;
-- `get-api-surface`;
-- `get-code-metrics`;
-- `get-control-flow-graph`; and
-- `get-project-details`.
+- `get-api-surface` — completed 2026-07-19;
+- `get-code-metrics` — completed 2026-07-19;
+- `get-control-flow-graph` — completed 2026-07-19; and
+- `get-project-details` — completed 2026-07-19.
 
 These share a clear dependency: establish ordered candidates and `max + 1` validity before expensive DTO or metric projection. Keep the code-metrics traversal consolidation separate within the batch if it materially enlarges review risk.
 

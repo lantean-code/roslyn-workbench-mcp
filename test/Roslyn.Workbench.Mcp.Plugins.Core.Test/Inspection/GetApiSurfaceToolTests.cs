@@ -361,5 +361,6 @@ public sealed class GetApiSurfaceToolTests
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().Equal("AType");
         result.Data.Symbols.HasMore.Should().BeTrue();
+        queryContextMocks.WorkspaceResolver.Verify(item => item.CreateSymbolReference(It.IsAny<ISymbol>()), Times.Once);
     }
 }

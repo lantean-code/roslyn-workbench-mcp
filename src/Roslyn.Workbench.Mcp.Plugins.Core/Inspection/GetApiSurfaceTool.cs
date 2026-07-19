@@ -30,6 +30,7 @@ internal sealed class GetApiSurfaceTool : QueryToolHandler<GetApiSurfaceRequest,
             return ToolExecutionHelpers.Rejected<ApiSurfaceData>("InvalidRequest", "Minimum accessibility must be Public, Protected, or Internal.");
         }
 
+        var maxResults = ToolExecutionHelpers.GetMaxResults(request.SymbolsLimit, GetApiSurfaceRequest._defaultSymbolsMaxResults);
         var exportedSymbols = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
         foreach (var document in documents.Value)
         {
@@ -41,8 +42,13 @@ internal sealed class GetApiSurfaceTool : QueryToolHandler<GetApiSurfaceRequest,
                 continue;
             }
 
-            foreach (var declaration in syntaxRoot.DescendantNodes().Where(IsApiDeclarationNode))
+            foreach (var declaration in syntaxRoot.DescendantNodes())
             {
+                if (!IsApiDeclarationNode(declaration))
+                {
+                    continue;
+                }
+
                 var symbol = GetDeclaredSymbol(semanticModel, declaration, cancellationToken);
                 if (symbol is null || symbol.IsImplicitlyDeclared)
                 {
@@ -63,22 +69,39 @@ internal sealed class GetApiSurfaceTool : QueryToolHandler<GetApiSurfaceRequest,
             }
         }
 
-        var orderedSymbols = exportedSymbols
-            .OrderBy(item => context.WorkspaceResolver.CreateSymbolReference(item).DisplayName, StringComparer.Ordinal)
-            .Select(item => new ApiSymbolInfo
-            {
-                Symbol = context.WorkspaceResolver.CreateSymbolReference(item),
-                Accessibility = item.DeclaredAccessibility.ToString(),
-                IsObsolete = HasObsoleteAttribute(item),
-            })
-            .ToArray();
-
-        return PluginExecutionResult<ApiSurfaceData>.Success(new ApiSurfaceData
+        var orderedSymbols = new List<(ISymbol Symbol, string SortKey)>();
+        foreach (var symbol in exportedSymbols)
         {
-            Symbols = ToolExecutionHelpers.CreateBoundedCollection(
-                orderedSymbols,
-                ToolExecutionHelpers.GetMaxResults(request.SymbolsLimit, GetApiSurfaceRequest._defaultSymbolsMaxResults)),
-        });
+            var sortKey = symbol.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat);
+            orderedSymbols.Add((symbol, sortKey));
+        }
+
+        orderedSymbols.Sort(static (left, right) => StringComparer.Ordinal.Compare(left.SortKey, right.SortKey));
+
+        var symbols = new List<ApiSymbolInfo>();
+        var hasMore = false;
+        foreach (var candidate in orderedSymbols)
+        {
+            if (symbols.Count == maxResults)
+            {
+                hasMore = true;
+                break;
+            }
+
+            symbols.Add(new ApiSymbolInfo
+            {
+                Symbol = context.WorkspaceResolver.CreateSymbolReference(candidate.Symbol),
+                Accessibility = candidate.Symbol.DeclaredAccessibility.ToString(),
+                IsObsolete = request.IncludeObsolete && HasObsoleteAttribute(candidate.Symbol),
+            });
+        }
+
+        var data = new ApiSurfaceData
+        {
+            Symbols = ToolExecutionHelpers.CreatePreboundedCollection(symbols, hasMore),
+        };
+
+        return PluginExecutionResult<ApiSurfaceData>.Success(data);
     }
 
     private static AccessibilityThreshold? ParseMinimumAccessibility(string value)
@@ -108,7 +131,15 @@ internal sealed class GetApiSurfaceTool : QueryToolHandler<GetApiSurfaceRequest,
 
     private static bool HasObsoleteAttribute(ISymbol symbol)
     {
-        return symbol.GetAttributes().Any(static attribute => string.Equals(attribute.AttributeClass?.Name, "ObsoleteAttribute", StringComparison.Ordinal));
+        foreach (var attribute in symbol.GetAttributes())
+        {
+            if (string.Equals(attribute.AttributeClass?.Name, "ObsoleteAttribute", StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool IsApiDeclarationNode(SyntaxNode node)
@@ -123,32 +154,33 @@ internal sealed class GetApiSurfaceTool : QueryToolHandler<GetApiSurfaceRequest,
 
     private static bool MeetsAccessibilityThreshold(ISymbol symbol, AccessibilityThreshold threshold)
     {
-        var accessibilities = GetAccessibilityChain(symbol);
-
-        if (ReferenceEquals(threshold, AccessibilityThreshold.Public))
-        {
-            return accessibilities.All(static accessibility => accessibility == Accessibility.Public);
-        }
-
-        if (ReferenceEquals(threshold, AccessibilityThreshold.Protected))
-        {
-            return accessibilities.All(static accessibility => accessibility is Accessibility.Public or Accessibility.Protected or Accessibility.ProtectedOrInternal or Accessibility.ProtectedAndInternal);
-        }
-
-        return accessibilities.All(static accessibility => accessibility is Accessibility.Public or Accessibility.Protected or Accessibility.Internal or Accessibility.ProtectedOrInternal or Accessibility.ProtectedAndInternal);
-    }
-
-    private static List<Accessibility> GetAccessibilityChain(ISymbol symbol)
-    {
-        var result = new List<Accessibility>();
         for (var current = symbol; current is not null; current = current.ContainingType)
         {
-            if (current.DeclaredAccessibility != Accessibility.NotApplicable)
+            var accessibility = current.DeclaredAccessibility;
+            if (accessibility == Accessibility.NotApplicable)
             {
-                result.Add(current.DeclaredAccessibility);
+                continue;
+            }
+
+            if (ReferenceEquals(threshold, AccessibilityThreshold.Public)
+                && accessibility != Accessibility.Public)
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(threshold, AccessibilityThreshold.Protected)
+                && accessibility is not (Accessibility.Public or Accessibility.Protected or Accessibility.ProtectedOrInternal or Accessibility.ProtectedAndInternal))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(threshold, AccessibilityThreshold.Internal)
+                && accessibility is not (Accessibility.Public or Accessibility.Protected or Accessibility.Internal or Accessibility.ProtectedOrInternal or Accessibility.ProtectedAndInternal))
+            {
+                return false;
             }
         }
 
-        return result;
+        return true;
     }
 }

@@ -315,6 +315,9 @@ public sealed class GetCodeMetricsToolTests
         result.Data.Metrics.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Formatter.Changed");
         result.Data.Metrics.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("Formatter._field");
         result.Data.Metrics.Items.Select(item => item.Symbol!.DisplayName).Should().NotContain("local");
+        result.Data.Metrics.HasMore.Should().BeTrue();
+        queryContextMocks.WorkspaceResolver.Verify(item => item.CreateSymbolReference(It.IsAny<ISymbol>()), Times.Exactly(6));
+        queryContextMocks.WorkspaceResolver.Verify(item => item.CreateResolvedLocation(It.IsAny<Location>()), Times.Exactly(6));
     }
 
     [Fact]

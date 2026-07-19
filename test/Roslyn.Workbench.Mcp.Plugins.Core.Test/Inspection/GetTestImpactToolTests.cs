@@ -174,9 +174,10 @@ public sealed class GetTestImpactToolTests
                 symbol,
                 documents,
                 true,
+                1,
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(impactedTests);
+            .ReturnsAsync((impactedTests[..1], true));
 
         var result = await target.ExecuteAsync(new GetTestImpactRequest
         {
@@ -195,6 +196,7 @@ public sealed class GetTestImpactToolTests
             symbol,
             documents,
             true,
+            1,
             queryContextMocks.QueryContext.Object,
             It.IsAny<CancellationToken>()), Times.Once);
     }

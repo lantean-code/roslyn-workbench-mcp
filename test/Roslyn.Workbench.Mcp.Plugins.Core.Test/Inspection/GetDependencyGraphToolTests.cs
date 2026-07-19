@@ -253,9 +253,11 @@ public sealed class GetDependencyGraphToolTests
                 "Type",
                 It.Is<IReadOnlyList<Project>>(projects => projects.Count == 1 && projects[0] == project),
                 It.Is<IReadOnlyList<Document>>(documents => documents.Count == 1 && documents[0] == document.Document),
+                2,
+                10,
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync((nodes, edges));
+            .ReturnsAsync((nodes[..2], true, edges[..1], false));
 
         var result = await target.ExecuteAsync(new GetDependencyGraphRequest
         {

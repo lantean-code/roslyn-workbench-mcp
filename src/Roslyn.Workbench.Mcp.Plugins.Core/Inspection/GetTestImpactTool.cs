@@ -18,19 +18,20 @@ internal sealed class GetTestImpactTool : QueryToolHandler<GetTestImpactRequest,
         }
 
         var symbol = symbolResolution.Value;
-        var impactedTests = await context.ToolExecutionServices.DependencyAnalysisService.FindTestImpactsAsync(
+        var (impactedTests, hasMore) = await context.ToolExecutionServices.DependencyAnalysisService.FindTestImpactsAsync(
             symbol,
             documents.Value,
             request.IncludeReasons,
+            request.EffectiveTestsLimit,
             context,
             cancellationToken);
 
-        return PluginExecutionResult<TestImpactData>.Success(new TestImpactData
+        var data = new TestImpactData
         {
             Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
-            Tests = ToolExecutionHelpers.CreateBoundedCollection(
-                impactedTests,
-                request.EffectiveTestsLimit),
-        });
+            Tests = ToolExecutionHelpers.CreatePreboundedCollection(impactedTests, hasMore),
+        };
+
+        return PluginExecutionResult<TestImpactData>.Success(data);
     }
 }

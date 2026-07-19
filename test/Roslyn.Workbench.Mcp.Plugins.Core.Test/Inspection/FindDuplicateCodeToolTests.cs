@@ -272,4 +272,69 @@ public sealed class FindDuplicateCodeToolTests
         result.Data.Groups.Items.Select(item => item.StatementCount).Should().Equal(3, 2);
         result.Data.Groups.Items.SelectMany(item => item.Occurrences).All(item => !string.IsNullOrWhiteSpace(item.Context)).Should().BeTrue();
     }
+
+    [Fact]
+    public async Task GIVEN_DuplicateGroupsExceedLimit_WHEN_CallingExecuteAsync_THEN_ShouldProjectOnlySelectedGroup()
+    {
+        using var document = RoslynTestFactory.CreateDocument("""
+            class Formatter
+            {
+                void First()
+                {
+                    var value = 1;
+                    value++;
+                    value++;
+                }
+
+                void Second()
+                {
+                    var value = 1;
+                    value++;
+                    value++;
+                }
+
+                void Third()
+                {
+                    var value = 2;
+                    value--;
+                }
+
+                void Fourth()
+                {
+                    var value = 2;
+                    value--;
+                }
+            }
+            """);
+
+        var target = new FindDuplicateCodeTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveDocuments<DuplicateCodeData>(
+                It.IsAny<ScopeSelector?>(),
+                queryContextMocks.QueryContext.Object))
+            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, DuplicateCodeData>
+            {
+                Value = [document.Document],
+            });
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
+            .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, "Code.cs"));
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
+        var result = await target.ExecuteAsync(new FindDuplicateCodeRequest
+        {
+            MinimumStatements = 2,
+            GroupsLimit = 1,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        result.Data!.Groups.Items.Should().ContainSingle();
+        result.Data.Groups.Items[0].StatementCount.Should().Be(3);
+        result.Data.Groups.HasMore.Should().BeTrue();
+        queryContextMocks.WorkspaceResolver.Verify(item => item.CreateSymbolReference(It.IsAny<ISymbol>()), Times.Exactly(2));
+    }
 }

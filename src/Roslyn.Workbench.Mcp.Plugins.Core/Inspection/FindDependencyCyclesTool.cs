@@ -22,18 +22,19 @@ internal sealed class FindDependencyCyclesTool : QueryToolHandler<FindDependency
             return projects.Rejection;
         }
 
-        var cycles = await context.ToolExecutionServices.DependencyAnalysisService.FindCyclesAsync(
+        var (cycles, hasMore) = await context.ToolExecutionServices.DependencyAnalysisService.FindCyclesAsync(
             request.Granularity,
             projects.Value,
             documents.Value,
+            request.EffectiveCyclesLimit,
             context,
             cancellationToken);
 
-        return PluginExecutionResult<DependencyCyclesData>.Success(new DependencyCyclesData
+        var data = new DependencyCyclesData
         {
-            Cycles = ToolExecutionHelpers.CreateBoundedCollection(
-                cycles,
-                request.EffectiveCyclesLimit),
-        });
+            Cycles = ToolExecutionHelpers.CreatePreboundedCollection(cycles, hasMore),
+        };
+
+        return PluginExecutionResult<DependencyCyclesData>.Success(data);
     }
 }

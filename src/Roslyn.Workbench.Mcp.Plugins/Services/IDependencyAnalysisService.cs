@@ -26,13 +26,15 @@ public interface IDependencyAnalysisService
     /// <param name="granularity">The graph granularity.</param>
     /// <param name="projects">The resolved projects.</param>
     /// <param name="documents">The resolved documents.</param>
+    /// <param name="maxResults">The maximum number of cycles to return.</param>
     /// <param name="context">The current query context.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The detected dependency cycles.</returns>
-    ValueTask<IReadOnlyList<DependencyCycle>> FindCyclesAsync(
+    /// <returns>The detected dependency cycles and whether additional cycles were found.</returns>
+    ValueTask<(IReadOnlyList<DependencyCycle> Cycles, bool HasMore)> FindCyclesAsync(
         string granularity,
         IReadOnlyList<Project> projects,
         IReadOnlyList<Document> documents,
+        int maxResults,
         IQueryContext context,
         CancellationToken cancellationToken);
 
@@ -42,13 +44,15 @@ public interface IDependencyAnalysisService
     /// <param name="targetSymbol">The target symbol.</param>
     /// <param name="documents">The candidate test documents.</param>
     /// <param name="includeReasons">Whether explanatory reasons should be included.</param>
+    /// <param name="maxResults">The maximum number of impacted tests to return.</param>
     /// <param name="context">The current query context.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The impacted tests.</returns>
-    ValueTask<IReadOnlyList<TestImpactInfo>> FindTestImpactsAsync(
+    /// <returns>The impacted tests and whether additional tests were found.</returns>
+    ValueTask<(IReadOnlyList<TestImpactInfo> Tests, bool HasMore)> FindTestImpactsAsync(
         ISymbol targetSymbol,
         IReadOnlyList<Document> documents,
         bool includeReasons,
+        int maxResults,
         IQueryContext context,
         CancellationToken cancellationToken);
 
@@ -58,13 +62,17 @@ public interface IDependencyAnalysisService
     /// <param name="granularity">The graph granularity.</param>
     /// <param name="projects">The resolved projects.</param>
     /// <param name="documents">The resolved documents.</param>
+    /// <param name="maxNodes">The maximum number of nodes to return.</param>
+    /// <param name="maxEdges">The maximum number of edges to return.</param>
     /// <param name="context">The current query context.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The graph nodes and edges.</returns>
-    ValueTask<(IReadOnlyList<GraphNode> Nodes, IReadOnlyList<GraphEdge> Edges)> BuildGraphAsync(
+    /// <returns>The graph nodes and edges together with their truncation states.</returns>
+    ValueTask<(IReadOnlyList<GraphNode> Nodes, bool NodesHaveMore, IReadOnlyList<GraphEdge> Edges, bool EdgesHaveMore)> BuildGraphAsync(
         string granularity,
         IReadOnlyList<Project> projects,
         IReadOnlyList<Document> documents,
+        int maxNodes,
+        int maxEdges,
         IQueryContext context,
         CancellationToken cancellationToken);
 }

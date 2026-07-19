@@ -27,25 +27,21 @@ internal sealed class GetDependencyGraphTool : QueryToolHandler<GetDependencyGra
             return projects.Rejection;
         }
 
-        var graph = await context.ToolExecutionServices.DependencyAnalysisService.BuildGraphAsync(
+        var (nodes, nodesHaveMore, edges, edgesHaveMore) = await context.ToolExecutionServices.DependencyAnalysisService.BuildGraphAsync(
             request.Granularity,
             projects.Value,
             documents.Value,
+            request.EffectiveNodesLimit,
+            request.EffectiveEdgesLimit,
             context,
             cancellationToken);
-        var nodes = ToolExecutionHelpers.CreateBoundedCollection(
-            graph.Nodes,
-            request.EffectiveNodesLimit);
-        var nodeIds = nodes.Items.Select(static node => node.Id).ToHashSet(StringComparer.Ordinal);
-        var edges = graph.Edges
-            .Where(edge => nodeIds.Contains(edge.FromId) && nodeIds.Contains(edge.ToId))
-            .ToArray();
-        return PluginExecutionResult<DependencyGraphData>.Success(new DependencyGraphData
+
+        var data = new DependencyGraphData
         {
-            Nodes = nodes,
-            Edges = ToolExecutionHelpers.CreateBoundedCollection(
-                edges,
-                request.EffectiveEdgesLimit),
-        });
+            Nodes = ToolExecutionHelpers.CreatePreboundedCollection(nodes, nodesHaveMore),
+            Edges = ToolExecutionHelpers.CreatePreboundedCollection(edges, edgesHaveMore),
+        };
+
+        return PluginExecutionResult<DependencyGraphData>.Success(data);
     }
 }

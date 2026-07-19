@@ -107,6 +107,7 @@ public sealed class FindDependencyCyclesToolTests
             It.IsAny<string>(),
             It.IsAny<IReadOnlyList<Project>>(),
             It.IsAny<IReadOnlyList<Document>>(),
+            It.IsAny<int>(),
             It.IsAny<IQueryContext>(),
             It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -177,9 +178,10 @@ public sealed class FindDependencyCyclesToolTests
                 "Type",
                 It.Is<IReadOnlyList<Project>>(projects => projects.Count == 1 && projects[0] == document.Document.Project),
                 It.Is<IReadOnlyList<Document>>(documents => documents.Count == 1 && documents[0] == document.Document),
+                1,
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(cycles);
+            .ReturnsAsync((cycles[..1], true));
 
         var result = await target.ExecuteAsync(new FindDependencyCyclesRequest
         {

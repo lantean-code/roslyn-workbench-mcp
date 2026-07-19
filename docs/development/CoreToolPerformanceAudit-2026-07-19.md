@@ -14,7 +14,7 @@ The comprehensive scan covered 50 production files:
 
 - all 38 handlers under `src/Roslyn.Workbench.Mcp.Plugins.Core/Inspection`;
 - `CompilerDiagnosticHelpers` and `DefaultCompilerDiagnosticService`;
-- `DefaultDependencyAnalysisService` and `DependencyAnalysisHelpers`;
+- `DefaultDependencyAnalysisService`;
 - `DefaultInspectionContextService`;
 - `DefaultProjectStructureService`;
 - `DefaultToolRequestResolver`;
@@ -99,7 +99,7 @@ No critical correctness or deadlock finding was identified.
 
 **Impact:** Type and symbol graphs call dependency collection for every source symbol or type, repeatedly retrieving syntax and semantic models and walking operations; test impact builds a complete dependency set for every candidate test before checking for one target match.
 
-**Files:** `DependencyAnalysisHelpers.cs:100`, `DependencyAnalysisHelpers.cs:131`, `DependencyAnalysisHelpers.cs:170`, `DependencyAnalysisHelpers.cs:195`, `DependencyAnalysisHelpers.cs:209`, `DependencyAnalysisHelpers.cs:334`, `DependencyAnalysisHelpers.cs:375`.
+**Files:** `DefaultDependencyAnalysisService.cs` dependency collection, graph construction and test-impact paths.
 
 **Fix:** Introduce request-local document analysis state, reuse semantic models, avoid collecting type dependencies for the same member more than once, and use a target-aware early-exit dependency check for test impact. Pass graph response bounds into the service where bounded nodes can safely restrict returned-edge analysis.
 
@@ -263,7 +263,17 @@ The five existing pre-bounded paths are `find-references`, `get-change-impact`, 
 - Callers are selected before location and context enrichment. Symbol dependents now reuse semantic models per document within the request.
 - Overload signatures, attribute arguments, dependency DTOs and type-hierarchy nodes are created only for returned items. Base-type traversal stops once its depth or response bound is established.
 - Solution projects are selected before target-framework evaluation, project-reference projection and optional document projection. Folder DTOs returned by the hierarchy service are bounded without further enrichment.
-- After this step, the inspection-handler count is five `CreateBoundedCollection` calls and 34 `CreatePreboundedCollection` calls. The remaining late-bound sites belong to the dependency, cycle, test-impact and duplicate-code work deferred to Batch 4.
+- After this step, the inspection-handler count was five `CreateBoundedCollection` calls and 34 `CreatePreboundedCollection` calls. The remaining late-bound sites belonged to the dependency, cycle, test-impact and duplicate-code work deferred to Batch 4.
+
+### 2026-07-19 — Dependency and duplicate algorithms
+
+- Dependency graph bounds now enter the analysis service. Project, namespace, type and symbol graphs select the response nodes before collecting dependencies, analyse edges only between selected nodes, and stop after the first additional ordered edge establishes truncation.
+- Dependency analysis reuses semantic models only for the lifetime of the request. It does not retain Roslyn state across requests or workspace snapshots.
+- Cycle detection still constructs the complete graph and runs complete strongly connected component discovery. Only the ordered response projection is bounded because stopping graph discovery early would change cycle semantics.
+- Test impact discovers and orders candidate test methods first, then checks signature and operation dependencies directly. Dependency traversal exits on the first target match and the service stops after the first additional impacted test establishes `HasMore`.
+- Duplicate detection still fingerprints every executable candidate and validates its source location, but retains syntax and symbols as lightweight candidates. Symbol references and context strings are created only for occurrences in selected groups.
+- An isolated BenchmarkDotNet short run compared the existing duplicate fingerprint `string.Join`/`Select` expression with a manual `StringBuilder` loop at 3, 10 and 30 statements. The loop was within 2% of the existing implementation but allocated approximately 3% more in every case, so the simpler existing expression was retained.
+- Deterministic service tests cover all four graph granularities, bounded project edges, full cycle discovery with a zero response limit, target-impact truncation and bounded duplicate projection. The inspection-handler inventory is now zero `CreateBoundedCollection` calls and 39 `CreatePreboundedCollection` calls.
 
 ## Recommended implementation batches
 
@@ -301,7 +311,7 @@ Migrated:
 
 Use a consistent pending-symbol shape only if it removes repeated projection without obscuring per-tool ordering. Do not introduce a general top-N abstraction until at least two tools demonstrate the same correctness requirements.
 
-### Batch 4 — Benchmark-gated dependency and duplicate algorithms
+### Batch 4 — Benchmark-gated dependency and duplicate algorithms — completed 2026-07-19
 
 Measure and then address:
 
@@ -310,7 +320,7 @@ Measure and then address:
 - test impact; and
 - duplicate-code detection.
 
-These require complete or near-complete semantic discovery, so service-level redesign carries more risk than the preceding projection changes.
+Complete discovery remains where global semantics require it: cycle detection constructs the full graph and duplicate detection computes all fingerprints. Response bounds now prevent dependency analysis or response projection that cannot affect the returned result.
 
 ### Batch 5 — Request-local Roslyn lookup reuse and small projections
 

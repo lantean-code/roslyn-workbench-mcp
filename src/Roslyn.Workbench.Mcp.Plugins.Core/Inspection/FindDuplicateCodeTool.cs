@@ -16,24 +16,26 @@ internal sealed class FindDuplicateCodeTool : QueryToolHandler<FindDuplicateCode
             return documents.Rejection;
         }
 
-        var groups = await FindDuplicateGroupsAsync(
+        var (groups, hasMore) = await FindDuplicateGroupsAsync(
             documents.Value,
             context,
             request.MinimumStatements,
+            request.EffectiveGroupsLimit,
             cancellationToken);
 
-        return PluginExecutionResult<DuplicateCodeData>.Success(new DuplicateCodeData
+        var data = new DuplicateCodeData
         {
-            Groups = ToolExecutionHelpers.CreateBoundedCollection(
-                groups,
-                request.EffectiveGroupsLimit),
-        });
+            Groups = ToolExecutionHelpers.CreatePreboundedCollection(groups, hasMore),
+        };
+
+        return PluginExecutionResult<DuplicateCodeData>.Success(data);
     }
 
-    private static async ValueTask<IReadOnlyList<DuplicateCodeGroup>> FindDuplicateGroupsAsync(
+    private static async ValueTask<(IReadOnlyList<DuplicateCodeGroup> Groups, bool HasMore)> FindDuplicateGroupsAsync(
         IReadOnlyList<Document> documents,
         IQueryContext context,
         int minimumStatements,
+        int maxResults,
         CancellationToken cancellationToken)
     {
         var candidates = new List<DuplicateCandidate>();
@@ -59,6 +61,7 @@ internal sealed class FindDuplicateCodeTool : QueryToolHandler<FindDuplicateCode
                 var normalizedKey = string.Join(
                     "\n",
                     statements.Select(static statement => NormalizeStatement(statement)));
+
                 if (string.IsNullOrWhiteSpace(normalizedKey))
                 {
                     continue;
@@ -80,31 +83,73 @@ internal sealed class FindDuplicateCodeTool : QueryToolHandler<FindDuplicateCode
                 {
                     Key = normalizedKey,
                     StatementCount = statements.Count,
-                    Occurrence = new DuplicateCodeOccurrence
-                    {
-                        Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
-                        Location = resolvedLocation,
-                        Context = CreateContext(statements),
-                    },
+                    Statements = statements,
+                    Symbol = symbol,
+                    Location = resolvedLocation,
                 });
             }
         }
 
-        return candidates
-            .GroupBy(static candidate => candidate.Key, StringComparer.Ordinal)
-            .Where(static group => group.Count() > 1)
-            .Select(group => new DuplicateCodeGroup
+        var candidatesByKey = new Dictionary<string, List<DuplicateCandidate>>(StringComparer.Ordinal);
+        foreach (var candidate in candidates)
+        {
+            if (!candidatesByKey.TryGetValue(candidate.Key, out var matchingCandidates))
             {
-                StatementCount = group.First().StatementCount,
-                Occurrences = group
-                    .Select(static candidate => candidate.Occurrence)
-                    .OrderBy(static occurrence => occurrence.Location?.Document?.Path ?? string.Empty, StringComparer.Ordinal)
-                    .ThenBy(static occurrence => occurrence.Location?.Span?.Start ?? int.MaxValue)
-                    .ToArray(),
-            })
-            .OrderByDescending(static group => group.StatementCount)
-            .ThenBy(static group => group.Occurrences[0].Symbol?.DisplayName ?? string.Empty, StringComparer.Ordinal)
-            .ToArray();
+                matchingCandidates = [];
+                candidatesByKey.Add(candidate.Key, matchingCandidates);
+            }
+
+            matchingCandidates.Add(candidate);
+        }
+
+        var groupCandidates = new List<DuplicateGroupCandidate>();
+        var discoveryOrder = 0;
+        foreach (var matchingCandidates in candidatesByKey.Values)
+        {
+            if (matchingCandidates.Count < 2)
+            {
+                discoveryOrder++;
+                continue;
+            }
+
+            matchingCandidates.Sort(CompareDuplicateCandidates);
+            groupCandidates.Add(new DuplicateGroupCandidate
+            {
+                StatementCount = matchingCandidates[0].StatementCount,
+                FirstSymbolDisplayName = matchingCandidates[0].Symbol.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat),
+                DiscoveryOrder = discoveryOrder,
+                Occurrences = matchingCandidates,
+            });
+
+            discoveryOrder++;
+        }
+
+        groupCandidates.Sort(CompareDuplicateGroups);
+        var hasMore = groupCandidates.Count > maxResults;
+        var selectedGroupCount = Math.Min(groupCandidates.Count, maxResults);
+        var groups = new List<DuplicateCodeGroup>();
+        for (var index = 0; index < selectedGroupCount; index++)
+        {
+            var groupCandidate = groupCandidates[index];
+            var occurrences = new List<DuplicateCodeOccurrence>();
+            foreach (var candidate in groupCandidate.Occurrences)
+            {
+                occurrences.Add(new DuplicateCodeOccurrence
+                {
+                    Symbol = context.WorkspaceResolver.CreateSymbolReference(candidate.Symbol),
+                    Location = candidate.Location,
+                    Context = CreateContext(candidate.Statements),
+                });
+            }
+
+            groups.Add(new DuplicateCodeGroup
+            {
+                StatementCount = groupCandidate.StatementCount,
+                Occurrences = occurrences,
+            });
+        }
+
+        return (groups, hasMore);
     }
 
     private static string CreateContext(IReadOnlyList<StatementSyntax> statements)
@@ -134,12 +179,52 @@ internal sealed class FindDuplicateCodeTool : QueryToolHandler<FindDuplicateCode
         return statement.NormalizeWhitespace(elasticTrivia: false).ToFullString().Trim();
     }
 
+    private static int CompareDuplicateCandidates(DuplicateCandidate left, DuplicateCandidate right)
+    {
+        var pathComparison = StringComparer.Ordinal.Compare(left.Location.Document?.Path ?? string.Empty, right.Location.Document?.Path ?? string.Empty);
+        if (pathComparison != 0)
+        {
+            return pathComparison;
+        }
+
+        return (left.Location.Span?.Start ?? int.MaxValue).CompareTo(right.Location.Span?.Start ?? int.MaxValue);
+    }
+
+    private static int CompareDuplicateGroups(DuplicateGroupCandidate left, DuplicateGroupCandidate right)
+    {
+        var statementCountComparison = right.StatementCount.CompareTo(left.StatementCount);
+        if (statementCountComparison != 0)
+        {
+            return statementCountComparison;
+        }
+
+        var displayNameComparison = StringComparer.Ordinal.Compare(left.FirstSymbolDisplayName, right.FirstSymbolDisplayName);
+        return displayNameComparison != 0
+            ? displayNameComparison
+            : left.DiscoveryOrder.CompareTo(right.DiscoveryOrder);
+    }
+
     private sealed record DuplicateCandidate
     {
-        public string Key { get; init; } = string.Empty;
+        public required string Key { get; init; }
 
         public int StatementCount { get; init; }
 
-        public DuplicateCodeOccurrence Occurrence { get; init; } = new();
+        public required IReadOnlyList<StatementSyntax> Statements { get; init; }
+
+        public required ISymbol Symbol { get; init; }
+
+        public required ResolvedLocation Location { get; init; }
+    }
+
+    private sealed record DuplicateGroupCandidate
+    {
+        public int StatementCount { get; init; }
+
+        public required string FirstSymbolDisplayName { get; init; }
+
+        public int DiscoveryOrder { get; init; }
+
+        public required IReadOnlyList<DuplicateCandidate> Occurrences { get; init; }
     }
 }

@@ -9,7 +9,7 @@ public sealed class ControlledProviderWorkflowIntegrationTests
     [Fact]
     public async Task GIVEN_ControlledProviderActions_WHEN_ListingDescribingAndStagingParameterisedAction_THEN_ShouldPreserveWorkflowContracts()
     {
-        await using var fixture = await InspectionSampleFixture.CreateAsync();
+        using var fixture = InspectionSampleFixture.Create();
         await using var coordinator = BundledComponentWorkspaceFactory.CreateTestCodeActionWorkspace(_providerCatalog);
         var session = new CodeActionComponentTestSession(coordinator);
         var open = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
@@ -44,7 +44,7 @@ public sealed class ControlledProviderWorkflowIntegrationTests
     [Fact]
     public async Task GIVEN_ControlledRefactoringAndCodeFix_WHEN_StagingBoth_THEN_ShouldAdvanceRevisionsAndPreviewChanges()
     {
-        await using var fixture = await InspectionSampleFixture.CreateAsync();
+        using var fixture = InspectionSampleFixture.Create();
         await using var coordinator = BundledComponentWorkspaceFactory.CreateTestCodeActionWorkspace(_providerCatalog);
         var session = new CodeActionComponentTestSession(coordinator);
         var open = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
@@ -73,7 +73,7 @@ public sealed class ControlledProviderWorkflowIntegrationTests
     [Fact]
     public async Task GIVEN_ControlledCodeFix_WHEN_StagingSolutionFixAll_THEN_ShouldStageSolutionScope()
     {
-        await using var fixture = await InspectionSampleFixture.CreateAsync();
+        using var fixture = InspectionSampleFixture.Create();
         await using var coordinator = BundledComponentWorkspaceFactory.CreateTestCodeActionWorkspace(_providerCatalog);
         var session = new CodeActionComponentTestSession(coordinator);
         var open = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);

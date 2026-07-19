@@ -294,7 +294,7 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
         {
             if (_ownedStateDirectory is not null)
             {
-                await _ownedStateDirectory.DisposeAsync();
+                _ownedStateDirectory.Dispose();
             }
         }
         catch (Exception exception)

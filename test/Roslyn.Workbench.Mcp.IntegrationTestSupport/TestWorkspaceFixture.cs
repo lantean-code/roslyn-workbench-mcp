@@ -1,6 +1,6 @@
 namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
-public sealed class TestWorkspaceFixture : IAsyncDisposable
+public sealed class TestWorkspaceFixture : IDisposable
 {
     private readonly MaterializedWorkspaceAsset _asset;
 
@@ -48,45 +48,45 @@ public sealed class TestWorkspaceFixture : IAsyncDisposable
         }
     }
 
-    public static Task<TestWorkspaceFixture> CreateAsync()
+    public static TestWorkspaceFixture Create()
     {
-        return Task.FromResult(Create(
+        return Create(
             "SdkProject",
             "Sample.csproj",
             "Class1.cs",
             "Directory.Build.props",
-            ".editorconfig"));
+            ".editorconfig");
     }
 
-    public static Task<TestWorkspaceFixture> CreateLegacyProjectAsync()
+    public static TestWorkspaceFixture CreateLegacyProject()
     {
-        return Task.FromResult(Create(
+        return Create(
             "CompatibilitySamples/LegacyNet472",
             "Legacy.csproj",
             "Class1.cs",
             "Directory.Build.props",
-            ".editorconfig"));
+            ".editorconfig");
     }
 
-    public static Task<TestWorkspaceFixture> CreateMalformedProjectAsync()
+    public static TestWorkspaceFixture CreateMalformedProject()
     {
-        return Task.FromResult(Create(
+        return Create(
             "CompatibilitySamples/MalformedSdkProject",
             "Broken.csproj",
             "Class1.cs",
             "Directory.Build.props",
-            ".editorconfig"));
+            ".editorconfig");
     }
 
-    public static Task<TestWorkspaceFixture> CreateAmbiguousAsync()
+    public static TestWorkspaceFixture CreateAmbiguous()
     {
-        return Task.FromResult(Create(
+        return Create(
             "CompatibilitySamples/AmbiguousProjectGraph",
             "ProjectOne/Sample.csproj",
             "ProjectOne/Class1.cs",
             "Directory.Build.props",
             ".editorconfig",
-            "Shared/SharedClass.cs"));
+            "Shared/SharedClass.cs");
     }
 
     internal ComponentWorkspace CreateWorkspace()
@@ -97,9 +97,9 @@ public sealed class TestWorkspaceFixture : IAsyncDisposable
         });
     }
 
-    public ValueTask DisposeAsync()
+    public void Dispose()
     {
-        return _asset.DisposeAsync();
+        _asset.Dispose();
     }
 
     private static TestWorkspaceFixture Create(

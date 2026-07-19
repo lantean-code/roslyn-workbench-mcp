@@ -5,7 +5,7 @@ public sealed class SolutionSearchIntegrationTests
     [Fact]
     public async Task GIVEN_CrossProjectSolution_WHEN_SearchingRelationships_THEN_ShouldResolveAcrossProjectBoundary()
     {
-        await using var fixture = await SolutionHierarchyFixture.CreateAsync();
+        using var fixture = SolutionHierarchyFixture.Create();
         await using var coordinator = BundledComponentWorkspaceFactory.CreateInspectionWorkspace();
         var openResult = await coordinator.OpenAsync(fixture.SolutionPath, TestContext.Current.CancellationToken);
         var session = new PluginComponentTestSession(coordinator, BundledPluginCatalogueFactory.CreateCatalogue());

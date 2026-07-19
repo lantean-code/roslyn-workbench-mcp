@@ -1,7 +1,13 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Roslyn.Workbench.Mcp.Workspace.LockFixture;
 
 internal static class Program
 {
+    [SuppressMessage(
+        "Performance",
+        "CA1849:Call async methods when in an async method",
+        Justification = "FileStream.FlushAsync does not expose flushToDisk; the synchronous flush is required before taking the cross-process file lock.")]
     public static async Task<int> Main(string[] args)
     {
         if (args.Length != 1)

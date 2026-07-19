@@ -5,7 +5,7 @@ public sealed class WorkspaceResolverIntegrationTests
     [Fact]
     public async Task GIVEN_WorkspaceRelativeProjectPath_WHEN_ResolvingProject_THEN_ShouldResolveAgainstWorkspaceRoot()
     {
-        await using var fixture = await TestWorkspaceFixture.CreateAsync();
+        using var fixture = TestWorkspaceFixture.Create();
         var originalDocumentBytes = await File.ReadAllBytesAsync(fixture.DocumentPath, TestContext.Current.CancellationToken);
         await using var target = fixture.CreateWorkspace();
         await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
@@ -27,7 +27,7 @@ public sealed class WorkspaceResolverIntegrationTests
     [Fact]
     public async Task GIVEN_AmbiguousProjectSelector_WHEN_ResolvingProject_THEN_ShouldReturnAmbiguous()
     {
-        await using var fixture = await TestWorkspaceFixture.CreateAmbiguousAsync();
+        using var fixture = TestWorkspaceFixture.CreateAmbiguous();
         await using var target = fixture.CreateWorkspace();
         await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
 
@@ -44,7 +44,7 @@ public sealed class WorkspaceResolverIntegrationTests
     [Fact]
     public async Task GIVEN_AmbiguousDocumentPath_WHEN_ResolvingDocument_THEN_ShouldReturnAmbiguous()
     {
-        await using var fixture = await TestWorkspaceFixture.CreateAmbiguousAsync();
+        using var fixture = TestWorkspaceFixture.CreateAmbiguous();
         await using var target = fixture.CreateWorkspace();
         await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
 
@@ -61,7 +61,7 @@ public sealed class WorkspaceResolverIntegrationTests
     [Fact]
     public async Task GIVEN_TextSpanLocationSelector_WHEN_ResolvingLocation_THEN_ShouldReturnSourceLocation()
     {
-        await using var fixture = await TestWorkspaceFixture.CreateAsync();
+        using var fixture = TestWorkspaceFixture.Create();
         await using var target = fixture.CreateWorkspace();
         await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         var sourceText = await File.ReadAllTextAsync(fixture.DocumentPath, TestContext.Current.CancellationToken);
@@ -95,7 +95,7 @@ public sealed class WorkspaceResolverIntegrationTests
     [Fact]
     public async Task GIVEN_LocationBasedSymbolSelector_WHEN_ResolvingSymbol_THEN_ShouldReturnCanonicalSymbolReference()
     {
-        await using var fixture = await TestWorkspaceFixture.CreateAsync();
+        using var fixture = TestWorkspaceFixture.Create();
         await using var target = fixture.CreateWorkspace();
         await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         var sourceText = await File.ReadAllTextAsync(fixture.DocumentPath, TestContext.Current.CancellationToken);
@@ -132,7 +132,7 @@ public sealed class WorkspaceResolverIntegrationTests
     [Fact]
     public async Task GIVEN_MetadataSymbolSourceLocation_WHEN_ResolvingSymbol_THEN_ShouldReturnMetadataReference()
     {
-        await using var fixture = await TestWorkspaceFixture.CreateAsync();
+        using var fixture = TestWorkspaceFixture.Create();
         const string source = "namespace Sample; public sealed class Class1 { public System.String Value { get; } = System.String.Empty; }";
         await File.WriteAllTextAsync(fixture.DocumentPath, source, TestContext.Current.CancellationToken);
         await using var target = fixture.CreateWorkspace();
@@ -169,7 +169,7 @@ public sealed class WorkspaceResolverIntegrationTests
     [Fact]
     public async Task GIVEN_ReferencedProjectDocumentationId_WHEN_ResolvingSymbol_THEN_ShouldResolveAcrossProjectBoundary()
     {
-        await using var fixture = await TestWorkspaceFixture.CreateAmbiguousAsync();
+        using var fixture = TestWorkspaceFixture.CreateAmbiguous();
         await using var target = fixture.CreateWorkspace();
         await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
 

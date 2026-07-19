@@ -30,12 +30,12 @@ The clean baseline build succeeded with zero compiler errors.
 
 | Measure | Baseline | Remaining |
 | --- | ---: | ---: |
-| Analyzer findings | 2,228 | 233 |
-| Diagnostic IDs | 33 | 14 |
-| Files | 379 | 121 |
+| Analyzer findings | 2,228 | 229 |
+| Diagnostic IDs | 33 | 13 |
+| Files | 379 | 119 |
 | Projects | 23 | 23 |
 | Production findings | 154 | 91 |
-| Test and fixture findings | 2,074 | 142 |
+| Test and fixture findings | 2,074 | 138 |
 
 The remaining counts come from the latest successful solution-wide analyzer build. Resolved diagnostics are excluded from the active inventory and recorded separately below.
 
@@ -56,7 +56,6 @@ Of the six IDE findings that triggered this audit for `GetCodeContextTool`, the 
 | `CA1802` | A readonly field holding a compile-time value can be a constant | 1 | 0 | 1 | Use a constant where it does not weaken the test scenario | Performance |
 | `CA1822` | An instance member that uses no instance state can be static | 6 | 0 | 6 | Make helpers static where test clarity is unchanged | Performance |
 | `CA1848` | High-performance logging should use cached `LoggerMessage` delegates | 2 | 2 | 0 | Replace hot logging calls with cached `LoggerMessage` delegates | Performance |
-| `CA1849` | Async methods should call asynchronous APIs instead of blocking synchronous ones | 4 | 0 | 4 | Review three synchronous fixture factories; preserve the lock fixture's intentional durable flush | Performance/async |
 | `CA1859` | Private code can use a concrete type when abstraction adds overhead without flexibility | 48 | 33 | 15 | Apply concrete types only to private hot paths, not public contracts | Performance |
 | `CA1861` | Repeated constant array arguments allocate a new array on every call | 10 | 0 | 10 | Cache repeated constant arrays where worthwhile | Performance |
 | `CA1869` | Repeatedly constructing `JsonSerializerOptions` prevents caching and adds overhead | 11 | 0 | 11 | Reuse immutable serializer options in test infrastructure | Performance |
@@ -79,6 +78,7 @@ Of the six IDE findings that triggered this audit for `GetCodeContextTool`, the 
 | `CA1707` | 1,462 | Suppressed for `IsTestProject` builds because GIVEN/WHEN/THEN names are mandated |
 | `CA1812` | 33 | Audited every finding and added source-local pragma scopes around eight fixture groups used through reflection, DI, closed-generic registration, schema metadata or deliberate activation failures; no dead types were found |
 | `CA1819` | 1 | Suppressed for test and plugin-fixture builds because the mutable array contract is an intentional negative contract-inspection scenario |
+| `CA1849` | 42 | Replaced ordinary synchronous operations with asynchronous alternatives, removed fake asynchronous creation and disposal from the synchronous test-fixture ownership chain, and retained narrowly documented durable disk flushes |
 | `CA2000` | 5 | Disposed server and workspace test resources and documented the Roslyn wrapper's explicit workspace-ownership transfer |
 | `CA2007` | 298 | Suppressed solution-wide because all repository code executes within a console-hosted application without a synchronization context; existing `ConfigureAwait(false)` calls were removed and prohibited by agent guidance |
 | `CA2012` | 13 | Changed Moq setups to create a fresh faulted or cancelled `ValueTask` for every invocation instead of storing reusable instances |
@@ -100,14 +100,14 @@ Of the six IDE findings that triggered this audit for `GetCodeContextTool`, the 
 | `test/Roslyn.Workbench.Mcp.CodeActions.IntegrationTest` | 2 | 2 | 1 |
 | `test/Roslyn.Workbench.Mcp.CodeActions.Test` | 29 | 6 | 12 |
 | `test/Roslyn.Workbench.Mcp.IntegrationTest` | 8 | 3 | 3 |
-| `test/Roslyn.Workbench.Mcp.IntegrationTestSupport` | 4 | 2 | 1 |
+| `test/Roslyn.Workbench.Mcp.IntegrationTestSupport` | 1 | 1 | 0 |
 | `test/Roslyn.Workbench.Mcp.Plugins.Core.IntegrationTest` | 2 | 2 | 1 |
 | `test/Roslyn.Workbench.Mcp.Plugins.Core.Test` | 2 | 2 | 1 |
 | `test/Roslyn.Workbench.Mcp.Plugins.Test` | 21 | 4 | 8 |
 | `test/Roslyn.Workbench.Mcp.Test` | 34 | 7 | 17 |
 | `test/Roslyn.Workbench.Mcp.TestSupport` | 3 | 2 | 2 |
 | `test/Roslyn.Workbench.Mcp.Workspace.IntegrationTest` | 6 | 3 | 2 |
-| `test/Roslyn.Workbench.Mcp.Workspace.LockFixture` | 2 | 2 | 1 |
+| `test/Roslyn.Workbench.Mcp.Workspace.LockFixture` | 1 | 1 | 0 |
 | `test/Roslyn.Workbench.Mcp.Workspace.Test` | 16 | 5 | 6 |
 | `test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.HostMutationPluginFixture` | 1 | 1 | 0 |
 | `test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.HostQueryPluginFixture` | 1 | 1 | 0 |
@@ -118,10 +118,9 @@ Of the six IDE findings that triggered this audit for `GetCodeContextTool`, the 
 
 Use cohesive batches and rerun the full analyzer baseline after each batch. Do not mix unrelated analyzer cleanup with performance measurements.
 
-1. Resolve the three synchronous `TestWorkspaceFixture.Create` findings and document the lock fixture's intentional durable flush.
-2. Address production performance findings using measurements where a suggestion changes abstractions: `CA1848` and `CA1859`.
-3. Review design/API findings individually. Do not rename public contracts, remove discovery types or change collection shapes solely to satisfy an analyzer.
-4. Clean up remaining test-only performance and assertion findings after production remediation is stable.
+1. Address production performance findings using measurements where a suggestion changes abstractions: `CA1848` and `CA1859`.
+2. Review design/API findings individually. Do not rename public contracts, remove discovery types or change collection shapes solely to satisfy an analyzer.
+3. Clean up remaining test-only performance and assertion findings after production remediation is stable.
 
 The performance-tuning baseline should be recorded only after production determinism, async and performance findings are resolved or explicitly accepted, because those changes can affect allocations, cancellation and execution timing.
 

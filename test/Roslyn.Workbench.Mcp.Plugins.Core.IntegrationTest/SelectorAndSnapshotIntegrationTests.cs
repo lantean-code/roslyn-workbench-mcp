@@ -5,7 +5,7 @@ public sealed class SelectorAndSnapshotIntegrationTests
     [Fact]
     public async Task GIVEN_AmbiguousTextSelection_WHEN_ResolvingSymbol_THEN_ShouldRejectAmbiguousLocation()
     {
-        await using var fixture = await InspectionSampleFixture.CreateAsync();
+        using var fixture = InspectionSampleFixture.Create();
         await using var coordinator = BundledComponentWorkspaceFactory.CreateInspectionWorkspace();
         var openResult = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         var session = new PluginComponentTestSession(coordinator, BundledPluginCatalogueFactory.CreateCatalogue());
@@ -38,7 +38,7 @@ public sealed class SelectorAndSnapshotIntegrationTests
     [Fact]
     public async Task GIVEN_MetadataSymbolAndBoundedSearch_WHEN_InspectingSelectors_THEN_ShouldProjectMetadataAndTruncation()
     {
-        await using var fixture = await InspectionSampleFixture.CreateAsync();
+        using var fixture = InspectionSampleFixture.Create();
         await using var coordinator = BundledComponentWorkspaceFactory.CreateInspectionWorkspace();
         var openResult = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         var session = new PluginComponentTestSession(coordinator, BundledPluginCatalogueFactory.CreateCatalogue());

@@ -5,7 +5,7 @@ public sealed class BuiltInCodeActionStagingIntegrationTests
     [Fact]
     public async Task GIVEN_BuiltInCodeFixProvider_WHEN_RemovingUnusedUsings_THEN_ShouldStageRepresentativeBuiltInMutation()
     {
-        await using var fixture = await InspectionSampleFixture.CreateAsync();
+        using var fixture = InspectionSampleFixture.Create();
         await using var coordinator = BundledComponentWorkspaceFactory.CreateBuiltInCodeActionWorkspace();
         var session = new CodeActionComponentTestSession(coordinator);
         var open = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);

@@ -5,7 +5,7 @@ public sealed class WorkspaceExternalChangeIntegrationTests
     [Fact]
     public async Task GIVEN_ChangedWorkspaceInput_WHEN_GettingStatus_THEN_ShouldTransitionToWorkspaceOutOfDate()
     {
-        await using var fixture = await TestWorkspaceFixture.CreateAsync();
+        using var fixture = TestWorkspaceFixture.Create();
         await using var target = fixture.CreateWorkspace();
         await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         await File.AppendAllTextAsync(fixture.DocumentPath, Environment.NewLine + "class Added { }", TestContext.Current.CancellationToken);
@@ -20,7 +20,7 @@ public sealed class WorkspaceExternalChangeIntegrationTests
     [Fact]
     public async Task GIVEN_AddedWorkspaceInput_WHEN_GettingStatus_THEN_ShouldTransitionToWorkspaceOutOfDate()
     {
-        await using var fixture = await TestWorkspaceFixture.CreateAsync();
+        using var fixture = TestWorkspaceFixture.Create();
         await using var target = fixture.CreateWorkspace();
         await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
 
@@ -43,7 +43,7 @@ public sealed class WorkspaceExternalChangeIntegrationTests
     [Fact]
     public async Task GIVEN_ChangedDirectoryBuildProps_WHEN_GettingStatus_THEN_ShouldTransitionToWorkspaceOutOfDate()
     {
-        await using var fixture = await TestWorkspaceFixture.CreateAsync();
+        using var fixture = TestWorkspaceFixture.Create();
         await using var target = fixture.CreateWorkspace();
         await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         await File.AppendAllTextAsync(fixture.DirectoryBuildPropsPath, Environment.NewLine + "<!-- changed -->", TestContext.Current.CancellationToken);
@@ -58,7 +58,7 @@ public sealed class WorkspaceExternalChangeIntegrationTests
     [Fact]
     public async Task GIVEN_ChangedEditorConfig_WHEN_CreatingQueryContext_THEN_ShouldRejectAsWorkspaceOutOfDate()
     {
-        await using var fixture = await TestWorkspaceFixture.CreateAsync();
+        using var fixture = TestWorkspaceFixture.Create();
         await using var target = fixture.CreateWorkspace();
         await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         await File.AppendAllTextAsync(fixture.EditorConfigPath, Environment.NewLine + "dotnet_diagnostic.CS0168.severity = warning", TestContext.Current.CancellationToken);
@@ -73,7 +73,7 @@ public sealed class WorkspaceExternalChangeIntegrationTests
     [Fact]
     public async Task GIVEN_OutOfDateWorkspace_WHEN_Reloading_THEN_ShouldTransitionBackToReady()
     {
-        await using var fixture = await TestWorkspaceFixture.CreateAsync();
+        using var fixture = TestWorkspaceFixture.Create();
         await using var target = fixture.CreateWorkspace();
         await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         await File.AppendAllTextAsync(fixture.DocumentPath, Environment.NewLine + "class Added { }", TestContext.Current.CancellationToken);
@@ -94,7 +94,7 @@ public sealed class WorkspaceExternalChangeIntegrationTests
     [Fact]
     public async Task GIVEN_MalformedProjectAfterExternalChange_WHEN_ReloadingWorkspace_THEN_ShouldReturnStructuredLoadDiagnostics()
     {
-        await using var fixture = await TestWorkspaceFixture.CreateAsync();
+        using var fixture = TestWorkspaceFixture.Create();
         await using var target = fixture.CreateWorkspace();
         await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         await File.WriteAllTextAsync(fixture.ProjectPath, """

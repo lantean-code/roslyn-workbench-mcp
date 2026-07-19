@@ -28,7 +28,7 @@ internal static class BuiltInCodeActionAuditHarness
         Justification = "The compatibility audit deliberately probes arbitrary built-in Roslyn providers and records provider-defined runtime failures as audit outcomes while allowing cancellation to propagate.")]
     public static async Task<BuiltInCodeActionAuditProbe> ProbeAsync(BuiltInCodeActionAuditCase auditCase)
     {
-        await using var fixture = await auditCase.FixtureFactory();
+        using var fixture = auditCase.FixtureFactory();
         var providerCatalog = CodeActionProviderCatalogFactory.Create(new CodeActionCompositionOptions
         {
             IncludeBuiltInAssemblies = true,

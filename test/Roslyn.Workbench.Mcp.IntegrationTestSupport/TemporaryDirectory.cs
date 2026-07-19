@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
-public sealed class TemporaryDirectory : IDisposable, IAsyncDisposable
+public sealed class TemporaryDirectory : IDisposable
 {
     private int _isDisposed;
 
@@ -55,9 +55,4 @@ public sealed class TemporaryDirectory : IDisposable, IAsyncDisposable
         }
     }
 
-    public ValueTask DisposeAsync()
-    {
-        Dispose();
-        return ValueTask.CompletedTask;
-    }
 }

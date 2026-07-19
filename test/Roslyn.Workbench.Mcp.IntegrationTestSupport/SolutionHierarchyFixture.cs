@@ -1,6 +1,6 @@
 namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
-public sealed class SolutionHierarchyFixture : IAsyncDisposable
+public sealed class SolutionHierarchyFixture : IDisposable
 {
     private readonly MaterializedWorkspaceAsset _asset;
 
@@ -28,14 +28,14 @@ public sealed class SolutionHierarchyFixture : IAsyncDisposable
         }
     }
 
-    public static Task<SolutionHierarchyFixture> CreateAsync()
+    public static SolutionHierarchyFixture Create()
     {
-        return Task.FromResult(new SolutionHierarchyFixture(
-            WorkspaceAssetMaterializer.Materialize("SolutionHierarchy")));
+        return new SolutionHierarchyFixture(
+            WorkspaceAssetMaterializer.Materialize("SolutionHierarchy"));
     }
 
-    public ValueTask DisposeAsync()
+    public void Dispose()
     {
-        return _asset.DisposeAsync();
+        _asset.Dispose();
     }
 }

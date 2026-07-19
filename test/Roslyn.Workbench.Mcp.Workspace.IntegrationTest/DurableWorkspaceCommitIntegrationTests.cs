@@ -4,7 +4,7 @@ using Moq;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test;
 
-public sealed class DurableWorkspaceCommitIntegrationTests : IAsyncDisposable
+public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
 {
     private static readonly TimeSpan _processTimeout = TimeSpan.FromSeconds(10);
     private readonly string _root = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-durable-commit-tests", Guid.NewGuid().ToString("n"));
@@ -231,9 +231,9 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IAsyncDisposable
         }
     }
 
-    public ValueTask DisposeAsync()
+    public void Dispose()
     {
-        return TemporaryDirectory.Attach(_root).DisposeAsync();
+        TemporaryDirectory.Attach(_root).Dispose();
     }
 
     private IWorkspaceCommitRecoveryService CreateFreshRecoveryService()

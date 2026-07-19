@@ -5,7 +5,7 @@ public sealed class WorkspaceProjectionIntegrationTests
     [Fact]
     public async Task GIVEN_LoadedProject_WHEN_ProjectingWorkspaceDetails_THEN_ShouldIncludeDocumentsOptionsAndMetadataReferences()
     {
-        await using var fixture = await InspectionSampleFixture.CreateAsync();
+        using var fixture = InspectionSampleFixture.Create();
         await using var coordinator = BundledComponentWorkspaceFactory.CreateInspectionWorkspace();
         var openResult = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         var session = new PluginComponentTestSession(coordinator, BundledPluginCatalogueFactory.CreateCatalogue());
@@ -47,7 +47,7 @@ public sealed class WorkspaceProjectionIntegrationTests
     [Fact]
     public async Task GIVEN_MultiProjectSolution_WHEN_ProjectingWorkspace_THEN_ShouldIncludeFoldersAndProjectReferences()
     {
-        await using var fixture = await SolutionHierarchyFixture.CreateAsync();
+        using var fixture = SolutionHierarchyFixture.Create();
         await using var coordinator = BundledComponentWorkspaceFactory.CreateInspectionWorkspace();
         var openResult = await coordinator.OpenAsync(fixture.SolutionPath, TestContext.Current.CancellationToken);
         var session = new PluginComponentTestSession(coordinator, BundledPluginCatalogueFactory.CreateCatalogue());

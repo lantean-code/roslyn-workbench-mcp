@@ -31,7 +31,7 @@ internal sealed record BuiltInCodeActionAuditCase
 
     public BuiltInCodeActionRuntimeAuditOutcome ExpectedRuntimeOutcome { get; init; }
 
-    public Func<Task<InspectionSampleFixture>> FixtureFactory { get; init; } = InspectionSampleFixture.CreateAsync;
+    public Func<InspectionSampleFixture> FixtureFactory { get; init; } = InspectionSampleFixture.Create;
 
     public Func<InspectionSampleFixture, LocationSelector> LocationFactory { get; init; } = static fixture => fixture.GetLocation("GreetingFormatter");
 }
@@ -620,7 +620,7 @@ internal static class BuiltInCodeActionAuditCases
             Title = "Enable nullable reference types in project",
             SourceNote = "EnableNullable.cs nullable directive in nullable-disabled project",
             ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
-            FixtureFactory = static () => InspectionSampleFixture.CreateAsync(InspectionSampleProfile.NullableDisabled),
+            FixtureFactory = static () => InspectionSampleFixture.Create(InspectionSampleProfile.NullableDisabled),
             LocationFactory = static fixture => fixture.GetCursorInDocument("EnableNullable.cs", "#nullable enable"),
         },
         new()
@@ -637,7 +637,7 @@ internal static class BuiltInCodeActionAuditCases
             TitlePrefix = "Convert to file-scoped namespace",
             SourceNote = "NamespaceConversion.cs block-scoped namespace declaration",
             ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
-            FixtureFactory = static () => InspectionSampleFixture.CreateAsync(InspectionSampleProfile.BlockScopedNamespaces),
+            FixtureFactory = static () => InspectionSampleFixture.Create(InspectionSampleProfile.BlockScopedNamespaces),
             LocationFactory = static fixture => fixture.GetCursorInDocument("NamespaceConversion.cs", "namespace Sample.Nested"),
         },
         new()
@@ -646,7 +646,7 @@ internal static class BuiltInCodeActionAuditCases
             Title = "Convert to 'Program.Main' style program",
             SourceNote = "ConsoleTopLevel.cs top-level statement in console application",
             ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
-            FixtureFactory = static () => InspectionSampleFixture.CreateAsync(InspectionSampleProfile.TopLevelToProgramMainRefactoring),
+            FixtureFactory = static () => InspectionSampleFixture.Create(InspectionSampleProfile.TopLevelToProgramMainRefactoring),
             LocationFactory = static fixture => fixture.GetCursorInDocument("ConsoleTopLevel.cs", "System.Console.WriteLine(0);"),
         },
         new()
@@ -655,7 +655,7 @@ internal static class BuiltInCodeActionAuditCases
             Title = "Convert to top-level statements",
             SourceNote = "ConsoleProgramMain.cs Main method in console application",
             ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
-            FixtureFactory = static () => InspectionSampleFixture.CreateAsync(InspectionSampleProfile.ProgramMainToTopLevelRefactoring),
+            FixtureFactory = static () => InspectionSampleFixture.Create(InspectionSampleProfile.ProgramMainToTopLevelRefactoring),
             LocationFactory = static fixture => fixture.GetCursorInDocument("ConsoleProgramMain.cs", "Main"),
         },
         new()
@@ -706,7 +706,7 @@ internal static class BuiltInCodeActionAuditCases
             Title = "Convert to 'Program.Main' style program",
             SourceNote = "ConsoleTopLevel.cs top-level statements when Program.Main is preferred",
             ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
-            FixtureFactory = static () => InspectionSampleFixture.CreateAsync(InspectionSampleProfile.TopLevelToProgramMainCodeFix),
+            FixtureFactory = static () => InspectionSampleFixture.Create(InspectionSampleProfile.TopLevelToProgramMainCodeFix),
             LocationFactory = static fixture => fixture.GetCursorInDocument("ConsoleTopLevel.cs", "System.Console.WriteLine(0);"),
         },
         new()
@@ -716,7 +716,7 @@ internal static class BuiltInCodeActionAuditCases
             Title = "Convert to top-level statements",
             SourceNote = "ConsoleProgramMain.cs Program.Main when top-level statements are preferred",
             ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
-            FixtureFactory = static () => InspectionSampleFixture.CreateAsync(InspectionSampleProfile.ProgramMainToTopLevelCodeFix),
+            FixtureFactory = static () => InspectionSampleFixture.Create(InspectionSampleProfile.ProgramMainToTopLevelCodeFix),
             LocationFactory = static fixture => fixture.GetCursorInDocument("ConsoleProgramMain.cs", "Main"),
         },
         new()

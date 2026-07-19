@@ -7,7 +7,7 @@ public sealed class ServerStatusRecoveryIntegrationTests
     [Fact]
     public async Task GIVEN_UnfinishedRecoveryRecord_WHEN_RequestingFullServerStatus_THEN_ShouldMapPersistedRecoveryDiagnostics()
     {
-        await using var stateDirectory = TemporaryDirectory.Create("roslyn-workbench-mcp-status-tests");
+        using var stateDirectory = TemporaryDirectory.Create("roslyn-workbench-mcp-status-tests");
         var fileSystem = new FileSystem();
         var recoveryStore = new CommitRecoveryStore(
             Options.Create(new WorkspaceCoordinatorOptions { StateDirectory = stateDirectory.DirectoryPath }),

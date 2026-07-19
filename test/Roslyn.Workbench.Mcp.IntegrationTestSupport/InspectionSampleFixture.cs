@@ -1,6 +1,6 @@
 namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
-internal sealed class InspectionSampleFixture : IAsyncDisposable
+internal sealed class InspectionSampleFixture : IDisposable
 {
     private readonly MaterializedWorkspaceAsset _asset;
     private readonly string _directoryPath;
@@ -33,12 +33,12 @@ internal sealed class InspectionSampleFixture : IAsyncDisposable
         }
     }
 
-    public static Task<InspectionSampleFixture> CreateAsync()
+    public static InspectionSampleFixture Create()
     {
-        return CreateAsync(InspectionSampleProfile.Default);
+        return Create(InspectionSampleProfile.Default);
     }
 
-    public static Task<InspectionSampleFixture> CreateAsync(InspectionSampleProfile profile)
+    public static InspectionSampleFixture Create(InspectionSampleProfile profile)
     {
         if (!Enum.IsDefined(profile))
         {
@@ -46,7 +46,7 @@ internal sealed class InspectionSampleFixture : IAsyncDisposable
         }
 
         var asset = WorkspaceAssetMaterializer.MaterializeProfiled("InspectionSample", profile.ToString());
-        return Task.FromResult(new InspectionSampleFixture(asset));
+        return new InspectionSampleFixture(asset);
     }
 
     public LocationSelector GetLocation(string text)
@@ -194,8 +194,8 @@ internal sealed class InspectionSampleFixture : IAsyncDisposable
         };
     }
 
-    public ValueTask DisposeAsync()
+    public void Dispose()
     {
-        return _asset.DisposeAsync();
+        _asset.Dispose();
     }
 }

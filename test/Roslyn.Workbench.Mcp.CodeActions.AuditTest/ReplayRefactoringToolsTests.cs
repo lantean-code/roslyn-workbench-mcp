@@ -72,7 +72,8 @@ public sealed class ReplayRefactoringToolsTests
         string toolName)
     {
         var testCase = ReplayMutationCases[toolName];
-        await using var fixture = await (testCase.FixtureFactory?.Invoke() ?? InspectionSampleFixture.CreateAsync());
+        var fixtureFactory = testCase.FixtureFactory ?? InspectionSampleFixture.Create;
+        using var fixture = fixtureFactory();
         await using var coordinator = CreateBuiltInCoordinator();
         var openResult = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         await coordinator.StartTransactionAsync(TestContext.Current.CancellationToken);
@@ -90,12 +91,12 @@ public sealed class ReplayRefactoringToolsTests
     private sealed record ReplayMutationCaseDefinition(
         Func<InspectionSampleFixture, WorkspaceOperationResult<WorkspaceOpenOutcome>, WorkspaceBoundRequest> RequestFactory,
         string ExpectedDocumentPath,
-        Func<Task<InspectionSampleFixture>>? FixtureFactory = null);
+        Func<InspectionSampleFixture>? FixtureFactory = null);
 
     [Fact]
     public async Task GIVEN_ActiveTransactionAndBuiltInCodeActions_WHEN_ExecutingMoveTypeToFile_THEN_ShouldStageNewDocumentAndSourceUpdate()
     {
-        await using var fixture = await InspectionSampleFixture.CreateAsync();
+        using var fixture = InspectionSampleFixture.Create();
         await using var coordinator = CreateBuiltInCoordinator();
         var openResult = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         await coordinator.StartTransactionAsync(TestContext.Current.CancellationToken);
@@ -111,7 +112,7 @@ public sealed class ReplayRefactoringToolsTests
     [Fact]
     public async Task GIVEN_ActiveTransactionAndBuiltInCodeActions_WHEN_ExecutingConvertPropertyToFull_THEN_ShouldStageStructuredMutation()
     {
-        await using var fixture = await InspectionSampleFixture.CreateAsync();
+        using var fixture = InspectionSampleFixture.Create();
         await using var coordinator = CreateBuiltInCoordinator();
         var openResult = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         await coordinator.StartTransactionAsync(TestContext.Current.CancellationToken);
@@ -126,7 +127,7 @@ public sealed class ReplayRefactoringToolsTests
     [Fact]
     public async Task GIVEN_ActiveTransactionAndBuiltInCodeActions_WHEN_ExecutingConvertPropertyToAutoWhenSafe_THEN_ShouldStageStructuredMutation()
     {
-        await using var fixture = await InspectionSampleFixture.CreateAsync(InspectionSampleProfile.AutoProperties);
+        using var fixture = InspectionSampleFixture.Create(InspectionSampleProfile.AutoProperties);
         await using var coordinator = CreateBuiltInCoordinator();
         var openResult = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         await coordinator.StartTransactionAsync(TestContext.Current.CancellationToken);

@@ -7,8 +7,8 @@ public sealed class WorkspaceTransactionIntegrationTests
     [Fact]
     public async Task GIVEN_TwoOpenedWorkspaces_WHEN_StartingTransactionOnSecondWorkspace_THEN_ShouldRejectUntilOwnerRollsBack()
     {
-        await using var fixtureA = await TestWorkspaceFixture.CreateAsync();
-        await using var fixtureB = await TestWorkspaceFixture.CreateAsync();
+        using var fixtureA = TestWorkspaceFixture.Create();
+        using var fixtureB = TestWorkspaceFixture.Create();
         await using var target = fixtureA.CreateWorkspace();
 
         var openA = await target.OpenAsync(
@@ -45,7 +45,7 @@ public sealed class WorkspaceTransactionIntegrationTests
     [Fact]
     public async Task GIVEN_ReadyWorkspace_WHEN_StartingTransaction_THEN_ShouldReportActiveTransactionCapabilities()
     {
-        await using var fixture = await TestWorkspaceFixture.CreateAsync();
+        using var fixture = TestWorkspaceFixture.Create();
         await using var target = fixture.CreateWorkspace();
         var openResult = await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
 
@@ -65,7 +65,7 @@ public sealed class WorkspaceTransactionIntegrationTests
     [Fact]
     public async Task GIVEN_ActiveTransaction_WHEN_ExecutingMutationTool_THEN_ShouldStageRevisionAndPreviewChanges()
     {
-        await using var fixture = await TestWorkspaceFixture.CreateAsync();
+        using var fixture = TestWorkspaceFixture.Create();
         await using var target = fixture.CreateWorkspace();
         await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         await target.StartTransactionAsync(TestContext.Current.CancellationToken);
@@ -90,7 +90,7 @@ public sealed class WorkspaceTransactionIntegrationTests
     [Fact]
     public async Task GIVEN_StagedTransaction_WHEN_MovingHistoryBackwardAndForward_THEN_ShouldUpdateCurrentRevision()
     {
-        await using var fixture = await TestWorkspaceFixture.CreateAsync();
+        using var fixture = TestWorkspaceFixture.Create();
         await using var target = await CreateCoordinatorWithOneStagedRevisionAsync(fixture);
         var preview = await target.PreviewTransactionAsync(TestContext.Current.CancellationToken);
 
@@ -122,7 +122,7 @@ public sealed class WorkspaceTransactionIntegrationTests
     [Fact]
     public async Task GIVEN_StagedTransaction_WHEN_RollingBack_THEN_ShouldClearTransactionAndReturnReady()
     {
-        await using var fixture = await TestWorkspaceFixture.CreateAsync();
+        using var fixture = TestWorkspaceFixture.Create();
         await using var target = await CreateCoordinatorWithOneStagedRevisionAsync(fixture);
 
         var rollback = await target.RollbackTransactionAsync(TestContext.Current.CancellationToken);
@@ -137,7 +137,7 @@ public sealed class WorkspaceTransactionIntegrationTests
     [Fact]
     public async Task GIVEN_StagedTransaction_WHEN_Committing_THEN_ShouldPersistDocumentChangesToDisk()
     {
-        await using var fixture = await TestWorkspaceFixture.CreateAsync();
+        using var fixture = TestWorkspaceFixture.Create();
         var originalDocumentBytes = await File.ReadAllBytesAsync(fixture.DocumentPath, TestContext.Current.CancellationToken);
         await using var target = fixture.CreateWorkspace();
         await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
@@ -155,7 +155,7 @@ public sealed class WorkspaceTransactionIntegrationTests
             });
         var status = await target.GetStatusAsync(TestContext.Current.CancellationToken);
         var text = await File.ReadAllTextAsync(fixture.DocumentPath, TestContext.Current.CancellationToken);
-        await using var pristineFixture = await TestWorkspaceFixture.CreateAsync();
+        using var pristineFixture = TestWorkspaceFixture.Create();
         var pristineDocumentBytes = await File.ReadAllBytesAsync(pristineFixture.DocumentPath, TestContext.Current.CancellationToken);
 
         commit.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
@@ -170,10 +170,10 @@ public sealed class WorkspaceTransactionIntegrationTests
     [Fact]
     public async Task GIVEN_MultipleStagedDocuments_WHEN_Committing_THEN_ShouldPersistEveryFileAndRemoveJournal()
     {
-        await using var fixture = await TestWorkspaceFixture.CreateAsync();
+        using var fixture = TestWorkspaceFixture.Create();
         var secondPath = Path.Combine(Path.GetDirectoryName(fixture.ProjectPath)!, "Class2.cs");
         await File.WriteAllTextAsync(secondPath, "namespace Sample; public sealed class Class2 { }", TestContext.Current.CancellationToken);
-        await using var stateDirectory = TemporaryDirectory.Create("roslyn-workbench-mcp-transaction-tests");
+        using var stateDirectory = TemporaryDirectory.Create("roslyn-workbench-mcp-transaction-tests");
         await using var target = ComponentWorkspace.Create(new ComponentWorkspaceOptions { StateDirectory = stateDirectory.DirectoryPath });
         await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         await target.StartTransactionAsync(TestContext.Current.CancellationToken);
@@ -191,7 +191,7 @@ public sealed class WorkspaceTransactionIntegrationTests
     [Fact]
     public async Task GIVEN_UnicodeEncodedDocument_WHEN_Committing_THEN_ShouldPreserveDocumentEncoding()
     {
-        await using var fixture = await TestWorkspaceFixture.CreateAsync();
+        using var fixture = TestWorkspaceFixture.Create();
         var encoding = new UnicodeEncoding(bigEndian: false, byteOrderMark: true);
         await File.WriteAllTextAsync(fixture.DocumentPath, """
             namespace Sample;
@@ -223,7 +223,7 @@ public sealed class WorkspaceTransactionIntegrationTests
     [Fact]
     public async Task GIVEN_ChangedWorkspaceInputDuringTransaction_WHEN_GettingStatus_THEN_ShouldTransitionToTransactionConflicted()
     {
-        await using var fixture = await TestWorkspaceFixture.CreateAsync();
+        using var fixture = TestWorkspaceFixture.Create();
         await using var target = await CreateCoordinatorWithOneStagedRevisionAsync(fixture);
         await File.AppendAllTextAsync(fixture.DocumentPath, Environment.NewLine + "class ExternalChange { }", TestContext.Current.CancellationToken);
 

@@ -1,6 +1,6 @@
 namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
-public sealed class MaterializedWorkspaceAsset : IAsyncDisposable
+public sealed class MaterializedWorkspaceAsset : IDisposable
 {
     private readonly TemporaryDirectory _scenarioDirectory;
 
@@ -18,8 +18,8 @@ public sealed class MaterializedWorkspaceAsset : IAsyncDisposable
 
     public string WorkspaceRoot { get; }
 
-    public ValueTask DisposeAsync()
+    public void Dispose()
     {
-        return _scenarioDirectory.DisposeAsync();
+        _scenarioDirectory.Dispose();
     }
 }

@@ -5,7 +5,7 @@ public sealed class WorkspaceLifecycleIntegrationTests
     [Fact]
     public async Task GIVEN_UnloadedCoordinator_WHEN_OpeningWorkspace_THEN_ShouldTransitionToReady()
     {
-        await using var fixture = await TestWorkspaceFixture.CreateAsync();
+        using var fixture = TestWorkspaceFixture.Create();
         await using var target = fixture.CreateWorkspace();
 
         var result = await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
@@ -26,7 +26,7 @@ public sealed class WorkspaceLifecycleIntegrationTests
     [Fact]
     public async Task GIVEN_ReadyCoordinator_WHEN_ClosingWorkspace_THEN_ShouldTransitionToUnloaded()
     {
-        await using var fixture = await TestWorkspaceFixture.CreateAsync();
+        using var fixture = TestWorkspaceFixture.Create();
         await using var target = fixture.CreateWorkspace();
         await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
 
@@ -44,9 +44,9 @@ public sealed class WorkspaceLifecycleIntegrationTests
     [Fact]
     public async Task GIVEN_AnotherLiveServerInstance_WHEN_OpeningAndQueryingStatus_THEN_ShouldSurfaceItsAdvisoryState()
     {
-        await using var fixture = await TestWorkspaceFixture.CreateAsync();
-        await using var firstStateDirectory = TemporaryDirectory.Create("roslyn-workbench-mcp-state-tests");
-        await using var secondStateDirectory = TemporaryDirectory.Create("roslyn-workbench-mcp-state-tests");
+        using var fixture = TestWorkspaceFixture.Create();
+        using var firstStateDirectory = TemporaryDirectory.Create("roslyn-workbench-mcp-state-tests");
+        using var secondStateDirectory = TemporaryDirectory.Create("roslyn-workbench-mcp-state-tests");
         await using var first = ComponentWorkspace.Create(new ComponentWorkspaceOptions
         {
             StateDirectory = firstStateDirectory.DirectoryPath,
@@ -96,8 +96,8 @@ public sealed class WorkspaceLifecycleIntegrationTests
     [Fact]
     public async Task GIVEN_TwoOpenedWorkspaces_WHEN_ListingAndGettingStatus_THEN_ShouldRequireExplicitSelection()
     {
-        await using var fixtureA = await TestWorkspaceFixture.CreateAsync();
-        await using var fixtureB = await TestWorkspaceFixture.CreateAsync();
+        using var fixtureA = TestWorkspaceFixture.Create();
+        using var fixtureB = TestWorkspaceFixture.Create();
         await using var target = fixtureA.CreateWorkspace();
 
         var openA = await target.OpenAsync(
@@ -128,7 +128,7 @@ public sealed class WorkspaceLifecycleIntegrationTests
     [Fact]
     public async Task GIVEN_NonSdkStyleProject_WHEN_OpeningWorkspace_THEN_ShouldRejectRequest()
     {
-        await using var fixture = await TestWorkspaceFixture.CreateLegacyProjectAsync();
+        using var fixture = TestWorkspaceFixture.CreateLegacyProject();
         await using var target = fixture.CreateWorkspace();
 
         var result = await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
@@ -140,7 +140,7 @@ public sealed class WorkspaceLifecycleIntegrationTests
     [Fact]
     public async Task GIVEN_MalformedProject_WHEN_OpeningWorkspace_THEN_ShouldReturnStructuredLoadDiagnostics()
     {
-        await using var fixture = await TestWorkspaceFixture.CreateMalformedProjectAsync();
+        using var fixture = TestWorkspaceFixture.CreateMalformedProject();
         await using var target = fixture.CreateWorkspace();
 
         var result = await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
@@ -154,8 +154,8 @@ public sealed class WorkspaceLifecycleIntegrationTests
     [Fact]
     public async Task GIVEN_UnresolvedRecoveryState_WHEN_OpeningWorkspace_THEN_ShouldRejectRequest()
     {
-        await using var fixture = await TestWorkspaceFixture.CreateAsync();
-        await using var stateDirectory = TemporaryDirectory.Create("roslyn-workbench-mcp-recovery-tests");
+        using var fixture = TestWorkspaceFixture.Create();
+        using var stateDirectory = TemporaryDirectory.Create("roslyn-workbench-mcp-recovery-tests");
         var fileSystem = new FileSystem();
         var recoveryStore = new CommitRecoveryStore(
             Options.Create(new WorkspaceCoordinatorOptions { StateDirectory = stateDirectory.DirectoryPath }),

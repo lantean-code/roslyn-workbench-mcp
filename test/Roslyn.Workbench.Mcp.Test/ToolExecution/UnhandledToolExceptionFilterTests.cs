@@ -10,6 +10,7 @@ public sealed class UnhandledToolExceptionFilterTests
     public UnhandledToolExceptionFilterTests()
     {
         _logger = new Mock<ILogger<UnhandledToolExceptionFilter>>();
+        _logger.Setup(item => item.IsEnabled(LogLevel.Error)).Returns(true);
         _target = new UnhandledToolExceptionFilter(_logger.Object);
     }
 

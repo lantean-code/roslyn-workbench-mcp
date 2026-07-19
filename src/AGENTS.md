@@ -66,6 +66,7 @@
 - Do not throw an exception locally only for a caller or enclosing `catch` to translate it into an expected result. Accumulating validation should return all applicable diagnostics instead of throwing on the first finding.
 - Exceptions remain appropriate for violated internal invariants, impossible states, cancellation, unsupported platforms, unexpected failures, and framework or operating-system APIs whose only failure channel is an exception. Boundary code may catch and translate those genuine exceptions, but the exception must not be the designed success/failure discriminator for a routine workflow.
 - Do not use fire-and-forget tasks (`async void`, discarded `Task`/`ValueTask`, or background work without explicit lifecycle management).
+- When application logging is necessary, use source-generated `LoggerMessage` methods instead of `LoggerExtensions.Log*` calls. Assign a stable event ID and log level, use named structured placeholders rather than interpolated strings, and pass exceptions through the generated method's `Exception` parameter when applicable. The partial type and method declarations required by the logging source generator are an approved use of partial code.
 - Prefer immutable contract objects where it keeps request/response semantics clear.
 - Avoid hidden ambient state. Pass required collaborators explicitly.
 

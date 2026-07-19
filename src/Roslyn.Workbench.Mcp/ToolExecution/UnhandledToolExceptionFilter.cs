@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Roslyn.Workbench.Mcp.ToolExecution;
 
-internal sealed class UnhandledToolExceptionFilter
+internal sealed partial class UnhandledToolExceptionFilter
 {
     private readonly ILogger<UnhandledToolExceptionFilter> _logger;
 
@@ -31,11 +31,11 @@ internal sealed class UnhandledToolExceptionFilter
         catch (Exception exception)
         {
             var correlationId = Guid.NewGuid().ToString("n");
-            _logger.LogError(
-                exception,
-                "Unhandled exception while executing MCP tool {ToolName}. Correlation ID: {CorrelationId}",
+            LogUnhandledToolException(
+                _logger,
                 context.Params.Name,
-                correlationId);
+                correlationId,
+                exception);
 
             return new CallToolResult
             {
@@ -45,4 +45,14 @@ internal sealed class UnhandledToolExceptionFilter
             };
         }
     }
+
+    [LoggerMessage(
+        EventId = 1,
+        Level = LogLevel.Error,
+        Message = "Unhandled exception while executing MCP tool {ToolName}. Correlation ID: {CorrelationId}")]
+    private static partial void LogUnhandledToolException(
+        ILogger logger,
+        string toolName,
+        string correlationId,
+        Exception exception);
 }

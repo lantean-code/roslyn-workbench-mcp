@@ -1,6 +1,6 @@
 namespace Roslyn.Workbench.Mcp.Configuration;
 
-internal sealed class StartupConfigurationReporter : IHostedService
+internal sealed partial class StartupConfigurationReporter : IHostedService
 {
     private readonly StartupConfigurationSnapshot _configuration;
     private readonly ILogger<StartupConfigurationReporter> _logger;
@@ -19,7 +19,7 @@ internal sealed class StartupConfigurationReporter : IHostedService
 
         foreach (var warning in _configuration.Warnings)
         {
-            _logger.LogWarning("Startup configuration warning {WarningCode}: {WarningMessage}", warning.Code, warning.Message);
+            LogConfigurationWarning(_logger, warning.Code, warning.Message);
         }
 
         return Task.CompletedTask;
@@ -29,4 +29,13 @@ internal sealed class StartupConfigurationReporter : IHostedService
     {
         return Task.CompletedTask;
     }
+
+    [LoggerMessage(
+        EventId = 1,
+        Level = LogLevel.Warning,
+        Message = "Startup configuration warning {WarningCode}: {WarningMessage}")]
+    private static partial void LogConfigurationWarning(
+        ILogger logger,
+        string warningCode,
+        string warningMessage);
 }

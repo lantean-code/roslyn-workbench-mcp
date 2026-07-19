@@ -8,6 +8,7 @@ public sealed class StartupConfigurationReporterTests
     public async Task GIVEN_ConfigurationWarning_WHEN_Starting_THEN_ShouldLogWarning()
     {
         var logger = new Mock<ILogger<StartupConfigurationReporter>>();
+        logger.Setup(item => item.IsEnabled(LogLevel.Warning)).Returns(true);
         var target = new StartupConfigurationReporter(
             new StartupConfigurationSnapshot
             {

@@ -30,11 +30,11 @@ The clean baseline build succeeded with zero compiler errors.
 
 | Measure | Baseline | Remaining |
 | --- | ---: | ---: |
-| Analyzer findings | 2,228 | 229 |
-| Diagnostic IDs | 33 | 13 |
-| Files | 379 | 119 |
+| Analyzer findings | 2,228 | 227 |
+| Diagnostic IDs | 33 | 12 |
+| Files | 379 | 117 |
 | Projects | 23 | 23 |
-| Production findings | 154 | 91 |
+| Production findings | 154 | 89 |
 | Test and fixture findings | 2,074 | 138 |
 
 The remaining counts come from the latest successful solution-wide analyzer build. Resolved diagnostics are excluded from the active inventory and recorded separately below.
@@ -55,7 +55,6 @@ Of the six IDE findings that triggered this audit for `GetCodeContextTool`, the 
 | `CA1711` | Type names should not use suffixes that imply a different kind of type | 2 | 1 | 1 | Review established contract names before renaming | Design/API |
 | `CA1802` | A readonly field holding a compile-time value can be a constant | 1 | 0 | 1 | Use a constant where it does not weaken the test scenario | Performance |
 | `CA1822` | An instance member that uses no instance state can be static | 6 | 0 | 6 | Make helpers static where test clarity is unchanged | Performance |
-| `CA1848` | High-performance logging should use cached `LoggerMessage` delegates | 2 | 2 | 0 | Replace hot logging calls with cached `LoggerMessage` delegates | Performance |
 | `CA1859` | Private code can use a concrete type when abstraction adds overhead without flexibility | 48 | 33 | 15 | Apply concrete types only to private hot paths, not public contracts | Performance |
 | `CA1861` | Repeated constant array arguments allocate a new array on every call | 10 | 0 | 10 | Cache repeated constant arrays where worthwhile | Performance |
 | `CA1869` | Repeatedly constructing `JsonSerializerOptions` prevents caching and adds overhead | 11 | 0 | 11 | Reuse immutable serializer options in test infrastructure | Performance |
@@ -78,6 +77,7 @@ Of the six IDE findings that triggered this audit for `GetCodeContextTool`, the 
 | `CA1707` | 1,462 | Suppressed for `IsTestProject` builds because GIVEN/WHEN/THEN names are mandated |
 | `CA1812` | 33 | Audited every finding and added source-local pragma scopes around eight fixture groups used through reflection, DI, closed-generic registration, schema metadata or deliberate activation failures; no dead types were found |
 | `CA1819` | 1 | Suppressed for test and plugin-fixture builds because the mutable array contract is an intentional negative contract-inspection scenario |
+| `CA1848` | 2 | Replaced the Host's startup-warning and unhandled-tool-exception extension calls with source-generated `LoggerMessage` methods while preserving structured fields and exception details |
 | `CA1849` | 42 | Replaced ordinary synchronous operations with asynchronous alternatives, removed fake asynchronous creation and disposal from the synchronous test-fixture ownership chain, and retained narrowly documented durable disk flushes |
 | `CA2000` | 5 | Disposed server and workspace test resources and documented the Roslyn wrapper's explicit workspace-ownership transfer |
 | `CA2007` | 298 | Suppressed solution-wide because all repository code executes within a console-hosted application without a synchronization context; existing `ConfigureAwait(false)` calls were removed and prohibited by agent guidance |
@@ -90,7 +90,7 @@ Of the six IDE findings that triggered this audit for `GetCodeContextTool`, the 
 
 | Project | Remaining | IDs | Files |
 | --- | ---: | ---: | ---: |
-| `src/Roslyn.Workbench.Mcp` | 48 | 5 | 40 |
+| `src/Roslyn.Workbench.Mcp` | 46 | 4 | 38 |
 | `src/Roslyn.Workbench.Mcp.CodeActions` | 8 | 3 | 3 |
 | `src/Roslyn.Workbench.Mcp.Plugins` | 10 | 4 | 5 |
 | `src/Roslyn.Workbench.Mcp.Plugins.Core` | 16 | 4 | 8 |
@@ -118,7 +118,7 @@ Of the six IDE findings that triggered this audit for `GetCodeContextTool`, the 
 
 Use cohesive batches and rerun the full analyzer baseline after each batch. Do not mix unrelated analyzer cleanup with performance measurements.
 
-1. Address production performance findings using measurements where a suggestion changes abstractions: `CA1848` and `CA1859`.
+1. Address production `CA1859` findings using measurements where a suggestion changes abstractions.
 2. Review design/API findings individually. Do not rename public contracts, remove discovery types or change collection shapes solely to satisfy an analyzer.
 3. Clean up remaining test-only performance and assertion findings after production remediation is stable.
 

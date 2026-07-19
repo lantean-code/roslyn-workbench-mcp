@@ -48,11 +48,34 @@ repair stale selectors, transaction conflicts or unavailable workspace state.
 ## Bounded collections
 
 Collection-returning tools expose named result limits and return deterministic
-bounded collections with `hasMore`. The Host baseline is configured through
-`DefaultMaxResults`, while each tool owns sensible logical and shape limits.
-There is no global serialised byte ceiling.
+bounded collections with `hasMore`. Each tool publishes its curated default in
+the input schema and uses that same value when the limit is omitted. The Host's
+`DefaultMaxResults` remains available to third-party plugins as a compatibility
+baseline, but does not override the bundled tools' declared defaults. There is
+no global serialised byte ceiling.
 
 When `hasMore` is true, an agent may request a larger collection if the extra
 context is useful or narrow the workspace scope, selector or filter. A larger
 request recomputes the deterministic result from the beginning; there are no
 generic cursors or continuation tokens.
+
+Bundled collection defaults are curated by result shape and expected cost:
+
+- 16 results: base types;
+- 25 results: dependency cycles and duplicate-code groups;
+- 32 results: partial declarations;
+- 50 results: async, disposable, nullability and unused-symbol findings,
+  overloads, attributes, project references and analyzers;
+- 64 results: implemented interfaces;
+- 100 results: symbol searches, API symbols, metrics, callers, callees,
+  references, implementations, overrides, derived types, hierarchy-derived
+  types, dependencies, dependents, members, change-impact locations, tests,
+  projects and metadata references;
+- 200 results: diagnostics, project documents, solution folders and dependency
+  graph nodes; and
+- 400 results: dependency graph edges.
+
+Other bounded numeric inputs also publish their effective defaults: hierarchy
+depth is 3, code-context windows are 10 lines on each side, transaction diff
+context is 3 lines, and fix-all is capped at 50 changed source documents unless
+the caller supplies another value.

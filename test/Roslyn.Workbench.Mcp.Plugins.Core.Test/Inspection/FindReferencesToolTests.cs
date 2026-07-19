@@ -185,13 +185,19 @@ public sealed class FindReferencesToolTests
             Symbol = new SymbolSelector(),
             IncludeDefinitions = false,
             IncludeContext = false,
+            ReferencesLimit = 1,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.References.Items.Should().NotContain(item => item.IsDefinition);
-        result.Data.References.Items.Select(item => item.Location!.Document!.Path).Should().Equal("Usage.cs", "Usage.cs");
-        result.Data.References.Items.Select(item => item.IsWrite).Should().Equal(false, true);
+        result.Data.References.Items.Select(item => item.Location!.Document!.Path).Should().Equal("Usage.cs");
+        result.Data.References.Items.Select(item => item.IsWrite).Should().Equal(false);
+        result.Data.References.HasMore.Should().BeTrue();
         result.Data.References.Items.All(item => item.Context is null).Should().BeTrue();
+        inspectionContextService.Verify(item => item.TryCreateContainingSymbolAsync(
+            It.IsAny<Document>(),
+            It.IsAny<int>(),
+            It.IsAny<CancellationToken>()), Times.Once);
         inspectionContextService.Verify(item => item.ReadContextAsync(
             It.IsAny<Document>(),
             It.IsAny<TextSpan>(),
@@ -199,7 +205,7 @@ public sealed class FindReferencesToolTests
     }
 
     [Fact]
-    public async Task GIVEN_IncludeDefinitionsAndContextAreTrueAndReferenceLocationCannotBeResolved_WHEN_CallingExecuteAsync_THEN_ShouldReturnDefinitionsAndFilteredReferences()
+    public async Task GIVEN_IncludeDefinitionsAndSomeLocationsCannotBeResolved_WHEN_CallingExecuteAsync_THEN_ShouldReturnOnlyResolvedReferences()
     {
         using var solution = RoslynTestFactory.CreateSolution(
         [
@@ -232,6 +238,11 @@ public sealed class FindReferencesToolTests
                                 {
                                     return holder.Current;
                                 }
+
+                                int ReadAgain(StateHolder holder)
+                                {
+                                    return holder.Current;
+                                }
                             }
                             """,
                     },
@@ -247,10 +258,13 @@ public sealed class FindReferencesToolTests
             "Current",
             TestContext.Current.CancellationToken);
         var usageDocument = solution.GetDocument("Usage.cs");
-        var locationToSkip = (await RoslynDocumentTestHelper.GetSingleNodeLocationAsync(
-            usageDocument,
-            static (IdentifierNameSyntax item) => item.Identifier.ValueText == "Current",
-            TestContext.Current.CancellationToken)).SourceSpan.Start;
+        var usageRoot = await usageDocument.GetSyntaxRootAsync(TestContext.Current.CancellationToken)
+            ?? throw new InvalidOperationException("The test document must have a syntax root.");
+        var locationToSkip = usageRoot.DescendantNodes()
+            .OfType<IdentifierNameSyntax>()
+            .Where(static item => item.Identifier.ValueText == "Current")
+            .Select(static item => item.SpanStart)
+            .Last();
 
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
@@ -281,7 +295,9 @@ public sealed class FindReferencesToolTests
             });
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
-            .Returns<Location>(item => item.SourceSpan.Start == locationToSkip ? null : SelectorTestFactory.CreateResolvedLocation(item, Path.GetFileName(item.SourceTree!.FilePath!)));
+            .Returns<Location>(item => Path.GetFileName(item.SourceTree?.FilePath) == "StateHolder.cs" || item.SourceSpan.Start == locationToSkip
+                ? null
+                : SelectorTestFactory.CreateResolvedLocation(item, Path.GetFileName(item.SourceTree!.FilePath!)));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -294,8 +310,8 @@ public sealed class FindReferencesToolTests
         inspectionContextService
             .Setup(item => item.ReadContextAsync(
                 It.IsAny<Document>(),
-            It.IsAny<Microsoft.CodeAnalysis.Text.TextSpan>(),
-            It.IsAny<CancellationToken>()))
+                It.IsAny<Microsoft.CodeAnalysis.Text.TextSpan>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync("return holder.Current;");
 
         var result = await target.ExecuteAsync(new FindReferencesRequest
@@ -306,8 +322,31 @@ public sealed class FindReferencesToolTests
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
-        result.Data!.References.Items.Should().Contain(item => item.IsDefinition);
-        result.Data.References.Items.Count(item => !item.IsDefinition).Should().Be(0);
+        result.Data!.References.Items.Should().NotContain(item => item.IsDefinition);
+        result.Data.References.Items.Count(item => !item.IsDefinition).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GIVEN_ReferenceIsAssignment_WHEN_CallingExecuteAsync_THEN_ShouldClassifyReferenceAsWrite()
+    {
+        await AssertWriteClassificationAsync("""
+            class StateHolder
+            {
+                public int Current
+                {
+                    get;
+                    set;
+                }
+            }
+
+            class Usage
+            {
+                void Update(StateHolder holder, int value)
+                {
+                    holder.Current = value;
+                }
+            }
+            """, "holder.Current = value;");
     }
 
     [Fact]

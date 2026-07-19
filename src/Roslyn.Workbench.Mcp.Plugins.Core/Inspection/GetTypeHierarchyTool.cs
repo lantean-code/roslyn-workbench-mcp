@@ -7,6 +7,11 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
 {
     protected override async ValueTask<PluginExecutionResult<TypeHierarchyData>> ExecuteCoreAsync(GetTypeHierarchyRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
+        if (request.MaxDepth < 1)
+        {
+            return ToolExecutionHelpers.Rejected<TypeHierarchyData>("InvalidRequest", "MaxDepth must be at least 1.");
+        }
+
         var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<TypeHierarchyData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken);
         if (symbolResolution.HasRejection)
         {
@@ -19,7 +24,7 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
         }
 
         var baseTypes = new List<SymbolReference>();
-        for (var current = namedType.BaseType; current is not null; current = current.BaseType)
+        for (var current = namedType.BaseType; current is not null && baseTypes.Count < request.MaxDepth; current = current.BaseType)
         {
             baseTypes.Add(context.WorkspaceResolver.CreateSymbolReference(current));
         }
@@ -36,10 +41,11 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
                     Type = context.WorkspaceResolver.CreateSymbolReference(symbol),
                     Depth = GetTypeDepth(symbol, namedType),
                 })
+                .Where(node => node.Depth <= request.MaxDepth)
                 .ToArray();
             derivedTypes = ToolExecutionHelpers.CreateBoundedCollection(
                 derived,
-                ToolExecutionHelpers.GetMaxResults(context, request.DerivedTypesLimit));
+                ToolExecutionHelpers.GetMaxResults(request.DerivedTypesLimit, GetTypeHierarchyRequest._defaultDerivedTypesMaxResults));
         }
 
         return PluginExecutionResult<TypeHierarchyData>.Success(new TypeHierarchyData
@@ -47,13 +53,13 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
             Type = context.WorkspaceResolver.CreateSymbolReference(namedType),
             BaseTypes = ToolExecutionHelpers.CreateBoundedCollection(
                 baseTypes,
-                ToolExecutionHelpers.GetMaxResults(context, request.BaseTypesLimit)),
+                ToolExecutionHelpers.GetMaxResults(request.BaseTypesLimit, GetTypeHierarchyRequest._defaultBaseTypesMaxResults)),
             Interfaces = ToolExecutionHelpers.CreateBoundedCollection(
                 namedType.AllInterfaces
                     .OrderBy(static item => item.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat), StringComparer.Ordinal)
                     .Select(context.WorkspaceResolver.CreateSymbolReference)
                     .ToArray(),
-                ToolExecutionHelpers.GetMaxResults(context, request.InterfacesLimit)),
+                ToolExecutionHelpers.GetMaxResults(request.InterfacesLimit, GetTypeHierarchyRequest._defaultInterfacesMaxResults)),
             DerivedTypes = derivedTypes,
         });
     }

@@ -5,6 +5,8 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record GetPartialDeclarationsRequest : WorkspaceBoundRequest
 {
+    internal const int _defaultDeclarationsMaxResults = 32;
+
     /// <summary>
     /// Gets the symbol selector.
     /// </summary>
@@ -13,7 +15,8 @@ public sealed record GetPartialDeclarationsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
-    public CollectionLimit? DeclarationsLimit { get; init; }
+    [DefaultValue(_defaultDeclarationsMaxResults)]
+    public int? DeclarationsLimit { get; init; } = _defaultDeclarationsMaxResults;
 
     /// <summary>
     /// Gets the expected snapshot for location-based symbol selectors.

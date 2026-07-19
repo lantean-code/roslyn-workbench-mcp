@@ -29,51 +29,74 @@ internal sealed class GetChangeImpactTool : QueryToolHandler<GetChangeImpactRequ
             return projects.Rejection;
         }
 
-        var referencedSymbols = await SymbolFinder.FindReferencesAsync(symbol, context.CurrentSolution, documents.Value.ToImmutableHashSet(), cancellationToken);
-        var locations = new List<ContractReferenceLocation>();
+        var documentSet = documents.Value.ToImmutableHashSet();
+        var projectSet = projects.Value.ToImmutableHashSet();
+        var referencedSymbols = await SymbolFinder.FindReferencesAsync(symbol, context.CurrentSolution, documentSet, cancellationToken);
+        var pendingReferences = new List<PendingReference>();
 
         foreach (var referencedSymbol in referencedSymbols)
         {
-            foreach (var reference in referencedSymbol.Locations.Where(static item => item.Location.IsInSource))
+            foreach (var reference in referencedSymbol.Locations)
             {
-                var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(reference.Location);
-                if (resolvedLocation is null)
+                if (!reference.Location.IsInSource
+                    || context.WorkspaceResolver.CreateResolvedLocation(reference.Location) is not { } resolvedLocation)
                 {
                     continue;
                 }
 
-                var containingSymbol = reference.Document is null
-                    ? null
-                    : await GetEnclosingSymbolAsync(reference.Document, reference.Location.SourceSpan.Start, cancellationToken);
-                var contextLine = await context.ToolExecutionServices.InspectionContextService.ReadContextAsync(reference.Document, reference.Location.SourceSpan, cancellationToken);
-
-                locations.Add(new ContractReferenceLocation
+                pendingReferences.Add(new PendingReference
                 {
                     Location = resolvedLocation,
-                    ContainingSymbol = containingSymbol is null ? null : context.WorkspaceResolver.CreateSymbolReference(containingSymbol),
-                    Context = contextLine,
+                    Reference = reference,
                 });
             }
         }
 
-        var referenceCount = locations.Count;
-        var callerCount = symbol is IMethodSymbol
-            ? (await SymbolFinder.FindCallersAsync(symbol, context.CurrentSolution, documents.Value.ToImmutableHashSet(), cancellationToken)).Count()
-            : 0;
-        var overrideCount = symbol is IMethodSymbol or IPropertySymbol or IEventSymbol
-            ? (await SymbolFinder.FindOverridesAsync(symbol, context.CurrentSolution, projects.Value.ToImmutableHashSet(), cancellationToken)).Distinct(SymbolEqualityComparer.Default).Count()
-            : 0;
-        var implementationCount = symbol switch
+        var referenceCount = pendingReferences.Count;
+        var callerCount = 0;
+        if (symbol is IMethodSymbol)
         {
-            INamedTypeSymbol namedTypeSymbol when namedTypeSymbol.TypeKind == TypeKind.Interface
-                => (await SymbolFinder.FindImplementationsAsync(namedTypeSymbol, context.CurrentSolution, projects.Value.ToImmutableHashSet(), cancellationToken)).Distinct(SymbolEqualityComparer.Default).Count(),
-            _ => 0,
-        };
+            var callers = await SymbolFinder.FindCallersAsync(symbol, context.CurrentSolution, documentSet, cancellationToken);
+            callerCount = callers.Count();
+        }
 
-        var orderedLocations = locations
-            .OrderBy(static location => location.Location?.Document?.Path, StringComparer.Ordinal)
-            .ThenBy(static location => location.Location?.Span?.Start)
+        var overrideCount = 0;
+        if (symbol is IMethodSymbol or IPropertySymbol or IEventSymbol)
+        {
+            var overrides = await SymbolFinder.FindOverridesAsync(symbol, context.CurrentSolution, projectSet, cancellationToken);
+            overrideCount = overrides.Distinct(SymbolEqualityComparer.Default).Count();
+        }
+
+        var implementationCount = 0;
+        if (symbol is INamedTypeSymbol { TypeKind: TypeKind.Interface } namedTypeSymbol)
+        {
+            var implementations = await SymbolFinder.FindImplementationsAsync(namedTypeSymbol, context.CurrentSolution, projectSet, cancellationToken);
+            implementationCount = implementations.Distinct(SymbolEqualityComparer.Default).Count();
+        }
+
+        var maxResults = ToolExecutionHelpers.GetMaxResults(request.LocationsLimit, GetChangeImpactRequest._defaultLocationsMaxResults);
+        var selectedReferences = pendingReferences
+            .OrderBy(static reference => reference.Location.Document?.Path, StringComparer.Ordinal)
+            .ThenBy(static reference => reference.Location.Span?.Start)
+            .Take(maxResults)
             .ToArray();
+        var locations = new List<ContractReferenceLocation>(selectedReferences.Length);
+        foreach (var pendingReference in selectedReferences)
+        {
+            var reference = pendingReference.Reference;
+            var containingSymbol = reference.Document is null
+                ? null
+                : await GetEnclosingSymbolAsync(reference.Document, reference.Location.SourceSpan.Start, cancellationToken);
+            var contextLine = await context.ToolExecutionServices.InspectionContextService.ReadContextAsync(reference.Document, reference.Location.SourceSpan, cancellationToken);
+
+            locations.Add(new ContractReferenceLocation
+            {
+                Location = pendingReference.Location,
+                ContainingSymbol = containingSymbol is null ? null : context.WorkspaceResolver.CreateSymbolReference(containingSymbol),
+                Context = contextLine,
+            });
+        }
+
         var impact = new ImpactSummary
         {
             ReferenceCount = referenceCount,
@@ -87,9 +110,9 @@ internal sealed class GetChangeImpactTool : QueryToolHandler<GetChangeImpactRequ
         {
             Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
             Impact = impact,
-            Locations = ToolExecutionHelpers.CreateBoundedCollection(
-                orderedLocations,
-                ToolExecutionHelpers.GetMaxResults(context, request.LocationsLimit)),
+            Locations = ToolExecutionHelpers.CreatePreboundedCollection(
+                locations,
+                pendingReferences.Count > maxResults),
         });
     }
 
@@ -105,5 +128,12 @@ internal sealed class GetChangeImpactTool : QueryToolHandler<GetChangeImpactRequ
     {
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
         return semanticModel?.GetEnclosingSymbol(position, cancellationToken);
+    }
+
+    private readonly record struct PendingReference
+    {
+        public required Microsoft.CodeAnalysis.FindSymbols.ReferenceLocation Reference { get; init; }
+
+        public required ResolvedLocation Location { get; init; }
     }
 }

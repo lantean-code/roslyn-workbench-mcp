@@ -27,87 +27,115 @@ internal sealed class FindReferencesTool : QueryToolHandler<FindReferencesReques
                 context.CurrentSolution,
                 documents.Value.ToImmutableHashSet(),
                 cancellationToken);
-        var references = new List<ContractReferenceLocation>();
+        var pendingReferences = new List<PendingReference>();
 
         foreach (var referencedSymbol in referencedSymbols)
         {
             if (request.IncludeDefinitions)
             {
-                references.AddRange(referencedSymbol.Definition.Locations
-                    .Where(static location => location.IsInSource)
-                    .Select(location => new ContractReferenceLocation
+                foreach (var definitionLocation in referencedSymbol.Definition.Locations)
+                {
+                    if (!definitionLocation.IsInSource
+                        || context.WorkspaceResolver.CreateResolvedLocation(definitionLocation) is not { } resolvedLocation)
                     {
-                        Location = context.WorkspaceResolver.CreateResolvedLocation(location),
-                        ContainingSymbol = context.WorkspaceResolver.CreateSymbolReference(referencedSymbol.Definition),
+                        continue;
+                    }
+
+                    pendingReferences.Add(new PendingReference
+                    {
+                        Location = definitionLocation,
+                        ResolvedLocation = resolvedLocation,
+                        DefinitionSymbol = referencedSymbol.Definition,
                         IsDefinition = true,
-                    })
-                    .Where(static location => location.Location is not null));
+                    });
+                }
             }
 
-            var referenceEntries = referencedSymbol.Locations
-                .Where(static reference => reference.Location.IsInSource)
-                .ToArray();
-
-            foreach (var reference in referenceEntries)
+            foreach (var reference in referencedSymbol.Locations)
             {
-                var containingSymbol = reference.Document is null
-                    ? null
-                    : await context.ToolExecutionServices.InspectionContextService.TryCreateContainingSymbolAsync(reference.Document, reference.Location.SourceSpan.Start, cancellationToken);
-                var contextLine = request.IncludeContext
-                    ? await context.ToolExecutionServices.InspectionContextService.ReadContextAsync(reference.Document, reference.Location.SourceSpan, cancellationToken)
-                    : null;
-
-                var location = context.WorkspaceResolver.CreateResolvedLocation(reference.Location);
-                if (location is null)
+                if (!reference.Location.IsInSource
+                    || context.WorkspaceResolver.CreateResolvedLocation(reference.Location) is not { } resolvedLocation)
                 {
                     continue;
                 }
 
-                references.Add(new ContractReferenceLocation
+                pendingReferences.Add(new PendingReference
                 {
-                    Location = location,
-                    ContainingSymbol = containingSymbol is null ? null : context.WorkspaceResolver.CreateSymbolReference(containingSymbol),
-                    IsWrite = await IsWriteReferenceAsync(reference, cancellationToken),
-                    Context = contextLine,
+                    Location = reference.Location,
+                    ResolvedLocation = resolvedLocation,
+                    DefinitionSymbol = referencedSymbol.Definition,
+                    Document = reference.Document,
                 });
             }
         }
 
-        var orderedReferences = references
-            .OrderBy(static reference => reference.Location?.Document?.Path, StringComparer.Ordinal)
-            .ThenBy(static reference => reference.Location?.Span?.Start)
+        var maxResults = ToolExecutionHelpers.GetMaxResults(request.ReferencesLimit, FindReferencesRequest._defaultReferencesMaxResults);
+        var selectedReferences = pendingReferences
+            .OrderBy(static reference => reference.ResolvedLocation.Document?.Path, StringComparer.Ordinal)
+            .ThenBy(static reference => reference.ResolvedLocation.Span?.Start)
+            .Take(maxResults)
             .ToArray();
+        var references = new List<ContractReferenceLocation>(selectedReferences.Length);
+        foreach (var pendingReference in selectedReferences)
+        {
+            if (pendingReference.IsDefinition)
+            {
+                references.Add(new ContractReferenceLocation
+                {
+                    Location = pendingReference.ResolvedLocation,
+                    ContainingSymbol = context.WorkspaceResolver.CreateSymbolReference(pendingReference.DefinitionSymbol),
+                    IsDefinition = true,
+                });
+                continue;
+            }
+
+            var containingSymbol = pendingReference.Document is null
+                ? null
+                : await context.ToolExecutionServices.InspectionContextService.TryCreateContainingSymbolAsync(pendingReference.Document, pendingReference.Location.SourceSpan.Start, cancellationToken);
+            var contextLine = request.IncludeContext
+                ? await context.ToolExecutionServices.InspectionContextService.ReadContextAsync(pendingReference.Document, pendingReference.Location.SourceSpan, cancellationToken)
+                : null;
+
+            references.Add(new ContractReferenceLocation
+            {
+                Location = pendingReference.ResolvedLocation,
+                ContainingSymbol = containingSymbol is null ? null : context.WorkspaceResolver.CreateSymbolReference(containingSymbol),
+                IsWrite = await IsWriteReferenceAsync(pendingReference.Document, pendingReference.Location, cancellationToken),
+                Context = contextLine,
+            });
+        }
+
         var symbolReference = context.WorkspaceResolver.CreateSymbolReference(symbol);
 
         return PluginExecutionResult<ReferenceSearchData>.Success(new ReferenceSearchData
         {
             Symbol = symbolReference,
-            References = ToolExecutionHelpers.CreateBoundedCollection(
-                orderedReferences,
-                ToolExecutionHelpers.GetMaxResults(context, request.ReferencesLimit)),
+            References = ToolExecutionHelpers.CreatePreboundedCollection(
+                references,
+                pendingReferences.Count > maxResults),
         });
     }
 
-    private static async ValueTask<bool> IsWriteReferenceAsync(Microsoft.CodeAnalysis.FindSymbols.ReferenceLocation reference, CancellationToken cancellationToken)
+    private static async ValueTask<bool> IsWriteReferenceAsync(Document? document, Location location, CancellationToken cancellationToken)
     {
-        if (reference.Document is null)
+        if (document is null)
         {
             return false;
         }
 
-        var syntaxRoot = await reference.Document.GetSyntaxRootAsync(cancellationToken);
+        var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
         if (syntaxRoot is null)
         {
             return false;
         }
 
-        var node = syntaxRoot.FindNode(reference.Location.SourceSpan, getInnermostNodeForTie: true);
+        var node = syntaxRoot.FindNode(location.SourceSpan, getInnermostNodeForTie: true);
         for (SyntaxNode? current = node; current is not null; current = current.Parent)
         {
             switch (current)
             {
                 case AssignmentExpressionSyntax assignmentExpressionSyntax
-                    when assignmentExpressionSyntax.Left.Span.Contains(reference.Location.SourceSpan):
+                    when assignmentExpressionSyntax.Left.Span.Contains(location.SourceSpan):
                     return true;
 
                 case PrefixUnaryExpressionSyntax prefixUnaryExpressionSyntax
@@ -128,5 +156,18 @@ internal sealed class FindReferencesTool : QueryToolHandler<FindReferencesReques
         }
 
         return false;
+    }
+
+    private readonly record struct PendingReference
+    {
+        public required Location Location { get; init; }
+
+        public required ResolvedLocation ResolvedLocation { get; init; }
+
+        public required ISymbol DefinitionSymbol { get; init; }
+
+        public Document? Document { get; init; }
+
+        public bool IsDefinition { get; init; }
     }
 }

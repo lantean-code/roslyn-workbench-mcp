@@ -33,7 +33,7 @@ internal sealed class FindDependencyCyclesTool : QueryToolHandler<FindDependency
         {
             Cycles = ToolExecutionHelpers.CreateBoundedCollection(
                 cycles,
-                ToolExecutionHelpers.GetMaxResults(context, request.CyclesLimit)),
+                ToolExecutionHelpers.GetMaxResults(request.CyclesLimit, FindDependencyCyclesRequest._defaultCyclesMaxResults)),
         });
     }
 }

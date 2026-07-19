@@ -3,6 +3,25 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class FindDerivedTypesToolTests
 {
     [Fact]
+    public async Task GIVEN_MaxDepthIsLessThanOne_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequestResult()
+    {
+        var target = new FindDerivedTypesTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+
+        var result = await target.ExecuteAsync(new FindDerivedTypesRequest
+        {
+            MaxDepth = 0,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
+        {
+            Code = "InvalidRequest",
+            Message = "MaxDepth must be at least 1.",
+        });
+    }
+
+    [Fact]
     public async Task GIVEN_ResolveSymbolHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var target = new FindDerivedTypesTool();
@@ -204,6 +223,15 @@ public sealed class FindDerivedTypesToolTests
         result.Data!.BaseType!.DisplayName.Should().Be("BaseType");
         result.Data.DerivedTypes.Items.Select(item => item.Type!.DisplayName).Should().Equal("AlphaDerived", "NestedDerived", "ZDerived");
         result.Data.DerivedTypes.Items.Select(item => item.Depth).Should().Equal(1, 2, 1);
+
+        var boundedResult = await target.ExecuteAsync(new FindDerivedTypesRequest
+        {
+            Symbol = new SymbolSelector(),
+            MaxDepth = 1,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        boundedResult.Data!.DerivedTypes.Items.Select(item => item.Type!.DisplayName).Should().Equal("AlphaDerived", "ZDerived");
+        boundedResult.Data.DerivedTypes.Items.Select(item => item.Depth).Should().Equal(1, 1);
     }
 
     [Fact]

@@ -5,6 +5,11 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record GetTypeHierarchyRequest : WorkspaceBoundRequest
 {
+    internal const int _defaultBaseTypesMaxResults = 16;
+    internal const int _defaultDerivedTypesMaxResults = 100;
+    internal const int _defaultInterfacesMaxResults = 64;
+    internal const int _defaultMaxDepth = 3;
+
     /// <summary>
     /// Gets the symbol selector.
     /// </summary>
@@ -16,24 +21,28 @@ public sealed record GetTypeHierarchyRequest : WorkspaceBoundRequest
     public bool IncludeDerived { get; init; } = true;
 
     /// <summary>
-    /// Gets the optional maximum traversal depth.
+    /// Gets the maximum base-type and derived-type traversal depth. Direct relationships are at depth one.
     /// </summary>
-    public int? MaxDepth { get; init; }
+    [DefaultValue(_defaultMaxDepth)]
+    public int MaxDepth { get; init; } = _defaultMaxDepth;
 
     /// <summary>
     /// Gets the optional base types limit.
     /// </summary>
-    public CollectionLimit? BaseTypesLimit { get; init; }
+    [DefaultValue(_defaultBaseTypesMaxResults)]
+    public int? BaseTypesLimit { get; init; } = _defaultBaseTypesMaxResults;
 
     /// <summary>
     /// Gets the optional interfaces limit.
     /// </summary>
-    public CollectionLimit? InterfacesLimit { get; init; }
+    [DefaultValue(_defaultInterfacesMaxResults)]
+    public int? InterfacesLimit { get; init; } = _defaultInterfacesMaxResults;
 
     /// <summary>
     /// Gets the optional derived types limit.
     /// </summary>
-    public CollectionLimit? DerivedTypesLimit { get; init; }
+    [DefaultValue(_defaultDerivedTypesMaxResults)]
+    public int? DerivedTypesLimit { get; init; } = _defaultDerivedTypesMaxResults;
 
     /// <summary>
     /// Gets the expected snapshot for location-based symbol selectors.

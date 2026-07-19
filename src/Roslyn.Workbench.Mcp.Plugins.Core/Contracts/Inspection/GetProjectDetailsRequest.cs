@@ -5,6 +5,11 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record GetProjectDetailsRequest : WorkspaceBoundRequest
 {
+    internal const int _defaultAnalyzersMaxResults = 50;
+    internal const int _defaultDocumentsMaxResults = 200;
+    internal const int _defaultMetadataReferencesMaxResults = 100;
+    internal const int _defaultProjectReferencesMaxResults = 50;
+
     /// <summary>
     /// Gets the project selector.
     /// </summary>
@@ -18,20 +23,24 @@ public sealed record GetProjectDetailsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional documents limit.
     /// </summary>
-    public CollectionLimit? DocumentsLimit { get; init; }
+    [DefaultValue(_defaultDocumentsMaxResults)]
+    public int? DocumentsLimit { get; init; } = _defaultDocumentsMaxResults;
 
     /// <summary>
     /// Gets the optional project references limit.
     /// </summary>
-    public CollectionLimit? ProjectReferencesLimit { get; init; }
+    [DefaultValue(_defaultProjectReferencesMaxResults)]
+    public int? ProjectReferencesLimit { get; init; } = _defaultProjectReferencesMaxResults;
 
     /// <summary>
     /// Gets the optional metadata references limit.
     /// </summary>
-    public CollectionLimit? MetadataReferencesLimit { get; init; }
+    [DefaultValue(_defaultMetadataReferencesMaxResults)]
+    public int? MetadataReferencesLimit { get; init; } = _defaultMetadataReferencesMaxResults;
 
     /// <summary>
     /// Gets the optional analyzers limit.
     /// </summary>
-    public CollectionLimit? AnalyzersLimit { get; init; }
+    [DefaultValue(_defaultAnalyzersMaxResults)]
+    public int? AnalyzersLimit { get; init; } = _defaultAnalyzersMaxResults;
 }

@@ -49,16 +49,16 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
                 ? null
                 : ToolExecutionHelpers.CreateBoundedCollection(
                     documents,
-                    ToolExecutionHelpers.GetMaxResults(context, request.DocumentsLimit)),
+                    ToolExecutionHelpers.GetMaxResults(request.DocumentsLimit, GetProjectDetailsRequest._defaultDocumentsMaxResults)),
             ProjectReferences = ToolExecutionHelpers.CreateBoundedCollection(
                 projectReferences,
-                ToolExecutionHelpers.GetMaxResults(context, request.ProjectReferencesLimit)),
+                ToolExecutionHelpers.GetMaxResults(request.ProjectReferencesLimit, GetProjectDetailsRequest._defaultProjectReferencesMaxResults)),
             MetadataReferences = ToolExecutionHelpers.CreateBoundedCollection(
                 metadataReferences,
-                ToolExecutionHelpers.GetMaxResults(context, request.MetadataReferencesLimit)),
+                ToolExecutionHelpers.GetMaxResults(request.MetadataReferencesLimit, GetProjectDetailsRequest._defaultMetadataReferencesMaxResults)),
             Analyzers = ToolExecutionHelpers.CreateBoundedCollection(
                 analyzers,
-                ToolExecutionHelpers.GetMaxResults(context, request.AnalyzersLimit)),
+                ToolExecutionHelpers.GetMaxResults(request.AnalyzersLimit, GetProjectDetailsRequest._defaultAnalyzersMaxResults)),
             CompilationOptions = InspectionProjectionFactory.CreateCompilationOptionsInfo(compilation?.Options ?? project.CompilationOptions),
         });
     }

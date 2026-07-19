@@ -289,10 +289,7 @@ public sealed class SearchSymbolsToolTests
             MetadataName = "Format",
             Kinds = [],
             Accessibilities = [],
-            SymbolsLimit = new CollectionLimit
-            {
-                MaxResults = 2,
-            },
+            SymbolsLimit = 2,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);

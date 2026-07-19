@@ -54,10 +54,7 @@ public sealed class WorkspaceWorkflowIntegrationTests
                 {
                     ["workspace"] = workspaceSelector,
                     ["query"] = "Class1",
-                    ["symbolsLimit"] = new Dictionary<string, object?>
-                    {
-                        ["maxResults"] = 10,
-                    },
+                    ["symbolsLimit"] = 10,
                 },
                 TestContext.Current.CancellationToken);
 

@@ -205,22 +205,10 @@ public sealed class GetProjectDetailsToolTests
         var result = await target.ExecuteAsync(new GetProjectDetailsRequest
         {
             IncludeDocuments = true,
-            DocumentsLimit = new CollectionLimit
-            {
-                MaxResults = 1,
-            },
-            ProjectReferencesLimit = new CollectionLimit
-            {
-                MaxResults = 1,
-            },
-            MetadataReferencesLimit = new CollectionLimit
-            {
-                MaxResults = 10,
-            },
-            AnalyzersLimit = new CollectionLimit
-            {
-                MaxResults = 1,
-            },
+            DocumentsLimit = 1,
+            ProjectReferencesLimit = 1,
+            MetadataReferencesLimit = 10,
+            AnalyzersLimit = 1,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);

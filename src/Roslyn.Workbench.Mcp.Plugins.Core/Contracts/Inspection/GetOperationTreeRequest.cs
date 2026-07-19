@@ -5,6 +5,8 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record GetOperationTreeRequest : WorkspaceBoundRequest
 {
+    internal const int _defaultMaxDepth = 8;
+
     /// <summary>
     /// Gets the selected location.
     /// </summary>
@@ -13,7 +15,8 @@ public sealed record GetOperationTreeRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the maximum traversal depth.
     /// </summary>
-    public int MaxDepth { get; init; } = 8;
+    [DefaultValue(_defaultMaxDepth)]
+    public int MaxDepth { get; init; } = _defaultMaxDepth;
 
     /// <summary>
     /// Gets the expected snapshot for the selected location.

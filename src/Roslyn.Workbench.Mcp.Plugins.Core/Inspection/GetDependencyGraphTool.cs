@@ -10,12 +10,7 @@ internal sealed class GetDependencyGraphTool : QueryToolHandler<GetDependencyGra
             return ToolExecutionHelpers.Rejected<DependencyGraphData>("InvalidRequest", "Granularity must be Project, Namespace, Type, or Symbol.");
         }
 
-        if (request.MaxDepth < 0)
-        {
-            return ToolExecutionHelpers.Rejected<DependencyGraphData>("InvalidRequest", "MaxDepth must be zero or greater.");
-        }
-
-        if (request.NodesLimit?.MaxResults is < 0 || request.EdgesLimit?.MaxResults is < 0)
+        if (request.NodesLimit is < 0 || request.EdgesLimit is < 0)
         {
             return ToolExecutionHelpers.Rejected<DependencyGraphData>("InvalidRequest", "NodesLimit and EdgesLimit must be zero or greater when provided.");
         }
@@ -40,7 +35,7 @@ internal sealed class GetDependencyGraphTool : QueryToolHandler<GetDependencyGra
             cancellationToken);
         var nodes = ToolExecutionHelpers.CreateBoundedCollection(
             graph.Nodes,
-            ToolExecutionHelpers.GetMaxResults(context, request.NodesLimit));
+            ToolExecutionHelpers.GetMaxResults(request.NodesLimit, GetDependencyGraphRequest._defaultNodesMaxResults));
         var nodeIds = nodes.Items.Select(static node => node.Id).ToHashSet(StringComparer.Ordinal);
         var edges = graph.Edges
             .Where(edge => nodeIds.Contains(edge.FromId) && nodeIds.Contains(edge.ToId))
@@ -50,7 +45,7 @@ internal sealed class GetDependencyGraphTool : QueryToolHandler<GetDependencyGra
             Nodes = nodes,
             Edges = ToolExecutionHelpers.CreateBoundedCollection(
                 edges,
-                ToolExecutionHelpers.GetMaxResults(context, request.EdgesLimit)),
+                ToolExecutionHelpers.GetMaxResults(request.EdgesLimit, GetDependencyGraphRequest._defaultEdgesMaxResults)),
         });
     }
 }

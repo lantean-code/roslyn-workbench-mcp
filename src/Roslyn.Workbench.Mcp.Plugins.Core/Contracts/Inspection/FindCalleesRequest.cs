@@ -5,6 +5,9 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record FindCalleesRequest : WorkspaceBoundRequest
 {
+    internal const int _defaultCalleesMaxResults = 100;
+    internal const int _defaultMaxDepth = 3;
+
     /// <summary>
     /// Gets the optional symbol selector.
     /// </summary>
@@ -21,9 +24,16 @@ public sealed record FindCalleesRequest : WorkspaceBoundRequest
     public bool IncludeIndirect { get; init; }
 
     /// <summary>
+    /// Gets the maximum call depth to traverse when indirect callees are included. Direct callees are at depth one.
+    /// </summary>
+    [DefaultValue(_defaultMaxDepth)]
+    public int MaxDepth { get; init; } = _defaultMaxDepth;
+
+    /// <summary>
     /// Gets the optional result limit.
     /// </summary>
-    public CollectionLimit? CalleesLimit { get; init; }
+    [DefaultValue(_defaultCalleesMaxResults)]
+    public int? CalleesLimit { get; init; } = _defaultCalleesMaxResults;
 
     /// <summary>
     /// Gets the expected snapshot for location-based selectors.

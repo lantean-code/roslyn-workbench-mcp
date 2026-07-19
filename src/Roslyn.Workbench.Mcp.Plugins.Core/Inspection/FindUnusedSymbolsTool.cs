@@ -76,7 +76,7 @@ internal sealed class FindUnusedSymbolsTool : QueryToolHandler<FindUnusedSymbols
         {
             Candidates = ToolExecutionHelpers.CreateBoundedCollection(
                 orderedCandidates,
-                ToolExecutionHelpers.GetMaxResults(context, request.CandidatesLimit)),
+                ToolExecutionHelpers.GetMaxResults(request.CandidatesLimit, FindUnusedSymbolsRequest._defaultCandidatesMaxResults)),
         });
     }
 

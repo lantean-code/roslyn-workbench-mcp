@@ -52,7 +52,7 @@ internal sealed class GetSymbolDependentsTool : QueryToolHandler<GetSymbolDepend
             Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
             Dependents = ToolExecutionHelpers.CreateBoundedCollection(
                 orderedDependents,
-                ToolExecutionHelpers.GetMaxResults(context, request.DependentsLimit)),
+                ToolExecutionHelpers.GetMaxResults(request.DependentsLimit, GetSymbolDependentsRequest._defaultDependentsMaxResults)),
         });
     }
 

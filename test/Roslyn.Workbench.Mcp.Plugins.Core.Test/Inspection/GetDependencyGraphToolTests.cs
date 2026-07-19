@@ -30,34 +30,6 @@ public sealed class GetDependencyGraphToolTests
     }
 
     [Fact]
-    public async Task GIVEN_MaxDepthIsNegative_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequestResult()
-    {
-        var target = new GetDependencyGraphTool();
-        var queryContextMocks = QueryContextMockHelper.Create();
-        var dependencyAnalysisService = new Mock<IDependencyAnalysisService>();
-
-        queryContextMocks.ToolExecutionServices
-            .SetupGet(item => item.DependencyAnalysisService)
-            .Returns(dependencyAnalysisService.Object);
-        dependencyAnalysisService
-            .Setup(item => item.IsSupportedGraphGranularity("Type"))
-            .Returns(true);
-
-        var result = await target.ExecuteAsync(new GetDependencyGraphRequest
-        {
-            Granularity = "Type",
-            MaxDepth = -1,
-        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
-
-        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new PluginExecutionError
-        {
-            Code = "InvalidRequest",
-            Message = "MaxDepth must be zero or greater.",
-        });
-    }
-
-    [Fact]
     public async Task GIVEN_NodesLimitIsNegative_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequestResult()
     {
         var target = new GetDependencyGraphTool();
@@ -74,10 +46,7 @@ public sealed class GetDependencyGraphToolTests
         var result = await target.ExecuteAsync(new GetDependencyGraphRequest
         {
             Granularity = "Type",
-            NodesLimit = new CollectionLimit
-            {
-                MaxResults = -1,
-            },
+            NodesLimit = -1,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
@@ -105,10 +74,7 @@ public sealed class GetDependencyGraphToolTests
         var result = await target.ExecuteAsync(new GetDependencyGraphRequest
         {
             Granularity = "Type",
-            EdgesLimit = new CollectionLimit
-            {
-                MaxResults = -1,
-            },
+            EdgesLimit = -1,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
@@ -294,14 +260,8 @@ public sealed class GetDependencyGraphToolTests
         var result = await target.ExecuteAsync(new GetDependencyGraphRequest
         {
             Granularity = "Type",
-            NodesLimit = new CollectionLimit
-            {
-                MaxResults = 2,
-            },
-            EdgesLimit = new CollectionLimit
-            {
-                MaxResults = 10,
-            },
+            NodesLimit = 2,
+            EdgesLimit = 10,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);

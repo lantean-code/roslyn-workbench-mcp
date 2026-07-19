@@ -105,6 +105,26 @@ public sealed class FindCalleesToolTests
     }
 
     [Fact]
+    public async Task GIVEN_MaxDepthIsLessThanOne_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequestResult()
+    {
+        var target = new FindCalleesTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+
+        var result = await target.ExecuteAsync(new FindCalleesRequest
+        {
+            Symbol = new SymbolSelector(),
+            MaxDepth = 0,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
+        {
+            Code = "InvalidRequest",
+            Message = "MaxDepth must be at least 1.",
+        });
+    }
+
+    [Fact]
     public async Task GIVEN_SymbolDoesNotHaveExecutableSourceBody_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequestResult()
     {
         using var document = RoslynTestFactory.CreateDocument("""
@@ -359,7 +379,7 @@ public sealed class FindCalleesToolTests
     }
 
     [Fact]
-    public async Task GIVEN_SymbolAndIncludeIndirectIsTrue_WHEN_CallingExecuteAsync_THEN_ShouldReturnExpandedCallees()
+    public async Task GIVEN_SymbolAndIncludeIndirectIsTrueAndMaxDepthIsTwo_WHEN_CallingExecuteAsync_THEN_ShouldReturnCalleesThroughDepthTwo()
     {
         using var document = RoslynTestFactory.CreateDocument("""
             class Formatter
@@ -376,6 +396,11 @@ public sealed class FindCalleesToolTests
                 }
 
                 void Second()
+                {
+                    Third();
+                }
+
+                void Third()
                 {
                 }
 
@@ -417,6 +442,7 @@ public sealed class FindCalleesToolTests
         {
             Symbol = new SymbolSelector(),
             IncludeIndirect = true,
+            MaxDepth = 2,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);

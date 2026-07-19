@@ -366,10 +366,7 @@ public sealed class AnalyzeNullabilityToolTests
 
         var result = await target.ExecuteAsync(new AnalyzeNullabilityRequest
         {
-            FindingsLimit = new CollectionLimit
-            {
-                MaxResults = 1,
-            },
+            FindingsLimit = 1,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);

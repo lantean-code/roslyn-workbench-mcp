@@ -37,7 +37,7 @@ internal sealed class FindOverridesTool : QueryToolHandler<FindOverridesRequest,
             Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
             Overrides = ToolExecutionHelpers.CreateBoundedCollection(
                 overrides,
-                ToolExecutionHelpers.GetMaxResults(context, request.OverridesLimit)),
+                ToolExecutionHelpers.GetMaxResults(request.OverridesLimit, FindOverridesRequest._defaultOverridesMaxResults)),
         });
     }
 }

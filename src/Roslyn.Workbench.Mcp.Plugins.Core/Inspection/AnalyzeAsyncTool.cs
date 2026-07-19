@@ -78,7 +78,7 @@ internal sealed class AnalyzeAsyncTool : QueryToolHandler<AnalyzeAsyncRequest, A
         {
             Findings = ToolExecutionHelpers.CreateBoundedCollection(
                 orderedFindings,
-                ToolExecutionHelpers.GetMaxResults(context, request.FindingsLimit)),
+                ToolExecutionHelpers.GetMaxResults(request.FindingsLimit, AnalyzeAsyncRequest._defaultFindingsMaxResults)),
         });
     }
 

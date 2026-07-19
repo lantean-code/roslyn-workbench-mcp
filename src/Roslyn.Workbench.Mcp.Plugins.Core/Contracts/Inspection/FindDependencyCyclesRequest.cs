@@ -5,6 +5,8 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record FindDependencyCyclesRequest : WorkspaceBoundRequest
 {
+    internal const int _defaultCyclesMaxResults = 25;
+
     /// <summary>
     /// Gets the scope to analyse.
     /// </summary>
@@ -18,5 +20,6 @@ public sealed record FindDependencyCyclesRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
-    public CollectionLimit? CyclesLimit { get; init; }
+    [DefaultValue(_defaultCyclesMaxResults)]
+    public int? CyclesLimit { get; init; } = _defaultCyclesMaxResults;
 }

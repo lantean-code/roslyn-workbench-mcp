@@ -55,7 +55,7 @@ internal sealed class GetCodeMetricsTool : QueryToolHandler<GetCodeMetricsReques
         {
             Metrics = ToolExecutionHelpers.CreateBoundedCollection(
                 metrics,
-                ToolExecutionHelpers.GetMaxResults(context, request.MetricsLimit)),
+                ToolExecutionHelpers.GetMaxResults(request.MetricsLimit, GetCodeMetricsRequest._defaultMetricsMaxResults)),
         });
     }
 

@@ -24,7 +24,7 @@ internal sealed class GetPartialDeclarationsTool : QueryToolHandler<GetPartialDe
             Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
             Declarations = ToolExecutionHelpers.CreateBoundedCollection(
                 declarations,
-                ToolExecutionHelpers.GetMaxResults(context, request.DeclarationsLimit)),
+                ToolExecutionHelpers.GetMaxResults(request.DeclarationsLimit, GetPartialDeclarationsRequest._defaultDeclarationsMaxResults)),
         });
     }
 }

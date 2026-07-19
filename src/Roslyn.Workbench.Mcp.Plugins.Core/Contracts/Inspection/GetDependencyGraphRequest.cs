@@ -5,6 +5,9 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record GetDependencyGraphRequest : WorkspaceBoundRequest
 {
+    internal const int _defaultEdgesMaxResults = 400;
+    internal const int _defaultNodesMaxResults = 200;
+
     /// <summary>
     /// Gets the scope to graph.
     /// </summary>
@@ -16,17 +19,14 @@ public sealed record GetDependencyGraphRequest : WorkspaceBoundRequest
     public string Granularity { get; init; } = "Type";
 
     /// <summary>
-    /// Gets the maximum traversal depth.
-    /// </summary>
-    public int MaxDepth { get; init; } = 3;
-
-    /// <summary>
     /// Gets the optional nodes limit.
     /// </summary>
-    public CollectionLimit? NodesLimit { get; init; }
+    [DefaultValue(_defaultNodesMaxResults)]
+    public int? NodesLimit { get; init; } = _defaultNodesMaxResults;
 
     /// <summary>
     /// Gets the optional edges limit.
     /// </summary>
-    public CollectionLimit? EdgesLimit { get; init; }
+    [DefaultValue(_defaultEdgesMaxResults)]
+    public int? EdgesLimit { get; init; } = _defaultEdgesMaxResults;
 }

@@ -34,7 +34,7 @@ internal sealed class GetSymbolAttributesTool : QueryToolHandler<GetSymbolAttrib
             Symbol = symbolReference,
             Attributes = ToolExecutionHelpers.CreateBoundedCollection(
                 orderedAttributes,
-                ToolExecutionHelpers.GetMaxResults(context, request.AttributesLimit)),
+                ToolExecutionHelpers.GetMaxResults(request.AttributesLimit, GetSymbolAttributesRequest._defaultAttributesMaxResults)),
         });
     }
 

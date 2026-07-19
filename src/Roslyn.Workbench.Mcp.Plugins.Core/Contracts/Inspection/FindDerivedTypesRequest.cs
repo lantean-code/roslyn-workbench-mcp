@@ -5,6 +5,9 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record FindDerivedTypesRequest : WorkspaceBoundRequest
 {
+    internal const int _defaultDerivedTypesMaxResults = 100;
+    internal const int _defaultMaxDepth = 3;
+
     /// <summary>
     /// Gets the symbol selector.
     /// </summary>
@@ -16,14 +19,16 @@ public sealed record FindDerivedTypesRequest : WorkspaceBoundRequest
     public ScopeSelector? Scope { get; init; }
 
     /// <summary>
-    /// Gets the optional maximum traversal depth.
+    /// Gets the maximum traversal depth. Directly derived types are at depth one.
     /// </summary>
-    public int? MaxDepth { get; init; }
+    [DefaultValue(_defaultMaxDepth)]
+    public int MaxDepth { get; init; } = _defaultMaxDepth;
 
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
-    public CollectionLimit? DerivedTypesLimit { get; init; }
+    [DefaultValue(_defaultDerivedTypesMaxResults)]
+    public int? DerivedTypesLimit { get; init; } = _defaultDerivedTypesMaxResults;
 
     /// <summary>
     /// Gets the expected snapshot for location-based symbol selectors.

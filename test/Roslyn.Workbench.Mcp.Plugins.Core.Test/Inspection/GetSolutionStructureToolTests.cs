@@ -85,14 +85,8 @@ public sealed class GetSolutionStructureToolTests
         var result = await target.ExecuteAsync(new GetSolutionStructureRequest
         {
             IncludeDocuments = false,
-            FoldersLimit = new CollectionLimit
-            {
-                MaxResults = 1,
-            },
-            ProjectsLimit = new CollectionLimit
-            {
-                MaxResults = 1,
-            },
+            FoldersLimit = 1,
+            ProjectsLimit = 1,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);

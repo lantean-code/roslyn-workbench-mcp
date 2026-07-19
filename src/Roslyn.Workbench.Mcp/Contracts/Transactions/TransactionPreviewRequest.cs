@@ -1,3 +1,5 @@
+using System.ComponentModel;
+
 namespace Roslyn.Workbench.Mcp.Transaction.Contracts;
 
 /// <summary>
@@ -5,6 +7,8 @@ namespace Roslyn.Workbench.Mcp.Transaction.Contracts;
 /// </summary>
 internal sealed record TransactionPreviewRequest : WorkspaceBoundRequest
 {
+    private const int _defaultContextLines = 3;
+
     /// <summary>
     /// Gets the optional document selector for a detailed diff.
     /// </summary>
@@ -18,5 +22,6 @@ internal sealed record TransactionPreviewRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the requested diff context line count.
     /// </summary>
-    public int ContextLines { get; init; } = 3;
+    [DefaultValue(_defaultContextLines)]
+    public int ContextLines { get; init; } = _defaultContextLines;
 }

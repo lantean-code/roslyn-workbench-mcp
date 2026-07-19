@@ -7,6 +7,7 @@ namespace Roslyn.Workbench.Mcp.Protocol;
 internal sealed class ToolSchemaFactory
 {
     private readonly ConcurrentDictionary<Type, JsonElement> _directOutputSchemaCache = [];
+    private readonly ConcurrentDictionary<Type, JsonElement> _inputSchemaCache = [];
     private readonly IMcpSdkSchemaProvider _schemaProvider;
 
     public ToolSchemaFactory(IMcpSdkSchemaProvider schemaProvider)
@@ -16,7 +17,12 @@ internal sealed class ToolSchemaFactory
 
     public JsonElement CreateInputSchema<TRequest>()
     {
-        return _schemaProvider.GetInputSchema<TRequest>();
+        return _inputSchemaCache.GetOrAdd(
+            typeof(TRequest),
+            static (_, schemaProvider) => InputSchemaDefaultPublisher.Publish(
+                schemaProvider.GetInputSchema<TRequest>(),
+                typeof(TRequest)),
+            _schemaProvider);
     }
 
     public JsonElement CreateDirectOutputSchema(Type responseType)

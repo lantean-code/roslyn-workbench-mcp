@@ -90,10 +90,7 @@ public sealed class GetSymbolAttributesToolTests
         {
             Symbol = new SymbolSelector(),
             IncludeInherited = true,
-            AttributesLimit = new CollectionLimit
-            {
-                MaxResults = 1,
-            },
+            AttributesLimit = 1,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);

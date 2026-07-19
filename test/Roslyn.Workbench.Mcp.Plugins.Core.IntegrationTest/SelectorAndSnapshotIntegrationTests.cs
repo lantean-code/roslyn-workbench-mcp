@@ -64,10 +64,7 @@ public sealed class SelectorAndSnapshotIntegrationTests
             new SearchSymbolsRequest
             {
                 Query = "Format",
-                SymbolsLimit = new CollectionLimit
-                {
-                    MaxResults = 1,
-                },
+                SymbolsLimit = 1,
             }, TestContext.Current.CancellationToken);
 
         definition.Data!.Definitions.Should().ContainSingle(static location => location.IsMetadata);

@@ -5,6 +5,8 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record FindOverridesRequest : WorkspaceBoundRequest
 {
+    internal const int _defaultOverridesMaxResults = 100;
+
     /// <summary>
     /// Gets the symbol selector.
     /// </summary>
@@ -18,7 +20,8 @@ public sealed record FindOverridesRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
-    public CollectionLimit? OverridesLimit { get; init; }
+    [DefaultValue(_defaultOverridesMaxResults)]
+    public int? OverridesLimit { get; init; } = _defaultOverridesMaxResults;
 
     /// <summary>
     /// Gets the expected snapshot for location-based symbol selectors.

@@ -10,6 +10,11 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
             return ToolExecutionHelpers.Rejected<CalleeSearchData>("InvalidRequest", "Specify exactly one of symbol or location.");
         }
 
+        if (request.MaxDepth < 1)
+        {
+            return ToolExecutionHelpers.Rejected<CalleeSearchData>("InvalidRequest", "MaxDepth must be at least 1.");
+        }
+
         var directCallees = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
         ISymbol sourceSymbol;
 
@@ -89,7 +94,7 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
 
         if (request.IncludeIndirect)
         {
-            await ExpandIndirectCalleesAsync(directCallees, context, cancellationToken);
+            await ExpandIndirectCalleesAsync(directCallees, request.MaxDepth, context, cancellationToken);
         }
 
         var orderedCallees = directCallees
@@ -102,7 +107,7 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
             Source = context.WorkspaceResolver.CreateSymbolReference(sourceSymbol),
             Callees = ToolExecutionHelpers.CreateBoundedCollection(
                 orderedCallees,
-                ToolExecutionHelpers.GetMaxResults(context, request.CalleesLimit)),
+                ToolExecutionHelpers.GetMaxResults(request.CalleesLimit, FindCalleesRequest._defaultCalleesMaxResults)),
         });
     }
 
@@ -123,14 +128,24 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
         }
     }
 
-    private static async ValueTask ExpandIndirectCalleesAsync(HashSet<ISymbol> callees, IQueryContext context, CancellationToken cancellationToken)
+    private static async ValueTask ExpandIndirectCalleesAsync(HashSet<ISymbol> callees, int maxDepth, IQueryContext context, CancellationToken cancellationToken)
     {
         var visited = new HashSet<ISymbol>(callees, SymbolEqualityComparer.Default);
-        var pending = new Queue<ISymbol>(callees);
+        var pending = new Queue<(ISymbol Symbol, int Depth)>(callees.Count);
+        foreach (var callee in callees)
+        {
+            pending.Enqueue((callee, 1));
+        }
+
         while (pending.Count > 0)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var symbol = pending.Dequeue();
+            var (symbol, depth) = pending.Dequeue();
+            if (depth >= maxDepth)
+            {
+                continue;
+            }
+
             foreach (var syntaxReference in symbol.DeclaringSyntaxReferences)
             {
                 var syntax = await syntaxReference.GetSyntaxAsync(cancellationToken);
@@ -164,7 +179,7 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
                     if (visited.Add(nested))
                     {
                         callees.Add(nested);
-                        pending.Enqueue(nested);
+                        pending.Enqueue((nested, depth + 1));
                     }
                 }
             }

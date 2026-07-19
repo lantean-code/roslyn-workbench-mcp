@@ -5,6 +5,8 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record GetChangeImpactRequest : WorkspaceBoundRequest
 {
+    internal const int _defaultLocationsMaxResults = 100;
+
     /// <summary>
     /// Gets the symbol selector.
     /// </summary>
@@ -18,7 +20,8 @@ public sealed record GetChangeImpactRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
-    public CollectionLimit? LocationsLimit { get; init; }
+    [DefaultValue(_defaultLocationsMaxResults)]
+    public int? LocationsLimit { get; init; } = _defaultLocationsMaxResults;
 
     /// <summary>
     /// Gets the expected snapshot for location-based symbol selectors.

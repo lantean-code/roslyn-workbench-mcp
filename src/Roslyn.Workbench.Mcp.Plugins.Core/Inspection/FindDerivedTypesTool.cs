@@ -7,6 +7,11 @@ internal sealed class FindDerivedTypesTool : QueryToolHandler<FindDerivedTypesRe
 {
     protected override async ValueTask<PluginExecutionResult<DerivedTypesData>> ExecuteCoreAsync(FindDerivedTypesRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
+        if (request.MaxDepth < 1)
+        {
+            return ToolExecutionHelpers.Rejected<DerivedTypesData>("InvalidRequest", "MaxDepth must be at least 1.");
+        }
+
         var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<DerivedTypesData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken);
         if (symbolResolution.HasRejection)
         {
@@ -33,6 +38,7 @@ internal sealed class FindDerivedTypesTool : QueryToolHandler<FindDerivedTypesRe
                 Type = context.WorkspaceResolver.CreateSymbolReference(symbol),
                 Depth = GetTypeDepth(symbol, namedType),
             })
+            .Where(node => node.Depth <= request.MaxDepth)
             .ToArray();
 
         return PluginExecutionResult<DerivedTypesData>.Success(new DerivedTypesData
@@ -40,7 +46,7 @@ internal sealed class FindDerivedTypesTool : QueryToolHandler<FindDerivedTypesRe
             BaseType = context.WorkspaceResolver.CreateSymbolReference(namedType),
             DerivedTypes = ToolExecutionHelpers.CreateBoundedCollection(
                 derivedTypes,
-                ToolExecutionHelpers.GetMaxResults(context, request.DerivedTypesLimit)),
+                ToolExecutionHelpers.GetMaxResults(request.DerivedTypesLimit, FindDerivedTypesRequest._defaultDerivedTypesMaxResults)),
         });
     }
 

@@ -36,7 +36,7 @@ internal sealed class SearchSymbolsTool : QueryToolHandler<SearchSymbolsRequest,
         {
             Symbols = ToolExecutionHelpers.CreateBoundedCollection(
                 symbols,
-                ToolExecutionHelpers.GetMaxResults(context, request.SymbolsLimit)),
+                ToolExecutionHelpers.GetMaxResults(request.SymbolsLimit, SearchSymbolsRequest._defaultSymbolsMaxResults)),
         });
     }
 

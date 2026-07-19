@@ -179,10 +179,7 @@ public sealed class GetSymbolDependentsToolTests
         var result = await target.ExecuteAsync(new GetSymbolDependentsRequest
         {
             Symbol = new SymbolSelector(),
-            DependentsLimit = new CollectionLimit
-            {
-                MaxResults = 1,
-            },
+            DependentsLimit = 1,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);

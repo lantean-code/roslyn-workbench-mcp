@@ -39,7 +39,7 @@ internal sealed class GetDiagnosticsTool : QueryToolHandler<GetDiagnosticsReques
         {
             Diagnostics = ToolExecutionHelpers.CreateBoundedCollection(
                 projectedDiagnostics,
-                ToolExecutionHelpers.GetMaxResults(context, request.DiagnosticsLimit)),
+                ToolExecutionHelpers.GetMaxResults(request.DiagnosticsLimit, GetDiagnosticsRequest._defaultDiagnosticsMaxResults)),
         });
     }
 

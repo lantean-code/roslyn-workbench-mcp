@@ -57,7 +57,7 @@ internal sealed class AnalyzeNullabilityTool : QueryToolHandler<AnalyzeNullabili
         {
             Findings = ToolExecutionHelpers.CreateBoundedCollection(
                 findings,
-                ToolExecutionHelpers.GetMaxResults(context, request.FindingsLimit)),
+                ToolExecutionHelpers.GetMaxResults(request.FindingsLimit, AnalyzeNullabilityRequest._defaultFindingsMaxResults)),
         });
     }
 }

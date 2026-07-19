@@ -5,6 +5,8 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record FindImplementationsRequest : WorkspaceBoundRequest
 {
+    internal const int _defaultImplementationsMaxResults = 100;
+
     /// <summary>
     /// Gets the symbol selector.
     /// </summary>
@@ -18,7 +20,8 @@ public sealed record FindImplementationsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
-    public CollectionLimit? ImplementationsLimit { get; init; }
+    [DefaultValue(_defaultImplementationsMaxResults)]
+    public int? ImplementationsLimit { get; init; } = _defaultImplementationsMaxResults;
 
     /// <summary>
     /// Gets the expected snapshot for location-based symbol selectors.

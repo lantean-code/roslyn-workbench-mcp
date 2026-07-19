@@ -306,10 +306,7 @@ public sealed class GetCodeMetricsToolTests
 
         var result = await target.ExecuteAsync(new GetCodeMetricsRequest
         {
-            MetricsLimit = new CollectionLimit
-            {
-                MaxResults = 6,
-            },
+            MetricsLimit = 6,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);

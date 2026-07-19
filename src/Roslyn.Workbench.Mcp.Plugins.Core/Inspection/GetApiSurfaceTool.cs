@@ -77,7 +77,7 @@ internal sealed class GetApiSurfaceTool : QueryToolHandler<GetApiSurfaceRequest,
         {
             Symbols = ToolExecutionHelpers.CreateBoundedCollection(
                 orderedSymbols,
-                ToolExecutionHelpers.GetMaxResults(context, request.SymbolsLimit)),
+                ToolExecutionHelpers.GetMaxResults(request.SymbolsLimit, GetApiSurfaceRequest._defaultSymbolsMaxResults)),
         });
     }
 

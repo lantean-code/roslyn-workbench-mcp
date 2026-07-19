@@ -143,12 +143,14 @@ the existing host, direct-write, or incomplete rollback design.
   offset in a newer solution. Symbol names and metadata names are search inputs,
   not source identity.
 - Collection and graph queries accept explicit named per-collection limits.
-  When omitted, the server uses its startup-configured `DefaultMaxResults`,
-  which defaults to `100`. `0` means “return none from this collection”.
-  Results have a documented deterministic order. Top-level published
-  collections should use `BoundedCollection<TItem>`, which carries `items` and
-  `hasMore`. A larger limit recomputes from the start. There
-  are no cursors or generic paging.
+  Each bundled tool owns a curated default for each distinct collection,
+  publishes it in the MCP input schema and applies the same value at execution.
+  The Host `DefaultMaxResults` remains available only as a compatibility
+  baseline for third-party plugins. `0` means “return none from this
+  collection”. Results have a documented deterministic order. Top-level
+  published collections should use `BoundedCollection<TItem>`, which carries
+  `items` and `hasMore`. A larger limit recomputes from the start. There are no
+  cursors or generic paging.
 - Large code and diff results use explicit document and range selectors, or a
   focused follow-up call, rather than pagination.
 

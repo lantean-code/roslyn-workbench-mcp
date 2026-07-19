@@ -3,6 +3,25 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection;
 public sealed class GetTypeHierarchyToolTests
 {
     [Fact]
+    public async Task GIVEN_MaxDepthIsLessThanOne_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequestResult()
+    {
+        var target = new GetTypeHierarchyTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+
+        var result = await target.ExecuteAsync(new GetTypeHierarchyRequest
+        {
+            MaxDepth = 0,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
+        {
+            Code = "InvalidRequest",
+            Message = "MaxDepth must be at least 1.",
+        });
+    }
+
+    [Fact]
     public async Task GIVEN_ResolveSymbolHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         var target = new GetTypeHierarchyTool();
@@ -134,14 +153,8 @@ public sealed class GetTypeHierarchyToolTests
         var result = await target.ExecuteAsync(new GetTypeHierarchyRequest
         {
             IncludeDerived = false,
-            BaseTypesLimit = new CollectionLimit
-            {
-                MaxResults = 2,
-            },
-            InterfacesLimit = new CollectionLimit
-            {
-                MaxResults = 1,
-            },
+            BaseTypesLimit = 2,
+            InterfacesLimit = 1,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
@@ -151,6 +164,14 @@ public sealed class GetTypeHierarchyToolTests
         result.Data.Interfaces.Items.Select(item => item.DisplayName).Should().Equal("IAlphaFormatter");
         result.Data.Interfaces.HasMore.Should().BeTrue();
         result.Data.DerivedTypes.Should().BeNull();
+
+        var boundedResult = await target.ExecuteAsync(new GetTypeHierarchyRequest
+        {
+            IncludeDerived = false,
+            MaxDepth = 1,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        boundedResult.Data!.BaseTypes.Items.Select(item => item.DisplayName).Should().Equal("MidFormatter");
     }
 
     [Fact]
@@ -220,10 +241,7 @@ public sealed class GetTypeHierarchyToolTests
         var result = await target.ExecuteAsync(new GetTypeHierarchyRequest
         {
             IncludeDerived = true,
-            DerivedTypesLimit = new CollectionLimit
-            {
-                MaxResults = 2,
-            },
+            DerivedTypesLimit = 2,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
@@ -233,6 +251,15 @@ public sealed class GetTypeHierarchyToolTests
         result.Data.DerivedTypes.Items[1].Type!.DisplayName.Should().Be("LeafFormatter");
         result.Data.DerivedTypes.Items[1].Depth.Should().Be(2);
         result.Data.DerivedTypes.HasMore.Should().BeTrue();
+
+        var boundedResult = await target.ExecuteAsync(new GetTypeHierarchyRequest
+        {
+            IncludeDerived = true,
+            MaxDepth = 1,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        boundedResult.Data!.DerivedTypes!.Items.Select(item => item.Type!.DisplayName).Should().Equal("AlphaFormatter", "ZetaFormatter");
+        boundedResult.Data.DerivedTypes.Items.Select(item => item.Depth).Should().Equal(1, 1);
     }
 
     [Fact]

@@ -1,3 +1,5 @@
+using System.ComponentModel;
+
 namespace Roslyn.Workbench.Mcp.CodeActions.Contracts;
 
 /// <summary>
@@ -5,6 +7,8 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts;
 /// </summary>
 public sealed record StageFixAllRequest : WorkspaceBoundRequest
 {
+    internal const int _defaultMaxChanges = 50;
+
     /// <summary>
     /// Gets the opaque action token.
     /// </summary>
@@ -16,9 +20,10 @@ public sealed record StageFixAllRequest : WorkspaceBoundRequest
     public ScopeSelector? Scope { get; init; }
 
     /// <summary>
-    /// Gets the optional maximum number of changed source documents to allow.
+    /// Gets the maximum number of changed source documents to allow.
     /// </summary>
-    public int? MaxChanges { get; init; }
+    [DefaultValue(_defaultMaxChanges)]
+    public int? MaxChanges { get; init; } = _defaultMaxChanges;
 
     /// <summary>
     /// Gets the expected workspace snapshot.

@@ -32,7 +32,7 @@ internal sealed class FindOverloadsTool : QueryToolHandler<FindOverloadsRequest,
             Symbol = context.WorkspaceResolver.CreateSymbolReference(methodSymbol),
             Overloads = ToolExecutionHelpers.CreateBoundedCollection(
                 signatures,
-                ToolExecutionHelpers.GetMaxResults(context, request.OverloadsLimit)),
+                ToolExecutionHelpers.GetMaxResults(request.OverloadsLimit, FindOverloadsRequest._defaultOverloadsMaxResults)),
         });
     }
 

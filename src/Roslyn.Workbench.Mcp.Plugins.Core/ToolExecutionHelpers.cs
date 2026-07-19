@@ -2,9 +2,9 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core;
 
 internal static class ToolExecutionHelpers
 {
-    public static int GetMaxResults(IQueryContext context, CollectionLimit? requestLimit)
+    public static int GetMaxResults(int? requestLimit, int defaultMaxResults)
     {
-        return requestLimit?.MaxResults ?? context.DefaultMaxResults;
+        return requestLimit ?? defaultMaxResults;
     }
 
     public static BoundedCollection<T> CreateBoundedCollection<T>(
@@ -13,6 +13,22 @@ internal static class ToolExecutionHelpers
     {
 
         return BoundedCollection<T>.Create(items, maxResults);
+    }
+
+    public static BoundedCollection<T> CreatePreboundedCollection<T>(
+        IReadOnlyList<T> items,
+        bool hasMore)
+    {
+        if (items.Count == 0 && !hasMore)
+        {
+            return BoundedCollection<T>.Empty();
+        }
+
+        return new BoundedCollection<T>
+        {
+            Items = items,
+            HasMore = hasMore,
+        };
     }
 
     public static IReadOnlyList<T> ApplyLimit<T>(IReadOnlyList<T> items, int maxResults, out bool hasMore)

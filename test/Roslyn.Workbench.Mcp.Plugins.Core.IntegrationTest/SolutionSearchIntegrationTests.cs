@@ -69,7 +69,6 @@ public sealed class SolutionSearchIntegrationTests
                     },
                 },
                 Granularity = "Type",
-                MaxDepth = 2,
             }, TestContext.Current.CancellationToken);
 
         openResult.Status.Should().Be(WorkspaceOperationStatus.Succeeded);

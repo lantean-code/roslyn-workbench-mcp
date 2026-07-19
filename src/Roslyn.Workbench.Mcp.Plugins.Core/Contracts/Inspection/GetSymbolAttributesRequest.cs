@@ -5,6 +5,8 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record GetSymbolAttributesRequest : WorkspaceBoundRequest
 {
+    internal const int _defaultAttributesMaxResults = 50;
+
     /// <summary>
     /// Gets the symbol selector.
     /// </summary>
@@ -18,7 +20,8 @@ public sealed record GetSymbolAttributesRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
-    public CollectionLimit? AttributesLimit { get; init; }
+    [DefaultValue(_defaultAttributesMaxResults)]
+    public int? AttributesLimit { get; init; } = _defaultAttributesMaxResults;
 
     /// <summary>
     /// Gets the expected snapshot for location-based symbol selectors.

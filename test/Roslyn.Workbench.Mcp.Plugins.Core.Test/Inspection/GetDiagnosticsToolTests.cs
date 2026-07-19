@@ -397,10 +397,7 @@ public sealed class GetDiagnosticsToolTests
             },
             Ids = ["RWB001"],
             Severities = ["Warning"],
-            DiagnosticsLimit = new CollectionLimit
-            {
-                MaxResults = 1,
-            },
+            DiagnosticsLimit = 1,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);

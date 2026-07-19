@@ -5,6 +5,8 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record GetSymbolDependentsRequest : WorkspaceBoundRequest
 {
+    internal const int _defaultDependentsMaxResults = 100;
+
     /// <summary>
     /// Gets the symbol selector.
     /// </summary>
@@ -18,7 +20,8 @@ public sealed record GetSymbolDependentsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
-    public CollectionLimit? DependentsLimit { get; init; }
+    [DefaultValue(_defaultDependentsMaxResults)]
+    public int? DependentsLimit { get; init; } = _defaultDependentsMaxResults;
 
     /// <summary>
     /// Gets the expected snapshot for location-based symbol selectors.

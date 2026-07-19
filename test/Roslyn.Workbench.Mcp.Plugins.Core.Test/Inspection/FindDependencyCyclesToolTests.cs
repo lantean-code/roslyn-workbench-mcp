@@ -184,10 +184,7 @@ public sealed class FindDependencyCyclesToolTests
         var result = await target.ExecuteAsync(new FindDependencyCyclesRequest
         {
             Granularity = "Type",
-            CyclesLimit = new CollectionLimit
-            {
-                MaxResults = 1,
-            },
+            CyclesLimit = 1,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);

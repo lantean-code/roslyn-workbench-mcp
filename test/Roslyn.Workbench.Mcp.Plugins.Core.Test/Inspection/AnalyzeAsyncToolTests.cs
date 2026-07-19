@@ -264,10 +264,7 @@ public sealed class AnalyzeAsyncToolTests
 
         var result = await target.ExecuteAsync(new AnalyzeAsyncRequest
         {
-            FindingsLimit = new CollectionLimit
-            {
-                MaxResults = 5,
-            },
+            FindingsLimit = 5,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);

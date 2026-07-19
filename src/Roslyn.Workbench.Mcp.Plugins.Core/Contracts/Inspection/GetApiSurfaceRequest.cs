@@ -5,6 +5,8 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record GetApiSurfaceRequest : WorkspaceBoundRequest
 {
+    internal const int _defaultSymbolsMaxResults = 100;
+
     /// <summary>
     /// Gets the search scope.
     /// </summary>
@@ -23,5 +25,6 @@ public sealed record GetApiSurfaceRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the optional result limit.
     /// </summary>
-    public CollectionLimit? SymbolsLimit { get; init; }
+    [DefaultValue(_defaultSymbolsMaxResults)]
+    public int? SymbolsLimit { get; init; } = _defaultSymbolsMaxResults;
 }

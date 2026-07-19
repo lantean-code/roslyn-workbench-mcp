@@ -76,4 +76,39 @@ public sealed class ToolExecutionHelpersTests
         selector.Location.Span.Document!.DocumentId.Should().Be("DocumentId");
         selector.Location.Span.Document.Path.Should().BeNull();
     }
+
+    [Fact]
+    public void GIVEN_PreboundedItemsAndMoreResults_WHEN_CreatingCollection_THEN_ShouldPreserveItemsAndHasMore()
+    {
+        var result = ToolExecutionHelpers.CreatePreboundedCollection(["Item"], hasMore: true);
+
+        result.Items.Should().Equal("Item");
+        result.HasMore.Should().BeTrue();
+    }
+
+    [Fact]
+    public void GIVEN_NoPreboundedItemsAndNoMoreResults_WHEN_CreatingCollection_THEN_ShouldReturnEmptyCollection()
+    {
+        var result = ToolExecutionHelpers.CreatePreboundedCollection<string>([], hasMore: false);
+
+        result.Should().BeSameAs(BoundedCollection<string>.Empty());
+    }
+
+    [Fact]
+    public void GIVEN_NoRequestedResultLimit_WHEN_GettingMaxResults_THEN_ShouldReturnToolDefault()
+    {
+        var result = ToolExecutionHelpers.GetMaxResults(requestLimit: null, defaultMaxResults: 25);
+
+        result.Should().Be(25);
+    }
+
+    [Fact]
+    public void GIVEN_RequestedResultLimit_WHEN_GettingMaxResults_THEN_ShouldReturnRequestedLimit()
+    {
+        var result = ToolExecutionHelpers.GetMaxResults(
+            7,
+            defaultMaxResults: 25);
+
+        result.Should().Be(7);
+    }
 }

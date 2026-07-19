@@ -30,7 +30,7 @@ internal sealed class GetTestImpactTool : QueryToolHandler<GetTestImpactRequest,
             Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
             Tests = ToolExecutionHelpers.CreateBoundedCollection(
                 impactedTests,
-                ToolExecutionHelpers.GetMaxResults(context, request.TestsLimit)),
+                ToolExecutionHelpers.GetMaxResults(request.TestsLimit, GetTestImpactRequest._defaultTestsMaxResults)),
         });
     }
 }

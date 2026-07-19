@@ -33,7 +33,7 @@ internal sealed class FindImplementationsTool : QueryToolHandler<FindImplementat
             Symbol = symbolReference,
             Implementations = ToolExecutionHelpers.CreateBoundedCollection(
                 implementations,
-                ToolExecutionHelpers.GetMaxResults(context, request.ImplementationsLimit)),
+                ToolExecutionHelpers.GetMaxResults(request.ImplementationsLimit, FindImplementationsRequest._defaultImplementationsMaxResults)),
         });
     }
 }

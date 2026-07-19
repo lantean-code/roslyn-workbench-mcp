@@ -263,6 +263,7 @@ public sealed class GetChangeImpactToolTests
         var result = await target.ExecuteAsync(new GetChangeImpactRequest
         {
             Symbol = new SymbolSelector(),
+            LocationsLimit = 0,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
@@ -272,6 +273,11 @@ public sealed class GetChangeImpactToolTests
         result.Data.Impact.ImplementationCount.Should().Be(0);
         result.Data.Impact.PublicSurfaceCount.Should().Be(1);
         result.Data.Locations.Items.Should().OnlyContain(item => item.Location != null);
+        result.Data.Locations.HasMore.Should().BeTrue();
+        inspectionContextService.Verify(item => item.ReadContextAsync(
+            It.IsAny<Document>(),
+            It.IsAny<TextSpan>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

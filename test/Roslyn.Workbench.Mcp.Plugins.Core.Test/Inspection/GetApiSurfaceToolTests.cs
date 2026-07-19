@@ -326,7 +326,7 @@ public sealed class GetApiSurfaceToolTests
     }
 
     [Fact]
-    public async Task GIVEN_DefaultMaxResultsIsLowerThanExportedCount_WHEN_CallingExecuteAsync_THEN_ShouldReturnBoundedOrderedApiSymbols()
+    public async Task GIVEN_RequestedLimitIsLowerThanExportedCount_WHEN_CallingExecuteAsync_THEN_ShouldReturnBoundedOrderedApiSymbols()
     {
         using var document = RoslynTestFactory.CreateDocument("""
             public class ZType
@@ -341,9 +341,6 @@ public sealed class GetApiSurfaceToolTests
         var target = new GetApiSurfaceTool();
         var queryContextMocks = QueryContextMockHelper.Create();
 
-        queryContextMocks.QueryContext
-            .SetupGet(item => item.DefaultMaxResults)
-            .Returns(1);
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<ApiSurfaceData>(
                 It.IsAny<ScopeSelector?>(),
@@ -356,7 +353,10 @@ public sealed class GetApiSurfaceToolTests
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
 
-        var result = await target.ExecuteAsync(new GetApiSurfaceRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+        var result = await target.ExecuteAsync(new GetApiSurfaceRequest
+        {
+            SymbolsLimit = 1,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbols.Items.Select(item => item.Symbol!.DisplayName).Should().Equal("AType");

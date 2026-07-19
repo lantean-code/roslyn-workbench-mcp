@@ -48,7 +48,7 @@ internal sealed class GetSymbolMembersTool : QueryToolHandler<GetSymbolMembersRe
             Symbol = symbolReference,
             Members = ToolExecutionHelpers.CreateBoundedCollection(
                 orderedMembers,
-                ToolExecutionHelpers.GetMaxResults(context, request.MembersLimit)),
+                ToolExecutionHelpers.GetMaxResults(request.MembersLimit, GetSymbolMembersRequest._defaultMembersMaxResults)),
         });
     }
 }

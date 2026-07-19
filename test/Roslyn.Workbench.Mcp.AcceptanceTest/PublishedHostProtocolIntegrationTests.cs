@@ -15,6 +15,16 @@ public sealed class PublishedHostProtocolIntegrationTests
             toolNames.Should().Contain("server-status");
             toolNames.Should().Contain("search-symbols");
             toolNames.Should().Contain("list-code-actions");
+            var findCallees = tools.Single(static tool => tool.Name == "find-callees");
+            var findCalleesProperties = findCallees.ProtocolTool.InputSchema.GetProperty("properties");
+
+            findCalleesProperties.GetProperty("maxDepth").GetProperty("default").GetInt32().Should().Be(3);
+            findCalleesProperties
+                .GetProperty("calleesLimit")
+                .GetProperty("default")
+                .GetInt32()
+                .Should()
+                .Be(100);
 
             var statusResult = await target.CallToolAsync(
                 "server-status",

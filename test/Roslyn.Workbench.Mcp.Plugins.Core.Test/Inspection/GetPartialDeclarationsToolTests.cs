@@ -105,10 +105,7 @@ public sealed class GetPartialDeclarationsToolTests
         var result = await target.ExecuteAsync(new GetPartialDeclarationsRequest
         {
             Symbol = new SymbolSelector(),
-            DeclarationsLimit = new CollectionLimit
-            {
-                MaxResults = 1,
-            },
+            DeclarationsLimit = 1,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);

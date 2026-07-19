@@ -183,10 +183,7 @@ public sealed class GetTestImpactToolTests
             Symbol = new SymbolSelector(),
             TestScope = new ScopeSelector(),
             IncludeReasons = true,
-            TestsLimit = new CollectionLimit
-            {
-                MaxResults = 1,
-            },
+            TestsLimit = 1,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);

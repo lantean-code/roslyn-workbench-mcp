@@ -5,6 +5,9 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record GetCodeContextRequest : WorkspaceBoundRequest
 {
+    internal const int _defaultAfterLines = 10;
+    internal const int _defaultBeforeLines = 10;
+
     /// <summary>
     /// Gets the location selector.
     /// </summary>
@@ -13,12 +16,14 @@ public sealed record GetCodeContextRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the number of lines to include before the selected location.
     /// </summary>
-    public int BeforeLines { get; init; } = 10;
+    [DefaultValue(_defaultBeforeLines)]
+    public int BeforeLines { get; init; } = _defaultBeforeLines;
 
     /// <summary>
     /// Gets the number of lines to include after the selected location.
     /// </summary>
-    public int AfterLines { get; init; } = 10;
+    [DefaultValue(_defaultAfterLines)]
+    public int AfterLines { get; init; } = _defaultAfterLines;
 
     /// <summary>
     /// Gets a value indicating whether the enclosing symbol chain should be included.

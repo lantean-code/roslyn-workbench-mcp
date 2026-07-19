@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Server.Contracts;
 /// <summary>
 /// Represents the status of one runtime component reported by server diagnostics.
 /// </summary>
-public sealed record ComponentStatus
+internal sealed record ComponentStatus
 {
     /// <summary>
     /// Gets a value indicating whether the component is available.

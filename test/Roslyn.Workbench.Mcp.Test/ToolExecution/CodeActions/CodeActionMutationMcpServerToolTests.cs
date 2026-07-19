@@ -435,8 +435,10 @@ public sealed class CodeActionMutationMcpServerToolTests
             Options.Create(new StartupOptions()));
     }
 
+#pragma warning disable CA1515 // Moq's dynamic proxy must access this closed-generic handler contract.
     public sealed record TestMutationRequest : WorkspaceBoundRequest
     {
         public string Name { get; init; } = string.Empty;
     }
+#pragma warning restore CA1515
 }

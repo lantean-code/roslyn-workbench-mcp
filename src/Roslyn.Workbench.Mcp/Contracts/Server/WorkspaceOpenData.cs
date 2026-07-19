@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Server.Contracts;
 /// <summary>
 /// Represents the structured payload returned when a workspace is opened.
 /// </summary>
-public sealed record WorkspaceOpenData
+internal sealed record WorkspaceOpenData
 {
     /// <summary>
     /// Gets the loaded workspace identity.

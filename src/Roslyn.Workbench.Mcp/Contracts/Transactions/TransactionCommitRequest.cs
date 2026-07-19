@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Transaction.Contracts;
 /// <summary>
 /// Represents a request to commit the active transaction.
 /// </summary>
-public sealed record TransactionCommitRequest : WorkspaceBoundRequest
+internal sealed record TransactionCommitRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the expected snapshot precondition.

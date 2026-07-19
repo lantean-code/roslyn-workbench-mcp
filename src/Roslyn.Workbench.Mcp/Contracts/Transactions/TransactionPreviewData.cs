@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Transaction.Contracts;
 /// <summary>
 /// Represents the structured payload returned by transaction preview.
 /// </summary>
-public sealed record TransactionPreviewData
+internal sealed record TransactionPreviewData
 {
     /// <summary>
     /// Gets the active transaction info.

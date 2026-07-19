@@ -71,6 +71,7 @@ public sealed class McpServerToolBaseTests
         result.StructuredContent!.Value.GetProperty("data").GetProperty("value").GetString().Should().Be("Value");
     }
 
+#pragma warning disable CA1515 // Moq's dynamic proxy must access these closed-generic handler contracts.
     public sealed record TestRequest : WorkspaceBoundRequest
     {
         public string Name { get; init; } = string.Empty;
@@ -80,4 +81,5 @@ public sealed class McpServerToolBaseTests
     {
         public string Value { get; init; } = string.Empty;
     }
+#pragma warning restore CA1515
 }

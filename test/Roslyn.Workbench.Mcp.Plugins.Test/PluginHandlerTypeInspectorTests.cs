@@ -44,11 +44,11 @@ public sealed class PluginHandlerTypeInspectorTests
             "PluginHandlerComposition");
     }
 
-    public sealed record Request : WorkspaceBoundRequest;
+#pragma warning disable CA1812 // Contract and handler fixtures are inspected through composition metadata without activation.
+    private sealed record Request : WorkspaceBoundRequest;
 
-    public sealed record Response;
+    private sealed record Response;
 
-#pragma warning disable CA1812 // Handler fixtures are inspected for lifetime and composition metadata without activation.
     private sealed class QueryHandler : IQueryToolHandler<Request, Response>
     {
         public ValueTask<PluginExecutionResult<Response>> ExecuteAsync(Request request, IQueryContext context, CancellationToken cancellationToken)

@@ -114,11 +114,11 @@ public sealed class CodeActionToolRegistryTests
         };
     }
 
-    public sealed record TestRequest : WorkspaceBoundRequest;
+#pragma warning disable CA1812 // Contract and handler fixtures are consumed as closed generic registration metadata.
+    private sealed record TestRequest : WorkspaceBoundRequest;
 
-    public sealed record TestResponse;
+    private sealed record TestResponse;
 
-#pragma warning disable CA1812 // Handler fixtures are consumed as closed generic registration metadata.
     private sealed class TestQueryHandler : CodeActionQueryToolHandler<TestRequest, TestResponse>
     {
         protected override ValueTask<CodeActionExecutionResult<TestResponse>> ExecuteCoreAsync(

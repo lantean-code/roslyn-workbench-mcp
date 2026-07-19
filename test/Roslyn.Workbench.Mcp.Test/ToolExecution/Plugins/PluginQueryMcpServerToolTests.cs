@@ -236,6 +236,7 @@ public sealed class PluginQueryMcpServerToolTests
             McpServerToolTestData.CreateOptions());
     }
 
+#pragma warning disable CA1515 // Moq's dynamic proxy must access these closed-generic handler contracts.
     public sealed record TestQueryRequest : WorkspaceBoundRequest
     {
         public string Name { get; init; } = string.Empty;
@@ -245,4 +246,5 @@ public sealed class PluginQueryMcpServerToolTests
     {
         public string Value { get; init; } = string.Empty;
     }
+#pragma warning restore CA1515
 }

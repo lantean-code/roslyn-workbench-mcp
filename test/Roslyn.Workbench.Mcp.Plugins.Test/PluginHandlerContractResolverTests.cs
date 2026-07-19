@@ -77,11 +77,13 @@ public sealed class PluginHandlerContractResolverTests
         };
     }
 
+    #pragma warning disable CA1515 // These fixtures must be externally visible to exercise the valid public plugin-contract path.
     public sealed record Request : WorkspaceBoundRequest;
 
     public sealed record SecondRequest : WorkspaceBoundRequest;
 
     public sealed record Response;
+    #pragma warning restore CA1515
 
 #pragma warning disable CA1812 // Contract fixtures are inspected as Type metadata and are not runtime handler instances.
     private sealed record PrivateRequest : WorkspaceBoundRequest;

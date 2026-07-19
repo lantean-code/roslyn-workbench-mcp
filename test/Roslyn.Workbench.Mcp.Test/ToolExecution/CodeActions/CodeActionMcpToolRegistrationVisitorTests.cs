@@ -93,16 +93,16 @@ public sealed class CodeActionMcpToolRegistrationVisitorTests
         };
     }
 
-    public sealed record TestRequest : WorkspaceBoundRequest
+#pragma warning disable CA1812 // Contract and handler fixtures are activated indirectly by dependency injection.
+    private sealed record TestRequest : WorkspaceBoundRequest
     {
     }
 
-    public sealed record TestResponse
+    private sealed record TestResponse
     {
         public string Value { get; init; } = string.Empty;
     }
 
-#pragma warning disable CA1812 // Handler fixtures are activated indirectly by the dependency-injection container.
     private sealed class TestQueryHandler : CodeActionQueryToolHandler<TestRequest, TestResponse>
     {
         protected override ValueTask<CodeActionExecutionResult<TestResponse>> ExecuteCoreAsync(

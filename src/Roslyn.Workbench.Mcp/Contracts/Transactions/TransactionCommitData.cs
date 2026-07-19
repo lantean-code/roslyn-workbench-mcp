@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Transaction.Contracts;
 /// <summary>
 /// Represents the structured payload returned when a transaction is committed.
 /// </summary>
-public sealed record TransactionCommitData
+internal sealed record TransactionCommitData
 {
     /// <summary>
     /// Gets a value indicating whether the commit succeeded.

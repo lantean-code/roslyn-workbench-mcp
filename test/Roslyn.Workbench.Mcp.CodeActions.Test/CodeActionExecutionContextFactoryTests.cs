@@ -147,7 +147,7 @@ public sealed class CodeActionExecutionContextFactoryTests
         result.Failure.Should().NotBeNull();
     }
 
-    public sealed record TestRequest : WorkspaceBoundRequest;
+    private sealed record TestRequest : WorkspaceBoundRequest;
 
     private static WorkspaceExecutionContext CreateWorkspaceContext(
         Solution solution,

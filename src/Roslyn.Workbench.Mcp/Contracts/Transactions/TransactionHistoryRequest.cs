@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Transaction.Contracts;
 /// <summary>
 /// Represents a request to move through transaction history.
 /// </summary>
-public sealed record TransactionHistoryRequest : WorkspaceBoundRequest
+internal sealed record TransactionHistoryRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the requested history direction.

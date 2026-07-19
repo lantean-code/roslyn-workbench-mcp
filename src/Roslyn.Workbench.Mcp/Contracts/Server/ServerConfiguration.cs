@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Server.Contracts;
 /// <summary>
 /// Represents the effective non-sensitive server configuration.
 /// </summary>
-public sealed record ServerConfiguration
+internal sealed record ServerConfiguration
 {
     /// <summary>
     /// Gets the default maximum collection result count.

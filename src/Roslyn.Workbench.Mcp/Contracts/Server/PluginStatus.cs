@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Server.Contracts;
 /// <summary>
 /// Represents the load status of one plugin.
 /// </summary>
-public sealed record PluginStatus
+internal sealed record PluginStatus
 {
     /// <summary>
     /// Gets the stable plugin identifier.

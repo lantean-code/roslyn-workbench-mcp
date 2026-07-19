@@ -162,12 +162,14 @@ public sealed class McpToolProtocolFactoryTests
         });
     }
 
-    public sealed record TestRequest : WorkspaceBoundRequest
+#pragma warning disable CA1812 // Protocol fixtures are consumed through schema metadata without construction.
+    private sealed record TestRequest : WorkspaceBoundRequest
     {
     }
 
-    public sealed record TestResponse
+    private sealed record TestResponse
     {
         public string Value { get; init; } = string.Empty;
     }
+#pragma warning restore CA1812
 }

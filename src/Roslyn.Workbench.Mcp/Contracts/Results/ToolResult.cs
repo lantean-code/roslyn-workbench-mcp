@@ -6,7 +6,7 @@ namespace Roslyn.Workbench.Mcp.Protocol.Results;
 /// Represents the common structured envelope returned by a tool.
 /// </summary>
 /// <typeparam name="TData">The tool-specific data payload type.</typeparam>
-public sealed record ToolResult<TData>
+internal sealed record ToolResult<TData>
 {
     /// <summary>
     /// Gets the outcome of the tool invocation.

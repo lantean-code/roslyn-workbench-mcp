@@ -160,5 +160,7 @@ public sealed class CodeActionSelectorHelpersTests
         });
     }
 
-    public sealed record TestResponse;
+#pragma warning disable CA1812 // Response fixture is consumed through generic contract metadata.
+    private sealed record TestResponse;
+#pragma warning restore CA1812
 }

@@ -6,7 +6,7 @@ namespace Roslyn.Workbench.Mcp.Protocol.Results;
 /// Represents the top-level outcome of a tool invocation.
 /// </summary>
 [JsonConverter(typeof(JsonStringEnumConverter<ToolOutcome>))]
-public enum ToolOutcome
+internal enum ToolOutcome
 {
     /// <summary>
     /// The tool completed successfully.

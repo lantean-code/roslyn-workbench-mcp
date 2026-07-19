@@ -81,6 +81,7 @@ public sealed class PluginMcpToolRegistrationVisitorTests
         });
     }
 
+#pragma warning disable CA1515 // Moq's dynamic proxy must access these closed-generic handler contracts.
     public sealed record TestRequest : WorkspaceBoundRequest
     {
     }
@@ -89,4 +90,5 @@ public sealed class PluginMcpToolRegistrationVisitorTests
     {
         public string Value { get; init; } = string.Empty;
     }
+#pragma warning restore CA1515
 }

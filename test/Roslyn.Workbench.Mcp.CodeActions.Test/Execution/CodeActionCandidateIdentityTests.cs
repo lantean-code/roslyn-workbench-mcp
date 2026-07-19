@@ -99,6 +99,7 @@ public sealed class CodeActionCandidateIdentityTests
         equals.Should().BeTrue();
     }
 
+    #pragma warning disable CA1515 // The enum is part of a public xUnit theory method signature.
     public enum CandidateDifference
     {
         ProviderId,
@@ -107,4 +108,5 @@ public sealed class CodeActionCandidateIdentityTests
         ActionPath,
         DiagnosticIds,
     }
+    #pragma warning restore CA1515
 }

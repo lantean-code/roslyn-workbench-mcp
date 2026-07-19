@@ -85,9 +85,11 @@ public sealed class LoadedPluginPreparerTests
         action.Should().Throw<InvalidOperationException>();
     }
 
-    public sealed record Request : WorkspaceBoundRequest;
+#pragma warning disable CA1812 // Request fixture is consumed as closed generic registration metadata.
+    private sealed record Request : WorkspaceBoundRequest;
+#pragma warning restore CA1812
 
-    public sealed record Response;
+    private sealed record Response;
 
     private sealed class QueryHandler : IQueryToolHandler<Request, Response>
     {

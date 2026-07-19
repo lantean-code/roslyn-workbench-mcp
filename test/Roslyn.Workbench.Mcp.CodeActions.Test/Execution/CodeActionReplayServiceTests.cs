@@ -725,6 +725,7 @@ public sealed class CodeActionReplayServiceTests
         return syntaxTree!.GetLocation(new TextSpan(0, 1));
     }
 
+    #pragma warning disable CA1515 // The enum is part of a public xUnit theory method signature.
     public enum ReplayFilter
     {
         Title,
@@ -733,4 +734,5 @@ public sealed class CodeActionReplayServiceTests
         EquivalenceKey,
         ActionPath,
     }
+    #pragma warning restore CA1515
 }

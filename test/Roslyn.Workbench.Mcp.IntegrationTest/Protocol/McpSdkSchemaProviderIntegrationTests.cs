@@ -69,17 +69,19 @@ public sealed class McpSdkSchemaProviderIntegrationTests
         second.GetRawText().Should().Be(first.GetRawText());
     }
 
-    public sealed record TestRequest
+#pragma warning disable CA1812 // Schema fixtures are consumed through type metadata without construction.
+    private sealed record TestRequest
     {
         public string Value { get; init; } = string.Empty;
     }
 
-    public sealed record TestResponse
+    private sealed record TestResponse
     {
         public string Value { get; init; } = string.Empty;
     }
+#pragma warning restore CA1812
 
-    public readonly record struct TestStruct
+    private readonly record struct TestStruct
     {
         public string Value { get; init; }
     }

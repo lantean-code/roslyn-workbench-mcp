@@ -110,6 +110,7 @@ public sealed class WorkspaceToolResultMapperTests
         };
     }
 
+#pragma warning disable CA1515 // Moq's dynamic proxy must access the closed-generic mapper delegate.
     public sealed record TestSource
     {
         public string Value { get; init; } = string.Empty;
@@ -119,4 +120,5 @@ public sealed class WorkspaceToolResultMapperTests
     {
         public string Value { get; init; } = string.Empty;
     }
+#pragma warning restore CA1515
 }

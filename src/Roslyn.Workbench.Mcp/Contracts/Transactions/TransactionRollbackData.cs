@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Transaction.Contracts;
 /// <summary>
 /// Represents the structured payload returned when a transaction is rolled back.
 /// </summary>
-public sealed record TransactionRollbackData
+internal sealed record TransactionRollbackData
 {
     /// <summary>
     /// Gets the resulting workspace state after rollback.

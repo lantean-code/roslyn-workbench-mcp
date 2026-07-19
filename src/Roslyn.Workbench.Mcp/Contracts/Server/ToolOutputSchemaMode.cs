@@ -6,7 +6,7 @@ namespace Roslyn.Workbench.Mcp.Server.Contracts;
 /// Controls how MCP tool output schemas are published in tool metadata.
 /// </summary>
 [JsonConverter(typeof(JsonStringEnumConverter<ToolOutputSchemaMode>))]
-public enum ToolOutputSchemaMode
+internal enum ToolOutputSchemaMode
 {
     /// <summary>
     /// Omits the published output schema from the tool metadata.

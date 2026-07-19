@@ -215,9 +215,11 @@ public sealed class PluginConfigurationPreparerTests
         };
     }
 
-    public sealed record Request : WorkspaceBoundRequest;
+#pragma warning disable CA1812 // Request fixture is consumed as closed generic registration metadata.
+    private sealed record Request : WorkspaceBoundRequest;
+#pragma warning restore CA1812
 
-    public sealed record Response;
+    private sealed record Response;
 
     [RoslynTool("attribute-query", "Attribute Query", "Attribute query description", ResultSummary = "Attribute result")]
     private sealed class AttributedQueryHandler : IQueryToolHandler<Request, Response>

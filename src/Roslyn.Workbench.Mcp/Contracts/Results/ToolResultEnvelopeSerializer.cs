@@ -6,7 +6,7 @@ namespace Roslyn.Workbench.Mcp.Protocol.Results;
 /// <summary>
 /// Serializes structured MCP tool result envelopes using the published response contracts.
 /// </summary>
-public static class ToolResultEnvelopeSerializer
+internal static class ToolResultEnvelopeSerializer
 {
     private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
 

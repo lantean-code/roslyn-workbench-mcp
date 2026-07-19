@@ -165,11 +165,12 @@ public sealed class ToolResultTests
     }
 
     [Theory]
-    [InlineData(ToolOutcome.Rejected)]
-    [InlineData(ToolOutcome.Conflict)]
-    [InlineData(ToolOutcome.Faulted)]
-    public void GIVEN_ErrorOutcomeWithDataAndChangesButNoError_WHEN_Validated_THEN_ShouldReturnEveryValidationError(ToolOutcome outcome)
+    [InlineData((int)ToolOutcome.Rejected)]
+    [InlineData((int)ToolOutcome.Conflict)]
+    [InlineData((int)ToolOutcome.Faulted)]
+    public void GIVEN_ErrorOutcomeWithDataAndChangesButNoError_WHEN_Validated_THEN_ShouldReturnEveryValidationError(int outcomeValue)
     {
+        var outcome = (ToolOutcome)outcomeValue;
         var result = new ToolResult<WorkspaceStatusData>
         {
             Outcome = outcome,

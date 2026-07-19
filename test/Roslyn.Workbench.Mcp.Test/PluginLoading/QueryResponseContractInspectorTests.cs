@@ -61,7 +61,8 @@ public sealed class QueryResponseContractInspectorTests
         };
     }
 
-    public sealed record BoundedResponse
+#pragma warning disable CA1812 // Response fixtures are inspected through reflection metadata without construction.
+    private sealed record BoundedResponse
     {
         public string Text { get; init; } = string.Empty;
 
@@ -70,7 +71,7 @@ public sealed class QueryResponseContractInspectorTests
         public BoundedCollection<string> BoundedItems { get; init; } = new();
     }
 
-    public sealed record RawCollectionResponse
+    private sealed record RawCollectionResponse
     {
         public string[] ArrayItems { get; init; } = [];
 
@@ -86,4 +87,5 @@ public sealed class QueryResponseContractInspectorTests
 
         public List<string> ListItems { get; init; } = [];
     }
+#pragma warning restore CA1812
 }

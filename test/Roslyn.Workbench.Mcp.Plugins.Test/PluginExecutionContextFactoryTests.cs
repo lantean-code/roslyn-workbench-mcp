@@ -166,7 +166,7 @@ public sealed class PluginExecutionContextFactoryTests
         result.Failure.Should().NotBeNull();
     }
 
-    public sealed record TestRequest : WorkspaceBoundRequest;
+    private sealed record TestRequest : WorkspaceBoundRequest;
 
     private static WorkspaceExecutionContext CreateWorkspaceContext(Microsoft.CodeAnalysis.Solution solution)
     {

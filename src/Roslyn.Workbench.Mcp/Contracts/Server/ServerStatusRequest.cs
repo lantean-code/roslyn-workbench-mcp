@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Server.Contracts;
 /// <summary>
 /// Represents a request to retrieve server diagnostics.
 /// </summary>
-public sealed record ServerStatusRequest
+internal sealed record ServerStatusRequest
 {
     /// <summary>
     /// Gets the requested response detail level.

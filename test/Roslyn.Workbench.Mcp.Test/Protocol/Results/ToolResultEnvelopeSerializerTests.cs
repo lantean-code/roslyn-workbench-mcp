@@ -46,8 +46,10 @@ public sealed class ToolResultEnvelopeSerializerTests
         result.TryGetProperty("next", out _).Should().BeFalse();
     }
 
-    public sealed record TestData
+#pragma warning disable CA1812 // Payload fixture is consumed through generic serializer metadata.
+    private sealed record TestData
     {
         public string Value { get; init; } = string.Empty;
     }
+#pragma warning restore CA1812
 }

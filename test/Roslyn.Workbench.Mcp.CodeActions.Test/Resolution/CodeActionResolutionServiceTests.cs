@@ -448,6 +448,7 @@ public sealed class CodeActionResolutionServiceTests : IDisposable
         result.FailureKind.Should().Be(CodeActionResolutionFailureKind.None);
     }
 
+    #pragma warning disable CA1515 // These enums are part of public xUnit theory method signatures.
     public enum WorkspaceMismatch
     {
         WorkspaceId,
@@ -462,4 +463,5 @@ public sealed class CodeActionResolutionServiceTests : IDisposable
         ActionPath,
         DiagnosticIds,
     }
+    #pragma warning restore CA1515
 }

@@ -188,7 +188,7 @@ public sealed class WorkspaceOperationResultFactoryTests
         };
     }
 
-    public sealed record TestOutcome
+    private sealed record TestOutcome
     {
     }
 }

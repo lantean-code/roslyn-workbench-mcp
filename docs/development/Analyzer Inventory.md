@@ -1,6 +1,6 @@
 # .NET Analyzer Inventory
 
-Date: 2026-07-18
+Date: 2026-07-19
 
 ## Purpose
 
@@ -30,12 +30,12 @@ The clean baseline build succeeded with zero compiler errors.
 
 | Measure | Baseline | Remaining |
 | --- | ---: | ---: |
-| Analyzer findings | 2,228 | 227 |
-| Diagnostic IDs | 33 | 12 |
-| Files | 379 | 117 |
+| Analyzer findings | 2,228 | 130 |
+| Diagnostic IDs | 33 | 11 |
+| Files | 379 | 57 |
 | Projects | 23 | 23 |
-| Production findings | 154 | 89 |
-| Test and fixture findings | 2,074 | 138 |
+| Production findings | 154 | 52 |
+| Test and fixture findings | 2,074 | 78 |
 
 The remaining counts come from the latest successful solution-wide analyzer build. Resolved diagnostics are excluded from the active inventory and recorded separately below.
 
@@ -47,12 +47,11 @@ Of the six IDE findings that triggered this audit for `GetCodeContextTool`, the 
 
 | Diagnostic | Rule meaning | Total | Production | Tests | Initial treatment | Batch |
 | --- | --- | ---: | ---: | ---: | --- | --- |
-| `CA1000` | Avoid static members on generic types because callers must specify the containing type argument | 15 | 15 | 0 | Review generic factory APIs; preserve intentional fluent contracts | Design/API |
+| `CA1000` | Avoid static members on generic types because callers must specify the containing type argument | 10 | 10 | 0 | Review generic factory APIs; preserve intentional fluent contracts | Design/API |
 | `CA1014` | Assemblies should explicitly declare whether they are CLS-compliant | 23 | 5 | 18 | Decide the solution-wide CLS-compliance policy before adding assembly attributes | Design/API |
 | `CA1040` | Empty interfaces do not define a behavioural contract | 2 | 2 | 0 | Review marker-interface intent and document or suppress if required | Design/API |
 | `CA1068` | A `CancellationToken` parameter should be the final parameter | 2 | 1 | 1 | Review cancellation-token ordering with contract compatibility | Design/API |
-| `CA1515` | Types in application assemblies can often be internal instead of public | 91 | 32 | 59 | Internalise implementation types; preserve real contracts and discovery surfaces | Design/API |
-| `CA1711` | Type names should not use suffixes that imply a different kind of type | 2 | 1 | 1 | Review established contract names before renaming | Design/API |
+| `CA1711` | Type names should not use suffixes that imply a different kind of type | 1 | 1 | 0 | Review the established contract name before renaming | Design/API |
 | `CA1802` | A readonly field holding a compile-time value can be a constant | 1 | 0 | 1 | Use a constant where it does not weaken the test scenario | Performance |
 | `CA1822` | An instance member that uses no instance state can be static | 6 | 0 | 6 | Make helpers static where test clarity is unchanged | Performance |
 | `CA1859` | Private code can use a concrete type when abstraction adds overhead without flexibility | 48 | 33 | 15 | Apply concrete types only to private hot paths, not public contracts | Performance |
@@ -74,8 +73,9 @@ Of the six IDE findings that triggered this audit for `GetCodeContextTool`, the 
 | `CA1307` | 12 | Added explicit ordinal semantics to protocol delimiters, source-fragment matching and test line-ending normalisation |
 | `CA1308` | 5 | Replaced lowercase normalisation with explicit code and display labels for selector failures and an explicit query/mutation vocabulary for plugin contract diagnostics |
 | `CA1508` | 2 | Removed the redundant production null path and added a method-scoped suppression for the deliberate equality-contract test |
+| `CA1515` | 91 | Internalised 32 Host CLR and wire-model implementation types without changing their JSON or MCP shapes, reduced test helpers to the narrowest accessibility, and retained only genuine plugin-contract, schema, xUnit discovery and dynamic-proxy surfaces with source-local rationale |
 | `CA1707` | 1,462 | Suppressed for `IsTestProject` builds because GIVEN/WHEN/THEN names are mandated |
-| `CA1812` | 33 | Audited every finding and added source-local pragma scopes around eight fixture groups used through reflection, DI, closed-generic registration, schema metadata or deliberate activation failures; no dead types were found |
+| `CA1812` | 33 | Audited every original finding and the private fixtures exposed by the accessibility audit; added source-local pragma scopes for types used through reflection, DI, deserialisation, closed-generic registration, schema metadata or deliberate activation failures; no dead types were found |
 | `CA1819` | 1 | Suppressed for test and plugin-fixture builds because the mutable array contract is an intentional negative contract-inspection scenario |
 | `CA1848` | 2 | Replaced the Host's startup-warning and unhandled-tool-exception extension calls with source-generated `LoggerMessage` methods while preserving structured fields and exception details |
 | `CA1849` | 42 | Replaced ordinary synchronous operations with asynchronous alternatives, removed fake asynchronous creation and disposal from the synchronous test-fixture ownership chain, and retained narrowly documented durable disk flushes |
@@ -90,25 +90,25 @@ Of the six IDE findings that triggered this audit for `GetCodeContextTool`, the 
 
 | Project | Remaining | IDs | Files |
 | --- | ---: | ---: | ---: |
-| `src/Roslyn.Workbench.Mcp` | 46 | 4 | 38 |
+| `src/Roslyn.Workbench.Mcp` | 9 | 2 | 6 |
 | `src/Roslyn.Workbench.Mcp.CodeActions` | 8 | 3 | 3 |
 | `src/Roslyn.Workbench.Mcp.Plugins` | 10 | 4 | 5 |
 | `src/Roslyn.Workbench.Mcp.Plugins.Core` | 16 | 4 | 8 |
 | `src/Roslyn.Workbench.Mcp.Workspace` | 9 | 3 | 5 |
 | `test/Roslyn.Workbench.Mcp.AcceptanceTest` | 2 | 2 | 1 |
-| `test/Roslyn.Workbench.Mcp.CodeActions.AuditTest` | 7 | 3 | 4 |
-| `test/Roslyn.Workbench.Mcp.CodeActions.IntegrationTest` | 2 | 2 | 1 |
-| `test/Roslyn.Workbench.Mcp.CodeActions.Test` | 29 | 6 | 12 |
-| `test/Roslyn.Workbench.Mcp.IntegrationTest` | 8 | 3 | 3 |
+| `test/Roslyn.Workbench.Mcp.CodeActions.AuditTest` | 6 | 2 | 3 |
+| `test/Roslyn.Workbench.Mcp.CodeActions.IntegrationTest` | 1 | 1 | 0 |
+| `test/Roslyn.Workbench.Mcp.CodeActions.Test` | 17 | 5 | 6 |
+| `test/Roslyn.Workbench.Mcp.IntegrationTest` | 4 | 2 | 2 |
 | `test/Roslyn.Workbench.Mcp.IntegrationTestSupport` | 1 | 1 | 0 |
-| `test/Roslyn.Workbench.Mcp.Plugins.Core.IntegrationTest` | 2 | 2 | 1 |
+| `test/Roslyn.Workbench.Mcp.Plugins.Core.IntegrationTest` | 1 | 1 | 0 |
 | `test/Roslyn.Workbench.Mcp.Plugins.Core.Test` | 2 | 2 | 1 |
-| `test/Roslyn.Workbench.Mcp.Plugins.Test` | 21 | 4 | 8 |
-| `test/Roslyn.Workbench.Mcp.Test` | 34 | 7 | 17 |
+| `test/Roslyn.Workbench.Mcp.Plugins.Test` | 6 | 3 | 3 |
+| `test/Roslyn.Workbench.Mcp.Test` | 10 | 5 | 6 |
 | `test/Roslyn.Workbench.Mcp.TestSupport` | 3 | 2 | 2 |
-| `test/Roslyn.Workbench.Mcp.Workspace.IntegrationTest` | 6 | 3 | 2 |
+| `test/Roslyn.Workbench.Mcp.Workspace.IntegrationTest` | 5 | 2 | 1 |
 | `test/Roslyn.Workbench.Mcp.Workspace.LockFixture` | 1 | 1 | 0 |
-| `test/Roslyn.Workbench.Mcp.Workspace.Test` | 16 | 5 | 6 |
+| `test/Roslyn.Workbench.Mcp.Workspace.Test` | 15 | 4 | 5 |
 | `test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.HostMutationPluginFixture` | 1 | 1 | 0 |
 | `test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.HostQueryPluginFixture` | 1 | 1 | 0 |
 | `test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.InvalidPluginFixture` | 1 | 1 | 0 |

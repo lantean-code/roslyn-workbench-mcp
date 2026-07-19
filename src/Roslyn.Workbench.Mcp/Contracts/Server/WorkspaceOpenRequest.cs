@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Server.Contracts;
 /// <summary>
 /// Represents a request to load a writable workspace.
 /// </summary>
-public sealed record WorkspaceOpenRequest
+internal sealed record WorkspaceOpenRequest
 {
     /// <summary>
     /// Gets the optional caller-friendly alias for the workspace.

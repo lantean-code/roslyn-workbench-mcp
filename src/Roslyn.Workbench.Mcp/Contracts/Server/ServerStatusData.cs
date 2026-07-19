@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Server.Contracts;
 /// <summary>
 /// Represents the structured payload returned by server status.
 /// </summary>
-public sealed record ServerStatusData
+internal sealed record ServerStatusData
 {
     /// <summary>
     /// Gets the server version, when available from assembly metadata.

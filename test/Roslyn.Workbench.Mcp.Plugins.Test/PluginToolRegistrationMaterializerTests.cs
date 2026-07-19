@@ -94,11 +94,13 @@ public sealed class PluginToolRegistrationMaterializerTests
         };
     }
 
-    public sealed record Request : WorkspaceBoundRequest;
+#pragma warning disable CA1812 // Request fixture is consumed as closed generic registration metadata.
+    private sealed record Request : WorkspaceBoundRequest;
+#pragma warning restore CA1812
 
-    public sealed record Response;
+    private sealed record Response;
 
-    public sealed class QueryHandler : IQueryToolHandler<Request, Response>
+    private sealed class QueryHandler : IQueryToolHandler<Request, Response>
     {
         public ValueTask<PluginExecutionResult<Response>> ExecuteAsync(
             Request request,
@@ -109,7 +111,7 @@ public sealed class PluginToolRegistrationMaterializerTests
         }
     }
 
-    public sealed class MutationHandler : IMutationToolHandler<Request>
+    private sealed class MutationHandler : IMutationToolHandler<Request>
     {
         public ValueTask<PluginExecutionResult<MutationCandidate>> ExecuteAsync(
             Request request,
@@ -120,7 +122,7 @@ public sealed class PluginToolRegistrationMaterializerTests
         }
     }
 
-    public sealed class ThrowingQueryHandler : IQueryToolHandler<Request, Response>
+    private sealed class ThrowingQueryHandler : IQueryToolHandler<Request, Response>
     {
         public ThrowingQueryHandler()
         {

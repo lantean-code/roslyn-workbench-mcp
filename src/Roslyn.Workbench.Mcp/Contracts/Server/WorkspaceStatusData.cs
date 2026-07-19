@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Server.Contracts;
 /// <summary>
 /// Represents the structured payload returned by workspace status.
 /// </summary>
-public sealed record WorkspaceStatusData
+internal sealed record WorkspaceStatusData
 {
     /// <summary>
     /// Gets the workspace lifecycle state.

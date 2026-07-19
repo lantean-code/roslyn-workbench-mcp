@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Protocol.Results;
 /// <summary>
 /// Represents a structured tool error.
 /// </summary>
-public sealed record ToolError
+internal sealed record ToolError
 {
     /// <summary>
     /// Gets the stable machine-readable error code.

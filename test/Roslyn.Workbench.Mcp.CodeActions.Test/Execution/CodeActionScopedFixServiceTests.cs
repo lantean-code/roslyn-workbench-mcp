@@ -1000,6 +1000,7 @@ public sealed class CodeActionScopedFixServiceTests : IDisposable
         };
     }
 
+    #pragma warning disable CA1515 // These enums are part of public xUnit theory method signatures.
     public enum CandidateFilter
     {
         Title,
@@ -1017,4 +1018,5 @@ public sealed class CodeActionScopedFixServiceTests : IDisposable
         Rejected,
         MissingCandidate,
     }
+    #pragma warning restore CA1515
 }

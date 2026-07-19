@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Protocol.Results;
 /// <summary>
 /// Provides helper methods for <see cref="ToolOutcome"/>.
 /// </summary>
-public static class ToolOutcomeExtensions
+internal static class ToolOutcomeExtensions
 {
     /// <summary>
     /// Gets a value indicating whether the outcome represents an error result.

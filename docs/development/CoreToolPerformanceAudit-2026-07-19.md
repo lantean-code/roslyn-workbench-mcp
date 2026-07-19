@@ -248,7 +248,13 @@ The five existing pre-bounded paths are `find-references`, `get-change-impact`, 
 - `get-code-metrics` now retains lightweight candidates through deduplication, ordering and bounding. Syntax retrieval, location and symbol projection, and metric traversal run only for returned candidates; logical-line and multi-traversal algorithm changes remain deferred for separate measurement.
 - `get-control-flow-graph` now projects only requested blocks and stops region traversal when the next region establishes truncation.
 - `get-project-details` now bounds lazy document, project-reference, metadata-reference and analyser projections and reads `Project.CompilationOptions` directly instead of creating a compilation.
-- Batch 2 is complete. The current textual inspection-handler count is 22 `CreateBoundedCollection` calls and eleven `CreatePreboundedCollection` calls; the two terminal call sites in the project-details pre-bounding helper serve four independently bounded response collections.
+- Batch 2 is complete. The current textual inspection-handler count is 22 `CreateBoundedCollection` calls and eleven `CreatePreboundedCollection` calls; project details uses dedicated readable loops for its four independently bounded response collections.
+
+### 2026-07-19 — Request-owned effective limits
+
+- All 35 nullable collection limits now expose an internal `Effective...Limit` property on their owning request.
+- Tool handlers consume those normalized values without repeating the request property, curated default and normalization helper at every call site.
+- All 44 request-owned default constants are private. Public nullable request properties, initial values and `[DefaultValue]` metadata remain unchanged.
 
 ## Recommended implementation batches
 

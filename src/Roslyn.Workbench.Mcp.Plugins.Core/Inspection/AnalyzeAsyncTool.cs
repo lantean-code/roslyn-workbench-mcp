@@ -12,7 +12,7 @@ internal sealed class AnalyzeAsyncTool : QueryToolHandler<AnalyzeAsyncRequest, A
             return documents.Rejection;
         }
 
-        var maxResults = ToolExecutionHelpers.GetMaxResults(request.FindingsLimit, AnalyzeAsyncRequest._defaultFindingsMaxResults);
+        var maxResults = request.EffectiveFindingsLimit;
         var findings = new List<AsyncFinding>();
         var hasMore = false;
         foreach (var document in documents.Value.OrderBy(static item => item.FilePath, StringComparer.Ordinal))

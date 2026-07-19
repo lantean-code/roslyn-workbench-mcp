@@ -5,8 +5,8 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record FindDuplicateCodeRequest : WorkspaceBoundRequest
 {
-    internal const int _defaultGroupsMaxResults = 25;
-    internal const int _defaultMinimumStatements = 3;
+    private const int _defaultGroupsMaxResults = 25;
+    private const int _defaultMinimumStatements = 3;
 
     /// <summary>
     /// Gets the optional search scope.
@@ -24,4 +24,6 @@ public sealed record FindDuplicateCodeRequest : WorkspaceBoundRequest
     /// </summary>
     [DefaultValue(_defaultGroupsMaxResults)]
     public int? GroupsLimit { get; init; } = _defaultGroupsMaxResults;
+
+    internal int EffectiveGroupsLimit => ToolExecutionHelpers.GetMaxResults(GroupsLimit, _defaultGroupsMaxResults);
 }

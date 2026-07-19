@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record GetPartialDeclarationsRequest : WorkspaceBoundRequest
 {
-    internal const int _defaultDeclarationsMaxResults = 32;
+    private const int _defaultDeclarationsMaxResults = 32;
 
     /// <summary>
     /// Gets the symbol selector.
@@ -22,4 +22,6 @@ public sealed record GetPartialDeclarationsRequest : WorkspaceBoundRequest
     /// Gets the expected snapshot for location-based symbol selectors.
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
+
+    internal int EffectiveDeclarationsLimit => ToolExecutionHelpers.GetMaxResults(DeclarationsLimit, _defaultDeclarationsMaxResults);
 }

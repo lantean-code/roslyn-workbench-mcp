@@ -5,8 +5,8 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record GetControlFlowGraphRequest : WorkspaceBoundRequest
 {
-    internal const int _defaultMaxBlocks = 64;
-    internal const int _defaultMaxRegions = 32;
+    private const int _defaultMaxBlocks = 64;
+    private const int _defaultMaxRegions = 32;
 
     /// <summary>
     /// Gets the maximum number of projected basic blocks.

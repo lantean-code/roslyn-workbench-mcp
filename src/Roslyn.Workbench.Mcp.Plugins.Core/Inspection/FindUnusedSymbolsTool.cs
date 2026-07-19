@@ -16,7 +16,7 @@ internal sealed class FindUnusedSymbolsTool : QueryToolHandler<FindUnusedSymbols
             ? documents.Value.Where(static document => !CompilerDiagnosticHelpers.IsGeneratedDocument(document)).ToArray()
             : documents.Value.ToArray();
         var diagnostics = await context.ToolExecutionServices.CompilerDiagnosticService.GetCompilerDiagnosticsAsync(selectedDocuments, cancellationToken);
-        var maxResults = ToolExecutionHelpers.GetMaxResults(request.CandidatesLimit, FindUnusedSymbolsRequest._defaultCandidatesMaxResults);
+        var maxResults = request.EffectiveCandidatesLimit;
         var candidates = new List<UnusedSymbolCandidate>();
         var hasMore = false;
         SyntaxTree? activeSyntaxTree = null;

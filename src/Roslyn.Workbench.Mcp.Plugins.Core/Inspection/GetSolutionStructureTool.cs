@@ -57,10 +57,10 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
             SolutionPath = context.WorkspaceIdentity.LoadedPath,
             Folders = ToolExecutionHelpers.CreateBoundedCollection(
                 hierarchy.Folders,
-                ToolExecutionHelpers.GetMaxResults(request.FoldersLimit, GetSolutionStructureRequest._defaultFoldersMaxResults)),
+                request.EffectiveFoldersLimit),
             Projects = ToolExecutionHelpers.CreateBoundedCollection(
                 projectStructures,
-                ToolExecutionHelpers.GetMaxResults(request.ProjectsLimit, GetSolutionStructureRequest._defaultProjectsMaxResults)),
+                request.EffectiveProjectsLimit),
         });
     }
 }

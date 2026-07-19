@@ -5,8 +5,8 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record GetSolutionStructureRequest : WorkspaceBoundRequest
 {
-    internal const int _defaultFoldersMaxResults = 200;
-    internal const int _defaultProjectsMaxResults = 100;
+    private const int _defaultFoldersMaxResults = 200;
+    private const int _defaultProjectsMaxResults = 100;
 
     /// <summary>
     /// Gets a value indicating whether documents should be included in project projections.
@@ -24,4 +24,8 @@ public sealed record GetSolutionStructureRequest : WorkspaceBoundRequest
     /// </summary>
     [DefaultValue(_defaultProjectsMaxResults)]
     public int? ProjectsLimit { get; init; } = _defaultProjectsMaxResults;
+
+    internal int EffectiveFoldersLimit => ToolExecutionHelpers.GetMaxResults(FoldersLimit, _defaultFoldersMaxResults);
+
+    internal int EffectiveProjectsLimit => ToolExecutionHelpers.GetMaxResults(ProjectsLimit, _defaultProjectsMaxResults);
 }

@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record SearchSymbolsRequest : WorkspaceBoundRequest
 {
-    internal const int _defaultSymbolsMaxResults = 100;
+    private const int _defaultSymbolsMaxResults = 100;
 
     /// <summary>
     /// Gets the source-name query.
@@ -42,4 +42,6 @@ public sealed record SearchSymbolsRequest : WorkspaceBoundRequest
     /// </summary>
     [DefaultValue(_defaultSymbolsMaxResults)]
     public int? SymbolsLimit { get; init; } = _defaultSymbolsMaxResults;
+
+    internal int EffectiveSymbolsLimit => ToolExecutionHelpers.GetMaxResults(SymbolsLimit, _defaultSymbolsMaxResults);
 }

@@ -64,7 +64,7 @@ internal sealed class FindCallersTool : QueryToolHandler<FindCallersRequest, Cal
             Symbol = symbolReference,
             Callers = ToolExecutionHelpers.CreateBoundedCollection(
                 orderedCallers,
-                ToolExecutionHelpers.GetMaxResults(request.CallersLimit, FindCallersRequest._defaultCallersMaxResults)),
+                request.EffectiveCallersLimit),
         });
     }
 }

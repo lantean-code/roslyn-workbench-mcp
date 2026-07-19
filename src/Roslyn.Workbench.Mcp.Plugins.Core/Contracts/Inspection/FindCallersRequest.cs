@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record FindCallersRequest : WorkspaceBoundRequest
 {
-    internal const int _defaultCallersMaxResults = 100;
+    private const int _defaultCallersMaxResults = 100;
 
     /// <summary>
     /// Gets the symbol selector.
@@ -32,4 +32,6 @@ public sealed record FindCallersRequest : WorkspaceBoundRequest
     /// Gets the expected snapshot for location-based symbol selectors.
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
+
+    internal int EffectiveCallersLimit => ToolExecutionHelpers.GetMaxResults(CallersLimit, _defaultCallersMaxResults);
 }

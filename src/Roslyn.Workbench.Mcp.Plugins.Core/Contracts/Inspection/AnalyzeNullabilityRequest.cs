@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record AnalyzeNullabilityRequest : WorkspaceBoundRequest
 {
-    internal const int _defaultFindingsMaxResults = 50;
+    private const int _defaultFindingsMaxResults = 50;
 
     /// <summary>
     /// Gets the optional search scope.
@@ -27,4 +27,6 @@ public sealed record AnalyzeNullabilityRequest : WorkspaceBoundRequest
     /// Gets the expected snapshot for location-based selectors.
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
+
+    internal int EffectiveFindingsLimit => ToolExecutionHelpers.GetMaxResults(FindingsLimit, _defaultFindingsMaxResults);
 }

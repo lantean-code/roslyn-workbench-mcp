@@ -28,7 +28,7 @@ internal sealed class GetDiagnosticsTool : QueryToolHandler<GetDiagnosticsReques
         var includedSeverities = request.Severities is { Count: > 0 }
             ? request.Severities.ToHashSet(StringComparer.OrdinalIgnoreCase)
             : null;
-        var maxResults = ToolExecutionHelpers.GetMaxResults(request.DiagnosticsLimit, GetDiagnosticsRequest._defaultDiagnosticsMaxResults);
+        var maxResults = request.EffectiveDiagnosticsLimit;
         var projectedDiagnostics = new List<DiagnosticInfo>();
         var hasMore = false;
         var orderedDiagnostics = diagnostics

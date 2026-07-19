@@ -74,7 +74,7 @@ internal sealed class GetChangeImpactTool : QueryToolHandler<GetChangeImpactRequ
             implementationCount = implementations.Distinct(SymbolEqualityComparer.Default).Count();
         }
 
-        var maxResults = ToolExecutionHelpers.GetMaxResults(request.LocationsLimit, GetChangeImpactRequest._defaultLocationsMaxResults);
+        var maxResults = request.EffectiveLocationsLimit;
         var selectedReferences = pendingReferences
             .OrderBy(static reference => reference.Location.Document?.Path, StringComparer.Ordinal)
             .ThenBy(static reference => reference.Location.Span?.Start)

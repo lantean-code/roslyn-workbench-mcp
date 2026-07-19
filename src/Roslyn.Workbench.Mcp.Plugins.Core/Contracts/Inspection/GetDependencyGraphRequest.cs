@@ -5,8 +5,8 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record GetDependencyGraphRequest : WorkspaceBoundRequest
 {
-    internal const int _defaultEdgesMaxResults = 400;
-    internal const int _defaultNodesMaxResults = 200;
+    private const int _defaultEdgesMaxResults = 400;
+    private const int _defaultNodesMaxResults = 200;
 
     /// <summary>
     /// Gets the scope to graph.
@@ -29,4 +29,8 @@ public sealed record GetDependencyGraphRequest : WorkspaceBoundRequest
     /// </summary>
     [DefaultValue(_defaultEdgesMaxResults)]
     public int? EdgesLimit { get; init; } = _defaultEdgesMaxResults;
+
+    internal int EffectiveNodesLimit => ToolExecutionHelpers.GetMaxResults(NodesLimit, _defaultNodesMaxResults);
+
+    internal int EffectiveEdgesLimit => ToolExecutionHelpers.GetMaxResults(EdgesLimit, _defaultEdgesMaxResults);
 }

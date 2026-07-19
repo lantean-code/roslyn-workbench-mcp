@@ -5,10 +5,10 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record GetTypeHierarchyRequest : WorkspaceBoundRequest
 {
-    internal const int _defaultBaseTypesMaxResults = 16;
-    internal const int _defaultDerivedTypesMaxResults = 100;
-    internal const int _defaultInterfacesMaxResults = 64;
-    internal const int _defaultMaxDepth = 3;
+    private const int _defaultBaseTypesMaxResults = 16;
+    private const int _defaultDerivedTypesMaxResults = 100;
+    private const int _defaultInterfacesMaxResults = 64;
+    private const int _defaultMaxDepth = 3;
 
     /// <summary>
     /// Gets the symbol selector.
@@ -48,4 +48,10 @@ public sealed record GetTypeHierarchyRequest : WorkspaceBoundRequest
     /// Gets the expected snapshot for location-based symbol selectors.
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
+
+    internal int EffectiveBaseTypesLimit => ToolExecutionHelpers.GetMaxResults(BaseTypesLimit, _defaultBaseTypesMaxResults);
+
+    internal int EffectiveInterfacesLimit => ToolExecutionHelpers.GetMaxResults(InterfacesLimit, _defaultInterfacesMaxResults);
+
+    internal int EffectiveDerivedTypesLimit => ToolExecutionHelpers.GetMaxResults(DerivedTypesLimit, _defaultDerivedTypesMaxResults);
 }

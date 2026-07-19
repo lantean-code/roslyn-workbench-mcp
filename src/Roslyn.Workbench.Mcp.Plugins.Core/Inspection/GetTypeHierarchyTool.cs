@@ -45,7 +45,7 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
                 .ToArray();
             derivedTypes = ToolExecutionHelpers.CreateBoundedCollection(
                 derived,
-                ToolExecutionHelpers.GetMaxResults(request.DerivedTypesLimit, GetTypeHierarchyRequest._defaultDerivedTypesMaxResults));
+                request.EffectiveDerivedTypesLimit);
         }
 
         return PluginExecutionResult<TypeHierarchyData>.Success(new TypeHierarchyData
@@ -53,13 +53,13 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
             Type = context.WorkspaceResolver.CreateSymbolReference(namedType),
             BaseTypes = ToolExecutionHelpers.CreateBoundedCollection(
                 baseTypes,
-                ToolExecutionHelpers.GetMaxResults(request.BaseTypesLimit, GetTypeHierarchyRequest._defaultBaseTypesMaxResults)),
+                request.EffectiveBaseTypesLimit),
             Interfaces = ToolExecutionHelpers.CreateBoundedCollection(
                 namedType.AllInterfaces
                     .OrderBy(static item => item.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat), StringComparer.Ordinal)
                     .Select(context.WorkspaceResolver.CreateSymbolReference)
                     .ToArray(),
-                ToolExecutionHelpers.GetMaxResults(request.InterfacesLimit, GetTypeHierarchyRequest._defaultInterfacesMaxResults)),
+                request.EffectiveInterfacesLimit),
             DerivedTypes = derivedTypes,
         });
     }

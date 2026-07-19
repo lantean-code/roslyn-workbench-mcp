@@ -46,7 +46,7 @@ internal sealed class FindDerivedTypesTool : QueryToolHandler<FindDerivedTypesRe
             BaseType = context.WorkspaceResolver.CreateSymbolReference(namedType),
             DerivedTypes = ToolExecutionHelpers.CreateBoundedCollection(
                 derivedTypes,
-                ToolExecutionHelpers.GetMaxResults(request.DerivedTypesLimit, FindDerivedTypesRequest._defaultDerivedTypesMaxResults)),
+                request.EffectiveDerivedTypesLimit),
         });
     }
 

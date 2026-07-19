@@ -52,7 +52,7 @@ internal sealed class GetCodeMetricsTool : QueryToolHandler<GetCodeMetricsReques
             }
         }
 
-        var maxResults = ToolExecutionHelpers.GetMaxResults(request.MetricsLimit, GetCodeMetricsRequest._defaultMetricsMaxResults);
+        var maxResults = request.EffectiveMetricsLimit;
         var uniqueCandidates = new Dictionary<string, MetricCandidate>(StringComparer.Ordinal);
         foreach (var candidate in metricCandidates)
         {

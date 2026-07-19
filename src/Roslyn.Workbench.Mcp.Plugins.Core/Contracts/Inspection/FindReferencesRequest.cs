@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record FindReferencesRequest : WorkspaceBoundRequest
 {
-    internal const int _defaultReferencesMaxResults = 100;
+    private const int _defaultReferencesMaxResults = 100;
 
     /// <summary>
     /// Gets the symbol selector.
@@ -37,4 +37,6 @@ public sealed record FindReferencesRequest : WorkspaceBoundRequest
     /// Gets the expected snapshot for location-based symbol selectors.
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
+
+    internal int EffectiveReferencesLimit => ToolExecutionHelpers.GetMaxResults(ReferencesLimit, _defaultReferencesMaxResults);
 }

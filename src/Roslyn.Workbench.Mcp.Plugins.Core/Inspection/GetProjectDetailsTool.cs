@@ -24,7 +24,7 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
             ? CreateDocumentReferences(
                 project,
                 context.WorkspaceResolver,
-                ToolExecutionHelpers.GetMaxResults(request.DocumentsLimit, GetProjectDetailsRequest._defaultDocumentsMaxResults),
+                request.EffectiveDocumentsLimit,
                 cancellationToken)
             : null;
 
@@ -32,15 +32,15 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
             project,
             context.CurrentSolution,
             context.WorkspaceResolver,
-            ToolExecutionHelpers.GetMaxResults(request.ProjectReferencesLimit, GetProjectDetailsRequest._defaultProjectReferencesMaxResults),
+            request.EffectiveProjectReferencesLimit,
             cancellationToken);
         var metadataReferences = CreateMetadataReferences(
             project,
-            ToolExecutionHelpers.GetMaxResults(request.MetadataReferencesLimit, GetProjectDetailsRequest._defaultMetadataReferencesMaxResults),
+            request.EffectiveMetadataReferencesLimit,
             cancellationToken);
         var analyzers = CreateAnalyzers(
             project,
-            ToolExecutionHelpers.GetMaxResults(request.AnalyzersLimit, GetProjectDetailsRequest._defaultAnalyzersMaxResults),
+            request.EffectiveAnalyzersLimit,
             cancellationToken);
 
         var projectDetails = new ProjectDetailsData

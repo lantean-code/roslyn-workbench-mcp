@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record GetCodeMetricsRequest : WorkspaceBoundRequest
 {
-    internal const int _defaultMetricsMaxResults = 100;
+    private const int _defaultMetricsMaxResults = 100;
 
     /// <summary>
     /// Gets the scope to inspect.
@@ -32,4 +32,6 @@ public sealed record GetCodeMetricsRequest : WorkspaceBoundRequest
     /// Gets the expected snapshot for location-based symbol selectors.
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
+
+    internal int EffectiveMetricsLimit => ToolExecutionHelpers.GetMaxResults(MetricsLimit, _defaultMetricsMaxResults);
 }

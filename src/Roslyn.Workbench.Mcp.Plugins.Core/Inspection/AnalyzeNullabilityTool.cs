@@ -42,7 +42,7 @@ internal sealed class AnalyzeNullabilityTool : QueryToolHandler<AnalyzeNullabili
         }
 
         var diagnostics = await context.ToolExecutionServices.CompilerDiagnosticService.GetCompilerDiagnosticsAsync(documents, cancellationToken);
-        var maxResults = ToolExecutionHelpers.GetMaxResults(request.FindingsLimit, AnalyzeNullabilityRequest._defaultFindingsMaxResults);
+        var maxResults = request.EffectiveFindingsLimit;
         var findings = new List<NullabilityFinding>();
         var hasMore = false;
         var orderedDiagnostics = diagnostics

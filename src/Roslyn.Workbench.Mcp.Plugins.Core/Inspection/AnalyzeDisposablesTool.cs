@@ -12,7 +12,7 @@ internal sealed class AnalyzeDisposablesTool : QueryToolHandler<AnalyzeDisposabl
             return documents.Rejection;
         }
 
-        var maxResults = ToolExecutionHelpers.GetMaxResults(request.FindingsLimit, AnalyzeDisposablesRequest._defaultFindingsMaxResults);
+        var maxResults = request.EffectiveFindingsLimit;
         var findings = new List<DisposableFinding>();
         var hasMore = false;
         foreach (var document in documents.Value.OrderBy(static item => item.FilePath, StringComparer.Ordinal))

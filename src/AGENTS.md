@@ -40,14 +40,20 @@
   1. Constants
   2. Static fields and properties
   3. Private fields
-  4. Private properties
-  5. Public fields
-  6. Public properties
-  7. Constructors
-  8. Public instance methods
-  9. Private instance methods
-  10. Public static methods
-  11. Private static methods
+  4. Public fields and properties
+  5. Internal fields and properties
+  6. Protected fields and properties
+  7. Private properties
+  8. Constructors
+  9. Public instance methods
+  10. Internal instance methods
+  11. Protected instance methods
+  12. Private instance methods
+  13. Public static methods
+  14. Internal static methods
+  15. Protected static methods
+  16. Private static methods
+- Keep each member-order group contiguous; do not interleave members from different accessibility groups.
 
 ### Coding practices
 - Use `var` wherever possible unless it harms clarity.

@@ -30,7 +30,7 @@ internal sealed class GetApiSurfaceTool : QueryToolHandler<GetApiSurfaceRequest,
             return ToolExecutionHelpers.Rejected<ApiSurfaceData>("InvalidRequest", "Minimum accessibility must be Public, Protected, or Internal.");
         }
 
-        var maxResults = ToolExecutionHelpers.GetMaxResults(request.SymbolsLimit, GetApiSurfaceRequest._defaultSymbolsMaxResults);
+        var maxResults = request.EffectiveSymbolsLimit;
         var exportedSymbols = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
         foreach (var document in documents.Value)
         {

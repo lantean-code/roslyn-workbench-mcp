@@ -69,7 +69,7 @@ internal sealed class FindReferencesTool : QueryToolHandler<FindReferencesReques
             }
         }
 
-        var maxResults = ToolExecutionHelpers.GetMaxResults(request.ReferencesLimit, FindReferencesRequest._defaultReferencesMaxResults);
+        var maxResults = request.EffectiveReferencesLimit;
         var selectedReferences = pendingReferences
             .OrderBy(static reference => reference.ResolvedLocation.Document?.Path, StringComparer.Ordinal)
             .ThenBy(static reference => reference.ResolvedLocation.Span?.Start)

@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record AnalyzeAsyncRequest : WorkspaceBoundRequest
 {
-    internal const int _defaultFindingsMaxResults = 50;
+    private const int _defaultFindingsMaxResults = 50;
 
     /// <summary>
     /// Gets the optional search scope.
@@ -17,4 +17,6 @@ public sealed record AnalyzeAsyncRequest : WorkspaceBoundRequest
     /// </summary>
     [DefaultValue(_defaultFindingsMaxResults)]
     public int? FindingsLimit { get; init; } = _defaultFindingsMaxResults;
+
+    internal int EffectiveFindingsLimit => ToolExecutionHelpers.GetMaxResults(FindingsLimit, _defaultFindingsMaxResults);
 }

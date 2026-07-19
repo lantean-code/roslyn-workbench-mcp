@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record GetOperationTreeRequest : WorkspaceBoundRequest
 {
-    internal const int _defaultMaxDepth = 8;
+    private const int _defaultMaxDepth = 8;
 
     /// <summary>
     /// Gets the selected location.

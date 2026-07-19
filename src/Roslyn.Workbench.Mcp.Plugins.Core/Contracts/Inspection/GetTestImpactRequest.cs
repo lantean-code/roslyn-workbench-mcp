@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record GetTestImpactRequest : WorkspaceBoundRequest
 {
-    internal const int _defaultTestsMaxResults = 100;
+    private const int _defaultTestsMaxResults = 100;
 
     /// <summary>
     /// Gets the symbol selector.
@@ -32,4 +32,6 @@ public sealed record GetTestImpactRequest : WorkspaceBoundRequest
     /// Gets the expected snapshot for location-based symbol selectors.
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
+
+    internal int EffectiveTestsLimit => ToolExecutionHelpers.GetMaxResults(TestsLimit, _defaultTestsMaxResults);
 }

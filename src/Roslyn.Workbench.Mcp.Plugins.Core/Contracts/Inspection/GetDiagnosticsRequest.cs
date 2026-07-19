@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record GetDiagnosticsRequest : WorkspaceBoundRequest
 {
-    internal const int _defaultDiagnosticsMaxResults = 200;
+    private const int _defaultDiagnosticsMaxResults = 200;
 
     /// <summary>
     /// Gets the optional scope selector.
@@ -27,4 +27,6 @@ public sealed record GetDiagnosticsRequest : WorkspaceBoundRequest
     /// </summary>
     [DefaultValue(_defaultDiagnosticsMaxResults)]
     public int? DiagnosticsLimit { get; init; } = _defaultDiagnosticsMaxResults;
+
+    internal int EffectiveDiagnosticsLimit => ToolExecutionHelpers.GetMaxResults(DiagnosticsLimit, _defaultDiagnosticsMaxResults);
 }

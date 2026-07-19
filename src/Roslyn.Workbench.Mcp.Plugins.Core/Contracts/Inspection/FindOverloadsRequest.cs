@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record FindOverloadsRequest : WorkspaceBoundRequest
 {
-    internal const int _defaultOverloadsMaxResults = 50;
+    private const int _defaultOverloadsMaxResults = 50;
 
     /// <summary>
     /// Gets the symbol selector.
@@ -22,4 +22,6 @@ public sealed record FindOverloadsRequest : WorkspaceBoundRequest
     /// Gets the expected snapshot for location-based symbol selectors.
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
+
+    internal int EffectiveOverloadsLimit => ToolExecutionHelpers.GetMaxResults(OverloadsLimit, _defaultOverloadsMaxResults);
 }

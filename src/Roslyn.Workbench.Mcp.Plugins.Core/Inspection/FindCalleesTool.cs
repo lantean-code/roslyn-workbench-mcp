@@ -107,7 +107,7 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
             Source = context.WorkspaceResolver.CreateSymbolReference(sourceSymbol),
             Callees = ToolExecutionHelpers.CreateBoundedCollection(
                 orderedCallees,
-                ToolExecutionHelpers.GetMaxResults(request.CalleesLimit, FindCalleesRequest._defaultCalleesMaxResults)),
+                request.EffectiveCalleesLimit),
         });
     }
 

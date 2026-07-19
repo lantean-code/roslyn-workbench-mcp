@@ -5,8 +5,8 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record GetCodeContextRequest : WorkspaceBoundRequest
 {
-    internal const int _defaultAfterLines = 10;
-    internal const int _defaultBeforeLines = 10;
+    private const int _defaultAfterLines = 10;
+    private const int _defaultBeforeLines = 10;
 
     /// <summary>
     /// Gets the location selector.

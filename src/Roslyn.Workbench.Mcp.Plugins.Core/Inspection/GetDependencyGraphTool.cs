@@ -35,7 +35,7 @@ internal sealed class GetDependencyGraphTool : QueryToolHandler<GetDependencyGra
             cancellationToken);
         var nodes = ToolExecutionHelpers.CreateBoundedCollection(
             graph.Nodes,
-            ToolExecutionHelpers.GetMaxResults(request.NodesLimit, GetDependencyGraphRequest._defaultNodesMaxResults));
+            request.EffectiveNodesLimit);
         var nodeIds = nodes.Items.Select(static node => node.Id).ToHashSet(StringComparer.Ordinal);
         var edges = graph.Edges
             .Where(edge => nodeIds.Contains(edge.FromId) && nodeIds.Contains(edge.ToId))
@@ -45,7 +45,7 @@ internal sealed class GetDependencyGraphTool : QueryToolHandler<GetDependencyGra
             Nodes = nodes,
             Edges = ToolExecutionHelpers.CreateBoundedCollection(
                 edges,
-                ToolExecutionHelpers.GetMaxResults(request.EdgesLimit, GetDependencyGraphRequest._defaultEdgesMaxResults)),
+                request.EffectiveEdgesLimit),
         });
     }
 }

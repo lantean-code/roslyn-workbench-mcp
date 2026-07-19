@@ -5,8 +5,8 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record FindCalleesRequest : WorkspaceBoundRequest
 {
-    internal const int _defaultCalleesMaxResults = 100;
-    internal const int _defaultMaxDepth = 3;
+    private const int _defaultCalleesMaxResults = 100;
+    private const int _defaultMaxDepth = 3;
 
     /// <summary>
     /// Gets the optional symbol selector.
@@ -39,4 +39,6 @@ public sealed record FindCalleesRequest : WorkspaceBoundRequest
     /// Gets the expected snapshot for location-based selectors.
     /// </summary>
     public SnapshotPrecondition? ExpectedSnapshot { get; init; }
+
+    internal int EffectiveCalleesLimit => ToolExecutionHelpers.GetMaxResults(CalleesLimit, _defaultCalleesMaxResults);
 }

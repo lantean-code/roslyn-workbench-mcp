@@ -5,10 +5,10 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record GetProjectDetailsRequest : WorkspaceBoundRequest
 {
-    internal const int _defaultAnalyzersMaxResults = 50;
-    internal const int _defaultDocumentsMaxResults = 200;
-    internal const int _defaultMetadataReferencesMaxResults = 100;
-    internal const int _defaultProjectReferencesMaxResults = 50;
+    private const int _defaultAnalyzersMaxResults = 50;
+    private const int _defaultDocumentsMaxResults = 200;
+    private const int _defaultMetadataReferencesMaxResults = 100;
+    private const int _defaultProjectReferencesMaxResults = 50;
 
     /// <summary>
     /// Gets the project selector.
@@ -43,4 +43,12 @@ public sealed record GetProjectDetailsRequest : WorkspaceBoundRequest
     /// </summary>
     [DefaultValue(_defaultAnalyzersMaxResults)]
     public int? AnalyzersLimit { get; init; } = _defaultAnalyzersMaxResults;
+
+    internal int EffectiveDocumentsLimit => ToolExecutionHelpers.GetMaxResults(DocumentsLimit, _defaultDocumentsMaxResults);
+
+    internal int EffectiveProjectReferencesLimit => ToolExecutionHelpers.GetMaxResults(ProjectReferencesLimit, _defaultProjectReferencesMaxResults);
+
+    internal int EffectiveMetadataReferencesLimit => ToolExecutionHelpers.GetMaxResults(MetadataReferencesLimit, _defaultMetadataReferencesMaxResults);
+
+    internal int EffectiveAnalyzersLimit => ToolExecutionHelpers.GetMaxResults(AnalyzersLimit, _defaultAnalyzersMaxResults);
 }

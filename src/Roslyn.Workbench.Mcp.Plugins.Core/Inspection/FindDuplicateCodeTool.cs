@@ -26,7 +26,7 @@ internal sealed class FindDuplicateCodeTool : QueryToolHandler<FindDuplicateCode
         {
             Groups = ToolExecutionHelpers.CreateBoundedCollection(
                 groups,
-                ToolExecutionHelpers.GetMaxResults(request.GroupsLimit, FindDuplicateCodeRequest._defaultGroupsMaxResults)),
+                request.EffectiveGroupsLimit),
         });
     }
 

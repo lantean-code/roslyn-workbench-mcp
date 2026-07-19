@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// </summary>
 public sealed record FindUnusedSymbolsRequest : WorkspaceBoundRequest
 {
-    internal const int _defaultCandidatesMaxResults = 50;
+    private const int _defaultCandidatesMaxResults = 50;
 
     /// <summary>
     /// Gets the optional search scope.
@@ -27,4 +27,6 @@ public sealed record FindUnusedSymbolsRequest : WorkspaceBoundRequest
     /// </summary>
     [DefaultValue(_defaultCandidatesMaxResults)]
     public int? CandidatesLimit { get; init; } = _defaultCandidatesMaxResults;
+
+    internal int EffectiveCandidatesLimit => ToolExecutionHelpers.GetMaxResults(CandidatesLimit, _defaultCandidatesMaxResults);
 }

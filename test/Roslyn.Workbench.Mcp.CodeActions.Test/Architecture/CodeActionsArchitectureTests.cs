@@ -81,14 +81,14 @@ public sealed class CodeActionsArchitectureTests
         return XDocument.Load(projectPath);
     }
 
-    private static IReadOnlyList<string> ReadProjectNames(XDocument document, string itemName)
+    private static string[] ReadProjectNames(XDocument document, string itemName)
     {
         return ReadItemIncludes(document, itemName)
             .Select(static include => Path.GetFileNameWithoutExtension(include.Replace('\\', '/')))
             .ToArray();
     }
 
-    private static IReadOnlyList<string> ReadItemIncludes(XDocument document, string itemName)
+    private static string[] ReadItemIncludes(XDocument document, string itemName)
     {
         return document
             .Descendants(itemName)

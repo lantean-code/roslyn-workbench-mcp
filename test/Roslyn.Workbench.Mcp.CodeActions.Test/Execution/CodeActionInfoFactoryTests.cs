@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Test.Execution;
 
+#pragma warning disable CA1861 // Fresh mutable arrays keep each payload scenario isolated from other tests.
 public sealed class CodeActionInfoFactoryTests
 {
     [Fact]
@@ -145,3 +146,4 @@ public sealed class CodeActionInfoFactoryTests
         };
     }
 }
+#pragma warning restore CA1861

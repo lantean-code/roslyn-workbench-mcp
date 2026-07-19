@@ -86,8 +86,8 @@ public sealed class HostCompositionIntegrationTests
         host.Services.GetRequiredService<ICodeActionExecutionContextFactory>().Should().BeOfType<CodeActionExecutionContextFactory>();
         host.Services.GetRequiredService<McpServer>().Should().NotBeNull();
         host.Services.GetRequiredService<ICommitRecoveryStore>().Should().NotBeNull();
-        codeActionProviderCatalogRegistration.ImplementationType.Should().Be(typeof(MefCodeActionProviderCatalog));
-        workspaceFactoryRegistration.ImplementationType.Should().Be(typeof(HostConfiguredMsBuildWorkspaceFactory));
+        codeActionProviderCatalogRegistration.ImplementationType.Should().Be<MefCodeActionProviderCatalog>();
+        workspaceFactoryRegistration.ImplementationType.Should().Be<HostConfiguredMsBuildWorkspaceFactory>();
 
         mcpTools.Should().HaveCount(pluginCatalogSnapshot.Tools.Count + codeActionCatalogSnapshot.Tools.Count + 11);
         mcpTools.Select(static tool => tool.ProtocolTool.Name).Should().Contain(

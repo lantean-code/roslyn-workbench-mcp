@@ -58,7 +58,7 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
         });
     }
 
-    private static IReadOnlyList<SymbolReference> GetEnclosingSymbols(SemanticModel semanticModel, SyntaxNode node, IQueryContext context)
+    private static List<SymbolReference> GetEnclosingSymbols(SemanticModel semanticModel, SyntaxNode node, IQueryContext context)
     {
         var symbols = new List<SymbolReference>();
         for (var current = semanticModel.GetEnclosingSymbol(node.SpanStart); current is not null; current = current.ContainingSymbol)

@@ -496,7 +496,7 @@ internal static class DependencyAnalysisHelpers
         }
     }
 
-    private static void AddOperationDependencies(SemanticModel semanticModel, SyntaxNode syntax, ISet<ISymbol> dependencies, CancellationToken cancellationToken)
+    private static void AddOperationDependencies(SemanticModel semanticModel, SyntaxNode syntax, HashSet<ISymbol> dependencies, CancellationToken cancellationToken)
     {
         var executableNode = GetExecutableNode(syntax);
         var rootOperation = executableNode is null
@@ -598,7 +598,7 @@ internal static class DependencyAnalysisHelpers
         return string.IsNullOrWhiteSpace(namespaceName) ? "<global namespace>" : namespaceName;
     }
 
-    private static SyntaxNode? GetExecutableNode(SyntaxNode node)
+    private static CSharpSyntaxNode? GetExecutableNode(SyntaxNode node)
     {
         return node switch
         {
@@ -650,7 +650,7 @@ internal static class DependencyAnalysisHelpers
         return node is BaseTypeDeclarationSyntax or DelegateDeclarationSyntax;
     }
 
-    private static void AddOwningType(ISymbol dependency, ISet<INamedTypeSymbol> dependencies)
+    private static void AddOwningType(ISymbol dependency, HashSet<INamedTypeSymbol> dependencies)
     {
         var owningType = GetOwningTypeSymbol(dependency);
         if (owningType is not null)

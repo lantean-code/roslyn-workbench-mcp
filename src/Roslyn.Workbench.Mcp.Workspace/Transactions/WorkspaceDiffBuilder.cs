@@ -4,7 +4,7 @@ namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
 internal static class WorkspaceDiffBuilder
 {
-    private static readonly IDiffer _differ = new Differ();
+    private static readonly Differ _differ = new();
 
     private static readonly Regex _hunkHeaderPattern = new(
         "^@@ -(?<originalStart>\\d+),(?<originalCount>\\d+) \\+(?<updatedStart>\\d+),(?<updatedCount>\\d+) @@",
@@ -137,7 +137,7 @@ internal static class WorkspaceDiffBuilder
             ?? throw new InvalidOperationException($"The document '{documentId}' was not present in the expected solution.");
     }
 
-    private static IReadOnlyList<DiffHunk> CreateHunks(string oldText, string newText, int contextLines)
+    private static List<DiffHunk> CreateHunks(string oldText, string newText, int contextLines)
     {
         var unifiedDiff = UnidiffRenderer.GenerateUnidiff(
             oldText,

@@ -221,7 +221,7 @@ internal static class BuiltInCodeActionAuditHarness
         Document document,
         TextSpan requestedSpan,
         ImmutableArray<Diagnostic> diagnostics,
-        ICollection<(CodeAction Action, ImmutableArray<Diagnostic> Diagnostics)> discovered,
+        List<(CodeAction Action, ImmutableArray<Diagnostic> Diagnostics)> discovered,
         CancellationToken cancellationToken)
     {
         var context = new CodeFixContext(document, requestedSpan, diagnostics, (action, actionDiagnostics) => discovered.Add((action, actionDiagnostics)), cancellationToken);
@@ -258,8 +258,8 @@ internal static class BuiltInCodeActionAuditHarness
             .ToImmutableArray();
     }
 
-    private static IReadOnlyList<DiscoveredAuditCodeAction> Flatten(
-        IReadOnlyList<CodeAction> rootActions,
+    private static List<DiscoveredAuditCodeAction> Flatten(
+        List<CodeAction> rootActions,
         string providerId)
     {
         var discovered = new List<DiscoveredAuditCodeAction>();

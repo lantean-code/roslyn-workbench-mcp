@@ -5,6 +5,7 @@ using Microsoft.CodeAnalysis.Wrapping;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Test.Execution;
 
+#pragma warning disable CA1861 // Fresh mutable arrays keep each operation scenario isolated from other tests.
 public sealed class CodeActionOperationServiceTests : IDisposable
 {
     private readonly Mock<ICodeActionDiagnosticService> _diagnosticService;
@@ -274,3 +275,4 @@ public sealed class CodeActionOperationServiceTests : IDisposable
     {
     }
 }
+#pragma warning restore CA1861

@@ -23,7 +23,7 @@ internal sealed class StartupOptionsValidator : IValidateOptions<StartupOptions>
         throw new OptionsValidationException(nameof(StartupOptions), typeof(StartupOptions), failures);
     }
 
-    private static IReadOnlyList<string> GetFailures(StartupOptions options)
+    private static List<string> GetFailures(StartupOptions options)
     {
         var failures = new List<string>();
 

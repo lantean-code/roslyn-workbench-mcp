@@ -55,7 +55,7 @@ public sealed class HostArchitectureTests
         return XDocument.Load(projectPath);
     }
 
-    private static IReadOnlyList<string> ReadItemIncludes(XDocument document, string itemName)
+    private static string[] ReadItemIncludes(XDocument document, string itemName)
     {
         return document
             .Descendants(itemName)

@@ -15,14 +15,14 @@ public sealed class CodeActionToolRegistryTests
         query.Metadata.Should().BeSameAs(target.Tools[0].Metadata);
         query.Metadata.Name.Should().Be("query");
         query.Kind.Should().Be(CodeActionToolKind.Query);
-        query.RequestType.Should().Be(typeof(TestRequest));
-        query.ResponseType.Should().Be(typeof(TestResponse));
+        query.RequestType.Should().Be<TestRequest>();
+        query.ResponseType.Should().Be<TestResponse>();
         var mutation = target.Tools[1].Should().BeOfType<CodeActionMutationRegistration<TestMutationHandler, TestRequest>>().Subject;
         mutation.Metadata.Should().BeSameAs(target.Tools[1].Metadata);
         mutation.Metadata.Name.Should().Be("mutation");
         mutation.Kind.Should().Be(CodeActionToolKind.Mutation);
-        mutation.RequestType.Should().Be(typeof(TestRequest));
-        mutation.ResponseType.Should().Be(typeof(MutationData));
+        mutation.RequestType.Should().Be<TestRequest>();
+        mutation.ResponseType.Should().Be<MutationData>();
     }
 
     [Fact]

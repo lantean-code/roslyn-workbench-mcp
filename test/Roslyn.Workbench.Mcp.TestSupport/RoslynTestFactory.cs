@@ -225,7 +225,7 @@ public static class RoslynTestFactory
         }
     }
 
-    private static IReadOnlyList<MetadataReference> CreateMetadataReferences()
+    private static PortableExecutableReference[] CreateMetadataReferences()
     {
         var assemblyLocations = new[]
         {

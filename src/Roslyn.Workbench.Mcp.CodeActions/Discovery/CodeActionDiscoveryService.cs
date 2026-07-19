@@ -94,7 +94,7 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         Document document,
         TextSpan requestedSpan,
         ImmutableArray<Diagnostic> diagnostics,
-        ICollection<(CodeAction Action, ImmutableArray<Diagnostic> Diagnostics)> discovered,
+        List<(CodeAction Action, ImmutableArray<Diagnostic> Diagnostics)> discovered,
         CancellationToken cancellationToken)
     {
         var context = new CodeFixContext(
@@ -106,8 +106,8 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         await provider.RegisterCodeFixesAsync(context);
     }
 
-    private static IReadOnlyList<DiscoveredCodeAction> Flatten(
-        IReadOnlyList<CodeAction> rootActions,
+    private static List<DiscoveredCodeAction> Flatten(
+        List<CodeAction> rootActions,
         string providerId,
         DiscoveredActionKind kind,
         IReadOnlyList<string> diagnosticIds)

@@ -39,7 +39,7 @@ internal sealed class PluginCatalogEntryMaterializer : IPluginCatalogEntryMateri
         }
     }
 
-    private static IReadOnlyList<DiagnosticInfo> CreateDiagnostics(PluginMaterializationResult result)
+    private static DiagnosticInfo[] CreateDiagnostics(PluginMaterializationResult result)
     {
         return result.Diagnostics
             .Concat(result.Tools.SelectMany(static tool => QueryResponseContractInspector.Inspect(tool.Tool)))

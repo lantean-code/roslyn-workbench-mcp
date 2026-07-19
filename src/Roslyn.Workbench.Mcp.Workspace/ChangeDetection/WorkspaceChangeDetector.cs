@@ -98,7 +98,7 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
     }
 
     private void AddFile(
-        IDictionary<string, WorkspaceInputFileFingerprint> files,
+        Dictionary<string, WorkspaceInputFileFingerprint> files,
         IDictionary<string, WorkspaceInputDirectoryFingerprint> directories,
         string? path)
     {

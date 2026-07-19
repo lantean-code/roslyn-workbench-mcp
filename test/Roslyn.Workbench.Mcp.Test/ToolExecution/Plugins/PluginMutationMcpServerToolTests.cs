@@ -453,7 +453,7 @@ public sealed class PluginMutationMcpServerToolTests
             It.IsAny<CancellationToken>()), Times.Never);
     }
 
-    private PluginMutationMcpServerTool<TestMutationRequest> CreateTarget(
+    private static PluginMutationMcpServerTool<TestMutationRequest> CreateTarget(
         IMutationToolHandler<TestMutationRequest> handler,
         IToolExecutionContextFactory contextFactory)
     {

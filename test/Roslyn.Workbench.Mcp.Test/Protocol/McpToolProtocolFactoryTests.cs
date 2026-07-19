@@ -55,7 +55,9 @@ public sealed class McpToolProtocolFactoryTests
         result.Annotations!.ReadOnlyHint.Should().BeFalse();
         result.Annotations.IdempotentHint.Should().BeFalse();
         result.Annotations.DestructiveHint.Should().BeTrue();
+#pragma warning disable CA2263 // The protocol factory selects this overload from runtime response metadata.
         _schemaProvider.Verify(item => item.GetValueSchema(typeof(TestResponse)), Times.Once);
+#pragma warning restore CA2263
     }
 
     [Fact]

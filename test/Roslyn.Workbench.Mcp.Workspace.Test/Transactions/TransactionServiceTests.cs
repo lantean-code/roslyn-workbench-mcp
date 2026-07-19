@@ -1010,7 +1010,7 @@ public sealed class TransactionServiceTests : IDisposable
             .Returns(() => CreateAcquisition(session, exclusive: true));
     }
 
-    private WorkspaceSessionAcquisition CreateAcquisition(WorkspaceSessionSnapshot session, bool exclusive)
+    private static WorkspaceSessionAcquisition CreateAcquisition(WorkspaceSessionSnapshot session, bool exclusive)
     {
         var lease = exclusive
             ? session.OperationGate.TryAcquireExclusive()

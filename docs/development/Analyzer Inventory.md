@@ -30,12 +30,12 @@ The clean baseline build succeeded with zero compiler errors.
 
 | Measure | Baseline | Remaining |
 | --- | ---: | ---: |
-| Analyzer findings | 2,228 | 130 |
-| Diagnostic IDs | 33 | 11 |
-| Files | 379 | 57 |
-| Projects | 23 | 23 |
-| Production findings | 154 | 52 |
-| Test and fixture findings | 2,074 | 78 |
+| Analyzer findings | 2,228 | 0 |
+| Diagnostic IDs | 33 | 0 |
+| Files | 379 | 0 |
+| Projects | 23 | 0 |
+| Production findings | 154 | 0 |
+| Test and fixture findings | 2,074 | 0 |
 
 The remaining counts come from the latest successful solution-wide analyzer build. Resolved diagnostics are excluded from the active inventory and recorded separately below.
 
@@ -45,88 +45,59 @@ Of the six IDE findings that triggered this audit for `GetCodeContextTool`, the 
 
 ## Active Diagnostic Inventory
 
-| Diagnostic | Rule meaning | Total | Production | Tests | Initial treatment | Batch |
-| --- | --- | ---: | ---: | ---: | --- | --- |
-| `CA1000` | Avoid static members on generic types because callers must specify the containing type argument | 10 | 10 | 0 | Review generic factory APIs; preserve intentional fluent contracts | Design/API |
-| `CA1014` | Assemblies should explicitly declare whether they are CLS-compliant | 23 | 5 | 18 | Decide the solution-wide CLS-compliance policy before adding assembly attributes | Design/API |
-| `CA1040` | Empty interfaces do not define a behavioural contract | 2 | 2 | 0 | Review marker-interface intent and document or suppress if required | Design/API |
-| `CA1068` | A `CancellationToken` parameter should be the final parameter | 2 | 1 | 1 | Review cancellation-token ordering with contract compatibility | Design/API |
-| `CA1711` | Type names should not use suffixes that imply a different kind of type | 1 | 1 | 0 | Review the established contract name before renaming | Design/API |
-| `CA1802` | A readonly field holding a compile-time value can be a constant | 1 | 0 | 1 | Use a constant where it does not weaken the test scenario | Performance |
-| `CA1822` | An instance member that uses no instance state can be static | 6 | 0 | 6 | Make helpers static where test clarity is unchanged | Performance |
-| `CA1859` | Private code can use a concrete type when abstraction adds overhead without flexibility | 48 | 33 | 15 | Apply concrete types only to private hot paths, not public contracts | Performance |
-| `CA1861` | Repeated constant array arguments allocate a new array on every call | 10 | 0 | 10 | Cache repeated constant arrays where worthwhile | Performance |
-| `CA1869` | Repeatedly constructing `JsonSerializerOptions` prevents caching and adds overhead | 11 | 0 | 11 | Reuse immutable serializer options in test infrastructure | Performance |
-| `CA2263` | Prefer a generic overload when the type is already known at compile time | 16 | 0 | 16 | Use generic assertion overloads | Test cleanup |
+There are no active diagnostics in the solution-wide `latest-all` baseline.
 
 ## Resolved Diagnostics
 
 | Diagnostic | Baseline | Resolution |
 | --- | ---: | --- |
+| `CA1000` | 15 | Retained cohesive static factories on generic result and bounded-collection contracts with source-local rationale; internalising Host-only result types removed the remaining findings |
 | `CA1001` | 1 | Made the owning test class disposable and disposed its reusable memory stream |
 | `CA1002` | 1 | Suppressed for test and plugin-fixture builds because the mutable `List<T>` contract is an intentional negative contract-inspection scenario |
+| `CA1014` | 23 | Suppressed solution-wide because the repository does not promise CLS compliance and Microsoft classifies this legacy rule as excluded from `latest-all` |
 | `CA1031` | 17 | Narrowed token parsing catches and added symbol-scoped rationale to genuine plugin, Roslyn, workspace, disposal, audit and top-level MCP isolation boundaries |
 | `CA1034` | 54 | Suppressed for test and plugin-fixture builds because externally visible nested request, response and handler types are deliberate reflection and contract-validation fixtures |
+| `CA1040` | 2 | Retained and documented the non-generic query and mutation handler interfaces as intentional discovery and registration markers |
 | `CA1062` | 16 | Internalised Host execution leases and shared-test implementation types, made nested serialisation fixtures private, documented the xUnit-supplied theory value, and retained validation only at genuine plugin entry-point boundaries |
 | `CA1065` | 1 | Documented the intentional temporary-directory disposal exception, which must surface test cleanup failures instead of hiding them |
+| `CA1068` | 2 | Reordered the private acceptance timeout helper and documented the replay method's intentional token placement before optional selector filters |
 | `CA1305` | 15 | Used invariant culture for published Roslyn diagnostics, diagnostic equality and acceptance-process values so output is stable across environments |
 | `CA1307` | 12 | Added explicit ordinal semantics to protocol delimiters, source-fragment matching and test line-ending normalisation |
 | `CA1308` | 5 | Replaced lowercase normalisation with explicit code and display labels for selector failures and an explicit query/mutation vocabulary for plugin contract diagnostics |
 | `CA1508` | 2 | Removed the redundant production null path and added a method-scoped suppression for the deliberate equality-contract test |
 | `CA1515` | 91 | Internalised 32 Host CLR and wire-model implementation types without changing their JSON or MCP shapes, reduced test helpers to the narrowest accessibility, and retained only genuine plugin-contract, schema, xUnit discovery and dynamic-proxy surfaces with source-local rationale |
 | `CA1707` | 1,462 | Suppressed for `IsTestProject` builds because GIVEN/WHEN/THEN names are mandated |
+| `CA1711` | 2 | Renamed the xUnit collection-definition type and retained `BoundedCollection` because it accurately names the public bounded collection contract |
+| `CA1802` | 1 | Retained the readonly static field in the warning-inspector fixture so it remains distinct from constant state |
 | `CA1812` | 33 | Audited every original finding and the private fixtures exposed by the accessibility audit; added source-local pragma scopes for types used through reflection, DI, deserialisation, closed-generic registration, schema metadata or deliberate activation failures; no dead types were found |
 | `CA1819` | 1 | Suppressed for test and plugin-fixture builds because the mutable array contract is an intentional negative contract-inspection scenario |
+| `CA1822` | 6 | Made stateless test helper methods static |
 | `CA1848` | 2 | Replaced the Host's startup-warning and unhandled-tool-exception extension calls with source-generated `LoggerMessage` methods while preserving structured fields and exception details |
 | `CA1849` | 42 | Replaced ordinary synchronous operations with asynchronous alternatives, removed fake asynchronous creation and disposal from the synchronous test-fixture ownership chain, and retained narrowly documented durable disk flushes |
+| `CA1859` | 48 | Audited every suggested abstraction, used concrete types only in private implementation and test paths, propagated newly exposed concrete shapes, and retained the uniform interface return required by reflection-bound registration factories |
+| `CA1861` | 10 | Retained fresh mutable array inputs with source-local rationale so test scenarios cannot share mutable state |
+| `CA1869` | 11 | Retained fresh mutable serializer options with source-local rationale so contract, status and recovery scenarios remain isolated |
 | `CA2000` | 5 | Disposed server and workspace test resources and documented the Roslyn wrapper's explicit workspace-ownership transfer |
 | `CA2007` | 298 | Suppressed solution-wide because all repository code executes within a console-hosted application without a synchronization context; existing `ConfigureAwait(false)` calls were removed and prohibited by agent guidance |
 | `CA2012` | 13 | Changed Moq setups to create a fresh faulted or cancelled `ValueTask` for every invocation instead of storing reusable instances |
 | `CA2016` | 3 | Forwarded the execution cancellation token to all three Roslyn operations |
 | `CA2213` | 1 | Added a targeted suppression for `_gate`, which intentionally remains usable for queued, repeated and post-disposal lifecycle calls and never creates an OS wait handle |
+| `CA2263` | 16 | Used generic schema and assertion overloads when the type is compile-time known, while retaining runtime-type overloads in tests that verify dynamic schema dispatch |
 | `CA5392` | 3 | Restricted each system-library import to `System32`; the attribute is ignored on Unix |
 
 ## Project Inventory
 
-| Project | Remaining | IDs | Files |
-| --- | ---: | ---: | ---: |
-| `src/Roslyn.Workbench.Mcp` | 9 | 2 | 6 |
-| `src/Roslyn.Workbench.Mcp.CodeActions` | 8 | 3 | 3 |
-| `src/Roslyn.Workbench.Mcp.Plugins` | 10 | 4 | 5 |
-| `src/Roslyn.Workbench.Mcp.Plugins.Core` | 16 | 4 | 8 |
-| `src/Roslyn.Workbench.Mcp.Workspace` | 9 | 3 | 5 |
-| `test/Roslyn.Workbench.Mcp.AcceptanceTest` | 2 | 2 | 1 |
-| `test/Roslyn.Workbench.Mcp.CodeActions.AuditTest` | 6 | 2 | 3 |
-| `test/Roslyn.Workbench.Mcp.CodeActions.IntegrationTest` | 1 | 1 | 0 |
-| `test/Roslyn.Workbench.Mcp.CodeActions.Test` | 17 | 5 | 6 |
-| `test/Roslyn.Workbench.Mcp.IntegrationTest` | 4 | 2 | 2 |
-| `test/Roslyn.Workbench.Mcp.IntegrationTestSupport` | 1 | 1 | 0 |
-| `test/Roslyn.Workbench.Mcp.Plugins.Core.IntegrationTest` | 1 | 1 | 0 |
-| `test/Roslyn.Workbench.Mcp.Plugins.Core.Test` | 2 | 2 | 1 |
-| `test/Roslyn.Workbench.Mcp.Plugins.Test` | 6 | 3 | 3 |
-| `test/Roslyn.Workbench.Mcp.Test` | 10 | 5 | 6 |
-| `test/Roslyn.Workbench.Mcp.TestSupport` | 3 | 2 | 2 |
-| `test/Roslyn.Workbench.Mcp.Workspace.IntegrationTest` | 5 | 2 | 1 |
-| `test/Roslyn.Workbench.Mcp.Workspace.LockFixture` | 1 | 1 | 0 |
-| `test/Roslyn.Workbench.Mcp.Workspace.Test` | 15 | 4 | 5 |
-| `test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.HostMutationPluginFixture` | 1 | 1 | 0 |
-| `test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.HostQueryPluginFixture` | 1 | 1 | 0 |
-| `test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.InvalidPluginFixture` | 1 | 1 | 0 |
-| `test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.ThrowingPluginFixture` | 1 | 1 | 0 |
+No project has remaining `latest-all` diagnostics.
 
 ## Remediation Order
 
-Use cohesive batches and rerun the full analyzer baseline after each batch. Do not mix unrelated analyzer cleanup with performance measurements.
-
-1. Address production `CA1859` findings using measurements where a suggestion changes abstractions.
-2. Review design/API findings individually. Do not rename public contracts, remove discovery types or change collection shapes solely to satisfy an analyzer.
-3. Clean up remaining test-only performance and assertion findings after production remediation is stable.
-
-The performance-tuning baseline should be recorded only after production determinism, async and performance findings are resolved or explicitly accepted, because those changes can affect allocations, cancellation and execution timing.
+No remediation batches remain. The analyzer baseline is clean, so performance measurements can proceed without known analyzer findings obscuring the results.
 
 ## Completion Criteria
 
-This inventory is complete when:
+This inventory is complete. The final solution-wide `latest-all` build succeeded with zero warnings and zero errors, with every diagnostic family resolved through an implemented fix or an explicit scoped policy.
+
+The completion criteria were:
 
 - every diagnostic family has an implemented fix or an explicit repository policy;
 - suppressions are scoped to the narrowest applicable project, directory, file or symbol and include a clear rationale where the reason is not self-evident;

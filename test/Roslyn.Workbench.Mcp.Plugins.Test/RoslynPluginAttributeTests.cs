@@ -12,7 +12,7 @@ public sealed class RoslynPluginAttributeTests
         target.PluginId.Should().Be("PluginId");
         target.DisplayName.Should().Be("DisplayName");
         target.SupportedApiVersion.Should().Be(PluginApiVersions.V1);
-        target.ContractType.Should().Be(typeof(IRoslynPlugin));
+        target.ContractType.Should().Be<IRoslynPlugin>();
         typeof(RoslynPluginAttribute).GetCustomAttributes(typeof(MetadataAttributeAttribute), false).Should().ContainSingle();
     }
 

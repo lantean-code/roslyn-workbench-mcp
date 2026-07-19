@@ -1,5 +1,6 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Collections;
 
+#pragma warning disable CA1000, CA1711 // The public bounded-collection contract uses cohesive generic factories and accurately describes its collection payload.
 /// <summary>
 /// Represents a bounded collection result published to tool consumers.
 /// </summary>
@@ -78,3 +79,4 @@ public sealed record BoundedCollection<TItem>
         };
     }
 }
+#pragma warning restore CA1000, CA1711

@@ -94,7 +94,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
         });
     }
 
-    private static IReadOnlyList<FlowRegionInfo> CreateRegions(ControlFlowGraph graph)
+    private static List<FlowRegionInfo> CreateRegions(ControlFlowGraph graph)
     {
         var regions = new List<FlowRegionInfo>();
         var nextId = 0;

@@ -222,7 +222,7 @@ public sealed class PluginQueryMcpServerToolTests
             It.IsAny<CancellationToken>()), Times.Never);
     }
 
-    private PluginQueryMcpServerTool<TestQueryRequest, TestQueryResponse> CreateTarget(
+    private static PluginQueryMcpServerTool<TestQueryRequest, TestQueryResponse> CreateTarget(
         IQueryToolHandler<TestQueryRequest, TestQueryResponse> handler,
         IToolExecutionContextFactory contextFactory)
     {

@@ -65,6 +65,7 @@ public sealed class PluginHandlerWarningInspectorTests
         }
     }
 
+#pragma warning disable CA1802 // This fixture must retain readonly static state so the inspector can distinguish it from a constant.
     private sealed class ReadonlyStaticHandler
     {
         private const int _constantValue = 1;
@@ -75,6 +76,7 @@ public sealed class PluginHandlerWarningInspectorTests
             return _constantValue + _readonlyValue;
         }
     }
+#pragma warning restore CA1802
 
     private abstract class StatefulHandlerBase
     {

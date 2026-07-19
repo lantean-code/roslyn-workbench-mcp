@@ -392,7 +392,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         WorkspaceInstanceStatusResult instanceStatus)
     {
         var instanceDiagnostics = CreateInstanceDiagnostics(instanceStatus);
-        return instanceDiagnostics.Count == 0
+        return instanceDiagnostics.Length == 0
             ? loadDiagnostics
             : loadDiagnostics.Concat(instanceDiagnostics).ToArray();
     }
@@ -449,13 +449,13 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         };
     }
 
-    private static IReadOnlyList<DiagnosticInfo>? CreateStatusDiagnostics(
+    private static DiagnosticInfo[]? CreateStatusDiagnostics(
         IReadOnlyList<DiagnosticInfo> loadDiagnostics,
         StatusDetailLevel detail,
         WorkspaceInstanceStatusResult instanceStatus)
     {
         var instanceDiagnostics = CreateInstanceDiagnostics(instanceStatus);
-        if (detail != StatusDetailLevel.Full && instanceDiagnostics.Count == 0)
+        if (detail != StatusDetailLevel.Full && instanceDiagnostics.Length == 0)
         {
             return null;
         }
@@ -465,7 +465,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             : instanceDiagnostics;
     }
 
-    private static IReadOnlyList<DiagnosticInfo> CreateInstanceDiagnostics(WorkspaceInstanceStatusResult instanceStatus)
+    private static DiagnosticInfo[] CreateInstanceDiagnostics(WorkspaceInstanceStatusResult instanceStatus)
     {
         var diagnostics = new List<DiagnosticInfo>();
         if (!instanceStatus.IsAvailable)

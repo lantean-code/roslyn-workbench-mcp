@@ -2,6 +2,7 @@ using System.Text.Json;
 
 namespace Roslyn.Workbench.Mcp.Test.Server.Contracts;
 
+#pragma warning disable CA1869 // A fresh mutable options instance keeps this contract scenario independent from shared serializer state.
 public sealed class ServerStatusDataTests
 {
     [Fact]
@@ -16,3 +17,4 @@ public sealed class ServerStatusDataTests
         result.GetProperty("roslynVersion").ValueKind.Should().Be(JsonValueKind.Null);
     }
 }
+#pragma warning restore CA1869

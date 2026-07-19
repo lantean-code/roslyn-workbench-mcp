@@ -78,7 +78,7 @@ internal sealed class PluginConfigurationPreparer : IPluginConfigurationPreparer
             && !string.IsNullOrWhiteSpace(metadata.Description);
     }
 
-    private static bool HasErrors(IReadOnlyList<DiagnosticInfo> diagnostics, int startIndex)
+    private static bool HasErrors(List<DiagnosticInfo> diagnostics, int startIndex)
     {
         for (var index = startIndex; index < diagnostics.Count; index++)
         {

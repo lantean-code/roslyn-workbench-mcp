@@ -103,7 +103,7 @@ internal static class StartupOptionsResolver
         return map;
     }
 
-    private static IReadOnlyList<string> ResolvePluginDirectories(
+    private static string[] ResolvePluginDirectories(
         Dictionary<string, List<string?>> optionMap,
         List<WarningInfo> warnings)
     {
@@ -130,7 +130,7 @@ internal static class StartupOptionsResolver
         return pluginDirectories.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
     }
 
-    private static IReadOnlyList<string> ReadPluginDirectoriesFromEnvironment(
+    private static string[] ReadPluginDirectoriesFromEnvironment(
         string environmentVariable,
         List<WarningInfo> warnings)
     {

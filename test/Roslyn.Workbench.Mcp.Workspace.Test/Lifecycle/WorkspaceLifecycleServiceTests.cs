@@ -9,6 +9,7 @@ using Roslyn.Workbench.Mcp.Workspace.Selection;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test.Lifecycle;
 
+#pragma warning disable CA1861 // Fresh mutable arrays keep each lifecycle scenario isolated from other tests.
 public sealed class WorkspaceLifecycleServiceTests : IDisposable
 {
     private readonly AdhocWorkspace _workspace;
@@ -1191,7 +1192,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             .Returns(WorkspaceSessionAcquisition.Rejected(error));
     }
 
-    private WorkspaceSessionAcquisition CreateAcquisition(WorkspaceSessionSnapshot session, bool exclusive)
+    private static WorkspaceSessionAcquisition CreateAcquisition(WorkspaceSessionSnapshot session, bool exclusive)
     {
         var lease = exclusive
             ? session.OperationGate.TryAcquireExclusive()
@@ -1365,3 +1366,4 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         return new WorkspaceOperationResult<TOutcome>();
     }
 }
+#pragma warning restore CA1861

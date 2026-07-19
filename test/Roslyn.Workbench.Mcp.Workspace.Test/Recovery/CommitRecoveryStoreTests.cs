@@ -6,6 +6,7 @@ using Roslyn.Workbench.Mcp.Workspace.Recovery;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test.Recovery;
 
+#pragma warning disable CA1869 // Fresh mutable options instances keep recovery serialization scenarios isolated from one another.
 public sealed class CommitRecoveryStoreTests
 {
     private const string _recoveryDirectory = "/State/recovery";
@@ -590,3 +591,4 @@ public sealed class CommitRecoveryStoreTests
         };
     }
 }
+#pragma warning restore CA1869

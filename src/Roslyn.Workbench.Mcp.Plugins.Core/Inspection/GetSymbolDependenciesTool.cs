@@ -88,7 +88,7 @@ internal sealed class GetSymbolDependenciesTool : QueryToolHandler<GetSymbolDepe
         }
     }
 
-    private static void AddOperationDependencies(SemanticModel semanticModel, SyntaxNode syntax, ISet<ISymbol> dependencies, CancellationToken cancellationToken)
+    private static void AddOperationDependencies(SemanticModel semanticModel, SyntaxNode syntax, HashSet<ISymbol> dependencies, CancellationToken cancellationToken)
     {
         var executableNode = GetExecutableNode(syntax);
         var rootOperation = executableNode is null ? semanticModel.GetOperation(syntax, cancellationToken) : semanticModel.GetOperation(executableNode, cancellationToken);
@@ -140,7 +140,7 @@ internal sealed class GetSymbolDependenciesTool : QueryToolHandler<GetSymbolDepe
         dependencies.Add(symbol);
     }
 
-    private static SyntaxNode? GetExecutableNode(SyntaxNode node)
+    private static CSharpSyntaxNode? GetExecutableNode(SyntaxNode node)
     {
         return node switch
         {

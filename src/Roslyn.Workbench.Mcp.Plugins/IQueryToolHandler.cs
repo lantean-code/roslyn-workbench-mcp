@@ -7,9 +7,11 @@ namespace Roslyn.Workbench.Mcp.Plugins;
 /// Plugin handlers implement the generic <see cref="IQueryToolHandler{TRequest, TResponse}"/> contract rather than
 /// implementing this marker directly.
 /// </remarks>
+#pragma warning disable CA1040 // The non-generic interface is an intentional marker used for query-handler discovery and registration.
 public interface IQueryToolHandler
 {
 }
+#pragma warning restore CA1040
 
 /// <summary>
 /// Executes one registered query tool.

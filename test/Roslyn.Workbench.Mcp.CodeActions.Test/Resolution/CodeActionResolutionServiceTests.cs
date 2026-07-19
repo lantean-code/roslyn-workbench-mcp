@@ -6,6 +6,7 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Test.Resolution;
 
+#pragma warning disable CA1861 // Fresh mutable arrays keep each resolution scenario isolated from other tests.
 public sealed class CodeActionResolutionServiceTests : IDisposable
 {
     private static readonly DateTimeOffset _utcNow = new(2000, 1, 1, 0, 0, 0, TimeSpan.Zero);
@@ -407,7 +408,7 @@ public sealed class CodeActionResolutionServiceTests : IDisposable
             .Returns(true);
     }
 
-    private CodeActionTokenPayload CreatePayload()
+    private static CodeActionTokenPayload CreatePayload()
     {
         return new CodeActionTokenPayload
         {
@@ -448,7 +449,7 @@ public sealed class CodeActionResolutionServiceTests : IDisposable
         result.FailureKind.Should().Be(CodeActionResolutionFailureKind.None);
     }
 
-    #pragma warning disable CA1515 // These enums are part of public xUnit theory method signatures.
+#pragma warning disable CA1515 // These enums are part of public xUnit theory method signatures.
     public enum WorkspaceMismatch
     {
         WorkspaceId,
@@ -463,5 +464,6 @@ public sealed class CodeActionResolutionServiceTests : IDisposable
         ActionPath,
         DiagnosticIds,
     }
-    #pragma warning restore CA1515
+#pragma warning restore CA1515
 }
+#pragma warning restore CA1861

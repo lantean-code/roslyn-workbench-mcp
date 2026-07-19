@@ -5,6 +5,7 @@ using Roslyn.Workbench.Mcp.Workspace.Coordination;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test.Coordination;
 
+#pragma warning disable CA1869 // Fresh mutable options instances keep serialization scenarios isolated from one another.
 public sealed class WorkspaceInstanceStatusPublisherTests
 {
     private readonly Mock<IFileSystem> _fileSystem = new();
@@ -519,3 +520,4 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         };
     }
 }
+#pragma warning restore CA1869

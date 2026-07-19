@@ -74,7 +74,7 @@ internal sealed class PluginCatalogLoader
         StartupOptions startupOptions,
         IReadOnlySet<string> protectedToolNames,
         ICollection<IRegisteredPluginTool> tools,
-        ICollection<PluginStatus> statuses,
+        List<PluginStatus> statuses,
         ICollection<AssemblyLoadContext> loadContexts)
     {
         var discoveryResults = _packageDiscovery.Discover(startupOptions.PluginDirectories);

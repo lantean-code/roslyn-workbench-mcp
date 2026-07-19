@@ -46,8 +46,8 @@ public sealed class PluginConfigurationPreparerTests
         tool.Metadata.ResultSummary.Should().Be("Fluent result");
         tool.Metadata.Behavior.Destructive.Should().BeFalse();
         tool.Kind.Should().Be(ToolKind.Query);
-        tool.RequestType.Should().Be(typeof(Request));
-        tool.ResponseType.Should().Be(typeof(Response));
+        tool.RequestType.Should().Be<Request>();
+        tool.ResponseType.Should().Be<Response>();
         result.Tools.Single().HandlerFactory().Should().BeOfType<AttributedQueryHandler>();
     }
 
@@ -65,7 +65,7 @@ public sealed class PluginConfigurationPreparerTests
         tool.Metadata.Name.Should().Be("attribute-mutation");
         tool.Metadata.Behavior.Destructive.Should().BeTrue();
         tool.Kind.Should().Be(ToolKind.Mutation);
-        tool.ResponseType.Should().Be(typeof(MutationData));
+        tool.ResponseType.Should().Be<MutationData>();
     }
 
     [Fact]

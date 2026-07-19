@@ -25,7 +25,7 @@ public sealed class McpSdkSchemaProviderIntegrationTests
     [Trait("Category", "Integration")]
     public void GIVEN_ObjectContract_WHEN_ExportingValueSchema_THEN_ShouldPublishProperties()
     {
-        var result = _target.GetValueSchema(typeof(TestResponse));
+        var result = _target.GetValueSchema<TestResponse>();
 
         result.GetProperty("properties").TryGetProperty("value", out _).Should().BeTrue();
     }

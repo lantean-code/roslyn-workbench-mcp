@@ -55,7 +55,7 @@ internal static class MiniWorkspaceFactory
         return new MiniWorkspace(workspace, workspace.CurrentSolution, documentIdsByPath.ToImmutableDictionary(StringComparer.Ordinal));
     }
 
-    private static IReadOnlyList<MetadataReference> GetMetadataReferences()
+    private static PortableExecutableReference[] GetMetadataReferences()
     {
         var locations = new[]
         {

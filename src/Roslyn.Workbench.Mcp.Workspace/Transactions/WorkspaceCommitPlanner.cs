@@ -243,7 +243,7 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
             && !_fileSystem.Path.IsPathRooted(relativePath);
     }
 
-    private IReadOnlyList<string> GetProjectRoots(
+    private string[] GetProjectRoots(
         Solution baselineSolution,
         Solution currentSolution,
         IEqualityComparer<string> comparer)

@@ -138,7 +138,7 @@ internal sealed class GetApiSurfaceTool : QueryToolHandler<GetApiSurfaceRequest,
         return accessibilities.All(static accessibility => accessibility is Accessibility.Public or Accessibility.Protected or Accessibility.Internal or Accessibility.ProtectedOrInternal or Accessibility.ProtectedAndInternal);
     }
 
-    private static IReadOnlyList<Accessibility> GetAccessibilityChain(ISymbol symbol)
+    private static List<Accessibility> GetAccessibilityChain(ISymbol symbol)
     {
         var result = new List<Accessibility>();
         for (var current = symbol; current is not null; current = current.ContainingType)

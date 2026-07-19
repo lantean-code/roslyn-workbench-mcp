@@ -24,7 +24,7 @@ public sealed class ReplayRefactoringToolsTests
         }
     }
 
-    private static IReadOnlyDictionary<string, ReplayMutationCaseDefinition> ReplayMutationCases
+    private static Dictionary<string, ReplayMutationCaseDefinition> ReplayMutationCases
     {
         get
         {

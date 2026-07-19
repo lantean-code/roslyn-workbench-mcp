@@ -249,7 +249,7 @@ internal static class BuiltInCodeActionAuditCases
         },
     ];
 
-    private static readonly IReadOnlyDictionary<string, BuiltInCodeActionAuditCase> _replayMetadataByProviderId =
+    private static readonly Dictionary<string, BuiltInCodeActionAuditCase> _replayMetadataByProviderId =
         _replayMetadata.ToDictionary(static item => item.ProviderId, StringComparer.Ordinal);
 
     public static IReadOnlyList<string> VisibleDedicatedToolNames { get; } = BuiltInCodeActionLedger.Families

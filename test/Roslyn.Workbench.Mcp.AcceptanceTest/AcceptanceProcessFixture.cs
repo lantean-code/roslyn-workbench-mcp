@@ -103,7 +103,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
 
     public async Task<IList<McpClientTool>> ListToolsAsync(CancellationToken cancellationToken)
     {
-        using var timeoutSource = CreateTimeoutSource(cancellationToken, _invocationTimeout);
+        using var timeoutSource = CreateTimeoutSource(_invocationTimeout, cancellationToken);
 
         try
         {
@@ -121,7 +121,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         IReadOnlyDictionary<string, object?> arguments,
         CancellationToken cancellationToken)
     {
-        using var timeoutSource = CreateTimeoutSource(cancellationToken, _invocationTimeout);
+        using var timeoutSource = CreateTimeoutSource(_invocationTimeout, cancellationToken);
 
         try
         {
@@ -285,7 +285,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
                 StandardErrorLines = CaptureStandardError,
             },
             NullLoggerFactory.Instance);
-        using var timeoutSource = CreateTimeoutSource(cancellationToken, _initializationTimeout);
+        using var timeoutSource = CreateTimeoutSource(_initializationTimeout, cancellationToken);
 
         try
         {
@@ -337,8 +337,8 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
     }
 
     private static CancellationTokenSource CreateTimeoutSource(
-        CancellationToken cancellationToken,
-        TimeSpan timeout)
+        TimeSpan timeout,
+        CancellationToken cancellationToken)
     {
         var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeoutSource.CancelAfter(timeout);

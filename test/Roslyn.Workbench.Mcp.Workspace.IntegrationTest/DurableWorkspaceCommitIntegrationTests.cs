@@ -10,10 +10,10 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
     private readonly string _root = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-durable-commit-tests", Guid.NewGuid().ToString("n"));
     private readonly string _stateDirectory;
     private readonly IFileSystem _fileSystem = new FileSystem();
-    private readonly IAtomicFileWriter _atomicWriter;
+    private readonly AtomicFileWriter _atomicWriter;
     private readonly IAtomicFileCommitter _fileCommitter;
-    private readonly ICommitRecoveryStore _store;
-    private readonly IWorkspaceCommitWriter _writer;
+    private readonly CommitRecoveryStore _store;
+    private readonly WorkspaceCommitWriter _writer;
 
     public DurableWorkspaceCommitIntegrationTests()
     {
@@ -236,7 +236,7 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
         TemporaryDirectory.Attach(_root).Dispose();
     }
 
-    private IWorkspaceCommitRecoveryService CreateFreshRecoveryService()
+    private WorkspaceCommitRecoveryService CreateFreshRecoveryService()
     {
         var fileSystem = new FileSystem();
         var fileCommitter = new NativeAtomicFileCommitter();

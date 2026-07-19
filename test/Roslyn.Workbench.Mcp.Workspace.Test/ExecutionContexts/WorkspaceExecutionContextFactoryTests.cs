@@ -412,7 +412,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         _sessionAcquirer.Setup(item => item.AcquireExclusive(null)).Returns(() => CreateAcquisition(selectedSession, sessionRemains, exclusive: true));
     }
 
-    private WorkspaceSessionAcquisition CreateAcquisition(
+    private static WorkspaceSessionAcquisition CreateAcquisition(
         WorkspaceSessionSnapshot session,
         bool sessionRemains,
         bool exclusive)

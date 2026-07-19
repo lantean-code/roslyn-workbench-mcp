@@ -2,6 +2,7 @@ using System.Text.Json;
 
 namespace Roslyn.Workbench.Mcp.Test.Protocol;
 
+#pragma warning disable CA2263 // These tests verify runtime response-type dispatch through the non-generic schema-provider overload.
 public sealed class ToolSchemaFactoryTests
 {
     private readonly Mock<IMcpSdkSchemaProvider> _schemaProvider;
@@ -141,3 +142,4 @@ public sealed class ToolSchemaFactoryTests
     }
 #pragma warning restore CA1812
 }
+#pragma warning restore CA2263

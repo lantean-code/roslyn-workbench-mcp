@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Resolution;
 
+#pragma warning disable CA1000 // Resolution factories belong with the generic result contract and encode its valid states.
 /// <summary>
 /// Represents the outcome of resolving a selector against the current workspace snapshot.
 /// </summary>
@@ -65,3 +66,4 @@ public sealed record SelectorResolveResult<T>
         };
     }
 }
+#pragma warning restore CA1000

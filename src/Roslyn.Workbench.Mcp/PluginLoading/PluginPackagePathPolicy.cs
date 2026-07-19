@@ -96,7 +96,7 @@ internal sealed class PluginPackagePathPolicy : IPluginPackagePathPolicy
             && !relativePath.StartsWith($"..{_fileSystem.Path.AltDirectorySeparatorChar}", _pathComparison.Comparison);
     }
 
-    private IEnumerable<string> SplitPath(string relativePath)
+    private string[] SplitPath(string relativePath)
     {
         return relativePath.Split(
             [_fileSystem.Path.DirectorySeparatorChar, _fileSystem.Path.AltDirectorySeparatorChar],

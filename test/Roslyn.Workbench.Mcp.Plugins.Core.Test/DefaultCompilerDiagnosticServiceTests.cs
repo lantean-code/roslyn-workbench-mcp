@@ -144,7 +144,7 @@ public sealed class DefaultCompilerDiagnosticServiceTests
         return workspace;
     }
 
-    private static IReadOnlyList<MetadataReference> GetMetadataReferences()
+    private static PortableExecutableReference[] GetMetadataReferences()
     {
         var locations = new[]
         {

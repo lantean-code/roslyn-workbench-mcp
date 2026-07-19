@@ -17,6 +17,7 @@ internal interface ICodeActionReplayService
         ICodeActionExecutionContext context,
         CancellationToken cancellationToken);
 
+#pragma warning disable CA1068 // The token precedes optional selector filters so callers need not supply unrelated options.
     ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageSelectionAsync(
         LocationSelector? selection,
         SnapshotPrecondition? expectedSnapshot,
@@ -28,4 +29,5 @@ internal interface ICodeActionReplayService
         string? titleDoesNotContain = null,
         string? equivalenceKey = null,
         IReadOnlyList<int>? actionPath = null);
+#pragma warning restore CA1068
 }

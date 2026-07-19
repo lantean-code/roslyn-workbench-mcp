@@ -68,7 +68,7 @@ internal sealed class PluginCandidatePreparer : IPluginCandidatePreparer
     private void PrepareBundledAssembly(
         Assembly assembly,
         ICollection<PreparedCatalogPlugin> plugins,
-        ICollection<PluginStatus> statuses)
+        List<PluginStatus> statuses)
     {
         var inspection = _metadataReader.Inspect(assembly.Location);
         if (inspection.Error is not null || inspection.EntryPoints.Count != 1)
@@ -108,7 +108,7 @@ internal sealed class PluginCandidatePreparer : IPluginCandidatePreparer
         PluginPackageDiscoveryResult discoveryResult,
         IReadOnlySet<string> duplicatePluginIds,
         ICollection<PreparedCatalogPlugin> plugins,
-        ICollection<PluginStatus> statuses,
+        List<PluginStatus> statuses,
         ICollection<AssemblyLoadContext> loadContexts)
     {
         var candidate = discoveryResult.Candidate;
@@ -153,7 +153,7 @@ internal sealed class PluginCandidatePreparer : IPluginCandidatePreparer
     private void PrepareExternalCandidate(
         PluginPackageCandidate candidate,
         ICollection<PreparedCatalogPlugin> plugins,
-        ICollection<PluginStatus> statuses,
+        List<PluginStatus> statuses,
         ICollection<AssemblyLoadContext> loadContexts)
     {
         try
@@ -181,7 +181,7 @@ internal sealed class PluginCandidatePreparer : IPluginCandidatePreparer
     private static void AddPreparedPlugin(
         PreparedCatalogPlugin plugin,
         ICollection<PreparedCatalogPlugin> plugins,
-        ICollection<PluginStatus> statuses)
+        List<PluginStatus> statuses)
     {
         if (plugin.Preparation.Diagnostics.Any(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error))
         {

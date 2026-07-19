@@ -1,5 +1,6 @@
 namespace Roslyn.Workbench.Mcp.Plugins;
 
+#pragma warning disable CA1000 // Outcome factories belong with the generic result contract so plugin authors cannot construct inconsistent states accidentally.
 /// <summary>
 /// Represents the normalized outcome returned by a plugin handler before host mapping.
 /// </summary>
@@ -134,3 +135,4 @@ public sealed record PluginExecutionResult<TResponse>
         };
     }
 }
+#pragma warning restore CA1000

@@ -214,7 +214,7 @@ internal sealed class GetCodeMetricsTool : QueryToolHandler<GetCodeMetricsReques
         return types.Count;
     }
 
-    private static void AddType(ISet<ITypeSymbol> types, ITypeSymbol? type)
+    private static void AddType(HashSet<ITypeSymbol> types, ITypeSymbol? type)
     {
         if (type is not null)
         {

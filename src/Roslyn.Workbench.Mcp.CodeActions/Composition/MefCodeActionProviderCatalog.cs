@@ -36,7 +36,7 @@ internal sealed class MefCodeActionProviderCatalog : ICodeActionProviderCatalog
             return Unavailable("No code-action provider assemblies were configured.");
         }
 
-        IReadOnlyList<Assembly> assemblies;
+        Assembly[] assemblies;
         try
         {
             assemblies = ResolveAssemblies(options);
@@ -47,7 +47,7 @@ internal sealed class MefCodeActionProviderCatalog : ICodeActionProviderCatalog
             return Unavailable(StageFailure("resolving code-action provider assemblies", exception));
         }
 
-        if (assemblies.Count == 0)
+        if (assemblies.Length == 0)
         {
             return Unavailable("No code-action assemblies were configured.");
         }
@@ -75,8 +75,8 @@ internal sealed class MefCodeActionProviderCatalog : ICodeActionProviderCatalog
             return Unavailable($"Failed while reading Roslyn code-fix exports: {codeFixExports.Error}");
         }
 
-        IReadOnlyList<CodeRefactoringProvider> refactorings;
-        IReadOnlyList<CodeFixProvider> codeFixes;
+        CodeRefactoringProvider[] refactorings;
+        CodeFixProvider[] codeFixes;
         try
         {
             refactorings = refactoringExports.Exports.Where(IsCSharpProvider).ToArray();
@@ -88,7 +88,7 @@ internal sealed class MefCodeActionProviderCatalog : ICodeActionProviderCatalog
             return Unavailable(StageFailure("reading code-action provider metadata", exception));
         }
 
-        if (refactorings.Count == 0 && codeFixes.Count == 0)
+        if (refactorings.Length == 0 && codeFixes.Length == 0)
         {
             return Unavailable("No C# code-action providers were composed.");
         }
@@ -96,7 +96,7 @@ internal sealed class MefCodeActionProviderCatalog : ICodeActionProviderCatalog
         return Available(hostServices, refactorings, codeFixes);
     }
 
-    private static IReadOnlyList<Assembly> ResolveAssemblies(CodeActionCompositionOptions options)
+    private static Assembly[] ResolveAssemblies(CodeActionCompositionOptions options)
     {
         var assemblies = new List<Assembly>(MefHostServices.DefaultAssemblies);
         if (options.IncludeBuiltInAssemblies)
@@ -124,8 +124,8 @@ internal sealed class MefCodeActionProviderCatalog : ICodeActionProviderCatalog
 
     private static CodeActionProviderCatalogComposition Available(
         HostServices hostServices,
-        IReadOnlyList<CodeRefactoringProvider> refactorings,
-        IReadOnlyList<CodeFixProvider> codeFixes)
+        CodeRefactoringProvider[] refactorings,
+        CodeFixProvider[] codeFixes)
     {
         return new CodeActionProviderCatalogComposition
         {
@@ -133,7 +133,7 @@ internal sealed class MefCodeActionProviderCatalog : ICodeActionProviderCatalog
             {
                 IsAvailable = true,
                 Version = typeof(Microsoft.CodeAnalysis.Workspace).Assembly.GetName().Version?.ToString(),
-                Message = $"Composed {refactorings.Count} refactoring providers and {codeFixes.Count} code-fix providers.",
+                Message = $"Composed {refactorings.Length} refactoring providers and {codeFixes.Length} code-fix providers.",
             },
             WorkspaceHostServices = hostServices,
             RefactoringProviders = refactorings,

@@ -106,7 +106,7 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
         });
     }
 
-    private static void AddDirectCallees(IOperation operation, ISet<ISymbol> callees)
+    private static void AddDirectCallees(IOperation operation, HashSet<ISymbol> callees)
     {
         foreach (var descendant in operation.DescendantsAndSelf())
         {
@@ -123,7 +123,7 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
         }
     }
 
-    private static async ValueTask ExpandIndirectCalleesAsync(ISet<ISymbol> callees, IQueryContext context, CancellationToken cancellationToken)
+    private static async ValueTask ExpandIndirectCalleesAsync(HashSet<ISymbol> callees, IQueryContext context, CancellationToken cancellationToken)
     {
         var visited = new HashSet<ISymbol>(callees, SymbolEqualityComparer.Default);
         var pending = new Queue<ISymbol>(callees);

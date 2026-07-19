@@ -5,6 +5,7 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Test.Discovery;
 
+#pragma warning disable CA1861 // Fresh mutable arrays keep each discovery scenario isolated from other tests.
 public sealed class CodeActionDiscoveryServiceTests
 {
     private readonly Mock<ICodeActionProviderCatalog> _providerCatalog;
@@ -203,3 +204,4 @@ public sealed class CodeActionDiscoveryServiceTests
             It.Is<CodeFixContext>(context => context.Span == new TextSpan(2, 1) && context.Diagnostics.Length == 1)), Times.Once);
     }
 }
+#pragma warning restore CA1861

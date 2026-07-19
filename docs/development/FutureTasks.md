@@ -57,6 +57,8 @@ The programme should:
 
 Re-run the baseline after material Roslyn, MSBuild or MCP SDK upgrades and retain dated results so regressions can be distinguished from environment variance.
 
+Source: [Core Tool Performance Audit — 2026-07-19](CoreToolPerformanceAudit-2026-07-19.md)
+
 ## P2 — Release Support and Plugin Ecosystem
 
 ### Add a plugin-authoring analyser

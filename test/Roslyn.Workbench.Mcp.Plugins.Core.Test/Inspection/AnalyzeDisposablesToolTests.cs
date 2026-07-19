@@ -359,10 +359,13 @@ public sealed class AnalyzeDisposablesToolTests
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Findings.Items.Should().ContainSingle();
+        result.Data.Findings.HasMore.Should().BeTrue();
         result.Data.Findings.Items[0].Kind.Should().Be("UndisposedLocal");
         result.Data.Findings.Items[0].Symbol!.DisplayName.Should().Be("disposable");
         result.Data.Findings.Items[0].Location!.Document!.Path.Should().Be("A.cs");
         result.Data.Findings.Items[0].Type!.DisplayName.Should().Contain("Disposable");
+        queryContextMocks.WorkspaceResolver.Verify(item => item.CreateResolvedLocation(It.IsAny<Location>()), Times.Once);
+        queryContextMocks.WorkspaceResolver.Verify(item => item.CreateSymbolReference(It.IsAny<ISymbol>()), Times.Once);
     }
 
     [Fact]
@@ -417,6 +420,59 @@ public sealed class AnalyzeDisposablesToolTests
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Findings.Items.Should().ContainSingle();
         result.Data.Findings.Items[0].Symbol!.DisplayName.Should().Be("disposable");
+    }
+
+    [Fact]
+    public async Task GIVEN_TopLevelLocalFunctionHasMoreDisposableFindingsThanLimit_WHEN_CallingExecuteAsync_THEN_ShouldReturnOrderedTruncatedFindings()
+    {
+        using var document = RoslynTestFactory.CreateDocument("""
+            using System;
+
+            void Run()
+            {
+                var first = new Disposable();
+                var second = new Disposable();
+                var third = new Disposable();
+            }
+
+            Run();
+
+            sealed class Disposable : IDisposable
+            {
+                public void Dispose()
+                {
+                }
+            }
+            """);
+
+        var target = new AnalyzeDisposablesTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveDocuments<DisposableAnalysisData>(
+                It.IsAny<ScopeSelector?>(),
+                queryContextMocks.QueryContext.Object))
+            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, DisposableAnalysisData>
+            {
+                Value = [document.Document],
+            });
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
+            .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, "Code.cs"));
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
+            .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
+        var result = await target.ExecuteAsync(new AnalyzeDisposablesRequest
+        {
+            FindingsLimit = 2,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        result.Data!.Findings.Items.Select(item => item.Symbol!.DisplayName).Should().Equal("first", "second");
+        result.Data.Findings.HasMore.Should().BeTrue();
+        queryContextMocks.WorkspaceResolver.Verify(item => item.CreateResolvedLocation(It.IsAny<Location>()), Times.Exactly(2));
+        queryContextMocks.WorkspaceResolver.Verify(item => item.CreateSymbolReference(It.IsAny<ISymbol>()), Times.Exactly(2));
     }
 
     [Fact]

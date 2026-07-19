@@ -4,7 +4,7 @@ internal static class ToolExecutionHelpers
 {
     public static int GetMaxResults(int? requestLimit, int defaultMaxResults)
     {
-        return requestLimit ?? defaultMaxResults;
+        return Math.Max(0, requestLimit ?? defaultMaxResults);
     }
 
     public static BoundedCollection<T> CreateBoundedCollection<T>(

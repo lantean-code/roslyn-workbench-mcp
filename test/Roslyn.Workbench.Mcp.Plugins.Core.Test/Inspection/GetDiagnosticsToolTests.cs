@@ -255,6 +255,49 @@ public sealed class GetDiagnosticsToolTests
     }
 
     [Fact]
+    public async Task GIVEN_MoreSourceDiagnosticsThanRequested_WHEN_CallingExecuteAsync_THEN_ShouldProjectOnlyReturnedDiagnostics()
+    {
+        using var document = RoslynTestFactory.CreateDocument("""
+            class Formatter
+            {
+                void Run()
+                {
+                    int first;
+                    int second;
+                }
+            }
+            """);
+
+        var target = new GetDiagnosticsTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+
+        queryContextMocks.QueryContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(document.Solution);
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveDocuments<DiagnosticsData>(
+                It.IsAny<ScopeSelector?>(),
+                queryContextMocks.QueryContext.Object))
+            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, DiagnosticsData>
+            {
+                Value = [document.Document],
+            });
+        queryContextMocks.WorkspaceResolver
+            .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
+            .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, document.Document.Name));
+
+        var result = await target.ExecuteAsync(new GetDiagnosticsRequest
+        {
+            DiagnosticsLimit = 1,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        result.Data!.Diagnostics.Items.Should().ContainSingle();
+        result.Data.Diagnostics.HasMore.Should().BeTrue();
+        queryContextMocks.WorkspaceResolver.Verify(item => item.CreateResolvedLocation(It.IsAny<Location>()), Times.Once);
+    }
+
+    [Fact]
     public async Task GIVEN_DiagnosticSeverityFilterDoesNotMatch_WHEN_CallingExecuteAsync_THEN_ShouldReturnNoDiagnostics()
     {
         using var document = RoslynTestFactory.CreateDocument("""

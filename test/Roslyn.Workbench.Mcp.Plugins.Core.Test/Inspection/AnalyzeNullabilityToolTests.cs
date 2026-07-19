@@ -373,6 +373,9 @@ public sealed class AnalyzeNullabilityToolTests
         result.Data!.Findings.Items.Should().ContainSingle();
         result.Data.Findings.Items[0].Diagnostic!.Id.Should().Be("CS8602");
         result.Data.Findings.Items[0].Diagnostic!.Location.Should().Be(firstProjectedLocation);
+        result.Data.Findings.HasMore.Should().BeTrue();
+        queryContextMocks.WorkspaceResolver.Verify(item => item.CreateResolvedLocation(firstValueLocation), Times.Once);
+        queryContextMocks.WorkspaceResolver.Verify(item => item.CreateResolvedLocation(secondValueLocation), Times.Never);
     }
 
     [Fact]

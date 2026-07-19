@@ -111,4 +111,16 @@ public sealed class ToolExecutionHelpersTests
 
         result.Should().Be(7);
     }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(0)]
+    public void GIVEN_NonPositiveRequestedResultLimit_WHEN_GettingMaxResults_THEN_ShouldReturnZero(int requestLimit)
+    {
+        var result = ToolExecutionHelpers.GetMaxResults(
+            requestLimit,
+            defaultMaxResults: 25);
+
+        result.Should().Be(0);
+    }
 }

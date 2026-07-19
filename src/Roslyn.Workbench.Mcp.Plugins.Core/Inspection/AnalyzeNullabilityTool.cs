@@ -42,22 +42,34 @@ internal sealed class AnalyzeNullabilityTool : QueryToolHandler<AnalyzeNullabili
         }
 
         var diagnostics = await context.ToolExecutionServices.CompilerDiagnosticService.GetCompilerDiagnosticsAsync(documents, cancellationToken);
-        var findings = diagnostics
+        var maxResults = ToolExecutionHelpers.GetMaxResults(request.FindingsLimit, AnalyzeNullabilityRequest._defaultFindingsMaxResults);
+        var findings = new List<NullabilityFinding>();
+        var hasMore = false;
+        var orderedDiagnostics = diagnostics
             .Where(static diagnostic => diagnostic.Id.StartsWith("CS86", StringComparison.Ordinal))
             .Where(diagnostic => selectedSpan is null || diagnostic.Location.SourceSpan.IntersectsWith(selectedSpan.Value))
             .OrderBy(static diagnostic => diagnostic.Location.SourceTree?.FilePath ?? string.Empty, StringComparer.Ordinal)
-            .ThenBy(static diagnostic => diagnostic.Location.SourceSpan.Start)
-            .Select(diagnostic => new NullabilityFinding
+            .ThenBy(static diagnostic => diagnostic.Location.SourceSpan.Start);
+
+        foreach (var diagnostic in orderedDiagnostics)
+        {
+            if (findings.Count == maxResults)
+            {
+                hasMore = true;
+                break;
+            }
+
+            findings.Add(new NullabilityFinding
             {
                 Diagnostic = CompilerDiagnosticHelpers.CreateDiagnosticInfo(diagnostic, context),
-            })
-            .ToArray();
+            });
+        }
 
         return PluginExecutionResult<NullabilityAnalysisData>.Success(new NullabilityAnalysisData
         {
-            Findings = ToolExecutionHelpers.CreateBoundedCollection(
+            Findings = ToolExecutionHelpers.CreatePreboundedCollection(
                 findings,
-                ToolExecutionHelpers.GetMaxResults(request.FindingsLimit, AnalyzeNullabilityRequest._defaultFindingsMaxResults)),
+                hasMore),
         });
     }
 }

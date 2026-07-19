@@ -12,7 +12,9 @@ internal sealed class AnalyzeDisposablesTool : QueryToolHandler<AnalyzeDisposabl
             return documents.Rejection;
         }
 
+        var maxResults = ToolExecutionHelpers.GetMaxResults(request.FindingsLimit, AnalyzeDisposablesRequest._defaultFindingsMaxResults);
         var findings = new List<DisposableFinding>();
+        var hasMore = false;
         foreach (var document in documents.Value.OrderBy(static item => item.FilePath, StringComparer.Ordinal))
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -22,6 +24,11 @@ internal sealed class AnalyzeDisposablesTool : QueryToolHandler<AnalyzeDisposabl
             {
                 continue;
             }
+
+            var compilation = semanticModel.Compilation;
+            var disposable = compilation.GetTypeByMetadataName("System.IDisposable");
+            var asyncDisposable = compilation.GetTypeByMetadataName("System.IAsyncDisposable");
+            var disposedSymbolsByExecutable = new Dictionary<SyntaxNode, HashSet<ISymbol>>();
 
             foreach (var localDeclaration in syntaxRoot.DescendantNodes().OfType<LocalDeclarationStatementSyntax>())
             {
@@ -34,10 +41,16 @@ internal sealed class AnalyzeDisposablesTool : QueryToolHandler<AnalyzeDisposabl
                 foreach (var variableDeclarator in localDeclaration.Declaration.Variables)
                 {
                     if (semanticModel.GetDeclaredSymbol(variableDeclarator, cancellationToken) is not ILocalSymbol localSymbol
-                        || !ImplementsDisposable(localSymbol.Type, semanticModel.Compilation)
-                        || IsDisposed(localDeclaration, localSymbol, semanticModel, cancellationToken))
+                        || !ImplementsDisposable(localSymbol.Type, disposable, asyncDisposable)
+                        || IsDisposed(localDeclaration, localSymbol, semanticModel, disposedSymbolsByExecutable, cancellationToken))
                     {
                         continue;
+                    }
+
+                    if (findings.Count == maxResults)
+                    {
+                        hasMore = true;
+                        break;
                     }
 
                     findings.Add(new DisposableFinding
@@ -49,6 +62,16 @@ internal sealed class AnalyzeDisposablesTool : QueryToolHandler<AnalyzeDisposabl
                         Message = "The disposable local is not disposed before it goes out of scope.",
                     });
                 }
+
+                if (hasMore)
+                {
+                    break;
+                }
+            }
+
+            if (hasMore)
+            {
+                break;
             }
         }
 
@@ -60,23 +83,25 @@ internal sealed class AnalyzeDisposablesTool : QueryToolHandler<AnalyzeDisposabl
 
         return PluginExecutionResult<DisposableAnalysisData>.Success(new DisposableAnalysisData
         {
-            Findings = ToolExecutionHelpers.CreateBoundedCollection(
+            Findings = ToolExecutionHelpers.CreatePreboundedCollection(
                 orderedFindings,
-                ToolExecutionHelpers.GetMaxResults(request.FindingsLimit, AnalyzeDisposablesRequest._defaultFindingsMaxResults)),
+                hasMore),
         });
     }
 
-    private static bool ImplementsDisposable(ITypeSymbol type, Compilation compilation)
+    private static bool ImplementsDisposable(ITypeSymbol type, INamedTypeSymbol? disposable, INamedTypeSymbol? asyncDisposable)
     {
-        var disposable = compilation.GetTypeByMetadataName("System.IDisposable");
-        var asyncDisposable = compilation.GetTypeByMetadataName("System.IAsyncDisposable");
-
         return type.AllInterfaces.Any(interfaceType =>
             SymbolEqualityComparer.Default.Equals(interfaceType, disposable)
             || SymbolEqualityComparer.Default.Equals(interfaceType, asyncDisposable));
     }
 
-    private static bool IsDisposed(LocalDeclarationStatementSyntax localDeclaration, ILocalSymbol localSymbol, SemanticModel semanticModel, CancellationToken cancellationToken)
+    private static bool IsDisposed(
+        LocalDeclarationStatementSyntax localDeclaration,
+        ILocalSymbol localSymbol,
+        SemanticModel semanticModel,
+        Dictionary<SyntaxNode, HashSet<ISymbol>> disposedSymbolsByExecutable,
+        CancellationToken cancellationToken)
     {
         var executableNode = localDeclaration.FirstAncestorOrSelf<BaseMethodDeclarationSyntax>()?.Body
             ?? (SyntaxNode?)localDeclaration.FirstAncestorOrSelf<LocalFunctionStatementSyntax>()?.Body;
@@ -85,6 +110,18 @@ internal sealed class AnalyzeDisposablesTool : QueryToolHandler<AnalyzeDisposabl
             return false;
         }
 
+        if (!disposedSymbolsByExecutable.TryGetValue(executableNode, out var disposedSymbols))
+        {
+            disposedSymbols = GetDisposedSymbols(executableNode, semanticModel, cancellationToken);
+            disposedSymbolsByExecutable.Add(executableNode, disposedSymbols);
+        }
+
+        return disposedSymbols.Contains(localSymbol);
+    }
+
+    private static HashSet<ISymbol> GetDisposedSymbols(SyntaxNode executableNode, SemanticModel semanticModel, CancellationToken cancellationToken)
+    {
+        var disposedSymbols = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
         foreach (var invocation in executableNode.DescendantNodes().OfType<InvocationExpressionSyntax>())
         {
             if (invocation.Expression is not MemberAccessExpressionSyntax memberAccess)
@@ -98,12 +135,12 @@ internal sealed class AnalyzeDisposablesTool : QueryToolHandler<AnalyzeDisposabl
             }
 
             var receiverSymbol = semanticModel.GetSymbolInfo(memberAccess.Expression, cancellationToken).Symbol;
-            if (SymbolEqualityComparer.Default.Equals(receiverSymbol, localSymbol))
+            if (receiverSymbol is ILocalSymbol)
             {
-                return true;
+                disposedSymbols.Add(receiverSymbol);
             }
         }
 
-        return false;
+        return disposedSymbols;
     }
 }

@@ -3,13 +3,6 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 [RoslynTool("find-unused-symbols", "Find Unused Symbols", "Returns candidate unused locals and members from compiler diagnostics.")]
 internal sealed class FindUnusedSymbolsTool : QueryToolHandler<FindUnusedSymbolsRequest, UnusedSymbolsData>
 {
-    private static readonly HashSet<string> _unusedDiagnosticIds = new(StringComparer.Ordinal)
-    {
-        "CS0168",
-        "CS0169",
-        "CS0219",
-    };
-
     protected override async ValueTask<PluginExecutionResult<UnusedSymbolsData>> ExecuteCoreAsync(FindUnusedSymbolsRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
 
@@ -23,9 +16,19 @@ internal sealed class FindUnusedSymbolsTool : QueryToolHandler<FindUnusedSymbols
             ? documents.Value.Where(static document => !CompilerDiagnosticHelpers.IsGeneratedDocument(document)).ToArray()
             : documents.Value.ToArray();
         var diagnostics = await context.ToolExecutionServices.CompilerDiagnosticService.GetCompilerDiagnosticsAsync(selectedDocuments, cancellationToken);
+        var maxResults = ToolExecutionHelpers.GetMaxResults(request.CandidatesLimit, FindUnusedSymbolsRequest._defaultCandidatesMaxResults);
         var candidates = new List<UnusedSymbolCandidate>();
+        var hasMore = false;
+        SyntaxTree? activeSyntaxTree = null;
+        SyntaxNode? syntaxRoot = null;
+        SemanticModel? semanticModel = null;
+        var orderedDiagnostics = diagnostics
+            .Where(static diagnostic => IsUnusedDiagnosticId(diagnostic.Id))
+            .OrderBy(static diagnostic => diagnostic.Location.SourceTree?.FilePath ?? string.Empty, StringComparer.Ordinal)
+            .ThenBy(static diagnostic => diagnostic.Location.SourceSpan.Start)
+            .ThenBy(static diagnostic => diagnostic.Id, StringComparer.Ordinal);
 
-        foreach (var diagnostic in diagnostics.Where(diagnostic => _unusedDiagnosticIds.Contains(diagnostic.Id)))
+        foreach (var diagnostic in orderedDiagnostics)
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (diagnostic.Location.SourceTree is null)
@@ -39,8 +42,13 @@ internal sealed class FindUnusedSymbolsTool : QueryToolHandler<FindUnusedSymbols
                 continue;
             }
 
-            var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
-            var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
+            if (!ReferenceEquals(activeSyntaxTree, diagnostic.Location.SourceTree))
+            {
+                activeSyntaxTree = diagnostic.Location.SourceTree;
+                syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
+                semanticModel = await document.GetSemanticModelAsync(cancellationToken);
+            }
+
             if (syntaxRoot is null || semanticModel is null)
             {
                 continue;
@@ -50,6 +58,12 @@ internal sealed class FindUnusedSymbolsTool : QueryToolHandler<FindUnusedSymbols
             if (symbol is null || !ShouldIncludeSymbol(symbol, request.IncludeInternal))
             {
                 continue;
+            }
+
+            if (candidates.Count == maxResults)
+            {
+                hasMore = true;
+                break;
             }
 
             var sourceLocation = symbol.Locations.FirstOrDefault(static location => location.IsInSource);
@@ -66,18 +80,17 @@ internal sealed class FindUnusedSymbolsTool : QueryToolHandler<FindUnusedSymbols
             });
         }
 
-        var orderedCandidates = candidates
-            .OrderBy(static candidate => candidate.Location?.Document?.Path ?? string.Empty, StringComparer.Ordinal)
-            .ThenBy(static candidate => candidate.Location?.Span?.Start ?? int.MaxValue)
-            .ThenBy(static candidate => candidate.Symbol?.DisplayName ?? string.Empty, StringComparer.Ordinal)
-            .ToArray();
-
         return PluginExecutionResult<UnusedSymbolsData>.Success(new UnusedSymbolsData
         {
-            Candidates = ToolExecutionHelpers.CreateBoundedCollection(
-                orderedCandidates,
-                ToolExecutionHelpers.GetMaxResults(request.CandidatesLimit, FindUnusedSymbolsRequest._defaultCandidatesMaxResults)),
+            Candidates = ToolExecutionHelpers.CreatePreboundedCollection(
+                candidates,
+                hasMore),
         });
+    }
+
+    private static bool IsUnusedDiagnosticId(string diagnosticId)
+    {
+        return diagnosticId is "CS0168" or "CS0169" or "CS0219";
     }
 
     private static ISymbol? GetCandidateSymbol(SyntaxNode syntaxRoot, SemanticModel semanticModel, TextSpan span, CancellationToken cancellationToken)

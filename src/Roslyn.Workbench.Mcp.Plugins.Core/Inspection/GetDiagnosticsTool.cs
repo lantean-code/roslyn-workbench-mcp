@@ -21,25 +21,38 @@ internal sealed class GetDiagnosticsTool : QueryToolHandler<GetDiagnosticsReques
         {
             diagnostics.AddRange(await GetProjectDiagnosticsAsync(project, selectedDocumentIds, restrictToSelectedDocuments, cancellationToken));
         }
-        var projectedDiagnostics = diagnostics
-            .Where(diagnostic => MatchesDiagnosticFilters(diagnostic, request))
-            .Select(diagnostic => new DiagnosticInfo
+
+        var includedIds = request.Ids is { Count: > 0 }
+            ? request.Ids.ToHashSet(StringComparer.Ordinal)
+            : null;
+        var includedSeverities = request.Severities is { Count: > 0 }
+            ? request.Severities.ToHashSet(StringComparer.OrdinalIgnoreCase)
+            : null;
+        var maxResults = ToolExecutionHelpers.GetMaxResults(request.DiagnosticsLimit, GetDiagnosticsRequest._defaultDiagnosticsMaxResults);
+        var projectedDiagnostics = new List<DiagnosticInfo>();
+        var hasMore = false;
+        var orderedDiagnostics = diagnostics
+            .Where(diagnostic => MatchesDiagnosticFilters(diagnostic, includedIds, includedSeverities))
+            .OrderBy(static diagnostic => diagnostic.Location.SourceTree?.FilePath ?? string.Empty, StringComparer.Ordinal)
+            .ThenBy(static diagnostic => diagnostic.Location.SourceSpan.Start)
+            .ThenBy(static diagnostic => diagnostic.Id, StringComparer.Ordinal);
+
+        foreach (var diagnostic in orderedDiagnostics)
+        {
+            if (projectedDiagnostics.Count == maxResults)
             {
-                Id = diagnostic.Id,
-                Severity = InspectionProjectionFactory.MapSeverity(diagnostic.Severity),
-                Message = diagnostic.GetMessage(CultureInfo.InvariantCulture),
-                Location = diagnostic.Location.IsInSource ? context.WorkspaceResolver.CreateResolvedLocation(diagnostic.Location) : null,
-            })
-            .OrderBy(static diagnostic => diagnostic.Location?.Document?.Path ?? string.Empty, StringComparer.Ordinal)
-            .ThenBy(static diagnostic => diagnostic.Location?.Span?.Start ?? int.MaxValue)
-            .ThenBy(static diagnostic => diagnostic.Id, StringComparer.Ordinal)
-            .ToArray();
+                hasMore = true;
+                break;
+            }
+
+            projectedDiagnostics.Add(CompilerDiagnosticHelpers.CreateDiagnosticInfo(diagnostic, context));
+        }
 
         return PluginExecutionResult<DiagnosticsData>.Success(new DiagnosticsData
         {
-            Diagnostics = ToolExecutionHelpers.CreateBoundedCollection(
+            Diagnostics = ToolExecutionHelpers.CreatePreboundedCollection(
                 projectedDiagnostics,
-                ToolExecutionHelpers.GetMaxResults(request.DiagnosticsLimit, GetDiagnosticsRequest._defaultDiagnosticsMaxResults)),
+                hasMore),
         });
     }
 
@@ -81,17 +94,17 @@ internal sealed class GetDiagnosticsTool : QueryToolHandler<GetDiagnosticsReques
         return document is not null && selectedDocumentIds.Contains(document.Id);
     }
 
-    private static bool MatchesDiagnosticFilters(Diagnostic diagnostic, GetDiagnosticsRequest request)
+    private static bool MatchesDiagnosticFilters(Diagnostic diagnostic, HashSet<string>? includedIds, HashSet<string>? includedSeverities)
     {
-        if (request.Ids is not null && request.Ids.Count > 0 && !request.Ids.Contains(diagnostic.Id, StringComparer.Ordinal))
+        if (includedIds is not null && !includedIds.Contains(diagnostic.Id))
         {
             return false;
         }
 
-        if (request.Severities is not null && request.Severities.Count > 0)
+        if (includedSeverities is not null)
         {
             var severity = diagnostic.Severity.ToString();
-            if (!request.Severities.Contains(severity, StringComparer.OrdinalIgnoreCase))
+            if (!includedSeverities.Contains(severity))
             {
                 return false;
             }

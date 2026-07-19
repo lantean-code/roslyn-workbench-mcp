@@ -177,6 +177,44 @@ public sealed class AnalyzeAsyncToolTests
     }
 
     [Fact]
+    public async Task GIVEN_FindingsLimitIsZeroAndFindingExists_WHEN_CallingExecuteAsync_THEN_ShouldReturnEmptyTruncatedFindingsWithoutProjection()
+    {
+        using var document = RoslynTestFactory.CreateDocument("""
+            using System.Threading.Tasks;
+
+            class Formatter
+            {
+                public async Task FormatAsync()
+                {
+                }
+            }
+            """);
+
+        var target = new AnalyzeAsyncTool();
+        var queryContextMocks = QueryContextMockHelper.Create();
+
+        queryContextMocks.RequestResolver
+            .Setup(item => item.ResolveDocuments<AsyncAnalysisData>(
+                It.IsAny<ScopeSelector?>(),
+                queryContextMocks.QueryContext.Object))
+            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, AsyncAnalysisData>
+            {
+                Value = [document.Document],
+            });
+
+        var result = await target.ExecuteAsync(new AnalyzeAsyncRequest
+        {
+            FindingsLimit = 0,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
+        result.Data!.Findings.Items.Should().BeEmpty();
+        result.Data.Findings.HasMore.Should().BeTrue();
+        queryContextMocks.WorkspaceResolver.Verify(item => item.CreateResolvedLocation(It.IsAny<Location>()), Times.Never);
+        queryContextMocks.WorkspaceResolver.Verify(item => item.CreateSymbolReference(It.IsAny<ISymbol>()), Times.Never);
+    }
+
+    [Fact]
     public async Task GIVEN_AsyncMethodHasUnawaitedTaskLikeInvocationsAcrossDocuments_WHEN_CallingExecuteAsync_THEN_ShouldReturnOrderedBoundedFindings()
     {
         using var solution = RoslynTestFactory.CreateSolution(
@@ -269,6 +307,7 @@ public sealed class AnalyzeAsyncToolTests
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Findings.Items.Should().HaveCount(5);
+        result.Data.Findings.HasMore.Should().BeTrue();
         result.Data.Findings.Items.Select(item => item.Kind).Should().Equal(
         [
             "AsyncWithoutAwait",
@@ -279,5 +318,7 @@ public sealed class AnalyzeAsyncToolTests
         ]);
         result.Data.Findings.Items[0].Symbol!.DisplayName.Should().Be("CallerAsync");
         result.Data.Findings.Items.Count(item => item.Kind == "UnawaitedTask").Should().Be(4);
+        queryContextMocks.WorkspaceResolver.Verify(item => item.CreateResolvedLocation(It.IsAny<Location>()), Times.Exactly(5));
+        queryContextMocks.WorkspaceResolver.Verify(item => item.CreateSymbolReference(It.IsAny<ISymbol>()), Times.Exactly(5));
     }
 }

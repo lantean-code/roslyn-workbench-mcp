@@ -12,7 +12,9 @@ internal sealed class AnalyzeAsyncTool : QueryToolHandler<AnalyzeAsyncRequest, A
             return documents.Rejection;
         }
 
+        var maxResults = ToolExecutionHelpers.GetMaxResults(request.FindingsLimit, AnalyzeAsyncRequest._defaultFindingsMaxResults);
         var findings = new List<AsyncFinding>();
+        var hasMore = false;
         foreach (var document in documents.Value.OrderBy(static item => item.FilePath, StringComparer.Ordinal))
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -22,6 +24,12 @@ internal sealed class AnalyzeAsyncTool : QueryToolHandler<AnalyzeAsyncRequest, A
             {
                 continue;
             }
+
+            var compilation = semanticModel.Compilation;
+            var task = compilation.GetTypeByMetadataName("System.Threading.Tasks.Task");
+            var taskOfT = compilation.GetTypeByMetadataName("System.Threading.Tasks.Task`1");
+            var valueTask = compilation.GetTypeByMetadataName("System.Threading.Tasks.ValueTask");
+            var valueTaskOfT = compilation.GetTypeByMetadataName("System.Threading.Tasks.ValueTask`1");
 
             foreach (var methodDeclaration in syntaxRoot.DescendantNodes().OfType<MethodDeclarationSyntax>())
             {
@@ -34,6 +42,12 @@ internal sealed class AnalyzeAsyncTool : QueryToolHandler<AnalyzeAsyncRequest, A
 
                 if (!methodDeclaration.DescendantNodes().OfType<AwaitExpressionSyntax>().Any())
                 {
+                    if (findings.Count == maxResults)
+                    {
+                        hasMore = true;
+                        break;
+                    }
+
                     findings.Add(new AsyncFinding
                     {
                         Kind = "AsyncWithoutAwait",
@@ -52,9 +66,15 @@ internal sealed class AnalyzeAsyncTool : QueryToolHandler<AnalyzeAsyncRequest, A
 
                 foreach (var invocation in rootOperation.DescendantsAndSelf().OfType<IInvocationOperation>())
                 {
-                    if (!ReturnsTaskLike(invocation.Type, semanticModel.Compilation) || IsAwaited(invocation))
+                    if (!ReturnsTaskLike(invocation.Type, task, taskOfT, valueTask, valueTaskOfT) || IsAwaited(invocation))
                     {
                         continue;
+                    }
+
+                    if (findings.Count == maxResults)
+                    {
+                        hasMore = true;
+                        break;
                     }
 
                     findings.Add(new AsyncFinding
@@ -65,6 +85,16 @@ internal sealed class AnalyzeAsyncTool : QueryToolHandler<AnalyzeAsyncRequest, A
                         Message = "The task-returning invocation is not awaited.",
                     });
                 }
+
+                if (hasMore)
+                {
+                    break;
+                }
+            }
+
+            if (hasMore)
+            {
+                break;
             }
         }
 
@@ -76,9 +106,9 @@ internal sealed class AnalyzeAsyncTool : QueryToolHandler<AnalyzeAsyncRequest, A
 
         return PluginExecutionResult<AsyncAnalysisData>.Success(new AsyncAnalysisData
         {
-            Findings = ToolExecutionHelpers.CreateBoundedCollection(
+            Findings = ToolExecutionHelpers.CreatePreboundedCollection(
                 orderedFindings,
-                ToolExecutionHelpers.GetMaxResults(request.FindingsLimit, AnalyzeAsyncRequest._defaultFindingsMaxResults)),
+                hasMore),
         });
     }
 
@@ -95,17 +125,18 @@ internal sealed class AnalyzeAsyncTool : QueryToolHandler<AnalyzeAsyncRequest, A
         return false;
     }
 
-    private static bool ReturnsTaskLike(ITypeSymbol? type, Compilation compilation)
+    private static bool ReturnsTaskLike(
+        ITypeSymbol? type,
+        INamedTypeSymbol? task,
+        INamedTypeSymbol? taskOfT,
+        INamedTypeSymbol? valueTask,
+        INamedTypeSymbol? valueTaskOfT)
     {
         if (type is not INamedTypeSymbol namedType)
         {
             return false;
         }
 
-        var task = compilation.GetTypeByMetadataName("System.Threading.Tasks.Task");
-        var taskOfT = compilation.GetTypeByMetadataName("System.Threading.Tasks.Task`1");
-        var valueTask = compilation.GetTypeByMetadataName("System.Threading.Tasks.ValueTask");
-        var valueTaskOfT = compilation.GetTypeByMetadataName("System.Threading.Tasks.ValueTask`1");
         var original = namedType.OriginalDefinition;
 
         return SymbolEqualityComparer.Default.Equals(original, task)

@@ -12,19 +12,32 @@ internal sealed class GetPartialDeclarationsTool : QueryToolHandler<GetPartialDe
         }
 
         var symbol = symbolResolution.Value;
-        var declarations = symbol.DeclaringSyntaxReferences
+        var orderedLocations = symbol.DeclaringSyntaxReferences
             .Select(reference => context.WorkspaceResolver.CreateResolvedLocation(reference.SyntaxTree.GetLocation(reference.Span)))
             .OfType<ResolvedLocation>()
-            .OrderBy(static item => item.Document?.Path, StringComparer.Ordinal)
-            .ThenBy(static item => item.Span?.Start)
-            .ToArray();
+            .OrderBy(static location => location.Document?.Path, StringComparer.Ordinal)
+            .ThenBy(static location => location.Span?.Start);
 
-        return PluginExecutionResult<PartialDeclarationsData>.Success(new PartialDeclarationsData
+        var declarations = new List<ResolvedLocation>();
+        var hasMore = false;
+        foreach (var resolvedLocation in orderedLocations)
         {
-            Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
-            Declarations = ToolExecutionHelpers.CreateBoundedCollection(
-                declarations,
-                request.EffectiveDeclarationsLimit),
-        });
+            if (declarations.Count == request.EffectiveDeclarationsLimit)
+            {
+                hasMore = true;
+                break;
+            }
+
+            declarations.Add(resolvedLocation);
+        }
+
+        var symbolReference = context.WorkspaceResolver.CreateSymbolReference(symbol);
+        var data = new PartialDeclarationsData
+        {
+            Symbol = symbolReference,
+            Declarations = ToolExecutionHelpers.CreatePreboundedCollection(declarations, hasMore),
+        };
+
+        return PluginExecutionResult<PartialDeclarationsData>.Success(data);
     }
 }

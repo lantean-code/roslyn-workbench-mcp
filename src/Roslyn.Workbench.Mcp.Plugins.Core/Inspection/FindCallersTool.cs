@@ -21,9 +21,20 @@ internal sealed class FindCallersTool : QueryToolHandler<FindCallersRequest, Cal
         }
 
         var discoveredCallers = await SymbolFinder.FindCallersAsync(symbol, context.CurrentSolution, documents.Value.ToImmutableHashSet(), cancellationToken);
+        var orderedCallers = discoveredCallers
+            .Select(caller => (Caller: caller, Reference: context.WorkspaceResolver.CreateSymbolReference(caller.CallingSymbol)))
+            .OrderBy(static item => item.Reference.DisplayName, StringComparer.Ordinal);
+
         var callers = new List<CallerInfo>();
-        foreach (var caller in discoveredCallers)
+        var hasMore = false;
+        foreach (var (caller, reference) in orderedCallers)
         {
+            if (callers.Count == request.EffectiveCallersLimit)
+            {
+                hasMore = true;
+                break;
+            }
+
             var contexts = new List<string>();
             if (request.IncludeContext)
             {
@@ -32,6 +43,7 @@ internal sealed class FindCallersTool : QueryToolHandler<FindCallersRequest, Cal
                     var document = location.SourceTree is null
                         ? null
                         : context.CurrentSolution.GetDocument(location.SourceTree);
+
                     var contextLine = await context.ToolExecutionServices.InspectionContextService.ReadContextAsync(document, location.SourceSpan, cancellationToken);
                     if (!string.IsNullOrWhiteSpace(contextLine))
                     {
@@ -42,7 +54,7 @@ internal sealed class FindCallersTool : QueryToolHandler<FindCallersRequest, Cal
 
             callers.Add(new CallerInfo
             {
-                Caller = context.WorkspaceResolver.CreateSymbolReference(caller.CallingSymbol),
+                Caller = reference,
                 Locations = caller.Locations
                     .Where(static location => location.IsInSource)
                     .Select(location => context.WorkspaceResolver.CreateResolvedLocation(location))
@@ -54,17 +66,13 @@ internal sealed class FindCallersTool : QueryToolHandler<FindCallersRequest, Cal
             });
         }
 
-        var orderedCallers = callers
-            .OrderBy(static caller => caller.Caller?.DisplayName, StringComparer.Ordinal)
-            .ToArray();
         var symbolReference = context.WorkspaceResolver.CreateSymbolReference(symbol);
-
-        return PluginExecutionResult<CallerSearchData>.Success(new CallerSearchData
+        var data = new CallerSearchData
         {
             Symbol = symbolReference,
-            Callers = ToolExecutionHelpers.CreateBoundedCollection(
-                orderedCallers,
-                request.EffectiveCallersLimit),
-        });
+            Callers = ToolExecutionHelpers.CreatePreboundedCollection(callers, hasMore),
+        };
+
+        return PluginExecutionResult<CallerSearchData>.Success(data);
     }
 }

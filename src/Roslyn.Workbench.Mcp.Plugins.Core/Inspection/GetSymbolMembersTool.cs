@@ -19,36 +19,65 @@ internal sealed class GetSymbolMembersTool : QueryToolHandler<GetSymbolMembersRe
             return ToolExecutionHelpers.Rejected<SymbolMembersData>("InvalidRequest", "Get symbol members requires a named type symbol.");
         }
 
-        var members = new List<ISymbol>();
-        members.AddRange(namedType.GetMembers().Where(static member => !member.IsImplicitlyDeclared));
+        var members = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
+        foreach (var member in namedType.GetMembers())
+        {
+            if (!member.IsImplicitlyDeclared)
+            {
+                members.Add(member);
+            }
+        }
 
         if (request.IncludeInherited)
         {
             for (var current = namedType.BaseType; current is not null; current = current.BaseType)
             {
-                members.AddRange(current.GetMembers().Where(static member => !member.IsImplicitlyDeclared));
+                foreach (var member in current.GetMembers())
+                {
+                    if (!member.IsImplicitlyDeclared)
+                    {
+                        members.Add(member);
+                    }
+                }
             }
         }
 
         if (request.IncludeExplicitInterface)
         {
-            members.AddRange(namedType.AllInterfaces.SelectMany(static item => item.GetMembers()));
+            foreach (var interfaceSymbol in namedType.AllInterfaces)
+            {
+                foreach (var member in interfaceSymbol.GetMembers())
+                {
+                    members.Add(member);
+                }
+            }
         }
 
         var orderedMembers = members
-            .Distinct(SymbolEqualityComparer.Default)
-            .OrderBy(member => context.WorkspaceResolver.CreateSymbolReference(member).DisplayName, StringComparer.Ordinal)
-            .ThenBy(member => context.WorkspaceResolver.CreateSymbolReference(member).Location?.Document?.Path ?? string.Empty, StringComparer.Ordinal)
-            .Select(context.WorkspaceResolver.CreateSymbolReference)
-            .ToArray();
-        var symbolReference = context.WorkspaceResolver.CreateSymbolReference(namedType);
+            .Select(member => context.WorkspaceResolver.CreateSymbolReference(member))
+            .OrderBy(static member => member.DisplayName, StringComparer.Ordinal)
+            .ThenBy(static member => member.Location?.Document?.Path ?? string.Empty, StringComparer.Ordinal);
 
-        return PluginExecutionResult<SymbolMembersData>.Success(new SymbolMembersData
+        var projectedMembers = new List<SymbolReference>();
+        var hasMore = false;
+        foreach (var memberReference in orderedMembers)
+        {
+            if (projectedMembers.Count == request.EffectiveMembersLimit)
+            {
+                hasMore = true;
+                break;
+            }
+
+            projectedMembers.Add(memberReference);
+        }
+
+        var symbolReference = context.WorkspaceResolver.CreateSymbolReference(namedType);
+        var data = new SymbolMembersData
         {
             Symbol = symbolReference,
-            Members = ToolExecutionHelpers.CreateBoundedCollection(
-                orderedMembers,
-                request.EffectiveMembersLimit),
-        });
+            Members = ToolExecutionHelpers.CreatePreboundedCollection(projectedMembers, hasMore),
+        };
+
+        return PluginExecutionResult<SymbolMembersData>.Success(data);
     }
 }

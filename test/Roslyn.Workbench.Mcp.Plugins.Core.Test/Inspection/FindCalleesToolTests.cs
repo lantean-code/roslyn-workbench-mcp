@@ -376,6 +376,15 @@ public sealed class FindCalleesToolTests
         result.Data!.Source!.DisplayName.Should().Be("Run");
         result.Data.Callees.Items.Select(item => item.DisplayName).Should().Equal(".ctor", "First");
         result.Data.Callees.HasMore.Should().BeFalse();
+
+        var boundedResult = await target.ExecuteAsync(new FindCalleesRequest
+        {
+            Location = new LocationSelector(),
+            CalleesLimit = 1,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        boundedResult.Data!.Callees.Items.Select(item => item.DisplayName).Should().Equal(".ctor");
+        boundedResult.Data.Callees.HasMore.Should().BeTrue();
     }
 
     [Fact]

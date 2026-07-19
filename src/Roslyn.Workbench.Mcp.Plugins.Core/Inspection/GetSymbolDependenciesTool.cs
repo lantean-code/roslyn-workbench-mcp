@@ -38,22 +38,35 @@ internal sealed class GetSymbolDependenciesTool : QueryToolHandler<GetSymbolDepe
         dependencies.RemoveWhere(dependency => SymbolEqualityComparer.Default.Equals(dependency, symbol));
 
         var orderedDependencies = dependencies
-            .OrderBy(item => context.WorkspaceResolver.CreateSymbolReference(item).DisplayName, StringComparer.Ordinal)
-            .Select(item => new DependencyInfo
-            {
-                Symbol = context.WorkspaceResolver.CreateSymbolReference(item),
-                Kind = item.Kind.ToString(),
-                AssemblyName = request.IncludeAssemblies ? item.ContainingAssembly?.Name : null,
-            })
-            .ToArray();
+            .Select(item => (Symbol: item, Reference: context.WorkspaceResolver.CreateSymbolReference(item)))
+            .OrderBy(static item => item.Reference.DisplayName, StringComparer.Ordinal);
 
-        return PluginExecutionResult<SymbolDependenciesData>.Success(new SymbolDependenciesData
+        var projectedDependencies = new List<DependencyInfo>();
+        var hasMore = false;
+        foreach (var (dependency, dependencyReference) in orderedDependencies)
         {
-            Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
-            Dependencies = ToolExecutionHelpers.CreateBoundedCollection(
-                orderedDependencies,
-                request.EffectiveDependenciesLimit),
-        });
+            if (projectedDependencies.Count == request.EffectiveDependenciesLimit)
+            {
+                hasMore = true;
+                break;
+            }
+
+            projectedDependencies.Add(new DependencyInfo
+            {
+                Symbol = dependencyReference,
+                Kind = dependency.Kind.ToString(),
+                AssemblyName = request.IncludeAssemblies ? dependency.ContainingAssembly?.Name : null,
+            });
+        }
+
+        var symbolReference = context.WorkspaceResolver.CreateSymbolReference(symbol);
+        var data = new SymbolDependenciesData
+        {
+            Symbol = symbolReference,
+            Dependencies = ToolExecutionHelpers.CreatePreboundedCollection(projectedDependencies, hasMore),
+        };
+
+        return PluginExecutionResult<SymbolDependenciesData>.Success(data);
     }
 
     private static void AddSignatureDependencies(ISymbol symbol, ISet<ISymbol> dependencies)

@@ -228,10 +228,12 @@ public sealed class FindDerivedTypesToolTests
         {
             Symbol = new SymbolSelector(),
             MaxDepth = 1,
+            DerivedTypesLimit = 1,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
-        boundedResult.Data!.DerivedTypes.Items.Select(item => item.Type!.DisplayName).Should().Equal("AlphaDerived", "ZDerived");
-        boundedResult.Data.DerivedTypes.Items.Select(item => item.Depth).Should().Equal(1, 1);
+        boundedResult.Data!.DerivedTypes.Items.Select(item => item.Type!.DisplayName).Should().Equal("AlphaDerived");
+        boundedResult.Data.DerivedTypes.Items.Select(item => item.Depth).Should().Equal(1);
+        boundedResult.Data.DerivedTypes.HasMore.Should().BeTrue();
     }
 
     [Fact]

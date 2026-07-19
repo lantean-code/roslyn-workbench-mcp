@@ -172,6 +172,16 @@ public sealed class GetSymbolDependenciesToolTests
         result.Data.Dependencies.Items.Select(item => item.Symbol!.DisplayName).Should().Contain("ToUpperInvariant");
         result.Data.Dependencies.Items.Should().NotContain(item => item.Symbol!.DisplayName == "Format");
         result.Data.Dependencies.Items.Should().OnlyContain(item => item.AssemblyName != null);
+
+        var boundedResult = await target.ExecuteAsync(new GetSymbolDependenciesRequest
+        {
+            Symbol = new SymbolSelector(),
+            IncludeAssemblies = true,
+            DependenciesLimit = 1,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        boundedResult.Data!.Dependencies.Items.Should().ContainSingle();
+        boundedResult.Data.Dependencies.HasMore.Should().BeTrue();
     }
 
     [Fact]

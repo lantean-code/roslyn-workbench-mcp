@@ -155,5 +155,14 @@ public sealed class FindImplementationsToolTests
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbol!.DisplayName.Should().Be("IMessageFormatter");
         result.Data.Implementations.Items.Select(item => item.DisplayName).Should().Equal("AFormatter", "ZFormatter");
+
+        var boundedResult = await target.ExecuteAsync(new FindImplementationsRequest
+        {
+            Symbol = new SymbolSelector(),
+            ImplementationsLimit = 1,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        boundedResult.Data!.Implementations.Items.Select(item => item.DisplayName).Should().Equal("AFormatter");
+        boundedResult.Data.Implementations.HasMore.Should().BeTrue();
     }
 }

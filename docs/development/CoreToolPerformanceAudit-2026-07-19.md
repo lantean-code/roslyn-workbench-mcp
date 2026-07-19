@@ -256,6 +256,15 @@ The five existing pre-bounded paths are `find-references`, `get-change-impact`, 
 - Tool handlers consume those normalized values without repeating the request property, curated default and normalization helper at every call site.
 - All 44 request-owned default constants are private. Public nullable request properties, initial values and `[DefaultValue]` metadata remain unchanged.
 
+### 2026-07-19 — Symbol relationships and structure projection
+
+- All Batch 3 collections now establish `HasMore` from one additional ordered item and publish through `CreatePreboundedCollection`.
+- Resolver-created `SymbolReference` values are retained as the pending projection for relationship and search ordering. This guarantees that resolver-defined display names and projected paths remain the ordering contract while eliminating repeated projection of the same symbol.
+- Callers are selected before location and context enrichment. Symbol dependents now reuse semantic models per document within the request.
+- Overload signatures, attribute arguments, dependency DTOs and type-hierarchy nodes are created only for returned items. Base-type traversal stops once its depth or response bound is established.
+- Solution projects are selected before target-framework evaluation, project-reference projection and optional document projection. Folder DTOs returned by the hierarchy service are bounded without further enrichment.
+- After this step, the inspection-handler count is five `CreateBoundedCollection` calls and 34 `CreatePreboundedCollection` calls. The remaining late-bound sites belong to the dependency, cycle, test-impact and duplicate-code work deferred to Batch 4.
+
 ## Recommended implementation batches
 
 ### Batch 1 — Completed bounded diagnostic/reference work
@@ -280,9 +289,9 @@ Implement the high-confidence changes in:
 
 These share a clear dependency: establish ordered candidates and `max + 1` validity before expensive DTO or metric projection. Keep the code-metrics traversal consolidation separate within the batch if it materially enlarges review risk.
 
-### Batch 3 — Symbol relationship and search projection
+### Batch 3 — Symbol relationship and search projection — completed 2026-07-19
 
-Migrate:
+Migrated:
 
 - callers, callees, derived types, implementations and overrides;
 - symbol dependencies, dependents and members;

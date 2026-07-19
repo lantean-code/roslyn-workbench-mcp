@@ -19,21 +19,34 @@ internal sealed class FindOverloadsTool : QueryToolHandler<FindOverloadsRequest,
         IEnumerable<IMethodSymbol> overloads = methodSymbol.MethodKind == MethodKind.Constructor
             ? methodSymbol.ContainingType.InstanceConstructors.Where(static item => !item.IsImplicitlyDeclared)
             : methodSymbol.ContainingType.GetMembers(methodSymbol.Name).OfType<IMethodSymbol>().Where(item => item.MethodKind == methodSymbol.MethodKind);
-        var signatures = overloads
+
+        var orderedOverloads = overloads
             .Distinct(SymbolEqualityComparer.Default)
             .OfType<IMethodSymbol>()
             .OrderBy(static item => item.Parameters.Length)
-            .ThenBy(static item => item.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat), StringComparer.Ordinal)
-            .Select(CreateCallableSignature)
-            .ToArray();
+            .ThenBy(static item => item.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat), StringComparer.Ordinal);
 
-        return PluginExecutionResult<OverloadSearchData>.Success(new OverloadSearchData
+        var signatures = new List<CallableSignature>();
+        var hasMore = false;
+        foreach (var overload in orderedOverloads)
         {
-            Symbol = context.WorkspaceResolver.CreateSymbolReference(methodSymbol),
-            Overloads = ToolExecutionHelpers.CreateBoundedCollection(
-                signatures,
-                request.EffectiveOverloadsLimit),
-        });
+            if (signatures.Count == request.EffectiveOverloadsLimit)
+            {
+                hasMore = true;
+                break;
+            }
+
+            signatures.Add(CreateCallableSignature(overload));
+        }
+
+        var symbolReference = context.WorkspaceResolver.CreateSymbolReference(methodSymbol);
+        var data = new OverloadSearchData
+        {
+            Symbol = symbolReference,
+            Overloads = ToolExecutionHelpers.CreatePreboundedCollection(signatures, hasMore),
+        };
+
+        return PluginExecutionResult<OverloadSearchData>.Success(data);
     }
 
     private static CallableSignature CreateCallableSignature(IMethodSymbol methodSymbol)

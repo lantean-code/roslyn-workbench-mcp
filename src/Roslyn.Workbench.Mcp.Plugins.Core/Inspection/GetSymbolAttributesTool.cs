@@ -12,30 +12,48 @@ internal sealed class GetSymbolAttributesTool : QueryToolHandler<GetSymbolAttrib
         }
 
         var symbol = symbolResolution.Value;
-        var attributes = new List<AttributeInfo>();
-        attributes.AddRange(symbol.GetAttributes().Select(static item => CreateAttributeInfo(item, inherited: false)));
+        var discoveredAttributes = new List<(AttributeData Attribute, bool Inherited)>();
+        foreach (var attribute in symbol.GetAttributes())
+        {
+            discoveredAttributes.Add((attribute, false));
+        }
 
         if (request.IncludeInherited && symbol is INamedTypeSymbol namedType)
         {
             for (var current = namedType.BaseType; current is not null; current = current.BaseType)
             {
-                attributes.AddRange(current.GetAttributes().Select(static item => CreateAttributeInfo(item, inherited: true)));
+                foreach (var attribute in current.GetAttributes())
+                {
+                    discoveredAttributes.Add((attribute, true));
+                }
             }
         }
 
-        var orderedAttributes = attributes
-            .OrderBy(static item => item.Name, StringComparer.Ordinal)
-            .ThenBy(static item => item.Inherited)
-            .ToArray();
-        var symbolReference = context.WorkspaceResolver.CreateSymbolReference(symbol);
+        var orderedAttributes = discoveredAttributes
+            .OrderBy(static item => item.Attribute.AttributeClass?.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat) ?? string.Empty, StringComparer.Ordinal)
+            .ThenBy(static item => item.Inherited);
 
-        return PluginExecutionResult<SymbolAttributesData>.Success(new SymbolAttributesData
+        var attributes = new List<AttributeInfo>();
+        var hasMore = false;
+        foreach (var (attribute, inherited) in orderedAttributes)
+        {
+            if (attributes.Count == request.EffectiveAttributesLimit)
+            {
+                hasMore = true;
+                break;
+            }
+
+            attributes.Add(CreateAttributeInfo(attribute, inherited));
+        }
+
+        var symbolReference = context.WorkspaceResolver.CreateSymbolReference(symbol);
+        var data = new SymbolAttributesData
         {
             Symbol = symbolReference,
-            Attributes = ToolExecutionHelpers.CreateBoundedCollection(
-                orderedAttributes,
-                request.EffectiveAttributesLimit),
-        });
+            Attributes = ToolExecutionHelpers.CreatePreboundedCollection(attributes, hasMore),
+        };
+
+        return PluginExecutionResult<SymbolAttributesData>.Success(data);
     }
 
     private static AttributeInfo CreateAttributeInfo(AttributeData attributeData, bool inherited)

@@ -217,6 +217,15 @@ public sealed class FindCallersToolTests
         result.Data.Callers.Items[1].Locations.Should().ContainSingle();
         result.Data.Callers.Items[1].Locations[0].Document!.Path.Should().Be("Callers.cs");
         queryContextMocks.ToolExecutionServices.VerifyGet(item => item.InspectionContextService, Times.Never);
+
+        var boundedResult = await target.ExecuteAsync(new FindCallersRequest
+        {
+            Symbol = new SymbolSelector(),
+            CallersLimit = 1,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        boundedResult.Data!.Callers.Items.Select(item => item.Caller!.DisplayName).Should().Equal("RunAlpha");
+        boundedResult.Data.Callers.HasMore.Should().BeTrue();
     }
 
     [Fact]

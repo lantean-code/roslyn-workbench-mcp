@@ -11,36 +11,67 @@ internal sealed class SearchSymbolsTool : QueryToolHandler<SearchSymbolsRequest,
             return scopeResolution.Rejection;
         }
 
-        if (string.IsNullOrWhiteSpace(request.Query) && string.IsNullOrWhiteSpace(request.MetadataName))
+        var pattern = !string.IsNullOrWhiteSpace(request.Query)
+            ? request.Query
+            : request.MetadataName;
+
+        if (string.IsNullOrWhiteSpace(pattern))
         {
             return ToolExecutionHelpers.Rejected<SymbolSearchData>("InvalidRequest", "Search symbols requires query or metadataName.");
         }
 
-        var pattern = request.Query ?? request.MetadataName
-            ?? throw new InvalidOperationException("A validated symbol search must contain a query or metadata name.");
-        var matchedSymbols = new List<ISymbol>();
+        var requestedKinds = request.Kinds is { Count: > 0 }
+            ? new HashSet<string>(request.Kinds, StringComparer.OrdinalIgnoreCase)
+            : null;
+
+        var requestedAccessibilities = request.Accessibilities is { Count: > 0 }
+            ? new HashSet<string>(request.Accessibilities, StringComparer.OrdinalIgnoreCase)
+            : null;
+
+        var matchedSymbols = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
         foreach (var project in scopeResolution.Value)
         {
             var declarations = await SymbolFinder.FindSourceDeclarationsWithPatternAsync(project, pattern, SymbolFilter.TypeAndMember, cancellationToken);
-            matchedSymbols.AddRange(declarations.Where(symbol => MatchesSymbolFilters(symbol, request)));
+            foreach (var symbol in declarations)
+            {
+                if (MatchesSymbolFilters(symbol, request, requestedKinds, requestedAccessibilities))
+                {
+                    matchedSymbols.Add(symbol);
+                }
+            }
         }
 
-        var symbols = matchedSymbols
-            .Distinct(SymbolEqualityComparer.Default)
-            .OrderBy(symbol => context.WorkspaceResolver.CreateSymbolReference(symbol).DisplayName, StringComparer.Ordinal)
-            .ThenBy(symbol => context.WorkspaceResolver.CreateSymbolReference(symbol).Location?.Document?.Path ?? string.Empty, StringComparer.Ordinal)
-            .Select(context.WorkspaceResolver.CreateSymbolReference)
-            .ToArray();
+        var orderedSymbols = matchedSymbols
+            .Select(symbol => context.WorkspaceResolver.CreateSymbolReference(symbol))
+            .OrderBy(static symbol => symbol.DisplayName, StringComparer.Ordinal)
+            .ThenBy(static symbol => symbol.Location?.Document?.Path ?? string.Empty, StringComparer.Ordinal);
 
-        return PluginExecutionResult<SymbolSearchData>.Success(new SymbolSearchData
+        var symbols = new List<SymbolReference>();
+        var hasMore = false;
+        foreach (var symbolReference in orderedSymbols)
         {
-            Symbols = ToolExecutionHelpers.CreateBoundedCollection(
-                symbols,
-                request.EffectiveSymbolsLimit),
-        });
+            if (symbols.Count == request.EffectiveSymbolsLimit)
+            {
+                hasMore = true;
+                break;
+            }
+
+            symbols.Add(symbolReference);
+        }
+
+        var data = new SymbolSearchData
+        {
+            Symbols = ToolExecutionHelpers.CreatePreboundedCollection(symbols, hasMore),
+        };
+
+        return PluginExecutionResult<SymbolSearchData>.Success(data);
     }
 
-    private static bool MatchesSymbolFilters(ISymbol symbol, SearchSymbolsRequest request)
+    private static bool MatchesSymbolFilters(
+        ISymbol symbol,
+        SearchSymbolsRequest request,
+        HashSet<string>? requestedKinds,
+        HashSet<string>? requestedAccessibilities)
     {
         if (!string.IsNullOrWhiteSpace(request.MetadataName)
             && !string.Equals(symbol.MetadataName, request.MetadataName, StringComparison.Ordinal)
@@ -49,14 +80,12 @@ internal sealed class SearchSymbolsTool : QueryToolHandler<SearchSymbolsRequest,
             return false;
         }
 
-        if (request.Kinds is not null && request.Kinds.Count > 0 && !request.Kinds.Contains(symbol.Kind.ToString(), StringComparer.OrdinalIgnoreCase))
+        if (requestedKinds is not null && !requestedKinds.Contains(symbol.Kind.ToString()))
         {
             return false;
         }
 
-        if (request.Accessibilities is not null
-            && request.Accessibilities.Count > 0
-            && !request.Accessibilities.Contains(symbol.DeclaredAccessibility.ToString(), StringComparer.OrdinalIgnoreCase))
+        if (requestedAccessibilities is not null && !requestedAccessibilities.Contains(symbol.DeclaredAccessibility.ToString()))
         {
             return false;
         }

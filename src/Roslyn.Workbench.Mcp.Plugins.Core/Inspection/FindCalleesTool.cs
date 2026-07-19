@@ -98,17 +98,30 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
         }
 
         var orderedCallees = directCallees
-            .OrderBy(symbol => context.WorkspaceResolver.CreateSymbolReference(symbol).DisplayName, StringComparer.Ordinal)
-            .Select(context.WorkspaceResolver.CreateSymbolReference)
-            .ToArray();
+            .Select(symbol => context.WorkspaceResolver.CreateSymbolReference(symbol))
+            .OrderBy(static symbol => symbol.DisplayName, StringComparer.Ordinal);
 
-        return PluginExecutionResult<CalleeSearchData>.Success(new CalleeSearchData
+        var callees = new List<SymbolReference>();
+        var hasMore = false;
+        foreach (var calleeReference in orderedCallees)
         {
-            Source = context.WorkspaceResolver.CreateSymbolReference(sourceSymbol),
-            Callees = ToolExecutionHelpers.CreateBoundedCollection(
-                orderedCallees,
-                request.EffectiveCalleesLimit),
-        });
+            if (callees.Count == request.EffectiveCalleesLimit)
+            {
+                hasMore = true;
+                break;
+            }
+
+            callees.Add(calleeReference);
+        }
+
+        var source = context.WorkspaceResolver.CreateSymbolReference(sourceSymbol);
+        var data = new CalleeSearchData
+        {
+            Source = source,
+            Callees = ToolExecutionHelpers.CreatePreboundedCollection(callees, hasMore),
+        };
+
+        return PluginExecutionResult<CalleeSearchData>.Success(data);
     }
 
     private static void AddDirectCallees(IOperation operation, HashSet<ISymbol> callees)
@@ -247,6 +260,7 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
         var document = sourceLocation.SourceTree is null
             ? null
             : context.CurrentSolution.GetDocument(sourceLocation.SourceTree);
+
         if (document is null)
         {
             return new LocationResolution

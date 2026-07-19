@@ -21,19 +21,34 @@ internal sealed class FindImplementationsTool : QueryToolHandler<FindImplementat
         }
 
         var projects = scopeResolution.Value.ToImmutableHashSet();
-        var implementations = (await SymbolFinder.FindImplementationsAsync(symbol, context.CurrentSolution, projects, cancellationToken))
+        var discoveredImplementations = await SymbolFinder.FindImplementationsAsync(symbol, context.CurrentSolution, projects, cancellationToken);
+        var orderedImplementations = discoveredImplementations
             .Distinct(SymbolEqualityComparer.Default)
-            .OrderBy(implementation => context.WorkspaceResolver.CreateSymbolReference(implementation).DisplayName, StringComparer.Ordinal)
-            .Select(context.WorkspaceResolver.CreateSymbolReference)
-            .ToArray();
-        var symbolReference = context.WorkspaceResolver.CreateSymbolReference(symbol);
+            .Select(implementation => context.WorkspaceResolver.CreateSymbolReference(implementation))
+            .OrderBy(static implementation => implementation.DisplayName, StringComparer.Ordinal);
 
-        return PluginExecutionResult<ImplementationSearchData>.Success(new ImplementationSearchData
+        var implementations = new List<SymbolReference>();
+        var hasMore = false;
+        foreach (var implementationReference in orderedImplementations)
+        {
+            if (implementations.Count == request.EffectiveImplementationsLimit)
+            {
+                hasMore = true;
+                break;
+            }
+
+            implementations.Add(implementationReference);
+        }
+
+        var symbolReference = context.WorkspaceResolver.CreateSymbolReference(symbol);
+        var data = new ImplementationSearchData
         {
             Symbol = symbolReference,
-            Implementations = ToolExecutionHelpers.CreateBoundedCollection(
+            Implementations = ToolExecutionHelpers.CreatePreboundedCollection(
                 implementations,
-                request.EffectiveImplementationsLimit),
-        });
+                hasMore),
+        };
+
+        return PluginExecutionResult<ImplementationSearchData>.Success(data);
     }
 }

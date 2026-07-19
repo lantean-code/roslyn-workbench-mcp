@@ -35,6 +35,7 @@
 - Braces on a new line and never omitted.
 - Use file-scoped namespaces by default. Use block-scoped namespaces only when the file structure genuinely requires them.
 - Use blank lines where appropriate to improve readability.
+- Insert a blank line after any statement that spans multiple lines before beginning the next statement.
 - Prefer expression-bodied syntax for simple get-only properties. Methods and all other members must use block bodies.
 - Member order:
   1. Constants
@@ -57,6 +58,7 @@
 
 ### Coding practices
 - Use `var` wherever possible unless it harms clarity.
+- Deconstruct tuples when their elements are consumed separately and deconstruction makes the subsequent code clearer.
 - Enable and properly use nullable reference types.
 - Do not add runtime null guards for constructor dependencies of internal DI-created types or for non-nullable parameters on internal methods. Nullable annotations, warnings as errors and DI composition are the contract; guards such as `throw new ArgumentNullException(...)` and `ArgumentNullException.ThrowIfNull(...)` add unreachable branches and low-value tests. Retain runtime argument validation at public or externally callable boundaries where callers are not controlled by the application.
 - Nullable enforcement does not replace meaningful validation of non-null values. Retain semantic guards when values can still be invalid at runtime, for example blank paths or identifiers, invalid ranges, malformed values, and unsupported enum alternatives. `ArgumentException.ThrowIfNullOrWhiteSpace(...)` is appropriate when the contract requires meaningful text rather than merely a non-null reference; do not add it solely to duplicate nullable enforcement.

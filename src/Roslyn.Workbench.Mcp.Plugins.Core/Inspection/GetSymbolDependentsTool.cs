@@ -23,16 +23,23 @@ internal sealed class GetSymbolDependentsTool : QueryToolHandler<GetSymbolDepend
 
         var referencedSymbols = await SymbolFinder.FindReferencesAsync(symbol, context.CurrentSolution, documents.Value.ToImmutableHashSet(), cancellationToken);
         var dependents = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
+        var semanticModels = new Dictionary<DocumentId, SemanticModel?>();
         foreach (var referencedSymbol in referencedSymbols)
         {
-            foreach (var location in referencedSymbol.Locations.Where(static item => item.Location.IsInSource))
+            foreach (var location in referencedSymbol.Locations)
             {
-                if (location.Document is null)
+                if (!location.Location.IsInSource || location.Document is null)
                 {
                     continue;
                 }
 
-                var containingSymbol = await GetEnclosingSymbolAsync(location.Document, location.Location.SourceSpan.Start, cancellationToken);
+                if (!semanticModels.TryGetValue(location.Document.Id, out var semanticModel))
+                {
+                    semanticModel = await location.Document.GetSemanticModelAsync(cancellationToken);
+                    semanticModels.Add(location.Document.Id, semanticModel);
+                }
+
+                var containingSymbol = semanticModel?.GetEnclosingSymbol(location.Location.SourceSpan.Start, cancellationToken);
                 if (containingSymbol is null || SymbolEqualityComparer.Default.Equals(containingSymbol, symbol))
                 {
                     continue;
@@ -43,22 +50,29 @@ internal sealed class GetSymbolDependentsTool : QueryToolHandler<GetSymbolDepend
         }
 
         var orderedDependents = dependents
-            .OrderBy(item => context.WorkspaceResolver.CreateSymbolReference(item).DisplayName, StringComparer.Ordinal)
-            .Select(context.WorkspaceResolver.CreateSymbolReference)
-            .ToArray();
+            .Select(item => context.WorkspaceResolver.CreateSymbolReference(item))
+            .OrderBy(static item => item.DisplayName, StringComparer.Ordinal);
 
-        return PluginExecutionResult<SymbolDependentsData>.Success(new SymbolDependentsData
+        var projectedDependents = new List<SymbolReference>();
+        var hasMore = false;
+        foreach (var dependentReference in orderedDependents)
         {
-            Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
-            Dependents = ToolExecutionHelpers.CreateBoundedCollection(
-                orderedDependents,
-                request.EffectiveDependentsLimit),
-        });
-    }
+            if (projectedDependents.Count == request.EffectiveDependentsLimit)
+            {
+                hasMore = true;
+                break;
+            }
 
-    private static async ValueTask<ISymbol?> GetEnclosingSymbolAsync(Document document, int position, CancellationToken cancellationToken)
-    {
-        var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
-        return semanticModel?.GetEnclosingSymbol(position, cancellationToken);
+            projectedDependents.Add(dependentReference);
+        }
+
+        var symbolReference = context.WorkspaceResolver.CreateSymbolReference(symbol);
+        var data = new SymbolDependentsData
+        {
+            Symbol = symbolReference,
+            Dependents = ToolExecutionHelpers.CreatePreboundedCollection(projectedDependents, hasMore),
+        };
+
+        return PluginExecutionResult<SymbolDependentsData>.Success(data);
     }
 }

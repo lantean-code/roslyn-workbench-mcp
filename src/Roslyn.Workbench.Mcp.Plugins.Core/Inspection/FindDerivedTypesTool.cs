@@ -29,25 +29,44 @@ internal sealed class FindDerivedTypesTool : QueryToolHandler<FindDerivedTypesRe
             return scopeResolution.Rejection;
         }
 
-        var derivedTypes = (await FindDerivedTypeSymbolsAsync(namedType, context.CurrentSolution, scopeResolution.Value.ToImmutableHashSet(), cancellationToken))
+        var discoveredTypes = await FindDerivedTypeSymbolsAsync(namedType, context.CurrentSolution, scopeResolution.Value.ToImmutableHashSet(), cancellationToken);
+        var orderedTypes = discoveredTypes
             .Distinct(SymbolEqualityComparer.Default)
             .OfType<INamedTypeSymbol>()
-            .OrderBy(symbol => context.WorkspaceResolver.CreateSymbolReference(symbol).DisplayName, StringComparer.Ordinal)
-            .Select(symbol => new TypeHierarchyNode
-            {
-                Type = context.WorkspaceResolver.CreateSymbolReference(symbol),
-                Depth = GetTypeDepth(symbol, namedType),
-            })
-            .Where(node => node.Depth <= request.MaxDepth)
-            .ToArray();
+            .Select(symbol => (Symbol: symbol, Reference: context.WorkspaceResolver.CreateSymbolReference(symbol)))
+            .OrderBy(static item => item.Reference.DisplayName, StringComparer.Ordinal);
 
-        return PluginExecutionResult<DerivedTypesData>.Success(new DerivedTypesData
+        var derivedTypes = new List<TypeHierarchyNode>();
+        var hasMore = false;
+        foreach (var (symbol, reference) in orderedTypes)
         {
-            BaseType = context.WorkspaceResolver.CreateSymbolReference(namedType),
-            DerivedTypes = ToolExecutionHelpers.CreateBoundedCollection(
-                derivedTypes,
-                request.EffectiveDerivedTypesLimit),
-        });
+            var depth = GetTypeDepth(symbol, namedType);
+            if (depth > request.MaxDepth)
+            {
+                continue;
+            }
+
+            if (derivedTypes.Count == request.EffectiveDerivedTypesLimit)
+            {
+                hasMore = true;
+                break;
+            }
+
+            derivedTypes.Add(new TypeHierarchyNode
+            {
+                Type = reference,
+                Depth = depth,
+            });
+        }
+
+        var baseType = context.WorkspaceResolver.CreateSymbolReference(namedType);
+        var data = new DerivedTypesData
+        {
+            BaseType = baseType,
+            DerivedTypes = ToolExecutionHelpers.CreatePreboundedCollection(derivedTypes, hasMore),
+        };
+
+        return PluginExecutionResult<DerivedTypesData>.Success(data);
     }
 
     private static async ValueTask<IReadOnlyList<INamedTypeSymbol>> FindDerivedTypeSymbolsAsync(INamedTypeSymbol root, Solution solution, IImmutableSet<Project> projects, CancellationToken cancellationToken)

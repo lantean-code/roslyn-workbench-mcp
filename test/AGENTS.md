@@ -8,6 +8,8 @@ Cross-project test ownership and execution-path policy are defined in `../docs/d
 - Write self-documenting test code. Do not add structural comments such as `Arrange`, `Act`, or `Assert`. Use inline comments sparingly when needed to explain a non-obvious constraint, deliberate exception, or justification that naming and code structure cannot convey.
 - Braces must never be omitted.
 - Expression-bodied members are not permitted in tests.
+- Insert a blank line after any statement that spans multiple lines before beginning the next statement.
+- Deconstruct tuples when their elements are consumed separately and deconstruction makes the subsequent code clearer.
 
 ## Naming
 - Test class name: `<ClassName>Tests`

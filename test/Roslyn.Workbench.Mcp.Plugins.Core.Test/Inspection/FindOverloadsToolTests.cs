@@ -127,6 +127,15 @@ public sealed class FindOverloadsToolTests
         result.Data!.Symbol!.DisplayName.Should().Be("Format");
         result.Data.Overloads.Items.Select(item => item.DisplayName).Should().Equal("Formatter.Format()", "Formatter.Format(string)", "Formatter.Format(int, string)");
         result.Data.Overloads.Items.All(item => item.ReturnType is not null).Should().BeTrue();
+
+        var boundedResult = await target.ExecuteAsync(new FindOverloadsRequest
+        {
+            Symbol = new SymbolSelector(),
+            OverloadsLimit = 2,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        boundedResult.Data!.Overloads.Items.Select(item => item.DisplayName).Should().Equal("Formatter.Format()", "Formatter.Format(string)");
+        boundedResult.Data.Overloads.HasMore.Should().BeTrue();
     }
 
     [Fact]

@@ -26,18 +26,33 @@ internal sealed class FindOverridesTool : QueryToolHandler<FindOverridesRequest,
             return scopeResolution.Rejection;
         }
 
-        var overrides = (await SymbolFinder.FindOverridesAsync(symbol, context.CurrentSolution, scopeResolution.Value.ToImmutableHashSet(), cancellationToken))
+        var discoveredOverrides = await SymbolFinder.FindOverridesAsync(symbol, context.CurrentSolution, scopeResolution.Value.ToImmutableHashSet(), cancellationToken);
+        var orderedOverrides = discoveredOverrides
             .Distinct(SymbolEqualityComparer.Default)
-            .OrderBy(item => context.WorkspaceResolver.CreateSymbolReference(item).DisplayName, StringComparer.Ordinal)
-            .Select(context.WorkspaceResolver.CreateSymbolReference)
-            .ToArray();
+            .Select(item => context.WorkspaceResolver.CreateSymbolReference(item))
+            .OrderBy(static item => item.DisplayName, StringComparer.Ordinal);
 
-        return PluginExecutionResult<OverrideSearchData>.Success(new OverrideSearchData
+        var overrides = new List<SymbolReference>();
+        var hasMore = false;
+        foreach (var overrideReference in orderedOverrides)
+        {
+            if (overrides.Count == request.EffectiveOverridesLimit)
+            {
+                hasMore = true;
+                break;
+            }
+
+            overrides.Add(overrideReference);
+        }
+
+        var data = new OverrideSearchData
         {
             Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
-            Overrides = ToolExecutionHelpers.CreateBoundedCollection(
+            Overrides = ToolExecutionHelpers.CreatePreboundedCollection(
                 overrides,
-                request.EffectiveOverridesLimit),
-        });
+                hasMore),
+        };
+
+        return PluginExecutionResult<OverrideSearchData>.Success(data);
     }
 }

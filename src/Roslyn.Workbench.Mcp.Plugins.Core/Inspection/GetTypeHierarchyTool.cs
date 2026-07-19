@@ -24,44 +24,82 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
         }
 
         var baseTypes = new List<SymbolReference>();
-        for (var current = namedType.BaseType; current is not null && baseTypes.Count < request.MaxDepth; current = current.BaseType)
+        var baseTypesHaveMore = false;
+        var baseTypeDepth = 0;
+        for (var current = namedType.BaseType; current is not null && baseTypeDepth < request.MaxDepth; current = current.BaseType)
         {
+            baseTypeDepth++;
+            if (baseTypes.Count == request.EffectiveBaseTypesLimit)
+            {
+                baseTypesHaveMore = true;
+                break;
+            }
+
             baseTypes.Add(context.WorkspaceResolver.CreateSymbolReference(current));
         }
 
         BoundedCollection<TypeHierarchyNode>? derivedTypes = null;
         if (request.IncludeDerived)
         {
-            var derived = (await FindDerivedTypeSymbolsAsync(namedType, context.CurrentSolution, context.CurrentSolution.Projects.ToImmutableHashSet(), cancellationToken))
+            var discoveredTypes = await FindDerivedTypeSymbolsAsync(namedType, context.CurrentSolution, context.CurrentSolution.Projects.ToImmutableHashSet(), cancellationToken);
+            var orderedTypes = discoveredTypes
                 .Distinct(SymbolEqualityComparer.Default)
                 .OfType<INamedTypeSymbol>()
-                .OrderBy(symbol => context.WorkspaceResolver.CreateSymbolReference(symbol).DisplayName, StringComparer.Ordinal)
-                .Select(symbol => new TypeHierarchyNode
+                .Select(symbol => (Symbol: symbol, Reference: context.WorkspaceResolver.CreateSymbolReference(symbol)))
+                .OrderBy(static item => item.Reference.DisplayName, StringComparer.Ordinal);
+
+            var projectedTypes = new List<TypeHierarchyNode>();
+            var derivedTypesHaveMore = false;
+            foreach (var (symbol, reference) in orderedTypes)
+            {
+                var depth = GetTypeDepth(symbol, namedType);
+                if (depth > request.MaxDepth)
                 {
-                    Type = context.WorkspaceResolver.CreateSymbolReference(symbol),
-                    Depth = GetTypeDepth(symbol, namedType),
-                })
-                .Where(node => node.Depth <= request.MaxDepth)
-                .ToArray();
-            derivedTypes = ToolExecutionHelpers.CreateBoundedCollection(
-                derived,
-                request.EffectiveDerivedTypesLimit);
+                    continue;
+                }
+
+                if (projectedTypes.Count == request.EffectiveDerivedTypesLimit)
+                {
+                    derivedTypesHaveMore = true;
+                    break;
+                }
+
+                projectedTypes.Add(new TypeHierarchyNode
+                {
+                    Type = reference,
+                    Depth = depth,
+                });
+            }
+
+            derivedTypes = ToolExecutionHelpers.CreatePreboundedCollection(projectedTypes, derivedTypesHaveMore);
         }
 
-        return PluginExecutionResult<TypeHierarchyData>.Success(new TypeHierarchyData
+        var orderedInterfaces = namedType.AllInterfaces
+            .OrderBy(static item => item.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat), StringComparer.Ordinal);
+
+        var interfaces = new List<SymbolReference>();
+        var interfacesHaveMore = false;
+        foreach (var interfaceSymbol in orderedInterfaces)
         {
-            Type = context.WorkspaceResolver.CreateSymbolReference(namedType),
-            BaseTypes = ToolExecutionHelpers.CreateBoundedCollection(
-                baseTypes,
-                request.EffectiveBaseTypesLimit),
-            Interfaces = ToolExecutionHelpers.CreateBoundedCollection(
-                namedType.AllInterfaces
-                    .OrderBy(static item => item.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat), StringComparer.Ordinal)
-                    .Select(context.WorkspaceResolver.CreateSymbolReference)
-                    .ToArray(),
-                request.EffectiveInterfacesLimit),
+            if (interfaces.Count == request.EffectiveInterfacesLimit)
+            {
+                interfacesHaveMore = true;
+                break;
+            }
+
+            interfaces.Add(context.WorkspaceResolver.CreateSymbolReference(interfaceSymbol));
+        }
+
+        var type = context.WorkspaceResolver.CreateSymbolReference(namedType);
+        var data = new TypeHierarchyData
+        {
+            Type = type,
+            BaseTypes = ToolExecutionHelpers.CreatePreboundedCollection(baseTypes, baseTypesHaveMore),
+            Interfaces = ToolExecutionHelpers.CreatePreboundedCollection(interfaces, interfacesHaveMore),
             DerivedTypes = derivedTypes,
-        });
+        };
+
+        return PluginExecutionResult<TypeHierarchyData>.Success(data);
     }
 
     private static async ValueTask<IReadOnlyList<INamedTypeSymbol>> FindDerivedTypeSymbolsAsync(INamedTypeSymbol root, Solution solution, IImmutableSet<Project> projects, CancellationToken cancellationToken)

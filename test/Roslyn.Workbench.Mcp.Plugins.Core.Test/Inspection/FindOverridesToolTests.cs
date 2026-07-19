@@ -214,5 +214,14 @@ public sealed class FindOverridesToolTests
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Symbol!.DisplayName.Should().Be("BaseType.Run()");
         result.Data.Overrides.Items.Select(item => item.DisplayName).Should().Equal("ADerived.Run()", "ZDerived.Run()");
+
+        var boundedResult = await target.ExecuteAsync(new FindOverridesRequest
+        {
+            Symbol = new SymbolSelector(),
+            OverridesLimit = 1,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        boundedResult.Data!.Overrides.Items.Select(item => item.DisplayName).Should().Equal("ADerived.Run()");
+        boundedResult.Data.Overrides.HasMore.Should().BeTrue();
     }
 }

@@ -138,6 +138,15 @@ public sealed class GetSymbolMembersToolTests
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Members.Items.Select(item => item.DisplayName).Should().Equal("Format", "Name", "get_Name");
+
+        var boundedResult = await target.ExecuteAsync(new GetSymbolMembersRequest
+        {
+            Symbol = new SymbolSelector(),
+            MembersLimit = 1,
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+
+        boundedResult.Data!.Members.Items.Select(item => item.DisplayName).Should().Equal("Format");
+        boundedResult.Data.Members.HasMore.Should().BeTrue();
     }
 
     [Fact]

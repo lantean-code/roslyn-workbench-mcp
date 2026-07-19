@@ -74,7 +74,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     public async Task GIVEN_CancelledToken_WHEN_OpeningWorkspace_THEN_ShouldPropagateCancellation()
     {
         using var cancellationSource = new CancellationTokenSource();
-        cancellationSource.Cancel();
+        await cancellationSource.CancelAsync();
 
         var action = async () => await _target.OpenAsync("Path", null, cancellationSource.Token);
 
@@ -85,7 +85,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     public async Task GIVEN_CancelledToken_WHEN_ListingWorkspaces_THEN_ShouldPropagateCancellation()
     {
         using var cancellationSource = new CancellationTokenSource();
-        cancellationSource.Cancel();
+        await cancellationSource.CancelAsync();
 
         var action = async () => await _target.ListAsync(cancellationSource.Token);
 
@@ -96,7 +96,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     public async Task GIVEN_CancelledToken_WHEN_ClosingWorkspace_THEN_ShouldPropagateCancellation()
     {
         using var cancellationSource = new CancellationTokenSource();
-        cancellationSource.Cancel();
+        await cancellationSource.CancelAsync();
 
         var action = async () => await _target.CloseAsync(null, null, null, cancellationSource.Token);
 
@@ -107,7 +107,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     public async Task GIVEN_CancelledToken_WHEN_GettingStatus_THEN_ShouldPropagateCancellation()
     {
         using var cancellationSource = new CancellationTokenSource();
-        cancellationSource.Cancel();
+        await cancellationSource.CancelAsync();
 
         var action = async () => await _target.GetStatusAsync(
             null,
@@ -123,7 +123,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     public async Task GIVEN_CancelledToken_WHEN_ReloadingWorkspace_THEN_ShouldPropagateCancellation()
     {
         using var cancellationSource = new CancellationTokenSource();
-        cancellationSource.Cancel();
+        await cancellationSource.CancelAsync();
 
         var action = async () => await _target.ReloadAsync(null, null, null, cancellationSource.Token);
 

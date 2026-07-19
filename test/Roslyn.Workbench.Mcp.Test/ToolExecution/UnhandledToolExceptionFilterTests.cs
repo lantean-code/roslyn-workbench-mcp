@@ -34,7 +34,7 @@ public sealed class UnhandledToolExceptionFilterTests
     public async Task GIVEN_HandlerCancellation_WHEN_FilteringCall_THEN_ShouldPropagateCancellation()
     {
         using var cancellationSource = new CancellationTokenSource();
-        cancellationSource.Cancel();
+        await cancellationSource.CancelAsync();
         var context = CreateContext();
         McpRequestHandler<CallToolRequestParams, CallToolResult> next = (_, _) =>
             ValueTask.FromCanceled<CallToolResult>(cancellationSource.Token);

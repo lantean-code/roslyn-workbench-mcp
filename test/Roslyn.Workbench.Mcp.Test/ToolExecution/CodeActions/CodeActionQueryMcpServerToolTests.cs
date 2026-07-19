@@ -199,7 +199,7 @@ public sealed class CodeActionQueryMcpServerToolTests
         var context = new Mock<ICodeActionQueryContext>();
         var operationLease = new Mock<IWorkspaceOperationLease>();
         using var cancellationSource = new CancellationTokenSource();
-        cancellationSource.Cancel();
+        await cancellationSource.CancelAsync();
         var workspaceLease = WorkspaceExecutionContextLease.Acquired(new Mock<IWorkspaceExecutionContext>().Object, operationLease.Object);
         contextFactory
             .Setup(item => item.CreateQueryContext(It.IsAny<WorkspaceBoundRequest>(), cancellationSource.Token))

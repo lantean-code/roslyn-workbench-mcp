@@ -89,7 +89,7 @@ public sealed class WorkspaceDiffBuilderTests : IDisposable
             "Added.cs",
             SourceText.From("class Added { }"));
         using var cancellationSource = new CancellationTokenSource();
-        cancellationSource.Cancel();
+        await cancellationSource.CancelAsync();
 
         var action = async () => await WorkspaceDiffBuilder.CreateChangeSummaryAsync(
             baselineSolution,

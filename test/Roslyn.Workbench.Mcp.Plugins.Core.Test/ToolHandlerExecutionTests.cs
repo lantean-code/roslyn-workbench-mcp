@@ -8,7 +8,7 @@ public sealed class ToolHandlerExecutionTests
         var target = new TestQueryTool();
         var context = new Mock<IQueryContext>();
         using var cancellationTokenSource = new CancellationTokenSource();
-        cancellationTokenSource.Cancel();
+        await cancellationTokenSource.CancelAsync();
 
         var action = async () => await target.ExecuteAsync(new TestWorkspaceBoundRequest(), context.Object, cancellationTokenSource.Token);
 
@@ -21,7 +21,7 @@ public sealed class ToolHandlerExecutionTests
         var target = new TestMutationTool();
         var context = new Mock<IMutationContext>();
         using var cancellationTokenSource = new CancellationTokenSource();
-        cancellationTokenSource.Cancel();
+        await cancellationTokenSource.CancelAsync();
 
         var action = async () => await target.ExecuteAsync(new TestWorkspaceBoundRequest(), context.Object, cancellationTokenSource.Token);
 

@@ -402,7 +402,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
     public async Task GIVEN_CancelledScan_WHEN_Querying_THEN_ShouldPropagateCancellation()
     {
         using var cancellation = new CancellationTokenSource();
-        cancellation.Cancel();
+        await cancellation.CancelAsync();
         _directory.Setup(item => item.Exists(It.IsAny<string>())).Returns(true);
         _directory.Setup(item => item.EnumerateFiles(It.IsAny<string>(), "*.json")).Returns(["/workspace/live.json"]);
         await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);

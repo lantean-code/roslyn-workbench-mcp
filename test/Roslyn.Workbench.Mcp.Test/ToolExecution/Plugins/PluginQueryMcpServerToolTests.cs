@@ -185,7 +185,7 @@ public sealed class PluginQueryMcpServerToolTests
         var operationLease = new Mock<IAsyncDisposable>();
         operationLease.Setup(item => item.DisposeAsync()).Returns(ValueTask.CompletedTask);
         using var cancellationSource = new CancellationTokenSource();
-        cancellationSource.Cancel();
+        await cancellationSource.CancelAsync();
         contextFactory
             .Setup(item => item.CreateQueryContext(It.IsAny<WorkspaceBoundRequest>(), cancellationSource.Token))
             .Returns(ToolExecutionContextLease<IQueryContext>.Acquired(context.Object, operationLease.Object));

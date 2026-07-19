@@ -54,7 +54,7 @@ public sealed class WorkspaceCommitWriterTests
     public async Task GIVEN_CancelledToken_WHEN_Revalidating_THEN_ShouldPropagateCancellation()
     {
         using var cancellationSource = new CancellationTokenSource();
-        cancellationSource.Cancel();
+        await cancellationSource.CancelAsync();
 
         var action = async () => await _target.RevalidateAsync(
             CreateManifest(CreateEntry(WorkspaceFileOperation.Create, null, "INTENDED")),

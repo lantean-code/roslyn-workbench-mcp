@@ -95,7 +95,7 @@ public sealed class ServerOwnedToolBaseTests
     {
         var service = new Mock<IWorkspaceLifecycleService>();
         using var cancellationSource = new CancellationTokenSource();
-        cancellationSource.Cancel();
+        await cancellationSource.CancelAsync();
         service
             .Setup(item => item.ListAsync(cancellationSource.Token))
             .Returns(() => ValueTask.FromCanceled<WorkspaceOperationResult<WorkspaceListOutcome>>(cancellationSource.Token));

@@ -318,7 +318,7 @@ public sealed class CodeActionMutationMcpServerToolTests
         var stager = new Mock<IWorkspaceMutationStager>();
         var operationLease = new Mock<IWorkspaceOperationLease>();
         using var cancellationSource = new CancellationTokenSource();
-        cancellationSource.Cancel();
+        await cancellationSource.CancelAsync();
         var workspaceLease = WorkspaceMutationExecutionLease.Acquired(new Mock<IWorkspaceExecutionContext>().Object, stager.Object, operationLease.Object);
         contextFactory
             .Setup(item => item.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), cancellationSource.Token))
@@ -374,7 +374,7 @@ public sealed class CodeActionMutationMcpServerToolTests
         var stager = new Mock<IWorkspaceMutationStager>();
         var operationLease = new Mock<IWorkspaceOperationLease>();
         using var cancellationSource = new CancellationTokenSource();
-        cancellationSource.Cancel();
+        await cancellationSource.CancelAsync();
         var workspaceLease = WorkspaceMutationExecutionLease.Acquired(new Mock<IWorkspaceExecutionContext>().Object, stager.Object, operationLease.Object);
         contextFactory
             .Setup(item => item.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), cancellationSource.Token))

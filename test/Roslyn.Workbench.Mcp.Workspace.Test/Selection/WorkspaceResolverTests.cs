@@ -615,7 +615,7 @@ public sealed class WorkspaceResolverTests
         using var workspace = CreateWorkspace("Project", "Document.cs", "class C { }");
         var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
         using var cancellationSource = new CancellationTokenSource();
-        cancellationSource.Cancel();
+        await cancellationSource.CancelAsync();
 
         var action = async () => await target.ResolveSymbolAsync(
             new SymbolSelector { DocumentationCommentId = "T:C" },

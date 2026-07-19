@@ -105,7 +105,7 @@ public sealed class CommitRecoveryStoreTests
     public async Task GIVEN_CancelledToken_WHEN_ReadingStatuses_THEN_ShouldPropagateCancellation()
     {
         using var cancellationSource = new CancellationTokenSource();
-        cancellationSource.Cancel();
+        await cancellationSource.CancelAsync();
         _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
         _directory.Setup(item => item.EnumerateFiles(_recoveryDirectory, "*.json", SearchOption.TopDirectoryOnly)).Returns(["StatusPath"]);
 
@@ -139,7 +139,7 @@ public sealed class CommitRecoveryStoreTests
     public async Task GIVEN_CancelledToken_WHEN_Writing_THEN_ShouldPropagateCancellationWithoutCreatingDirectory()
     {
         using var cancellationSource = new CancellationTokenSource();
-        cancellationSource.Cancel();
+        await cancellationSource.CancelAsync();
 
         var action = async () => await _target.WriteStatusAsync(new RecoveryStatus(), cancellationSource.Token);
 
@@ -296,7 +296,7 @@ public sealed class CommitRecoveryStoreTests
     public async Task GIVEN_CancelledManifestEnumeration_WHEN_ReadingManifests_THEN_ShouldPropagateCancellation()
     {
         using var cancellationSource = new CancellationTokenSource();
-        cancellationSource.Cancel();
+        await cancellationSource.CancelAsync();
         _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
         _directory.Setup(item => item.EnumerateDirectories(_recoveryDirectory)).Returns([_recoveryDirectory + "/CommitId"]);
 

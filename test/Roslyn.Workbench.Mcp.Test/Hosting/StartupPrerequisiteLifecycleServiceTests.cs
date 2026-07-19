@@ -31,7 +31,7 @@ public sealed class StartupPrerequisiteLifecycleServiceTests
             msBuildRegistrationService.Object,
             workspaceCommitRecoveryService.Object);
         using var cancellationTokenSource = new CancellationTokenSource();
-        cancellationTokenSource.Cancel();
+        await cancellationTokenSource.CancelAsync();
 
         var action = async () => await target.StartingAsync(cancellationTokenSource.Token);
 

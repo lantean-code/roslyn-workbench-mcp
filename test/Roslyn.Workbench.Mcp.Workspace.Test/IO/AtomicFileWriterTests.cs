@@ -71,7 +71,7 @@ public sealed class AtomicFileWriterTests : IDisposable
     public async Task GIVEN_CancelledToken_WHEN_Writing_THEN_ShouldPropagateCancellationWithoutCreatingTemporaryFile()
     {
         using var cancellationSource = new CancellationTokenSource();
-        cancellationSource.Cancel();
+        await cancellationSource.CancelAsync();
 
         var action = async () => await _target.WriteAllTextAsync(
             _destinationPath,

@@ -147,7 +147,7 @@ public sealed class SolutionHierarchyServiceIntegrationTests
             var solutionPath = Path.Combine(directoryPath, "Sample.slnx");
             await File.WriteAllTextAsync(solutionPath, CreateSlnxContent(), TestContext.Current.CancellationToken);
             using var cancellationSource = new CancellationTokenSource();
-            cancellationSource.Cancel();
+            await cancellationSource.CancelAsync();
 
             var action = async () => await target.GetSolutionHierarchyAsync(solutionPath, cancellationSource.Token);
 

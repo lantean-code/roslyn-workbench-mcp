@@ -153,7 +153,8 @@ public sealed class GetProjectDetailsToolTests
             .Returns([]);
 
         var mainProject = solution.Solution.Projects.Single(item => item.Name == "Main");
-        var metadataReferenceWithoutPath = MetadataReference.CreateFromImage(File.ReadAllBytes(typeof(object).Assembly.Location));
+        var metadataReferenceImage = await File.ReadAllBytesAsync(typeof(object).Assembly.Location, TestContext.Current.CancellationToken);
+        var metadataReferenceWithoutPath = MetadataReference.CreateFromImage(metadataReferenceImage);
         solution.Workspace.TryApplyChanges(
             solution.Solution
                 .AddMetadataReference(mainProject.Id, metadataReferenceWithoutPath)

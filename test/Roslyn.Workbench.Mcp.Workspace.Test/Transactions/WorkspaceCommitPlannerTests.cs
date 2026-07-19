@@ -88,7 +88,7 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
     public async Task GIVEN_CancelledToken_WHEN_Planning_THEN_ShouldPropagateCancellationBeforeReadingFiles()
     {
         using var cancellationSource = new CancellationTokenSource();
-        cancellationSource.Cancel();
+        await cancellationSource.CancelAsync();
 
         var action = async () => await _target.CreateAsync(
             "commit", "/workspace/solution.slnx", "/workspace", _workspace.CurrentSolution, _workspace.CurrentSolution, cancellationSource.Token);

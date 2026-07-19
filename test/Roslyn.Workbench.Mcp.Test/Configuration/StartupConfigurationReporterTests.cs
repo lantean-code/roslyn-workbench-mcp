@@ -69,7 +69,7 @@ public sealed class StartupConfigurationReporterTests
             },
             logger.Object);
         using var cancellationSource = new CancellationTokenSource();
-        cancellationSource.Cancel();
+        await cancellationSource.CancelAsync();
 
         var action = async () => await target.StartAsync(cancellationSource.Token);
 

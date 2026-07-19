@@ -35,7 +35,7 @@ public sealed class MutationStagingServiceTests : IDisposable
     public async Task GIVEN_CancelledToken_WHEN_Staging_THEN_ShouldPropagateCancellation()
     {
         using var cancellationSource = new CancellationTokenSource();
-        cancellationSource.Cancel();
+        await cancellationSource.CancelAsync();
 
         var action = async () => await _target.StageAsync(
             "OperationName",

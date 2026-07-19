@@ -143,7 +143,7 @@ public sealed class ServerStatusServiceTests
     {
         var target = CreateTarget(new StartupOptions(), new PluginCatalogSnapshot());
         using var cancellationSource = new CancellationTokenSource();
-        cancellationSource.Cancel();
+        await cancellationSource.CancelAsync();
 
         var action = async () => await target.GetStatusAsync(StatusDetailLevel.Standard, cancellationSource.Token);
 

@@ -52,7 +52,7 @@ public sealed class TransactionServiceTests : IDisposable
     public async Task GIVEN_CancelledToken_WHEN_StartingTransaction_THEN_ShouldPropagateCancellation()
     {
         using var cancellationSource = new CancellationTokenSource();
-        cancellationSource.Cancel();
+        await cancellationSource.CancelAsync();
 
         var action = async () => await _target.StartAsync(null, null, null, cancellationSource.Token);
 
@@ -63,7 +63,7 @@ public sealed class TransactionServiceTests : IDisposable
     public async Task GIVEN_CancelledToken_WHEN_MovingHistory_THEN_ShouldPropagateCancellation()
     {
         using var cancellationSource = new CancellationTokenSource();
-        cancellationSource.Cancel();
+        await cancellationSource.CancelAsync();
 
         var action = async () => await _target.MoveHistoryAsync(
             null,
@@ -80,7 +80,7 @@ public sealed class TransactionServiceTests : IDisposable
     public async Task GIVEN_CancelledToken_WHEN_CommittingTransaction_THEN_ShouldPropagateCancellation()
     {
         using var cancellationSource = new CancellationTokenSource();
-        cancellationSource.Cancel();
+        await cancellationSource.CancelAsync();
 
         var action = async () => await _target.CommitAsync(null, null, null, null, cancellationSource.Token);
 
@@ -91,7 +91,7 @@ public sealed class TransactionServiceTests : IDisposable
     public async Task GIVEN_CancelledToken_WHEN_RollingBackTransaction_THEN_ShouldPropagateCancellation()
     {
         using var cancellationSource = new CancellationTokenSource();
-        cancellationSource.Cancel();
+        await cancellationSource.CancelAsync();
 
         var action = async () => await _target.RollbackAsync(null, null, null, cancellationSource.Token);
 
@@ -320,7 +320,7 @@ public sealed class TransactionServiceTests : IDisposable
     public async Task GIVEN_CancelledToken_WHEN_PreviewingTransaction_THEN_ShouldPropagateCancellation()
     {
         using var cancellationSource = new CancellationTokenSource();
-        cancellationSource.Cancel();
+        await cancellationSource.CancelAsync();
 
         var action = async () => await _target.PreviewAsync(
             null,

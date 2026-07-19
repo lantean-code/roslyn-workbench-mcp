@@ -22,7 +22,7 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
     public async Task GIVEN_CancelledToken_WHEN_Loading_THEN_ShouldPropagateBeforeInspectingOrLoading()
     {
         using var cancellationSource = new CancellationTokenSource();
-        cancellationSource.Cancel();
+        await cancellationSource.CancelAsync();
 
         var action = async () => await _target.LoadAsync("/workspace/Project.csproj", "/workspace", cancellationSource.Token);
 

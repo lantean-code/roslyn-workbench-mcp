@@ -14,6 +14,9 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
     public WorkspaceInputManifest BuildManifest(Solution solution, string loadedPath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(loadedPath);
+        using var phase = WorkbenchPerformanceEventSource.Log.StartPhase(
+            "workspace-open",
+            WorkbenchPerformanceEventSource.ManifestConstructionPhase);
 
         var files = new Dictionary<string, WorkspaceInputFileFingerprint>(StringComparer.Ordinal);
         var directories = new Dictionary<string, WorkspaceInputDirectoryFingerprint>(StringComparer.Ordinal);
@@ -64,6 +67,10 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
 
     public bool HasChanged(WorkspaceInputManifest manifest, CancellationToken cancellationToken)
     {
+        using var phase = WorkbenchPerformanceEventSource.Log.StartPhase(
+            "workspace",
+            WorkbenchPerformanceEventSource.ExternalChangeDetectionPhase);
+
         if (manifest is null)
         {
             return false;

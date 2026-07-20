@@ -71,19 +71,29 @@ internal sealed class ScenarioRunner
         return measurements;
     }
 
-    public async Task<int> RunUntilExitAsync(
+    public async Task<IReadOnlyList<double>> RunUntilExitAsync(
         ScenarioDefinition scenario,
         Process diagnosticProcess,
         CancellationToken cancellationToken)
     {
-        var invocationCount = 0;
+        var elapsedMilliseconds = new List<double>();
         while (!diagnosticProcess.HasExited)
         {
-            await InvokeScenarioAsync(scenario, cancellationToken);
-            invocationCount++;
+            await InvokeSupportingCallsAsync(scenario.Setup, cancellationToken);
+            var stopwatch = Stopwatch.StartNew();
+            try
+            {
+                await InvokeCoreAsync(scenario, cancellationToken);
+                stopwatch.Stop();
+                elapsedMilliseconds.Add(stopwatch.Elapsed.TotalMilliseconds);
+            }
+            finally
+            {
+                await InvokeSupportingCallsAsync(scenario.Cleanup, cancellationToken);
+            }
         }
 
-        return invocationCount;
+        return elapsedMilliseconds;
     }
 
     public async Task RunCountAsync(

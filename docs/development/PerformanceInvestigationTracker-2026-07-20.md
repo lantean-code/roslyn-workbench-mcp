@@ -67,7 +67,7 @@ The confirming native Windows run is recorded at `artifacts/performance/results/
 
 ### 2. Attribute shared execution costs
 
-**Status:** Not started
+**Status:** Completed
 
 Add enough phase-level evidence to distinguish:
 
@@ -80,31 +80,45 @@ Add enough phase-level evidence to distinguish:
 
 Use traces for call stacks and counters for allocation, GC, thread-pool and exception behaviour. Instrumentation must be low overhead and should not make internal timings part of the public MCP contract.
 
+The Host now emits opt-in `Roslyn-Workbench-Mcp` EventSource phase timings only while a trace collector enables the provider. The manual runner captures those events beside sampled managed thread time, writes the raw `.nettrace`, adds the structured summary to `profile.json`, and writes a readable `phases.md`. Normal tool responses and MCP schemas remain unchanged. When tracing is disabled, phase scopes perform only an `IsEnabled` check and do not take timestamps or emit per-call logs.
+
+The same bounded symbol-search request was profiled across the three native-WSL repositories:
+
+| Repository | Result | End-to-end median | Host tool median | Outside Host tool | Change detection | Handler |
+|---|---|---:|---:|---:|---:|---:|
+| GuardClauses | `artifacts/performance/results/20260720-155448-guardclauses-d24b987ca6244e248f9de9a7305e5463` | 7.73 ms | 7.22 ms | 0.51 ms | 2.41 ms / 33.3% | 4.63 ms / 64.1% |
+| Serilog | `artifacts/performance/results/20260720-155516-serilog-6beed630d8f44375800ae90ab52e53c5` | 32.24 ms | 31.78 ms | 0.47 ms | 4.68 ms / 14.7% | 26.24 ms / 82.6% |
+| EF Core | `artifacts/performance/results/20260720-155542-efcore-d352e638fc02472db33ac689ee9a75c4` | 160.17 ms | 159.13 ms | 1.03 ms | 18.81 ms / 11.8% | 139.64 ms / 87.8% |
+
+Request binding, Workspace lease acquisition, context construction and response projection are each below one percent in these profiles. The MCP SDK, stdio transport and client-side remainder is approximately one millisecond or less. The dominant recurring cost is therefore inside the tool handler and its Roslyn operation, particularly as repository size grows.
+
 **Why first:** every later observation currently includes shared Host and Workspace work. Optimising a tool before separating that cost risks tuning the wrong path.
 
-**Exit evidence:** representative small, medium and large calls have an attributable phase breakdown whose total reconciles with the end-to-end measurement closely enough to direct optimisation.
+**Exit evidence:** achieved by the three clean trace profiles above. Each target repository remained at its pinned commit, the Host exited normally and no recovery, coordination or lock state remained.
 
 ### 3. Investigate Workspace input tracking and per-invocation change detection
 
-**Status:** Not started
+**Status:** Deferred after attribution
 
-The medium baseline shows a repeatable floor of roughly 2.3 seconds across searches, diagnostics and dependency analysis despite materially different operations and low Host CPU. Determine how much comes from checking the Workspace input manifest, especially filesystem metadata access on Windows drives mounted through WSL.
+The earlier repeatable multi-second floor came from accessing the Windows filesystem through WSL and is not present on native storage. Native phase traces measure external-change detection at 2.41 ms for GuardClauses, 4.68 ms for Serilog and 18.81 ms for EF Core. It remains a measurable shared cost, but it is 33.3%, 14.7% and 11.8% of the corresponding symbol-search handler boundary rather than the dominant medium/large cost.
 
 Investigate both manifest construction during `workspace-open` and `HasChanged` during each query or mutation acquisition. Record manifest file and directory counts, filesystem calls, elapsed time and cancellation behaviour.
 
-Any revised design must still detect changes to existing inputs, new or removed source inputs and imported project configuration before a stale Workspace is used. Consider coalescing, incremental checks or watcher-assisted invalidation only after their failure and recovery semantics are explicit.
+Do not optimise this path ahead of the measured handler/Roslyn work. Revisit coalescing, incremental checks or watcher-assisted invalidation only if additional tool profiles show that change detection materially dominates a common cheap query, or if filesystem-scale evidence changes. Any revised design must still detect changes to existing inputs, new or removed source inputs and imported project configuration before a stale Workspace is used.
 
-**Dependencies:** investigation 2.
+**Dependencies:** investigation 2, completed.
 
 **Downstream impact:** expected to affect every tool measurement, Workspace opening, cancellation responsiveness and the interpretation of retained memory.
 
-**Exit evidence:** change detection retains its correctness coverage and no longer dominates a no-op query on the medium or large WSL workspace.
+**Exit evidence:** no implementation change is currently justified. The native profiles establish that change detection does not dominate the medium or large symbol-search request.
 
 ### 4. Decompose and improve Workspace opening
 
-**Status:** Not started
+**Status:** Deferred; current one-time cost accepted
 
 Workspace opening is already a material part of end-to-end use. Profile MSBuild evaluation, solution loading, unsupported-project filtering, compatibility inspection, root validation and manifest construction separately. Record project/document/reference counts and diagnostics so repository size can be related to cost.
+
+The native WSL baseline opens GuardClauses in 2.44 seconds, Serilog in 3.38 seconds and EF Core in 15.21 seconds. These are one-time session costs. The product intentionally retains a stateful, transactional Workspace, replacing a stateless Roslyn server design that reloaded the solution for every tool execution. The current EF Core time is therefore acceptable and should not take priority over recurring tool costs. Phase hooks exist for future Workspace-load, compatibility and manifest attribution if opening regresses or becomes operationally material.
 
 Preserve the supported behaviour of loading mixed solutions while ignoring project types the Host does not interact with. Do not trade load completeness or actionable diagnostics for elapsed time without an explicit contract decision.
 
@@ -118,13 +132,13 @@ Preserve the supported behaviour of loading mixed solutions while ignoring proje
 
 **Status:** Not started
 
-The clean baseline currently records:
+The native WSL baseline records:
 
 | Repository | Median elapsed | Median Host CPU | Response |
 |---|---:|---:|---:|
-| GuardClauses | 899.60 ms | 610 ms | 17.19 KiB |
-| Serilog | 11,890.83 ms | 1,920 ms | 151.32 KiB |
-| EF Core | Pending | Pending | Pending |
+| GuardClauses | 110.12 ms | 70 ms | 17.19 KiB |
+| Serilog | 404.29 ms | 290 ms | 150.19 KiB |
+| EF Core | 1,521.47 ms | 1,180 ms | 1,124.52 KiB |
 
 Separate shared validation from solution traversal, projection and serialisation. Confirm whether document and folder bounds stop traversal early or only reduce the final response. Assess whether the current response shape forces avoidable repeated project/document work.
 
@@ -134,22 +148,26 @@ Separate shared validation from solution traversal, projection and serialisation
 
 ### 6. Investigate bounded symbol search and reference discovery
 
-**Status:** Not started
+**Status:** Next
 
-Low and high limits currently change response size but have little effect on elapsed time:
+Native low and high limits change response size but have little effect on elapsed time:
 
 | Repository/tool | Low-limit median | High-limit median | Low response | High response |
 |---|---:|---:|---:|---:|
-| GuardClauses `search-symbols` | 170.18 ms | 157.61 ms | 2.17 KiB | 23.61 KiB |
-| GuardClauses `find-references` | 169.20 ms | 163.70 ms | 5.11 KiB | 29.79 KiB |
-| Serilog `search-symbols` | 2,308.27 ms | 2,283.49 ms | 2.27 KiB | 52.67 KiB |
-| Serilog `find-references` | 2,287.27 ms | 2,287.46 ms | 4.34 KiB | 95.76 KiB |
+| GuardClauses `search-symbols` | 7.09 ms | 8.01 ms | 2.17 KiB | 23.61 KiB |
+| GuardClauses `find-references` | 4.00 ms | 5.89 ms | 5.11 KiB | 29.79 KiB |
+| Serilog `search-symbols` | 26.39 ms | 27.42 ms | 2.27 KiB | 52.67 KiB |
+| Serilog `find-references` | 14.70 ms | 23.31 ms | 4.34 KiB | 95.76 KiB |
+| EF Core `search-symbols` | 205.74 ms | 165.72 ms | 2.71 KiB | 144.79 KiB |
+| EF Core `find-references` | 711.11 ms | 704.51 ms | 5.15 KiB | 456.11 KiB |
 
 After removing shared acquisition cost, determine which Roslyn operations necessarily complete discovery and which projection or enrichment work can stop at the requested bound. Measure reference counts, selected counts and context/enrichment costs.
 
 Evaluate snapshot-scoped cross-invocation caching only when the trace confirms substantial repeatable discovery. Cache design must be size-limited, snapshot-keyed and invalidated on close, reload, commit and snapshot advancement.
 
-**Dependencies:** investigations 1–4. Cross-invocation caching also depends on a measured repeatable discovery cost after shared validation is excluded.
+The phase attribution confirms that handler/Roslyn execution accounts for 64.1%, 82.6% and 87.8% of bounded symbol-search time as repository size grows, while projection is below one percent. This is now the first tool-specific investigation.
+
+**Dependencies:** investigations 1 and 2, completed. Cross-invocation caching also depends on a measured repeatable discovery cost after shared validation is excluded.
 
 **Exit evidence:** low/high behaviour is explained, avoidable post-bound work is removed, and any cache demonstrates useful hit rate and latency without unsafe retention.
 

@@ -30,8 +30,18 @@ internal sealed class CodeActionQueryMcpServerTool<THandler, TRequest, TResponse
         IDictionary<string, JsonElement> arguments,
         CancellationToken cancellationToken)
     {
-        var request = ToolRequestBinder.Deserialize<TRequest>(arguments);
-        var contextLease = _contextFactory.CreateQueryContext(request, cancellationToken);
+        TRequest request;
+        using (StartPhase(WorkbenchPerformanceEventSource.RequestBindingPhase))
+        {
+            request = ToolRequestBinder.Deserialize<TRequest>(arguments);
+        }
+
+        CodeActionQueryExecutionLease contextLease;
+        using (StartPhase(WorkbenchPerformanceEventSource.ContextAcquisitionPhase))
+        {
+            contextLease = _contextFactory.CreateQueryContext(request, cancellationToken);
+        }
+
         await using var _ = contextLease;
         if (contextLease.HasFailure)
         {
@@ -41,9 +51,17 @@ internal sealed class CodeActionQueryMcpServerTool<THandler, TRequest, TResponse
         }
 
         var context = contextLease.Context;
-        var result = await _handler.ExecuteAsync(request, context, cancellationToken);
-        return CreateStructuredResult(
-            McpPublishedResultSerializer.SerializeCodeActionQuery(result),
-            result.Outcome.IsError());
+        CodeActionExecutionResult<TResponse> result;
+        using (StartPhase(WorkbenchPerformanceEventSource.HandlerExecutionPhase))
+        {
+            result = await _handler.ExecuteAsync(request, context, cancellationToken);
+        }
+
+        using (StartPhase(WorkbenchPerformanceEventSource.ResponseProjectionPhase))
+        {
+            return CreateStructuredResult(
+                McpPublishedResultSerializer.SerializeCodeActionQuery(result),
+                result.Outcome.IsError());
+        }
     }
 }

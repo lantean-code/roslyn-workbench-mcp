@@ -77,10 +77,17 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
                 RequiredAction.ResolveRecovery);
         }
 
-        var loadedWorkspace = await _workspaceLoadWorkflow.LoadAsync(
-            request.LoadedPath,
-            request.WorkspaceRoot,
-            cancellationToken);
+        ValidatedWorkspaceLoadResult loadedWorkspace;
+        using (WorkbenchPerformanceEventSource.Log.StartPhase(
+            "workspace-open",
+            WorkbenchPerformanceEventSource.WorkspaceLoadPhase))
+        {
+            loadedWorkspace = await _workspaceLoadWorkflow.LoadAsync(
+                request.LoadedPath,
+                request.WorkspaceRoot,
+                cancellationToken);
+        }
+
         if (loadedWorkspace.HasFailure)
         {
             return CreateLoadFailureResult<WorkspaceOpenOutcome>(loadedWorkspace, "loaded");

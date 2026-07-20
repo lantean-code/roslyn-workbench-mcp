@@ -32,8 +32,18 @@ internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpS
         IDictionary<string, JsonElement> arguments,
         CancellationToken cancellationToken)
     {
-        var request = ToolRequestBinder.Deserialize<TRequest>(arguments);
-        var contextLease = _contextFactory.CreateMutationContext(request, cancellationToken);
+        TRequest request;
+        using (StartPhase(WorkbenchPerformanceEventSource.RequestBindingPhase))
+        {
+            request = ToolRequestBinder.Deserialize<TRequest>(arguments);
+        }
+
+        CodeActionMutationExecutionLease contextLease;
+        using (StartPhase(WorkbenchPerformanceEventSource.ContextAcquisitionPhase))
+        {
+            contextLease = _contextFactory.CreateMutationContext(request, cancellationToken);
+        }
+
         await using var _ = contextLease;
         if (contextLease.HasFailure)
         {
@@ -43,7 +53,12 @@ internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpS
         }
 
         var context = contextLease.Context;
-        var proposalResult = await _handler.ExecuteAsync(request, context, cancellationToken);
+        CodeActionExecutionResult<WorkspaceMutationCandidate> proposalResult;
+        using (StartPhase(WorkbenchPerformanceEventSource.HandlerExecutionPhase))
+        {
+            proposalResult = await _handler.ExecuteAsync(request, context, cancellationToken);
+        }
+
         if (proposalResult.Outcome.IsError())
         {
             var failure = new CodeActionExecutionFailure
@@ -64,14 +79,22 @@ internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpS
             return CreateStructuredResult(McpPublishedResultSerializer.SerializeCodeActionMutation(noChange), isError: false);
         }
 
-        var stagedResult = await contextLease.StageAsync(
-            _metadata.Name,
-            proposalResult.Data,
-            proposalResult.Diagnostics,
-            proposalResult.Warnings,
-            cancellationToken);
-        return CreateStructuredResult(
-            McpPublishedResultSerializer.SerializeCodeActionMutation(stagedResult),
-            stagedResult.Outcome.IsError());
+        CodeActionExecutionResult<MutationData> stagedResult;
+        using (StartPhase(WorkbenchPerformanceEventSource.MutationStagingPhase))
+        {
+            stagedResult = await contextLease.StageAsync(
+                _metadata.Name,
+                proposalResult.Data,
+                proposalResult.Diagnostics,
+                proposalResult.Warnings,
+                cancellationToken);
+        }
+
+        using (StartPhase(WorkbenchPerformanceEventSource.ResponseProjectionPhase))
+        {
+            return CreateStructuredResult(
+                McpPublishedResultSerializer.SerializeCodeActionMutation(stagedResult),
+                stagedResult.Outcome.IsError());
+        }
     }
 }

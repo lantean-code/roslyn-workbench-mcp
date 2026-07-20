@@ -23,4 +23,8 @@ internal sealed record ProfileRunResult
     public required int InvocationCount { get; init; }
 
     public required string DiagnosticArtifact { get; init; }
+
+    public ProfileInvocationTiming? InvocationTiming { get; init; }
+
+    public IReadOnlyList<PhaseTraceSummary> PhaseSummary { get; init; } = [];
 }

@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageVersion Include="Microsoft.Diagnostics.Tracing.TraceEvent" Version="3.2.5" />
     <PackageVersion Include="ModelContextProtocol" Version="1.4.1" />
   </ItemGroup>
 

@@ -36,7 +36,14 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var acquisition = _sessionAcquirer.AcquireExclusive(workspace);
+        WorkspaceSessionAcquisition acquisition;
+        using (WorkbenchPerformanceEventSource.Log.StartPhase(
+            "mutation-context",
+            WorkbenchPerformanceEventSource.WorkspaceLeaseAcquisitionPhase))
+        {
+            acquisition = _sessionAcquirer.AcquireExclusive(workspace);
+        }
+
         if (acquisition.HasError)
         {
             var failureContext = acquisition.ContextSession is null ? null : CreateContext(acquisition.ContextSession);
@@ -51,7 +58,15 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
             acquisition.Selection.WorkspaceId,
             acquisition.Session,
             cancellationToken);
-        var context = CreateContext(validation.Session);
+
+        WorkspaceExecutionContext context;
+        using (WorkbenchPerformanceEventSource.Log.StartPhase(
+            "mutation-context",
+            WorkbenchPerformanceEventSource.ContextConstructionPhase))
+        {
+            context = CreateContext(validation.Session);
+        }
+
         if (validation.Failure is not null)
         {
             return WorkspaceMutationExecutionLease.Rejected(
@@ -70,7 +85,14 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var acquisition = _sessionAcquirer.AcquireShared(workspace);
+        WorkspaceSessionAcquisition acquisition;
+        using (WorkbenchPerformanceEventSource.Log.StartPhase(
+            "query-context",
+            WorkbenchPerformanceEventSource.WorkspaceLeaseAcquisitionPhase))
+        {
+            acquisition = _sessionAcquirer.AcquireShared(workspace);
+        }
+
         if (acquisition.HasError)
         {
             var failureContext = acquisition.ContextSession is null ? null : CreateContext(acquisition.ContextSession);
@@ -81,7 +103,15 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
         }
 
         var validation = ValidateQuerySession(acquisition.Session, cancellationToken);
-        var context = CreateContext(validation.Session);
+
+        WorkspaceExecutionContext context;
+        using (WorkbenchPerformanceEventSource.Log.StartPhase(
+            "query-context",
+            WorkbenchPerformanceEventSource.ContextConstructionPhase))
+        {
+            context = CreateContext(validation.Session);
+        }
+
         if (validation.Failure is not null)
         {
             return WorkspaceExecutionContextLease.Rejected(validation.Failure, context, acquisition.Lease);

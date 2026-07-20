@@ -30,7 +30,14 @@ internal sealed class WorkspaceLoadWorkflow : IWorkspaceLoadWorkflow
             }
         }
 
-        var loadedWorkspace = await _workspaceLoader.LoadAsync(loadedPath, cancellationToken);
+        WorkspaceLoadResult loadedWorkspace;
+        using (WorkbenchPerformanceEventSource.Log.StartPhase(
+            "workspace-open",
+            "msbuild-load"))
+        {
+            loadedWorkspace = await _workspaceLoader.LoadAsync(loadedPath, cancellationToken);
+        }
+
         if (loadedWorkspace.Solution is null || loadedWorkspace.Workspace is null)
         {
             loadedWorkspace.Workspace?.Dispose();
@@ -41,6 +48,10 @@ internal sealed class WorkspaceLoadWorkflow : IWorkspaceLoadWorkflow
 
         try
         {
+            using var compatibilityPhase = WorkbenchPerformanceEventSource.Log.StartPhase(
+                "workspace-open",
+                WorkbenchPerformanceEventSource.WorkspaceCompatibilityPhase);
+
             var solution = loadedWorkspace.Solution;
             var diagnostics = new List<DiagnosticInfo>(loadedWorkspace.Diagnostics);
             var unsupportedProjectIds = new List<ProjectId>();

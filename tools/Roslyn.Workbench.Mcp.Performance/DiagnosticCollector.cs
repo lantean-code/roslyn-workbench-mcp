@@ -4,6 +4,7 @@ namespace Roslyn.Workbench.Mcp.Performance;
 
 internal sealed class DiagnosticCollector
 {
+    private const string _performanceProvider = "Roslyn-Workbench-Mcp:0xFFFFFFFFFFFFFFFF:4";
     private readonly string _frameworkRoot;
 
     public DiagnosticCollector(string frameworkRoot)
@@ -88,6 +89,8 @@ internal sealed class DiagnosticCollector
             processId.ToString(CultureInfo.InvariantCulture),
             "--profile",
             "dotnet-sampled-thread-time",
+            "--providers",
+            _performanceProvider,
             "--duration",
             FormatDuration(duration),
             "--output",

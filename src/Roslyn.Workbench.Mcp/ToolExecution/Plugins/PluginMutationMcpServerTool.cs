@@ -28,8 +28,18 @@ internal sealed class PluginMutationMcpServerTool<TRequest> : McpServerToolBase
         IDictionary<string, JsonElement> arguments,
         CancellationToken cancellationToken)
     {
-        var request = ToolRequestBinder.Deserialize<TRequest>(arguments);
-        var contextLease = _contextFactory.CreateMutationContext(request, cancellationToken);
+        TRequest request;
+        using (StartPhase(WorkbenchPerformanceEventSource.RequestBindingPhase))
+        {
+            request = ToolRequestBinder.Deserialize<TRequest>(arguments);
+        }
+
+        PluginMutationExecutionLease contextLease;
+        using (StartPhase(WorkbenchPerformanceEventSource.ContextAcquisitionPhase))
+        {
+            contextLease = _contextFactory.CreateMutationContext(request, cancellationToken);
+        }
+
         await using var _ = contextLease;
         if (contextLease.HasFailure)
         {
@@ -39,7 +49,12 @@ internal sealed class PluginMutationMcpServerTool<TRequest> : McpServerToolBase
         }
 
         var context = contextLease.Context;
-        var proposalResult = await _handler.ExecuteAsync(request, context, cancellationToken);
+        PluginExecutionResult<MutationCandidate> proposalResult;
+        using (StartPhase(WorkbenchPerformanceEventSource.HandlerExecutionPhase))
+        {
+            proposalResult = await _handler.ExecuteAsync(request, context, cancellationToken);
+        }
+
         if (proposalResult.Outcome.IsError())
         {
             var failure = new ToolExecutionFailureResult
@@ -62,14 +77,22 @@ internal sealed class PluginMutationMcpServerTool<TRequest> : McpServerToolBase
             return CreateStructuredResult(McpPublishedResultSerializer.SerializePluginMutation(noChange), isError: false);
         }
 
-        var stagedResult = await contextLease.StageAsync(
-            _tool.Metadata.Name,
-            proposalResult.Data,
-            proposalResult.Diagnostics,
-            proposalResult.Warnings,
-            cancellationToken);
-        return CreateStructuredResult(
-            McpPublishedResultSerializer.SerializePluginMutation(stagedResult),
-            stagedResult.Outcome.IsError());
+        PluginExecutionResult<MutationData> stagedResult;
+        using (StartPhase(WorkbenchPerformanceEventSource.MutationStagingPhase))
+        {
+            stagedResult = await contextLease.StageAsync(
+                _tool.Metadata.Name,
+                proposalResult.Data,
+                proposalResult.Diagnostics,
+                proposalResult.Warnings,
+                cancellationToken);
+        }
+
+        using (StartPhase(WorkbenchPerformanceEventSource.ResponseProjectionPhase))
+        {
+            return CreateStructuredResult(
+                McpPublishedResultSerializer.SerializePluginMutation(stagedResult),
+                stagedResult.Outcome.IsError());
+        }
     }
 }

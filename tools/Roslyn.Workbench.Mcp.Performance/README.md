@@ -12,11 +12,15 @@ Every completed measurement or profile explicitly closes the workspace and then 
 
 `profile` repeatedly invokes one scenario while one diagnostic collector is attached:
 
-- `trace` captures sampled managed thread time to a `.nettrace` file for CPU and call-stack investigation;
+- `trace` captures sampled managed thread time and the opt-in `Roslyn-Workbench-Mcp` phase provider to a `.nettrace` file for CPU, call-stack and boundary investigation;
 - `counters` records `System.Runtime` counters as JSON for allocation rate, GC, thread-pool and exception investigation; and
 - `gcdump` warms the selected workload and then captures a point-in-time managed heap graph.
 
 The trace and counter modes run a fixed-duration workload loop. This avoids spending most of a fixed-length capture on an idle process. Collect each profile independently; attaching several profilers at once would perturb the workload and make the evidence harder to interpret.
+
+Trace profiles also write `phases.md` and include the same structured phase summary in `profile.json`. The summary reconciles the median end-to-end MCP invocation with the instrumented Host tool boundary, then separates request binding, Workspace context acquisition and external-change detection, handler execution, mutation staging, response projection and other relevant phases. Nested phases overlap their parents and must not be added together. The difference between end-to-end and the Host tool boundary includes MCP SDK serialisation, stdio transport and client-side handling. Phase counts can differ slightly from the runner's invocation count because EventPipe attachment and detachment occur while the workload loop is active.
+
+The custom phase provider is disabled during normal operation. A phase scope checks whether the provider is enabled before taking a timestamp, so ordinary server execution does not emit per-call logs or publish timings through the MCP contract.
 
 BenchmarkDotNet is deliberately not part of this end-to-end runner. Use it later for an isolated helper or algorithm only when an end-to-end trace identifies a sufficiently important hot path.
 

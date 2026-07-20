@@ -182,6 +182,7 @@ internal static class PerformanceApplication
         var artifactPath = Path.Combine(outputDirectory, GetArtifactName(options.Profile));
         var startedAtUtc = DateTimeOffset.UtcNow;
         int invocationCount;
+        ProfileInvocationTiming? invocationTiming = null;
 
         if (options.Profile == ProfileKind.GcDump)
         {
@@ -200,7 +201,13 @@ internal static class PerformanceApplication
             {
                 var standardOutput = diagnosticProcess.StandardOutput.ReadToEndAsync(cancellationToken);
                 var standardError = diagnosticProcess.StandardError.ReadToEndAsync(cancellationToken);
-                invocationCount = await runner.RunUntilExitAsync(scenario, diagnosticProcess, cancellationToken);
+                var elapsedMilliseconds = await runner.RunUntilExitAsync(
+                    scenario,
+                    diagnosticProcess,
+                    cancellationToken);
+
+                invocationCount = elapsedMilliseconds.Count;
+                invocationTiming = ProfileInvocationTiming.Create(elapsedMilliseconds);
                 await diagnosticProcess.WaitForExitAsync(cancellationToken);
 
                 if (diagnosticProcess.ExitCode != 0)
@@ -219,6 +226,10 @@ internal static class PerformanceApplication
             }
         }
 
+        var phaseSummary = options.Profile == ProfileKind.Trace
+            ? PhaseTraceAnalyzer.Analyze(artifactPath)
+            : [];
+
         var result = new ProfileRunResult
         {
             Repository = repository.Id,
@@ -232,9 +243,20 @@ internal static class PerformanceApplication
             RequestedDuration = options.Profile == ProfileKind.GcDump ? null : options.ProfileDuration,
             InvocationCount = invocationCount,
             DiagnosticArtifact = artifactPath,
+            InvocationTiming = invocationTiming,
+            PhaseSummary = phaseSummary,
         };
 
         await ResultWriter.WriteProfileAsync(outputDirectory, result, cancellationToken);
+        if (phaseSummary.Count > 0)
+        {
+            await ResultWriter.WritePhaseSummaryAsync(
+                outputDirectory,
+                phaseSummary,
+                invocationCount,
+                invocationTiming,
+                cancellationToken);
+        }
     }
 
     private static async Task<string> OpenWorkspaceAsync(

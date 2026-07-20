@@ -26,8 +26,18 @@ internal sealed class PluginQueryMcpServerTool<TRequest, TResponse> : McpServerT
         IDictionary<string, JsonElement> arguments,
         CancellationToken cancellationToken)
     {
-        var request = ToolRequestBinder.Deserialize<TRequest>(arguments);
-        var contextLease = _contextFactory.CreateQueryContext(request, cancellationToken);
+        TRequest request;
+        using (StartPhase(WorkbenchPerformanceEventSource.RequestBindingPhase))
+        {
+            request = ToolRequestBinder.Deserialize<TRequest>(arguments);
+        }
+
+        ToolExecutionContextLease<IQueryContext> contextLease;
+        using (StartPhase(WorkbenchPerformanceEventSource.ContextAcquisitionPhase))
+        {
+            contextLease = _contextFactory.CreateQueryContext(request, cancellationToken);
+        }
+
         await using var _ = contextLease;
         if (contextLease.HasShortCircuitResult)
         {
@@ -37,9 +47,17 @@ internal sealed class PluginQueryMcpServerTool<TRequest, TResponse> : McpServerT
         }
 
         var context = contextLease.Context;
-        var result = await _handler.ExecuteAsync(request, context, cancellationToken);
-        return CreateStructuredResult(
-            McpPublishedResultSerializer.SerializePluginQuery(result),
-            result.Outcome.IsError());
+        PluginExecutionResult<TResponse> result;
+        using (StartPhase(WorkbenchPerformanceEventSource.HandlerExecutionPhase))
+        {
+            result = await _handler.ExecuteAsync(request, context, cancellationToken);
+        }
+
+        using (StartPhase(WorkbenchPerformanceEventSource.ResponseProjectionPhase))
+        {
+            return CreateStructuredResult(
+                McpPublishedResultSerializer.SerializePluginQuery(result),
+                result.Outcome.IsError());
+        }
     }
 }

@@ -28,7 +28,13 @@ internal abstract class McpServerToolBase : McpServerTool
         IDictionary<string, JsonElement> arguments,
         CancellationToken cancellationToken)
     {
+        using var phase = StartPhase(WorkbenchPerformanceEventSource.ToolTotalPhase);
         return await InvokeCoreAsync(arguments, cancellationToken);
+    }
+
+    protected PerformanceTraceScope StartPhase(string phase)
+    {
+        return WorkbenchPerformanceEventSource.Log.StartPhase(ProtocolTool.Name, phase);
     }
 
     protected abstract ValueTask<CallToolResult> InvokeCoreAsync(

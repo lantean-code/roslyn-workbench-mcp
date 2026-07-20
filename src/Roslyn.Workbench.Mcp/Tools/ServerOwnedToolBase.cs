@@ -34,16 +34,38 @@ internal abstract class ServerOwnedToolBase<TRequest, TResponse> : McpServerTool
 
     public override async ValueTask<CallToolResult> InvokeAsync(RequestContext<CallToolRequestParams> requestContext, CancellationToken cancellationToken)
     {
-        var arguments = requestContext.Params.Arguments ?? new Dictionary<string, JsonElement>(StringComparer.Ordinal);
-        var request = ToolRequestBinder.Deserialize<TRequest>(arguments);
-        var result = await ExecuteAsync(request, cancellationToken);
+        using var totalPhase = WorkbenchPerformanceEventSource.Log.StartPhase(
+            ProtocolTool.Name,
+            WorkbenchPerformanceEventSource.ToolTotalPhase);
 
-        return new CallToolResult
+        var arguments = requestContext.Params.Arguments ?? new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        TRequest request;
+        using (WorkbenchPerformanceEventSource.Log.StartPhase(
+            ProtocolTool.Name,
+            WorkbenchPerformanceEventSource.RequestBindingPhase))
         {
-            Content = [],
-            StructuredContent = SerializeResult(result),
-            IsError = result.Outcome.IsError(),
-        };
+            request = ToolRequestBinder.Deserialize<TRequest>(arguments);
+        }
+
+        ToolResult<TResponse> result;
+        using (WorkbenchPerformanceEventSource.Log.StartPhase(
+            ProtocolTool.Name,
+            WorkbenchPerformanceEventSource.HandlerExecutionPhase))
+        {
+            result = await ExecuteAsync(request, cancellationToken);
+        }
+
+        using (WorkbenchPerformanceEventSource.Log.StartPhase(
+            ProtocolTool.Name,
+            WorkbenchPerformanceEventSource.ResponseProjectionPhase))
+        {
+            return new CallToolResult
+            {
+                Content = [],
+                StructuredContent = SerializeResult(result),
+                IsError = result.Outcome.IsError(),
+            };
+        }
     }
 
     protected abstract ValueTask<ToolResult<TResponse>> ExecuteAsync(TRequest request, CancellationToken cancellationToken);

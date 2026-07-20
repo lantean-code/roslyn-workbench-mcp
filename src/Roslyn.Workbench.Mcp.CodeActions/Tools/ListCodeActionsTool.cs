@@ -87,24 +87,40 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
             }
         }
 
-        var ordered = discovered
-            .Select(action => new ClassifiedCodeAction
+        var classifiedActions = new List<ClassifiedCodeAction>();
+        foreach (var action in discovered)
+        {
+            var descriptor = _descriptorRegistry.Classify(action.Action, action.ProviderId, action.Title);
+            if (!descriptor.IsVisible)
+            {
+                continue;
+            }
+
+            classifiedActions.Add(new ClassifiedCodeAction
             {
                 Action = action,
-                Descriptor = _descriptorRegistry.Classify(action.Action, action.ProviderId, action.Title),
-            })
-            .Where(static action => action.Descriptor.IsVisible)
+                Descriptor = descriptor,
+            });
+        }
+
+        var orderedActions = classifiedActions
             .OrderBy(static action => action.Action.Title, StringComparer.Ordinal)
             .ThenBy(static action => action.Action.ProviderId, StringComparer.Ordinal)
             .ThenBy(static action => action.Action.EquivalenceKey ?? string.Empty, StringComparer.Ordinal)
-            .ThenBy(static action => string.Join(".", action.Action.ActionPath), StringComparer.Ordinal)
-            .ToArray();
-        return CodeActionExecutionResult<CodeActionListData>.Success(new CodeActionListData
+            .ThenBy(static action => string.Join(".", action.Action.ActionPath), StringComparer.Ordinal);
+
+        var actionInfos = new List<CodeActionInfo>();
+        foreach (var item in orderedActions)
         {
-            Actions = ordered
-                .Select(item => _infoFactory.Create(item.Action, context, document, span, item.Descriptor))
-                .ToArray(),
-        });
+            actionInfos.Add(_infoFactory.Create(item.Action, context, document, span, item.Descriptor));
+        }
+
+        var data = new CodeActionListData
+        {
+            Actions = actionInfos,
+        };
+
+        return CodeActionExecutionResult<CodeActionListData>.Success(data);
     }
 
     private sealed record ClassifiedCodeAction

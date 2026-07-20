@@ -18,7 +18,11 @@ internal sealed class ConvertForeachLinqTool : CodeActionMutationToolHandler<Con
     {
         if (request.Selection is null)
         {
-            return ValueTask.FromResult(CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>("InvalidRequest", "A location selector is required."));
+            var rejection = CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>(
+                "InvalidRequest",
+                "A location selector is required.");
+
+            return ValueTask.FromResult(rejection);
         }
 
         var replayRequest = request.ConversionKind switch

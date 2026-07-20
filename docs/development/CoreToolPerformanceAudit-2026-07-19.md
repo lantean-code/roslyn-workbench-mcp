@@ -351,6 +351,89 @@ Workspace owns the request-local cache for compilation-derived framework symbols
 
 Operation-tree child enumeration and document-outline recursion now avoid their unnecessary intermediate projections. Code-context window construction and other small collection projections remain unchanged pending measurement.
 
+## Full concrete-tool compliance re-audit — 2026-07-20
+
+This follow-up audited every concrete published tool rather than selecting files from analyser findings. The scope contains 100 tool handlers:
+
+- 38 bundled inspection tools;
+- 3 bundled mutation/refactoring tools;
+- 43 internal Code Action refactoring tools;
+- 5 internal Code Action catalogue/workflow tools; and
+- 11 server-owned lifecycle and transaction tools.
+
+The review applied the repository rules for simple LINQ, explicit hot-path or multi-stage logic, bounded collection construction and readable result assembly. A LINQ call is not a finding by itself. Ordering pipelines retained deliberately by the earlier optimisation batches remain appropriate when they are short, named and preserve a contractual sort key more clearly than a custom comparer or loop.
+
+### Re-audit scan checklist
+
+| Scan | Hits | Review outcome |
+|---|---:|---|
+| Concrete sealed / unsealed tool classes | 100 / 0 | All concrete tools are sealed. |
+| Files containing LINQ / total LINQ operator calls | 36 / 194 | Nine files contain multi-stage or heavily repeated pipelines that should be simplified. The remaining uses are short predicates, projections, contractual ordering or previously measured code. |
+| `Select` / `Where` / `Cast` / `Take` / `Aggregate` calls | 57 | Manually reviewed with their surrounding stages and bounds. |
+| `CreateBoundedCollection` / `CreatePreboundedCollection` | 0 / 39 | The previous early-bounding work remains intact. |
+| Per-call `new List` / `new Dictionary` | 53 / 4 | These are mutable accumulators, deduplication state or bounded result builders; no static-data collection is rebuilt per request. |
+| Nested `Success(new Response...)` result construction | 11 | Violates the repository result-assembly convention and should use a named response/candidate local. |
+| Nested `ValueTask.FromResult(Rejected(...))` construction | 6 | Five direct returns should use a named rejection local; the one concise dispatch switch arm is readable and can remain. |
+| Sync-over-async, `async void`, `ConfigureAwait(false)` execution | 0 | The only text match is the title of the Code Action that adds `ConfigureAwait(false)`; no tool executes that pattern. |
+| Literal string comparisons without explicit comparison, `Substring`, parameterless case conversion, three-call `Replace` chains | 0 | No issue. |
+| Per-call regex, serializer options or `HttpClient` construction | 0 | No issue. |
+
+### Actionable compliance findings
+
+#### C1. Nine tools compressed multi-stage logic into LINQ pipelines
+
+**Status:** Completed 2026-07-20.
+
+**Impact:** Filtering, classification, projection, ordering, null removal and materialisation are combined or repeated in ways that make the execution order and allocation points harder to verify.
+
+**Files:** `ListCodeActionsTool.cs:90`, `AnalyzeControlFlowTool.cs:22`, `AnalyzeDataFlowTool.cs:22`, `FindCallersTool.cs:24`, `GetCodeContextTool.cs:20`, `GetSolutionStructureTool.cs:57`, `GetSymbolInfoTool.cs:20`, `GoToDefinitionTool.cs:16`, `ResolveSymbolTool.cs:40`.
+
+**Fix:** Introduce named candidate/result collections and explicit loops for classification, filtering and projection. Retain a short ordering stage where it remains the clearest way to express the contractual ordering. Preserve existing deduplication, null filtering and ordering exactly.
+
+**Caveat:** This is primarily a maintainability correction. It may remove delegate and iterator allocations, but no material latency improvement is claimed without measurement.
+
+#### C2. Eleven success results constructed their payload inside the factory call
+
+**Status:** Completed 2026-07-20.
+
+**Impact:** The principal response or mutation candidate is obscured inside the return expression, contrary to the repository-wide result-assembly convention.
+
+**Files:** `ListCodeActionsTool.cs:102`, `AnalyzeControlFlowTool.cs:22`, `AnalyzeDataFlowTool.cs:22`, `AnalyzeNullabilityTool.cs:68`, `FindReferencesTool.cs:110`, `FindUnusedSymbolsTool.cs:83`, `GetChangeImpactTool.cs:109`, `GetCodeContextTool.cs:46`, `GetDiagnosticsTool.cs:51`, `RenameSymbolTool.cs:32`, `SortUsingsTool.cs:40`.
+
+**Fix:** Assign the response or mutation candidate to a named local, then pass that local to `Success`.
+
+#### C3. Five direct Code Action rejection returns retained a nested wrapper/factory expression
+
+**Status:** Completed 2026-07-20.
+
+**Impact:** The expected rejection is constructed inside `ValueTask.FromResult`, making already long validation returns unnecessarily dense.
+
+**Files:** `AddMissingUsingsTool.cs:20`, `ConvertForeachLinqTool.cs:21`, `ExtractMethodTool.cs:24`, `IntroduceParameterTool.cs:23`, `IntroduceVariableTool.cs:18`.
+
+**Fix:** Assign the rejection to a named local before returning the completed `ValueTask`. Retain the equivalent expression in `ConvertPropertyTool` because it is one concise arm of a readable dispatch switch rather than a multi-stage return.
+
+### Deliberately retained LINQ
+
+- Relationship tools retain short projection-and-ordering stages where the projected `SymbolReference` defines the response ordering contract and is then consumed by an explicit bounded loop.
+- Diagnostic and nullability tools retain named filter-and-order stages followed by explicit bounded projection loops.
+- `sort-usings` retains its small document-local ordering pipeline; the earlier measurement plan already treats Roslyn transformation and staging as the material costs.
+- Duplicate fingerprint construction retains its `string.Join`/`Select` implementation because the measured explicit-loop alternative allocated more and did not improve throughput.
+- Small Roslyn-owned collections such as method parameters, attribute arguments and direct child locations retain simple projections where a loop would add code without clarifying control flow.
+
+### Recommended next batch
+
+C1–C3 were completed as one focused readability batch before the exception-flow B2 work. Filtering, classification, nullable projection and repeated collection traversal now use named stages and explicit loops. Short LINQ pipelines remain only where they express contractual ordering or a deliberately retained local projection more clearly.
+
+The post-remediation scan records 155 LINQ operator calls across 34 tools, down from 194 calls across 36 tools. Nested `Success(new Response...)` and direct `return ValueTask.FromResult(Rejected(...))` sites are both zero. `CreateBoundedCollection` remains at zero and all 39 pre-bounded result publications remain intact.
+
+| Severity | Finding count | Top issue |
+|---|---:|---|
+| Critical | 0 | None identified. |
+| Remaining | 0 | No actionable concrete-tool compliance finding remains from this re-audit. |
+| Completed compliance | 3 | Multi-stage LINQ and nested result assembly were simplified without changing bounds or ordering. |
+
+> **Disclaimer:** This static audit can contain false positives or miss runtime costs. Preserve behaviour with tests and use the existing profiling framework before claiming a performance improvement.
+
 ## Measurement plan
 
 Before Batch 4, and before claiming any material performance improvement from earlier batches, capture:

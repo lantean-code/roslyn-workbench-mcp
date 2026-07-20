@@ -17,7 +17,11 @@ internal sealed class AddMissingUsingsTool : CodeActionMutationToolHandler<AddMi
     {
         if (request.PreferGlobalUsings)
         {
-            return ValueTask.FromResult(CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>("UnsupportedOption", "The preferGlobalUsings option is not supported by the current Roslyn add-import backend."));
+            var rejection = CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>(
+                "UnsupportedOption",
+                "The preferGlobalUsings option is not supported by the current Roslyn add-import backend.");
+
+            return ValueTask.FromResult(rejection);
         }
 
         return _scopedFixService.StageScopedCodeFixAsync(new ScopedCodeFixRequest

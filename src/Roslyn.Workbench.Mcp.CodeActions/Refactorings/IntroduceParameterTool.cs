@@ -20,7 +20,11 @@ internal sealed class IntroduceParameterTool : CodeActionMutationToolHandler<Int
     {
         if (request.Selection is null)
         {
-            return ValueTask.FromResult(CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>("InvalidRequest", "A location selector is required."));
+            var rejection = CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>(
+                "InvalidRequest",
+                "A location selector is required.");
+
+            return ValueTask.FromResult(rejection);
         }
 
         var title = request.Strategy switch

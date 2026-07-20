@@ -19,21 +19,36 @@ internal sealed class AnalyzeControlFlowTool : QueryToolHandler<AnalyzeControlFl
             return ToolExecutionHelpers.Rejected<ControlFlowAnalysisData>("InvalidRequest", "The selected region does not support control-flow analysis.");
         }
 
-        return PluginExecutionResult<ControlFlowAnalysisData>.Success(new ControlFlowAnalysisData
+        var exits = new List<ControlFlowExit>();
+        foreach (var exitPoint in analysis.ExitPoints)
+        {
+            exits.Add(new ControlFlowExit
+            {
+                Kind = exitPoint.Kind().ToString(),
+                Location = context.WorkspaceResolver.CreateResolvedLocation(exitPoint.GetLocation()),
+            });
+        }
+
+        var returns = new List<ResolvedLocation>();
+        foreach (var returnStatement in analysis.ReturnStatements)
+        {
+            var returnLocation = context.WorkspaceResolver.CreateResolvedLocation(returnStatement.GetLocation());
+            if (returnLocation is not null)
+            {
+                returns.Add(returnLocation);
+            }
+        }
+
+        var data = new ControlFlowAnalysisData
         {
             Region = resolvedStatement.ResolvedLocation,
             EntryReachable = analysis.StartPointIsReachable,
             ExitReachable = analysis.EndPointIsReachable,
-            Exits = analysis.ExitPoints.Select(node => new ControlFlowExit
-            {
-                Kind = node.Kind().ToString(),
-                Location = context.WorkspaceResolver.CreateResolvedLocation(node.GetLocation()),
-            }).ToArray(),
-            Returns = analysis.ReturnStatements
-                .Select(node => context.WorkspaceResolver.CreateResolvedLocation(node.GetLocation()))
-                .OfType<ResolvedLocation>()
-                .ToArray(),
-        });
+            Exits = exits,
+            Returns = returns,
+        };
+
+        return PluginExecutionResult<ControlFlowAnalysisData>.Success(data);
     }
 
     private static async ValueTask<ToolResolutionResult<ResolvedStatement, ControlFlowAnalysisData>> ResolveStatementAsync(LocationSelector? selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)

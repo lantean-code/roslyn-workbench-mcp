@@ -54,20 +54,39 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
                 ? folderPath
                 : null;
 
-            var projectReferences = project.ProjectReferences
-                .Select(reference => context.CurrentSolution.GetProject(reference.ProjectId))
-                .OfType<Project>()
-                .Select(referencedProject => InspectionProjectionFactory.CreateProjectReferenceInfo(referencedProject, context.WorkspaceResolver))
+            var projectedProjectReferences = new List<ProjectReferenceInfo>();
+            foreach (var reference in project.ProjectReferences)
+            {
+                var referencedProject = context.CurrentSolution.GetProject(reference.ProjectId);
+                if (referencedProject is not null)
+                {
+                    projectedProjectReferences.Add(InspectionProjectionFactory.CreateProjectReferenceInfo(referencedProject, context.WorkspaceResolver));
+                }
+            }
+
+            var projectReferences = projectedProjectReferences
                 .OrderBy(static reference => reference.Path, StringComparer.Ordinal)
                 .ToArray();
 
-            IReadOnlyList<DocumentReference>? documents = request.IncludeDocuments
-                ? project.Documents
+            IReadOnlyList<DocumentReference>? documents = null;
+            if (request.IncludeDocuments)
+            {
+                var orderedDocuments = project.Documents
                     .OrderBy(document => context.WorkspaceResolver.NormalizeDocumentPath(document.FilePath ?? document.Name), StringComparer.Ordinal)
-                    .Select(document => context.WorkspaceResolver.CreateDocumentReference(document))
-                    .OfType<DocumentReference>()
-                    .ToArray()
-                : null;
+                    .ToArray();
+
+                var projectedDocuments = new List<DocumentReference>();
+                foreach (var document in orderedDocuments)
+                {
+                    var documentReference = context.WorkspaceResolver.CreateDocumentReference(document);
+                    if (documentReference is not null)
+                    {
+                        projectedDocuments.Add(documentReference);
+                    }
+                }
+
+                documents = projectedDocuments;
+            }
 
             projectStructures.Add(new ProjectStructureInfo
             {

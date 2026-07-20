@@ -37,11 +37,13 @@ internal sealed class SortUsingsTool : MutationToolHandler<SortUsingsRequest>
         var updatedRoot = root.WithUsings(SyntaxFactory.List(orderedUsings));
         var updatedDocument = document.WithSyntaxRoot(updatedRoot);
 
-        return PluginExecutionResult<MutationCandidate>.Success(new MutationCandidate
+        var candidate = new MutationCandidate
         {
             CandidateSolution = updatedDocument.Project.Solution,
             Summary = $"Sort using directives in '{document.Name}'.",
-        });
+        };
+
+        return PluginExecutionResult<MutationCandidate>.Success(candidate);
     }
 
     private static bool IsSystemUsing(UsingDirectiveSyntax usingDirective)

@@ -65,11 +65,13 @@ internal sealed class AnalyzeNullabilityTool : QueryToolHandler<AnalyzeNullabili
             });
         }
 
-        return PluginExecutionResult<NullabilityAnalysisData>.Success(new NullabilityAnalysisData
+        var data = new NullabilityAnalysisData
         {
             Findings = ToolExecutionHelpers.CreatePreboundedCollection(
                 findings,
                 hasMore),
-        });
+        };
+
+        return PluginExecutionResult<NullabilityAnalysisData>.Success(data);
     }
 }

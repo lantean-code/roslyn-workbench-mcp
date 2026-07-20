@@ -36,9 +36,21 @@ internal sealed class FindCallersTool : QueryToolHandler<FindCallersRequest, Cal
             }
 
             var contexts = new List<string>();
-            if (request.IncludeContext)
+            var locations = new List<ResolvedLocation>();
+            foreach (var location in caller.Locations)
             {
-                foreach (var location in caller.Locations.Where(static location => location.IsInSource))
+                if (!location.IsInSource)
+                {
+                    continue;
+                }
+
+                var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(location);
+                if (resolvedLocation is not null)
+                {
+                    locations.Add(resolvedLocation);
+                }
+
+                if (request.IncludeContext)
                 {
                     var document = location.SourceTree is null
                         ? null
@@ -52,16 +64,15 @@ internal sealed class FindCallersTool : QueryToolHandler<FindCallersRequest, Cal
                 }
             }
 
+            var orderedLocations = locations
+                .OrderBy(static location => location.Document?.Path, StringComparer.Ordinal)
+                .ThenBy(static location => location.Span?.Start)
+                .ToArray();
+
             callers.Add(new CallerInfo
             {
                 Caller = reference,
-                Locations = caller.Locations
-                    .Where(static location => location.IsInSource)
-                    .Select(location => context.WorkspaceResolver.CreateResolvedLocation(location))
-                    .OfType<ResolvedLocation>()
-                    .OrderBy(static location => location.Document?.Path, StringComparer.Ordinal)
-                    .ThenBy(static location => location.Span?.Start)
-                    .ToArray(),
+                Locations = orderedLocations,
                 Contexts = request.IncludeContext ? contexts.ToArray() : [],
             });
         }

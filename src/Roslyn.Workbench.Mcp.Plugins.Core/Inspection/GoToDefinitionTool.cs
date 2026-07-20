@@ -13,18 +13,39 @@ internal sealed class GoToDefinitionTool : QueryToolHandler<GoToDefinitionReques
 
         var symbol = symbolResolution.Value;
         var sourceDefinition = await SymbolFinder.FindSourceDefinitionAsync(symbol, context.CurrentSolution, cancellationToken) ?? symbol;
-        var definitions = sourceDefinition.Locations.Any(static location => location.IsInSource)
-            ? sourceDefinition.Locations
-                .Where(static location => location.IsInSource)
-                .Select(location => new DefinitionLocation
+        var sourceDefinitions = new List<DefinitionLocation>();
+        var hasSourceLocation = false;
+        foreach (var location in sourceDefinition.Locations)
+        {
+            if (!location.IsInSource)
+            {
+                continue;
+            }
+
+            hasSourceLocation = true;
+            var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(location);
+            if (resolvedLocation is not null)
+            {
+                sourceDefinitions.Add(new DefinitionLocation
                 {
-                    Location = context.WorkspaceResolver.CreateResolvedLocation(location),
-                })
-                .Where(static definition => definition.Location is not null)
+                    Location = resolvedLocation,
+                });
+            }
+        }
+
+        IReadOnlyList<DefinitionLocation> definitions;
+        if (!hasSourceLocation)
+        {
+            definitions = [InspectionProjectionFactory.CreateDefinitionLocation(sourceDefinition, context.WorkspaceResolver)];
+        }
+        else
+        {
+            definitions = sourceDefinitions
                 .OrderBy(static definition => definition.Location?.Document?.Path, StringComparer.Ordinal)
                 .ThenBy(static definition => definition.Location?.Span?.Start)
-                .ToArray()
-            : [InspectionProjectionFactory.CreateDefinitionLocation(sourceDefinition, context.WorkspaceResolver)];
+                .ToArray();
+        }
+
         var data = new DefinitionData
         {
             Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),

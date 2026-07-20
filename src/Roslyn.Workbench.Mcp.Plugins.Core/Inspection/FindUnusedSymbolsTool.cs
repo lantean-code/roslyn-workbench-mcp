@@ -80,12 +80,14 @@ internal sealed class FindUnusedSymbolsTool : QueryToolHandler<FindUnusedSymbols
             });
         }
 
-        return PluginExecutionResult<UnusedSymbolsData>.Success(new UnusedSymbolsData
+        var data = new UnusedSymbolsData
         {
             Candidates = ToolExecutionHelpers.CreatePreboundedCollection(
                 candidates,
                 hasMore),
-        });
+        };
+
+        return PluginExecutionResult<UnusedSymbolsData>.Success(data);
     }
 
     private static bool IsUnusedDiagnosticId(string diagnosticId)

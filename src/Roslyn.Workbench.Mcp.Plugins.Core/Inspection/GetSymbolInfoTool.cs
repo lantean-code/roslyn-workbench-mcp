@@ -1,3 +1,5 @@
+using ContractTypeInfo = Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection.TypeInfo;
+
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
 [RoslynTool("get-symbol-info", "Get Symbol Info", "Returns detailed metadata for a resolved symbol.")]
@@ -12,22 +14,50 @@ internal sealed class GetSymbolInfoTool : QueryToolHandler<GetSymbolInfoRequest,
         }
 
         var symbol = symbolResolution.Value;
+        IReadOnlyList<ParameterInfo>? parameters = null;
+        ContractTypeInfo? returnType = null;
+        if (symbol is IMethodSymbol methodSymbol)
+        {
+            var projectedParameters = new List<ParameterInfo>();
+            foreach (var parameter in methodSymbol.Parameters)
+            {
+                projectedParameters.Add(InspectionProjectionFactory.CreateParameterInfo(parameter));
+            }
+
+            parameters = projectedParameters;
+            returnType = InspectionProjectionFactory.CreateTypeInfo(methodSymbol.ReturnType);
+        }
+
+        var declarations = new List<ResolvedLocation>();
+        foreach (var location in symbol.Locations)
+        {
+            if (!location.IsInSource)
+            {
+                continue;
+            }
+
+            var declaration = context.WorkspaceResolver.CreateResolvedLocation(location);
+            if (declaration is not null)
+            {
+                declarations.Add(declaration);
+            }
+        }
+
+        var orderedDeclarations = declarations
+            .OrderBy(static location => location.Document?.Path, StringComparer.Ordinal)
+            .ThenBy(static location => location.Span?.Start)
+            .ToArray();
+
         var data = new SymbolInfoData
         {
             Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
             Accessibility = symbol.DeclaredAccessibility.ToString(),
             Modifiers = InspectionProjectionFactory.GetModifiers(symbol),
             Type = InspectionProjectionFactory.CreateAssociatedTypeInfo(symbol),
-            Parameters = symbol is IMethodSymbol methodSymbol ? methodSymbol.Parameters.Select(InspectionProjectionFactory.CreateParameterInfo).ToArray() : null,
-            ReturnType = symbol is IMethodSymbol method ? InspectionProjectionFactory.CreateTypeInfo(method.ReturnType) : null,
+            Parameters = parameters,
+            ReturnType = returnType,
             Documentation = request.IncludeDocumentation ? symbol.GetDocumentationCommentXml(cancellationToken: cancellationToken) : null,
-            Declarations = symbol.Locations
-                .Where(static location => location.IsInSource)
-                .Select(location => context.WorkspaceResolver.CreateResolvedLocation(location))
-                .OfType<ResolvedLocation>()
-                .OrderBy(static location => location.Document?.Path, StringComparer.Ordinal)
-                .ThenBy(static location => location.Span?.Start)
-                .ToArray(),
+            Declarations = orderedDeclarations,
         };
 
         return PluginExecutionResult<SymbolInfoData>.Success(data);

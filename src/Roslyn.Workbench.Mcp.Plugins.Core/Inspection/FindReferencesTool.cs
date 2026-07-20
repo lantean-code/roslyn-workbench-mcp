@@ -107,13 +107,15 @@ internal sealed class FindReferencesTool : QueryToolHandler<FindReferencesReques
 
         var symbolReference = context.WorkspaceResolver.CreateSymbolReference(symbol);
 
-        return PluginExecutionResult<ReferenceSearchData>.Success(new ReferenceSearchData
+        var data = new ReferenceSearchData
         {
             Symbol = symbolReference,
             References = ToolExecutionHelpers.CreatePreboundedCollection(
                 references,
                 pendingReferences.Count > maxResults),
-        });
+        };
+
+        return PluginExecutionResult<ReferenceSearchData>.Success(data);
     }
 
     private static async ValueTask<bool> IsWriteReferenceAsync(Document? document, Location location, CancellationToken cancellationToken)

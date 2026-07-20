@@ -19,16 +19,35 @@ internal sealed class AnalyzeDataFlowTool : QueryToolHandler<AnalyzeDataFlowRequ
             return ToolExecutionHelpers.Rejected<DataFlowAnalysisData>("InvalidRequest", "The selected region does not support data-flow analysis.");
         }
 
-        return PluginExecutionResult<DataFlowAnalysisData>.Success(new DataFlowAnalysisData
+        var variablesDeclared = CreateSymbolReferences(analysis.VariablesDeclared, context.WorkspaceResolver);
+        var readInside = CreateSymbolReferences(analysis.ReadInside, context.WorkspaceResolver);
+        var writtenInside = CreateSymbolReferences(analysis.WrittenInside, context.WorkspaceResolver);
+        var dataFlowsIn = CreateSymbolReferences(analysis.DataFlowsIn, context.WorkspaceResolver);
+        var dataFlowsOut = CreateSymbolReferences(analysis.DataFlowsOut, context.WorkspaceResolver);
+        var captured = CreateSymbolReferences(analysis.Captured, context.WorkspaceResolver);
+        var data = new DataFlowAnalysisData
         {
             Region = resolvedStatement.ResolvedLocation,
-            VariablesDeclared = analysis.VariablesDeclared.Select(context.WorkspaceResolver.CreateSymbolReference).ToArray(),
-            ReadInside = analysis.ReadInside.Select(context.WorkspaceResolver.CreateSymbolReference).ToArray(),
-            WrittenInside = analysis.WrittenInside.Select(context.WorkspaceResolver.CreateSymbolReference).ToArray(),
-            DataFlowsIn = analysis.DataFlowsIn.Select(context.WorkspaceResolver.CreateSymbolReference).ToArray(),
-            DataFlowsOut = analysis.DataFlowsOut.Select(context.WorkspaceResolver.CreateSymbolReference).ToArray(),
-            Captured = analysis.Captured.Select(context.WorkspaceResolver.CreateSymbolReference).ToArray(),
-        });
+            VariablesDeclared = variablesDeclared,
+            ReadInside = readInside,
+            WrittenInside = writtenInside,
+            DataFlowsIn = dataFlowsIn,
+            DataFlowsOut = dataFlowsOut,
+            Captured = captured,
+        };
+
+        return PluginExecutionResult<DataFlowAnalysisData>.Success(data);
+    }
+
+    private static List<SymbolReference> CreateSymbolReferences(IEnumerable<ISymbol> symbols, IWorkspaceResolver workspaceResolver)
+    {
+        var references = new List<SymbolReference>();
+        foreach (var symbol in symbols)
+        {
+            references.Add(workspaceResolver.CreateSymbolReference(symbol));
+        }
+
+        return references;
     }
 
     private static async ValueTask<ToolResolutionResult<ResolvedStatement, DataFlowAnalysisData>> ResolveStatementAsync(LocationSelector? selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)

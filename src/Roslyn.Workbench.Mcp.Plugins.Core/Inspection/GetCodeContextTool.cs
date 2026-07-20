@@ -17,19 +17,7 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
             ? GetEnclosingSymbols(resolvedLocation.SemanticModel, resolvedLocation.Node, context)
             : [];
         var diagnostics = request.IncludeDiagnostics
-            ? resolvedLocation.SemanticModel.GetDiagnostics(resolvedLocation.Location.SourceSpan, cancellationToken)
-                .Distinct(DiagnosticLocationComparer.Instance)
-                .Select(diagnostic => new DiagnosticInfo
-                {
-                    Id = diagnostic.Id,
-                    Severity = InspectionProjectionFactory.MapSeverity(diagnostic.Severity),
-                    Message = diagnostic.GetMessage(CultureInfo.InvariantCulture),
-                    Location = diagnostic.Location.IsInSource ? context.WorkspaceResolver.CreateResolvedLocation(diagnostic.Location) : null,
-                })
-                .OrderBy(static diagnostic => diagnostic.Location?.Document?.Path ?? string.Empty, StringComparer.Ordinal)
-                .ThenBy(static diagnostic => diagnostic.Location?.Span?.Start ?? int.MaxValue)
-                .ThenBy(static diagnostic => diagnostic.Id, StringComparer.Ordinal)
-                .ToArray()
+            ? CreateDiagnostics(resolvedLocation, context, cancellationToken)
             : [];
 
         var text = await resolvedLocation.Document.GetTextAsync(cancellationToken);
@@ -43,13 +31,15 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
             Environment.NewLine,
             Enumerable.Range(windowStart, windowEnd - windowStart + 1).Select(index => lines[index].ToString()));
 
-        return PluginExecutionResult<CodeContextData>.Success(new CodeContextData
+        var data = new CodeContextData
         {
             Location = resolvedLocation.ResolvedLocation,
             Text = windowText,
             EnclosingSymbols = enclosingSymbols,
             Diagnostics = diagnostics,
-        });
+        };
+
+        return PluginExecutionResult<CodeContextData>.Success(data);
     }
 
     private static List<SymbolReference> GetEnclosingSymbols(SemanticModel semanticModel, SyntaxNode node, IQueryContext context)
@@ -66,6 +56,34 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
         }
 
         return symbols;
+    }
+
+    private static DiagnosticInfo[] CreateDiagnostics(ResolvedCodeContext resolvedLocation, IQueryContext context, CancellationToken cancellationToken)
+    {
+        var sourceDiagnostics = resolvedLocation.SemanticModel.GetDiagnostics(resolvedLocation.Location.SourceSpan, cancellationToken);
+        var uniqueDiagnostics = new HashSet<Diagnostic>(DiagnosticLocationComparer.Instance);
+        var diagnostics = new List<DiagnosticInfo>();
+        foreach (var diagnostic in sourceDiagnostics)
+        {
+            if (!uniqueDiagnostics.Add(diagnostic))
+            {
+                continue;
+            }
+
+            diagnostics.Add(new DiagnosticInfo
+            {
+                Id = diagnostic.Id,
+                Severity = InspectionProjectionFactory.MapSeverity(diagnostic.Severity),
+                Message = diagnostic.GetMessage(CultureInfo.InvariantCulture),
+                Location = diagnostic.Location.IsInSource ? context.WorkspaceResolver.CreateResolvedLocation(diagnostic.Location) : null,
+            });
+        }
+
+        return diagnostics
+            .OrderBy(static diagnostic => diagnostic.Location?.Document?.Path ?? string.Empty, StringComparer.Ordinal)
+            .ThenBy(static diagnostic => diagnostic.Location?.Span?.Start ?? int.MaxValue)
+            .ThenBy(static diagnostic => diagnostic.Id, StringComparer.Ordinal)
+            .ToArray();
     }
 
     private static async ValueTask<ToolResolutionResult<ResolvedCodeContext, CodeContextData>> ResolveLocationAsync(LocationSelector? selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)

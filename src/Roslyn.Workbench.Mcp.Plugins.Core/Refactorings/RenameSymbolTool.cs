@@ -29,10 +29,12 @@ internal sealed class RenameSymbolTool : MutationToolHandler<RenameSymbolRequest
             return PluginExecutionResult<MutationCandidate>.NoChange();
         }
 
-        return PluginExecutionResult<MutationCandidate>.Success(new MutationCandidate
+        var candidate = new MutationCandidate
         {
             CandidateSolution = candidateSolution,
             Summary = $"Rename '{symbol.Name}' to '{request.NewName}'.",
-        });
+        };
+
+        return PluginExecutionResult<MutationCandidate>.Success(candidate);
     }
 }

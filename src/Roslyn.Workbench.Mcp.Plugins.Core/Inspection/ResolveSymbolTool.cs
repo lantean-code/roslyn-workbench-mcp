@@ -32,18 +32,34 @@ internal sealed class ResolveSymbolTool : QueryToolHandler<ResolveSymbolRequest,
         }
 
         var symbol = symbolResolution.Value;
+        var selector = ToolExecutionHelpers.CreateSourceSymbolSelector(symbol, context.WorkspaceResolver)
+            ?? ToolExecutionHelpers.CreateLocationSymbolSelector(context.WorkspaceResolver.CreateResolvedLocation(locationResolution.Value));
+
+        var declarations = new List<ResolvedLocation>();
+        foreach (var location in symbol.Locations)
+        {
+            if (!location.IsInSource)
+            {
+                continue;
+            }
+
+            var declaration = context.WorkspaceResolver.CreateResolvedLocation(location);
+            if (declaration is not null)
+            {
+                declarations.Add(declaration);
+            }
+        }
+
+        var orderedDeclarations = declarations
+            .OrderBy(static location => location.Document?.Path, StringComparer.Ordinal)
+            .ThenBy(static location => location.Span?.Start)
+            .ToArray();
+
         var data = new ResolveSymbolData
         {
             Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
-            Selector = ToolExecutionHelpers.CreateSourceSymbolSelector(symbol, context.WorkspaceResolver)
-                ?? ToolExecutionHelpers.CreateLocationSymbolSelector(context.WorkspaceResolver.CreateResolvedLocation(locationResolution.Value)),
-            Declarations = symbol.Locations
-                .Where(static location => location.IsInSource)
-                .Select(location => context.WorkspaceResolver.CreateResolvedLocation(location))
-                .OfType<ResolvedLocation>()
-                .OrderBy(static location => location.Document?.Path, StringComparer.Ordinal)
-                .ThenBy(static location => location.Span?.Start)
-                .ToArray(),
+            Selector = selector,
+            Declarations = orderedDeclarations,
         };
 
         return PluginExecutionResult<ResolveSymbolData>.Success(data);

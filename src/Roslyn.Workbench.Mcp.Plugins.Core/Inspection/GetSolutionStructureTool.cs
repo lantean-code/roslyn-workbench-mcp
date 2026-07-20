@@ -1,11 +1,20 @@
+using Roslyn.Workbench.Mcp.Workspace.Diagnostics;
+
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
-[RoslynTool("get-solution-structure", "Get Solution Structure", "Returns solution folders, projects, target frameworks and direct project relationships.")]
+[RoslynTool(_toolName, "Get Solution Structure", "Returns solution folders, projects, target frameworks and direct project relationships.")]
 internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStructureRequest, SolutionStructureData>
 {
+    private const string _toolName = "get-solution-structure";
+
     protected override async ValueTask<PluginExecutionResult<SolutionStructureData>> ExecuteCoreAsync(GetSolutionStructureRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-        var hierarchy = await context.ToolExecutionServices.ProjectStructureService.GetSolutionHierarchyAsync(context.WorkspaceIdentity.LoadedPath, cancellationToken);
+        SolutionHierarchyResult hierarchy;
+        using (WorkbenchPerformanceEventSource.Log.StartPhase(_toolName, WorkbenchPerformanceEventSource.SolutionHierarchyPhase))
+        {
+            hierarchy = await context.ToolExecutionServices.ProjectStructureService.GetSolutionHierarchyAsync(context.WorkspaceIdentity.LoadedPath, cancellationToken);
+        }
+
         if (!hierarchy.IsSucceeded)
         {
             return ToolExecutionHelpers.RejectProjectStructureFailure<SolutionStructureData>(hierarchy.ErrorMessage);
@@ -13,91 +22,115 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
 
         var folders = new List<SolutionFolderInfo>();
         var foldersHaveMore = false;
-        foreach (var folder in hierarchy.Folders)
+        using (WorkbenchPerformanceEventSource.Log.StartPhase(_toolName, WorkbenchPerformanceEventSource.FolderSelectionPhase))
         {
-            if (folders.Count == request.EffectiveFoldersLimit)
+            foreach (var folder in hierarchy.Folders)
             {
-                foldersHaveMore = true;
-                break;
+                if (folders.Count == request.EffectiveFoldersLimit)
+                {
+                    foldersHaveMore = true;
+                    break;
+                }
+
+                folders.Add(folder);
             }
-
-            folders.Add(folder);
         }
-
-        var orderedProjects = context.CurrentSolution.Projects
-            .OrderBy(project => context.WorkspaceResolver.NormalizeProjectPath(project.FilePath ?? project.Name), StringComparer.Ordinal);
 
         var selectedProjects = new List<Project>();
         var projectsHaveMore = false;
-        foreach (var project in orderedProjects)
+        using (WorkbenchPerformanceEventSource.Log.StartPhase(_toolName, WorkbenchPerformanceEventSource.ProjectSelectionPhase))
         {
-            if (selectedProjects.Count == request.EffectiveProjectsLimit)
-            {
-                projectsHaveMore = true;
-                break;
-            }
+            var orderedProjects = context.CurrentSolution.Projects
+                .OrderBy(project => context.WorkspaceResolver.NormalizeProjectPath(project.FilePath ?? project.Name), StringComparer.Ordinal);
 
-            selectedProjects.Add(project);
+            foreach (var project in orderedProjects)
+            {
+                if (selectedProjects.Count == request.EffectiveProjectsLimit)
+                {
+                    projectsHaveMore = true;
+                    break;
+                }
+
+                selectedProjects.Add(project);
+            }
+        }
+
+        IReadOnlyList<ProjectTargetFrameworksResult> targetFrameworkResults;
+        using (WorkbenchPerformanceEventSource.Log.StartPhase(_toolName, WorkbenchPerformanceEventSource.TargetFrameworkEvaluationPhase))
+        {
+            targetFrameworkResults = context.ToolExecutionServices.ProjectStructureService.GetTargetFrameworks(selectedProjects);
         }
 
         var projectStructures = new List<ProjectStructureInfo>();
-        foreach (var project in selectedProjects)
+        using (WorkbenchPerformanceEventSource.Log.StartPhase(_toolName, WorkbenchPerformanceEventSource.ProjectProjectionPhase))
         {
-            var targetFrameworks = context.ToolExecutionServices.ProjectStructureService.GetTargetFrameworks(project);
-            if (!targetFrameworks.IsSucceeded)
+            for (var index = 0; index < selectedProjects.Count; index++)
             {
-                return ToolExecutionHelpers.RejectProjectStructureFailure<SolutionStructureData>(targetFrameworks.ErrorMessage);
-            }
+                var project = selectedProjects[index];
+                var targetFrameworks = targetFrameworkResults[index];
 
-            var projectPath = context.WorkspaceResolver.NormalizeProjectPath(project.FilePath ?? project.Name);
-            var solutionFolderPath = hierarchy.ProjectFolderPaths.TryGetValue(projectPath, out var folderPath)
-                ? folderPath
-                : null;
-
-            var projectedProjectReferences = new List<ProjectReferenceInfo>();
-            foreach (var reference in project.ProjectReferences)
-            {
-                var referencedProject = context.CurrentSolution.GetProject(reference.ProjectId);
-                if (referencedProject is not null)
+                if (!targetFrameworks.IsSucceeded)
                 {
-                    projectedProjectReferences.Add(InspectionProjectionFactory.CreateProjectReferenceInfo(referencedProject, context.WorkspaceResolver));
+                    return ToolExecutionHelpers.RejectProjectStructureFailure<SolutionStructureData>(targetFrameworks.ErrorMessage);
                 }
-            }
 
-            var projectReferences = projectedProjectReferences
-                .OrderBy(static reference => reference.Path, StringComparer.Ordinal)
-                .ToArray();
+                var projectPath = context.WorkspaceResolver.NormalizeProjectPath(project.FilePath ?? project.Name);
+                var solutionFolderPath = hierarchy.ProjectFolderPaths.TryGetValue(projectPath, out var folderPath)
+                    ? folderPath
+                    : null;
 
-            IReadOnlyList<DocumentReference>? documents = null;
-            if (request.IncludeDocuments)
-            {
-                var orderedDocuments = project.Documents
-                    .OrderBy(document => context.WorkspaceResolver.NormalizeDocumentPath(document.FilePath ?? document.Name), StringComparer.Ordinal)
-                    .ToArray();
-
-                var projectedDocuments = new List<DocumentReference>();
-                foreach (var document in orderedDocuments)
+                ProjectReferenceInfo[] projectReferences;
+                using (WorkbenchPerformanceEventSource.Log.StartPhase(_toolName, WorkbenchPerformanceEventSource.ProjectReferenceProjectionPhase))
                 {
-                    var documentReference = context.WorkspaceResolver.CreateDocumentReference(document);
-                    if (documentReference is not null)
+                    var projectedProjectReferences = new List<ProjectReferenceInfo>();
+                    foreach (var reference in project.ProjectReferences)
                     {
-                        projectedDocuments.Add(documentReference);
+                        var referencedProject = context.CurrentSolution.GetProject(reference.ProjectId);
+                        if (referencedProject is not null)
+                        {
+                            projectedProjectReferences.Add(InspectionProjectionFactory.CreateProjectReferenceInfo(referencedProject, context.WorkspaceResolver));
+                        }
+                    }
+
+                    projectReferences = projectedProjectReferences
+                        .OrderBy(static reference => reference.Path, StringComparer.Ordinal)
+                        .ToArray();
+                }
+
+                IReadOnlyList<DocumentReference>? documents = null;
+                if (request.IncludeDocuments)
+                {
+                    using (WorkbenchPerformanceEventSource.Log.StartPhase(_toolName, WorkbenchPerformanceEventSource.DocumentProjectionPhase))
+                    {
+                        var orderedDocuments = project.Documents
+                            .OrderBy(document => context.WorkspaceResolver.NormalizeDocumentPath(document.FilePath ?? document.Name), StringComparer.Ordinal)
+                            .ToArray();
+
+                        var projectedDocuments = new List<DocumentReference>();
+                        foreach (var document in orderedDocuments)
+                        {
+                            var documentReference = context.WorkspaceResolver.CreateDocumentReference(document);
+                            if (documentReference is not null)
+                            {
+                                projectedDocuments.Add(documentReference);
+                            }
+                        }
+
+                        documents = projectedDocuments;
                     }
                 }
 
-                documents = projectedDocuments;
+                projectStructures.Add(new ProjectStructureInfo
+                {
+                    ProjectId = project.Id.Id.ToString(),
+                    Name = project.Name,
+                    Path = projectPath,
+                    SolutionFolderPath = solutionFolderPath,
+                    TargetFrameworks = targetFrameworks.TargetFrameworks,
+                    ProjectReferences = projectReferences,
+                    Documents = documents,
+                });
             }
-
-            projectStructures.Add(new ProjectStructureInfo
-            {
-                ProjectId = project.Id.Id.ToString(),
-                Name = project.Name,
-                Path = projectPath,
-                SolutionFolderPath = solutionFolderPath,
-                TargetFrameworks = targetFrameworks.TargetFrameworks,
-                ProjectReferences = projectReferences,
-                Documents = documents,
-            });
         }
 
         var data = new SolutionStructureData

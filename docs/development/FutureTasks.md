@@ -63,9 +63,9 @@ Source: [Core Tool Performance Audit — 2026-07-19](CoreToolPerformanceAudit-20
 
 ### Evaluate snapshot-scoped cross-invocation query caching
 
-**Status:** Conditional
+**Status:** Not started
 
-If performance measurements show meaningful repeated Roslyn discovery across successive tool invocations, design a Workspace-owned query cache that is separate from request-local lookup caches. Start with operations such as reference discovery that currently obtain a complete lightweight result before applying a response bound, allowing a later request with a larger bound to reuse the same discovery safely.
+Focused EF Core traces now show that complete Roslyn discovery takes approximately 0.8 seconds for reference search and 156 milliseconds for symbol search, while candidate projection, selection and selected-result enrichment are small fractions of the request. Batched `get-solution-structure` evaluation also spends approximately one second reading target-framework metadata for its high-bound project set on every invocation. Design a Workspace-owned query cache that is separate from request-local lookup caches. Start with reference discovery, allowing successive requests and a later request with a larger bound to reuse the same complete discovery safely, then evaluate snapshot-safe target-framework metadata as the next candidate.
 
 Use a dedicated size-limited cache rather than the Host's general-purpose cache. Keys must include workspace and snapshot identity plus the canonical operation target and semantic options. Cached values must record whether discovery is complete or only covers a known limit; a larger request may reuse an entry only when the cached result is complete or already covers that request. Do not include presentation-only response bounds in keys when a complete ordered discovery result is cached.
 
@@ -117,6 +117,21 @@ Scheduled macOS Workspace integration and published-Host acceptance coverage is 
 Sources: [TestArchitectureReaudit-2026-07-18.md](TestArchitectureReaudit-2026-07-18.md#deferred-decisions), [IntegrationTestingStage7Results-2026-07-18.md](IntegrationTestingStage7Results-2026-07-18.md#platform-evidence)
 
 ## P3 — Engineering Efficiency
+
+### Audit repository-wide readability and incidental complexity
+
+**Status:** Not started
+
+Extend the completed tool readability pass across all production and test code. Apply the general source rules consistently rather than limiting them to tool implementations:
+
+- insert a blank line after every multiline statement before the next statement;
+- replace conditional and null-coalescing expressions that perform non-trivial work on both alternatives with named intermediate values or ordinary branching;
+- simplify nested construction, long variable chains and dense LINQ where they make control flow or allocation behaviour difficult to verify; and
+- retain simple ternaries and null coalescing between values where the expression remains clearer than an expanded branch.
+
+Perform the audit in cohesive project-level batches, preserving behaviour and avoiding unrelated architectural changes. Keep this separate from the active tool performance programme so measured performance work can resume first; use performance evidence rather than general cleanup as the reason for changing hot-path implementation choices.
+
+Source: [`src/AGENTS.md`](../../src/AGENTS.md)
 
 ### Migrate to Microsoft.Testing.Platform v2
 

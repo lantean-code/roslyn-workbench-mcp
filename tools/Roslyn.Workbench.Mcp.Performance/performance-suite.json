@@ -14,12 +14,34 @@
       ],
       "scenarios": [
         {
-          "id": "solution-structure",
-          "description": "Projects and documents exercise bounded solution projection.",
+          "id": "solution-structure-low-limit",
+          "description": "One project and folder with documents demonstrate low-bound solution projection.",
           "tool": "get-solution-structure",
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
             "includeDocuments": true,
+            "projectsLimit": 1,
+            "foldersLimit": 1
+          }
+        },
+        {
+          "id": "solution-structure",
+          "description": "Projects and documents exercise the curated high-bound solution projection.",
+          "tool": "get-solution-structure",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "includeDocuments": true,
+            "projectsLimit": 25,
+            "foldersLimit": 50
+          }
+        },
+        {
+          "id": "solution-structure-without-documents",
+          "description": "The high-bound solution projection without optional document payloads.",
+          "tool": "get-solution-structure",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "includeDocuments": false,
             "projectsLimit": 25,
             "foldersLimit": 50
           }
@@ -204,12 +226,34 @@
       ],
       "scenarios": [
         {
-          "id": "solution-structure",
-          "description": "Projects and documents exercise bounded solution projection.",
+          "id": "solution-structure-low-limit",
+          "description": "One project and folder with documents demonstrate low-bound solution projection.",
           "tool": "get-solution-structure",
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
             "includeDocuments": true,
+            "projectsLimit": 1,
+            "foldersLimit": 1
+          }
+        },
+        {
+          "id": "solution-structure",
+          "description": "Projects and documents exercise the curated high-bound solution projection.",
+          "tool": "get-solution-structure",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "includeDocuments": true,
+            "projectsLimit": 25,
+            "foldersLimit": 100
+          }
+        },
+        {
+          "id": "solution-structure-without-documents",
+          "description": "The high-bound solution projection without optional document payloads.",
+          "tool": "get-solution-structure",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "includeDocuments": false,
             "projectsLimit": 25,
             "foldersLimit": 100
           }
@@ -339,12 +383,34 @@
       ],
       "scenarios": [
         {
-          "id": "solution-structure",
-          "description": "Projects and documents exercise bounded solution projection.",
+          "id": "solution-structure-low-limit",
+          "description": "One project and folder with documents demonstrate low-bound solution projection.",
           "tool": "get-solution-structure",
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
             "includeDocuments": true,
+            "projectsLimit": 1,
+            "foldersLimit": 1
+          }
+        },
+        {
+          "id": "solution-structure",
+          "description": "Projects and documents exercise the curated high-bound solution projection.",
+          "tool": "get-solution-structure",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "includeDocuments": true,
+            "projectsLimit": 100,
+            "foldersLimit": 200
+          }
+        },
+        {
+          "id": "solution-structure-without-documents",
+          "description": "The high-bound solution projection without optional document payloads.",
+          "tool": "get-solution-structure",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "includeDocuments": false,
             "projectsLimit": 100,
             "foldersLimit": 200
           }

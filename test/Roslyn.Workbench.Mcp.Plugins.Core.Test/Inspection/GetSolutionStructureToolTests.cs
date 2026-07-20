@@ -75,12 +75,18 @@ public sealed class GetSolutionStructureToolTests
                 {
                     ["Main"] = "/src/core",
                 }));
+
+        var targetFrameworksByProjectName = new Dictionary<string, ProjectTargetFrameworksResult>(StringComparer.Ordinal)
+        {
+            ["Main"] = ProjectTargetFrameworksResult.Succeeded(["net10.0"]),
+            ["Referenced"] = ProjectTargetFrameworksResult.Succeeded(["net9.0"]),
+        };
+
         projectStructureService
-            .Setup(item => item.GetTargetFrameworks(It.Is<Project>(project => project.Name == "Main")))
-            .Returns(ProjectTargetFrameworksResult.Succeeded(["net10.0"]));
-        projectStructureService
-            .Setup(item => item.GetTargetFrameworks(It.Is<Project>(project => project.Name == "Referenced")))
-            .Returns(ProjectTargetFrameworksResult.Succeeded(["net9.0"]));
+            .Setup(item => item.GetTargetFrameworks(It.IsAny<IReadOnlyList<Project>>()))
+            .Returns<IReadOnlyList<Project>>(projects => projects
+                .Select(project => targetFrameworksByProjectName[project.Name])
+                .ToArray());
 
         var result = await target.ExecuteAsync(new GetSolutionStructureRequest
         {
@@ -163,8 +169,10 @@ public sealed class GetSolutionStructureToolTests
             .Setup(item => item.GetSolutionHierarchyAsync("/workspace/Sample.slnx", It.IsAny<CancellationToken>()))
             .ReturnsAsync(SolutionHierarchyResult.Succeeded());
         projectStructureService
-            .Setup(item => item.GetTargetFrameworks(It.IsAny<Project>()))
-            .Returns(ProjectTargetFrameworksResult.Succeeded());
+            .Setup(item => item.GetTargetFrameworks(It.IsAny<IReadOnlyList<Project>>()))
+            .Returns<IReadOnlyList<Project>>(projects => projects
+                .Select(static _ => ProjectTargetFrameworksResult.Succeeded())
+                .ToArray());
 
         var result = await target.ExecuteAsync(new GetSolutionStructureRequest
         {
@@ -277,15 +285,19 @@ public sealed class GetSolutionStructureToolTests
                 {
                     ["Main"] = "/src/core",
                 }));
+
+        var targetFrameworksByProject = new Dictionary<Project, ProjectTargetFrameworksResult>
+        {
+            [referencedA] = ProjectTargetFrameworksResult.Succeeded(["net8.0"]),
+            [referencedB] = ProjectTargetFrameworksResult.Succeeded(["net9.0"]),
+            [mainProject] = ProjectTargetFrameworksResult.Succeeded(["net10.0"]),
+        };
+
         projectStructureService
-            .Setup(item => item.GetTargetFrameworks(referencedA))
-            .Returns(ProjectTargetFrameworksResult.Succeeded(["net8.0"]));
-        projectStructureService
-            .Setup(item => item.GetTargetFrameworks(referencedB))
-            .Returns(ProjectTargetFrameworksResult.Succeeded(["net9.0"]));
-        projectStructureService
-            .Setup(item => item.GetTargetFrameworks(mainProject))
-            .Returns(ProjectTargetFrameworksResult.Succeeded(["net10.0"]));
+            .Setup(item => item.GetTargetFrameworks(It.IsAny<IReadOnlyList<Project>>()))
+            .Returns<IReadOnlyList<Project>>(projects => projects
+                .Select(project => targetFrameworksByProject[project])
+                .ToArray());
 
         var result = await target.ExecuteAsync(new GetSolutionStructureRequest
         {
@@ -330,7 +342,7 @@ public sealed class GetSolutionStructureToolTests
         result.Error!.Code.Should().Be("ProjectStructureUnavailable");
         result.Error.Message.Should().Be("Failure");
         result.RequiredAction.Should().Be(RequiredAction.Retry);
-        projectStructureService.Verify(item => item.GetTargetFrameworks(It.IsAny<Project>()), Times.Never);
+        projectStructureService.Verify(item => item.GetTargetFrameworks(It.IsAny<IReadOnlyList<Project>>()), Times.Never);
     }
 
     [Fact]
@@ -374,8 +386,8 @@ public sealed class GetSolutionStructureToolTests
             .Setup(item => item.GetSolutionHierarchyAsync("/workspace/Sample.slnx", TestContext.Current.CancellationToken))
             .ReturnsAsync(SolutionHierarchyResult.Succeeded());
         projectStructureService
-            .Setup(item => item.GetTargetFrameworks(It.IsAny<Project>()))
-            .Returns(ProjectTargetFrameworksResult.Failed("Failure"));
+            .Setup(item => item.GetTargetFrameworks(It.IsAny<IReadOnlyList<Project>>()))
+            .Returns([ProjectTargetFrameworksResult.Failed("Failure")]);
 
         var result = await target.ExecuteAsync(
             new GetSolutionStructureRequest(),

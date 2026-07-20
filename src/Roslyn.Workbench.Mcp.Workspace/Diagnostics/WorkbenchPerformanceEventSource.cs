@@ -6,14 +6,25 @@ namespace Roslyn.Workbench.Mcp.Workspace.Diagnostics;
 internal sealed class WorkbenchPerformanceEventSource : EventSource
 {
     public const string ProviderName = "Roslyn-Workbench-Mcp";
+    public const string CandidateProjectionPhase = "candidate-projection";
     public const string ContextAcquisitionPhase = "context-acquisition";
     public const string ContextConstructionPhase = "context-construction";
+    public const string DiscoveryPhase = "discovery";
+    public const string DocumentProjectionPhase = "document-projection";
     public const string ExternalChangeDetectionPhase = "external-change-detection";
+    public const string FolderSelectionPhase = "folder-selection";
     public const string HandlerExecutionPhase = "handler-execution";
     public const string ManifestConstructionPhase = "manifest-construction";
     public const string MutationStagingPhase = "mutation-staging";
+    public const string ProjectProjectionPhase = "project-projection";
+    public const string ProjectReferenceProjectionPhase = "project-reference-projection";
+    public const string ProjectSelectionPhase = "project-selection";
     public const string RequestBindingPhase = "request-binding";
+    public const string ResultEnrichmentPhase = "result-enrichment";
+    public const string ResultSelectionPhase = "result-selection";
     public const string ResponseProjectionPhase = "response-projection";
+    public const string SolutionHierarchyPhase = "solution-hierarchy";
+    public const string TargetFrameworkEvaluationPhase = "target-framework-evaluation";
     public const string ToolTotalPhase = "tool-total";
     public const string WorkspaceCompatibilityPhase = "workspace-compatibility";
     public const string WorkspaceLeaseAcquisitionPhase = "workspace-lease-acquisition";

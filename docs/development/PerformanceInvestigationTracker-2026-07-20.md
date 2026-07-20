@@ -130,7 +130,7 @@ Preserve the supported behaviour of loading mixed solutions while ignoring proje
 
 ### 5. Investigate `get-solution-structure` scaling and response size
 
-**Status:** Not started
+**Status:** Completed
 
 The native WSL baseline records:
 
@@ -142,13 +142,33 @@ The native WSL baseline records:
 
 Separate shared validation from solution traversal, projection and serialisation. Confirm whether document and folder bounds stop traversal early or only reduce the final response. Assess whether the current response shape forces avoidable repeated project/document work.
 
+Focused EF Core phase tracing identified target-framework evaluation as the dominant cost. The original implementation created and disposed an MSBuild `ProjectCollection` for every selected Roslyn project. In the pre-change trace, project projection occupied 1,953.63 ms of a 1,982.92 ms Host-tool median; repeated target-framework evaluations accounted for virtually all of that time. Solution hierarchy parsing was 1.06 ms, document projection totalled approximately 11 ms per complete invocation, and project-reference projection was below 2 ms per invocation. The trace is retained at `artifacts/performance/results/20260720-191023-efcore-a98784de90bc4c7187d4bfc9b16f574e`.
+
+The implemented change evaluates the already bounded project set as one request-scoped batch. One disposable `ProjectCollection` is shared during the batch, and duplicate project paths reuse the matching loaded project and result. The collection is unloaded and disposed before the request completes; no MSBuild state or cache survives the invocation.
+
+The equivalent post-change EF Core trace records a 1,112.83 ms end-to-end median and 1,072.83 ms Host-tool median, down from 1,995.99 ms and 1,982.92 ms respectively. Target-framework evaluation remains dominant at 1,026.71 ms, but batching removes approximately 44% of the end-to-end trace time. This trace is retained at `artifacts/performance/results/20260720-191532-efcore-9d4a16fda5cd40e59139c8b6cec96bdf`.
+
+Repeatable low-bound and no-document scenarios were added to the manual suite. On EF Core, selecting one project and one folder completes in a 65.17 ms median, including 40.14 ms of target-framework evaluation and 20.89 ms of external-change validation. This confirms that project bounds stop target-framework, reference and document work before projection. The trace is retained at `artifacts/performance/results/20260720-191829-efcore-4b383c4131a94c92b70ae4bcd2b21c0d`.
+
+The high-bound no-document trace records 1,069.10 ms compared with 1,112.83 ms when documents are included. Document projection, response projection and transport therefore account for only approximately 44 ms of the 1.1 MiB response; target-framework evaluation remains approximately 1.03 seconds in both cases. Replacing the clear document projection or adding another document bound is not justified by this performance evidence. The no-document trace is retained at `artifacts/performance/results/20260720-191914-efcore-4780b012f6434316b9e582c1a1532005`.
+
+Untraced post-change measurements confirm the improvement across all three repositories:
+
+| Repository | Previous median | Batched median | Improvement | Result |
+|---|---:|---:|---:|---|
+| GuardClauses | 110.12 ms | 79.60 ms | 27.7% | `artifacts/performance/results/20260720-192209-guardclauses-cf27dbb3aae74191bedb0fe416e3ae18` |
+| Serilog | 404.29 ms | 130.86 ms | 67.6% | `artifacts/performance/results/20260720-192217-serilog-4ff452ac4a82484480b5a20d16b53803` |
+| EF Core | 1,521.47 ms | 1,059.72 ms | 30.3% | `artifacts/performance/results/20260720-192247-efcore-33c8b84b33534b52bf3a08e998b90170` |
+
+All seven focused runs retained the pinned repository commit, shut down the Host normally and left no recovery, coordination or lock state.
+
 **Dependencies:** investigations 2–4.
 
-**Exit evidence:** scaling is explained by phase and input count, bounds prevent work that cannot affect the result where contract semantics permit it, and output equivalence is retained.
+**Exit evidence:** achieved by the focused traces and clean measurements above. Remaining repeated target-framework evaluation is a candidate for the separately planned snapshot-scoped cache; retaining a live system-wide MSBuild collection is not part of this change.
 
 ### 6. Investigate bounded symbol search and reference discovery
 
-**Status:** Next
+**Status:** Completed; caching separated as a follow-up
 
 Native low and high limits change response size but have little effect on elapsed time:
 
@@ -161,19 +181,30 @@ Native low and high limits change response size but have little effect on elapse
 | EF Core `search-symbols` | 205.74 ms | 165.72 ms | 2.71 KiB | 144.79 KiB |
 | EF Core `find-references` | 711.11 ms | 704.51 ms | 5.15 KiB | 456.11 KiB |
 
-After removing shared acquisition cost, determine which Roslyn operations necessarily complete discovery and which projection or enrichment work can stop at the requested bound. Measure reference counts, selected counts and context/enrichment costs.
+Focused EF Core traces now separate Roslyn discovery, candidate projection, result selection and selected-result enrichment:
 
-Evaluate snapshot-scoped cross-invocation caching only when the trace confirms substantial repeatable discovery. Cache design must be size-limited, snapshot-keyed and invalidated on close, reload, commit and snapshot advancement.
+| Tool/bound | Result | End-to-end median | Discovery | Candidate projection | Selection | Enrichment |
+|---|---|---:|---:|---:|---:|---:|
+| `search-symbols` low | `artifacts/performance/results/20260720-184755-efcore-a7b75971afc1466faf1c22eb3c0d4078` | 178.95 ms | 155.52 ms / 87.2% | 1.75 ms / 1.0% | <0.01 ms | n/a |
+| `search-symbols` high | `artifacts/performance/results/20260720-184852-efcore-4b8a588e0a1543609baf47ac64823af6` | 186.39 ms | 156.31 ms / 86.0% | 1.81 ms / 1.0% | <0.01 ms | n/a |
+| `find-references` low | `artifacts/performance/results/20260720-184951-efcore-45ae7e437e244dd2b3f4dff51afa6b2e` | 801.73 ms | 771.00 ms / 96.0% | 4.60 ms / 0.6% | 0.35 ms | 0.42 ms / 0.1% |
+| `find-references` high | `artifacts/performance/results/20260720-185056-efcore-d1c752329aa14d169028193064abe3d3` | 912.63 ms | 852.49 ms / 94.4% | 6.18 ms / 0.7% | 0.54 ms / 0.1% | 12.77 ms / 1.4% |
 
-The phase attribution confirms that handler/Roslyn execution accounts for 64.1%, 82.6% and 87.8% of bounded symbol-search time as repository size grows, while projection is below one percent. This is now the first tool-specific investigation.
+Both Roslyn APIs necessarily discover the complete matching set before the tools can apply deterministic response ordering and bounds. The tools already defer reference context, containing-symbol and write-classification work until after selection. Symbol projection and ordering operate on the complete set because the public ordering keys are projected display name and source path; replacing them with different pre-projection keys would change observable ordering. The measured projection cost is too small to justify that contract change.
+
+The requested limit therefore bounds response size and expensive per-result enrichment, but cannot bound the underlying Roslyn discovery operation. The low/high timings differ mainly in response enrichment and serialisation, not discovery. No additional post-bound optimisation is supported by the measurements.
+
+The traces do confirm substantial repeatable discovery, particularly the approximately 0.8-second EF Core reference search. Snapshot-scoped cross-invocation caching is consequently promoted from a conditional idea to a separate planned deliverable in `FutureTasks.md`. It is not included in this investigation because ownership, size accounting, invalidation and snapshot-safe value design are architectural concerns that need their own implementation and retained-memory measurements.
+
+The phase attribution confirms that handler/Roslyn execution accounts for 64.1%, 82.6% and 87.8% of bounded symbol-search time as repository size grows, while projection is below one percent. The focused phase evidence above completes that earlier handler-level attribution.
 
 **Dependencies:** investigations 1 and 2, completed. Cross-invocation caching also depends on a measured repeatable discovery cost after shared validation is excluded.
 
-**Exit evidence:** low/high behaviour is explained, avoidable post-bound work is removed, and any cache demonstrates useful hit rate and latency without unsafe retention.
+**Exit evidence:** achieved by the four focused traces above. Low/high behaviour is explained and no material avoidable post-bound work remains. Cache effectiveness and retention safety are exit criteria for the separate caching deliverable rather than this completed attribution task.
 
 ### 7. Investigate Code Action discovery CPU and memory
 
-**Status:** Not started
+**Status:** Next
 
 On GuardClauses, `list-code-actions` records a 260.99 ms median, 990 ms median aggregate Host CPU and a process peak of 374.05 MiB. Capture a trace and counters to distinguish compilation, provider discovery, MEF composition, parallel execution and result projection.
 

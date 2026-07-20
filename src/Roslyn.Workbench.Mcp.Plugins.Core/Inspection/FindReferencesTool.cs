@@ -1,12 +1,16 @@
 using System.Collections.Immutable;
 
+using Roslyn.Workbench.Mcp.Workspace.Diagnostics;
+
 using ContractReferenceLocation = Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection.ReferenceLocation;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
-[RoslynTool("find-references", "Find References", "Finds source references, optionally including declarations and access classification.")]
+[RoslynTool(_toolName, "Find References", "Finds source references, optionally including declarations and access classification.")]
 internal sealed class FindReferencesTool : QueryToolHandler<FindReferencesRequest, ReferenceSearchData>
 {
+    private const string _toolName = "find-references";
+
     protected override async ValueTask<PluginExecutionResult<ReferenceSearchData>> ExecuteCoreAsync(FindReferencesRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<ReferenceSearchData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken);
@@ -22,101 +26,114 @@ internal sealed class FindReferencesTool : QueryToolHandler<FindReferencesReques
             return documents.Rejection;
         }
 
-        var referencedSymbols = await SymbolFinder.FindReferencesAsync(
-                symbol,
-                context.CurrentSolution,
-                documents.Value.ToImmutableHashSet(),
-                cancellationToken);
+        IEnumerable<ReferencedSymbol> referencedSymbols;
+        using (WorkbenchPerformanceEventSource.Log.StartPhase(_toolName, WorkbenchPerformanceEventSource.DiscoveryPhase))
+        {
+            referencedSymbols = await SymbolFinder.FindReferencesAsync(
+                    symbol,
+                    context.CurrentSolution,
+                    documents.Value.ToImmutableHashSet(),
+                    cancellationToken);
+        }
 
         var pendingReferences = new List<PendingReference>();
-
-        foreach (var referencedSymbol in referencedSymbols)
+        using (WorkbenchPerformanceEventSource.Log.StartPhase(_toolName, WorkbenchPerformanceEventSource.CandidateProjectionPhase))
         {
-            if (request.IncludeDefinitions)
+            foreach (var referencedSymbol in referencedSymbols)
             {
-                foreach (var definitionLocation in referencedSymbol.Definition.Locations)
+                if (request.IncludeDefinitions)
                 {
-                    if (!definitionLocation.IsInSource
-                        || context.WorkspaceResolver.CreateResolvedLocation(definitionLocation) is not { } resolvedLocation)
+                    foreach (var definitionLocation in referencedSymbol.Definition.Locations)
+                    {
+                        if (!definitionLocation.IsInSource
+                            || context.WorkspaceResolver.CreateResolvedLocation(definitionLocation) is not { } resolvedLocation)
+                        {
+                            continue;
+                        }
+
+                        pendingReferences.Add(new PendingReference
+                        {
+                            Location = definitionLocation,
+                            ResolvedLocation = resolvedLocation,
+                            DefinitionSymbol = referencedSymbol.Definition,
+                            IsDefinition = true,
+                        });
+                    }
+                }
+
+                foreach (var reference in referencedSymbol.Locations)
+                {
+                    if (!reference.Location.IsInSource
+                        || context.WorkspaceResolver.CreateResolvedLocation(reference.Location) is not { } resolvedLocation)
                     {
                         continue;
                     }
 
                     pendingReferences.Add(new PendingReference
                     {
-                        Location = definitionLocation,
+                        Location = reference.Location,
                         ResolvedLocation = resolvedLocation,
                         DefinitionSymbol = referencedSymbol.Definition,
-                        IsDefinition = true,
+                        Document = reference.Document,
                     });
                 }
-            }
-
-            foreach (var reference in referencedSymbol.Locations)
-            {
-                if (!reference.Location.IsInSource
-                    || context.WorkspaceResolver.CreateResolvedLocation(reference.Location) is not { } resolvedLocation)
-                {
-                    continue;
-                }
-
-                pendingReferences.Add(new PendingReference
-                {
-                    Location = reference.Location,
-                    ResolvedLocation = resolvedLocation,
-                    DefinitionSymbol = referencedSymbol.Definition,
-                    Document = reference.Document,
-                });
             }
         }
 
         var maxResults = request.EffectiveReferencesLimit;
-        var selectedReferences = pendingReferences
-            .OrderBy(static reference => reference.ResolvedLocation.Document?.Path, StringComparer.Ordinal)
-            .ThenBy(static reference => reference.ResolvedLocation.Span?.Start)
-            .Take(maxResults)
-            .ToArray();
+        PendingReference[] selectedReferences;
+        using (WorkbenchPerformanceEventSource.Log.StartPhase(_toolName, WorkbenchPerformanceEventSource.ResultSelectionPhase))
+        {
+            selectedReferences = pendingReferences
+                .OrderBy(static reference => reference.ResolvedLocation.Document?.Path, StringComparer.Ordinal)
+                .ThenBy(static reference => reference.ResolvedLocation.Span?.Start)
+                .Take(maxResults)
+                .ToArray();
+        }
 
         var references = new List<ContractReferenceLocation>(selectedReferences.Length);
-        foreach (var pendingReference in selectedReferences)
+        using (WorkbenchPerformanceEventSource.Log.StartPhase(_toolName, WorkbenchPerformanceEventSource.ResultEnrichmentPhase))
         {
-            if (pendingReference.IsDefinition)
+            foreach (var pendingReference in selectedReferences)
             {
+                if (pendingReference.IsDefinition)
+                {
+                    references.Add(new ContractReferenceLocation
+                    {
+                        Location = pendingReference.ResolvedLocation,
+                        ContainingSymbol = context.WorkspaceResolver.CreateSymbolReference(pendingReference.DefinitionSymbol),
+                        IsDefinition = true,
+                    });
+
+                    continue;
+                }
+
+                ISymbol? containingSymbol = null;
+                if (pendingReference.Document is not null)
+                {
+                    containingSymbol = await context.ToolExecutionServices.InspectionContextService.TryCreateContainingSymbolAsync(
+                        pendingReference.Document,
+                        pendingReference.Location.SourceSpan.Start,
+                        cancellationToken);
+                }
+
+                string? contextLine = null;
+                if (request.IncludeContext)
+                {
+                    contextLine = await context.ToolExecutionServices.InspectionContextService.ReadContextAsync(
+                        pendingReference.Document,
+                        pendingReference.Location.SourceSpan,
+                        cancellationToken);
+                }
+
                 references.Add(new ContractReferenceLocation
                 {
                     Location = pendingReference.ResolvedLocation,
-                    ContainingSymbol = context.WorkspaceResolver.CreateSymbolReference(pendingReference.DefinitionSymbol),
-                    IsDefinition = true,
+                    ContainingSymbol = containingSymbol is null ? null : context.WorkspaceResolver.CreateSymbolReference(containingSymbol),
+                    IsWrite = await IsWriteReferenceAsync(pendingReference.Document, pendingReference.Location, cancellationToken),
+                    Context = contextLine,
                 });
-
-                continue;
             }
-
-            ISymbol? containingSymbol = null;
-            if (pendingReference.Document is not null)
-            {
-                containingSymbol = await context.ToolExecutionServices.InspectionContextService.TryCreateContainingSymbolAsync(
-                    pendingReference.Document,
-                    pendingReference.Location.SourceSpan.Start,
-                    cancellationToken);
-            }
-
-            string? contextLine = null;
-            if (request.IncludeContext)
-            {
-                contextLine = await context.ToolExecutionServices.InspectionContextService.ReadContextAsync(
-                    pendingReference.Document,
-                    pendingReference.Location.SourceSpan,
-                    cancellationToken);
-            }
-
-            references.Add(new ContractReferenceLocation
-            {
-                Location = pendingReference.ResolvedLocation,
-                ContainingSymbol = containingSymbol is null ? null : context.WorkspaceResolver.CreateSymbolReference(containingSymbol),
-                IsWrite = await IsWriteReferenceAsync(pendingReference.Document, pendingReference.Location, cancellationToken),
-                Context = contextLine,
-            });
         }
 
         var symbolReference = context.WorkspaceResolver.CreateSymbolReference(symbol);

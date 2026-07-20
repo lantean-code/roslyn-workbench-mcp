@@ -133,6 +133,58 @@ public sealed class ProjectTargetFrameworkServiceIntegrationTests
         result.TargetFrameworks.Should().BeEmpty();
     }
 
+    [Fact]
+    public void GIVEN_ProjectBatchContainsDuplicateAndMissingPaths_WHEN_GettingTargetFrameworks_THEN_ShouldPreserveInputOrder()
+    {
+        using var workspace = new AdhocWorkspace();
+        var target = new DefaultProjectStructureService();
+        var directoryPath = CreateDirectoryPath();
+
+        try
+        {
+            var sharedProjectPath = Path.Combine(directoryPath, "Shared.csproj");
+            var otherProjectPath = Path.Combine(directoryPath, "Other.csproj");
+            File.WriteAllText(sharedProjectPath, "<Project><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>");
+            File.WriteAllText(otherProjectPath, "<Project><PropertyGroup><TargetFrameworks>net9.0;net8.0</TargetFrameworks></PropertyGroup></Project>");
+
+            var sharedProjectA = AddProject(workspace, "SharedA", sharedProjectPath);
+            var pathlessProject = AddProject(workspace, "Pathless", filePath: null);
+            var sharedProjectB = AddProject(workspace, "SharedB", sharedProjectPath);
+            var otherProject = AddProject(workspace, "Other", otherProjectPath);
+
+            var results = target.GetTargetFrameworks(
+            [
+                sharedProjectA,
+                pathlessProject,
+                sharedProjectB,
+                otherProject,
+            ]);
+
+            results.Should().HaveCount(4);
+            results[0].TargetFrameworks.Should().Equal("net10.0");
+            results[1].TargetFrameworks.Should().BeEmpty();
+            results[2].Should().BeSameAs(results[0]);
+            results[3].TargetFrameworks.Should().Equal("net9.0", "net8.0");
+        }
+        finally
+        {
+            DeleteDirectory(directoryPath);
+        }
+    }
+
+    private static Project AddProject(AdhocWorkspace workspace, string name, string? filePath)
+    {
+        var projectInfo = Microsoft.CodeAnalysis.ProjectInfo.Create(
+            ProjectId.CreateNewId(),
+            VersionStamp.Default,
+            name,
+            name,
+            LanguageNames.CSharp,
+            filePath: filePath);
+
+        return workspace.AddProject(projectInfo);
+    }
+
     private static string CreateDirectoryPath()
     {
         var directoryPath = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-project-structure-service-tests", Guid.NewGuid().ToString("n"));

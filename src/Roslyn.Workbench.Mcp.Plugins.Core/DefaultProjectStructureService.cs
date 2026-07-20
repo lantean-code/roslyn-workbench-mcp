@@ -1,3 +1,5 @@
+using Microsoft.Build.Evaluation;
+
 namespace Roslyn.Workbench.Mcp.Plugins.Core;
 
 internal sealed class DefaultProjectStructureService : IProjectStructureService
@@ -8,6 +10,55 @@ internal sealed class DefaultProjectStructureService : IProjectStructureService
     }
 
     public ProjectTargetFrameworksResult GetTargetFrameworks(string? projectPath)
+    {
+        using var projectCollection = new ProjectCollection();
+        try
+        {
+            return GetTargetFrameworks(projectPath, projectCollection);
+        }
+        finally
+        {
+            projectCollection.UnloadAllProjects();
+        }
+    }
+
+    public IReadOnlyList<ProjectTargetFrameworksResult> GetTargetFrameworks(IReadOnlyList<Project> projects)
+    {
+        var results = new ProjectTargetFrameworksResult[projects.Count];
+        var resultsByPath = new Dictionary<string, ProjectTargetFrameworksResult>(StringComparer.Ordinal);
+        using var projectCollection = new ProjectCollection();
+
+        try
+        {
+            for (var index = 0; index < projects.Count; index++)
+            {
+                var projectPath = projects[index].FilePath;
+                if (string.IsNullOrWhiteSpace(projectPath))
+                {
+                    results[index] = ProjectTargetFrameworksResult.Succeeded();
+                    continue;
+                }
+
+                if (!resultsByPath.TryGetValue(projectPath, out var result))
+                {
+                    result = GetTargetFrameworks(projectPath, projectCollection);
+                    resultsByPath.Add(projectPath, result);
+                }
+
+                results[index] = result;
+            }
+
+            return results;
+        }
+        finally
+        {
+            projectCollection.UnloadAllProjects();
+        }
+    }
+
+    private static ProjectTargetFrameworksResult GetTargetFrameworks(
+        string? projectPath,
+        ProjectCollection projectCollection)
     {
         if (string.IsNullOrWhiteSpace(projectPath))
         {
@@ -22,7 +73,6 @@ internal sealed class DefaultProjectStructureService : IProjectStructureService
 
         try
         {
-            using var projectCollection = new Microsoft.Build.Evaluation.ProjectCollection();
             var project = projectCollection.LoadProject(projectPath);
             var multipleTargetFrameworks = project.GetPropertyValue("TargetFrameworks");
             if (!string.IsNullOrWhiteSpace(multipleTargetFrameworks))

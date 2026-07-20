@@ -1,8 +1,12 @@
+using Roslyn.Workbench.Mcp.Workspace.Diagnostics;
+
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
-[RoslynTool("search-symbols", "Search Symbols", "Searches declarations by name, metadata name and optional semantic filters.")]
+[RoslynTool(_toolName, "Search Symbols", "Searches declarations by name, metadata name and optional semantic filters.")]
 internal sealed class SearchSymbolsTool : QueryToolHandler<SearchSymbolsRequest, SymbolSearchData>
 {
+    private const string _toolName = "search-symbols";
+
     protected override async ValueTask<PluginExecutionResult<SymbolSearchData>> ExecuteCoreAsync(SearchSymbolsRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         var scopeResolution = context.ToolExecutionServices.RequestResolver.ResolveProjects<SymbolSearchData>(request.Scope, context);
@@ -29,34 +33,45 @@ internal sealed class SearchSymbolsTool : QueryToolHandler<SearchSymbolsRequest,
             : null;
 
         var matchedSymbols = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
-        foreach (var project in scopeResolution.Value)
+        using (WorkbenchPerformanceEventSource.Log.StartPhase(_toolName, WorkbenchPerformanceEventSource.DiscoveryPhase))
         {
-            var declarations = await SymbolFinder.FindSourceDeclarationsWithPatternAsync(project, pattern, SymbolFilter.TypeAndMember, cancellationToken);
-            foreach (var symbol in declarations)
+            foreach (var project in scopeResolution.Value)
             {
-                if (MatchesSymbolFilters(symbol, request, requestedKinds, requestedAccessibilities))
+                var declarations = await SymbolFinder.FindSourceDeclarationsWithPatternAsync(project, pattern, SymbolFilter.TypeAndMember, cancellationToken);
+                foreach (var symbol in declarations)
                 {
-                    matchedSymbols.Add(symbol);
+                    if (MatchesSymbolFilters(symbol, request, requestedKinds, requestedAccessibilities))
+                    {
+                        matchedSymbols.Add(symbol);
+                    }
                 }
             }
         }
 
-        var orderedSymbols = matchedSymbols
-            .Select(symbol => context.WorkspaceResolver.CreateSymbolReference(symbol))
-            .OrderBy(static symbol => symbol.DisplayName, StringComparer.Ordinal)
-            .ThenBy(static symbol => symbol.Location?.Document?.Path ?? string.Empty, StringComparer.Ordinal);
+        SymbolReference[] orderedSymbols;
+        using (WorkbenchPerformanceEventSource.Log.StartPhase(_toolName, WorkbenchPerformanceEventSource.CandidateProjectionPhase))
+        {
+            orderedSymbols = matchedSymbols
+                .Select(symbol => context.WorkspaceResolver.CreateSymbolReference(symbol))
+                .OrderBy(static symbol => symbol.DisplayName, StringComparer.Ordinal)
+                .ThenBy(static symbol => symbol.Location?.Document?.Path ?? string.Empty, StringComparer.Ordinal)
+                .ToArray();
+        }
 
         var symbols = new List<SymbolReference>();
         var hasMore = false;
-        foreach (var symbolReference in orderedSymbols)
+        using (WorkbenchPerformanceEventSource.Log.StartPhase(_toolName, WorkbenchPerformanceEventSource.ResultSelectionPhase))
         {
-            if (symbols.Count == request.EffectiveSymbolsLimit)
+            foreach (var symbolReference in orderedSymbols)
             {
-                hasMore = true;
-                break;
-            }
+                if (symbols.Count == request.EffectiveSymbolsLimit)
+                {
+                    hasMore = true;
+                    break;
+                }
 
-            symbols.Add(symbolReference);
+                symbols.Add(symbolReference);
+            }
         }
 
         var data = new SymbolSearchData

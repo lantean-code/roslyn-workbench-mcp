@@ -9,6 +9,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
     private readonly IWorkspaceSessionAcquirer _sessionAcquirer;
     private readonly IWorkspaceLoader _workspaceLoader;
     private readonly IWorkspaceRootResolver _workspaceRootResolver;
+    private readonly IWorkspacePathComparison _workspacePathComparison;
     private readonly IWorkspaceLoadWorkflow _workspaceLoadWorkflow;
     private readonly IWorkspaceChangeDetector _workspaceChangeDetector;
     private readonly IWorkspaceStateTransitions _workspaceStateTransitions;
@@ -22,6 +23,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         IWorkspaceSessionAcquirer sessionAcquirer,
         IWorkspaceLoader workspaceLoader,
         IWorkspaceRootResolver workspaceRootResolver,
+        IWorkspacePathComparison workspacePathComparison,
         IWorkspaceLoadWorkflow workspaceLoadWorkflow,
         IWorkspaceChangeDetector workspaceChangeDetector,
         IWorkspaceStateTransitions workspaceStateTransitions,
@@ -34,6 +36,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         _sessionAcquirer = sessionAcquirer;
         _workspaceLoader = workspaceLoader;
         _workspaceRootResolver = workspaceRootResolver;
+        _workspacePathComparison = workspacePathComparison;
         _workspaceLoadWorkflow = workspaceLoadWorkflow;
         _workspaceChangeDetector = workspaceChangeDetector;
         _workspaceStateTransitions = workspaceStateTransitions;
@@ -133,7 +136,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
 
         return CreateOpenSuccessResult(
             session,
-            CreateOpenDiagnostics(session.LoadDiagnostics, instanceStatus));
+            CreateOpenDiagnostics(session.LoadDiagnostics, instanceStatus, request.LoadedPath));
     }
 
     public ValueTask<WorkspaceOperationResult<WorkspaceOpenOutcome>> OpenAsync(
@@ -387,14 +390,22 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             CreateContext(session));
     }
 
-    private static IReadOnlyList<DiagnosticInfo> CreateOpenDiagnostics(
+    private IReadOnlyList<DiagnosticInfo> CreateOpenDiagnostics(
         IReadOnlyList<DiagnosticInfo> loadDiagnostics,
-        WorkspaceInstanceStatusResult instanceStatus)
+        WorkspaceInstanceStatusResult instanceStatus,
+        string loadedPath)
     {
         var instanceDiagnostics = CreateInstanceDiagnostics(instanceStatus);
-        return instanceDiagnostics.Length == 0
-            ? loadDiagnostics
-            : loadDiagnostics.Concat(instanceDiagnostics).ToArray();
+        var storageDiagnostics = CreateStorageDiagnostics(loadedPath);
+        if (instanceDiagnostics.Length == 0 && storageDiagnostics.Length == 0)
+        {
+            return loadDiagnostics;
+        }
+
+        return loadDiagnostics
+            .Concat(instanceDiagnostics)
+            .Concat(storageDiagnostics)
+            .ToArray();
     }
 
     private WorkspaceSessionSnapshot CreateSessionSnapshot(
@@ -499,6 +510,24 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         }
 
         return diagnostics.ToArray();
+    }
+
+    private DiagnosticInfo[] CreateStorageDiagnostics(string loadedPath)
+    {
+        if (!_workspacePathComparison.IsWindowsFileSystemPath(loadedPath))
+        {
+            return [];
+        }
+
+        return
+        [
+            new DiagnosticInfo
+            {
+                Id = "WorkspaceOnWindowsFileSystemFromWsl",
+                Severity = Contracts.Results.DiagnosticSeverity.Warning,
+                Message = "This workspace is being accessed from WSL through the Windows file system, which can substantially reduce workspace and query performance. For better performance, place the repository on the WSL file system or run Roslyn Workbench MCP directly on Windows.",
+            },
+        ];
     }
 
     private WorkspaceOperationError? ValidateOpenCapacity(WorkspaceHostSnapshot hostSnapshot)

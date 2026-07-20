@@ -17,6 +17,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     private readonly Mock<IWorkspaceSessionAcquirer> _sessionAcquirer;
     private readonly Mock<IWorkspaceLoader> _workspaceLoader;
     private readonly Mock<IWorkspaceRootResolver> _workspaceRootResolver;
+    private readonly Mock<IWorkspacePathComparison> _workspacePathComparison;
     private readonly Mock<IWorkspaceLoadWorkflow> _workspaceLoadWorkflow;
     private readonly Mock<IWorkspaceChangeDetector> _changeDetector;
     private readonly Mock<IWorkspaceStateTransitions> _stateTransitions;
@@ -34,6 +35,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         _workspaceLoader = new Mock<IWorkspaceLoader>();
         _workspaceRootResolver = new Mock<IWorkspaceRootResolver>();
         _workspaceRootResolver.Setup(item => item.Resolve(It.IsAny<string>(), It.IsAny<string?>())).Returns("/workspace");
+        _workspacePathComparison = new Mock<IWorkspacePathComparison>();
         _workspaceLoadWorkflow = new Mock<IWorkspaceLoadWorkflow>();
         _changeDetector = new Mock<IWorkspaceChangeDetector>();
         _stateTransitions = new Mock<IWorkspaceStateTransitions>();
@@ -63,6 +65,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             _sessionAcquirer.Object,
             _workspaceLoader.Object,
             _workspaceRootResolver.Object,
+            _workspacePathComparison.Object,
             _workspaceLoadWorkflow.Object,
             _changeDetector.Object,
             _stateTransitions.Object,
@@ -449,6 +452,35 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         var result = await _target.OpenAsync("Path", null, TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
+    }
+
+    [Fact]
+    public async Task GIVEN_WorkspaceOnWindowsFileSystemFromWsl_WHEN_OpeningWorkspace_THEN_ShouldReturnPerformanceWarningWithoutPersistingIt()
+    {
+        var loadedWorkspace = new Mock<ILoadedWorkspace>();
+        var solution = CreateSolutionWithProject("/mnt/c/Repository/Project.csproj");
+        var expected = CreateResult<WorkspaceOpenOutcome>();
+        SetupOpenPreflight("/mnt/c/Repository/Repository.sln", alias: null);
+        SetupLoadedWorkspace("/mnt/c/Repository/Repository.sln", solution, loadedWorkspace);
+        _workspacePathComparison.Setup(item => item.IsWindowsFileSystemPath("/mnt/c/Repository/Repository.sln"))
+            .Returns(true);
+
+        _resultFactory.Setup(item => item.Succeeded(
+            It.Is<WorkspaceOpenOutcome>(outcome =>
+                outcome.LoadDiagnostics.Count == 1
+                && outcome.LoadDiagnostics[0].Id == "WorkspaceOnWindowsFileSystemFromWsl"
+                && outcome.LoadDiagnostics[0].Severity == global::Roslyn.Workbench.Mcp.Workspace.Contracts.Results.DiagnosticSeverity.Warning
+                && outcome.LoadDiagnostics[0].Message.Contains("substantially reduce workspace and query performance", StringComparison.Ordinal)),
+            It.IsAny<WorkspaceOperationContext>(),
+            null,
+            null)).Returns(expected);
+
+        var result = await _target.OpenAsync("Path", null, TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _sessionStore.Verify(item => item.TryAddWorkspace(
+            It.Is<WorkspaceSessionSnapshot>(session => session.LoadDiagnostics.Count == 0),
+            It.IsAny<Func<WorkspaceHostSnapshot, WorkspaceOperationError?>>()), Times.Once);
     }
 
     [Fact]

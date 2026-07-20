@@ -39,16 +39,30 @@ internal sealed class WorkspacePathComparison : IWorkspacePathComparison
             : StringComparer.Ordinal;
     }
 
+    public bool IsWindowsFileSystemPath(string path)
+    {
+        return OperatingSystem.IsLinux()
+            && TryGetWindowsMount(path, out _);
+    }
+
     private bool IsCaseInsensitiveWindowsMount(string path)
     {
-        if (!OperatingSystem.IsLinux() || string.IsNullOrWhiteSpace(path))
+        return OperatingSystem.IsLinux()
+            && TryGetWindowsMount(path, out var isCaseSensitive)
+            && !isCaseSensitive;
+    }
+
+    private bool TryGetWindowsMount(string path, out bool isCaseSensitive)
+    {
+        isCaseSensitive = false;
+        if (string.IsNullOrWhiteSpace(path))
         {
             return false;
         }
 
         var canonicalPath = _fileSystem.Path.GetFullPath(path);
         var matchedMountLength = -1;
-        var matchedMountIsCaseInsensitive = false;
+        var matchedMountIsWindows = false;
         foreach (var line in _mountInfo.Value)
         {
             var fields = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -73,10 +87,11 @@ internal sealed class WorkspacePathComparison : IWorkspacePathComparison
             var hasCaseSensitiveOption = mountOptions.Split(',').Any(IsCaseSensitiveOption)
                 || superOptions.Split(',').Any(IsCaseSensitiveOption);
 
-            matchedMountIsCaseInsensitive = isWindowsMount && !hasCaseSensitiveOption;
+            matchedMountIsWindows = isWindowsMount;
+            isCaseSensitive = hasCaseSensitiveOption;
         }
 
-        return matchedMountIsCaseInsensitive;
+        return matchedMountIsWindows;
     }
 
     private string[] ReadMountInfo()

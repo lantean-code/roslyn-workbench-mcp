@@ -35,6 +35,40 @@ public sealed class WorkspacePathComparisonTests
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void GIVEN_WindowsMount_WHEN_InspectingPath_THEN_ShouldIdentifyItOnLinux(bool hasCustomMountPoint)
+    {
+        var mountInfo = hasCustomMountPoint
+            ? "23 134 0:72 / /windows rw,noatime,case=dir - drvfs C: rw"
+            : "23 134 0:72 / /mnt/c rw,noatime - 9p C: rw,aname=drvfs;path=C:";
+
+        var fileSystem = CreateFileSystem([mountInfo]);
+        var target = new WorkspacePathComparison(fileSystem.Object);
+        var expected = OperatingSystem.IsLinux();
+
+        var result = target.IsWindowsFileSystemPath(hasCustomMountPoint
+            ? "/windows/Repository"
+            : "/mnt/c/Repository");
+
+        result.Should().Be(expected);
+    }
+
+    [Fact]
+    public void GIVEN_NativeLinuxMountWithinWindowsMount_WHEN_InspectingPath_THEN_ShouldUseMostSpecificMount()
+    {
+        var fileSystem = CreateFileSystem([
+            "23 134 0:72 / /mnt/c rw,noatime - 9p C: rw,aname=drvfs;path=C:",
+            "24 23 8:1 / /mnt/c/native rw,relatime - ext4 /dev/sda rw",
+        ]);
+        var target = new WorkspacePathComparison(fileSystem.Object);
+
+        var result = target.IsWindowsFileSystemPath("/mnt/c/native/Repository");
+
+        result.Should().BeFalse();
+    }
+
+    [Theory]
     [InlineData("82 1 8:1 / / rw,relatime - ext4 /dev/sda rw")]
     [InlineData("23 134 0:72 / /mnt/c rw,noatime,case=dir - 9p C: rw,aname=drvfs;path=C:")]
     [InlineData("23 134 0:72 / /mnt/c rw,noatime - 9p")]

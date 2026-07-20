@@ -21,7 +21,11 @@ The comprehensive scan covered 50 production files:
 - `DocumentOutlineProjectionFactory` and `InspectionProjectionFactory`;
 - `QueryToolHandler`, `ToolExecutionHelpers` and `ToolExecutionServices`.
 
-Request contracts were reviewed where their bounds or traversal controls affect execution. Mutation and refactoring handlers are outside this pass because core query tools are the current priority.
+Request contracts were reviewed where their bounds or traversal controls affect execution. The original 50-file pass excluded mutation and refactoring handlers because core query tools were the initial priority.
+
+A focused follow-up reviewed the three bundled refactoring handlers and `MutationToolHandler`. It replaced the full-document string allocations used by `format-document` for no-change detection with `SourceText.ContentEquals`. No other pre-measurement handler optimisation was justified: `rename-symbol` is dominated by Roslyn's solution-wide rename, while `sort-usings` operates on one document's normally small using collection.
+
+The measurement phase includes `format-document`, `rename-symbol` and `sort-usings`, together with the shared mutation staging path. This is measurement scope rather than a claim that query and mutation operations have identical performance characteristics.
 
 Target framework: .NET 10.
 
@@ -285,6 +289,13 @@ The five existing pre-bounded paths are `find-references`, `get-change-impact`, 
 - Document-outline recursion uses an explicit single-pass loop instead of creating a LINQ projection/filter pipeline at every declaration level.
 - Code-context window construction remains unchanged. Its bounded, readable projection is not being replaced without representative measurements showing a useful gain.
 
+### 2026-07-20 — Bundled refactoring follow-up
+
+- `format-document` compares the original and formatted `SourceText` instances directly instead of allocating two complete document strings for no-change detection.
+- `rename-symbol` has no actionable local pre-measurement issue; Roslyn's solution-wide rename is the dominant operation.
+- `sort-usings` retains its readable document-local ordering pipeline pending evidence that using-directive projection is material.
+- All three refactoring tools and the shared mutation staging path are included in the measurement phase.
+
 ## Recommended implementation batches
 
 ### Batch 1 — Completed bounded diagnostic/reference work
@@ -353,9 +364,11 @@ Before Batch 4, and before claiming any material performance improvement from ea
 
 Representative scenarios should include small, medium and realistically large checked-in workspaces. Use profiling or traces for complete tool calls, and BenchmarkDotNet only for isolated repeatable helpers such as metric traversal, diagnostic filtering or duplicate fingerprint creation.
 
+The tool-call scenarios must include the bundled refactoring tools: whole-document and range formatting, small and large symbol renames, and using sorting with both `SystemFirst` modes. Measure both no-change and staged-change outcomes so Roslyn transformation cost can be distinguished from mutation staging and diff construction.
+
 ## Positive findings
 
-- All 48 concrete classes in scope are sealed.
+- All 48 concrete classes in the original query scope and all three refactoring handlers are sealed.
 - No sync-over-async, `async void`, repeated `ValueTask` consumption, per-call regex, serializer-options, HTTP-client or stream-construction issue was found.
 - String comparisons in the scanned scope already specify ordinal semantics where applicable.
 - Query loops generally propagate cancellation.

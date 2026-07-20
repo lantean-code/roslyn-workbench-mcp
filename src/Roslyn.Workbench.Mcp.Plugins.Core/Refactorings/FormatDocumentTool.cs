@@ -36,15 +36,17 @@ internal sealed class FormatDocumentTool : MutationToolHandler<FormatDocumentReq
 
         var originalText = await document.GetTextAsync(cancellationToken);
         var formattedText = await formattedDocument.GetTextAsync(cancellationToken);
-        if (string.Equals(originalText.ToString(), formattedText.ToString(), StringComparison.Ordinal))
+        if (originalText.ContentEquals(formattedText))
         {
             return PluginExecutionResult<MutationCandidate>.NoChange();
         }
 
-        return PluginExecutionResult<MutationCandidate>.Success(new MutationCandidate
+        var candidate = new MutationCandidate
         {
             CandidateSolution = formattedDocument.Project.Solution,
             Summary = $"Format '{document.Name}'.",
-        });
+        };
+
+        return PluginExecutionResult<MutationCandidate>.Success(candidate);
     }
 }

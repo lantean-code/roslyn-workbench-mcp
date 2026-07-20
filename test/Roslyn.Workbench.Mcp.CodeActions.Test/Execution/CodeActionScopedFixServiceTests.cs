@@ -41,6 +41,7 @@ public sealed class CodeActionScopedFixServiceTests : IDisposable
         {
             IsAvailable = true,
         });
+
         _workspaceResolver
             .Setup(item => item.ValidateSnapshot(It.IsAny<SnapshotPrecondition?>()))
             .Returns(SnapshotMatchResult.Matched());
@@ -87,6 +88,7 @@ public sealed class CodeActionScopedFixServiceTests : IDisposable
             {
                 CandidateSolution = _roslyn.Solution,
             });
+
         _operationService
             .Setup(item => item.ApplyFixAllAsync(
                 _provider.Object,
@@ -100,6 +102,7 @@ public sealed class CodeActionScopedFixServiceTests : IDisposable
             {
                 CandidateSolution = _roslyn.Solution,
             });
+
         _solutionChangeCounter
             .Setup(item => item.CountChangedSourceDocumentsAsync(
                 It.IsAny<Solution>(),
@@ -290,6 +293,7 @@ public sealed class CodeActionScopedFixServiceTests : IDisposable
                 ],
             },
         ]);
+
         var firstDocument = solution.GetDocument("First.cs");
         var secondDocument = solution.GetDocument("Second.cs");
         _context.SetupGet(item => item.CurrentSolution).Returns(solution.Solution);
@@ -472,6 +476,7 @@ public sealed class CodeActionScopedFixServiceTests : IDisposable
             It.Is<ScopeSelector>(scope => scope.Kind == ScopeKind.Document),
             _roslyn.Solution,
             _workspaceResolver.Object), Times.Once);
+
         _operationService.Verify(item => item.ApplyFixAllAsync(
             _provider.Object,
             _fixAllProvider.Object,
@@ -615,6 +620,7 @@ public sealed class CodeActionScopedFixServiceTests : IDisposable
         {
             CandidateSolution = _roslyn.Solution,
         };
+
         _provider.Setup(item => item.GetFixAllProvider()).Returns((FixAllProvider?)null);
         _operationService
             .Setup(item => item.CreateMutationCandidateAsync(
@@ -722,6 +728,7 @@ public sealed class CodeActionScopedFixServiceTests : IDisposable
                 Documents = firstProject.Documents.Concat(secondProject.Documents).ToArray(),
                 Projects = [firstProject, secondProject],
             });
+
         _operationService
             .Setup(item => item.ApplyFixAllAsync(
                 _provider.Object,
@@ -790,6 +797,7 @@ public sealed class CodeActionScopedFixServiceTests : IDisposable
                 Documents = firstProject.Documents.Concat(secondProject.Documents).ToArray(),
                 Projects = [firstProject, secondProject],
             });
+
         _operationService
             .Setup(item => item.ApplyFixAllAsync(
                 _provider.Object,
@@ -873,6 +881,7 @@ public sealed class CodeActionScopedFixServiceTests : IDisposable
             {
                 Documents = solution.Projects.SelectMany(static project => project.Documents).ToArray(),
             });
+
         _scopeResolver
             .Setup(item => item.Resolve(
                 It.Is<ScopeSelector>(scope => scope.Kind == ScopeKind.Document),
@@ -882,6 +891,7 @@ public sealed class CodeActionScopedFixServiceTests : IDisposable
             {
                 Documents = [_roslyn.Document],
             });
+
         _scopeResolver
             .Setup(item => item.Resolve(
                 It.Is<ScopeSelector>(scope => scope.Kind == ScopeKind.Project),
@@ -892,6 +902,7 @@ public sealed class CodeActionScopedFixServiceTests : IDisposable
                 Documents = [_roslyn.Document],
                 Projects = [_roslyn.Document.Project],
             });
+
         _scopeResolver
             .Setup(item => item.Resolve(
                 It.Is<ScopeSelector>(scope => scope.Kind == ScopeKind.Projects),
@@ -902,6 +913,7 @@ public sealed class CodeActionScopedFixServiceTests : IDisposable
                 Documents = [_roslyn.Document],
                 Projects = [_roslyn.Document.Project],
             });
+
         _scopeResolver
             .Setup(item => item.Resolve(
                 It.Is<ScopeSelector>(scope => !Enum.IsDefined(scope.Kind)),
@@ -962,6 +974,10 @@ public sealed class CodeActionScopedFixServiceTests : IDisposable
             Kind = DiscoveredActionKind.CodeFix,
             ProviderId = "ProviderId",
             Title = title,
+            Descriptor = new CodeActionDescriptorEntry
+            {
+                ExecutionMode = CodeActionExecutionMode.Replay,
+            },
             EquivalenceKey = equivalenceKey,
             DiagnosticIds = diagnosticIds,
         };
@@ -976,11 +992,13 @@ public sealed class CodeActionScopedFixServiceTests : IDisposable
 
     private static CodeActionExecutionResult<WorkspaceMutationCandidate> CreateRejection()
     {
-        return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
+        var error = new CodeActionExecutionError
         {
             Code = "ErrorCode",
             Message = "Message",
-        });
+        };
+
+        return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(error);
     }
 
     private static CodeActionScopeResolution CreateScopeRejection()

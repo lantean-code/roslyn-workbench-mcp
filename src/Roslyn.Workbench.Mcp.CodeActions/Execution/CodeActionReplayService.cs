@@ -8,20 +8,17 @@ internal sealed class CodeActionReplayService : ICodeActionReplayService
     private readonly ICodeActionDiscoveryService _discoveryService;
     private readonly ICodeActionResolutionService _resolutionService;
     private readonly ICodeActionOperationService _operationService;
-    private readonly ICodeActionDescriptorRegistry _descriptorRegistry;
 
     public CodeActionReplayService(
         ICodeActionProviderCatalog providerCatalog,
         ICodeActionDiscoveryService discoveryService,
         ICodeActionResolutionService resolutionService,
-        ICodeActionOperationService operationService,
-        ICodeActionDescriptorRegistry descriptorRegistry)
+        ICodeActionOperationService operationService)
     {
         _providerCatalog = providerCatalog;
         _discoveryService = discoveryService;
         _resolutionService = resolutionService;
         _operationService = operationService;
-        _descriptorRegistry = descriptorRegistry;
     }
 
     public ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageCodeActionAsync(
@@ -80,7 +77,7 @@ internal sealed class CodeActionReplayService : ICodeActionReplayService
             return Rejected<WorkspaceMutationCandidate>("CodeActionUnavailable", "No matching refactoring provider is available.");
         }
 
-        var candidates = new List<ClassifiedCodeAction>();
+        var candidates = new List<DiscoveredCodeAction>();
         foreach (var provider in matchingProviders)
         {
             var actions = await _discoveryService.DiscoverRefactoringsAsync(provider, document, span, cancellationToken);
@@ -116,53 +113,65 @@ internal sealed class CodeActionReplayService : ICodeActionReplayService
                     continue;
                 }
 
-                var descriptor = _descriptorRegistry.Classify(action.Action, action.ProviderId, action.Title);
-                if (!descriptor.IsVisible)
+                if (!action.Descriptor.IsVisible)
                 {
                     continue;
                 }
 
-                candidates.Add(new ClassifiedCodeAction
-                {
-                    Action = action,
-                    Descriptor = descriptor,
-                });
+                candidates.Add(action);
             }
         }
 
-        var distinctCandidates = candidates
-            .GroupBy(static candidate => new CodeActionCandidateIdentity(
-                candidate.Action.ProviderId,
-                candidate.Action.Title,
-                candidate.Action.EquivalenceKey,
-                candidate.Action.ActionPath))
-            .Select(static group => group.First())
-            .ToArray();
-        if (distinctCandidates.Length == 0)
+        var distinctCandidates = new List<DiscoveredCodeAction>();
+        var candidateIdentities = new HashSet<CodeActionCandidateIdentity>();
+        foreach (var action in candidates)
+        {
+            var identity = new CodeActionCandidateIdentity(
+                action.ProviderId,
+                action.Title,
+                action.EquivalenceKey,
+                action.ActionPath);
+
+            if (candidateIdentities.Add(identity))
+            {
+                distinctCandidates.Add(action);
+            }
+        }
+
+        if (distinctCandidates.Count == 0)
         {
             return Rejected<WorkspaceMutationCandidate>("CodeActionUnavailable", "No matching replayable refactoring was available at the selected location.");
         }
 
-        if (distinctCandidates.Length > 1)
+        if (distinctCandidates.Count > 1)
         {
-            return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
+            var error = new CodeActionExecutionError
             {
                 Code = "ActionAmbiguous",
                 Message = "The requested refactoring could not be selected uniquely.",
-            }, RequiredAction.ResolveTargetAgain);
+            };
+
+            return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(error, RequiredAction.ResolveTargetAgain);
         }
 
         var candidate = distinctCandidates[0];
-        return candidate.Descriptor.ExecutionMode switch
+        if (candidate.Descriptor.ExecutionMode == CodeActionExecutionMode.Replay)
         {
-            CodeActionExecutionMode.Replay => await _operationService.CreateMutationCandidateAsync(candidate.Action.Action, candidate.Action.Title, context, cancellationToken),
-            CodeActionExecutionMode.Parameterised => CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
+            return await _operationService.CreateMutationCandidateAsync(candidate.Action, candidate.Title, context, cancellationToken);
+        }
+
+        if (candidate.Descriptor.ExecutionMode == CodeActionExecutionMode.Parameterised)
+        {
+            var error = new CodeActionExecutionError
             {
                 Code = "ActionRequiresParameters",
                 Message = "The selected action requires dedicated tool parameters and cannot be replayed generically.",
-            }),
-            _ => Rejected<WorkspaceMutationCandidate>("CodeActionUnavailable", "The selected action is not replayable in this server build.", RequiredAction.ResolveTargetAgain),
-        };
+            };
+
+            return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(error);
+        }
+
+        return Rejected<WorkspaceMutationCandidate>("CodeActionUnavailable", "The selected action is not replayable in this server build.", RequiredAction.ResolveTargetAgain);
     }
 
     public ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageCodeFixAsync(
@@ -224,6 +233,7 @@ internal sealed class CodeActionReplayService : ICodeActionReplayService
             expectedKind,
             context,
             cancellationToken);
+
         if (resolvedAction.HasRejection)
         {
             return resolvedAction.Rejection;
@@ -231,11 +241,13 @@ internal sealed class CodeActionReplayService : ICodeActionReplayService
 
         if (resolvedAction.Descriptor.ExecutionMode == CodeActionExecutionMode.Parameterised)
         {
-            return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
+            var error = new CodeActionExecutionError
             {
                 Code = "ActionRequiresParameters",
                 Message = "The selected action requires dedicated tool parameters and cannot be replayed generically.",
-            });
+            };
+
+            return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(error);
         }
 
         return await _operationService.CreateMutationCandidateAsync(
@@ -251,12 +263,4 @@ internal sealed class CodeActionReplayService : ICodeActionReplayService
             ? null
             : Rejected<WorkspaceMutationCandidate>("CodeActionsUnavailable", "Code-action composition is unavailable.");
     }
-
-    private sealed record ClassifiedCodeAction
-    {
-        public required DiscoveredCodeAction Action { get; init; }
-
-        public required CodeActionDescriptorEntry Descriptor { get; init; }
-    }
-
 }

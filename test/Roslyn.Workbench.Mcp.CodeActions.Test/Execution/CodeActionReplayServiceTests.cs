@@ -10,7 +10,6 @@ public sealed class CodeActionReplayServiceTests
     private readonly Mock<ICodeActionDiscoveryService> _discoveryService;
     private readonly Mock<ICodeActionResolutionService> _resolutionService;
     private readonly Mock<ICodeActionOperationService> _operationService;
-    private readonly Mock<ICodeActionDescriptorRegistry> _descriptorRegistry;
     private readonly Mock<ICodeActionExecutionContext> _context;
     private readonly Mock<IWorkspaceResolver> _workspaceResolver;
     private readonly CodeActionReplayService _target;
@@ -21,13 +20,13 @@ public sealed class CodeActionReplayServiceTests
         _discoveryService = new Mock<ICodeActionDiscoveryService>();
         _resolutionService = new Mock<ICodeActionResolutionService>();
         _operationService = new Mock<ICodeActionOperationService>();
-        _descriptorRegistry = new Mock<ICodeActionDescriptorRegistry>();
         _context = new Mock<ICodeActionExecutionContext>();
         _workspaceResolver = new Mock<IWorkspaceResolver>();
         _providerCatalog.SetupGet(item => item.Status).Returns(new CodeActionProviderCatalogStatus
         {
             IsAvailable = true,
         });
+
         _workspaceResolver
             .Setup(item => item.ValidateSnapshot(It.IsAny<SnapshotPrecondition?>()))
             .Returns(SnapshotMatchResult.Matched());
@@ -36,8 +35,7 @@ public sealed class CodeActionReplayServiceTests
             _providerCatalog.Object,
             _discoveryService.Object,
             _resolutionService.Object,
-            _operationService.Object,
-            _descriptorRegistry.Object);
+            _operationService.Object);
     }
 
     [Fact]
@@ -101,6 +99,7 @@ public sealed class CodeActionReplayServiceTests
         {
             CandidateSolution = roslyn.Solution,
         };
+
         _resolutionService
             .Setup(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
                 "ActionId",
@@ -138,6 +137,7 @@ public sealed class CodeActionReplayServiceTests
             Code = "ErrorCode",
             Message = "Message",
         });
+
         _resolutionService
             .Setup(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
                 "ActionId",
@@ -403,10 +403,6 @@ public sealed class CodeActionReplayServiceTests
         var result = await _target.StageReplayCodeActionAsync(request, _context.Object, CancellationToken.None);
 
         result.Error!.Code.Should().Be("CodeActionUnavailable");
-        _descriptorRegistry.Verify(item => item.Classify(
-            It.IsAny<CodeAction>(),
-            It.IsAny<string>(),
-            It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -416,7 +412,14 @@ public sealed class CodeActionReplayServiceTests
         var selector = new LocationSelector();
         var location = await CreateLocationAsync(roslyn.Document);
         var provider = new Mock<CodeRefactoringProvider>();
-        var action = CreateDiscoveredAction(roslyn.Solution, "Title", "EquivalenceKey", []);
+        var action = CreateDiscoveredAction(
+            roslyn.Solution,
+            "Title",
+            "EquivalenceKey",
+            [],
+            CodeActionExecutionMode.Unsupported,
+            isVisible: false);
+
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
@@ -427,13 +430,6 @@ public sealed class CodeActionReplayServiceTests
         _discoveryService
             .Setup(item => item.DiscoverRefactoringsAsync(provider.Object, roslyn.Document, location.SourceSpan, CancellationToken.None))
             .ReturnsAsync([action]);
-        _descriptorRegistry
-            .Setup(item => item.Classify(action.Action, "ProviderId", "Title"))
-            .Returns(new CodeActionDescriptorEntry
-            {
-                IsVisible = false,
-            });
-
         var result = await _target.StageReplayCodeActionAsync(
             new ReplayCodeActionRequest
             {
@@ -468,13 +464,6 @@ public sealed class CodeActionReplayServiceTests
         _discoveryService
             .Setup(item => item.DiscoverRefactoringsAsync(secondProvider.Object, roslyn.Document, location.SourceSpan, CancellationToken.None))
             .ReturnsAsync([secondAction]);
-        _descriptorRegistry
-            .Setup(item => item.Classify(It.IsAny<CodeAction>(), It.IsAny<string>(), It.IsAny<string>()))
-            .Returns(new CodeActionDescriptorEntry
-            {
-                ExecutionMode = CodeActionExecutionMode.Replay,
-            });
-
         var result = await _target.StageReplayCodeActionAsync(
             new ReplayCodeActionRequest
             {
@@ -498,7 +487,7 @@ public sealed class CodeActionReplayServiceTests
         var selector = new LocationSelector();
         var location = await CreateLocationAsync(roslyn.Document);
         var provider = new Mock<CodeRefactoringProvider>();
-        var action = CreateDiscoveredAction(roslyn.Solution, "Title", "EquivalenceKey", []);
+        var action = CreateDiscoveredAction(roslyn.Solution, "Title", "EquivalenceKey", [], executionMode);
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
@@ -509,13 +498,6 @@ public sealed class CodeActionReplayServiceTests
         _discoveryService
             .Setup(item => item.DiscoverRefactoringsAsync(provider.Object, roslyn.Document, location.SourceSpan, CancellationToken.None))
             .ReturnsAsync([action]);
-        _descriptorRegistry
-            .Setup(item => item.Classify(action.Action, "ProviderId", "Title"))
-            .Returns(new CodeActionDescriptorEntry
-            {
-                ExecutionMode = executionMode,
-            });
-
         var result = await _target.StageReplayCodeActionAsync(
             new ReplayCodeActionRequest
             {
@@ -546,6 +528,7 @@ public sealed class CodeActionReplayServiceTests
         {
             CandidateSolution = roslyn.Solution,
         };
+
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
@@ -556,12 +539,6 @@ public sealed class CodeActionReplayServiceTests
         _discoveryService
             .Setup(item => item.DiscoverRefactoringsAsync(provider.Object, roslyn.Document, location.SourceSpan, CancellationToken.None))
             .ReturnsAsync([action]);
-        _descriptorRegistry
-            .Setup(item => item.Classify(action.Action, "ProviderId", "Title"))
-            .Returns(new CodeActionDescriptorEntry
-            {
-                ExecutionMode = CodeActionExecutionMode.Replay,
-            });
         _operationService
             .Setup(item => item.CreateMutationCandidateAsync(action.Action, "Title", _context.Object, CancellationToken.None))
             .ReturnsAsync(CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(candidate));
@@ -600,6 +577,7 @@ public sealed class CodeActionReplayServiceTests
         {
             CandidateSolution = roslyn.Solution,
         };
+
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
@@ -610,12 +588,6 @@ public sealed class CodeActionReplayServiceTests
         _discoveryService
             .Setup(item => item.DiscoverRefactoringsAsync(provider.Object, roslyn.Document, location.SourceSpan, CancellationToken.None))
             .ReturnsAsync([firstAction, secondAction]);
-        _descriptorRegistry
-            .Setup(item => item.Classify(It.IsAny<CodeAction>(), "ProviderId", "Title"))
-            .Returns(new CodeActionDescriptorEntry
-            {
-                ExecutionMode = CodeActionExecutionMode.Replay,
-            });
         _operationService
             .Setup(item => item.CreateMutationCandidateAsync(firstAction.Action, "Title", _context.Object, CancellationToken.None))
             .ReturnsAsync(CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(candidate));
@@ -687,6 +659,10 @@ public sealed class CodeActionReplayServiceTests
                 Kind = DiscoveredActionKind.Refactoring,
                 ProviderId = "ProviderId",
                 Title = "Title",
+                Descriptor = new CodeActionDescriptorEntry
+                {
+                    ExecutionMode = executionMode,
+                },
                 EquivalenceKey = "EquivalenceKey",
             },
             Descriptor = new CodeActionDescriptorEntry
@@ -701,7 +677,9 @@ public sealed class CodeActionReplayServiceTests
         Solution solution,
         string title,
         string equivalenceKey,
-        IReadOnlyList<int> actionPath)
+        IReadOnlyList<int> actionPath,
+        CodeActionExecutionMode executionMode = CodeActionExecutionMode.Replay,
+        bool isVisible = true)
     {
         return new DiscoveredCodeAction
         {
@@ -709,6 +687,11 @@ public sealed class CodeActionReplayServiceTests
             Kind = DiscoveredActionKind.Refactoring,
             ProviderId = "ProviderId",
             Title = title,
+            Descriptor = new CodeActionDescriptorEntry
+            {
+                IsVisible = isVisible,
+                ExecutionMode = executionMode,
+            },
             EquivalenceKey = equivalenceKey,
             ActionPath = actionPath,
         };
@@ -725,7 +708,7 @@ public sealed class CodeActionReplayServiceTests
         return syntaxTree!.GetLocation(new TextSpan(0, 1));
     }
 
-    #pragma warning disable CA1515 // The enum is part of a public xUnit theory method signature.
+#pragma warning disable CA1515 // The enum is part of a public xUnit theory method signature.
     public enum ReplayFilter
     {
         Title,
@@ -734,5 +717,5 @@ public sealed class CodeActionReplayServiceTests
         EquivalenceKey,
         ActionPath,
     }
-    #pragma warning restore CA1515
+#pragma warning restore CA1515
 }

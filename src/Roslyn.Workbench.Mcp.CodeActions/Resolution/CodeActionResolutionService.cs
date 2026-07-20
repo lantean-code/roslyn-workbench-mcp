@@ -7,20 +7,17 @@ internal sealed class CodeActionResolutionService : ICodeActionResolutionService
 {
     private readonly ICodeActionDiscoveryService _discoveryService;
     private readonly ICodeActionDiagnosticService _diagnosticService;
-    private readonly ICodeActionDescriptorRegistry _descriptorRegistry;
     private readonly ICodeActionTokenService _tokenService;
     private readonly TimeProvider _timeProvider;
 
     public CodeActionResolutionService(
         ICodeActionDiscoveryService discoveryService,
         ICodeActionDiagnosticService diagnosticService,
-        ICodeActionDescriptorRegistry descriptorRegistry,
         ICodeActionTokenService tokenService,
         TimeProvider timeProvider)
     {
         _discoveryService = discoveryService;
         _diagnosticService = diagnosticService;
-        _descriptorRegistry = descriptorRegistry;
         _tokenService = tokenService;
         _timeProvider = timeProvider;
     }
@@ -37,6 +34,7 @@ internal sealed class CodeActionResolutionService : ICodeActionResolutionService
         var snapshotRejection = CodeActionExecutionResultFactory.ValidateSnapshot<T>(
             context.WorkspaceResolver,
             expectedSnapshot);
+
         if (snapshotRejection is not null)
         {
             return RejectedResolution(snapshotRejection);
@@ -62,8 +60,7 @@ internal sealed class CodeActionResolutionService : ICodeActionResolutionService
             return RejectedResolution(ActionAmbiguous<T>());
         }
 
-        var descriptor = _descriptorRegistry.Classify(action.Action, action.ProviderId, action.Title);
-        if (!descriptor.IsVisible)
+        if (!action.Descriptor.IsVisible)
         {
             return RejectedResolution(CodeActionExecutionResultFactory.Rejected<T>(
                 "ActionUnavailable",
@@ -74,7 +71,7 @@ internal sealed class CodeActionResolutionService : ICodeActionResolutionService
         return new CodeActionResolution<T>
         {
             Action = action,
-            Descriptor = descriptor,
+            Descriptor = action.Descriptor,
             Document = tokenResolution.Context.Document,
             Span = tokenResolution.Context.Span,
         };
@@ -98,6 +95,7 @@ internal sealed class CodeActionResolutionService : ICodeActionResolutionService
         {
             Path = payload.DocumentPath,
         });
+
         if (documentResolution.Status != SelectorResolveStatus.Resolved || documentResolution.Value is null)
         {
             return new CodeActionTokenContextResolution();
@@ -142,17 +140,22 @@ internal sealed class CodeActionResolutionService : ICodeActionResolutionService
         if (tokenContext.Kind == DiscoveredActionKind.Refactoring)
         {
             var providers = _discoveryService.GetMatchingRefactoringProviders(tokenContext.Payload.ProviderId);
-            return providers.Count == 1
-                ? new CodeActionRediscovery
-                {
-                    ProviderAvailable = true,
-                    Actions = await _discoveryService.DiscoverRefactoringsAsync(
-                        providers[0],
-                        tokenContext.Document,
-                        tokenContext.Span,
-                        cancellationToken),
-                }
-                : new CodeActionRediscovery();
+            if (providers.Count != 1)
+            {
+                return new CodeActionRediscovery();
+            }
+
+            var refactorings = await _discoveryService.DiscoverRefactoringsAsync(
+                providers[0],
+                tokenContext.Document,
+                tokenContext.Span,
+                cancellationToken);
+
+            return new CodeActionRediscovery
+            {
+                ProviderAvailable = true,
+                Actions = refactorings,
+            };
         }
 
         var codeFixProviders = _discoveryService.GetMatchingCodeFixProviders(tokenContext.Payload.ProviderId);
@@ -166,14 +169,17 @@ internal sealed class CodeActionResolutionService : ICodeActionResolutionService
             tokenContext.Span,
             tokenContext.Payload.DiagnosticIds,
             cancellationToken);
+
+        var codeFixes = await _discoveryService.DiscoverCodeFixesAsync(
+            codeFixProviders[0],
+            tokenContext.Document,
+            diagnostics,
+            cancellationToken);
+
         return new CodeActionRediscovery
         {
             ProviderAvailable = true,
-            Actions = await _discoveryService.DiscoverCodeFixesAsync(
-                codeFixProviders[0],
-                tokenContext.Document,
-                diagnostics,
-                cancellationToken),
+            Actions = codeFixes,
         };
     }
 
@@ -181,15 +187,26 @@ internal sealed class CodeActionResolutionService : ICodeActionResolutionService
         IReadOnlyList<DiscoveredCodeAction> actions,
         CodeActionTokenPayload payload)
     {
-        var matches = actions
-            .Where(action =>
-                string.Equals(action.Title, payload.Title, StringComparison.Ordinal)
-                && string.Equals(action.EquivalenceKey, payload.EquivalenceKey, StringComparison.Ordinal)
-                && action.ActionPath.SequenceEqual(payload.ActionPath)
-                && action.DiagnosticIds.SequenceEqual(payload.DiagnosticIds, StringComparer.Ordinal))
-            .Take(2)
-            .ToArray();
-        return matches.Length == 1 ? matches[0] : null;
+        DiscoveredCodeAction? matchingAction = null;
+        foreach (var action in actions)
+        {
+            if (!string.Equals(action.Title, payload.Title, StringComparison.Ordinal)
+                || !string.Equals(action.EquivalenceKey, payload.EquivalenceKey, StringComparison.Ordinal)
+                || !action.ActionPath.SequenceEqual(payload.ActionPath)
+                || !action.DiagnosticIds.SequenceEqual(payload.DiagnosticIds, StringComparer.Ordinal))
+            {
+                continue;
+            }
+
+            if (matchingAction is not null)
+            {
+                return null;
+            }
+
+            matchingAction = action;
+        }
+
+        return matchingAction;
     }
 
     private static CodeActionResolution<T> RejectedResolution<T>(

@@ -6,37 +6,37 @@ public sealed class CodeActionDescriptorRegistryTests
 {
     [Theory]
     [MemberData(nameof(GetVisibleReplayFamilies))]
-    public void GIVEN_AuditedReplayProvider_WHEN_Classifying_THEN_ShouldReturnReplay(string providerId, string title)
+    public void GIVEN_AuditedReplayProvider_WHEN_GettingCapability_THEN_ShouldReturnStableReplayDescriptor(string providerId)
     {
         var target = new CodeActionDescriptorRegistry();
-        var action = new Mock<CodeAction>();
-        action.SetupGet(item => item.Title).Returns(title);
 
-        var result = target.Classify(action.Object, providerId, title);
+        var firstResult = target.GetProviderCapability(providerId);
+        var secondResult = target.GetProviderCapability(providerId);
 
-        result.IsVisible.Should().BeTrue();
-        result.ExecutionMode.Should().Be(CodeActionExecutionMode.Replay);
+        firstResult.ShouldDiscover.Should().BeTrue();
+        firstResult.Descriptor.Should().BeSameAs(secondResult.Descriptor);
+        AssertReplayDescriptor(firstResult.Descriptor);
     }
 
     [Theory]
-    [InlineData("Roslyn.Workbench.Mcp.IntegrationTestSupport.TestRefactoringProvider", "Apply test refactoring")]
-    [InlineData("Microsoft.CodeAnalysis.ExtractInterface.ExtractInterfaceCodeRefactoringProvider", "Extract interface")]
-    [InlineData("Microsoft.CodeAnalysis.CSharp.CodeFixes.GenerateType.GenerateTypeCodeFixProvider", "Generate type 'MissingType'")]
-    public void GIVEN_UnauditedProvider_WHEN_Classifying_THEN_ShouldHideByDefault(string providerId, string title)
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData("Roslyn.Workbench.Mcp.IntegrationTestSupport.TestRefactoringProvider")]
+    [InlineData("Unknown.Provider")]
+    public void GIVEN_UnauditedProvider_WHEN_GettingCapability_THEN_ShouldExcludeProvider(string providerId)
     {
         var target = new CodeActionDescriptorRegistry();
-        var action = new Mock<CodeAction>();
-        action.SetupGet(item => item.Title).Returns(title);
 
-        var result = target.Classify(action.Object, providerId, title);
+        var result = target.GetProviderCapability(providerId);
 
-        result.IsVisible.Should().BeFalse();
-        result.ExecutionMode.Should().Be(CodeActionExecutionMode.Unsupported);
-        result.ContextKind.Should().Be(CodeActionDescriptorContextKind.Unsupported);
+        result.ShouldDiscover.Should().BeFalse();
+        result.Descriptor.IsVisible.Should().BeFalse();
+        result.Descriptor.ExecutionMode.Should().Be(CodeActionExecutionMode.Unsupported);
+        result.Descriptor.ContextKind.Should().Be(CodeActionDescriptorContextKind.Unsupported);
     }
 
     [Fact]
-    public void GIVEN_OverrideReturnsDescriptor_WHEN_Classifying_THEN_ShouldUseOverrideWithNormalisedTitle()
+    public void GIVEN_OverrideReturnsDescriptor_WHEN_ResolvingActionDependentDescriptor_THEN_ShouldUseOverrideWithNormalisedTitle()
     {
         var action = new Mock<CodeAction>();
         var expected = new CodeActionDescriptorEntry
@@ -44,6 +44,7 @@ public sealed class CodeActionDescriptorRegistryTests
             ExecutionMode = CodeActionExecutionMode.Parameterised,
             ExecutorTool = "ExecutorTool",
         };
+
         CodeActionDescriptorOverride descriptorOverride = (candidate, providerId, title) =>
         {
             candidate.Should().BeSameAs(action.Object);
@@ -51,21 +52,25 @@ public sealed class CodeActionDescriptorRegistryTests
             title.Should().Be("Title");
             return expected;
         };
+
         var target = new CodeActionDescriptorRegistry([descriptorOverride]);
 
-        var result = target.Classify(action.Object, "ProviderId", "  Title  ");
+        var capability = target.GetProviderCapability("ProviderId");
+        var result = target.ResolveActionDependentDescriptor(action.Object, "ProviderId", "  Title  ");
 
+        capability.ShouldDiscover.Should().BeTrue();
+        capability.RequiresActionResolution.Should().BeTrue();
         result.Should().BeSameAs(expected);
     }
 
     [Fact]
-    public void GIVEN_OverrideDoesNotMatch_WHEN_ClassifyingKnownProvider_THEN_ShouldContinueNormalClassification()
+    public void GIVEN_OverrideDoesNotMatch_WHEN_ResolvingKnownProvider_THEN_ShouldContinueNormalClassification()
     {
         CodeActionDescriptorOverride descriptorOverride = (_, _, _) => null;
         var target = new CodeActionDescriptorRegistry([descriptorOverride]);
         var action = new Mock<CodeAction>();
 
-        var result = target.Classify(
+        var result = target.ResolveActionDependentDescriptor(
             action.Object,
             "Microsoft.CodeAnalysis.CodeRefactorings.ExtractMethod.ExtractMethodCodeRefactoringProvider",
             "Title");
@@ -73,81 +78,65 @@ public sealed class CodeActionDescriptorRegistryTests
         AssertReplayDescriptor(result);
     }
 
-    [Fact]
-    public void GIVEN_AddImportFixWithMissingUsingTitle_WHEN_Classifying_THEN_ShouldReturnReplayDescriptor()
-    {
-        var target = new CodeActionDescriptorRegistry();
-        var action = new Mock<CodeAction>();
-
-        var result = target.Classify(
-            action.Object,
-            "Microsoft.CodeAnalysis.CSharp.AddImport.CSharpAddImportCodeFixProvider",
-            "  ADD MISSING USING System.Text  ");
-
-        AssertReplayDescriptor(result);
-    }
-
-    [Theory]
-    [InlineData("Remove unnecessary usings")]
-    [InlineData("REMOVE UNUSED USINGS")]
-    public void GIVEN_RemoveUsingTitle_WHEN_Classifying_THEN_ShouldReturnReplayDescriptor(string title)
-    {
-        var target = new CodeActionDescriptorRegistry();
-        var action = new Mock<CodeAction>();
-
-        var result = target.Classify(action.Object, "ProviderId", title);
-
-        AssertReplayDescriptor(result);
-    }
-
-    [Fact]
-    public void GIVEN_ParameterisedLedgerFamily_WHEN_Classifying_THEN_ShouldReturnDedicatedDescriptor()
-    {
-        var target = new CodeActionDescriptorRegistry();
-        var action = new Mock<CodeAction>();
-
-        var result = target.Classify(
-            action.Object,
-            "Microsoft.CodeAnalysis.CSharp.UseAutoProperty.CSharpUseAutoPropertyCodeFixProvider",
-            "Title");
-
-        result.IsVisible.Should().BeTrue();
-        result.ExecutionMode.Should().Be(CodeActionExecutionMode.Parameterised);
-        result.ExecutorTool.Should().Be("convert-property");
-        result.DescribeTool.Should().Be("describe-code-action");
-        result.Requirements.Should().Equal("requires-dedicated-tool", "requires-preflight-description");
-        result.ContextKind.Should().Be(CodeActionDescriptorContextKind.None);
-    }
-
-    [Fact]
-    public void GIVEN_HiddenLedgerFamily_WHEN_Classifying_THEN_ShouldReturnHiddenDescriptor()
-    {
-        var target = new CodeActionDescriptorRegistry();
-        var action = new Mock<CodeAction>();
-
-        var result = target.Classify(
-            action.Object,
-            "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.AddMissingImports.CSharpAddMissingImportsRefactoringProvider",
-            "Title");
-
-        result.IsVisible.Should().BeFalse();
-        result.ExecutionMode.Should().Be(CodeActionExecutionMode.Unsupported);
-        result.ContextKind.Should().Be(CodeActionDescriptorContextKind.Unsupported);
-    }
-
     [Theory]
     [InlineData("")]
-    [InlineData(" ")]
-    [InlineData("Unknown.Provider")]
-    public void GIVEN_ProviderIsBlankOrUnknown_WHEN_Classifying_THEN_ShouldReturnHiddenDescriptor(string providerId)
+    [InlineData("ProviderId")]
+    public void GIVEN_OverrideDoesNotMatchUnknownProvider_WHEN_ResolvingDescriptor_THEN_ShouldReturnHiddenDescriptor(string providerId)
     {
-        var target = new CodeActionDescriptorRegistry();
+        CodeActionDescriptorOverride descriptorOverride = (_, _, _) => null;
+        var target = new CodeActionDescriptorRegistry([descriptorOverride]);
         var action = new Mock<CodeAction>();
 
-        var result = target.Classify(action.Object, providerId, "Title");
+        var result = target.ResolveActionDependentDescriptor(action.Object, providerId, "Title");
 
         result.IsVisible.Should().BeFalse();
         result.ExecutionMode.Should().Be(CodeActionExecutionMode.Unsupported);
+    }
+
+    [Fact]
+    public void GIVEN_ParameterisedLedgerFamily_WHEN_GettingCapability_THEN_ShouldReturnDedicatedDescriptor()
+    {
+        var target = new CodeActionDescriptorRegistry();
+
+        var result = target.GetProviderCapability("Microsoft.CodeAnalysis.CSharp.UseAutoProperty.CSharpUseAutoPropertyCodeFixProvider");
+
+        result.ShouldDiscover.Should().BeTrue();
+        result.Descriptor.IsVisible.Should().BeTrue();
+        result.Descriptor.ExecutionMode.Should().Be(CodeActionExecutionMode.Parameterised);
+        result.Descriptor.ExecutorTool.Should().Be("convert-property");
+        result.Descriptor.DescribeTool.Should().Be("describe-code-action");
+        result.Descriptor.Requirements.Should().Equal("requires-dedicated-tool", "requires-preflight-description");
+        result.Descriptor.ContextKind.Should().Be(CodeActionDescriptorContextKind.None);
+    }
+
+    [Fact]
+    public void GIVEN_HiddenLedgerFamily_WHEN_GettingCapability_THEN_ShouldExcludeProvider()
+    {
+        var target = new CodeActionDescriptorRegistry();
+
+        var result = target.GetProviderCapability("Microsoft.CodeAnalysis.CSharp.CodeRefactorings.AddMissingImports.CSharpAddMissingImportsRefactoringProvider");
+
+        result.ShouldDiscover.Should().BeFalse();
+        result.Descriptor.IsVisible.Should().BeFalse();
+        result.Descriptor.ExecutionMode.Should().Be(CodeActionExecutionMode.Unsupported);
+        result.Descriptor.ContextKind.Should().Be(CodeActionDescriptorContextKind.Unsupported);
+    }
+
+    public static TheoryData<string> GetVisibleReplayFamilies()
+    {
+        var data = new TheoryData<string>();
+        foreach (var family in BuiltInCodeActionLedger.Families)
+        {
+            if (family.State != BuiltInCodeActionSupportState.SupportedReplay
+                || string.IsNullOrWhiteSpace(family.ProviderId))
+            {
+                continue;
+            }
+
+            data.Add(family.ProviderId);
+        }
+
+        return data;
     }
 
     private static void AssertReplayDescriptor(CodeActionDescriptorEntry result)
@@ -156,19 +145,5 @@ public sealed class CodeActionDescriptorRegistryTests
         result.ExecutionMode.Should().Be(CodeActionExecutionMode.Replay);
         result.Requirements.Should().Equal("deterministic-replay");
         result.ContextKind.Should().Be(CodeActionDescriptorContextKind.None);
-    }
-
-    public static TheoryData<string, string> GetVisibleReplayFamilies()
-    {
-        var data = new TheoryData<string, string>();
-
-        foreach (var family in BuiltInCodeActionLedger.Families
-            .Where(static family => family.State == BuiltInCodeActionSupportState.SupportedReplay)
-            .Where(static family => !string.IsNullOrWhiteSpace(family.ProviderId)))
-        {
-            data.Add(family.ProviderId, "Title");
-        }
-
-        return data;
     }
 }

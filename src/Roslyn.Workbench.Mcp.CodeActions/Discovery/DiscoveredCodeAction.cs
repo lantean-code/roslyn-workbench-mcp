@@ -10,6 +10,8 @@ internal sealed record DiscoveredCodeAction
 
     public required string Title { get; init; }
 
+    public required CodeActionDescriptorEntry Descriptor { get; init; }
+
     public string? EquivalenceKey { get; init; }
 
     public IReadOnlyList<int> ActionPath { get; init; } = [];

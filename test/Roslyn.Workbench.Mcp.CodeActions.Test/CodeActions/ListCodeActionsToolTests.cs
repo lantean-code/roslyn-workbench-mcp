@@ -11,7 +11,6 @@ public sealed class ListCodeActionsToolTests
     private readonly Mock<ICodeActionProviderCatalog> _providerCatalog;
     private readonly Mock<ICodeActionDiscoveryService> _discoveryService;
     private readonly Mock<ICodeActionDiagnosticService> _diagnosticService;
-    private readonly Mock<ICodeActionDescriptorRegistry> _descriptorRegistry;
     private readonly Mock<ICodeActionInfoFactory> _infoFactory;
     private readonly Mock<ICodeActionQueryContext> _context;
     private readonly Mock<IWorkspaceResolver> _workspaceResolver;
@@ -22,7 +21,6 @@ public sealed class ListCodeActionsToolTests
         _providerCatalog = new Mock<ICodeActionProviderCatalog>();
         _discoveryService = new Mock<ICodeActionDiscoveryService>();
         _diagnosticService = new Mock<ICodeActionDiagnosticService>();
-        _descriptorRegistry = new Mock<ICodeActionDescriptorRegistry>();
         _infoFactory = new Mock<ICodeActionInfoFactory>();
         _context = new Mock<ICodeActionQueryContext>();
         _workspaceResolver = new Mock<IWorkspaceResolver>();
@@ -30,6 +28,7 @@ public sealed class ListCodeActionsToolTests
         {
             IsAvailable = true,
         });
+
         _workspaceResolver
             .Setup(item => item.ValidateSnapshot(It.IsAny<SnapshotPrecondition?>()))
             .Returns(SnapshotMatchResult.Matched());
@@ -38,7 +37,6 @@ public sealed class ListCodeActionsToolTests
             _providerCatalog.Object,
             _discoveryService.Object,
             _diagnosticService.Object,
-            _descriptorRegistry.Object,
             _infoFactory.Object);
     }
 
@@ -208,10 +206,6 @@ public sealed class ListCodeActionsToolTests
         _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
         _discoveryService.Setup(item => item.GetMatchingRefactoringProviders(null)).Returns([]);
         _discoveryService.Setup(item => item.GetMatchingCodeFixProviders(null)).Returns([]);
-        _diagnosticService
-            .Setup(item => item.GetDocumentDiagnosticsAsync(roslyn.Document, location.SourceSpan, diagnosticIds, CancellationToken.None))
-            .ReturnsAsync([]);
-
         var result = await _target.ExecuteAsync(
             new ListCodeActionsRequest
             {
@@ -226,7 +220,7 @@ public sealed class ListCodeActionsToolTests
             roslyn.Document,
             location.SourceSpan,
             diagnosticIds,
-            CancellationToken.None), Times.Once);
+            CancellationToken.None), Times.Never);
     }
 
     [Fact]
@@ -238,20 +232,23 @@ public sealed class ListCodeActionsToolTests
         var refactoringProvider = new Mock<CodeRefactoringProvider>();
         var codeFixProvider = new Mock<CodeFixProvider>();
         var diagnostics = ImmutableArray<Diagnostic>.Empty;
-        var earlier = CreateDiscoveredAction(roslyn.Solution, "EarlierTitle", "SecondProvider", null, [], DiscoveredActionKind.CodeFix);
-        var firstPath = CreateDiscoveredAction(roslyn.Solution, "Title", "FirstProvider", null, [1], DiscoveredActionKind.CodeFix);
-        var secondPath = CreateDiscoveredAction(roslyn.Solution, "Title", "FirstProvider", null, [2], DiscoveredActionKind.Refactoring);
-        var equivalence = CreateDiscoveredAction(roslyn.Solution, "Title", "FirstProvider", "EquivalenceKey", [], DiscoveredActionKind.CodeFix);
-        var laterProvider = CreateDiscoveredAction(roslyn.Solution, "Title", "SecondProvider", null, [], DiscoveredActionKind.Refactoring);
-        var hidden = CreateDiscoveredAction(roslyn.Solution, "HiddenTitle", "ProviderId", null, [], DiscoveredActionKind.Refactoring);
         var visibleDescriptor = new CodeActionDescriptorEntry
         {
             IsVisible = true,
         };
+
         var hiddenDescriptor = new CodeActionDescriptorEntry
         {
             IsVisible = false,
         };
+
+        var earlier = CreateDiscoveredAction(roslyn.Solution, "EarlierTitle", "SecondProvider", null, [], DiscoveredActionKind.CodeFix, visibleDescriptor);
+        var firstPath = CreateDiscoveredAction(roslyn.Solution, "Title", "FirstProvider", null, [1], DiscoveredActionKind.CodeFix, visibleDescriptor);
+        var nestedFirstPath = CreateDiscoveredAction(roslyn.Solution, "Title", "FirstProvider", null, [1, 0], DiscoveredActionKind.CodeFix, visibleDescriptor);
+        var secondPath = CreateDiscoveredAction(roslyn.Solution, "Title", "FirstProvider", null, [2], DiscoveredActionKind.Refactoring, visibleDescriptor);
+        var equivalence = CreateDiscoveredAction(roslyn.Solution, "Title", "FirstProvider", "EquivalenceKey", [], DiscoveredActionKind.CodeFix, visibleDescriptor);
+        var laterProvider = CreateDiscoveredAction(roslyn.Solution, "Title", "SecondProvider", null, [], DiscoveredActionKind.Refactoring, visibleDescriptor);
+        var hidden = CreateDiscoveredAction(roslyn.Solution, "HiddenTitle", "ProviderId", null, [], DiscoveredActionKind.Refactoring, hiddenDescriptor);
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
@@ -266,14 +263,9 @@ public sealed class ListCodeActionsToolTests
             .ReturnsAsync(diagnostics);
         _discoveryService
             .Setup(item => item.DiscoverCodeFixesAsync(codeFixProvider.Object, roslyn.Document, diagnostics, CancellationToken.None))
-            .ReturnsAsync([equivalence, earlier, firstPath]);
-        _descriptorRegistry
-            .Setup(item => item.Classify(It.IsAny<CodeAction>(), It.IsAny<string>(), It.IsAny<string>()))
-            .Returns(visibleDescriptor);
-        _descriptorRegistry
-            .Setup(item => item.Classify(hidden.Action, hidden.ProviderId, hidden.Title))
-            .Returns(hiddenDescriptor);
-        var orderedActions = new[] { earlier, firstPath, secondPath, equivalence, laterProvider };
+            .ReturnsAsync([equivalence, earlier, nestedFirstPath, firstPath]);
+
+        var orderedActions = new[] { earlier, firstPath, nestedFirstPath, secondPath, equivalence, laterProvider };
         foreach (var action in orderedActions)
         {
             _infoFactory
@@ -298,9 +290,11 @@ public sealed class ListCodeActionsToolTests
         result.Data!.Actions.Select(item => item.ActionId).Should().Equal(
             "SecondProvider:EarlierTitle::",
             "FirstProvider:Title::1",
+            "FirstProvider:Title::1.0",
             "FirstProvider:Title::2",
             "FirstProvider:Title:EquivalenceKey:",
             "SecondProvider:Title::");
+
         _infoFactory.Verify(item => item.Create(
             hidden,
             It.IsAny<ICodeActionExecutionContext>(),
@@ -315,7 +309,8 @@ public sealed class ListCodeActionsToolTests
         string providerId,
         string? equivalenceKey,
         IReadOnlyList<int> actionPath,
-        DiscoveredActionKind kind)
+        DiscoveredActionKind kind,
+        CodeActionDescriptorEntry descriptor)
     {
         return new DiscoveredCodeAction
         {
@@ -323,6 +318,7 @@ public sealed class ListCodeActionsToolTests
             Kind = kind,
             ProviderId = providerId,
             Title = title,
+            Descriptor = descriptor,
             EquivalenceKey = equivalenceKey,
             ActionPath = actionPath,
         };

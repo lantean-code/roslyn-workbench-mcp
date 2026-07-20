@@ -15,6 +15,7 @@ public sealed class DescribeCodeActionToolTests
         {
             IsAvailable = false,
         });
+
         var target = new DescribeCodeActionTool(providerCatalog.Object, resolutionService.Object, infoFactory.Object);
 
         var result = await target.ExecuteAsync(
@@ -47,10 +48,12 @@ public sealed class DescribeCodeActionToolTests
             Code = "ErrorCode",
             Message = "Message",
         });
+
         providerCatalog.SetupGet(item => item.Status).Returns(new CodeActionProviderCatalogStatus
         {
             IsAvailable = true,
         });
+
         resolutionService
             .Setup(item => item.ResolveActionAsync<DescribeCodeActionData>(
                 "ActionId",
@@ -62,6 +65,7 @@ public sealed class DescribeCodeActionToolTests
             {
                 Rejection = rejection,
             });
+
         var target = new DescribeCodeActionTool(providerCatalog.Object, resolutionService.Object, infoFactory.Object);
 
         var result = await target.ExecuteAsync(
@@ -96,6 +100,7 @@ public sealed class DescribeCodeActionToolTests
             ContextKind = CodeActionDescriptorContextKind.MemberSelection,
             Message = "Message",
         };
+
         var info = new CodeActionInfo
         {
             ActionId = "RefreshedActionId",
@@ -103,10 +108,12 @@ public sealed class DescribeCodeActionToolTests
             ProviderId = "ProviderId",
             ExpiresAt = "2000-01-01T00:00:00.0000000+00:00",
         };
+
         providerCatalog.SetupGet(item => item.Status).Returns(new CodeActionProviderCatalogStatus
         {
             IsAvailable = true,
         });
+
         resolutionService
             .Setup(item => item.ResolveActionAsync<DescribeCodeActionData>(
                 "ActionId",
@@ -121,6 +128,7 @@ public sealed class DescribeCodeActionToolTests
                 Document = roslyn.Document,
                 Span = new TextSpan(1, 2),
             });
+
         infoFactory
             .Setup(item => item.Create(action, context.Object, roslyn.Document, new TextSpan(1, 2), descriptor))
             .Returns(info);
@@ -149,6 +157,7 @@ public sealed class DescribeCodeActionToolTests
             Kind = DiscoveredActionKind.Refactoring,
             ProviderId = "ProviderId",
             Title = "Title",
+            Descriptor = new CodeActionDescriptorEntry(),
             EquivalenceKey = "EquivalenceKey",
         };
     }

@@ -22,6 +22,7 @@ public sealed class CodeActionInfoFactoryTests
             WorkspaceId = "WorkspaceId",
             WorkspaceEpoch = 1,
         };
+
         timeProvider
             .Setup(item => item.GetUtcNow())
             .Returns(new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.Zero));
@@ -98,6 +99,7 @@ public sealed class CodeActionInfoFactoryTests
             WorkspaceId = "WorkspaceId",
             WorkspaceEpoch = 1,
         });
+
         context.SetupGet(item => item.TransactionRevision).Returns(2);
         context.SetupGet(item => item.WorkspaceResolver).Returns(resolver.Object);
         tokenService
@@ -128,6 +130,7 @@ public sealed class CodeActionInfoFactoryTests
             Kind = kind,
             ProviderId = "ProviderId",
             Title = "Title",
+            Descriptor = new CodeActionDescriptorEntry(),
             EquivalenceKey = "EquivalenceKey",
             ActionPath = [1, 2],
             DiagnosticIds = ["DiagnosticId"],

@@ -38,6 +38,7 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
         {
             IsAvailable = true,
         });
+
         _context.SetupGet(item => item.WorkspaceResolver).Returns(_workspaceResolver.Object);
         _context.SetupGet(item => item.CurrentSolution).Returns(_roslyn.Solution);
         SetupDefaultScopeResolutions();
@@ -66,6 +67,7 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
             {
                 CandidateSolution = _roslyn.Solution,
             });
+
         _operationService
             .Setup(item => item.ApplyFixAllAsync(
                 _provider.Object,
@@ -79,6 +81,7 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
             {
                 CandidateSolution = _roslyn.Solution,
             });
+
         _solutionChangeCounter
             .Setup(item => item.CountChangedSourceDocumentsAsync(
                 _roslyn.Solution,
@@ -141,6 +144,7 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
                 Code = "SnapshotMismatch",
                 Message = "Message",
             });
+
         _resolutionService
             .Setup(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
                 "ActionId",
@@ -492,6 +496,7 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
                 Documents = firstProject.Documents.Concat(secondProject.Documents).ToArray(),
                 Projects = [firstProject, secondProject],
             });
+
         _operationService
             .Setup(item => item.ApplyFixAllAsync(
                 _provider.Object,
@@ -587,6 +592,7 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
             {
                 Documents = solution.Projects.SelectMany(static project => project.Documents).ToArray(),
             });
+
         _scopeResolver
             .Setup(item => item.Resolve(
                 It.Is<ScopeSelector>(scope => scope.Kind == ScopeKind.Document),
@@ -596,6 +602,7 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
             {
                 Documents = [_roslyn.Document],
             });
+
         _scopeResolver
             .Setup(item => item.Resolve(
                 It.Is<ScopeSelector>(scope => scope.Kind == ScopeKind.Project),
@@ -606,6 +613,7 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
                 Documents = [_roslyn.Document],
                 Projects = [_roslyn.Document.Project],
             });
+
         _scopeResolver
             .Setup(item => item.Resolve(
                 It.Is<ScopeSelector>(scope => scope.Kind == ScopeKind.Projects),
@@ -616,6 +624,7 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
                 Documents = [_roslyn.Document],
                 Projects = [_roslyn.Document.Project],
             });
+
         _scopeResolver
             .Setup(item => item.Resolve(
                 It.Is<ScopeSelector>(scope => !Enum.IsDefined(scope.Kind)),
@@ -671,6 +680,10 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
             Kind = DiscoveredActionKind.CodeFix,
             ProviderId = "ProviderId",
             Title = "Title",
+            Descriptor = new CodeActionDescriptorEntry
+            {
+                ExecutionMode = CodeActionExecutionMode.Replay,
+            },
             EquivalenceKey = "EquivalenceKey",
             ActionPath = [1],
             DiagnosticIds = ["DiagnosticId"],
@@ -690,11 +703,13 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
 
     private static CodeActionExecutionResult<WorkspaceMutationCandidate> CreateRejection()
     {
-        return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
+        var error = new CodeActionExecutionError
         {
             Code = "ErrorCode",
             Message = "Message",
-        });
+        };
+
+        return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(error);
     }
 
     private static CodeActionScopeResolution CreateScopeRejection()

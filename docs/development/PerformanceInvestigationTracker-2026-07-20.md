@@ -204,11 +204,15 @@ The phase attribution confirms that handler/Roslyn execution accounts for 64.1%,
 
 ### 7. Investigate Code Action discovery CPU and memory
 
-**Status:** Next
+**Status:** In progress
 
 On GuardClauses, `list-code-actions` records a 260.99 ms median, 990 ms median aggregate Host CPU and a process peak of 374.05 MiB. Capture a trace and counters to distinguish compilation, provider discovery, MEF composition, parallel execution and result projection.
 
 Run Code Action scenarios in isolated Host processes before attributing working-set growth to them. Compare first and subsequent calls to determine whether retained discovery state provides a useful warm-path benefit.
+
+The capability audit found avoidable work before tracing: `list-code-actions` invoked every composed provider and classified each resulting action afterwards, even though deterministic execution support had already been audited in the built-in ledger. Capability metadata is now indexed once in a frozen provider lookup. Known-hidden and unaudited providers are excluded before Roslyn provider execution, while test-only action-dependent overrides remain conservatively discoverable. Each discovered action carries its resolved descriptor, so listing, token resolution, replay and location-fix flows reuse that classification rather than repeating it. The remove-unused-usings family now records its concrete provider identity instead of relying on title-based classification.
+
+This structural optimisation preserves the required distinction between capability and applicability: Roslyn still rediscovers an action against the current document and snapshot before execution, but the server does not re-audit whether that provider family can be executed deterministically. Refresh the isolated Code Action trace after this change so the remaining provider, compilation and diagnostics costs are measured without known-unsupported provider work.
 
 **Dependencies:** investigations 2–4. Shared validation and initial Workspace memory must be separated before judging Code Action-specific cost.
 

@@ -7,20 +7,17 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
     private readonly ICodeActionProviderCatalog _providerCatalog;
     private readonly ICodeActionDiscoveryService _discoveryService;
     private readonly ICodeActionDiagnosticService _diagnosticService;
-    private readonly ICodeActionDescriptorRegistry _descriptorRegistry;
     private readonly ICodeActionInfoFactory _infoFactory;
 
     public ListCodeActionsTool(
         ICodeActionProviderCatalog providerCatalog,
         ICodeActionDiscoveryService discoveryService,
         ICodeActionDiagnosticService diagnosticService,
-        ICodeActionDescriptorRegistry descriptorRegistry,
         ICodeActionInfoFactory infoFactory)
     {
         _providerCatalog = providerCatalog;
         _discoveryService = discoveryService;
         _diagnosticService = diagnosticService;
-        _descriptorRegistry = descriptorRegistry;
         _infoFactory = infoFactory;
     }
 
@@ -74,46 +71,41 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
 
         if (request.IncludeCodeFixes)
         {
-            var diagnostics = await _diagnosticService.GetDocumentDiagnosticsAsync(
-                document,
-                span,
-                request.DiagnosticIds,
-                cancellationToken);
-
-            foreach (var provider in _discoveryService.GetMatchingCodeFixProviders(providerId: null))
+            var codeFixProviders = _discoveryService.GetMatchingCodeFixProviders(providerId: null);
+            if (codeFixProviders.Count > 0)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                var actions = await _discoveryService.DiscoverCodeFixesAsync(provider, document, diagnostics, cancellationToken);
-                discovered.AddRange(actions);
+                var diagnostics = await _diagnosticService.GetDocumentDiagnosticsAsync(
+                    document,
+                    span,
+                    request.DiagnosticIds,
+                    cancellationToken);
+
+                foreach (var provider in codeFixProviders)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var actions = await _discoveryService.DiscoverCodeFixesAsync(provider, document, diagnostics, cancellationToken);
+                    discovered.AddRange(actions);
+                }
             }
         }
 
-        var classifiedActions = new List<ClassifiedCodeAction>();
+        var visibleActions = new List<DiscoveredCodeAction>();
         foreach (var action in discovered)
         {
-            var descriptor = _descriptorRegistry.Classify(action.Action, action.ProviderId, action.Title);
-            if (!descriptor.IsVisible)
+            if (!action.Descriptor.IsVisible)
             {
                 continue;
             }
 
-            classifiedActions.Add(new ClassifiedCodeAction
-            {
-                Action = action,
-                Descriptor = descriptor,
-            });
+            visibleActions.Add(action);
         }
 
-        var orderedActions = classifiedActions
-            .OrderBy(static action => action.Action.Title, StringComparer.Ordinal)
-            .ThenBy(static action => action.Action.ProviderId, StringComparer.Ordinal)
-            .ThenBy(static action => action.Action.EquivalenceKey ?? string.Empty, StringComparer.Ordinal)
-            .ThenBy(static action => string.Join(".", action.Action.ActionPath), StringComparer.Ordinal);
+        visibleActions.Sort(CompareActions);
 
         var actionInfos = new List<CodeActionInfo>();
-        foreach (var item in orderedActions)
+        foreach (var action in visibleActions)
         {
-            actionInfos.Add(_infoFactory.Create(item.Action, context, document, span, item.Descriptor));
+            actionInfos.Add(_infoFactory.Create(action, context, document, span, action.Descriptor));
         }
 
         var data = new CodeActionListData
@@ -124,10 +116,39 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
         return CodeActionExecutionResult<CodeActionListData>.Success(data);
     }
 
-    private sealed record ClassifiedCodeAction
+    private static int CompareActions(DiscoveredCodeAction left, DiscoveredCodeAction right)
     {
-        public required DiscoveredCodeAction Action { get; init; }
+        var titleComparison = StringComparer.Ordinal.Compare(left.Title, right.Title);
+        if (titleComparison != 0)
+        {
+            return titleComparison;
+        }
 
-        public required CodeActionDescriptorEntry Descriptor { get; init; }
+        var providerComparison = StringComparer.Ordinal.Compare(left.ProviderId, right.ProviderId);
+        if (providerComparison != 0)
+        {
+            return providerComparison;
+        }
+
+        var equivalenceKeyComparison = StringComparer.Ordinal.Compare(
+            left.EquivalenceKey ?? string.Empty,
+            right.EquivalenceKey ?? string.Empty);
+
+        if (equivalenceKeyComparison != 0)
+        {
+            return equivalenceKeyComparison;
+        }
+
+        var sharedPathLength = Math.Min(left.ActionPath.Count, right.ActionPath.Count);
+        for (var index = 0; index < sharedPathLength; index++)
+        {
+            var pathSegmentComparison = left.ActionPath[index].CompareTo(right.ActionPath[index]);
+            if (pathSegmentComparison != 0)
+            {
+                return pathSegmentComparison;
+            }
+        }
+
+        return left.ActionPath.Count.CompareTo(right.ActionPath.Count);
     }
 }

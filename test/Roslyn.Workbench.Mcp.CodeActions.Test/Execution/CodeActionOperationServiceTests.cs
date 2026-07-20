@@ -9,7 +9,6 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Execution;
 public sealed class CodeActionOperationServiceTests : IDisposable
 {
     private readonly Mock<ICodeActionDiagnosticService> _diagnosticService;
-    private readonly Mock<ICodeActionDescriptorRegistry> _descriptorRegistry;
     private readonly Mock<ICodeActionExecutionContext> _context;
     private readonly InMemoryRoslynDocument _roslyn;
     private readonly CodeActionOperationService _target;
@@ -17,38 +16,10 @@ public sealed class CodeActionOperationServiceTests : IDisposable
     public CodeActionOperationServiceTests()
     {
         _diagnosticService = new Mock<ICodeActionDiagnosticService>();
-        _descriptorRegistry = new Mock<ICodeActionDescriptorRegistry>();
         _context = new Mock<ICodeActionExecutionContext>();
         _roslyn = RoslynTestFactory.CreateDocument("class Sample { }");
         _context.SetupGet(item => item.CurrentSolution).Returns(_roslyn.Solution);
-        _descriptorRegistry
-            .Setup(item => item.Classify(It.IsAny<CodeAction>(), string.Empty, It.IsAny<string>()))
-            .Returns(new CodeActionDescriptorEntry
-            {
-                ExecutionMode = CodeActionExecutionMode.Replay,
-            });
-        _target = new CodeActionOperationService(_diagnosticService.Object, _descriptorRegistry.Object);
-    }
-
-    [Fact]
-    public async Task GIVEN_ParameterisedAction_WHEN_CreatingMutationCandidate_THEN_ShouldRejectBeforeComputingOperations()
-    {
-        var action = new Mock<CodeAction>();
-        action.SetupGet(item => item.Title).Returns("Title");
-        _descriptorRegistry
-            .Setup(item => item.Classify(action.Object, string.Empty, "Title"))
-            .Returns(new CodeActionDescriptorEntry
-            {
-                ExecutionMode = CodeActionExecutionMode.Parameterised,
-            });
-
-        var result = await _target.CreateMutationCandidateAsync(
-            action.Object,
-            "Summary",
-            _context.Object,
-            TestContext.Current.CancellationToken);
-
-        result.Error!.Code.Should().Be("ActionRequiresParameters");
+        _target = new CodeActionOperationService(_diagnosticService.Object);
     }
 
     [Fact]

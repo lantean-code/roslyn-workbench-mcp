@@ -137,6 +137,7 @@ internal static class BuiltInCodeActionLedger
         },
         new()
         {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.RemoveUnnecessaryImports.CSharpRemoveUnnecessaryImportsCodeFixProvider",
             Kind = BuiltInCodeActionFamilyKind.CodeFix,
             ToolName = "remove-unused-usings",
             AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,

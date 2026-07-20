@@ -5,31 +5,57 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Discovery;
 internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
 {
     private readonly ICodeActionProviderCatalog _providerCatalog;
+    private readonly ICodeActionDescriptorRegistry _descriptorRegistry;
 
-    public CodeActionDiscoveryService(ICodeActionProviderCatalog providerCatalog)
+    public CodeActionDiscoveryService(
+        ICodeActionProviderCatalog providerCatalog,
+        ICodeActionDescriptorRegistry descriptorRegistry)
     {
         _providerCatalog = providerCatalog;
+        _descriptorRegistry = descriptorRegistry;
     }
 
     public IReadOnlyList<CodeRefactoringProvider> GetMatchingRefactoringProviders(string? providerId)
     {
-        return _providerCatalog.RefactoringProviders
-            .Where(provider => string.IsNullOrWhiteSpace(providerId) || string.Equals(GetProviderId(provider), providerId, StringComparison.Ordinal))
-            .OrderBy(GetProviderId, StringComparer.Ordinal)
-            .ToArray();
+        var matchingProviders = new List<CodeRefactoringProvider>();
+        foreach (var provider in _providerCatalog.RefactoringProviders)
+        {
+            if (IsMatchingDiscoverableProvider(provider, providerId))
+            {
+                matchingProviders.Add(provider);
+            }
+        }
+
+        matchingProviders.Sort(CompareProviderIds);
+        return matchingProviders;
     }
 
     public IReadOnlyList<CodeFixProvider> GetMatchingCodeFixProviders(string? providerId)
     {
-        return _providerCatalog.CodeFixProviders
-            .Where(provider => string.IsNullOrWhiteSpace(providerId) || string.Equals(GetProviderId(provider), providerId, StringComparison.Ordinal))
-            .OrderBy(GetProviderId, StringComparer.Ordinal)
-            .ToArray();
+        var matchingProviders = new List<CodeFixProvider>();
+        foreach (var provider in _providerCatalog.CodeFixProviders)
+        {
+            if (IsMatchingDiscoverableProvider(provider, providerId))
+            {
+                matchingProviders.Add(provider);
+            }
+        }
+
+        matchingProviders.Sort(CompareProviderIds);
+        return matchingProviders;
     }
 
     public CodeFixProvider? FindCodeFixProvider(string providerId)
     {
-        return _providerCatalog.CodeFixProviders.SingleOrDefault(candidate => string.Equals(GetProviderId(candidate), providerId, StringComparison.Ordinal));
+        foreach (var provider in _providerCatalog.CodeFixProviders)
+        {
+            if (string.Equals(GetProviderId(provider), providerId, StringComparison.Ordinal))
+            {
+                return provider;
+            }
+        }
+
+        return null;
     }
 
     public string GetProviderId(object provider)
@@ -43,11 +69,18 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         TextSpan span,
         CancellationToken cancellationToken)
     {
+        var providerId = GetProviderId(provider);
+        var capability = _descriptorRegistry.GetProviderCapability(providerId);
+        if (!capability.ShouldDiscover)
+        {
+            return [];
+        }
+
         var rootActions = new List<CodeAction>();
         var context = new CodeRefactoringContext(document, span, action => rootActions.Add(action), cancellationToken);
         await provider.ComputeRefactoringsAsync(context);
 
-        return Flatten(rootActions, GetProviderId(provider), DiscoveredActionKind.Refactoring, []);
+        return Flatten(rootActions, providerId, capability, DiscoveredActionKind.Refactoring, []);
     }
 
     public async ValueTask<IReadOnlyList<DiscoveredCodeAction>> DiscoverCodeFixesAsync(
@@ -56,37 +89,149 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         ImmutableArray<Diagnostic> diagnostics,
         CancellationToken cancellationToken)
     {
-        var matchingDiagnostics = diagnostics
-            .Where(diagnostic => provider.FixableDiagnosticIds.Contains(diagnostic.Id, StringComparer.Ordinal))
-            .ToImmutableArray();
-        if (matchingDiagnostics.IsDefaultOrEmpty)
+        var providerId = GetProviderId(provider);
+        var capability = _descriptorRegistry.GetProviderCapability(providerId);
+        if (!capability.ShouldDiscover)
         {
             return [];
         }
 
-        var discovered = new List<(CodeAction Action, ImmutableArray<Diagnostic> Diagnostics)>();
-        foreach (var diagnosticGroup in matchingDiagnostics.GroupBy(static diagnostic => diagnostic.Location.SourceSpan))
+        var diagnosticsBySpan = new Dictionary<TextSpan, List<Diagnostic>>();
+        var orderedSpans = new List<TextSpan>();
+        var fixableDiagnosticIds = provider.FixableDiagnosticIds;
+        foreach (var diagnostic in diagnostics)
         {
-            var groupedDiagnostics = diagnosticGroup.ToImmutableArray();
+            if (!IsFixableDiagnostic(fixableDiagnosticIds, diagnostic.Id))
+            {
+                continue;
+            }
+
+            var diagnosticSpan = diagnostic.Location.SourceSpan;
+            if (!diagnosticsBySpan.TryGetValue(diagnosticSpan, out var diagnosticsAtSpan))
+            {
+                diagnosticsAtSpan = [];
+                diagnosticsBySpan.Add(diagnosticSpan, diagnosticsAtSpan);
+                orderedSpans.Add(diagnosticSpan);
+            }
+
+            diagnosticsAtSpan.Add(diagnostic);
+        }
+
+        if (orderedSpans.Count == 0)
+        {
+            return [];
+        }
+
+        var registeredActions = new List<(CodeAction Action, ImmutableArray<Diagnostic> Diagnostics)>();
+        foreach (var diagnosticSpan in orderedSpans)
+        {
+            var groupedDiagnostics = diagnosticsBySpan[diagnosticSpan].ToImmutableArray();
+
             await RegisterCodeFixesAsync(
                 provider,
                 document,
-                diagnosticGroup.Key,
+                diagnosticSpan,
                 groupedDiagnostics,
-                discovered,
+                registeredActions,
                 cancellationToken);
         }
 
-        return discovered
-            .SelectMany(entry => Flatten(
-                [entry.Action],
-                GetProviderId(provider),
+        var discoveredActions = new List<DiscoveredCodeAction>();
+        foreach (var (action, actionDiagnostics) in registeredActions)
+        {
+            var diagnosticIds = GetDistinctDiagnosticIds(actionDiagnostics);
+            FlattenCore(
+                action,
+                providerId,
+                capability,
                 DiscoveredActionKind.CodeFix,
-                entry.Diagnostics
-                    .Select(static diagnostic => diagnostic.Id)
-                    .Distinct(StringComparer.Ordinal)
-                    .ToArray()))
-            .ToArray();
+                diagnosticIds,
+                [0],
+                discoveredActions);
+        }
+
+        return discoveredActions;
+    }
+
+    private List<DiscoveredCodeAction> Flatten(
+        List<CodeAction> rootActions,
+        string providerId,
+        CodeActionProviderCapability capability,
+        DiscoveredActionKind kind,
+        IReadOnlyList<string> diagnosticIds)
+    {
+        var discovered = new List<DiscoveredCodeAction>();
+        var path = new List<int>();
+
+        for (var index = 0; index < rootActions.Count; index++)
+        {
+            path.Add(index);
+            FlattenCore(rootActions[index], providerId, capability, kind, diagnosticIds, path, discovered);
+            path.RemoveAt(path.Count - 1);
+        }
+
+        return discovered;
+    }
+
+    private void FlattenCore(
+        CodeAction action,
+        string providerId,
+        CodeActionProviderCapability capability,
+        DiscoveredActionKind kind,
+        IReadOnlyList<string> diagnosticIds,
+        List<int> path,
+        ICollection<DiscoveredCodeAction> discovered)
+    {
+        var nested = action.NestedActions;
+        if (!nested.IsDefaultOrEmpty)
+        {
+            for (var index = 0; index < nested.Length; index++)
+            {
+                path.Add(index);
+                FlattenCore(
+                    nested[index],
+                    providerId,
+                    capability,
+                    kind,
+                    diagnosticIds,
+                    path,
+                    discovered);
+
+                path.RemoveAt(path.Count - 1);
+            }
+
+            return;
+        }
+
+        var descriptor = capability.Descriptor;
+        if (capability.RequiresActionResolution)
+        {
+            descriptor = _descriptorRegistry.ResolveActionDependentDescriptor(action, providerId, action.Title);
+        }
+
+        discovered.Add(new DiscoveredCodeAction
+        {
+            Action = action,
+            Kind = kind,
+            ProviderId = providerId,
+            Title = action.Title,
+            Descriptor = descriptor,
+            EquivalenceKey = action.EquivalenceKey,
+            ActionPath = path.ToArray(),
+            DiagnosticIds = diagnosticIds,
+        });
+    }
+
+    private bool IsMatchingDiscoverableProvider(object provider, string? requestedProviderId)
+    {
+        var providerId = GetProviderId(provider);
+        if (!string.IsNullOrWhiteSpace(requestedProviderId)
+            && !string.Equals(providerId, requestedProviderId, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        return _descriptorRegistry.GetProviderCapability(providerId).ShouldDiscover;
     }
 
     private static async Task RegisterCodeFixesAsync(
@@ -103,59 +248,46 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
             diagnostics,
             (action, actionDiagnostics) => discovered.Add((action, actionDiagnostics)),
             cancellationToken);
+
         await provider.RegisterCodeFixesAsync(context);
     }
 
-    private static List<DiscoveredCodeAction> Flatten(
-        List<CodeAction> rootActions,
-        string providerId,
-        DiscoveredActionKind kind,
-        IReadOnlyList<string> diagnosticIds)
+    private static int CompareProviderIds(CodeRefactoringProvider left, CodeRefactoringProvider right)
     {
-        var discovered = new List<DiscoveredCodeAction>();
-
-        for (var index = 0; index < rootActions.Count; index++)
-        {
-            FlattenCore(rootActions[index], providerId, kind, diagnosticIds, [index], discovered);
-        }
-
-        return discovered;
+        return StringComparer.Ordinal.Compare(left.GetType().ToString(), right.GetType().ToString());
     }
 
-    private static void FlattenCore(
-        CodeAction action,
-        string providerId,
-        DiscoveredActionKind kind,
-        IReadOnlyList<string> diagnosticIds,
-        IReadOnlyList<int> path,
-        ICollection<DiscoveredCodeAction> discovered)
+    private static int CompareProviderIds(CodeFixProvider left, CodeFixProvider right)
     {
-        var nested = action.NestedActions;
-        if (!nested.IsDefaultOrEmpty)
+        return StringComparer.Ordinal.Compare(left.GetType().ToString(), right.GetType().ToString());
+    }
+
+    private static bool IsFixableDiagnostic(ImmutableArray<string> fixableDiagnosticIds, string diagnosticId)
+    {
+        foreach (var fixableDiagnosticId in fixableDiagnosticIds)
         {
-            for (var index = 0; index < nested.Length; index++)
+            if (string.Equals(fixableDiagnosticId, diagnosticId, StringComparison.Ordinal))
             {
-                FlattenCore(
-                    nested[index],
-                    providerId,
-                    kind,
-                    diagnosticIds,
-                    path.Concat([index]).ToArray(),
-                    discovered);
+                return true;
             }
-
-            return;
         }
 
-        discovered.Add(new DiscoveredCodeAction
-        {
-            Action = action,
-            Kind = kind,
-            ProviderId = providerId,
-            Title = action.Title,
-            EquivalenceKey = action.EquivalenceKey,
-            ActionPath = path.ToArray(),
-            DiagnosticIds = diagnosticIds.ToArray(),
-        });
+        return false;
     }
+
+    private static List<string> GetDistinctDiagnosticIds(ImmutableArray<Diagnostic> diagnostics)
+    {
+        var diagnosticIds = new List<string>();
+        var seenDiagnosticIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var diagnostic in diagnostics)
+        {
+            if (seenDiagnosticIds.Add(diagnostic.Id))
+            {
+                diagnosticIds.Add(diagnostic.Id);
+            }
+        }
+
+        return diagnosticIds;
+    }
+
 }

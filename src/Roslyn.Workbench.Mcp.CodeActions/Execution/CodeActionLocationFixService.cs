@@ -8,20 +8,17 @@ internal sealed class CodeActionLocationFixService : ICodeActionLocationFixServi
     private readonly ICodeActionDiscoveryService _discoveryService;
     private readonly ICodeActionOperationService _operationService;
     private readonly ICodeActionDiagnosticService _diagnosticService;
-    private readonly ICodeActionDescriptorRegistry _descriptorRegistry;
 
     public CodeActionLocationFixService(
         ICodeActionProviderCatalog providerCatalog,
         ICodeActionDiscoveryService discoveryService,
         ICodeActionOperationService operationService,
-        ICodeActionDiagnosticService diagnosticService,
-        ICodeActionDescriptorRegistry descriptorRegistry)
+        ICodeActionDiagnosticService diagnosticService)
     {
         _providerCatalog = providerCatalog;
         _discoveryService = discoveryService;
         _operationService = operationService;
         _diagnosticService = diagnosticService;
-        _descriptorRegistry = descriptorRegistry;
     }
 
     public async ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageLocationCodeFixAsync(
@@ -78,12 +75,13 @@ internal sealed class CodeActionLocationFixService : ICodeActionLocationFixServi
             request.AnalyzerTypeName,
             request.SyntheticDiagnosticId,
             cancellationToken);
+
         if (diagnostics.IsDefaultOrEmpty)
         {
             return Rejected<WorkspaceMutationCandidate>("CodeFixUnavailable", "No matching code fix was available at the selected location.");
         }
 
-        var candidates = new List<ClassifiedCodeAction>();
+        var candidates = new List<DiscoveredCodeAction>();
         foreach (var provider in matchingProviders)
         {
             var actions = await _discoveryService.DiscoverCodeFixesAsync(provider, document, diagnostics, cancellationToken);
@@ -101,61 +99,61 @@ internal sealed class CodeActionLocationFixService : ICodeActionLocationFixServi
                     continue;
                 }
 
-                var descriptor = _descriptorRegistry.Classify(action.Action, action.ProviderId, action.Title);
-                if (!descriptor.IsVisible)
+                if (!action.Descriptor.IsVisible)
                 {
                     continue;
                 }
 
-                candidates.Add(new ClassifiedCodeAction
-                {
-                    Action = action,
-                    Descriptor = descriptor,
-                });
+                candidates.Add(action);
             }
         }
 
-        var distinctCandidates = candidates
-            .GroupBy(static candidate => new CodeActionCandidateIdentity(
-                candidate.Action.ProviderId,
-                candidate.Action.Title,
-                candidate.Action.EquivalenceKey,
-                candidate.Action.ActionPath,
-                candidate.Action.DiagnosticIds))
-            .Select(static group => group.First())
-            .ToArray();
-        if (distinctCandidates.Length == 0)
+        var distinctCandidates = new List<DiscoveredCodeAction>();
+        var candidateIdentities = new HashSet<CodeActionCandidateIdentity>();
+        foreach (var action in candidates)
+        {
+            var identity = new CodeActionCandidateIdentity(
+                action.ProviderId,
+                action.Title,
+                action.EquivalenceKey,
+                action.ActionPath,
+                action.DiagnosticIds);
+
+            if (candidateIdentities.Add(identity))
+            {
+                distinctCandidates.Add(action);
+            }
+        }
+
+        if (distinctCandidates.Count == 0)
         {
             return Rejected<WorkspaceMutationCandidate>("CodeFixUnavailable", "No matching code fix was available at the selected location.");
         }
 
-        if (distinctCandidates.Length > 1)
+        if (distinctCandidates.Count > 1)
         {
-            return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
+            var error = new CodeActionExecutionError
             {
                 Code = "ActionAmbiguous",
                 Message = "The requested code fix could not be selected uniquely.",
-            }, RequiredAction.ResolveTargetAgain);
+            };
+
+            return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(error, RequiredAction.ResolveTargetAgain);
         }
 
         var candidate = distinctCandidates[0];
-        return candidate.Descriptor.ExecutionMode switch
+        if (candidate.Descriptor.ExecutionMode is CodeActionExecutionMode.Replay or CodeActionExecutionMode.Parameterised)
         {
-            CodeActionExecutionMode.Replay => await _operationService.CreateMutationCandidateAsync(candidate.Action.Action, candidate.Action.Title, context, cancellationToken),
-            CodeActionExecutionMode.Parameterised => await _operationService.CreateMutationCandidateAsync(candidate.Action.Action, candidate.Action.Title, context, cancellationToken),
-            _ => Rejected<WorkspaceMutationCandidate>("CodeFixUnavailable", "The selected action is not replayable in this server build.", RequiredAction.ResolveTargetAgain),
-        };
+            return await _operationService.CreateMutationCandidateAsync(candidate.Action, candidate.Title, context, cancellationToken);
+        }
+
+        return Rejected<WorkspaceMutationCandidate>("CodeFixUnavailable", "The selected action is not replayable in this server build.", RequiredAction.ResolveTargetAgain);
     }
+
     private CodeActionExecutionResult<WorkspaceMutationCandidate>? RejectedIfUnavailable()
     {
         return _providerCatalog.Status.IsAvailable
             ? null
             : Rejected<WorkspaceMutationCandidate>("CodeActionsUnavailable", "Code-action composition is unavailable.");
-    }
-    private sealed record ClassifiedCodeAction
-    {
-        public required DiscoveredCodeAction Action { get; init; }
-
-        public required CodeActionDescriptorEntry Descriptor { get; init; }
     }
 }

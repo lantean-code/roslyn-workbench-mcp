@@ -1,5 +1,3 @@
-using Microsoft.Build.Evaluation;
-
 namespace Roslyn.Workbench.Mcp.Plugins.Core;
 
 internal sealed class DefaultProjectStructureService : IProjectStructureService
@@ -11,7 +9,7 @@ internal sealed class DefaultProjectStructureService : IProjectStructureService
 
     public ProjectTargetFrameworksResult GetTargetFrameworks(string? projectPath)
     {
-        using var projectCollection = new ProjectCollection();
+        using var projectCollection = new Microsoft.Build.Evaluation.ProjectCollection();
         try
         {
             return GetTargetFrameworks(projectPath, projectCollection);
@@ -26,7 +24,7 @@ internal sealed class DefaultProjectStructureService : IProjectStructureService
     {
         var results = new ProjectTargetFrameworksResult[projects.Count];
         var resultsByPath = new Dictionary<string, ProjectTargetFrameworksResult>(StringComparer.Ordinal);
-        using var projectCollection = new ProjectCollection();
+        using var projectCollection = new Microsoft.Build.Evaluation.ProjectCollection();
 
         try
         {
@@ -58,7 +56,7 @@ internal sealed class DefaultProjectStructureService : IProjectStructureService
 
     private static ProjectTargetFrameworksResult GetTargetFrameworks(
         string? projectPath,
-        ProjectCollection projectCollection)
+        Microsoft.Build.Evaluation.ProjectCollection projectCollection)
     {
         if (string.IsNullOrWhiteSpace(projectPath))
         {

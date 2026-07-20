@@ -11,7 +11,6 @@ public sealed class CodeActionLocationFixServiceTests
     private readonly Mock<ICodeActionDiscoveryService> _discoveryService;
     private readonly Mock<ICodeActionOperationService> _operationService;
     private readonly Mock<ICodeActionDiagnosticService> _diagnosticService;
-    private readonly Mock<ICodeActionDescriptorRegistry> _descriptorRegistry;
     private readonly Mock<ICodeActionExecutionContext> _context;
     private readonly Mock<IWorkspaceResolver> _workspaceResolver;
     private readonly CodeActionLocationFixService _target;
@@ -22,13 +21,13 @@ public sealed class CodeActionLocationFixServiceTests
         _discoveryService = new Mock<ICodeActionDiscoveryService>();
         _operationService = new Mock<ICodeActionOperationService>();
         _diagnosticService = new Mock<ICodeActionDiagnosticService>();
-        _descriptorRegistry = new Mock<ICodeActionDescriptorRegistry>();
         _context = new Mock<ICodeActionExecutionContext>();
         _workspaceResolver = new Mock<IWorkspaceResolver>();
         _providerCatalog.SetupGet(item => item.Status).Returns(new CodeActionProviderCatalogStatus
         {
             IsAvailable = true,
         });
+
         _workspaceResolver
             .Setup(item => item.ValidateSnapshot(It.IsAny<SnapshotPrecondition?>()))
             .Returns(SnapshotMatchResult.Matched());
@@ -37,8 +36,7 @@ public sealed class CodeActionLocationFixServiceTests
             _providerCatalog.Object,
             _discoveryService.Object,
             _operationService.Object,
-            _diagnosticService.Object,
-            _descriptorRegistry.Object);
+            _diagnosticService.Object);
     }
 
     [Fact]
@@ -289,10 +287,6 @@ public sealed class CodeActionLocationFixServiceTests
         var result = await _target.StageLocationCodeFixAsync(request, _context.Object, CancellationToken.None);
 
         result.Error!.Code.Should().Be("CodeFixUnavailable");
-        _descriptorRegistry.Verify(item => item.Classify(
-            It.IsAny<CodeAction>(),
-            It.IsAny<string>(),
-            It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -303,13 +297,22 @@ public sealed class CodeActionLocationFixServiceTests
         var location = await CreateLocationAsync(roslyn.Document);
         var provider = new Mock<CodeFixProvider>();
         var diagnostics = ImmutableArray.Create(CreateDiagnostic(location));
-        var action = CreateDiscoveredAction(roslyn.Solution, "Title", "EquivalenceKey", [], ["DiagnosticId"]);
+        var action = CreateDiscoveredAction(
+            roslyn.Solution,
+            "Title",
+            "EquivalenceKey",
+            [],
+            ["DiagnosticId"],
+            CodeActionExecutionMode.Unsupported,
+            isVisible: false);
+
         var request = CreateRequest(selector) with
         {
             ProviderId = null,
             Title = null,
             EquivalenceKey = null,
         };
+
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
@@ -329,13 +332,6 @@ public sealed class CodeActionLocationFixServiceTests
         _discoveryService
             .Setup(item => item.DiscoverCodeFixesAsync(provider.Object, roslyn.Document, diagnostics, CancellationToken.None))
             .ReturnsAsync([action]);
-        _descriptorRegistry
-            .Setup(item => item.Classify(action.Action, "ProviderId", "Title"))
-            .Returns(new CodeActionDescriptorEntry
-            {
-                IsVisible = false,
-            });
-
         var result = await _target.StageLocationCodeFixAsync(request, _context.Object, CancellationToken.None);
 
         result.Error!.Code.Should().Be("CodeFixUnavailable");
@@ -356,6 +352,7 @@ public sealed class CodeActionLocationFixServiceTests
             Title = null,
             EquivalenceKey = null,
         };
+
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
@@ -375,13 +372,6 @@ public sealed class CodeActionLocationFixServiceTests
         _discoveryService
             .Setup(item => item.DiscoverCodeFixesAsync(provider.Object, roslyn.Document, diagnostics, CancellationToken.None))
             .ReturnsAsync([firstAction, secondAction]);
-        _descriptorRegistry
-            .Setup(item => item.Classify(It.IsAny<CodeAction>(), It.IsAny<string>(), It.IsAny<string>()))
-            .Returns(new CodeActionDescriptorEntry
-            {
-                ExecutionMode = CodeActionExecutionMode.Replay,
-            });
-
         var result = await _target.StageLocationCodeFixAsync(request, _context.Object, CancellationToken.None);
 
         result.Error!.Code.Should().Be("ActionAmbiguous");
@@ -398,17 +388,20 @@ public sealed class CodeActionLocationFixServiceTests
         var location = await CreateLocationAsync(roslyn.Document);
         var provider = new Mock<CodeFixProvider>();
         var diagnostics = ImmutableArray.Create(CreateDiagnostic(location));
-        var action = CreateDiscoveredAction(roslyn.Solution, "Title", "EquivalenceKey", [1], ["DiagnosticId"]);
+        var action = CreateDiscoveredAction(roslyn.Solution, "Title", "EquivalenceKey", [1], ["DiagnosticId"], executionMode);
+
         var candidate = new WorkspaceMutationCandidate
         {
             CandidateSolution = roslyn.Solution,
         };
+
         var request = CreateRequest(selector) with
         {
             ExpectedSnapshot = expectedSnapshot,
             Title = "Title",
             EquivalenceKey = "EquivalenceKey",
         };
+
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
@@ -428,12 +421,6 @@ public sealed class CodeActionLocationFixServiceTests
         _discoveryService
             .Setup(item => item.DiscoverCodeFixesAsync(provider.Object, roslyn.Document, diagnostics, CancellationToken.None))
             .ReturnsAsync([action]);
-        _descriptorRegistry
-            .Setup(item => item.Classify(action.Action, "ProviderId", "Title"))
-            .Returns(new CodeActionDescriptorEntry
-            {
-                ExecutionMode = executionMode,
-            });
         _operationService
             .Setup(item => item.CreateMutationCandidateAsync(action.Action, "Title", _context.Object, CancellationToken.None))
             .ReturnsAsync(CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(candidate));
@@ -452,7 +439,14 @@ public sealed class CodeActionLocationFixServiceTests
         var location = await CreateLocationAsync(roslyn.Document);
         var provider = new Mock<CodeFixProvider>();
         var diagnostics = ImmutableArray.Create(CreateDiagnostic(location));
-        var action = CreateDiscoveredAction(roslyn.Solution, "Title", "EquivalenceKey", [], ["DiagnosticId"]);
+        var action = CreateDiscoveredAction(
+            roslyn.Solution,
+            "Title",
+            "EquivalenceKey",
+            [],
+            ["DiagnosticId"],
+            CodeActionExecutionMode.Unsupported);
+
         var request = CreateRequest(selector);
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
@@ -473,13 +467,6 @@ public sealed class CodeActionLocationFixServiceTests
         _discoveryService
             .Setup(item => item.DiscoverCodeFixesAsync(provider.Object, roslyn.Document, diagnostics, CancellationToken.None))
             .ReturnsAsync([action]);
-        _descriptorRegistry
-            .Setup(item => item.Classify(action.Action, "ProviderId", "Title"))
-            .Returns(new CodeActionDescriptorEntry
-            {
-                ExecutionMode = CodeActionExecutionMode.Unsupported,
-            });
-
         var result = await _target.StageLocationCodeFixAsync(request, _context.Object, CancellationToken.None);
 
         result.Error!.Code.Should().Be("CodeFixUnavailable");
@@ -504,6 +491,7 @@ public sealed class CodeActionLocationFixServiceTests
         {
             CandidateSolution = roslyn.Solution,
         };
+
         var request = CreateRequest(selector);
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
@@ -524,12 +512,6 @@ public sealed class CodeActionLocationFixServiceTests
         _discoveryService
             .Setup(item => item.DiscoverCodeFixesAsync(provider.Object, roslyn.Document, diagnostics, CancellationToken.None))
             .ReturnsAsync([firstAction, secondAction]);
-        _descriptorRegistry
-            .Setup(item => item.Classify(It.IsAny<CodeAction>(), "ProviderId", "Title"))
-            .Returns(new CodeActionDescriptorEntry
-            {
-                ExecutionMode = CodeActionExecutionMode.Replay,
-            });
         _operationService
             .Setup(item => item.CreateMutationCandidateAsync(firstAction.Action, "Title", _context.Object, CancellationToken.None))
             .ReturnsAsync(CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(candidate));
@@ -561,7 +543,9 @@ public sealed class CodeActionLocationFixServiceTests
         string title,
         string equivalenceKey,
         IReadOnlyList<int> actionPath,
-        IReadOnlyList<string> diagnosticIds)
+        IReadOnlyList<string> diagnosticIds,
+        CodeActionExecutionMode executionMode = CodeActionExecutionMode.Replay,
+        bool isVisible = true)
     {
         return new DiscoveredCodeAction
         {
@@ -569,6 +553,11 @@ public sealed class CodeActionLocationFixServiceTests
             Kind = DiscoveredActionKind.CodeFix,
             ProviderId = "ProviderId",
             Title = title,
+            Descriptor = new CodeActionDescriptorEntry
+            {
+                IsVisible = isVisible,
+                ExecutionMode = executionMode,
+            },
             EquivalenceKey = equivalenceKey,
             ActionPath = actionPath,
             DiagnosticIds = diagnosticIds,
@@ -588,11 +577,11 @@ public sealed class CodeActionLocationFixServiceTests
         return syntaxTree!.GetLocation(new TextSpan(0, 1));
     }
 
-    #pragma warning disable CA1515 // The enum is part of a public xUnit theory method signature.
+#pragma warning disable CA1515 // The enum is part of a public xUnit theory method signature.
     public enum LocationFixFilter
     {
         Title,
         EquivalenceKey,
     }
-    #pragma warning restore CA1515
+#pragma warning restore CA1515
 }

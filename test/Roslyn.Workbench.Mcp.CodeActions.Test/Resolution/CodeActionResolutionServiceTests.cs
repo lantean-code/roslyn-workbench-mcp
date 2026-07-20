@@ -13,7 +13,6 @@ public sealed class CodeActionResolutionServiceTests : IDisposable
 
     private readonly Mock<ICodeActionDiscoveryService> _discoveryService;
     private readonly Mock<ICodeActionDiagnosticService> _diagnosticService;
-    private readonly Mock<ICodeActionDescriptorRegistry> _descriptorRegistry;
     private readonly Mock<ICodeActionTokenService> _tokenService;
     private readonly Mock<TimeProvider> _timeProvider;
     private readonly Mock<ICodeActionExecutionContext> _context;
@@ -29,7 +28,6 @@ public sealed class CodeActionResolutionServiceTests : IDisposable
     {
         _discoveryService = new Mock<ICodeActionDiscoveryService>();
         _diagnosticService = new Mock<ICodeActionDiagnosticService>();
-        _descriptorRegistry = new Mock<ICodeActionDescriptorRegistry>();
         _tokenService = new Mock<ICodeActionTokenService>();
         _timeProvider = new Mock<TimeProvider>();
         _context = new Mock<ICodeActionExecutionContext>();
@@ -37,11 +35,12 @@ public sealed class CodeActionResolutionServiceTests : IDisposable
         _refactoringProvider = new Mock<CodeRefactoringProvider>();
         _codeFixProvider = new Mock<CodeFixProvider>();
         _roslyn = RoslynTestFactory.CreateDocument("class C { }");
-        _matchingAction = CreateAction();
         _visibleDescriptor = new CodeActionDescriptorEntry
         {
             ExecutionMode = CodeActionExecutionMode.Replay,
         };
+
+        _matchingAction = CreateAction();
 
         _timeProvider.Setup(item => item.GetUtcNow()).Returns(_utcNow);
         _workspaceResolver
@@ -56,6 +55,7 @@ public sealed class CodeActionResolutionServiceTests : IDisposable
             WorkspaceId = "WorkspaceId",
             WorkspaceEpoch = 1,
         });
+
         _context.SetupGet(item => item.TransactionRevision).Returns(2);
         _discoveryService
             .Setup(item => item.GetMatchingRefactoringProviders("ProviderId"))
@@ -67,15 +67,11 @@ public sealed class CodeActionResolutionServiceTests : IDisposable
                 new TextSpan(3, 4),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([_matchingAction]);
-        _descriptorRegistry
-            .Setup(item => item.Classify(_matchingAction.Action, "ProviderId", "Title"))
-            .Returns(_visibleDescriptor);
         SetupToken(CreatePayload());
 
         _target = new CodeActionResolutionService(
             _discoveryService.Object,
             _diagnosticService.Object,
-            _descriptorRegistry.Object,
             _tokenService.Object,
             _timeProvider.Object);
     }
@@ -185,6 +181,7 @@ public sealed class CodeActionResolutionServiceTests : IDisposable
             WorkspaceMismatch.TransactionRevision => payload with { TransactionRevision = 3 },
             _ => payload,
         };
+
         SetupToken(payload);
 
         var result = await ResolveAsync();
@@ -270,6 +267,7 @@ public sealed class CodeActionResolutionServiceTests : IDisposable
             ActionIdentityMismatch.DiagnosticIds => _matchingAction with { DiagnosticIds = ["OtherDiagnosticId"] },
             _ => _matchingAction,
         };
+
         _discoveryService
             .Setup(item => item.DiscoverRefactoringsAsync(
                 _refactoringProvider.Object,
@@ -282,10 +280,6 @@ public sealed class CodeActionResolutionServiceTests : IDisposable
 
         result.Rejection!.Error!.Code.Should().Be("ActionAmbiguous");
         result.FailureKind.Should().Be(CodeActionResolutionFailureKind.None);
-        _descriptorRegistry.Verify(item => item.Classify(
-            It.IsAny<CodeAction>(),
-            It.IsAny<string>(),
-            It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -302,18 +296,26 @@ public sealed class CodeActionResolutionServiceTests : IDisposable
         var result = await ResolveAsync();
 
         result.Rejection!.Error!.Code.Should().Be("ActionAmbiguous");
-        _descriptorRegistry.Verify(item => item.Classify(
-            It.IsAny<CodeAction>(),
-            It.IsAny<string>(),
-            It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
     public async Task GIVEN_RediscoveredActionIsHidden_WHEN_ResolvingAction_THEN_ShouldRejectUnavailableAction()
     {
-        _descriptorRegistry
-            .Setup(item => item.Classify(_matchingAction.Action, "ProviderId", "Title"))
-            .Returns(new CodeActionDescriptorEntry { IsVisible = false });
+        var hiddenAction = _matchingAction with
+        {
+            Descriptor = new CodeActionDescriptorEntry
+            {
+                IsVisible = false,
+            },
+        };
+
+        _discoveryService
+            .Setup(item => item.DiscoverRefactoringsAsync(
+                _refactoringProvider.Object,
+                _roslyn.Document,
+                new TextSpan(3, 4),
+                CancellationToken.None))
+            .ReturnsAsync([hiddenAction]);
 
         var result = await ResolveAsync();
 
@@ -350,6 +352,7 @@ public sealed class CodeActionResolutionServiceTests : IDisposable
                 Microsoft.CodeAnalysis.DiagnosticSeverity.Warning,
                 isEnabledByDefault: true),
             Location.None));
+
         SetupToken(CreatePayload() with { Kind = DiscoveredActionKind.CodeFix.ToString() });
         _discoveryService
             .Setup(item => item.GetMatchingCodeFixProviders("ProviderId"))
@@ -378,6 +381,7 @@ public sealed class CodeActionResolutionServiceTests : IDisposable
             new TextSpan(3, 4),
             It.Is<IReadOnlyList<string>>(ids => ids.SequenceEqual(new[] { "DiagnosticId" })),
             CancellationToken.None), Times.Once);
+
         _discoveryService.Verify(item => item.DiscoverCodeFixesAsync(
             _codeFixProvider.Object,
             _roslyn.Document,
@@ -436,6 +440,7 @@ public sealed class CodeActionResolutionServiceTests : IDisposable
             Kind = DiscoveredActionKind.Refactoring,
             ProviderId = "ProviderId",
             Title = "Title",
+            Descriptor = _visibleDescriptor,
             EquivalenceKey = "EquivalenceKey",
             ActionPath = [1],
             DiagnosticIds = ["DiagnosticId"],

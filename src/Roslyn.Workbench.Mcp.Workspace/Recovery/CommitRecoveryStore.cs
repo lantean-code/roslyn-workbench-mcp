@@ -340,7 +340,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
             return false;
         }
 
-        var targets = new HashSet<string>(_pathComparison.Comparer);
+        var targets = new HashSet<string>(_pathComparison.GetComparer(manifest.WorkspaceRoot));
         foreach (var entry in manifest.Entries)
         {
             if (!_fileSystem.Path.IsPathFullyQualified(entry.TargetPath)
@@ -419,10 +419,16 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
 
     private bool IsWithinRoot(string root, string path)
     {
-        var relative = _fileSystem.Path.GetRelativePath(root, path);
-        return relative != ".."
-            && !relative.StartsWith($"..{_fileSystem.Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-            && !_fileSystem.Path.IsPathRooted(relative);
+        var canonicalRoot = Path.TrimEndingDirectorySeparator(_fileSystem.Path.GetFullPath(root));
+        var canonicalPath = _fileSystem.Path.GetFullPath(path);
+        var comparison = _pathComparison.GetComparison(canonicalRoot);
+        if (string.Equals(canonicalRoot, canonicalPath, comparison))
+        {
+            return true;
+        }
+
+        return canonicalPath.StartsWith(canonicalRoot + _fileSystem.Path.DirectorySeparatorChar, comparison)
+            || canonicalPath.StartsWith(canonicalRoot + _fileSystem.Path.AltDirectorySeparatorChar, comparison);
     }
 
     private void ValidateCommitId(string commitId)

@@ -28,7 +28,9 @@ public sealed class WorkspaceRootResolverTests
         _path.Setup(item => item.GetRelativePath(It.IsAny<string>(), It.IsAny<string>())).Returns((string root, string value) => Path.GetRelativePath(root, value));
         _path.Setup(item => item.IsPathRooted(It.IsAny<string>())).Returns((string value) => Path.IsPathRooted(value));
         _path.SetupGet(item => item.DirectorySeparatorChar).Returns(Path.DirectorySeparatorChar);
+        _path.SetupGet(item => item.AltDirectorySeparatorChar).Returns(Path.AltDirectorySeparatorChar);
         _pathComparison.SetupGet(item => item.Comparison).Returns(StringComparison.Ordinal);
+        _pathComparison.Setup(item => item.GetComparison(It.IsAny<string>())).Returns(StringComparison.Ordinal);
         _target = new WorkspaceRootResolver(_fileSystem.Object, _pathComparison.Object);
     }
 
@@ -142,6 +144,50 @@ public sealed class WorkspaceRootResolverTests
         var path = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "second", "Project.csproj"));
 
         var result = _target.Contains(root, path);
+
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public void GIVEN_PathEqualsRoot_WHEN_CheckingContainment_THEN_ShouldReturnTrue()
+    {
+        var root = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "repository"));
+
+        var result = _target.Contains(root, root);
+
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public void GIVEN_FileSystemRoot_WHEN_CheckingDescendantContainment_THEN_ShouldReturnTrue()
+    {
+        var root = Path.GetFullPath(Path.DirectorySeparatorChar.ToString());
+        var path = Path.Combine(root, "workspace", "Project.csproj");
+
+        var result = _target.Contains(root, path);
+
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public void GIVEN_CaseInsensitiveMountedRoot_WHEN_PathCasingDiffers_THEN_ShouldReturnTrue()
+    {
+        _pathComparison.Setup(item => item.GetComparison("/mnt/c/Users/Developer/Repository"))
+            .Returns(StringComparison.OrdinalIgnoreCase);
+
+        var result = _target.Contains(
+            "/mnt/c/Users/Developer/Repository",
+            "/mnt/c/users/developer/repository/src/Project.csproj");
+
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public void GIVEN_CaseSensitiveNativeRoot_WHEN_PathCasingDiffers_THEN_ShouldReturnFalse()
+    {
+        var result = _target.Contains(
+            "/home/Developer/Repository",
+            "/home/developer/repository/src/Project.csproj");
 
         result.Should().BeFalse();
     }

@@ -275,6 +275,44 @@ public sealed class WorkspaceResolverTests
     }
 
     [Fact]
+    public void GIVEN_TargetFrameworkInProjectName_WHEN_ResolvingProject_THEN_ShouldReturnTargetSpecificProject()
+    {
+        using var workspace = CreateWorkspace("Sample (net8.0)", "Document.cs", "class C { }");
+        var expectedProject = AddProject(workspace, "Sample (net10.0)");
+        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+
+        var result = target.ResolveProject(new ProjectSelector { TargetFramework = "NET10.0" });
+
+        result.Status.Should().Be(SelectorResolveStatus.Resolved);
+        result.Value!.Id.Should().Be(expectedProject.Id);
+    }
+
+    [Fact]
+    public void GIVEN_TargetFrameworkInOutputPath_WHEN_ResolvingProject_THEN_ShouldReturnTargetSpecificProject()
+    {
+        using var workspace = CreateWorkspace("OuterProject", "Document.cs", "class C { }");
+        var outputPath = Path.Combine(GetWorkspaceRoot(), "Project", "bin", "net10.0", "Project.dll");
+        var expectedProject = AddProject(workspace, "TargetProject", outputPath);
+        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+
+        var result = target.ResolveProject(new ProjectSelector { TargetFramework = "net10.0" });
+
+        result.Status.Should().Be(SelectorResolveStatus.Resolved);
+        result.Value!.Id.Should().Be(expectedProject.Id);
+    }
+
+    [Fact]
+    public void GIVEN_TargetFrameworkIsUnavailable_WHEN_ResolvingProject_THEN_ShouldReturnNotFound()
+    {
+        using var workspace = CreateWorkspace("Project", "Document.cs", "class C { }");
+        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+
+        var result = target.ResolveProject(new ProjectSelector { TargetFramework = "net10.0" });
+
+        result.Status.Should().Be(SelectorResolveStatus.NotFound);
+    }
+
+    [Fact]
     public void GIVEN_EmptyProjectSelectorWithMultipleProjects_WHEN_ResolvingProject_THEN_ShouldReturnAmbiguous()
     {
         using var workspace = CreateWorkspace("FirstProject", "Document.cs", "class C { }");
@@ -610,6 +648,19 @@ public sealed class WorkspaceResolverTests
     }
 
     [Fact]
+    public async Task GIVEN_MetadataDocumentationCommentId_WHEN_ResolvingSymbol_THEN_ShouldReturnNotFound()
+    {
+        using var workspace = CreateWorkspace("Project", "Document.cs", "class C { }");
+        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+
+        var result = await target.ResolveSymbolAsync(
+            new SymbolSelector { DocumentationCommentId = "T:System.String" },
+            TestContext.Current.CancellationToken);
+
+        result.Status.Should().Be(SelectorResolveStatus.NotFound);
+    }
+
+    [Fact]
     public async Task GIVEN_CancelledToken_WHEN_ResolvingDocumentationCommentId_THEN_ShouldPropagateCancellation()
     {
         using var workspace = CreateWorkspace("Project", "Document.cs", "class C { }");
@@ -721,6 +772,151 @@ public sealed class WorkspaceResolverTests
         result.Status.Should().Be(SelectorResolveStatus.Ambiguous);
     }
 
+    [Fact]
+    public async Task GIVEN_MultiTargetProjectScopedDocumentationId_WHEN_ResolvingSymbol_THEN_ShouldReturnSymbolOwnedByTargetProject()
+    {
+        using var workspace = CreateWorkspace("Sample(net8.0)", "Document.cs", "class C { }");
+        var secondProject = AddProject(workspace, "Sample(net10.0)");
+        AddDocument(workspace, secondProject, "Document.cs", "class C { }", Path.Combine(GetWorkspaceRoot(), "Sample", "Document.cs"));
+        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+
+        var result = await target.ResolveSymbolAsync(new SymbolSelector
+        {
+            DocumentationCommentId = "T:C",
+            Project = new ProjectSelector { Name = "Sample(net10.0)" },
+        }, TestContext.Current.CancellationToken);
+
+        result.Status.Should().Be(SelectorResolveStatus.Resolved);
+        result.Value!.ContainingAssembly.Name.Should().Be("Sample(net10.0)");
+    }
+
+    [Fact]
+    public async Task GIVEN_ProjectScopedLocationWithLinkedPath_WHEN_ResolvingSymbol_THEN_ShouldUseProjectDocument()
+    {
+        using var workspace = CreateWorkspace("FirstProject", "Document.cs", "class C { }");
+        var secondProject = AddProject(workspace, "SecondProject");
+        AddDocument(workspace, secondProject, "Document.cs", "class D { }", Path.Combine(GetWorkspaceRoot(), "FirstProject", "Document.cs"));
+        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+
+        var result = await target.ResolveSymbolAsync(new SymbolSelector
+        {
+            Project = new ProjectSelector { Name = "SecondProject" },
+            Location = new LocationSelector
+            {
+                Span = new TextSpanSelector
+                {
+                    Document = new DocumentSelector { Path = "FirstProject/Document.cs" },
+                    Start = 6,
+                    Length = 1,
+                },
+            },
+        }, TestContext.Current.CancellationToken);
+
+        result.Status.Should().Be(SelectorResolveStatus.Resolved);
+        result.Value!.ContainingAssembly.Name.Should().Be("SecondProject");
+    }
+
+    [Fact]
+    public async Task GIVEN_ProjectScopedMetadataLocation_WHEN_ResolvingSymbol_THEN_ShouldReturnMetadataSymbol()
+    {
+        using var workspace = CreateWorkspace("Project", "Document.cs", "class C { string Value = string.Empty; }");
+        var document = workspace.CurrentSolution.Projects.Single().Documents.Single();
+        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+
+        var result = await target.ResolveSymbolAsync(new SymbolSelector
+        {
+            Project = new ProjectSelector { Name = "Project" },
+            Location = new LocationSelector
+            {
+                Span = new TextSpanSelector
+                {
+                    Document = new DocumentSelector { DocumentId = document.Id.Id.ToString() },
+                    Start = 10,
+                    Length = 6,
+                },
+            },
+        }, TestContext.Current.CancellationToken);
+
+        result.Status.Should().Be(SelectorResolveStatus.Resolved);
+        result.Value!.Name.Should().Be("String");
+        result.Value.Locations.Should().Contain(static location => location.IsInMetadata);
+    }
+
+    [Fact]
+    public async Task GIVEN_ProjectCanSeeSymbolOwnedByReferencedProject_WHEN_ResolvingDocumentationId_THEN_ShouldReturnNotFound()
+    {
+        using var workspace = CreateWorkspace("FirstProject", "Document.cs", "class C { }");
+        var firstProject = workspace.CurrentSolution.Projects.Single();
+        var secondProject = AddProject(workspace, "SecondProject");
+        AddDocument(workspace, secondProject, "Document.cs", "public class D { }", Path.Combine(GetWorkspaceRoot(), "SecondProject", "Document.cs"));
+        workspace.TryApplyChanges(workspace.CurrentSolution.AddProjectReference(firstProject.Id, new ProjectReference(secondProject.Id))).Should().BeTrue();
+        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+
+        var result = await target.ResolveSymbolAsync(new SymbolSelector
+        {
+            DocumentationCommentId = "T:D",
+            Project = new ProjectSelector { Name = "FirstProject" },
+        }, TestContext.Current.CancellationToken);
+
+        result.Status.Should().Be(SelectorResolveStatus.NotFound);
+    }
+
+    [Fact]
+    public async Task GIVEN_UnknownProjectScope_WHEN_ResolvingSymbol_THEN_ShouldReturnNotFound()
+    {
+        using var workspace = CreateWorkspace("Project", "Document.cs", "class C { }");
+        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+
+        var result = await target.ResolveSymbolAsync(new SymbolSelector
+        {
+            DocumentationCommentId = "T:C",
+            Project = new ProjectSelector { ProjectId = Guid.NewGuid().ToString() },
+        }, TestContext.Current.CancellationToken);
+
+        result.Status.Should().Be(SelectorResolveStatus.NotFound);
+    }
+
+    [Fact]
+    public async Task GIVEN_AmbiguousProjectScope_WHEN_ResolvingSymbol_THEN_ShouldReturnAmbiguous()
+    {
+        using var workspace = CreateWorkspace("Project", "Document.cs", "class C { }");
+        AddProject(workspace, "Project");
+        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+
+        var result = await target.ResolveSymbolAsync(new SymbolSelector
+        {
+            DocumentationCommentId = "T:C",
+            Project = new ProjectSelector { Name = "Project" },
+        }, TestContext.Current.CancellationToken);
+
+        result.Status.Should().Be(SelectorResolveStatus.Ambiguous);
+    }
+
+    [Fact]
+    public async Task GIVEN_ProjectScopeThatDoesNotContainSelectedDocument_WHEN_ResolvingSymbol_THEN_ShouldReturnNotFound()
+    {
+        using var workspace = CreateWorkspace("FirstProject", "Document.cs", "class C { }");
+        var firstDocument = workspace.CurrentSolution.Projects.Single().Documents.Single();
+        AddProject(workspace, "SecondProject");
+        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+
+        var result = await target.ResolveSymbolAsync(new SymbolSelector
+        {
+            Project = new ProjectSelector { Name = "SecondProject" },
+            Location = new LocationSelector
+            {
+                Span = new TextSpanSelector
+                {
+                    Document = new DocumentSelector { DocumentId = firstDocument.Id.Id.ToString() },
+                    Start = 6,
+                    Length = 1,
+                },
+            },
+        }, TestContext.Current.CancellationToken);
+
+        result.Status.Should().Be(SelectorResolveStatus.NotFound);
+    }
+
     private static WorkspaceResolver CreateTarget(Solution solution, string workspaceRoot, int? transactionRevision = null)
     {
         return new WorkspaceResolver(
@@ -759,7 +955,7 @@ public sealed class WorkspaceResolverTests
             filePath: filePath));
     }
 
-    private static Project AddProject(AdhocWorkspace workspace, string projectName)
+    private static Project AddProject(AdhocWorkspace workspace, string projectName, string? outputFilePath = null)
     {
         return workspace.AddProject(ProjectInfo.Create(
             ProjectId.CreateNewId(),
@@ -768,6 +964,7 @@ public sealed class WorkspaceResolverTests
             projectName,
             LanguageNames.CSharp,
             filePath: Path.Combine(GetWorkspaceRoot(), projectName, $"{projectName}.csproj"),
+            outputFilePath: outputFilePath,
             compilationOptions: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary),
             metadataReferences: [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)]));
     }

@@ -27,6 +27,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         _path.Setup(item => item.Combine(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .Returns((string a, string b, string c, string d) => $"{a}/{b}/{c}/{d}");
         _pathComparison.SetupGet(item => item.Comparison).Returns(StringComparison.Ordinal);
+        _pathComparison.Setup(item => item.GetComparison(It.IsAny<string>())).Returns(StringComparison.Ordinal);
     }
 
     [Fact]
@@ -422,7 +423,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
             ["/workspace/a.json"] = CreateStatus("a-instance", "/WORKSPACE", 2),
             ["/workspace/legacy.json"] = CreateStatus("legacy-instance", "/workspace", 1),
         };
-        _pathComparison.SetupGet(item => item.Comparison).Returns(StringComparison.OrdinalIgnoreCase);
+        _pathComparison.Setup(item => item.GetComparison(It.IsAny<string>())).Returns(StringComparison.OrdinalIgnoreCase);
         _directory.Setup(item => item.Exists(It.IsAny<string>())).Returns(true);
         _directory.Setup(item => item.EnumerateFiles(It.IsAny<string>(), "*.json")).Returns(statuses.Keys);
         _streams.Setup(item => item.New(It.IsAny<string>(), FileMode.Open, FileAccess.ReadWrite, FileShare.None)).Throws(new IOException());

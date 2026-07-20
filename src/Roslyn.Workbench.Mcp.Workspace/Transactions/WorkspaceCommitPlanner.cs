@@ -50,7 +50,7 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         Solution baselineSolution,
         Solution currentSolution)
     {
-        var comparer = _pathComparison.Comparer;
+        var comparer = _pathComparison.GetComparer(workspaceRoot);
         return new WorkspaceCommitPlanningContext(
             commitId,
             _fileSystem.Path.GetFullPath(loadedPath),

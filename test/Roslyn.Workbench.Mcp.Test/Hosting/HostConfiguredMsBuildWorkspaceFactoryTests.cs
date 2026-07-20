@@ -19,6 +19,7 @@ public sealed class HostConfiguredMsBuildWorkspaceFactoryTests
         using var result = _target.Create();
 
         result.Should().NotBeNull();
+        result.SkipUnrecognizedProjects.Should().BeTrue();
         _providerCatalog.VerifyGet(item => item.WorkspaceHostServices, Times.Once);
     }
 
@@ -31,6 +32,7 @@ public sealed class HostConfiguredMsBuildWorkspaceFactoryTests
         using var result = _target.Create();
 
         result.Should().NotBeNull();
+        result.SkipUnrecognizedProjects.Should().BeTrue();
         _providerCatalog.VerifyGet(item => item.WorkspaceHostServices, Times.Once);
     }
 }

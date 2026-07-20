@@ -5,4 +5,8 @@ internal interface IWorkspacePathComparison
     StringComparison Comparison { get; }
 
     StringComparer Comparer { get; }
+
+    StringComparison GetComparison(string path);
+
+    StringComparer GetComparer(string path);
 }

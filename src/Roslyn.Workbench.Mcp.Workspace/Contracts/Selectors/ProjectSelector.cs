@@ -19,4 +19,9 @@ public sealed record ProjectSelector
     /// Gets the normalized workspace-relative project path.
     /// </summary>
     public string? Path { get; init; }
+
+    /// <summary>
+    /// Gets the target framework used to select a target-specific Roslyn project.
+    /// </summary>
+    public string? TargetFramework { get; init; }
 }

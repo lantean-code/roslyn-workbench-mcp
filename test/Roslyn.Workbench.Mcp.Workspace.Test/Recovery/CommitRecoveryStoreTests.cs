@@ -30,6 +30,7 @@ public sealed class CommitRecoveryStoreTests
         _fileSystem.SetupGet(item => item.File).Returns(_file.Object);
         _fileSystem.SetupGet(item => item.Directory).Returns(_directory.Object);
         _fileSystem.SetupGet(item => item.Path).Returns(_path.Object);
+        _path.Setup(item => item.GetFullPath(It.IsAny<string>())).Returns((string path) => Path.GetFullPath(path));
         _path.Setup(item => item.GetFullPath("StateDirectory")).Returns("/State");
         _path.Setup(item => item.GetRelativePath(It.IsAny<string>(), It.IsAny<string>()))
             .Returns((string root, string path) => Path.GetRelativePath(root, path));
@@ -40,6 +41,7 @@ public sealed class CommitRecoveryStoreTests
         _path.Setup(item => item.GetDirectoryName(It.IsAny<string>())).Returns((string path) => Path.GetDirectoryName(path));
         _path.Setup(item => item.GetInvalidFileNameChars()).Returns(['*', '/', '\\']);
         _path.SetupGet(item => item.DirectorySeparatorChar).Returns(Path.DirectorySeparatorChar);
+        _path.SetupGet(item => item.AltDirectorySeparatorChar).Returns(Path.AltDirectorySeparatorChar);
         _path.Setup(item => item.Combine("/State", "recovery")).Returns(_recoveryDirectory);
         _path
             .Setup(item => item.Combine(_recoveryDirectory, It.IsAny<string>()))
@@ -51,6 +53,8 @@ public sealed class CommitRecoveryStoreTests
             .Returns((string path) => Path.GetFullPath(path));
         _pathComparison.SetupGet(item => item.Comparison).Returns(StringComparison.Ordinal);
         _pathComparison.SetupGet(item => item.Comparer).Returns(StringComparer.Ordinal);
+        _pathComparison.Setup(item => item.GetComparison(It.IsAny<string>())).Returns(StringComparison.Ordinal);
+        _pathComparison.Setup(item => item.GetComparer(It.IsAny<string>())).Returns(StringComparer.Ordinal);
         _target = new CommitRecoveryStore(
             Options.Create(new WorkspaceCoordinatorOptions { StateDirectory = "StateDirectory" }),
             _fileSystem.Object,

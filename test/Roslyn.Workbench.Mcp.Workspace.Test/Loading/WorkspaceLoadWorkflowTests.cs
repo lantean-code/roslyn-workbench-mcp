@@ -86,6 +86,8 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
         var loadedWorkspace = new Mock<ILoadedWorkspace>();
         var solution = CreateSolution("/outside/Project.csproj", "/outside/Document.cs");
         SetupLoadedWorkspace("/workspace/Solution.sln", solution, loadedWorkspace);
+        _workspaceLoader.Setup(item => item.InspectCompatibility("/outside/Project.csproj"))
+            .Returns((true, []));
         _workspaceRootResolver.Setup(item => item.Contains("/workspace", "/outside/Project.csproj")).Returns(false);
 
         var result = await _target.LoadAsync(
@@ -95,6 +97,10 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
 
         result.HasFailure.Should().BeTrue();
         result.Failure.Should().Be(ValidatedWorkspaceLoadFailure.OutsideWorkspaceRoot);
+        result.Diagnostics.Should().ContainSingle(diagnostic =>
+            diagnostic.Id == "WorkspaceInputOutsideRoot"
+            && diagnostic.Message.Contains("/outside/Project.csproj", StringComparison.Ordinal)
+            && diagnostic.Message.Contains("/workspace", StringComparison.Ordinal));
         loadedWorkspace.Verify(item => item.Dispose(), Times.Once);
     }
 
@@ -120,7 +126,15 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
         result.Failure.Should().Be(hasDiagnostics
             ? ValidatedWorkspaceLoadFailure.LoadFailed
             : ValidatedWorkspaceLoadFailure.NotSupported);
-        result.Diagnostics.Should().Equal(diagnostics);
+        if (hasDiagnostics)
+        {
+            result.Diagnostics.Should().Equal(diagnostics);
+        }
+        else
+        {
+            result.Diagnostics.Should().ContainSingle(item => item.Id == "WorkspaceProjectSkipped");
+        }
+
         loadedWorkspace.Verify(item => item.Dispose(), Times.Once);
     }
 
@@ -131,6 +145,8 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
         var loadedWorkspace = new Mock<ILoadedWorkspace>();
         var solution = CreateSolution("/workspace/Project.csproj", "/workspace/Document.cs");
         SetupLoadedWorkspace("/workspace/Solution.sln", solution, loadedWorkspace, cancellationSource.Token);
+        _workspaceLoader.Setup(item => item.InspectCompatibility("/workspace/Project.csproj"))
+            .Returns((true, []));
         _workspaceRootResolver
             .Setup(item => item.Contains("/workspace", It.IsAny<string>()))
             .Returns(() =>
@@ -154,6 +170,8 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
         var loadedWorkspace = new Mock<ILoadedWorkspace>();
         var solution = CreateSolution("/workspace/Project.csproj", "/workspace/Document.cs");
         SetupLoadedWorkspace("/workspace/Solution.sln", solution, loadedWorkspace);
+        _workspaceLoader.Setup(item => item.InspectCompatibility("/workspace/Project.csproj"))
+            .Returns((true, []));
         _workspaceRootResolver.Setup(item => item.Contains("/workspace", It.IsAny<string>()))
             .Throws<InvalidOperationException>();
 
@@ -197,10 +215,10 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
     }
 
     [Fact]
-    public async Task GIVEN_NonCSharpAndPathlessProjects_WHEN_Loading_THEN_ShouldSkipCompatibilityInspection()
+    public async Task GIVEN_MixedSupportedAndUnsupportedProjects_WHEN_Loading_THEN_ShouldRetainOnlySupportedProjects()
     {
         var loadedWorkspace = new Mock<ILoadedWorkspace>();
-        var solution = _workspace.CurrentSolution
+        var solution = CreateSolution("/workspace/Project.csproj", "/workspace/Document.cs")
             .AddProject(ProjectInfo.Create(
                 ProjectId.CreateNewId(),
                 VersionStamp.Default,
@@ -210,6 +228,8 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
                 filePath: "/workspace/VisualBasicProject.vbproj"))
             .AddProject("PathlessProject", "PathlessProject", LanguageNames.CSharp).Solution;
         SetupLoadedWorkspace("/workspace/Solution.sln", solution, loadedWorkspace);
+        _workspaceLoader.Setup(item => item.InspectCompatibility("/workspace/Project.csproj"))
+            .Returns((true, []));
 
         var result = await _target.LoadAsync(
             "/workspace/Solution.sln",
@@ -217,6 +237,34 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
             TestContext.Current.CancellationToken);
 
         result.HasFailure.Should().BeFalse();
+        result.Solution!.Projects.Should().ContainSingle(item => item.Name == "Project");
+        result.Diagnostics.Should().HaveCount(2);
+        result.Diagnostics.Should().OnlyContain(item => item.Id == "WorkspaceProjectSkipped");
+        _workspaceLoader.Verify(item => item.InspectCompatibility("/workspace/Project.csproj"), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_OnlyUnsupportedLanguageProjects_WHEN_Loading_THEN_ShouldDisposeAndRejectWorkspace()
+    {
+        var loadedWorkspace = new Mock<ILoadedWorkspace>();
+        var solution = _workspace.CurrentSolution.AddProject(ProjectInfo.Create(
+            ProjectId.CreateNewId(),
+            VersionStamp.Default,
+            "VisualBasicProject",
+            "VisualBasicProject",
+            LanguageNames.VisualBasic,
+            filePath: "/workspace/VisualBasicProject.vbproj"));
+        SetupLoadedWorkspace("/workspace/Solution.sln", solution, loadedWorkspace);
+
+        var result = await _target.LoadAsync(
+            "/workspace/Solution.sln",
+            "/workspace",
+            TestContext.Current.CancellationToken);
+
+        result.HasFailure.Should().BeTrue();
+        result.Failure.Should().Be(ValidatedWorkspaceLoadFailure.NotSupported);
+        result.Diagnostics.Should().ContainSingle(item => item.Id == "WorkspaceProjectSkipped");
+        loadedWorkspace.Verify(item => item.Dispose(), Times.Once);
         _workspaceLoader.Verify(item => item.InspectCompatibility(It.IsAny<string>()), Times.Never);
     }
 

@@ -138,6 +138,21 @@ public sealed class WorkspaceLifecycleIntegrationTests
     }
 
     [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_MixedSolution_WHEN_OpeningWorkspace_THEN_ShouldLoadOnlySupportedProjects()
+    {
+        using var fixture = TestWorkspaceFixture.CreateMixedSolution();
+        await using var target = fixture.CreateWorkspace();
+
+        var result = await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+
+        result.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
+        result.Data!.ProjectCount.Should().Be(1);
+        result.Data.DocumentCount.Should().BeGreaterThan(0);
+        result.Data.LoadDiagnostics.Should().Contain(item => item.Id == "WorkspaceProjectSkipped");
+    }
+
+    [Fact]
     public async Task GIVEN_MalformedProject_WHEN_OpeningWorkspace_THEN_ShouldReturnStructuredLoadDiagnostics()
     {
         using var fixture = TestWorkspaceFixture.CreateMalformedProject();

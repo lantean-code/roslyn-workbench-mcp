@@ -14,9 +14,11 @@ internal sealed class HostConfiguredMsBuildWorkspaceFactory : IMsBuildWorkspaceF
     public MSBuildWorkspace Create()
     {
         var hostServices = _providerCatalog.WorkspaceHostServices;
-
-        return hostServices is null
+        var workspace = hostServices is null
             ? MSBuildWorkspace.Create()
             : MSBuildWorkspace.Create(hostServices);
+
+        workspace.SkipUnrecognizedProjects = true;
+        return workspace;
     }
 }

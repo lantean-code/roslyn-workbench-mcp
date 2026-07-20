@@ -39,27 +39,81 @@ internal sealed class WorkspaceLoadWorkflow : IWorkspaceLoadWorkflow
 
         try
         {
-            if (HasInputOutsideRoot(loadedWorkspace.Solution, workspaceRoot))
-            {
-                loadedWorkspace.Workspace.Dispose();
-                return ValidatedWorkspaceLoadResult.Failed(ValidatedWorkspaceLoadFailure.OutsideWorkspaceRoot);
-            }
+            var solution = loadedWorkspace.Solution;
+            var diagnostics = new List<DiagnosticInfo>(loadedWorkspace.Diagnostics);
+            var unsupportedProjectIds = new List<ProjectId>();
+            var hasCompatibilityFailure = false;
 
-            foreach (var projectPath in GetCSharpProjectPaths(loadedWorkspace.Solution))
+            foreach (var project in solution.Projects)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var compatibilityFailure = InspectCompatibility(projectPath);
-                if (compatibilityFailure is not null)
+
+                if (!string.Equals(project.Language, LanguageNames.CSharp, StringComparison.Ordinal))
                 {
-                    loadedWorkspace.Workspace.Dispose();
-                    return compatibilityFailure;
+                    unsupportedProjectIds.Add(project.Id);
+                    diagnostics.Add(CreateSkippedProjectDiagnostic(project, $"language '{project.Language}' is not supported"));
+                    continue;
+                }
+
+                if (string.IsNullOrWhiteSpace(project.FilePath))
+                {
+                    unsupportedProjectIds.Add(project.Id);
+                    diagnostics.Add(CreateSkippedProjectDiagnostic(project, "its project file path is unavailable"));
+                    continue;
+                }
+
+                var compatibility = _workspaceLoader.InspectCompatibility(project.FilePath);
+                if (compatibility.Diagnostics.Count > 0)
+                {
+                    unsupportedProjectIds.Add(project.Id);
+                    diagnostics.AddRange(compatibility.Diagnostics);
+                    hasCompatibilityFailure = true;
+                    continue;
+                }
+
+                if (!compatibility.IsSdkStyle)
+                {
+                    unsupportedProjectIds.Add(project.Id);
+                    diagnostics.Add(CreateSkippedProjectDiagnostic(project, "it is not SDK-style"));
                 }
             }
 
+            foreach (var projectId in unsupportedProjectIds)
+            {
+                solution = solution.RemoveProject(projectId);
+            }
+
+            if (!solution.Projects.Any())
+            {
+                loadedWorkspace.Workspace.Dispose();
+                return ValidatedWorkspaceLoadResult.Failed(
+                    hasCompatibilityFailure
+                        ? ValidatedWorkspaceLoadFailure.LoadFailed
+                        : ValidatedWorkspaceLoadFailure.NotSupported,
+                    diagnostics);
+            }
+
+            var outsideRootInput = FindInputOutsideRoot(solution, workspaceRoot);
+            if (outsideRootInput is not null)
+            {
+                diagnostics.Add(new DiagnosticInfo
+                {
+                    Id = "WorkspaceInputOutsideRoot",
+                    Severity = Contracts.Results.DiagnosticSeverity.Error,
+                    Message = $"Loaded workspace input '{outsideRootInput}' is outside the workspace root '{workspaceRoot}'.",
+                });
+                loadedWorkspace.Workspace.Dispose();
+                return ValidatedWorkspaceLoadResult.Failed(
+                    ValidatedWorkspaceLoadFailure.OutsideWorkspaceRoot,
+                    diagnostics);
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+
             return ValidatedWorkspaceLoadResult.Succeeded(
                 loadedWorkspace.Workspace,
-                loadedWorkspace.Solution,
-                loadedWorkspace.Diagnostics);
+                solution,
+                diagnostics);
         }
         catch
         {
@@ -68,7 +122,7 @@ internal sealed class WorkspaceLoadWorkflow : IWorkspaceLoadWorkflow
         }
     }
 
-    private bool HasInputOutsideRoot(Solution solution, string workspaceRoot)
+    private string? FindInputOutsideRoot(Solution solution, string workspaceRoot)
     {
         return solution.Projects
             .SelectMany(static project => project.Documents
@@ -76,7 +130,7 @@ internal sealed class WorkspaceLoadWorkflow : IWorkspaceLoadWorkflow
                 .Prepend(project.FilePath))
             .OfType<string>()
             .Where(static path => !string.IsNullOrWhiteSpace(path))
-            .Any(path => !_workspaceRootResolver.Contains(workspaceRoot, path));
+            .FirstOrDefault(path => !_workspaceRootResolver.Contains(workspaceRoot, path));
     }
 
     private ValidatedWorkspaceLoadResult? InspectCompatibility(string projectPath)
@@ -94,13 +148,14 @@ internal sealed class WorkspaceLoadWorkflow : IWorkspaceLoadWorkflow
             : ValidatedWorkspaceLoadResult.Failed(ValidatedWorkspaceLoadFailure.NotSupported);
     }
 
-    private static IEnumerable<string> GetCSharpProjectPaths(Solution solution)
+    private static DiagnosticInfo CreateSkippedProjectDiagnostic(Project project, string reason)
     {
-        return solution.Projects
-            .Where(static project => string.Equals(project.Language, LanguageNames.CSharp, StringComparison.Ordinal))
-            .Select(static project => project.FilePath)
-            .OfType<string>()
-            .Where(static path => !string.IsNullOrWhiteSpace(path));
+        return new DiagnosticInfo
+        {
+            Id = "WorkspaceProjectSkipped",
+            Severity = Contracts.Results.DiagnosticSeverity.Warning,
+            Message = $"Project '{project.Name}' was skipped because {reason}.",
+        };
     }
 
     private static bool IsProjectPath(string path)

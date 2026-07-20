@@ -189,5 +189,32 @@ public sealed class WorkspaceResolverIntegrationTests
         reference.Location!.Document!.Path.Should().Be("../ProjectTwo/Class1.cs");
     }
 
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_LinkedSymbolAndProjectPath_WHEN_ResolvingSymbol_THEN_ShouldResolveWithinSelectedProject()
+    {
+        using var fixture = TestWorkspaceFixture.CreateAmbiguous();
+        await using var target = fixture.CreateWorkspace();
+        await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+
+        await using var contextLease = target.CreateQueryContext(new QueryRequest(), TestContext.Current.CancellationToken);
+        var resolver = contextLease.Context!.WorkspaceResolver;
+        var projectSelector = new ProjectSelector { Path = "Sample.csproj" };
+        var projectResolution = resolver.ResolveProject(projectSelector);
+
+        var resolution = await resolver.ResolveSymbolAsync(new SymbolSelector
+        {
+            DocumentationCommentId = "T:Sample.Shared.SharedClass",
+            Project = projectSelector,
+        }, TestContext.Current.CancellationToken);
+
+        projectResolution.Status.Should().Be(SelectorResolveStatus.Resolved);
+        resolution.Status.Should().Be(SelectorResolveStatus.Resolved);
+
+        var reference = resolver.CreateSymbolReference(resolution.Value!);
+
+        reference.Location!.Document!.ProjectId.Should().Be(projectResolution.Value!.Id.Id.ToString());
+    }
+
     private sealed record QueryRequest : WorkspaceBoundRequest;
 }

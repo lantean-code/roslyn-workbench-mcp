@@ -580,12 +580,14 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
                 diagnostics: loadResult.Diagnostics),
             ValidatedWorkspaceLoadFailure.NotSupported => _resultFactory.Rejected<TOutcome>(
                 WorkspaceErrorCodes.WorkspaceNotSupported,
-                "Only SDK-style C# projects are supported.",
-                context: context),
+                "The workspace does not contain any supported SDK-style C# projects.",
+                context: context,
+                diagnostics: loadResult.Diagnostics),
             ValidatedWorkspaceLoadFailure.OutsideWorkspaceRoot => _resultFactory.Rejected<TOutcome>(
                 "WorkspaceProjectOutsideRoot",
-                "Every loaded project must be contained by the workspace root.",
-                context: context),
+                "Every loaded project and source document must be contained by the workspace root.",
+                context: context,
+                diagnostics: loadResult.Diagnostics),
             _ => throw new InvalidOperationException("The workspace load failure is not supported."),
         };
     }

@@ -40,9 +40,9 @@ Source: [Analyzer Inventory.md](Analyzer%20Inventory.md)
 
 ### Establish and execute a tool performance-tuning programme
 
-**Status:** Not started
+**Status:** Framework implemented; baseline pending
 
-Measure representative MCP tools before optimising them. Build a repeatable benchmark and profiling baseline across query, mutation and Code Action families using small, medium and realistically large checked-in workspaces. Record end-to-end latency, Roslyn execution time, allocations, peak memory and result size, then prioritise measured hot paths rather than applying speculative changes.
+Use the permanent manual runner under `tools/Roslyn.Workbench.Mcp.Performance` to establish the current implementation baseline across query, mutation and Code Action families. Its pinned small, medium and realistically large GitHub repositories are cached beneath the gitignored `artifacts/performance` directory; scenario definitions and measurement guidance remain in the repository. Record end-to-end latency, Host CPU, runtime counters, peak memory and result size, then use traces or heap captures to investigate measured hot paths rather than applying speculative changes.
 
 The programme should:
 

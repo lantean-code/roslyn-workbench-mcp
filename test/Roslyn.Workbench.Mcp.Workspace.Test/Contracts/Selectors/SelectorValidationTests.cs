@@ -61,6 +61,7 @@ public sealed class SelectorValidationTests
     [InlineData("ProjectId")]
     [InlineData("Name")]
     [InlineData("Path")]
+    [InlineData("TargetFramework")]
     public void GIVEN_ProjectSelectorValue_WHEN_Validated_THEN_ShouldReturnNoValidationErrors(string field)
     {
         var selector = new ProjectSelector
@@ -68,6 +69,7 @@ public sealed class SelectorValidationTests
             ProjectId = field == "ProjectId" ? "ProjectId" : null,
             Name = field == "Name" ? "Name" : null,
             Path = field == "Path" ? "Path" : null,
+            TargetFramework = field == "TargetFramework" ? "TargetFramework" : null,
         };
 
         var errors = WorkspaceContractValidator.Validate(selector);
@@ -279,6 +281,34 @@ public sealed class SelectorValidationTests
         {
             Location = resolver == "Location" ? new LocationSelector() : null,
             DocumentationCommentId = resolver == "DocumentationCommentId" ? "DocumentationCommentId" : null,
+        };
+
+        var errors = WorkspaceContractValidator.Validate(selector);
+
+        errors.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void GIVEN_SymbolSelectorWithEmptyProjectScope_WHEN_Validated_THEN_ShouldReturnProjectValidationError()
+    {
+        var selector = new SymbolSelector
+        {
+            DocumentationCommentId = "T:Sample.Type",
+            Project = new ProjectSelector(),
+        };
+
+        var errors = WorkspaceContractValidator.Validate(selector);
+
+        errors.Should().ContainSingle(error => error.Contains("ProjectSelector"));
+    }
+
+    [Fact]
+    public void GIVEN_SymbolSelectorWithValidProjectScope_WHEN_Validated_THEN_ShouldReturnNoValidationErrors()
+    {
+        var selector = new SymbolSelector
+        {
+            DocumentationCommentId = "T:Sample.Type",
+            Project = new ProjectSelector { Name = "Sample" },
         };
 
         var errors = WorkspaceContractValidator.Validate(selector);

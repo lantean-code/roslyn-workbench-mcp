@@ -303,7 +303,10 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
     private bool IsValidStatus(WorkspaceInstanceStatus status, string canonicalWorkspaceRoot)
     {
         return status.Version == 2
-            && string.Equals(status.WorkspaceRoot, canonicalWorkspaceRoot, _pathComparison.Comparison);
+            && string.Equals(
+                status.WorkspaceRoot,
+                canonicalWorkspaceRoot,
+                _pathComparison.GetComparison(canonicalWorkspaceRoot));
     }
 
     private void TryDelete(string path)

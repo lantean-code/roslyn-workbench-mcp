@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Legacy/Legacy.csproj" />
+  <Project Path="Supported/Supported.csproj" />
+  <Project Path="VisualBasic/VisualBasic.vbproj" />
+</Solution>

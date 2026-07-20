@@ -44,7 +44,7 @@ internal sealed class WorkspaceRootResolver : IWorkspaceRootResolver
             }
 
             var parent = _fileSystem.Path.GetDirectoryName(directory);
-            if (string.Equals(parent, directory, _pathComparison.Comparison))
+            if (string.Equals(parent, directory, _pathComparison.GetComparison(directory)))
             {
                 break;
             }
@@ -57,11 +57,18 @@ internal sealed class WorkspaceRootResolver : IWorkspaceRootResolver
 
     public bool Contains(string workspaceRoot, string path)
     {
-        var relative = _fileSystem.Path.GetRelativePath(
-            _fileSystem.Path.GetFullPath(workspaceRoot),
-            _fileSystem.Path.GetFullPath(path));
-        return relative != ".."
-            && !relative.StartsWith($"..{_fileSystem.Path.DirectorySeparatorChar}", _pathComparison.Comparison)
-            && !_fileSystem.Path.IsPathRooted(relative);
+        var canonicalWorkspaceRoot = Path.TrimEndingDirectorySeparator(_fileSystem.Path.GetFullPath(workspaceRoot));
+        var canonicalPath = _fileSystem.Path.GetFullPath(path);
+        var comparison = _pathComparison.GetComparison(canonicalWorkspaceRoot);
+        if (string.Equals(canonicalWorkspaceRoot, canonicalPath, comparison))
+        {
+            return true;
+        }
+
+        var rootPrefix = Path.EndsInDirectorySeparator(canonicalWorkspaceRoot)
+            ? canonicalWorkspaceRoot
+            : canonicalWorkspaceRoot + _fileSystem.Path.DirectorySeparatorChar;
+
+        return canonicalPath.StartsWith(rootPrefix, comparison);
     }
 }

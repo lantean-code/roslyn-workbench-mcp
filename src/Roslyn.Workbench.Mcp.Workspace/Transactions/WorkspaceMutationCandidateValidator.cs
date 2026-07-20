@@ -108,9 +108,10 @@ internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCa
         var normalizedCandidate = Path.GetFullPath(candidatePath);
         var directoryPrefix = normalizedDirectory + Path.DirectorySeparatorChar;
         var altDirectoryPrefix = normalizedDirectory + Path.AltDirectorySeparatorChar;
+        var comparison = _pathComparison.GetComparison(normalizedDirectory);
 
-        return normalizedCandidate.StartsWith(directoryPrefix, _pathComparison.Comparison)
-            || normalizedCandidate.StartsWith(altDirectoryPrefix, _pathComparison.Comparison);
+        return normalizedCandidate.StartsWith(directoryPrefix, comparison)
+            || normalizedCandidate.StartsWith(altDirectoryPrefix, comparison);
     }
 
     private static bool HasDifferentIdentity(Project currentProject, Project candidateProject)

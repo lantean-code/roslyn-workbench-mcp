@@ -11,9 +11,9 @@ internal static class WorkspaceContractValidator
 
     public static IReadOnlyList<string> Validate(ProjectSelector selector)
     {
-        return CountProvided(selector.ProjectId, selector.Name, selector.Path) >= 1
+        return CountProvided(selector.ProjectId, selector.Name, selector.Path, selector.TargetFramework) >= 1
             ? []
-            : ["ProjectSelector must provide at least one of ProjectId, Name, or Path."];
+            : ["ProjectSelector must provide at least one of ProjectId, Name, Path, or TargetFramework."];
     }
 
     public static IReadOnlyList<string> Validate(WorkspaceSelector selector)
@@ -32,9 +32,19 @@ internal static class WorkspaceContractValidator
 
     public static IReadOnlyList<string> Validate(SymbolSelector selector)
     {
-        return CountProvided(selector.Location, selector.DocumentationCommentId) == 1
-            ? []
-            : ["SymbolSelector must provide exactly one of Location or DocumentationCommentId."];
+        var errors = new List<string>();
+
+        if (CountProvided(selector.Location, selector.DocumentationCommentId) != 1)
+        {
+            errors.Add("SymbolSelector must provide exactly one of Location or DocumentationCommentId.");
+        }
+
+        if (selector.Project is not null)
+        {
+            errors.AddRange(Validate(selector.Project));
+        }
+
+        return errors;
     }
 
     public static IReadOnlyList<string> Validate(ScopeSelector selector)

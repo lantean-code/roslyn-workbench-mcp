@@ -113,44 +113,13 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
 
     public SelectorResolveResult<Document> ResolveDocument(DocumentSelector selector)
     {
-
-        if (!string.IsNullOrWhiteSpace(selector.DocumentId)
-            && Guid.TryParse(selector.DocumentId, out var documentGuid))
-        {
-            var matchesById = _solution.Projects.SelectMany(static project => project.Documents).Where(document => document.Id.Id == documentGuid).ToArray();
-            if (matchesById.Length == 1)
-            {
-                return SelectorResolveResult<Document>.Resolved(matchesById[0]);
-            }
-
-            if (matchesById.Length > 1)
-            {
-                return SelectorResolveResult<Document>.Ambiguous();
-            }
-        }
-
-        if (string.IsNullOrWhiteSpace(selector.Path))
-        {
-            return SelectorResolveResult<Document>.NotFound();
-        }
-
-        var normalizedPath = NormalizeDocumentPath(selector.Path);
-        var matches = _solution.Projects.SelectMany(static project => project.Documents)
-            .Where(document => string.Equals(NormalizeDocumentPath(document.FilePath ?? string.Empty), normalizedPath, StringComparison.Ordinal))
-            .ToArray();
-
-        return matches.Length switch
-        {
-            1 => SelectorResolveResult<Document>.Resolved(matches[0]),
-            > 1 => SelectorResolveResult<Document>.Ambiguous(),
-            _ => SelectorResolveResult<Document>.NotFound(),
-        };
+        return ResolveDocument(selector, project: null);
     }
 
     public async ValueTask<SelectorResolveResult<Location>> ResolveLocationAsync(LocationSelector selector, CancellationToken cancellationToken)
     {
 
-        var resolution = await ResolveDocumentSpanAsync(selector, cancellationToken);
+        var resolution = await ResolveDocumentSpanAsync(selector, project: null, cancellationToken);
         if (resolution.IsResolved)
         {
             var syntaxTree = await resolution.Value.Document.GetSyntaxTreeAsync(cancellationToken);
@@ -178,10 +147,23 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
 
     public async ValueTask<SelectorResolveResult<ISymbol>> ResolveSymbolAsync(SymbolSelector selector, CancellationToken cancellationToken)
     {
+        Project? project = null;
+        if (selector.Project is not null)
+        {
+            var projectResolution = ResolveProject(selector.Project);
+            if (!projectResolution.IsResolved)
+            {
+                return projectResolution.Status == SelectorResolveStatus.Ambiguous
+                    ? SelectorResolveResult<ISymbol>.Ambiguous()
+                    : SelectorResolveResult<ISymbol>.NotFound();
+            }
+
+            project = projectResolution.Value;
+        }
 
         if (!string.IsNullOrWhiteSpace(selector.DocumentationCommentId))
         {
-            return await ResolveSymbolByDocumentationCommentIdAsync(selector.DocumentationCommentId, cancellationToken);
+            return await ResolveSymbolByDocumentationCommentIdAsync(selector.DocumentationCommentId, project, cancellationToken);
         }
 
         if (selector.Location is null)
@@ -189,7 +171,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
             return SelectorResolveResult<ISymbol>.NotFound();
         }
 
-        var locationResolution = await ResolveDocumentSpanAsync(selector.Location, cancellationToken);
+        var locationResolution = await ResolveDocumentSpanAsync(selector.Location, project, cancellationToken);
         if (!locationResolution.IsResolved)
         {
             return locationResolution.Status == SelectorResolveStatus.Ambiguous
@@ -205,7 +187,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         }
 
         var symbol = await SymbolFinder.FindSymbolAtPositionAsync(semanticModel, locationResolution.Value.Span.Start, _solution.Workspace, cancellationToken);
-        if (symbol is not null)
+        if (symbol is not null && IsSymbolInProjectScope(symbol, project, semanticModel.Compilation))
         {
             return SelectorResolveResult<ISymbol>.Resolved(symbol);
         }
@@ -222,6 +204,48 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
             : SelectorResolveResult<ISymbol>.Resolved(symbol);
     }
 
+    private SelectorResolveResult<Document> ResolveDocument(DocumentSelector selector, Project? project)
+    {
+        IEnumerable<Project> projects = project is null
+            ? _solution.Projects
+            : [project];
+
+        if (!string.IsNullOrWhiteSpace(selector.DocumentId)
+            && Guid.TryParse(selector.DocumentId, out var documentGuid))
+        {
+            var matchesById = projects.SelectMany(static candidateProject => candidateProject.Documents)
+                .Where(document => document.Id.Id == documentGuid)
+                .ToArray();
+
+            if (matchesById.Length == 1)
+            {
+                return SelectorResolveResult<Document>.Resolved(matchesById[0]);
+            }
+
+            if (matchesById.Length > 1)
+            {
+                return SelectorResolveResult<Document>.Ambiguous();
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(selector.Path))
+        {
+            return SelectorResolveResult<Document>.NotFound();
+        }
+
+        var normalizedPath = NormalizeDocumentPath(selector.Path);
+        var matches = projects.SelectMany(static candidateProject => candidateProject.Documents)
+            .Where(document => string.Equals(NormalizeDocumentPath(document.FilePath ?? string.Empty), normalizedPath, StringComparison.Ordinal))
+            .ToArray();
+
+        return matches.Length switch
+        {
+            1 => SelectorResolveResult<Document>.Resolved(matches[0]),
+            > 1 => SelectorResolveResult<Document>.Ambiguous(),
+            _ => SelectorResolveResult<Document>.NotFound(),
+        };
+    }
+
     private bool MatchesProjectSelector(Project project, ProjectSelector selector)
     {
         var idMatches = string.IsNullOrWhiteSpace(selector.ProjectId)
@@ -233,33 +257,40 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
                 NormalizeProjectPath(project.FilePath ?? string.Empty),
                 NormalizeProjectPath(selector.Path),
                 StringComparison.Ordinal);
+        var targetFrameworkMatches = MatchesTargetFramework(project, selector.TargetFramework);
 
-        return idMatches && nameMatches && pathMatches;
+        return idMatches && nameMatches && pathMatches && targetFrameworkMatches;
     }
 
-    private ValueTask<SelectorResolveResult<ResolvedDocumentSpan>> ResolveDocumentSpanAsync(LocationSelector selector, CancellationToken cancellationToken)
+    private ValueTask<SelectorResolveResult<ResolvedDocumentSpan>> ResolveDocumentSpanAsync(
+        LocationSelector selector,
+        Project? project,
+        CancellationToken cancellationToken)
     {
         if (selector.Span is not null)
         {
-            return ResolveTextSpanAsync(selector.Span, cancellationToken);
+            return ResolveTextSpanAsync(selector.Span, project, cancellationToken);
         }
 
         if (selector.Selection is not null)
         {
-            return ResolveTextSelectionAsync(selector.Selection, cancellationToken);
+            return ResolveTextSelectionAsync(selector.Selection, project, cancellationToken);
         }
 
         return ValueTask.FromResult(SelectorResolveResult<ResolvedDocumentSpan>.NotFound());
     }
 
-    private async ValueTask<SelectorResolveResult<ResolvedDocumentSpan>> ResolveTextSelectionAsync(TextSelectionSelector selector, CancellationToken cancellationToken)
+    private async ValueTask<SelectorResolveResult<ResolvedDocumentSpan>> ResolveTextSelectionAsync(
+        TextSelectionSelector selector,
+        Project? project,
+        CancellationToken cancellationToken)
     {
         if (selector.Document is null || string.IsNullOrEmpty(selector.SelectedText))
         {
             return SelectorResolveResult<ResolvedDocumentSpan>.NotFound();
         }
 
-        var documentResolution = ResolveDocument(selector.Document);
+        var documentResolution = ResolveDocument(selector.Document, project);
         if (!documentResolution.IsResolved)
         {
             return documentResolution.Status == SelectorResolveStatus.Ambiguous
@@ -301,14 +332,17 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         };
     }
 
-    private async ValueTask<SelectorResolveResult<ResolvedDocumentSpan>> ResolveTextSpanAsync(TextSpanSelector selector, CancellationToken cancellationToken)
+    private async ValueTask<SelectorResolveResult<ResolvedDocumentSpan>> ResolveTextSpanAsync(
+        TextSpanSelector selector,
+        Project? project,
+        CancellationToken cancellationToken)
     {
         if (selector.Document is null)
         {
             return SelectorResolveResult<ResolvedDocumentSpan>.NotFound();
         }
 
-        var documentResolution = ResolveDocument(selector.Document);
+        var documentResolution = ResolveDocument(selector.Document, project);
         if (!documentResolution.IsResolved)
         {
             return documentResolution.Status == SelectorResolveStatus.Ambiguous
@@ -330,13 +364,20 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         });
     }
 
-    private async ValueTask<SelectorResolveResult<ISymbol>> ResolveSymbolByDocumentationCommentIdAsync(string documentationCommentId, CancellationToken cancellationToken)
+    private async ValueTask<SelectorResolveResult<ISymbol>> ResolveSymbolByDocumentationCommentIdAsync(
+        string documentationCommentId,
+        Project? project,
+        CancellationToken cancellationToken)
     {
         var matches = new List<ISymbol>();
-        foreach (var project in _solution.Projects.Where(static project => project.SupportsCompilation))
+        IEnumerable<Project> projects = project is null
+            ? _solution.Projects
+            : [project];
+
+        foreach (var candidateProject in projects.Where(static candidateProject => candidateProject.SupportsCompilation))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var compilation = await project.GetCompilationAsync(cancellationToken);
+            var compilation = await candidateProject.GetCompilationAsync(cancellationToken);
             if (compilation is null)
             {
                 continue;
@@ -350,7 +391,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
 
             foreach (var symbol in candidateSymbols)
             {
-                if (symbol is not null && symbol.Locations.Any(static location => location.IsInSource))
+                if (symbol is not null && IsSourceSymbolInProjectScope(symbol, project, compilation))
                 {
                     matches.Add(symbol);
                 }
@@ -367,6 +408,69 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
             > 1 => SelectorResolveResult<ISymbol>.Ambiguous(),
             _ => SelectorResolveResult<ISymbol>.NotFound(),
         };
+    }
+
+    private string NormalizePath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return string.Empty;
+        }
+
+        var fullPath = Path.GetFullPath(Path.IsPathRooted(path) ? path : Path.Combine(_workspaceRoot, path));
+
+        if (string.IsNullOrWhiteSpace(_workspaceRoot))
+        {
+            return fullPath.Replace('\\', '/');
+        }
+
+        return Path.GetRelativePath(_workspaceRoot, fullPath).Replace('\\', '/');
+    }
+
+    private static bool MatchesTargetFramework(Project project, string? targetFramework)
+    {
+        if (string.IsNullOrWhiteSpace(targetFramework))
+        {
+            return true;
+        }
+
+        var targetFrameworkSuffix = $"({targetFramework})";
+        if (project.Name.EndsWith(targetFrameworkSuffix, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (string.IsNullOrWhiteSpace(project.OutputFilePath))
+        {
+            return false;
+        }
+
+        return project.OutputFilePath.Split(
+            [Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar],
+            StringSplitOptions.RemoveEmptyEntries)
+            .Contains(targetFramework, StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static bool IsSymbolInProjectScope(ISymbol symbol, Project? project, Compilation compilation)
+    {
+        if (project is null)
+        {
+            return true;
+        }
+
+        var hasSourceLocation = symbol.Locations.Any(static location => location.IsInSource);
+
+        return !hasSourceLocation
+            || SymbolEqualityComparer.Default.Equals(symbol.ContainingAssembly, compilation.Assembly);
+    }
+
+    private static bool IsSourceSymbolInProjectScope(ISymbol symbol, Project? project, Compilation compilation)
+    {
+        var hasSourceLocation = symbol.Locations.Any(static location => location.IsInSource);
+
+        return hasSourceLocation
+            && (project is null
+                || SymbolEqualityComparer.Default.Equals(symbol.ContainingAssembly, compilation.Assembly));
     }
 
     private static bool MatchesSelectionContext(string text, TextSelectionSelector selector, int matchIndex)
@@ -391,22 +495,5 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         }
 
         return true;
-    }
-
-    private string NormalizePath(string path)
-    {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            return string.Empty;
-        }
-
-        var fullPath = Path.GetFullPath(Path.IsPathRooted(path) ? path : Path.Combine(_workspaceRoot, path));
-
-        if (string.IsNullOrWhiteSpace(_workspaceRoot))
-        {
-            return fullPath.Replace('\\', '/');
-        }
-
-        return Path.GetRelativePath(_workspaceRoot, fullPath).Replace('\\', '/');
     }
 }

@@ -24,6 +24,7 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
         _path.Setup(item => item.IsPathRooted(It.IsAny<string>())).Returns((string value) => Path.IsPathRooted(value));
         _directory.Setup(item => item.Exists(It.IsAny<string>())).Returns(true);
         _pathComparison.SetupGet(item => item.Comparer).Returns(StringComparer.Ordinal);
+        _pathComparison.Setup(item => item.GetComparer(It.IsAny<string>())).Returns(StringComparer.Ordinal);
         _target = new WorkspaceCommitPlanner(_fileSystem.Object, _pathComparison.Object);
     }
 

@@ -14,6 +14,7 @@ public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
         _workspace = new AdhocWorkspace();
         _pathComparison = new Mock<IWorkspacePathComparison>();
         _pathComparison.SetupGet(item => item.Comparison).Returns(StringComparison.Ordinal);
+        _pathComparison.Setup(item => item.GetComparison(It.IsAny<string>())).Returns(StringComparison.Ordinal);
         _target = new WorkspaceMutationCandidateValidator(_pathComparison.Object);
     }
 
@@ -145,7 +146,7 @@ public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
     [Fact]
     public void GIVEN_ValidCandidate_WHEN_Validating_THEN_ShouldAcceptIt()
     {
-        _pathComparison.SetupGet(item => item.Comparison).Returns(StringComparison.OrdinalIgnoreCase);
+        _pathComparison.Setup(item => item.GetComparison(It.IsAny<string>())).Returns(StringComparison.OrdinalIgnoreCase);
         var currentSolution = CreateSolution(documentPathDiffersByCase: true);
         var document = currentSolution.Projects.Single().Documents.Single();
         var candidateSolution = document.WithText(SourceText.From("class Updated { }")).Project.Solution;

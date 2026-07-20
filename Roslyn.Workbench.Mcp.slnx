@@ -37,5 +37,7 @@
     <Project Path="test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.InvalidPluginFixture.csproj" />
     <Project Path="test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.ThrowingPluginFixture.csproj" />
   </Folder>
-  <Folder Name="/Tools/" />
+  <Folder Name="/Tools/">
+    <Project Path="tools/Roslyn.Workbench.Mcp.Performance/Roslyn.Workbench.Mcp.Performance.csproj" />
+  </Folder>
 </Solution>

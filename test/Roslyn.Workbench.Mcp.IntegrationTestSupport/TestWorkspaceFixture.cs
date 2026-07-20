@@ -78,6 +78,16 @@ public sealed class TestWorkspaceFixture : IDisposable
             ".editorconfig");
     }
 
+    public static TestWorkspaceFixture CreateMixedSolution()
+    {
+        return Create(
+            "CompatibilitySamples/MixedSolution",
+            "MixedSolution.slnx",
+            "Supported/Class1.cs",
+            "Directory.Build.props",
+            ".editorconfig");
+    }
+
     public static TestWorkspaceFixture CreateAmbiguous()
     {
         return Create(

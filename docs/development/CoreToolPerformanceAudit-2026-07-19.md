@@ -8,6 +8,8 @@ This audit records the static performance analysis of the bundled core query too
 
 This is not a benchmark report. A code pattern is evidence of avoidable work or allocation, not evidence of a user-visible regression. End-to-end profiling and focused benchmarks remain necessary before making higher-risk algorithmic, caching or concurrency changes.
 
+The repeatable measurement and profiling framework now lives under `tools/Roslyn.Workbench.Mcp.Performance`. It drives the published Host through MCP against exact commits of external small, medium and large GitHub repositories. The framework is retained in source control; clones, restored assets, published binaries, Host state, raw results, traces and heap captures are kept beneath the gitignored `artifacts/performance` directory in the repository root.
+
 ## Scope
 
 The comprehensive scan covered 50 production files:

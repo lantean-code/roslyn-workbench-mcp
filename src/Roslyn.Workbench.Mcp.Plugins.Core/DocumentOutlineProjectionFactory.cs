@@ -4,10 +4,17 @@ internal static class DocumentOutlineProjectionFactory
 {
     public static OutlineNode[] BuildOutlineChildren(SyntaxNode syntaxNode, SemanticModel semanticModel, IWorkspaceResolver resolver, bool includeMembers, CancellationToken cancellationToken)
     {
-        return syntaxNode.ChildNodes()
-            .Select(node => CreateOutlineNode(node, semanticModel, resolver, includeMembers, cancellationToken))
-            .OfType<OutlineNode>()
-            .ToArray();
+        var children = new List<OutlineNode>();
+        foreach (var childNode in syntaxNode.ChildNodes())
+        {
+            var child = CreateOutlineNode(childNode, semanticModel, resolver, includeMembers, cancellationToken);
+            if (child is not null)
+            {
+                children.Add(child);
+            }
+        }
+
+        return children.ToArray();
     }
 
     private static OutlineNode? CreateOutlineNode(SyntaxNode syntaxNode, SemanticModel semanticModel, IWorkspaceResolver resolver, bool includeMembers, CancellationToken cancellationToken)

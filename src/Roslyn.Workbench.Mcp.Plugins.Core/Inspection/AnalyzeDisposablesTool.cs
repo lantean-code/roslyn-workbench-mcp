@@ -5,7 +5,6 @@ internal sealed class AnalyzeDisposablesTool : QueryToolHandler<AnalyzeDisposabl
 {
     protected override async ValueTask<PluginExecutionResult<DisposableAnalysisData>> ExecuteCoreAsync(AnalyzeDisposablesRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-
         var documents = context.ToolExecutionServices.RequestResolver.ResolveDocuments<DisposableAnalysisData>(request.Scope, context);
         if (documents.HasRejection)
         {
@@ -14,6 +13,7 @@ internal sealed class AnalyzeDisposablesTool : QueryToolHandler<AnalyzeDisposabl
 
         var maxResults = request.EffectiveFindingsLimit;
         var findings = new List<DisposableFinding>();
+        var typeSymbolCache = new CompilationTypeSymbolCache();
         var hasMore = false;
         foreach (var document in documents.Value.OrderBy(static item => item.FilePath, StringComparer.Ordinal))
         {
@@ -26,8 +26,8 @@ internal sealed class AnalyzeDisposablesTool : QueryToolHandler<AnalyzeDisposabl
             }
 
             var compilation = semanticModel.Compilation;
-            var disposable = compilation.GetTypeByMetadataName("System.IDisposable");
-            var asyncDisposable = compilation.GetTypeByMetadataName("System.IAsyncDisposable");
+            var disposable = typeSymbolCache.GetTypeByMetadataName(compilation, "System.IDisposable");
+            var asyncDisposable = typeSymbolCache.GetTypeByMetadataName(compilation, "System.IAsyncDisposable");
             var disposedSymbolsByExecutable = new Dictionary<SyntaxNode, HashSet<ISymbol>>();
 
             foreach (var localDeclaration in syntaxRoot.DescendantNodes().OfType<LocalDeclarationStatementSyntax>())
@@ -81,12 +81,14 @@ internal sealed class AnalyzeDisposablesTool : QueryToolHandler<AnalyzeDisposabl
             .ThenBy(static finding => finding.Type?.DisplayName ?? string.Empty, StringComparer.Ordinal)
             .ToArray();
 
-        return PluginExecutionResult<DisposableAnalysisData>.Success(new DisposableAnalysisData
+        var data = new DisposableAnalysisData
         {
             Findings = ToolExecutionHelpers.CreatePreboundedCollection(
                 orderedFindings,
                 hasMore),
-        });
+        };
+
+        return PluginExecutionResult<DisposableAnalysisData>.Success(data);
     }
 
     private static bool ImplementsDisposable(ITypeSymbol type, INamedTypeSymbol? disposable, INamedTypeSymbol? asyncDisposable)

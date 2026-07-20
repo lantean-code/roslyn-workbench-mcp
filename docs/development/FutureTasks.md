@@ -1,6 +1,6 @@
 # Future Tasks
 
-Date: 2026-07-19
+Date: 2026-07-20
 
 ## Purpose
 
@@ -56,6 +56,18 @@ The programme should:
 - record comparative evidence without introducing brittle elapsed-time assertions into functional tests.
 
 Re-run the baseline after material Roslyn, MSBuild or MCP SDK upgrades and retain dated results so regressions can be distinguished from environment variance.
+
+Source: [Core Tool Performance Audit — 2026-07-19](CoreToolPerformanceAudit-2026-07-19.md)
+
+### Evaluate snapshot-scoped cross-invocation query caching
+
+**Status:** Conditional
+
+If performance measurements show meaningful repeated Roslyn discovery across successive tool invocations, design a Workspace-owned query cache that is separate from request-local lookup caches. Start with operations such as reference discovery that currently obtain a complete lightweight result before applying a response bound, allowing a later request with a larger bound to reuse the same discovery safely.
+
+Use a dedicated size-limited cache rather than the Host's general-purpose cache. Keys must include workspace and snapshot identity plus the canonical operation target and semantic options. Cached values must record whether discovery is complete or only covers a known limit; a larger request may reuse an entry only when the cached result is complete or already covers that request. Do not include presentation-only response bounds in keys when a complete ordered discovery result is cached.
+
+Define explicit entry sizing, expiration and invalidation for workspace close, reload, commit and snapshot advancement. Do not cache cancelled or failed operations, and do not allow cached Roslyn objects or projected results to outlive the snapshot against which they were produced. Introduce supported operations individually with measurements for hit rate, retained memory and latency rather than making every tool automatically cacheable.
 
 Source: [Core Tool Performance Audit — 2026-07-19](CoreToolPerformanceAudit-2026-07-19.md)
 

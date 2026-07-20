@@ -62,6 +62,8 @@ public sealed class GetDocumentOutlineToolTests
     public async Task GIVEN_IncludeMembersIsFalse_WHEN_CallingExecuteAsync_THEN_ShouldReturnOutlineWithoutTypeMembers()
     {
         using var document = RoslynTestFactory.CreateDocument("""
+            using System;
+
             namespace Sample;
 
             class Formatter

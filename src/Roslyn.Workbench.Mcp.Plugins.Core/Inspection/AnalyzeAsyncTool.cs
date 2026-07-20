@@ -5,7 +5,6 @@ internal sealed class AnalyzeAsyncTool : QueryToolHandler<AnalyzeAsyncRequest, A
 {
     protected override async ValueTask<PluginExecutionResult<AsyncAnalysisData>> ExecuteCoreAsync(AnalyzeAsyncRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
-
         var documents = context.ToolExecutionServices.RequestResolver.ResolveDocuments<AsyncAnalysisData>(request.Scope, context);
         if (documents.HasRejection)
         {
@@ -14,6 +13,7 @@ internal sealed class AnalyzeAsyncTool : QueryToolHandler<AnalyzeAsyncRequest, A
 
         var maxResults = request.EffectiveFindingsLimit;
         var findings = new List<AsyncFinding>();
+        var typeSymbolCache = new CompilationTypeSymbolCache();
         var hasMore = false;
         foreach (var document in documents.Value.OrderBy(static item => item.FilePath, StringComparer.Ordinal))
         {
@@ -26,10 +26,10 @@ internal sealed class AnalyzeAsyncTool : QueryToolHandler<AnalyzeAsyncRequest, A
             }
 
             var compilation = semanticModel.Compilation;
-            var task = compilation.GetTypeByMetadataName("System.Threading.Tasks.Task");
-            var taskOfT = compilation.GetTypeByMetadataName("System.Threading.Tasks.Task`1");
-            var valueTask = compilation.GetTypeByMetadataName("System.Threading.Tasks.ValueTask");
-            var valueTaskOfT = compilation.GetTypeByMetadataName("System.Threading.Tasks.ValueTask`1");
+            var task = typeSymbolCache.GetTypeByMetadataName(compilation, "System.Threading.Tasks.Task");
+            var taskOfT = typeSymbolCache.GetTypeByMetadataName(compilation, "System.Threading.Tasks.Task`1");
+            var valueTask = typeSymbolCache.GetTypeByMetadataName(compilation, "System.Threading.Tasks.ValueTask");
+            var valueTaskOfT = typeSymbolCache.GetTypeByMetadataName(compilation, "System.Threading.Tasks.ValueTask`1");
 
             foreach (var methodDeclaration in syntaxRoot.DescendantNodes().OfType<MethodDeclarationSyntax>())
             {
@@ -104,12 +104,14 @@ internal sealed class AnalyzeAsyncTool : QueryToolHandler<AnalyzeAsyncRequest, A
             .ThenBy(static finding => finding.Kind, StringComparer.Ordinal)
             .ToArray();
 
-        return PluginExecutionResult<AsyncAnalysisData>.Success(new AsyncAnalysisData
+        var data = new AsyncAnalysisData
         {
             Findings = ToolExecutionHelpers.CreatePreboundedCollection(
                 orderedFindings,
                 hasMore),
-        });
+        };
+
+        return PluginExecutionResult<AsyncAnalysisData>.Success(data);
     }
 
     private static bool IsAwaited(IOperation operation)

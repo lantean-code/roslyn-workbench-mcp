@@ -26,21 +26,38 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
         }
 
         var root = CreateOperationNode(operation, request.MaxDepth, depth: 0, out var truncated);
-        return PluginExecutionResult<OperationTreeData>.Success(new OperationTreeData
+        var data = new OperationTreeData
         {
             Root = root,
             Truncated = truncated,
-        });
+        };
+
+        return PluginExecutionResult<OperationTreeData>.Success(data);
     }
 
     private static OperationNode CreateOperationNode(IOperation operation, int maxDepth, int depth, out bool truncated)
     {
-        var childOperations = operation.ChildOperations.ToArray();
-        truncated = depth >= maxDepth && childOperations.Length > 0;
-        var children = depth >= maxDepth
-            ? []
-            : childOperations.Select(child => CreateOperationNode(child, maxDepth, depth + 1, out _)).ToArray();
+        if (depth >= maxDepth)
+        {
+            var childEnumerator = operation.ChildOperations.GetEnumerator();
+            truncated = childEnumerator.MoveNext();
 
+            return CreateOperationNodeProjection(operation, truncated, []);
+        }
+
+        var children = new List<OperationNode>();
+        foreach (var childOperation in operation.ChildOperations)
+        {
+            children.Add(CreateOperationNode(childOperation, maxDepth, depth + 1, out _));
+        }
+
+        truncated = false;
+
+        return CreateOperationNodeProjection(operation, truncated, children.ToArray());
+    }
+
+    private static OperationNode CreateOperationNodeProjection(IOperation operation, bool truncated, OperationNode[] children)
+    {
         return new OperationNode
         {
             Kind = operation.Kind.ToString(),

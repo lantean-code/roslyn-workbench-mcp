@@ -193,6 +193,8 @@ No critical correctness or deadlock finding was identified.
 
 **Fix:** Measure representative deep trees and large context windows before replacing these clear local projections with manual enumerators or builders.
 
+**Status:** Partially addressed in Batch 5. Operation-tree truncation no longer materialises children that cannot be returned, and recursive outline projection now uses one explicit collection pass. Code-context window construction remains unchanged pending representative measurement.
+
 ## Baseline `CreateBoundedCollection` inventory
 
 Every use found during the baseline is treated as a smell because the helper can only truncate after its input collection exists. The table records whether moving the limit can avoid meaningful upstream work.
@@ -275,6 +277,14 @@ The five existing pre-bounded paths are `find-references`, `get-change-impact`, 
 - An isolated BenchmarkDotNet short run compared the existing duplicate fingerprint `string.Join`/`Select` expression with a manual `StringBuilder` loop at 3, 10 and 30 statements. The loop was within 2% of the existing implementation but allocated approximately 3% more in every case, so the simpler existing expression was retained.
 - Deterministic service tests cover all four graph granularities, bounded project edges, full cycle discovery with a zero response limit, target-impact truncation and bounded duplicate projection. The inspection-handler inventory is now zero `CreateBoundedCollection` calls and 39 `CreatePreboundedCollection` calls.
 
+### 2026-07-20 — Request-local compilation lookups and tree projections
+
+- Workspace now owns an internal request-local compilation type-symbol cache. It resolves metadata names lazily and keys results by compilation identity, including missing results, without retaining compilations across tool executions.
+- The async and disposable analysers reuse the cache for all six framework-type lookups across documents in the same compilation while isolating distinct projects and target frameworks.
+- Operation-tree projection checks the depth boundary before enumerating the full child sequence, so truncated children are not materialised.
+- Document-outline recursion uses an explicit single-pass loop instead of creating a LINQ projection/filter pipeline at every declaration level.
+- Code-context window construction remains unchanged. Its bounded, readable projection is not being replaced without representative measurements showing a useful gain.
+
 ## Recommended implementation batches
 
 ### Batch 1 — Completed bounded diagnostic/reference work
@@ -322,11 +332,11 @@ Measure and then address:
 
 Complete discovery remains where global semantics require it: cycle detection constructs the full graph and duplicate detection computes all fingerprints. Response bounds now prevent dependency analysis or response projection that cannot affect the returned result.
 
-### Batch 5 — Request-local Roslyn lookup reuse and small projections
+### Batch 5 — Request-local Roslyn lookup reuse and small projections — completed 2026-07-20
 
-After the higher-value bounded-collection work, introduce a request-local cache for compilation-derived framework symbols, initially covering the six metadata-name lookups used by the async and disposable analysers. Key it by project or compilation identity, verify multi-target and multi-project isolation, and avoid cross-request state that can become stale or retain old compilations.
+Workspace owns the request-local cache for compilation-derived framework symbols. The six metadata-name lookups used by the async and disposable analysers are cached by compilation identity, with focused tests covering successful lookup reuse, missing lookup reuse and distinct-compilation isolation. No cross-request Roslyn state is retained.
 
-Only after measurement, also consider operation-tree child enumeration, document-outline recursion, code-context window construction and small collection projections. These should not displace solution-scale work.
+Operation-tree child enumeration and document-outline recursion now avoid their unnecessary intermediate projections. Code-context window construction and other small collection projections remain unchanged pending measurement.
 
 ## Measurement plan
 

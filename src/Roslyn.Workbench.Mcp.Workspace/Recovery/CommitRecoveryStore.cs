@@ -331,7 +331,12 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
     private bool IsValidManifest(WorkspaceCommitManifest manifest, string directory)
     {
         if (manifest.Version != 2
-            || !IsValidCommitId(manifest.CommitId)
+            || string.IsNullOrWhiteSpace(manifest.CommitId)
+            || string.IsNullOrWhiteSpace(manifest.LoadedPath)
+            || string.IsNullOrWhiteSpace(manifest.WorkspaceRoot)
+            || manifest.Entries is null
+            || manifest.CreatedDirectories is null
+            || !HasValidCommitIdCharacters(manifest.CommitId)
             || !string.Equals(manifest.CommitId, _fileSystem.Path.GetFileName(directory), _pathComparison.Comparison)
             || !_fileSystem.Path.IsPathFullyQualified(manifest.LoadedPath)
             || !_fileSystem.Path.IsPathFullyQualified(manifest.WorkspaceRoot)
@@ -343,32 +348,102 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         var targets = new HashSet<string>(_pathComparison.GetComparer(manifest.WorkspaceRoot));
         foreach (var entry in manifest.Entries)
         {
-            if (!_fileSystem.Path.IsPathFullyQualified(entry.TargetPath)
-                || !IsWithinRoot(manifest.WorkspaceRoot, entry.TargetPath)
-                || !targets.Add(entry.TargetPath)
-                || entry.DeleteMarkerPath is not null && !IsWithinRoot(manifest.WorkspaceRoot, entry.DeleteMarkerPath)
-                || !HasValidArtifactPaths(manifest.CommitId, entry))
+            if (entry is null || !IsValidEntry(manifest, entry, targets))
             {
                 return false;
             }
         }
 
-        return manifest.CreatedDirectories.All(path =>
-            _fileSystem.Path.IsPathFullyQualified(path)
-            && IsWithinRoot(manifest.WorkspaceRoot, path));
+        var createdDirectories = new HashSet<string>(_pathComparison.GetComparer(manifest.WorkspaceRoot));
+        foreach (var path in manifest.CreatedDirectories)
+        {
+            if (string.IsNullOrWhiteSpace(path)
+                || !_fileSystem.Path.IsPathFullyQualified(path)
+                || !IsStrictlyWithinRoot(manifest.WorkspaceRoot, path)
+                || !createdDirectories.Add(path))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
-    private bool HasValidArtifactPaths(string commitId, WorkspaceCommitEntry entry)
+    private bool IsValidEntry(
+        WorkspaceCommitManifest manifest,
+        WorkspaceCommitEntry entry,
+        HashSet<string> targets)
     {
-        return HasValidArtifactPath(commitId, entry.BackupPath)
-            && HasValidArtifactPath(commitId, entry.StagedPath);
+        if (string.IsNullOrWhiteSpace(entry.TargetPath)
+            || !_fileSystem.Path.IsPathFullyQualified(entry.TargetPath)
+            || !IsStrictlyWithinRoot(manifest.WorkspaceRoot, entry.TargetPath)
+            || !targets.Add(entry.TargetPath))
+        {
+            return false;
+        }
+
+        return entry.Operation switch
+        {
+            WorkspaceFileOperation.Create => !entry.OriginalExists
+                && entry.OriginalHash is null
+                && IsValidHash(entry.IntendedHash)
+                && entry.BackupPath is null
+                && HasRequiredArtifactPath(manifest.CommitId, entry.StagedPath)
+                && entry.DeleteMarkerPath is null,
+            WorkspaceFileOperation.Replace => entry.OriginalExists
+                && IsValidHash(entry.OriginalHash)
+                && IsValidHash(entry.IntendedHash)
+                && HasRequiredArtifactPath(manifest.CommitId, entry.BackupPath)
+                && HasRequiredArtifactPath(manifest.CommitId, entry.StagedPath)
+                && entry.DeleteMarkerPath is null,
+            WorkspaceFileOperation.Delete => entry.OriginalExists
+                && IsValidHash(entry.OriginalHash)
+                && entry.IntendedHash is null
+                && HasRequiredArtifactPath(manifest.CommitId, entry.BackupPath)
+                && entry.StagedPath is null
+                && IsValidDeleteMarker(manifest, entry),
+            _ => false,
+        };
     }
 
-    private bool HasValidArtifactPath(string commitId, string? relativePath)
+    private bool IsValidDeleteMarker(WorkspaceCommitManifest manifest, WorkspaceCommitEntry entry)
     {
-        return relativePath is null
-            || TryGetArtifactPath(commitId, relativePath, out var path)
+        if (string.IsNullOrWhiteSpace(entry.DeleteMarkerPath)
+            || !_fileSystem.Path.IsPathFullyQualified(entry.DeleteMarkerPath)
+            || !IsStrictlyWithinRoot(manifest.WorkspaceRoot, entry.DeleteMarkerPath))
+        {
+            return false;
+        }
+
+        var expectedPath = $"{entry.TargetPath}.{manifest.CommitId}.delete";
+        return string.Equals(
+            expectedPath,
+            entry.DeleteMarkerPath,
+            _pathComparison.GetComparison(manifest.WorkspaceRoot));
+    }
+
+    private bool HasRequiredArtifactPath(string commitId, string? relativePath)
+    {
+        return TryGetArtifactPath(commitId, relativePath, out var path)
             && _fileSystem.Path.IsPathFullyQualified(path);
+    }
+
+    private static bool IsValidHash(string? hash)
+    {
+        if (hash is not { Length: 64 })
+        {
+            return false;
+        }
+
+        foreach (var character in hash)
+        {
+            if (!Uri.IsHexDigit(character))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private bool TryGetArtifactPath(
@@ -431,19 +506,26 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
             || canonicalPath.StartsWith(canonicalRoot + _fileSystem.Path.AltDirectorySeparatorChar, comparison);
     }
 
+    private bool IsStrictlyWithinRoot(string root, string path)
+    {
+        var canonicalRoot = Path.TrimEndingDirectorySeparator(_fileSystem.Path.GetFullPath(root));
+        var canonicalPath = _fileSystem.Path.GetFullPath(path);
+        return IsWithinRoot(canonicalRoot, canonicalPath)
+            && !string.Equals(canonicalRoot, canonicalPath, _pathComparison.GetComparison(canonicalRoot));
+    }
+
     private void ValidateCommitId(string commitId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(commitId);
-        if (!IsValidCommitId(commitId))
+        if (!HasValidCommitIdCharacters(commitId))
         {
             throw new ArgumentException("The commit identifier is not a valid path segment.", nameof(commitId));
         }
     }
 
-    private bool IsValidCommitId(string commitId)
+    private bool HasValidCommitIdCharacters(string commitId)
     {
-        return !string.IsNullOrWhiteSpace(commitId)
-            && commitId.IndexOfAny(_fileSystem.Path.GetInvalidFileNameChars()) < 0;
+        return commitId.IndexOfAny(_fileSystem.Path.GetInvalidFileNameChars()) < 0;
     }
 
     private async ValueTask WriteArtifactsAsync(WorkspaceCommitPlan plan, CancellationToken cancellationToken)

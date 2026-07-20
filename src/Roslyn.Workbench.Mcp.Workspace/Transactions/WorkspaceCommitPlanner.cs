@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -24,7 +25,18 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var context = CreatePlanningContext(commitId, loadedPath, workspaceRoot, baselineSolution, currentSolution);
+        if (!TryCreatePlanningContext(
+            commitId,
+            loadedPath,
+            workspaceRoot,
+            baselineSolution,
+            currentSolution,
+            out var context,
+            out var contextError))
+        {
+            return WorkspaceCommitPlanResult.Failed(contextError);
+        }
+
         var projectChanges = currentSolution.GetChanges(baselineSolution).GetProjectChanges();
         foreach (var projectChange in projectChanges)
         {
@@ -43,21 +55,32 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         return WorkspaceCommitPlanResult.Succeeded(CreatePlan(context));
     }
 
-    private WorkspaceCommitPlanningContext CreatePlanningContext(
+    private bool TryCreatePlanningContext(
         string commitId,
         string loadedPath,
         string workspaceRoot,
         Solution baselineSolution,
-        Solution currentSolution)
+        Solution currentSolution,
+        [NotNullWhen(true)] out WorkspaceCommitPlanningContext? context,
+        [NotNullWhen(false)] out string? errorMessage)
     {
         var comparer = _pathComparison.GetComparer(workspaceRoot);
-        return new WorkspaceCommitPlanningContext(
+        if (!TryGetProjectRoots(baselineSolution, currentSolution, comparer, out var projectRoots, out errorMessage))
+        {
+            context = null;
+            return false;
+        }
+
+        context = new WorkspaceCommitPlanningContext(
             commitId,
             _fileSystem.Path.GetFullPath(loadedPath),
             _fileSystem.Path.GetFullPath(workspaceRoot),
-            GetProjectRoots(baselineSolution, currentSolution, comparer),
+            projectRoots,
             GetBaselineDocumentPaths(baselineSolution, comparer),
             comparer);
+
+        errorMessage = null;
+        return true;
     }
 
     private async ValueTask<WorkspaceCommitValidationResult> AddProjectChangesAsync(
@@ -126,7 +149,11 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
             return WorkspaceCommitValidationResult.Valid();
         }
 
-        var path = ValidateTarget(context, document.FilePath);
+        if (!TryValidateTarget(context, document.FilePath, out var path, out var targetError))
+        {
+            return WorkspaceCommitValidationResult.Invalid(targetError);
+        }
+
         var originalExists = _fileSystem.File.Exists(path);
         if ((operation == WorkspaceFileOperation.Create) == originalExists)
         {
@@ -173,7 +200,11 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
             return WorkspaceCommitValidationResult.Valid();
         }
 
-        var path = ValidateTarget(context, document.FilePath);
+        if (!TryValidateTarget(context, document.FilePath, out var path, out var targetError))
+        {
+            return WorkspaceCommitValidationResult.Invalid(targetError);
+        }
+
         if (!_fileSystem.File.Exists(path))
         {
             return WorkspaceCommitValidationResult.Invalid($"The target '{path}' no longer exists.");
@@ -202,27 +233,46 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         return WorkspaceCommitValidationResult.Valid();
     }
 
-    private string ValidateTarget(WorkspaceCommitPlanningContext context, string path)
+    private bool TryValidateTarget(
+        WorkspaceCommitPlanningContext context,
+        string path,
+        [NotNullWhen(true)] out string? canonicalPath,
+        [NotNullWhen(false)] out string? errorMessage)
     {
-        var canonicalPath = _fileSystem.Path.GetFullPath(path);
-        if (!context.Targets.Add(canonicalPath))
+        canonicalPath = null;
+        var targetPath = _fileSystem.Path.GetFullPath(path);
+        if (!context.Targets.Add(targetPath))
         {
-            throw new InvalidOperationException($"The commit contains the duplicate target '{canonicalPath}'.");
+            errorMessage = $"The commit contains the duplicate target '{targetPath}'.";
+            return false;
         }
 
-        if (!IsWithinBoundary(context.WorkspaceRoot, canonicalPath))
+        if (context.Targets.Comparer.Equals(context.WorkspaceRoot, targetPath)
+            || !IsWithinBoundary(context.WorkspaceRoot, targetPath))
         {
-            throw new InvalidOperationException($"The target '{canonicalPath}' is outside the workspace root.");
+            errorMessage = $"The target '{targetPath}' is outside the workspace root.";
+            return false;
         }
 
-        var isSupported = context.BaselineDocumentPaths.Contains(canonicalPath)
-            || context.ProjectRoots.Any(projectRoot => IsWithinBoundary(projectRoot, canonicalPath));
+        var isSupported = context.BaselineDocumentPaths.Contains(targetPath);
+        foreach (var projectRoot in context.ProjectRoots)
+        {
+            if (IsWithinBoundary(projectRoot, targetPath))
+            {
+                isSupported = true;
+                break;
+            }
+        }
+
         if (!isSupported)
         {
-            throw new InvalidOperationException($"The target '{canonicalPath}' is outside the loaded project boundaries.");
+            errorMessage = $"The target '{targetPath}' is outside the loaded project boundaries.";
+            return false;
         }
 
-        return canonicalPath;
+        canonicalPath = targetPath;
+        errorMessage = null;
+        return true;
     }
 
     private void AddMissingDirectories(WorkspaceCommitPlanningContext context, string path)
@@ -243,19 +293,36 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
             && !_fileSystem.Path.IsPathRooted(relativePath);
     }
 
-    private string[] GetProjectRoots(
+    private bool TryGetProjectRoots(
         Solution baselineSolution,
         Solution currentSolution,
-        IEqualityComparer<string> comparer)
+        IEqualityComparer<string> comparer,
+        [NotNullWhen(true)] out string[]? projectRoots,
+        [NotNullWhen(false)] out string? errorMessage)
     {
-        return baselineSolution.Projects
-            .Concat(currentSolution.Projects)
-            .Select(project => project.FilePath)
-            .OfType<string>()
-            .Where(path => !string.IsNullOrWhiteSpace(path))
-            .Select(GetProjectRoot)
-            .Distinct(comparer)
-            .ToArray();
+        var roots = new HashSet<string>(comparer);
+        foreach (var project in baselineSolution.Projects.Concat(currentSolution.Projects))
+        {
+            if (string.IsNullOrWhiteSpace(project.FilePath))
+            {
+                continue;
+            }
+
+            var canonicalProjectPath = _fileSystem.Path.GetFullPath(project.FilePath);
+            var projectRoot = _fileSystem.Path.GetDirectoryName(canonicalProjectPath);
+            if (projectRoot is null)
+            {
+                projectRoots = null;
+                errorMessage = $"The project path '{project.FilePath}' does not have a parent directory.";
+                return false;
+            }
+
+            roots.Add(projectRoot);
+        }
+
+        projectRoots = roots.ToArray();
+        errorMessage = null;
+        return true;
     }
 
     private HashSet<string> GetBaselineDocumentPaths(
@@ -269,13 +336,6 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
             .Where(path => !string.IsNullOrWhiteSpace(path))
             .Select(_fileSystem.Path.GetFullPath)
             .ToHashSet(comparer);
-    }
-
-    private string GetProjectRoot(string projectPath)
-    {
-        var canonicalProjectPath = _fileSystem.Path.GetFullPath(projectPath);
-        return _fileSystem.Path.GetDirectoryName(canonicalProjectPath)
-            ?? throw new InvalidOperationException($"The project path '{projectPath}' does not have a parent directory.");
     }
 
     private static WorkspaceCommitPlan CreatePlan(WorkspaceCommitPlanningContext context)

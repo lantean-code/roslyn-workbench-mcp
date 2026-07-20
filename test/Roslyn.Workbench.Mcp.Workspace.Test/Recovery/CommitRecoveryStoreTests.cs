@@ -263,6 +263,28 @@ public sealed class CommitRecoveryStoreTests
     }
 
     [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task GIVEN_ValidCreateOrDeleteManifest_WHEN_ReadingManifests_THEN_ShouldReturnManifest(bool creating)
+    {
+        var directory = _recoveryDirectory + "/CommitId";
+        var path = directory + "/manifest.json";
+        var entry = creating
+            ? CreateCreateEntry("/Workspace/File.cs")
+            : CreateDeleteEntry("/Workspace/File.cs");
+        var manifest = CreateManifest() with { Entries = [entry] };
+        _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
+        _directory.Setup(item => item.EnumerateDirectories(_recoveryDirectory)).Returns([directory]);
+        _file.Setup(item => item.Exists(path)).Returns(true);
+        _file.Setup(item => item.ReadAllTextAsync(path, TestContext.Current.CancellationToken))
+            .ReturnsAsync(JsonSerializer.Serialize(manifest, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+
+        var result = await _target.GetManifestsAsync(TestContext.Current.CancellationToken);
+
+        result.Should().ContainSingle().Which.CommitId.Should().Be("CommitId");
+    }
+
+    [Theory]
     [InlineData("missing")]
     [InlineData("null")]
     [InlineData("json")]
@@ -317,6 +339,7 @@ public sealed class CommitRecoveryStoreTests
     [InlineData("root")]
     [InlineData("outside")]
     [InlineData("target")]
+    [InlineData("targetRoot")]
     [InlineData("duplicate")]
     [InlineData("delete")]
     [InlineData("backup")]
@@ -328,6 +351,30 @@ public sealed class CommitRecoveryStoreTests
     [InlineData("emptyCommit")]
     [InlineData("created")]
     [InlineData("createdRelative")]
+    [InlineData("createdRoot")]
+    [InlineData("createdDuplicate")]
+    [InlineData("createdEmpty")]
+    [InlineData("unsupportedOperation")]
+    [InlineData("createOriginalExists")]
+    [InlineData("createOriginalHash")]
+    [InlineData("createIntendedHash")]
+    [InlineData("createBackup")]
+    [InlineData("createStaged")]
+    [InlineData("createMarker")]
+    [InlineData("replaceOriginalExists")]
+    [InlineData("replaceOriginalHash")]
+    [InlineData("replaceHashCharacter")]
+    [InlineData("replaceIntendedHash")]
+    [InlineData("replaceBackupMissing")]
+    [InlineData("replaceStagedMissing")]
+    [InlineData("replaceMarker")]
+    [InlineData("deleteOriginalExists")]
+    [InlineData("deleteOriginalHash")]
+    [InlineData("deleteIntendedHash")]
+    [InlineData("deleteBackupMissing")]
+    [InlineData("deleteStaged")]
+    [InlineData("deleteMarkerMissing")]
+    [InlineData("deleteMarkerWrong")]
     public async Task GIVEN_UnsafeManifest_WHEN_ReadingManifests_THEN_ShouldReturnRecoveryConflict(string scenario)
     {
         var directory = _recoveryDirectory + "/CommitId";
@@ -350,6 +397,41 @@ public sealed class CommitRecoveryStoreTests
             _path.Setup(item => item.GetRelativePath(_recoveryDirectory + "/CommitId", "relative"))
                 .Returns("relative");
         }
+
+        var result = await _target.GetManifestsAsync(TestContext.Current.CancellationToken);
+
+        result.Should().ContainSingle().Which.State.Should().Be(RecoveryState.RecoveryConflict);
+    }
+
+    [Theory]
+    [InlineData("commitId")]
+    [InlineData("loadedPath")]
+    [InlineData("workspaceRoot")]
+    [InlineData("entries")]
+    [InlineData("createdDirectories")]
+    [InlineData("entry")]
+    [InlineData("targetPath")]
+    [InlineData("createdDirectory")]
+    public async Task GIVEN_NullManifestMember_WHEN_ReadingManifests_THEN_ShouldReturnRecoveryConflict(string scenario)
+    {
+        var directory = _recoveryDirectory + "/CommitId";
+        var path = directory + "/manifest.json";
+        var json = JsonSerializer.Serialize(CreateManifest(), new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        var malformedJson = scenario switch
+        {
+            "commitId" => json.Replace("\"commitId\":\"CommitId\"", "\"commitId\":null", StringComparison.Ordinal),
+            "loadedPath" => json.Replace("\"loadedPath\":\"/Workspace/Workspace.sln\"", "\"loadedPath\":null", StringComparison.Ordinal),
+            "workspaceRoot" => json.Replace("\"workspaceRoot\":\"/Workspace\"", "\"workspaceRoot\":null", StringComparison.Ordinal),
+            "entries" => json.Replace("\"entries\":[", "\"entries\":null,\"ignored\":[", StringComparison.Ordinal),
+            "createdDirectories" => json.Replace("\"createdDirectories\":[", "\"createdDirectories\":null,\"ignored\":[", StringComparison.Ordinal),
+            "entry" => json.Replace("\"entries\":[{", "\"entries\":[null,{", StringComparison.Ordinal),
+            "targetPath" => json.Replace("\"targetPath\":\"/Workspace/File.cs\"", "\"targetPath\":null", StringComparison.Ordinal),
+            _ => json.Replace("\"createdDirectories\":[\"/Workspace/NewDirectory\"]", "\"createdDirectories\":[null]", StringComparison.Ordinal),
+        };
+        _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
+        _directory.Setup(item => item.EnumerateDirectories(_recoveryDirectory)).Returns([directory]);
+        _file.Setup(item => item.Exists(path)).Returns(true);
+        _file.Setup(item => item.ReadAllTextAsync(path, TestContext.Current.CancellationToken)).ReturnsAsync(malformedJson);
 
         var result = await _target.GetManifestsAsync(TestContext.Current.CancellationToken);
 
@@ -557,8 +639,9 @@ public sealed class CommitRecoveryStoreTests
             "root" => manifest with { WorkspaceRoot = "Workspace" },
             "outside" => manifest with { LoadedPath = "/Other/Workspace.sln" },
             "target" => manifest with { Entries = [CreateEntry("File.cs")], },
+            "targetRoot" => manifest with { Entries = [CreateEntry("/Workspace")], },
             "duplicate" => manifest with { Entries = [CreateEntry("/Workspace/File.cs"), CreateEntry("/Workspace/File.cs")], },
-            "delete" => manifest with { Entries = [CreateEntry("/Workspace/File.cs") with { DeleteMarkerPath = "/Other/File.cs" }], },
+            "delete" => manifest with { Entries = [CreateDeleteEntry("/Workspace/File.cs") with { DeleteMarkerPath = "/Other/File.cs" }], },
             "backup" => manifest with { Entries = [CreateEntry("/Workspace/File.cs") with { BackupPath = "../File.bin" }], },
             "backupEmpty" => manifest with { Entries = [CreateEntry("/Workspace/File.cs") with { BackupPath = string.Empty }], },
             "staged" => manifest with { Entries = [CreateEntry("/Workspace/File.cs") with { StagedPath = "../File.bin" }], },
@@ -568,6 +651,30 @@ public sealed class CommitRecoveryStoreTests
             "emptyCommit" => manifest with { CommitId = string.Empty },
             "created" => manifest with { CreatedDirectories = ["/Other/Directory"] },
             "createdRelative" => manifest with { CreatedDirectories = ["Directory"] },
+            "createdRoot" => manifest with { CreatedDirectories = ["/Workspace"] },
+            "createdDuplicate" => manifest with { CreatedDirectories = ["/Workspace/NewDirectory", "/Workspace/NewDirectory"] },
+            "createdEmpty" => manifest with { CreatedDirectories = [string.Empty] },
+            "unsupportedOperation" => manifest with { Entries = [CreateEntry("/Workspace/File.cs") with { Operation = (WorkspaceFileOperation)99 }], },
+            "createOriginalExists" => manifest with { Entries = [CreateCreateEntry("/Workspace/File.cs") with { OriginalExists = true }], },
+            "createOriginalHash" => manifest with { Entries = [CreateCreateEntry("/Workspace/File.cs") with { OriginalHash = new string('A', 64) }], },
+            "createIntendedHash" => manifest with { Entries = [CreateCreateEntry("/Workspace/File.cs") with { IntendedHash = null }], },
+            "createBackup" => manifest with { Entries = [CreateCreateEntry("/Workspace/File.cs") with { BackupPath = "backup/File.bin" }], },
+            "createStaged" => manifest with { Entries = [CreateCreateEntry("/Workspace/File.cs") with { StagedPath = null }], },
+            "createMarker" => manifest with { Entries = [CreateCreateEntry("/Workspace/File.cs") with { DeleteMarkerPath = "/Workspace/File.cs.CommitId.delete" }], },
+            "replaceOriginalExists" => manifest with { Entries = [CreateEntry("/Workspace/File.cs") with { OriginalExists = false }], },
+            "replaceOriginalHash" => manifest with { Entries = [CreateEntry("/Workspace/File.cs") with { OriginalHash = null }], },
+            "replaceHashCharacter" => manifest with { Entries = [CreateEntry("/Workspace/File.cs") with { OriginalHash = new string('G', 64) }], },
+            "replaceIntendedHash" => manifest with { Entries = [CreateEntry("/Workspace/File.cs") with { IntendedHash = null }], },
+            "replaceBackupMissing" => manifest with { Entries = [CreateEntry("/Workspace/File.cs") with { BackupPath = null }], },
+            "replaceStagedMissing" => manifest with { Entries = [CreateEntry("/Workspace/File.cs") with { StagedPath = null }], },
+            "replaceMarker" => manifest with { Entries = [CreateEntry("/Workspace/File.cs") with { DeleteMarkerPath = "/Workspace/File.cs.CommitId.delete" }], },
+            "deleteOriginalExists" => manifest with { Entries = [CreateDeleteEntry("/Workspace/File.cs") with { OriginalExists = false }], },
+            "deleteOriginalHash" => manifest with { Entries = [CreateDeleteEntry("/Workspace/File.cs") with { OriginalHash = null }], },
+            "deleteIntendedHash" => manifest with { Entries = [CreateDeleteEntry("/Workspace/File.cs") with { IntendedHash = new string('B', 64) }], },
+            "deleteBackupMissing" => manifest with { Entries = [CreateDeleteEntry("/Workspace/File.cs") with { BackupPath = null }], },
+            "deleteStaged" => manifest with { Entries = [CreateDeleteEntry("/Workspace/File.cs") with { StagedPath = "staged/File.bin" }], },
+            "deleteMarkerMissing" => manifest with { Entries = [CreateDeleteEntry("/Workspace/File.cs") with { DeleteMarkerPath = null }], },
+            "deleteMarkerWrong" => manifest with { Entries = [CreateDeleteEntry("/Workspace/File.cs") with { DeleteMarkerPath = "/Workspace/Other.delete" }], },
             _ => throw new InvalidOperationException("Unknown scenario."),
         };
     }
@@ -592,6 +699,35 @@ public sealed class CommitRecoveryStoreTests
             TargetPath = targetPath,
             Operation = WorkspaceFileOperation.Replace,
             OriginalExists = true,
+            OriginalHash = new string('A', 64),
+            IntendedHash = new string('B', 64),
+            BackupPath = "backup/File.bin",
+            StagedPath = "staged/File.bin",
+        };
+    }
+
+    private static WorkspaceCommitEntry CreateCreateEntry(string targetPath)
+    {
+        return new WorkspaceCommitEntry
+        {
+            TargetPath = targetPath,
+            Operation = WorkspaceFileOperation.Create,
+            OriginalExists = false,
+            IntendedHash = new string('B', 64),
+            StagedPath = "staged/File.bin",
+        };
+    }
+
+    private static WorkspaceCommitEntry CreateDeleteEntry(string targetPath)
+    {
+        return new WorkspaceCommitEntry
+        {
+            TargetPath = targetPath,
+            Operation = WorkspaceFileOperation.Delete,
+            OriginalExists = true,
+            OriginalHash = new string('A', 64),
+            BackupPath = "backup/File.bin",
+            DeleteMarkerPath = $"{targetPath}.CommitId.delete",
         };
     }
 }

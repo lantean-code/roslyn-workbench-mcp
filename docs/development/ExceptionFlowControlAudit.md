@@ -78,6 +78,27 @@ Completed remediation through 2026-07-15 covers every confirmed violation family
   persisted and enriches commit faults when retained recovery evidence may
   still report an earlier phase.
 
+## 2026-07-20 Result-Invariant Follow-up
+
+The follow-up scan performed after closing MCP and plugin result invariants found
+two transaction/recovery validation gaps. Both are now remediated:
+
+- `WorkspaceCommitPlanner` returns an explicit failed plan for duplicate targets,
+  targets outside the workspace or loaded project boundaries, targets equal to
+  the workspace root and project paths without a parent directory. These paths
+  can arise from a staged candidate or loaded workspace and are validation
+  outcomes rather than violated planner invariants.
+- `CommitRecoveryStore` validates nullable persisted collections, nullable entry
+  elements, strict target and created-directory containment, operation-specific
+  entry shapes, SHA-256 hashes, required artifact paths and the exact delete
+  marker before accepting a manifest. The `WorkspaceCommitEntry` required-path
+  accessors remain invariant checks because generated plans and accepted
+  persisted manifests now guarantee the required value before execution.
+
+The remaining target-parent checks in restore, atomic-write and artifact-write
+paths are post-validation invariants or external API preconditions. They do not
+select an expected transaction or recovery outcome.
+
 ## Remaining Confirmed Violations
 
 No confirmed exception-for-flow-control violations remain from this audit.

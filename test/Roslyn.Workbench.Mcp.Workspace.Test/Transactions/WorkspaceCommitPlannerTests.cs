@@ -80,9 +80,16 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
             .AddDocument(firstId, "first.cs", SourceText.From("first"), filePath: targetPath)
             .AddDocument(secondId, "second.cs", SourceText.From("second"), filePath: targetPath);
 
-        var action = async () => await _target.CreateAsync("commit", "/workspace/solution.slnx", "/workspace", baseline, current, TestContext.Current.CancellationToken);
+        var result = await _target.CreateAsync(
+            "commit",
+            "/workspace/solution.slnx",
+            "/workspace",
+            baseline,
+            current,
+            TestContext.Current.CancellationToken);
 
-        await action.Should().ThrowAsync<InvalidOperationException>();
+        result.IsSucceeded.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("duplicate target");
     }
 
     [Fact]
@@ -190,9 +197,16 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
             projectId, VersionStamp.Create(), "Project", "Project", LanguageNames.CSharp, filePath: projectPath));
         var current = baseline.AddDocument(documentId, "added.cs", SourceText.From("text"), filePath: outsidePath);
 
-        var action = async () => await _target.CreateAsync("commit", "/workspace/solution.slnx", "/workspace", baseline, current, TestContext.Current.CancellationToken);
+        var result = await _target.CreateAsync(
+            "commit",
+            "/workspace/solution.slnx",
+            "/workspace",
+            baseline,
+            current,
+            TestContext.Current.CancellationToken);
 
-        await action.Should().ThrowAsync<InvalidOperationException>();
+        result.IsSucceeded.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("outside the loaded project boundaries");
     }
 
     [Fact]
@@ -237,7 +251,7 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
             filePath: projectPath));
         _path.Setup(item => item.GetDirectoryName(projectPath)).Returns((string?)null);
 
-        var action = async () => await _target.CreateAsync(
+        var result = await _target.CreateAsync(
             "commit",
             "/workspace/solution.slnx",
             "/workspace",
@@ -245,7 +259,8 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
             solution,
             TestContext.Current.CancellationToken);
 
-        await action.Should().ThrowAsync<InvalidOperationException>();
+        result.IsSucceeded.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("does not have a parent directory");
     }
 
     [Fact]
@@ -289,7 +304,7 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
             projectId, VersionStamp.Create(), "Project", "Project", LanguageNames.CSharp, filePath: projectPath));
         var current = baseline.AddDocument(documentId, "added.cs", SourceText.From("text"), filePath: targetPath);
 
-        var action = async () => await _target.CreateAsync(
+        var result = await _target.CreateAsync(
             "commit",
             "/workspace/solution.slnx",
             "/workspace/other",
@@ -297,7 +312,61 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
             current,
             TestContext.Current.CancellationToken);
 
-        await action.Should().ThrowAsync<InvalidOperationException>();
+        result.IsSucceeded.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("outside the workspace root");
+    }
+
+    [Fact]
+    public async Task GIVEN_DeleteTargetOutsideWorkspaceRoot_WHEN_Planning_THEN_ShouldRejectPlan()
+    {
+        var projectId = ProjectId.CreateNewId();
+        var documentId = DocumentId.CreateNewId(projectId);
+        var projectPath = Path.GetFullPath("/workspace/project/project.csproj");
+        var targetPath = Path.GetFullPath("/workspace/project/removed.cs");
+        var baseline = _workspace.CurrentSolution
+            .AddProject(ProjectInfo.Create(
+                projectId,
+                VersionStamp.Create(),
+                "Project",
+                "Project",
+                LanguageNames.CSharp,
+                filePath: projectPath))
+            .AddDocument(documentId, "removed.cs", SourceText.From("text"), filePath: targetPath);
+        var current = baseline.RemoveDocument(documentId);
+
+        var result = await _target.CreateAsync(
+            "commit",
+            "/workspace/solution.slnx",
+            "/workspace/other",
+            baseline,
+            current,
+            TestContext.Current.CancellationToken);
+
+        result.IsSucceeded.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("outside the workspace root");
+    }
+
+    [Fact]
+    public async Task GIVEN_TargetEqualsWorkspaceRoot_WHEN_Planning_THEN_ShouldRejectPlan()
+    {
+        var projectId = ProjectId.CreateNewId();
+        var documentId = DocumentId.CreateNewId(projectId);
+        var projectPath = Path.GetFullPath("/workspace/project/project.csproj");
+        var targetPath = Path.GetFullPath("/workspace");
+        var baseline = _workspace.CurrentSolution.AddProject(ProjectInfo.Create(
+            projectId, VersionStamp.Create(), "Project", "Project", LanguageNames.CSharp, filePath: projectPath));
+        var current = baseline.AddDocument(documentId, "added.cs", SourceText.From("text"), filePath: targetPath);
+
+        var result = await _target.CreateAsync(
+            "commit",
+            "/workspace/solution.slnx",
+            "/workspace",
+            baseline,
+            current,
+            TestContext.Current.CancellationToken);
+
+        result.IsSucceeded.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("outside the workspace root");
     }
 
     [Fact]

@@ -31,18 +31,17 @@ internal sealed class RepositoryManager
             Directory.CreateDirectory(Path.Combine(_cacheDirectory, repository.Id));
             await RunRequiredAsync(
                 "git",
-                ["clone", "--filter=blob:none", "--no-checkout", repository.Url, repositoryRoot],
+                GitCommand.ConfigureArguments(["clone", "--filter=blob:none", "--no-checkout", repository.Url, repositoryRoot]),
                 _cacheDirectory,
                 cancellationToken);
             await RunRequiredAsync(
                 "git",
-                ["checkout", "--detach", repository.Commit],
+                GitCommand.ConfigureArguments(["checkout", "--detach", repository.Commit]),
                 repositoryRoot,
                 cancellationToken);
         }
 
-        var head = await ExternalCommand.RunAsync(
-            "git",
+        var head = await GitCommand.RunAsync(
             ["rev-parse", "HEAD"],
             repositoryRoot,
             cancellationToken);
@@ -53,8 +52,7 @@ internal sealed class RepositoryManager
                 $"Repository cache '{repositoryRoot}' is at '{actualCommit}', not pinned commit '{repository.Commit}'. Remove that cache directory explicitly before retrying.");
         }
 
-        var status = await ExternalCommand.RunAsync(
-            "git",
+        var status = await GitCommand.RunAsync(
             ["status", "--porcelain", "--untracked-files=no"],
             repositoryRoot,
             cancellationToken);

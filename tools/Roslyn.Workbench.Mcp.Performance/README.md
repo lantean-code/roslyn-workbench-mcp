@@ -2,7 +2,7 @@
 
 This project is the repeatable, manually invoked performance framework for Roslyn Workbench. It is intentionally outside the normal test projects and CI path: elapsed-time assertions are too sensitive to machine load, and large repository preparation is too expensive for ordinary functional validation.
 
-The framework is permanent. Repository clones, restored assets, published Host binaries, workspace state, traces, heap captures and raw measurements are disposable run artifacts kept beneath the gitignored `artifacts/performance` directory in the repository root.
+The framework is permanent. Repository clones, restored assets and published Host binaries are disposable execution data kept beneath the operating system's temporary directory. Results, validation, traces, counters and heap captures are retained beneath the gitignored `artifacts/performance/results` directory in the repository root.
 
 ## What it measures
 
@@ -30,7 +30,7 @@ The checked-in `performance-suite.json` defines exact commits and curated reques
 
 The low/high-limit pairs deliberately submit the same semantic query with different response bounds. A low-limit invocation that costs almost as much as the high-limit invocation can reveal discovery or enrichment work performed before the published bound.
 
-The runner clones each repository into the commit-specific `artifacts/performance/repositories` cache and refuses to reuse a cache at a different commit. Preparation is untimed. The cache boundary contains a generated NuGet configuration that clears package-source mappings inherited from Roslyn Workbench while preserving each target repository's own configuration. Each clone also gets an isolated NuGet package cache beneath `.performance`; this keeps package-supplied source documents inside the server's workspace boundary and prevents the measured repositories from sharing warmed package state accidentally. EF Core uses its complete mixed-language solution so workspace loading also exercises the supported behavior of ignoring projects the Host is not designed to interact with. Its repository-owned `restore.cmd` on Windows and `restore.sh` on Linux/WSL prepare the Arcade SDK and toolchain.
+The runner clones each repository into an operating-system-local, commit-specific cache beneath the temporary directory and refuses to reuse a cache at a different commit. Windows and Linux/WSL therefore cannot share incompatible SDKs, native tools or generated assets. Preparation is untimed. The cache boundary contains a generated NuGet configuration that clears package-source mappings inherited from Roslyn Workbench while preserving each target repository's own configuration. Each clone also gets an isolated NuGet package cache beneath `.performance`; this keeps package-supplied source documents inside the server's workspace boundary and prevents the measured repositories from sharing warmed package state accidentally. EF Core uses its complete mixed-language solution so workspace loading also exercises the supported behavior of ignoring projects the Host is not designed to interact with. Its repository-owned `restore.cmd` on Windows and `restore.sh` on Linux/WSL prepare the Arcade SDK and toolchain.
 
 ## Build and run
 
@@ -47,7 +47,7 @@ Run the complete small-repository measurement suite:
   measure --repository guardclauses --scenario all
 ```
 
-The first run clones the pinned repository and restores its dependencies automatically. Subsequent runs reuse the repository-local cache; add `--skip-prepare` when no dependency refresh is required.
+The first run clones the pinned repository and restores its dependencies automatically. Subsequent runs reuse the operating-system-local temporary cache; add `--skip-prepare` when no dependency refresh is required.
 
 For WSL or direct Linux, the wrapper publishes both the Host and performance runner in Release mode, restores the pinned diagnostic tools and injects the published Host path. With no arguments it lists the available repositories and scenarios:
 
@@ -55,9 +55,9 @@ For WSL or direct Linux, the wrapper publishes both the Host and performance run
 ./tools/Roslyn.Workbench.Mcp.Performance/run-performance.sh
 ```
 
-The wrapper detects WSL and applies the repository's required build artifacts path only there. Published binaries are placed in a new `artifacts/performance/publish` directory for each invocation, and the path is printed before the requested command starts.
+The wrapper detects WSL and applies the repository's required build artifacts path only there. Published binaries are placed in a unique temporary directory for each invocation, the path is printed before the requested command starts, and the directory is removed when the wrapper exits.
 
-The runner owns repository preparation. On the first invocation for a repository it clones the pinned commit and restores its dependencies into `artifacts/performance/repositories`. Later invocations reuse that exact commit; omit `--skip-prepare` when dependencies may need refreshing.
+The runner owns repository preparation. On the first invocation for a repository it clones the pinned commit and restores its dependencies into the operating system's temporary cache. Later invocations on that operating system reuse the exact commit while the temporary cache remains available; omit `--skip-prepare` when dependencies may need refreshing.
 
 Measure every small-repository scenario with the normal warm-up and iteration defaults:
 
@@ -74,7 +74,7 @@ Collect a 30-second CPU trace for a suspected weak scenario:
   --profile trace --duration 00:00:30 --skip-prepare
 ```
 
-Measurements, summaries, workspace state and diagnostic captures default to a unique directory beneath `artifacts/performance/results`. Use `--output` and `--cache` to override the repository-local defaults.
+Measurements, summaries, workspace state and diagnostic captures default to a unique directory beneath `artifacts/performance/results`. Use `--output` to override that location or `--cache` to override the temporary repository cache.
 
 ## Measurement discipline
 

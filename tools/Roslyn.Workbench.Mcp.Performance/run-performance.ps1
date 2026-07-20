@@ -26,7 +26,8 @@ function Invoke-DotNet
 }
 
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-$publishRoot = Join-Path $repositoryRoot "artifacts\performance\publish\$(Get-Date -Format 'yyyyMMdd-HHmmss')-$([Guid]::NewGuid().ToString('N'))"
+$temporaryRoot = Join-Path ([IO.Path]::GetTempPath()) 'roslyn-workbench-mcp\performance'
+$publishRoot = Join-Path $temporaryRoot "publish\$(Get-Date -Format 'yyyyMMdd-HHmmss')-$([Guid]::NewGuid().ToString('N'))"
 $hostOutput = Join-Path $publishRoot 'host'
 $runnerOutput = Join-Path $publishRoot 'runner'
 $runnerArguments = $args
@@ -72,7 +73,7 @@ try
     }
 
     $runnerPath = Join-Path $runnerOutput 'Roslyn.Workbench.Mcp.Performance.exe'
-    Write-Host "Published binaries: $publishRoot"
+    Write-Host "Temporary published binaries: $publishRoot"
 
     if (Test-Path $runnerPath -PathType Leaf)
     {
@@ -89,6 +90,11 @@ try
 finally
 {
     Pop-Location
+
+    if (Test-Path $publishRoot)
+    {
+        Remove-Item -Recurse -Force $publishRoot
+    }
 }
 
 exit $runnerExitCode

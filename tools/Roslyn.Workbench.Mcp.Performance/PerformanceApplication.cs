@@ -32,7 +32,7 @@ internal static class PerformanceApplication
 
             var repository = ResolveRepository(suite, options.Repository);
             var frameworkRoot = ResolveFrameworkRoot(options.FrameworkRoot);
-            var cacheDirectory = ResolveCacheDirectory(options.CacheDirectory, frameworkRoot);
+            var cacheDirectory = ResolveCacheDirectory(options.CacheDirectory);
             var manager = new RepositoryManager(cacheDirectory);
             var repositoryRoot = await manager.PrepareAsync(
                 repository,
@@ -335,14 +335,18 @@ internal static class PerformanceApplication
             : [scenario];
     }
 
-    private static string ResolveCacheDirectory(string? value, string frameworkRoot)
+    private static string ResolveCacheDirectory(string? value)
     {
         if (!string.IsNullOrWhiteSpace(value))
         {
             return Path.GetFullPath(value);
         }
 
-        return Path.Combine(frameworkRoot, "artifacts", "performance", "repositories");
+        return Path.Combine(
+            Path.GetTempPath(),
+            "roslyn-workbench-mcp",
+            "performance",
+            "repositories");
     }
 
     private static string ResolveOutputDirectory(string? value, string frameworkRoot, string repositoryId)
@@ -420,7 +424,7 @@ internal static class PerformanceApplication
               measure --repository <id> --scenario <id|all> --host <path> [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
               profile --repository <id> --scenario <id> --host <path> [--profile trace|counters|gcdump] [--duration 00:00:30] [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
 
-            Repository clones, state, diagnostic captures, and results default beneath artifacts/performance in the repository root.
+            Repository clones default to the operating system's temporary directory. Results, state, and diagnostic captures default beneath artifacts/performance/results in the repository root.
             """);
     }
 #pragma warning restore CA1303

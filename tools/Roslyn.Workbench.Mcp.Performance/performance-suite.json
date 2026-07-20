@@ -220,7 +220,10 @@
           "tool": "get-project-details",
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
-            "project": { "name": "Serilog" },
+            "project": {
+              "path": "src/Serilog/Serilog.csproj",
+              "targetFramework": "net10.0"
+            },
             "includeDocuments": true,
             "documentsLimit": 250,
             "projectReferencesLimit": 25,
@@ -290,7 +293,13 @@
           "tool": "get-diagnostics",
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
-            "scope": { "kind": "Project", "project": { "name": "Serilog" } },
+            "scope": {
+              "kind": "Project",
+              "project": {
+                "path": "src/Serilog/Serilog.csproj",
+                "targetFramework": "net10.0"
+              }
+            },
             "diagnosticsLimit": 200
           }
         },
@@ -300,7 +309,13 @@
           "tool": "get-dependency-graph",
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
-            "scope": { "kind": "Project", "project": { "name": "Serilog" } },
+            "scope": {
+              "kind": "Project",
+              "project": {
+                "path": "src/Serilog/Serilog.csproj",
+                "targetFramework": "net10.0"
+              }
+            },
             "granularity": "Type",
             "nodesLimit": 200,
             "edgesLimit": 400
@@ -319,7 +334,7 @@
           "fileName": "bash",
           "arguments": ["restore.sh", "-p:NuGetAudit=false"],
           "windowsFileName": "cmd.exe",
-          "windowsArguments": ["/d", "/c", "restore.cmd", "-p:NuGetAudit=false"]
+          "windowsArguments": ["/d", "/c", "restore.cmd", "/p:NuGetAudit=false"]
         }
       ],
       "scenarios": [
@@ -340,7 +355,10 @@
           "tool": "get-project-details",
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
-            "project": { "name": "Microsoft.EntityFrameworkCore" },
+            "project": {
+              "path": "src/EFCore/EFCore.csproj",
+              "targetFramework": "net10.0"
+            },
             "includeDocuments": true,
             "documentsLimit": 500,
             "projectReferencesLimit": 50,
@@ -374,7 +392,13 @@
           "tool": "find-references",
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
-            "symbol": { "documentationCommentId": "T:Microsoft.EntityFrameworkCore.DbContext" },
+            "symbol": {
+              "project": {
+                "path": "src/EFCore/EFCore.csproj",
+                "targetFramework": "net10.0"
+              },
+              "documentationCommentId": "T:Microsoft.EntityFrameworkCore.DbContext"
+            },
             "includeDefinitions": true,
             "includeContext": true,
             "referencesLimit": 5
@@ -386,7 +410,13 @@
           "tool": "find-references",
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
-            "symbol": { "documentationCommentId": "T:Microsoft.EntityFrameworkCore.DbContext" },
+            "symbol": {
+              "project": {
+                "path": "src/EFCore/EFCore.csproj",
+                "targetFramework": "net10.0"
+              },
+              "documentationCommentId": "T:Microsoft.EntityFrameworkCore.DbContext"
+            },
             "includeDefinitions": true,
             "includeContext": true,
             "referencesLimit": 500
@@ -398,7 +428,13 @@
           "tool": "get-diagnostics",
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
-            "scope": { "kind": "Project", "project": { "name": "Microsoft.EntityFrameworkCore" } },
+            "scope": {
+              "kind": "Project",
+              "project": {
+                "path": "src/EFCore/EFCore.csproj",
+                "targetFramework": "net10.0"
+              }
+            },
             "diagnosticsLimit": 200
           }
         },
@@ -408,7 +444,13 @@
           "tool": "get-dependency-graph",
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
-            "scope": { "kind": "Project", "project": { "name": "Microsoft.EntityFrameworkCore" } },
+            "scope": {
+              "kind": "Project",
+              "project": {
+                "path": "src/EFCore/EFCore.csproj",
+                "targetFramework": "net10.0"
+              }
+            },
             "granularity": "Type",
             "nodesLimit": 500,
             "edgesLimit": 1000

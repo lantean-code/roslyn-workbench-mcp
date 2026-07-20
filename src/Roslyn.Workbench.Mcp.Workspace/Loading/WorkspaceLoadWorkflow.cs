@@ -1,3 +1,5 @@
+using Microsoft.CodeAnalysis.Diagnostics;
+
 namespace Roslyn.Workbench.Mcp.Workspace.Loading;
 
 internal sealed class WorkspaceLoadWorkflow : IWorkspaceLoadWorkflow
@@ -93,6 +95,8 @@ internal sealed class WorkspaceLoadWorkflow : IWorkspaceLoadWorkflow
                     diagnostics);
             }
 
+            solution = RemoveUnresolvedAnalyzerReferences(solution, diagnostics, cancellationToken);
+
             var outsideRootInput = FindInputOutsideRoot(solution, workspaceRoot);
             if (outsideRootInput is not null)
             {
@@ -146,6 +150,46 @@ internal sealed class WorkspaceLoadWorkflow : IWorkspaceLoadWorkflow
         return compatibility.IsSdkStyle
             ? null
             : ValidatedWorkspaceLoadResult.Failed(ValidatedWorkspaceLoadFailure.NotSupported);
+    }
+
+    private static Solution RemoveUnresolvedAnalyzerReferences(
+        Solution solution,
+        List<DiagnosticInfo> diagnostics,
+        CancellationToken cancellationToken)
+    {
+        foreach (var analyzerReference in solution.AnalyzerReferences.OfType<UnresolvedAnalyzerReference>())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            solution = solution.RemoveAnalyzerReference(analyzerReference);
+            diagnostics.Add(CreateSkippedAnalyzerDiagnostic(analyzerReference, projectName: null));
+        }
+
+        foreach (var project in solution.Projects)
+        {
+            foreach (var analyzerReference in project.AnalyzerReferences.OfType<UnresolvedAnalyzerReference>())
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                solution = solution.RemoveAnalyzerReference(project.Id, analyzerReference);
+                diagnostics.Add(CreateSkippedAnalyzerDiagnostic(analyzerReference, project.Name));
+            }
+        }
+
+        return solution;
+    }
+
+    private static DiagnosticInfo CreateSkippedAnalyzerDiagnostic(
+        UnresolvedAnalyzerReference analyzerReference,
+        string? projectName)
+    {
+        var owner = projectName is null ? "the solution" : $"project '{projectName}'";
+        var display = analyzerReference.Display ?? analyzerReference.GetType().Name;
+
+        return new DiagnosticInfo
+        {
+            Id = "WorkspaceAnalyzerReferenceSkipped",
+            Severity = Contracts.Results.DiagnosticSeverity.Warning,
+            Message = $"Analyzer reference '{display}' was skipped from {owner} because it could not be resolved.",
+        };
     }
 
     private static DiagnosticInfo CreateSkippedProjectDiagnostic(Project project, string reason)

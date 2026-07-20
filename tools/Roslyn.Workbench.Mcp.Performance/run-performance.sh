@@ -4,10 +4,21 @@ set -euo pipefail
 
 script_directory="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repository_root="$(cd -- "$script_directory/../.." && pwd)"
-publish_root="$repository_root/artifacts/performance/publish/$(date -u +%Y%m%d-%H%M%S)-$$"
+temporary_root="${TMPDIR:-/tmp}/roslyn-workbench-mcp/performance"
+publish_parent="$temporary_root/publish"
+mkdir -p "$publish_parent"
+publish_root="$(mktemp -d "$publish_parent/$(date -u +%Y%m%d-%H%M%S)-XXXXXX")"
 host_output="$publish_root/host"
 runner_output="$publish_root/runner"
 artifacts_arguments=()
+
+cleanup() {
+    if [[ -n "${publish_root:-}" && -d "$publish_root" ]]; then
+        rm -rf -- "$publish_root"
+    fi
+}
+
+trap cleanup EXIT
 
 if [[ -r /proc/sys/kernel/osrelease ]] && grep -qi microsoft /proc/sys/kernel/osrelease; then
     artifacts_arguments=(--artifacts-path=/tmp/artifacts/roslyn-workbench-mcp)
@@ -18,7 +29,6 @@ if (( $# == 0 )); then
 fi
 
 cd "$repository_root"
-mkdir -p "$publish_root"
 
 echo "Restoring pinned diagnostic tools..."
 dotnet tool restore
@@ -41,13 +51,14 @@ if [[ ! -x "$host_path" ]]; then
 fi
 
 runner_path="$runner_output/Roslyn.Workbench.Mcp.Performance"
-echo "Published binaries: $publish_root"
+echo "Temporary published binaries: $publish_root"
 
 if [[ -x "$runner_path" ]]; then
-    exec "$runner_path" "$@" --host "$host_path" --framework-root "$repository_root"
+    "$runner_path" "$@" --host "$host_path" --framework-root "$repository_root"
+    exit $?
 fi
 
-exec dotnet "$runner_output/Roslyn.Workbench.Mcp.Performance.dll" \
+dotnet "$runner_output/Roslyn.Workbench.Mcp.Performance.dll" \
     "$@" \
     --host "$host_path" \
     --framework-root "$repository_root"

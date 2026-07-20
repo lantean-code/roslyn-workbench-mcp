@@ -29,8 +29,7 @@ internal static class RunStateValidator
         CancellationToken cancellationToken)
     {
         var issues = new List<string>();
-        var head = await ExternalCommand.RunAsync(
-            "git",
+        var head = await GitCommand.RunAsync(
             ["rev-parse", "HEAD"],
             repositoryRoot,
             cancellationToken);
@@ -40,8 +39,7 @@ internal static class RunStateValidator
             issues.Add($"Repository HEAD is '{actualCommit ?? "unavailable"}', expected '{repository.Commit}'.");
         }
 
-        var status = await ExternalCommand.RunAsync(
-            "git",
+        var status = await GitCommand.RunAsync(
             ["status", "--porcelain", "--untracked-files=no"],
             repositoryRoot,
             cancellationToken);

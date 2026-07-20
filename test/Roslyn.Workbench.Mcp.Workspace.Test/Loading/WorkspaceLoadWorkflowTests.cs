@@ -1,3 +1,6 @@
+using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.FindSymbols;
+
 using Roslyn.Workbench.Mcp.Workspace.Loading;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test.Loading;
@@ -244,6 +247,54 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
     }
 
     [Fact]
+    public async Task GIVEN_UnresolvedAnalyzerReferences_WHEN_Loading_THEN_ShouldRemoveThemAndRetainActionableDiagnostics()
+    {
+        var loadedWorkspace = new Mock<ILoadedWorkspace>();
+        var projectAnalyzer = new UnresolvedAnalyzerReference("/workspace/missing-project-analyzer.dll");
+        var solutionAnalyzer = new UnresolvedAnalyzerReference("/workspace/missing-solution-analyzer.dll");
+        var solution = CreateSolution(
+                "/workspace/Project.csproj",
+                "/workspace/Document.cs",
+                "public class C { } public class D : C { }")
+            .AddAnalyzerReference(solutionAnalyzer);
+        var projectId = solution.ProjectIds.Single();
+        solution = solution.AddAnalyzerReference(projectId, projectAnalyzer);
+        SetupLoadedWorkspace("/workspace/Solution.sln", solution, loadedWorkspace);
+        _workspaceLoader.Setup(item => item.InspectCompatibility("/workspace/Project.csproj"))
+            .Returns((true, []));
+
+        var result = await _target.LoadAsync(
+            "/workspace/Solution.sln",
+            "/workspace",
+            TestContext.Current.CancellationToken);
+
+        result.HasFailure.Should().BeFalse();
+        var effectiveSolution = result.Solution.Should().BeAssignableTo<Solution>().Which;
+        effectiveSolution.AnalyzerReferences.Should().NotContain(item => item is UnresolvedAnalyzerReference);
+        var project = effectiveSolution.Projects.Single();
+        project.AnalyzerReferences.Should().NotContain(item => item is UnresolvedAnalyzerReference);
+        result.Diagnostics.Should().ContainSingle(item =>
+            item.Id == "WorkspaceAnalyzerReferenceSkipped"
+            && item.Message.Contains("missing-solution-analyzer.dll", StringComparison.Ordinal)
+            && item.Message.Contains("the solution", StringComparison.Ordinal));
+        result.Diagnostics.Should().ContainSingle(item =>
+            item.Id == "WorkspaceAnalyzerReferenceSkipped"
+            && item.Message.Contains("missing-project-analyzer.dll", StringComparison.Ordinal)
+            && item.Message.Contains("project 'Project'", StringComparison.Ordinal));
+
+        var compilationResult = await project.GetCompilationAsync(TestContext.Current.CancellationToken);
+        var compilation = compilationResult.Should().BeAssignableTo<Compilation>().Which;
+        var symbol = compilation.GetTypeByMetadataName("C").Should().BeAssignableTo<INamedTypeSymbol>().Which;
+        var referencedSymbols = await SymbolFinder.FindReferencesAsync(
+            symbol,
+            effectiveSolution,
+            TestContext.Current.CancellationToken);
+
+        referencedSymbols.SelectMany(item => item.Locations).Should().ContainSingle();
+        loadedWorkspace.Verify(item => item.Dispose(), Times.Never);
+    }
+
+    [Fact]
     public async Task GIVEN_OnlyUnsupportedLanguageProjects_WHEN_Loading_THEN_ShouldDisposeAndRejectWorkspace()
     {
         var loadedWorkspace = new Mock<ILoadedWorkspace>();
@@ -287,7 +338,10 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
             });
     }
 
-    private Solution CreateSolution(string projectPath, string documentPath)
+    private Solution CreateSolution(
+        string projectPath,
+        string documentPath,
+        string source = "class C { }")
     {
         var projectId = ProjectId.CreateNewId();
         return _workspace.CurrentSolution
@@ -298,6 +352,6 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
                 "Project",
                 LanguageNames.CSharp,
                 filePath: projectPath))
-            .AddDocument(DocumentId.CreateNewId(projectId), "Document.cs", SourceText.From("class C { }"), filePath: documentPath);
+            .AddDocument(DocumentId.CreateNewId(projectId), "Document.cs", SourceText.From(source), filePath: documentPath);
     }
 }

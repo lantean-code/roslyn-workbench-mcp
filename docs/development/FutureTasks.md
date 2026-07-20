@@ -42,7 +42,7 @@ Source: [Analyzer Inventory.md](Analyzer%20Inventory.md)
 
 **Status:** Framework implemented; baseline pending
 
-Use the permanent manual runner under `tools/Roslyn.Workbench.Mcp.Performance` to establish the current implementation baseline across query, mutation and Code Action families. Its pinned small, medium and realistically large GitHub repositories are cached beneath the gitignored `artifacts/performance` directory; scenario definitions and measurement guidance remain in the repository. Record end-to-end latency, Host CPU, runtime counters, peak memory and result size, then use traces or heap captures to investigate measured hot paths rather than applying speculative changes.
+Use the permanent manual runner under `tools/Roslyn.Workbench.Mcp.Performance` to establish the current implementation baseline across query, mutation and Code Action families. Its pinned small, medium and realistically large GitHub repositories, restored assets and published binaries use operating-system-local temporary storage so Windows, WSL and Linux runs cannot contaminate one another. Scenario definitions and measurement guidance remain in the repository, and durable results are written beneath the gitignored `artifacts/performance/results` directory. Record end-to-end latency, Host CPU, runtime counters, peak memory and result size, then use traces or heap captures to investigate measured hot paths rather than applying speculative changes.
 
 The programme should:
 
@@ -56,6 +56,8 @@ The programme should:
 - record comparative evidence without introducing brittle elapsed-time assertions into functional tests.
 
 Re-run the baseline after material Roslyn, MSBuild or MCP SDK upgrades and retain dated results so regressions can be distinguished from environment variance.
+
+The active baseline evidence, functional blockers and dependency-ordered investigation sequence are recorded in [Performance Investigation Tracker — 2026-07-20](PerformanceInvestigationTracker-2026-07-20.md).
 
 Source: [Core Tool Performance Audit — 2026-07-19](CoreToolPerformanceAudit-2026-07-19.md)
 

@@ -112,16 +112,7 @@ public sealed class PluginQueryMcpServerToolTests
             .Returns(ToolExecutionContextLease<IQueryContext>.Acquired(context.Object));
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestQueryRequest>(), context.Object, CancellationToken.None))
-            .ReturnsAsync(new PluginExecutionResult<TestQueryResponse>
-            {
-                Outcome = outcome,
-                Error = new PluginExecutionError
-                {
-                    Code = code,
-                    Message = "Message",
-                },
-                RequiredAction = RequiredAction.Retry,
-            });
+            .ReturnsAsync(CreateFailure(outcome, code));
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
         var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
@@ -130,28 +121,6 @@ public sealed class PluginQueryMcpServerToolTests
         result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeFalse();
         result.StructuredContent.Value.GetProperty("error").GetProperty("code").GetString().Should().Be(code);
         result.StructuredContent.Value.GetProperty("next").GetString().Should().Be("Retry");
-    }
-
-    [Fact]
-    public async Task GIVEN_HandlerFailureWithoutError_WHEN_InvokingQuery_THEN_ShouldPropagateFailure()
-    {
-        var handler = new Mock<IQueryToolHandler<TestQueryRequest, TestQueryResponse>>();
-        var contextFactory = new Mock<IToolExecutionContextFactory>();
-        var context = new Mock<IQueryContext>();
-        contextFactory
-            .Setup(item => item.CreateQueryContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
-            .Returns(ToolExecutionContextLease<IQueryContext>.Acquired(context.Object));
-        handler
-            .Setup(item => item.ExecuteAsync(It.IsAny<TestQueryRequest>(), context.Object, CancellationToken.None))
-            .ReturnsAsync(new PluginExecutionResult<TestQueryResponse>
-            {
-                Outcome = PluginExecutionOutcome.Faulted,
-            });
-        var target = CreateTarget(handler.Object, contextFactory.Object);
-
-        var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
-
-        await action.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
@@ -201,18 +170,19 @@ public sealed class PluginQueryMcpServerToolTests
     }
 
     [Fact]
-    public async Task GIVEN_MalformedArguments_WHEN_InvokingQuery_THEN_ShouldPropagateFailureWithoutAcquiringContext()
+    public async Task GIVEN_MalformedArguments_WHEN_InvokingQuery_THEN_ShouldPublishInvalidRequestWithoutAcquiringContext()
     {
         var handler = new Mock<IQueryToolHandler<TestQueryRequest, TestQueryResponse>>();
         var contextFactory = new Mock<IToolExecutionContextFactory>();
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
-        var action = async () => await target.InvokeArgumentsAsync(new Dictionary<string, JsonElement>
+        var result = await target.InvokeArgumentsAsync(new Dictionary<string, JsonElement>
         {
             ["name"] = JsonSerializer.SerializeToElement(42),
         }, CancellationToken.None);
 
-        await action.Should().ThrowAsync<JsonException>();
+        result.IsError.Should().BeTrue();
+        result.StructuredContent!.Value.GetProperty("error").GetProperty("code").GetString().Should().Be("InvalidRequest");
         contextFactory.Verify(item => item.CreateQueryContext(
             It.IsAny<WorkspaceBoundRequest>(),
             It.IsAny<CancellationToken>()), Times.Never);
@@ -220,6 +190,23 @@ public sealed class PluginQueryMcpServerToolTests
             It.IsAny<TestQueryRequest>(),
             It.IsAny<IQueryContext>(),
             It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    private static PluginExecutionResult<TestQueryResponse> CreateFailure(PluginExecutionOutcome outcome, string code)
+    {
+        var error = new PluginExecutionError
+        {
+            Code = code,
+            Message = "Message",
+        };
+
+        return outcome switch
+        {
+            PluginExecutionOutcome.Rejected => PluginExecutionResult<TestQueryResponse>.Rejected(error, RequiredAction.Retry),
+            PluginExecutionOutcome.Conflict => PluginExecutionResult<TestQueryResponse>.Conflict(error, RequiredAction.Retry),
+            PluginExecutionOutcome.Faulted => PluginExecutionResult<TestQueryResponse>.Faulted(error, RequiredAction.Retry),
+            _ => throw new InvalidOperationException($"Outcome '{outcome}' is not a failure outcome."),
+        };
     }
 
     private static PluginQueryMcpServerTool<TestQueryRequest, TestQueryResponse> CreateTarget(

@@ -396,7 +396,7 @@ internal sealed class CodeActionScopedFixService : ICodeActionScopedFixService
         }
 
         var proposalResult = await _operationService.CreateMutationCandidateAsync(matches[0].Action, matches[0].Title, context, cancellationToken);
-        if (proposalResult.Outcome != CodeActionExecutionOutcome.Succeeded || proposalResult.Data?.CandidateSolution is null)
+        if (!proposalResult.IsSucceeded)
         {
             return RejectedApplication(proposalResult);
         }

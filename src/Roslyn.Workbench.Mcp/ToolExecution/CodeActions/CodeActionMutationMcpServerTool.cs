@@ -35,9 +35,19 @@ internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpS
         TRequest request;
         using (StartPhase(WorkbenchPerformanceEventSource.RequestBindingPhase))
         {
-            request = ToolRequestBinder.Deserialize<TRequest>(arguments);
+            if (!TryBindRequest(arguments, out TRequest? boundRequest, out var rejection))
+            {
+                return rejection;
+            }
+
+            request = boundRequest;
         }
 
+        return await InvokeBoundRequestAsync(request, cancellationToken);
+    }
+
+    private async ValueTask<CallToolResult> InvokeBoundRequestAsync(TRequest request, CancellationToken cancellationToken)
+    {
         CodeActionMutationExecutionLease contextLease;
         using (StartPhase(WorkbenchPerformanceEventSource.ContextAcquisitionPhase))
         {
@@ -59,19 +69,18 @@ internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpS
             proposalResult = await _handler.ExecuteAsync(request, context, cancellationToken);
         }
 
-        if (proposalResult.Outcome.IsError())
+        if (proposalResult.HasError)
         {
             var failure = new CodeActionExecutionFailure
             {
                 Outcome = proposalResult.Outcome,
-                Error = proposalResult.Error
-                    ?? throw new InvalidOperationException("Code Action mutation failure must provide an error."),
+                Error = proposalResult.Error,
                 RequiredAction = proposalResult.RequiredAction,
             };
             return CreateStructuredResult(McpPublishedResultSerializer.SerializeCodeActionFailure(failure), isError: true);
         }
 
-        if (proposalResult.Outcome == CodeActionExecutionOutcome.NoChange || proposalResult.Data is null)
+        if (!proposalResult.IsSucceeded)
         {
             var noChange = CodeActionExecutionResult<MutationData>.NoChange(
                 diagnostics: proposalResult.Diagnostics,
@@ -94,7 +103,7 @@ internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpS
         {
             return CreateStructuredResult(
                 McpPublishedResultSerializer.SerializeCodeActionMutation(stagedResult),
-                stagedResult.Outcome.IsError());
+                stagedResult.HasError);
         }
     }
 }

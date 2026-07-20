@@ -121,12 +121,13 @@ public sealed class ConvertExpressionBodyToolTests
     }
 
     [Fact]
-    public async Task GIVEN_PrimaryProviderReturnsRejectionWithoutError_WHEN_CallingExecuteAsync_THEN_ShouldReturnPrimaryRejection()
+    public async Task GIVEN_PrimaryProviderReturnsRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnPrimaryRejection()
     {
-        var expected = new CodeActionExecutionResult<WorkspaceMutationCandidate>
+        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
         {
-            Outcome = CodeActionExecutionOutcome.Rejected,
-        };
+            Code = "Rejected",
+            Message = "Message",
+        });
         var context = new Mock<ICodeActionMutationContext>();
         var request = new LocationRefactoringRequest
         {

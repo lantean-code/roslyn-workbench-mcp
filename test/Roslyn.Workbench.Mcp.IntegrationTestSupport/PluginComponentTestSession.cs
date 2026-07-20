@@ -80,24 +80,21 @@ internal sealed class PluginComponentTestSession
             PluginExecutionOutcome.NoChange => PluginExecutionResult<MutationData>.NoChange(
                 diagnostics: proposal.Diagnostics,
                 warnings: proposal.Warnings),
-            PluginExecutionOutcome.Rejected => PluginExecutionResult<MutationData>.Rejected(
-                proposal.Error ?? throw new InvalidOperationException("A rejected plugin proposal must provide an error."),
+            PluginExecutionOutcome.Rejected when proposal.HasError => PluginExecutionResult<MutationData>.Rejected(
+                proposal.Error,
                 proposal.RequiredAction,
                 proposal.Diagnostics,
                 proposal.Warnings),
-            PluginExecutionOutcome.Conflict => PluginExecutionResult<MutationData>.Conflict(
-                proposal.Error ?? throw new InvalidOperationException("A conflicting plugin proposal must provide an error."),
+            PluginExecutionOutcome.Conflict when proposal.HasError => PluginExecutionResult<MutationData>.Conflict(
+                proposal.Error,
                 proposal.RequiredAction,
                 proposal.Diagnostics,
                 proposal.Warnings),
-            PluginExecutionOutcome.Faulted => new PluginExecutionResult<MutationData>
-            {
-                Outcome = PluginExecutionOutcome.Faulted,
-                Error = proposal.Error ?? throw new InvalidOperationException("A faulted plugin proposal must provide an error."),
-                RequiredAction = proposal.RequiredAction,
-                Diagnostics = proposal.Diagnostics,
-                Warnings = proposal.Warnings,
-            },
+            PluginExecutionOutcome.Faulted when proposal.HasError => PluginExecutionResult<MutationData>.Faulted(
+                proposal.Error,
+                proposal.RequiredAction,
+                proposal.Diagnostics,
+                proposal.Warnings),
             _ => throw new InvalidOperationException(
                 $"Plugin mutation '{registration.Tool.Metadata.Name}' returned an invalid successful result."),
         };

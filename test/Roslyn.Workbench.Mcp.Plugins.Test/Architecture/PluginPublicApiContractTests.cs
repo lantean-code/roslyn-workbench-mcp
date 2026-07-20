@@ -97,6 +97,23 @@ public sealed class PluginPublicApiContractTests
         typeof(IWorkspaceMutationStager).IsAssignableFrom(typeof(IMutationContext)).Should().BeFalse();
     }
 
+    [Fact]
+    [Trait("Category", "Contract")]
+    public void GIVEN_PluginExecutionResult_WHEN_InspectingConstruction_THEN_ShouldRequireOutcomeFactories()
+    {
+        var resultType = typeof(PluginExecutionResult<>);
+        var publicConstructors = resultType.GetConstructors();
+        var publicSetters = resultType
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Select(static property => property.SetMethod)
+            .OfType<MethodInfo>()
+            .Where(static setter => setter.IsPublic)
+            .ToArray();
+
+        publicConstructors.Should().BeEmpty();
+        publicSetters.Should().BeEmpty();
+    }
+
     private static IEnumerable<Type> GetPublicSignatureTypes(Type type)
     {
         if (type.BaseType is not null)

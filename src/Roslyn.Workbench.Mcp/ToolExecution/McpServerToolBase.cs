@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 
 namespace Roslyn.Workbench.Mcp.ToolExecution;
@@ -40,6 +41,32 @@ internal abstract class McpServerToolBase : McpServerTool
     protected abstract ValueTask<CallToolResult> InvokeCoreAsync(
         IDictionary<string, JsonElement> arguments,
         CancellationToken cancellationToken);
+
+    protected static bool TryBindRequest<TRequest>(
+        IDictionary<string, JsonElement> arguments,
+        [NotNullWhen(true)] out TRequest? request,
+        [NotNullWhen(false)] out CallToolResult? rejection)
+        where TRequest : class
+    {
+        try
+        {
+            request = ToolRequestBinder.Deserialize<TRequest>(arguments);
+            rejection = null;
+            return true;
+        }
+        catch (JsonException exception)
+        {
+            request = null;
+            var error = new ToolError
+            {
+                Code = "InvalidRequest",
+                Message = $"The tool arguments did not match the request contract. {exception.Message}",
+            };
+            var content = ToolResultEnvelopeSerializer.CreateFailure(error, requiredAction: null);
+            rejection = CreateStructuredResult(content, isError: true);
+            return false;
+        }
+    }
 
     protected static CallToolResult CreateStructuredResult(JsonElement content, bool isError)
     {

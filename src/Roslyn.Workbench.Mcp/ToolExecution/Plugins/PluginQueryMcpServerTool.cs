@@ -29,9 +29,19 @@ internal sealed class PluginQueryMcpServerTool<TRequest, TResponse> : McpServerT
         TRequest request;
         using (StartPhase(WorkbenchPerformanceEventSource.RequestBindingPhase))
         {
-            request = ToolRequestBinder.Deserialize<TRequest>(arguments);
+            if (!TryBindRequest(arguments, out TRequest? boundRequest, out var rejection))
+            {
+                return rejection;
+            }
+
+            request = boundRequest;
         }
 
+        return await InvokeBoundRequestAsync(request, cancellationToken);
+    }
+
+    private async ValueTask<CallToolResult> InvokeBoundRequestAsync(TRequest request, CancellationToken cancellationToken)
+    {
         ToolExecutionContextLease<IQueryContext> contextLease;
         using (StartPhase(WorkbenchPerformanceEventSource.ContextAcquisitionPhase))
         {
@@ -57,7 +67,7 @@ internal sealed class PluginQueryMcpServerTool<TRequest, TResponse> : McpServerT
         {
             return CreateStructuredResult(
                 McpPublishedResultSerializer.SerializePluginQuery(result),
-                result.Outcome.IsError());
+                result.HasError);
         }
     }
 }

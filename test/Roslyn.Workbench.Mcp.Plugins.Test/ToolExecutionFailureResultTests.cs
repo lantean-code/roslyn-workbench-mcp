@@ -57,6 +57,41 @@ public sealed class ToolExecutionFailureResultTests
         result.Error.CorrelationId.Should().NotBeNullOrWhiteSpace();
     }
 
+    [Theory]
+    [InlineData(PluginExecutionOutcome.Conflict)]
+    [InlineData(PluginExecutionOutcome.Faulted)]
+    public void GIVEN_FailureOutcome_WHEN_CreatingTypedPluginResult_THEN_ShouldPreserveOutcome(
+        PluginExecutionOutcome outcome)
+    {
+        var result = new ToolExecutionFailureResult
+        {
+            Outcome = outcome,
+            Error = new PluginExecutionError
+            {
+                Code = "ErrorCode",
+                Message = "Message",
+            },
+        };
+
+        var pluginResult = result.ToPluginExecutionResult<TestResponse>();
+
+        pluginResult.Outcome.Should().Be(outcome);
+        pluginResult.HasError.Should().BeTrue();
+    }
+
+    [Fact]
+    public void GIVEN_NonFailureOutcome_WHEN_CreatingTypedPluginResult_THEN_ShouldRejectInvalidState()
+    {
+        var result = new ToolExecutionFailureResult
+        {
+            Outcome = PluginExecutionOutcome.Succeeded,
+        };
+
+        var action = result.ToPluginExecutionResult<TestResponse>;
+
+        action.Should().Throw<InvalidOperationException>();
+    }
+
 #pragma warning disable CA1812 // The response fixture is consumed only as a generic result type argument.
     private sealed record TestResponse
     {

@@ -43,14 +43,11 @@ internal static class PluginWorkspaceResultMapper
                 result.Error.RequiredAction,
                 result.Diagnostics,
                 result.Warnings),
-            WorkspaceOperationStatus.Faulted when result.HasError => new PluginExecutionResult<MutationData>
-            {
-                Outcome = PluginExecutionOutcome.Faulted,
-                Error = MapError(result.Error),
-                RequiredAction = result.Error.RequiredAction,
-                Diagnostics = result.Diagnostics,
-                Warnings = result.Warnings,
-            },
+            WorkspaceOperationStatus.Faulted when result.HasError => PluginExecutionResult<MutationData>.Faulted(
+                MapError(result.Error),
+                result.Error.RequiredAction,
+                result.Diagnostics,
+                result.Warnings),
             WorkspaceOperationStatus.NoChange => PluginExecutionResult<MutationData>.NoChange(
                 diagnostics: result.Diagnostics,
                 warnings: result.Warnings),

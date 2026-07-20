@@ -55,13 +55,24 @@ internal sealed record ToolExecutionFailureResult
     /// <returns>The typed plugin execution result.</returns>
     public PluginExecutionResult<TResponse> ToPluginExecutionResult<TResponse>()
     {
-        return new PluginExecutionResult<TResponse>
+        return Outcome switch
         {
-            Outcome = Outcome,
-            Error = Error,
-            RequiredAction = RequiredAction,
-            Diagnostics = Diagnostics,
-            Warnings = Warnings,
+            PluginExecutionOutcome.Rejected => PluginExecutionResult<TResponse>.Rejected(
+                Error,
+                RequiredAction,
+                Diagnostics,
+                Warnings),
+            PluginExecutionOutcome.Conflict => PluginExecutionResult<TResponse>.Conflict(
+                Error,
+                RequiredAction,
+                Diagnostics,
+                Warnings),
+            PluginExecutionOutcome.Faulted => PluginExecutionResult<TResponse>.Faulted(
+                Error,
+                RequiredAction,
+                Diagnostics,
+                Warnings),
+            _ => throw new InvalidOperationException($"Outcome '{Outcome}' is not a failure outcome."),
         };
     }
 }

@@ -86,19 +86,30 @@ internal sealed class CodeActionComponentTestSession
 
         var handler = _workspace.CreateInstance<THandler>();
         var proposal = await handler.ExecuteAsync(request, lease.Context, cancellationToken);
-        if (proposal.Outcome.IsError())
+        if (proposal.HasError)
         {
-            return new CodeActionExecutionResult<MutationData>
+            return proposal.Outcome switch
             {
-                Outcome = proposal.Outcome,
-                Error = proposal.Error ?? throw new InvalidOperationException("A failed Code Action proposal must provide an error."),
-                RequiredAction = proposal.RequiredAction,
-                Diagnostics = proposal.Diagnostics,
-                Warnings = proposal.Warnings,
+                CodeActionExecutionOutcome.Rejected => CodeActionExecutionResult<MutationData>.Rejected(
+                    proposal.Error,
+                    proposal.RequiredAction,
+                    proposal.Diagnostics,
+                    proposal.Warnings),
+                CodeActionExecutionOutcome.Conflict => CodeActionExecutionResult<MutationData>.Conflict(
+                    proposal.Error,
+                    proposal.RequiredAction,
+                    proposal.Diagnostics,
+                    proposal.Warnings),
+                CodeActionExecutionOutcome.Faulted => CodeActionExecutionResult<MutationData>.Faulted(
+                    proposal.Error,
+                    proposal.RequiredAction,
+                    proposal.Diagnostics,
+                    proposal.Warnings),
+                _ => throw new InvalidOperationException($"Outcome '{proposal.Outcome}' is not a failure outcome."),
             };
         }
 
-        if (proposal.Outcome == CodeActionExecutionOutcome.NoChange || proposal.Data is null)
+        if (!proposal.IsSucceeded)
         {
             return CodeActionExecutionResult<MutationData>.NoChange(
                 diagnostics: proposal.Diagnostics,
@@ -115,11 +126,18 @@ internal sealed class CodeActionComponentTestSession
 
     private static CodeActionExecutionResult<TData> MapFailure<TData>(CodeActionExecutionFailure failure)
     {
-        return new CodeActionExecutionResult<TData>
+        return failure.Outcome switch
         {
-            Outcome = failure.Outcome,
-            Error = failure.Error,
-            RequiredAction = failure.RequiredAction,
+            CodeActionExecutionOutcome.Rejected => CodeActionExecutionResult<TData>.Rejected(
+                failure.Error,
+                failure.RequiredAction),
+            CodeActionExecutionOutcome.Conflict => CodeActionExecutionResult<TData>.Conflict(
+                failure.Error,
+                failure.RequiredAction),
+            CodeActionExecutionOutcome.Faulted => CodeActionExecutionResult<TData>.Faulted(
+                failure.Error,
+                failure.RequiredAction),
+            _ => throw new InvalidOperationException($"Outcome '{failure.Outcome}' is not a failure outcome."),
         };
     }
 }

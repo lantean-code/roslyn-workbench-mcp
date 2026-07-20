@@ -117,7 +117,6 @@ public sealed class CodeActionQueryMcpServerToolTests
     public async Task GIVEN_HandlerErrorOutcome_WHEN_InvokingQuery_THEN_ShouldPublishFailure(
         string outcomeName)
     {
-        var outcome = Enum.Parse<CodeActionExecutionOutcome>(outcomeName);
         var handler = new Mock<ICodeActionQueryToolHandler<TestQueryRequest, TestQueryResponse>>();
         var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
         var context = new Mock<ICodeActionQueryContext>();
@@ -127,16 +126,7 @@ public sealed class CodeActionQueryMcpServerToolTests
             .Returns(CodeActionQueryExecutionLease.Acquired(workspaceLease, context.Object));
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestQueryRequest>(), context.Object, CancellationToken.None))
-            .ReturnsAsync(new CodeActionExecutionResult<TestQueryResponse>
-            {
-                Outcome = outcome,
-                Error = new CodeActionExecutionError
-                {
-                    Code = outcomeName,
-                    Message = "Message",
-                },
-                RequiredAction = RequiredAction.Retry,
-            });
+            .ReturnsAsync(CreateFailure(outcomeName));
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
         var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
@@ -144,29 +134,6 @@ public sealed class CodeActionQueryMcpServerToolTests
         result.IsError.Should().BeTrue();
         result.StructuredContent!.Value.GetProperty("error").GetProperty("code").GetString().Should().Be(outcomeName);
         result.StructuredContent.Value.GetProperty("next").GetString().Should().Be("Retry");
-    }
-
-    [Fact]
-    public async Task GIVEN_HandlerFailureWithoutError_WHEN_InvokingQuery_THEN_ShouldPropagateFailure()
-    {
-        var handler = new Mock<ICodeActionQueryToolHandler<TestQueryRequest, TestQueryResponse>>();
-        var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
-        var context = new Mock<ICodeActionQueryContext>();
-        var workspaceLease = WorkspaceExecutionContextLease.Acquired(new Mock<IWorkspaceExecutionContext>().Object);
-        contextFactory
-            .Setup(item => item.CreateQueryContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
-            .Returns(CodeActionQueryExecutionLease.Acquired(workspaceLease, context.Object));
-        handler
-            .Setup(item => item.ExecuteAsync(It.IsAny<TestQueryRequest>(), context.Object, CancellationToken.None))
-            .ReturnsAsync(new CodeActionExecutionResult<TestQueryResponse>
-            {
-                Outcome = CodeActionExecutionOutcome.Faulted,
-            });
-        var target = CreateTarget(handler.Object, contextFactory.Object);
-
-        var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
-
-        await action.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
@@ -216,18 +183,19 @@ public sealed class CodeActionQueryMcpServerToolTests
     }
 
     [Fact]
-    public async Task GIVEN_MalformedArguments_WHEN_InvokingQuery_THEN_ShouldPropagateFailureWithoutAcquiringContext()
+    public async Task GIVEN_MalformedArguments_WHEN_InvokingQuery_THEN_ShouldPublishInvalidRequestWithoutAcquiringContext()
     {
         var handler = new Mock<ICodeActionQueryToolHandler<TestQueryRequest, TestQueryResponse>>();
         var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
-        var action = async () => await target.InvokeArgumentsAsync(new Dictionary<string, JsonElement>
+        var result = await target.InvokeArgumentsAsync(new Dictionary<string, JsonElement>
         {
             ["name"] = JsonSerializer.SerializeToElement(42),
         }, CancellationToken.None);
 
-        await action.Should().ThrowAsync<JsonException>();
+        result.IsError.Should().BeTrue();
+        result.StructuredContent!.Value.GetProperty("error").GetProperty("code").GetString().Should().Be("InvalidRequest");
         contextFactory.Verify(item => item.CreateQueryContext(
             It.IsAny<WorkspaceBoundRequest>(),
             It.IsAny<CancellationToken>()), Times.Never);
@@ -248,6 +216,23 @@ public sealed class CodeActionQueryMcpServerToolTests
             contextFactory,
             _protocolFactory.Object,
             Options.Create(new StartupOptions()));
+    }
+
+    private static CodeActionExecutionResult<TestQueryResponse> CreateFailure(string outcomeName)
+    {
+        var error = new CodeActionExecutionError
+        {
+            Code = outcomeName,
+            Message = "Message",
+        };
+
+        return outcomeName switch
+        {
+            "Rejected" => CodeActionExecutionResult<TestQueryResponse>.Rejected(error, RequiredAction.Retry),
+            "Conflict" => CodeActionExecutionResult<TestQueryResponse>.Conflict(error, RequiredAction.Retry),
+            "Faulted" => CodeActionExecutionResult<TestQueryResponse>.Faulted(error, RequiredAction.Retry),
+            _ => throw new InvalidOperationException($"Outcome '{outcomeName}' is not a failure outcome."),
+        };
     }
 
 #pragma warning disable CA1515 // Moq's dynamic proxy must access these closed-generic handler contracts.

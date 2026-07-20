@@ -39,14 +39,11 @@ internal static class CodeActionWorkspaceResultMapper
                 result.Error.RequiredAction,
                 result.Diagnostics,
                 result.Warnings),
-            WorkspaceOperationStatus.Faulted when result.HasError => new CodeActionExecutionResult<MutationData>
-            {
-                Outcome = CodeActionExecutionOutcome.Faulted,
-                Error = MapError(result.Error),
-                RequiredAction = result.Error.RequiredAction,
-                Diagnostics = result.Diagnostics,
-                Warnings = result.Warnings,
-            },
+            WorkspaceOperationStatus.Faulted when result.HasError => CodeActionExecutionResult<MutationData>.Faulted(
+                MapError(result.Error),
+                result.Error.RequiredAction,
+                result.Diagnostics,
+                result.Warnings),
             WorkspaceOperationStatus.NoChange => CodeActionExecutionResult<MutationData>.NoChange(
                 diagnostics: result.Diagnostics,
                 warnings: result.Warnings),

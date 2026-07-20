@@ -1,20 +1,32 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Roslyn.Workbench.Mcp.CodeActions;
 
 internal sealed record CodeActionExecutionResult<TData>
 {
-    public CodeActionExecutionOutcome Outcome { get; init; }
+    public CodeActionExecutionOutcome Outcome { get; private init; }
 
-    public TData? Data { get; init; }
+    public TData? Data { get; private init; }
 
-    public ChangeSummary? Changes { get; init; }
+    public ChangeSummary? Changes { get; private init; }
 
-    public CodeActionExecutionError? Error { get; init; }
+    public CodeActionExecutionError? Error { get; private init; }
 
-    public RequiredAction? RequiredAction { get; init; }
+    public RequiredAction? RequiredAction { get; private init; }
 
-    public IReadOnlyList<DiagnosticInfo> Diagnostics { get; init; } = [];
+    public IReadOnlyList<DiagnosticInfo> Diagnostics { get; private init; } = [];
 
-    public IReadOnlyList<WarningInfo> Warnings { get; init; } = [];
+    public IReadOnlyList<WarningInfo> Warnings { get; private init; } = [];
+
+    [MemberNotNullWhen(true, nameof(Data))]
+    public bool IsSucceeded => Outcome == CodeActionExecutionOutcome.Succeeded;
+
+    [MemberNotNullWhen(true, nameof(Error))]
+    public bool HasError => Outcome.IsError();
+
+    private CodeActionExecutionResult()
+    {
+    }
 
     public static CodeActionExecutionResult<TData> Success(
         TData data,
@@ -71,6 +83,22 @@ internal sealed record CodeActionExecutionResult<TData>
         return new CodeActionExecutionResult<TData>
         {
             Outcome = CodeActionExecutionOutcome.Conflict,
+            Error = error,
+            RequiredAction = requiredAction,
+            Diagnostics = diagnostics ?? [],
+            Warnings = warnings ?? [],
+        };
+    }
+
+    public static CodeActionExecutionResult<TData> Faulted(
+        CodeActionExecutionError error,
+        RequiredAction? requiredAction = null,
+        IReadOnlyList<DiagnosticInfo>? diagnostics = null,
+        IReadOnlyList<WarningInfo>? warnings = null)
+    {
+        return new CodeActionExecutionResult<TData>
+        {
+            Outcome = CodeActionExecutionOutcome.Faulted,
             Error = error,
             RequiredAction = requiredAction,
             Diagnostics = diagnostics ?? [],

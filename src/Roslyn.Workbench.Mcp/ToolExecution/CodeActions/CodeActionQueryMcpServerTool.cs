@@ -33,9 +33,19 @@ internal sealed class CodeActionQueryMcpServerTool<THandler, TRequest, TResponse
         TRequest request;
         using (StartPhase(WorkbenchPerformanceEventSource.RequestBindingPhase))
         {
-            request = ToolRequestBinder.Deserialize<TRequest>(arguments);
+            if (!TryBindRequest(arguments, out TRequest? boundRequest, out var rejection))
+            {
+                return rejection;
+            }
+
+            request = boundRequest;
         }
 
+        return await InvokeBoundRequestAsync(request, cancellationToken);
+    }
+
+    private async ValueTask<CallToolResult> InvokeBoundRequestAsync(TRequest request, CancellationToken cancellationToken)
+    {
         CodeActionQueryExecutionLease contextLease;
         using (StartPhase(WorkbenchPerformanceEventSource.ContextAcquisitionPhase))
         {
@@ -61,7 +71,7 @@ internal sealed class CodeActionQueryMcpServerTool<THandler, TRequest, TResponse
         {
             return CreateStructuredResult(
                 McpPublishedResultSerializer.SerializeCodeActionQuery(result),
-                result.Outcome.IsError());
+                result.HasError);
         }
     }
 }

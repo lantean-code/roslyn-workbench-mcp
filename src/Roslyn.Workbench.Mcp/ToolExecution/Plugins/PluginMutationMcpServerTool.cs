@@ -31,9 +31,19 @@ internal sealed class PluginMutationMcpServerTool<TRequest> : McpServerToolBase
         TRequest request;
         using (StartPhase(WorkbenchPerformanceEventSource.RequestBindingPhase))
         {
-            request = ToolRequestBinder.Deserialize<TRequest>(arguments);
+            if (!TryBindRequest(arguments, out TRequest? boundRequest, out var rejection))
+            {
+                return rejection;
+            }
+
+            request = boundRequest;
         }
 
+        return await InvokeBoundRequestAsync(request, cancellationToken);
+    }
+
+    private async ValueTask<CallToolResult> InvokeBoundRequestAsync(TRequest request, CancellationToken cancellationToken)
+    {
         PluginMutationExecutionLease contextLease;
         using (StartPhase(WorkbenchPerformanceEventSource.ContextAcquisitionPhase))
         {
@@ -55,13 +65,12 @@ internal sealed class PluginMutationMcpServerTool<TRequest> : McpServerToolBase
             proposalResult = await _handler.ExecuteAsync(request, context, cancellationToken);
         }
 
-        if (proposalResult.Outcome.IsError())
+        if (proposalResult.HasError)
         {
             var failure = new ToolExecutionFailureResult
             {
                 Outcome = proposalResult.Outcome,
-                Error = proposalResult.Error
-                    ?? throw new InvalidOperationException("Plugin mutation failure must provide an error."),
+                Error = proposalResult.Error,
                 RequiredAction = proposalResult.RequiredAction,
                 Diagnostics = proposalResult.Diagnostics,
                 Warnings = proposalResult.Warnings,
@@ -69,7 +78,7 @@ internal sealed class PluginMutationMcpServerTool<TRequest> : McpServerToolBase
             return CreateStructuredResult(McpPublishedResultSerializer.SerializePluginFailure(failure), isError: true);
         }
 
-        if (proposalResult.Outcome == PluginExecutionOutcome.NoChange || proposalResult.Data is null)
+        if (!proposalResult.IsSucceeded)
         {
             var noChange = PluginExecutionResult<MutationData>.NoChange(
                 diagnostics: proposalResult.Diagnostics,
@@ -92,7 +101,7 @@ internal sealed class PluginMutationMcpServerTool<TRequest> : McpServerToolBase
         {
             return CreateStructuredResult(
                 McpPublishedResultSerializer.SerializePluginMutation(stagedResult),
-                stagedResult.Outcome.IsError());
+                stagedResult.HasError);
         }
     }
 }

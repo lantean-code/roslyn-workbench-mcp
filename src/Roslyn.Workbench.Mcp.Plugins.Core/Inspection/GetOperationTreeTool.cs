@@ -6,18 +6,12 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
     protected override async ValueTask<PluginExecutionResult<OperationTreeData>> ExecuteCoreAsync(GetOperationTreeRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         var syntaxNodeResolution = await ResolveSyntaxNodeAsync(request.Location, request.ExpectedSnapshot, context, cancellationToken);
-        if (syntaxNodeResolution.Rejection is not null)
+        if (syntaxNodeResolution.HasRejection)
         {
             return syntaxNodeResolution.Rejection;
         }
 
-        if (syntaxNodeResolution.Node is null || syntaxNodeResolution.SemanticModel is null)
-        {
-            throw new InvalidOperationException("A successful syntax-node resolution must contain a node and semantic model.");
-        }
-
-        var resolvedNode = syntaxNodeResolution.Node;
-        var resolvedSemanticModel = syntaxNodeResolution.SemanticModel;
+        var (resolvedNode, resolvedSemanticModel) = syntaxNodeResolution.Value;
         var operation = resolvedSemanticModel.GetOperation(resolvedNode, cancellationToken)
             ?? resolvedNode.ChildNodes().Select(child => resolvedSemanticModel.GetOperation(child, cancellationToken)).FirstOrDefault(static item => item is not null);
         if (operation is null)
@@ -69,12 +63,12 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
         };
     }
 
-    private static async ValueTask<SyntaxNodeResolution> ResolveSyntaxNodeAsync(LocationSelector? selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)
+    private static async ValueTask<ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>> ResolveSyntaxNodeAsync(LocationSelector? selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)
     {
         var rejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<OperationTreeData>(context, expectedSnapshot);
         if (rejection is not null)
         {
-            return new SyntaxNodeResolution
+            return new ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>
             {
                 Rejection = rejection,
             };
@@ -82,7 +76,7 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
 
         if (selector is null)
         {
-            return new SyntaxNodeResolution
+            return new ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>
             {
                 Rejection = ToolExecutionHelpers.Rejected<OperationTreeData>("InvalidRequest", "A location selector is required."),
             };
@@ -91,7 +85,7 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
         var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken);
         if (!locationResolution.IsResolved)
         {
-            return new SyntaxNodeResolution
+            return new ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>
             {
                 Rejection = ToolExecutionHelpers.RejectFromStatus<OperationTreeData>(locationResolution.Status, "Location", "location"),
             };
@@ -101,7 +95,7 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
         var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(location);
         if (resolvedLocation?.Document?.Path is null)
         {
-            return new SyntaxNodeResolution
+            return new ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>
             {
                 Rejection = ToolExecutionHelpers.Rejected<OperationTreeData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
             };
@@ -112,7 +106,7 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
             : context.CurrentSolution.GetDocument(location.SourceTree);
         if (document is null)
         {
-            return new SyntaxNodeResolution
+            return new ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>
             {
                 Rejection = ToolExecutionHelpers.Rejected<OperationTreeData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
             };
@@ -122,25 +116,36 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
         if (syntaxRoot is null || semanticModel is null)
         {
-            return new SyntaxNodeResolution
+            return new ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>
             {
                 Rejection = ToolExecutionHelpers.Rejected<OperationTreeData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
             };
         }
 
-        return new SyntaxNodeResolution
+        return new ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>
         {
-            Node = syntaxRoot.FindNode(location.SourceSpan, getInnermostNodeForTie: true),
-            SemanticModel = semanticModel,
+            Value = new ResolvedSyntaxNode(
+                syntaxRoot.FindNode(location.SourceSpan, getInnermostNodeForTie: true),
+                semanticModel),
         };
     }
 
-    private sealed record SyntaxNodeResolution
+    private sealed record ResolvedSyntaxNode
     {
-        public PluginExecutionResult<OperationTreeData>? Rejection { get; init; }
+        public SyntaxNode Node { get; }
 
-        public SyntaxNode? Node { get; init; }
+        public SemanticModel SemanticModel { get; }
 
-        public SemanticModel? SemanticModel { get; init; }
+        public ResolvedSyntaxNode(SyntaxNode node, SemanticModel semanticModel)
+        {
+            Node = node;
+            SemanticModel = semanticModel;
+        }
+
+        public void Deconstruct(out SyntaxNode node, out SemanticModel semanticModel)
+        {
+            node = Node;
+            semanticModel = SemanticModel;
+        }
     }
 }

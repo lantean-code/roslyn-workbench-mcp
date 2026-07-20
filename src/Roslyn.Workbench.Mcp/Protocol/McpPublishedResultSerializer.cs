@@ -18,16 +18,16 @@ internal static class McpPublishedResultSerializer
     public static JsonElement SerializePluginQuery<TResponse>(PluginExecutionResult<TResponse> result)
     {
 
-        return result.Outcome.IsError()
-            ? SerializePluginFailure(CreatePluginFailure(result, "Query"))
+        return result.HasError
+            ? SerializePluginFailure(CreatePluginFailure(result, result.Error))
             : ToolResultEnvelopeSerializer.CreateSuccess(result.Data);
     }
 
     public static JsonElement SerializePluginMutation(PluginExecutionResult<MutationData> result)
     {
 
-        return result.Outcome.IsError()
-            ? SerializePluginFailure(CreatePluginFailure(result, "Mutation"))
+        return result.HasError
+            ? SerializePluginFailure(CreatePluginFailure(result, result.Error))
             : ToolResultEnvelopeSerializer.CreateMutationSuccess(
                 result.Data,
                 result.Outcome != PluginExecutionOutcome.NoChange && result.Data is not null);
@@ -47,16 +47,16 @@ internal static class McpPublishedResultSerializer
     public static JsonElement SerializeCodeActionQuery<TResponse>(CodeActionExecutionResult<TResponse> result)
     {
 
-        return result.Outcome.IsError()
-            ? SerializeCodeActionFailure(CreateCodeActionFailure(result, "Query"))
+        return result.HasError
+            ? SerializeCodeActionFailure(CreateCodeActionFailure(result, result.Error))
             : ToolResultEnvelopeSerializer.CreateSuccess(result.Data);
     }
 
     public static JsonElement SerializeCodeActionMutation(CodeActionExecutionResult<MutationData> result)
     {
 
-        return result.Outcome.IsError()
-            ? SerializeCodeActionFailure(CreateCodeActionFailure(result, "Mutation"))
+        return result.HasError
+            ? SerializeCodeActionFailure(CreateCodeActionFailure(result, result.Error))
             : ToolResultEnvelopeSerializer.CreateMutationSuccess(
                 result.Data,
                 result.Outcome != CodeActionExecutionOutcome.NoChange && result.Data is not null);
@@ -64,13 +64,12 @@ internal static class McpPublishedResultSerializer
 
     private static ToolExecutionFailureResult CreatePluginFailure<TResponse>(
         PluginExecutionResult<TResponse> result,
-        string toolKind)
+        PluginExecutionError error)
     {
         return new ToolExecutionFailureResult
         {
             Outcome = result.Outcome,
-            Error = result.Error
-                ?? throw new InvalidOperationException($"{toolKind} failure result must provide an error."),
+            Error = error,
             RequiredAction = result.RequiredAction,
             Diagnostics = result.Diagnostics,
             Warnings = result.Warnings,
@@ -79,13 +78,12 @@ internal static class McpPublishedResultSerializer
 
     private static CodeActionExecutionFailure CreateCodeActionFailure<TResponse>(
         CodeActionExecutionResult<TResponse> result,
-        string toolKind)
+        CodeActionExecutionError error)
     {
         return new CodeActionExecutionFailure
         {
             Outcome = result.Outcome,
-            Error = result.Error
-                ?? throw new InvalidOperationException($"{toolKind} failure result must provide an error."),
+            Error = error,
             RequiredAction = result.RequiredAction,
         };
     }

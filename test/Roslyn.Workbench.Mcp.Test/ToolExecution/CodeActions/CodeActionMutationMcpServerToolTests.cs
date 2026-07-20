@@ -56,7 +56,6 @@ public sealed class CodeActionMutationMcpServerToolTests
     public async Task GIVEN_HandlerErrorOutcome_WHEN_InvokingMutation_THEN_ShouldPublishFailureWithoutStaging(
         string outcomeName)
     {
-        var outcome = Enum.Parse<CodeActionExecutionOutcome>(outcomeName);
         var handler = new Mock<ICodeActionMutationToolHandler<TestMutationRequest>>();
         var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
         var context = new Mock<ICodeActionMutationContext>();
@@ -67,16 +66,7 @@ public sealed class CodeActionMutationMcpServerToolTests
             .Returns(CodeActionMutationExecutionLease.Acquired(workspaceLease, context.Object));
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestMutationRequest>(), context.Object, CancellationToken.None))
-            .ReturnsAsync(new CodeActionExecutionResult<WorkspaceMutationCandidate>
-            {
-                Outcome = outcome,
-                Error = new CodeActionExecutionError
-                {
-                    Code = outcomeName,
-                    Message = "Message",
-                },
-                RequiredAction = RequiredAction.Retry,
-            });
+            .ReturnsAsync(CreateFailure(outcomeName));
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
         var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
@@ -90,30 +80,6 @@ public sealed class CodeActionMutationMcpServerToolTests
             It.IsAny<IReadOnlyList<DiagnosticInfo>>(),
             It.IsAny<IReadOnlyList<WarningInfo>>(),
             It.IsAny<CancellationToken>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task GIVEN_HandlerFailureWithoutError_WHEN_InvokingMutation_THEN_ShouldPropagateFailure()
-    {
-        var handler = new Mock<ICodeActionMutationToolHandler<TestMutationRequest>>();
-        var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
-        var context = new Mock<ICodeActionMutationContext>();
-        var stager = new Mock<IWorkspaceMutationStager>();
-        var workspaceLease = WorkspaceMutationExecutionLease.Acquired(new Mock<IWorkspaceExecutionContext>().Object, stager.Object);
-        contextFactory
-            .Setup(item => item.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
-            .Returns(CodeActionMutationExecutionLease.Acquired(workspaceLease, context.Object));
-        handler
-            .Setup(item => item.ExecuteAsync(It.IsAny<TestMutationRequest>(), context.Object, CancellationToken.None))
-            .ReturnsAsync(new CodeActionExecutionResult<WorkspaceMutationCandidate>
-            {
-                Outcome = CodeActionExecutionOutcome.Faulted,
-            });
-        var target = CreateTarget(handler.Object, contextFactory.Object);
-
-        var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
-
-        await action.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
@@ -142,31 +108,6 @@ public sealed class CodeActionMutationMcpServerToolTests
             It.IsAny<IReadOnlyList<DiagnosticInfo>>(),
             It.IsAny<IReadOnlyList<WarningInfo>>(),
             It.IsAny<CancellationToken>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task GIVEN_HandlerSuccessWithoutProposal_WHEN_InvokingMutation_THEN_ShouldPublishUnstagedSuccess()
-    {
-        var handler = new Mock<ICodeActionMutationToolHandler<TestMutationRequest>>();
-        var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
-        var context = new Mock<ICodeActionMutationContext>();
-        var stager = new Mock<IWorkspaceMutationStager>();
-        var workspaceLease = WorkspaceMutationExecutionLease.Acquired(new Mock<IWorkspaceExecutionContext>().Object, stager.Object);
-        contextFactory
-            .Setup(item => item.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
-            .Returns(CodeActionMutationExecutionLease.Acquired(workspaceLease, context.Object));
-        handler
-            .Setup(item => item.ExecuteAsync(It.IsAny<TestMutationRequest>(), context.Object, CancellationToken.None))
-            .ReturnsAsync(new CodeActionExecutionResult<WorkspaceMutationCandidate>
-            {
-                Outcome = CodeActionExecutionOutcome.Succeeded,
-            });
-        var target = CreateTarget(handler.Object, contextFactory.Object);
-
-        var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
-
-        result.IsError.Should().BeFalse();
-        result.StructuredContent!.Value.GetProperty("data").GetProperty("staged").GetBoolean().Should().BeFalse();
     }
 
     [Fact]
@@ -399,18 +340,19 @@ public sealed class CodeActionMutationMcpServerToolTests
     }
 
     [Fact]
-    public async Task GIVEN_MalformedArguments_WHEN_InvokingMutation_THEN_ShouldPropagateFailureWithoutAcquiringContext()
+    public async Task GIVEN_MalformedArguments_WHEN_InvokingMutation_THEN_ShouldPublishInvalidRequestWithoutAcquiringContext()
     {
         var handler = new Mock<ICodeActionMutationToolHandler<TestMutationRequest>>();
         var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
-        var action = async () => await target.InvokeArgumentsAsync(new Dictionary<string, JsonElement>
+        var result = await target.InvokeArgumentsAsync(new Dictionary<string, JsonElement>
         {
             ["name"] = JsonSerializer.SerializeToElement(42),
         }, CancellationToken.None);
 
-        await action.Should().ThrowAsync<JsonException>();
+        result.IsError.Should().BeTrue();
+        result.StructuredContent!.Value.GetProperty("error").GetProperty("code").GetString().Should().Be("InvalidRequest");
         contextFactory.Verify(item => item.CreateMutationContext(
             It.IsAny<WorkspaceBoundRequest>(),
             It.IsAny<CancellationToken>()), Times.Never);
@@ -433,6 +375,23 @@ public sealed class CodeActionMutationMcpServerToolTests
             contextFactory,
             _protocolFactory.Object,
             Options.Create(new StartupOptions()));
+    }
+
+    private static CodeActionExecutionResult<WorkspaceMutationCandidate> CreateFailure(string outcomeName)
+    {
+        var error = new CodeActionExecutionError
+        {
+            Code = outcomeName,
+            Message = "Message",
+        };
+
+        return outcomeName switch
+        {
+            "Rejected" => CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(error, RequiredAction.Retry),
+            "Conflict" => CodeActionExecutionResult<WorkspaceMutationCandidate>.Conflict(error, RequiredAction.Retry),
+            "Faulted" => CodeActionExecutionResult<WorkspaceMutationCandidate>.Faulted(error, RequiredAction.Retry),
+            _ => throw new InvalidOperationException($"Outcome '{outcomeName}' is not a failure outcome."),
+        };
     }
 
 #pragma warning disable CA1515 // Moq's dynamic proxy must access this closed-generic handler contract.

@@ -6,24 +6,18 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
     protected override async ValueTask<PluginExecutionResult<CodeContextData>> ExecuteCoreAsync(GetCodeContextRequest request, IQueryContext context, CancellationToken cancellationToken)
     {
         var locationResolution = await ResolveLocationAsync(request.Location, request.ExpectedSnapshot, context, cancellationToken);
-        if (locationResolution.Rejection is not null)
+        if (locationResolution.HasRejection)
         {
             return locationResolution.Rejection;
         }
 
-        if (locationResolution.SemanticModel is null
-            || locationResolution.Node is null
-            || locationResolution.Location is null
-            || locationResolution.Document is null)
-        {
-            throw new InvalidOperationException("A successful location resolution must contain a document, location, node and semantic model.");
-        }
+        var resolvedLocation = locationResolution.Value;
 
         var enclosingSymbols = request.IncludeEnclosingSymbols
-            ? GetEnclosingSymbols(locationResolution.SemanticModel, locationResolution.Node, context)
+            ? GetEnclosingSymbols(resolvedLocation.SemanticModel, resolvedLocation.Node, context)
             : [];
         var diagnostics = request.IncludeDiagnostics
-            ? locationResolution.SemanticModel.GetDiagnostics(locationResolution.Location.SourceSpan, cancellationToken)
+            ? resolvedLocation.SemanticModel.GetDiagnostics(resolvedLocation.Location.SourceSpan, cancellationToken)
                 .Distinct(DiagnosticLocationComparer.Instance)
                 .Select(diagnostic => new DiagnosticInfo
                 {
@@ -38,10 +32,10 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
                 .ToArray()
             : [];
 
-        var text = await locationResolution.Document.GetTextAsync(cancellationToken);
+        var text = await resolvedLocation.Document.GetTextAsync(cancellationToken);
         var lines = text.Lines;
-        var startLine = lines.GetLineFromPosition(locationResolution.Location.SourceSpan.Start).LineNumber;
-        var endPosition = Math.Max(locationResolution.Location.SourceSpan.Start, locationResolution.Location.SourceSpan.End - 1);
+        var startLine = lines.GetLineFromPosition(resolvedLocation.Location.SourceSpan.Start).LineNumber;
+        var endPosition = Math.Max(resolvedLocation.Location.SourceSpan.Start, resolvedLocation.Location.SourceSpan.End - 1);
         var endLine = lines.GetLineFromPosition(endPosition).LineNumber;
         var windowStart = Math.Max(0, startLine - Math.Max(0, request.BeforeLines));
         var windowEnd = Math.Min(lines.Count - 1, endLine + Math.Max(0, request.AfterLines));
@@ -51,7 +45,7 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
 
         return PluginExecutionResult<CodeContextData>.Success(new CodeContextData
         {
-            Location = locationResolution.ResolvedLocation,
+            Location = resolvedLocation.ResolvedLocation,
             Text = windowText,
             EnclosingSymbols = enclosingSymbols,
             Diagnostics = diagnostics,
@@ -74,12 +68,12 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
         return symbols;
     }
 
-    private static async ValueTask<LocationResolution> ResolveLocationAsync(LocationSelector? selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)
+    private static async ValueTask<ToolResolutionResult<ResolvedCodeContext, CodeContextData>> ResolveLocationAsync(LocationSelector? selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)
     {
         var snapshotRejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<CodeContextData>(context, expectedSnapshot);
         if (snapshotRejection is not null)
         {
-            return new LocationResolution
+            return new ToolResolutionResult<ResolvedCodeContext, CodeContextData>
             {
                 Rejection = snapshotRejection,
             };
@@ -87,7 +81,7 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
 
         if (selector is null)
         {
-            return new LocationResolution
+            return new ToolResolutionResult<ResolvedCodeContext, CodeContextData>
             {
                 Rejection = ToolExecutionHelpers.Rejected<CodeContextData>("InvalidRequest", "A location selector is required."),
             };
@@ -96,7 +90,7 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
         var location = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken);
         if (!location.IsResolved)
         {
-            return new LocationResolution
+            return new ToolResolutionResult<ResolvedCodeContext, CodeContextData>
             {
                 Rejection = ToolExecutionHelpers.RejectFromStatus<CodeContextData>(location.Status, "Location", "location"),
             };
@@ -109,7 +103,7 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
         var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(sourceLocation);
         if (document is null || resolvedLocation?.Document?.Path is null)
         {
-            return new LocationResolution
+            return new ToolResolutionResult<ResolvedCodeContext, CodeContextData>
             {
                 Rejection = ToolExecutionHelpers.Rejected<CodeContextData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
             };
@@ -119,35 +113,48 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
         if (syntaxRoot is null || semanticModel is null)
         {
-            return new LocationResolution
+            return new ToolResolutionResult<ResolvedCodeContext, CodeContextData>
             {
                 Rejection = ToolExecutionHelpers.Rejected<CodeContextData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
             };
         }
 
-        return new LocationResolution
+        return new ToolResolutionResult<ResolvedCodeContext, CodeContextData>
         {
-            Document = document,
-            Location = sourceLocation,
-            Node = syntaxRoot.FindNode(sourceLocation.SourceSpan, getInnermostNodeForTie: true),
-            ResolvedLocation = resolvedLocation,
-            SemanticModel = semanticModel,
+            Value = new ResolvedCodeContext(
+                document,
+                sourceLocation,
+                syntaxRoot.FindNode(sourceLocation.SourceSpan, getInnermostNodeForTie: true),
+                resolvedLocation,
+                semanticModel),
         };
     }
 
-    private sealed record LocationResolution
+    private sealed record ResolvedCodeContext
     {
-        public PluginExecutionResult<CodeContextData>? Rejection { get; init; }
+        public Document Document { get; }
 
-        public Document? Document { get; init; }
+        public Location Location { get; }
 
-        public Location? Location { get; init; }
+        public SyntaxNode Node { get; }
 
-        public SyntaxNode? Node { get; init; }
+        public ResolvedLocation ResolvedLocation { get; }
 
-        public ResolvedLocation? ResolvedLocation { get; init; }
+        public SemanticModel SemanticModel { get; }
 
-        public SemanticModel? SemanticModel { get; init; }
+        public ResolvedCodeContext(
+            Document document,
+            Location location,
+            SyntaxNode node,
+            ResolvedLocation resolvedLocation,
+            SemanticModel semanticModel)
+        {
+            Document = document;
+            Location = location;
+            Node = node;
+            ResolvedLocation = resolvedLocation;
+            SemanticModel = semanticModel;
+        }
     }
 
     private sealed class DiagnosticLocationComparer : IEqualityComparer<Diagnostic>

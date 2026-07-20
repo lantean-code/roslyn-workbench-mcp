@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Roslyn.Workbench.Mcp.Plugins;
 
 #pragma warning disable CA1000 // Outcome factories belong with the generic result contract so plugin authors cannot construct inconsistent states accidentally.
@@ -10,37 +12,53 @@ public sealed record PluginExecutionResult<TResponse>
     /// <summary>
     /// Gets the outcome kind.
     /// </summary>
-    public PluginExecutionOutcome Outcome { get; init; }
+    public PluginExecutionOutcome Outcome { get; private init; }
 
     /// <summary>
     /// Gets the successful response payload, when present.
     /// </summary>
-    public TResponse? Data { get; init; }
+    public TResponse? Data { get; private init; }
 
     /// <summary>
     /// Gets the top-level change summary, when present.
     /// </summary>
-    public ChangeSummary? Changes { get; init; }
+    public ChangeSummary? Changes { get; private init; }
 
     /// <summary>
     /// Gets the structured error payload, when present.
     /// </summary>
-    public PluginExecutionError? Error { get; init; }
+    public PluginExecutionError? Error { get; private init; }
 
     /// <summary>
     /// Gets the optional continuation hint.
     /// </summary>
-    public RequiredAction? RequiredAction { get; init; }
+    public RequiredAction? RequiredAction { get; private init; }
 
     /// <summary>
     /// Gets the diagnostics emitted by the handler.
     /// </summary>
-    public IReadOnlyList<DiagnosticInfo> Diagnostics { get; init; } = [];
+    public IReadOnlyList<DiagnosticInfo> Diagnostics { get; private init; } = [];
 
     /// <summary>
     /// Gets the warnings emitted by the handler.
     /// </summary>
-    public IReadOnlyList<WarningInfo> Warnings { get; init; } = [];
+    public IReadOnlyList<WarningInfo> Warnings { get; private init; } = [];
+
+    /// <summary>
+    /// Gets a value indicating whether the result completed successfully with response data.
+    /// </summary>
+    [MemberNotNullWhen(true, nameof(Data))]
+    public bool IsSucceeded => Outcome == PluginExecutionOutcome.Succeeded;
+
+    /// <summary>
+    /// Gets a value indicating whether the result represents an error outcome.
+    /// </summary>
+    [MemberNotNullWhen(true, nameof(Error))]
+    public bool HasError => Outcome.IsError();
+
+    private PluginExecutionResult()
+    {
+    }
 
     /// <summary>
     /// Creates a successful plugin execution result.
@@ -128,6 +146,30 @@ public sealed record PluginExecutionResult<TResponse>
         return new PluginExecutionResult<TResponse>
         {
             Outcome = PluginExecutionOutcome.Conflict,
+            Error = error,
+            RequiredAction = requiredAction,
+            Diagnostics = diagnostics ?? [],
+            Warnings = warnings ?? [],
+        };
+    }
+
+    /// <summary>
+    /// Creates a faulted plugin execution result.
+    /// </summary>
+    /// <param name="error">The structured error payload.</param>
+    /// <param name="requiredAction">The optional continuation hint.</param>
+    /// <param name="diagnostics">The diagnostics emitted by the handler.</param>
+    /// <param name="warnings">The warnings emitted by the handler.</param>
+    /// <returns>The normalized result.</returns>
+    public static PluginExecutionResult<TResponse> Faulted(
+        PluginExecutionError error,
+        RequiredAction? requiredAction = null,
+        IReadOnlyList<DiagnosticInfo>? diagnostics = null,
+        IReadOnlyList<WarningInfo>? warnings = null)
+    {
+        return new PluginExecutionResult<TResponse>
+        {
+            Outcome = PluginExecutionOutcome.Faulted,
             Error = error,
             RequiredAction = requiredAction,
             Diagnostics = diagnostics ?? [],

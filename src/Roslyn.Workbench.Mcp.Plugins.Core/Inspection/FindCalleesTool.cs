@@ -67,23 +67,20 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
         else
         {
             var locationResolution = await ResolveLocationAsync(request.Location, request.ExpectedSnapshot, context, cancellationToken);
-            if (locationResolution.Rejection is not null)
+            if (locationResolution.HasRejection)
             {
                 return locationResolution.Rejection;
             }
 
-            if (locationResolution.SemanticModel is null || locationResolution.Node is null)
-            {
-                throw new InvalidOperationException("A successful location resolution must contain a node and semantic model.");
-            }
+            var resolvedLocation = locationResolution.Value;
 
-            var operation = GetOperation(locationResolution.SemanticModel, locationResolution.Node, cancellationToken);
+            var operation = GetOperation(resolvedLocation.SemanticModel, resolvedLocation.Node, cancellationToken);
             if (operation is null)
             {
                 return ToolExecutionHelpers.Rejected<CalleeSearchData>("InvalidRequest", "The selected location does not resolve to executable code.");
             }
 
-            var enclosingSymbol = locationResolution.SemanticModel.GetEnclosingSymbol(locationResolution.Node.SpanStart, cancellationToken);
+            var enclosingSymbol = resolvedLocation.SemanticModel.GetEnclosingSymbol(resolvedLocation.Node.SpanStart, cancellationToken);
             if (enclosingSymbol is null)
             {
                 return ToolExecutionHelpers.Rejected<CalleeSearchData>("SymbolNotFound", "The selected location does not have an enclosing symbol.", RequiredAction.ResolveTargetAgain);
@@ -228,12 +225,12 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
         };
     }
 
-    private static async ValueTask<LocationResolution> ResolveLocationAsync(LocationSelector? selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)
+    private static async ValueTask<ToolResolutionResult<ResolvedCalleeLocation, CalleeSearchData>> ResolveLocationAsync(LocationSelector? selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)
     {
         var snapshotRejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<CalleeSearchData>(context, expectedSnapshot);
         if (snapshotRejection is not null)
         {
-            return new LocationResolution
+            return new ToolResolutionResult<ResolvedCalleeLocation, CalleeSearchData>
             {
                 Rejection = snapshotRejection,
             };
@@ -241,7 +238,7 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
 
         if (selector is null)
         {
-            return new LocationResolution
+            return new ToolResolutionResult<ResolvedCalleeLocation, CalleeSearchData>
             {
                 Rejection = ToolExecutionHelpers.Rejected<CalleeSearchData>("InvalidRequest", "A location selector is required."),
             };
@@ -250,7 +247,7 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
         var location = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken);
         if (!location.IsResolved)
         {
-            return new LocationResolution
+            return new ToolResolutionResult<ResolvedCalleeLocation, CalleeSearchData>
             {
                 Rejection = ToolExecutionHelpers.RejectFromStatus<CalleeSearchData>(location.Status, "Location", "location"),
             };
@@ -263,7 +260,7 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
 
         if (document is null)
         {
-            return new LocationResolution
+            return new ToolResolutionResult<ResolvedCalleeLocation, CalleeSearchData>
             {
                 Rejection = ToolExecutionHelpers.Rejected<CalleeSearchData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
             };
@@ -273,25 +270,30 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
         if (syntaxRoot is null || semanticModel is null)
         {
-            return new LocationResolution
+            return new ToolResolutionResult<ResolvedCalleeLocation, CalleeSearchData>
             {
                 Rejection = ToolExecutionHelpers.Rejected<CalleeSearchData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
             };
         }
 
-        return new LocationResolution
+        return new ToolResolutionResult<ResolvedCalleeLocation, CalleeSearchData>
         {
-            Node = syntaxRoot.FindNode(sourceLocation.SourceSpan, getInnermostNodeForTie: true),
-            SemanticModel = semanticModel,
+            Value = new ResolvedCalleeLocation(
+                syntaxRoot.FindNode(sourceLocation.SourceSpan, getInnermostNodeForTie: true),
+                semanticModel),
         };
     }
 
-    private sealed record LocationResolution
+    private sealed record ResolvedCalleeLocation
     {
-        public PluginExecutionResult<CalleeSearchData>? Rejection { get; init; }
+        public SyntaxNode Node { get; }
 
-        public SyntaxNode? Node { get; init; }
+        public SemanticModel SemanticModel { get; }
 
-        public SemanticModel? SemanticModel { get; init; }
+        public ResolvedCalleeLocation(SyntaxNode node, SemanticModel semanticModel)
+        {
+            Node = node;
+            SemanticModel = semanticModel;
+        }
     }
 }

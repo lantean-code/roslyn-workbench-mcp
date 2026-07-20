@@ -585,18 +585,11 @@ public sealed class CodeActionScopedFixServiceTests : IDisposable
         result.Error!.Code.Should().Be("ActionAmbiguous");
     }
 
-    [Theory]
-    [InlineData(DirectProposalFailure.Rejected)]
-    [InlineData(DirectProposalFailure.MissingCandidate)]
-    public async Task GIVEN_DirectDocumentProposalFails_WHEN_StagingScopedFix_THEN_ShouldReturnProposalResult(DirectProposalFailure failure)
+    [Fact]
+    public async Task GIVEN_DirectDocumentProposalIsRejected_WHEN_StagingScopedFix_THEN_ShouldReturnProposalResult()
     {
         var selector = new DocumentSelector { Path = "DocumentPath" };
-        var proposal = failure == DirectProposalFailure.Rejected
-            ? CreateRejection()
-            : new CodeActionExecutionResult<WorkspaceMutationCandidate>
-            {
-                Outcome = CodeActionExecutionOutcome.Succeeded,
-            };
+        var proposal = CreateRejection();
         _provider.Setup(item => item.GetFixAllProvider()).Returns((FixAllProvider?)null);
         _operationService
             .Setup(item => item.CreateMutationCandidateAsync(
@@ -1000,7 +993,7 @@ public sealed class CodeActionScopedFixServiceTests : IDisposable
         };
     }
 
-    #pragma warning disable CA1515 // These enums are part of public xUnit theory method signatures.
+#pragma warning disable CA1515 // These enums are part of public xUnit theory method signatures.
     public enum CandidateFilter
     {
         Title,
@@ -1013,10 +1006,5 @@ public sealed class CodeActionScopedFixServiceTests : IDisposable
         EquivalenceKey,
     }
 
-    public enum DirectProposalFailure
-    {
-        Rejected,
-        MissingCandidate,
-    }
-    #pragma warning restore CA1515
+#pragma warning restore CA1515
 }

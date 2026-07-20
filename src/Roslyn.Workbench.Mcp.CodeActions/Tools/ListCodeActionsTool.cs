@@ -79,6 +79,7 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
                 span,
                 request.DiagnosticIds,
                 cancellationToken);
+
             foreach (var provider in _discoveryService.GetMatchingCodeFixProviders(providerId: null))
             {
                 cancellationToken.ThrowIfCancellationRequested();

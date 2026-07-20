@@ -108,6 +108,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
                 FallThroughSuccessor = block.FallThroughSuccessor?.Destination is { } fallThroughDestination ? fallThroughDestination.Ordinal : null,
                 ConditionalSuccessor = block.ConditionalSuccessor?.Destination is { } conditionalDestination ? conditionalDestination.Ordinal : null,
             };
+
             blocks.Add(blockInfo);
         }
 
@@ -181,6 +182,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
         var document = location.SourceTree is null
             ? null
             : context.CurrentSolution.GetDocument(location.SourceTree);
+
         if (document is null)
         {
             return new ToolResolutionResult<ResolvedSyntaxNode, ControlFlowGraphData>

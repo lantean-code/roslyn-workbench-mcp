@@ -26,14 +26,19 @@ internal sealed class ResolveSymbolTool : QueryToolHandler<ResolveSymbolRequest,
         {
             Location = request.Location,
         }, cancellationToken);
+
         if (!symbolResolution.IsResolved)
         {
             return ToolExecutionHelpers.RejectFromStatus<ResolveSymbolData>(symbolResolution.Status, "Symbol", "symbol");
         }
 
         var symbol = symbolResolution.Value;
-        var selector = ToolExecutionHelpers.CreateSourceSymbolSelector(symbol, context.WorkspaceResolver)
-            ?? ToolExecutionHelpers.CreateLocationSymbolSelector(context.WorkspaceResolver.CreateResolvedLocation(locationResolution.Value));
+        var selector = ToolExecutionHelpers.CreateSourceSymbolSelector(symbol, context.WorkspaceResolver);
+        if (selector is null)
+        {
+            var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(locationResolution.Value);
+            selector = ToolExecutionHelpers.CreateLocationSymbolSelector(resolvedLocation);
+        }
 
         var declarations = new List<ResolvedLocation>();
         foreach (var location in symbol.Locations)

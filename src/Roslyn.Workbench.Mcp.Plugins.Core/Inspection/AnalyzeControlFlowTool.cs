@@ -122,6 +122,7 @@ internal sealed class AnalyzeControlFlowTool : QueryToolHandler<AnalyzeControlFl
         var document = location.SourceTree is null
             ? null
             : context.CurrentSolution.GetDocument(location.SourceTree);
+
         if (document is null)
         {
             return new ToolResolutionResult<ResolvedSyntaxNode, ControlFlowAnalysisData>

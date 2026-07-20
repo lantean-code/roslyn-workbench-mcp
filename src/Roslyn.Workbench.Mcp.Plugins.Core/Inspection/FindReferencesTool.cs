@@ -27,6 +27,7 @@ internal sealed class FindReferencesTool : QueryToolHandler<FindReferencesReques
                 context.CurrentSolution,
                 documents.Value.ToImmutableHashSet(),
                 cancellationToken);
+
         var pendingReferences = new List<PendingReference>();
 
         foreach (var referencedSymbol in referencedSymbols)
@@ -75,6 +76,7 @@ internal sealed class FindReferencesTool : QueryToolHandler<FindReferencesReques
             .ThenBy(static reference => reference.ResolvedLocation.Span?.Start)
             .Take(maxResults)
             .ToArray();
+
         var references = new List<ContractReferenceLocation>(selectedReferences.Length);
         foreach (var pendingReference in selectedReferences)
         {
@@ -86,15 +88,27 @@ internal sealed class FindReferencesTool : QueryToolHandler<FindReferencesReques
                     ContainingSymbol = context.WorkspaceResolver.CreateSymbolReference(pendingReference.DefinitionSymbol),
                     IsDefinition = true,
                 });
+
                 continue;
             }
 
-            var containingSymbol = pendingReference.Document is null
-                ? null
-                : await context.ToolExecutionServices.InspectionContextService.TryCreateContainingSymbolAsync(pendingReference.Document, pendingReference.Location.SourceSpan.Start, cancellationToken);
-            var contextLine = request.IncludeContext
-                ? await context.ToolExecutionServices.InspectionContextService.ReadContextAsync(pendingReference.Document, pendingReference.Location.SourceSpan, cancellationToken)
-                : null;
+            ISymbol? containingSymbol = null;
+            if (pendingReference.Document is not null)
+            {
+                containingSymbol = await context.ToolExecutionServices.InspectionContextService.TryCreateContainingSymbolAsync(
+                    pendingReference.Document,
+                    pendingReference.Location.SourceSpan.Start,
+                    cancellationToken);
+            }
+
+            string? contextLine = null;
+            if (request.IncludeContext)
+            {
+                contextLine = await context.ToolExecutionServices.InspectionContextService.ReadContextAsync(
+                    pendingReference.Document,
+                    pendingReference.Location.SourceSpan,
+                    cancellationToken);
+            }
 
             references.Add(new ContractReferenceLocation
             {

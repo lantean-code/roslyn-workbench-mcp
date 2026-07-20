@@ -13,11 +13,23 @@ internal sealed class GetDocumentOptionsTool : QueryToolHandler<GetDocumentOptio
 
         var document = documentResolution.Value;
         var parseOptions = document.Project.ParseOptions;
+        var languageVersion = parseOptions?.Language ?? string.Empty;
+        if (parseOptions is CSharpParseOptions csharpParseOptions)
+        {
+            languageVersion = csharpParseOptions.LanguageVersion.ToDisplayString();
+        }
+
+        var nullableContext = string.Empty;
+        if (document.Project.CompilationOptions is CSharpCompilationOptions csharpCompilationOptions)
+        {
+            nullableContext = csharpCompilationOptions.NullableContextOptions.ToString();
+        }
+
         var data = new DocumentOptionsData
         {
             Document = context.WorkspaceResolver.CreateDocumentReference(document),
-            LanguageVersion = parseOptions is CSharpParseOptions csharpParseOptions ? csharpParseOptions.LanguageVersion.ToDisplayString() : parseOptions?.Language ?? string.Empty,
-            NullableContext = document.Project.CompilationOptions is CSharpCompilationOptions csharpCompilationOptions ? csharpCompilationOptions.NullableContextOptions.ToString() : string.Empty,
+            LanguageVersion = languageVersion,
+            NullableContext = nullableContext,
             ParseOptions = InspectionProjectionFactory.CreateParseOptionsInfo(parseOptions),
             AnalyzerConfig = await InspectionProjectionFactory.CreateAnalyzerConfigInfoAsync(document, cancellationToken),
         };

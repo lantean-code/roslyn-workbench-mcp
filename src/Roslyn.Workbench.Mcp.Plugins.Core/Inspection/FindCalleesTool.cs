@@ -85,6 +85,7 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
             {
                 return ToolExecutionHelpers.Rejected<CalleeSearchData>("SymbolNotFound", "The selected location does not have an enclosing symbol.", RequiredAction.ResolveTargetAgain);
             }
+
             sourceSymbol = enclosingSymbol;
             AddDirectCallees(operation, directCallees);
         }

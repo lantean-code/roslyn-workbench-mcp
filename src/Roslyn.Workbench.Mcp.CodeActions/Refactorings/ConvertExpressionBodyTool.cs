@@ -22,6 +22,7 @@ internal sealed class ConvertExpressionBodyTool : CodeActionMutationToolHandler<
             cancellationToken,
             context,
             UseExpressionBodyProviderId);
+
         if (!ShouldTryLambdaProvider(result))
         {
             return result;

@@ -38,9 +38,18 @@ internal sealed class EncapsulateFieldTool : CodeActionMutationToolHandler<Encap
             return CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>("SymbolNotSupported", "The selected symbol does not resolve to a replayable source span.", RequiredAction.ResolveTargetAgain);
         }
 
-        var (title, equivalenceKey) = request.UpdateReferences
-            ? ($"Encapsulate field: '{fieldSymbol.Name}' (and use property)", $"Encapsulate_field_colon_0_and_use_property_{fieldSymbol.Name}")
-            : ($"Encapsulate field: '{fieldSymbol.Name}' (but still use field)", $"Encapsulate_field_colon_0_but_still_use_field_{fieldSymbol.Name}");
+        string title;
+        string equivalenceKey;
+        if (request.UpdateReferences)
+        {
+            title = $"Encapsulate field: '{fieldSymbol.Name}' (and use property)";
+            equivalenceKey = $"Encapsulate_field_colon_0_and_use_property_{fieldSymbol.Name}";
+        }
+        else
+        {
+            title = $"Encapsulate field: '{fieldSymbol.Name}' (but still use field)";
+            equivalenceKey = $"Encapsulate_field_colon_0_but_still_use_field_{fieldSymbol.Name}";
+        }
 
         return await _replayService.StageReplayCodeActionAsync(new ReplayCodeActionRequest
         {

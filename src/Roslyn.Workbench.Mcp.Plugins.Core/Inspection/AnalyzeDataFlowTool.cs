@@ -121,6 +121,7 @@ internal sealed class AnalyzeDataFlowTool : QueryToolHandler<AnalyzeDataFlowRequ
         var document = location.SourceTree is null
             ? null
             : context.CurrentSolution.GetDocument(location.SourceTree);
+
         if (document is null)
         {
             return new ToolResolutionResult<ResolvedSyntaxNode, DataFlowAnalysisData>

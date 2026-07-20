@@ -16,9 +16,18 @@ internal sealed class FindOverloadsTool : QueryToolHandler<FindOverloadsRequest,
             return ToolExecutionHelpers.Rejected<OverloadSearchData>("InvalidRequest", "Find overloads requires a method or constructor symbol.");
         }
 
-        var overloads = methodSymbol.MethodKind == MethodKind.Constructor
-            ? methodSymbol.ContainingType.InstanceConstructors.Where(static item => !item.IsImplicitlyDeclared)
-            : methodSymbol.ContainingType.GetMembers(methodSymbol.Name).OfType<IMethodSymbol>().Where(item => item.MethodKind == methodSymbol.MethodKind);
+        IEnumerable<IMethodSymbol> overloads;
+        if (methodSymbol.MethodKind == MethodKind.Constructor)
+        {
+            overloads = methodSymbol.ContainingType.InstanceConstructors
+                .Where(static item => !item.IsImplicitlyDeclared);
+        }
+        else
+        {
+            overloads = methodSymbol.ContainingType.GetMembers(methodSymbol.Name)
+                .OfType<IMethodSymbol>()
+                .Where(item => item.MethodKind == methodSymbol.MethodKind);
+        }
 
         var orderedOverloads = overloads
             .Distinct(SymbolEqualityComparer.Default)

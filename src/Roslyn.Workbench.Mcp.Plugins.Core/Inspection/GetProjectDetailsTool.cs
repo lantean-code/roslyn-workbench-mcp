@@ -20,13 +20,15 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
             return ValueTask.FromResult(rejection);
         }
 
-        var documents = request.IncludeDocuments
-            ? CreateDocumentReferences(
+        BoundedCollection<DocumentReference>? documents = null;
+        if (request.IncludeDocuments)
+        {
+            documents = CreateDocumentReferences(
                 project,
                 context.WorkspaceResolver,
                 request.EffectiveDocumentsLimit,
-                cancellationToken)
-            : null;
+                cancellationToken);
+        }
 
         var projectReferences = CreateProjectReferences(
             project,
@@ -34,10 +36,12 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
             context.WorkspaceResolver,
             request.EffectiveProjectReferencesLimit,
             cancellationToken);
+
         var metadataReferences = CreateMetadataReferences(
             project,
             request.EffectiveMetadataReferencesLimit,
             cancellationToken);
+
         var analyzers = CreateAnalyzers(
             project,
             request.EffectiveAnalyzersLimit,
@@ -142,8 +146,10 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
         {
             cancellationToken.ThrowIfCancellationRequested();
             var sortKey = (metadataReference as PortableExecutableReference)?.FilePath
-                ?? metadataReference.Display
-                ?? metadataReference.GetType().Name;
+                ?? metadataReference.Display;
+
+            sortKey ??= metadataReference.GetType().Name;
+
             candidates.Add((metadataReference, sortKey));
         }
 
@@ -174,8 +180,10 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
         {
             cancellationToken.ThrowIfCancellationRequested();
             var sortKey = (analyzerReference as AnalyzerFileReference)?.FullPath
-                ?? analyzerReference.Display
-                ?? analyzerReference.GetType().Name;
+                ?? analyzerReference.Display;
+
+            sortKey ??= analyzerReference.GetType().Name;
+
             candidates.Add((analyzerReference, sortKey));
         }
 

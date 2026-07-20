@@ -34,11 +34,12 @@ internal sealed class IntroduceParameterTool : CodeActionMutationToolHandler<Int
             _ => UpdateCallSitesDirectlyTitle,
         };
 
+        var occurrenceIndex = request.AllOccurrences ? 1 : 0;
         IReadOnlyList<int> actionPath = request.Strategy switch
         {
-            IntroduceParameterStrategy.IntoExtractedMethod => request.AllOccurrences ? [1, 1] : [0, 1],
-            IntroduceParameterStrategy.IntoNewOverload => request.AllOccurrences ? [1, 2] : [0, 2],
-            _ => request.AllOccurrences ? [1, 0] : [0, 0],
+            IntroduceParameterStrategy.IntoExtractedMethod => [occurrenceIndex, 1],
+            IntroduceParameterStrategy.IntoNewOverload => [occurrenceIndex, 2],
+            _ => [occurrenceIndex, 0],
         };
 
         return _replayService.StageReplayCodeActionAsync(new ReplayCodeActionRequest

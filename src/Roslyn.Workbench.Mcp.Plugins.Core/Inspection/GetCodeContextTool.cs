@@ -16,6 +16,7 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
         var enclosingSymbols = request.IncludeEnclosingSymbols
             ? GetEnclosingSymbols(resolvedLocation.SemanticModel, resolvedLocation.Node, context)
             : [];
+
         var diagnostics = request.IncludeDiagnostics
             ? CreateDiagnostics(resolvedLocation, context, cancellationToken)
             : [];
@@ -118,6 +119,7 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
         var document = sourceLocation.SourceTree is null
             ? null
             : context.CurrentSolution.GetDocument(sourceLocation.SourceTree);
+
         var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(sourceLocation);
         if (document is null || resolvedLocation?.Document?.Path is null)
         {

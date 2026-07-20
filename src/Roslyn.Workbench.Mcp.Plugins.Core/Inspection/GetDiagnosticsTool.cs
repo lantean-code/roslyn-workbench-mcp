@@ -25,9 +25,11 @@ internal sealed class GetDiagnosticsTool : QueryToolHandler<GetDiagnosticsReques
         var includedIds = request.Ids is { Count: > 0 }
             ? request.Ids.ToHashSet(StringComparer.Ordinal)
             : null;
+
         var includedSeverities = request.Severities is { Count: > 0 }
             ? request.Severities.ToHashSet(StringComparer.OrdinalIgnoreCase)
             : null;
+
         var maxResults = request.EffectiveDiagnosticsLimit;
         var projectedDiagnostics = new List<DiagnosticInfo>();
         var hasMore = false;

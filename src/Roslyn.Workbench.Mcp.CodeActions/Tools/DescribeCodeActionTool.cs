@@ -34,6 +34,7 @@ internal sealed class DescribeCodeActionTool : CodeActionQueryToolHandler<Descri
             expectedKind: null,
             context,
             cancellationToken);
+
         if (resolvedAction.HasRejection)
         {
             return resolvedAction.Rejection;

@@ -29,6 +29,7 @@ internal sealed class SortUsingsTool : MutationToolHandler<SortUsingsRequest>
             .ThenBy(static item => item.Name?.ToString() ?? string.Empty, StringComparer.Ordinal)
             .ThenBy(static item => item.Alias?.Name.Identifier.ValueText ?? string.Empty, StringComparer.Ordinal)
             .ToArray();
+
         if (root.Usings.SequenceEqual(orderedUsings))
         {
             return PluginExecutionResult<MutationCandidate>.NoChange();

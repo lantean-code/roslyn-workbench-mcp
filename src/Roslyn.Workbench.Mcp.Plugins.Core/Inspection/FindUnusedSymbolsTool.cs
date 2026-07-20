@@ -12,9 +12,14 @@ internal sealed class FindUnusedSymbolsTool : QueryToolHandler<FindUnusedSymbols
             return documents.Rejection;
         }
 
-        var selectedDocuments = request.ExcludeGenerated
-            ? documents.Value.Where(static document => !CompilerDiagnosticHelpers.IsGeneratedDocument(document)).ToArray()
-            : documents.Value.ToArray();
+        var selectedDocuments = documents.Value.ToArray();
+        if (request.ExcludeGenerated)
+        {
+            selectedDocuments = documents.Value
+                .Where(static document => !CompilerDiagnosticHelpers.IsGeneratedDocument(document))
+                .ToArray();
+        }
+
         var diagnostics = await context.ToolExecutionServices.CompilerDiagnosticService.GetCompilerDiagnosticsAsync(selectedDocuments, cancellationToken);
         var maxResults = request.EffectiveCandidatesLimit;
         var candidates = new List<UnusedSymbolCandidate>();

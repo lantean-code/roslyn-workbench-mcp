@@ -14,17 +14,26 @@ internal sealed class GetDocumentOutlineTool : QueryToolHandler<GetDocumentOutli
         var document = documentResolution.Value;
         var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
+        OutlineNode? root = null;
+        if (syntaxRoot is not null && semanticModel is not null)
+        {
+            root = new OutlineNode
+            {
+                Name = document.Name,
+                Kind = "Document",
+                Children = DocumentOutlineProjectionFactory.BuildOutlineChildren(
+                    syntaxRoot,
+                    semanticModel,
+                    context.WorkspaceResolver,
+                    request.IncludeMembers,
+                    cancellationToken),
+            };
+        }
+
         var data = new DocumentOutlineData
         {
             Document = context.WorkspaceResolver.CreateDocumentReference(document),
-            Root = syntaxRoot is null || semanticModel is null
-                ? null
-                : new OutlineNode
-                {
-                    Name = document.Name,
-                    Kind = "Document",
-                    Children = DocumentOutlineProjectionFactory.BuildOutlineChildren(syntaxRoot, semanticModel, context.WorkspaceResolver, request.IncludeMembers, cancellationToken),
-                },
+            Root = root,
         };
 
         return PluginExecutionResult<DocumentOutlineData>.Success(data);

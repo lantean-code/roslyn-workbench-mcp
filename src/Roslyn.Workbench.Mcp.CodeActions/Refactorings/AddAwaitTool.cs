@@ -18,9 +18,10 @@ internal sealed class AddAwaitTool : CodeActionMutationToolHandler<AddAwaitReque
         var title = request.Kind == AddAwaitKind.AwaitConfigureAwaitFalse
             ? "Add 'await' and 'ConfigureAwait(false)'"
             : "Add 'await'";
+
         var actionPath = request.Kind == AddAwaitKind.AwaitConfigureAwaitFalse
-            ? new[] { 1 }
-            : new[] { 0 };
+            ? 1
+            : 0;
 
         return _replayService.StageSelectionAsync(
             request.Selection,
@@ -29,6 +30,6 @@ internal sealed class AddAwaitTool : CodeActionMutationToolHandler<AddAwaitReque
             context,
             ProviderId,
             title: title,
-            actionPath: actionPath);
+            actionPath: [actionPath]);
     }
 }

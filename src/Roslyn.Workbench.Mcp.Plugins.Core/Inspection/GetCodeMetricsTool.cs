@@ -176,10 +176,12 @@ internal sealed class GetCodeMetricsTool : QueryToolHandler<GetCodeMetricsReques
                 or SwitchExpressionArmSyntax
                 or CaseSwitchLabelSyntax
                 or CasePatternSwitchLabelSyntax);
+
         complexity += syntaxNode.DescendantTokens().Count(static token =>
             token.IsKind(SyntaxKind.AmpersandAmpersandToken)
             || token.IsKind(SyntaxKind.BarBarToken)
             || token.IsKind(SyntaxKind.QuestionQuestionToken));
+
         return complexity;
     }
 

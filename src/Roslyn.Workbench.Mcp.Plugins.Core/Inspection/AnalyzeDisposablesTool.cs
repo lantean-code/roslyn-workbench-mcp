@@ -105,8 +105,9 @@ internal sealed class AnalyzeDisposablesTool : QueryToolHandler<AnalyzeDisposabl
         Dictionary<SyntaxNode, HashSet<ISymbol>> disposedSymbolsByExecutable,
         CancellationToken cancellationToken)
     {
-        var executableNode = localDeclaration.FirstAncestorOrSelf<BaseMethodDeclarationSyntax>()?.Body
-            ?? (SyntaxNode?)localDeclaration.FirstAncestorOrSelf<LocalFunctionStatementSyntax>()?.Body;
+        var executableNode = localDeclaration.FirstAncestorOrSelf<BaseMethodDeclarationSyntax>()?.Body;
+        executableNode ??= localDeclaration.FirstAncestorOrSelf<LocalFunctionStatementSyntax>()?.Body;
+
         if (executableNode is null)
         {
             return false;

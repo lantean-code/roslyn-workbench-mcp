@@ -80,13 +80,20 @@ internal sealed class GetChangeImpactTool : QueryToolHandler<GetChangeImpactRequ
             .ThenBy(static reference => reference.Location.Span?.Start)
             .Take(maxResults)
             .ToArray();
+
         var locations = new List<ContractReferenceLocation>(selectedReferences.Length);
         foreach (var pendingReference in selectedReferences)
         {
             var reference = pendingReference.Reference;
-            var containingSymbol = reference.Document is null
-                ? null
-                : await GetEnclosingSymbolAsync(reference.Document, reference.Location.SourceSpan.Start, cancellationToken);
+            ISymbol? containingSymbol = null;
+            if (reference.Document is not null)
+            {
+                containingSymbol = await GetEnclosingSymbolAsync(
+                    reference.Document,
+                    reference.Location.SourceSpan.Start,
+                    cancellationToken);
+            }
+
             var contextLine = await context.ToolExecutionServices.InspectionContextService.ReadContextAsync(reference.Document, reference.Location.SourceSpan, cancellationToken);
 
             locations.Add(new ContractReferenceLocation

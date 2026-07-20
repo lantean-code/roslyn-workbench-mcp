@@ -104,7 +104,8 @@ internal sealed class GetSymbolDependenciesTool : QueryToolHandler<GetSymbolDepe
     private static void AddOperationDependencies(SemanticModel semanticModel, SyntaxNode syntax, HashSet<ISymbol> dependencies, CancellationToken cancellationToken)
     {
         var executableNode = GetExecutableNode(syntax);
-        var rootOperation = executableNode is null ? semanticModel.GetOperation(syntax, cancellationToken) : semanticModel.GetOperation(executableNode, cancellationToken);
+        var operationNode = executableNode ?? syntax;
+        var rootOperation = semanticModel.GetOperation(operationNode, cancellationToken);
         if (rootOperation is null)
         {
             return;

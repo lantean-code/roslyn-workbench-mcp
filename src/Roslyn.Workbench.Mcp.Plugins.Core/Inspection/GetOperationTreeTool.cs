@@ -12,8 +12,19 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
         }
 
         var (resolvedNode, resolvedSemanticModel) = syntaxNodeResolution.Value;
-        var operation = resolvedSemanticModel.GetOperation(resolvedNode, cancellationToken)
-            ?? resolvedNode.ChildNodes().Select(child => resolvedSemanticModel.GetOperation(child, cancellationToken)).FirstOrDefault(static item => item is not null);
+        var operation = resolvedSemanticModel.GetOperation(resolvedNode, cancellationToken);
+        if (operation is null)
+        {
+            foreach (var childNode in resolvedNode.ChildNodes())
+            {
+                operation = resolvedSemanticModel.GetOperation(childNode, cancellationToken);
+                if (operation is not null)
+                {
+                    break;
+                }
+            }
+        }
+
         if (operation is null)
         {
             return ToolExecutionHelpers.Rejected<OperationTreeData>("InvalidRequest", "The selected region does not resolve to an operation tree.");
@@ -104,6 +115,7 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
         var document = location.SourceTree is null
             ? null
             : context.CurrentSolution.GetDocument(location.SourceTree);
+
         if (document is null)
         {
             return new ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>

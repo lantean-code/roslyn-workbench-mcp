@@ -77,6 +77,7 @@ internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpS
                 Error = proposalResult.Error,
                 RequiredAction = proposalResult.RequiredAction,
             };
+
             return CreateStructuredResult(McpPublishedResultSerializer.SerializeCodeActionFailure(failure), isError: true);
         }
 
@@ -85,6 +86,7 @@ internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpS
             var noChange = CodeActionExecutionResult<MutationData>.NoChange(
                 diagnostics: proposalResult.Diagnostics,
                 warnings: proposalResult.Warnings);
+
             return CreateStructuredResult(McpPublishedResultSerializer.SerializeCodeActionMutation(noChange), isError: false);
         }
 

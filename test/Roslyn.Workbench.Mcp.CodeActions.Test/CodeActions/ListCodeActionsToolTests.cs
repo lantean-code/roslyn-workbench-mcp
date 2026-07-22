@@ -37,7 +37,8 @@ public sealed class ListCodeActionsToolTests
             _providerCatalog.Object,
             _discoveryService.Object,
             _diagnosticService.Object,
-            _infoFactory.Object);
+            _infoFactory.Object,
+            new CodeActionToolRequestResolver(new CodeActionScopeResolver()));
     }
 
     [Fact]
@@ -101,10 +102,7 @@ public sealed class ListCodeActionsToolTests
         var selector = new LocationSelector();
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
-            .ReturnsAsync(new SelectorResolveResult<Location>
-            {
-                Status = status,
-            });
+            .ReturnsAsync(SelectorTestFactory.CreateUnresolvedResult<Location>(status));
 
         var result = await _target.ExecuteAsync(
             new ListCodeActionsRequest
@@ -115,28 +113,6 @@ public sealed class ListCodeActionsToolTests
             CancellationToken.None);
 
         result.Error!.Code.Should().Be(expectedCode);
-    }
-
-    [Fact]
-    public async Task GIVEN_ResolvedStatusHasNoLocation_WHEN_Executing_THEN_ShouldRejectLocation()
-    {
-        var selector = new LocationSelector();
-        _workspaceResolver
-            .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
-            .ReturnsAsync(new SelectorResolveResult<Location>
-            {
-                Status = SelectorResolveStatus.Resolved,
-            });
-
-        var result = await _target.ExecuteAsync(
-            new ListCodeActionsRequest
-            {
-                Location = selector,
-            },
-            _context.Object,
-            CancellationToken.None);
-
-        result.Error!.Code.Should().Be("LocationNotFound");
     }
 
     [Fact]

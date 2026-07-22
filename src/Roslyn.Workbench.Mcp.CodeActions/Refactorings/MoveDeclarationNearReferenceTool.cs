@@ -6,16 +6,16 @@ internal sealed class MoveDeclarationNearReferenceTool : CodeActionMutationToolH
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.MoveDeclarationNearReference.CSharpMoveDeclarationNearReferenceCodeRefactoringProvider";
 
-    private readonly ICodeActionReplayService _replayService;
+    private readonly ICodeActionSelectionStager _selectionStager;
 
-    public MoveDeclarationNearReferenceTool(ICodeActionReplayService replayService)
+    public MoveDeclarationNearReferenceTool(ICodeActionSelectionStager selectionStager)
     {
-        _replayService = replayService;
+        _selectionStager = selectionStager;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(LocationRefactoringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
-        return _replayService.StageSelectionAsync(
+        return _selectionStager.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             cancellationToken,

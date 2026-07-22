@@ -43,10 +43,7 @@ public sealed class FindCalleesToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, CalleeSearchData>
-            {
-                Rejection = expected,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, CalleeSearchData>.Rejected(expected));
 
         var result = await target.ExecuteAsync(new FindCalleesRequest
         {
@@ -86,10 +83,7 @@ public sealed class FindCalleesToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, CalleeSearchData>
-            {
-                Value = symbol,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, CalleeSearchData>.Resolved(symbol));
 
         var result = await target.ExecuteAsync(new FindCalleesRequest
         {
@@ -152,10 +146,7 @@ public sealed class FindCalleesToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, CalleeSearchData>
-            {
-                Value = symbol,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, CalleeSearchData>.Resolved(symbol));
 
         var result = await target.ExecuteAsync(new FindCalleesRequest
         {
@@ -439,10 +430,7 @@ public sealed class FindCalleesToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, CalleeSearchData>
-            {
-                Value = symbol,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, CalleeSearchData>.Resolved(symbol));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -497,10 +485,7 @@ public sealed class FindCalleesToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, CalleeSearchData>
-            {
-                Value = symbol,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, CalleeSearchData>.Resolved(symbol));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -547,10 +532,7 @@ public sealed class FindCalleesToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, CalleeSearchData>
-            {
-                Value = symbol,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, CalleeSearchData>.Resolved(symbol));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -602,10 +584,7 @@ public sealed class FindCalleesToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, CalleeSearchData>
-            {
-                Value = symbol,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, CalleeSearchData>.Resolved(symbol));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -653,10 +632,7 @@ public sealed class FindCalleesToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, CalleeSearchData>
-            {
-                Value = symbol,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, CalleeSearchData>.Resolved(symbol));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -703,10 +679,7 @@ public sealed class FindCalleesToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, CalleeSearchData>
-            {
-                Value = symbol,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, CalleeSearchData>.Resolved(symbol));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -750,10 +723,7 @@ public sealed class FindCalleesToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, CalleeSearchData>
-            {
-                Value = symbol,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, CalleeSearchData>.Resolved(symbol));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -802,10 +772,7 @@ public sealed class FindCalleesToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, CalleeSearchData>
-            {
-                Value = symbol,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, CalleeSearchData>.Resolved(symbol));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => string.IsNullOrWhiteSpace(item.Name)

@@ -51,62 +51,46 @@ public sealed class WorkspaceToolResultMapperTests
         mapper.Verify(item => item(It.IsAny<TestSource>()), Times.Never);
     }
 
-    [Fact]
-    public void GIVEN_UnsupportedStatus_WHEN_Mapping_THEN_ShouldThrowInvalidOperationException()
-    {
-        var result = CreateResult((WorkspaceOperationStatus)999, includeData: false);
-
-        var action = () => WorkspaceToolResultMapper.Map(result, source => new TestTarget
-        {
-            Value = source.Value,
-        });
-
-        action.Should().Throw<InvalidOperationException>();
-    }
-
     private static WorkspaceOperationResult<TestSource> CreateResult(
         WorkspaceOperationStatus status,
         bool includeData)
     {
-        return new WorkspaceOperationResult<TestSource>
+        var context = new WorkspaceOperationContext
         {
-            Status = status,
-            Context = new WorkspaceOperationContext
-            {
-                WorkspaceId = "WorkspaceId",
-                WorkspaceEpoch = 2,
-                TransactionRevision = 3,
-            },
-            Data = includeData
-                ? new TestSource
-                {
-                    Value = "Value",
-                }
-                : null,
-            Error = status is WorkspaceOperationStatus.Rejected or WorkspaceOperationStatus.Conflict or WorkspaceOperationStatus.Faulted
-                ? new WorkspaceOperationError
-                {
-                    Code = "ErrorCode",
-                    Message = "Message",
-                    RequiredAction = RequiredAction.Retry,
-                }
-                : null,
-            Diagnostics =
-            [
-                new DiagnosticInfo
-                {
-                    Id = "Id",
-                    Message = "Message",
-                },
-            ],
-            Warnings =
-            [
-                new WarningInfo
-                {
-                    Code = "Code",
-                    Message = "Message",
-                },
-            ],
+            WorkspaceId = "WorkspaceId",
+            WorkspaceEpoch = 2,
+            TransactionRevision = 3,
+        };
+        var diagnostics = new[] { new DiagnosticInfo { Id = "Id", Message = "Message" } };
+        var warnings = new[] { new WarningInfo { Code = "Code", Message = "Message" } };
+
+        if (status == WorkspaceOperationStatus.Succeeded)
+        {
+            var data = new TestSource { Value = "Value" };
+
+            return WorkspaceOperationResult<TestSource>.Succeeded(data, context, diagnostics, warnings);
+        }
+
+        if (status == WorkspaceOperationStatus.NoChange)
+        {
+            var data = includeData ? new TestSource { Value = "Value" } : null;
+
+            return WorkspaceOperationResult<TestSource>.NoChange(data, context, diagnostics, warnings);
+        }
+
+        var error = new WorkspaceOperationError
+        {
+            Code = "ErrorCode",
+            Message = "Message",
+            RequiredAction = RequiredAction.Retry,
+        };
+
+        return status switch
+        {
+            WorkspaceOperationStatus.Rejected => WorkspaceOperationResult<TestSource>.Rejected(error, context, diagnostics, warnings),
+            WorkspaceOperationStatus.Conflict => WorkspaceOperationResult<TestSource>.Conflict(error, context, diagnostics, warnings),
+            WorkspaceOperationStatus.Faulted => WorkspaceOperationResult<TestSource>.Faulted(error, context, diagnostics, warnings),
+            _ => throw new ArgumentOutOfRangeException(nameof(status), status, "A supported workspace status is required."),
         };
     }
 

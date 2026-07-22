@@ -153,19 +153,15 @@ public sealed class CodeActionMutationMcpServerToolTests
                 It.Is<IReadOnlyList<DiagnosticInfo>>(diagnostics => diagnostics.SequenceEqual(new[] { diagnostic })),
                 It.Is<IReadOnlyList<WarningInfo>>(warnings => warnings.SequenceEqual(new[] { warning })),
                 CancellationToken.None))
-            .ReturnsAsync(new WorkspaceOperationResult<MutationStagingOutcome>
+            .ReturnsAsync(WorkspaceOperationResult<MutationStagingOutcome>.Succeeded(new MutationStagingOutcome
             {
-                Status = WorkspaceOperationStatus.Succeeded,
-                Data = new MutationStagingOutcome
+                Operation = "test-code-action-mutation",
+                Summary = "StagedSummary",
+                Transaction = new TransactionInfo
                 {
-                    Operation = "test-code-action-mutation",
-                    Summary = "StagedSummary",
-                    Transaction = new TransactionInfo
-                    {
-                        Revision = 2,
-                    },
+                    Revision = 2,
                 },
-            });
+            }));
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
         var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
@@ -209,16 +205,12 @@ public sealed class CodeActionMutationMcpServerToolTests
                 It.IsAny<IReadOnlyList<DiagnosticInfo>>(),
                 It.IsAny<IReadOnlyList<WarningInfo>>(),
                 CancellationToken.None))
-            .ReturnsAsync(new WorkspaceOperationResult<MutationStagingOutcome>
+            .ReturnsAsync(WorkspaceOperationResult<MutationStagingOutcome>.Rejected(new WorkspaceOperationError
             {
-                Status = WorkspaceOperationStatus.Rejected,
-                Error = new WorkspaceOperationError
-                {
-                    Code = "RevisionCapacityReached",
-                    Message = "Message",
-                    RequiredAction = RequiredAction.CommitOrRollback,
-                },
-            });
+                Code = "RevisionCapacityReached",
+                Message = "Message",
+                RequiredAction = RequiredAction.CommitOrRollback,
+            }));
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
         var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);

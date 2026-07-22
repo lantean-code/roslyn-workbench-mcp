@@ -19,10 +19,7 @@ public sealed class GoToDefinitionToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, DefinitionData>
-            {
-                Rejection = expected,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, DefinitionData>.Rejected(expected));
 
         var result = await target.ExecuteAsync(new GoToDefinitionRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -92,10 +89,7 @@ public sealed class GoToDefinitionToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, DefinitionData>
-            {
-                Value = symbol,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, DefinitionData>.Resolved(symbol));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -157,10 +151,7 @@ public sealed class GoToDefinitionToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, DefinitionData>
-            {
-                Value = symbol,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, DefinitionData>.Resolved(symbol));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));

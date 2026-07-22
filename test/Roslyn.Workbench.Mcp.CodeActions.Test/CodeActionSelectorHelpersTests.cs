@@ -1,21 +1,23 @@
 namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 
-public sealed class CodeActionSelectorHelpersTests
+public sealed class CodeActionToolRequestResolverTests
 {
     private readonly Mock<IWorkspaceResolver> _workspaceResolver;
     private readonly Mock<ICodeActionExecutionContext> _context;
+    private readonly CodeActionToolRequestResolver _target;
 
-    public CodeActionSelectorHelpersTests()
+    public CodeActionToolRequestResolverTests()
     {
         _workspaceResolver = new Mock<IWorkspaceResolver>();
         _context = new Mock<ICodeActionExecutionContext>();
         _context.SetupGet(item => item.WorkspaceResolver).Returns(_workspaceResolver.Object);
+        _target = new CodeActionToolRequestResolver(new CodeActionScopeResolver());
     }
 
     [Fact]
     public async Task GIVEN_MissingSymbolSelector_WHEN_Resolving_THEN_ShouldRejectInvalidRequest()
     {
-        var result = await CodeActionSelectorHelpers.ResolveSymbolAsync<TestResponse>(
+        var result = await _target.ResolveSymbolAsync<TestResponse>(
             null,
             null,
             _context.Object,
@@ -38,7 +40,7 @@ public sealed class CodeActionSelectorHelpersTests
             .Setup(item => item.ValidateSnapshot(snapshot))
             .Returns(SnapshotMatchResult.WorkspaceEpochMismatch());
 
-        var result = await CodeActionSelectorHelpers.ResolveSymbolAsync<TestResponse>(
+        var result = await _target.ResolveSymbolAsync<TestResponse>(
             selector,
             snapshot,
             _context.Object,
@@ -61,7 +63,7 @@ public sealed class CodeActionSelectorHelpersTests
             .Setup(item => item.ResolveSymbolAsync(selector, TestContext.Current.CancellationToken))
             .ReturnsAsync(SelectorResolveResult<ISymbol>.Resolved(symbol.Object));
 
-        var result = await CodeActionSelectorHelpers.ResolveSymbolAsync<TestResponse>(
+        var result = await _target.ResolveSymbolAsync<TestResponse>(
             selector,
             new SnapshotPrecondition { WorkspaceEpoch = 1 },
             _context.Object,
@@ -83,9 +85,9 @@ public sealed class CodeActionSelectorHelpersTests
         var status = (SelectorResolveStatus)statusValue;
         _workspaceResolver
             .Setup(item => item.ResolveSymbolAsync(selector, TestContext.Current.CancellationToken))
-            .ReturnsAsync(new SelectorResolveResult<ISymbol> { Status = status });
+            .ReturnsAsync(SelectorTestFactory.CreateUnresolvedResult<ISymbol>(status));
 
-        var result = await CodeActionSelectorHelpers.ResolveSymbolAsync<TestResponse>(
+        var result = await _target.ResolveSymbolAsync<TestResponse>(
             selector,
             null,
             _context.Object,
@@ -99,7 +101,7 @@ public sealed class CodeActionSelectorHelpersTests
     [Fact]
     public void GIVEN_MissingResolvedLocation_WHEN_CreatingLocationSelector_THEN_ShouldReturnNull()
     {
-        var result = CodeActionSelectorHelpers.CreateLocationSelector(null);
+        var result = _target.CreateLocationSelector(null);
 
         result.Should().BeNull();
     }
@@ -115,7 +117,7 @@ public sealed class CodeActionSelectorHelpersTests
             Span = omitDocument ? new TextSpanRange { Start = 1, Length = 2 } : null,
         };
 
-        var result = CodeActionSelectorHelpers.CreateLocationSelector(location);
+        var result = _target.CreateLocationSelector(location);
 
         result.Should().BeNull();
     }
@@ -143,7 +145,7 @@ public sealed class CodeActionSelectorHelpersTests
             },
         };
 
-        var result = CodeActionSelectorHelpers.CreateLocationSelector(location);
+        var result = _target.CreateLocationSelector(location);
 
         result.Should().BeEquivalentTo(new LocationSelector
         {

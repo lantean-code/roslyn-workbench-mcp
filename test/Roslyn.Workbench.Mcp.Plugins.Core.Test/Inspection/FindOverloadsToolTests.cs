@@ -21,10 +21,7 @@ public sealed class FindOverloadsToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, OverloadSearchData>
-            {
-                Rejection = expected,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, OverloadSearchData>.Rejected(expected));
 
         var result = await target.ExecuteAsync(new FindOverloadsRequest
         {
@@ -56,10 +53,7 @@ public sealed class FindOverloadsToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, OverloadSearchData>
-            {
-                Value = symbol,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, OverloadSearchData>.Resolved(symbol));
 
         var result = await target.ExecuteAsync(new FindOverloadsRequest
         {
@@ -110,10 +104,7 @@ public sealed class FindOverloadsToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, OverloadSearchData>
-            {
-                Value = symbol,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, OverloadSearchData>.Resolved(symbol));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -167,10 +158,7 @@ public sealed class FindOverloadsToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, OverloadSearchData>
-            {
-                Value = symbol,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, OverloadSearchData>.Resolved(symbol));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));

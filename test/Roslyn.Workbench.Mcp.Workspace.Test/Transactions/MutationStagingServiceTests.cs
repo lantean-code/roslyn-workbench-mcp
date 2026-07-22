@@ -148,10 +148,7 @@ public sealed class MutationStagingServiceTests : IDisposable
         var changes = new ChangeSummary();
         var handlerWarning = new WarningInfo { Code = "HandlerWarning", Message = "Message" };
         var proposalWarning = new WarningInfo { Code = "ProposalWarning", Message = "Message" };
-        var expected = new WorkspaceOperationResult<MutationStagingOutcome>
-        {
-            Status = WorkspaceOperationStatus.Succeeded,
-        };
+        var expected = WorkspaceOperationResult<MutationStagingOutcome>.NoChange();
         _diffBuilder
             .Setup(item => item.CreateChangeSummaryAsync(
                 currentSolution,
@@ -287,14 +284,10 @@ public sealed class MutationStagingServiceTests : IDisposable
 
     private static WorkspaceOperationResult<MutationStagingOutcome> CreateRejectedResult(string code)
     {
-        return new WorkspaceOperationResult<MutationStagingOutcome>
+        return WorkspaceOperationResult<MutationStagingOutcome>.Rejected(new WorkspaceOperationError
         {
-            Status = WorkspaceOperationStatus.Rejected,
-            Error = new WorkspaceOperationError
-            {
-                Code = code,
-                Message = "Message",
-            },
-        };
+            Code = code,
+            Message = "Message",
+        });
     }
 }

@@ -8,7 +8,7 @@ public sealed class DescribeCodeActionToolTests
     public async Task GIVEN_CodeActionsAreUnavailable_WHEN_Executing_THEN_ShouldRejectWithoutResolvingAction()
     {
         var providerCatalog = new Mock<ICodeActionProviderCatalog>();
-        var resolutionService = new Mock<ICodeActionResolutionService>();
+        var resolver = new Mock<ICodeActionResolver>();
         var infoFactory = new Mock<ICodeActionInfoFactory>();
         var context = new Mock<ICodeActionQueryContext>();
         providerCatalog.SetupGet(item => item.Status).Returns(new CodeActionProviderCatalogStatus
@@ -16,7 +16,7 @@ public sealed class DescribeCodeActionToolTests
             IsAvailable = false,
         });
 
-        var target = new DescribeCodeActionTool(providerCatalog.Object, resolutionService.Object, infoFactory.Object);
+        var target = new DescribeCodeActionTool(providerCatalog.Object, resolver.Object, infoFactory.Object);
 
         var result = await target.ExecuteAsync(
             new DescribeCodeActionRequest
@@ -27,7 +27,7 @@ public sealed class DescribeCodeActionToolTests
             CancellationToken.None);
 
         result.Error!.Code.Should().Be("CodeActionsUnavailable");
-        resolutionService.Verify(item => item.ResolveActionAsync<DescribeCodeActionData>(
+        resolver.Verify(item => item.ResolveActionAsync<DescribeCodeActionData>(
             It.IsAny<string>(),
             It.IsAny<SnapshotPrecondition?>(),
             It.IsAny<DiscoveredActionKind?>(),
@@ -39,7 +39,7 @@ public sealed class DescribeCodeActionToolTests
     public async Task GIVEN_ActionResolutionIsRejected_WHEN_Executing_THEN_ShouldReturnRejectionWithoutCreatingInfo()
     {
         var providerCatalog = new Mock<ICodeActionProviderCatalog>();
-        var resolutionService = new Mock<ICodeActionResolutionService>();
+        var resolver = new Mock<ICodeActionResolver>();
         var infoFactory = new Mock<ICodeActionInfoFactory>();
         var context = new Mock<ICodeActionQueryContext>();
         var expectedSnapshot = new SnapshotPrecondition();
@@ -54,19 +54,16 @@ public sealed class DescribeCodeActionToolTests
             IsAvailable = true,
         });
 
-        resolutionService
+        resolver
             .Setup(item => item.ResolveActionAsync<DescribeCodeActionData>(
                 "ActionId",
                 expectedSnapshot,
                 null,
                 context.Object,
                 CancellationToken.None))
-            .ReturnsAsync(new CodeActionResolution<DescribeCodeActionData>
-            {
-                Rejection = rejection,
-            });
+            .ReturnsAsync(CodeActionResolution<DescribeCodeActionData>.Rejected(rejection));
 
-        var target = new DescribeCodeActionTool(providerCatalog.Object, resolutionService.Object, infoFactory.Object);
+        var target = new DescribeCodeActionTool(providerCatalog.Object, resolver.Object, infoFactory.Object);
 
         var result = await target.ExecuteAsync(
             new DescribeCodeActionRequest
@@ -91,7 +88,7 @@ public sealed class DescribeCodeActionToolTests
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
         var providerCatalog = new Mock<ICodeActionProviderCatalog>();
-        var resolutionService = new Mock<ICodeActionResolutionService>();
+        var resolver = new Mock<ICodeActionResolver>();
         var infoFactory = new Mock<ICodeActionInfoFactory>();
         var context = new Mock<ICodeActionQueryContext>();
         var action = CreateDiscoveredAction(roslyn.Solution);
@@ -100,6 +97,7 @@ public sealed class DescribeCodeActionToolTests
             ContextKind = CodeActionDescriptorContextKind.MemberSelection,
             Message = "Message",
         };
+        action = action with { Descriptor = descriptor };
 
         var info = new CodeActionInfo
         {
@@ -114,25 +112,22 @@ public sealed class DescribeCodeActionToolTests
             IsAvailable = true,
         });
 
-        resolutionService
+        resolver
             .Setup(item => item.ResolveActionAsync<DescribeCodeActionData>(
                 "ActionId",
                 null,
                 null,
                 context.Object,
                 CancellationToken.None))
-            .ReturnsAsync(new CodeActionResolution<DescribeCodeActionData>
-            {
-                Action = action,
-                Descriptor = descriptor,
-                Document = roslyn.Document,
-                Span = new TextSpan(1, 2),
-            });
+            .ReturnsAsync(CodeActionResolution<DescribeCodeActionData>.Resolved(
+                action,
+                roslyn.Document,
+                new TextSpan(1, 2)));
 
         infoFactory
             .Setup(item => item.Create(action, context.Object, roslyn.Document, new TextSpan(1, 2), descriptor))
             .Returns(info);
-        var target = new DescribeCodeActionTool(providerCatalog.Object, resolutionService.Object, infoFactory.Object);
+        var target = new DescribeCodeActionTool(providerCatalog.Object, resolver.Object, infoFactory.Object);
 
         var result = await target.ExecuteAsync(
             new DescribeCodeActionRequest

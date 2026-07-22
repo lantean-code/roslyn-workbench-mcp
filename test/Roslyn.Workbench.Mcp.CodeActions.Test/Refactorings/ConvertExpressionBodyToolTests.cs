@@ -15,10 +15,10 @@ public sealed class ConvertExpressionBodyToolTests
                 WorkspaceEpoch = 1,
             },
         };
-        var replayService = new Mock<ICodeActionReplayService>();
-        var target = new ConvertExpressionBodyTool(replayService.Object);
+        var selectionStager = new Mock<ICodeActionSelectionStager>();
+        var target = new ConvertExpressionBodyTool(selectionStager.Object);
 
-        replayService
+        selectionStager
             .Setup(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
@@ -35,7 +35,7 @@ public sealed class ConvertExpressionBodyToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        replayService.Verify(item => item.StageSelectionAsync(
+        selectionStager.Verify(item => item.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             CancellationToken.None,
@@ -46,7 +46,7 @@ public sealed class ConvertExpressionBodyToolTests
             null,
             null,
             null), Times.Once);
-        replayService.Verify(item => item.StageSelectionAsync(
+        selectionStager.Verify(item => item.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             CancellationToken.None,
@@ -76,10 +76,10 @@ public sealed class ConvertExpressionBodyToolTests
                 WorkspaceEpoch = 1,
             },
         };
-        var replayService = new Mock<ICodeActionReplayService>();
-        var target = new ConvertExpressionBodyTool(replayService.Object);
+        var selectionStager = new Mock<ICodeActionSelectionStager>();
+        var target = new ConvertExpressionBodyTool(selectionStager.Object);
 
-        replayService
+        selectionStager
             .Setup(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
@@ -96,7 +96,7 @@ public sealed class ConvertExpressionBodyToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        replayService.Verify(item => item.StageSelectionAsync(
+        selectionStager.Verify(item => item.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             CancellationToken.None,
@@ -107,7 +107,7 @@ public sealed class ConvertExpressionBodyToolTests
             null,
             null,
             null), Times.Once);
-        replayService.Verify(item => item.StageSelectionAsync(
+        selectionStager.Verify(item => item.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             CancellationToken.None,
@@ -137,10 +137,10 @@ public sealed class ConvertExpressionBodyToolTests
                 WorkspaceEpoch = 1,
             },
         };
-        var replayService = new Mock<ICodeActionReplayService>();
-        var target = new ConvertExpressionBodyTool(replayService.Object);
+        var selectionStager = new Mock<ICodeActionSelectionStager>();
+        var target = new ConvertExpressionBodyTool(selectionStager.Object);
 
-        replayService
+        selectionStager
             .Setup(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
@@ -157,7 +157,7 @@ public sealed class ConvertExpressionBodyToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        replayService.Verify(item => item.StageSelectionAsync(
+        selectionStager.Verify(item => item.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             CancellationToken.None,
@@ -168,7 +168,7 @@ public sealed class ConvertExpressionBodyToolTests
             null,
             null,
             null), Times.Once);
-        replayService.Verify(item => item.StageSelectionAsync(
+        selectionStager.Verify(item => item.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             CancellationToken.None,
@@ -194,10 +194,10 @@ public sealed class ConvertExpressionBodyToolTests
                 WorkspaceEpoch = 1,
             },
         };
-        var replayService = new Mock<ICodeActionReplayService>();
-        var target = new ConvertExpressionBodyTool(replayService.Object);
+        var selectionStager = new Mock<ICodeActionSelectionStager>();
+        var target = new ConvertExpressionBodyTool(selectionStager.Object);
 
-        replayService
+        selectionStager
             .Setup(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
@@ -214,7 +214,7 @@ public sealed class ConvertExpressionBodyToolTests
                 Code = "CodeActionUnavailable",
                 Message = "CodeActionUnavailable",
             }));
-        replayService
+        selectionStager
             .Setup(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
@@ -231,7 +231,7 @@ public sealed class ConvertExpressionBodyToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        replayService.Verify(item => item.StageSelectionAsync(
+        selectionStager.Verify(item => item.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             CancellationToken.None,
@@ -242,7 +242,7 @@ public sealed class ConvertExpressionBodyToolTests
             null,
             null,
             null), Times.Once);
-        replayService.Verify(item => item.StageSelectionAsync(
+        selectionStager.Verify(item => item.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             CancellationToken.None,

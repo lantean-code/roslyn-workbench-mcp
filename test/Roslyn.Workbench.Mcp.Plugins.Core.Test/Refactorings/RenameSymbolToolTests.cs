@@ -24,10 +24,7 @@ public sealed class RenameSymbolToolTests
                 request.ExpectedSnapshot,
                 contextMocks.MutationContext.Object,
                 CancellationToken.None))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, MutationCandidate>
-            {
-                Rejection = expected,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, MutationCandidate>.Rejected(expected));
 
         var result = await target.ExecuteAsync(request, contextMocks.MutationContext.Object, CancellationToken.None);
 
@@ -53,10 +50,7 @@ public sealed class RenameSymbolToolTests
                 request.ExpectedSnapshot,
                 contextMocks.MutationContext.Object,
                 CancellationToken.None))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, MutationCandidate>
-            {
-                Value = symbol.Object,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, MutationCandidate>.Resolved(symbol.Object));
 
         var result = await target.ExecuteAsync(request, contextMocks.MutationContext.Object, CancellationToken.None);
 
@@ -96,10 +90,7 @@ public sealed class RenameSymbolToolTests
                 request.ExpectedSnapshot,
                 contextMocks.MutationContext.Object,
                 CancellationToken.None))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, MutationCandidate>
-            {
-                Value = symbol,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, MutationCandidate>.Resolved(symbol));
 
         var result = await target.ExecuteAsync(request, contextMocks.MutationContext.Object, CancellationToken.None);
 

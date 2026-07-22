@@ -18,10 +18,10 @@ public sealed class RemoveUnusedUsingsToolTests
                 WorkspaceEpoch = 1,
             },
         };
-        var scopedFixService = new Mock<ICodeActionScopedFixService>();
-        var target = new RemoveUnusedUsingsTool(scopedFixService.Object);
+        var scopedFixStager = new Mock<IScopedCodeFixStager>();
+        var target = new RemoveUnusedUsingsTool(scopedFixStager.Object);
 
-        scopedFixService
+        scopedFixStager
             .Setup(item => item.StageScopedCodeFixAsync(
                 It.Is<ScopedCodeFixRequest>(stageRequest =>
                     stageRequest.Scope == request.Scope
@@ -37,7 +37,7 @@ public sealed class RemoveUnusedUsingsToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        scopedFixService.Verify(item => item.StageScopedCodeFixAsync(
+        scopedFixStager.Verify(item => item.StageScopedCodeFixAsync(
             It.Is<ScopedCodeFixRequest>(stageRequest =>
                 stageRequest.Scope == request.Scope
                 && stageRequest.ExpectedSnapshot == request.ExpectedSnapshot

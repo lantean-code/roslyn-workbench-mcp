@@ -16,12 +16,9 @@ public sealed class WorkspaceListToolTests
 
         workspaceLifecycleService
             .Setup(service => service.ListAsync(CancellationToken.None))
-            .ReturnsAsync(new WorkspaceOperationResult<WorkspaceListOutcome>
+            .ReturnsAsync(WorkspaceOperationResult<WorkspaceListOutcome>.Succeeded(new WorkspaceListOutcome
             {
-                Status = WorkspaceOperationStatus.Succeeded,
-                Data = new WorkspaceListOutcome
-                {
-                    Workspaces =
+                Workspaces =
                     [
                         new WorkspaceIdentity
                         {
@@ -31,9 +28,8 @@ public sealed class WorkspaceListToolTests
                             LoadedPath = "/workspace/Sample.csproj",
                         },
                     ],
-                    TransactionOwnerWorkspaceId = "WorkspaceId",
-                },
-            });
+                TransactionOwnerWorkspaceId = "WorkspaceId",
+            }));
 
         var result = await ServerOwnedToolTestSupport.InvokeAsync(target, "workspace-list", cancellationToken: CancellationToken.None);
 

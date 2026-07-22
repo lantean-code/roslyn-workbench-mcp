@@ -66,6 +66,7 @@ Cross-project test ownership and execution-path policy are defined in `../docs/d
 - Strings use the property name as the value (not `nameof`), for example `request.Name = "Name"`.
 - Dates use a fixed point in time: `2000-01-01 00:00` with the correct `DateTimeKind`. Adjust earlier or later than this when ranges or ordering are required.
 - Numeric values must be contextually appropriate.
+- Construct invariant-bearing result and state types through their named factories. Do not use object initializers, reflection, or test-only seams to manufacture combinations that the production contract deliberately makes unrepresentable.
 
 ## Coverage and access
 - Tests must cover 100% of the lines and branches of the implementation under test unless the user explicitly relaxes that rule.

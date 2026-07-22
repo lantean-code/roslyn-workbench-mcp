@@ -6,14 +6,14 @@ public sealed class ExtractMethodToolTests
     public async Task GIVEN_SelectionIsNull_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequest()
     {
         var context = new Mock<ICodeActionMutationContext>();
-        var replayService = new Mock<ICodeActionReplayService>();
-        var target = new ExtractMethodTool(replayService.Object);
+        var selectionStager = new Mock<ICodeActionSelectionStager>();
+        var target = new ExtractMethodTool(selectionStager.Object);
 
         var result = await target.ExecuteAsync(new ExtractMethodRequest(), context.Object, CancellationToken.None);
 
         result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("InvalidRequest");
-        replayService.Verify(item => item.StageReplayCodeActionAsync(
+        selectionStager.Verify(item => item.StageReplayCodeActionAsync(
             It.IsAny<ReplayCodeActionRequest>(),
             context.Object, It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -32,10 +32,10 @@ public sealed class ExtractMethodToolTests
             },
             TargetKind = ExtractMethodTargetKind.LocalFunction,
         };
-        var replayService = new Mock<ICodeActionReplayService>();
-        var target = new ExtractMethodTool(replayService.Object);
+        var selectionStager = new Mock<ICodeActionSelectionStager>();
+        var target = new ExtractMethodTool(selectionStager.Object);
 
-        replayService
+        selectionStager
             .Setup(item => item.StageReplayCodeActionAsync(
                 It.Is<ReplayCodeActionRequest>(stageRequest =>
                     stageRequest.Location == request.Selection
@@ -49,7 +49,7 @@ public sealed class ExtractMethodToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        replayService.Verify(item => item.StageReplayCodeActionAsync(
+        selectionStager.Verify(item => item.StageReplayCodeActionAsync(
             It.Is<ReplayCodeActionRequest>(stageRequest =>
                 stageRequest.Location == request.Selection
                 && stageRequest.ExpectedSnapshot == request.ExpectedSnapshot
@@ -73,10 +73,10 @@ public sealed class ExtractMethodToolTests
             },
             TargetKind = ExtractMethodTargetKind.Method,
         };
-        var replayService = new Mock<ICodeActionReplayService>();
-        var target = new ExtractMethodTool(replayService.Object);
+        var selectionStager = new Mock<ICodeActionSelectionStager>();
+        var target = new ExtractMethodTool(selectionStager.Object);
 
-        replayService
+        selectionStager
             .Setup(item => item.StageReplayCodeActionAsync(
                 It.Is<ReplayCodeActionRequest>(stageRequest =>
                     stageRequest.Location == request.Selection
@@ -90,7 +90,7 @@ public sealed class ExtractMethodToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        replayService.Verify(item => item.StageReplayCodeActionAsync(
+        selectionStager.Verify(item => item.StageReplayCodeActionAsync(
             It.Is<ReplayCodeActionRequest>(stageRequest =>
                 stageRequest.Location == request.Selection
                 && stageRequest.ExpectedSnapshot == request.ExpectedSnapshot

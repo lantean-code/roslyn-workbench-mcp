@@ -19,10 +19,7 @@ public sealed class FindImplementationsToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, ImplementationSearchData>
-            {
-                Rejection = expected,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, ImplementationSearchData>.Rejected(expected));
 
         var result = await target.ExecuteAsync(new FindImplementationsRequest
         {
@@ -59,18 +56,12 @@ public sealed class FindImplementationsToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, ImplementationSearchData>
-            {
-                Value = symbol,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, ImplementationSearchData>.Resolved(symbol));
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveProjects<ImplementationSearchData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Project>, ImplementationSearchData>
-            {
-                Rejection = expected,
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Project>, ImplementationSearchData>.Rejected(expected));
 
         var result = await target.ExecuteAsync(new FindImplementationsRequest
         {
@@ -131,18 +122,12 @@ public sealed class FindImplementationsToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, ImplementationSearchData>
-            {
-                Value = symbol,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, ImplementationSearchData>.Resolved(symbol));
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveProjects<ImplementationSearchData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Project>, ImplementationSearchData>
-            {
-                Value = [project],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Project>, ImplementationSearchData>.Resolved([project]));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));

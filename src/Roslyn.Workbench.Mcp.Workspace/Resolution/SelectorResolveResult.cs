@@ -13,18 +13,24 @@ public sealed record SelectorResolveResult<T>
     /// <summary>
     /// Gets the resolution status.
     /// </summary>
-    public SelectorResolveStatus Status { get; init; }
+    public SelectorResolveStatus Status { get; }
 
     /// <summary>
     /// Gets the resolved value when <see cref="Status"/> is <see cref="SelectorResolveStatus.Resolved"/>.
     /// </summary>
-    public T? Value { get; init; }
+    public T? Value { get; }
 
     /// <summary>
     /// Gets a value indicating whether resolution succeeded with a value.
     /// </summary>
     [MemberNotNullWhen(true, nameof(Value))]
     public bool IsResolved => Status == SelectorResolveStatus.Resolved && Value is not null;
+
+    private SelectorResolveResult(SelectorResolveStatus status, T? value)
+    {
+        Status = status;
+        Value = value;
+    }
 
     /// <summary>
     /// Creates a resolved outcome.
@@ -35,11 +41,7 @@ public sealed record SelectorResolveResult<T>
     {
         ArgumentNullException.ThrowIfNull(value);
 
-        return new SelectorResolveResult<T>
-        {
-            Status = SelectorResolveStatus.Resolved,
-            Value = value,
-        };
+        return new SelectorResolveResult<T>(SelectorResolveStatus.Resolved, value);
     }
 
     /// <summary>
@@ -48,10 +50,7 @@ public sealed record SelectorResolveResult<T>
     /// <returns>The resolution result.</returns>
     public static SelectorResolveResult<T> NotFound()
     {
-        return new SelectorResolveResult<T>
-        {
-            Status = SelectorResolveStatus.NotFound,
-        };
+        return new SelectorResolveResult<T>(SelectorResolveStatus.NotFound, value: null);
     }
 
     /// <summary>
@@ -60,10 +59,7 @@ public sealed record SelectorResolveResult<T>
     /// <returns>The resolution result.</returns>
     public static SelectorResolveResult<T> Ambiguous()
     {
-        return new SelectorResolveResult<T>
-        {
-            Status = SelectorResolveStatus.Ambiguous,
-        };
+        return new SelectorResolveResult<T>(SelectorResolveStatus.Ambiguous, value: null);
     }
 }
 #pragma warning restore CA1000

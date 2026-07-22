@@ -6,11 +6,11 @@ internal sealed class AddAwaitTool : CodeActionMutationToolHandler<AddAwaitReque
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.AddAwait.CSharpAddAwaitCodeRefactoringProvider";
 
-    private readonly ICodeActionReplayService _replayService;
+    private readonly ICodeActionSelectionStager _selectionStager;
 
-    public AddAwaitTool(ICodeActionReplayService replayService)
+    public AddAwaitTool(ICodeActionSelectionStager selectionStager)
     {
-        _replayService = replayService;
+        _selectionStager = selectionStager;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(AddAwaitRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
@@ -23,7 +23,7 @@ internal sealed class AddAwaitTool : CodeActionMutationToolHandler<AddAwaitReque
             ? 1
             : 0;
 
-        return _replayService.StageSelectionAsync(
+        return _selectionStager.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             cancellationToken,

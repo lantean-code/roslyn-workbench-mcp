@@ -51,10 +51,7 @@ public sealed class ResolveSymbolToolTests
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(requestLocation, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new SelectorResolveResult<Location>
-            {
-                Status = SelectorResolveStatus.Ambiguous,
-            });
+            .ReturnsAsync(SelectorResolveResult<Location>.Ambiguous());
 
         var result = await target.ExecuteAsync(new ResolveSymbolRequest
         {
@@ -90,19 +87,12 @@ public sealed class ResolveSymbolToolTests
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(requestLocation, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new SelectorResolveResult<Location>
-            {
-                Status = SelectorResolveStatus.Resolved,
-                Value = sourceLocation,
-            });
+            .ReturnsAsync(SelectorResolveResult<Location>.Resolved(sourceLocation));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveSymbolAsync(
                 It.Is<SymbolSelector>(selector => selector.Location == requestLocation),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new SelectorResolveResult<ISymbol>
-            {
-                Status = SelectorResolveStatus.NotFound,
-            });
+            .ReturnsAsync(SelectorResolveResult<ISymbol>.NotFound());
 
         var result = await target.ExecuteAsync(new ResolveSymbolRequest
         {
@@ -194,20 +184,12 @@ public sealed class ResolveSymbolToolTests
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(requestLocation, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new SelectorResolveResult<Location>
-            {
-                Status = SelectorResolveStatus.Resolved,
-                Value = usageLocation,
-            });
+            .ReturnsAsync(SelectorResolveResult<Location>.Resolved(usageLocation));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveSymbolAsync(
                 It.Is<SymbolSelector>(selector => selector.Location == requestLocation),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new SelectorResolveResult<ISymbol>
-            {
-                Status = SelectorResolveStatus.Resolved,
-                Value = symbol,
-            });
+            .ReturnsAsync(SelectorResolveResult<ISymbol>.Resolved(symbol));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -268,20 +250,12 @@ public sealed class ResolveSymbolToolTests
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(requestLocation, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new SelectorResolveResult<Location>
-            {
-                Status = SelectorResolveStatus.Resolved,
-                Value = usageLocation,
-            });
+            .ReturnsAsync(SelectorResolveResult<Location>.Resolved(usageLocation));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveSymbolAsync(
                 It.Is<SymbolSelector>(selector => selector.Location == requestLocation),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new SelectorResolveResult<ISymbol>
-            {
-                Status = SelectorResolveStatus.Resolved,
-                Value = symbol,
-            });
+            .ReturnsAsync(SelectorResolveResult<ISymbol>.Resolved(symbol));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));

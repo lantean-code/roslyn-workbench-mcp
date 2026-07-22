@@ -2,37 +2,23 @@ using static Roslyn.Workbench.Mcp.CodeActions.Execution.CodeActionExecutionResul
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Execution;
 
-internal sealed class CodeActionReplayService : ICodeActionReplayService
+internal sealed class CodeActionSelectionStager : ICodeActionSelectionStager
 {
     private readonly ICodeActionProviderCatalog _providerCatalog;
     private readonly ICodeActionDiscoveryService _discoveryService;
-    private readonly ICodeActionResolutionService _resolutionService;
-    private readonly ICodeActionOperationService _operationService;
+    private readonly ICodeActionEvaluator _evaluator;
+    private readonly ICodeActionToolRequestResolver _requestResolver;
 
-    public CodeActionReplayService(
+    public CodeActionSelectionStager(
         ICodeActionProviderCatalog providerCatalog,
         ICodeActionDiscoveryService discoveryService,
-        ICodeActionResolutionService resolutionService,
-        ICodeActionOperationService operationService)
+        ICodeActionEvaluator evaluator,
+        ICodeActionToolRequestResolver requestResolver)
     {
         _providerCatalog = providerCatalog;
         _discoveryService = discoveryService;
-        _resolutionService = resolutionService;
-        _operationService = operationService;
-    }
-
-    public ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageCodeActionAsync(
-        StageCodeActionRequest request,
-        ICodeActionExecutionContext context,
-        CancellationToken cancellationToken)
-    {
-        var runtimeRejection = RejectedIfUnavailable();
-        if (runtimeRejection is not null)
-        {
-            return ValueTask.FromResult(runtimeRejection);
-        }
-
-        return StageAsync(request.ActionId, request.ExpectedSnapshot, DiscoveredActionKind.Refactoring, context, cancellationToken);
+        _evaluator = evaluator;
+        _requestResolver = requestResolver;
     }
 
     public async ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageReplayCodeActionAsync(
@@ -47,30 +33,27 @@ internal sealed class CodeActionReplayService : ICodeActionReplayService
             return runtimeRejection;
         }
 
-        var snapshotRejection = ValidateSnapshot<WorkspaceMutationCandidate>(context.WorkspaceResolver, request.ExpectedSnapshot);
+        var snapshotRejection = _requestResolver.ValidateSnapshot<WorkspaceMutationCandidate>(
+            context,
+            request.ExpectedSnapshot);
+
         if (snapshotRejection is not null)
         {
             return snapshotRejection;
         }
 
-        if (request.Location is null)
+        var locationResolution = await _requestResolver.ResolveLocationAsync<WorkspaceMutationCandidate>(
+            request.Location,
+            context,
+            cancellationToken);
+
+        if (locationResolution.HasRejection)
         {
-            return Rejected<WorkspaceMutationCandidate>("InvalidRequest", "A location selector is required.");
+            return locationResolution.Rejection;
         }
 
-        var location = await context.WorkspaceResolver.ResolveLocationAsync(request.Location, cancellationToken);
-        if (location.Status != SelectorResolveStatus.Resolved || location.Value is null)
-        {
-            return RejectFromStatus<WorkspaceMutationCandidate>(location.Status, "Location", "location");
-        }
-
-        var document = context.CurrentSolution.GetDocument(location.Value.SourceTree);
-        if (document is null)
-        {
-            return Rejected<WorkspaceMutationCandidate>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain);
-        }
-
-        var span = location.Value.SourceSpan;
+        var document = locationResolution.Value.Document;
+        var span = locationResolution.Value.Span;
         var matchingProviders = _discoveryService.GetMatchingRefactoringProviders(request.ProviderId);
         if (matchingProviders.Count == 0)
         {
@@ -157,7 +140,7 @@ internal sealed class CodeActionReplayService : ICodeActionReplayService
         var candidate = distinctCandidates[0];
         if (candidate.Descriptor.ExecutionMode == CodeActionExecutionMode.Replay)
         {
-            return await _operationService.CreateMutationCandidateAsync(candidate.Action, candidate.Title, context, cancellationToken);
+            return await ApplyActionAsync(candidate.Action, candidate.Title, context, cancellationToken);
         }
 
         if (candidate.Descriptor.ExecutionMode == CodeActionExecutionMode.Parameterised)
@@ -172,20 +155,6 @@ internal sealed class CodeActionReplayService : ICodeActionReplayService
         }
 
         return Rejected<WorkspaceMutationCandidate>("CodeActionUnavailable", "The selected action is not replayable in this server build.", RequiredAction.ResolveTargetAgain);
-    }
-
-    public ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageCodeFixAsync(
-        StageCodeFixRequest request,
-        ICodeActionExecutionContext context,
-        CancellationToken cancellationToken)
-    {
-        var runtimeRejection = RejectedIfUnavailable();
-        if (runtimeRejection is not null)
-        {
-            return ValueTask.FromResult(runtimeRejection);
-        }
-
-        return StageAsync(request.ActionId, request.ExpectedSnapshot, DiscoveredActionKind.CodeFix, context, cancellationToken);
     }
 
     public ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageSelectionAsync(
@@ -220,41 +189,29 @@ internal sealed class CodeActionReplayService : ICodeActionReplayService
         }, context, cancellationToken);
     }
 
-    private async ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageAsync(
-        string actionId,
-        SnapshotPrecondition? expectedSnapshot,
-        DiscoveredActionKind expectedKind,
+    private async ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ApplyActionAsync(
+        CodeAction action,
+        string summary,
         ICodeActionExecutionContext context,
         CancellationToken cancellationToken)
     {
-        var resolvedAction = await _resolutionService.ResolveActionAsync<WorkspaceMutationCandidate>(
-            actionId,
-            expectedSnapshot,
-            expectedKind,
-            context,
+        var application = await _evaluator.EvaluateAsync(
+            action,
+            context.CurrentSolution,
             cancellationToken);
 
-        if (resolvedAction.HasRejection)
+        if (application.HasFailure)
         {
-            return resolvedAction.Rejection;
+            return Rejected<WorkspaceMutationCandidate>(application.Failure);
         }
 
-        if (resolvedAction.Descriptor.ExecutionMode == CodeActionExecutionMode.Parameterised)
+        var candidate = new WorkspaceMutationCandidate
         {
-            var error = new CodeActionExecutionError
-            {
-                Code = "ActionRequiresParameters",
-                Message = "The selected action requires dedicated tool parameters and cannot be replayed generically.",
-            };
+            CandidateSolution = application.CandidateSolution,
+            Summary = summary,
+        };
 
-            return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(error);
-        }
-
-        return await _operationService.CreateMutationCandidateAsync(
-            resolvedAction.Action.Action,
-            resolvedAction.Action.Title,
-            context,
-            cancellationToken);
+        return CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(candidate);
     }
 
     private CodeActionExecutionResult<WorkspaceMutationCandidate>? RejectedIfUnavailable()

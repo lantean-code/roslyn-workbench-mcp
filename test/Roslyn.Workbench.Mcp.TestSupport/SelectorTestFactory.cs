@@ -6,6 +6,28 @@ namespace Roslyn.Workbench.Mcp.TestSupport;
 public static class SelectorTestFactory
 {
     /// <summary>
+    /// Creates an unresolved selector result for tests that vary the unsuccessful status.
+    /// </summary>
+    /// <typeparam name="T">The unresolved value type.</typeparam>
+    /// <param name="status">The not-found or ambiguous status.</param>
+    /// <returns>The unresolved selector result.</returns>
+    public static SelectorResolveResult<T> CreateUnresolvedResult<T>(SelectorResolveStatus status)
+        where T : class
+    {
+        if (status == SelectorResolveStatus.NotFound)
+        {
+            return SelectorResolveResult<T>.NotFound();
+        }
+
+        if (status == SelectorResolveStatus.Ambiguous)
+        {
+            return SelectorResolveResult<T>.Ambiguous();
+        }
+
+        throw new ArgumentOutOfRangeException(nameof(status), status, "An unresolved selector status is required.");
+    }
+
+    /// <summary>
     /// Creates a resolved location projection from a Roslyn location.
     /// </summary>
     /// <param name="location">The Roslyn location.</param>

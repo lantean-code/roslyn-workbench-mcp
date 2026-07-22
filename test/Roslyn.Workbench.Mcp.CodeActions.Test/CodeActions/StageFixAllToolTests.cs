@@ -11,16 +11,16 @@ public sealed class StageFixAllToolTests
             ActionId = "ActionId",
         };
         var context = new Mock<ICodeActionMutationContext>();
-        var fixAllService = new Mock<ICodeActionFixAllService>();
-        var target = new StageFixAllTool(fixAllService.Object);
+        var fixAllStager = new Mock<ICodeActionFixAllStager>();
+        var target = new StageFixAllTool(fixAllStager.Object);
 
-        fixAllService
+        fixAllStager
             .Setup(item => item.StageFixAllAsync(request, context.Object, CancellationToken.None))
             .ReturnsAsync(expected);
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        fixAllService.Verify(item => item.StageFixAllAsync(request, context.Object, CancellationToken.None), Times.Once);
+        fixAllStager.Verify(item => item.StageFixAllAsync(request, context.Object, CancellationToken.None), Times.Once);
     }
 }

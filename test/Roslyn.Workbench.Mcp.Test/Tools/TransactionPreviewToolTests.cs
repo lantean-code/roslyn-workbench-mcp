@@ -21,21 +21,17 @@ public sealed class TransactionPreviewToolTests
                 true,
                 2,
                 CancellationToken.None))
-            .ReturnsAsync(new WorkspaceOperationResult<TransactionPreviewOutcome>
+            .ReturnsAsync(WorkspaceOperationResult<TransactionPreviewOutcome>.Succeeded(new TransactionPreviewOutcome
             {
-                Status = WorkspaceOperationStatus.Succeeded,
-                Data = new TransactionPreviewOutcome
+                Transaction = new TransactionInfo
                 {
-                    Transaction = new TransactionInfo
-                    {
-                        Revision = 2,
-                    },
-                    Diff = new DocumentDiff
-                    {
-                        Truncated = false,
-                    },
+                    Revision = 2,
                 },
-            });
+                Diff = new DocumentDiff
+                {
+                    Truncated = false,
+                },
+            }));
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var target = new TransactionPreviewTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
         var arguments = ServerOwnedToolTestData.CreateWorkspaceArguments(includeWorkspace);

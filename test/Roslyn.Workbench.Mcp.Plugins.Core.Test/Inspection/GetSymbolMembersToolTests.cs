@@ -19,10 +19,7 @@ public sealed class GetSymbolMembersToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, SymbolMembersData>
-            {
-                Rejection = expected,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, SymbolMembersData>.Rejected(expected));
 
         var result = await target.ExecuteAsync(new GetSymbolMembersRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -57,10 +54,7 @@ public sealed class GetSymbolMembersToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, SymbolMembersData>
-            {
-                Value = symbol,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, SymbolMembersData>.Resolved(symbol));
 
         var result = await target.ExecuteAsync(new GetSymbolMembersRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -103,10 +97,7 @@ public sealed class GetSymbolMembersToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, SymbolMembersData>
-            {
-                Value = symbol,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, SymbolMembersData>.Resolved(symbol));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item =>
@@ -209,10 +200,7 @@ public sealed class GetSymbolMembersToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, SymbolMembersData>
-            {
-                Value = symbol,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, SymbolMembersData>.Resolved(symbol));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item =>

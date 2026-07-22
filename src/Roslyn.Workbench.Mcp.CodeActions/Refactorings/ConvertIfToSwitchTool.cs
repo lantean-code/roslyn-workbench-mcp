@@ -6,11 +6,11 @@ internal sealed class ConvertIfToSwitchTool : CodeActionMutationToolHandler<Conv
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertIfToSwitch.CSharpConvertIfToSwitchCodeRefactoringProvider";
 
-    private readonly ICodeActionReplayService _replayService;
+    private readonly ICodeActionSelectionStager _selectionStager;
 
-    public ConvertIfToSwitchTool(ICodeActionReplayService replayService)
+    public ConvertIfToSwitchTool(ICodeActionSelectionStager selectionStager)
     {
-        _replayService = replayService;
+        _selectionStager = selectionStager;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(ConvertIfToSwitchRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
@@ -19,7 +19,7 @@ internal sealed class ConvertIfToSwitchTool : CodeActionMutationToolHandler<Conv
             ? "Convert to 'switch' expression"
             : "Convert to 'switch' statement";
 
-        return _replayService.StageSelectionAsync(
+        return _selectionStager.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             cancellationToken,

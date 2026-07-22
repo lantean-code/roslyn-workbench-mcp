@@ -6,16 +6,16 @@ internal sealed class ReplaceDocCommentTextWithTagTool : CodeActionMutationToolH
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.ReplaceDocCommentTextWithTag.CSharpReplaceDocCommentTextWithTagCodeRefactoringProvider";
 
-    private readonly ICodeActionReplayService _replayService;
+    private readonly ICodeActionSelectionStager _selectionStager;
 
-    public ReplaceDocCommentTextWithTagTool(ICodeActionReplayService replayService)
+    public ReplaceDocCommentTextWithTagTool(ICodeActionSelectionStager selectionStager)
     {
-        _replayService = replayService;
+        _selectionStager = selectionStager;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(LocationRefactoringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
-        return _replayService.StageSelectionAsync(
+        return _selectionStager.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             cancellationToken,

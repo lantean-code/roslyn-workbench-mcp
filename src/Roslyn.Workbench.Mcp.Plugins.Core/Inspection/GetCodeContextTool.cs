@@ -92,27 +92,18 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
         var snapshotRejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<CodeContextData>(context, expectedSnapshot);
         if (snapshotRejection is not null)
         {
-            return new ToolResolutionResult<ResolvedCodeContext, CodeContextData>
-            {
-                Rejection = snapshotRejection,
-            };
+            return ToolResolutionResult<ResolvedCodeContext, CodeContextData>.Rejected(snapshotRejection);
         }
 
         if (selector is null)
         {
-            return new ToolResolutionResult<ResolvedCodeContext, CodeContextData>
-            {
-                Rejection = ToolExecutionHelpers.Rejected<CodeContextData>("InvalidRequest", "A location selector is required."),
-            };
+            return ToolResolutionResult<ResolvedCodeContext, CodeContextData>.Rejected(ToolExecutionHelpers.Rejected<CodeContextData>("InvalidRequest", "A location selector is required."));
         }
 
         var location = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken);
         if (!location.IsResolved)
         {
-            return new ToolResolutionResult<ResolvedCodeContext, CodeContextData>
-            {
-                Rejection = ToolExecutionHelpers.RejectFromStatus<CodeContextData>(location.Status, "Location", "location"),
-            };
+            return ToolResolutionResult<ResolvedCodeContext, CodeContextData>.Rejected(ToolExecutionHelpers.RejectFromStatus<CodeContextData>(location.Status, "Location", "location"));
         }
 
         var sourceLocation = location.Value;
@@ -123,31 +114,22 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
         var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(sourceLocation);
         if (document is null || resolvedLocation?.Document?.Path is null)
         {
-            return new ToolResolutionResult<ResolvedCodeContext, CodeContextData>
-            {
-                Rejection = ToolExecutionHelpers.Rejected<CodeContextData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
-            };
+            return ToolResolutionResult<ResolvedCodeContext, CodeContextData>.Rejected(ToolExecutionHelpers.Rejected<CodeContextData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
         }
 
         var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
         if (syntaxRoot is null || semanticModel is null)
         {
-            return new ToolResolutionResult<ResolvedCodeContext, CodeContextData>
-            {
-                Rejection = ToolExecutionHelpers.Rejected<CodeContextData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
-            };
+            return ToolResolutionResult<ResolvedCodeContext, CodeContextData>.Rejected(ToolExecutionHelpers.Rejected<CodeContextData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
         }
 
-        return new ToolResolutionResult<ResolvedCodeContext, CodeContextData>
-        {
-            Value = new ResolvedCodeContext(
+        return ToolResolutionResult<ResolvedCodeContext, CodeContextData>.Resolved(new ResolvedCodeContext(
                 document,
                 sourceLocation,
                 syntaxRoot.FindNode(sourceLocation.SourceSpan, getInnermostNodeForTie: true),
                 resolvedLocation,
-                semanticModel),
-        };
+                semanticModel));
     }
 
     private sealed record ResolvedCodeContext

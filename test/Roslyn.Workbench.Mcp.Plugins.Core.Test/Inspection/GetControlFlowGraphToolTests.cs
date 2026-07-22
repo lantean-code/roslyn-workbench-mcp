@@ -57,10 +57,7 @@ public sealed class GetControlFlowGraphToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, ControlFlowGraphData>
-            {
-                Rejection = expected,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, ControlFlowGraphData>.Rejected(expected));
 
         var result = await target.ExecuteAsync(new GetControlFlowGraphRequest
         {
@@ -89,10 +86,7 @@ public sealed class GetControlFlowGraphToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, ControlFlowGraphData>
-            {
-                Value = metadataSymbol,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, ControlFlowGraphData>.Resolved(metadataSymbol));
 
         var result = await target.ExecuteAsync(new GetControlFlowGraphRequest
         {
@@ -129,10 +123,7 @@ public sealed class GetControlFlowGraphToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, ControlFlowGraphData>
-            {
-                Value = symbol,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, ControlFlowGraphData>.Resolved(symbol));
 
         var result = await target.ExecuteAsync(new GetControlFlowGraphRequest
         {
@@ -164,10 +155,7 @@ public sealed class GetControlFlowGraphToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, ControlFlowGraphData>
-            {
-                Value = symbol,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, ControlFlowGraphData>.Resolved(symbol));
 
         var result = await target.ExecuteAsync(new GetControlFlowGraphRequest
         {
@@ -224,10 +212,7 @@ public sealed class GetControlFlowGraphToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, ControlFlowGraphData>
-            {
-                Value = symbol,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, ControlFlowGraphData>.Resolved(symbol));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -282,10 +267,7 @@ public sealed class GetControlFlowGraphToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, ControlFlowGraphData>
-            {
-                Value = symbol,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, ControlFlowGraphData>.Resolved(symbol));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));

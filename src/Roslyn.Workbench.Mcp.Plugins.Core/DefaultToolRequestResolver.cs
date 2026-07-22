@@ -10,87 +10,72 @@ internal sealed class DefaultToolRequestResolver : IToolRequestResolver
     {
         if (selector is null)
         {
-            return new ToolResolutionResult<Document, TResponse>
-            {
-                Rejection = ToolExecutionHelpers.Rejected<TResponse>("InvalidRequest", "A document selector is required."),
-            };
+            return ToolResolutionResult<Document, TResponse>.Rejected(ToolExecutionHelpers.Rejected<TResponse>("InvalidRequest", "A document selector is required."));
         }
 
         var resolution = context.WorkspaceResolver.ResolveDocument(selector);
         return resolution.IsResolved
-            ? new ToolResolutionResult<Document, TResponse> { Value = resolution.Value }
-            : new ToolResolutionResult<Document, TResponse> { Rejection = ToolExecutionHelpers.RejectFromStatus<TResponse>(resolution.Status, "Document", "document") };
+            ? ToolResolutionResult<Document, TResponse>.Resolved(resolution.Value)
+            : ToolResolutionResult<Document, TResponse>.Rejected(ToolExecutionHelpers.RejectFromStatus<TResponse>(resolution.Status, "Document", "document"));
     }
 
     public ToolResolutionResult<Project, TResponse> ResolveProject<TResponse>(ProjectSelector? selector, IToolExecutionContext context)
     {
         if (selector is null)
         {
-            return new ToolResolutionResult<Project, TResponse>
-            {
-                Rejection = ToolExecutionHelpers.Rejected<TResponse>("InvalidRequest", "A project selector is required."),
-            };
+            return ToolResolutionResult<Project, TResponse>.Rejected(ToolExecutionHelpers.Rejected<TResponse>("InvalidRequest", "A project selector is required."));
         }
 
         var resolution = context.WorkspaceResolver.ResolveProject(selector);
         return resolution.IsResolved
-            ? new ToolResolutionResult<Project, TResponse> { Value = resolution.Value }
-            : new ToolResolutionResult<Project, TResponse> { Rejection = ToolExecutionHelpers.RejectFromStatus<TResponse>(resolution.Status, "Project", "project") };
+            ? ToolResolutionResult<Project, TResponse>.Resolved(resolution.Value)
+            : ToolResolutionResult<Project, TResponse>.Rejected(ToolExecutionHelpers.RejectFromStatus<TResponse>(resolution.Status, "Project", "project"));
     }
 
     public ToolResolutionResult<IReadOnlyList<Document>, TResponse> ResolveDocuments<TResponse>(ScopeSelector? scope, IToolExecutionContext context)
     {
         if (scope is null || scope.Kind == ScopeKind.Solution)
         {
-            return new ToolResolutionResult<IReadOnlyList<Document>, TResponse>
-            {
-                Value = context.CurrentSolution.Projects.SelectMany(static project => project.Documents).ToArray(),
-            };
+            return ToolResolutionResult<IReadOnlyList<Document>, TResponse>.Resolved(context.CurrentSolution.Projects.SelectMany(static project => project.Documents).ToArray());
         }
 
         if (scope.Kind == ScopeKind.Document)
         {
             var documentResolution = ResolveDocument<TResponse>(scope.Document, context);
             return documentResolution.HasRejection
-                ? new ToolResolutionResult<IReadOnlyList<Document>, TResponse> { Rejection = documentResolution.Rejection }
-                : new ToolResolutionResult<IReadOnlyList<Document>, TResponse> { Value = [documentResolution.Value] };
+                ? ToolResolutionResult<IReadOnlyList<Document>, TResponse>.Rejected(documentResolution.Rejection)
+                : ToolResolutionResult<IReadOnlyList<Document>, TResponse>.Resolved([documentResolution.Value]);
         }
 
         var projects = ResolveProjects<TResponse>(scope, context);
         return projects.HasRejection
-            ? new ToolResolutionResult<IReadOnlyList<Document>, TResponse> { Rejection = projects.Rejection }
-            : new ToolResolutionResult<IReadOnlyList<Document>, TResponse>
-            {
-                Value = projects.Value
+            ? ToolResolutionResult<IReadOnlyList<Document>, TResponse>.Rejected(projects.Rejection)
+            : ToolResolutionResult<IReadOnlyList<Document>, TResponse>.Resolved(projects.Value
                     .SelectMany(static project => project.Documents)
-                    .ToArray(),
-            };
+                    .ToArray());
     }
 
     public ToolResolutionResult<IReadOnlyList<Project>, TResponse> ResolveProjects<TResponse>(ScopeSelector? scope, IToolExecutionContext context)
     {
         if (scope is null || scope.Kind == ScopeKind.Solution)
         {
-            return new ToolResolutionResult<IReadOnlyList<Project>, TResponse>
-            {
-                Value = context.CurrentSolution.Projects.OrderBy(static project => project.Name, StringComparer.Ordinal).ToArray(),
-            };
+            return ToolResolutionResult<IReadOnlyList<Project>, TResponse>.Resolved(context.CurrentSolution.Projects.OrderBy(static project => project.Name, StringComparer.Ordinal).ToArray());
         }
 
         if (scope.Kind == ScopeKind.Document)
         {
             var documentResolution = ResolveDocument<TResponse>(scope.Document, context);
             return documentResolution.HasRejection
-                ? new ToolResolutionResult<IReadOnlyList<Project>, TResponse> { Rejection = documentResolution.Rejection }
-                : new ToolResolutionResult<IReadOnlyList<Project>, TResponse> { Value = [documentResolution.Value.Project] };
+                ? ToolResolutionResult<IReadOnlyList<Project>, TResponse>.Rejected(documentResolution.Rejection)
+                : ToolResolutionResult<IReadOnlyList<Project>, TResponse>.Resolved([documentResolution.Value.Project]);
         }
 
         if (scope.Kind == ScopeKind.Project)
         {
             var projectResolution = ResolveProject<TResponse>(scope.Project, context);
             return projectResolution.HasRejection
-                ? new ToolResolutionResult<IReadOnlyList<Project>, TResponse> { Rejection = projectResolution.Rejection }
-                : new ToolResolutionResult<IReadOnlyList<Project>, TResponse> { Value = [projectResolution.Value] };
+                ? ToolResolutionResult<IReadOnlyList<Project>, TResponse>.Rejected(projectResolution.Rejection)
+                : ToolResolutionResult<IReadOnlyList<Project>, TResponse>.Resolved([projectResolution.Value]);
         }
 
         var projects = new List<Project>();
@@ -99,19 +84,16 @@ internal sealed class DefaultToolRequestResolver : IToolRequestResolver
             var projectResolution = ResolveProject<TResponse>(selector, context);
             if (projectResolution.HasRejection)
             {
-                return new ToolResolutionResult<IReadOnlyList<Project>, TResponse> { Rejection = projectResolution.Rejection };
+                return ToolResolutionResult<IReadOnlyList<Project>, TResponse>.Rejected(projectResolution.Rejection);
             }
 
             projects.Add(projectResolution.Value);
         }
 
-        return new ToolResolutionResult<IReadOnlyList<Project>, TResponse>
-        {
-            Value = projects
+        return ToolResolutionResult<IReadOnlyList<Project>, TResponse>.Resolved(projects
                 .DistinctBy(static project => project.Id)
                 .OrderBy(static project => project.Name, StringComparer.Ordinal)
-                .ToArray(),
-        };
+                .ToArray());
     }
 
     public async ValueTask<ToolResolutionResult<ISymbol, TResponse>> ResolveSymbolAsync<TResponse>(
@@ -123,24 +105,18 @@ internal sealed class DefaultToolRequestResolver : IToolRequestResolver
         var snapshotRejection = selector?.Location is not null ? ValidateSnapshot<TResponse>(context, expectedSnapshot) : null;
         if (snapshotRejection is not null)
         {
-            return new ToolResolutionResult<ISymbol, TResponse>
-            {
-                Rejection = snapshotRejection,
-            };
+            return ToolResolutionResult<ISymbol, TResponse>.Rejected(snapshotRejection);
         }
 
         if (selector is null)
         {
-            return new ToolResolutionResult<ISymbol, TResponse>
-            {
-                Rejection = ToolExecutionHelpers.Rejected<TResponse>("InvalidRequest", "A symbol selector is required."),
-            };
+            return ToolResolutionResult<ISymbol, TResponse>.Rejected(ToolExecutionHelpers.Rejected<TResponse>("InvalidRequest", "A symbol selector is required."));
         }
 
         var resolution = await context.WorkspaceResolver.ResolveSymbolAsync(selector, cancellationToken);
         return resolution.IsResolved
-            ? new ToolResolutionResult<ISymbol, TResponse> { Value = resolution.Value }
-            : new ToolResolutionResult<ISymbol, TResponse> { Rejection = ToolExecutionHelpers.RejectFromStatus<TResponse>(resolution.Status, "Symbol", "symbol") };
+            ? ToolResolutionResult<ISymbol, TResponse>.Resolved(resolution.Value)
+            : ToolResolutionResult<ISymbol, TResponse>.Rejected(ToolExecutionHelpers.RejectFromStatus<TResponse>(resolution.Status, "Symbol", "symbol"));
     }
 
     public PluginExecutionResult<TResponse>? ValidateSnapshot<TResponse>(IToolExecutionContext context, SnapshotPrecondition? expectedSnapshot)

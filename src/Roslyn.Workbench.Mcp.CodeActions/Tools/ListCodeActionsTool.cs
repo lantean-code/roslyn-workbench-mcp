@@ -8,17 +8,20 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
     private readonly ICodeActionDiscoveryService _discoveryService;
     private readonly ICodeActionDiagnosticService _diagnosticService;
     private readonly ICodeActionInfoFactory _infoFactory;
+    private readonly ICodeActionToolRequestResolver _requestResolver;
 
     public ListCodeActionsTool(
         ICodeActionProviderCatalog providerCatalog,
         ICodeActionDiscoveryService discoveryService,
         ICodeActionDiagnosticService diagnosticService,
-        ICodeActionInfoFactory infoFactory)
+        ICodeActionInfoFactory infoFactory,
+        ICodeActionToolRequestResolver requestResolver)
     {
         _providerCatalog = providerCatalog;
         _discoveryService = discoveryService;
         _diagnosticService = diagnosticService;
         _infoFactory = infoFactory;
+        _requestResolver = requestResolver;
     }
 
     protected override async ValueTask<CodeActionExecutionResult<CodeActionListData>> ExecuteCoreAsync(
@@ -31,33 +34,25 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
             return CodeActionsUnavailable<CodeActionListData>();
         }
 
-        var snapshotRejection = ValidateSnapshot<CodeActionListData>(context.WorkspaceResolver, request.ExpectedSnapshot);
+        var snapshotRejection = _requestResolver.ValidateSnapshot<CodeActionListData>(
+            context,
+            request.ExpectedSnapshot);
         if (snapshotRejection is not null)
         {
             return snapshotRejection;
         }
 
-        if (request.Location is null)
+        var locationResolution = await _requestResolver.ResolveLocationAsync<CodeActionListData>(
+            request.Location,
+            context,
+            cancellationToken);
+        if (locationResolution.HasRejection)
         {
-            return Rejected<CodeActionListData>("InvalidRequest", "A location selector is required.");
+            return locationResolution.Rejection;
         }
 
-        var location = await context.WorkspaceResolver.ResolveLocationAsync(request.Location, cancellationToken);
-        if (location.Status != SelectorResolveStatus.Resolved || location.Value is null)
-        {
-            return RejectFromStatus<CodeActionListData>(location.Status, "Location", "location");
-        }
-
-        var document = context.CurrentSolution.GetDocument(location.Value.SourceTree);
-        if (document is null)
-        {
-            return Rejected<CodeActionListData>(
-                "LocationNotFound",
-                "The location selector did not resolve to a source document.",
-                RequiredAction.ResolveTargetAgain);
-        }
-
-        var span = location.Value.SourceSpan;
+        var document = locationResolution.Value.Document;
+        var span = locationResolution.Value.Span;
         var discovered = new List<DiscoveredCodeAction>();
         if (request.IncludeRefactorings)
         {

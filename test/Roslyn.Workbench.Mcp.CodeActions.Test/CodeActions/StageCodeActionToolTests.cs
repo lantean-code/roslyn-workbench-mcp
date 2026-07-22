@@ -11,16 +11,16 @@ public sealed class StageCodeActionToolTests
             ActionId = "ActionId",
         };
         var context = new Mock<ICodeActionMutationContext>();
-        var replayService = new Mock<ICodeActionReplayService>();
-        var target = new StageCodeActionTool(replayService.Object);
+        var tokenStager = new Mock<ICodeActionTokenStager>();
+        var target = new StageCodeActionTool(tokenStager.Object);
 
-        replayService
+        tokenStager
             .Setup(item => item.StageCodeActionAsync(request, context.Object, CancellationToken.None))
             .ReturnsAsync(expected);
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        replayService.Verify(item => item.StageCodeActionAsync(request, context.Object, CancellationToken.None), Times.Once);
+        tokenStager.Verify(item => item.StageCodeActionAsync(request, context.Object, CancellationToken.None), Times.Once);
     }
 }

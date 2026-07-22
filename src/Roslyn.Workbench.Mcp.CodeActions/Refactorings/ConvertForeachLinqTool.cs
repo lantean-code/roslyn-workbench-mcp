@@ -7,11 +7,11 @@ internal sealed class ConvertForeachLinqTool : CodeActionMutationToolHandler<Con
     private const string ForEachToLinqProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertLinq.ConvertForEachToLinqQuery.CSharpConvertForEachToLinqQueryProvider";
     private const string LinqToForEachProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertLinq.CSharpConvertLinqQueryToForEachProvider";
 
-    private readonly ICodeActionReplayService _replayService;
+    private readonly ICodeActionSelectionStager _selectionStager;
 
-    public ConvertForeachLinqTool(ICodeActionReplayService replayService)
+    public ConvertForeachLinqTool(ICodeActionSelectionStager selectionStager)
     {
-        _replayService = replayService;
+        _selectionStager = selectionStager;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(ConvertForeachLinqRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
@@ -53,6 +53,6 @@ internal sealed class ConvertForeachLinqTool : CodeActionMutationToolHandler<Con
             },
         };
 
-        return _replayService.StageReplayCodeActionAsync(replayRequest, context, cancellationToken);
+        return _selectionStager.StageReplayCodeActionAsync(replayRequest, context, cancellationToken);
     }
 }

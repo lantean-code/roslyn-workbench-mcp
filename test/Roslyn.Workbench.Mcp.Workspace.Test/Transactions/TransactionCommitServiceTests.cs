@@ -693,7 +693,25 @@ public sealed class TransactionCommitServiceTests : IDisposable
 
     private static WorkspaceOperationResult<TransactionCommitOutcome> CreateResult(WorkspaceOperationStatus status)
     {
-        return new() { Status = status };
+        if (status == WorkspaceOperationStatus.Succeeded)
+        {
+            return WorkspaceOperationResult<TransactionCommitOutcome>.Succeeded(new TransactionCommitOutcome());
+        }
+
+        if (status == WorkspaceOperationStatus.NoChange)
+        {
+            return WorkspaceOperationResult<TransactionCommitOutcome>.NoChange();
+        }
+
+        var error = new WorkspaceOperationError { Code = "Code", Message = "Message" };
+
+        return status switch
+        {
+            WorkspaceOperationStatus.Rejected => WorkspaceOperationResult<TransactionCommitOutcome>.Rejected(error),
+            WorkspaceOperationStatus.Conflict => WorkspaceOperationResult<TransactionCommitOutcome>.Conflict(error),
+            WorkspaceOperationStatus.Faulted => WorkspaceOperationResult<TransactionCommitOutcome>.Faulted(error),
+            _ => throw new ArgumentOutOfRangeException(nameof(status), status, "A supported workspace status is required."),
+        };
     }
 
     private static WorkspaceCommitLockAcquisition CreateLockAcquisition(bool lockAvailable)

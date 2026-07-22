@@ -17,10 +17,7 @@ public sealed class SearchSymbolsToolTests
             .Setup(item => item.ResolveProjects<SymbolSearchData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Project>, SymbolSearchData>
-            {
-                Rejection = expected,
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Project>, SymbolSearchData>.Rejected(expected));
 
         var result = await target.ExecuteAsync(new SearchSymbolsRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -57,10 +54,7 @@ public sealed class SearchSymbolsToolTests
             .Setup(item => item.ResolveProjects<SymbolSearchData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Project>, SymbolSearchData>
-            {
-                Value = [project],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Project>, SymbolSearchData>.Resolved([project]));
 
         var result = await target.ExecuteAsync(new SearchSymbolsRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -85,10 +79,7 @@ public sealed class SearchSymbolsToolTests
             .Setup(item => item.ResolveProjects<SymbolSearchData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Project>, SymbolSearchData>
-            {
-                Value = [project],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Project>, SymbolSearchData>.Resolved([project]));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(CreateSearchSymbolReference);
@@ -119,10 +110,7 @@ public sealed class SearchSymbolsToolTests
             .Setup(item => item.ResolveProjects<SymbolSearchData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Project>, SymbolSearchData>
-            {
-                Value = [project],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Project>, SymbolSearchData>.Resolved([project]));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(CreateSearchSymbolReference);
@@ -153,10 +141,7 @@ public sealed class SearchSymbolsToolTests
             .Setup(item => item.ResolveProjects<SymbolSearchData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Project>, SymbolSearchData>
-            {
-                Value = [project],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Project>, SymbolSearchData>.Resolved([project]));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(CreateSearchSymbolReference);
@@ -187,10 +172,7 @@ public sealed class SearchSymbolsToolTests
             .Setup(item => item.ResolveProjects<SymbolSearchData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Project>, SymbolSearchData>
-            {
-                Value = [project],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Project>, SymbolSearchData>.Resolved([project]));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(CreateSearchSymbolReference);
@@ -242,10 +224,7 @@ public sealed class SearchSymbolsToolTests
             .Setup(item => item.ResolveProjects<SymbolSearchData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Project>, SymbolSearchData>
-            {
-                Value = [project],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Project>, SymbolSearchData>.Resolved([project]));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(CreateSearchSymbolReference);
@@ -276,10 +255,7 @@ public sealed class SearchSymbolsToolTests
             .Setup(item => item.ResolveProjects<SymbolSearchData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Project>, SymbolSearchData>
-            {
-                Value = [project],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Project>, SymbolSearchData>.Resolved([project]));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(CreateSearchSymbolReference);
@@ -314,10 +290,7 @@ public sealed class SearchSymbolsToolTests
             .Setup(item => item.ResolveProjects<SymbolSearchData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Project>, SymbolSearchData>
-            {
-                Value = [project],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Project>, SymbolSearchData>.Resolved([project]));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item =>
@@ -364,10 +337,7 @@ public sealed class SearchSymbolsToolTests
             .Setup(item => item.ResolveProjects<SymbolSearchData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Project>, SymbolSearchData>
-            {
-                Value = [project],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Project>, SymbolSearchData>.Resolved([project]));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item =>
@@ -417,10 +387,7 @@ public sealed class SearchSymbolsToolTests
             .Setup(item => item.ResolveProjects<SymbolSearchData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Project>, SymbolSearchData>
-            {
-                Value = [project],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Project>, SymbolSearchData>.Resolved([project]));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(CreateSearchSymbolReference);
@@ -452,10 +419,7 @@ public sealed class SearchSymbolsToolTests
             .Setup(item => item.ResolveProjects<SymbolSearchData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Project>, SymbolSearchData>
-            {
-                Value = [project],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Project>, SymbolSearchData>.Resolved([project]));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(CreateSearchSymbolReference);

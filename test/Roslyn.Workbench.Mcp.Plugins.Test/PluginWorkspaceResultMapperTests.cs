@@ -51,32 +51,34 @@ public sealed class PluginWorkspaceResultMapperTests
         }
     }
 
-    [Fact]
-    public void GIVEN_UnsupportedWorkspaceStatus_WHEN_MappingMutation_THEN_ShouldThrowInvalidOperationException()
-    {
-        var action = () => PluginWorkspaceResultMapper.MapMutation(
-            CreateMutationResult((WorkspaceOperationStatus)999));
-
-        action.Should().Throw<InvalidOperationException>();
-    }
-
     private static WorkspaceOperationResult<MutationStagingOutcome> CreateMutationResult(WorkspaceOperationStatus status)
     {
-        return new WorkspaceOperationResult<MutationStagingOutcome>
+        if (status == WorkspaceOperationStatus.Succeeded)
         {
-            Status = status,
-            Data = status == WorkspaceOperationStatus.Succeeded
-                ? new MutationStagingOutcome
-                {
-                    Operation = "Operation",
-                    Summary = "Summary",
-                    Transaction = new TransactionInfo(),
-                    Preview = new MutationPreview(),
-                }
-                : null,
-            Error = status is WorkspaceOperationStatus.Rejected or WorkspaceOperationStatus.Conflict or WorkspaceOperationStatus.Faulted
-                ? CreateError()
-                : null,
+            var data = new MutationStagingOutcome
+            {
+                Operation = "Operation",
+                Summary = "Summary",
+                Transaction = new TransactionInfo(),
+                Preview = new MutationPreview(),
+            };
+
+            return WorkspaceOperationResult<MutationStagingOutcome>.Succeeded(data);
+        }
+
+        if (status == WorkspaceOperationStatus.NoChange)
+        {
+            return WorkspaceOperationResult<MutationStagingOutcome>.NoChange();
+        }
+
+        var error = CreateError();
+
+        return status switch
+        {
+            WorkspaceOperationStatus.Rejected => WorkspaceOperationResult<MutationStagingOutcome>.Rejected(error),
+            WorkspaceOperationStatus.Conflict => WorkspaceOperationResult<MutationStagingOutcome>.Conflict(error),
+            WorkspaceOperationStatus.Faulted => WorkspaceOperationResult<MutationStagingOutcome>.Faulted(error),
+            _ => throw new ArgumentOutOfRangeException(nameof(status), status, "A supported workspace status is required."),
         };
     }
 

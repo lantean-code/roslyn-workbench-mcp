@@ -17,18 +17,14 @@ public sealed class TransactionCommitToolTests
                 ServerOwnedToolTestData.GetWorkspacePath(includeWorkspace),
                 null,
                 CancellationToken.None))
-            .ReturnsAsync(new WorkspaceOperationResult<TransactionCommitOutcome>
+            .ReturnsAsync(WorkspaceOperationResult<TransactionCommitOutcome>.Succeeded(new TransactionCommitOutcome
             {
-                Status = WorkspaceOperationStatus.Succeeded,
-                Data = new TransactionCommitOutcome
+                Committed = true,
+                Transaction = new TransactionInfo
                 {
-                    Committed = true,
-                    Transaction = new TransactionInfo
-                    {
-                        Revision = 4,
-                    },
+                    Revision = 4,
                 },
-            });
+            }));
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var target = new TransactionCommitTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
 

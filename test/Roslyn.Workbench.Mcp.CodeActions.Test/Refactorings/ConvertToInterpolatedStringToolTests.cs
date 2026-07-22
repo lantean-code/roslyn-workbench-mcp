@@ -1,3 +1,5 @@
+using Microsoft.CodeAnalysis.Text;
+
 namespace Roslyn.Workbench.Mcp.CodeActions.Test.Refactorings;
 
 public sealed class ConvertToInterpolatedStringToolTests
@@ -20,8 +22,8 @@ public sealed class ConvertToInterpolatedStringToolTests
                 WorkspaceEpoch = 1,
             },
         };
-        var replayService = new Mock<ICodeActionReplayService>();
-        var target = new ConvertToInterpolatedStringTool(replayService.Object);
+        var selectionStager = new Mock<ICodeActionSelectionStager>();
+        var target = CreateTarget(selectionStager.Object);
 
         context
             .Setup(item => item.WorkspaceResolver)
@@ -36,7 +38,7 @@ public sealed class ConvertToInterpolatedStringToolTests
         workspaceResolver.Verify(
             item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()),
             Times.Never);
-        replayService.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), context.Object, It.IsAny<CancellationToken>()), Times.Never);
+        selectionStager.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), context.Object, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -52,8 +54,8 @@ public sealed class ConvertToInterpolatedStringToolTests
                 WorkspaceEpoch = 1,
             },
         };
-        var replayService = new Mock<ICodeActionReplayService>();
-        var target = new ConvertToInterpolatedStringTool(replayService.Object);
+        var selectionStager = new Mock<ICodeActionSelectionStager>();
+        var target = CreateTarget(selectionStager.Object);
 
         context
             .Setup(item => item.WorkspaceResolver)
@@ -70,7 +72,7 @@ public sealed class ConvertToInterpolatedStringToolTests
         workspaceResolver.Verify(
             item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()),
             Times.Never);
-        replayService.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), context.Object, It.IsAny<CancellationToken>()), Times.Never);
+        selectionStager.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), context.Object, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -86,8 +88,8 @@ public sealed class ConvertToInterpolatedStringToolTests
                 WorkspaceEpoch = 1,
             },
         };
-        var replayService = new Mock<ICodeActionReplayService>();
-        var target = new ConvertToInterpolatedStringTool(replayService.Object);
+        var selectionStager = new Mock<ICodeActionSelectionStager>();
+        var target = CreateTarget(selectionStager.Object);
 
         context
             .Setup(item => item.WorkspaceResolver)
@@ -104,7 +106,7 @@ public sealed class ConvertToInterpolatedStringToolTests
         result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
         result.Error.Should().NotBeNull();
         result.Error!.Code.Should().Be("LocationNotFound");
-        replayService.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), context.Object, It.IsAny<CancellationToken>()), Times.Never);
+        selectionStager.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), context.Object, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -113,7 +115,8 @@ public sealed class ConvertToInterpolatedStringToolTests
         var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var workspaceResolver = new Mock<IWorkspaceResolver>();
         var context = new Mock<ICodeActionMutationContext>();
-        var location = Location.None;
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var location = await CreateLocationAsync(roslyn.Document);
         var request = new ConvertToInterpolatedStringRequest
         {
             Selection = new LocationSelector(),
@@ -122,19 +125,20 @@ public sealed class ConvertToInterpolatedStringToolTests
                 WorkspaceEpoch = 1,
             },
         };
-        var replayService = new Mock<ICodeActionReplayService>();
-        var target = new ConvertToInterpolatedStringTool(replayService.Object);
+        var selectionStager = new Mock<ICodeActionSelectionStager>();
+        var target = CreateTarget(selectionStager.Object);
 
         context
             .Setup(item => item.WorkspaceResolver)
             .Returns(workspaceResolver.Object);
+        context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
         workspaceResolver
             .Setup(item => item.ValidateSnapshot(request.ExpectedSnapshot))
             .Returns(SnapshotMatchResult.Matched());
         workspaceResolver
             .Setup(item => item.ResolveLocationAsync(request.Selection, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
-        replayService
+        selectionStager
             .Setup(item => item.StageReplayCodeActionAsync(
                 It.Is<ReplayCodeActionRequest>(replayRequest =>
                     replayRequest.Location == request.Selection
@@ -147,12 +151,25 @@ public sealed class ConvertToInterpolatedStringToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        replayService.Verify(item => item.StageReplayCodeActionAsync(
+        selectionStager.Verify(item => item.StageReplayCodeActionAsync(
             It.Is<ReplayCodeActionRequest>(replayRequest =>
                 replayRequest.Location == request.Selection
                 && replayRequest.ExpectedSnapshot == request.ExpectedSnapshot
                 && replayRequest.Title == "Convert to interpolated string"
                 && replayRequest.EquivalenceKey == "Convert_to_interpolated_string"),
             context.Object, CancellationToken.None), Times.Once);
+    }
+
+    private static ConvertToInterpolatedStringTool CreateTarget(ICodeActionSelectionStager selectionStager)
+    {
+        var requestResolver = new CodeActionToolRequestResolver(new CodeActionScopeResolver());
+
+        return new ConvertToInterpolatedStringTool(selectionStager, requestResolver);
+    }
+
+    private static async Task<Location> CreateLocationAsync(Document document)
+    {
+        var syntaxTree = await document.GetSyntaxTreeAsync(CancellationToken.None);
+        return Location.Create(syntaxTree!, new TextSpan(0, 1));
     }
 }

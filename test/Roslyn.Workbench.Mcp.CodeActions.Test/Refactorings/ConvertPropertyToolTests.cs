@@ -16,11 +16,11 @@ public sealed class ConvertPropertyToolTests
             },
             Direction = ConvertPropertyDirection.ToFull,
         };
-        var replayService = new Mock<ICodeActionReplayService>();
-        var locationFixService = new Mock<ICodeActionLocationFixService>();
-        var target = new ConvertPropertyTool(replayService.Object, locationFixService.Object);
+        var selectionStager = new Mock<ICodeActionSelectionStager>();
+        var locationFixStager = new Mock<ILocationCodeFixStager>();
+        var target = new ConvertPropertyTool(selectionStager.Object, locationFixStager.Object);
 
-        replayService
+        selectionStager
             .Setup(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
@@ -37,7 +37,7 @@ public sealed class ConvertPropertyToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        replayService.Verify(item => item.StageSelectionAsync(
+        selectionStager.Verify(item => item.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             CancellationToken.None,
@@ -64,11 +64,11 @@ public sealed class ConvertPropertyToolTests
             },
             Direction = ConvertPropertyDirection.ToAutoWhenSafe,
         };
-        var replayService = new Mock<ICodeActionReplayService>();
-        var locationFixService = new Mock<ICodeActionLocationFixService>();
-        var target = new ConvertPropertyTool(replayService.Object, locationFixService.Object);
+        var selectionStager = new Mock<ICodeActionSelectionStager>();
+        var locationFixStager = new Mock<ILocationCodeFixStager>();
+        var target = new ConvertPropertyTool(selectionStager.Object, locationFixStager.Object);
 
-        locationFixService
+        locationFixStager
             .Setup(item => item.StageLocationCodeFixAsync(
                 It.Is<LocationCodeFixRequest>(stageRequest =>
                     stageRequest.Location == request.Selection
@@ -86,7 +86,7 @@ public sealed class ConvertPropertyToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        locationFixService.Verify(item => item.StageLocationCodeFixAsync(
+        locationFixStager.Verify(item => item.StageLocationCodeFixAsync(
             It.Is<LocationCodeFixRequest>(stageRequest =>
                 stageRequest.Location == request.Selection
                 && stageRequest.ExpectedSnapshot == request.ExpectedSnapshot
@@ -109,15 +109,15 @@ public sealed class ConvertPropertyToolTests
             Selection = new LocationSelector(),
             Direction = (ConvertPropertyDirection)999,
         };
-        var replayService = new Mock<ICodeActionReplayService>();
-        var locationFixService = new Mock<ICodeActionLocationFixService>();
-        var target = new ConvertPropertyTool(replayService.Object, locationFixService.Object);
+        var selectionStager = new Mock<ICodeActionSelectionStager>();
+        var locationFixStager = new Mock<ILocationCodeFixStager>();
+        var target = new ConvertPropertyTool(selectionStager.Object, locationFixStager.Object);
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("InvalidRequest");
-        replayService.Verify(item => item.StageSelectionAsync(
+        selectionStager.Verify(item => item.StageSelectionAsync(
             It.IsAny<LocationSelector?>(),
             It.IsAny<SnapshotPrecondition?>(),
             It.IsAny<CancellationToken>(),
@@ -128,7 +128,7 @@ public sealed class ConvertPropertyToolTests
             It.IsAny<string?>(),
             It.IsAny<string?>(),
             It.IsAny<IReadOnlyList<int>?>()), Times.Never);
-        locationFixService.Verify(item => item.StageLocationCodeFixAsync(
+        locationFixStager.Verify(item => item.StageLocationCodeFixAsync(
             It.IsAny<LocationCodeFixRequest>(),
             context.Object,
             It.IsAny<CancellationToken>()), Times.Never);

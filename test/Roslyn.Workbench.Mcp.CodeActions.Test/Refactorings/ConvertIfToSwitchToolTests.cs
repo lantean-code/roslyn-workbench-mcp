@@ -16,10 +16,10 @@ public sealed class ConvertIfToSwitchToolTests
             },
             Kind = ConvertIfToSwitchKind.Statement,
         };
-        var replayService = new Mock<ICodeActionReplayService>();
-        var target = new ConvertIfToSwitchTool(replayService.Object);
+        var selectionStager = new Mock<ICodeActionSelectionStager>();
+        var target = new ConvertIfToSwitchTool(selectionStager.Object);
 
-        replayService
+        selectionStager
             .Setup(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
@@ -36,7 +36,7 @@ public sealed class ConvertIfToSwitchToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        replayService.Verify(item => item.StageSelectionAsync(
+        selectionStager.Verify(item => item.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             CancellationToken.None,
@@ -63,10 +63,10 @@ public sealed class ConvertIfToSwitchToolTests
             },
             Kind = ConvertIfToSwitchKind.Expression,
         };
-        var replayService = new Mock<ICodeActionReplayService>();
-        var target = new ConvertIfToSwitchTool(replayService.Object);
+        var selectionStager = new Mock<ICodeActionSelectionStager>();
+        var target = new ConvertIfToSwitchTool(selectionStager.Object);
 
-        replayService
+        selectionStager
             .Setup(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
@@ -83,7 +83,7 @@ public sealed class ConvertIfToSwitchToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        replayService.Verify(item => item.StageSelectionAsync(
+        selectionStager.Verify(item => item.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             CancellationToken.None,

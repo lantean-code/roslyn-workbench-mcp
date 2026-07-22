@@ -1181,6 +1181,6 @@ public sealed class TransactionServiceTests : IDisposable
 
     private static WorkspaceOperationResult<TOutcome> CreateResult<TOutcome>()
     {
-        return new WorkspaceOperationResult<TOutcome>();
+        return WorkspaceOperationResult<TOutcome>.NoChange();
     }
 }

@@ -2,28 +2,31 @@ using static Roslyn.Workbench.Mcp.CodeActions.Execution.CodeActionExecutionResul
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Execution;
 
-internal sealed class CodeActionFixAllService : ICodeActionFixAllService
+internal sealed class CodeActionFixAllStager : ICodeActionFixAllStager
 {
     private readonly ICodeActionProviderCatalog _providerCatalog;
     private readonly ICodeActionDiscoveryService _discoveryService;
-    private readonly ICodeActionResolutionService _resolutionService;
-    private readonly ICodeActionOperationService _operationService;
-    private readonly ICodeActionScopeResolver _scopeResolver;
+    private readonly ICodeActionResolver _resolver;
+    private readonly ICodeActionEvaluator _evaluator;
+    private readonly IFixAllActionFactory _fixAllActionFactory;
+    private readonly ICodeActionToolRequestResolver _requestResolver;
     private readonly ICodeActionSolutionChangeCounter _solutionChangeCounter;
 
-    public CodeActionFixAllService(
+    public CodeActionFixAllStager(
         ICodeActionProviderCatalog providerCatalog,
         ICodeActionDiscoveryService discoveryService,
-        ICodeActionResolutionService resolutionService,
-        ICodeActionOperationService operationService,
-        ICodeActionScopeResolver scopeResolver,
+        ICodeActionResolver resolver,
+        ICodeActionEvaluator evaluator,
+        IFixAllActionFactory fixAllActionFactory,
+        ICodeActionToolRequestResolver requestResolver,
         ICodeActionSolutionChangeCounter solutionChangeCounter)
     {
         _providerCatalog = providerCatalog;
         _discoveryService = discoveryService;
-        _resolutionService = resolutionService;
-        _operationService = operationService;
-        _scopeResolver = scopeResolver;
+        _resolver = resolver;
+        _evaluator = evaluator;
+        _fixAllActionFactory = fixAllActionFactory;
+        _requestResolver = requestResolver;
         _solutionChangeCounter = solutionChangeCounter;
     }
 
@@ -72,10 +75,7 @@ internal sealed class CodeActionFixAllService : ICodeActionFixAllService
             FixAllProvider = fixAllProvider,
         };
 
-        var scopeResolution = _scopeResolver.Resolve(
-            scope,
-            context.CurrentSolution,
-            context.WorkspaceResolver);
+        var scopeResolution = _requestResolver.ResolveScope(scope, context);
         if (scopeResolution.HasRejection)
         {
             return scopeResolution.Rejection;
@@ -87,9 +87,9 @@ internal sealed class CodeActionFixAllService : ICodeActionFixAllService
             scopeResolution,
             context.CurrentSolution,
             cancellationToken);
-        if (application.HasRejection)
+        if (application.HasFailure)
         {
-            return application.Rejection;
+            return Rejected<WorkspaceMutationCandidate>(application.Failure);
         }
 
         var limitRejection = await EnforceChangeLimitAsync(
@@ -112,7 +112,7 @@ internal sealed class CodeActionFixAllService : ICodeActionFixAllService
         ICodeActionExecutionContext context,
         CancellationToken cancellationToken)
     {
-        return _resolutionService.ResolveActionAsync<WorkspaceMutationCandidate>(
+        return _resolver.ResolveActionAsync<WorkspaceMutationCandidate>(
             request.ActionId,
             request.ExpectedSnapshot,
             DiscoveredActionKind.CodeFix,
@@ -142,9 +142,9 @@ internal sealed class CodeActionFixAllService : ICodeActionFixAllService
             ScopeKind.Document => ApplyDocumentAsync(operation, scopeResolution, currentSolution, cancellationToken),
             ScopeKind.Project => ApplyProjectAsync(operation, scopeResolution, currentSolution, cancellationToken),
             ScopeKind.Projects => ApplyProjectsAsync(operation, scopeResolution, currentSolution, cancellationToken),
-            _ => ValueTask.FromResult(RejectedApplication(Rejected<WorkspaceMutationCandidate>(
-                "InvalidRequest",
-                "The requested scope kind is not supported for fix-all."))),
+            _ => ValueTask.FromResult(FailedApplication(
+                CodeActionApplyFailureKind.InvalidRequest,
+                "The requested scope kind is not supported for fix-all.")),
         };
     }
 
@@ -156,7 +156,9 @@ internal sealed class CodeActionFixAllService : ICodeActionFixAllService
         var originDocument = currentSolution.GetDocument(operation.OriginDocument.Id);
         if (originDocument is null)
         {
-            return RejectedApplication(ActionExpired<WorkspaceMutationCandidate>());
+            return FailedApplication(
+                CodeActionApplyFailureKind.ActionExpired,
+                "The requested action token is no longer valid.");
         }
 
         return await ApplyDocumentFixAllAsync(
@@ -175,10 +177,9 @@ internal sealed class CodeActionFixAllService : ICodeActionFixAllService
         var targetDocument = currentSolution.GetDocument(scopeResolution.Documents[0].Id);
         if (targetDocument is null)
         {
-            return RejectedApplication(Rejected<WorkspaceMutationCandidate>(
-                "DocumentNotFound",
-                "The document selector did not resolve to a source document.",
-                RequiredAction.ResolveTargetAgain));
+            return FailedApplication(
+                CodeActionApplyFailureKind.DocumentNotFound,
+                "The document selector did not resolve to a source document.");
         }
 
         return await ApplyDocumentFixAllAsync(
@@ -197,7 +198,7 @@ internal sealed class CodeActionFixAllService : ICodeActionFixAllService
         var targetProject = currentSolution.GetProject(scopeResolution.Projects[0].Id);
         if (targetProject is null)
         {
-            return RejectedApplication(ProjectNotFound());
+            return ProjectNotFound();
         }
 
         return await ApplyProjectFixAllAsync(
@@ -217,14 +218,14 @@ internal sealed class CodeActionFixAllService : ICodeActionFixAllService
             var targetProject = workingSolution.GetProject(selectedProject.Id);
             if (targetProject is null)
             {
-                return RejectedApplication(ProjectNotFound());
+                return ProjectNotFound();
             }
 
             var application = await ApplyProjectFixAllAsync(
                 operation,
                 targetProject,
                 cancellationToken);
-            if (application.HasRejection)
+            if (application.HasFailure)
             {
                 return application;
             }
@@ -232,10 +233,7 @@ internal sealed class CodeActionFixAllService : ICodeActionFixAllService
             workingSolution = application.CandidateSolution;
         }
 
-        return new CodeActionApplyResult
-        {
-            CandidateSolution = workingSolution,
-        };
+        return CodeActionApplyResult.Applied(workingSolution);
     }
 
     private async ValueTask<CodeActionApplyResult> ApplyDocumentFixAllAsync(
@@ -244,7 +242,7 @@ internal sealed class CodeActionFixAllService : ICodeActionFixAllService
         FixAllScope scope,
         CancellationToken cancellationToken)
     {
-        return await _operationService.ApplyFixAllAsync(
+        var creation = await _fixAllActionFactory.CreateAsync(
             operation.Provider,
             operation.FixAllProvider,
             document,
@@ -254,6 +252,17 @@ internal sealed class CodeActionFixAllService : ICodeActionFixAllService
             operation.Action.EquivalenceKey,
             syntheticDiagnosticId: null,
             cancellationToken);
+        if (creation.HasFailure)
+        {
+            return CodeActionApplyResult.Failed(
+                CodeActionApplyFailureKind.FixAllUnavailable,
+                creation.Failure.Message);
+        }
+
+        return await _evaluator.EvaluateAsync(
+            creation.Action,
+            document.Project.Solution,
+            cancellationToken);
     }
 
     private async ValueTask<CodeActionApplyResult> ApplyProjectFixAllAsync(
@@ -261,13 +270,24 @@ internal sealed class CodeActionFixAllService : ICodeActionFixAllService
         Project project,
         CancellationToken cancellationToken)
     {
-        return await _operationService.ApplyFixAllAsync(
+        var creation = await _fixAllActionFactory.CreateAsync(
             operation.Provider,
             operation.FixAllProvider,
             project,
             operation.Action.DiagnosticIds,
             operation.Action.EquivalenceKey,
             syntheticDiagnosticId: null,
+            cancellationToken);
+        if (creation.HasFailure)
+        {
+            return CodeActionApplyResult.Failed(
+                CodeActionApplyFailureKind.FixAllUnavailable,
+                creation.Failure.Message);
+        }
+
+        return await _evaluator.EvaluateAsync(
+            creation.Action,
+            project.Solution,
             cancellationToken);
     }
 
@@ -304,21 +324,24 @@ internal sealed class CodeActionFixAllService : ICodeActionFixAllService
         });
     }
 
-    private static CodeActionExecutionResult<WorkspaceMutationCandidate> ProjectNotFound()
+    private static CodeActionApplyResult ProjectNotFound()
     {
-        return Rejected<WorkspaceMutationCandidate>(
-            "ProjectNotFound",
-            "The project selector did not resolve to a source project.",
-            RequiredAction.ResolveTargetAgain);
+        return FailedApplication(
+            CodeActionApplyFailureKind.ProjectNotFound,
+            "The project selector did not resolve to a source project.");
     }
 
-    private static CodeActionApplyResult RejectedApplication(
-        CodeActionExecutionResult<WorkspaceMutationCandidate> rejection)
+    private static CodeActionApplyResult FailedApplication(
+        CodeActionApplyFailureKind kind,
+        string message)
     {
-        return new CodeActionApplyResult
+        var failure = new CodeActionApplyFailure
         {
-            Rejection = rejection,
+            Kind = kind,
+            Message = message,
         };
+
+        return CodeActionApplyResult.Failed(failure);
     }
 
     private sealed record FixAllOperation

@@ -12,37 +12,37 @@ public sealed record PluginExecutionResult<TResponse>
     /// <summary>
     /// Gets the outcome kind.
     /// </summary>
-    public PluginExecutionOutcome Outcome { get; private init; }
+    public PluginExecutionOutcome Outcome { get; }
 
     /// <summary>
     /// Gets the successful response payload, when present.
     /// </summary>
-    public TResponse? Data { get; private init; }
+    public TResponse? Data { get; }
 
     /// <summary>
     /// Gets the top-level change summary, when present.
     /// </summary>
-    public ChangeSummary? Changes { get; private init; }
+    public ChangeSummary? Changes { get; }
 
     /// <summary>
     /// Gets the structured error payload, when present.
     /// </summary>
-    public PluginExecutionError? Error { get; private init; }
+    public PluginExecutionError? Error { get; }
 
     /// <summary>
     /// Gets the optional continuation hint.
     /// </summary>
-    public RequiredAction? RequiredAction { get; private init; }
+    public RequiredAction? RequiredAction { get; }
 
     /// <summary>
     /// Gets the diagnostics emitted by the handler.
     /// </summary>
-    public IReadOnlyList<DiagnosticInfo> Diagnostics { get; private init; } = [];
+    public IReadOnlyList<DiagnosticInfo> Diagnostics { get; }
 
     /// <summary>
     /// Gets the warnings emitted by the handler.
     /// </summary>
-    public IReadOnlyList<WarningInfo> Warnings { get; private init; } = [];
+    public IReadOnlyList<WarningInfo> Warnings { get; }
 
     /// <summary>
     /// Gets a value indicating whether the result completed successfully with response data.
@@ -56,8 +56,22 @@ public sealed record PluginExecutionResult<TResponse>
     [MemberNotNullWhen(true, nameof(Error))]
     public bool HasError => Outcome.IsError();
 
-    private PluginExecutionResult()
+    private PluginExecutionResult(
+        PluginExecutionOutcome outcome,
+        TResponse? data,
+        ChangeSummary? changes,
+        PluginExecutionError? error,
+        RequiredAction? requiredAction,
+        IReadOnlyList<DiagnosticInfo> diagnostics,
+        IReadOnlyList<WarningInfo> warnings)
     {
+        Outcome = outcome;
+        Data = data;
+        Changes = changes;
+        Error = error;
+        RequiredAction = requiredAction;
+        Diagnostics = diagnostics;
+        Warnings = warnings;
     }
 
     /// <summary>
@@ -74,14 +88,14 @@ public sealed record PluginExecutionResult<TResponse>
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
     {
-        return new PluginExecutionResult<TResponse>
-        {
-            Outcome = PluginExecutionOutcome.Succeeded,
-            Data = data,
-            Changes = changes,
-            Diagnostics = diagnostics ?? [],
-            Warnings = warnings ?? [],
-        };
+        return new PluginExecutionResult<TResponse>(
+            PluginExecutionOutcome.Succeeded,
+            data,
+            changes,
+            error: null,
+            requiredAction: null,
+            diagnostics ?? [],
+            warnings ?? []);
     }
 
     /// <summary>
@@ -96,13 +110,14 @@ public sealed record PluginExecutionResult<TResponse>
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
     {
-        return new PluginExecutionResult<TResponse>
-        {
-            Outcome = PluginExecutionOutcome.NoChange,
-            Data = data,
-            Diagnostics = diagnostics ?? [],
-            Warnings = warnings ?? [],
-        };
+        return new PluginExecutionResult<TResponse>(
+            PluginExecutionOutcome.NoChange,
+            data,
+            changes: null,
+            error: null,
+            requiredAction: null,
+            diagnostics ?? [],
+            warnings ?? []);
     }
 
     /// <summary>
@@ -119,14 +134,12 @@ public sealed record PluginExecutionResult<TResponse>
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
     {
-        return new PluginExecutionResult<TResponse>
-        {
-            Outcome = PluginExecutionOutcome.Rejected,
-            Error = error,
-            RequiredAction = requiredAction,
-            Diagnostics = diagnostics ?? [],
-            Warnings = warnings ?? [],
-        };
+        return CreateFailure(
+            PluginExecutionOutcome.Rejected,
+            error,
+            requiredAction,
+            diagnostics,
+            warnings);
     }
 
     /// <summary>
@@ -143,14 +156,12 @@ public sealed record PluginExecutionResult<TResponse>
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
     {
-        return new PluginExecutionResult<TResponse>
-        {
-            Outcome = PluginExecutionOutcome.Conflict,
-            Error = error,
-            RequiredAction = requiredAction,
-            Diagnostics = diagnostics ?? [],
-            Warnings = warnings ?? [],
-        };
+        return CreateFailure(
+            PluginExecutionOutcome.Conflict,
+            error,
+            requiredAction,
+            diagnostics,
+            warnings);
     }
 
     /// <summary>
@@ -167,14 +178,29 @@ public sealed record PluginExecutionResult<TResponse>
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
     {
-        return new PluginExecutionResult<TResponse>
-        {
-            Outcome = PluginExecutionOutcome.Faulted,
-            Error = error,
-            RequiredAction = requiredAction,
-            Diagnostics = diagnostics ?? [],
-            Warnings = warnings ?? [],
-        };
+        return CreateFailure(
+            PluginExecutionOutcome.Faulted,
+            error,
+            requiredAction,
+            diagnostics,
+            warnings);
+    }
+
+    private static PluginExecutionResult<TResponse> CreateFailure(
+        PluginExecutionOutcome outcome,
+        PluginExecutionError error,
+        RequiredAction? requiredAction,
+        IReadOnlyList<DiagnosticInfo>? diagnostics,
+        IReadOnlyList<WarningInfo>? warnings)
+    {
+        return new PluginExecutionResult<TResponse>(
+            outcome,
+            data: default,
+            changes: null,
+            error,
+            requiredAction,
+            diagnostics ?? [],
+            warnings ?? []);
     }
 }
 #pragma warning restore CA1000

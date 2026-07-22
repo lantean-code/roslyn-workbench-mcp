@@ -1,14 +1,8 @@
 namespace Roslyn.Workbench.Mcp.CodeActions.Execution;
 
-internal interface ICodeActionOperationService
+internal interface IFixAllActionFactory
 {
-    ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> CreateMutationCandidateAsync(
-        CodeAction action,
-        string summary,
-        ICodeActionExecutionContext context,
-        CancellationToken cancellationToken);
-
-    Task<CodeActionApplyResult> ApplyFixAllAsync(
+    Task<FixAllActionCreationResult> CreateAsync(
         CodeFixProvider provider,
         FixAllProvider fixAllProvider,
         Document document,
@@ -19,7 +13,7 @@ internal interface ICodeActionOperationService
         string? syntheticDiagnosticId,
         CancellationToken cancellationToken);
 
-    Task<CodeActionApplyResult> ApplyFixAllAsync(
+    Task<FixAllActionCreationResult> CreateAsync(
         CodeFixProvider provider,
         FixAllProvider fixAllProvider,
         Project project,

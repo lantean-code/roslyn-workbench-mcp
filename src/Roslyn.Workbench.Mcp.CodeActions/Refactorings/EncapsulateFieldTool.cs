@@ -6,16 +6,24 @@ internal sealed class EncapsulateFieldTool : CodeActionMutationToolHandler<Encap
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.EncapsulateField.EncapsulateFieldRefactoringProvider";
 
-    private readonly ICodeActionReplayService _replayService;
+    private readonly ICodeActionSelectionStager _selectionStager;
+    private readonly ICodeActionToolRequestResolver _requestResolver;
 
-    public EncapsulateFieldTool(ICodeActionReplayService replayService)
+    public EncapsulateFieldTool(
+        ICodeActionSelectionStager selectionStager,
+        ICodeActionToolRequestResolver requestResolver)
     {
-        _replayService = replayService;
+        _selectionStager = selectionStager;
+        _requestResolver = requestResolver;
     }
 
     protected override async ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(EncapsulateFieldRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
-        var symbolResolution = await CodeActionSelectorHelpers.ResolveSymbolAsync<WorkspaceMutationCandidate>(request.Field, request.ExpectedSnapshot, context, cancellationToken);
+        var symbolResolution = await _requestResolver.ResolveSymbolAsync<WorkspaceMutationCandidate>(
+            request.Field,
+            request.ExpectedSnapshot,
+            context,
+            cancellationToken);
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;
@@ -32,7 +40,8 @@ internal sealed class EncapsulateFieldTool : CodeActionMutationToolHandler<Encap
             return CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>("SymbolNotSupported", "The selected symbol does not resolve to a source location.", RequiredAction.ResolveTargetAgain);
         }
 
-        var locationSelector = CodeActionSelectorHelpers.CreateLocationSelector(context.WorkspaceResolver.CreateResolvedLocation(sourceLocation));
+        var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(sourceLocation);
+        var locationSelector = _requestResolver.CreateLocationSelector(resolvedLocation);
         if (locationSelector is null)
         {
             return CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>("SymbolNotSupported", "The selected symbol does not resolve to a replayable source span.", RequiredAction.ResolveTargetAgain);
@@ -51,7 +60,7 @@ internal sealed class EncapsulateFieldTool : CodeActionMutationToolHandler<Encap
             equivalenceKey = $"Encapsulate_field_colon_0_but_still_use_field_{fieldSymbol.Name}";
         }
 
-        return await _replayService.StageReplayCodeActionAsync(new ReplayCodeActionRequest
+        return await _selectionStager.StageReplayCodeActionAsync(new ReplayCodeActionRequest
         {
             Location = locationSelector,
             ExpectedSnapshot = request.ExpectedSnapshot,

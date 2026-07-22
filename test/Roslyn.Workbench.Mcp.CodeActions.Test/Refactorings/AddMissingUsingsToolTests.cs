@@ -10,14 +10,14 @@ public sealed class AddMissingUsingsToolTests
         {
             PreferGlobalUsings = true,
         };
-        var scopedFixService = new Mock<ICodeActionScopedFixService>();
-        var target = new AddMissingUsingsTool(scopedFixService.Object);
+        var scopedFixStager = new Mock<IScopedCodeFixStager>();
+        var target = new AddMissingUsingsTool(scopedFixStager.Object);
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("UnsupportedOption");
-        scopedFixService.Verify(item => item.StageScopedCodeFixAsync(
+        scopedFixStager.Verify(item => item.StageScopedCodeFixAsync(
             It.IsAny<ScopedCodeFixRequest>(),
             context.Object,
             It.IsAny<CancellationToken>()), Times.Never);
@@ -40,10 +40,10 @@ public sealed class AddMissingUsingsToolTests
             },
             PreferGlobalUsings = false,
         };
-        var scopedFixService = new Mock<ICodeActionScopedFixService>();
-        var target = new AddMissingUsingsTool(scopedFixService.Object);
+        var scopedFixStager = new Mock<IScopedCodeFixStager>();
+        var target = new AddMissingUsingsTool(scopedFixStager.Object);
 
-        scopedFixService
+        scopedFixStager
             .Setup(item => item.StageScopedCodeFixAsync(
                 It.Is<ScopedCodeFixRequest>(stageRequest =>
                     stageRequest.Scope == request.Scope
@@ -59,7 +59,7 @@ public sealed class AddMissingUsingsToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        scopedFixService.Verify(item => item.StageScopedCodeFixAsync(
+        scopedFixStager.Verify(item => item.StageScopedCodeFixAsync(
             It.Is<ScopedCodeFixRequest>(stageRequest =>
                 stageRequest.Scope == request.Scope
                 && stageRequest.ExpectedSnapshot == request.ExpectedSnapshot

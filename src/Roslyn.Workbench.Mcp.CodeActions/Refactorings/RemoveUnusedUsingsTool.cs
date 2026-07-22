@@ -6,16 +6,16 @@ internal sealed class RemoveUnusedUsingsTool : CodeActionMutationToolHandler<Rem
 {
     private const string FixableDiagnosticId = "RemoveUnnecessaryImportsFixable";
 
-    private readonly ICodeActionScopedFixService _scopedFixService;
+    private readonly IScopedCodeFixStager _scopedFixStager;
 
-    public RemoveUnusedUsingsTool(ICodeActionScopedFixService scopedFixService)
+    public RemoveUnusedUsingsTool(IScopedCodeFixStager scopedFixStager)
     {
-        _scopedFixService = scopedFixService;
+        _scopedFixStager = scopedFixStager;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(RemoveUnusedUsingsRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
-        return _scopedFixService.StageScopedCodeFixAsync(new ScopedCodeFixRequest
+        return _scopedFixStager.StageScopedCodeFixAsync(new ScopedCodeFixRequest
         {
             Scope = request.Scope,
             ExpectedSnapshot = request.ExpectedSnapshot,

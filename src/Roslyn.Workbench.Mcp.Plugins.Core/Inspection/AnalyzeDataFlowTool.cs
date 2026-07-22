@@ -55,29 +55,20 @@ internal sealed class AnalyzeDataFlowTool : QueryToolHandler<AnalyzeDataFlowRequ
         var syntaxNodeResolution = await ResolveSyntaxNodeAsync(selector, expectedSnapshot, context, cancellationToken);
         if (syntaxNodeResolution.HasRejection)
         {
-            return new ToolResolutionResult<ResolvedStatement, DataFlowAnalysisData>
-            {
-                Rejection = syntaxNodeResolution.Rejection,
-            };
+            return ToolResolutionResult<ResolvedStatement, DataFlowAnalysisData>.Rejected(syntaxNodeResolution.Rejection);
         }
 
         var resolvedSyntaxNode = syntaxNodeResolution.Value;
         var statement = resolvedSyntaxNode.Node.FirstAncestorOrSelf<StatementSyntax>();
         if (statement is null)
         {
-            return new ToolResolutionResult<ResolvedStatement, DataFlowAnalysisData>
-            {
-                Rejection = ToolExecutionHelpers.Rejected<DataFlowAnalysisData>("InvalidRequest", "The selected region must resolve to an executable statement."),
-            };
+            return ToolResolutionResult<ResolvedStatement, DataFlowAnalysisData>.Rejected(ToolExecutionHelpers.Rejected<DataFlowAnalysisData>("InvalidRequest", "The selected region must resolve to an executable statement."));
         }
 
-        return new ToolResolutionResult<ResolvedStatement, DataFlowAnalysisData>
-        {
-            Value = new ResolvedStatement(
+        return ToolResolutionResult<ResolvedStatement, DataFlowAnalysisData>.Resolved(new ResolvedStatement(
                 statement,
                 resolvedSyntaxNode.SemanticModel,
-                resolvedSyntaxNode.ResolvedLocation),
-        };
+                resolvedSyntaxNode.ResolvedLocation));
     }
 
     private static async ValueTask<ToolResolutionResult<ResolvedSyntaxNode, DataFlowAnalysisData>> ResolveSyntaxNodeAsync(LocationSelector? selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)
@@ -85,37 +76,25 @@ internal sealed class AnalyzeDataFlowTool : QueryToolHandler<AnalyzeDataFlowRequ
         var rejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<DataFlowAnalysisData>(context, expectedSnapshot);
         if (rejection is not null)
         {
-            return new ToolResolutionResult<ResolvedSyntaxNode, DataFlowAnalysisData>
-            {
-                Rejection = rejection,
-            };
+            return ToolResolutionResult<ResolvedSyntaxNode, DataFlowAnalysisData>.Rejected(rejection);
         }
 
         if (selector is null)
         {
-            return new ToolResolutionResult<ResolvedSyntaxNode, DataFlowAnalysisData>
-            {
-                Rejection = ToolExecutionHelpers.Rejected<DataFlowAnalysisData>("InvalidRequest", "A location selector is required."),
-            };
+            return ToolResolutionResult<ResolvedSyntaxNode, DataFlowAnalysisData>.Rejected(ToolExecutionHelpers.Rejected<DataFlowAnalysisData>("InvalidRequest", "A location selector is required."));
         }
 
         var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken);
         if (!locationResolution.IsResolved)
         {
-            return new ToolResolutionResult<ResolvedSyntaxNode, DataFlowAnalysisData>
-            {
-                Rejection = ToolExecutionHelpers.RejectFromStatus<DataFlowAnalysisData>(locationResolution.Status, "Location", "location"),
-            };
+            return ToolResolutionResult<ResolvedSyntaxNode, DataFlowAnalysisData>.Rejected(ToolExecutionHelpers.RejectFromStatus<DataFlowAnalysisData>(locationResolution.Status, "Location", "location"));
         }
 
         var location = locationResolution.Value;
         var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(location);
         if (resolvedLocation?.Document?.Path is null)
         {
-            return new ToolResolutionResult<ResolvedSyntaxNode, DataFlowAnalysisData>
-            {
-                Rejection = ToolExecutionHelpers.Rejected<DataFlowAnalysisData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
-            };
+            return ToolResolutionResult<ResolvedSyntaxNode, DataFlowAnalysisData>.Rejected(ToolExecutionHelpers.Rejected<DataFlowAnalysisData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
         }
 
         var document = location.SourceTree is null
@@ -124,29 +103,20 @@ internal sealed class AnalyzeDataFlowTool : QueryToolHandler<AnalyzeDataFlowRequ
 
         if (document is null)
         {
-            return new ToolResolutionResult<ResolvedSyntaxNode, DataFlowAnalysisData>
-            {
-                Rejection = ToolExecutionHelpers.Rejected<DataFlowAnalysisData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
-            };
+            return ToolResolutionResult<ResolvedSyntaxNode, DataFlowAnalysisData>.Rejected(ToolExecutionHelpers.Rejected<DataFlowAnalysisData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
         }
 
         var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
         if (syntaxRoot is null || semanticModel is null)
         {
-            return new ToolResolutionResult<ResolvedSyntaxNode, DataFlowAnalysisData>
-            {
-                Rejection = ToolExecutionHelpers.Rejected<DataFlowAnalysisData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
-            };
+            return ToolResolutionResult<ResolvedSyntaxNode, DataFlowAnalysisData>.Rejected(ToolExecutionHelpers.Rejected<DataFlowAnalysisData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
         }
 
-        return new ToolResolutionResult<ResolvedSyntaxNode, DataFlowAnalysisData>
-        {
-            Value = new ResolvedSyntaxNode(
+        return ToolResolutionResult<ResolvedSyntaxNode, DataFlowAnalysisData>.Resolved(new ResolvedSyntaxNode(
                 syntaxRoot.FindNode(location.SourceSpan, getInnermostNodeForTie: true),
                 semanticModel,
-                resolvedLocation),
-        };
+                resolvedLocation));
     }
 
     private sealed record ResolvedStatement

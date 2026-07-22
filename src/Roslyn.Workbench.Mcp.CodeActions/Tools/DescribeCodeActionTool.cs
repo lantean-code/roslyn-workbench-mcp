@@ -5,16 +5,16 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Tools;
 internal sealed class DescribeCodeActionTool : CodeActionQueryToolHandler<DescribeCodeActionRequest, DescribeCodeActionData>
 {
     private readonly ICodeActionProviderCatalog _providerCatalog;
-    private readonly ICodeActionResolutionService _resolutionService;
+    private readonly ICodeActionResolver _resolver;
     private readonly ICodeActionInfoFactory _infoFactory;
 
     public DescribeCodeActionTool(
         ICodeActionProviderCatalog providerCatalog,
-        ICodeActionResolutionService resolutionService,
+        ICodeActionResolver resolver,
         ICodeActionInfoFactory infoFactory)
     {
         _providerCatalog = providerCatalog;
-        _resolutionService = resolutionService;
+        _resolver = resolver;
         _infoFactory = infoFactory;
     }
 
@@ -28,7 +28,7 @@ internal sealed class DescribeCodeActionTool : CodeActionQueryToolHandler<Descri
             return CodeActionsUnavailable<DescribeCodeActionData>();
         }
 
-        var resolvedAction = await _resolutionService.ResolveActionAsync<DescribeCodeActionData>(
+        var resolvedAction = await _resolver.ResolveActionAsync<DescribeCodeActionData>(
             request.ActionId,
             request.ExpectedSnapshot,
             expectedKind: null,

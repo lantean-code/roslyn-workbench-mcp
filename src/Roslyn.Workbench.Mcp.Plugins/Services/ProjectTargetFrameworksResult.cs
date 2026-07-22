@@ -10,18 +10,26 @@ public sealed record ProjectTargetFrameworksResult
     /// <summary>
     /// Gets the evaluated target frameworks.
     /// </summary>
-    public IReadOnlyList<string> TargetFrameworks { get; init; } = [];
+    public IReadOnlyList<string> TargetFrameworks { get; }
 
     /// <summary>
     /// Gets the evaluation failure message, when evaluation did not succeed.
     /// </summary>
-    public string? ErrorMessage { get; init; }
+    public string? ErrorMessage { get; }
 
     /// <summary>
     /// Gets a value indicating whether evaluation succeeded.
     /// </summary>
     [MemberNotNullWhen(false, nameof(ErrorMessage))]
     public bool IsSucceeded => ErrorMessage is null;
+
+    private ProjectTargetFrameworksResult(
+        IReadOnlyList<string> targetFrameworks,
+        string? errorMessage)
+    {
+        TargetFrameworks = targetFrameworks;
+        ErrorMessage = errorMessage;
+    }
 
     /// <summary>
     /// Creates a successful result.
@@ -30,10 +38,7 @@ public sealed record ProjectTargetFrameworksResult
     /// <returns>The successful result.</returns>
     public static ProjectTargetFrameworksResult Succeeded(IReadOnlyList<string>? targetFrameworks = null)
     {
-        return new ProjectTargetFrameworksResult
-        {
-            TargetFrameworks = targetFrameworks ?? [],
-        };
+        return new ProjectTargetFrameworksResult(targetFrameworks ?? [], errorMessage: null);
     }
 
     /// <summary>
@@ -43,9 +48,6 @@ public sealed record ProjectTargetFrameworksResult
     /// <returns>The failed result.</returns>
     public static ProjectTargetFrameworksResult Failed(string errorMessage)
     {
-        return new ProjectTargetFrameworksResult
-        {
-            ErrorMessage = errorMessage,
-        };
+        return new ProjectTargetFrameworksResult(targetFrameworks: [], errorMessage);
     }
 }

@@ -97,14 +97,18 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IMefHostExportProviderCompatibilityAdapter, MefHostExportProviderCompatibilityAdapter>();
         services.AddSingleton<ICodeActionProviderCatalog, MefCodeActionProviderCatalog>();
         services.AddSingleton<ICodeActionDiscoveryService, CodeActionDiscoveryService>();
-        services.AddSingleton<ICodeActionResolutionService, CodeActionResolutionService>();
-        services.AddSingleton<ICodeActionOperationService, CodeActionOperationService>();
+        services.AddSingleton<ICodeActionResolver, CodeActionResolver>();
+        services.AddSingleton<ICodeActionEvaluator, CodeActionEvaluator>();
+        services.AddSingleton<IFixAllActionFactory, FixAllActionFactory>();
         services.AddSingleton<ICodeActionSolutionChangeCounter, CodeActionSolutionChangeCounter>();
-        services.AddSingleton<ICodeActionReplayService, CodeActionReplayService>();
+        services.AddSingleton<ICodeActionTokenStager, CodeActionTokenStager>();
+        services.AddSingleton<ICodeActionSelectionStager, CodeActionSelectionStager>();
         services.AddSingleton<ICodeActionScopeResolver, CodeActionScopeResolver>();
-        services.AddSingleton<ICodeActionFixAllService, CodeActionFixAllService>();
-        services.AddSingleton<ICodeActionScopedFixService, CodeActionScopedFixService>();
-        services.AddSingleton<ICodeActionLocationFixService, CodeActionLocationFixService>();
+        services.AddSingleton<ICodeActionToolRequestResolver, CodeActionToolRequestResolver>();
+        services.AddSingleton<IScopedCodeFixCandidateResolver, ScopedCodeFixCandidateResolver>();
+        services.AddSingleton<ICodeActionFixAllStager, CodeActionFixAllStager>();
+        services.AddSingleton<IScopedCodeFixStager, ScopedCodeFixStager>();
+        services.AddSingleton<ILocationCodeFixStager, LocationCodeFixStager>();
         services.AddSingleton<ICodeActionExecutionContextFactory, CodeActionExecutionContextFactory>();
     }
 

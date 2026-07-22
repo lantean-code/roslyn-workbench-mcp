@@ -14,7 +14,7 @@ public sealed class WorkspaceMutationStagerTests
         };
         var diagnostic = new DiagnosticInfo { Id = "Id" };
         var warning = new WarningInfo { Code = "Code", Message = "Message" };
-        var expected = new WorkspaceOperationResult<MutationStagingOutcome>();
+        var expected = WorkspaceOperationResult<MutationStagingOutcome>.NoChange();
         stagingService.Setup(item => item.StageAsync(
             "OperationName",
             proposal,

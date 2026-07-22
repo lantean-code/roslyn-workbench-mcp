@@ -16,14 +16,10 @@ public sealed class WorkspaceCloseToolTests
                 ServerOwnedToolTestData.GetWorkspaceAlias(includeWorkspace),
                 ServerOwnedToolTestData.GetWorkspacePath(includeWorkspace),
                 CancellationToken.None))
-            .ReturnsAsync(new WorkspaceOperationResult<WorkspaceCloseOutcome>
+            .ReturnsAsync(WorkspaceOperationResult<WorkspaceCloseOutcome>.Succeeded(new WorkspaceCloseOutcome
             {
-                Status = WorkspaceOperationStatus.Succeeded,
-                Data = new WorkspaceCloseOutcome
-                {
-                    ClosedPath = "/workspace/Sample.csproj",
-                },
-            });
+                ClosedPath = "/workspace/Sample.csproj",
+            }));
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var target = new WorkspaceCloseTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
 

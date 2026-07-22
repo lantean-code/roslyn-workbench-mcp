@@ -8,14 +8,11 @@ internal sealed class WorkspaceOperationResultFactory : IWorkspaceOperationResul
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
     {
-        return new WorkspaceOperationResult<TOutcome>
-        {
-            Status = WorkspaceOperationStatus.Succeeded,
-            Context = context ?? new WorkspaceOperationContext(),
-            Data = data,
-            Diagnostics = diagnostics ?? [],
-            Warnings = warnings ?? [],
-        };
+        return WorkspaceOperationResult<TOutcome>.Succeeded(
+            data,
+            context ?? new WorkspaceOperationContext(),
+            diagnostics ?? [],
+            warnings ?? []);
     }
 
     public WorkspaceOperationResult<TOutcome> Rejected<TOutcome>(
@@ -35,7 +32,11 @@ internal sealed class WorkspaceOperationResultFactory : IWorkspaceOperationResul
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
     {
-        return Create<TOutcome>(WorkspaceOperationStatus.Rejected, context, error, diagnostics, warnings);
+        return WorkspaceOperationResult<TOutcome>.Rejected(
+            error,
+            context ?? new WorkspaceOperationContext(),
+            diagnostics ?? [],
+            warnings ?? []);
     }
 
     public WorkspaceOperationResult<TOutcome> Conflict<TOutcome>(
@@ -55,7 +56,11 @@ internal sealed class WorkspaceOperationResultFactory : IWorkspaceOperationResul
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
     {
-        return Create<TOutcome>(WorkspaceOperationStatus.Conflict, context, error, diagnostics, warnings);
+        return WorkspaceOperationResult<TOutcome>.Conflict(
+            error,
+            context ?? new WorkspaceOperationContext(),
+            diagnostics ?? [],
+            warnings ?? []);
     }
 
     public WorkspaceOperationResult<TOutcome> Faulted<TOutcome>(
@@ -66,7 +71,13 @@ internal sealed class WorkspaceOperationResultFactory : IWorkspaceOperationResul
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
     {
-        return Create<TOutcome>(WorkspaceOperationStatus.Faulted, context, CreateError(code, message, requiredAction), diagnostics, warnings);
+        var error = CreateError(code, message, requiredAction);
+
+        return WorkspaceOperationResult<TOutcome>.Faulted(
+            error,
+            context ?? new WorkspaceOperationContext(),
+            diagnostics ?? [],
+            warnings ?? []);
     }
 
     public WorkspaceOperationResult<TOutcome> NoChange<TOutcome>(
@@ -75,31 +86,11 @@ internal sealed class WorkspaceOperationResultFactory : IWorkspaceOperationResul
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
     {
-        return new WorkspaceOperationResult<TOutcome>
-        {
-            Status = WorkspaceOperationStatus.NoChange,
-            Context = context ?? new WorkspaceOperationContext(),
-            Data = data,
-            Diagnostics = diagnostics ?? [],
-            Warnings = warnings ?? [],
-        };
-    }
-
-    private static WorkspaceOperationResult<TOutcome> Create<TOutcome>(
-        WorkspaceOperationStatus status,
-        WorkspaceOperationContext? context,
-        WorkspaceOperationError error,
-        IReadOnlyList<DiagnosticInfo>? diagnostics,
-        IReadOnlyList<WarningInfo>? warnings)
-    {
-        return new WorkspaceOperationResult<TOutcome>
-        {
-            Status = status,
-            Context = context ?? new WorkspaceOperationContext(),
-            Error = error,
-            Diagnostics = diagnostics ?? [],
-            Warnings = warnings ?? [],
-        };
+        return WorkspaceOperationResult<TOutcome>.NoChange(
+            data,
+            context ?? new WorkspaceOperationContext(),
+            diagnostics ?? [],
+            warnings ?? []);
     }
 
     private static WorkspaceOperationError CreateError(string code, string message, RequiredAction? requiredAction)

@@ -7,16 +7,16 @@ internal sealed class ConvertExpressionBodyTool : CodeActionMutationToolHandler<
     private const string UseExpressionBodyProviderId = "Microsoft.CodeAnalysis.CSharp.UseExpressionBody.UseExpressionBodyCodeRefactoringProvider";
     private const string UseExpressionBodyForLambdaProviderId = "Microsoft.CodeAnalysis.CSharp.UseExpressionBodyForLambda.UseExpressionBodyForLambdaCodeRefactoringProvider";
 
-    private readonly ICodeActionReplayService _replayService;
+    private readonly ICodeActionSelectionStager _selectionStager;
 
-    public ConvertExpressionBodyTool(ICodeActionReplayService replayService)
+    public ConvertExpressionBodyTool(ICodeActionSelectionStager selectionStager)
     {
-        _replayService = replayService;
+        _selectionStager = selectionStager;
     }
 
     protected override async ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(LocationRefactoringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
-        var result = await _replayService.StageSelectionAsync(
+        var result = await _selectionStager.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             cancellationToken,
@@ -28,7 +28,7 @@ internal sealed class ConvertExpressionBodyTool : CodeActionMutationToolHandler<
             return result;
         }
 
-        return await _replayService.StageSelectionAsync(
+        return await _selectionStager.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             cancellationToken,

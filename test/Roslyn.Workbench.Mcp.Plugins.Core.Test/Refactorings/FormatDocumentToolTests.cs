@@ -19,10 +19,7 @@ public sealed class FormatDocumentToolTests
 
         contextMocks.RequestResolver
             .Setup(item => item.ResolveDocument<MutationCandidate>(request.Document, contextMocks.MutationContext.Object))
-            .Returns(new ToolResolutionResult<Document, MutationCandidate>
-            {
-                Rejection = expected,
-            });
+            .Returns(ToolResolutionResult<Document, MutationCandidate>.Rejected(expected));
 
         var result = await target.ExecuteAsync(request, contextMocks.MutationContext.Object, CancellationToken.None);
 
@@ -54,10 +51,7 @@ public sealed class FormatDocumentToolTests
 
         contextMocks.RequestResolver
             .Setup(item => item.ResolveDocument<MutationCandidate>(request.Document, contextMocks.MutationContext.Object))
-            .Returns(new ToolResolutionResult<Document, MutationCandidate>
-            {
-                Value = document.Document,
-            });
+            .Returns(ToolResolutionResult<Document, MutationCandidate>.Resolved(document.Document));
         contextMocks.RequestResolver
             .Setup(item => item.ValidateSnapshot<MutationCandidate>(contextMocks.MutationContext.Object, request.ExpectedSnapshot))
             .Returns(expected);
@@ -80,10 +74,7 @@ public sealed class FormatDocumentToolTests
 
         contextMocks.RequestResolver
             .Setup(item => item.ResolveDocument<MutationCandidate>(request.Document, contextMocks.MutationContext.Object))
-            .Returns(new ToolResolutionResult<Document, MutationCandidate>
-            {
-                Value = document.Document,
-            });
+            .Returns(ToolResolutionResult<Document, MutationCandidate>.Resolved(document.Document));
         contextMocks.RequestResolver
             .Setup(item => item.ValidateSnapshot<MutationCandidate>(contextMocks.MutationContext.Object, request.ExpectedSnapshot))
             .Returns((PluginExecutionResult<MutationCandidate>?)null);
@@ -112,10 +103,7 @@ public sealed class FormatDocumentToolTests
 
         contextMocks.RequestResolver
             .Setup(item => item.ResolveDocument<MutationCandidate>(request.Document, contextMocks.MutationContext.Object))
-            .Returns(new ToolResolutionResult<Document, MutationCandidate>
-            {
-                Value = document.Document,
-            });
+            .Returns(ToolResolutionResult<Document, MutationCandidate>.Resolved(document.Document));
         contextMocks.RequestResolver
             .Setup(item => item.ValidateSnapshot<MutationCandidate>(contextMocks.MutationContext.Object, request.ExpectedSnapshot))
             .Returns((PluginExecutionResult<MutationCandidate>?)null);

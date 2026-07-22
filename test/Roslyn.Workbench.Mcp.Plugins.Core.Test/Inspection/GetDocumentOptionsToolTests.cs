@@ -17,10 +17,7 @@ public sealed class GetDocumentOptionsToolTests
             .Setup(item => item.ResolveDocument<DocumentOptionsData>(
                 It.IsAny<DocumentSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<Document, DocumentOptionsData>
-            {
-                Rejection = expected,
-            });
+            .Returns(ToolResolutionResult<Document, DocumentOptionsData>.Rejected(expected));
 
         var result = await target.ExecuteAsync(new GetDocumentOptionsRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -44,10 +41,7 @@ public sealed class GetDocumentOptionsToolTests
             .Setup(item => item.ResolveDocument<DocumentOptionsData>(
                 It.IsAny<DocumentSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<Document, DocumentOptionsData>
-            {
-                Value = document.Document,
-            });
+            .Returns(ToolResolutionResult<Document, DocumentOptionsData>.Resolved(document.Document));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateDocumentReference(It.IsAny<Document>()))
             .Returns<Document>(item => new DocumentReference
@@ -79,10 +73,7 @@ public sealed class GetDocumentOptionsToolTests
             .Setup(item => item.ResolveDocument<DocumentOptionsData>(
                 It.IsAny<DocumentSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<Document, DocumentOptionsData>
-            {
-                Value = document.Document,
-            });
+            .Returns(ToolResolutionResult<Document, DocumentOptionsData>.Resolved(document.Document));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateDocumentReference(It.IsAny<Document>()))
             .Returns<Document>(item => new DocumentReference

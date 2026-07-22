@@ -9,11 +9,11 @@ internal sealed class IntroduceParameterTool : CodeActionMutationToolHandler<Int
     private const string IntoExtractedMethodTitle = "into extracted method to invoke at call sites";
     private const string IntoNewOverloadTitle = "into new overload";
 
-    private readonly ICodeActionReplayService _replayService;
+    private readonly ICodeActionSelectionStager _selectionStager;
 
-    public IntroduceParameterTool(ICodeActionReplayService replayService)
+    public IntroduceParameterTool(ICodeActionSelectionStager selectionStager)
     {
-        _replayService = replayService;
+        _selectionStager = selectionStager;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(IntroduceParameterRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
@@ -42,7 +42,7 @@ internal sealed class IntroduceParameterTool : CodeActionMutationToolHandler<Int
             _ => [occurrenceIndex, 0],
         };
 
-        return _replayService.StageReplayCodeActionAsync(new ReplayCodeActionRequest
+        return _selectionStager.StageReplayCodeActionAsync(new ReplayCodeActionRequest
         {
             Location = request.Selection,
             ExpectedSnapshot = request.ExpectedSnapshot,

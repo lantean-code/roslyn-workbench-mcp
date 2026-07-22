@@ -17,10 +17,7 @@ public sealed class AnalyzeDisposablesToolTests
             .Setup(item => item.ResolveDocuments<DisposableAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, DisposableAnalysisData>
-            {
-                Rejection = expected,
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DisposableAnalysisData>.Rejected(expected));
 
         var result = await target.ExecuteAsync(new AnalyzeDisposablesRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -43,10 +40,7 @@ public sealed class AnalyzeDisposablesToolTests
             .Setup(item => item.ResolveDocuments<DisposableAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, DisposableAnalysisData>
-            {
-                Value = [document.Document],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DisposableAnalysisData>.Resolved([document.Document]));
 
         var result = await target.ExecuteAsync(new AnalyzeDisposablesRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -85,10 +79,7 @@ public sealed class AnalyzeDisposablesToolTests
             .Setup(item => item.ResolveDocuments<DisposableAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, DisposableAnalysisData>
-            {
-                Value = [document.Document],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DisposableAnalysisData>.Resolved([document.Document]));
 
         var result = await target.ExecuteAsync(new AnalyzeDisposablesRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -129,10 +120,7 @@ public sealed class AnalyzeDisposablesToolTests
             .Setup(item => item.ResolveDocuments<DisposableAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, DisposableAnalysisData>
-            {
-                Value = [document.Document],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DisposableAnalysisData>.Resolved([document.Document]));
 
         var result = await target.ExecuteAsync(new AnalyzeDisposablesRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -162,10 +150,7 @@ public sealed class AnalyzeDisposablesToolTests
             .Setup(item => item.ResolveDocuments<DisposableAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, DisposableAnalysisData>
-            {
-                Value = [document.Document],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DisposableAnalysisData>.Resolved([document.Document]));
 
         var result = await target.ExecuteAsync(new AnalyzeDisposablesRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -205,10 +190,7 @@ public sealed class AnalyzeDisposablesToolTests
             .Setup(item => item.ResolveDocuments<DisposableAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, DisposableAnalysisData>
-            {
-                Value = [document.Document],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DisposableAnalysisData>.Resolved([document.Document]));
 
         var result = await target.ExecuteAsync(new AnalyzeDisposablesRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -250,10 +232,7 @@ public sealed class AnalyzeDisposablesToolTests
             .Setup(item => item.ResolveDocuments<DisposableAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, DisposableAnalysisData>
-            {
-                Value = [document.Document],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DisposableAnalysisData>.Resolved([document.Document]));
 
         var result = await target.ExecuteAsync(new AnalyzeDisposablesRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -341,10 +320,7 @@ public sealed class AnalyzeDisposablesToolTests
             .Setup(item => item.ResolveDocuments<DisposableAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, DisposableAnalysisData>
-            {
-                Value = documents,
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DisposableAnalysisData>.Resolved(documents));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, item.SourceTree?.FilePath is null ? "Code.cs" : Path.GetFileName(item.SourceTree.FilePath)));
@@ -404,10 +380,7 @@ public sealed class AnalyzeDisposablesToolTests
             .Setup(item => item.ResolveDocuments<DisposableAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, DisposableAnalysisData>
-            {
-                Value = [document.Document],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DisposableAnalysisData>.Resolved([document.Document]));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, "Code.cs"));
@@ -452,10 +425,7 @@ public sealed class AnalyzeDisposablesToolTests
             .Setup(item => item.ResolveDocuments<DisposableAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, DisposableAnalysisData>
-            {
-                Value = [document.Document],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DisposableAnalysisData>.Resolved([document.Document]));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, "Code.cs"));
@@ -501,10 +471,7 @@ public sealed class AnalyzeDisposablesToolTests
             .Setup(item => item.ResolveDocuments<DisposableAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, DisposableAnalysisData>
-            {
-                Value = [document.Document],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DisposableAnalysisData>.Resolved([document.Document]));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, document.Document.Name));

@@ -219,11 +219,7 @@ public sealed class CodeActionDiagnosticServiceTests
         ]);
         _analyzerActivator
             .Setup(item => item.Activate("AnalyzerTypeName"))
-            .Returns(new CodeActionAnalyzerActivationResult
-            {
-                Status = CodeActionAnalyzerActivationStatus.Available,
-                Analyzer = analyzer.Object,
-            });
+            .Returns(CodeActionAnalyzerActivationResult.Available(analyzer.Object));
 
         var locationDiagnostics = await _target.GetLocationScopedCodeFixDiagnosticsAsync(
             roslyn.Document,
@@ -270,11 +266,7 @@ public sealed class CodeActionDiagnosticServiceTests
         var analyzer = CreateCompilationAnalyzer("SOURCE001", "PROJECT001");
         _analyzerActivator
             .Setup(item => item.Activate("AnalyzerTypeName"))
-            .Returns(new CodeActionAnalyzerActivationResult
-            {
-                Status = CodeActionAnalyzerActivationStatus.Available,
-                Analyzer = analyzer.Object,
-            });
+            .Returns(CodeActionAnalyzerActivationResult.Available(analyzer.Object));
         var document = roslyn.GetDocument("First.cs");
         var syntaxTree = await document.GetSyntaxTreeAsync(TestContext.Current.CancellationToken);
 
@@ -332,10 +324,7 @@ public sealed class CodeActionDiagnosticServiceTests
         using var roslyn = RoslynTestFactory.CreateDocument("class Sample { }");
         _analyzerActivator
             .Setup(item => item.Activate("AnalyzerTypeName"))
-            .Returns(new CodeActionAnalyzerActivationResult
-            {
-                Status = CodeActionAnalyzerActivationStatus.TypeNotFound,
-            });
+            .Returns(CodeActionAnalyzerActivationResult.TypeNotFound());
 
         var result = await _target.GetScopedCodeFixDiagnosticsAsync(
             roslyn.Document,
@@ -386,11 +375,7 @@ public sealed class CodeActionDiagnosticServiceTests
         var analyzer = new Mock<DiagnosticAnalyzer>();
         _analyzerActivator
             .Setup(item => item.Activate("AnalyzerTypeName"))
-            .Returns(new CodeActionAnalyzerActivationResult
-            {
-                Status = CodeActionAnalyzerActivationStatus.Available,
-                Analyzer = analyzer.Object,
-            });
+            .Returns(CodeActionAnalyzerActivationResult.Available(analyzer.Object));
 
         var result = await _target.GetScopedCodeFixDiagnosticsAsync(
             roslyn.Document,

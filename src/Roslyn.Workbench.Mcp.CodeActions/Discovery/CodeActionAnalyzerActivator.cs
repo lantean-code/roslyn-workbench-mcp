@@ -9,9 +9,9 @@ internal sealed class CodeActionAnalyzerActivator : ICodeActionAnalyzerActivator
     public CodeActionAnalyzerActivationResult Activate(string analyzerTypeName)
     {
         var typeResolution = ResolveAnalyzerType(analyzerTypeName);
-        if (!typeResolution.IsAvailable)
+        if (typeResolution.HasFailure)
         {
-            return Unavailable(typeResolution.Status);
+            return typeResolution.Failure;
         }
 
         return CreateAnalyzer(typeResolution.AnalyzerType);
@@ -45,17 +45,17 @@ internal sealed class CodeActionAnalyzerActivator : ICodeActionAnalyzerActivator
             }
             else
             {
-                return AnalyzerTypeResolution.Unavailable(CodeActionAnalyzerActivationStatus.IncompatibleType);
+                return AnalyzerTypeResolution.Failed(CodeActionAnalyzerActivationResult.IncompatibleType());
             }
         }
 
         if (inspectionFailed)
         {
-            return AnalyzerTypeResolution.Unavailable(CodeActionAnalyzerActivationStatus.InspectionFailed);
+            return AnalyzerTypeResolution.Failed(CodeActionAnalyzerActivationResult.InspectionFailed());
         }
         else
         {
-            return AnalyzerTypeResolution.Unavailable(CodeActionAnalyzerActivationStatus.TypeNotFound);
+            return AnalyzerTypeResolution.Failed(CodeActionAnalyzerActivationResult.TypeNotFound());
         }
     }
 
@@ -65,21 +65,17 @@ internal sealed class CodeActionAnalyzerActivator : ICodeActionAnalyzerActivator
         {
             if (Activator.CreateInstance(analyzerType, nonPublic: true) is not DiagnosticAnalyzer analyzer)
             {
-                return Unavailable(CodeActionAnalyzerActivationStatus.ConstructionFailed);
+                return CodeActionAnalyzerActivationResult.ConstructionFailed();
             }
             else
             {
-                return new CodeActionAnalyzerActivationResult
-                {
-                    Status = CodeActionAnalyzerActivationStatus.Available,
-                    Analyzer = analyzer,
-                };
+                return CodeActionAnalyzerActivationResult.Available(analyzer);
             }
         }
         catch (Exception exception) when (IsExpectedConstructionFailure(exception))
         {
             // Optional runtime analyzers can have inaccessible or failing constructors; absence is an expected outcome.
-            return Unavailable(CodeActionAnalyzerActivationStatus.ConstructionFailed);
+            return CodeActionAnalyzerActivationResult.ConstructionFailed();
         }
     }
 
@@ -105,38 +101,32 @@ internal sealed class CodeActionAnalyzerActivator : ICodeActionAnalyzerActivator
             or TypeLoadException;
     }
 
-    private static CodeActionAnalyzerActivationResult Unavailable(CodeActionAnalyzerActivationStatus status)
-    {
-        return new CodeActionAnalyzerActivationResult
-        {
-            Status = status,
-        };
-    }
-
     private sealed record AnalyzerTypeResolution
     {
-        public required CodeActionAnalyzerActivationStatus Status { get; init; }
+        public Type? AnalyzerType { get; }
 
-        public Type? AnalyzerType { get; init; }
+        public CodeActionAnalyzerActivationResult? Failure { get; }
 
-        [MemberNotNullWhen(true, nameof(AnalyzerType))]
-        public bool IsAvailable => AnalyzerType is not null;
+        [MemberNotNullWhen(true, nameof(Failure))]
+        [MemberNotNullWhen(false, nameof(AnalyzerType))]
+        public bool HasFailure => Failure is not null;
+
+        private AnalyzerTypeResolution(
+            Type? analyzerType,
+            CodeActionAnalyzerActivationResult? failure)
+        {
+            AnalyzerType = analyzerType;
+            Failure = failure;
+        }
 
         public static AnalyzerTypeResolution Available(Type analyzerType)
         {
-            return new AnalyzerTypeResolution
-            {
-                Status = CodeActionAnalyzerActivationStatus.Available,
-                AnalyzerType = analyzerType,
-            };
+            return new AnalyzerTypeResolution(analyzerType, failure: null);
         }
 
-        public static AnalyzerTypeResolution Unavailable(CodeActionAnalyzerActivationStatus status)
+        public static AnalyzerTypeResolution Failed(CodeActionAnalyzerActivationResult failure)
         {
-            return new AnalyzerTypeResolution
-            {
-                Status = status,
-            };
+            return new AnalyzerTypeResolution(analyzerType: null, failure);
         }
     }
 }

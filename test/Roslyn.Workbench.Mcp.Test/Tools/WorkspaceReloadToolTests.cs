@@ -16,21 +16,17 @@ public sealed class WorkspaceReloadToolTests
                 ServerOwnedToolTestData.GetWorkspaceAlias(includeWorkspace),
                 ServerOwnedToolTestData.GetWorkspacePath(includeWorkspace),
                 CancellationToken.None))
-            .ReturnsAsync(new WorkspaceOperationResult<WorkspaceReloadOutcome>
+            .ReturnsAsync(WorkspaceOperationResult<WorkspaceReloadOutcome>.Succeeded(new WorkspaceReloadOutcome
             {
-                Status = WorkspaceOperationStatus.Succeeded,
-                Data = new WorkspaceReloadOutcome
+                Workspace = new WorkspaceIdentity
                 {
-                    Workspace = new WorkspaceIdentity
-                    {
-                        WorkspaceId = "WorkspaceId",
-                        WorkspaceEpoch = 4,
-                        LoadedPath = "/workspace/Sample.csproj",
-                    },
-                    ProjectCount = 4,
-                    DocumentCount = 10,
+                    WorkspaceId = "WorkspaceId",
+                    WorkspaceEpoch = 4,
+                    LoadedPath = "/workspace/Sample.csproj",
                 },
-            });
+                ProjectCount = 4,
+                DocumentCount = 10,
+            }));
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var target = new WorkspaceReloadTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
 

@@ -12,23 +12,19 @@ public sealed class WorkspaceOpenToolTests
         var service = new Mock<IWorkspaceLifecycleService>();
         service
             .Setup(item => item.OpenAsync("/workspace/Sample.csproj", "Alias", "/workspace", CancellationToken.None))
-            .ReturnsAsync(new WorkspaceOperationResult<WorkspaceOpenOutcome>
+            .ReturnsAsync(WorkspaceOperationResult<WorkspaceOpenOutcome>.Succeeded(new WorkspaceOpenOutcome
             {
-                Status = WorkspaceOperationStatus.Succeeded,
-                Data = new WorkspaceOpenOutcome
+                Workspace = new WorkspaceIdentity
                 {
-                    Workspace = new WorkspaceIdentity
-                    {
-                        WorkspaceId = "WorkspaceId",
-                        Alias = "Alias",
-                        WorkspaceEpoch = 3,
-                        LoadedPath = "/workspace/Sample.csproj",
-                        WorkspaceRoot = "/workspace",
-                    },
-                    ProjectCount = 2,
-                    DocumentCount = 5,
+                    WorkspaceId = "WorkspaceId",
+                    Alias = "Alias",
+                    WorkspaceEpoch = 3,
+                    LoadedPath = "/workspace/Sample.csproj",
+                    WorkspaceRoot = "/workspace",
                 },
-            });
+                ProjectCount = 2,
+                DocumentCount = 5,
+            }));
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var target = new WorkspaceOpenTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
 

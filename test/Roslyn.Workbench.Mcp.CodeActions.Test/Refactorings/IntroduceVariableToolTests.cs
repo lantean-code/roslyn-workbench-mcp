@@ -6,14 +6,14 @@ public sealed class IntroduceVariableToolTests
     public async Task GIVEN_SelectionIsNull_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequest()
     {
         var context = new Mock<ICodeActionMutationContext>();
-        var replayService = new Mock<ICodeActionReplayService>();
-        var target = new IntroduceVariableTool(replayService.Object);
+        var selectionStager = new Mock<ICodeActionSelectionStager>();
+        var target = new IntroduceVariableTool(selectionStager.Object);
 
         var result = await target.ExecuteAsync(new IntroduceVariableRequest(), context.Object, CancellationToken.None);
 
         result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("InvalidRequest");
-        replayService.Verify(item => item.StageReplayCodeActionAsync(
+        selectionStager.Verify(item => item.StageReplayCodeActionAsync(
             It.IsAny<ReplayCodeActionRequest>(),
             context.Object, It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -45,10 +45,10 @@ public sealed class IntroduceVariableToolTests
             },
             Kind = kind,
         };
-        var replayService = new Mock<ICodeActionReplayService>();
-        var target = new IntroduceVariableTool(replayService.Object);
+        var selectionStager = new Mock<ICodeActionSelectionStager>();
+        var target = new IntroduceVariableTool(selectionStager.Object);
 
-        replayService
+        selectionStager
             .Setup(item => item.StageReplayCodeActionAsync(
                 It.Is<ReplayCodeActionRequest>(stageRequest =>
                     stageRequest.Location == request.Selection
@@ -61,7 +61,7 @@ public sealed class IntroduceVariableToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        replayService.Verify(item => item.StageReplayCodeActionAsync(
+        selectionStager.Verify(item => item.StageReplayCodeActionAsync(
             It.Is<ReplayCodeActionRequest>(stageRequest =>
                 stageRequest.Location == request.Selection
                 && stageRequest.ExpectedSnapshot == request.ExpectedSnapshot

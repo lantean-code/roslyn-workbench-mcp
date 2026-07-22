@@ -4,12 +4,13 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Test.Execution;
 
-public sealed class CodeActionFixAllServiceTests : IDisposable
+public sealed class CodeActionFixAllStagerTests : IDisposable
 {
     private readonly Mock<ICodeActionProviderCatalog> _providerCatalog;
     private readonly Mock<ICodeActionDiscoveryService> _discoveryService;
-    private readonly Mock<ICodeActionResolutionService> _resolutionService;
-    private readonly Mock<ICodeActionOperationService> _operationService;
+    private readonly Mock<ICodeActionResolver> _resolver;
+    private readonly Mock<ICodeActionEvaluator> _evaluator;
+    private readonly Mock<IFixAllActionFactory> _fixAllActionFactory;
     private readonly Mock<ICodeActionSolutionChangeCounter> _solutionChangeCounter;
     private readonly Mock<ICodeActionScopeResolver> _scopeResolver;
     private readonly Mock<ICodeActionExecutionContext> _context;
@@ -17,15 +18,17 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
     private readonly Mock<CodeFixProvider> _provider;
     private readonly Mock<FixAllProvider> _fixAllProvider;
     private readonly InMemoryRoslynDocument _roslyn;
+    private readonly CodeAction _fixAllAction;
     private readonly DiscoveredCodeAction _discoveredAction;
-    private readonly CodeActionFixAllService _target;
+    private readonly CodeActionFixAllStager _target;
 
-    public CodeActionFixAllServiceTests()
+    public CodeActionFixAllStagerTests()
     {
         _providerCatalog = new Mock<ICodeActionProviderCatalog>();
         _discoveryService = new Mock<ICodeActionDiscoveryService>();
-        _resolutionService = new Mock<ICodeActionResolutionService>();
-        _operationService = new Mock<ICodeActionOperationService>();
+        _resolver = new Mock<ICodeActionResolver>();
+        _evaluator = new Mock<ICodeActionEvaluator>();
+        _fixAllActionFactory = new Mock<IFixAllActionFactory>();
         _solutionChangeCounter = new Mock<ICodeActionSolutionChangeCounter>();
         _scopeResolver = new Mock<ICodeActionScopeResolver>();
         _context = new Mock<ICodeActionExecutionContext>();
@@ -33,6 +36,10 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
         _provider = new Mock<CodeFixProvider>();
         _fixAllProvider = new Mock<FixAllProvider>();
         _roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        _fixAllAction = CodeAction.Create(
+            "Fix all",
+            _ => Task.FromResult(_roslyn.Solution),
+            "FixAllEquivalenceKey");
         _discoveredAction = CreateDiscoveredAction(_roslyn.Solution);
         _providerCatalog.SetupGet(item => item.Status).Returns(new CodeActionProviderCatalogStatus
         {
@@ -42,7 +49,7 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
         _context.SetupGet(item => item.WorkspaceResolver).Returns(_workspaceResolver.Object);
         _context.SetupGet(item => item.CurrentSolution).Returns(_roslyn.Solution);
         SetupDefaultScopeResolutions();
-        _resolutionService
+        _resolver
             .Setup(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
                 It.IsAny<string>(),
                 It.IsAny<SnapshotPrecondition?>(),
@@ -52,8 +59,8 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
             .ReturnsAsync(CreateResolution());
         _discoveryService.Setup(item => item.FindCodeFixProvider("ProviderId")).Returns(_provider.Object);
         _provider.Setup(item => item.GetFixAllProvider()).Returns(_fixAllProvider.Object);
-        _operationService
-            .Setup(item => item.ApplyFixAllAsync(
+        _fixAllActionFactory
+            .Setup(item => item.CreateAsync(
                 _provider.Object,
                 _fixAllProvider.Object,
                 It.IsAny<Document>(),
@@ -63,13 +70,10 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
                 "EquivalenceKey",
                 null,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new CodeActionApplyResult
-            {
-                CandidateSolution = _roslyn.Solution,
-            });
+            .ReturnsAsync(FixAllActionCreationResult.Created(_fixAllAction));
 
-        _operationService
-            .Setup(item => item.ApplyFixAllAsync(
+        _fixAllActionFactory
+            .Setup(item => item.CreateAsync(
                 _provider.Object,
                 _fixAllProvider.Object,
                 It.IsAny<Project>(),
@@ -77,10 +81,14 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
                 "EquivalenceKey",
                 null,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new CodeActionApplyResult
-            {
-                CandidateSolution = _roslyn.Solution,
-            });
+            .ReturnsAsync(FixAllActionCreationResult.Created(_fixAllAction));
+
+        _evaluator
+            .Setup(item => item.EvaluateAsync(
+                _fixAllAction,
+                It.IsAny<Solution>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CodeActionApplyResult.Applied(_roslyn.Solution));
 
         _solutionChangeCounter
             .Setup(item => item.CountChangedSourceDocumentsAsync(
@@ -88,12 +96,13 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
                 It.IsAny<Solution>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(0);
-        _target = new CodeActionFixAllService(
+        _target = new CodeActionFixAllStager(
             _providerCatalog.Object,
             _discoveryService.Object,
-            _resolutionService.Object,
-            _operationService.Object,
-            _scopeResolver.Object,
+            _resolver.Object,
+            _evaluator.Object,
+            _fixAllActionFactory.Object,
+            new CodeActionToolRequestResolver(_scopeResolver.Object),
             _solutionChangeCounter.Object);
     }
 
@@ -126,7 +135,7 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
             CancellationToken.None);
 
         result.Error!.Code.Should().Be("CodeActionsUnavailable");
-        _resolutionService.Verify(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
+        _resolver.Verify(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
             It.IsAny<string>(),
             It.IsAny<SnapshotPrecondition?>(),
             It.IsAny<DiscoveredActionKind?>(),
@@ -145,17 +154,14 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
                 Message = "Message",
             });
 
-        _resolutionService
+        _resolver
             .Setup(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
                 "ActionId",
                 expectedSnapshot,
                 DiscoveredActionKind.CodeFix,
                 _context.Object,
                 CancellationToken.None))
-            .ReturnsAsync(new CodeActionResolution<WorkspaceMutationCandidate>
-            {
-                Rejection = rejection,
-            });
+            .ReturnsAsync(CodeActionResolution<WorkspaceMutationCandidate>.Rejected(rejection));
 
         var result = await _target.StageFixAllAsync(
             CreateRequest(ScopeKind.Solution) with
@@ -181,7 +187,7 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
             CancellationToken.None);
 
         result.Error!.Code.Should().Be("InvalidRequest");
-        _resolutionService.Verify(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
+        _resolver.Verify(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
             It.IsAny<string>(),
             It.IsAny<SnapshotPrecondition?>(),
             It.IsAny<DiscoveredActionKind?>(),
@@ -193,41 +199,36 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
     public async Task GIVEN_ActionResolutionIsRejected_WHEN_StagingFixAll_THEN_ShouldReturnRejection()
     {
         var rejection = CreateRejection();
-        _resolutionService
+        _resolver
             .Setup(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
                 "ActionId",
                 null,
                 DiscoveredActionKind.CodeFix,
                 _context.Object,
                 CancellationToken.None))
-            .ReturnsAsync(new CodeActionResolution<WorkspaceMutationCandidate>
-            {
-                Rejection = rejection,
-            });
+            .ReturnsAsync(CodeActionResolution<WorkspaceMutationCandidate>.Rejected(rejection));
 
         var result = await _target.StageFixAllAsync(
             CreateRequest(ScopeKind.Solution),
             _context.Object,
             CancellationToken.None);
 
-        result.Should().BeSameAs(rejection);
+        result.Should().BeEquivalentTo(rejection);
     }
 
     [Fact]
     public async Task GIVEN_ResolutionReportsUnavailableProvider_WHEN_StagingFixAll_THEN_ShouldRejectFixAll()
     {
-        _resolutionService
+        _resolver
             .Setup(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
                 "ActionId",
                 null,
                 DiscoveredActionKind.CodeFix,
                 _context.Object,
                 CancellationToken.None))
-            .ReturnsAsync(new CodeActionResolution<WorkspaceMutationCandidate>
-            {
-                Rejection = CreateRejection(),
-                FailureKind = CodeActionResolutionFailureKind.ProviderUnavailable,
-            });
+            .ReturnsAsync(CodeActionResolution<WorkspaceMutationCandidate>.Rejected(
+                CreateRejection(),
+                CodeActionResolutionFailureKind.ProviderUnavailable));
 
         var result = await _target.StageFixAllAsync(
             CreateRequest(ScopeKind.Solution),
@@ -264,6 +265,39 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GIVEN_FixAllActionCannotBeCreated_WHEN_StagingFixAll_THEN_ShouldRejectWithoutEvaluation()
+    {
+        var failure = new FixAllActionCreationFailure
+        {
+            Message = "The fix-all action could not be created.",
+        };
+        _fixAllActionFactory
+            .Setup(item => item.CreateAsync(
+                _provider.Object,
+                _fixAllProvider.Object,
+                It.IsAny<Document>(),
+                It.IsAny<TextSpan>(),
+                FixAllScope.Solution,
+                _discoveredAction.DiagnosticIds,
+                "EquivalenceKey",
+                null,
+                CancellationToken.None))
+            .ReturnsAsync(FixAllActionCreationResult.Failed(failure));
+
+        var result = await _target.StageFixAllAsync(
+            CreateRequest(ScopeKind.Solution),
+            _context.Object,
+            CancellationToken.None);
+
+        result.Error!.Code.Should().Be("FixAllUnavailable");
+        result.Error.Message.Should().Be(failure.Message);
+        _evaluator.Verify(item => item.EvaluateAsync(
+            It.IsAny<CodeAction>(),
+            It.IsAny<Solution>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task GIVEN_OriginDocumentIsMissingFromWorkingSolution_WHEN_StagingSolutionFixAll_THEN_ShouldRejectExpiredAction()
     {
         using var workspace = new AdhocWorkspace();
@@ -275,7 +309,7 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
             CancellationToken.None);
 
         result.Error!.Code.Should().Be("ActionExpired");
-        _operationService.Verify(item => item.ApplyFixAllAsync(
+        _fixAllActionFactory.Verify(item => item.CreateAsync(
             It.IsAny<CodeFixProvider>(),
             It.IsAny<FixAllProvider>(),
             It.IsAny<Document>(),
@@ -288,31 +322,22 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GIVEN_OperationRejectsSolutionFixAll_WHEN_StagingFixAll_THEN_ShouldReturnOperationRejection()
+    public async Task GIVEN_EvaluatorRejectsSolutionFixAll_WHEN_StagingFixAll_THEN_ShouldReturnEvaluatorRejection()
     {
         var rejection = CreateRejection();
-        _operationService
-            .Setup(item => item.ApplyFixAllAsync(
-                _provider.Object,
-                _fixAllProvider.Object,
-                _roslyn.Document,
-                new TextSpan(0, 1),
-                FixAllScope.Solution,
-                _discoveredAction.DiagnosticIds,
-                "EquivalenceKey",
-                null,
+        _evaluator
+            .Setup(item => item.EvaluateAsync(
+                _fixAllAction,
+                _roslyn.Solution,
                 CancellationToken.None))
-            .ReturnsAsync(new CodeActionApplyResult
-            {
-                Rejection = rejection,
-            });
+            .ReturnsAsync(CreateApplicationFailure(rejection));
 
         var result = await _target.StageFixAllAsync(
             CreateRequest(ScopeKind.Solution),
             _context.Object,
             CancellationToken.None);
 
-        result.Should().BeSameAs(rejection);
+        result.Should().BeEquivalentTo(rejection);
     }
 
     [Fact]
@@ -325,10 +350,7 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
                 It.Is<ScopeSelector>(scope => scope.Kind == ScopeKind.Document),
                 _roslyn.Solution,
                 _workspaceResolver.Object))
-            .Returns(new CodeActionScopeResolution
-            {
-                Documents = [otherRoslyn.Document],
-            });
+            .Returns(CodeActionScopeResolution.Resolved([otherRoslyn.Document]));
 
         var result = await _target.StageFixAllAsync(
             CreateDocumentRequest(selector),
@@ -339,32 +361,23 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GIVEN_OperationRejectsDocumentFixAll_WHEN_StagingFixAll_THEN_ShouldReturnOperationRejection()
+    public async Task GIVEN_EvaluatorRejectsDocumentFixAll_WHEN_StagingFixAll_THEN_ShouldReturnEvaluatorRejection()
     {
         var selector = new DocumentSelector { Path = "TargetDocumentPath" };
         var rejection = CreateRejection();
-        _operationService
-            .Setup(item => item.ApplyFixAllAsync(
-                _provider.Object,
-                _fixAllProvider.Object,
-                _roslyn.Document,
-                new TextSpan(0, 1),
-                FixAllScope.Document,
-                _discoveredAction.DiagnosticIds,
-                "EquivalenceKey",
-                null,
+        _evaluator
+            .Setup(item => item.EvaluateAsync(
+                _fixAllAction,
+                _roslyn.Solution,
                 CancellationToken.None))
-            .ReturnsAsync(new CodeActionApplyResult
-            {
-                Rejection = rejection,
-            });
+            .ReturnsAsync(CreateApplicationFailure(rejection));
 
         var result = await _target.StageFixAllAsync(
             CreateDocumentRequest(selector),
             _context.Object,
             CancellationToken.None);
 
-        result.Should().BeSameAs(rejection);
+        result.Should().BeEquivalentTo(rejection);
     }
 
     [Fact]
@@ -377,11 +390,9 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
                 It.Is<ScopeSelector>(scope => scope.Kind == ScopeKind.Project),
                 _roslyn.Solution,
                 _workspaceResolver.Object))
-            .Returns(new CodeActionScopeResolution
-            {
-                Documents = [otherRoslyn.Document],
-                Projects = [otherRoslyn.Document.Project],
-            });
+            .Returns(CodeActionScopeResolution.Resolved(
+                [otherRoslyn.Document],
+                [otherRoslyn.Document.Project]));
 
         var result = await _target.StageFixAllAsync(
             CreateProjectRequest(ScopeKind.Project, [selector]),
@@ -392,57 +403,43 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GIVEN_OperationRejectsProjectFixAll_WHEN_StagingFixAll_THEN_ShouldReturnOperationRejection()
+    public async Task GIVEN_EvaluatorRejectsProjectFixAll_WHEN_StagingFixAll_THEN_ShouldReturnEvaluatorRejection()
     {
         var selector = new ProjectSelector { Name = "ProjectName" };
         var rejection = CreateRejection();
-        _operationService
-            .Setup(item => item.ApplyFixAllAsync(
-                _provider.Object,
-                _fixAllProvider.Object,
-                _roslyn.Document.Project,
-                _discoveredAction.DiagnosticIds,
-                "EquivalenceKey",
-                null,
+        _evaluator
+            .Setup(item => item.EvaluateAsync(
+                _fixAllAction,
+                _roslyn.Solution,
                 CancellationToken.None))
-            .ReturnsAsync(new CodeActionApplyResult
-            {
-                Rejection = rejection,
-            });
+            .ReturnsAsync(CreateApplicationFailure(rejection));
 
         var result = await _target.StageFixAllAsync(
             CreateProjectRequest(ScopeKind.Project, [selector]),
             _context.Object,
             CancellationToken.None);
 
-        result.Should().BeSameAs(rejection);
+        result.Should().BeEquivalentTo(rejection);
     }
 
     [Fact]
-    public async Task GIVEN_OperationRejectsProjectInSet_WHEN_StagingProjectsFixAll_THEN_ShouldReturnOperationRejection()
+    public async Task GIVEN_EvaluatorRejectsProjectInSet_WHEN_StagingProjectsFixAll_THEN_ShouldReturnEvaluatorRejection()
     {
         var selector = new ProjectSelector { Name = "ProjectName" };
         var rejection = CreateRejection();
-        _operationService
-            .Setup(item => item.ApplyFixAllAsync(
-                _provider.Object,
-                _fixAllProvider.Object,
-                _roslyn.Document.Project,
-                _discoveredAction.DiagnosticIds,
-                "EquivalenceKey",
-                null,
+        _evaluator
+            .Setup(item => item.EvaluateAsync(
+                _fixAllAction,
+                _roslyn.Solution,
                 CancellationToken.None))
-            .ReturnsAsync(new CodeActionApplyResult
-            {
-                Rejection = rejection,
-            });
+            .ReturnsAsync(CreateApplicationFailure(rejection));
 
         var result = await _target.StageFixAllAsync(
             CreateProjectRequest(ScopeKind.Projects, [selector]),
             _context.Object,
             CancellationToken.None);
 
-        result.Should().BeSameAs(rejection);
+        result.Should().BeEquivalentTo(rejection);
     }
 
     [Fact]
@@ -455,11 +452,9 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
                 It.Is<ScopeSelector>(scope => scope.Kind == ScopeKind.Projects),
                 _roslyn.Solution,
                 _workspaceResolver.Object))
-            .Returns(new CodeActionScopeResolution
-            {
-                Documents = [otherRoslyn.Document],
-                Projects = [otherRoslyn.Document.Project],
-            });
+            .Returns(CodeActionScopeResolution.Resolved(
+                [otherRoslyn.Document],
+                [otherRoslyn.Document.Project]));
 
         var result = await _target.StageFixAllAsync(
             CreateProjectRequest(ScopeKind.Projects, [selector]),
@@ -467,7 +462,7 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
             CancellationToken.None);
 
         result.Error!.Code.Should().Be("ProjectNotFound");
-        _operationService.Verify(item => item.ApplyFixAllAsync(
+        _fixAllActionFactory.Verify(item => item.CreateAsync(
             It.IsAny<CodeFixProvider>(),
             It.IsAny<FixAllProvider>(),
             It.IsAny<Project>(),
@@ -491,25 +486,16 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
                 It.Is<ScopeSelector>(scope => scope.Kind == ScopeKind.Projects),
                 solution.Solution,
                 _workspaceResolver.Object))
-            .Returns(new CodeActionScopeResolution
-            {
-                Documents = firstProject.Documents.Concat(secondProject.Documents).ToArray(),
-                Projects = [firstProject, secondProject],
-            });
+            .Returns(CodeActionScopeResolution.Resolved(
+                firstProject.Documents.Concat(secondProject.Documents).ToArray(),
+                [firstProject, secondProject]));
 
-        _operationService
-            .Setup(item => item.ApplyFixAllAsync(
-                _provider.Object,
-                _fixAllProvider.Object,
-                It.IsAny<Project>(),
-                It.IsAny<IReadOnlyList<string>>(),
-                It.IsAny<string?>(),
-                It.IsAny<string?>(),
+        _evaluator
+            .Setup(item => item.EvaluateAsync(
+                _fixAllAction,
+                It.IsAny<Solution>(),
                 CancellationToken.None))
-            .ReturnsAsync(new CodeActionApplyResult
-            {
-                CandidateSolution = solution.Solution,
-            });
+            .ReturnsAsync(CodeActionApplyResult.Applied(solution.Solution));
 
         var result = await _target.StageFixAllAsync(
             CreateProjectRequest(ScopeKind.Projects, [firstSelector, secondSelector]),
@@ -517,7 +503,7 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
             CancellationToken.None);
 
         result.Outcome.Should().Be(CodeActionExecutionOutcome.Succeeded);
-        _operationService.Verify(item => item.ApplyFixAllAsync(
+        _fixAllActionFactory.Verify(item => item.CreateAsync(
             _provider.Object,
             _fixAllProvider.Object,
             It.IsAny<Project>(),
@@ -588,42 +574,34 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
                 It.Is<ScopeSelector>(scope => scope.Kind == ScopeKind.Solution),
                 It.IsAny<Solution>(),
                 _workspaceResolver.Object))
-            .Returns((ScopeSelector _, Solution solution, IWorkspaceResolver _) => new CodeActionScopeResolution
-            {
-                Documents = solution.Projects.SelectMany(static project => project.Documents).ToArray(),
-            });
+            .Returns((ScopeSelector _, Solution solution, IWorkspaceResolver _) =>
+                CodeActionScopeResolution.Resolved(
+                    solution.Projects.SelectMany(static project => project.Documents).ToArray()));
 
         _scopeResolver
             .Setup(item => item.Resolve(
                 It.Is<ScopeSelector>(scope => scope.Kind == ScopeKind.Document),
                 It.IsAny<Solution>(),
                 _workspaceResolver.Object))
-            .Returns(new CodeActionScopeResolution
-            {
-                Documents = [_roslyn.Document],
-            });
+            .Returns(CodeActionScopeResolution.Resolved([_roslyn.Document]));
 
         _scopeResolver
             .Setup(item => item.Resolve(
                 It.Is<ScopeSelector>(scope => scope.Kind == ScopeKind.Project),
                 It.IsAny<Solution>(),
                 _workspaceResolver.Object))
-            .Returns(new CodeActionScopeResolution
-            {
-                Documents = [_roslyn.Document],
-                Projects = [_roslyn.Document.Project],
-            });
+            .Returns(CodeActionScopeResolution.Resolved(
+                [_roslyn.Document],
+                [_roslyn.Document.Project]));
 
         _scopeResolver
             .Setup(item => item.Resolve(
                 It.Is<ScopeSelector>(scope => scope.Kind == ScopeKind.Projects),
                 It.IsAny<Solution>(),
                 _workspaceResolver.Object))
-            .Returns(new CodeActionScopeResolution
-            {
-                Documents = [_roslyn.Document],
-                Projects = [_roslyn.Document.Project],
-            });
+            .Returns(CodeActionScopeResolution.Resolved(
+                [_roslyn.Document],
+                [_roslyn.Document.Project]));
 
         _scopeResolver
             .Setup(item => item.Resolve(
@@ -692,20 +670,17 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
 
     private CodeActionResolution<WorkspaceMutationCandidate> CreateResolution()
     {
-        return new CodeActionResolution<WorkspaceMutationCandidate>
-        {
-            Action = _discoveredAction,
-            Descriptor = new CodeActionDescriptorEntry(),
-            Document = _roslyn.Document,
-            Span = new TextSpan(0, 1),
-        };
+        return CodeActionResolution<WorkspaceMutationCandidate>.Resolved(
+            _discoveredAction,
+            _roslyn.Document,
+            new TextSpan(0, 1));
     }
 
     private static CodeActionExecutionResult<WorkspaceMutationCandidate> CreateRejection()
     {
         var error = new CodeActionExecutionError
         {
-            Code = "ErrorCode",
+            Code = "UnsupportedActionOperation",
             Message = "Message",
         };
 
@@ -714,12 +689,19 @@ public sealed class CodeActionFixAllServiceTests : IDisposable
 
     private static CodeActionScopeResolution CreateScopeRejection()
     {
-        return new CodeActionScopeResolution
-        {
-            Rejection = CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>(
-                "InvalidRequest",
-                "Message"),
-        };
+        var rejection = CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>(
+            "InvalidRequest",
+            "Message");
+
+        return CodeActionScopeResolution.Rejected(rejection);
+    }
+
+    private static CodeActionApplyResult CreateApplicationFailure(
+        CodeActionExecutionResult<WorkspaceMutationCandidate> rejection)
+    {
+        return CodeActionApplyResult.Failed(
+            CodeActionApplyFailureKind.UnsupportedActionOperation,
+            rejection.Error!.Message);
     }
 
 }

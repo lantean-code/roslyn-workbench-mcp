@@ -45,7 +45,6 @@ public sealed class CodeActionScopeResolverTests
     [Theory]
     [InlineData(SelectorResolveStatus.NotFound, "DocumentNotFound")]
     [InlineData(SelectorResolveStatus.Ambiguous, "DocumentAmbiguous")]
-    [InlineData(SelectorResolveStatus.Resolved, "DocumentNotFound")]
     public void GIVEN_DocumentDoesNotResolve_WHEN_ResolvingScope_THEN_ShouldMapResolutionStatus(
         SelectorResolveStatus status,
         string expectedCode)
@@ -55,7 +54,7 @@ public sealed class CodeActionScopeResolverTests
         var workspaceResolver = new Mock<IWorkspaceResolver>();
         workspaceResolver
             .Setup(item => item.ResolveDocument(selector))
-            .Returns(new SelectorResolveResult<Document> { Status = status });
+            .Returns(SelectorTestFactory.CreateUnresolvedResult<Document>(status));
 
         var result = _target.Resolve(
             new ScopeSelector
@@ -112,7 +111,6 @@ public sealed class CodeActionScopeResolverTests
     [Theory]
     [InlineData(SelectorResolveStatus.NotFound, "ProjectNotFound")]
     [InlineData(SelectorResolveStatus.Ambiguous, "ProjectAmbiguous")]
-    [InlineData(SelectorResolveStatus.Resolved, "ProjectNotFound")]
     public void GIVEN_ProjectDoesNotResolve_WHEN_ResolvingScope_THEN_ShouldMapResolutionStatus(
         SelectorResolveStatus status,
         string expectedCode)
@@ -122,7 +120,7 @@ public sealed class CodeActionScopeResolverTests
         var workspaceResolver = new Mock<IWorkspaceResolver>();
         workspaceResolver
             .Setup(item => item.ResolveProject(selector))
-            .Returns(new SelectorResolveResult<Project> { Status = status });
+            .Returns(SelectorTestFactory.CreateUnresolvedResult<Project>(status));
 
         var result = _target.Resolve(
             new ScopeSelector
@@ -185,7 +183,6 @@ public sealed class CodeActionScopeResolverTests
     [Theory]
     [InlineData(SelectorResolveStatus.NotFound, "ProjectNotFound")]
     [InlineData(SelectorResolveStatus.Ambiguous, "ProjectAmbiguous")]
-    [InlineData(SelectorResolveStatus.Resolved, "ProjectNotFound")]
     public void GIVEN_ProjectInSetDoesNotResolve_WHEN_ResolvingScope_THEN_ShouldMapResolutionStatus(
         SelectorResolveStatus status,
         string expectedCode)
@@ -195,7 +192,7 @@ public sealed class CodeActionScopeResolverTests
         var workspaceResolver = new Mock<IWorkspaceResolver>();
         workspaceResolver
             .Setup(item => item.ResolveProject(selector))
-            .Returns(new SelectorResolveResult<Project> { Status = status });
+            .Returns(SelectorTestFactory.CreateUnresolvedResult<Project>(status));
 
         var result = _target.Resolve(
             new ScopeSelector

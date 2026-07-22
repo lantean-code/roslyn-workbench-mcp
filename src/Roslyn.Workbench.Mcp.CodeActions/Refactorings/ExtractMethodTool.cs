@@ -10,11 +10,11 @@ internal sealed class ExtractMethodTool : CodeActionMutationToolHandler<ExtractM
     private const string LocalFunctionTitle = "Extract local function";
     private const string LocalFunctionEquivalenceKey = "Extract_local_function";
 
-    private readonly ICodeActionReplayService _replayService;
+    private readonly ICodeActionSelectionStager _selectionStager;
 
-    public ExtractMethodTool(ICodeActionReplayService replayService)
+    public ExtractMethodTool(ICodeActionSelectionStager selectionStager)
     {
-        _replayService = replayService;
+        _selectionStager = selectionStager;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(ExtractMethodRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
@@ -34,7 +34,7 @@ internal sealed class ExtractMethodTool : CodeActionMutationToolHandler<ExtractM
             _ => (MethodTitle, MethodEquivalenceKey),
         };
 
-        return _replayService.StageReplayCodeActionAsync(new ReplayCodeActionRequest
+        return _selectionStager.StageReplayCodeActionAsync(new ReplayCodeActionRequest
         {
             Location = request.Selection,
             ExpectedSnapshot = request.ExpectedSnapshot,

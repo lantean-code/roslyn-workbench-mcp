@@ -20,17 +20,13 @@ public sealed class TransactionHistoryToolTests
                 TransactionHistoryDirection.Undo,
                 null,
                 CancellationToken.None))
-            .ReturnsAsync(new WorkspaceOperationResult<TransactionHistoryOutcome>
+            .ReturnsAsync(WorkspaceOperationResult<TransactionHistoryOutcome>.Succeeded(new TransactionHistoryOutcome
             {
-                Status = WorkspaceOperationStatus.Succeeded,
-                Data = new TransactionHistoryOutcome
+                Transaction = new TransactionInfo
                 {
-                    Transaction = new TransactionInfo
-                    {
-                        Revision = 3,
-                    },
+                    Revision = 3,
                 },
-            });
+            }));
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var target = new TransactionHistoryTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
         var arguments = ServerOwnedToolTestData.CreateWorkspaceArguments(includeWorkspace);

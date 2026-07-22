@@ -5,21 +5,21 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Test.Execution;
 
-public sealed class CodeActionLocationFixServiceTests
+public sealed class LocationCodeFixStagerTests
 {
     private readonly Mock<ICodeActionProviderCatalog> _providerCatalog;
     private readonly Mock<ICodeActionDiscoveryService> _discoveryService;
-    private readonly Mock<ICodeActionOperationService> _operationService;
+    private readonly Mock<ICodeActionEvaluator> _evaluator;
     private readonly Mock<ICodeActionDiagnosticService> _diagnosticService;
     private readonly Mock<ICodeActionExecutionContext> _context;
     private readonly Mock<IWorkspaceResolver> _workspaceResolver;
-    private readonly CodeActionLocationFixService _target;
+    private readonly LocationCodeFixStager _target;
 
-    public CodeActionLocationFixServiceTests()
+    public LocationCodeFixStagerTests()
     {
         _providerCatalog = new Mock<ICodeActionProviderCatalog>();
         _discoveryService = new Mock<ICodeActionDiscoveryService>();
-        _operationService = new Mock<ICodeActionOperationService>();
+        _evaluator = new Mock<ICodeActionEvaluator>();
         _diagnosticService = new Mock<ICodeActionDiagnosticService>();
         _context = new Mock<ICodeActionExecutionContext>();
         _workspaceResolver = new Mock<IWorkspaceResolver>();
@@ -32,11 +32,12 @@ public sealed class CodeActionLocationFixServiceTests
             .Setup(item => item.ValidateSnapshot(It.IsAny<SnapshotPrecondition?>()))
             .Returns(SnapshotMatchResult.Matched());
         _context.SetupGet(item => item.WorkspaceResolver).Returns(_workspaceResolver.Object);
-        _target = new CodeActionLocationFixService(
+        _target = new LocationCodeFixStager(
             _providerCatalog.Object,
             _discoveryService.Object,
-            _operationService.Object,
-            _diagnosticService.Object);
+            _evaluator.Object,
+            _diagnosticService.Object,
+            new CodeActionToolRequestResolver(new CodeActionScopeResolver()));
     }
 
     [Fact]
@@ -132,10 +133,7 @@ public sealed class CodeActionLocationFixServiceTests
         var selector = new LocationSelector();
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
-            .ReturnsAsync(new SelectorResolveResult<Location>
-            {
-                Status = status,
-            });
+            .ReturnsAsync(SelectorTestFactory.CreateUnresolvedResult<Location>(status));
 
         var result = await _target.StageLocationCodeFixAsync(
             CreateRequest(selector),
@@ -143,25 +141,6 @@ public sealed class CodeActionLocationFixServiceTests
             CancellationToken.None);
 
         result.Error!.Code.Should().Be(expectedCode);
-    }
-
-    [Fact]
-    public async Task GIVEN_ResolvedStatusHasNoLocation_WHEN_StagingLocationFix_THEN_ShouldRejectLocation()
-    {
-        var selector = new LocationSelector();
-        _workspaceResolver
-            .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
-            .ReturnsAsync(new SelectorResolveResult<Location>
-            {
-                Status = SelectorResolveStatus.Resolved,
-            });
-
-        var result = await _target.StageLocationCodeFixAsync(
-            CreateRequest(selector),
-            _context.Object,
-            CancellationToken.None);
-
-        result.Error!.Code.Should().Be("LocationNotFound");
     }
 
     [Fact]
@@ -421,13 +400,14 @@ public sealed class CodeActionLocationFixServiceTests
         _discoveryService
             .Setup(item => item.DiscoverCodeFixesAsync(provider.Object, roslyn.Document, diagnostics, CancellationToken.None))
             .ReturnsAsync([action]);
-        _operationService
-            .Setup(item => item.CreateMutationCandidateAsync(action.Action, "Title", _context.Object, CancellationToken.None))
-            .ReturnsAsync(CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(candidate));
+        _evaluator
+            .Setup(item => item.EvaluateAsync(action.Action, roslyn.Solution, CancellationToken.None))
+            .ReturnsAsync(CodeActionApplyResult.Applied(candidate.CandidateSolution));
 
         var result = await _target.StageLocationCodeFixAsync(request, _context.Object, CancellationToken.None);
 
-        result.Data.Should().BeSameAs(candidate);
+        result.Data!.CandidateSolution.Should().BeSameAs(candidate.CandidateSolution);
+        result.Data.Summary.Should().Be("Title");
         _workspaceResolver.Verify(item => item.ValidateSnapshot(expectedSnapshot), Times.Once);
     }
 
@@ -470,10 +450,9 @@ public sealed class CodeActionLocationFixServiceTests
         var result = await _target.StageLocationCodeFixAsync(request, _context.Object, CancellationToken.None);
 
         result.Error!.Code.Should().Be("CodeFixUnavailable");
-        _operationService.Verify(item => item.CreateMutationCandidateAsync(
+        _evaluator.Verify(item => item.EvaluateAsync(
             It.IsAny<CodeAction>(),
-            It.IsAny<string>(),
-            It.IsAny<ICodeActionExecutionContext>(),
+            It.IsAny<Solution>(),
             It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -512,17 +491,17 @@ public sealed class CodeActionLocationFixServiceTests
         _discoveryService
             .Setup(item => item.DiscoverCodeFixesAsync(provider.Object, roslyn.Document, diagnostics, CancellationToken.None))
             .ReturnsAsync([firstAction, secondAction]);
-        _operationService
-            .Setup(item => item.CreateMutationCandidateAsync(firstAction.Action, "Title", _context.Object, CancellationToken.None))
-            .ReturnsAsync(CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(candidate));
+        _evaluator
+            .Setup(item => item.EvaluateAsync(firstAction.Action, roslyn.Solution, CancellationToken.None))
+            .ReturnsAsync(CodeActionApplyResult.Applied(candidate.CandidateSolution));
 
         var result = await _target.StageLocationCodeFixAsync(request, _context.Object, CancellationToken.None);
 
-        result.Data.Should().BeSameAs(candidate);
-        _operationService.Verify(item => item.CreateMutationCandidateAsync(
+        result.Data!.CandidateSolution.Should().BeSameAs(candidate.CandidateSolution);
+        result.Data.Summary.Should().Be("Title");
+        _evaluator.Verify(item => item.EvaluateAsync(
             firstAction.Action,
-            "Title",
-            _context.Object,
+            roslyn.Solution,
             CancellationToken.None), Times.Once);
     }
 

@@ -36,10 +36,7 @@ public sealed class FindDuplicateCodeToolTests
             .Setup(item => item.ResolveDocuments<DuplicateCodeData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, DuplicateCodeData>
-            {
-                Rejection = expected,
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DuplicateCodeData>.Rejected(expected));
 
         var result = await target.ExecuteAsync(new FindDuplicateCodeRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -77,10 +74,7 @@ public sealed class FindDuplicateCodeToolTests
             .Setup(item => item.ResolveDocuments<DuplicateCodeData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, DuplicateCodeData>
-            {
-                Value = [unsupportedDocument.Document, supportedDocument.Document],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DuplicateCodeData>.Resolved([unsupportedDocument.Document, supportedDocument.Document]));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, Path.GetFileName(item.SourceTree!.FilePath!)));
@@ -125,10 +119,7 @@ public sealed class FindDuplicateCodeToolTests
             .Setup(item => item.ResolveDocuments<DuplicateCodeData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, DuplicateCodeData>
-            {
-                Value = [document.Document],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DuplicateCodeData>.Resolved([document.Document]));
 
         var result = await target.ExecuteAsync(new FindDuplicateCodeRequest
         {
@@ -169,10 +160,7 @@ public sealed class FindDuplicateCodeToolTests
             .Setup(item => item.ResolveDocuments<DuplicateCodeData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, DuplicateCodeData>
-            {
-                Value = [document.Document],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DuplicateCodeData>.Resolved([document.Document]));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns((ResolvedLocation?)null);
@@ -246,10 +234,7 @@ public sealed class FindDuplicateCodeToolTests
             .Setup(item => item.ResolveDocuments<DuplicateCodeData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, DuplicateCodeData>
-            {
-                Value = [document.Document],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DuplicateCodeData>.Resolved([document.Document]));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, Path.GetFileName(item.SourceTree!.FilePath!)));
@@ -314,10 +299,7 @@ public sealed class FindDuplicateCodeToolTests
             .Setup(item => item.ResolveDocuments<DuplicateCodeData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, DuplicateCodeData>
-            {
-                Value = [document.Document],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DuplicateCodeData>.Resolved([document.Document]));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, "Code.cs"));

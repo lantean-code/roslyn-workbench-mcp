@@ -1,6 +1,6 @@
 namespace Roslyn.Workbench.Mcp.CodeActions.Execution;
 
-internal interface ICodeActionLocationFixService
+internal interface ILocationCodeFixStager
 {
     ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageLocationCodeFixAsync(
         LocationCodeFixRequest request,

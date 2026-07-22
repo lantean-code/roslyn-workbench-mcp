@@ -17,10 +17,7 @@ public sealed class AnalyzeAsyncToolTests
             .Setup(item => item.ResolveDocuments<AsyncAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, AsyncAnalysisData>
-            {
-                Rejection = expected,
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, AsyncAnalysisData>.Rejected(expected));
 
         var result = await target.ExecuteAsync(new AnalyzeAsyncRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -41,10 +38,7 @@ public sealed class AnalyzeAsyncToolTests
             .Setup(item => item.ResolveDocuments<AsyncAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, AsyncAnalysisData>
-            {
-                Value = [document.Document],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, AsyncAnalysisData>.Resolved([document.Document]));
 
         var result = await target.ExecuteAsync(new AnalyzeAsyncRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -76,10 +70,7 @@ public sealed class AnalyzeAsyncToolTests
             .Setup(item => item.ResolveDocuments<AsyncAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, AsyncAnalysisData>
-            {
-                Value = [document.Document],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, AsyncAnalysisData>.Resolved([document.Document]));
 
         var result = await target.ExecuteAsync(new AnalyzeAsyncRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -111,10 +102,7 @@ public sealed class AnalyzeAsyncToolTests
             .Setup(item => item.ResolveDocuments<AsyncAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, AsyncAnalysisData>
-            {
-                Value = [document.Document],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, AsyncAnalysisData>.Resolved([document.Document]));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, "Code.cs"));
@@ -163,10 +151,7 @@ public sealed class AnalyzeAsyncToolTests
             .Setup(item => item.ResolveDocuments<AsyncAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, AsyncAnalysisData>
-            {
-                Value = [document.Document],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, AsyncAnalysisData>.Resolved([document.Document]));
 
         var result = await target.ExecuteAsync(new AnalyzeAsyncRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -197,10 +182,7 @@ public sealed class AnalyzeAsyncToolTests
             .Setup(item => item.ResolveDocuments<AsyncAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, AsyncAnalysisData>
-            {
-                Value = [document.Document],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, AsyncAnalysisData>.Resolved([document.Document]));
 
         var result = await target.ExecuteAsync(new AnalyzeAsyncRequest
         {
@@ -289,10 +271,7 @@ public sealed class AnalyzeAsyncToolTests
             .Setup(item => item.ResolveDocuments<AsyncAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, AsyncAnalysisData>
-            {
-                Value = documents,
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, AsyncAnalysisData>.Resolved(documents));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, item.SourceTree?.FilePath is null ? "Code.cs" : Path.GetFileName(item.SourceTree.FilePath)));

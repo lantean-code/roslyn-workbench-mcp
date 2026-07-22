@@ -7,39 +7,47 @@ internal sealed class ConvertToInterpolatedStringTool : CodeActionMutationToolHa
     private const string Title = "Convert to interpolated string";
     private const string EquivalenceKey = "Convert_to_interpolated_string";
 
-    private readonly ICodeActionReplayService _replayService;
+    private readonly ICodeActionSelectionStager _selectionStager;
+    private readonly ICodeActionToolRequestResolver _requestResolver;
 
-    public ConvertToInterpolatedStringTool(ICodeActionReplayService replayService)
+    public ConvertToInterpolatedStringTool(
+        ICodeActionSelectionStager selectionStager,
+        ICodeActionToolRequestResolver requestResolver)
     {
-        _replayService = replayService;
+        _selectionStager = selectionStager;
+        _requestResolver = requestResolver;
     }
 
     protected override async ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(ConvertToInterpolatedStringRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
-
-        var snapshotRejection = CodeActionExecutionResultFactory.ValidateSnapshot<WorkspaceMutationCandidate>(context.WorkspaceResolver, request.ExpectedSnapshot);
+        var snapshotRejection = _requestResolver.ValidateSnapshot<WorkspaceMutationCandidate>(
+            context,
+            request.ExpectedSnapshot);
         if (snapshotRejection is not null)
         {
             return snapshotRejection;
         }
 
-        if (request.Selection is null)
+        var locationResolution = await _requestResolver.ResolveLocationAsync<WorkspaceMutationCandidate>(
+            request.Selection,
+            context,
+            cancellationToken);
+        if (locationResolution.HasRejection)
         {
-            return CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>("InvalidRequest", "A location selector is required.");
+            return locationResolution.Rejection;
         }
 
-        var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(request.Selection, cancellationToken);
-        if (locationResolution.Status != SelectorResolveStatus.Resolved)
-        {
-            return CodeActionExecutionResultFactory.RejectFromStatus<WorkspaceMutationCandidate>(locationResolution.Status, "Location", "location");
-        }
-
-        return await _replayService.StageReplayCodeActionAsync(new ReplayCodeActionRequest
+        var replayRequest = new ReplayCodeActionRequest
         {
             Location = request.Selection,
             ExpectedSnapshot = request.ExpectedSnapshot,
             Title = Title,
             EquivalenceKey = EquivalenceKey,
-        }, context, cancellationToken);
+        };
+
+        return await _selectionStager.StageReplayCodeActionAsync(
+            replayRequest,
+            context,
+            cancellationToken);
     }
 }

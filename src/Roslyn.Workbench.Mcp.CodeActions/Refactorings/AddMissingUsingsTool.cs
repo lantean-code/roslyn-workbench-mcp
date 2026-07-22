@@ -6,11 +6,11 @@ internal sealed class AddMissingUsingsTool : CodeActionMutationToolHandler<AddMi
 {
     private const string AddImportProviderId = "Microsoft.CodeAnalysis.CSharp.AddImport.CSharpAddImportCodeFixProvider";
 
-    private readonly ICodeActionScopedFixService _scopedFixService;
+    private readonly IScopedCodeFixStager _scopedFixStager;
 
-    public AddMissingUsingsTool(ICodeActionScopedFixService scopedFixService)
+    public AddMissingUsingsTool(IScopedCodeFixStager scopedFixStager)
     {
-        _scopedFixService = scopedFixService;
+        _scopedFixStager = scopedFixStager;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(AddMissingUsingsRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
@@ -24,7 +24,7 @@ internal sealed class AddMissingUsingsTool : CodeActionMutationToolHandler<AddMi
             return ValueTask.FromResult(rejection);
         }
 
-        return _scopedFixService.StageScopedCodeFixAsync(new ScopedCodeFixRequest
+        return _scopedFixStager.StageScopedCodeFixAsync(new ScopedCodeFixRequest
         {
             Scope = request.Scope,
             ExpectedSnapshot = request.ExpectedSnapshot,

@@ -17,10 +17,7 @@ public sealed class FindUnusedSymbolsToolTests
             .Setup(item => item.ResolveDocuments<UnusedSymbolsData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, UnusedSymbolsData>
-            {
-                Rejection = expected,
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, UnusedSymbolsData>.Rejected(expected));
 
         var result = await target.ExecuteAsync(new FindUnusedSymbolsRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -44,10 +41,7 @@ public sealed class FindUnusedSymbolsToolTests
             .Setup(item => item.ResolveDocuments<UnusedSymbolsData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, UnusedSymbolsData>
-            {
-                Value = [generatedDocument.Document, regularDocument.Document],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, UnusedSymbolsData>.Resolved([generatedDocument.Document, regularDocument.Document]));
         compilerDiagnosticService
             .Setup(item => item.GetCompilerDiagnosticsAsync(
                 It.IsAny<IReadOnlyList<Document>>(),
@@ -79,10 +73,7 @@ public sealed class FindUnusedSymbolsToolTests
             .Setup(item => item.ResolveDocuments<UnusedSymbolsData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, UnusedSymbolsData>
-            {
-                Value = [],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, UnusedSymbolsData>.Resolved([]));
         compilerDiagnosticService
             .Setup(item => item.GetCompilerDiagnosticsAsync(
                 It.IsAny<IReadOnlyList<Document>>(),
@@ -132,10 +123,7 @@ public sealed class FindUnusedSymbolsToolTests
             .Setup(item => item.ResolveDocuments<UnusedSymbolsData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, UnusedSymbolsData>
-            {
-                Value = [document.Document],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, UnusedSymbolsData>.Resolved([document.Document]));
         compilerDiagnosticService
             .Setup(item => item.GetCompilerDiagnosticsAsync(
                 It.IsAny<IReadOnlyList<Document>>(),
@@ -177,10 +165,7 @@ public sealed class FindUnusedSymbolsToolTests
             .Setup(item => item.ResolveDocuments<UnusedSymbolsData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, UnusedSymbolsData>
-            {
-                Value = [document.Document],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, UnusedSymbolsData>.Resolved([document.Document]));
         compilerDiagnosticService
             .Setup(item => item.GetCompilerDiagnosticsAsync(
                 It.IsAny<IReadOnlyList<Document>>(),
@@ -218,10 +203,7 @@ public sealed class FindUnusedSymbolsToolTests
             .Setup(item => item.ResolveDocuments<UnusedSymbolsData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, UnusedSymbolsData>
-            {
-                Value = [document.Document],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, UnusedSymbolsData>.Resolved([document.Document]));
         compilerDiagnosticService
             .Setup(item => item.GetCompilerDiagnosticsAsync(
                 It.IsAny<IReadOnlyList<Document>>(),
@@ -266,10 +248,7 @@ public sealed class FindUnusedSymbolsToolTests
             .Setup(item => item.ResolveDocuments<UnusedSymbolsData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, UnusedSymbolsData>
-            {
-                Value = [document.Document],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, UnusedSymbolsData>.Resolved([document.Document]));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, Path.GetFileName(item.SourceTree!.FilePath!)));
@@ -314,10 +293,7 @@ public sealed class FindUnusedSymbolsToolTests
             .Setup(item => item.ResolveDocuments<UnusedSymbolsData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, UnusedSymbolsData>
-            {
-                Value = [document.Document],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, UnusedSymbolsData>.Resolved([document.Document]));
         compilerDiagnosticService
             .Setup(item => item.GetCompilerDiagnosticsAsync(
                 It.IsAny<IReadOnlyList<Document>>(),
@@ -362,10 +338,7 @@ public sealed class FindUnusedSymbolsToolTests
             .Setup(item => item.ResolveDocuments<UnusedSymbolsData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, UnusedSymbolsData>
-            {
-                Value = [document.Document],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, UnusedSymbolsData>.Resolved([document.Document]));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, document.Document.Name));
@@ -428,10 +401,7 @@ public sealed class FindUnusedSymbolsToolTests
             .Setup(item => item.ResolveDocuments<UnusedSymbolsData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, UnusedSymbolsData>
-            {
-                Value = [document.Document],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, UnusedSymbolsData>.Resolved([document.Document]));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, document.Document.Name));
@@ -523,10 +493,7 @@ public sealed class FindUnusedSymbolsToolTests
             .Setup(item => item.ResolveDocuments<UnusedSymbolsData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, UnusedSymbolsData>
-            {
-                Value = [solution.GetDocument("First.cs"), solution.GetDocument("Second.cs")],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, UnusedSymbolsData>.Resolved([solution.GetDocument("First.cs"), solution.GetDocument("Second.cs")]));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, Path.GetFileName(item.SourceTree!.FilePath!)));

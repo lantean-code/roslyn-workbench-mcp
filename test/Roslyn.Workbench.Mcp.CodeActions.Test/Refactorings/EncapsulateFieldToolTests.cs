@@ -13,8 +13,8 @@ public sealed class EncapsulateFieldToolTests
         var workspaceResolver = new Mock<IWorkspaceResolver>();
         var context = CreateContext(workspaceResolver);
         var request = CreateRequest();
-        var replayService = new Mock<ICodeActionReplayService>();
-        var target = new EncapsulateFieldTool(replayService.Object);
+        var selectionStager = new Mock<ICodeActionSelectionStager>();
+        var target = CreateTarget(selectionStager.Object);
 
         workspaceResolver
             .Setup(item => item.ResolveSymbolAsync(request.Field!, CancellationToken.None))
@@ -24,7 +24,7 @@ public sealed class EncapsulateFieldToolTests
 
         result.Should().BeEquivalentTo(expected);
         workspaceResolver.Verify(item => item.CreateResolvedLocation(It.IsAny<Location>()), Times.Never);
-        replayService.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), context.Object, It.IsAny<CancellationToken>()), Times.Never);
+        selectionStager.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), context.Object, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -34,8 +34,8 @@ public sealed class EncapsulateFieldToolTests
         var context = CreateContext(workspaceResolver);
         var request = CreateRequest();
         var symbol = new Mock<ISymbol>();
-        var replayService = new Mock<ICodeActionReplayService>();
-        var target = new EncapsulateFieldTool(replayService.Object);
+        var selectionStager = new Mock<ICodeActionSelectionStager>();
+        var target = CreateTarget(selectionStager.Object);
 
         workspaceResolver
             .Setup(item => item.ResolveSymbolAsync(request.Field!, CancellationToken.None))
@@ -47,7 +47,7 @@ public sealed class EncapsulateFieldToolTests
         result.Error.Should().NotBeNull();
         result.Error!.Code.Should().Be("SymbolNotSupported");
         workspaceResolver.Verify(item => item.CreateResolvedLocation(It.IsAny<Location>()), Times.Never);
-        replayService.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), context.Object, It.IsAny<CancellationToken>()), Times.Never);
+        selectionStager.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), context.Object, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -57,8 +57,8 @@ public sealed class EncapsulateFieldToolTests
         var context = CreateContext(workspaceResolver);
         var request = CreateRequest();
         var field = CreateFieldSymbol("Field", []);
-        var replayService = new Mock<ICodeActionReplayService>();
-        var target = new EncapsulateFieldTool(replayService.Object);
+        var selectionStager = new Mock<ICodeActionSelectionStager>();
+        var target = CreateTarget(selectionStager.Object);
 
         workspaceResolver
             .Setup(item => item.ResolveSymbolAsync(request.Field!, CancellationToken.None))
@@ -70,7 +70,7 @@ public sealed class EncapsulateFieldToolTests
         result.Error.Should().NotBeNull();
         result.Error!.Code.Should().Be("SymbolNotSupported");
         workspaceResolver.Verify(item => item.CreateResolvedLocation(It.IsAny<Location>()), Times.Never);
-        replayService.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), context.Object, It.IsAny<CancellationToken>()), Times.Never);
+        selectionStager.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), context.Object, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -81,8 +81,8 @@ public sealed class EncapsulateFieldToolTests
         var request = CreateRequest();
         var location = RoslynTestFactory.CreateSourceLocation();
         var field = CreateFieldSymbol("Field", [location]);
-        var replayService = new Mock<ICodeActionReplayService>();
-        var target = new EncapsulateFieldTool(replayService.Object);
+        var selectionStager = new Mock<ICodeActionSelectionStager>();
+        var target = CreateTarget(selectionStager.Object);
 
         workspaceResolver
             .Setup(item => item.ResolveSymbolAsync(request.Field!, CancellationToken.None))
@@ -96,7 +96,7 @@ public sealed class EncapsulateFieldToolTests
         result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
         result.Error.Should().NotBeNull();
         result.Error!.Code.Should().Be("SymbolNotSupported");
-        replayService.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), context.Object, It.IsAny<CancellationToken>()), Times.Never);
+        selectionStager.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), context.Object, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -109,8 +109,8 @@ public sealed class EncapsulateFieldToolTests
         var location = RoslynTestFactory.CreateSourceLocation();
         var resolvedLocation = SelectorTestFactory.CreateResolvedLocation(location, "Code.cs");
         var field = CreateFieldSymbol("Field", [location]);
-        var replayService = new Mock<ICodeActionReplayService>();
-        var target = new EncapsulateFieldTool(replayService.Object);
+        var selectionStager = new Mock<ICodeActionSelectionStager>();
+        var target = CreateTarget(selectionStager.Object);
 
         workspaceResolver
             .Setup(item => item.ResolveSymbolAsync(request.Field!, CancellationToken.None))
@@ -118,7 +118,7 @@ public sealed class EncapsulateFieldToolTests
         workspaceResolver
             .Setup(item => item.CreateResolvedLocation(location))
             .Returns(resolvedLocation);
-        replayService
+        selectionStager
             .Setup(item => item.StageReplayCodeActionAsync(
                 It.Is<ReplayCodeActionRequest>(replayRequest =>
                     replayRequest.ExpectedSnapshot == request.ExpectedSnapshot
@@ -132,7 +132,7 @@ public sealed class EncapsulateFieldToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        replayService.Verify(item => item.StageReplayCodeActionAsync(
+        selectionStager.Verify(item => item.StageReplayCodeActionAsync(
             It.Is<ReplayCodeActionRequest>(replayRequest =>
                 replayRequest.ExpectedSnapshot == request.ExpectedSnapshot
                 && replayRequest.ProviderId == "Microsoft.CodeAnalysis.EncapsulateField.EncapsulateFieldRefactoringProvider"
@@ -152,8 +152,8 @@ public sealed class EncapsulateFieldToolTests
         var location = RoslynTestFactory.CreateSourceLocation();
         var resolvedLocation = SelectorTestFactory.CreateResolvedLocation(location, "Code.cs");
         var field = CreateFieldSymbol("Field", [location]);
-        var replayService = new Mock<ICodeActionReplayService>();
-        var target = new EncapsulateFieldTool(replayService.Object);
+        var selectionStager = new Mock<ICodeActionSelectionStager>();
+        var target = CreateTarget(selectionStager.Object);
 
         workspaceResolver
             .Setup(item => item.ResolveSymbolAsync(request.Field!, CancellationToken.None))
@@ -161,7 +161,7 @@ public sealed class EncapsulateFieldToolTests
         workspaceResolver
             .Setup(item => item.CreateResolvedLocation(location))
             .Returns(resolvedLocation);
-        replayService
+        selectionStager
             .Setup(item => item.StageReplayCodeActionAsync(
                 It.Is<ReplayCodeActionRequest>(replayRequest =>
                     replayRequest.ExpectedSnapshot == request.ExpectedSnapshot
@@ -175,7 +175,7 @@ public sealed class EncapsulateFieldToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        replayService.Verify(item => item.StageReplayCodeActionAsync(
+        selectionStager.Verify(item => item.StageReplayCodeActionAsync(
             It.Is<ReplayCodeActionRequest>(replayRequest =>
                 replayRequest.ExpectedSnapshot == request.ExpectedSnapshot
                 && replayRequest.ProviderId == "Microsoft.CodeAnalysis.EncapsulateField.EncapsulateFieldRefactoringProvider"
@@ -209,6 +209,13 @@ public sealed class EncapsulateFieldToolTests
             },
             UpdateReferences = updateReferences,
         };
+    }
+
+    private static EncapsulateFieldTool CreateTarget(ICodeActionSelectionStager selectionStager)
+    {
+        var requestResolver = new CodeActionToolRequestResolver(new CodeActionScopeResolver());
+
+        return new EncapsulateFieldTool(selectionStager, requestResolver);
     }
 
     private static Mock<IFieldSymbol> CreateFieldSymbol(string name, IReadOnlyList<Location> locations)

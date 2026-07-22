@@ -16,14 +16,10 @@ public sealed class TransactionRollbackToolTests
                 ServerOwnedToolTestData.GetWorkspaceAlias(includeWorkspace),
                 ServerOwnedToolTestData.GetWorkspacePath(includeWorkspace),
                 CancellationToken.None))
-            .ReturnsAsync(new WorkspaceOperationResult<TransactionRollbackOutcome>
+            .ReturnsAsync(WorkspaceOperationResult<TransactionRollbackOutcome>.Succeeded(new TransactionRollbackOutcome
             {
-                Status = WorkspaceOperationStatus.Succeeded,
-                Data = new TransactionRollbackOutcome
-                {
-                    State = TransactionRollbackState.Ready,
-                },
-            });
+                State = TransactionRollbackState.Ready,
+            }));
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var target = new TransactionRollbackTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
 

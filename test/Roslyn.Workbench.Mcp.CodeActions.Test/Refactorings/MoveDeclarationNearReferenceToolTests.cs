@@ -15,10 +15,10 @@ public sealed class MoveDeclarationNearReferenceToolTests
                 WorkspaceEpoch = 1,
             },
         };
-        var replayService = new Mock<ICodeActionReplayService>();
-        var target = new MoveDeclarationNearReferenceTool(replayService.Object);
+        var selectionStager = new Mock<ICodeActionSelectionStager>();
+        var target = new MoveDeclarationNearReferenceTool(selectionStager.Object);
 
-        replayService
+        selectionStager
             .Setup(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
@@ -35,7 +35,7 @@ public sealed class MoveDeclarationNearReferenceToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        replayService.Verify(item => item.StageSelectionAsync(
+        selectionStager.Verify(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
                 CancellationToken.None,

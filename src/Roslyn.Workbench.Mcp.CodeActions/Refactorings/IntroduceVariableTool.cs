@@ -4,11 +4,11 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 
 internal sealed class IntroduceVariableTool : CodeActionMutationToolHandler<IntroduceVariableRequest>
 {
-    private readonly ICodeActionReplayService _replayService;
+    private readonly ICodeActionSelectionStager _selectionStager;
 
-    public IntroduceVariableTool(ICodeActionReplayService replayService)
+    public IntroduceVariableTool(ICodeActionSelectionStager selectionStager)
     {
-        _replayService = replayService;
+        _selectionStager = selectionStager;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(IntroduceVariableRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
@@ -36,7 +36,7 @@ internal sealed class IntroduceVariableTool : CodeActionMutationToolHandler<Intr
             _ => CreateReplayRequest(request, "Introduce local for ", "all occurrences"),
         };
 
-        return _replayService.StageReplayCodeActionAsync(replayRequest, context, cancellationToken);
+        return _selectionStager.StageReplayCodeActionAsync(replayRequest, context, cancellationToken);
     }
 
     private static ReplayCodeActionRequest CreateReplayRequest(IntroduceVariableRequest request, string titleStartsWith, string? titleDoesNotContain = null)

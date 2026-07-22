@@ -1,6 +1,6 @@
 namespace Roslyn.Workbench.Mcp.CodeActions.Resolution;
 
-internal interface ICodeActionResolutionService
+internal interface ICodeActionResolver
 {
     ValueTask<CodeActionResolution<T>> ResolveActionAsync<T>(
         string actionId,

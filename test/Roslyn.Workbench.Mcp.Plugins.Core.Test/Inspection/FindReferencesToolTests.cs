@@ -22,10 +22,7 @@ public sealed class FindReferencesToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, ReferenceSearchData>
-            {
-                Rejection = expected,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, ReferenceSearchData>.Rejected(expected));
 
         var result = await target.ExecuteAsync(new FindReferencesRequest
         {
@@ -67,18 +64,12 @@ public sealed class FindReferencesToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, ReferenceSearchData>
-            {
-                Value = symbol,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, ReferenceSearchData>.Resolved(symbol));
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<ReferenceSearchData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, ReferenceSearchData>
-            {
-                Rejection = expected,
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, ReferenceSearchData>.Rejected(expected));
 
         var result = await target.ExecuteAsync(new FindReferencesRequest
         {
@@ -161,18 +152,12 @@ public sealed class FindReferencesToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, ReferenceSearchData>
-            {
-                Value = symbol,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, ReferenceSearchData>.Resolved(symbol));
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<ReferenceSearchData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, ReferenceSearchData>
-            {
-                Value = documents,
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, ReferenceSearchData>.Resolved(documents));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, Path.GetFileName(item.SourceTree!.FilePath!)));
@@ -281,18 +266,12 @@ public sealed class FindReferencesToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, ReferenceSearchData>
-            {
-                Value = symbol,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, ReferenceSearchData>.Resolved(symbol));
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<ReferenceSearchData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, ReferenceSearchData>
-            {
-                Value = solution.Solution.Projects.Single().Documents.ToArray(),
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, ReferenceSearchData>.Resolved(solution.Solution.Projects.Single().Documents.ToArray()));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => Path.GetFileName(item.SourceTree?.FilePath) == "StateHolder.cs" || item.SourceSpan.Start == locationToSkip
@@ -492,18 +471,12 @@ public sealed class FindReferencesToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, ReferenceSearchData>
-            {
-                Value = symbol,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, ReferenceSearchData>.Resolved(symbol));
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<ReferenceSearchData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, ReferenceSearchData>
-            {
-                Value = [codeDocument],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, ReferenceSearchData>.Resolved([codeDocument]));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, Path.GetFileName(item.SourceTree!.FilePath!)));

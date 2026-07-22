@@ -52,10 +52,7 @@ public sealed class FindDependencyCyclesToolTests
             .Setup(item => item.ResolveDocuments<DependencyCyclesData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, DependencyCyclesData>
-            {
-                Rejection = expected,
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DependencyCyclesData>.Rejected(expected));
 
         var result = await target.ExecuteAsync(new FindDependencyCyclesRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -87,18 +84,12 @@ public sealed class FindDependencyCyclesToolTests
             .Setup(item => item.ResolveDocuments<DependencyCyclesData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, DependencyCyclesData>
-            {
-                Value = [document.Document],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DependencyCyclesData>.Resolved([document.Document]));
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveProjects<DependencyCyclesData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Project>, DependencyCyclesData>
-            {
-                Rejection = expected,
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Project>, DependencyCyclesData>.Rejected(expected));
 
         var result = await target.ExecuteAsync(new FindDependencyCyclesRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -161,18 +152,12 @@ public sealed class FindDependencyCyclesToolTests
             .Setup(item => item.ResolveDocuments<DependencyCyclesData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, DependencyCyclesData>
-            {
-                Value = [document.Document],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DependencyCyclesData>.Resolved([document.Document]));
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveProjects<DependencyCyclesData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Project>, DependencyCyclesData>
-            {
-                Value = [document.Document.Project!],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Project>, DependencyCyclesData>.Resolved([document.Document.Project!]));
         dependencyAnalysisService
             .Setup(item => item.FindCyclesAsync(
                 "Type",

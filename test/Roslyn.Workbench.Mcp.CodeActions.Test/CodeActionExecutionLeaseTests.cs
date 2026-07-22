@@ -51,15 +51,11 @@ public sealed class CodeActionExecutionLeaseTests
                 diagnostics,
                 warnings,
                 TestContext.Current.CancellationToken))
-            .ReturnsAsync(new WorkspaceOperationResult<MutationStagingOutcome>
+            .ReturnsAsync(WorkspaceOperationResult<MutationStagingOutcome>.Succeeded(new MutationStagingOutcome
             {
-                Status = WorkspaceOperationStatus.Succeeded,
-                Data = new MutationStagingOutcome
-                {
-                    Operation = "Operation",
-                    Summary = "Summary",
-                },
-            });
+                Operation = "Operation",
+                Summary = "Summary",
+            }));
         var workspaceLease = WorkspaceMutationExecutionLease.Acquired(
             new Mock<IWorkspaceExecutionContext>().Object,
             stager.Object);

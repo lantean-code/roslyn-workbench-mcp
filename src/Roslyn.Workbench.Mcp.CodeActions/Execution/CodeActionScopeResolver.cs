@@ -1,5 +1,3 @@
-using static Roslyn.Workbench.Mcp.CodeActions.Execution.CodeActionExecutionResultFactory;
-
 namespace Roslyn.Workbench.Mcp.CodeActions.Execution;
 
 internal sealed class CodeActionScopeResolver : ICodeActionScopeResolver
@@ -11,14 +9,11 @@ internal sealed class CodeActionScopeResolver : ICodeActionScopeResolver
     {
         return scope.Kind switch
         {
-            ScopeKind.Solution => new CodeActionScopeResolution
-            {
-                Documents = solution.Projects.SelectMany(static project => project.Documents).ToArray(),
-            },
+            ScopeKind.Solution => CodeActionScopeResolution.Resolved(solution.Projects.SelectMany(static project => project.Documents).ToArray()),
             ScopeKind.Document => ResolveDocument(scope.Document, workspaceResolver),
             ScopeKind.Project => ResolveProject(scope.Project, workspaceResolver),
             ScopeKind.Projects => ResolveProjects(scope.Projects, workspaceResolver),
-            _ => Reject("The requested scope kind is not supported."),
+            _ => InvalidRequest("The requested scope kind is not supported."),
         };
     }
 
@@ -28,16 +23,16 @@ internal sealed class CodeActionScopeResolver : ICodeActionScopeResolver
     {
         if (selector is null)
         {
-            return Reject("Document scope requires a document selector.");
+            return InvalidRequest("Document scope requires a document selector.");
         }
 
         var resolution = workspaceResolver.ResolveDocument(selector);
-        return resolution.Status == SelectorResolveStatus.Resolved && resolution.Value is not null
-            ? new CodeActionScopeResolution
-            {
-                Documents = [resolution.Value],
-            }
-            : Reject(RejectFromStatus<WorkspaceMutationCandidate>(resolution.Status, "Document", "document"));
+        if (resolution.Status != SelectorResolveStatus.Resolved || resolution.Value is null)
+        {
+            return SelectorFailure(resolution.Status, "Document", "document");
+        }
+
+        return CodeActionScopeResolution.Resolved([resolution.Value]);
     }
 
     private static CodeActionScopeResolution ResolveProject(
@@ -46,13 +41,16 @@ internal sealed class CodeActionScopeResolver : ICodeActionScopeResolver
     {
         if (selector is null)
         {
-            return Reject("Project scope requires a project selector.");
+            return InvalidRequest("Project scope requires a project selector.");
         }
 
         var resolution = workspaceResolver.ResolveProject(selector);
-        return resolution.Status == SelectorResolveStatus.Resolved && resolution.Value is not null
-            ? FromProject(resolution.Value)
-            : Reject(RejectFromStatus<WorkspaceMutationCandidate>(resolution.Status, "Project", "project"));
+        if (resolution.Status != SelectorResolveStatus.Resolved || resolution.Value is null)
+        {
+            return SelectorFailure(resolution.Status, "Project", "project");
+        }
+
+        return FromProject(resolution.Value);
     }
 
     private static CodeActionScopeResolution ResolveProjects(
@@ -61,7 +59,7 @@ internal sealed class CodeActionScopeResolver : ICodeActionScopeResolver
     {
         if (selectors is null || selectors.Count == 0)
         {
-            return Reject("Projects scope requires at least one project selector.");
+            return InvalidRequest("Projects scope requires at least one project selector.");
         }
 
         var projects = new List<Project>();
@@ -70,40 +68,42 @@ internal sealed class CodeActionScopeResolver : ICodeActionScopeResolver
             var resolution = workspaceResolver.ResolveProject(selector);
             if (resolution.Status != SelectorResolveStatus.Resolved || resolution.Value is null)
             {
-                return Reject(RejectFromStatus<WorkspaceMutationCandidate>(resolution.Status, "Project", "project"));
+                return SelectorFailure(resolution.Status, "Project", "project");
             }
 
             projects.Add(resolution.Value);
         }
 
         var distinctProjects = projects.DistinctBy(static project => project.Id).ToArray();
-        return new CodeActionScopeResolution
-        {
-            Documents = distinctProjects.SelectMany(static project => project.Documents).ToArray(),
-            Projects = distinctProjects,
-        };
+        var documents = distinctProjects.SelectMany(static project => project.Documents).ToArray();
+
+        return CodeActionScopeResolution.Resolved(documents, distinctProjects);
     }
 
     private static CodeActionScopeResolution FromProject(Project project)
     {
-        return new CodeActionScopeResolution
-        {
-            Documents = project.Documents.ToArray(),
-            Projects = [project],
-        };
+        return CodeActionScopeResolution.Resolved(project.Documents.ToArray(), [project]);
     }
 
-    private static CodeActionScopeResolution Reject(string message)
+    private static CodeActionScopeResolution InvalidRequest(string message)
     {
-        return Reject(Rejected<WorkspaceMutationCandidate>("InvalidRequest", message));
+        var rejection = CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>(
+            "InvalidRequest",
+            message);
+
+        return CodeActionScopeResolution.Rejected(rejection);
     }
 
-    private static CodeActionScopeResolution Reject(
-        CodeActionExecutionResult<WorkspaceMutationCandidate> rejection)
+    private static CodeActionScopeResolution SelectorFailure(
+        SelectorResolveStatus status,
+        string targetCode,
+        string targetDisplayName)
     {
-        return new CodeActionScopeResolution
-        {
-            Rejection = rejection,
-        };
+        var rejection = CodeActionExecutionResultFactory.RejectFromStatus<WorkspaceMutationCandidate>(
+            status,
+            targetCode,
+            targetDisplayName);
+
+        return CodeActionScopeResolution.Rejected(rejection);
     }
 }

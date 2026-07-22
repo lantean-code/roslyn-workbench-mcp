@@ -38,10 +38,7 @@ public sealed class FindDerivedTypesToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, DerivedTypesData>
-            {
-                Rejection = expected,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, DerivedTypesData>.Rejected(expected));
 
         var result = await target.ExecuteAsync(new FindDerivedTypesRequest
         {
@@ -77,10 +74,7 @@ public sealed class FindDerivedTypesToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, DerivedTypesData>
-            {
-                Value = symbol,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, DerivedTypesData>.Resolved(symbol));
 
         var result = await target.ExecuteAsync(new FindDerivedTypesRequest
         {
@@ -122,18 +116,12 @@ public sealed class FindDerivedTypesToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, DerivedTypesData>
-            {
-                Value = symbol,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, DerivedTypesData>.Resolved(symbol));
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveProjects<DerivedTypesData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Project>, DerivedTypesData>
-            {
-                Rejection = expected,
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Project>, DerivedTypesData>.Rejected(expected));
 
         var result = await target.ExecuteAsync(new FindDerivedTypesRequest
         {
@@ -198,18 +186,12 @@ public sealed class FindDerivedTypesToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, DerivedTypesData>
-            {
-                Value = baseType,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, DerivedTypesData>.Resolved(baseType));
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveProjects<DerivedTypesData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Project>, DerivedTypesData>
-            {
-                Value = [project],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Project>, DerivedTypesData>.Resolved([project]));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -287,18 +269,12 @@ public sealed class FindDerivedTypesToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ToolResolutionResult<ISymbol, DerivedTypesData>
-            {
-                Value = symbol,
-            });
+            .ReturnsAsync(ToolResolutionResult<ISymbol, DerivedTypesData>.Resolved(symbol));
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveProjects<DerivedTypesData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Project>, DerivedTypesData>
-            {
-                Value = [project],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Project>, DerivedTypesData>.Resolved([project]));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));

@@ -6,11 +6,11 @@ internal sealed class UseNamedArgumentsTool : CodeActionMutationToolHandler<UseN
 {
     private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.UseNamedArguments.CSharpUseNamedArgumentsCodeRefactoringProvider";
 
-    private readonly ICodeActionReplayService _replayService;
+    private readonly ICodeActionSelectionStager _selectionStager;
 
-    public UseNamedArgumentsTool(ICodeActionReplayService replayService)
+    public UseNamedArgumentsTool(ICodeActionSelectionStager selectionStager)
     {
-        _replayService = replayService;
+        _selectionStager = selectionStager;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(UseNamedArgumentsRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
@@ -20,7 +20,7 @@ internal sealed class UseNamedArgumentsTool : CodeActionMutationToolHandler<UseN
             ? "Add argument name '"
             : "Add argument name '";
 
-        return _replayService.StageSelectionAsync(
+        return _selectionStager.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
             cancellationToken,

@@ -231,27 +231,18 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
         var snapshotRejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<CalleeSearchData>(context, expectedSnapshot);
         if (snapshotRejection is not null)
         {
-            return new ToolResolutionResult<ResolvedCalleeLocation, CalleeSearchData>
-            {
-                Rejection = snapshotRejection,
-            };
+            return ToolResolutionResult<ResolvedCalleeLocation, CalleeSearchData>.Rejected(snapshotRejection);
         }
 
         if (selector is null)
         {
-            return new ToolResolutionResult<ResolvedCalleeLocation, CalleeSearchData>
-            {
-                Rejection = ToolExecutionHelpers.Rejected<CalleeSearchData>("InvalidRequest", "A location selector is required."),
-            };
+            return ToolResolutionResult<ResolvedCalleeLocation, CalleeSearchData>.Rejected(ToolExecutionHelpers.Rejected<CalleeSearchData>("InvalidRequest", "A location selector is required."));
         }
 
         var location = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken);
         if (!location.IsResolved)
         {
-            return new ToolResolutionResult<ResolvedCalleeLocation, CalleeSearchData>
-            {
-                Rejection = ToolExecutionHelpers.RejectFromStatus<CalleeSearchData>(location.Status, "Location", "location"),
-            };
+            return ToolResolutionResult<ResolvedCalleeLocation, CalleeSearchData>.Rejected(ToolExecutionHelpers.RejectFromStatus<CalleeSearchData>(location.Status, "Location", "location"));
         }
 
         var sourceLocation = location.Value;
@@ -261,28 +252,19 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
 
         if (document is null)
         {
-            return new ToolResolutionResult<ResolvedCalleeLocation, CalleeSearchData>
-            {
-                Rejection = ToolExecutionHelpers.Rejected<CalleeSearchData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
-            };
+            return ToolResolutionResult<ResolvedCalleeLocation, CalleeSearchData>.Rejected(ToolExecutionHelpers.Rejected<CalleeSearchData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
         }
 
         var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
         if (syntaxRoot is null || semanticModel is null)
         {
-            return new ToolResolutionResult<ResolvedCalleeLocation, CalleeSearchData>
-            {
-                Rejection = ToolExecutionHelpers.Rejected<CalleeSearchData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
-            };
+            return ToolResolutionResult<ResolvedCalleeLocation, CalleeSearchData>.Rejected(ToolExecutionHelpers.Rejected<CalleeSearchData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
         }
 
-        return new ToolResolutionResult<ResolvedCalleeLocation, CalleeSearchData>
-        {
-            Value = new ResolvedCalleeLocation(
+        return ToolResolutionResult<ResolvedCalleeLocation, CalleeSearchData>.Resolved(new ResolvedCalleeLocation(
                 syntaxRoot.FindNode(sourceLocation.SourceSpan, getInnermostNodeForTie: true),
-                semanticModel),
-        };
+                semanticModel));
     }
 
     private sealed record ResolvedCalleeLocation

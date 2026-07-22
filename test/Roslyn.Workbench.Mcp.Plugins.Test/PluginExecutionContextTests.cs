@@ -67,11 +67,7 @@ public sealed class PluginExecutionContextTests
                 It.IsAny<IReadOnlyList<DiagnosticInfo>>(),
                 It.IsAny<IReadOnlyList<WarningInfo>>(),
                 CancellationToken.None))
-            .ReturnsAsync(new WorkspaceOperationResult<MutationStagingOutcome>
-            {
-                Status = WorkspaceOperationStatus.Succeeded,
-                Data = outcome,
-            });
+            .ReturnsAsync(WorkspaceOperationResult<MutationStagingOutcome>.Succeeded(outcome));
         var workspaceLease = WorkspaceMutationExecutionLease.Acquired(workspaceContext, stager.Object);
         var toolExecutionServices = new Mock<IToolExecutionServices>();
         var target = PluginMutationExecutionLease.Acquired(

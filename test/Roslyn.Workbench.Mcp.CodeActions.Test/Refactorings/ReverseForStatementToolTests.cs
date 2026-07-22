@@ -15,10 +15,10 @@ public sealed class ReverseForStatementToolTests
                 WorkspaceEpoch = 1,
             },
         };
-        var replayService = new Mock<ICodeActionReplayService>();
-        var target = new ReverseForStatementTool(replayService.Object);
+        var selectionStager = new Mock<ICodeActionSelectionStager>();
+        var target = new ReverseForStatementTool(selectionStager.Object);
 
-        replayService
+        selectionStager
             .Setup(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
@@ -35,7 +35,7 @@ public sealed class ReverseForStatementToolTests
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        replayService.Verify(item => item.StageSelectionAsync(
+        selectionStager.Verify(item => item.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
                 CancellationToken.None,

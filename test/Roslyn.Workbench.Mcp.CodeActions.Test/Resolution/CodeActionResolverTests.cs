@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis.Text;
 namespace Roslyn.Workbench.Mcp.CodeActions.Test.Resolution;
 
 #pragma warning disable CA1861 // Fresh mutable arrays keep each resolution scenario isolated from other tests.
-public sealed class CodeActionResolutionServiceTests : IDisposable
+public sealed class CodeActionResolverTests : IDisposable
 {
     private static readonly DateTimeOffset _utcNow = new(2000, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
@@ -22,9 +22,9 @@ public sealed class CodeActionResolutionServiceTests : IDisposable
     private readonly InMemoryRoslynDocument _roslyn;
     private readonly DiscoveredCodeAction _matchingAction;
     private readonly CodeActionDescriptorEntry _visibleDescriptor;
-    private readonly CodeActionResolutionService _target;
+    private readonly CodeActionResolver _target;
 
-    public CodeActionResolutionServiceTests()
+    public CodeActionResolverTests()
     {
         _discoveryService = new Mock<ICodeActionDiscoveryService>();
         _diagnosticService = new Mock<ICodeActionDiagnosticService>();
@@ -69,10 +69,11 @@ public sealed class CodeActionResolutionServiceTests : IDisposable
             .ReturnsAsync([_matchingAction]);
         SetupToken(CreatePayload());
 
-        _target = new CodeActionResolutionService(
+        _target = new CodeActionResolver(
             _discoveryService.Object,
             _diagnosticService.Object,
             _tokenService.Object,
+            new CodeActionToolRequestResolver(new CodeActionScopeResolver()),
             _timeProvider.Object);
     }
 
@@ -193,13 +194,12 @@ public sealed class CodeActionResolutionServiceTests : IDisposable
     [Theory]
     [InlineData(SelectorResolveStatus.NotFound)]
     [InlineData(SelectorResolveStatus.Ambiguous)]
-    [InlineData(SelectorResolveStatus.Resolved)]
     public async Task GIVEN_TokenDocumentDoesNotResolve_WHEN_ResolvingAction_THEN_ShouldReturnExpiredAction(
         SelectorResolveStatus status)
     {
         _workspaceResolver
             .Setup(item => item.ResolveDocument(It.Is<DocumentSelector>(selector => selector.Path == "DocumentPath")))
-            .Returns(new SelectorResolveResult<Document> { Status = status });
+            .Returns(SelectorTestFactory.CreateUnresolvedResult<Document>(status));
 
         var result = await ResolveAsync();
 

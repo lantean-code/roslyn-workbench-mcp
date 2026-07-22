@@ -79,6 +79,7 @@
 - Do not use fire-and-forget tasks (`async void`, discarded `Task`/`ValueTask`, or background work without explicit lifecycle management).
 - When application logging is necessary, use source-generated `LoggerMessage` methods instead of `LoggerExtensions.Log*` calls. Assign a stable event ID and log level, use named structured placeholders rather than interpolated strings, and pass exceptions through the generated method's `Exception` parameter when applicable. The partial type and method declarations required by the logging source generator are an approved use of partial code.
 - Prefer immutable contract objects where it keeps request/response semantics clear.
+- Types that represent mutually exclusive outcomes, or whose status properties imply member nullability, must expose get-only state, use a private constructor that receives the complete state, and provide named static factories for every valid outcome. Treat `private init` on these invariant-bearing types as a design smell: restricted object initializers do not make the valid state combinations explicit at the construction boundary.
 - Avoid hidden ambient state. Pass required collaborators explicitly.
 
 ### Roslyn and MCP design rules

@@ -17,10 +17,7 @@ public sealed class GetDocumentOutlineToolTests
             .Setup(item => item.ResolveDocument<DocumentOutlineData>(
                 It.IsAny<DocumentSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<Document, DocumentOutlineData>
-            {
-                Rejection = expected,
-            });
+            .Returns(ToolResolutionResult<Document, DocumentOutlineData>.Rejected(expected));
 
         var result = await target.ExecuteAsync(new GetDocumentOutlineRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -39,10 +36,7 @@ public sealed class GetDocumentOutlineToolTests
             .Setup(item => item.ResolveDocument<DocumentOutlineData>(
                 It.IsAny<DocumentSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<Document, DocumentOutlineData>
-            {
-                Value = document.Document,
-            });
+            .Returns(ToolResolutionResult<Document, DocumentOutlineData>.Resolved(document.Document));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateDocumentReference(It.IsAny<Document>()))
             .Returns<Document>(item => new DocumentReference
@@ -81,10 +75,7 @@ public sealed class GetDocumentOutlineToolTests
             .Setup(item => item.ResolveDocument<DocumentOutlineData>(
                 It.IsAny<DocumentSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<Document, DocumentOutlineData>
-            {
-                Value = document.Document,
-            });
+            .Returns(ToolResolutionResult<Document, DocumentOutlineData>.Resolved(document.Document));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateDocumentReference(It.IsAny<Document>()))
             .Returns<Document>(item => new DocumentReference
@@ -149,10 +140,7 @@ public sealed class GetDocumentOutlineToolTests
             .Setup(item => item.ResolveDocument<DocumentOutlineData>(
                 It.IsAny<DocumentSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<Document, DocumentOutlineData>
-            {
-                Value = document.Document,
-            });
+            .Returns(ToolResolutionResult<Document, DocumentOutlineData>.Resolved(document.Document));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateDocumentReference(It.IsAny<Document>()))
             .Returns<Document>(item => new DocumentReference

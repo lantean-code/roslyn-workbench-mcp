@@ -10,24 +10,33 @@ public sealed record SolutionHierarchyResult
     /// <summary>
     /// Gets the solution folders.
     /// </summary>
-    public IReadOnlyList<SolutionFolderInfo> Folders { get; init; } = [];
+    public IReadOnlyList<SolutionFolderInfo> Folders { get; }
 
     /// <summary>
     /// Gets project paths mapped to their containing solution-folder paths.
     /// </summary>
-    public IReadOnlyDictionary<string, string?> ProjectFolderPaths { get; init; } =
-        new Dictionary<string, string?>(StringComparer.Ordinal);
+    public IReadOnlyDictionary<string, string?> ProjectFolderPaths { get; }
 
     /// <summary>
     /// Gets the hierarchy-loading failure message, when loading did not succeed.
     /// </summary>
-    public string? ErrorMessage { get; init; }
+    public string? ErrorMessage { get; }
 
     /// <summary>
     /// Gets a value indicating whether hierarchy loading succeeded.
     /// </summary>
     [MemberNotNullWhen(false, nameof(ErrorMessage))]
     public bool IsSucceeded => ErrorMessage is null;
+
+    private SolutionHierarchyResult(
+        IReadOnlyList<SolutionFolderInfo> folders,
+        IReadOnlyDictionary<string, string?> projectFolderPaths,
+        string? errorMessage)
+    {
+        Folders = folders;
+        ProjectFolderPaths = projectFolderPaths;
+        ErrorMessage = errorMessage;
+    }
 
     /// <summary>
     /// Creates a successful result.
@@ -39,11 +48,10 @@ public sealed record SolutionHierarchyResult
         IReadOnlyList<SolutionFolderInfo>? folders = null,
         IReadOnlyDictionary<string, string?>? projectFolderPaths = null)
     {
-        return new SolutionHierarchyResult
-        {
-            Folders = folders ?? [],
-            ProjectFolderPaths = projectFolderPaths ?? new Dictionary<string, string?>(StringComparer.Ordinal),
-        };
+        return new SolutionHierarchyResult(
+            folders ?? [],
+            projectFolderPaths ?? new Dictionary<string, string?>(StringComparer.Ordinal),
+            errorMessage: null);
     }
 
     /// <summary>
@@ -53,9 +61,9 @@ public sealed record SolutionHierarchyResult
     /// <returns>The failed result.</returns>
     public static SolutionHierarchyResult Failed(string errorMessage)
     {
-        return new SolutionHierarchyResult
-        {
-            ErrorMessage = errorMessage,
-        };
+        return new SolutionHierarchyResult(
+            folders: [],
+            new Dictionary<string, string?>(StringComparer.Ordinal),
+            errorMessage);
     }
 }

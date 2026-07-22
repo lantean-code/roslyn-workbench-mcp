@@ -1,6 +1,6 @@
 namespace Roslyn.Workbench.Mcp.CodeActions.Execution;
 
-internal interface ICodeActionFixAllService
+internal interface ICodeActionFixAllStager
 {
     ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageFixAllAsync(
         StageFixAllRequest request,

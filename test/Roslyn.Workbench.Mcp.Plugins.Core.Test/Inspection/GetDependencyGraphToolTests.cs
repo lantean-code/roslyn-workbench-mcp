@@ -107,10 +107,7 @@ public sealed class GetDependencyGraphToolTests
             .Setup(item => item.ResolveDocuments<DependencyGraphData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, DependencyGraphData>
-            {
-                Rejection = expected,
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DependencyGraphData>.Rejected(expected));
 
         var result = await target.ExecuteAsync(new GetDependencyGraphRequest
         {
@@ -144,18 +141,12 @@ public sealed class GetDependencyGraphToolTests
             .Setup(item => item.ResolveDocuments<DependencyGraphData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, DependencyGraphData>
-            {
-                Value = [document.Document],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DependencyGraphData>.Resolved([document.Document]));
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveProjects<DependencyGraphData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Project>, DependencyGraphData>
-            {
-                Rejection = expected,
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Project>, DependencyGraphData>.Rejected(expected));
 
         var result = await target.ExecuteAsync(new GetDependencyGraphRequest
         {
@@ -236,18 +227,12 @@ public sealed class GetDependencyGraphToolTests
             .Setup(item => item.ResolveDocuments<DependencyGraphData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, DependencyGraphData>
-            {
-                Value = [document.Document],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DependencyGraphData>.Resolved([document.Document]));
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveProjects<DependencyGraphData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Project>, DependencyGraphData>
-            {
-                Value = [project],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Project>, DependencyGraphData>.Resolved([project]));
         dependencyAnalysisService
             .Setup(item => item.BuildGraphAsync(
                 "Type",

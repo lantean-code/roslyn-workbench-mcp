@@ -139,38 +139,6 @@ public sealed class AnalyzeNullabilityToolTests
     }
 
     [Fact]
-    public async Task GIVEN_LocationResolutionHasNullValue_WHEN_CallingExecuteAsync_THEN_ShouldReturnLocationNotFoundResult()
-    {
-        var target = new AnalyzeNullabilityTool();
-        var queryContextMocks = QueryContextMockHelper.Create();
-
-        queryContextMocks.RequestResolver
-            .Setup(item => item.ValidateSnapshot<NullabilityAnalysisData>(
-                queryContextMocks.QueryContext.Object,
-                It.IsAny<SnapshotPrecondition?>()))
-            .Returns((PluginExecutionResult<NullabilityAnalysisData>?)null);
-        queryContextMocks.WorkspaceResolver
-            .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new SelectorResolveResult<Location>
-            {
-                Status = SelectorResolveStatus.Resolved,
-            });
-
-        var result = await target.ExecuteAsync(new AnalyzeNullabilityRequest
-        {
-            Location = new LocationSelector(),
-        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
-
-        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new PluginExecutionError
-        {
-            Code = "LocationNotFound",
-            Message = "The location selector did not resolve to a source document.",
-        });
-        result.RequiredAction.Should().Be(RequiredAction.ResolveTargetAgain);
-    }
-
-    [Fact]
     public async Task GIVEN_LocationAndCompilerDiagnosticsContainMixedSpans_WHEN_CallingExecuteAsync_THEN_ShouldReturnOnlyIntersectingNullabilityFindings()
     {
         using var document = RoslynTestFactory.CreateDocument("""
@@ -262,10 +230,7 @@ public sealed class AnalyzeNullabilityToolTests
             .Setup(item => item.ResolveDocuments<NullabilityAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, NullabilityAnalysisData>
-            {
-                Rejection = expected,
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, NullabilityAnalysisData>.Rejected(expected));
 
         var result = await target.ExecuteAsync(new AnalyzeNullabilityRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -338,10 +303,7 @@ public sealed class AnalyzeNullabilityToolTests
             .Setup(item => item.ResolveDocuments<NullabilityAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, NullabilityAnalysisData>
-            {
-                Value = documents,
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, NullabilityAnalysisData>.Resolved(documents));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.Is<Location>(location =>
                 location.SourceSpan == firstValueLocation.SourceSpan
@@ -409,10 +371,7 @@ public sealed class AnalyzeNullabilityToolTests
             .Setup(item => item.ResolveDocuments<NullabilityAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(new ToolResolutionResult<IReadOnlyList<Document>, NullabilityAnalysisData>
-            {
-                Value = [document.Document],
-            });
+            .Returns(ToolResolutionResult<IReadOnlyList<Document>, NullabilityAnalysisData>.Resolved([document.Document]));
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.Is<Location>(location =>
                 location.SourceSpan == valueLocation.SourceSpan

@@ -4,30 +4,34 @@ namespace Roslyn.Workbench.Mcp.Workspace.ChangeDetection;
 
 internal sealed record WorkspaceProjectInputResolution
 {
-    public IReadOnlyList<string> Paths { get; init; } = [];
+    public IReadOnlyList<string> Paths { get; }
 
-    public WorkspaceProjectInputFailure? Failure { get; init; }
+    public WorkspaceProjectInputFailure? Failure { get; }
 
     [MemberNotNullWhen(false, nameof(Failure))]
     public bool IsSucceeded => Failure is null;
 
+    private WorkspaceProjectInputResolution(
+        IReadOnlyList<string> paths,
+        WorkspaceProjectInputFailure? failure)
+    {
+        Paths = paths;
+        Failure = failure;
+    }
+
     public static WorkspaceProjectInputResolution Succeeded(IReadOnlyList<string>? paths = null)
     {
-        return new WorkspaceProjectInputResolution
-        {
-            Paths = paths ?? [],
-        };
+        return new WorkspaceProjectInputResolution(paths ?? [], failure: null);
     }
 
     public static WorkspaceProjectInputResolution Failed(string projectPath, string message)
     {
-        return new WorkspaceProjectInputResolution
+        var failure = new WorkspaceProjectInputFailure
         {
-            Failure = new WorkspaceProjectInputFailure
-            {
-                ProjectPath = projectPath,
-                Message = message,
-            },
+            ProjectPath = projectPath,
+            Message = message,
         };
+
+        return new WorkspaceProjectInputResolution(paths: [], failure);
     }
 }

@@ -74,44 +74,61 @@ public sealed class CodeActionWorkspaceResultMapperTests
         result.Warnings.Should().ContainSingle().Which.Code.Should().Be("WarningCode");
     }
 
-    [Fact]
-    public void GIVEN_UnsupportedWorkspaceStatus_WHEN_MappingMutation_THEN_ShouldThrowInvalidOperationException()
-    {
-        var action = () => CodeActionWorkspaceResultMapper.MapMutation(
-            CreateMutationResult((WorkspaceOperationStatus)999));
-
-        action.Should().Throw<InvalidOperationException>();
-    }
-
     private static WorkspaceOperationResult<MutationStagingOutcome> CreateMutationResult(WorkspaceOperationStatus status)
     {
-        return new WorkspaceOperationResult<MutationStagingOutcome>
+        var diagnostics = new[] { new DiagnosticInfo { Id = "DiagnosticId", Message = "DiagnosticMessage" } };
+        var warnings = new[] { new WarningInfo { Code = "WarningCode", Message = "WarningMessage" } };
+
+        if (status == WorkspaceOperationStatus.Succeeded)
         {
-            Status = status,
-            Data = status == WorkspaceOperationStatus.Succeeded
-                ? new MutationStagingOutcome
+            var data = new MutationStagingOutcome
+            {
+                Operation = "Operation",
+                Summary = "Summary",
+                Transaction = new TransactionInfo { Revision = 1 },
+                Preview = new MutationPreview { Summary = "PreviewSummary" },
+                Changes = new ChangeSummary
                 {
-                    Operation = "Operation",
-                    Summary = "Summary",
-                    Transaction = new TransactionInfo { Revision = 1 },
-                    Preview = new MutationPreview { Summary = "PreviewSummary" },
-                    Changes = new ChangeSummary
-                    {
-                        Modified =
-                        [
-                            new DocumentChange
-                            {
-                                Document = new DocumentReference { Path = "DocumentPath" },
-                            },
-                        ],
-                    },
-                }
-                : null,
-            Error = status is WorkspaceOperationStatus.Rejected or WorkspaceOperationStatus.Conflict or WorkspaceOperationStatus.Faulted
-                ? CreateError()
-                : null,
-            Diagnostics = [new DiagnosticInfo { Id = "DiagnosticId", Message = "DiagnosticMessage" }],
-            Warnings = [new WarningInfo { Code = "WarningCode", Message = "WarningMessage" }],
+                    Modified =
+                    [
+                        new DocumentChange
+                        {
+                            Document = new DocumentReference { Path = "DocumentPath" },
+                        },
+                    ],
+                },
+            };
+
+            return WorkspaceOperationResult<MutationStagingOutcome>.Succeeded(
+                data,
+                diagnostics: diagnostics,
+                warnings: warnings);
+        }
+
+        if (status == WorkspaceOperationStatus.NoChange)
+        {
+            return WorkspaceOperationResult<MutationStagingOutcome>.NoChange(
+                diagnostics: diagnostics,
+                warnings: warnings);
+        }
+
+        var error = CreateError();
+
+        return status switch
+        {
+            WorkspaceOperationStatus.Rejected => WorkspaceOperationResult<MutationStagingOutcome>.Rejected(
+                error,
+                diagnostics: diagnostics,
+                warnings: warnings),
+            WorkspaceOperationStatus.Conflict => WorkspaceOperationResult<MutationStagingOutcome>.Conflict(
+                error,
+                diagnostics: diagnostics,
+                warnings: warnings),
+            WorkspaceOperationStatus.Faulted => WorkspaceOperationResult<MutationStagingOutcome>.Faulted(
+                error,
+                diagnostics: diagnostics,
+                warnings: warnings),
+            _ => throw new ArgumentOutOfRangeException(nameof(status), status, "A supported workspace status is required."),
         };
     }
 

@@ -79,37 +79,25 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
         var rejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<OperationTreeData>(context, expectedSnapshot);
         if (rejection is not null)
         {
-            return new ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>
-            {
-                Rejection = rejection,
-            };
+            return ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>.Rejected(rejection);
         }
 
         if (selector is null)
         {
-            return new ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>
-            {
-                Rejection = ToolExecutionHelpers.Rejected<OperationTreeData>("InvalidRequest", "A location selector is required."),
-            };
+            return ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>.Rejected(ToolExecutionHelpers.Rejected<OperationTreeData>("InvalidRequest", "A location selector is required."));
         }
 
         var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken);
         if (!locationResolution.IsResolved)
         {
-            return new ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>
-            {
-                Rejection = ToolExecutionHelpers.RejectFromStatus<OperationTreeData>(locationResolution.Status, "Location", "location"),
-            };
+            return ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>.Rejected(ToolExecutionHelpers.RejectFromStatus<OperationTreeData>(locationResolution.Status, "Location", "location"));
         }
 
         var location = locationResolution.Value;
         var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(location);
         if (resolvedLocation?.Document?.Path is null)
         {
-            return new ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>
-            {
-                Rejection = ToolExecutionHelpers.Rejected<OperationTreeData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
-            };
+            return ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>.Rejected(ToolExecutionHelpers.Rejected<OperationTreeData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
         }
 
         var document = location.SourceTree is null
@@ -118,28 +106,19 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
 
         if (document is null)
         {
-            return new ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>
-            {
-                Rejection = ToolExecutionHelpers.Rejected<OperationTreeData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
-            };
+            return ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>.Rejected(ToolExecutionHelpers.Rejected<OperationTreeData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
         }
 
         var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
         if (syntaxRoot is null || semanticModel is null)
         {
-            return new ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>
-            {
-                Rejection = ToolExecutionHelpers.Rejected<OperationTreeData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain),
-            };
+            return ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>.Rejected(ToolExecutionHelpers.Rejected<OperationTreeData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
         }
 
-        return new ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>
-        {
-            Value = new ResolvedSyntaxNode(
+        return ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>.Resolved(new ResolvedSyntaxNode(
                 syntaxRoot.FindNode(location.SourceSpan, getInnermostNodeForTie: true),
-                semanticModel),
-        };
+                semanticModel));
     }
 
     private sealed record ResolvedSyntaxNode

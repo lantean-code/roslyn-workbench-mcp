@@ -2,23 +2,26 @@ using static Roslyn.Workbench.Mcp.CodeActions.Execution.CodeActionExecutionResul
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Execution;
 
-internal sealed class CodeActionLocationFixService : ICodeActionLocationFixService
+internal sealed class LocationCodeFixStager : ILocationCodeFixStager
 {
     private readonly ICodeActionProviderCatalog _providerCatalog;
     private readonly ICodeActionDiscoveryService _discoveryService;
-    private readonly ICodeActionOperationService _operationService;
+    private readonly ICodeActionEvaluator _evaluator;
     private readonly ICodeActionDiagnosticService _diagnosticService;
+    private readonly ICodeActionToolRequestResolver _requestResolver;
 
-    public CodeActionLocationFixService(
+    public LocationCodeFixStager(
         ICodeActionProviderCatalog providerCatalog,
         ICodeActionDiscoveryService discoveryService,
-        ICodeActionOperationService operationService,
-        ICodeActionDiagnosticService diagnosticService)
+        ICodeActionEvaluator evaluator,
+        ICodeActionDiagnosticService diagnosticService,
+        ICodeActionToolRequestResolver requestResolver)
     {
         _providerCatalog = providerCatalog;
         _discoveryService = discoveryService;
-        _operationService = operationService;
+        _evaluator = evaluator;
         _diagnosticService = diagnosticService;
+        _requestResolver = requestResolver;
     }
 
     public async ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageLocationCodeFixAsync(
@@ -33,7 +36,9 @@ internal sealed class CodeActionLocationFixService : ICodeActionLocationFixServi
             return runtimeRejection;
         }
 
-        var snapshotRejection = ValidateSnapshot<WorkspaceMutationCandidate>(context.WorkspaceResolver, request.ExpectedSnapshot);
+        var snapshotRejection = _requestResolver.ValidateSnapshot<WorkspaceMutationCandidate>(
+            context,
+            request.ExpectedSnapshot);
         if (snapshotRejection is not null)
         {
             return snapshotRejection;
@@ -49,19 +54,17 @@ internal sealed class CodeActionLocationFixService : ICodeActionLocationFixServi
             return Rejected<WorkspaceMutationCandidate>("InvalidRequest", "At least one diagnostic ID is required.");
         }
 
-        var location = await context.WorkspaceResolver.ResolveLocationAsync(request.Location, cancellationToken);
-        if (location.Status != SelectorResolveStatus.Resolved || location.Value is null)
+        var locationResolution = await _requestResolver.ResolveLocationAsync<WorkspaceMutationCandidate>(
+            request.Location,
+            context,
+            cancellationToken);
+        if (locationResolution.HasRejection)
         {
-            return RejectFromStatus<WorkspaceMutationCandidate>(location.Status, "Location", "location");
+            return locationResolution.Rejection;
         }
 
-        var document = context.CurrentSolution.GetDocument(location.Value.SourceTree);
-        if (document is null)
-        {
-            return Rejected<WorkspaceMutationCandidate>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain);
-        }
-
-        var span = location.Value.SourceSpan;
+        var document = locationResolution.Value.Document;
+        var span = locationResolution.Value.Span;
         var matchingProviders = _discoveryService.GetMatchingCodeFixProviders(request.ProviderId);
         if (matchingProviders.Count == 0)
         {
@@ -144,7 +147,22 @@ internal sealed class CodeActionLocationFixService : ICodeActionLocationFixServi
         var candidate = distinctCandidates[0];
         if (candidate.Descriptor.ExecutionMode is CodeActionExecutionMode.Replay or CodeActionExecutionMode.Parameterised)
         {
-            return await _operationService.CreateMutationCandidateAsync(candidate.Action, candidate.Title, context, cancellationToken);
+            var application = await _evaluator.EvaluateAsync(
+                candidate.Action,
+                context.CurrentSolution,
+                cancellationToken);
+            if (application.HasFailure)
+            {
+                return Rejected<WorkspaceMutationCandidate>(application.Failure);
+            }
+
+            var mutationCandidate = new WorkspaceMutationCandidate
+            {
+                CandidateSolution = application.CandidateSolution,
+                Summary = candidate.Title,
+            };
+
+            return CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(mutationCandidate);
         }
 
         return Rejected<WorkspaceMutationCandidate>("CodeFixUnavailable", "The selected action is not replayable in this server build.", RequiredAction.ResolveTargetAgain);

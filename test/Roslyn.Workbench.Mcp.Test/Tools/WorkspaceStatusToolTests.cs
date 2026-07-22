@@ -19,24 +19,21 @@ public sealed class WorkspaceStatusToolTests
                 ServerOwnedToolTestData.GetWorkspacePath(includeWorkspace),
                 StatusDetailLevel.Full,
                 CancellationToken.None))
-            .ReturnsAsync(new WorkspaceOperationResult<WorkspaceStatusOutcome>
+            .ReturnsAsync(WorkspaceOperationResult<WorkspaceStatusOutcome>.Succeeded(new WorkspaceStatusOutcome
             {
-                Status = WorkspaceOperationStatus.Succeeded,
-                Data = new WorkspaceStatusOutcome
+                State = WorkspaceLifecycleState.Ready,
+                Workspace = new WorkspaceIdentity
                 {
-                    State = WorkspaceLifecycleState.Ready,
-                    Workspace = new WorkspaceIdentity
-                    {
-                        WorkspaceId = "WorkspaceId",
-                        WorkspaceEpoch = 5,
-                        LoadedPath = "/workspace/Sample.csproj",
-                    },
-                    ReloadRequired = true,
-                    Transaction = new TransactionInfo
-                    {
-                        Revision = 9,
-                    },
-                    Instances =
+                    WorkspaceId = "WorkspaceId",
+                    WorkspaceEpoch = 5,
+                    LoadedPath = "/workspace/Sample.csproj",
+                },
+                ReloadRequired = true,
+                Transaction = new TransactionInfo
+                {
+                    Revision = 9,
+                },
+                Instances =
                     [
                         new WorkspaceInstanceInfo
                         {
@@ -48,8 +45,7 @@ public sealed class WorkspaceStatusToolTests
                             CommitPhase = "Applying",
                         },
                     ],
-                },
-            });
+            }));
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var target = new WorkspaceStatusTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
         var arguments = ServerOwnedToolTestData.CreateWorkspaceArguments(includeWorkspace);

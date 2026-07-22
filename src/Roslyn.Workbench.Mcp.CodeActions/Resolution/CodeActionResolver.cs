@@ -3,22 +3,25 @@ using System.Globalization;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Resolution;
 
-internal sealed class CodeActionResolutionService : ICodeActionResolutionService
+internal sealed class CodeActionResolver : ICodeActionResolver
 {
     private readonly ICodeActionDiscoveryService _discoveryService;
     private readonly ICodeActionDiagnosticService _diagnosticService;
     private readonly ICodeActionTokenService _tokenService;
+    private readonly ICodeActionToolRequestResolver _requestResolver;
     private readonly TimeProvider _timeProvider;
 
-    public CodeActionResolutionService(
+    public CodeActionResolver(
         ICodeActionDiscoveryService discoveryService,
         ICodeActionDiagnosticService diagnosticService,
         ICodeActionTokenService tokenService,
+        ICodeActionToolRequestResolver requestResolver,
         TimeProvider timeProvider)
     {
         _discoveryService = discoveryService;
         _diagnosticService = diagnosticService;
         _tokenService = tokenService;
+        _requestResolver = requestResolver;
         _timeProvider = timeProvider;
     }
 
@@ -31,9 +34,7 @@ internal sealed class CodeActionResolutionService : ICodeActionResolutionService
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var snapshotRejection = CodeActionExecutionResultFactory.ValidateSnapshot<T>(
-            context.WorkspaceResolver,
-            expectedSnapshot);
+        var snapshotRejection = _requestResolver.ValidateSnapshot<T>(context, expectedSnapshot);
 
         if (snapshotRejection is not null)
         {
@@ -68,13 +69,10 @@ internal sealed class CodeActionResolutionService : ICodeActionResolutionService
                 RequiredAction.ResolveTargetAgain));
         }
 
-        return new CodeActionResolution<T>
-        {
-            Action = action,
-            Descriptor = action.Descriptor,
-            Document = tokenResolution.Context.Document,
-            Span = tokenResolution.Context.Span,
-        };
+        return CodeActionResolution<T>.Resolved(
+            action,
+            tokenResolution.Context.Document,
+            tokenResolution.Context.Span);
     }
 
     private CodeActionTokenContextResolution ResolveTokenContext(
@@ -88,7 +86,7 @@ internal sealed class CodeActionResolutionService : ICodeActionResolutionService
             || !HasValidExpiry(payload)
             || !MatchesWorkspace(payload, context))
         {
-            return new CodeActionTokenContextResolution();
+            return CodeActionTokenContextResolution.Unresolved();
         }
 
         var documentResolution = context.WorkspaceResolver.ResolveDocument(new DocumentSelector
@@ -98,19 +96,18 @@ internal sealed class CodeActionResolutionService : ICodeActionResolutionService
 
         if (documentResolution.Status != SelectorResolveStatus.Resolved || documentResolution.Value is null)
         {
-            return new CodeActionTokenContextResolution();
+            return CodeActionTokenContextResolution.Unresolved();
         }
 
-        return new CodeActionTokenContextResolution
+        var tokenContext = new CodeActionTokenContext
         {
-            Context = new CodeActionTokenContext
-            {
-                Payload = payload,
-                Kind = actualKind,
-                Document = documentResolution.Value,
-                Span = new TextSpan(payload.Start, payload.Length),
-            },
+            Payload = payload,
+            Kind = actualKind,
+            Document = documentResolution.Value,
+            Span = new TextSpan(payload.Start, payload.Length),
         };
+
+        return CodeActionTokenContextResolution.Resolved(tokenContext);
     }
 
     private bool HasValidExpiry(CodeActionTokenPayload payload)
@@ -213,11 +210,7 @@ internal sealed class CodeActionResolutionService : ICodeActionResolutionService
         CodeActionExecutionResult<T> rejection,
         CodeActionResolutionFailureKind failureKind = CodeActionResolutionFailureKind.None)
     {
-        return new CodeActionResolution<T>
-        {
-            Rejection = rejection,
-            FailureKind = failureKind,
-        };
+        return CodeActionResolution<T>.Rejected(rejection, failureKind);
     }
 
     private static CodeActionExecutionResult<T> ActionAmbiguous<T>()
@@ -230,10 +223,25 @@ internal sealed class CodeActionResolutionService : ICodeActionResolutionService
 
     private sealed record CodeActionTokenContextResolution
     {
-        public CodeActionTokenContext? Context { get; init; }
+        public CodeActionTokenContext? Context { get; }
 
         [MemberNotNullWhen(true, nameof(Context))]
         public bool IsResolved => Context is not null;
+
+        private CodeActionTokenContextResolution(CodeActionTokenContext? context)
+        {
+            Context = context;
+        }
+
+        public static CodeActionTokenContextResolution Resolved(CodeActionTokenContext context)
+        {
+            return new CodeActionTokenContextResolution(context);
+        }
+
+        public static CodeActionTokenContextResolution Unresolved()
+        {
+            return new CodeActionTokenContextResolution(context: null);
+        }
     }
 
     private sealed record CodeActionTokenContext

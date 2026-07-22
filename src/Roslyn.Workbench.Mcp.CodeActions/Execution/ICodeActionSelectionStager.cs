@@ -1,19 +1,9 @@
 namespace Roslyn.Workbench.Mcp.CodeActions.Execution;
 
-internal interface ICodeActionReplayService
+internal interface ICodeActionSelectionStager
 {
-    ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageCodeActionAsync(
-        StageCodeActionRequest request,
-        ICodeActionExecutionContext context,
-        CancellationToken cancellationToken);
-
     ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageReplayCodeActionAsync(
         ReplayCodeActionRequest request,
-        ICodeActionExecutionContext context,
-        CancellationToken cancellationToken);
-
-    ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageCodeFixAsync(
-        StageCodeFixRequest request,
         ICodeActionExecutionContext context,
         CancellationToken cancellationToken);
 

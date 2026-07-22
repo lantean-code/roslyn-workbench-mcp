@@ -2,28 +2,34 @@ using static Roslyn.Workbench.Mcp.CodeActions.Execution.CodeActionExecutionResul
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Execution;
 
-internal sealed class CodeActionScopedFixService : ICodeActionScopedFixService
+internal sealed class ScopedCodeFixStager : IScopedCodeFixStager
 {
     private readonly ICodeActionProviderCatalog _providerCatalog;
     private readonly ICodeActionDiscoveryService _discoveryService;
-    private readonly ICodeActionOperationService _operationService;
+    private readonly ICodeActionEvaluator _evaluator;
+    private readonly IFixAllActionFactory _fixAllActionFactory;
     private readonly ICodeActionDiagnosticService _diagnosticService;
-    private readonly ICodeActionScopeResolver _scopeResolver;
+    private readonly IScopedCodeFixCandidateResolver _candidateResolver;
+    private readonly ICodeActionToolRequestResolver _requestResolver;
     private readonly ICodeActionSolutionChangeCounter _solutionChangeCounter;
 
-    public CodeActionScopedFixService(
+    public ScopedCodeFixStager(
         ICodeActionProviderCatalog providerCatalog,
         ICodeActionDiscoveryService discoveryService,
-        ICodeActionOperationService operationService,
+        ICodeActionEvaluator evaluator,
+        IFixAllActionFactory fixAllActionFactory,
         ICodeActionDiagnosticService diagnosticService,
-        ICodeActionScopeResolver scopeResolver,
+        IScopedCodeFixCandidateResolver candidateResolver,
+        ICodeActionToolRequestResolver requestResolver,
         ICodeActionSolutionChangeCounter solutionChangeCounter)
     {
         _providerCatalog = providerCatalog;
         _discoveryService = discoveryService;
-        _operationService = operationService;
+        _evaluator = evaluator;
+        _fixAllActionFactory = fixAllActionFactory;
         _diagnosticService = diagnosticService;
-        _scopeResolver = scopeResolver;
+        _candidateResolver = candidateResolver;
+        _requestResolver = requestResolver;
         _solutionChangeCounter = solutionChangeCounter;
     }
 
@@ -39,7 +45,7 @@ internal sealed class CodeActionScopedFixService : ICodeActionScopedFixService
             return runtimeRejection;
         }
 
-        var snapshotRejection = ValidateSnapshot<WorkspaceMutationCandidate>(context.WorkspaceResolver, request.ExpectedSnapshot);
+        var snapshotRejection = _requestResolver.ValidateSnapshot<WorkspaceMutationCandidate>(context, request.ExpectedSnapshot);
         if (snapshotRejection is not null)
         {
             return snapshotRejection;
@@ -55,55 +61,24 @@ internal sealed class CodeActionScopedFixService : ICodeActionScopedFixService
             return Rejected<WorkspaceMutationCandidate>("InvalidRequest", "At least one diagnostic ID is required.");
         }
 
-        var scopeResolution = _scopeResolver.Resolve(
-            request.Scope,
-            context.CurrentSolution,
-            context.WorkspaceResolver);
+        var scopeResolution = _requestResolver.ResolveScope(request.Scope, context);
         if (scopeResolution.HasRejection)
         {
             return scopeResolution.Rejection;
         }
 
-        var matchingProviders = _discoveryService.GetMatchingCodeFixProviders(request.ProviderId);
-        if (matchingProviders.Count == 0)
-        {
-            return Rejected<WorkspaceMutationCandidate>("CodeFixUnavailable", "No matching code-fix provider is available.");
-        }
-
-        var discovery = await DiscoverCandidatesAsync(
+        var candidateResolution = await _candidateResolver.ResolveAsync(
             request,
             scopeResolution.Documents,
-            matchingProviders,
             context.WorkspaceResolver,
             cancellationToken);
-        if (!discovery.HadDiagnostics)
+
+        if (!candidateResolution.IsResolved)
         {
-            return CodeActionExecutionResult<WorkspaceMutationCandidate>.NoChange();
+            return MapCandidateResolutionFailure(candidateResolution);
         }
 
-        var distinctCandidates = discovery.Candidates
-            .GroupBy(candidate => new CodeActionCandidateIdentity(
-                _discoveryService.GetProviderId(candidate.Provider),
-                candidate.Title,
-                candidate.EquivalenceKey,
-                diagnosticIds: candidate.DiagnosticIds))
-            .Select(static group => group.First())
-            .ToArray();
-        if (distinctCandidates.Length == 0)
-        {
-            return Rejected<WorkspaceMutationCandidate>("CodeFixUnavailable", "No matching code fix was available for the selected scope.");
-        }
-
-        if (distinctCandidates.Length > 1)
-        {
-            return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
-            {
-                Code = "ActionAmbiguous",
-                Message = "The requested code fix could not be selected uniquely.",
-            });
-        }
-
-        var candidate = distinctCandidates[0];
+        var candidate = candidateResolution.Candidate;
         var application = await ApplyCandidateAsync(
             candidate,
             request,
@@ -111,15 +86,17 @@ internal sealed class CodeActionScopedFixService : ICodeActionScopedFixService
             scopeResolution,
             context,
             cancellationToken);
-        if (application.HasRejection)
+
+        if (application.HasFailure)
         {
-            return application.Rejection;
+            return Rejected<WorkspaceMutationCandidate>(application.Failure);
         }
 
         var changedDocumentCount = await _solutionChangeCounter.CountChangedSourceDocumentsAsync(
             context.CurrentSolution,
             application.CandidateSolution,
             cancellationToken);
+
         if (request.MaxChanges is int maxChanges && changedDocumentCount > maxChanges)
         {
             return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
@@ -134,74 +111,6 @@ internal sealed class CodeActionScopedFixService : ICodeActionScopedFixService
             CandidateSolution = application.CandidateSolution,
             Summary = candidate.Title,
         });
-    }
-
-    private async ValueTask<ScopedCandidateDiscovery> DiscoverCandidatesAsync(
-        ScopedCodeFixRequest request,
-        IReadOnlyList<Document> documents,
-        IReadOnlyList<CodeFixProvider> matchingProviders,
-        IWorkspaceResolver workspaceResolver,
-        CancellationToken cancellationToken)
-    {
-        var candidates = new List<ScopedCodeFixCandidate>();
-        var hadDiagnostics = false;
-        var orderedDocuments = documents.OrderBy(
-            document => workspaceResolver.NormalizeDocumentPath(document.FilePath ?? document.Name),
-            StringComparer.Ordinal);
-
-        foreach (var document in orderedDocuments)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var diagnostics = await _diagnosticService.GetScopedCodeFixDiagnosticsAsync(
-                document,
-                request.DiagnosticIds,
-                request.AnalyzerTypeName,
-                request.SyntheticDiagnosticId,
-                cancellationToken);
-            if (diagnostics.IsDefaultOrEmpty)
-            {
-                continue;
-            }
-
-            hadDiagnostics = true;
-            var sourceText = await document.GetTextAsync(cancellationToken);
-            var documentSpan = new TextSpan(0, sourceText.Length);
-
-            foreach (var provider in matchingProviders)
-            {
-                var actions = await _discoveryService.DiscoverCodeFixesAsync(provider, document, diagnostics, cancellationToken);
-                foreach (var action in actions)
-                {
-                    if (!string.IsNullOrWhiteSpace(request.Title)
-                        && !string.Equals(action.Title, request.Title, StringComparison.OrdinalIgnoreCase))
-                    {
-                        continue;
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(request.EquivalenceKey)
-                        && !string.Equals(action.EquivalenceKey, request.EquivalenceKey, StringComparison.Ordinal))
-                    {
-                        continue;
-                    }
-
-                    candidates.Add(new ScopedCodeFixCandidate
-                    {
-                        Document = document,
-                        DocumentSpan = documentSpan,
-                        Provider = provider,
-                        Title = action.Title,
-                        EquivalenceKey = action.EquivalenceKey,
-                        DiagnosticIds = action.DiagnosticIds,
-                    });
-                }
-            }
-        }
-
-        return new ScopedCandidateDiscovery
-        {
-            Candidates = candidates,
-            HadDiagnostics = hadDiagnostics,
-        };
     }
 
     private ValueTask<CodeActionApplyResult> ApplyCandidateAsync(
@@ -238,10 +147,12 @@ internal sealed class CodeActionScopedFixService : ICodeActionScopedFixService
         var fixAllProvider = candidate.Provider.GetFixAllProvider();
         if (fixAllProvider is null)
         {
-            return RejectedApplication(FixAllUnavailable("The selected code fix does not expose a fix-all provider."));
+            return FailedApplication(
+                CodeActionApplyFailureKind.FixAllUnavailable,
+                "The selected code fix does not expose a fix-all provider.");
         }
 
-        return await _operationService.ApplyFixAllAsync(
+        return await CreateAndEvaluateFixAllAsync(
             candidate.Provider,
             fixAllProvider,
             candidate.Document,
@@ -274,7 +185,7 @@ internal sealed class CodeActionScopedFixService : ICodeActionScopedFixService
                 cancellationToken);
         }
 
-        return await _operationService.ApplyFixAllAsync(
+        return await CreateAndEvaluateFixAllAsync(
             candidate.Provider,
             fixAllProvider,
             targetDocument,
@@ -295,12 +206,14 @@ internal sealed class CodeActionScopedFixService : ICodeActionScopedFixService
         var fixAllProvider = candidate.Provider.GetFixAllProvider();
         if (fixAllProvider is null)
         {
-            return RejectedApplication(FixAllUnavailable("The selected code fix does not expose a fix-all provider."));
+            return FailedApplication(
+                CodeActionApplyFailureKind.FixAllUnavailable,
+                "The selected code fix does not expose a fix-all provider.");
         }
 
         var targetProject = scopeResolution.Projects[0];
 
-        return await _operationService.ApplyFixAllAsync(
+        return await CreateAndEvaluateFixAllAsync(
             candidate.Provider,
             fixAllProvider,
             targetProject,
@@ -320,7 +233,9 @@ internal sealed class CodeActionScopedFixService : ICodeActionScopedFixService
         var fixAllProvider = candidate.Provider.GetFixAllProvider();
         if (fixAllProvider is null)
         {
-            return RejectedApplication(FixAllUnavailable("The selected code fix does not expose a fix-all provider."));
+            return FailedApplication(
+                CodeActionApplyFailureKind.FixAllUnavailable,
+                "The selected code fix does not expose a fix-all provider.");
         }
 
         foreach (var selectedProject in scopeResolution.Projects)
@@ -328,13 +243,12 @@ internal sealed class CodeActionScopedFixService : ICodeActionScopedFixService
             var targetProject = workingSolution.GetProject(selectedProject.Id);
             if (targetProject is null)
             {
-                return RejectedApplication(Rejected<WorkspaceMutationCandidate>(
-                    "ProjectNotFound",
-                    "The project selector did not resolve to a source project.",
-                    RequiredAction.ResolveTargetAgain));
+                return FailedApplication(
+                    CodeActionApplyFailureKind.ProjectNotFound,
+                    "The project selector did not resolve to a source project.");
             }
 
-            var fixAllResult = await _operationService.ApplyFixAllAsync(
+            var fixAllResult = await CreateAndEvaluateFixAllAsync(
                 candidate.Provider,
                 fixAllProvider,
                 targetProject,
@@ -342,7 +256,7 @@ internal sealed class CodeActionScopedFixService : ICodeActionScopedFixService
                 candidate.EquivalenceKey,
                 request.SyntheticDiagnosticId,
                 cancellationToken);
-            if (fixAllResult.HasRejection)
+            if (fixAllResult.HasFailure)
             {
                 return fixAllResult;
             }
@@ -350,10 +264,7 @@ internal sealed class CodeActionScopedFixService : ICodeActionScopedFixService
             workingSolution = fixAllResult.CandidateSolution;
         }
 
-        return new CodeActionApplyResult
-        {
-            CandidateSolution = workingSolution,
-        };
+        return CodeActionApplyResult.Applied(workingSolution);
     }
 
     private async ValueTask<CodeActionApplyResult> ApplyDocumentScopedCodeFixAsync(
@@ -372,7 +283,9 @@ internal sealed class CodeActionScopedFixService : ICodeActionScopedFixService
             cancellationToken);
         if (diagnostics.IsDefaultOrEmpty)
         {
-            return RejectedApplication(Rejected<WorkspaceMutationCandidate>("CodeFixUnavailable", "No matching code fix was available for the selected scope."));
+            return FailedApplication(
+                CodeActionApplyFailureKind.CodeFixUnavailable,
+                "No matching code fix was available for the selected scope.");
         }
 
         var discovered = await _discoveryService.DiscoverCodeFixesAsync(candidate.Provider, targetDocument, diagnostics, cancellationToken);
@@ -383,36 +296,114 @@ internal sealed class CodeActionScopedFixService : ICodeActionScopedFixService
             .ToArray();
         if (matches.Length == 0)
         {
-            return RejectedApplication(Rejected<WorkspaceMutationCandidate>("CodeFixUnavailable", "No matching code fix was available for the selected scope."));
+            return FailedApplication(
+                CodeActionApplyFailureKind.CodeFixUnavailable,
+                "No matching code fix was available for the selected scope.");
         }
 
         if (matches.Length > 1)
         {
-            return RejectedApplication(CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
-            {
-                Code = "ActionAmbiguous",
-                Message = "The requested code fix could not be selected uniquely.",
-            }));
+            return FailedApplication(
+                CodeActionApplyFailureKind.ActionAmbiguous,
+                "The requested code fix could not be selected uniquely.");
         }
 
-        var proposalResult = await _operationService.CreateMutationCandidateAsync(matches[0].Action, matches[0].Title, context, cancellationToken);
-        if (!proposalResult.IsSucceeded)
-        {
-            return RejectedApplication(proposalResult);
-        }
-
-        return new CodeActionApplyResult
-        {
-            CandidateSolution = proposalResult.Data.CandidateSolution,
-        };
+        return await _evaluator.EvaluateAsync(
+            matches[0].Action,
+            context.CurrentSolution,
+            cancellationToken);
     }
 
-    private static CodeActionApplyResult RejectedApplication(CodeActionExecutionResult<WorkspaceMutationCandidate> rejection)
+    private async Task<CodeActionApplyResult> CreateAndEvaluateFixAllAsync(
+        CodeFixProvider provider,
+        FixAllProvider fixAllProvider,
+        Document document,
+        TextSpan originSpan,
+        FixAllScope scope,
+        IReadOnlyList<string> diagnosticIds,
+        string? equivalenceKey,
+        string? syntheticDiagnosticId,
+        CancellationToken cancellationToken)
     {
-        return new CodeActionApplyResult
+        var creation = await _fixAllActionFactory.CreateAsync(
+            provider,
+            fixAllProvider,
+            document,
+            originSpan,
+            scope,
+            diagnosticIds,
+            equivalenceKey,
+            syntheticDiagnosticId,
+            cancellationToken);
+        if (creation.HasFailure)
         {
-            Rejection = rejection,
+            return CodeActionApplyResult.Failed(
+                CodeActionApplyFailureKind.FixAllUnavailable,
+                creation.Failure.Message);
+        }
+
+        return await _evaluator.EvaluateAsync(
+            creation.Action,
+            document.Project.Solution,
+            cancellationToken);
+    }
+
+    private async Task<CodeActionApplyResult> CreateAndEvaluateFixAllAsync(
+        CodeFixProvider provider,
+        FixAllProvider fixAllProvider,
+        Project project,
+        IReadOnlyList<string> diagnosticIds,
+        string? equivalenceKey,
+        string? syntheticDiagnosticId,
+        CancellationToken cancellationToken)
+    {
+        var creation = await _fixAllActionFactory.CreateAsync(
+            provider,
+            fixAllProvider,
+            project,
+            diagnosticIds,
+            equivalenceKey,
+            syntheticDiagnosticId,
+            cancellationToken);
+        if (creation.HasFailure)
+        {
+            return CodeActionApplyResult.Failed(
+                CodeActionApplyFailureKind.FixAllUnavailable,
+                creation.Failure.Message);
+        }
+
+        return await _evaluator.EvaluateAsync(
+            creation.Action,
+            project.Solution,
+            cancellationToken);
+    }
+
+    private static CodeActionApplyResult FailedApplication(
+        CodeActionApplyFailureKind kind,
+        string message)
+    {
+        var failure = new CodeActionApplyFailure
+        {
+            Kind = kind,
+            Message = message,
         };
+
+        return CodeActionApplyResult.Failed(failure);
+    }
+
+    private static CodeActionExecutionResult<WorkspaceMutationCandidate> MapCandidateResolutionFailure(
+        ScopedCodeFixCandidateResolution resolution)
+    {
+        if (resolution.HasFailure)
+        {
+            var code = resolution.Outcome == ScopedCodeFixCandidateResolutionOutcome.Ambiguous
+                ? "ActionAmbiguous"
+                : "CodeFixUnavailable";
+
+            return Rejected<WorkspaceMutationCandidate>(code, resolution.Message);
+        }
+
+        return CodeActionExecutionResult<WorkspaceMutationCandidate>.NoChange();
     }
 
     private CodeActionExecutionResult<WorkspaceMutationCandidate>? RejectedIfUnavailable()
@@ -422,25 +413,4 @@ internal sealed class CodeActionScopedFixService : ICodeActionScopedFixService
             : Rejected<WorkspaceMutationCandidate>("CodeActionsUnavailable", "Code-action composition is unavailable.");
     }
 
-    private sealed record ScopedCandidateDiscovery
-    {
-        public IReadOnlyList<ScopedCodeFixCandidate> Candidates { get; init; } = [];
-
-        public bool HadDiagnostics { get; init; }
-    }
-
-    private sealed record ScopedCodeFixCandidate
-    {
-        public required Document Document { get; init; }
-
-        public required TextSpan DocumentSpan { get; init; }
-
-        public required CodeFixProvider Provider { get; init; }
-
-        public required string Title { get; init; }
-
-        public string? EquivalenceKey { get; init; }
-
-        public IReadOnlyList<string> DiagnosticIds { get; init; } = [];
-    }
 }

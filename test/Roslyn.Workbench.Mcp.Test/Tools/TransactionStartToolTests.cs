@@ -16,17 +16,13 @@ public sealed class TransactionStartToolTests
                 ServerOwnedToolTestData.GetWorkspaceAlias(includeWorkspace),
                 ServerOwnedToolTestData.GetWorkspacePath(includeWorkspace),
                 CancellationToken.None))
-            .ReturnsAsync(new WorkspaceOperationResult<TransactionStartOutcome>
+            .ReturnsAsync(WorkspaceOperationResult<TransactionStartOutcome>.Succeeded(new TransactionStartOutcome
             {
-                Status = WorkspaceOperationStatus.Succeeded,
-                Data = new TransactionStartOutcome
+                Transaction = new TransactionInfo
                 {
-                    Transaction = new TransactionInfo
-                    {
-                        Revision = 1,
-                    },
+                    Revision = 1,
                 },
-            });
+            }));
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var target = new TransactionStartTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
 

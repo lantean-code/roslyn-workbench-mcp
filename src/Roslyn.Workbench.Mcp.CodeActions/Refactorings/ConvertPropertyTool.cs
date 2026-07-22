@@ -9,29 +9,29 @@ internal sealed class ConvertPropertyTool : CodeActionMutationToolHandler<Conver
     private const string UseAutoPropertyAnalyzerTypeName = "Microsoft.CodeAnalysis.CSharp.UseAutoProperty.CSharpUseAutoPropertyAnalyzer";
     private const string UseAutoPropertyDiagnosticId = "IDE0032";
 
-    private readonly ICodeActionReplayService _replayService;
-    private readonly ICodeActionLocationFixService _locationFixService;
+    private readonly ICodeActionSelectionStager _selectionStager;
+    private readonly ILocationCodeFixStager _locationFixStager;
 
     public ConvertPropertyTool(
-        ICodeActionReplayService replayService,
-        ICodeActionLocationFixService locationFixService)
+        ICodeActionSelectionStager selectionStager,
+        ILocationCodeFixStager locationFixStager)
     {
-        _replayService = replayService;
-        _locationFixService = locationFixService;
+        _selectionStager = selectionStager;
+        _locationFixStager = locationFixStager;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(ConvertPropertyRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
         return request.Direction switch
         {
-            ConvertPropertyDirection.ToFull => _replayService.StageSelectionAsync(
+            ConvertPropertyDirection.ToFull => _selectionStager.StageSelectionAsync(
                 request.Selection,
                 request.ExpectedSnapshot,
                 cancellationToken,
                 context,
                 ConvertToFullProviderId,
                 title: "Convert to full property"),
-            ConvertPropertyDirection.ToAutoWhenSafe => _locationFixService.StageLocationCodeFixAsync(new LocationCodeFixRequest
+            ConvertPropertyDirection.ToAutoWhenSafe => _locationFixStager.StageLocationCodeFixAsync(new LocationCodeFixRequest
             {
                 Location = request.Selection,
                 ExpectedSnapshot = request.ExpectedSnapshot,

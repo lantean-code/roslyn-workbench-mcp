@@ -37,6 +37,19 @@ internal static class CodeActionExecutionResultFactory
         }, requiredAction);
     }
 
+    public static CodeActionExecutionResult<T> Rejected<T>(CodeActionApplyFailure failure)
+    {
+        RequiredAction? requiredAction = failure.Kind switch
+        {
+            CodeActionApplyFailureKind.ActionExpired => RequiredAction.ResolveTargetAgain,
+            CodeActionApplyFailureKind.DocumentNotFound => RequiredAction.ResolveTargetAgain,
+            CodeActionApplyFailureKind.ProjectNotFound => RequiredAction.ResolveTargetAgain,
+            _ => null,
+        };
+
+        return Rejected<T>(failure.Kind.ToString(), failure.Message, requiredAction);
+    }
+
     public static CodeActionExecutionResult<WorkspaceMutationCandidate> FixAllUnavailable(string message)
     {
         return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError

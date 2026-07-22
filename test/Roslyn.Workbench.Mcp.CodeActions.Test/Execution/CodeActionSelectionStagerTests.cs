@@ -4,22 +4,20 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Test.Execution;
 
-public sealed class CodeActionReplayServiceTests
+public sealed class CodeActionSelectionStagerTests
 {
     private readonly Mock<ICodeActionProviderCatalog> _providerCatalog;
     private readonly Mock<ICodeActionDiscoveryService> _discoveryService;
-    private readonly Mock<ICodeActionResolutionService> _resolutionService;
-    private readonly Mock<ICodeActionOperationService> _operationService;
+    private readonly Mock<ICodeActionEvaluator> _evaluator;
     private readonly Mock<ICodeActionExecutionContext> _context;
     private readonly Mock<IWorkspaceResolver> _workspaceResolver;
-    private readonly CodeActionReplayService _target;
+    private readonly CodeActionSelectionStager _target;
 
-    public CodeActionReplayServiceTests()
+    public CodeActionSelectionStagerTests()
     {
         _providerCatalog = new Mock<ICodeActionProviderCatalog>();
         _discoveryService = new Mock<ICodeActionDiscoveryService>();
-        _resolutionService = new Mock<ICodeActionResolutionService>();
-        _operationService = new Mock<ICodeActionOperationService>();
+        _evaluator = new Mock<ICodeActionEvaluator>();
         _context = new Mock<ICodeActionExecutionContext>();
         _workspaceResolver = new Mock<IWorkspaceResolver>();
         _providerCatalog.SetupGet(item => item.Status).Returns(new CodeActionProviderCatalogStatus
@@ -31,169 +29,11 @@ public sealed class CodeActionReplayServiceTests
             .Setup(item => item.ValidateSnapshot(It.IsAny<SnapshotPrecondition?>()))
             .Returns(SnapshotMatchResult.Matched());
         _context.SetupGet(item => item.WorkspaceResolver).Returns(_workspaceResolver.Object);
-        _target = new CodeActionReplayService(
+        _target = new CodeActionSelectionStager(
             _providerCatalog.Object,
             _discoveryService.Object,
-            _resolutionService.Object,
-            _operationService.Object);
-    }
-
-    [Fact]
-    public async Task GIVEN_CodeActionsAreUnavailable_WHEN_StagingCodeAction_THEN_ShouldRejectWithoutResolvingAction()
-    {
-        _providerCatalog.SetupGet(item => item.Status).Returns(new CodeActionProviderCatalogStatus
-        {
-            IsAvailable = false,
-        });
-
-        var result = await _target.StageCodeActionAsync(
-            new StageCodeActionRequest
-            {
-                ActionId = "ActionId",
-            },
-            _context.Object,
-            CancellationToken.None);
-
-        result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
-        result.Error!.Code.Should().Be("CodeActionsUnavailable");
-        _resolutionService.Verify(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
-            It.IsAny<string>(),
-            It.IsAny<SnapshotPrecondition?>(),
-            It.IsAny<DiscoveredActionKind?>(),
-            It.IsAny<ICodeActionExecutionContext>(),
-            It.IsAny<CancellationToken>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task GIVEN_CodeActionsAreUnavailable_WHEN_StagingCodeFix_THEN_ShouldRejectWithoutResolvingAction()
-    {
-        _providerCatalog.SetupGet(item => item.Status).Returns(new CodeActionProviderCatalogStatus
-        {
-            IsAvailable = false,
-        });
-
-        var result = await _target.StageCodeFixAsync(
-            new StageCodeFixRequest
-            {
-                ActionId = "ActionId",
-            },
-            _context.Object,
-            CancellationToken.None);
-
-        result.Error!.Code.Should().Be("CodeActionsUnavailable");
-        _resolutionService.Verify(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
-            It.IsAny<string>(),
-            It.IsAny<SnapshotPrecondition?>(),
-            It.IsAny<DiscoveredActionKind?>(),
-            It.IsAny<ICodeActionExecutionContext>(),
-            It.IsAny<CancellationToken>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task GIVEN_ResolvedRefactoring_WHEN_StagingCodeAction_THEN_ShouldCreateMutationCandidate()
-    {
-        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
-        var expectedSnapshot = new SnapshotPrecondition();
-        var action = CreateAction(roslyn.Solution, "Title", "EquivalenceKey");
-        var candidate = new WorkspaceMutationCandidate
-        {
-            CandidateSolution = roslyn.Solution,
-        };
-
-        _resolutionService
-            .Setup(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
-                "ActionId",
-                expectedSnapshot,
-                DiscoveredActionKind.Refactoring,
-                _context.Object,
-                CancellationToken.None))
-            .ReturnsAsync(CreateResolution(action, roslyn.Document, CodeActionExecutionMode.Replay));
-        _operationService
-            .Setup(item => item.CreateMutationCandidateAsync(action, "Title", _context.Object, CancellationToken.None))
-            .ReturnsAsync(CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(candidate));
-
-        var result = await _target.StageCodeActionAsync(
-            new StageCodeActionRequest
-            {
-                ActionId = "ActionId",
-                ExpectedSnapshot = expectedSnapshot,
-            },
-            _context.Object,
-            CancellationToken.None);
-
-        result.Data.Should().BeSameAs(candidate);
-        _operationService.Verify(item => item.CreateMutationCandidateAsync(
-            action,
-            "Title",
-            _context.Object,
-            CancellationToken.None), Times.Once);
-    }
-
-    [Fact]
-    public async Task GIVEN_ResolutionIsRejected_WHEN_StagingCodeFix_THEN_ShouldReturnResolutionRejection()
-    {
-        var rejection = CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
-        {
-            Code = "ErrorCode",
-            Message = "Message",
-        });
-
-        _resolutionService
-            .Setup(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
-                "ActionId",
-                null,
-                DiscoveredActionKind.CodeFix,
-                _context.Object,
-                CancellationToken.None))
-            .ReturnsAsync(new CodeActionResolution<WorkspaceMutationCandidate>
-            {
-                Rejection = rejection,
-            });
-
-        var result = await _target.StageCodeFixAsync(
-            new StageCodeFixRequest
-            {
-                ActionId = "ActionId",
-            },
-            _context.Object,
-            CancellationToken.None);
-
-        result.Should().BeSameAs(rejection);
-        _operationService.Verify(item => item.CreateMutationCandidateAsync(
-            It.IsAny<CodeAction>(),
-            It.IsAny<string>(),
-            It.IsAny<ICodeActionExecutionContext>(),
-            It.IsAny<CancellationToken>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task GIVEN_ResolvedActionRequiresParameters_WHEN_StagingCodeAction_THEN_ShouldRejectWithoutCreatingCandidate()
-    {
-        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
-        var action = CreateAction(roslyn.Solution, "Title", "EquivalenceKey");
-        _resolutionService
-            .Setup(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
-                "ActionId",
-                null,
-                DiscoveredActionKind.Refactoring,
-                _context.Object,
-                CancellationToken.None))
-            .ReturnsAsync(CreateResolution(action, roslyn.Document, CodeActionExecutionMode.Parameterised));
-
-        var result = await _target.StageCodeActionAsync(
-            new StageCodeActionRequest
-            {
-                ActionId = "ActionId",
-            },
-            _context.Object,
-            CancellationToken.None);
-
-        result.Error!.Code.Should().Be("ActionRequiresParameters");
-        _operationService.Verify(item => item.CreateMutationCandidateAsync(
-            It.IsAny<CodeAction>(),
-            It.IsAny<string>(),
-            It.IsAny<ICodeActionExecutionContext>(),
-            It.IsAny<CancellationToken>()), Times.Never);
+            _evaluator.Object,
+            new CodeActionToolRequestResolver(new CodeActionScopeResolver()));
     }
 
     [Fact]
@@ -287,10 +127,7 @@ public sealed class CodeActionReplayServiceTests
         var selector = new LocationSelector();
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
-            .ReturnsAsync(new SelectorResolveResult<Location>
-            {
-                Status = status,
-            });
+            .ReturnsAsync(SelectorTestFactory.CreateUnresolvedResult<Location>(status));
 
         var result = await _target.StageReplayCodeActionAsync(
             new ReplayCodeActionRequest
@@ -301,28 +138,6 @@ public sealed class CodeActionReplayServiceTests
             CancellationToken.None);
 
         result.Error!.Code.Should().Be(expectedCode);
-    }
-
-    [Fact]
-    public async Task GIVEN_ResolvedStatusHasNoLocation_WHEN_ReplayingCodeAction_THEN_ShouldRejectLocation()
-    {
-        var selector = new LocationSelector();
-        _workspaceResolver
-            .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
-            .ReturnsAsync(new SelectorResolveResult<Location>
-            {
-                Status = SelectorResolveStatus.Resolved,
-            });
-
-        var result = await _target.StageReplayCodeActionAsync(
-            new ReplayCodeActionRequest
-            {
-                Location = selector,
-            },
-            _context.Object,
-            CancellationToken.None);
-
-        result.Error!.Code.Should().Be("LocationNotFound");
     }
 
     [Fact]
@@ -508,10 +323,9 @@ public sealed class CodeActionReplayServiceTests
             CancellationToken.None);
 
         result.Error!.Code.Should().Be(expectedCode);
-        _operationService.Verify(item => item.CreateMutationCandidateAsync(
+        _evaluator.Verify(item => item.EvaluateAsync(
             It.IsAny<CodeAction>(),
-            It.IsAny<string>(),
-            It.IsAny<ICodeActionExecutionContext>(),
+            It.IsAny<Solution>(),
             It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -524,11 +338,6 @@ public sealed class CodeActionReplayServiceTests
         var location = await CreateLocationAsync(roslyn.Document);
         var provider = new Mock<CodeRefactoringProvider>();
         var action = CreateDiscoveredAction(roslyn.Solution, "Title", "EquivalenceKey", [1]);
-        var candidate = new WorkspaceMutationCandidate
-        {
-            CandidateSolution = roslyn.Solution,
-        };
-
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
@@ -539,9 +348,9 @@ public sealed class CodeActionReplayServiceTests
         _discoveryService
             .Setup(item => item.DiscoverRefactoringsAsync(provider.Object, roslyn.Document, location.SourceSpan, CancellationToken.None))
             .ReturnsAsync([action]);
-        _operationService
-            .Setup(item => item.CreateMutationCandidateAsync(action.Action, "Title", _context.Object, CancellationToken.None))
-            .ReturnsAsync(CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(candidate));
+        _evaluator
+            .Setup(item => item.EvaluateAsync(action.Action, roslyn.Solution, CancellationToken.None))
+            .ReturnsAsync(CodeActionApplyResult.Applied(roslyn.Solution));
 
         var result = await _target.StageSelectionAsync(
             selector,
@@ -555,12 +364,12 @@ public sealed class CodeActionReplayServiceTests
             "EquivalenceKey",
             [1]);
 
-        result.Data.Should().BeSameAs(candidate);
+        result.Data!.CandidateSolution.Should().BeSameAs(roslyn.Solution);
+        result.Data.Summary.Should().Be("Title");
         _workspaceResolver.Verify(item => item.ValidateSnapshot(expectedSnapshot), Times.Once);
-        _operationService.Verify(item => item.CreateMutationCandidateAsync(
+        _evaluator.Verify(item => item.EvaluateAsync(
             action.Action,
-            "Title",
-            _context.Object,
+            roslyn.Solution,
             CancellationToken.None), Times.Once);
     }
 
@@ -573,11 +382,6 @@ public sealed class CodeActionReplayServiceTests
         var provider = new Mock<CodeRefactoringProvider>();
         var firstAction = CreateDiscoveredAction(roslyn.Solution, "Title", "EquivalenceKey", [1]);
         var secondAction = CreateDiscoveredAction(roslyn.Solution, "Title", "EquivalenceKey", [1]);
-        var candidate = new WorkspaceMutationCandidate
-        {
-            CandidateSolution = roslyn.Solution,
-        };
-
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
@@ -588,9 +392,9 @@ public sealed class CodeActionReplayServiceTests
         _discoveryService
             .Setup(item => item.DiscoverRefactoringsAsync(provider.Object, roslyn.Document, location.SourceSpan, CancellationToken.None))
             .ReturnsAsync([firstAction, secondAction]);
-        _operationService
-            .Setup(item => item.CreateMutationCandidateAsync(firstAction.Action, "Title", _context.Object, CancellationToken.None))
-            .ReturnsAsync(CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(candidate));
+        _evaluator
+            .Setup(item => item.EvaluateAsync(firstAction.Action, roslyn.Solution, CancellationToken.None))
+            .ReturnsAsync(CodeActionApplyResult.Applied(roslyn.Solution));
 
         var result = await _target.StageReplayCodeActionAsync(
             new ReplayCodeActionRequest
@@ -601,11 +405,11 @@ public sealed class CodeActionReplayServiceTests
             _context.Object,
             CancellationToken.None);
 
-        result.Data.Should().BeSameAs(candidate);
-        _operationService.Verify(item => item.CreateMutationCandidateAsync(
+        result.Data!.CandidateSolution.Should().BeSameAs(roslyn.Solution);
+        result.Data.Summary.Should().Be("Title");
+        _evaluator.Verify(item => item.EvaluateAsync(
             firstAction.Action,
-            "Title",
-            _context.Object,
+            roslyn.Solution,
             CancellationToken.None), Times.Once);
     }
 
@@ -643,33 +447,6 @@ public sealed class CodeActionReplayServiceTests
                 ProviderId = "ProviderId",
                 ActionPath = [2],
             },
-        };
-    }
-
-    private static CodeActionResolution<WorkspaceMutationCandidate> CreateResolution(
-        CodeAction action,
-        Document document,
-        CodeActionExecutionMode executionMode)
-    {
-        return new CodeActionResolution<WorkspaceMutationCandidate>
-        {
-            Action = new DiscoveredCodeAction
-            {
-                Action = action,
-                Kind = DiscoveredActionKind.Refactoring,
-                ProviderId = "ProviderId",
-                Title = "Title",
-                Descriptor = new CodeActionDescriptorEntry
-                {
-                    ExecutionMode = executionMode,
-                },
-                EquivalenceKey = "EquivalenceKey",
-            },
-            Descriptor = new CodeActionDescriptorEntry
-            {
-                ExecutionMode = executionMode,
-            },
-            Document = document,
         };
     }
 

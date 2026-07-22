@@ -1,0 +1,213 @@
+using Microsoft.CodeAnalysis.CodeActions;
+
+namespace Roslyn.Workbench.Mcp.CodeActions.Test.Staging;
+
+public sealed class CodeActionTokenStagerTests
+{
+    private readonly Mock<ICodeActionProviderCatalog> _providerCatalog;
+    private readonly Mock<ICodeActionResolver> _resolver;
+    private readonly Mock<ICodeActionEvaluator> _evaluator;
+    private readonly Mock<ICodeActionExecutionContext> _context;
+    private readonly CodeActionTokenStager _target;
+
+    public CodeActionTokenStagerTests()
+    {
+        _providerCatalog = new Mock<ICodeActionProviderCatalog>();
+        _resolver = new Mock<ICodeActionResolver>();
+        _evaluator = new Mock<ICodeActionEvaluator>();
+        _context = new Mock<ICodeActionExecutionContext>();
+        _providerCatalog.SetupGet(item => item.Status).Returns(new CodeActionProviderCatalogStatus
+        {
+            IsAvailable = true,
+        });
+
+        _target = new CodeActionTokenStager(
+            _providerCatalog.Object,
+            _resolver.Object,
+            _evaluator.Object);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task GIVEN_CodeActionsAreUnavailable_WHEN_StagingToken_THEN_ShouldRejectWithoutResolvingAction(
+        bool stageCodeFix)
+    {
+        _providerCatalog.SetupGet(item => item.Status).Returns(new CodeActionProviderCatalogStatus
+        {
+            IsAvailable = false,
+        });
+
+        CodeActionExecutionResult<WorkspaceMutationCandidate> result;
+        if (stageCodeFix)
+        {
+            result = await _target.StageCodeFixAsync(
+                new StageCodeFixRequest { ActionId = "ActionId" },
+                _context.Object,
+                CancellationToken.None);
+        }
+        else
+        {
+            result = await _target.StageCodeActionAsync(
+                new StageCodeActionRequest { ActionId = "ActionId" },
+                _context.Object,
+                CancellationToken.None);
+        }
+
+        result.Error!.Code.Should().Be("CodeActionsUnavailable");
+        _resolver.Verify(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
+            It.IsAny<string>(),
+            It.IsAny<SnapshotPrecondition?>(),
+            It.IsAny<DiscoveredActionKind?>(),
+            It.IsAny<ICodeActionExecutionContext>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_ResolvedRefactoring_WHEN_StagingCodeAction_THEN_ShouldCreateMutationCandidate()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var expectedSnapshot = new SnapshotPrecondition();
+        var action = CreateAction(roslyn.Solution);
+        _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
+        _resolver
+            .Setup(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
+                "ActionId",
+                expectedSnapshot,
+                DiscoveredActionKind.Refactoring,
+                _context.Object,
+                CancellationToken.None))
+            .ReturnsAsync(CreateResolution(action, roslyn.Document, CodeActionExecutionMode.Replay));
+
+        _evaluator
+            .Setup(item => item.EvaluateAsync(action, roslyn.Solution, CancellationToken.None))
+            .ReturnsAsync(CodeActionApplyResult.Applied(roslyn.Solution));
+
+        var result = await _target.StageCodeActionAsync(
+            new StageCodeActionRequest
+            {
+                ActionId = "ActionId",
+                ExpectedSnapshot = expectedSnapshot,
+            },
+            _context.Object,
+            CancellationToken.None);
+
+        result.Data!.CandidateSolution.Should().BeSameAs(roslyn.Solution);
+        result.Data.Summary.Should().Be("Title");
+    }
+
+    [Fact]
+    public async Task GIVEN_ResolutionIsRejected_WHEN_StagingCodeFix_THEN_ShouldReturnResolutionRejection()
+    {
+        var rejection = CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
+        {
+            Code = "ErrorCode",
+            Message = "Message",
+        });
+
+        _resolver
+            .Setup(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
+                "ActionId",
+                null,
+                DiscoveredActionKind.CodeFix,
+                _context.Object,
+                CancellationToken.None))
+            .ReturnsAsync(CodeActionResolution<WorkspaceMutationCandidate>.Rejected(rejection));
+
+        var result = await _target.StageCodeFixAsync(
+            new StageCodeFixRequest { ActionId = "ActionId" },
+            _context.Object,
+            CancellationToken.None);
+
+        result.Should().BeSameAs(rejection);
+        _evaluator.Verify(item => item.EvaluateAsync(
+            It.IsAny<CodeAction>(),
+            It.IsAny<Solution>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_ResolvedActionRequiresParameters_WHEN_StagingCodeAction_THEN_ShouldRejectWithoutEvaluation()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var action = CreateAction(roslyn.Solution);
+        _resolver
+            .Setup(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
+                "ActionId",
+                null,
+                DiscoveredActionKind.Refactoring,
+                _context.Object,
+                CancellationToken.None))
+            .ReturnsAsync(CreateResolution(action, roslyn.Document, CodeActionExecutionMode.Parameterised));
+
+        var result = await _target.StageCodeActionAsync(
+            new StageCodeActionRequest { ActionId = "ActionId" },
+            _context.Object,
+            CancellationToken.None);
+
+        result.Error!.Code.Should().Be("ActionRequiresParameters");
+        _evaluator.Verify(item => item.EvaluateAsync(
+            It.IsAny<CodeAction>(),
+            It.IsAny<Solution>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_EvaluatorRejectsAction_WHEN_StagingCodeAction_THEN_ShouldReturnEvaluatorFailure()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var action = CreateAction(roslyn.Solution);
+        _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
+        _resolver
+            .Setup(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
+                "ActionId",
+                null,
+                DiscoveredActionKind.Refactoring,
+                _context.Object,
+                CancellationToken.None))
+            .ReturnsAsync(CreateResolution(action, roslyn.Document, CodeActionExecutionMode.Replay));
+
+        _evaluator
+            .Setup(item => item.EvaluateAsync(action, roslyn.Solution, CancellationToken.None))
+            .ReturnsAsync(CodeActionApplyResult.Failed(
+                CodeActionApplyFailureKind.UnsupportedActionOperation,
+                "Unsupported action operation."));
+
+        var result = await _target.StageCodeActionAsync(
+            new StageCodeActionRequest { ActionId = "ActionId" },
+            _context.Object,
+            CancellationToken.None);
+
+        result.Error!.Code.Should().Be("UnsupportedActionOperation");
+        result.Error.Message.Should().Be("Unsupported action operation.");
+    }
+
+    private static CodeActionResolution<WorkspaceMutationCandidate> CreateResolution(
+        CodeAction action,
+        Document document,
+        CodeActionExecutionMode executionMode)
+    {
+        var discoveredAction = new DiscoveredCodeAction
+        {
+            Action = action,
+            Kind = DiscoveredActionKind.Refactoring,
+            ProviderId = "ProviderId",
+            Title = "Title",
+            Descriptor = new CodeActionDescriptorEntry
+            {
+                ExecutionMode = executionMode,
+            },
+            EquivalenceKey = "EquivalenceKey",
+        };
+
+        return CodeActionResolution<WorkspaceMutationCandidate>.Resolved(
+            discoveredAction,
+            document,
+            default);
+    }
+
+    private static CodeAction CreateAction(Solution solution)
+    {
+        return CodeAction.Create("Title", _ => Task.FromResult(solution), "EquivalenceKey");
+    }
+}

@@ -1,3 +1,6 @@
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Caching;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
+
 namespace Roslyn.Workbench.Mcp.TestSupport;
 
 public static class QueryContextMockHelper
@@ -9,6 +12,11 @@ public static class QueryContextMockHelper
         var workspaceResolver = new Mock<IWorkspaceResolver>();
         var toolExecutionServices = new Mock<IToolExecutionServices>();
         var requestResolver = new Mock<IToolRequestResolver>();
+        var queryCache = new Mock<IQueryCache>();
+
+        toolExecutionServices
+            .SetupGet(item => item.QueryCache)
+            .Returns(queryCache.Object);
 
         toolExecutionServices
             .SetupGet(item => item.RequestResolver)
@@ -22,6 +30,12 @@ public static class QueryContextMockHelper
         queryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(workspace.CurrentSolution);
+        queryContext
+            .SetupGet(item => item.WorkspaceIdentity)
+            .Returns(new WorkspaceIdentity
+            {
+                WorkspaceId = "WorkspaceId",
+            });
 
         return new QueryContextMockGraph(
             queryContext,

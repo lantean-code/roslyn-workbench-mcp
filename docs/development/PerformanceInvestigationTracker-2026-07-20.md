@@ -307,6 +307,29 @@ The earlier native Windows, WSL-native and WSL-mounted comparison remains the re
 
 **Exit evidence:** achieved by the final three-repository baseline and focused cold/warm, bound, deterministic-ordering, mutation and corrected protocol-cancellation runs above. Repository and state validation passed throughout. Server-side cancellation now reaches active Roslyn work and releases the Workspace lease within the measured bound.
 
+### 10. Introduce snapshot-scoped reference-discovery caching
+
+**Status:** Completed for `find-references`; further cache candidates remain separate decisions
+
+The reference traces in investigation 6 established a repeatable approximately 0.8-second Roslyn discovery cost after compilation was warm. A dedicated Workspace-owned, DI-managed `IMemoryCache` now stores only complete successful reference-discovery results. Options configure its 50,000-unit size limit and ten-minute sliding expiration. Tools receive a `QueryCache` runtime object exposing only the bounded query read/write contract through `IToolExecutionServices`, while lifecycle code receives a distinct `WorkspaceQueryCache` invalidation object; private shared state coordinates per-workspace invalidation without making the tool-facing runtime type invalidatable. Each entry is sized by its referenced-symbol and reference-location counts.
+
+Keys combine the stable workspace ID with the immutable `Solution` instance, semantic symbol identity and sorted document IDs. Request limits, definition inclusion and context enrichment do not alter Roslyn discovery and are therefore excluded, allowing a later higher-bound request to reuse the same complete result. Cancelled or failed discovery is never stored. Workspace close always invalidates; replacement solutions, workspace epochs and stale transitions invalidate during session replacement, covering mutation staging, rollback, commit, reload and external changes without discarding entries for state-only transitions over the same snapshot.
+
+The focused zero-warm-up EF Core measurement retained at `artifacts/performance/results/20260722-195101-efcore-82ba0c647c8c4cba81a4461cb8085b25` records:
+
+| Scenario | Previous warm median | First cold miss | Cached subsequent median | Improvement from previous warm median |
+|---|---:|---:|---:|---:|
+| References low bound | 778.25 ms | 25,326.10 ms | 24.02 ms | 96.9% / 32.4x |
+| References high bound | 787.79 ms | 95.88 ms after the low-bound population | 57.75 ms | 92.7% / 13.6x |
+
+The cold miss remains expensive because it constructs compilation and Roslyn reference state; this cache targets successive invocations within the open immutable Workspace. The high-bound response reused the low-bound discovery while still performing the additional selected-result enrichment and serialisation required for 500 results. Exact response hashes remained stable, and repository, Host shutdown, recovery, coordination and lock-state validation passed.
+
+The equivalent five-query forced-GC sequence retained at `artifacts/performance/results/20260722-195444-efcore-ff73a452045243d19f446c2643a8bd99` measured 761.62 MB with the Workspace open and 89.14 MB after close. The pre-cache sequence measured 762.40 MB and 88.40 MB respectively. Both differences are below one percent. After close, the singleton cache shell remains as expected, but no reference-discovery cache entry or key remains; the Workspace graph and its cached query values were released. The repository and state-file validation passed.
+
+**Dependencies:** investigations 2, 6 and 8, completed.
+
+**Exit evidence:** achieved for reference discovery. Cache-hit latency is materially lower, low/high responses remain deterministic, retained memory is unchanged within measurement noise, and workspace close releases the cached snapshot. Target-framework metadata and any other operation require their own evidence before adoption.
+
 ## Working rules
 
 - Change one attributable cost centre at a time and retain before/after evidence from the same environment.

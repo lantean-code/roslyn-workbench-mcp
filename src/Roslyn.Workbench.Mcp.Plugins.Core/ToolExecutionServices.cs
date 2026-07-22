@@ -1,3 +1,5 @@
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Caching;
+
 namespace Roslyn.Workbench.Mcp.Plugins.Core;
 
 internal sealed class ToolExecutionServices : IToolExecutionServices
@@ -7,13 +9,15 @@ internal sealed class ToolExecutionServices : IToolExecutionServices
         ICompilerDiagnosticService compilerDiagnosticService,
         IInspectionContextService inspectionContextService,
         IProjectStructureService projectStructureService,
-        IDependencyAnalysisService dependencyAnalysisService)
+        IDependencyAnalysisService dependencyAnalysisService,
+        IQueryCache queryCache)
     {
         RequestResolver = requestResolver;
         CompilerDiagnosticService = compilerDiagnosticService;
         InspectionContextService = inspectionContextService;
         ProjectStructureService = projectStructureService;
         DependencyAnalysisService = dependencyAnalysisService;
+        QueryCache = queryCache;
     }
 
     public IToolRequestResolver RequestResolver { get; }
@@ -25,4 +29,6 @@ internal sealed class ToolExecutionServices : IToolExecutionServices
     public IProjectStructureService ProjectStructureService { get; }
 
     public IDependencyAnalysisService DependencyAnalysisService { get; }
+
+    public IQueryCache QueryCache { get; }
 }

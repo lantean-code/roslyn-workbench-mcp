@@ -1,11 +1,20 @@
+using Roslyn.Workbench.Mcp.Workspace.Caching;
+
 namespace Roslyn.Workbench.Mcp.Workspace.Test.State;
 
 public sealed class WorkspaceSessionStoreTests
 {
+    private readonly Mock<IWorkspaceQueryCache> _queryCache;
+
+    public WorkspaceSessionStoreTests()
+    {
+        _queryCache = new Mock<IWorkspaceQueryCache>();
+    }
+
     [Fact]
     public void GIVEN_NewStore_WHEN_ReadingSnapshot_THEN_ShouldReturnEmptySnapshotWithoutOwner()
     {
-        var target = new WorkspaceSessionStore();
+        var target = new WorkspaceSessionStore(_queryCache.Object);
 
         var result = target.ReadSnapshot();
 
@@ -16,7 +25,7 @@ public sealed class WorkspaceSessionStoreTests
     [Fact]
     public void GIVEN_NewStore_WHEN_AllocatingWorkspaceIds_THEN_ShouldReturnMonotonicallyIncreasingIds()
     {
-        var target = new WorkspaceSessionStore();
+        var target = new WorkspaceSessionStore(_queryCache.Object);
 
         var first = target.AllocateWorkspaceId();
         var second = target.AllocateWorkspaceId();
@@ -28,7 +37,7 @@ public sealed class WorkspaceSessionStoreTests
     [Fact]
     public void GIVEN_NewStore_WHEN_AllocatingWorkspaceEpochs_THEN_ShouldReturnMonotonicallyIncreasingEpochs()
     {
-        var target = new WorkspaceSessionStore();
+        var target = new WorkspaceSessionStore(_queryCache.Object);
 
         var first = target.AllocateWorkspaceEpoch();
         var second = target.AllocateWorkspaceEpoch();
@@ -40,7 +49,7 @@ public sealed class WorkspaceSessionStoreTests
     [Fact]
     public void GIVEN_ValidationFailure_WHEN_AddingWorkspace_THEN_ShouldReturnErrorWithoutMutatingSnapshot()
     {
-        var target = new WorkspaceSessionStore();
+        var target = new WorkspaceSessionStore(_queryCache.Object);
         var session = CreateSession("WorkspaceId", "Alias");
         var error = new WorkspaceOperationError
         {
@@ -60,7 +69,7 @@ public sealed class WorkspaceSessionStoreTests
     [Fact]
     public void GIVEN_ValidSession_WHEN_AddingAndReadingWorkspace_THEN_ShouldReturnAddedSession()
     {
-        var target = new WorkspaceSessionStore();
+        var target = new WorkspaceSessionStore(_queryCache.Object);
         var session = CreateSession("WorkspaceId", "Alias");
         var validate = new Mock<Func<WorkspaceHostSnapshot, WorkspaceOperationError?>>();
         validate.Setup(item => item(It.IsAny<WorkspaceHostSnapshot>())).Returns((WorkspaceOperationError?)null);
@@ -83,6 +92,7 @@ public sealed class WorkspaceSessionStoreTests
 
         result.Should().BeNull();
         target.ReadSnapshot().Should().BeSameAs(snapshot);
+        _queryCache.Verify(item => item.InvalidateWorkspace(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -97,6 +107,7 @@ public sealed class WorkspaceSessionStoreTests
         result.Should().BeSameAs(session);
         target.ReadSnapshot().Workspaces.Should().BeEmpty();
         target.ReadSnapshot().TransactionOwnerWorkspaceId.Should().BeNull();
+        _queryCache.Verify(item => item.InvalidateWorkspace("WorkspaceId"), Times.Once);
     }
 
     [Fact]
@@ -113,6 +124,7 @@ public sealed class WorkspaceSessionStoreTests
         result.Should().BeSameAs(secondSession);
         target.ReadSnapshot().TransactionOwnerWorkspaceId.Should().Be("FirstWorkspaceId");
         target.ReadSession("FirstWorkspaceId").Should().BeSameAs(firstSession);
+        _queryCache.Verify(item => item.InvalidateWorkspace("SecondWorkspaceId"), Times.Once);
     }
 
     [Fact]
@@ -128,6 +140,7 @@ public sealed class WorkspaceSessionStoreTests
 
         target.ReadSession("FirstWorkspaceId").Should().BeSameAs(replacement);
         target.ReadSession("SecondWorkspaceId").Should().BeSameAs(secondSession);
+        _queryCache.Verify(item => item.InvalidateWorkspace(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -141,6 +154,37 @@ public sealed class WorkspaceSessionStoreTests
 
         target.ReadSession("WorkspaceId").Should().BeSameAs(replacement);
         target.ReadSnapshot().TransactionOwnerWorkspaceId.Should().Be("WorkspaceId");
+        _queryCache.Verify(item => item.InvalidateWorkspace(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public void GIVEN_ReplacementWithNewSolution_WHEN_Replacing_THEN_ShouldInvalidateWorkspaceCache()
+    {
+        using var workspace = new AdhocWorkspace();
+        var session = CreateSession("WorkspaceId", "Alias", workspace.CurrentSolution);
+        var target = CreateStoreWithSession(session);
+        var changedSolution = workspace.CurrentSolution.AddProject("Project", "Project", LanguageNames.CSharp).Solution;
+        var replacement = CreateSession("WorkspaceId", "Alias", changedSolution);
+
+        target.ReplaceSession(replacement);
+
+        _queryCache.Verify(item => item.InvalidateWorkspace("WorkspaceId"), Times.Once);
+    }
+
+    [Fact]
+    public void GIVEN_OutOfDateReplacement_WHEN_Replacing_THEN_ShouldInvalidateWorkspaceCache()
+    {
+        using var workspace = new AdhocWorkspace();
+        var session = CreateSession("WorkspaceId", "Alias", workspace.CurrentSolution);
+        var target = CreateStoreWithSession(session);
+        var replacement = session with
+        {
+            State = WorkspaceLifecycleState.WorkspaceOutOfDate,
+        };
+
+        target.ReplaceSession(replacement);
+
+        _queryCache.Verify(item => item.InvalidateWorkspace("WorkspaceId"), Times.Once);
     }
 
     [Fact]
@@ -158,9 +202,9 @@ public sealed class WorkspaceSessionStoreTests
         target.ReadSnapshot().Workspaces.Should().HaveCount(2);
     }
 
-    private static WorkspaceSessionStore CreateStoreWithSession(WorkspaceSessionSnapshot session)
+    private WorkspaceSessionStore CreateStoreWithSession(WorkspaceSessionSnapshot session)
     {
-        var target = new WorkspaceSessionStore();
+        var target = new WorkspaceSessionStore(_queryCache.Object);
         AddSession(target, session);
         return target;
     }
@@ -172,7 +216,7 @@ public sealed class WorkspaceSessionStoreTests
         target.TryAddWorkspace(session, validate.Object).Should().BeNull();
     }
 
-    private static WorkspaceSessionSnapshot CreateSession(string workspaceId, string alias)
+    private static WorkspaceSessionSnapshot CreateSession(string workspaceId, string alias, Solution? solution = null)
     {
         return new WorkspaceSessionSnapshot
         {
@@ -184,7 +228,7 @@ public sealed class WorkspaceSessionStoreTests
                 LoadedPath = "LoadedPath",
             },
             LoadedWorkspace = null!,
-            CurrentSolution = null!,
+            CurrentSolution = solution!,
             InputManifest = null!,
             OperationGate = null!,
         };

@@ -1,8 +1,12 @@
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.Plugins.Core;
 using Roslyn.Workbench.Mcp.ToolExecution;
 using Roslyn.Workbench.Mcp.ToolExecution.CodeActions;
 using Roslyn.Workbench.Mcp.ToolExecution.Plugins;
+
+using Roslyn.Workbench.Mcp.Workspace.Caching;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Caching;
 
 namespace Roslyn.Workbench.Mcp.Hosting;
 
@@ -42,6 +46,9 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
 
     public static void AddWorkspaceServices(this IServiceCollection services)
     {
+        services.AddOptions<QueryCacheOptions>();
+        services.AddSingleton<IConfigureOptions<MemoryCacheOptions>, QueryCacheMemoryOptionsConfiguration>();
+        services.AddMemoryCache();
         services.AddSingleton<IMsBuildWorkspaceFactory, HostConfiguredMsBuildWorkspaceFactory>();
         services.AddSingleton<IWorkspaceOperationResultFactory, WorkspaceOperationResultFactory>();
         services.AddSingleton<IFileSystem, FileSystem>();
@@ -55,6 +62,11 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IWorkspaceCommitLockManager, WorkspaceCommitLockManager>();
         services.AddSingleton<IWorkspaceCommitWriter, WorkspaceCommitWriter>();
         services.AddSingleton<IWorkspaceCommitRecoveryService, WorkspaceCommitRecoveryService>();
+        services.AddSingleton<WorkspaceQueryCacheState>();
+        services.AddSingleton<IQueryCacheInvalidationTokenSource>(static provider => provider.GetRequiredService<WorkspaceQueryCacheState>());
+        services.AddSingleton<IWorkspaceQueryCacheState>(static provider => provider.GetRequiredService<WorkspaceQueryCacheState>());
+        services.AddSingleton<IQueryCache, QueryCache>();
+        services.AddSingleton<IWorkspaceQueryCache, WorkspaceQueryCache>();
         services.AddSingleton<IWorkspaceSessionStore, WorkspaceSessionStore>();
         services.AddSingleton<IWorkspaceSelector, WorkspaceSelectorService>();
         services.AddSingleton<IWorkspaceSessionAcquirer, WorkspaceSessionAcquirer>();

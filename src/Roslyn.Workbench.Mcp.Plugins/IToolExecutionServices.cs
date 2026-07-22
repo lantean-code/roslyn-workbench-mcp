@@ -1,3 +1,5 @@
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Caching;
+
 namespace Roslyn.Workbench.Mcp.Plugins;
 
 /// <summary>
@@ -5,6 +7,11 @@ namespace Roslyn.Workbench.Mcp.Plugins;
 /// </summary>
 public interface IToolExecutionServices
 {
+    /// <summary>
+    /// Gets the bounded cache for reusable query results.
+    /// </summary>
+    IQueryCache QueryCache { get; }
+
     /// <summary>
     /// Gets the request-resolution service for tool execution.
     /// </summary>

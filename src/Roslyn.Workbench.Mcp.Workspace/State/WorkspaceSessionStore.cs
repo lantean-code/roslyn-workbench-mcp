@@ -1,14 +1,18 @@
+using Roslyn.Workbench.Mcp.Workspace.Caching;
+
 namespace Roslyn.Workbench.Mcp.Workspace.State;
 
 internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
 {
+    private readonly IWorkspaceQueryCache _queryCache;
     private readonly Lock _syncRoot;
     private WorkspaceHostSnapshot _snapshot;
     private long _nextWorkspaceEpoch;
     private long _nextWorkspaceId;
 
-    public WorkspaceSessionStore()
+    public WorkspaceSessionStore(IWorkspaceQueryCache queryCache)
     {
+        _queryCache = queryCache;
         _syncRoot = new Lock();
         _snapshot = new WorkspaceHostSnapshot();
     }
@@ -68,9 +72,10 @@ internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
 
     public WorkspaceSessionSnapshot? RemoveWorkspace(string workspaceId)
     {
+        WorkspaceSessionSnapshot? session;
         lock (_syncRoot)
         {
-            if (!_snapshot.Workspaces.TryGetValue(workspaceId, out var session))
+            if (!_snapshot.Workspaces.TryGetValue(workspaceId, out session))
             {
                 return null;
             }
@@ -84,35 +89,51 @@ internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
                     ? null
                     : _snapshot.TransactionOwnerWorkspaceId,
             };
-
-            return session;
         }
+
+        _queryCache.InvalidateWorkspace(workspaceId);
+        return session;
     }
 
     public void ReplaceSession(WorkspaceSessionSnapshot session)
     {
-
+        bool invalidateQueryCache;
         lock (_syncRoot)
         {
-            ReplaceSessionLocked(session);
+            invalidateQueryCache = ReplaceSessionLocked(session);
+        }
+
+        if (invalidateQueryCache)
+        {
+            _queryCache.InvalidateWorkspace(session.Workspace.WorkspaceId);
         }
     }
 
     public void ReplaceSessionAndSetTransactionOwner(WorkspaceSessionSnapshot session, string? transactionOwnerWorkspaceId)
     {
-
+        bool invalidateQueryCache;
         lock (_syncRoot)
         {
-            ReplaceSessionLocked(session);
+            invalidateQueryCache = ReplaceSessionLocked(session);
             _snapshot = _snapshot with
             {
                 TransactionOwnerWorkspaceId = transactionOwnerWorkspaceId,
             };
         }
+
+        if (invalidateQueryCache)
+        {
+            _queryCache.InvalidateWorkspace(session.Workspace.WorkspaceId);
+        }
     }
 
-    private void ReplaceSessionLocked(WorkspaceSessionSnapshot session)
+    private bool ReplaceSessionLocked(WorkspaceSessionSnapshot session)
     {
+        var invalidateQueryCache = !_snapshot.Workspaces.TryGetValue(session.Workspace.WorkspaceId, out var previousSession)
+            || !ReferenceEquals(previousSession.CurrentSolution, session.CurrentSolution)
+            || previousSession.Workspace.WorkspaceEpoch != session.Workspace.WorkspaceEpoch
+            || session.State == WorkspaceLifecycleState.WorkspaceOutOfDate;
+
         var workspaces = new Dictionary<string, WorkspaceSessionSnapshot>(_snapshot.Workspaces, StringComparer.Ordinal)
         {
             [session.Workspace.WorkspaceId] = session,
@@ -121,5 +142,7 @@ internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
         {
             Workspaces = workspaces,
         };
+
+        return invalidateQueryCache;
     }
 }

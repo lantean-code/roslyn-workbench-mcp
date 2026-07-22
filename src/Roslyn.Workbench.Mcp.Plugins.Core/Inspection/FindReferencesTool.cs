@@ -1,5 +1,7 @@
 using System.Collections.Immutable;
 
+using Roslyn.Workbench.Mcp.Plugins.Core.Inspection.Caching;
+using Roslyn.Workbench.Mcp.Workspace.Caching;
 using Roslyn.Workbench.Mcp.Workspace.Diagnostics;
 
 using ContractReferenceLocation = Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection.ReferenceLocation;
@@ -26,15 +28,7 @@ internal sealed class FindReferencesTool : QueryToolHandler<FindReferencesReques
             return documents.Rejection;
         }
 
-        IEnumerable<ReferencedSymbol> referencedSymbols;
-        using (WorkbenchPerformanceEventSource.Log.StartPhase(_toolName, WorkbenchPerformanceEventSource.DiscoveryPhase))
-        {
-            referencedSymbols = await SymbolFinder.FindReferencesAsync(
-                    symbol,
-                    context.CurrentSolution,
-                    documents.Value.ToImmutableHashSet(),
-                    cancellationToken);
-        }
+        var referencedSymbols = await GetReferencedSymbolsAsync(symbol, documents.Value, context, cancellationToken);
 
         var pendingReferences = new List<PendingReference>();
         using (WorkbenchPerformanceEventSource.Log.StartPhase(_toolName, WorkbenchPerformanceEventSource.CandidateProjectionPhase))
@@ -151,6 +145,40 @@ internal sealed class FindReferencesTool : QueryToolHandler<FindReferencesReques
         };
 
         return PluginExecutionResult<ReferenceSearchData>.Success(data);
+    }
+
+    private static async Task<ImmutableArray<ReferencedSymbol>> GetReferencedSymbolsAsync(
+        ISymbol symbol,
+        IReadOnlyList<Document> documents,
+        IQueryContext context,
+        CancellationToken cancellationToken)
+    {
+        var queryCache = context.ToolExecutionServices.QueryCache;
+        var cacheKey = new ReferenceDiscoveryCacheKey(context.CurrentSolution, symbol, documents);
+        var workspaceId = context.WorkspaceIdentity.WorkspaceId;
+        if (queryCache.TryGet<ReferenceDiscoveryCacheEntry>(workspaceId, cacheKey, out var cachedEntry))
+        {
+            return cachedEntry.ReferencedSymbols;
+        }
+
+        var documentSet = documents.ToImmutableHashSet();
+        IEnumerable<ReferencedSymbol> discoveredReferences;
+        using (WorkbenchPerformanceEventSource.Log.StartPhase(_toolName, WorkbenchPerformanceEventSource.DiscoveryPhase))
+        {
+            discoveredReferences = await SymbolFinder.FindReferencesAsync(
+                symbol,
+                context.CurrentSolution,
+                documentSet,
+                cancellationToken);
+        }
+
+        var referencedSymbols = discoveredReferences.ToImmutableArray();
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var cacheEntry = new ReferenceDiscoveryCacheEntry(referencedSymbols);
+        queryCache.Store(workspaceId, cacheKey, cacheEntry, cacheEntry.Size);
+
+        return referencedSymbols;
     }
 
     private static async ValueTask<bool> IsWriteReferenceAsync(Document? document, Location location, CancellationToken cancellationToken)

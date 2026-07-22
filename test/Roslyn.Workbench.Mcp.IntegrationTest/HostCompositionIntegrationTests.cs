@@ -2,6 +2,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
+using Roslyn.Workbench.Mcp.Workspace.Caching;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Caching;
+
 namespace Roslyn.Workbench.Mcp.Test;
 
 public sealed class HostCompositionIntegrationTests
@@ -76,10 +79,24 @@ public sealed class HostCompositionIntegrationTests
         using var host = builder.Build();
         var pluginCatalogSnapshot = host.Services.GetRequiredService<PluginCatalogSnapshot>();
         var codeActionCatalogSnapshot = host.Services.GetRequiredService<CodeActionCatalogSnapshot>();
+        var toolExecutionServices = host.Services.GetRequiredService<IToolExecutionServices>();
+        var workspaceQueryCache = host.Services.GetRequiredService<IWorkspaceQueryCache>();
         var mcpTools = host.Services.GetServices<McpServerTool>().ToArray();
+        var cachedValue = new object();
+
+        toolExecutionServices.QueryCache.Store("WorkspaceId", "Key", cachedValue, 1);
+        var foundBeforeInvalidation = toolExecutionServices.QueryCache.TryGet<object>("WorkspaceId", "Key", out var valueBeforeInvalidation);
+        workspaceQueryCache.InvalidateWorkspace("WorkspaceId");
+        var foundAfterInvalidation = toolExecutionServices.QueryCache.TryGet<object>("WorkspaceId", "Key", out _);
 
         host.Services.GetRequiredService<IMsBuildRegistrationService>().Should().NotBeNull();
-        host.Services.GetRequiredService<IToolExecutionServices>().Should().NotBeNull();
+        toolExecutionServices.QueryCache.Should().BeOfType<QueryCache>();
+        workspaceQueryCache.Should().BeOfType<WorkspaceQueryCache>();
+        toolExecutionServices.QueryCache.Should().NotBeSameAs(workspaceQueryCache);
+        host.Services.GetRequiredService<IQueryCache>().Should().BeSameAs(toolExecutionServices.QueryCache);
+        foundBeforeInvalidation.Should().BeTrue();
+        valueBeforeInvalidation.Should().BeSameAs(cachedValue);
+        foundAfterInvalidation.Should().BeFalse();
         host.Services.GetRequiredService<ICodeActionProviderCatalog>().Should().BeOfType<MefCodeActionProviderCatalog>();
         host.Services.GetRequiredService<IMsBuildWorkspaceFactory>().Should().BeOfType<HostConfiguredMsBuildWorkspaceFactory>();
         host.Services.GetRequiredService<IToolExecutionContextFactory>().Should().BeOfType<PluginExecutionContextFactory>();

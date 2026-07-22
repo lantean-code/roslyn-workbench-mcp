@@ -9,6 +9,7 @@ internal sealed class ToolExecutionServices : IToolExecutionServices
         ICompilerDiagnosticService compilerDiagnosticService,
         IInspectionContextService inspectionContextService,
         IProjectStructureService projectStructureService,
+        IProjectTargetFrameworkResolver projectTargetFrameworkResolver,
         IDependencyAnalysisService dependencyAnalysisService,
         IQueryCache queryCache)
     {
@@ -16,6 +17,7 @@ internal sealed class ToolExecutionServices : IToolExecutionServices
         CompilerDiagnosticService = compilerDiagnosticService;
         InspectionContextService = inspectionContextService;
         ProjectStructureService = projectStructureService;
+        ProjectTargetFrameworkResolver = projectTargetFrameworkResolver;
         DependencyAnalysisService = dependencyAnalysisService;
         QueryCache = queryCache;
     }
@@ -27,6 +29,8 @@ internal sealed class ToolExecutionServices : IToolExecutionServices
     public IInspectionContextService InspectionContextService { get; }
 
     public IProjectStructureService ProjectStructureService { get; }
+
+    public IProjectTargetFrameworkResolver ProjectTargetFrameworkResolver { get; }
 
     public IDependencyAnalysisService DependencyAnalysisService { get; }
 

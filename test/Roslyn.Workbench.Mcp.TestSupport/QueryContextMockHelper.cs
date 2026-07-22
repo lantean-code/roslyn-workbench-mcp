@@ -12,6 +12,7 @@ public static class QueryContextMockHelper
         var workspaceResolver = new Mock<IWorkspaceResolver>();
         var toolExecutionServices = new Mock<IToolExecutionServices>();
         var requestResolver = new Mock<IToolRequestResolver>();
+        var projectTargetFrameworkResolver = new Mock<IProjectTargetFrameworkResolver>();
         var queryCache = new Mock<IQueryCache>();
 
         toolExecutionServices
@@ -21,6 +22,9 @@ public static class QueryContextMockHelper
         toolExecutionServices
             .SetupGet(item => item.RequestResolver)
             .Returns(requestResolver.Object);
+        toolExecutionServices
+            .SetupGet(item => item.ProjectTargetFrameworkResolver)
+            .Returns(projectTargetFrameworkResolver.Object);
         queryContext
             .SetupGet(item => item.WorkspaceResolver)
             .Returns(workspaceResolver.Object);
@@ -41,7 +45,9 @@ public static class QueryContextMockHelper
             queryContext,
             workspaceResolver,
             toolExecutionServices,
-            requestResolver);
+            requestResolver,
+            projectTargetFrameworkResolver,
+            queryCache);
     }
 }
 
@@ -49,4 +55,6 @@ public sealed record QueryContextMockGraph(
     Mock<IQueryContext> QueryContext,
     Mock<IWorkspaceResolver> WorkspaceResolver,
     Mock<IToolExecutionServices> ToolExecutionServices,
-    Mock<IToolRequestResolver> RequestResolver);
+    Mock<IToolRequestResolver> RequestResolver,
+    Mock<IProjectTargetFrameworkResolver> ProjectTargetFrameworkResolver,
+    Mock<IQueryCache> QueryCache);

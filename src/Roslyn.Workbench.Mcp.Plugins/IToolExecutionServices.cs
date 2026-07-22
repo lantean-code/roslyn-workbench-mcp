@@ -33,6 +33,11 @@ public interface IToolExecutionServices
     IProjectStructureService ProjectStructureService { get; }
 
     /// <summary>
+    /// Gets the snapshot-scoped target-framework resolver for tool execution.
+    /// </summary>
+    IProjectTargetFrameworkResolver ProjectTargetFrameworkResolver { get; }
+
+    /// <summary>
     /// Gets the dependency analysis service for tool execution.
     /// </summary>
     IDependencyAnalysisService DependencyAnalysisService { get; }

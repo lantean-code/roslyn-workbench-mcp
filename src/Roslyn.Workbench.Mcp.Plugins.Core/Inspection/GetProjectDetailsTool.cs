@@ -13,7 +13,11 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
         }
 
         var project = projectResolution.Value;
-        var targetFrameworks = context.ToolExecutionServices.ProjectStructureService.GetTargetFrameworks(project);
+        var targetFrameworks = context.ToolExecutionServices.ProjectTargetFrameworkResolver.Resolve(
+            context.WorkspaceIdentity.WorkspaceId,
+            project,
+            cancellationToken);
+
         if (!targetFrameworks.IsSucceeded)
         {
             var rejection = ToolExecutionHelpers.RejectProjectStructureFailure<ProjectDetailsData>(targetFrameworks.ErrorMessage);

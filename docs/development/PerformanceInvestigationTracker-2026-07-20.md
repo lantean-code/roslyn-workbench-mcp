@@ -330,6 +330,22 @@ The equivalent five-query forced-GC sequence retained at `artifacts/performance/
 
 **Exit evidence:** achieved for reference discovery. Cache-hit latency is materially lower, low/high responses remain deterministic, retained memory is unchanged within measurement noise, and workspace close releases the cached snapshot. Target-framework metadata and any other operation require their own evidence before adoption.
 
+### 11. Introduce snapshot-scoped target-framework caching
+
+**Status:** Completed
+
+The fresh pre-change EF Core measurement retained at `artifacts/performance/results/20260722-205048-efcore-60dfc55f71a24ab185e442c07d526d2a` confirmed that repeated `get-solution-structure` calls still spent a 919.22-millisecond subsequent median evaluating target-framework metadata. The response was stable at 1.1 MiB and repository/state validation passed, so the repeated MSBuild evaluation remained an attributable cost rather than response projection or workspace corruption.
+
+Target-framework results are now cached per workspace, immutable `Solution` instance and project path. Entries contain copied framework strings only; no MSBuild `Project`, `ProjectCollection` or evaluation graph survives the request. A request evaluates all cache misses through the existing request-scoped batch and stores them only when the complete miss batch succeeds and cancellation has been rechecked. Cached projects retain their original result positions, while a later larger request evaluates only newly selected project paths. Project-less in-memory Roslyn projects continue to return an empty successful result without entering the cache.
+
+The equivalent post-change measurement retained at `artifacts/performance/results/20260722-205734-efcore-9262be0611264f97befc8d3829091923` reduced the subsequent median to 55.93 milliseconds, a 93.9% reduction, while preserving the exact response hash and 1.1 MiB response size. The first measured call after one warm-up was 100.35 milliseconds. A focused ten-second trace retained at `artifacts/performance/results/20260722-210016-efcore-e321af9f8a89426c9f79fe7fc8c9159a` recorded 283 invocations at a 38.39-millisecond end-to-end median. Target-framework evaluation fell to a 0.01-millisecond median and 0.03-millisecond P95; external-change detection is now the largest measured phase at 18.99 milliseconds.
+
+The forced-GC evidence retained at `artifacts/performance/results/20260722-205854-efcore-d75a7c391d084504ad7d49a2db8583f7` measured a 62.45 MB managed heap with the Workspace open and 45.70 MB after close. The open capture contained 61 target-framework cache keys and 53 copied-value entries; the after-close capture contained none of those types. Repository, Host shutdown, recovery, coordination and lock-state validation passed.
+
+**Dependencies:** investigations 5, 8 and 10, completed.
+
+**Exit evidence:** achieved. Repeated target-framework evaluation is removed from the warm path, partial cache misses remain request-batched, response output is unchanged, and workspace close releases all target-framework entries. Further operations require their own attributable latency and retained-memory evidence rather than automatic cache adoption.
+
 ## Working rules
 
 - Change one attributable cost centre at a time and retain before/after evidence from the same environment.

@@ -34,11 +34,6 @@ public sealed class GetProjectDetailsToolTests
         var target = new GetProjectDetailsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
         var project = document.Solution.Projects.Single();
-        var projectStructureService = new Mock<IProjectStructureService>();
-
-        queryContextMocks.ToolExecutionServices
-            .SetupGet(item => item.ProjectStructureService)
-            .Returns(projectStructureService.Object);
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
@@ -50,8 +45,8 @@ public sealed class GetProjectDetailsToolTests
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.NormalizeProjectPath(It.IsAny<string>()))
             .Returns<string>(item => item);
-        projectStructureService
-            .Setup(item => item.GetTargetFrameworks(project))
+        queryContextMocks.ProjectTargetFrameworkResolver
+            .Setup(item => item.Resolve("WorkspaceId", project, It.IsAny<CancellationToken>()))
             .Returns(ProjectTargetFrameworksResult.Succeeded(["TargetFramework"]));
 
         var result = await target.ExecuteAsync(new GetProjectDetailsRequest
@@ -164,11 +159,6 @@ public sealed class GetProjectDetailsToolTests
 
         var target = new GetProjectDetailsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var projectStructureService = new Mock<IProjectStructureService>();
-
-        queryContextMocks.ToolExecutionServices
-            .SetupGet(item => item.ProjectStructureService)
-            .Returns(projectStructureService.Object);
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(solution.Workspace.CurrentSolution);
@@ -194,8 +184,8 @@ public sealed class GetProjectDetailsToolTests
                 ProjectId = item.Project.Id.Id.ToString(),
                 Path = Path.GetFileName(item.FilePath)!,
             });
-        projectStructureService
-            .Setup(item => item.GetTargetFrameworks(mainProject))
+        queryContextMocks.ProjectTargetFrameworkResolver
+            .Setup(item => item.Resolve("WorkspaceId", mainProject, It.IsAny<CancellationToken>()))
             .Returns(ProjectTargetFrameworksResult.Succeeded(["net10.0", "net9.0"]));
 
         var result = await target.ExecuteAsync(new GetProjectDetailsRequest
@@ -251,10 +241,6 @@ public sealed class GetProjectDetailsToolTests
 
         var target = new GetProjectDetailsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var projectStructureService = new Mock<IProjectStructureService>();
-        queryContextMocks.ToolExecutionServices
-            .SetupGet(item => item.ProjectStructureService)
-            .Returns(projectStructureService.Object);
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(solution.Workspace.CurrentSolution);
@@ -272,8 +258,8 @@ public sealed class GetProjectDetailsToolTests
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateDocumentReference(It.IsAny<Document>()))
             .Returns((DocumentReference?)null);
-        projectStructureService
-            .Setup(item => item.GetTargetFrameworks(project))
+        queryContextMocks.ProjectTargetFrameworkResolver
+            .Setup(item => item.Resolve("WorkspaceId", project, It.IsAny<CancellationToken>()))
             .Returns(ProjectTargetFrameworksResult.Succeeded([]));
 
         var result = await target.ExecuteAsync(new GetProjectDetailsRequest
@@ -310,17 +296,13 @@ public sealed class GetProjectDetailsToolTests
         var target = new GetProjectDetailsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
         var project = solution.Solution.Projects.Single();
-        var projectStructureService = new Mock<IProjectStructureService>();
-        queryContextMocks.ToolExecutionServices
-            .SetupGet(item => item.ProjectStructureService)
-            .Returns(projectStructureService.Object);
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveProject<ProjectDetailsData>(
                 It.IsAny<ProjectSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<Project, ProjectDetailsData>.Resolved(project));
-        projectStructureService
-            .Setup(item => item.GetTargetFrameworks(project))
+        queryContextMocks.ProjectTargetFrameworkResolver
+            .Setup(item => item.Resolve("WorkspaceId", project, It.IsAny<CancellationToken>()))
             .Returns(ProjectTargetFrameworksResult.Failed("Failure"));
 
         var result = await target.ExecuteAsync(

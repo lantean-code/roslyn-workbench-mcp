@@ -34,6 +34,7 @@ public sealed class PluginPublicApiContractTests
         "Roslyn.Workbench.Mcp.Plugins.Services.IDependencyAnalysisService",
         "Roslyn.Workbench.Mcp.Plugins.Services.IInspectionContextService",
         "Roslyn.Workbench.Mcp.Plugins.Services.IProjectStructureService",
+        "Roslyn.Workbench.Mcp.Plugins.Services.IProjectTargetFrameworkResolver",
         "Roslyn.Workbench.Mcp.Plugins.Services.IToolRequestResolver",
         "Roslyn.Workbench.Mcp.Plugins.Services.ProjectTargetFrameworksResult",
         "Roslyn.Workbench.Mcp.Plugins.Services.SolutionFolderInfo",

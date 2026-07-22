@@ -38,22 +38,6 @@ Complete the high-priority production batches before recording performance basel
 
 Source: [Analyzer Inventory.md](Analyzer%20Inventory.md)
 
-### Evaluate snapshot-scoped cross-invocation query caching
-
-**Status:** Started
-
-Focused EF Core traces now show that complete Roslyn discovery takes approximately 0.8 seconds for reference search and 156 milliseconds for symbol search, while candidate projection, selection and selected-result enrichment are small fractions of the request. Batched `get-solution-structure` evaluation also spends approximately one second reading target-framework metadata for its high-bound project set on every invocation. Design a Workspace-owned query cache that is separate from request-local lookup caches. Start with reference discovery, allowing successive requests and a later request with a larger bound to reuse the same complete discovery safely, then evaluate snapshot-safe target-framework metadata as the next candidate.
-
-Use a dedicated size-limited cache rather than the Host's general-purpose cache. Keys must include workspace and snapshot identity plus the canonical operation target and semantic options. Cached values must record whether discovery is complete or only covers a known limit; a larger request may reuse an entry only when the cached result is complete or already covers that request. Do not include presentation-only response bounds in keys when a complete ordered discovery result is cached.
-
-Define explicit entry sizing, expiration and invalidation for workspace close, reload, commit and snapshot advancement. Do not cache cancelled or failed operations, and do not allow cached Roslyn objects or projected results to outlive the snapshot against which they were produced. Introduce supported operations individually with measurements for hit rate, retained memory and latency rather than making every tool automatically cacheable.
-
-The first supported operation is complete `find-references` discovery. A dedicated Workspace-owned cache uses a DI-owned `IMemoryCache`, options-backed 50,000-unit size limit, ten-minute sliding expiration and per-workspace invalidation. Tools receive a `QueryCache` runtime object that exposes only the bounded query read/write contract through `IToolExecutionServices`; lifecycle code receives a distinct `WorkspaceQueryCache` invalidation object. The two coordinate through private Workspace state, so the object supplied to tools cannot be cast to the lifecycle invalidation capability. Reference entries are keyed by immutable `Solution` instance, semantic symbol identity and the canonical document set; response bounds and enrichment options are deliberately excluded. Entries are stored only after the complete Roslyn operation succeeds and cancellation has been rechecked. Session close, reload, commit, stale detection, epoch changes and any replacement `Solution` invalidate the workspace's entries.
-
-On EF Core, the zero-warm-up first discovery remained a cold 25.33-second compilation path. Subsequent low-bound calls fell from the previous 778.25-millisecond median to 24.02 milliseconds, while a following high-bound request reused the same complete discovery and fell from 787.79 milliseconds to 57.75 milliseconds. The equivalent five-query forced-GC workload retained 761.62 MB with the Workspace open versus 762.40 MB before the cache, and 89.14 MB after close versus 88.40 MB before it. The cache therefore provides a material warm-path benefit without measurable retained-memory growth in this workload. The next candidate remains snapshot-safe target-framework metadata; evaluate it independently before extending the cache.
-
-Source: [Core Tool Performance Audit — 2026-07-19](CoreToolPerformanceAudit-2026-07-19.md)
-
 ### Investigate MCP cancellation propagation and server-side lease release
 
 **Status:** Complete

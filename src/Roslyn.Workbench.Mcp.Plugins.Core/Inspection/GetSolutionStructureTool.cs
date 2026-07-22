@@ -58,7 +58,10 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
         IReadOnlyList<ProjectTargetFrameworksResult> targetFrameworkResults;
         using (WorkbenchPerformanceEventSource.Log.StartPhase(_toolName, WorkbenchPerformanceEventSource.TargetFrameworkEvaluationPhase))
         {
-            targetFrameworkResults = context.ToolExecutionServices.ProjectStructureService.GetTargetFrameworks(selectedProjects);
+            targetFrameworkResults = context.ToolExecutionServices.ProjectTargetFrameworkResolver.Resolve(
+                context.WorkspaceIdentity.WorkspaceId,
+                selectedProjects,
+                cancellationToken);
         }
 
         var projectStructures = new List<ProjectStructureInfo>();

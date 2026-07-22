@@ -82,9 +82,12 @@ public sealed class GetSolutionStructureToolTests
             ["Referenced"] = ProjectTargetFrameworksResult.Succeeded(["net9.0"]),
         };
 
-        projectStructureService
-            .Setup(item => item.GetTargetFrameworks(It.IsAny<IReadOnlyList<Project>>()))
-            .Returns<IReadOnlyList<Project>>(projects => projects
+        queryContextMocks.ProjectTargetFrameworkResolver
+            .Setup(item => item.Resolve(
+                "WorkspaceId",
+                It.IsAny<IReadOnlyList<Project>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns((string _, IReadOnlyList<Project> projects, CancellationToken _) => projects
                 .Select(project => targetFrameworksByProjectName[project.Name])
                 .ToArray());
 
@@ -168,9 +171,12 @@ public sealed class GetSolutionStructureToolTests
         projectStructureService
             .Setup(item => item.GetSolutionHierarchyAsync("/workspace/Sample.slnx", It.IsAny<CancellationToken>()))
             .ReturnsAsync(SolutionHierarchyResult.Succeeded());
-        projectStructureService
-            .Setup(item => item.GetTargetFrameworks(It.IsAny<IReadOnlyList<Project>>()))
-            .Returns<IReadOnlyList<Project>>(projects => projects
+        queryContextMocks.ProjectTargetFrameworkResolver
+            .Setup(item => item.Resolve(
+                "WorkspaceId",
+                It.IsAny<IReadOnlyList<Project>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns((string _, IReadOnlyList<Project> projects, CancellationToken _) => projects
                 .Select(static _ => ProjectTargetFrameworksResult.Succeeded())
                 .ToArray());
 
@@ -293,9 +299,12 @@ public sealed class GetSolutionStructureToolTests
             [mainProject] = ProjectTargetFrameworksResult.Succeeded(["net10.0"]),
         };
 
-        projectStructureService
-            .Setup(item => item.GetTargetFrameworks(It.IsAny<IReadOnlyList<Project>>()))
-            .Returns<IReadOnlyList<Project>>(projects => projects
+        queryContextMocks.ProjectTargetFrameworkResolver
+            .Setup(item => item.Resolve(
+                "WorkspaceId",
+                It.IsAny<IReadOnlyList<Project>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns((string _, IReadOnlyList<Project> projects, CancellationToken _) => projects
                 .Select(project => targetFrameworksByProject[project])
                 .ToArray());
 
@@ -342,7 +351,10 @@ public sealed class GetSolutionStructureToolTests
         result.Error!.Code.Should().Be("ProjectStructureUnavailable");
         result.Error.Message.Should().Be("Failure");
         result.RequiredAction.Should().Be(RequiredAction.Retry);
-        projectStructureService.Verify(item => item.GetTargetFrameworks(It.IsAny<IReadOnlyList<Project>>()), Times.Never);
+        queryContextMocks.ProjectTargetFrameworkResolver.Verify(item => item.Resolve(
+            It.IsAny<string>(),
+            It.IsAny<IReadOnlyList<Project>>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -385,8 +397,11 @@ public sealed class GetSolutionStructureToolTests
         projectStructureService
             .Setup(item => item.GetSolutionHierarchyAsync("/workspace/Sample.slnx", TestContext.Current.CancellationToken))
             .ReturnsAsync(SolutionHierarchyResult.Succeeded());
-        projectStructureService
-            .Setup(item => item.GetTargetFrameworks(It.IsAny<IReadOnlyList<Project>>()))
+        queryContextMocks.ProjectTargetFrameworkResolver
+            .Setup(item => item.Resolve(
+                "WorkspaceId",
+                It.IsAny<IReadOnlyList<Project>>(),
+                It.IsAny<CancellationToken>()))
             .Returns([ProjectTargetFrameworksResult.Failed("Failure")]);
 
         var result = await target.ExecuteAsync(

@@ -94,6 +94,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<ICompilerDiagnosticService, DefaultCompilerDiagnosticService>();
         services.AddSingleton<IInspectionContextService, DefaultInspectionContextService>();
         services.AddSingleton<IProjectStructureService, DefaultProjectStructureService>();
+        services.AddSingleton<IProjectTargetFrameworkResolver, ProjectTargetFrameworkResolver>();
         services.AddSingleton<IDependencyAnalysisService, DefaultDependencyAnalysisService>();
         services.AddSingleton<IToolExecutionServices, ToolExecutionServices>();
         services.AddSingleton<IToolExecutionContextFactory, PluginExecutionContextFactory>();

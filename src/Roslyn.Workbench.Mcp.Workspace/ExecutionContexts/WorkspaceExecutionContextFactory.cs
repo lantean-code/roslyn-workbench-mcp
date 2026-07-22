@@ -54,29 +54,37 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
                 acquisition.Lease);
         }
 
-        var validation = ValidateMutationSession(
-            acquisition.Selection.WorkspaceId,
-            acquisition.Session,
-            cancellationToken);
-
-        WorkspaceExecutionContext context;
-        using (WorkbenchPerformanceEventSource.Log.StartPhase(
-            "mutation-context",
-            WorkbenchPerformanceEventSource.ContextConstructionPhase))
+        try
         {
-            context = CreateContext(validation.Session);
-        }
+            var validation = ValidateMutationSession(
+                acquisition.Selection.WorkspaceId,
+                acquisition.Session,
+                cancellationToken);
 
-        if (validation.Failure is not null)
+            WorkspaceExecutionContext context;
+            using (WorkbenchPerformanceEventSource.Log.StartPhase(
+                "mutation-context",
+                WorkbenchPerformanceEventSource.ContextConstructionPhase))
+            {
+                context = CreateContext(validation.Session);
+            }
+
+            if (validation.Failure is not null)
+            {
+                return WorkspaceMutationExecutionLease.Rejected(
+                    validation.Failure,
+                    context,
+                    _mutationStager,
+                    acquisition.Lease);
+            }
+
+            return WorkspaceMutationExecutionLease.Acquired(context, _mutationStager, acquisition.Lease);
+        }
+        catch
         {
-            return WorkspaceMutationExecutionLease.Rejected(
-                validation.Failure,
-                context,
-                _mutationStager,
-                acquisition.Lease);
+            acquisition.Lease.Dispose();
+            throw;
         }
-
-        return WorkspaceMutationExecutionLease.Acquired(context, _mutationStager, acquisition.Lease);
     }
 
     public WorkspaceExecutionContextLease CreateQueryContext(
@@ -102,22 +110,30 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
                 acquisition.Lease);
         }
 
-        var validation = ValidateQuerySession(acquisition.Session, cancellationToken);
-
-        WorkspaceExecutionContext context;
-        using (WorkbenchPerformanceEventSource.Log.StartPhase(
-            "query-context",
-            WorkbenchPerformanceEventSource.ContextConstructionPhase))
+        try
         {
-            context = CreateContext(validation.Session);
-        }
+            var validation = ValidateQuerySession(acquisition.Session, cancellationToken);
 
-        if (validation.Failure is not null)
+            WorkspaceExecutionContext context;
+            using (WorkbenchPerformanceEventSource.Log.StartPhase(
+                "query-context",
+                WorkbenchPerformanceEventSource.ContextConstructionPhase))
+            {
+                context = CreateContext(validation.Session);
+            }
+
+            if (validation.Failure is not null)
+            {
+                return WorkspaceExecutionContextLease.Rejected(validation.Failure, context, acquisition.Lease);
+            }
+
+            return WorkspaceExecutionContextLease.Acquired(context, acquisition.Lease);
+        }
+        catch
         {
-            return WorkspaceExecutionContextLease.Rejected(validation.Failure, context, acquisition.Lease);
+            acquisition.Lease.Dispose();
+            throw;
         }
-
-        return WorkspaceExecutionContextLease.Acquired(context, acquisition.Lease);
     }
 
     private WorkspaceExecutionContext CreateContext(WorkspaceSessionSnapshot session)

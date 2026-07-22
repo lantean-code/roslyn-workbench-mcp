@@ -64,6 +64,44 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
     }
 
     [Fact]
+    public void GIVEN_CancellationDuringValidation_WHEN_CreatingQueryContext_THEN_ShouldReleaseAcquiredLease()
+    {
+        using var cancellationSource = new CancellationTokenSource();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
+        var gate = new Mock<IWorkspaceOperationGate>();
+        gate.Setup(item => item.TryAcquireShared()).Returns(operationLease.Object);
+        var session = CreateSession(gate.Object);
+        SetupSelection(session);
+        _changeDetector
+            .Setup(item => item.HasChanged(session.InputManifest, cancellationSource.Token))
+            .Throws(new OperationCanceledException(cancellationSource.Token));
+
+        var action = () => _target.CreateQueryContext(workspace: null, cancellationSource.Token);
+
+        action.Should().Throw<OperationCanceledException>();
+        operationLease.Verify(item => item.Dispose(), Times.Once);
+    }
+
+    [Fact]
+    public void GIVEN_CancellationDuringValidation_WHEN_CreatingMutationContext_THEN_ShouldReleaseAcquiredLease()
+    {
+        using var cancellationSource = new CancellationTokenSource();
+        var operationLease = new Mock<IWorkspaceOperationLease>();
+        var gate = new Mock<IWorkspaceOperationGate>();
+        gate.Setup(item => item.TryAcquireExclusive()).Returns(operationLease.Object);
+        var session = CreateSession(gate.Object);
+        SetupSelection(session);
+        _changeDetector
+            .Setup(item => item.HasChanged(session.InputManifest, cancellationSource.Token))
+            .Throws(new OperationCanceledException(cancellationSource.Token));
+
+        var action = () => _target.CreateMutationContext(workspace: null, cancellationSource.Token);
+
+        action.Should().Throw<OperationCanceledException>();
+        operationLease.Verify(item => item.Dispose(), Times.Once);
+    }
+
+    [Fact]
     public void GIVEN_NoLoadedWorkspaces_WHEN_CreatingQueryContext_THEN_ShouldReturnWorkspaceRequiredFailure()
     {
         _sessionStore.Setup(item => item.ReadSnapshot()).Returns(new WorkspaceHostSnapshot());

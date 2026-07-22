@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.Logging.Abstractions;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
@@ -14,6 +15,7 @@ internal sealed class PerformanceHost : IAsyncDisposable
     private readonly StringBuilder _standardError = new();
     private McpClient? _client;
     private int? _exitCode;
+    private long _lastCancellationRequestId;
     private bool _forcedTermination;
     private bool _isDisposed;
 
@@ -77,6 +79,48 @@ internal sealed class PerformanceHost : IAsyncDisposable
     {
         var client = _client ?? throw new InvalidOperationException("The MCP client is not connected.");
         return client.CallToolAsync(tool, arguments, cancellationToken: cancellationToken);
+    }
+
+    public (RequestId RequestId, Task<CallToolResult> Completion) StartCancellableToolCall(
+        string tool,
+        IReadOnlyDictionary<string, object?> arguments,
+        CancellationToken cancellationToken)
+    {
+        var client = _client ?? throw new InvalidOperationException("The MCP client is not connected.");
+        var requestId = new RequestId($"performance-cancellation-{Interlocked.Increment(ref _lastCancellationRequestId)}");
+        var requestArguments = new Dictionary<string, JsonElement>(arguments.Count);
+        foreach (var (name, value) in arguments)
+        {
+            requestArguments.Add(name, JsonSerializer.SerializeToElement(value, value?.GetType() ?? typeof(object)));
+        }
+
+        var request = new CallToolRequestParams
+        {
+            Name = tool,
+            Arguments = requestArguments,
+        };
+
+        var completion = client.SendRequestAsync<CallToolRequestParams, CallToolResult>(
+            RequestMethods.ToolsCall,
+            request,
+            requestId: requestId,
+            cancellationToken: cancellationToken).AsTask();
+
+        return (requestId, completion);
+    }
+
+    public Task CancelToolCallAsync(RequestId requestId, CancellationToken cancellationToken)
+    {
+        var client = _client ?? throw new InvalidOperationException("The MCP client is not connected.");
+        var parameters = new CancelledNotificationParams
+        {
+            RequestId = requestId,
+        };
+
+        return client.SendNotificationAsync(
+            NotificationMethods.CancelledNotification,
+            parameters,
+            cancellationToken: cancellationToken);
     }
 
     public HostSnapshot CaptureSnapshot()

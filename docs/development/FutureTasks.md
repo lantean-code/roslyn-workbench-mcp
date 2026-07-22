@@ -52,13 +52,13 @@ Source: [Core Tool Performance Audit — 2026-07-19](CoreToolPerformanceAudit-20
 
 ### Investigate MCP cancellation propagation and server-side lease release
 
-**Status:** Started
+**Status:** Complete
 
-The manual performance runner now distinguishes client-visible cancellation from actual server-side Workspace release by polling for an exclusive transaction lease after cancelling a query. On the pinned EF Core solution, `find-references` reports client cancellation in less than two milliseconds, but a cold request retained its query lease for 28.98 seconds. After one completed warm-up, repeated cancellations retained the lease for a 780 millisecond median and 3.65 second P95. The steady-state recovery is close to an uncancelled reference search, so client cancellation currently does not provide prompt server-side resource release.
+The original measurements cancelled the pinned C# SDK client's local `CallToolAsync` wait, but a controlled in-memory protocol test established that no `notifications/cancelled` message reached the server. Those timings therefore did not measure server-side cancellation. The permanent runner now starts cancellation scenarios with a known JSON-RPC request ID and explicitly sends and awaits the standard cancellation notification before checking Workspace lease recovery.
 
-Determine whether the MCP C# client sends `notifications/cancelled`, whether the Host maps that notification to the tool invocation token, and which Roslyn compilation or symbol-discovery stages continue after the token is cancelled. Add a controlled protocol-level test that observes the server handler token directly, then retain an EF Core end-to-end cancellation measurement for the Roslyn path. Preserve cooperative cancellation throughout request resolution, Roslyn APIs, response projection and Workspace lease disposal; do not introduce thread abortion, process termination or ordinary latency timeouts as substitutes.
+A protocol-level integration test proves that the server maps `notifications/cancelled` to the active handler token. EF Core evidence then confirmed that the same token reaches both external-change validation and `SymbolFinder.FindReferencesAsync`. The investigation exposed one server-owned leak: cancellation after shared or exclusive Workspace acquisition but before the execution-context lease was constructed abandoned the raw operation lease. Query and mutation context creation now dispose the acquired lease when validation or context construction throws, with focused regression coverage for both paths.
 
-Exit when client cancellation demonstrably reaches the active handler, cancellable server-owned work stops promptly, the exclusive Workspace lease is released within an understood bound, and any residual non-cancellable Roslyn work is measured and explicitly accepted.
+The confirming EF Core run cancelled all five warmed reference searches. Median client-visible cancellation latency was 0.20 milliseconds, and exclusive-lease recovery measured a 14.51 millisecond median and 45.01 millisecond P95. Repository and state validation passed. No residual non-cancellable Roslyn stage was observed, so no further server-side cancellation optimisation is required. Evidence: `artifacts/performance/results/20260722-190812-efcore-546a761dafd44caaa3a8c0c3a79ed14d`.
 
 Source: [Performance Investigation Tracker — 2026-07-20](PerformanceInvestigationTracker-2026-07-20.md)
 

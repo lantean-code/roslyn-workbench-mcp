@@ -127,13 +127,15 @@ internal sealed class ScenarioRunner
         var measurements = new List<CancellationMeasurement>();
         for (var iteration = 1; iteration <= count; iteration++)
         {
-            using var invocationCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            var invocation = InvokeCoreAsync(scenario, invocationCancellation.Token);
+            var arguments = ArgumentMaterializer.Materialize(scenario.Arguments, _workspaceId, _repositoryRoot);
+            var (requestId, invocation) = _host.StartCancellableToolCall(scenario.Tool, arguments, cancellationToken);
             var cancellationDelayTask = Task.Delay(cancellationDelay, cancellationToken);
             var completedTask = await Task.WhenAny(invocation, cancellationDelayTask);
             if (completedTask == invocation)
             {
-                await invocation;
+                var result = await invocation;
+                ThrowIfScenarioFailed(scenario.Id, result);
+
                 measurements.Add(new CancellationMeasurement
                 {
                     Iteration = iteration,
@@ -148,13 +150,13 @@ internal sealed class ScenarioRunner
             }
 
             var cancellationStopwatch = Stopwatch.StartNew();
-            await invocationCancellation.CancelAsync();
+            await _host.CancelToolCallAsync(requestId, cancellationToken);
             var operationCanceled = false;
             try
             {
                 await invocation;
             }
-            catch (OperationCanceledException) when (invocationCancellation.IsCancellationRequested)
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
                 operationCanceled = true;
             }
@@ -201,13 +203,18 @@ internal sealed class ScenarioRunner
     {
         var arguments = ArgumentMaterializer.Materialize(scenario.Arguments, _workspaceId, _repositoryRoot);
         var result = await _host.CallToolAsync(scenario.Tool, arguments, cancellationToken);
+        ThrowIfScenarioFailed(scenario.Id, result);
+
+        return result;
+    }
+
+    private static void ThrowIfScenarioFailed(string scenarioId, CallToolResult result)
+    {
         if (result.IsError == true)
         {
             throw new InvalidOperationException(
-                $"Scenario '{scenario.Id}' returned an MCP error: {GetStructuredContent(result)}");
+                $"Scenario '{scenarioId}' returned an MCP error: {GetStructuredContent(result)}");
         }
-
-        return result;
     }
 
     private async Task InvokeSupportingCallsAsync(

@@ -6,5 +6,6 @@ internal enum PerformanceCommand
     List,
     Prepare,
     Measure,
+    Cancel,
     Profile,
 }

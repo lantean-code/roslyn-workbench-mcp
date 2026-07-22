@@ -621,14 +621,16 @@ public sealed class SchemaGenerationTests
         requestProperties.TryGetProperty("symbol", out var symbolProperty).Should().BeTrue();
         requestProperties.TryGetProperty("newName", out var newNameProperty).Should().BeTrue();
         requestProperties.TryGetProperty("renameOverloads", out var renameOverloadsProperty).Should().BeTrue();
-        requestProperties.TryGetProperty("renameImplementations", out var renameImplementationsProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("renameInStrings", out var renameInStringsProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("renameInComments", out var renameInCommentsProperty).Should().BeTrue();
         requestProperties.TryGetProperty("renameFile", out var renameFileProperty).Should().BeTrue();
         requestProperties.TryGetProperty("expectedSnapshot", out var snapshotProperty).Should().BeTrue();
 
         symbolProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
         newNameProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
         renameOverloadsProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
-        renameImplementationsProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        renameInStringsProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        renameInCommentsProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
         renameFileProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
         snapshotProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
         outputSchema.GetRawText().Should().Contain("transaction");

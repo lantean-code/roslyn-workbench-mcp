@@ -37,11 +37,8 @@ internal static class PhaseTraceAnalyzer
             {
                 return;
             }
-
-            var operation = traceEvent.PayloadByName("operation") as string;
-            var phase = traceEvent.PayloadByName("phase") as string;
             var elapsed = traceEvent.PayloadByName("elapsedMilliseconds");
-            if (operation is null || phase is null || elapsed is not double elapsedMilliseconds)
+            if (traceEvent.PayloadByName("operation") is not string operation || traceEvent.PayloadByName("phase") is not string phase || elapsed is not double elapsedMilliseconds)
             {
                 return;
             }

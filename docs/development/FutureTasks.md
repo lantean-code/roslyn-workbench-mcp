@@ -38,29 +38,6 @@ Complete the high-priority production batches before recording performance basel
 
 Source: [Analyzer Inventory.md](Analyzer%20Inventory.md)
 
-### Establish and execute a tool performance-tuning programme
-
-**Status:** Framework implemented; baseline pending
-
-Use the permanent manual runner under `tools/Roslyn.Workbench.Mcp.Performance` to establish the current implementation baseline across query, mutation and Code Action families. Its pinned small, medium and realistically large GitHub repositories, restored assets and published binaries use operating-system-local temporary storage so Windows, WSL and Linux runs cannot contaminate one another. Scenario definitions and measurement guidance remain in the repository, and durable results are written beneath the gitignored `artifacts/performance/results` directory. Record end-to-end latency, Host CPU, runtime counters, peak memory and result size, then use traces or heap captures to investigate measured hot paths rather than applying speculative changes.
-
-The programme should:
-
-- identify the slowest and most allocation-heavy tools and shared helpers;
-- distinguish Host/MCP overhead from Workspace loading, Roslyn analysis, result projection and serialisation;
-- measure cold and warm execution where caches materially affect behaviour;
-- include broad solution search, graph/flow analysis, diagnostics, mutation preview and Code Action discovery/staging;
-- assess cancellation responsiveness and bounded-result behaviour on large result sets;
-- use BenchmarkDotNet for isolated repeatable hot paths and profiling or trace collection for realistic end-to-end executions;
-- preserve result ordering, contracts, snapshot semantics and transaction safety while tuning; and
-- record comparative evidence without introducing brittle elapsed-time assertions into functional tests.
-
-Re-run the baseline after material Roslyn, MSBuild or MCP SDK upgrades and retain dated results so regressions can be distinguished from environment variance.
-
-The active baseline evidence, functional blockers and dependency-ordered investigation sequence are recorded in [Performance Investigation Tracker — 2026-07-20](PerformanceInvestigationTracker-2026-07-20.md).
-
-Source: [Core Tool Performance Audit — 2026-07-19](CoreToolPerformanceAudit-2026-07-19.md)
-
 ### Evaluate snapshot-scoped cross-invocation query caching
 
 **Status:** Not started
@@ -72,6 +49,18 @@ Use a dedicated size-limited cache rather than the Host's general-purpose cache.
 Define explicit entry sizing, expiration and invalidation for workspace close, reload, commit and snapshot advancement. Do not cache cancelled or failed operations, and do not allow cached Roslyn objects or projected results to outlive the snapshot against which they were produced. Introduce supported operations individually with measurements for hit rate, retained memory and latency rather than making every tool automatically cacheable.
 
 Source: [Core Tool Performance Audit — 2026-07-19](CoreToolPerformanceAudit-2026-07-19.md)
+
+### Investigate MCP cancellation propagation and server-side lease release
+
+**Status:** Started
+
+The manual performance runner now distinguishes client-visible cancellation from actual server-side Workspace release by polling for an exclusive transaction lease after cancelling a query. On the pinned EF Core solution, `find-references` reports client cancellation in less than two milliseconds, but a cold request retained its query lease for 28.98 seconds. After one completed warm-up, repeated cancellations retained the lease for a 780 millisecond median and 3.65 second P95. The steady-state recovery is close to an uncancelled reference search, so client cancellation currently does not provide prompt server-side resource release.
+
+Determine whether the MCP C# client sends `notifications/cancelled`, whether the Host maps that notification to the tool invocation token, and which Roslyn compilation or symbol-discovery stages continue after the token is cancelled. Add a controlled protocol-level test that observes the server handler token directly, then retain an EF Core end-to-end cancellation measurement for the Roslyn path. Preserve cooperative cancellation throughout request resolution, Roslyn APIs, response projection and Workspace lease disposal; do not introduce thread abortion, process termination or ordinary latency timeouts as substitutes.
+
+Exit when client cancellation demonstrably reaches the active handler, cancellable server-owned work stops promptly, the exclusive Workspace lease is released within an understood bound, and any residual non-cancellable Roslyn work is measured and explicitly accepted.
+
+Source: [Performance Investigation Tracker — 2026-07-20](PerformanceInvestigationTracker-2026-07-20.md)
 
 ## P2 — Release Support and Plugin Ecosystem
 

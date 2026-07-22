@@ -6,7 +6,9 @@ The framework is permanent. Repository clones, restored assets and published Hos
 
 ## What it measures
 
-`measure` records each MCP invocation's end-to-end elapsed time, Host CPU time, working set, working-set change, peak working set and structured response size. It writes the raw observations and run environment to `measurements.json` and a median/P95 summary to `summary.md`. Warm-ups are excluded. For mutation scenarios, transaction start and rollback are also excluded from the timed observation, while Host-side validation and staging performed by the measured tool remain included.
+`measure` records each MCP invocation's end-to-end elapsed time, Host CPU time, working set, working-set change, peak working set and structured response size. It also records an exact response hash, mutation `staged` state and every bounded collection's JSON path, `HasMore` value and ordered item hashes. These observations prove deterministic ordering and prefix equivalence without retaining large response bodies. It writes the raw observations and run environment to `measurements.json` and a first/subsequent plus median/P95 summary to `summary.md`. Warm-ups are excluded and their count is recorded so a zero-warm-up first invocation can be interpreted as cold. For mutation scenarios, transaction start and rollback are also excluded from the timed observation, while Host-side validation and staging performed by the measured tool remain included.
+
+`cancel` starts one selected query, requests cancellation after the configured delay, and measures both client-visible cancellation latency and the time until an exclusive transaction lease can be acquired. The latter distinguishes a cancelled client wait from actual release of server-side Workspace work. It polls only the explicit `WorkspaceBusy` result, rolls the verification transaction back, and writes `cancellation.json` plus `cancellation.md`.
 
 Every completed measurement or profile explicitly closes the workspace and then closes the Host's stdin so the stdio server can shut down normally. The runner writes `validation.json` with the Host exit status and stderr, repository commit, recovery-state files and any new workspace coordination or lock files. A run fails when the Host requires forced termination, exits unsuccessfully, leaves tracked repository changes, retains recovery state or leaks new coordination files.
 
@@ -14,7 +16,7 @@ Every completed measurement or profile explicitly closes the workspace and then 
 
 - `trace` captures sampled managed thread time and the opt-in `Roslyn-Workbench-Mcp` phase provider to a `.nettrace` file for CPU, call-stack and boundary investigation;
 - `counters` records `System.Runtime` counters as JSON for allocation rate, GC, thread-pool and exception investigation; and
-- `gcdump` warms the selected workload and then captures a point-in-time managed heap graph.
+- `gcdump` warms the selected workload and then captures a point-in-time managed heap graph. It accepts a comma-separated scenario sequence so order effects can be compared in fresh Host processes; each scenario receives the configured warm-up and measured iteration counts before the final forced-GC capture. A second `heap-after-close.gcdump` capture is taken after `workspace-close` while the Host remains alive, allowing workspace-owned retention to be separated from process-wide runtime and Roslyn caches.
 
 The trace and counter modes run a fixed-duration workload loop. This avoids spending most of a fixed-length capture on an idle process. Collect each profile independently; attaching several profilers at once would perturb the workload and make the evidence harder to interpret.
 
@@ -74,8 +76,16 @@ Collect a 30-second CPU trace for a suspected weak scenario:
 
 ```bash
 ./tools/Roslyn.Workbench.Mcp.Performance/run-performance.sh \
-  profile --repository serilog --scenario find-references-low-limit \
-  --profile trace --duration 00:00:30 --skip-prepare
+    profile --repository serilog --scenario find-references-low-limit \
+    --profile trace --duration 00:00:30 --skip-prepare
+```
+
+Measure cancellation and Workspace lease recovery for a large scan:
+
+```bash
+./tools/Roslyn.Workbench.Mcp.Performance/run-performance.sh \
+  cancel --repository efcore --scenario find-references-high-limit \
+  --cancel-after 00:00:00.050 --iterations 5 --skip-prepare
 ```
 
 Measurements, summaries, workspace state and diagnostic captures default to a unique directory beneath `artifacts/performance/results`. Use `--output` to override that location or `--cache` to override the temporary repository cache.

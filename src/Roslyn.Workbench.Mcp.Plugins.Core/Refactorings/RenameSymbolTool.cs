@@ -22,7 +22,17 @@ internal sealed class RenameSymbolTool : MutationToolHandler<RenameSymbolRequest
         }
 
         var symbol = symbolResolution.Value;
-        var options = new SymbolRenameOptions(request.RenameOverloads, false, false, request.RenameFile);
+        if (string.Equals(symbol.Name, request.NewName, StringComparison.Ordinal))
+        {
+            return PluginExecutionResult<MutationCandidate>.NoChange();
+        }
+
+        var options = new SymbolRenameOptions(
+            RenameOverloads: request.RenameOverloads,
+            RenameInStrings: request.RenameInStrings,
+            RenameInComments: request.RenameInComments,
+            RenameFile: request.RenameFile);
+
         var candidateSolution = await Renamer.RenameSymbolAsync(context.CurrentSolution, symbol, options, request.NewName, cancellationToken);
         if (ReferenceEquals(candidateSolution, context.CurrentSolution))
         {

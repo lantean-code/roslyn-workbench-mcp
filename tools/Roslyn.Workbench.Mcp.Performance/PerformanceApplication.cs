@@ -60,6 +60,7 @@ internal static class PerformanceApplication
                 cancellationToken);
             string? workspaceId = null;
             ExceptionDispatchInfo? runFailure = null;
+            var workspaceClosed = false;
 
             try
             {
@@ -70,9 +71,13 @@ internal static class PerformanceApplication
                 {
                     await MeasureAsync(options, repository, scenarios, runner, environment, outputDirectory, cancellationToken);
                 }
+                else if (options.Command == PerformanceCommand.Cancel)
+                {
+                    await MeasureCancellationAsync(options, repository, scenarios, runner, environment, outputDirectory, cancellationToken);
+                }
                 else
                 {
-                    await ProfileAsync(options, repository, scenarios[0], host, runner, environment, frameworkRoot, outputDirectory, cancellationToken);
+                    await ProfileAsync(options, repository, scenarios, host, runner, environment, frameworkRoot, outputDirectory, cancellationToken);
                 }
             }
             catch (Exception exception)
@@ -86,6 +91,25 @@ internal static class PerformanceApplication
                     try
                     {
                         await CloseWorkspaceAsync(host, workspaceId);
+                        workspaceClosed = true;
+                    }
+                    catch (Exception exception)
+                    {
+                        runFailure = CombineFailures(runFailure, exception);
+                    }
+                }
+
+                if (workspaceClosed
+                    && options.Command == PerformanceCommand.Profile
+                    && options.Profile == ProfileKind.GcDump)
+                {
+                    try
+                    {
+                        var collector = new DiagnosticCollector(frameworkRoot);
+                        await collector.CollectGcDumpAsync(
+                            host.ProcessId,
+                            Path.Combine(outputDirectory, "heap-after-close.gcdump"),
+                            CancellationToken.None);
                     }
                     catch (Exception exception)
                     {
@@ -157,6 +181,7 @@ internal static class PerformanceApplication
                 Tool = scenario.Tool,
                 StartedAtUtc = startedAtUtc,
                 Environment = environment,
+                WarmupCount = options.Warmups,
                 Measurements = measurements,
             });
         }
@@ -164,10 +189,51 @@ internal static class PerformanceApplication
         await ResultWriter.WriteMeasurementsAsync(outputDirectory, results, cancellationToken);
     }
 
+    private static async Task MeasureCancellationAsync(
+        PerformanceOptions options,
+        RepositoryDefinition repository,
+        IReadOnlyList<ScenarioDefinition> scenarios,
+        ScenarioRunner runner,
+        RunEnvironmentInfo environment,
+        string outputDirectory,
+        CancellationToken cancellationToken)
+    {
+        if (scenarios.Count != 1)
+        {
+            throw new ArgumentException("Cancellation measurement requires exactly one scenario.");
+        }
+
+        var scenario = scenarios[0];
+        await Console.Out.WriteLineAsync($"Measuring cancellation for {repository.Id}/{scenario.Id}");
+        var startedAtUtc = DateTimeOffset.UtcNow;
+        await runner.WarmUpAsync(scenario, options.Warmups, cancellationToken);
+        var measurements = await runner.MeasureCancellationAsync(
+            scenario,
+            options.Iterations,
+            options.CancellationDelay,
+            cancellationToken);
+
+        var result = new CancellationRunResult
+        {
+            Repository = repository.Id,
+            RepositorySize = repository.Size,
+            Commit = repository.Commit,
+            Scenario = scenario.Id,
+            Tool = scenario.Tool,
+            StartedAtUtc = startedAtUtc,
+            Environment = environment,
+            WarmupCount = options.Warmups,
+            CancellationDelay = options.CancellationDelay,
+            Measurements = measurements,
+        };
+
+        await ResultWriter.WriteCancellationAsync(outputDirectory, result, cancellationToken);
+    }
+
     private static async Task ProfileAsync(
         PerformanceOptions options,
         RepositoryDefinition repository,
-        ScenarioDefinition scenario,
+        IReadOnlyList<ScenarioDefinition> scenarios,
         PerformanceHost host,
         ScenarioRunner runner,
         RunEnvironmentInfo environment,
@@ -176,7 +242,6 @@ internal static class PerformanceApplication
         CancellationToken cancellationToken)
     {
         await DiagnosticCollector.EnsureToolsRestoredAsync(frameworkRoot, cancellationToken);
-        await runner.WarmUpAsync(scenario, options.Warmups, cancellationToken);
         Directory.CreateDirectory(outputDirectory);
         var collector = new DiagnosticCollector(frameworkRoot);
         var artifactPath = Path.Combine(outputDirectory, GetArtifactName(options.Profile));
@@ -186,12 +251,25 @@ internal static class PerformanceApplication
 
         if (options.Profile == ProfileKind.GcDump)
         {
-            await runner.RunCountAsync(scenario, options.Iterations, cancellationToken);
-            invocationCount = options.Iterations;
+            invocationCount = 0;
+            foreach (var scenario in scenarios)
+            {
+                await runner.WarmUpAsync(scenario, options.Warmups, cancellationToken);
+                await runner.RunCountAsync(scenario, options.Iterations, cancellationToken);
+                invocationCount += options.Iterations;
+            }
+
             await collector.CollectGcDumpAsync(host.ProcessId, artifactPath, cancellationToken);
         }
         else
         {
+            if (scenarios.Count != 1)
+            {
+                throw new ArgumentException("Trace and counter profiling require exactly one scenario.");
+            }
+
+            var scenario = scenarios[0];
+            await runner.WarmUpAsync(scenario, options.Warmups, cancellationToken);
             using var diagnosticProcess = collector.StartDurationProfile(
                 options.Profile,
                 host.ProcessId,
@@ -235,14 +313,19 @@ internal static class PerformanceApplication
             Repository = repository.Id,
             RepositorySize = repository.Size,
             Commit = repository.Commit,
-            Scenario = scenario.Id,
-            Tool = scenario.Tool,
+            Scenario = string.Join(',', scenarios.Select(static scenario => scenario.Id)),
+            Tool = string.Join(',', scenarios.Select(static scenario => scenario.Tool)),
+            ScenarioSequence = scenarios.Select(static scenario => scenario.Id).ToArray(),
+            ToolSequence = scenarios.Select(static scenario => scenario.Tool).ToArray(),
             Profile = options.Profile,
             StartedAtUtc = startedAtUtc,
             Environment = environment,
             RequestedDuration = options.Profile == ProfileKind.GcDump ? null : options.ProfileDuration,
             InvocationCount = invocationCount,
             DiagnosticArtifact = artifactPath,
+            PostCloseDiagnosticArtifact = options.Profile == ProfileKind.GcDump
+                ? Path.Combine(outputDirectory, "heap-after-close.gcdump")
+                : null,
             InvocationTiming = invocationTiming,
             PhaseSummary = phaseSummary,
         };
@@ -349,12 +432,28 @@ internal static class PerformanceApplication
             return repository.Scenarios;
         }
 
-        var scenario = repository.Scenarios.SingleOrDefault(
-            item => string.Equals(item.Id, scenarioId, StringComparison.OrdinalIgnoreCase));
+        var requestedScenarioIds = scenarioId.Split(
+            ',',
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (requestedScenarioIds.Length == 0)
+        {
+            throw new ArgumentException("--scenario must contain at least one scenario identifier.");
+        }
 
-        return scenario is null
-            ? throw new ArgumentException($"Unknown scenario '{scenarioId}' for repository '{repository.Id}'.")
-            : [scenario];
+        var scenarios = new List<ScenarioDefinition>(requestedScenarioIds.Length);
+        foreach (var requestedScenarioId in requestedScenarioIds)
+        {
+            var scenario = repository.Scenarios.SingleOrDefault(
+                item => string.Equals(item.Id, requestedScenarioId, StringComparison.OrdinalIgnoreCase));
+            if (scenario is null)
+            {
+                throw new ArgumentException($"Unknown scenario '{requestedScenarioId}' for repository '{repository.Id}'.");
+            }
+
+            scenarios.Add(scenario);
+        }
+
+        return scenarios;
     }
 
     private static string ResolveCacheDirectory(string? value)
@@ -444,7 +543,8 @@ internal static class PerformanceApplication
               list
               prepare --repository <id> [--cache <path>] [--framework-root <path>]
               measure --repository <id> --scenario <id|all> --host <path> [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
-              profile --repository <id> --scenario <id> --host <path> [--profile trace|counters|gcdump] [--duration 00:00:30] [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
+              cancel --repository <id> --scenario <id> --host <path> [--cancel-after 00:00:00.050] [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
+              profile --repository <id> --scenario <id[,id...]> --host <path> [--profile trace|counters|gcdump] [--duration 00:00:30] [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
 
             Repository clones default to the operating system's temporary directory. Results, state, and diagnostic captures default beneath artifacts/performance/results in the repository root.
             """);

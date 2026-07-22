@@ -4,6 +4,7 @@ internal sealed class PerformanceOptions
 {
     private const int _defaultIterations = 5;
     private const int _defaultWarmups = 1;
+    private static readonly TimeSpan _defaultCancellationDelay = TimeSpan.FromMilliseconds(50);
     private static readonly TimeSpan _defaultProfileDuration = TimeSpan.FromSeconds(30);
 
     public required PerformanceCommand Command { get; init; }
@@ -25,6 +26,8 @@ internal sealed class PerformanceOptions
     public int Warmups { get; init; } = _defaultWarmups;
 
     public TimeSpan ProfileDuration { get; init; } = _defaultProfileDuration;
+
+    public TimeSpan CancellationDelay { get; init; } = _defaultCancellationDelay;
 
     public ProfileKind Profile { get; init; } = ProfileKind.Trace;
 
@@ -75,6 +78,7 @@ internal sealed class PerformanceOptions
             Iterations = ParsePositiveInteger(values, "--iterations", _defaultIterations),
             Warmups = ParseNonNegativeInteger(values, "--warmups", _defaultWarmups),
             ProfileDuration = ParseDuration(values, "--duration", _defaultProfileDuration),
+            CancellationDelay = ParseDuration(values, "--cancel-after", _defaultCancellationDelay),
             Profile = ParseProfile(GetValue(values, "--profile")),
             SkipPreparation = switches.Contains("--skip-prepare"),
         };
@@ -100,6 +104,11 @@ internal sealed class PerformanceOptions
         if (string.Equals(value, "measure", StringComparison.OrdinalIgnoreCase))
         {
             return PerformanceCommand.Measure;
+        }
+
+        if (string.Equals(value, "cancel", StringComparison.OrdinalIgnoreCase))
+        {
+            return PerformanceCommand.Cancel;
         }
 
         if (string.Equals(value, "profile", StringComparison.OrdinalIgnoreCase))

@@ -64,6 +64,36 @@ public sealed class RenameSymbolToolTests
     }
 
     [Fact]
+    public async Task GIVEN_NewNameMatchesCurrentName_WHEN_CallingExecuteAsync_THEN_ShouldReturnNoChangeResult()
+    {
+        var contextMocks = MutationContextMockHelper.Create();
+        var request = new RenameSymbolRequest
+        {
+            Symbol = new SymbolSelector(),
+            NewName = "ExistingName",
+        };
+        var symbol = new Mock<ISymbol>();
+        var target = new RenameSymbolTool();
+
+        symbol
+            .SetupGet(item => item.Name)
+            .Returns("ExistingName");
+        contextMocks.RequestResolver
+            .Setup(item => item.ResolveSymbolAsync<MutationCandidate>(
+                request.Symbol,
+                request.ExpectedSnapshot,
+                contextMocks.MutationContext.Object,
+                CancellationToken.None))
+            .ReturnsAsync(ToolResolutionResult<ISymbol, MutationCandidate>.Resolved(symbol.Object));
+
+        var result = await target.ExecuteAsync(request, contextMocks.MutationContext.Object, CancellationToken.None);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.NoChange);
+        result.Data.Should().BeNull();
+        contextMocks.MutationContext.VerifyGet(item => item.CurrentSolution, Times.Never);
+    }
+
+    [Fact]
     public async Task GIVEN_RenameChangesSolution_WHEN_CallingExecuteAsync_THEN_ShouldReturnMutationCandidate()
     {
         using var document = RoslynTestFactory.CreateDocument("public sealed class ExistingName { }", "ExistingName.cs");
@@ -98,5 +128,100 @@ public sealed class RenameSymbolToolTests
         result.Data.Should().NotBeNull();
         result.Data!.CandidateSolution.Should().NotBeSameAs(document.Solution);
         result.Data.Summary.Should().Be("Rename 'ExistingName' to 'UpdatedName'.");
+    }
+
+    [Fact]
+    public async Task GIVEN_StringAndCommentOptionsEnabled_WHEN_CallingExecuteAsync_THEN_ShouldRenameMatchingText()
+    {
+        const string source = """
+            public sealed class ExistingName
+            {
+                // ExistingName is referenced in this comment.
+                public const string Description = "ExistingName is referenced in this string.";
+            }
+            """;
+        using var document = RoslynTestFactory.CreateDocument(source, "ExistingName.cs");
+        var symbol = await RoslynDocumentTestHelper.GetRequiredNamedTypeSymbolAsync(
+            document.Document,
+            "ExistingName",
+            CancellationToken.None);
+
+        var contextMocks = MutationContextMockHelper.Create();
+        var request = new RenameSymbolRequest
+        {
+            Symbol = new SymbolSelector(),
+            NewName = "UpdatedName",
+            RenameInStrings = true,
+            RenameInComments = true,
+        };
+        var target = new RenameSymbolTool();
+
+        contextMocks.MutationContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(document.Solution);
+        contextMocks.RequestResolver
+            .Setup(item => item.ResolveSymbolAsync<MutationCandidate>(
+                request.Symbol,
+                request.ExpectedSnapshot,
+                contextMocks.MutationContext.Object,
+                CancellationToken.None))
+            .ReturnsAsync(ToolResolutionResult<ISymbol, MutationCandidate>.Resolved(symbol));
+
+        var result = await target.ExecuteAsync(request, contextMocks.MutationContext.Object, CancellationToken.None);
+
+        var candidateDocument = result.Data!.CandidateSolution.GetDocument(document.Document.Id);
+        var candidateText = await candidateDocument!.GetTextAsync(CancellationToken.None);
+
+        candidateText.ToString().Should().Contain("UpdatedName is referenced in this comment.");
+        candidateText.ToString().Should().Contain("UpdatedName is referenced in this string.");
+    }
+
+    [Fact]
+    public async Task GIVEN_InterfaceMember_WHEN_CallingExecuteAsync_THEN_ShouldRenameItsImplementation()
+    {
+        const string source = """
+            public interface IContract
+            {
+                void ExistingName();
+            }
+
+            public sealed class Implementation : IContract
+            {
+                public void ExistingName()
+                {
+                }
+            }
+            """;
+        using var document = RoslynTestFactory.CreateDocument(source);
+        var compilation = await document.Document.Project.GetCompilationAsync(CancellationToken.None);
+        var contract = compilation!.GetTypeByMetadataName("IContract");
+        var symbol = contract!.GetMembers("ExistingName").Single();
+        var contextMocks = MutationContextMockHelper.Create();
+        var request = new RenameSymbolRequest
+        {
+            Symbol = new SymbolSelector(),
+            NewName = "UpdatedName",
+        };
+        var target = new RenameSymbolTool();
+
+        contextMocks.MutationContext
+            .SetupGet(item => item.CurrentSolution)
+            .Returns(document.Solution);
+        contextMocks.RequestResolver
+            .Setup(item => item.ResolveSymbolAsync<MutationCandidate>(
+                request.Symbol,
+                request.ExpectedSnapshot,
+                contextMocks.MutationContext.Object,
+                CancellationToken.None))
+            .ReturnsAsync(ToolResolutionResult<ISymbol, MutationCandidate>.Resolved(symbol));
+
+        var result = await target.ExecuteAsync(request, contextMocks.MutationContext.Object, CancellationToken.None);
+
+        var candidateDocument = result.Data!.CandidateSolution.GetDocument(document.Document.Id);
+        var candidateText = await candidateDocument!.GetTextAsync(CancellationToken.None);
+        var sourceText = candidateText.ToString();
+
+        sourceText.Should().Contain("void UpdatedName();");
+        sourceText.Should().Contain("public void UpdatedName()");
     }
 }

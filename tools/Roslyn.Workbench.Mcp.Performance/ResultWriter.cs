@@ -39,6 +39,50 @@ internal static class ResultWriter
         await JsonSerializer.SerializeAsync(stream, result, _serializerOptions, cancellationToken);
     }
 
+    public static async Task WriteCancellationAsync(
+        string outputDirectory,
+        CancellationRunResult result,
+        CancellationToken cancellationToken)
+    {
+        Directory.CreateDirectory(outputDirectory);
+        var jsonPath = Path.Combine(outputDirectory, "cancellation.json");
+        await using (var stream = File.Create(jsonPath))
+        {
+            await JsonSerializer.SerializeAsync(stream, result, _serializerOptions, cancellationToken);
+        }
+
+        var clientLatency = result.Measurements
+            .Select(static item => item.ClientCancellationLatencyMilliseconds)
+            .Order()
+            .ToArray();
+        var recoveryLatency = result.Measurements
+            .Select(static item => item.ExclusiveLeaseRecoveryMilliseconds)
+            .Order()
+            .ToArray();
+        var canceledCount = result.Measurements.Count(static item => item.OperationCanceled);
+        var completedCount = result.Measurements.Count(static item => item.CompletedBeforeCancellation);
+        var builder = new StringBuilder();
+        builder.AppendLine("# Roslyn Workbench cancellation summary");
+        builder.AppendLine();
+        builder.Append("Repository: ").AppendLine(result.Repository);
+        builder.Append("Scenario: ").AppendLine(result.Scenario);
+        builder.Append("Cancellation delay: ").Append(result.CancellationDelay.TotalMilliseconds.ToString("F2", CultureInfo.InvariantCulture)).AppendLine(" ms");
+        builder.Append("Cancelled invocations: ").Append(canceledCount.ToString(CultureInfo.InvariantCulture)).Append('/').AppendLine(result.Measurements.Count.ToString(CultureInfo.InvariantCulture));
+        builder.Append("Completed before cancellation: ").AppendLine(completedCount.ToString(CultureInfo.InvariantCulture));
+        builder.Append("Median client cancellation latency: ").Append(Percentile(clientLatency, 0.5).ToString("F2", CultureInfo.InvariantCulture)).AppendLine(" ms");
+        builder.Append("P95 client cancellation latency: ").Append(Percentile(clientLatency, 0.95).ToString("F2", CultureInfo.InvariantCulture)).AppendLine(" ms");
+        builder.Append("Median exclusive-lease recovery: ").Append(Percentile(recoveryLatency, 0.5).ToString("F2", CultureInfo.InvariantCulture)).AppendLine(" ms");
+        builder.Append("P95 exclusive-lease recovery: ").Append(Percentile(recoveryLatency, 0.95).ToString("F2", CultureInfo.InvariantCulture)).AppendLine(" ms");
+
+        var markdown = builder.ToString();
+
+        await File.WriteAllTextAsync(
+            Path.Combine(outputDirectory, "cancellation.md"),
+            markdown,
+            Encoding.UTF8,
+            cancellationToken);
+    }
+
     public static async Task WritePhaseSummaryAsync(
         string outputDirectory,
         IReadOnlyList<PhaseTraceSummary> phases,
@@ -135,8 +179,8 @@ internal static class ResultWriter
         var builder = new StringBuilder()
             .AppendLine("# Roslyn Workbench performance summary")
             .AppendLine()
-            .AppendLine("| Repository | Size | Scenario | Tool | Median elapsed (ms) | P95 elapsed (ms) | Median host CPU (ms) | Max working set (MiB) | Response (KiB) |")
-            .AppendLine("|---|---:|---|---|---:|---:|---:|---:|---:|");
+            .AppendLine("| Repository | Size | Scenario | Tool | Warm-ups | First measured (ms) | Subsequent median (ms) | Median elapsed (ms) | P95 elapsed (ms) | Median host CPU (ms) | Max working set (MiB) | Response (KiB) | Exact response stable |")
+            .AppendLine("|---|---:|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|");
 
         foreach (var result in results)
         {
@@ -144,17 +188,31 @@ internal static class ResultWriter
             var cpu = result.Measurements.Select(static item => item.HostCpuMilliseconds).Order().ToArray();
             var maxWorkingSet = result.Measurements.Max(static item => item.WorkingSetBytes);
             var responseBytes = result.Measurements.Max(static item => item.ResponseBytes);
+            var firstMeasured = result.Measurements[0].ElapsedMilliseconds;
+            var subsequent = result.Measurements
+                .Skip(1)
+                .Select(static item => item.ElapsedMilliseconds)
+                .Order()
+                .ToArray();
+            var stableResponse = result.Measurements
+                .Select(static item => item.ResponseSha256)
+                .Distinct(StringComparer.Ordinal)
+                .Count() == 1;
 
             builder
                 .Append("| ").Append(result.Repository)
                 .Append(" | ").Append(result.RepositorySize)
                 .Append(" | ").Append(result.Scenario)
                 .Append(" | ").Append(result.Tool)
+                .Append(" | ").Append(result.WarmupCount.ToString(CultureInfo.InvariantCulture))
+                .Append(" | ").Append(firstMeasured.ToString("F2", CultureInfo.InvariantCulture))
+                .Append(" | ").Append(Percentile(subsequent, 0.5).ToString("F2", CultureInfo.InvariantCulture))
                 .Append(" | ").Append(Percentile(elapsed, 0.5).ToString("F2", CultureInfo.InvariantCulture))
                 .Append(" | ").Append(Percentile(elapsed, 0.95).ToString("F2", CultureInfo.InvariantCulture))
                 .Append(" | ").Append(Percentile(cpu, 0.5).ToString("F2", CultureInfo.InvariantCulture))
                 .Append(" | ").Append((maxWorkingSet / 1024d / 1024d).ToString("F2", CultureInfo.InvariantCulture))
                 .Append(" | ").Append((responseBytes / 1024d).ToString("F2", CultureInfo.InvariantCulture))
+                .Append(" | ").Append(stableResponse ? "Yes" : "No")
                 .AppendLine(" |");
         }
 

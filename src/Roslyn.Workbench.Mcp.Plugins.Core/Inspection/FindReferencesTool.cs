@@ -87,6 +87,10 @@ internal sealed class FindReferencesTool : QueryToolHandler<FindReferencesReques
             selectedReferences = pendingReferences
                 .OrderBy(static reference => reference.ResolvedLocation.Document?.Path, StringComparer.Ordinal)
                 .ThenBy(static reference => reference.ResolvedLocation.Span?.Start)
+                .ThenBy(static reference => reference.ResolvedLocation.Document?.ProjectId, StringComparer.Ordinal)
+                .ThenBy(static reference => reference.ResolvedLocation.Document?.DocumentId, StringComparer.Ordinal)
+                .ThenBy(static reference => reference.ResolvedLocation.Span?.Length)
+                .ThenBy(static reference => reference.IsDefinition)
                 .Take(maxResults)
                 .ToArray();
         }

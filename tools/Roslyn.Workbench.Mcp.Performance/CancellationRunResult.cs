@@ -1,6 +1,6 @@
 namespace Roslyn.Workbench.Mcp.Performance;
 
-internal sealed record ScenarioRunResult
+internal sealed record CancellationRunResult
 {
     public required string Repository { get; init; }
 
@@ -18,5 +18,7 @@ internal sealed record ScenarioRunResult
 
     public required int WarmupCount { get; init; }
 
-    public required IReadOnlyList<InvocationMeasurement> Measurements { get; init; }
+    public required TimeSpan CancellationDelay { get; init; }
+
+    public required IReadOnlyList<CancellationMeasurement> Measurements { get; init; }
 }

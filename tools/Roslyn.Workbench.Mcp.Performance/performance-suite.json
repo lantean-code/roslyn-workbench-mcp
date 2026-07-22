@@ -209,6 +209,30 @@
             "renameImplementations": true,
             "renameFile": false
           }
+        },
+        {
+          "id": "rename-symbol-no-change",
+          "description": "Exercises the mutation no-change path by renaming a symbol to its current name.",
+          "tool": "rename-symbol",
+          "setup": [
+            {
+              "tool": "transaction-start",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            }
+          ],
+          "cleanup": [
+            {
+              "tool": "transaction-rollback",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            }
+          ],
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "symbol": { "documentationCommentId": "T:GuardClauses.UnitTests.TestEnum" },
+            "newName": "TestEnum",
+            "renameImplementations": true,
+            "renameFile": false
+          }
         }
       ]
     },
@@ -433,6 +457,35 @@
           }
         },
         {
+          "id": "search-symbols-zero-limit",
+          "description": "Declaration search with a zero response bound.",
+          "tool": "search-symbols",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "query": "DbContext",
+            "symbolsLimit": 0
+          }
+        },
+        {
+          "id": "search-symbols-one-limit",
+          "description": "Declaration search with a one-result response bound.",
+          "tool": "search-symbols",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "query": "DbContext",
+            "symbolsLimit": 1
+          }
+        },
+        {
+          "id": "search-symbols-default-limit",
+          "description": "Declaration search using the tool's published default response bound.",
+          "tool": "search-symbols",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "query": "DbContext"
+          }
+        },
+        {
           "id": "search-symbols-low-limit",
           "description": "Declaration search with an intentionally small response bound.",
           "tool": "search-symbols",
@@ -450,6 +503,69 @@
             "workspace": { "workspaceId": "${workspaceId}" },
             "query": "DbContext",
             "symbolsLimit": 250
+          }
+        },
+        {
+          "id": "search-symbols-above-result-count",
+          "description": "Declaration search with a response bound above the complete result count.",
+          "tool": "search-symbols",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "query": "DbContext",
+            "symbolsLimit": 100000
+          }
+        },
+        {
+          "id": "find-references-zero-limit",
+          "description": "Solution-wide reference discovery with a zero projection bound.",
+          "tool": "find-references",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "symbol": {
+              "project": {
+                "path": "src/EFCore/EFCore.csproj",
+                "targetFramework": "net10.0"
+              },
+              "documentationCommentId": "T:Microsoft.EntityFrameworkCore.DbContext"
+            },
+            "includeDefinitions": true,
+            "includeContext": true,
+            "referencesLimit": 0
+          }
+        },
+        {
+          "id": "find-references-one-limit",
+          "description": "Solution-wide reference discovery with a one-result projection bound.",
+          "tool": "find-references",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "symbol": {
+              "project": {
+                "path": "src/EFCore/EFCore.csproj",
+                "targetFramework": "net10.0"
+              },
+              "documentationCommentId": "T:Microsoft.EntityFrameworkCore.DbContext"
+            },
+            "includeDefinitions": true,
+            "includeContext": true,
+            "referencesLimit": 1
+          }
+        },
+        {
+          "id": "find-references-default-limit",
+          "description": "Solution-wide reference discovery using the tool's published default projection bound.",
+          "tool": "find-references",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "symbol": {
+              "project": {
+                "path": "src/EFCore/EFCore.csproj",
+                "targetFramework": "net10.0"
+              },
+              "documentationCommentId": "T:Microsoft.EntityFrameworkCore.DbContext"
+            },
+            "includeDefinitions": true,
+            "includeContext": true
           }
         },
         {
@@ -486,6 +602,24 @@
             "includeDefinitions": true,
             "includeContext": true,
             "referencesLimit": 500
+          }
+        },
+        {
+          "id": "find-references-above-result-count",
+          "description": "Solution-wide reference discovery with a projection bound above the complete result count.",
+          "tool": "find-references",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "symbol": {
+              "project": {
+                "path": "src/EFCore/EFCore.csproj",
+                "targetFramework": "net10.0"
+              },
+              "documentationCommentId": "T:Microsoft.EntityFrameworkCore.DbContext"
+            },
+            "includeDefinitions": true,
+            "includeContext": true,
+            "referencesLimit": 100000
           }
         },
         {

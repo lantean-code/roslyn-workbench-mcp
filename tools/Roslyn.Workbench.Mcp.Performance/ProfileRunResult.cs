@@ -12,6 +12,10 @@ internal sealed record ProfileRunResult
 
     public required string Tool { get; init; }
 
+    public IReadOnlyList<string> ScenarioSequence { get; init; } = [];
+
+    public IReadOnlyList<string> ToolSequence { get; init; } = [];
+
     public required ProfileKind Profile { get; init; }
 
     public required DateTimeOffset StartedAtUtc { get; init; }
@@ -23,6 +27,8 @@ internal sealed record ProfileRunResult
     public required int InvocationCount { get; init; }
 
     public required string DiagnosticArtifact { get; init; }
+
+    public string? PostCloseDiagnosticArtifact { get; init; }
 
     public ProfileInvocationTiming? InvocationTiming { get; init; }
 

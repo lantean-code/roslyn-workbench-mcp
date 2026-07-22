@@ -16,5 +16,11 @@ internal sealed record InvocationMeasurement
 
     public required int ResponseBytes { get; init; }
 
+    public required string ResponseSha256 { get; init; }
+
+    public IReadOnlyList<BoundedCollectionObservation> BoundedCollections { get; init; } = [];
+
+    public bool? MutationStaged { get; init; }
+
     public required bool IsError { get; init; }
 }

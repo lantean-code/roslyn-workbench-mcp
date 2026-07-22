@@ -21,9 +21,14 @@ public sealed record RenameSymbolRequest : WorkspaceBoundRequest
     public bool RenameOverloads { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether implementations should also be renamed.
+    /// Gets a value indicating whether matching identifiers in string literals should also be renamed.
     /// </summary>
-    public bool RenameImplementations { get; init; } = true;
+    public bool RenameInStrings { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether matching identifiers in comments should also be renamed.
+    /// </summary>
+    public bool RenameInComments { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the containing file should be renamed for type symbols.

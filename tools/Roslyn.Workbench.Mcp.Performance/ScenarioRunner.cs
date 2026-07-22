@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Text;
 using System.Text.Json;
 using ModelContextProtocol.Protocol;
 
@@ -7,6 +6,8 @@ namespace Roslyn.Workbench.Mcp.Performance;
 
 internal sealed class ScenarioRunner
 {
+    private static readonly TimeSpan _exclusiveLeaseRecoveryTimeout = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan _exclusiveLeaseRetryDelay = TimeSpan.FromMilliseconds(10);
     private readonly PerformanceHost _host;
     private readonly string _workspaceId;
     private readonly string _repositoryRoot;
@@ -55,6 +56,8 @@ internal sealed class ScenarioRunner
                 await InvokeSupportingCallsAsync(scenario.Cleanup, cancellationToken);
             }
 
+            var observation = ResponseObservation.Create(result);
+
             measurements.Add(new InvocationMeasurement
             {
                 Iteration = iteration,
@@ -63,7 +66,10 @@ internal sealed class ScenarioRunner
                 WorkingSetBytes = after.WorkingSetBytes,
                 WorkingSetDeltaBytes = after.WorkingSetBytes - before.WorkingSetBytes,
                 PeakWorkingSetBytes = after.PeakWorkingSetBytes,
-                ResponseBytes = GetResponseSize(result),
+                ResponseBytes = observation.Bytes,
+                ResponseSha256 = observation.Sha256,
+                BoundedCollections = observation.BoundedCollections,
+                MutationStaged = observation.MutationStaged,
                 IsError = result.IsError == true,
             });
         }
@@ -105,6 +111,72 @@ internal sealed class ScenarioRunner
         {
             await InvokeScenarioAsync(scenario, cancellationToken);
         }
+    }
+
+    public async Task<IReadOnlyList<CancellationMeasurement>> MeasureCancellationAsync(
+        ScenarioDefinition scenario,
+        int count,
+        TimeSpan cancellationDelay,
+        CancellationToken cancellationToken)
+    {
+        if (scenario.Setup.Count > 0 || scenario.Cleanup.Count > 0)
+        {
+            throw new InvalidOperationException("Cancellation measurements require a query scenario without setup or cleanup calls.");
+        }
+
+        var measurements = new List<CancellationMeasurement>();
+        for (var iteration = 1; iteration <= count; iteration++)
+        {
+            using var invocationCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            var invocation = InvokeCoreAsync(scenario, invocationCancellation.Token);
+            var cancellationDelayTask = Task.Delay(cancellationDelay, cancellationToken);
+            var completedTask = await Task.WhenAny(invocation, cancellationDelayTask);
+            if (completedTask == invocation)
+            {
+                await invocation;
+                measurements.Add(new CancellationMeasurement
+                {
+                    Iteration = iteration,
+                    CancellationRequestedAfterMilliseconds = cancellationDelay.TotalMilliseconds,
+                    ClientCancellationLatencyMilliseconds = 0,
+                    ExclusiveLeaseRecoveryMilliseconds = 0,
+                    CompletedBeforeCancellation = true,
+                    OperationCanceled = false,
+                });
+
+                continue;
+            }
+
+            var cancellationStopwatch = Stopwatch.StartNew();
+            await invocationCancellation.CancelAsync();
+            var operationCanceled = false;
+            try
+            {
+                await invocation;
+            }
+            catch (OperationCanceledException) when (invocationCancellation.IsCancellationRequested)
+            {
+                operationCanceled = true;
+            }
+
+            cancellationStopwatch.Stop();
+
+            var recoveryStopwatch = Stopwatch.StartNew();
+            await VerifyExclusiveLeaseRecoveryAsync(cancellationToken);
+            recoveryStopwatch.Stop();
+
+            measurements.Add(new CancellationMeasurement
+            {
+                Iteration = iteration,
+                CancellationRequestedAfterMilliseconds = cancellationDelay.TotalMilliseconds,
+                ClientCancellationLatencyMilliseconds = cancellationStopwatch.Elapsed.TotalMilliseconds,
+                ExclusiveLeaseRecoveryMilliseconds = recoveryStopwatch.Elapsed.TotalMilliseconds,
+                CompletedBeforeCancellation = false,
+                OperationCanceled = operationCanceled,
+            });
+        }
+
+        return measurements;
     }
 
     private async Task<CallToolResult> InvokeScenarioAsync(
@@ -154,6 +226,14 @@ internal sealed class ScenarioRunner
         CancellationToken cancellationToken)
     {
         var arguments = ArgumentMaterializer.Materialize(argumentDefinition, _workspaceId, _repositoryRoot);
+        await InvokeRequiredAsync(tool, arguments, cancellationToken);
+    }
+
+    private async Task InvokeRequiredAsync(
+        string tool,
+        IReadOnlyDictionary<string, object?> arguments,
+        CancellationToken cancellationToken)
+    {
         var result = await _host.CallToolAsync(tool, arguments, cancellationToken);
         if (result.IsError == true)
         {
@@ -161,14 +241,59 @@ internal sealed class ScenarioRunner
         }
     }
 
-    private static int GetResponseSize(CallToolResult result)
+    private async Task VerifyExclusiveLeaseRecoveryAsync(CancellationToken cancellationToken)
     {
-        var content = GetStructuredContent(result);
-        return Encoding.UTF8.GetByteCount(content);
+        var arguments = new Dictionary<string, object?>
+        {
+            ["workspace"] = new Dictionary<string, object?>
+            {
+                ["workspaceId"] = _workspaceId,
+            },
+        };
+
+        var recoveryStopwatch = Stopwatch.StartNew();
+        while (recoveryStopwatch.Elapsed < _exclusiveLeaseRecoveryTimeout)
+        {
+            var result = await _host.CallToolAsync("transaction-start", arguments, cancellationToken);
+            if (result.IsError != true)
+            {
+                await InvokeRequiredAsync("transaction-rollback", arguments, CancellationToken.None);
+                return;
+            }
+
+            if (!IsWorkspaceBusy(result))
+            {
+                throw new InvalidOperationException(
+                    $"Supporting tool 'transaction-start' returned an MCP error: {GetStructuredContent(result)}");
+            }
+
+            await Task.Delay(_exclusiveLeaseRetryDelay, cancellationToken);
+        }
+
+        throw new TimeoutException(
+            $"The workspace did not release its query lease within {_exclusiveLeaseRecoveryTimeout.TotalSeconds:F0} seconds after cancellation.");
+    }
+
+    private static bool IsWorkspaceBusy(CallToolResult result)
+    {
+        if (result.StructuredContent is not JsonElement structuredContent
+            || !structuredContent.TryGetProperty("error", out var error)
+            || error.ValueKind != JsonValueKind.Object
+            || !error.TryGetProperty("code", out var code))
+        {
+            return false;
+        }
+
+        return string.Equals(code.GetString(), "WorkspaceBusy", StringComparison.Ordinal);
     }
 
     private static string GetStructuredContent(CallToolResult result)
     {
-        return result.StructuredContent?.GetRawText() ?? JsonSerializer.Serialize(result.Content);
+        if (result.StructuredContent is JsonElement structuredContent)
+        {
+            return structuredContent.GetRawText();
+        }
+
+        return JsonSerializer.Serialize(result.Content);
     }
 }

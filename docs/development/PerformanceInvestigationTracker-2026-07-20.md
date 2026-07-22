@@ -228,19 +228,37 @@ An isolated 30-second counter run completed 5,495 invocations at 4.40 ms median 
 
 ### 8. Characterise retained memory and process-order effects
 
-**Status:** Not started
+**Status:** Completed
 
 Working set rises through each sequential suite, but the current summaries report a process-wide peak rather than ownership by scenario. Use isolated runs, runtime counters and heap captures to distinguish live Workspace state, Roslyn compilation caches, tool caches, transient allocations awaiting collection and unintended retention.
 
 Repeat selected scenarios in different orders and in fresh processes. Record post-GC retained size only as diagnostic evidence; do not force collection in normal product code or ordinary latency measurements.
 
+The profiling runner now accepts a comma-separated scenario sequence for `gcdump` profiles and records the sequence in `profile.json`. It takes one forced-GC heap capture after the selected workload and a second after `workspace-close` while the Host remains alive. This keeps forced collection confined to manual diagnostics and separates workspace-owned state from process-wide caches.
+
+Fresh GuardClauses Hosts running `list-code-actions` retained 39.96 MiB after one invocation, 40.52 MiB after ten and 41.01 MiB after one hundred. The 2.6% increase between one and one hundred invocations is consistent with bounded warm-up rather than per-call growth. The largest retained groups were Roslyn syntax, compilation and parser caches. Workbench-owned retained collections were small and stable.
+
+Running ten lightweight queries followed by ten Code Action queries retained 40.76 MiB. Reversing that order in another fresh Host retained 40.55 MiB, a difference of approximately 0.5%. No material process-order effect was observed.
+
+Paired before/after-close captures produced the following results:
+
+| Repository | Workload | Workspace open | After close | Released | Result |
+|---|---|---:|---:|---:|---|
+| GuardClauses | 10 Code Action listings | 40.25 MiB | 27.57 MiB | 31.5% | `artifacts/performance/results/20260722-175232-guardclauses-48aac8e169ca4ae5813f218d19384d48` |
+| Serilog | 5 representative queries, 3 invocations each | 159.68 MiB | 56.34 MiB | 64.7% | `artifacts/performance/results/20260722-175402-serilog-19e465961df04515913b6c28c2f229bd` |
+| EF Core | 5 representative queries, 1 invocation each | 762.40 MiB | 88.40 MiB | 88.4% | `artifacts/performance/results/20260722-175447-efcore-bebf665ef68342c9a88d714767ac632b` |
+
+In the medium and large captures the live `MSBuildWorkspace` and populated `WorkspaceInputFileFingerprint` array were present before close and absent afterwards. The small capture likewise released its populated fingerprint array. Residual Workbench types were static catalogues, JSON metadata and empty singleton collections; the dominant residual allocations were shared runtime and Roslyn caches. All three runs passed repository and state-file validation.
+
+No production change is justified. Retained memory scales with the live Roslyn solution while a workspace is open, is stable across repeated requests and is released when the workspace closes. Future cross-invocation caches must still provide explicit size limits and snapshot-scoped invalidation, and should repeat these paired captures before adoption.
+
 **Dependencies:** investigations 3–7. Earlier fixes may legitimately change retained memory and should land before a final memory judgement.
 
-**Exit evidence:** major retained object groups and their lifetimes are understood, repeated invocations reach a defensible steady state, and no workspace or snapshot remains reachable beyond its intended lifetime.
+**Exit evidence:** achieved by the isolated repeated-invocation, reversed-order and three-repository paired heap captures above. Major retained groups and their lifetimes are understood, repeated invocations reach a defensible steady state, and the live Workspace graph is released at `workspace-close`.
 
 ### 9. Complete resilience and comparative measurements
 
-**Status:** Not started
+**Status:** Completed
 
 After shared and tool-specific fixes, refresh the three-repository baseline and add focused evidence for:
 
@@ -251,9 +269,41 @@ After shared and tool-specific fixes, refresh the three-repository baseline and 
 - mutation no-change versus staged-change outcomes; and
 - direct Windows, WSL-mounted Windows storage and native Linux storage where filesystem behaviour is material.
 
+The runner now retains the evidence needed to validate behaviour alongside latency: exact response hashes, mutation `staged` state, and every bounded collection's `items` count, `HasMore` value and ordered item hashes. Summaries record the warm-up count plus first and subsequent measured timings. A dedicated cancellation command separately records client-visible cancellation and recovery of an exclusive Workspace lease.
+
+The final native-WSL baseline uses one warm-up and five measured invocations per scenario:
+
+| Repository | Result | Validation |
+|---|---|---|
+| GuardClauses | `artifacts/performance/results/20260722-182616-guardclauses-709ccbeeda144875a95b3b9d63fd3bfe` | Passed |
+| Serilog | `artifacts/performance/results/20260722-182636-serilog-4c8132a85a574498b8054c0264180c41` | Passed |
+| EF Core | `artifacts/performance/results/20260722-182701-efcore-a3691b5ae3324dd39c655eca82e3b037` | Passed |
+
+Representative final medians are:
+
+| Repository | Solution structure | Symbol search low/high | References low/high | Diagnostics | Dependency graph |
+|---|---:|---:|---:|---:|---:|
+| GuardClauses | 90.22 ms | 8.53 / 8.93 ms | 4.36 / 6.88 ms | 144.18 ms | 13.36 ms |
+| Serilog | 145.66 ms | 32.53 / 35.42 ms | 16.66 / 30.65 ms | 560.00 ms | 33.52 ms |
+| EF Core | 1,031.45 ms | 171.64 / 176.18 ms | 781.10 / 799.57 ms | 3,236.92 ms | 141.54 ms |
+
+The final results preserve the improvements established by the focused investigations. In particular, EF Core solution structure remains approximately 32% below the original 1,521.47 millisecond baseline, and GuardClauses Code Action listing records 22.27 milliseconds rather than the original 448.19 milliseconds.
+
+A zero-warm-up GuardClauses search recorded 1,090.09 milliseconds for its first invocation and 9.45 milliseconds for the subsequent median. The focused EF Core bound run recorded 22,470.78 milliseconds for the first symbol search that constructed the cold compilation and 205.78 milliseconds for subsequent zero-bound calls. This confirms that compilation state materially affects the first semantic query while steady-state measurements remain representative of an open Workspace session. The focused evidence is retained at `artifacts/performance/results/20260722-180937-guardclauses-3187b970a54b46219b4a7a5c788df802` and `artifacts/performance/results/20260722-181537-efcore-7e505e850a304b70ac0334e343c6503f`.
+
+The EF Core bound matrix exercised zero, one, omitted/default, high and above-result-count limits for both symbol and reference search. The published default is 100 items for each tool. Zero, one, default and high responses were exact ordered prefixes of the complete response. `HasMore` was true for every truncated response and false for the complete 398-symbol and 3,382-reference responses. All three invocations of every variant produced identical hashes.
+
+The first cross-repository deterministic pass exposed equal-location reference ties in Serilog's multi-target solution. `find-references` sorted only by path and span start, leaving project variants in Roslyn enumeration order. Project ID, document ID, span length and definition state now provide stable tie-breakers without changing the established primary ordering. Five repeated low- and high-bound Serilog invocations then produced one identical ordered sequence at each bound; the confirming result is `artifacts/performance/results/20260722-182522-serilog-f64b1596b8754952abcecf6e52e134b9`.
+
+Mutation evidence distinguishes no-change and staged outcomes. On GuardClauses, formatting and sorting returned `staged: false`, a real rename returned `staged: true`, and renaming to the current symbol name returned `staged: false`. The last case initially staged an equivalent Roslyn solution because reference equality is not a content-equivalence check; `rename-symbol` now rejects that work before invoking Roslyn. Final medians were 12.81 milliseconds for no-change formatting, 55.58 milliseconds for a staged rename and 3.08 milliseconds for the direct rename no-change path.
+
+Cancellation remains a measured resilience risk rather than an unrecorded ambiguity. EF Core reference search reports client cancellation in a 0.25 millisecond median, but a cold invocation retained its query lease for 28.98 seconds. After one completed warm-up, five cancellations retained the lease for a 780.04 millisecond median and 3,646.92 millisecond P95. The Host recovered cleanly in both runs, but steady-state recovery remains close to uncancelled reference-search latency. Protocol notification, Host token mapping and Roslyn cancellation behaviour are therefore separated into the P1 cancellation task in `FutureTasks.md`. Evidence is retained at `artifacts/performance/results/20260722-181322-efcore-285393468a594045b3a70242e5777d8f` and `artifacts/performance/results/20260722-181743-efcore-cacd48422a9d455693589b54ca21cc5f`.
+
+The earlier native Windows, WSL-native and WSL-mounted comparison remains the relevant filesystem evidence because it used the same physical machine and pinned inputs and already isolated the material storage effect. WSL-mounted execution is retained only as evidence of the penalty and warning requirement; it is not repeated as a recommended operating mode. The final post-remediation baseline uses native WSL storage, while the recorded Windows/native-WSL results continue to establish supported-platform behaviour without treating their different SDK patches as one controlled timing population.
+
 **Dependencies:** investigations 1 and 3–8. Running the full comparison earlier would measure known shared bottlenecks repeatedly and would need to be discarded again after they change.
 
-**Exit evidence:** the dated post-remediation baseline is complete, comparable and linked from this tracker, with remaining risks either scheduled or explicitly accepted.
+**Exit evidence:** achieved by the final three-repository baseline and focused cold/warm, bound, deterministic-ordering, mutation and cancellation runs above. Repository and state validation passed throughout. The remaining server-side cancellation responsiveness risk is measured and scheduled separately rather than being hidden inside the completed tuning programme.
 
 ## Working rules
 

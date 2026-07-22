@@ -206,7 +206,6 @@
             "workspace": { "workspaceId": "${workspaceId}" },
             "symbol": { "documentationCommentId": "T:GuardClauses.UnitTests.TestEnum" },
             "newName": "PerformanceTestEnum",
-            "renameImplementations": true,
             "renameFile": false
           }
         },
@@ -230,7 +229,6 @@
             "workspace": { "workspaceId": "${workspaceId}" },
             "symbol": { "documentationCommentId": "T:GuardClauses.UnitTests.TestEnum" },
             "newName": "TestEnum",
-            "renameImplementations": true,
             "renameFile": false
           }
         }

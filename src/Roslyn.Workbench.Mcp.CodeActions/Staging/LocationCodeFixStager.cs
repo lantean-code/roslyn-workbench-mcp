@@ -79,7 +79,7 @@ internal sealed class LocationCodeFixStager : ILocationCodeFixStager
             request.SyntheticDiagnosticId,
             cancellationToken);
 
-        if (diagnostics.IsDefaultOrEmpty)
+        if (diagnostics.Count == 0)
         {
             return Rejected<WorkspaceMutationCandidate>("CodeFixUnavailable", "No matching code fix was available at the selected location.");
         }

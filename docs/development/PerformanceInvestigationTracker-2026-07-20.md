@@ -204,7 +204,7 @@ The phase attribution confirms that handler/Roslyn execution accounts for 64.1%,
 
 ### 7. Investigate Code Action discovery CPU and memory
 
-**Status:** In progress
+**Status:** Completed
 
 On GuardClauses, `list-code-actions` records a 260.99 ms median, 990 ms median aggregate Host CPU and a process peak of 374.05 MiB. Capture a trace and counters to distinguish compilation, provider discovery, MEF composition, parallel execution and result projection.
 
@@ -212,11 +212,19 @@ Run Code Action scenarios in isolated Host processes before attributing working-
 
 The capability audit found avoidable work before tracing: `list-code-actions` invoked every composed provider and classified each resulting action afterwards, even though deterministic execution support had already been audited in the built-in ledger. Capability metadata is now indexed once in a frozen provider lookup. Known-hidden and unaudited providers are excluded before Roslyn provider execution, while test-only action-dependent overrides remain conservatively discoverable. Each discovered action carries its resolved descriptor, so listing, token resolution, replay and location-fix flows reuse that classification rather than repeating it. The remove-unused-usings family now records its concrete provider identity instead of relying on title-based classification.
 
-This structural optimisation preserves the required distinction between capability and applicability: Roslyn still rediscovers an action against the current document and snapshot before execution, but the server does not re-audit whether that provider family can be executed deterministically. Refresh the isolated Code Action trace after this change so the remaining provider, compilation and diagnostics costs are measured without known-unsupported provider work.
+This structural optimisation preserves the required distinction between capability and applicability: Roslyn still rediscovers an action against the current document and snapshot before execution, but the server does not re-audit whether that provider family can be executed deterministically.
+
+The refreshed isolated GuardClauses trace then identified diagnostic collection as the dominant remaining cost. It consumed 245.56 ms median and 803.51 ms P95, or 96.9% of the median instrumented tool duration. CPU stacks showed project-wide analyzer execution, including unrelated xUnit analyzer work. Code Fix provider execution and response projection were negligible at 0.02 ms and 0.12 ms median respectively.
+
+`list-code-actions` now derives the distinct diagnostic IDs supported by its discoverable Code Fix providers, intersects them with any request filter and skips diagnostic collection when the intersection is empty. The diagnostic service uses the effective IDs to execute only project analyzers whose declared `SupportedDiagnostics` can contribute to the request. Compiler and analyzer results are still filtered by the same IDs, so the optimisation changes work selection rather than the observable action set.
+
+The equivalent post-change isolated trace recorded 4.91 ms end-to-end median and 16.42 ms P95 across 4,991 profiled invocations, down from 254.36 ms and 826.82 ms across the comparable pre-change trace. Diagnostic collection fell to 0.68 ms median and 3.53 ms P95. The first cold invocation also fell from approximately 3.0 seconds to 1.9 seconds. The remaining median tool time is split principally between refactoring-provider discovery at 1.95 ms and Workspace external-change detection at 1.65 ms; neither justifies another Code Actions-specific latency change at this scale.
+
+An isolated 30-second counter run completed 5,495 invocations at 4.40 ms median and 14.86 ms P95. It allocated 5.89 GB in aggregate, approximately 1.07 MB per invocation, while working set rose from 283.20 MiB to 376.69 MiB and GC committed memory from 67.17 MiB to 109.66 MiB. No Gen 2 collection occurred during that high-throughput capture, so the growth is not evidence of a leak. The remaining transient allocation is inferred to be dominated by Roslyn provider/refactoring discovery because server-owned projection is below one percent of median time. Retained-object ownership and forced-GC comparison remain investigation 8 rather than a reason to add an unbounded Code Actions cache here.
 
 **Dependencies:** investigations 2–4. Shared validation and initial Workspace memory must be separated before judging Code Action-specific cost.
 
-**Exit evidence:** CPU and allocation hot paths are identified; any retained state has an owner, bound and invalidation lifetime; the three refactoring scenarios remain behaviourally unchanged.
+**Exit evidence:** achieved by isolated pre/post traces and the post-change counter run. Project-wide analyzer execution was removed from the listing hot path, the remaining CPU and transient-allocation work is attributable to Roslyn provider/refactoring discovery rather than server projection, and no new retained state or cache was introduced. Code Actions unit/contract coverage and the existing refactoring scenarios remain behaviourally unchanged. Retained-memory ownership is intentionally carried by investigation 8.
 
 ### 8. Characterise retained memory and process-order effects
 

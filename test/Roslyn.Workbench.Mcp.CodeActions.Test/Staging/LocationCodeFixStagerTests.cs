@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.Text;
@@ -224,7 +223,7 @@ public sealed class LocationCodeFixStagerTests
         _discoveryService.Verify(item => item.DiscoverCodeFixesAsync(
             It.IsAny<CodeFixProvider>(),
             It.IsAny<Document>(),
-            It.IsAny<ImmutableArray<Diagnostic>>(),
+            It.IsAny<IReadOnlyList<Diagnostic>>(),
             It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -238,7 +237,7 @@ public sealed class LocationCodeFixStagerTests
         var location = await CreateLocationAsync(roslyn.Document);
         var provider = new Mock<CodeFixProvider>();
         var diagnostic = CreateDiagnostic(location);
-        var diagnostics = ImmutableArray.Create(diagnostic);
+        IReadOnlyList<Diagnostic> diagnostics = [diagnostic];
         var action = CreateDiscoveredAction(roslyn.Solution, "Title", "EquivalenceKey", [1], ["DiagnosticId"]);
         var request = filter == LocationFixFilter.Title
             ? CreateRequest(selector) with { Title = "OtherTitle" }
@@ -275,7 +274,7 @@ public sealed class LocationCodeFixStagerTests
         var selector = new LocationSelector();
         var location = await CreateLocationAsync(roslyn.Document);
         var provider = new Mock<CodeFixProvider>();
-        var diagnostics = ImmutableArray.Create(CreateDiagnostic(location));
+        IReadOnlyList<Diagnostic> diagnostics = [CreateDiagnostic(location)];
         var action = CreateDiscoveredAction(
             roslyn.Solution,
             "Title",
@@ -323,7 +322,7 @@ public sealed class LocationCodeFixStagerTests
         var selector = new LocationSelector();
         var location = await CreateLocationAsync(roslyn.Document);
         var provider = new Mock<CodeFixProvider>();
-        var diagnostics = ImmutableArray.Create(CreateDiagnostic(location));
+        IReadOnlyList<Diagnostic> diagnostics = [CreateDiagnostic(location)];
         var firstAction = CreateDiscoveredAction(roslyn.Solution, "FirstTitle", "FirstEquivalenceKey", [1], ["DiagnosticId"]);
         var secondAction = CreateDiscoveredAction(roslyn.Solution, "SecondTitle", "SecondEquivalenceKey", [2], ["DiagnosticId"]);
         var request = CreateRequest(selector) with
@@ -366,7 +365,7 @@ public sealed class LocationCodeFixStagerTests
         var expectedSnapshot = new SnapshotPrecondition();
         var location = await CreateLocationAsync(roslyn.Document);
         var provider = new Mock<CodeFixProvider>();
-        var diagnostics = ImmutableArray.Create(CreateDiagnostic(location));
+        IReadOnlyList<Diagnostic> diagnostics = [CreateDiagnostic(location)];
         var action = CreateDiscoveredAction(roslyn.Solution, "Title", "EquivalenceKey", [1], ["DiagnosticId"], executionMode);
 
         var candidate = new WorkspaceMutationCandidate
@@ -418,7 +417,7 @@ public sealed class LocationCodeFixStagerTests
         var selector = new LocationSelector();
         var location = await CreateLocationAsync(roslyn.Document);
         var provider = new Mock<CodeFixProvider>();
-        var diagnostics = ImmutableArray.Create(CreateDiagnostic(location));
+        IReadOnlyList<Diagnostic> diagnostics = [CreateDiagnostic(location)];
         var action = CreateDiscoveredAction(
             roslyn.Solution,
             "Title",
@@ -463,7 +462,7 @@ public sealed class LocationCodeFixStagerTests
         var selector = new LocationSelector();
         var location = await CreateLocationAsync(roslyn.Document);
         var provider = new Mock<CodeFixProvider>();
-        var diagnostics = ImmutableArray.Create(CreateDiagnostic(location));
+        IReadOnlyList<Diagnostic> diagnostics = [CreateDiagnostic(location)];
         var firstAction = CreateDiscoveredAction(roslyn.Solution, "Title", "EquivalenceKey", [1], ["FirstDiagnostic", "SecondDiagnostic"]);
         var secondAction = CreateDiscoveredAction(roslyn.Solution, "Title", "EquivalenceKey", [1], ["SecondDiagnostic", "FirstDiagnostic"]);
         var candidate = new WorkspaceMutationCandidate

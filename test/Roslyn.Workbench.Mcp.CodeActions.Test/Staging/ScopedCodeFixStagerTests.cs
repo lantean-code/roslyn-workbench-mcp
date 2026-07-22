@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.Text;
@@ -21,7 +20,7 @@ public sealed class ScopedCodeFixStagerTests : IDisposable
     private readonly Mock<FixAllProvider> _fixAllProvider;
     private readonly InMemoryRoslynDocument _roslyn;
     private readonly CodeAction _fixAllAction;
-    private readonly ImmutableArray<Diagnostic> _diagnostics;
+    private readonly IReadOnlyList<Diagnostic> _diagnostics;
     private readonly DiscoveredCodeAction _discoveredAction;
     private readonly ScopedCodeFixCandidate _candidate;
     private readonly ScopedCodeFixStager _target;
@@ -45,7 +44,7 @@ public sealed class ScopedCodeFixStagerTests : IDisposable
             "Fix all",
             _ => Task.FromResult(_roslyn.Solution),
             "FixAllEquivalenceKey");
-        _diagnostics = ImmutableArray.Create(CreateDiagnostic());
+        _diagnostics = [CreateDiagnostic()];
         _discoveredAction = CreateDiscoveredAction(_roslyn.Solution, "Title", "EquivalenceKey", ["DiagnosticId"]);
         _candidate = new ScopedCodeFixCandidate
         {

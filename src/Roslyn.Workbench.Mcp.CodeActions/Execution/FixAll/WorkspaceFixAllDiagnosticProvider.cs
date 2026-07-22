@@ -1,5 +1,3 @@
-using System.Collections.Immutable;
-
 namespace Roslyn.Workbench.Mcp.CodeActions.Execution.FixAll;
 
 internal sealed class WorkspaceFixAllDiagnosticProvider : FixAllContext.DiagnosticProvider
@@ -20,16 +18,24 @@ internal sealed class WorkspaceFixAllDiagnosticProvider : FixAllContext.Diagnost
 
     public override async Task<IEnumerable<Diagnostic>> GetDocumentDiagnosticsAsync(Document document, CancellationToken cancellationToken)
     {
-        return await _diagnosticService
-            .GetScopedCodeFixDiagnosticsAsync(document, _diagnosticIds, analyzerTypeName: null, _syntheticDiagnosticId, cancellationToken)
-            ;
+        var diagnostics = await _diagnosticService.GetScopedCodeFixDiagnosticsAsync(
+            document,
+            _diagnosticIds,
+            analyzerTypeName: null,
+            _syntheticDiagnosticId,
+            cancellationToken);
+
+        return diagnostics;
     }
 
     public override async Task<IEnumerable<Diagnostic>> GetProjectDiagnosticsAsync(Project project, CancellationToken cancellationToken)
     {
-        return await _diagnosticService
-            .GetProjectDiagnosticsAsync(project, _diagnosticIds, cancellationToken)
-            ;
+        var diagnostics = await _diagnosticService.GetProjectDiagnosticsAsync(
+            project,
+            _diagnosticIds,
+            cancellationToken);
+
+        return diagnostics;
     }
 
     public override async Task<IEnumerable<Diagnostic>> GetAllDiagnosticsAsync(Project project, CancellationToken cancellationToken)
@@ -37,15 +43,20 @@ internal sealed class WorkspaceFixAllDiagnosticProvider : FixAllContext.Diagnost
         var documentDiagnostics = new List<Diagnostic>();
         foreach (var document in project.Documents)
         {
-            documentDiagnostics.AddRange(await _diagnosticService
-                .GetDocumentDiagnosticsAsync(document, _diagnosticIds, cancellationToken)
-                );
+            var diagnostics = await _diagnosticService.GetDocumentDiagnosticsAsync(
+                document,
+                _diagnosticIds,
+                cancellationToken);
+
+            documentDiagnostics.AddRange(diagnostics);
         }
 
-        documentDiagnostics.AddRange(await _diagnosticService
-            .GetProjectDiagnosticsAsync(project, _diagnosticIds, cancellationToken)
-            );
+        var projectDiagnostics = await _diagnosticService.GetProjectDiagnosticsAsync(
+            project,
+            _diagnosticIds,
+            cancellationToken);
 
-        return documentDiagnostics.ToImmutableArray();
+        documentDiagnostics.AddRange(projectDiagnostics);
+        return documentDiagnostics;
     }
 }

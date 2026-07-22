@@ -86,7 +86,7 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
     public async ValueTask<IReadOnlyList<DiscoveredCodeAction>> DiscoverCodeFixesAsync(
         CodeFixProvider provider,
         Document document,
-        ImmutableArray<Diagnostic> diagnostics,
+        IReadOnlyList<Diagnostic> diagnostics,
         CancellationToken cancellationToken)
     {
         var providerId = GetProviderId(provider);

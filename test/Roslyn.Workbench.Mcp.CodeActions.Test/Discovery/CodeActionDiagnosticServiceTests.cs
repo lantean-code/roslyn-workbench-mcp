@@ -172,6 +172,35 @@ public sealed class CodeActionDiagnosticServiceTests
     }
 
     [Fact]
+    public async Task GIVEN_ProjectAnalyzers_WHEN_GettingFilteredDiagnostics_THEN_ShouldExecuteOnlySupportingAnalyzers()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class Sample { }");
+        var matchingAnalyzer = CreateSourceAnalyzer(
+        [
+            ("MATCH001", new TextSpan(0, 1)),
+            ("OTHER001", new TextSpan(1, 1)),
+        ]);
+        var unrelatedAnalyzer = CreateSourceAnalyzer(
+        [
+            ("UNRELATED001", new TextSpan(0, 1)),
+        ]);
+        var analyzerReference = CreateAnalyzerReference(matchingAnalyzer.Object, unrelatedAnalyzer.Object);
+        var updatedSolution = roslyn.Solution.AddAnalyzerReference(roslyn.Document.Project.Id, analyzerReference.Object);
+        roslyn.Workspace.TryApplyChanges(updatedSolution).Should().BeTrue();
+        var document = roslyn.Workspace.CurrentSolution.GetDocument(roslyn.Document.Id)
+            ?? throw new InvalidOperationException("The updated test document could not be resolved.");
+
+        var result = await _target.GetDocumentDiagnosticsAsync(
+            document,
+            ["MATCH001"],
+            TestContext.Current.CancellationToken);
+
+        result.Should().ContainSingle(item => item.Id == "MATCH001");
+        matchingAnalyzer.Verify(item => item.Initialize(It.IsAny<AnalysisContext>()), Times.Once);
+        unrelatedAnalyzer.Verify(item => item.Initialize(It.IsAny<AnalysisContext>()), Times.Never);
+    }
+
+    [Fact]
     public async Task GIVEN_ExistingCompilerDiagnostic_WHEN_GettingScopedDiagnostics_THEN_ShouldNotActivateAdditionalAnalyzer()
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class Sample { MissingType Value; }");
@@ -415,12 +444,12 @@ public sealed class CodeActionDiagnosticServiceTests
         await action.Should().ThrowAsync<OperationCanceledException>();
     }
 
-    private static Mock<AnalyzerReference> CreateAnalyzerReference(DiagnosticAnalyzer analyzer)
+    private static Mock<AnalyzerReference> CreateAnalyzerReference(params DiagnosticAnalyzer[] analyzers)
     {
         var analyzerReference = new Mock<AnalyzerReference>();
         analyzerReference
             .Setup(item => item.GetAnalyzers(LanguageNames.CSharp))
-            .Returns([analyzer]);
+            .Returns(analyzers.ToImmutableArray());
         analyzerReference
             .Setup(item => item.GetGenerators(LanguageNames.CSharp))
             .Returns([]);

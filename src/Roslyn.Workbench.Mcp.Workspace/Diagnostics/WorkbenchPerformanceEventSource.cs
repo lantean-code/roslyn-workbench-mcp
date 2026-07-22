@@ -7,9 +7,12 @@ internal sealed class WorkbenchPerformanceEventSource : EventSource
 {
     public const string ProviderName = "Roslyn-Workbench-Mcp";
     public const string CandidateProjectionPhase = "candidate-projection";
+    public const string CodeActionProjectionPhase = "code-action-projection";
+    public const string CodeFixDiscoveryPhase = "code-fix-discovery";
     public const string ContextAcquisitionPhase = "context-acquisition";
     public const string ContextConstructionPhase = "context-construction";
     public const string DiscoveryPhase = "discovery";
+    public const string DiagnosticCollectionPhase = "diagnostic-collection";
     public const string DocumentProjectionPhase = "document-projection";
     public const string ExternalChangeDetectionPhase = "external-change-detection";
     public const string FolderSelectionPhase = "folder-selection";
@@ -19,6 +22,7 @@ internal sealed class WorkbenchPerformanceEventSource : EventSource
     public const string ProjectProjectionPhase = "project-projection";
     public const string ProjectReferenceProjectionPhase = "project-reference-projection";
     public const string ProjectSelectionPhase = "project-selection";
+    public const string RefactoringDiscoveryPhase = "refactoring-discovery";
     public const string RequestBindingPhase = "request-binding";
     public const string ResultEnrichmentPhase = "result-enrichment";
     public const string ResultSelectionPhase = "result-selection";

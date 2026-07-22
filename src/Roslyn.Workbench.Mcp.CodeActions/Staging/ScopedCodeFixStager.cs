@@ -281,7 +281,7 @@ internal sealed class ScopedCodeFixStager : IScopedCodeFixStager
             analyzerTypeName,
             syntheticDiagnosticId,
             cancellationToken);
-        if (diagnostics.IsDefaultOrEmpty)
+        if (diagnostics.Count == 0)
         {
             return FailedApplication(
                 CodeActionApplyFailureKind.CodeFixUnavailable,

@@ -26,6 +26,7 @@ global using Roslyn.Workbench.Mcp.CodeActions.Tokens;
 global using Roslyn.Workbench.Mcp.CodeActions.Tools;
 global using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
 global using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
+global using Roslyn.Workbench.Mcp.Workspace.Diagnostics;
 global using Roslyn.Workbench.Mcp.Workspace.ExecutionContexts;
 global using Roslyn.Workbench.Mcp.Workspace.Operations;
 global using Roslyn.Workbench.Mcp.Workspace.Resolution;

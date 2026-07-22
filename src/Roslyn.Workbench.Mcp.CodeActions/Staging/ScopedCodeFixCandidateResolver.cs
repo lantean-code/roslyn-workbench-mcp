@@ -50,7 +50,7 @@ internal sealed class ScopedCodeFixCandidateResolver : IScopedCodeFixCandidateRe
                 request.SyntheticDiagnosticId,
                 cancellationToken);
 
-            if (diagnostics.IsDefaultOrEmpty)
+            if (diagnostics.Count == 0)
             {
                 continue;
             }

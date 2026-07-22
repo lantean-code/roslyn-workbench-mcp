@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CodeRefactorings;
@@ -343,7 +342,7 @@ public sealed class CodeActionResolverTests : IDisposable
     [Fact]
     public async Task GIVEN_CodeFixIsRediscoveredUniquely_WHEN_ResolvingAction_THEN_ShouldUseDocumentDiagnostics()
     {
-        var diagnostics = ImmutableArray.Create(Diagnostic.Create(
+        IReadOnlyList<Diagnostic> diagnostics = [Diagnostic.Create(
             new DiagnosticDescriptor(
                 "DiagnosticId",
                 "Title",
@@ -351,7 +350,7 @@ public sealed class CodeActionResolverTests : IDisposable
                 "Category",
                 Microsoft.CodeAnalysis.DiagnosticSeverity.Warning,
                 isEnabledByDefault: true),
-            Location.None));
+            Location.None)];
 
         SetupToken(CreatePayload() with { Kind = DiscoveredActionKind.CodeFix.ToString() });
         _discoveryService

@@ -11,19 +11,26 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
         _analyzerActivator = analyzerActivator;
     }
 
-    public async Task<ImmutableArray<Diagnostic>> GetDocumentDiagnosticsAsync(
+    public async Task<IReadOnlyList<Diagnostic>> GetDocumentDiagnosticsAsync(
         Document document,
         TextSpan span,
         IReadOnlyList<string>? diagnosticIds,
         CancellationToken cancellationToken)
     {
         var diagnostics = await GetDocumentDiagnosticsAsync(document, diagnosticIds, cancellationToken);
-        return diagnostics
-            .Where(diagnostic => diagnostic.Location.SourceSpan.IntersectsWith(span))
-            .ToImmutableArray();
+        var matchingDiagnostics = new List<Diagnostic>();
+        foreach (var diagnostic in diagnostics)
+        {
+            if (diagnostic.Location.SourceSpan.IntersectsWith(span))
+            {
+                matchingDiagnostics.Add(diagnostic);
+            }
+        }
+
+        return matchingDiagnostics;
     }
 
-    public async Task<ImmutableArray<Diagnostic>> GetDocumentDiagnosticsAsync(
+    public async Task<IReadOnlyList<Diagnostic>> GetDocumentDiagnosticsAsync(
         Document document,
         IReadOnlyList<string>? diagnosticIds,
         CancellationToken cancellationToken)
@@ -37,16 +44,23 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
         var diagnostics = await GetCompilationDiagnosticsAsync(
             document.Project,
             compilation,
+            diagnosticIds,
             cancellationToken);
         var syntaxTree = await document.GetSyntaxTreeAsync(cancellationToken);
 
-        return diagnostics
-            .Where(diagnostic => diagnostic.Location.IsInSource && diagnostic.Location.SourceTree == syntaxTree)
-            .Where(diagnostic => diagnosticIds is null || diagnosticIds.Count == 0 || diagnosticIds.Contains(diagnostic.Id, StringComparer.Ordinal))
-            .ToImmutableArray();
+        var documentDiagnostics = new List<Diagnostic>();
+        foreach (var diagnostic in diagnostics)
+        {
+            if (diagnostic.Location.IsInSource && diagnostic.Location.SourceTree == syntaxTree)
+            {
+                documentDiagnostics.Add(diagnostic);
+            }
+        }
+
+        return documentDiagnostics;
     }
 
-    public async Task<ImmutableArray<Diagnostic>> GetScopedCodeFixDiagnosticsAsync(
+    public async Task<IReadOnlyList<Diagnostic>> GetScopedCodeFixDiagnosticsAsync(
         Document document,
         IReadOnlyList<string> diagnosticIds,
         string? analyzerTypeName,
@@ -54,13 +68,13 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
         CancellationToken cancellationToken)
     {
         var diagnostics = await GetDocumentDiagnosticsAsync(document, diagnosticIds, cancellationToken);
-        if (!diagnostics.IsDefaultOrEmpty)
+        if (diagnostics.Count > 0)
         {
             return diagnostics;
         }
 
         diagnostics = await GetAdditionalAnalyzerDiagnosticsAsync(document, span: null, diagnosticIds, analyzerTypeName, cancellationToken);
-        if (!diagnostics.IsDefaultOrEmpty || string.IsNullOrWhiteSpace(syntheticDiagnosticId))
+        if (diagnostics.Count > 0 || string.IsNullOrWhiteSpace(syntheticDiagnosticId))
         {
             return diagnostics;
         }
@@ -70,7 +84,7 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
         return syntheticDiagnostic is null ? [] : [syntheticDiagnostic];
     }
 
-    public async Task<ImmutableArray<Diagnostic>> GetLocationScopedCodeFixDiagnosticsAsync(
+    public async Task<IReadOnlyList<Diagnostic>> GetLocationScopedCodeFixDiagnosticsAsync(
         Document document,
         TextSpan span,
         IReadOnlyList<string> diagnosticIds,
@@ -79,13 +93,13 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
         CancellationToken cancellationToken)
     {
         var diagnostics = await GetDocumentDiagnosticsAsync(document, span, diagnosticIds, cancellationToken);
-        if (!diagnostics.IsDefaultOrEmpty)
+        if (diagnostics.Count > 0)
         {
             return diagnostics;
         }
 
         diagnostics = await GetAdditionalAnalyzerDiagnosticsAsync(document, span, diagnosticIds, analyzerTypeName, cancellationToken);
-        if (!diagnostics.IsDefaultOrEmpty || string.IsNullOrWhiteSpace(syntheticDiagnosticId))
+        if (diagnostics.Count > 0 || string.IsNullOrWhiteSpace(syntheticDiagnosticId))
         {
             return diagnostics;
         }
@@ -94,7 +108,7 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
         return syntheticDiagnostic is null ? [] : [syntheticDiagnostic];
     }
 
-    public async Task<ImmutableArray<Diagnostic>> GetProjectDiagnosticsAsync(
+    public async Task<IReadOnlyList<Diagnostic>> GetProjectDiagnosticsAsync(
         Project project,
         IReadOnlyList<string>? diagnosticIds,
         CancellationToken cancellationToken)
@@ -105,36 +119,87 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
             return [];
         }
 
-        var diagnostics = await GetCompilationDiagnosticsAsync(project, compilation, cancellationToken);
-        return diagnostics
-            .Where(static diagnostic => !diagnostic.Location.IsInSource)
-            .Where(diagnostic => diagnosticIds is null || diagnosticIds.Count == 0 || diagnosticIds.Contains(diagnostic.Id, StringComparer.Ordinal))
-            .ToImmutableArray();
+        var diagnostics = await GetCompilationDiagnosticsAsync(project, compilation, diagnosticIds, cancellationToken);
+        var projectDiagnostics = new List<Diagnostic>();
+        foreach (var diagnostic in diagnostics)
+        {
+            if (!diagnostic.Location.IsInSource)
+            {
+                projectDiagnostics.Add(diagnostic);
+            }
+        }
+
+        return projectDiagnostics;
     }
 
-    private static async Task<ImmutableArray<Diagnostic>> GetCompilationDiagnosticsAsync(
+    private static async Task<List<Diagnostic>> GetCompilationDiagnosticsAsync(
         Project project,
         Compilation compilation,
+        IReadOnlyList<string>? diagnosticIds,
         CancellationToken cancellationToken)
     {
-        var diagnostics = compilation.GetDiagnostics(cancellationToken).ToBuilder();
-        var analyzers = project.AnalyzerReferences
-            .SelectMany(reference => reference.GetAnalyzers(project.Language))
-            .ToImmutableArray();
-        if (analyzers.IsDefaultOrEmpty)
+        HashSet<string>? diagnosticIdSet = null;
+        if (diagnosticIds is { Count: > 0 })
         {
-            return diagnostics.ToImmutable();
+            diagnosticIdSet = new HashSet<string>(diagnosticIds, StringComparer.Ordinal);
+        }
+
+        var diagnostics = new List<Diagnostic>();
+        AddMatchingDiagnostics(diagnostics, compilation.GetDiagnostics(cancellationToken), diagnosticIdSet);
+
+        var analyzers = ImmutableArray.CreateBuilder<DiagnosticAnalyzer>();
+        foreach (var analyzerReference in project.AnalyzerReferences)
+        {
+            foreach (var analyzer in analyzerReference.GetAnalyzers(project.Language))
+            {
+                if (diagnosticIdSet is null || SupportsAnyDiagnostic(analyzer, diagnosticIdSet))
+                {
+                    analyzers.Add(analyzer);
+                }
+            }
+        }
+
+        if (analyzers.Count == 0)
+        {
+            return diagnostics;
         }
 
         var analyzerDiagnostics = await compilation
-            .WithAnalyzers(analyzers, project.AnalyzerOptions)
-            .GetAnalyzerDiagnosticsAsync(cancellationToken)
-            ;
-        diagnostics.AddRange(analyzerDiagnostics);
-        return diagnostics.ToImmutable();
+            .WithAnalyzers(analyzers.ToImmutable(), project.AnalyzerOptions)
+            .GetAnalyzerDiagnosticsAsync(cancellationToken);
+
+        AddMatchingDiagnostics(diagnostics, analyzerDiagnostics, diagnosticIdSet);
+        return diagnostics;
     }
 
-    private async Task<ImmutableArray<Diagnostic>> GetAdditionalAnalyzerDiagnosticsAsync(
+    private static void AddMatchingDiagnostics(
+        List<Diagnostic> destination,
+        ImmutableArray<Diagnostic> diagnostics,
+        HashSet<string>? diagnosticIds)
+    {
+        foreach (var diagnostic in diagnostics)
+        {
+            if (diagnosticIds is null || diagnosticIds.Contains(diagnostic.Id))
+            {
+                destination.Add(diagnostic);
+            }
+        }
+    }
+
+    private static bool SupportsAnyDiagnostic(DiagnosticAnalyzer analyzer, HashSet<string> diagnosticIds)
+    {
+        foreach (var descriptor in analyzer.SupportedDiagnostics)
+        {
+            if (diagnosticIds.Contains(descriptor.Id))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private async Task<List<Diagnostic>> GetAdditionalAnalyzerDiagnosticsAsync(
         Document document,
         TextSpan? span,
         IReadOnlyList<string> diagnosticIds,
@@ -166,14 +231,30 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
 
         var diagnostics = await compilation
             .WithAnalyzers([activation.Analyzer], document.Project.AnalyzerOptions)
-            .GetAnalyzerDiagnosticsAsync(cancellationToken)
-            ;
+            .GetAnalyzerDiagnosticsAsync(cancellationToken);
 
-        return diagnostics
-            .Where(diagnostic => diagnostic.Location.IsInSource && diagnostic.Location.SourceTree == syntaxTree)
-            .Where(diagnostic => diagnosticIds.Count == 0 || diagnosticIds.Contains(diagnostic.Id, StringComparer.Ordinal))
-            .Where(diagnostic => span is null || diagnostic.Location.SourceSpan.IntersectsWith(span.Value))
-            .ToImmutableArray();
+        var matchingDiagnostics = new List<Diagnostic>();
+        foreach (var diagnostic in diagnostics)
+        {
+            if (!diagnostic.Location.IsInSource || diagnostic.Location.SourceTree != syntaxTree)
+            {
+                continue;
+            }
+
+            if (diagnosticIds.Count > 0 && !diagnosticIds.Contains(diagnostic.Id, StringComparer.Ordinal))
+            {
+                continue;
+            }
+
+            if (span is not null && !diagnostic.Location.SourceSpan.IntersectsWith(span.Value))
+            {
+                continue;
+            }
+
+            matchingDiagnostics.Add(diagnostic);
+        }
+
+        return matchingDiagnostics;
     }
 
     private static async Task<Diagnostic?> CreateSyntheticDiagnosticAsync(

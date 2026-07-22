@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.Text;
@@ -12,7 +11,7 @@ public sealed class ScopedCodeFixCandidateResolverTests : IDisposable
     private readonly Mock<IWorkspaceResolver> _workspaceResolver;
     private readonly Mock<CodeFixProvider> _provider;
     private readonly InMemoryRoslynDocument _roslyn;
-    private readonly ImmutableArray<Diagnostic> _diagnostics;
+    private readonly IReadOnlyList<Diagnostic> _diagnostics;
     private readonly DiscoveredCodeAction _action;
     private readonly ScopedCodeFixCandidateResolver _target;
 
@@ -23,7 +22,7 @@ public sealed class ScopedCodeFixCandidateResolverTests : IDisposable
         _workspaceResolver = new Mock<IWorkspaceResolver>();
         _provider = new Mock<CodeFixProvider>();
         _roslyn = RoslynTestFactory.CreateDocument("class C { }");
-        _diagnostics = ImmutableArray.Create(CreateDiagnostic());
+        _diagnostics = [CreateDiagnostic()];
         _action = CreateAction("Title", "EquivalenceKey", ["DiagnosticId"]);
         _discoveryService
             .Setup(item => item.GetMatchingCodeFixProviders(It.IsAny<string?>()))
@@ -102,7 +101,7 @@ public sealed class ScopedCodeFixCandidateResolverTests : IDisposable
         _discoveryService.Verify(item => item.DiscoverCodeFixesAsync(
             It.IsAny<CodeFixProvider>(),
             It.IsAny<Document>(),
-            It.IsAny<ImmutableArray<Diagnostic>>(),
+            It.IsAny<IReadOnlyList<Diagnostic>>(),
             It.IsAny<CancellationToken>()), Times.Never);
     }
 

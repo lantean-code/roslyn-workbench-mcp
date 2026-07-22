@@ -1,5 +1,3 @@
-using System.Collections.Immutable;
-
 namespace Roslyn.Workbench.Mcp.CodeActions.Test.Execution.FixAll;
 
 public sealed class WorkspaceFixAllDiagnosticProviderTests : IDisposable
@@ -32,7 +30,7 @@ public sealed class WorkspaceFixAllDiagnosticProviderTests : IDisposable
     public async Task GIVEN_Document_WHEN_GettingDocumentDiagnostics_THEN_ShouldDelegateScopedRequest()
     {
         var document = _roslyn.GetDocument("First.cs");
-        var expected = ImmutableArray.Create(CreateDiagnostic("DiagnosticId"));
+        IReadOnlyList<Diagnostic> expected = [CreateDiagnostic("DiagnosticId")];
         _diagnosticService
             .Setup(item => item.GetScopedCodeFixDiagnosticsAsync(
                 document,
@@ -57,7 +55,7 @@ public sealed class WorkspaceFixAllDiagnosticProviderTests : IDisposable
     public async Task GIVEN_Project_WHEN_GettingProjectDiagnostics_THEN_ShouldDelegateProjectRequest()
     {
         var project = _roslyn.GetProject("Project");
-        var expected = ImmutableArray.Create(CreateDiagnostic("DiagnosticId"));
+        IReadOnlyList<Diagnostic> expected = [CreateDiagnostic("DiagnosticId")];
         _diagnosticService
             .Setup(item => item.GetProjectDiagnosticsAsync(
                 project,

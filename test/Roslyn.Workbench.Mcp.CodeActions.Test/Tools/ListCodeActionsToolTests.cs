@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CodeRefactorings;
@@ -199,15 +198,22 @@ public sealed class ListCodeActionsToolTests
             CancellationToken.None), Times.Never);
     }
 
-    [Fact]
-    public async Task GIVEN_VisibleActionsFromBothFamilies_WHEN_Executing_THEN_ShouldClassifyOrderAndCreateInfo()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task GIVEN_VisibleActionsFromBothFamilies_WHEN_ExecutingWithoutEffectiveDiagnosticFilter_THEN_ShouldClassifyOrderAndCreateInfo(
+        bool useNullFilter)
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
         var selector = new LocationSelector();
         var location = await CreateLocationAsync(roslyn.Document);
         var refactoringProvider = new Mock<CodeRefactoringProvider>();
         var codeFixProvider = new Mock<CodeFixProvider>();
-        var diagnostics = ImmutableArray<Diagnostic>.Empty;
+        codeFixProvider
+            .SetupGet(item => item.FixableDiagnosticIds)
+            .Returns(["DiagnosticId"]);
+
+        IReadOnlyList<Diagnostic> diagnostics = [];
         var visibleDescriptor = new CodeActionDescriptorEntry
         {
             IsVisible = true,
@@ -235,7 +241,11 @@ public sealed class ListCodeActionsToolTests
             .Setup(item => item.DiscoverRefactoringsAsync(refactoringProvider.Object, roslyn.Document, location.SourceSpan, CancellationToken.None))
             .ReturnsAsync([laterProvider, secondPath, hidden]);
         _diagnosticService
-            .Setup(item => item.GetDocumentDiagnosticsAsync(roslyn.Document, location.SourceSpan, null, CancellationToken.None))
+            .Setup(item => item.GetDocumentDiagnosticsAsync(
+                roslyn.Document,
+                location.SourceSpan,
+                It.Is<IReadOnlyList<string>>(diagnosticIds => diagnosticIds.Count == 1 && diagnosticIds[0] == "DiagnosticId"),
+                CancellationToken.None))
             .ReturnsAsync(diagnostics);
         _discoveryService
             .Setup(item => item.DiscoverCodeFixesAsync(codeFixProvider.Object, roslyn.Document, diagnostics, CancellationToken.None))
@@ -259,6 +269,7 @@ public sealed class ListCodeActionsToolTests
             new ListCodeActionsRequest
             {
                 Location = selector,
+                DiagnosticIds = useNullFilter ? null : [],
             },
             _context.Object,
             CancellationToken.None);
@@ -277,6 +288,98 @@ public sealed class ListCodeActionsToolTests
             It.IsAny<Document>(),
             It.IsAny<TextSpan>(),
             It.IsAny<CodeActionDescriptorEntry>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_DiagnosticFilter_WHEN_Executing_THEN_ShouldCollectOnlyDistinctFixableDiagnosticsInFilter()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var selector = new LocationSelector();
+        var location = await CreateLocationAsync(roslyn.Document);
+        var firstProvider = new Mock<CodeFixProvider>();
+        firstProvider
+            .SetupGet(item => item.FixableDiagnosticIds)
+            .Returns(["FirstId", "SharedId"]);
+        var secondProvider = new Mock<CodeFixProvider>();
+        secondProvider
+            .SetupGet(item => item.FixableDiagnosticIds)
+            .Returns(["SharedId", "SecondId"]);
+        IReadOnlyList<Diagnostic> diagnostics = [];
+        _workspaceResolver
+            .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
+            .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+        _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
+        _discoveryService
+            .Setup(item => item.GetMatchingCodeFixProviders(null))
+            .Returns([firstProvider.Object, secondProvider.Object]);
+        _diagnosticService
+            .Setup(item => item.GetDocumentDiagnosticsAsync(
+                roslyn.Document,
+                location.SourceSpan,
+                It.Is<IReadOnlyList<string>>(diagnosticIds =>
+                    diagnosticIds.Count == 2
+                    && diagnosticIds[0] == "SharedId"
+                    && diagnosticIds[1] == "SecondId"),
+                CancellationToken.None))
+            .ReturnsAsync(diagnostics);
+        _discoveryService
+            .Setup(item => item.DiscoverCodeFixesAsync(firstProvider.Object, roslyn.Document, diagnostics, CancellationToken.None))
+            .ReturnsAsync([]);
+        _discoveryService
+            .Setup(item => item.DiscoverCodeFixesAsync(secondProvider.Object, roslyn.Document, diagnostics, CancellationToken.None))
+            .ReturnsAsync([]);
+
+        var result = await _target.ExecuteAsync(
+            new ListCodeActionsRequest
+            {
+                Location = selector,
+                IncludeRefactorings = false,
+                DiagnosticIds = ["SharedId", "SecondId", "UnknownId"],
+            },
+            _context.Object,
+            CancellationToken.None);
+
+        result.Outcome.Should().Be(CodeActionExecutionOutcome.Succeeded);
+        _discoveryService.Verify(item => item.DiscoverCodeFixesAsync(
+            It.IsAny<CodeFixProvider>(),
+            roslyn.Document,
+            diagnostics,
+            CancellationToken.None), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task GIVEN_NoFixableDiagnosticMatchesFilter_WHEN_Executing_THEN_ShouldSkipDiagnosticCollection()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var selector = new LocationSelector();
+        var location = await CreateLocationAsync(roslyn.Document);
+        var codeFixProvider = new Mock<CodeFixProvider>();
+        codeFixProvider
+            .SetupGet(item => item.FixableDiagnosticIds)
+            .Returns(["FixableId"]);
+        _workspaceResolver
+            .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
+            .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+        _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
+        _discoveryService.Setup(item => item.GetMatchingCodeFixProviders(null)).Returns([codeFixProvider.Object]);
+
+        var result = await _target.ExecuteAsync(
+            new ListCodeActionsRequest
+            {
+                Location = selector,
+                IncludeRefactorings = false,
+                DiagnosticIds = ["OtherId"],
+            },
+            _context.Object,
+            CancellationToken.None);
+
+        result.Outcome.Should().Be(CodeActionExecutionOutcome.Succeeded);
+        result.Data!.Actions.Should().BeEmpty();
+        _diagnosticService.Verify(item => item.GetDocumentDiagnosticsAsync(
+            It.IsAny<Document>(),
+            It.IsAny<TextSpan>(),
+            It.IsAny<IReadOnlyList<string>?>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     private static DiscoveredCodeAction CreateDiscoveredAction(

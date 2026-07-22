@@ -1,5 +1,3 @@
-using System.Collections.Immutable;
-
 namespace Roslyn.Workbench.Mcp.CodeActions.Discovery;
 
 internal interface ICodeActionDiscoveryService
@@ -21,6 +19,6 @@ internal interface ICodeActionDiscoveryService
     ValueTask<IReadOnlyList<DiscoveredCodeAction>> DiscoverCodeFixesAsync(
         CodeFixProvider provider,
         Document document,
-        ImmutableArray<Diagnostic> diagnostics,
+        IReadOnlyList<Diagnostic> diagnostics,
         CancellationToken cancellationToken);
 }

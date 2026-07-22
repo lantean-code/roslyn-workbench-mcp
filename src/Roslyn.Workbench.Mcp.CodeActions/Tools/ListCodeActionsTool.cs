@@ -4,6 +4,8 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Tools;
 
 internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeActionsRequest, CodeActionListData>
 {
+    private const string _toolName = "list-code-actions";
+
     private readonly ICodeActionProviderCatalog _providerCatalog;
     private readonly ICodeActionDiscoveryService _discoveryService;
     private readonly ICodeActionDiagnosticService _diagnosticService;
@@ -56,11 +58,17 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
         var discovered = new List<DiscoveredCodeAction>();
         if (request.IncludeRefactorings)
         {
-            foreach (var provider in _discoveryService.GetMatchingRefactoringProviders(providerId: null))
+            using (WorkbenchPerformanceEventSource.Log.StartPhase(
+                _toolName,
+                WorkbenchPerformanceEventSource.RefactoringDiscoveryPhase))
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                var actions = await _discoveryService.DiscoverRefactoringsAsync(provider, document, span, cancellationToken);
-                discovered.AddRange(actions);
+                var refactoringProviders = _discoveryService.GetMatchingRefactoringProviders(providerId: null);
+                foreach (var provider in refactoringProviders)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var actions = await _discoveryService.DiscoverRefactoringsAsync(provider, document, span, cancellationToken);
+                    discovered.AddRange(actions);
+                }
             }
         }
 
@@ -69,38 +77,59 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
             var codeFixProviders = _discoveryService.GetMatchingCodeFixProviders(providerId: null);
             if (codeFixProviders.Count > 0)
             {
-                var diagnostics = await _diagnosticService.GetDocumentDiagnosticsAsync(
-                    document,
-                    span,
-                    request.DiagnosticIds,
-                    cancellationToken);
-
-                foreach (var provider in codeFixProviders)
+                var effectiveDiagnosticIds = GetEffectiveDiagnosticIds(codeFixProviders, request.DiagnosticIds);
+                if (effectiveDiagnosticIds.Count > 0)
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    var actions = await _discoveryService.DiscoverCodeFixesAsync(provider, document, diagnostics, cancellationToken);
-                    discovered.AddRange(actions);
+                    IReadOnlyList<Diagnostic> diagnostics = [];
+                    using (WorkbenchPerformanceEventSource.Log.StartPhase(
+                        _toolName,
+                        WorkbenchPerformanceEventSource.DiagnosticCollectionPhase))
+                    {
+                        diagnostics = await _diagnosticService.GetDocumentDiagnosticsAsync(
+                            document,
+                            span,
+                            effectiveDiagnosticIds,
+                            cancellationToken);
+                    }
+
+                    using (WorkbenchPerformanceEventSource.Log.StartPhase(
+                        _toolName,
+                        WorkbenchPerformanceEventSource.CodeFixDiscoveryPhase))
+                    {
+                        foreach (var provider in codeFixProviders)
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            var actions = await _discoveryService.DiscoverCodeFixesAsync(provider, document, diagnostics, cancellationToken);
+                            discovered.AddRange(actions);
+                        }
+                    }
                 }
             }
         }
 
-        var visibleActions = new List<DiscoveredCodeAction>();
-        foreach (var action in discovered)
+        List<CodeActionInfo> actionInfos;
+        using (WorkbenchPerformanceEventSource.Log.StartPhase(
+            _toolName,
+            WorkbenchPerformanceEventSource.CodeActionProjectionPhase))
         {
-            if (!action.Descriptor.IsVisible)
+            var visibleActions = new List<DiscoveredCodeAction>();
+            foreach (var action in discovered)
             {
-                continue;
+                if (!action.Descriptor.IsVisible)
+                {
+                    continue;
+                }
+
+                visibleActions.Add(action);
             }
 
-            visibleActions.Add(action);
-        }
+            visibleActions.Sort(CompareActions);
 
-        visibleActions.Sort(CompareActions);
-
-        var actionInfos = new List<CodeActionInfo>();
-        foreach (var action in visibleActions)
-        {
-            actionInfos.Add(_infoFactory.Create(action, context, document, span, action.Descriptor));
+            actionInfos = new List<CodeActionInfo>();
+            foreach (var action in visibleActions)
+            {
+                actionInfos.Add(_infoFactory.Create(action, context, document, span, action.Descriptor));
+            }
         }
 
         var data = new CodeActionListData
@@ -109,6 +138,37 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
         };
 
         return CodeActionExecutionResult<CodeActionListData>.Success(data);
+    }
+
+    private static List<string> GetEffectiveDiagnosticIds(
+        IReadOnlyList<CodeFixProvider> providers,
+        IReadOnlyList<string>? requestedDiagnosticIds)
+    {
+        HashSet<string>? requestedDiagnosticIdSet = null;
+        if (requestedDiagnosticIds is { Count: > 0 })
+        {
+            requestedDiagnosticIdSet = new HashSet<string>(requestedDiagnosticIds, StringComparer.Ordinal);
+        }
+
+        var effectiveDiagnosticIds = new List<string>();
+        var seenDiagnosticIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var provider in providers)
+        {
+            foreach (var diagnosticId in provider.FixableDiagnosticIds)
+            {
+                if (requestedDiagnosticIdSet is not null && !requestedDiagnosticIdSet.Contains(diagnosticId))
+                {
+                    continue;
+                }
+
+                if (seenDiagnosticIds.Add(diagnosticId))
+                {
+                    effectiveDiagnosticIds.Add(diagnosticId);
+                }
+            }
+        }
+
+        return effectiveDiagnosticIds;
     }
 
     private static int CompareActions(DiscoveredCodeAction left, DiscoveredCodeAction right)

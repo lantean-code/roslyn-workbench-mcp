@@ -1,28 +1,26 @@
-using System.Collections.Immutable;
-
 namespace Roslyn.Workbench.Mcp.CodeActions.Discovery;
 
 internal interface ICodeActionDiagnosticService
 {
-    Task<ImmutableArray<Diagnostic>> GetDocumentDiagnosticsAsync(
+    Task<IReadOnlyList<Diagnostic>> GetDocumentDiagnosticsAsync(
         Document document,
         TextSpan span,
         IReadOnlyList<string>? diagnosticIds,
         CancellationToken cancellationToken);
 
-    Task<ImmutableArray<Diagnostic>> GetDocumentDiagnosticsAsync(
+    Task<IReadOnlyList<Diagnostic>> GetDocumentDiagnosticsAsync(
         Document document,
         IReadOnlyList<string>? diagnosticIds,
         CancellationToken cancellationToken);
 
-    Task<ImmutableArray<Diagnostic>> GetScopedCodeFixDiagnosticsAsync(
+    Task<IReadOnlyList<Diagnostic>> GetScopedCodeFixDiagnosticsAsync(
         Document document,
         IReadOnlyList<string> diagnosticIds,
         string? analyzerTypeName,
         string? syntheticDiagnosticId,
         CancellationToken cancellationToken);
 
-    Task<ImmutableArray<Diagnostic>> GetLocationScopedCodeFixDiagnosticsAsync(
+    Task<IReadOnlyList<Diagnostic>> GetLocationScopedCodeFixDiagnosticsAsync(
         Document document,
         TextSpan span,
         IReadOnlyList<string> diagnosticIds,
@@ -30,7 +28,7 @@ internal interface ICodeActionDiagnosticService
         string? syntheticDiagnosticId,
         CancellationToken cancellationToken);
 
-    Task<ImmutableArray<Diagnostic>> GetProjectDiagnosticsAsync(
+    Task<IReadOnlyList<Diagnostic>> GetProjectDiagnosticsAsync(
         Project project,
         IReadOnlyList<string>? diagnosticIds,
         CancellationToken cancellationToken);

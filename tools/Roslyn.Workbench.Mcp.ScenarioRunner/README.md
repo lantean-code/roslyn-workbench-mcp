@@ -192,7 +192,7 @@ Measure the representative relationship, source-scan, whole-project and deep-pro
 ```bash
 ./tools/Roslyn.Workbench.Mcp.ScenarioRunner/run-scenarios.sh \
   measure --repository serilog \
-  --scenario change-impact-low-limit,change-impact-high-limit,code-metrics-low-limit,code-metrics-high-limit,duplicate-code,control-flow-shallow,control-flow-deep \
+  --scenario change-impact-low-limit,change-impact-high-limit,code-metrics-low-limit,code-metrics-high-limit,duplicate-code,operation-tree,control-flow-shallow,control-flow-deep \
   --iterations 5 --warmups 2 --skip-prepare
 
 ./tools/Roslyn.Workbench.Mcp.ScenarioRunner/run-scenarios.sh \

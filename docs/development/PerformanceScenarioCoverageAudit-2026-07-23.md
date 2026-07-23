@@ -161,7 +161,7 @@ The limit comparisons confirm the intended boundary. `get-code-metrics` must sti
 
 A focused static pass over the four measured handlers found no `async void`, blocking `Task` access, per-call JSON options, runtime regular expressions, `Task.Run`, culture-sensitive string search or case-normalization pattern. It counted fifteen explicit `List`, `Dictionary` or `HashSet` constructions, twelve LINQ operations and two `string.Join` calls. Each collection is request-local analysis state or bounded response state; the remaining LINQ calls are small terminal aggregation/ordering operations or the complete discovery required by the contracts. All eight reference types in the selected files are sealed; the ninth declaration is a `readonly record struct`. No static signal contradicts the measured outcome.
 
-An attempted location-based operation-tree scenario also exposed a separate contract gap: a path-only `DocumentSelector` is ambiguous when the same physical file appears in several target-framework projects. The suite used project-qualified symbol selection for control flow at the time; the document selector has since gained an optional project qualifier that resolves the broader location-selector gap.
+An attempted location-based operation-tree scenario also exposed a separate contract gap: a path-only `DocumentSelector` is ambiguous when the same physical file appears in several target-framework projects. The document selector has since gained an optional project qualifier, and the suite now includes a project-qualified Serilog operation-tree scenario that covers the resolved boundary.
 
 ## Batch 6 implementation
 

@@ -516,6 +516,28 @@
           }
         },
         {
+          "id": "operation-tree",
+          "description": "Project-qualified location resolution and operation-tree projection for a document shared across target frameworks.",
+          "tool": "get-operation-tree",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "location": {
+              "span": {
+                "document": {
+                  "path": "src/Serilog/Core/Logger.cs",
+                  "project": {
+                    "path": "src/Serilog/Serilog.csproj",
+                    "targetFramework": "net10.0"
+                  }
+                },
+                "start": 20180,
+                "length": 21
+              }
+            },
+            "maxDepth": 8
+          }
+        },
+        {
           "id": "control-flow-shallow",
           "description": "Control-flow projection with deliberately small block and region bounds.",
           "tool": "get-control-flow-graph",

@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to estimate change impact for a symbol.
 /// </summary>
-public sealed record GetChangeImpactRequest : WorkspaceBoundRequest
+internal sealed record GetChangeImpactRequest : WorkspaceBoundRequest
 {
     private const int _defaultLocationsMaxResults = 100;
 

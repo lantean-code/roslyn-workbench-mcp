@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts;
 /// <summary>
 /// Represents the descriptor returned for one discovered code action.
 /// </summary>
-public sealed record DescribeCodeActionData
+internal sealed record DescribeCodeActionData
 {
     /// <summary>
     /// Gets the discovered action descriptor.

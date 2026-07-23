@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to return the symbols directly invoked by an executable symbol or selected body.
 /// </summary>
-public sealed record FindCalleesRequest : WorkspaceBoundRequest
+internal sealed record FindCalleesRequest : WorkspaceBoundRequest
 {
     private const int _defaultCalleesMaxResults = 100;
     private const int _defaultMaxDepth = 3;

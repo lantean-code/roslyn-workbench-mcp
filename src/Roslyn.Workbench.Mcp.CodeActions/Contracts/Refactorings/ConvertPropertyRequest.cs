@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 /// <summary>
 /// Requests one future Roslyn-backed property conversion at a selected property declaration.
 /// </summary>
-public sealed record ConvertPropertyRequest : WorkspaceBoundRequest
+internal sealed record ConvertPropertyRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the selected property declaration to rewrite.

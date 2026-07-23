@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents one projected attribute on a symbol.
 /// </summary>
-public sealed record AttributeInfo
+internal sealed record AttributeInfo
 {
     /// <summary>
     /// Gets the attribute display name.

@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents one node in an operation-tree projection.
 /// </summary>
-public sealed record OperationNode
+internal sealed record OperationNode
 {
     /// <summary>
     /// Gets the Roslyn operation kind.

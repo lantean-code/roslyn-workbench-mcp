@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents one definition result, either in source or metadata.
 /// </summary>
-public sealed record DefinitionLocation
+internal sealed record DefinitionLocation
 {
     /// <summary>
     /// Gets the source location, when the definition is in source.

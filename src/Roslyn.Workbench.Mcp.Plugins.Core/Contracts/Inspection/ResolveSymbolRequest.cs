@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to resolve a symbol from a source location.
 /// </summary>
-public sealed record ResolveSymbolRequest : WorkspaceBoundRequest
+internal sealed record ResolveSymbolRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the location selector.

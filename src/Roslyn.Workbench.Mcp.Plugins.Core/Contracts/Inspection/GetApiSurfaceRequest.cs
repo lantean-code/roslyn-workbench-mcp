@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to return the exported API surface for a scope.
 /// </summary>
-public sealed record GetApiSurfaceRequest : WorkspaceBoundRequest
+internal sealed record GetApiSurfaceRequest : WorkspaceBoundRequest
 {
     private const int _defaultSymbolsMaxResults = 100;
 

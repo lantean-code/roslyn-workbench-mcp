@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 /// <summary>
 /// Identifies the Roslyn extract-method variant to stage.
 /// </summary>
-public enum ExtractMethodTargetKind
+internal enum ExtractMethodTargetKind
 {
     /// <summary>
     /// Extracts the selection into a method.

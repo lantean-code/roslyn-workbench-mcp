@@ -70,11 +70,4 @@ public sealed class BoundedCollectionTests
         action.Should().Throw<ArgumentOutOfRangeException>();
     }
 
-    [Fact]
-    public void GIVEN_NullPreboundedItems_WHEN_CreatingCollection_THEN_ShouldThrow()
-    {
-        var action = () => BoundedCollection<string>.CreatePrebounded(null!, hasMore: false);
-
-        action.Should().Throw<ArgumentNullException>();
-    }
 }

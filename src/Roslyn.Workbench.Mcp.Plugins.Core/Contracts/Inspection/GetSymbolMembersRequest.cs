@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to retrieve members for a resolved symbol.
 /// </summary>
-public sealed record GetSymbolMembersRequest : WorkspaceBoundRequest
+internal sealed record GetSymbolMembersRequest : WorkspaceBoundRequest
 {
     private const int _defaultMembersMaxResults = 100;
 

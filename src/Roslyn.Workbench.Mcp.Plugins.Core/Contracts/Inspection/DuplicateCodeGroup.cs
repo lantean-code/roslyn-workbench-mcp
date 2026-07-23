@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents one duplicate-code group.
 /// </summary>
-public sealed record DuplicateCodeGroup
+internal sealed record DuplicateCodeGroup
 {
     /// <summary>
     /// Gets the number of normalized statements in the group.

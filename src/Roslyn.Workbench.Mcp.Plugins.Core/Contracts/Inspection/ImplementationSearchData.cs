@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by find-implementations.
 /// </summary>
-public sealed record ImplementationSearchData
+internal sealed record ImplementationSearchData
 {
     /// <summary>
     /// Gets the queried symbol.

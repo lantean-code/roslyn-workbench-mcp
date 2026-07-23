@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 /// <summary>
 /// Requests inlining of a local variable through Roslyn refactoring composition.
 /// </summary>
-public sealed record InlineVariableRequest : WorkspaceBoundRequest
+internal sealed record InlineVariableRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the symbol selector for the local variable to inline.

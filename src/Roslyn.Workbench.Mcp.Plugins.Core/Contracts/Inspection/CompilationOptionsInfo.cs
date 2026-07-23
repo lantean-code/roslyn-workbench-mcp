@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents selected Roslyn compilation options for a project.
 /// </summary>
-public sealed record CompilationOptionsInfo
+internal sealed record CompilationOptionsInfo
 {
     /// <summary>
     /// Gets the output kind.

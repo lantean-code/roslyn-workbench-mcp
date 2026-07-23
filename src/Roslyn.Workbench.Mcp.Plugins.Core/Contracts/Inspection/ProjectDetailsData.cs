@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by get-project-details.
 /// </summary>
-public sealed record ProjectDetailsData
+internal sealed record ProjectDetailsData
 {
     /// <summary>
     /// Gets the selected project information.

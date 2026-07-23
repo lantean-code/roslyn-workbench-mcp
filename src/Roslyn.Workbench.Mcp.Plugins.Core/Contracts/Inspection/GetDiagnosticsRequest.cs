@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to retrieve diagnostics for a scope.
 /// </summary>
-public sealed record GetDiagnosticsRequest : WorkspaceBoundRequest
+internal sealed record GetDiagnosticsRequest : WorkspaceBoundRequest
 {
     private const int _defaultDiagnosticsMaxResults = 200;
 

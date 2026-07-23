@@ -81,18 +81,6 @@ This must precede a release that actively promotes third-party plugin authoring.
 
 Sources: [2026-07-13-mef-plugin-composition.md](superpowers/plans/2026-07-13-mef-plugin-composition.md), [PluginApiSurfaceAudit-2026-07-18.md](PluginApiSurfaceAudit-2026-07-18.md)
 
-### Minimise the public surface of built-in tool contracts
-
-**Status:** Not started
-
-Audit the request and response DTOs for built-in tools and internalise types that are public only as an implementation convenience. Start with Code Action contracts: these tools are published through the Host-owned catalogue rather than the third-party plugin pipeline, so their request types should not need to form part of the supported public API.
-
-Bundled `Plugins.Core` tools currently pass through the same contract resolver as third-party plugins, and that resolver requires public request and response types. Preserve the public-contract requirement for external plugins. Before internalising bundled-plugin DTOs, separate trusted bundled-tool contract validation and metadata publication from external-plugin validation, or introduce an equally explicit bundled-only path that cannot weaken validation of third-party contracts.
-
-Keep the emitted MCP schemas and request binding behaviour unchanged, cover the intended exported type set with API-surface tests, and include response DTOs in the audit so the visibility policy remains consistent. This is public API hygiene rather than a security boundary and should not delay the core Host release.
-
-Source: [PluginApiSurfaceAudit-2026-07-18.md](PluginApiSurfaceAudit-2026-07-18.md)
-
 ### Decide whether macOS should gate pull requests
 
 **Status:** Started

@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents one direct symbol dependency.
 /// </summary>
-public sealed record DependencyInfo
+internal sealed record DependencyInfo
 {
     /// <summary>
     /// Gets the dependent symbol reference.

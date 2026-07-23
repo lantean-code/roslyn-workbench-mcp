@@ -34,7 +34,10 @@ public sealed class BundledCorePluginTests
 
         var toolRegistrationMaterializer = new PluginToolRegistrationMaterializer();
 
-        var preparation = configurationPreparer.Prepare(metadata, configuration);
+        var preparation = configurationPreparer.Prepare(
+            metadata,
+            configuration,
+            PluginContractAccessibility.AllowNonPublic);
         var result = toolRegistrationMaterializer.Materialize(preparation);
 
         var metadataByName = result.Tools.ToDictionary(static tool => tool.Tool.Metadata.Name, static tool => tool.Tool.Metadata, StringComparer.Ordinal);

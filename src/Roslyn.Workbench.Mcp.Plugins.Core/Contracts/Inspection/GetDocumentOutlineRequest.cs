@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to retrieve the semantic outline of a document.
 /// </summary>
-public sealed record GetDocumentOutlineRequest : WorkspaceBoundRequest
+internal sealed record GetDocumentOutlineRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the document selector.

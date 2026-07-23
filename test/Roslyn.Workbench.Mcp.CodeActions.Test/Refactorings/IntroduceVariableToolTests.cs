@@ -19,23 +19,24 @@ public sealed class IntroduceVariableToolTests
     }
 
     [Theory]
-    [InlineData(IntroduceVariableKind.Local, "Introduce local for ", "all occurrences")]
-    [InlineData(IntroduceVariableKind.LocalAllOccurrences, "Introduce local for all occurrences of ", null)]
-    [InlineData(IntroduceVariableKind.LocalConstant, "Introduce local constant for ", "all occurrences")]
-    [InlineData(IntroduceVariableKind.LocalConstantAllOccurrences, "Introduce local constant for all occurrences of ", null)]
-    [InlineData(IntroduceVariableKind.Constant, "Introduce constant for ", "all occurrences")]
-    [InlineData(IntroduceVariableKind.ConstantAllOccurrences, "Introduce constant for all occurrences of ", null)]
-    [InlineData(IntroduceVariableKind.Field, "Introduce field for ", "all occurrences")]
-    [InlineData(IntroduceVariableKind.FieldAllOccurrences, "Introduce field for all occurrences of ", null)]
-    [InlineData(IntroduceVariableKind.QueryVariable, "Introduce query variable for ", "all occurrences")]
-    [InlineData(IntroduceVariableKind.QueryVariableAllOccurrences, "Introduce query variable for all occurrences of ", null)]
+    [InlineData((int)IntroduceVariableKind.Local, "Introduce local for ", "all occurrences")]
+    [InlineData((int)IntroduceVariableKind.LocalAllOccurrences, "Introduce local for all occurrences of ", null)]
+    [InlineData((int)IntroduceVariableKind.LocalConstant, "Introduce local constant for ", "all occurrences")]
+    [InlineData((int)IntroduceVariableKind.LocalConstantAllOccurrences, "Introduce local constant for all occurrences of ", null)]
+    [InlineData((int)IntroduceVariableKind.Constant, "Introduce constant for ", "all occurrences")]
+    [InlineData((int)IntroduceVariableKind.ConstantAllOccurrences, "Introduce constant for all occurrences of ", null)]
+    [InlineData((int)IntroduceVariableKind.Field, "Introduce field for ", "all occurrences")]
+    [InlineData((int)IntroduceVariableKind.FieldAllOccurrences, "Introduce field for all occurrences of ", null)]
+    [InlineData((int)IntroduceVariableKind.QueryVariable, "Introduce query variable for ", "all occurrences")]
+    [InlineData((int)IntroduceVariableKind.QueryVariableAllOccurrences, "Introduce query variable for all occurrences of ", null)]
     public async Task GIVEN_IntroduceVariableKind_WHEN_CallingExecuteAsync_THEN_ShouldStageReplayActionWithExpectedTitleFilters(
-        IntroduceVariableKind kind,
+        int kindValue,
         string titleStartsWith,
         string? titleDoesNotContain)
     {
         var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var context = new Mock<ICodeActionMutationContext>();
+        var kind = (IntroduceVariableKind)kindValue;
         var request = new IntroduceVariableRequest
         {
             Selection = new LocationSelector(),

@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents one async analysis finding.
 /// </summary>
-public sealed record AsyncFinding
+internal sealed record AsyncFinding
 {
     /// <summary>
     /// Gets the finding kind.

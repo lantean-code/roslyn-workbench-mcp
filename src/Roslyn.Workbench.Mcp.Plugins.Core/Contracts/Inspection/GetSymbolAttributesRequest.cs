@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to retrieve attributes for a resolved symbol.
 /// </summary>
-public sealed record GetSymbolAttributesRequest : WorkspaceBoundRequest
+internal sealed record GetSymbolAttributesRequest : WorkspaceBoundRequest
 {
     private const int _defaultAttributesMaxResults = 50;
 

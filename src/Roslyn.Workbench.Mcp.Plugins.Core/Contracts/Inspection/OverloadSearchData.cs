@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by find-overloads.
 /// </summary>
-public sealed record OverloadSearchData
+internal sealed record OverloadSearchData
 {
     /// <summary>
     /// Gets the queried symbol.

@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to format one document or a selected range.
 /// </summary>
-public sealed record FormatDocumentRequest : WorkspaceBoundRequest
+internal sealed record FormatDocumentRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the document selector.

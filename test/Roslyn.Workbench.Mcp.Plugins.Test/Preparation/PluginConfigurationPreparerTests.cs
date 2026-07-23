@@ -39,7 +39,10 @@ public sealed class PluginConfigurationPreparerTests
         configuration.Freeze();
         SetupContract(typeof(IQueryToolHandler<Request, Response>));
 
-        var result = _target.Prepare(_pluginMetadata, configuration);
+        var result = _target.Prepare(
+            _pluginMetadata,
+            configuration,
+            PluginContractAccessibility.PublicOnly);
 
         var tool = result.Tools.Single().Tool;
         tool.Metadata.Name.Should().Be("fluent-name");
@@ -61,7 +64,10 @@ public sealed class PluginConfigurationPreparerTests
         configuration.Freeze();
         SetupContract(typeof(IMutationToolHandler<Request>));
 
-        var result = _target.Prepare(_pluginMetadata, configuration);
+        var result = _target.Prepare(
+            _pluginMetadata,
+            configuration,
+            PluginContractAccessibility.PublicOnly);
 
         var tool = result.Tools.Single().Tool;
         tool.Metadata.Name.Should().Be("attribute-mutation");
@@ -82,8 +88,15 @@ public sealed class PluginConfigurationPreparerTests
         duplicate.Freeze();
         SetupContract(typeof(IQueryToolHandler<Request, Response>));
 
-        var missingResult = _target.Prepare(_pluginMetadata, missing);
-        var duplicateResult = _target.Prepare(_pluginMetadata, duplicate);
+        var missingResult = _target.Prepare(
+            _pluginMetadata,
+            missing,
+            PluginContractAccessibility.PublicOnly);
+
+        var duplicateResult = _target.Prepare(
+            _pluginMetadata,
+            duplicate,
+            PluginContractAccessibility.PublicOnly);
 
         missingResult.Diagnostics.Should().ContainSingle(diagnostic =>
             diagnostic.Id == "PluginToolMetadata"
@@ -105,7 +118,10 @@ public sealed class PluginConfigurationPreparerTests
         configuration.Freeze();
         SetupContract(typeof(IQueryToolHandler<Request, Response>));
 
-        var result = _target.Prepare(_pluginMetadata, configuration);
+        var result = _target.Prepare(
+            _pluginMetadata,
+            configuration,
+            PluginContractAccessibility.PublicOnly);
 
         result.Tools.Should().BeEmpty();
         result.Diagnostics.Should().ContainSingle(diagnostic =>
@@ -130,7 +146,10 @@ public sealed class PluginConfigurationPreparerTests
             },
         ]);
 
-        var result = _target.Prepare(_pluginMetadata, configuration);
+        var result = _target.Prepare(
+            _pluginMetadata,
+            configuration,
+            PluginContractAccessibility.PublicOnly);
 
         result.Tools.Should().ContainSingle();
         result.Diagnostics.Should().ContainSingle(diagnostic =>
@@ -149,7 +168,10 @@ public sealed class PluginConfigurationPreparerTests
         configuration.Freeze();
         SetupContract(typeof(IQueryToolHandler<Request, Response>));
 
-        var result = _target.Prepare(_pluginMetadata, configuration);
+        var result = _target.Prepare(
+            _pluginMetadata,
+            configuration,
+            PluginContractAccessibility.PublicOnly);
 
         result.Tools.Should().BeEmpty();
         result.Diagnostics.Should().HaveCount(2);
@@ -177,7 +199,10 @@ public sealed class PluginConfigurationPreparerTests
 
         SetupContractFailure(CreateDiagnostic("PluginHandlerContract", DiagnosticSeverity.Error, "Contract error"));
 
-        var result = _target.Prepare(_pluginMetadata, configuration);
+        var result = _target.Prepare(
+            _pluginMetadata,
+            configuration,
+            PluginContractAccessibility.PublicOnly);
 
         result.Tools.Should().BeEmpty();
         result.Diagnostics.Select(static diagnostic => diagnostic.Id).Should().Equal(
@@ -195,6 +220,7 @@ public sealed class PluginConfigurationPreparerTests
         _contractResolver
             .Setup(value => value.TryResolve(
                 It.IsAny<ConfiguredToolDefinition>(),
+                It.IsAny<PluginContractAccessibility>(),
                 out resolvedContract,
                 out diagnostic))
             .Returns(true);
@@ -207,6 +233,7 @@ public sealed class PluginConfigurationPreparerTests
         _contractResolver
             .Setup(value => value.TryResolve(
                 It.IsAny<ConfiguredToolDefinition>(),
+                It.IsAny<PluginContractAccessibility>(),
                 out contract,
                 out diagnostic))
             .Returns(false);

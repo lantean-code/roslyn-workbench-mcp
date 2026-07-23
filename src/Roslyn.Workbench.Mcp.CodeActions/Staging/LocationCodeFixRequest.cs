@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Staging;
 /// <summary>
 /// Describes a host-owned location-scoped code-fix selection and staging request.
 /// </summary>
-public sealed record LocationCodeFixRequest
+internal sealed record LocationCodeFixRequest
 {
     /// <summary>
     /// Gets the selected source location to stage the code fix for.

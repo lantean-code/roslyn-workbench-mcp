@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to retrieve project details.
 /// </summary>
-public sealed record GetProjectDetailsRequest : WorkspaceBoundRequest
+internal sealed record GetProjectDetailsRequest : WorkspaceBoundRequest
 {
     private const int _defaultAnalyzersMaxResults = 50;
     private const int _defaultDocumentsMaxResults = 200;

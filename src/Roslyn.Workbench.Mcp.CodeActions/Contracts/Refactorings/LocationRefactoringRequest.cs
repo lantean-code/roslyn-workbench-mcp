@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 /// <summary>
 /// Requests a selection-based Roslyn refactoring through refactoring composition.
 /// </summary>
-public sealed record LocationRefactoringRequest : WorkspaceBoundRequest
+internal sealed record LocationRefactoringRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the selected location that identifies the Roslyn refactoring target.

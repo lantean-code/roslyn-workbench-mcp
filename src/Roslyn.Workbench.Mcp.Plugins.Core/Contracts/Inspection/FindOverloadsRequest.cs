@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to find overloads for a resolved callable symbol.
 /// </summary>
-public sealed record FindOverloadsRequest : WorkspaceBoundRequest
+internal sealed record FindOverloadsRequest : WorkspaceBoundRequest
 {
     private const int _defaultOverloadsMaxResults = 50;
 

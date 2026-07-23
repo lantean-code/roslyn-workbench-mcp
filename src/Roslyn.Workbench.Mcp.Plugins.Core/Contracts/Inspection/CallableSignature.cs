@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents one callable overload signature.
 /// </summary>
-public sealed record CallableSignature
+internal sealed record CallableSignature
 {
     /// <summary>
     /// Gets the callable display name.

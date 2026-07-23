@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by get-type-hierarchy.
 /// </summary>
-public sealed record TypeHierarchyData
+internal sealed record TypeHierarchyData
 {
     /// <summary>
     /// Gets the queried type.

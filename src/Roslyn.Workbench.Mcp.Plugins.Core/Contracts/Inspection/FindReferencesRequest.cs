@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to find references for a resolved symbol.
 /// </summary>
-public sealed record FindReferencesRequest : WorkspaceBoundRequest
+internal sealed record FindReferencesRequest : WorkspaceBoundRequest
 {
     private const int _defaultReferencesMaxResults = 100;
 

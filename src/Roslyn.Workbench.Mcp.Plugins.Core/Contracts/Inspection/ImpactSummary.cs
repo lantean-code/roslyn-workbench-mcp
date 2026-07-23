@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a bounded impact summary for a symbol change.
 /// </summary>
-public sealed record ImpactSummary
+internal sealed record ImpactSummary
 {
     /// <summary>
     /// Gets the number of direct source references found.

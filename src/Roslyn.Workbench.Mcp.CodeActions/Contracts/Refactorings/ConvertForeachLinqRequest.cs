@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 /// <summary>
 /// Requests one supported Roslyn foreach or LINQ conversion through refactoring composition.
 /// </summary>
-public sealed record ConvertForeachLinqRequest : WorkspaceBoundRequest
+internal sealed record ConvertForeachLinqRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the selected foreach statement or query expression to convert.

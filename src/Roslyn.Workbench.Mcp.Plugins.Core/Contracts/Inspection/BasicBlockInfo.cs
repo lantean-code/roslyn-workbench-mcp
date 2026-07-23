@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents one basic block in a control-flow-graph projection.
 /// </summary>
-public sealed record BasicBlockInfo
+internal sealed record BasicBlockInfo
 {
     /// <summary>
     /// Gets the block ordinal.

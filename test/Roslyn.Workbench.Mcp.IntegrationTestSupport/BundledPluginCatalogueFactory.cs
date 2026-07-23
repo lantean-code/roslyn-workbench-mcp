@@ -24,7 +24,10 @@ public static class BundledPluginCatalogueFactory
             new PluginHandlerContractResolver(),
             new PluginHandlerWarningInspector());
 
-        var preparation = configurationPreparer.Prepare(metadata, configuration);
+        var preparation = configurationPreparer.Prepare(
+            metadata,
+            configuration,
+            PluginContractAccessibility.AllowNonPublic);
         var materialization = new PluginToolRegistrationMaterializer().Materialize(preparation);
         return new PluginToolCatalogue(materialization.Tools);
     }

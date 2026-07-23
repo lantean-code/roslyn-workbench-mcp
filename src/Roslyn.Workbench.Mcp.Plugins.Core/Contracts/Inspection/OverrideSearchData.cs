@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by find-overrides.
 /// </summary>
-public sealed record OverrideSearchData
+internal sealed record OverrideSearchData
 {
     /// <summary>
     /// Gets the queried base member.

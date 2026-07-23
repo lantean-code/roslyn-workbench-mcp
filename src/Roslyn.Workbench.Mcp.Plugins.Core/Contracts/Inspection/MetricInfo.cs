@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents one projected metric row.
 /// </summary>
-public sealed record MetricInfo
+internal sealed record MetricInfo
 {
     /// <summary>
     /// Gets the associated symbol.

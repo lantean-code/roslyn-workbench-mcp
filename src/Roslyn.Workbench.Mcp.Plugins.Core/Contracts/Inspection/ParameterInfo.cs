@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents one callable parameter.
 /// </summary>
-public sealed record ParameterInfo
+internal sealed record ParameterInfo
 {
     /// <summary>
     /// Gets the parameter name.

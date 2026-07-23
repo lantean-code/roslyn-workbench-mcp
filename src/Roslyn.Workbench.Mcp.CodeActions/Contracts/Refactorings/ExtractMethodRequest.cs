@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 /// <summary>
 /// Requests extraction of a selected statement or expression block through Roslyn refactoring composition.
 /// </summary>
-public sealed record ExtractMethodRequest : WorkspaceBoundRequest
+internal sealed record ExtractMethodRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the selected code to extract.

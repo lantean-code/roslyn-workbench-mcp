@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents one duplicate-code occurrence.
 /// </summary>
-public sealed record DuplicateCodeOccurrence
+internal sealed record DuplicateCodeOccurrence
 {
     /// <summary>
     /// Gets the enclosing symbol.

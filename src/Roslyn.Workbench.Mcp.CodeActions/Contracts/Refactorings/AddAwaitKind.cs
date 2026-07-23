@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 /// <summary>
 /// Selects the add-await replay variant.
 /// </summary>
-public enum AddAwaitKind
+internal enum AddAwaitKind
 {
     /// <summary>
     /// Adds <c>await</c> only.

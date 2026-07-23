@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to find likely impacted tests for a symbol.
 /// </summary>
-public sealed record GetTestImpactRequest : WorkspaceBoundRequest
+internal sealed record GetTestImpactRequest : WorkspaceBoundRequest
 {
     private const int _defaultTestsMaxResults = 100;
 

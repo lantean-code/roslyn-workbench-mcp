@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 /// <summary>
 /// Requests one supported Roslyn introduce-variable action through refactoring composition.
 /// </summary>
-public sealed record IntroduceVariableRequest : WorkspaceBoundRequest
+internal sealed record IntroduceVariableRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the selected expression to introduce.

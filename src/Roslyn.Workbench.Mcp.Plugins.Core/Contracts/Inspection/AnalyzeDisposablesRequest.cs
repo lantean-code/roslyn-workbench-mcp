@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to analyse disposable-usage findings in a selected scope.
 /// </summary>
-public sealed record AnalyzeDisposablesRequest : WorkspaceBoundRequest
+internal sealed record AnalyzeDisposablesRequest : WorkspaceBoundRequest
 {
     private const int _defaultFindingsMaxResults = 50;
 

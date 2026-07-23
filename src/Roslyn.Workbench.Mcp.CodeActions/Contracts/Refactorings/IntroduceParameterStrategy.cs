@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 /// <summary>
 /// Identifies the Roslyn introduce-parameter strategy to stage.
 /// </summary>
-public enum IntroduceParameterStrategy
+internal enum IntroduceParameterStrategy
 {
     /// <summary>
     /// Updates existing call sites directly.

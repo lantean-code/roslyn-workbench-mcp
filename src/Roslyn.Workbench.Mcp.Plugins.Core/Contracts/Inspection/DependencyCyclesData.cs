@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by find-dependency-cycles.
 /// </summary>
-public sealed record DependencyCyclesData
+internal sealed record DependencyCyclesData
 {
     /// <summary>
     /// Gets the returned cycles.

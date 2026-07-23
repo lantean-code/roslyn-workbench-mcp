@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to return a bounded dependency graph for a selected scope.
 /// </summary>
-public sealed record GetDependencyGraphRequest : WorkspaceBoundRequest
+internal sealed record GetDependencyGraphRequest : WorkspaceBoundRequest
 {
     private const int _defaultEdgesMaxResults = 400;
     private const int _defaultNodesMaxResults = 200;

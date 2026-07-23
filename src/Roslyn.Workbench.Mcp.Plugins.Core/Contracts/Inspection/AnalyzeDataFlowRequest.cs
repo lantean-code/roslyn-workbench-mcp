@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to analyze data flow for a selected region.
 /// </summary>
-public sealed record AnalyzeDataFlowRequest : WorkspaceBoundRequest
+internal sealed record AnalyzeDataFlowRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the selected location.

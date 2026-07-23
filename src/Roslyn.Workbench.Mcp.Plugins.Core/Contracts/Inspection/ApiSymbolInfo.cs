@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents one exported API symbol.
 /// </summary>
-public sealed record ApiSymbolInfo
+internal sealed record ApiSymbolInfo
 {
     /// <summary>
     /// Gets the exported symbol.

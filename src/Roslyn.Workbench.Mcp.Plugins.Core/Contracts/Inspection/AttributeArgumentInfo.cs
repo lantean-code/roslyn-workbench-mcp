@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents one constructor or named argument on an attribute.
 /// </summary>
-public sealed record AttributeArgumentInfo
+internal sealed record AttributeArgumentInfo
 {
     /// <summary>
     /// Gets the argument name for named arguments.

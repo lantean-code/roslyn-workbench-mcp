@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents one node in a derived-type hierarchy projection.
 /// </summary>
-public sealed record TypeHierarchyNode
+internal sealed record TypeHierarchyNode
 {
     /// <summary>
     /// Gets the resolved type symbol.

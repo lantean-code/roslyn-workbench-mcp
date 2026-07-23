@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents one metadata reference for a project.
 /// </summary>
-public sealed record MetadataReferenceInfo
+internal sealed record MetadataReferenceInfo
 {
     /// <summary>
     /// Gets the display string for the metadata reference.

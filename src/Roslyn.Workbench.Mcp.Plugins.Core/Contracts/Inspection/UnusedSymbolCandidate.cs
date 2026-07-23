@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents one unused symbol candidate.
 /// </summary>
-public sealed record UnusedSymbolCandidate
+internal sealed record UnusedSymbolCandidate
 {
     /// <summary>
     /// Gets the candidate symbol.

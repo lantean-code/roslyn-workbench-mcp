@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts;
 /// <summary>
 /// Represents a request to stage a selected code fix across a broader scope.
 /// </summary>
-public sealed record StageFixAllRequest : WorkspaceBoundRequest
+internal sealed record StageFixAllRequest : WorkspaceBoundRequest
 {
     internal const int _defaultMaxChanges = 50;
 

@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts;
 /// <summary>
 /// Represents the minimal default descriptor returned when listing code actions.
 /// </summary>
-public sealed record CodeActionListItem
+internal sealed record CodeActionListItem
 {
     /// <summary>
     /// Gets the opaque action token.

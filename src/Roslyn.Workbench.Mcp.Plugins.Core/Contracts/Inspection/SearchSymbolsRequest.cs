@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to search for symbol declarations.
 /// </summary>
-public sealed record SearchSymbolsRequest : WorkspaceBoundRequest
+internal sealed record SearchSymbolsRequest : WorkspaceBoundRequest
 {
     private const int _defaultSymbolsMaxResults = 100;
 

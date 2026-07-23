@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to find implementations for a resolved symbol.
 /// </summary>
-public sealed record FindImplementationsRequest : WorkspaceBoundRequest
+internal sealed record FindImplementationsRequest : WorkspaceBoundRequest
 {
     private const int _defaultImplementationsMaxResults = 100;
 

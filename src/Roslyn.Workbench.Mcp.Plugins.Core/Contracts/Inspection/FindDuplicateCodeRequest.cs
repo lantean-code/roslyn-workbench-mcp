@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to find duplicate code groups in a selected scope.
 /// </summary>
-public sealed record FindDuplicateCodeRequest : WorkspaceBoundRequest
+internal sealed record FindDuplicateCodeRequest : WorkspaceBoundRequest
 {
     private const int _defaultGroupsMaxResults = 25;
     private const int _defaultMinimumStatements = 3;

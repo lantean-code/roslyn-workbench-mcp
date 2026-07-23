@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 /// <summary>
 /// Identifies the Roslyn foreach or LINQ conversion variant to stage.
 /// </summary>
-public enum ConvertForeachLinqKind
+internal enum ConvertForeachLinqKind
 {
     /// <summary>
     /// Converts a supported foreach loop into query-expression LINQ syntax.

@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to retrieve a control-flow graph for a symbol or location.
 /// </summary>
-public sealed record GetControlFlowGraphRequest : WorkspaceBoundRequest
+internal sealed record GetControlFlowGraphRequest : WorkspaceBoundRequest
 {
     private const int _defaultMaxBlocks = 64;
     private const int _defaultMaxRegions = 32;

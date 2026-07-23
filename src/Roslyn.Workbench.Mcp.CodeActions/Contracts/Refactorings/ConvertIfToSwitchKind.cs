@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 /// <summary>
 /// Selects the convert-if-to-switch replay variant.
 /// </summary>
-public enum ConvertIfToSwitchKind
+internal enum ConvertIfToSwitchKind
 {
     /// <summary>
     /// Converts to a switch statement.

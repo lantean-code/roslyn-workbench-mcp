@@ -2,12 +2,12 @@ using System.Text.Json.Serialization;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Collections;
 
-#pragma warning disable CA1000, CA1711 // The public bounded-collection contract uses cohesive generic factories and accurately describes its collection payload.
+#pragma warning disable CA1000, CA1711 // The bounded-collection wire contract uses cohesive generic factories and accurately describes its collection payload.
 /// <summary>
 /// Represents a bounded collection result published to tool consumers.
 /// </summary>
 /// <typeparam name="TItem">The collection item type.</typeparam>
-public sealed record BoundedCollection<TItem>
+internal sealed record BoundedCollection<TItem>
 {
     private static readonly BoundedCollection<TItem> _empty = new(Array.Empty<TItem>(), hasMore: false, totalCount: 0);
 
@@ -50,8 +50,6 @@ public sealed record BoundedCollection<TItem>
     /// <returns>The untruncated bounded collection projection.</returns>
     public static BoundedCollection<TItem> Create(IReadOnlyList<TItem> items)
     {
-        ArgumentNullException.ThrowIfNull(items);
-
         if (items.Count == 0)
         {
             return Empty();
@@ -70,8 +68,6 @@ public sealed record BoundedCollection<TItem>
         IReadOnlyList<TItem> items,
         bool hasMore)
     {
-        ArgumentNullException.ThrowIfNull(items);
-
         if (items.Count == 0 && !hasMore)
         {
             return Empty();
@@ -90,7 +86,6 @@ public sealed record BoundedCollection<TItem>
         IReadOnlyList<TItem> items,
         int totalCount)
     {
-        ArgumentNullException.ThrowIfNull(items);
         ArgumentOutOfRangeException.ThrowIfLessThan(totalCount, items.Count);
 
         if (totalCount == 0)

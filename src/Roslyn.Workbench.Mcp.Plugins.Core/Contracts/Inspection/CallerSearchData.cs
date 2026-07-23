@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by find-callers.
 /// </summary>
-public sealed record CallerSearchData
+internal sealed record CallerSearchData
 {
     /// <summary>
     /// Gets the queried symbol.

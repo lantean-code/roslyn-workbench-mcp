@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 /// <summary>
 /// Requests a future move of a selected type into its own Roslyn-chosen file within the same project.
 /// </summary>
-public sealed record MoveTypeToFileRequest : WorkspaceBoundRequest
+internal sealed record MoveTypeToFileRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the source type to move into its own document.

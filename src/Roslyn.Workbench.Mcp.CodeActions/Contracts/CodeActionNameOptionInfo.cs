@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts;
 /// <summary>
 /// Describes a simple named option for a code action.
 /// </summary>
-public sealed record CodeActionNameOptionInfo
+internal sealed record CodeActionNameOptionInfo
 {
     /// <summary>
     /// Gets the logical option name.

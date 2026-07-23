@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts;
 /// <summary>
 /// Represents a request to stage a selected refactoring action.
 /// </summary>
-public sealed record StageCodeActionRequest : WorkspaceBoundRequest
+internal sealed record StageCodeActionRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the opaque action token.

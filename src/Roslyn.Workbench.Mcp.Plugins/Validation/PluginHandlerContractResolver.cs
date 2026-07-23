@@ -10,6 +10,7 @@ internal sealed class PluginHandlerContractResolver : IPluginHandlerContractReso
 
     public bool TryResolve(
         ConfiguredToolDefinition definition,
+        PluginContractAccessibility contractAccessibility,
         [NotNullWhen(true)] out Type? contract,
         [NotNullWhen(false)] out DiagnosticInfo? diagnostic)
     {
@@ -39,13 +40,16 @@ internal sealed class PluginHandlerContractResolver : IPluginHandlerContractReso
         }
 
         contract = matchingContracts[0];
-        foreach (var contractType in contract.GenericTypeArguments)
+        if (contractAccessibility == PluginContractAccessibility.PublicOnly)
         {
-            if (!IsPublicContractType(contractType))
+            foreach (var contractType in contract.GenericTypeArguments)
             {
-                contract = null;
-                diagnostic = CreateDiagnostic($"Tool contract type '{contractType.FullName}' must be public.");
-                return false;
+                if (!IsPublicContractType(contractType))
+                {
+                    contract = null;
+                    diagnostic = CreateDiagnostic($"Tool contract type '{contractType.FullName}' must be public.");
+                    return false;
+                }
             }
         }
 

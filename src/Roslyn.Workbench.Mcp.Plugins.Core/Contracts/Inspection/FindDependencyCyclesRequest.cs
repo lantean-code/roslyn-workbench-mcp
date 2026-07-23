@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to find dependency cycles for a selected scope.
 /// </summary>
-public sealed record FindDependencyCyclesRequest : WorkspaceBoundRequest
+internal sealed record FindDependencyCyclesRequest : WorkspaceBoundRequest
 {
     private const int _defaultCyclesMaxResults = 25;
 

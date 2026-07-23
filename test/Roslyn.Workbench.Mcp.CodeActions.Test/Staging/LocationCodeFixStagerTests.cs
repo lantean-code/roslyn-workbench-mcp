@@ -379,11 +379,12 @@ public sealed class LocationCodeFixStagerTests
     }
 
     [Theory]
-    [InlineData(CodeActionExecutionMode.Replay)]
-    [InlineData(CodeActionExecutionMode.Parameterised)]
-    public async Task GIVEN_MatchingActionCanExecute_WHEN_StagingLocationFix_THEN_ShouldCreateMutationCandidate(CodeActionExecutionMode executionMode)
+    [InlineData((int)CodeActionExecutionMode.Replay)]
+    [InlineData((int)CodeActionExecutionMode.Parameterised)]
+    public async Task GIVEN_MatchingActionCanExecute_WHEN_StagingLocationFix_THEN_ShouldCreateMutationCandidate(int executionModeValue)
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var executionMode = (CodeActionExecutionMode)executionModeValue;
         var selector = new LocationSelector();
         var expectedSnapshot = new SnapshotPrecondition();
         var location = await CreateLocationAsync(roslyn.Document);

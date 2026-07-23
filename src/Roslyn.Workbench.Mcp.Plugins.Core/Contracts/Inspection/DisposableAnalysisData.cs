@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by analyze-disposables.
 /// </summary>
-public sealed record DisposableAnalysisData
+internal sealed record DisposableAnalysisData
 {
     /// <summary>
     /// Gets the returned findings.

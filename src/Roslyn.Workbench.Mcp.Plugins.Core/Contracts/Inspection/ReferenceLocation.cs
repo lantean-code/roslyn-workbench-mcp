@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents one reference search result.
 /// </summary>
-public sealed record ReferenceLocation
+internal sealed record ReferenceLocation
 {
     /// <summary>
     /// Gets the reference location.

@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to return code metrics for a scope or symbol.
 /// </summary>
-public sealed record GetCodeMetricsRequest : WorkspaceBoundRequest
+internal sealed record GetCodeMetricsRequest : WorkspaceBoundRequest
 {
     private const int _defaultMetricsMaxResults = 100;
 

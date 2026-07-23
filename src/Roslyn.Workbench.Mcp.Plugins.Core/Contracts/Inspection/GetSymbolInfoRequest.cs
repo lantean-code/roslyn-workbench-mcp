@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to retrieve detailed symbol information.
 /// </summary>
-public sealed record GetSymbolInfoRequest : WorkspaceBoundRequest
+internal sealed record GetSymbolInfoRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the symbol selector.

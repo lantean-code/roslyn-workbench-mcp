@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by find-unused-symbols.
 /// </summary>
-public sealed record UnusedSymbolsData
+internal sealed record UnusedSymbolsData
 {
     /// <summary>
     /// Gets the returned unused symbol candidates.

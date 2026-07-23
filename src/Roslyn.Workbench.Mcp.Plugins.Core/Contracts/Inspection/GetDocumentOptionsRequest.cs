@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to retrieve document options.
 /// </summary>
-public sealed record GetDocumentOptionsRequest : WorkspaceBoundRequest
+internal sealed record GetDocumentOptionsRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the document selector.

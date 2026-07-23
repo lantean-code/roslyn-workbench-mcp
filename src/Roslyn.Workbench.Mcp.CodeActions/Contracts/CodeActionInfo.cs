@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts;
 /// <summary>
 /// Describes one applicable code action or code fix.
 /// </summary>
-public sealed record CodeActionInfo
+internal sealed record CodeActionInfo
 {
     /// <summary>
     /// Gets the workspace identifier for which the action is valid.

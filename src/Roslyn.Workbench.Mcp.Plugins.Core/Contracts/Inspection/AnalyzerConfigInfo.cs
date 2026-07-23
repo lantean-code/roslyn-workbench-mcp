@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents analyzer configuration inputs and effective options for one document.
 /// </summary>
-public sealed record AnalyzerConfigInfo
+internal sealed record AnalyzerConfigInfo
 {
     /// <summary>
     /// Gets the global analyzer-config file paths applied to the document.

@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to find overrides of a virtual or abstract member.
 /// </summary>
-public sealed record FindOverridesRequest : WorkspaceBoundRequest
+internal sealed record FindOverridesRequest : WorkspaceBoundRequest
 {
     private const int _defaultOverridesMaxResults = 100;
 

@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Staging;
 /// <summary>
 /// Describes a host-owned replayable code-action selection and staging request.
 /// </summary>
-public sealed record ReplayCodeActionRequest
+internal sealed record ReplayCodeActionRequest
 {
     /// <summary>
     /// Gets the location selector used to discover candidate refactorings.

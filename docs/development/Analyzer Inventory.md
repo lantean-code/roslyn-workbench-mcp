@@ -67,7 +67,7 @@ There are no active diagnostics in the solution-wide `latest-all` baseline.
 | `CA1508` | 2 | Removed the redundant production null path and added a method-scoped suppression for the deliberate equality-contract test |
 | `CA1515` | 91 | Internalised 32 Host CLR and wire-model implementation types without changing their JSON or MCP shapes, reduced test helpers to the narrowest accessibility, and retained only genuine plugin-contract, schema, xUnit discovery and dynamic-proxy surfaces with source-local rationale |
 | `CA1707` | 1,462 | Suppressed for `IsTestProject` builds because GIVEN/WHEN/THEN names are mandated |
-| `CA1711` | 2 | Renamed the xUnit collection-definition type and retained `BoundedCollection` because it accurately names the public bounded collection contract |
+| `CA1711` | 2 | Renamed the xUnit collection-definition type and retained `BoundedCollection` because it accurately names the bounded collection wire contract |
 | `CA1802` | 1 | Retained the readonly static field in the warning-inspector fixture so it remains distinct from constant state |
 | `CA1812` | 33 | Audited every original finding and the private fixtures exposed by the accessibility audit; added source-local pragma scopes for types used through reflection, DI, deserialisation, closed-generic registration, schema metadata or deliberate activation failures; no dead types were found |
 | `CA1819` | 1 | Suppressed for test and plugin-fixture builds because the mutable array contract is an intentional negative contract-inspection scenario |

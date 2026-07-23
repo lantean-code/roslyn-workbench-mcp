@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents one caller and its call sites.
 /// </summary>
-public sealed record CallerInfo
+internal sealed record CallerInfo
 {
     /// <summary>
     /// Gets the calling symbol.

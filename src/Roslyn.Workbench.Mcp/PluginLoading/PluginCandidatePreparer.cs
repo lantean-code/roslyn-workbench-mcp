@@ -95,7 +95,12 @@ internal sealed class PluginCandidatePreparer : IPluginCandidatePreparer
 
         try
         {
-            AddPreparedPlugin(_loadedPluginPreparer.Prepare(assembly, entryPoint), plugins, statuses);
+            var preparedPlugin = _loadedPluginPreparer.Prepare(
+                assembly,
+                entryPoint,
+                PluginContractAccessibility.AllowNonPublic);
+
+            AddPreparedPlugin(preparedPlugin, plugins, statuses);
         }
         catch (Exception exception)
         {
@@ -173,7 +178,12 @@ internal sealed class PluginCandidatePreparer : IPluginCandidatePreparer
 
             loadContexts.Add(loadContext);
             var assembly = loadContext.LoadFromAssemblyPath(candidate.EntryAssemblyPath);
-            AddPreparedPlugin(_loadedPluginPreparer.Prepare(assembly, candidate.EntryPoint), plugins, statuses);
+            var preparedPlugin = _loadedPluginPreparer.Prepare(
+                assembly,
+                candidate.EntryPoint,
+                PluginContractAccessibility.PublicOnly);
+
+            AddPreparedPlugin(preparedPlugin, plugins, statuses);
         }
         catch (Exception exception)
         {

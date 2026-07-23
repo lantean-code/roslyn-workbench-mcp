@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to find callers for a resolved symbol.
 /// </summary>
-public sealed record FindCallersRequest : WorkspaceBoundRequest
+internal sealed record FindCallersRequest : WorkspaceBoundRequest
 {
     private const int _defaultCallersMaxResults = 100;
 

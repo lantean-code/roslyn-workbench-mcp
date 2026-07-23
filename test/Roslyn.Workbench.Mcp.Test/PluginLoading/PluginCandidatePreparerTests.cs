@@ -31,14 +31,22 @@ public sealed class PluginCandidatePreparerTests
         var entryPoint = CreateEntryPoint("bundled");
         var preparedPlugin = CreatePreparedPlugin(entryPoint);
         _metadataReader.Setup(value => value.Inspect(assembly.Location)).Returns(CreateInspection(entryPoint));
-        _loadedPluginPreparer.Setup(value => value.Prepare(assembly, entryPoint)).Returns(preparedPlugin);
+        _loadedPluginPreparer
+            .Setup(value => value.Prepare(
+                assembly,
+                entryPoint,
+                PluginContractAccessibility.AllowNonPublic))
+            .Returns(preparedPlugin);
 
         var result = _target.PrepareBundled([assembly]);
 
         result.Plugins.Should().ContainSingle().Which.Should().BeSameAs(preparedPlugin);
         result.Statuses.Should().BeEmpty();
         result.LoadContexts.Should().BeEmpty();
-        _loadedPluginPreparer.Verify(value => value.Prepare(assembly, entryPoint), Times.Once);
+        _loadedPluginPreparer.Verify(value => value.Prepare(
+            assembly,
+            entryPoint,
+            PluginContractAccessibility.AllowNonPublic), Times.Once);
     }
 
     [Theory]
@@ -66,7 +74,12 @@ public sealed class PluginCandidatePreparerTests
                 diagnostic.Id == "PluginDiscovery"
                 && diagnostic.Message.Contains(expectedMessage, StringComparison.Ordinal)));
 
-        _loadedPluginPreparer.Verify(static value => value.Prepare(It.IsAny<Assembly>(), It.IsAny<PluginEntryPointMetadata>()), Times.Never);
+        _loadedPluginPreparer.Verify(
+            static value => value.Prepare(
+                It.IsAny<Assembly>(),
+                It.IsAny<PluginEntryPointMetadata>(),
+                It.IsAny<PluginContractAccessibility>()),
+            Times.Never);
     }
 
     [Fact]
@@ -99,7 +112,12 @@ public sealed class PluginCandidatePreparerTests
                 diagnostic.Id == "PluginMetadata"
                 && diagnostic.Message == "Validation failed"));
 
-        _loadedPluginPreparer.Verify(static value => value.Prepare(It.IsAny<Assembly>(), It.IsAny<PluginEntryPointMetadata>()), Times.Never);
+        _loadedPluginPreparer.Verify(
+            static value => value.Prepare(
+                It.IsAny<Assembly>(),
+                It.IsAny<PluginEntryPointMetadata>(),
+                It.IsAny<PluginContractAccessibility>()),
+            Times.Never);
     }
 
     [Fact]
@@ -107,7 +125,10 @@ public sealed class PluginCandidatePreparerTests
     {
         var assembly = typeof(BundledCorePlugin).Assembly;
         _metadataReader.Setup(value => value.Inspect(assembly.Location)).Returns(CreateInspection(CreateEntryPoint("bundled")));
-        _loadedPluginPreparer.Setup(value => value.Prepare(assembly, It.IsAny<PluginEntryPointMetadata>()))
+        _loadedPluginPreparer.Setup(value => value.Prepare(
+                assembly,
+                It.IsAny<PluginEntryPointMetadata>(),
+                PluginContractAccessibility.AllowNonPublic))
             .Throws(new InvalidOperationException("Configuration failed"));
 
         var result = _target.PrepareBundled([assembly]);
@@ -134,7 +155,12 @@ public sealed class PluginCandidatePreparerTests
 
         var preparedPlugin = CreatePreparedPlugin(entryPoint, diagnostics);
         _metadataReader.Setup(value => value.Inspect(assembly.Location)).Returns(CreateInspection(entryPoint));
-        _loadedPluginPreparer.Setup(value => value.Prepare(assembly, entryPoint)).Returns(preparedPlugin);
+        _loadedPluginPreparer
+            .Setup(value => value.Prepare(
+                assembly,
+                entryPoint,
+                PluginContractAccessibility.AllowNonPublic))
+            .Returns(preparedPlugin);
 
         var result = _target.PrepareBundled([assembly]);
 
@@ -228,7 +254,12 @@ public sealed class PluginCandidatePreparerTests
                 out loadContext))
             .Returns(true);
 
-        _loadedPluginPreparer.Setup(value => value.Prepare(It.IsAny<Assembly>(), entryPoint)).Returns(preparedPlugin);
+        _loadedPluginPreparer
+            .Setup(value => value.Prepare(
+                It.IsAny<Assembly>(),
+                entryPoint,
+                PluginContractAccessibility.PublicOnly))
+            .Returns(preparedPlugin);
 
         var result = _target.PrepareExternal([discoveryResult], new HashSet<string>(StringComparer.Ordinal));
 
@@ -294,7 +325,10 @@ public sealed class PluginCandidatePreparerTests
                 && diagnostic.Message.Contains("outside", StringComparison.Ordinal)));
 
         _loadedPluginPreparer.Verify(
-            static value => value.Prepare(It.IsAny<Assembly>(), It.IsAny<PluginEntryPointMetadata>()),
+            static value => value.Prepare(
+                It.IsAny<Assembly>(),
+                It.IsAny<PluginEntryPointMetadata>(),
+                It.IsAny<PluginContractAccessibility>()),
             Times.Never);
     }
 

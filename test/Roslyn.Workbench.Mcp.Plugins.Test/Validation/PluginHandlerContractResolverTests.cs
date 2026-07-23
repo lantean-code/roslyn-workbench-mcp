@@ -22,7 +22,11 @@ public sealed class PluginHandlerContractResolverTests
         var kind = isMutation ? ToolKind.Mutation : ToolKind.Query;
         var definition = CreateDefinition(handlerType, kind);
 
-        var result = _target.TryResolve(definition, out var contract, out var diagnostic);
+        var result = _target.TryResolve(
+            definition,
+            PluginContractAccessibility.PublicOnly,
+            out var contract,
+            out var diagnostic);
 
         result.Should().BeTrue();
         contract.Should().Be(expectedContract);
@@ -37,7 +41,11 @@ public sealed class PluginHandlerContractResolverTests
     {
         var definition = CreateDefinition(handlerType, ToolKind.Query);
 
-        var result = _target.TryResolve(definition, out var contract, out var diagnostic);
+        var result = _target.TryResolve(
+            definition,
+            PluginContractAccessibility.PublicOnly,
+            out var contract,
+            out var diagnostic);
 
         result.Should().BeFalse();
         contract.Should().BeNull();
@@ -55,13 +63,33 @@ public sealed class PluginHandlerContractResolverTests
     {
         var definition = CreateDefinition(handlerType, ToolKind.Query);
 
-        var result = _target.TryResolve(definition, out var contract, out var diagnostic);
+        var result = _target.TryResolve(
+            definition,
+            PluginContractAccessibility.PublicOnly,
+            out var contract,
+            out var diagnostic);
 
         result.Should().BeFalse();
         contract.Should().BeNull();
         diagnostic.Should().Match<DiagnosticInfo>(value =>
             value.Id == "PluginHandlerContract"
             && value.Message.Contains("must be public", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GIVEN_NonPublicTransportContractForBundledTool_WHEN_Resolving_THEN_ShouldReturnContract()
+    {
+        var definition = CreateDefinition(typeof(PrivateContractHandler), ToolKind.Query);
+
+        var result = _target.TryResolve(
+            definition,
+            PluginContractAccessibility.AllowNonPublic,
+            out var contract,
+            out var diagnostic);
+
+        result.Should().BeTrue();
+        contract.Should().Be<IQueryToolHandler<PrivateRequest, Response>>();
+        diagnostic.Should().BeNull();
     }
 
     private static ConfiguredToolDefinition CreateDefinition(Type handlerType, ToolKind kind)

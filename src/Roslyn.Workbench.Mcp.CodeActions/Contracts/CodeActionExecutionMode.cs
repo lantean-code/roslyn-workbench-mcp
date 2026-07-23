@@ -6,7 +6,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts;
 /// Describes how a discovered code action can be executed.
 /// </summary>
 [JsonConverter(typeof(JsonStringEnumConverter<CodeActionExecutionMode>))]
-public enum CodeActionExecutionMode
+internal enum CodeActionExecutionMode
 {
     /// <summary>
     /// The action can be replayed directly through the generic staging path.

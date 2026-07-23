@@ -304,13 +304,14 @@ public sealed class CodeActionSelectionStagerTests
     }
 
     [Theory]
-    [InlineData(CodeActionExecutionMode.Parameterised, "ActionRequiresParameters")]
-    [InlineData(CodeActionExecutionMode.Unsupported, "CodeActionUnavailable")]
+    [InlineData((int)CodeActionExecutionMode.Parameterised, "ActionRequiresParameters")]
+    [InlineData((int)CodeActionExecutionMode.Unsupported, "CodeActionUnavailable")]
     public async Task GIVEN_SelectedActionCannotBeReplayed_WHEN_ReplayingCodeAction_THEN_ShouldRejectAction(
-        CodeActionExecutionMode executionMode,
+        int executionModeValue,
         string expectedCode)
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var executionMode = (CodeActionExecutionMode)executionModeValue;
         var selector = new LocationSelector();
         var location = await CreateLocationAsync(roslyn.Document);
         var provider = new Mock<CodeRefactoringProvider>();

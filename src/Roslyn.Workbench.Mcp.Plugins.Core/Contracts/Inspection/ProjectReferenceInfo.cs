@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents one direct project reference.
 /// </summary>
-public sealed record ProjectReferenceInfo
+internal sealed record ProjectReferenceInfo
 {
     /// <summary>
     /// Gets the referenced project identifier.

@@ -35,10 +35,16 @@ public sealed class LoadedPluginPreparerTests
             .Returns(PluginCompositionResult.Success());
 
         _configurationPreparer
-            .Setup(value => value.Prepare(It.IsAny<PluginMetadata>(), It.IsAny<PluginConfiguration>()))
+            .Setup(value => value.Prepare(
+                It.IsAny<PluginMetadata>(),
+                It.IsAny<PluginConfiguration>(),
+                It.IsAny<PluginContractAccessibility>()))
             .Returns(preparation);
 
-        var result = _target.Prepare(assembly, entryPoint);
+        var result = _target.Prepare(
+            assembly,
+            entryPoint,
+            PluginContractAccessibility.AllowNonPublic);
 
         result.Metadata.PluginId.Should().Be("PluginId");
         result.Metadata.DisplayName.Should().Be("DisplayName");
@@ -48,7 +54,8 @@ public sealed class LoadedPluginPreparerTests
         _composer.Verify(value => value.Configure(assembly, It.IsAny<PluginConfiguration>()), Times.Once);
         _configurationPreparer.Verify(value => value.Prepare(
             It.Is<PluginMetadata>(metadata => metadata.PluginId == "PluginId"),
-            It.IsAny<PluginConfiguration>()), Times.Once);
+            It.IsAny<PluginConfiguration>(),
+            PluginContractAccessibility.AllowNonPublic), Times.Once);
 
         var configuration = configurations.Single();
         var action = () => configuration.AddQueryTool<QueryHandler>();
@@ -73,7 +80,10 @@ public sealed class LoadedPluginPreparerTests
             .Callback<Assembly, IPluginConfiguration>((_, configuration) => configurations.Add((PluginConfiguration)configuration))
             .Returns(PluginCompositionResult.Failure("Composition failed"));
 
-        var result = _target.Prepare(assembly, entryPoint);
+        var result = _target.Prepare(
+            assembly,
+            entryPoint,
+            PluginContractAccessibility.PublicOnly);
 
         result.Metadata.PluginId.Should().Be("PluginId");
         result.Preparation.Tools.Should().BeEmpty();
@@ -83,7 +93,10 @@ public sealed class LoadedPluginPreparerTests
             && diagnostic.Message == "Composition failed");
 
         _configurationPreparer.Verify(
-            static value => value.Prepare(It.IsAny<PluginMetadata>(), It.IsAny<PluginConfiguration>()),
+            static value => value.Prepare(
+                It.IsAny<PluginMetadata>(),
+                It.IsAny<PluginConfiguration>(),
+                It.IsAny<PluginContractAccessibility>()),
             Times.Never);
 
         var configuration = configurations.Single();

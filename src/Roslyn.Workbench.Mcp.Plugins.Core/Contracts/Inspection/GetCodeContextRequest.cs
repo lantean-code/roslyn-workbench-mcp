@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to return a bounded code window and enclosing semantic context.
 /// </summary>
-public sealed record GetCodeContextRequest : WorkspaceBoundRequest
+internal sealed record GetCodeContextRequest : WorkspaceBoundRequest
 {
     private const int _defaultAfterLines = 10;
     private const int _defaultBeforeLines = 10;

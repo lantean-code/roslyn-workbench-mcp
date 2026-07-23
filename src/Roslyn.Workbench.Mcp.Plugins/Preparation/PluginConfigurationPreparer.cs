@@ -18,7 +18,10 @@ internal sealed class PluginConfigurationPreparer : IPluginConfigurationPreparer
         _warningInspector = warningInspector;
     }
 
-    public PluginPreparationResult Prepare(PluginMetadata pluginMetadata, PluginConfiguration configuration)
+    public PluginPreparationResult Prepare(
+        PluginMetadata pluginMetadata,
+        PluginConfiguration configuration,
+        PluginContractAccessibility contractAccessibility)
     {
         var tools = new List<PreparedPluginTool>();
         var diagnostics = new List<DiagnosticInfo>();
@@ -28,7 +31,12 @@ internal sealed class PluginConfigurationPreparer : IPluginConfigurationPreparer
         {
             var diagnosticCount = diagnostics.Count;
             diagnostics.AddRange(_typeInspector.Inspect(definition.HandlerType));
-            var hasContract = _contractResolver.TryResolve(definition, out var contract, out var contractDiagnostic);
+            var hasContract = _contractResolver.TryResolve(
+                definition,
+                contractAccessibility,
+                out var contract,
+                out var contractDiagnostic);
+
             if (!hasContract && contractDiagnostic is not null)
             {
                 diagnostics.Add(contractDiagnostic);

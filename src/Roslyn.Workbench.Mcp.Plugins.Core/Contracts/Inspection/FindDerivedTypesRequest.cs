@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to find types derived from a resolved symbol.
 /// </summary>
-public sealed record FindDerivedTypesRequest : WorkspaceBoundRequest
+internal sealed record FindDerivedTypesRequest : WorkspaceBoundRequest
 {
     private const int _defaultDerivedTypesMaxResults = 100;
     private const int _defaultMaxDepth = 3;

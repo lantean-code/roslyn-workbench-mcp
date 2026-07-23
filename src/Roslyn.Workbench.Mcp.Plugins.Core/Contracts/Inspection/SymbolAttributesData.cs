@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by get-symbol-attributes.
 /// </summary>
-public sealed record SymbolAttributesData
+internal sealed record SymbolAttributesData
 {
     /// <summary>
     /// Gets the queried symbol.

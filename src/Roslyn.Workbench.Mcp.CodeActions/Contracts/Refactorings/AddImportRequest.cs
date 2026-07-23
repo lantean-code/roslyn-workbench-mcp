@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 /// <summary>
 /// Requests one supported add-import refactoring through Roslyn refactoring composition.
 /// </summary>
-public sealed record AddImportRequest : WorkspaceBoundRequest
+internal sealed record AddImportRequest : WorkspaceBoundRequest
 {
     /// <summary>
     /// Gets the selected qualified type reference to rewrite.

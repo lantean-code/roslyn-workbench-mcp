@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by analyze-control-flow.
 /// </summary>
-public sealed record ControlFlowAnalysisData
+internal sealed record ControlFlowAnalysisData
 {
     /// <summary>
     /// Gets the analyzed region.

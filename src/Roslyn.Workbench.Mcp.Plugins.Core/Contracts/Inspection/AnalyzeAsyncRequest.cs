@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to analyse async-related findings in a selected scope.
 /// </summary>
-public sealed record AnalyzeAsyncRequest : WorkspaceBoundRequest
+internal sealed record AnalyzeAsyncRequest : WorkspaceBoundRequest
 {
     private const int _defaultFindingsMaxResults = 50;
 

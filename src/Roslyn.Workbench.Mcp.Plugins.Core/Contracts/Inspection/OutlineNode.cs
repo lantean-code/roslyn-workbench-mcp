@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents one semantic outline node.
 /// </summary>
-public sealed record OutlineNode
+internal sealed record OutlineNode
 {
     /// <summary>
     /// Gets the node display name.

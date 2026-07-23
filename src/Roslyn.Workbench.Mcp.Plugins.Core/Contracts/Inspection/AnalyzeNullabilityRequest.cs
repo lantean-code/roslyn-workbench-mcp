@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to analyse nullability findings in a selected scope or location.
 /// </summary>
-public sealed record AnalyzeNullabilityRequest : WorkspaceBoundRequest
+internal sealed record AnalyzeNullabilityRequest : WorkspaceBoundRequest
 {
     private const int _defaultFindingsMaxResults = 50;
 

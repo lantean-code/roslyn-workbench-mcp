@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts;
 /// <summary>
 /// Describes the dynamic preflight context for one discovered code action.
 /// </summary>
-public sealed record CodeActionDescriptorContext
+internal sealed record CodeActionDescriptorContext
 {
     /// <summary>
     /// Gets the context kind.

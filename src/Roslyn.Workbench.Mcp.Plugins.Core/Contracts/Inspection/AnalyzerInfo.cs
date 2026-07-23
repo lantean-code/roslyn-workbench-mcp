@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents one analyzer referenced by a project or document.
 /// </summary>
-public sealed record AnalyzerInfo
+internal sealed record AnalyzerInfo
 {
     /// <summary>
     /// Gets the analyzer display name.

@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 /// <summary>
 /// Identifies the Roslyn introduce-variable leaf action to stage.
 /// </summary>
-public enum IntroduceVariableKind
+internal enum IntroduceVariableKind
 {
     /// <summary>
     /// Introduces a local for the selected expression.

@@ -6,7 +6,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts;
 /// Describes the dynamic context published for a discovered code action.
 /// </summary>
 [JsonConverter(typeof(JsonStringEnumConverter<CodeActionDescriptorContextKind>))]
-public enum CodeActionDescriptorContextKind
+internal enum CodeActionDescriptorContextKind
 {
     /// <summary>
     /// No additional context is required.

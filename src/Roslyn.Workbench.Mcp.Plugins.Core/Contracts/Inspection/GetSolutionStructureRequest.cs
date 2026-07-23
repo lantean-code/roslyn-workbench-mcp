@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to retrieve solution structure.
 /// </summary>
-public sealed record GetSolutionStructureRequest : WorkspaceBoundRequest
+internal sealed record GetSolutionStructureRequest : WorkspaceBoundRequest
 {
     private const int _defaultFoldersMaxResults = 200;
     private const int _defaultProjectsMaxResults = 100;

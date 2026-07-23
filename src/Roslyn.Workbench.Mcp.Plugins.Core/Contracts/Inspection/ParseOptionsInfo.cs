@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents selected Roslyn parse options for a document.
 /// </summary>
-public sealed record ParseOptionsInfo
+internal sealed record ParseOptionsInfo
 {
     /// <summary>
     /// Gets the language name.

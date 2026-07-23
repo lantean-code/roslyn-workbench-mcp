@@ -513,7 +513,10 @@ and return concrete fluent metadata builders. `RoslynToolAttribute` provides han
 values override attribute values. Configuration and its builders freeze when
 `Configure` returns. Host validates every handler and all collisions before it
 constructs one handler per enabled tool. Handlers must be thread-safe and must
-not own disposable resources.
+not own disposable resources. External plugin request and response contract
+types must be public. Trusted bundled plugins use an explicit preparation path
+that permits internal contracts; that exception does not apply to packages
+loaded from configured plugin directories.
 Expected plugin-authoring validation failures accumulate as structured diagnostics
 with stable IDs. A plugin with any error is atomically disabled, while warnings are
 retained on an enabled plugin. Exceptions are reserved for unexpected loading,

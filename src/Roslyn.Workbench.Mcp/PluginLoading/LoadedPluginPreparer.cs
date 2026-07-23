@@ -15,7 +15,10 @@ internal sealed class LoadedPluginPreparer : ILoadedPluginPreparer
         _configurationPreparer = configurationPreparer;
     }
 
-    public PreparedCatalogPlugin Prepare(Assembly assembly, PluginEntryPointMetadata entryPoint)
+    public PreparedCatalogPlugin Prepare(
+        Assembly assembly,
+        PluginEntryPointMetadata entryPoint,
+        PluginContractAccessibility contractAccessibility)
     {
         var configuration = new PluginConfiguration();
         var composition = _composer.Configure(assembly, configuration);
@@ -29,7 +32,7 @@ internal sealed class LoadedPluginPreparer : ILoadedPluginPreparer
         return new PreparedCatalogPlugin
         {
             Metadata = metadata,
-            Preparation = _configurationPreparer.Prepare(metadata, configuration),
+            Preparation = _configurationPreparer.Prepare(metadata, configuration, contractAccessibility),
         };
     }
 

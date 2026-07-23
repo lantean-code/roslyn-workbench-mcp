@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents one project within solution-structure results.
 /// </summary>
-public sealed record ProjectStructureInfo
+internal sealed record ProjectStructureInfo
 {
     /// <summary>
     /// Gets the project identifier.

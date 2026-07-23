@@ -273,16 +273,24 @@ public sealed class SchemaGenerationTests
     [Fact]
     public void GIVEN_WorkspaceExecutedRequestContracts_WHEN_InspectingRequestTypes_THEN_ShouldExposeWorkspaceSelectorProperty()
     {
-        var requestTypes =
-            typeof(SearchSymbolsRequest).Assembly.GetTypes()
-                .Where(static type => type.IsPublic && type.IsClass)
-                .Where(static type => type.Name.EndsWith("Request", StringComparison.Ordinal))
-                .Where(static type =>
-                    type.Namespace is "Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection"
-                    or "Roslyn.Workbench.Mcp.CodeActions.Contracts"
-                    or "Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings"
-                    or "Roslyn.Workbench.Mcp.Transaction.Contracts")
-                .ToArray();
+        var contractAssemblies = new[]
+        {
+            typeof(SearchSymbolsRequest).Assembly,
+            typeof(ListCodeActionsRequest).Assembly,
+            typeof(TransactionStartRequest).Assembly,
+        };
+
+        var requestTypes = contractAssemblies
+            .Distinct()
+            .SelectMany(static assembly => assembly.GetTypes())
+            .Where(static type => type.IsClass)
+            .Where(static type => type.Name.EndsWith("Request", StringComparison.Ordinal))
+            .Where(static type =>
+                type.Namespace is "Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection"
+                or "Roslyn.Workbench.Mcp.CodeActions.Contracts"
+                or "Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings"
+                or "Roslyn.Workbench.Mcp.Transaction.Contracts")
+            .ToArray();
 
         requestTypes.Should().NotBeEmpty();
         requestTypes

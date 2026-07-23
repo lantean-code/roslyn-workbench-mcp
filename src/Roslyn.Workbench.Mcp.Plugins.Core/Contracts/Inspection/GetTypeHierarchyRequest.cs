@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to retrieve type-hierarchy information for a resolved symbol.
 /// </summary>
-public sealed record GetTypeHierarchyRequest : WorkspaceBoundRequest
+internal sealed record GetTypeHierarchyRequest : WorkspaceBoundRequest
 {
     private const int _defaultBaseTypesMaxResults = 16;
     private const int _defaultDerivedTypesMaxResults = 100;

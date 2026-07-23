@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by get-solution-structure.
 /// </summary>
-public sealed record SolutionStructureData
+internal sealed record SolutionStructureData
 {
     /// <summary>
     /// Gets the loaded solution or project path.

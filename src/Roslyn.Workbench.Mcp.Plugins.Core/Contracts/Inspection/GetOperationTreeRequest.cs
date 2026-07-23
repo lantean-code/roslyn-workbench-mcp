@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to retrieve an operation tree for a selected region.
 /// </summary>
-public sealed record GetOperationTreeRequest : WorkspaceBoundRequest
+internal sealed record GetOperationTreeRequest : WorkspaceBoundRequest
 {
     private const int _defaultMaxDepth = 8;
 

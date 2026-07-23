@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to find unused symbol candidates in a selected scope.
 /// </summary>
-public sealed record FindUnusedSymbolsRequest : WorkspaceBoundRequest
+internal sealed record FindUnusedSymbolsRequest : WorkspaceBoundRequest
 {
     private const int _defaultCandidatesMaxResults = 50;
 

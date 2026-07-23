@@ -19,14 +19,14 @@ public sealed class IntroduceParameterToolTests
     }
 
     [Theory]
-    [InlineData(IntroduceParameterStrategy.UpdateCallSitesDirectly, false, "and update call sites directly", 0, 0)]
-    [InlineData(IntroduceParameterStrategy.UpdateCallSitesDirectly, true, "and update call sites directly", 1, 0)]
-    [InlineData(IntroduceParameterStrategy.IntoExtractedMethod, false, "into extracted method to invoke at call sites", 0, 1)]
-    [InlineData(IntroduceParameterStrategy.IntoExtractedMethod, true, "into extracted method to invoke at call sites", 1, 1)]
-    [InlineData(IntroduceParameterStrategy.IntoNewOverload, false, "into new overload", 0, 2)]
-    [InlineData(IntroduceParameterStrategy.IntoNewOverload, true, "into new overload", 1, 2)]
+    [InlineData((int)IntroduceParameterStrategy.UpdateCallSitesDirectly, false, "and update call sites directly", 0, 0)]
+    [InlineData((int)IntroduceParameterStrategy.UpdateCallSitesDirectly, true, "and update call sites directly", 1, 0)]
+    [InlineData((int)IntroduceParameterStrategy.IntoExtractedMethod, false, "into extracted method to invoke at call sites", 0, 1)]
+    [InlineData((int)IntroduceParameterStrategy.IntoExtractedMethod, true, "into extracted method to invoke at call sites", 1, 1)]
+    [InlineData((int)IntroduceParameterStrategy.IntoNewOverload, false, "into new overload", 0, 2)]
+    [InlineData((int)IntroduceParameterStrategy.IntoNewOverload, true, "into new overload", 1, 2)]
     public async Task GIVEN_StrategyAndOccurrenceSelection_WHEN_CallingExecuteAsync_THEN_ShouldStageReplayActionWithExpectedPath(
-        IntroduceParameterStrategy strategy,
+        int strategyValue,
         bool allOccurrences,
         string title,
         int firstPathSegment,
@@ -34,6 +34,7 @@ public sealed class IntroduceParameterToolTests
     {
         var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var context = new Mock<ICodeActionMutationContext>();
+        var strategy = (IntroduceParameterStrategy)strategyValue;
         var request = new IntroduceParameterRequest
         {
             Selection = new LocationSelector(),

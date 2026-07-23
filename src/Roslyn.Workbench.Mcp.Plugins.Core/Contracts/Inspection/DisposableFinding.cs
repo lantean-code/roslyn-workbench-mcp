@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents one disposable analysis finding.
 /// </summary>
-public sealed record DisposableFinding
+internal sealed record DisposableFinding
 {
     /// <summary>
     /// Gets the finding kind.

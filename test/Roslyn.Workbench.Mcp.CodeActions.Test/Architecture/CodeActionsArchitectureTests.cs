@@ -6,6 +6,15 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Architecture;
 public sealed class CodeActionsArchitectureTests
 {
     [Fact]
+    [Trait("Category", "Contract")]
+    public void GIVEN_CodeActionsAssembly_WHEN_InspectingExportedTypes_THEN_ShouldExposeNoPublicTypes()
+    {
+        var exportedTypes = typeof(BundledCodeActionCatalog).Assembly.GetExportedTypes();
+
+        exportedTypes.Should().BeEmpty();
+    }
+
+    [Fact]
     public void GIVEN_ProductionProjects_WHEN_InspectingProjectReferences_THEN_ShouldMatchApprovedDependencyGraph()
     {
         var expectedReferences = new Dictionary<string, string[]>

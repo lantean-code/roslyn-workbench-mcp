@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to return the direct dependents of a symbol.
 /// </summary>
-public sealed record GetSymbolDependentsRequest : WorkspaceBoundRequest
+internal sealed record GetSymbolDependentsRequest : WorkspaceBoundRequest
 {
     private const int _defaultDependentsMaxResults = 100;
 

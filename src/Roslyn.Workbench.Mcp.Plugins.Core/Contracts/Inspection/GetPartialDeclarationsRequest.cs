@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to retrieve partial declarations for a resolved symbol.
 /// </summary>
-public sealed record GetPartialDeclarationsRequest : WorkspaceBoundRequest
+internal sealed record GetPartialDeclarationsRequest : WorkspaceBoundRequest
 {
     private const int _defaultDeclarationsMaxResults = 32;
 

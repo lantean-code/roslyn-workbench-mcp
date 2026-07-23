@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a projected Roslyn type.
 /// </summary>
-public sealed record TypeInfo
+internal sealed record TypeInfo
 {
     /// <summary>
     /// Gets the display name.

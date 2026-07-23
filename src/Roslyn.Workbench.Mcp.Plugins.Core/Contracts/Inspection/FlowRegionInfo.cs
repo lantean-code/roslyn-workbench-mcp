@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents one flow region in a control-flow-graph projection.
 /// </summary>
-public sealed record FlowRegionInfo
+internal sealed record FlowRegionInfo
 {
     /// <summary>
     /// Gets the region identifier.

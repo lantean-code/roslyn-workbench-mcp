@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents the structured payload returned by get-code-context.
 /// </summary>
-public sealed record CodeContextData
+internal sealed record CodeContextData
 {
     /// <summary>
     /// Gets the resolved source location.

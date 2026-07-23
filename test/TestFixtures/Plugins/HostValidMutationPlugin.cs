@@ -36,37 +36,39 @@ public sealed class HostValidMutationPlugin : IRoslynPlugin
             await PluginFixtureControl.WaitForReleaseAsync(request.ControlDirectory, cancellationToken);
 
             var candidateSolution = context.CurrentSolution;
-            if (!string.IsNullOrWhiteSpace(request.RelativeDocumentPath))
+            if (string.IsNullOrWhiteSpace(request.RelativeDocumentPath))
             {
-                var document = FindDocument(candidateSolution, request.RelativeDocumentPath);
-                if (document is null)
-                {
-                    return PluginExecutionResult<MutationCandidate>.Rejected(
-                        new PluginExecutionError
-                        {
-                            Code = "DocumentNotFound",
-                            Message = "The requested document was not found.",
-                        });
-                }
-
-                var sourceText = await document.GetTextAsync(cancellationToken);
-                var currentText = sourceText.ToString();
-                var searchText = request.SearchText ?? string.Empty;
-                if (!currentText.Contains(searchText, StringComparison.Ordinal))
-                {
-                    return PluginExecutionResult<MutationCandidate>.Rejected(
-                        new PluginExecutionError
-                        {
-                            Code = "TextNotFound",
-                            Message = "The requested text was not found in the document.",
-                        });
-                }
-
-                var replacementText = request.ReplacementText ?? string.Empty;
-                var updatedText = currentText.Replace(searchText, replacementText, StringComparison.Ordinal);
-                var updatedSourceText = SourceText.From(updatedText, sourceText.Encoding);
-                candidateSolution = document.WithText(updatedSourceText).Project.Solution;
+                return PluginExecutionResult<MutationCandidate>.NoChange();
             }
+
+            var document = FindDocument(candidateSolution, request.RelativeDocumentPath);
+            if (document is null)
+            {
+                return PluginExecutionResult<MutationCandidate>.Rejected(
+                    new PluginExecutionError
+                    {
+                        Code = "DocumentNotFound",
+                        Message = "The requested document was not found.",
+                    });
+            }
+
+            var sourceText = await document.GetTextAsync(cancellationToken);
+            var currentText = sourceText.ToString();
+            var searchText = request.SearchText ?? string.Empty;
+            if (!currentText.Contains(searchText, StringComparison.Ordinal))
+            {
+                return PluginExecutionResult<MutationCandidate>.Rejected(
+                    new PluginExecutionError
+                    {
+                        Code = "TextNotFound",
+                        Message = "The requested text was not found in the document.",
+                    });
+            }
+
+            var replacementText = request.ReplacementText ?? string.Empty;
+            var updatedText = currentText.Replace(searchText, replacementText, StringComparison.Ordinal);
+            var updatedSourceText = SourceText.From(updatedText, sourceText.Encoding);
+            candidateSolution = document.WithText(updatedSourceText).Project.Solution;
 
             var candidate = new MutationCandidate
             {

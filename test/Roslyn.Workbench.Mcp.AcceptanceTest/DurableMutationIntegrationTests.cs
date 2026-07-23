@@ -148,7 +148,7 @@ public sealed class DurableMutationIntegrationTests
                     {
                         ["project"] = new Dictionary<string, object?>
                         {
-                            ["name"] = "MultiTarget",
+                            ["path"] = "MultiTarget/MultiTarget.csproj",
                             ["targetFramework"] = "net10.0",
                         },
                         ["documentationCommentId"] = "T:Shared.SharedFormatter",
@@ -159,7 +159,9 @@ public sealed class DurableMutationIntegrationTests
                 },
                 TestContext.Current.CancellationToken);
 
-            renameResult.IsError.Should().NotBeTrue();
+            renameResult.IsError.Should().NotBeTrue(
+                "the linked-target rename should stage successfully; response: {0}",
+                renameResult.StructuredContent);
             var preview = AcceptanceProtocol.GetSuccessData(await PreviewAsync(target, workspaceSelector));
             preview.GetProperty("documents").EnumerateArray()
                 .Select(static change => change.GetProperty("document").GetProperty("path").GetString())
@@ -177,6 +179,9 @@ public sealed class DurableMutationIntegrationTests
             committedText.Should().Contain("class RenamedSharedFormatter");
             committedText.Should().NotContain("class SharedFormatter");
             Directory.EnumerateFiles(target.WorkspaceRoot, "*.cs", SearchOption.AllDirectories)
+                .Where(path => !path.Contains(
+                    $"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}",
+                    StringComparison.OrdinalIgnoreCase))
                 .Should()
                 .ContainSingle(documentPath);
             await AssertNoRecoveryAsync(target);

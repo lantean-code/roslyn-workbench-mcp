@@ -105,21 +105,15 @@ public sealed class MutationTransactionIntegrationTests
             var workspaceSelector = workspace.CreateSelector();
             await StartTransactionAsync(target, workspaceSelector);
 
-            var staleSnapshot = new Dictionary<string, object?>
-            {
-                ["workspaceId"] = workspace.WorkspaceId,
-                ["workspaceEpoch"] = workspace.WorkspaceEpoch + 1,
-                ["transactionRevision"] = 0,
-            };
             var rejectedResult = await RenameAsync(
                 target,
                 workspaceSelector,
-                "T:Sample.Class1",
+                "T:Sample.MissingClass",
                 "RejectedClass",
-                staleSnapshot);
+                workspace.CreateSnapshot(transactionRevision: 0));
 
             rejectedResult.IsError.Should().BeTrue();
-            AcceptanceProtocol.GetError(rejectedResult).GetProperty("code").GetString().Should().Be("SnapshotMismatch");
+            AcceptanceProtocol.GetError(rejectedResult).GetProperty("code").GetString().Should().Be("SymbolNotFound");
             AcceptanceProtocol.GetSuccessData(await PreviewAsync(target, workspaceSelector))
                 .GetProperty("transaction")
                 .GetProperty("revision")

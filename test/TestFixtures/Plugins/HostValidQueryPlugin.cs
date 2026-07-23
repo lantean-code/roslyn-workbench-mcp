@@ -20,6 +20,8 @@ public sealed class HostValidQueryPlugin : IRoslynPlugin
         public string Name { get; init; } = string.Empty;
 
         public string? ControlDirectory { get; init; }
+
+        public bool Throw { get; init; }
     }
 
     public sealed record Response
@@ -37,6 +39,10 @@ public sealed class HostValidQueryPlugin : IRoslynPlugin
             _ = context;
 
             await PluginFixtureControl.WaitForReleaseAsync(request.ControlDirectory, cancellationToken);
+            if (request.Throw)
+            {
+                throw new InvalidOperationException("Sensitive query failure.");
+            }
 
             var response = new Response
             {

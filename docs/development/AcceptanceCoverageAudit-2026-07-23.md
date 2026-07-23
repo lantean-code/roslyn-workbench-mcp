@@ -269,7 +269,7 @@ This is execution-architecture coverage, not one acceptance test per tool. Indiv
 
 ### Batch 1 — Acceptance infrastructure and release artifact contract
 
-**Implementation status:** Complete on 2026-07-23. The next manually initiated acceptance run supplies runtime evidence for the newly discovered cases.
+**Implementation status:** Complete on 2026-07-23. A complete WSL/Linux run passed all 40 acceptance cases after Batches 1–6 were implemented.
 
 - Keep the acceptance assembly free of production references.
 - Centralise only repeated public envelope, Workspace identity and transaction selectors; do not import the scenario runner or hide scenario assertions behind a general harness.
@@ -294,7 +294,7 @@ Implemented evidence:
 
 ### Batch 2 — Distribution, discovery and plugin boundary
 
-**Implementation status:** Complete on 2026-07-23. Runtime evidence will be supplied by the next manually initiated acceptance run and the Ubuntu/Windows pull-request matrix.
+**Implementation status:** Complete on 2026-07-23. A complete WSL/Linux run passed all 40 acceptance cases; native Ubuntu and Windows evidence remains owned by the pull-request matrix.
 
 - configuration precedence and sensitive-value omission;
 - default versus full output-schema publication;
@@ -318,7 +318,7 @@ Implemented evidence:
 
 ### Batch 3 — Workspace compatibility and selectors
 
-**Implementation status:** Complete on 2026-07-23. Runtime evidence will be supplied by the next manually initiated acceptance run and the Ubuntu/Windows pull-request matrix.
+**Implementation status:** Complete on 2026-07-23. A complete WSL/Linux run passed all 40 acceptance cases; native Ubuntu and Windows evidence remains owned by the pull-request matrix.
 
 - `.csproj`, `.sln` and `.slnx`;
 - mixed supported/unsupported solution diagnostics;
@@ -344,7 +344,7 @@ The acceptance inventory is now 28 discovered cases. The CI minimum is raised to
 
 ### Batch 4 — Mutation families and transaction state
 
-**Implementation status:** Complete on 2026-07-23. Runtime evidence will be supplied by the next manually initiated acceptance run and the Ubuntu/Windows pull-request matrix.
+**Implementation status:** Complete on 2026-07-23. A complete WSL/Linux run passed all 40 acceptance cases; native Ubuntu and Windows evidence remains owned by the pull-request matrix.
 
 - bundled mutation pre-commit disk invariant;
 - external plugin mutation staging and rollback;
@@ -367,7 +367,7 @@ Implemented evidence:
 
 ### Batch 5 — Durability and restart
 
-**Implementation status:** Complete on 2026-07-23. Runtime evidence will be supplied by the next manually initiated acceptance run and the Ubuntu/Windows pull-request matrix.
+**Implementation status:** Complete on 2026-07-23. A complete WSL/Linux run passed all 40 acceptance cases; native Ubuntu and Windows evidence remains owned by the pull-request matrix.
 
 - small multi-file and linked/multi-target physical-target commit;
 - deterministic pre-write external conflict and preservation;
@@ -382,6 +382,7 @@ Implemented evidence:
 
 - a solution-wide rename previews and commits the exact two-file replacement set;
 - a linked multi-target rename collapses duplicate Roslyn documents to one physical target and commits that target once;
+- the runtime run exposed and fixed an over-restrictive mutation validator: existing linked documents may retain their already-loaded path outside the project directory, while created files remain constrained to the owning project directory;
 - external drift after staging returns `TransactionConflicted` with `RollbackTransaction`, preserves the exact external bytes and leaves no recovery artifact after rollback;
 - the synthetic blocked-recovery case now rejects unsafe Workspace open with `RecoveryPending` and `ResolveRecovery`;
 - the create/replace Code Action commit survives Host restart, reopens cleanly and returns promoted semantic results; and
@@ -390,6 +391,8 @@ Implemented evidence:
 The acceptance inventory is now 36 discovered cases. The CI minimum is raised to 36 so omission of any Batch 1–5 case fails the acceptance job.
 
 ### Batch 6 — Cancellation, concurrency and failure containment
+
+**Implementation status:** Complete on 2026-07-23. A complete WSL/Linux run passed all 40 acceptance cases; native Ubuntu and Windows evidence remains owned by the pull-request matrix.
 
 - known-ID protocol cancellation through the published executable;
 - shared-lease release after cancellation;
@@ -400,6 +403,18 @@ The acceptance inventory is now 36 discovered cases. The CI minimum is raised to
 - public path-boundary rejection.
 
 This batch comes last because deterministic concurrency uses the external fixtures and request-control support established in Batches 1 and 2.
+
+Implemented evidence:
+
+- a known-ID MCP cancellation notification cancels the deterministic external handler and is observed by the client as cancellation;
+- transaction start immediately succeeds after cancellation, proving the shared query lease was released;
+- with `max-concurrent-queries=1`, a held query makes a second same-Workspace query and an exclusive transaction start return `WorkspaceBusy` with `Retry`;
+- releasing the held query allows both the query retry and exclusive transaction acquisition to succeed;
+- the same held request does not block a query against a separately loaded Workspace, proving gate isolation;
+- a throwing external query returns a correlated, sanitised `UnhandledException`, omits the exception type/message and leaves both the plugin and `server-status` usable; and
+- a copied solution that references a project outside its declared root is rejected publicly with `WorkspaceProjectOutsideRoot`.
+
+The acceptance inventory is now 40 discovered cases. The CI minimum is raised to 40 so omission of any Batch 1–6 case fails the acceptance job.
 
 ## Release-only scenario validation and metrics
 

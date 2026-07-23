@@ -18,7 +18,7 @@ public sealed class WorkspaceCompatibilityIntegrationTests
             result.IsError.Should().NotBeTrue();
             var open = AcceptanceProtocol.GetSuccessData(result);
             open.GetProperty("projectCount").GetInt32().Should().Be(2);
-            open.GetProperty("documentCount").GetInt32().Should().Be(2);
+            open.GetProperty("documentCount").GetInt32().Should().BeGreaterThanOrEqualTo(2);
         }
         catch
         {

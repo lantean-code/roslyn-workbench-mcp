@@ -81,8 +81,8 @@ public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
     [Theory]
     [InlineData("AddedWithoutPath", "Mutation proposals must use regular source documents for created files.")]
     [InlineData("AddedScript", "Mutation proposals must use regular source documents for created files.")]
-    [InlineData("ProjectWithoutPath", "Mutation proposals must keep source files within the owning project directory.")]
-    [InlineData("AddedOutsideProject", "Mutation proposals must keep source files within the owning project directory.")]
+    [InlineData("ProjectWithoutPath", "Mutation proposals must keep created source files within the owning project directory.")]
+    [InlineData("AddedOutsideProject", "Mutation proposals must keep created source files within the owning project directory.")]
     public void GIVEN_InvalidAddedDocument_WHEN_Validating_THEN_ShouldRejectIt(string changeKind, string message)
     {
         var currentSolution = CreateSolution(projectHasPath: changeKind != "ProjectWithoutPath");
@@ -173,12 +173,28 @@ public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
         result.Should().BeNull();
     }
 
+    [Fact]
+    public void GIVEN_ExistingLinkedDocumentOutsideProjectDirectory_WHEN_ChangingText_THEN_ShouldAcceptIt()
+    {
+        var currentSolution = CreateSolution(documentIsLinked: true);
+        var document = currentSolution.Projects.Single().Documents.Single();
+        var candidateSolution = document.WithText(SourceText.From("class Updated { }")).Project.Solution;
+
+        var result = _target.Validate(currentSolution, candidateSolution);
+
+        result.Should().BeNull();
+    }
+
     public void Dispose()
     {
         _workspace.Dispose();
     }
 
-    private Solution CreateSolution(bool documentHasPath = true, bool projectHasPath = true, bool documentPathDiffersByCase = false)
+    private Solution CreateSolution(
+        bool documentHasPath = true,
+        bool projectHasPath = true,
+        bool documentPathDiffersByCase = false,
+        bool documentIsLinked = false)
     {
         var project = _workspace.AddProject(ProjectInfo.Create(
             ProjectId.CreateNewId(), VersionStamp.Default, "Project", "Project", LanguageNames.CSharp,
@@ -189,7 +205,10 @@ public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
             "Document.cs",
             loader: TextLoader.From(TextAndVersion.Create(SourceText.From("class C { }"), VersionStamp.Default)),
             filePath: documentHasPath
-                ? Path.Combine(Path.GetTempPath(), documentPathDiffersByCase ? "project" : "Project", "Document.cs")
+                ? Path.Combine(
+                    Path.GetTempPath(),
+                    documentIsLinked ? "Shared" : documentPathDiffersByCase ? "project" : "Project",
+                    "Document.cs")
                 : null));
 
         return _workspace.CurrentSolution;

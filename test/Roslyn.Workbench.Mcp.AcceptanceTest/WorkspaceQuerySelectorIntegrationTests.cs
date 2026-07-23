@@ -24,7 +24,7 @@ public sealed class WorkspaceQuerySelectorIntegrationTests
             var workspaceSelector = AcceptanceWorkspaceIdentity.FromOpenResult(openResult).CreateSelector();
             var projectSelector = new Dictionary<string, object?>
             {
-                ["name"] = "MultiTarget",
+                ["path"] = "MultiTarget/MultiTarget.csproj",
                 ["targetFramework"] = "net10.0",
             };
             var documentSelector = new Dictionary<string, object?>

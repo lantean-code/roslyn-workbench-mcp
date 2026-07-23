@@ -74,7 +74,8 @@ internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCa
         var validationError = TryValidateSourceDocuments(
             currentProject,
             projectChanges.GetRemovedDocuments(),
-            "deleted");
+            "deleted",
+            requireProjectDirectory: false);
 
         if (validationError is not null)
         {
@@ -84,20 +85,26 @@ internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCa
         validationError = TryValidateSourceDocuments(
             candidateProject,
             projectChanges.GetAddedDocuments(),
-            "created");
+            "created",
+            requireProjectDirectory: true);
 
         if (validationError is not null)
         {
             return validationError;
         }
 
-        return TryValidateSourceDocuments(candidateProject, textChangedDocuments, "changed");
+        return TryValidateSourceDocuments(
+            candidateProject,
+            textChangedDocuments,
+            "changed",
+            requireProjectDirectory: false);
     }
 
     private WorkspaceOperationError? TryValidateSourceDocuments(
         Project project,
         IEnumerable<DocumentId> documentIds,
-        string operation)
+        string operation,
+        bool requireProjectDirectory)
     {
         foreach (var documentId in documentIds)
         {
@@ -109,11 +116,14 @@ internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCa
                 return CreateError("UnsupportedChange", $"Mutation proposals must use regular source documents for {operation} files.");
             }
 
-            var projectDirectory = Path.GetDirectoryName(project.FilePath ?? string.Empty);
-            if (string.IsNullOrWhiteSpace(projectDirectory)
-                || !IsPathWithinDirectory(document.FilePath, projectDirectory))
+            if (requireProjectDirectory)
             {
-                return CreateError("UnsupportedChange", "Mutation proposals must keep source files within the owning project directory.");
+                var projectDirectory = Path.GetDirectoryName(project.FilePath ?? string.Empty);
+                if (string.IsNullOrWhiteSpace(projectDirectory)
+                    || !IsPathWithinDirectory(document.FilePath, projectDirectory))
+                {
+                    return CreateError("UnsupportedChange", "Mutation proposals must keep created source files within the owning project directory.");
+                }
             }
         }
 

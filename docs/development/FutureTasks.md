@@ -59,13 +59,13 @@ The Plugins package validation is the consumer-compatibility boundary. A reposit
 
 ### Expand published-Host acceptance coverage
 
-**Status:** Started
+**Status:** Complete
 
 Implement the dependency-ordered release-capability batches covering the exact published artifact, configuration, discovery, public result contracts, valid and failing external packages, supported Workspace open shapes, selector families, every production query and mutation execution path, transaction history, durability, restart, protocol cancellation, concurrency and failure containment.
 
 Keep the acceptance project independent of production references and drive only the Release-published executable through the public MCP protocol. Use small checked-in fixtures, deterministic synchronization and the existing Ubuntu/Windows pull-request matrix. Do not move repository-scale, timing-sensitive or destructive release scenarios into pull-request acceptance.
 
-Batches 1–5 are implemented. The acceptance boundary now covers published-process infrastructure, distribution/configuration and plugin packages, supported Workspace formats and selectors, every mutation execution family, transaction history and ownership, multi-file and linked-target durability, pre-write conflict preservation, blocked recovery and clean restart after commit. Batch 6 remains; the next manually initiated acceptance run and the Ubuntu/Windows pull-request matrix will provide runtime evidence for the newly added cases.
+Batches 1–6 are implemented. The acceptance boundary now covers published-process infrastructure, distribution/configuration and plugin packages, supported Workspace formats and selectors, every mutation execution family, transaction history and ownership, multi-file and linked-target durability, pre-write conflict preservation, blocked recovery, clean restart, protocol cancellation, concurrency/retry behaviour, cross-Workspace isolation, exception containment and public path boundaries. A complete WSL/Linux run passed all 40 cases; native Ubuntu and Windows evidence remains owned by the pull-request matrix.
 
 Source: [Published Host Acceptance Coverage Audit](AcceptanceCoverageAudit-2026-07-23.md)
 

@@ -122,7 +122,9 @@ internal sealed class MefHostExportProviderCompatibilityAdapter : IMefHostExport
             ? invocationException.InnerException
             : null;
 
-        var failureType = underlyingException?.GetType().Name ?? exception.GetType().Name;
+        var failureException = underlyingException ?? exception;
+        var failureType = failureException.GetType().Name;
+
         return Failure<T>($"Failed while {stage} ({failureType}).");
     }
 

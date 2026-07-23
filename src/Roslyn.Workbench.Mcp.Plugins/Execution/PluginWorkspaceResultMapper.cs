@@ -4,7 +4,6 @@ internal static class PluginWorkspaceResultMapper
 {
     public static ToolExecutionFailureResult MapFailure(WorkspaceExecutionFailure failure)
     {
-
         return new ToolExecutionFailureResult
         {
             Outcome = MapOutcome(failure.Status),
@@ -22,17 +21,7 @@ internal static class PluginWorkspaceResultMapper
     {
         return result.Status switch
         {
-            WorkspaceOperationStatus.Succeeded when result.HasData => PluginExecutionResult<MutationData>.Success(
-                new MutationData
-                {
-                    Operation = result.Data.Operation,
-                    Summary = result.Data.Summary,
-                    Transaction = result.Data.Transaction,
-                    Preview = result.Data.Preview,
-                },
-                result.Data.Changes,
-                result.Diagnostics,
-                result.Warnings),
+            WorkspaceOperationStatus.Succeeded when result.HasData => MapSuccess(result, result.Data),
             WorkspaceOperationStatus.Rejected when result.HasError => PluginExecutionResult<MutationData>.Rejected(
                 MapError(result.Error),
                 result.Error.RequiredAction,
@@ -53,6 +42,25 @@ internal static class PluginWorkspaceResultMapper
                 warnings: result.Warnings),
             _ => throw new InvalidOperationException($"Unsupported workspace operation status '{result.Status}'."),
         };
+    }
+
+    private static PluginExecutionResult<MutationData> MapSuccess(
+        WorkspaceOperationResult<MutationStagingOutcome> result,
+        MutationStagingOutcome outcome)
+    {
+        var data = new MutationData
+        {
+            Operation = outcome.Operation,
+            Summary = outcome.Summary,
+            Transaction = outcome.Transaction,
+            Preview = outcome.Preview,
+        };
+
+        return PluginExecutionResult<MutationData>.Success(
+            data,
+            outcome.Changes,
+            result.Diagnostics,
+            result.Warnings);
     }
 
     private static PluginExecutionOutcome MapOutcome(WorkspaceOperationStatus status)

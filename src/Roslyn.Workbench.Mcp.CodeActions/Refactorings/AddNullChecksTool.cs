@@ -4,7 +4,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 
 internal sealed class AddNullChecksTool : CodeActionMutationToolHandler<LocationRefactoringRequest>
 {
-    private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.InitializeParameter.CSharpAddParameterCheckCodeRefactoringProvider";
+    private const string _providerId = "Microsoft.CodeAnalysis.CSharp.InitializeParameter.CSharpAddParameterCheckCodeRefactoringProvider";
 
     private readonly ICodeActionSelectionStager _selectionStager;
 
@@ -20,7 +20,7 @@ internal sealed class AddNullChecksTool : CodeActionMutationToolHandler<Location
             request.ExpectedSnapshot,
             cancellationToken,
             context,
-            ProviderId,
+            _providerId,
             title: "Add null check");
     }
 }

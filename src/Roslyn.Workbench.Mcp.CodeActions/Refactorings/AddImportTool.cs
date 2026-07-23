@@ -4,7 +4,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 
 internal sealed class AddImportTool : CodeActionMutationToolHandler<AddImportRequest>
 {
-    private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.AddImport.CSharpAddImportCodeRefactoringProvider";
+    private const string _providerId = "Microsoft.CodeAnalysis.CSharp.AddImport.CSharpAddImportCodeRefactoringProvider";
 
     private readonly ICodeActionSelectionStager _selectionStager;
 
@@ -22,7 +22,7 @@ internal sealed class AddImportTool : CodeActionMutationToolHandler<AddImportReq
             request.ExpectedSnapshot,
             cancellationToken,
             context,
-            ProviderId,
+            _providerId,
             titleStartsWith: "Add 'using ",
             titleDoesNotContain: titleDoesNotContain);
     }

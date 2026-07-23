@@ -4,7 +4,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 
 internal sealed class ConvertAutoPropertyToFullPropertyTool : CodeActionMutationToolHandler<ConvertAutoPropertyToFullPropertyRequest>
 {
-    private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertAutoPropertyToFullProperty.CSharpConvertAutoPropertyToFullPropertyCodeRefactoringProvider";
+    private const string _providerId = "Microsoft.CodeAnalysis.CSharp.ConvertAutoPropertyToFullProperty.CSharpConvertAutoPropertyToFullPropertyCodeRefactoringProvider";
 
     private readonly ICodeActionSelectionStager _selectionStager;
 
@@ -20,7 +20,7 @@ internal sealed class ConvertAutoPropertyToFullPropertyTool : CodeActionMutation
             request.ExpectedSnapshot,
             cancellationToken,
             context,
-            ProviderId,
+            _providerId,
             title: "Convert to full property");
     }
 }

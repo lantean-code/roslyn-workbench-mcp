@@ -4,7 +4,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 
 internal sealed class ConvertPrimaryToRegularConstructorTool : CodeActionMutationToolHandler<LocationRefactoringRequest>
 {
-    private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertPrimaryToRegularConstructor.ConvertPrimaryToRegularConstructorCodeRefactoringProvider";
+    private const string _providerId = "Microsoft.CodeAnalysis.CSharp.ConvertPrimaryToRegularConstructor.ConvertPrimaryToRegularConstructorCodeRefactoringProvider";
 
     private readonly ICodeActionSelectionStager _selectionStager;
 
@@ -20,7 +20,7 @@ internal sealed class ConvertPrimaryToRegularConstructorTool : CodeActionMutatio
             request.ExpectedSnapshot,
             cancellationToken,
             context,
-            ProviderId,
+            _providerId,
             title: "Convert to regular constructor");
     }
 }

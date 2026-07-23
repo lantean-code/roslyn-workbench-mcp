@@ -4,7 +4,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 
 internal sealed class ConvertForToForeachTool : CodeActionMutationToolHandler<LocationRefactoringRequest>
 {
-    private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertForToForEach.CSharpConvertForToForEachCodeRefactoringProvider";
+    private const string _providerId = "Microsoft.CodeAnalysis.CSharp.ConvertForToForEach.CSharpConvertForToForEachCodeRefactoringProvider";
 
     private readonly ICodeActionSelectionStager _selectionStager;
 
@@ -20,7 +20,7 @@ internal sealed class ConvertForToForeachTool : CodeActionMutationToolHandler<Lo
             request.ExpectedSnapshot,
             cancellationToken,
             context,
-            ProviderId,
+            _providerId,
             title: "Convert to 'foreach'");
     }
 }

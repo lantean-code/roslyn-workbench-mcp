@@ -4,7 +4,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 
 internal sealed class UseRecursivePatternsTool : CodeActionMutationToolHandler<LocationRefactoringRequest>
 {
-    private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.UseRecursivePatterns.UseRecursivePatternsCodeRefactoringProvider";
+    private const string _providerId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.UseRecursivePatterns.UseRecursivePatternsCodeRefactoringProvider";
 
     private readonly ICodeActionSelectionStager _selectionStager;
 
@@ -20,7 +20,7 @@ internal sealed class UseRecursivePatternsTool : CodeActionMutationToolHandler<L
             request.ExpectedSnapshot,
             cancellationToken,
             context,
-            ProviderId,
+            _providerId,
             title: "Use recursive patterns");
     }
 }

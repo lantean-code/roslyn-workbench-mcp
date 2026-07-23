@@ -4,7 +4,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 
 internal sealed class ConvertIfToSwitchTool : CodeActionMutationToolHandler<ConvertIfToSwitchRequest>
 {
-    private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertIfToSwitch.CSharpConvertIfToSwitchCodeRefactoringProvider";
+    private const string _providerId = "Microsoft.CodeAnalysis.CSharp.ConvertIfToSwitch.CSharpConvertIfToSwitchCodeRefactoringProvider";
 
     private readonly ICodeActionSelectionStager _selectionStager;
 
@@ -24,7 +24,7 @@ internal sealed class ConvertIfToSwitchTool : CodeActionMutationToolHandler<Conv
             request.ExpectedSnapshot,
             cancellationToken,
             context,
-            ProviderId,
+            _providerId,
             title: title);
     }
 }

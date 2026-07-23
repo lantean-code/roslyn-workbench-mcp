@@ -4,10 +4,10 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 
 internal sealed class IntroduceParameterTool : CodeActionMutationToolHandler<IntroduceParameterRequest>
 {
-    private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.IntroduceParameter.CSharpIntroduceParameterCodeRefactoringProvider";
-    private const string UpdateCallSitesDirectlyTitle = "and update call sites directly";
-    private const string IntoExtractedMethodTitle = "into extracted method to invoke at call sites";
-    private const string IntoNewOverloadTitle = "into new overload";
+    private const string _providerId = "Microsoft.CodeAnalysis.CSharp.IntroduceParameter.CSharpIntroduceParameterCodeRefactoringProvider";
+    private const string _updateCallSitesDirectlyTitle = "and update call sites directly";
+    private const string _intoExtractedMethodTitle = "into extracted method to invoke at call sites";
+    private const string _intoNewOverloadTitle = "into new overload";
 
     private readonly ICodeActionSelectionStager _selectionStager;
 
@@ -29,9 +29,9 @@ internal sealed class IntroduceParameterTool : CodeActionMutationToolHandler<Int
 
         var title = request.Strategy switch
         {
-            IntroduceParameterStrategy.IntoExtractedMethod => IntoExtractedMethodTitle,
-            IntroduceParameterStrategy.IntoNewOverload => IntoNewOverloadTitle,
-            _ => UpdateCallSitesDirectlyTitle,
+            IntroduceParameterStrategy.IntoExtractedMethod => _intoExtractedMethodTitle,
+            IntroduceParameterStrategy.IntoNewOverload => _intoNewOverloadTitle,
+            _ => _updateCallSitesDirectlyTitle,
         };
 
         var occurrenceIndex = request.AllOccurrences ? 1 : 0;
@@ -46,7 +46,7 @@ internal sealed class IntroduceParameterTool : CodeActionMutationToolHandler<Int
         {
             Location = request.Selection,
             ExpectedSnapshot = request.ExpectedSnapshot,
-            ProviderId = ProviderId,
+            ProviderId = _providerId,
             Title = title,
             EquivalenceKey = title,
             ActionPath = actionPath,

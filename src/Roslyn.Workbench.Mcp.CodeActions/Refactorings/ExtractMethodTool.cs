@@ -4,11 +4,11 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 
 internal sealed class ExtractMethodTool : CodeActionMutationToolHandler<ExtractMethodRequest>
 {
-    private const string ProviderId = "Microsoft.CodeAnalysis.CodeRefactorings.ExtractMethod.ExtractMethodCodeRefactoringProvider";
-    private const string MethodTitle = "Extract method";
-    private const string MethodEquivalenceKey = "Extract_method";
-    private const string LocalFunctionTitle = "Extract local function";
-    private const string LocalFunctionEquivalenceKey = "Extract_local_function";
+    private const string _providerId = "Microsoft.CodeAnalysis.CodeRefactorings.ExtractMethod.ExtractMethodCodeRefactoringProvider";
+    private const string _methodTitle = "Extract method";
+    private const string _methodEquivalenceKey = "Extract_method";
+    private const string _localFunctionTitle = "Extract local function";
+    private const string _localFunctionEquivalenceKey = "Extract_local_function";
 
     private readonly ICodeActionSelectionStager _selectionStager;
 
@@ -30,15 +30,15 @@ internal sealed class ExtractMethodTool : CodeActionMutationToolHandler<ExtractM
 
         var (title, equivalenceKey) = request.TargetKind switch
         {
-            ExtractMethodTargetKind.LocalFunction => (LocalFunctionTitle, LocalFunctionEquivalenceKey),
-            _ => (MethodTitle, MethodEquivalenceKey),
+            ExtractMethodTargetKind.LocalFunction => (_localFunctionTitle, _localFunctionEquivalenceKey),
+            _ => (_methodTitle, _methodEquivalenceKey),
         };
 
         return _selectionStager.StageReplayCodeActionAsync(new ReplayCodeActionRequest
         {
             Location = request.Selection,
             ExpectedSnapshot = request.ExpectedSnapshot,
-            ProviderId = ProviderId,
+            ProviderId = _providerId,
             Title = title,
             EquivalenceKey = equivalenceKey,
         }, context, cancellationToken);

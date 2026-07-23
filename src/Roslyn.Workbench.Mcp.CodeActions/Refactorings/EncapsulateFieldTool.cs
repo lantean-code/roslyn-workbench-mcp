@@ -4,7 +4,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 
 internal sealed class EncapsulateFieldTool : CodeActionMutationToolHandler<EncapsulateFieldRequest>
 {
-    private const string ProviderId = "Microsoft.CodeAnalysis.EncapsulateField.EncapsulateFieldRefactoringProvider";
+    private const string _providerId = "Microsoft.CodeAnalysis.EncapsulateField.EncapsulateFieldRefactoringProvider";
 
     private readonly ICodeActionSelectionStager _selectionStager;
     private readonly ICodeActionToolRequestResolver _requestResolver;
@@ -65,7 +65,7 @@ internal sealed class EncapsulateFieldTool : CodeActionMutationToolHandler<Encap
         {
             Location = locationSelector,
             ExpectedSnapshot = request.ExpectedSnapshot,
-            ProviderId = ProviderId,
+            ProviderId = _providerId,
             Title = title,
             EquivalenceKey = equivalenceKey,
         }, context, cancellationToken);

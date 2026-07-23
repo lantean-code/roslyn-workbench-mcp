@@ -125,9 +125,25 @@ Completed evidence:
 
 ### Batch 2 — CodeActions and Plugins expression cleanup
 
+**Status:** Complete
+
 Review and simplify the conditional, coalescing, nested-return and dense-LINQ candidates in CodeActions and Plugins. These projects have relatively small inventories and no transaction or protocol persistence risk.
 
 Validation: focused unit tests for both projects, affected-project analyzer builds and the fast suite.
+
+Completed evidence:
+
+- replaced all 12 complex conditional candidates with explicit branches or responsibility-focused helpers;
+- replaced the CodeActions coalescing candidate with a value-only fallback followed by one type lookup;
+- renamed 58 private constants across 42 CodeActions handlers to the required `_camelCase` convention;
+- separated result data, error data, registration data and refactoring requests from their enclosing method calls;
+- replaced the two genuinely multi-stage dependency pipelines with explicit collection stages;
+- retained three short deduplicate/order/materialise LINQ pipelines because they remain clearer than expanded loops;
+- retained the two exhaustive result-mapping switch expressions; their remaining nested-return signals come from invariant throws rather than nested response construction;
+- a repeat Roslyn syntax scan found zero complex conditional, complex coalescing or statement-separation candidates in both projects;
+- both affected projects built with zero `latest-all` analyzer warnings;
+- all 588 focused tests passed; and
+- the fast unit and contract suite passed 1,886 tests.
 
 ### Batch 3 — Workspace expression cleanup
 

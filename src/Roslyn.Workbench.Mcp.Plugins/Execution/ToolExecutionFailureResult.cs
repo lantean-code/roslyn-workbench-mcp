@@ -36,15 +36,17 @@ internal sealed record ToolExecutionFailureResult
     /// <returns>The faulted failure result.</returns>
     public static ToolExecutionFailureResult CreateUnhandledException()
     {
+        var error = new PluginExecutionError
+        {
+            Code = "UnhandledException",
+            Message = "Tool execution failed.",
+            CorrelationId = Guid.NewGuid().ToString("n"),
+        };
+
         return new ToolExecutionFailureResult
         {
             Outcome = PluginExecutionOutcome.Faulted,
-            Error = new PluginExecutionError
-            {
-                Code = "UnhandledException",
-                Message = "Tool execution failed.",
-                CorrelationId = Guid.NewGuid().ToString("n"),
-            },
+            Error = error,
         };
     }
 

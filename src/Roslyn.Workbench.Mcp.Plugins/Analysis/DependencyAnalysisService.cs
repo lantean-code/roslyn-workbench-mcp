@@ -282,10 +282,7 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
                 continue;
             }
 
-            var executableNode = GetExecutableNode(syntax);
-            var rootOperation = executableNode is null
-                ? semanticModel.GetOperation(syntax, cancellationToken)
-                : semanticModel.GetOperation(executableNode, cancellationToken);
+            var rootOperation = GetRootOperation(semanticModel, syntax, cancellationToken);
 
             if (rootOperation is null)
             {
@@ -374,13 +371,22 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
 
         foreach (var project in selectedProjects)
         {
-            var referencedProjects = project.ProjectReferences
-                .Select(reference => project.Solution.GetProject(reference.ProjectId))
-                .OfType<Project>()
-                .Where(referencedProject => nodeIds.Contains(CreateProjectId(referencedProject)))
-                .OrderBy(static referencedProject => referencedProject.Name, StringComparer.Ordinal);
+            var referencedProjects = new List<Project>();
+            foreach (var reference in project.ProjectReferences)
+            {
+                var referencedProject = project.Solution.GetProject(reference.ProjectId);
+                if (referencedProject is null
+                    || !nodeIds.Contains(CreateProjectId(referencedProject)))
+                {
+                    continue;
+                }
 
-            foreach (var referencedProject in referencedProjects)
+                referencedProjects.Add(referencedProject);
+            }
+
+            foreach (var referencedProject in referencedProjects.OrderBy(
+                static referencedProject => referencedProject.Name,
+                StringComparer.Ordinal))
             {
                 var edgeKey = (CreateProjectId(project), CreateProjectId(referencedProject));
                 if (!edgeKeys.Add(edgeKey))
@@ -414,9 +420,13 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
         CancellationToken cancellationToken)
     {
         var sourceTypes = await GetSourceTypesAsync(documents, analysisState, cancellationToken);
-        var namespaces = sourceTypes
-            .Select(GetNamespaceName)
-            .Distinct(StringComparer.Ordinal)
+        var namespaceNames = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var sourceType in sourceTypes)
+        {
+            namespaceNames.Add(GetNamespaceName(sourceType));
+        }
+
+        var namespaces = namespaceNames
             .OrderBy(static item => item, StringComparer.Ordinal)
             .ToArray();
 
@@ -727,10 +737,7 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
 
     private static void AddOperationDependencies(SemanticModel semanticModel, SyntaxNode syntax, HashSet<ISymbol> dependencies, CancellationToken cancellationToken)
     {
-        var executableNode = GetExecutableNode(syntax);
-        var rootOperation = executableNode is null
-            ? semanticModel.GetOperation(syntax, cancellationToken)
-            : semanticModel.GetOperation(executableNode, cancellationToken);
+        var rootOperation = GetRootOperation(semanticModel, syntax, cancellationToken);
 
         if (rootOperation is null)
         {
@@ -879,6 +886,20 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
         };
     }
 
+    private static IOperation? GetRootOperation(
+        SemanticModel semanticModel,
+        SyntaxNode syntax,
+        CancellationToken cancellationToken)
+    {
+        var executableNode = GetExecutableNode(syntax);
+        if (executableNode is not null)
+        {
+            return semanticModel.GetOperation(executableNode, cancellationToken);
+        }
+
+        return semanticModel.GetOperation(syntax, cancellationToken);
+    }
+
     private static INamedTypeSymbol? GetOwningTypeSymbol(ISymbol symbol)
     {
         return symbol switch
@@ -985,9 +1006,13 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
 
         public ValueTask<SemanticModel?> GetSemanticModelAsync(SyntaxTree syntaxTree, CancellationToken cancellationToken)
         {
-            return _solution.GetDocument(syntaxTree) is { } document
-                ? GetSemanticModelAsync(document, cancellationToken)
-                : ValueTask.FromResult<SemanticModel?>(null);
+            var document = _solution.GetDocument(syntaxTree);
+            if (document is not null)
+            {
+                return GetSemanticModelAsync(document, cancellationToken);
+            }
+
+            return ValueTask.FromResult<SemanticModel?>(null);
         }
     }
 

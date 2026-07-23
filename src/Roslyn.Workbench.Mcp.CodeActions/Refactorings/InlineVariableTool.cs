@@ -4,9 +4,9 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 
 internal sealed class InlineVariableTool : CodeActionMutationToolHandler<InlineVariableRequest>
 {
-    private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.InlineTemporary.CSharpInlineTemporaryCodeRefactoringProvider";
-    private const string Title = "Inline temporary variable";
-    private const string EquivalenceKey = "Inline_temporary_variable";
+    private const string _providerId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.InlineTemporary.CSharpInlineTemporaryCodeRefactoringProvider";
+    private const string _title = "Inline temporary variable";
+    private const string _equivalenceKey = "Inline_temporary_variable";
 
     private readonly ICodeActionSelectionStager _selectionStager;
     private readonly ICodeActionToolRequestResolver _requestResolver;
@@ -59,9 +59,9 @@ internal sealed class InlineVariableTool : CodeActionMutationToolHandler<InlineV
         {
             Location = locationSelector,
             ExpectedSnapshot = request.ExpectedSnapshot,
-            ProviderId = ProviderId,
-            Title = Title,
-            EquivalenceKey = EquivalenceKey,
+            ProviderId = _providerId,
+            Title = _title,
+            EquivalenceKey = _equivalenceKey,
         }, context, cancellationToken);
     }
 }

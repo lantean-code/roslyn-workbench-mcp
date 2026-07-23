@@ -9,9 +9,11 @@ internal sealed class PluginToolRegistrationMaterializer : IPluginToolRegistrati
 
     public PluginMaterializationResult Materialize(PluginPreparationResult preparation)
     {
+        var tools = preparation.Tools.Select(CreateRegistration).ToArray();
+
         return new PluginMaterializationResult
         {
-            Tools = preparation.Tools.Select(CreateRegistration).ToArray(),
+            Tools = tools,
             Diagnostics = preparation.Diagnostics,
         };
     }
@@ -32,11 +34,20 @@ internal sealed class PluginToolRegistrationMaterializer : IPluginToolRegistrati
             throw CreateConstructionException(preparedTool.HandlerType, exception);
         }
 
-        var materializationMethod = preparedTool.Tool.Kind == ToolKind.Query
-            ? _createQueryRegistrationMethod.MakeGenericMethod(preparedTool.HandlerContract.GenericTypeArguments)
-            : _createMutationRegistrationMethod.MakeGenericMethod(preparedTool.HandlerContract.GenericTypeArguments);
+        MethodInfo materializationMethod;
+        if (preparedTool.Tool.Kind == ToolKind.Query)
+        {
+            materializationMethod = _createQueryRegistrationMethod.MakeGenericMethod(
+                preparedTool.HandlerContract.GenericTypeArguments);
+        }
+        else
+        {
+            materializationMethod = _createMutationRegistrationMethod.MakeGenericMethod(
+                preparedTool.HandlerContract.GenericTypeArguments);
+        }
 
         var materialize = materializationMethod.CreateDelegate<Func<RegisteredTool, object, IRegisteredPluginTool>>();
+
         return materialize(preparedTool.Tool, handler);
     }
 

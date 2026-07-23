@@ -4,7 +4,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 
 internal sealed class UseNamedArgumentsTool : CodeActionMutationToolHandler<UseNamedArgumentsRequest>
 {
-    private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.UseNamedArguments.CSharpUseNamedArgumentsCodeRefactoringProvider";
+    private const string _providerId = "Microsoft.CodeAnalysis.CSharp.UseNamedArguments.CSharpUseNamedArgumentsCodeRefactoringProvider";
 
     private readonly ICodeActionSelectionStager _selectionStager;
 
@@ -25,7 +25,7 @@ internal sealed class UseNamedArgumentsTool : CodeActionMutationToolHandler<UseN
             request.ExpectedSnapshot,
             cancellationToken,
             context,
-            ProviderId,
+            _providerId,
             titleStartsWith: titleStartsWith,
             titleDoesNotContain: titleDoesNotContain);
     }

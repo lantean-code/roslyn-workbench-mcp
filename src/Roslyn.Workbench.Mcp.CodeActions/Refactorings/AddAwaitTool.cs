@@ -4,7 +4,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 
 internal sealed class AddAwaitTool : CodeActionMutationToolHandler<AddAwaitRequest>
 {
-    private const string ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.AddAwait.CSharpAddAwaitCodeRefactoringProvider";
+    private const string _providerId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.AddAwait.CSharpAddAwaitCodeRefactoringProvider";
 
     private readonly ICodeActionSelectionStager _selectionStager;
 
@@ -28,7 +28,7 @@ internal sealed class AddAwaitTool : CodeActionMutationToolHandler<AddAwaitReque
             request.ExpectedSnapshot,
             cancellationToken,
             context,
-            ProviderId,
+            _providerId,
             title: title,
             actionPath: [actionPath]);
     }

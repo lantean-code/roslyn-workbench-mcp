@@ -4,8 +4,8 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 
 internal sealed class ConvertForeachLinqTool : CodeActionMutationToolHandler<ConvertForeachLinqRequest>
 {
-    private const string ForEachToLinqProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertLinq.ConvertForEachToLinqQuery.CSharpConvertForEachToLinqQueryProvider";
-    private const string LinqToForEachProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertLinq.CSharpConvertLinqQueryToForEachProvider";
+    private const string _forEachToLinqProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertLinq.ConvertForEachToLinqQuery.CSharpConvertForEachToLinqQueryProvider";
+    private const string _linqToForEachProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertLinq.CSharpConvertLinqQueryToForEachProvider";
 
     private readonly ICodeActionSelectionStager _selectionStager;
 
@@ -31,7 +31,7 @@ internal sealed class ConvertForeachLinqTool : CodeActionMutationToolHandler<Con
             {
                 Location = request.Selection,
                 ExpectedSnapshot = request.ExpectedSnapshot,
-                ProviderId = ForEachToLinqProviderId,
+                ProviderId = _forEachToLinqProviderId,
                 Title = "Convert to LINQ call form",
                 EquivalenceKey = "Convert_to_linq_call_form",
             },
@@ -39,7 +39,7 @@ internal sealed class ConvertForeachLinqTool : CodeActionMutationToolHandler<Con
             {
                 Location = request.Selection,
                 ExpectedSnapshot = request.ExpectedSnapshot,
-                ProviderId = LinqToForEachProviderId,
+                ProviderId = _linqToForEachProviderId,
                 Title = "Convert to foreach",
                 EquivalenceKey = "Convert_to_foreach",
             },
@@ -47,7 +47,7 @@ internal sealed class ConvertForeachLinqTool : CodeActionMutationToolHandler<Con
             {
                 Location = request.Selection,
                 ExpectedSnapshot = request.ExpectedSnapshot,
-                ProviderId = ForEachToLinqProviderId,
+                ProviderId = _forEachToLinqProviderId,
                 Title = "Convert to LINQ",
                 EquivalenceKey = "Convert_to_linq",
             },

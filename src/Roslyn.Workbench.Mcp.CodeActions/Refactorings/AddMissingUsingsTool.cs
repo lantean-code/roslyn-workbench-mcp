@@ -4,7 +4,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 
 internal sealed class AddMissingUsingsTool : CodeActionMutationToolHandler<AddMissingUsingsRequest>
 {
-    private const string AddImportProviderId = "Microsoft.CodeAnalysis.CSharp.AddImport.CSharpAddImportCodeFixProvider";
+    private const string _addImportProviderId = "Microsoft.CodeAnalysis.CSharp.AddImport.CSharpAddImportCodeFixProvider";
 
     private readonly IScopedCodeFixStager _scopedFixStager;
 
@@ -33,7 +33,7 @@ internal sealed class AddMissingUsingsTool : CodeActionMutationToolHandler<AddMi
                 "CS0103",
                 "CS0246",
             ],
-            ProviderId = AddImportProviderId,
+            ProviderId = _addImportProviderId,
         }, context, cancellationToken);
     }
 }

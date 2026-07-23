@@ -4,7 +4,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 
 internal sealed class RemoveUnusedUsingsTool : CodeActionMutationToolHandler<RemoveUnusedUsingsRequest>
 {
-    private const string FixableDiagnosticId = "RemoveUnnecessaryImportsFixable";
+    private const string _fixableDiagnosticId = "RemoveUnnecessaryImportsFixable";
 
     private readonly IScopedCodeFixStager _scopedFixStager;
 
@@ -19,9 +19,9 @@ internal sealed class RemoveUnusedUsingsTool : CodeActionMutationToolHandler<Rem
         {
             Scope = request.Scope,
             ExpectedSnapshot = request.ExpectedSnapshot,
-            DiagnosticIds = [FixableDiagnosticId],
+            DiagnosticIds = [_fixableDiagnosticId],
             Title = "Remove unnecessary usings",
-            SyntheticDiagnosticId = FixableDiagnosticId,
+            SyntheticDiagnosticId = _fixableDiagnosticId,
         }, context, cancellationToken);
     }
 }

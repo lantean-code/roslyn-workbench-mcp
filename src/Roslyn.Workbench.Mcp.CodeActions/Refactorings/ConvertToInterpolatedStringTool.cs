@@ -4,8 +4,8 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 
 internal sealed class ConvertToInterpolatedStringTool : CodeActionMutationToolHandler<ConvertToInterpolatedStringRequest>
 {
-    private const string Title = "Convert to interpolated string";
-    private const string EquivalenceKey = "Convert_to_interpolated_string";
+    private const string _title = "Convert to interpolated string";
+    private const string _equivalenceKey = "Convert_to_interpolated_string";
 
     private readonly ICodeActionSelectionStager _selectionStager;
     private readonly ICodeActionToolRequestResolver _requestResolver;
@@ -43,8 +43,8 @@ internal sealed class ConvertToInterpolatedStringTool : CodeActionMutationToolHa
         {
             Location = request.Selection,
             ExpectedSnapshot = request.ExpectedSnapshot,
-            Title = Title,
-            EquivalenceKey = EquivalenceKey,
+            Title = _title,
+            EquivalenceKey = _equivalenceKey,
         };
 
         return await _selectionStager.StageReplayCodeActionAsync(

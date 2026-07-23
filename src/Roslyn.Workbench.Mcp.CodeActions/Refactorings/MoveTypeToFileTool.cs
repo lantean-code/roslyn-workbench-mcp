@@ -4,8 +4,8 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 
 internal sealed class MoveTypeToFileTool : CodeActionMutationToolHandler<MoveTypeToFileRequest>
 {
-    private const string ProviderId = "Microsoft.CodeAnalysis.CodeRefactorings.MoveType.MoveTypeCodeRefactoringProvider";
-    private const string TitlePrefix = "Move type to ";
+    private const string _providerId = "Microsoft.CodeAnalysis.CodeRefactorings.MoveType.MoveTypeCodeRefactoringProvider";
+    private const string _titlePrefix = "Move type to ";
 
     private readonly ICodeActionSelectionStager _selectionStager;
     private readonly ICodeActionToolRequestResolver _requestResolver;
@@ -58,8 +58,8 @@ internal sealed class MoveTypeToFileTool : CodeActionMutationToolHandler<MoveTyp
         {
             Location = locationSelector,
             ExpectedSnapshot = request.ExpectedSnapshot,
-            ProviderId = ProviderId,
-            TitleStartsWith = TitlePrefix,
+            ProviderId = _providerId,
+            TitleStartsWith = _titlePrefix,
         }, context, cancellationToken);
     }
 }

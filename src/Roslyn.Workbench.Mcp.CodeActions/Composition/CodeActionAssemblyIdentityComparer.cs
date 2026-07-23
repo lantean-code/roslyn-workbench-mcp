@@ -28,8 +28,11 @@ internal sealed class CodeActionAssemblyIdentityComparer : IEqualityComparer<Ass
 
     public int GetHashCode(Assembly assembly)
     {
-        return assembly.FullName is string identity
-            ? StringComparer.OrdinalIgnoreCase.GetHashCode(identity)
-            : RuntimeHelpers.GetHashCode(assembly);
+        if (assembly.FullName is string identity)
+        {
+            return StringComparer.OrdinalIgnoreCase.GetHashCode(identity);
+        }
+
+        return RuntimeHelpers.GetHashCode(assembly);
     }
 }

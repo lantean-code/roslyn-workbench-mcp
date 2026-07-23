@@ -4,8 +4,8 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 
 internal sealed class ConvertExpressionBodyTool : CodeActionMutationToolHandler<LocationRefactoringRequest>
 {
-    private const string UseExpressionBodyProviderId = "Microsoft.CodeAnalysis.CSharp.UseExpressionBody.UseExpressionBodyCodeRefactoringProvider";
-    private const string UseExpressionBodyForLambdaProviderId = "Microsoft.CodeAnalysis.CSharp.UseExpressionBodyForLambda.UseExpressionBodyForLambdaCodeRefactoringProvider";
+    private const string _useExpressionBodyProviderId = "Microsoft.CodeAnalysis.CSharp.UseExpressionBody.UseExpressionBodyCodeRefactoringProvider";
+    private const string _useExpressionBodyForLambdaProviderId = "Microsoft.CodeAnalysis.CSharp.UseExpressionBodyForLambda.UseExpressionBodyForLambdaCodeRefactoringProvider";
 
     private readonly ICodeActionSelectionStager _selectionStager;
 
@@ -21,7 +21,7 @@ internal sealed class ConvertExpressionBodyTool : CodeActionMutationToolHandler<
             request.ExpectedSnapshot,
             cancellationToken,
             context,
-            UseExpressionBodyProviderId);
+            _useExpressionBodyProviderId);
 
         if (!ShouldTryLambdaProvider(result))
         {
@@ -33,7 +33,7 @@ internal sealed class ConvertExpressionBodyTool : CodeActionMutationToolHandler<
             request.ExpectedSnapshot,
             cancellationToken,
             context,
-            UseExpressionBodyForLambdaProviderId);
+            _useExpressionBodyForLambdaProviderId);
     }
 
     private static bool ShouldTryLambdaProvider(CodeActionExecutionResult<WorkspaceMutationCandidate> result)

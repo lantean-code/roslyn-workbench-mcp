@@ -83,7 +83,7 @@ internal sealed class AnalyzeDisposablesTool : QueryToolHandler<AnalyzeDisposabl
 
         var data = new DisposableAnalysisData
         {
-            Findings = ToolExecutionHelpers.CreatePreboundedCollection(
+            Findings = BoundedCollection<DisposableFinding>.CreatePrebounded(
                 orderedFindings,
                 hasMore),
         };

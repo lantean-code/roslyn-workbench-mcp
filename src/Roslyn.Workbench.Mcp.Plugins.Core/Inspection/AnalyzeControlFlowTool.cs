@@ -16,7 +16,7 @@ internal sealed class AnalyzeControlFlowTool : QueryToolHandler<AnalyzeControlFl
         var analysis = resolvedStatement.SemanticModel.AnalyzeControlFlow(resolvedStatement.Statement);
         if (analysis is null)
         {
-            return ToolExecutionHelpers.Rejected<ControlFlowAnalysisData>("InvalidRequest", "The selected region does not support control-flow analysis.");
+            return PluginExecutionResultFactory.Rejected<ControlFlowAnalysisData>("InvalidRequest", "The selected region does not support control-flow analysis.");
         }
 
         var exits = new List<ControlFlowExit>();
@@ -63,7 +63,7 @@ internal sealed class AnalyzeControlFlowTool : QueryToolHandler<AnalyzeControlFl
         var statement = resolvedSyntaxNode.Node.FirstAncestorOrSelf<StatementSyntax>();
         if (statement is null)
         {
-            return ToolResolutionResult<ResolvedStatement, ControlFlowAnalysisData>.Rejected(ToolExecutionHelpers.Rejected<ControlFlowAnalysisData>("InvalidRequest", "The selected region must resolve to an executable statement."));
+            return ToolResolutionResult<ResolvedStatement, ControlFlowAnalysisData>.Rejected(PluginExecutionResultFactory.Rejected<ControlFlowAnalysisData>("InvalidRequest", "The selected region must resolve to an executable statement."));
         }
 
         return ToolResolutionResult<ResolvedStatement, ControlFlowAnalysisData>.Resolved(new ResolvedStatement(
@@ -82,20 +82,20 @@ internal sealed class AnalyzeControlFlowTool : QueryToolHandler<AnalyzeControlFl
 
         if (selector is null)
         {
-            return ToolResolutionResult<ResolvedSyntaxNode, ControlFlowAnalysisData>.Rejected(ToolExecutionHelpers.Rejected<ControlFlowAnalysisData>("InvalidRequest", "A location selector is required."));
+            return ToolResolutionResult<ResolvedSyntaxNode, ControlFlowAnalysisData>.Rejected(PluginExecutionResultFactory.Rejected<ControlFlowAnalysisData>("InvalidRequest", "A location selector is required."));
         }
 
         var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken);
         if (!locationResolution.IsResolved)
         {
-            return ToolResolutionResult<ResolvedSyntaxNode, ControlFlowAnalysisData>.Rejected(ToolExecutionHelpers.RejectFromStatus<ControlFlowAnalysisData>(locationResolution.Status, "Location", "location"));
+            return ToolResolutionResult<ResolvedSyntaxNode, ControlFlowAnalysisData>.Rejected(PluginExecutionResultFactory.RejectedFromStatus<ControlFlowAnalysisData>(locationResolution.Status, "Location", "location"));
         }
 
         var location = locationResolution.Value;
         var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(location);
         if (resolvedLocation?.Document?.Path is null)
         {
-            return ToolResolutionResult<ResolvedSyntaxNode, ControlFlowAnalysisData>.Rejected(ToolExecutionHelpers.Rejected<ControlFlowAnalysisData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
+            return ToolResolutionResult<ResolvedSyntaxNode, ControlFlowAnalysisData>.Rejected(PluginExecutionResultFactory.Rejected<ControlFlowAnalysisData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
         }
 
         var document = location.SourceTree is null
@@ -104,14 +104,14 @@ internal sealed class AnalyzeControlFlowTool : QueryToolHandler<AnalyzeControlFl
 
         if (document is null)
         {
-            return ToolResolutionResult<ResolvedSyntaxNode, ControlFlowAnalysisData>.Rejected(ToolExecutionHelpers.Rejected<ControlFlowAnalysisData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
+            return ToolResolutionResult<ResolvedSyntaxNode, ControlFlowAnalysisData>.Rejected(PluginExecutionResultFactory.Rejected<ControlFlowAnalysisData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
         }
 
         var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
         if (syntaxRoot is null || semanticModel is null)
         {
-            return ToolResolutionResult<ResolvedSyntaxNode, ControlFlowAnalysisData>.Rejected(ToolExecutionHelpers.Rejected<ControlFlowAnalysisData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
+            return ToolResolutionResult<ResolvedSyntaxNode, ControlFlowAnalysisData>.Rejected(PluginExecutionResultFactory.Rejected<ControlFlowAnalysisData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
         }
 
         return ToolResolutionResult<ResolvedSyntaxNode, ControlFlowAnalysisData>.Resolved(new ResolvedSyntaxNode(

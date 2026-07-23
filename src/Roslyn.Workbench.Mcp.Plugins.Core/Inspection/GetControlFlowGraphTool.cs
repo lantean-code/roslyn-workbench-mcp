@@ -7,7 +7,7 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
     {
         if (request.Symbol is not null && request.Location is not null)
         {
-            return ToolExecutionHelpers.Rejected<ControlFlowGraphData>("InvalidRequest", "Specify exactly one of symbol or location.");
+            return PluginExecutionResultFactory.Rejected<ControlFlowGraphData>("InvalidRequest", "Specify exactly one of symbol or location.");
         }
 
         SyntaxNode node;
@@ -25,14 +25,14 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
             var sourceLocation = ownerSymbol.Locations.FirstOrDefault(static item => item.IsInSource);
             if (sourceLocation is null || context.CurrentSolution.GetDocument(sourceLocation.SourceTree) is not { } document)
             {
-                return ToolExecutionHelpers.Rejected<ControlFlowGraphData>("LocationNotFound", "The symbol does not have a source declaration.", RequiredAction.ResolveTargetAgain);
+                return PluginExecutionResultFactory.Rejected<ControlFlowGraphData>("LocationNotFound", "The symbol does not have a source declaration.", RequiredAction.ResolveTargetAgain);
             }
 
             var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
             var resolvedSemanticModel = await document.GetSemanticModelAsync(cancellationToken);
             if (syntaxRoot is null || resolvedSemanticModel is null)
             {
-                return ToolExecutionHelpers.Rejected<ControlFlowGraphData>("LocationNotFound", "The symbol source declaration could not be analysed.", RequiredAction.ResolveTargetAgain);
+                return PluginExecutionResultFactory.Rejected<ControlFlowGraphData>("LocationNotFound", "The symbol source declaration could not be analysed.", RequiredAction.ResolveTargetAgain);
             }
 
             semanticModel = resolvedSemanticModel;
@@ -51,20 +51,20 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
             var enclosingSymbol = semanticModel.GetEnclosingSymbol(node.SpanStart, cancellationToken);
             if (enclosingSymbol is null)
             {
-                return ToolExecutionHelpers.Rejected<ControlFlowGraphData>("SymbolNotFound", "The selected location does not have an enclosing symbol.", RequiredAction.ResolveTargetAgain);
+                return PluginExecutionResultFactory.Rejected<ControlFlowGraphData>("SymbolNotFound", "The selected location does not have an enclosing symbol.", RequiredAction.ResolveTargetAgain);
             }
 
             ownerSymbol = enclosingSymbol;
         }
         else
         {
-            return ToolExecutionHelpers.Rejected<ControlFlowGraphData>("InvalidRequest", "Specify exactly one of symbol or location.");
+            return PluginExecutionResultFactory.Rejected<ControlFlowGraphData>("InvalidRequest", "Specify exactly one of symbol or location.");
         }
 
         var graph = ControlFlowGraph.Create(node, semanticModel, cancellationToken);
         if (graph is null)
         {
-            return ToolExecutionHelpers.Rejected<ControlFlowGraphData>("InvalidRequest", "The selected target does not support control-flow graph generation.");
+            return PluginExecutionResultFactory.Rejected<ControlFlowGraphData>("InvalidRequest", "The selected target does not support control-flow graph generation.");
         }
 
         var maxBlocks = Math.Max(0, request.MaxBlocks);
@@ -160,14 +160,14 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
         var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken);
         if (!locationResolution.IsResolved)
         {
-            return ToolResolutionResult<ResolvedSyntaxNode, ControlFlowGraphData>.Rejected(ToolExecutionHelpers.RejectFromStatus<ControlFlowGraphData>(locationResolution.Status, "Location", "location"));
+            return ToolResolutionResult<ResolvedSyntaxNode, ControlFlowGraphData>.Rejected(PluginExecutionResultFactory.RejectedFromStatus<ControlFlowGraphData>(locationResolution.Status, "Location", "location"));
         }
 
         var location = locationResolution.Value;
         var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(location);
         if (resolvedLocation?.Document?.Path is null)
         {
-            return ToolResolutionResult<ResolvedSyntaxNode, ControlFlowGraphData>.Rejected(ToolExecutionHelpers.Rejected<ControlFlowGraphData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
+            return ToolResolutionResult<ResolvedSyntaxNode, ControlFlowGraphData>.Rejected(PluginExecutionResultFactory.Rejected<ControlFlowGraphData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
         }
 
         var document = location.SourceTree is null
@@ -176,14 +176,14 @@ internal sealed class GetControlFlowGraphTool : QueryToolHandler<GetControlFlowG
 
         if (document is null)
         {
-            return ToolResolutionResult<ResolvedSyntaxNode, ControlFlowGraphData>.Rejected(ToolExecutionHelpers.Rejected<ControlFlowGraphData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
+            return ToolResolutionResult<ResolvedSyntaxNode, ControlFlowGraphData>.Rejected(PluginExecutionResultFactory.Rejected<ControlFlowGraphData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
         }
 
         var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
         if (syntaxRoot is null || semanticModel is null)
         {
-            return ToolResolutionResult<ResolvedSyntaxNode, ControlFlowGraphData>.Rejected(ToolExecutionHelpers.Rejected<ControlFlowGraphData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
+            return ToolResolutionResult<ResolvedSyntaxNode, ControlFlowGraphData>.Rejected(PluginExecutionResultFactory.Rejected<ControlFlowGraphData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
         }
 
         var node = syntaxRoot.FindNode(location.SourceSpan, getInnermostNodeForTie: true);

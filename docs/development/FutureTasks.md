@@ -123,18 +123,6 @@ Sources: [TestArchitectureReaudit-2026-07-18.md](TestArchitectureReaudit-2026-07
 
 ## P3 — Engineering Efficiency
 
-### Audit remaining project folder and namespace structure
-
-**Status:** Started
-
-Repeat the completed Code Actions structural audit across the remaining production projects and their matching test projects. Inventory every source file by responsibility and dependency direction, not only files currently placed at a project root. Move misplaced types into cohesive responsibility-based folders, split folders only where they contain distinct architectural concerns, and keep physical paths, namespaces and mirrored test namespaces aligned.
-
-Do not introduce arbitrary alphabetical or verb-based subfolders for large but cohesive groups. Preserve project boundaries and behaviour, update all consumers as namespace changes are made, and validate each project-level batch with formatting, the solution build, the `latest-all` analyzer set and affected tests.
-
-The scenario runner, `Roslyn.Workbench.Mcp.Plugins`, `Roslyn.Workbench.Mcp.Plugins.Core` and `Roslyn.Workbench.Mcp.Workspace` batches are complete. Their roots now contain only intentional entry/runtime or author-facing assets, implementation folders and namespaces are responsibility-aligned, matching tests mirror the production structure, scenario families remain cohesive, and misleading or stale implementation names have been corrected. Continue with the remaining production and test projects as separate project-level batches.
-
-Source: completed `Roslyn.Workbench.Mcp.CodeActions` folder and namespace audit.
-
 ### Audit repository-wide readability and incidental complexity
 
 **Status:** Not started

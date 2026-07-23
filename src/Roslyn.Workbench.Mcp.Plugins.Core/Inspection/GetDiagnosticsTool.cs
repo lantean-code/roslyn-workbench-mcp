@@ -52,7 +52,7 @@ internal sealed class GetDiagnosticsTool : QueryToolHandler<GetDiagnosticsReques
 
         var data = new DiagnosticsData
         {
-            Diagnostics = ToolExecutionHelpers.CreatePreboundedCollection(
+            Diagnostics = BoundedCollection<DiagnosticInfo>.CreatePrebounded(
                 projectedDiagnostics,
                 hasMore),
         };

@@ -117,7 +117,7 @@ internal sealed class GetChangeImpactTool : QueryToolHandler<GetChangeImpactRequ
         {
             Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
             Impact = impact,
-            Locations = ToolExecutionHelpers.CreatePreboundedCollection(
+            Locations = BoundedCollection<ContractReferenceLocation>.CreatePrebounded(
                 locations,
                 pendingReferences.Count > maxResults),
         };

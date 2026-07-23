@@ -27,7 +27,7 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
 
         if (operation is null)
         {
-            return ToolExecutionHelpers.Rejected<OperationTreeData>("InvalidRequest", "The selected region does not resolve to an operation tree.");
+            return PluginExecutionResultFactory.Rejected<OperationTreeData>("InvalidRequest", "The selected region does not resolve to an operation tree.");
         }
 
         var root = CreateOperationNode(operation, request.MaxDepth, depth: 0, out var truncated);
@@ -84,20 +84,20 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
 
         if (selector is null)
         {
-            return ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>.Rejected(ToolExecutionHelpers.Rejected<OperationTreeData>("InvalidRequest", "A location selector is required."));
+            return ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>.Rejected(PluginExecutionResultFactory.Rejected<OperationTreeData>("InvalidRequest", "A location selector is required."));
         }
 
         var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken);
         if (!locationResolution.IsResolved)
         {
-            return ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>.Rejected(ToolExecutionHelpers.RejectFromStatus<OperationTreeData>(locationResolution.Status, "Location", "location"));
+            return ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>.Rejected(PluginExecutionResultFactory.RejectedFromStatus<OperationTreeData>(locationResolution.Status, "Location", "location"));
         }
 
         var location = locationResolution.Value;
         var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(location);
         if (resolvedLocation?.Document?.Path is null)
         {
-            return ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>.Rejected(ToolExecutionHelpers.Rejected<OperationTreeData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
+            return ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>.Rejected(PluginExecutionResultFactory.Rejected<OperationTreeData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
         }
 
         var document = location.SourceTree is null
@@ -106,14 +106,14 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
 
         if (document is null)
         {
-            return ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>.Rejected(ToolExecutionHelpers.Rejected<OperationTreeData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
+            return ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>.Rejected(PluginExecutionResultFactory.Rejected<OperationTreeData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
         }
 
         var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
         if (syntaxRoot is null || semanticModel is null)
         {
-            return ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>.Rejected(ToolExecutionHelpers.Rejected<OperationTreeData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
+            return ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>.Rejected(PluginExecutionResultFactory.Rejected<OperationTreeData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
         }
 
         return ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>.Resolved(new ResolvedSyntaxNode(

@@ -20,7 +20,7 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
 
         if (!targetFrameworks.IsSucceeded)
         {
-            var rejection = ToolExecutionHelpers.RejectProjectStructureFailure<ProjectDetailsData>(targetFrameworks.ErrorMessage);
+            var rejection = PluginExecutionResultFactory.ProjectStructureUnavailable<ProjectDetailsData>(targetFrameworks.ErrorMessage);
             return ValueTask.FromResult(rejection);
         }
 
@@ -93,13 +93,13 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
 
             if (documents.Count == maxResults)
             {
-                return ToolExecutionHelpers.CreatePreboundedCollection(documents, hasMore: true);
+                return BoundedCollection<DocumentReference>.CreatePrebounded(documents, hasMore: true);
             }
 
             documents.Add(documentReference);
         }
 
-        return ToolExecutionHelpers.CreatePreboundedCollection(documents, hasMore: false);
+        return BoundedCollection<DocumentReference>.CreatePrebounded(documents, hasMore: false);
     }
 
     private static BoundedCollection<ProjectReferenceInfo> CreateProjectReferences(
@@ -131,13 +131,13 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
             cancellationToken.ThrowIfCancellationRequested();
             if (projectReferences.Count == maxResults)
             {
-                return ToolExecutionHelpers.CreatePreboundedCollection(projectReferences, hasMore: true);
+                return BoundedCollection<ProjectReferenceInfo>.CreatePrebounded(projectReferences, hasMore: true);
             }
 
             projectReferences.Add(InspectionProjectionFactory.CreateProjectReferenceInfo(candidate.Project, workspaceResolver));
         }
 
-        return ToolExecutionHelpers.CreatePreboundedCollection(projectReferences, hasMore: false);
+        return BoundedCollection<ProjectReferenceInfo>.CreatePrebounded(projectReferences, hasMore: false);
     }
 
     private static BoundedCollection<MetadataReferenceInfo> CreateMetadataReferences(
@@ -165,13 +165,13 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
             cancellationToken.ThrowIfCancellationRequested();
             if (metadataReferences.Count == maxResults)
             {
-                return ToolExecutionHelpers.CreatePreboundedCollection(metadataReferences, hasMore: true);
+                return BoundedCollection<MetadataReferenceInfo>.CreatePrebounded(metadataReferences, hasMore: true);
             }
 
             metadataReferences.Add(InspectionProjectionFactory.CreateMetadataReferenceInfo(candidate.Reference));
         }
 
-        return ToolExecutionHelpers.CreatePreboundedCollection(metadataReferences, hasMore: false);
+        return BoundedCollection<MetadataReferenceInfo>.CreatePrebounded(metadataReferences, hasMore: false);
     }
 
     private static BoundedCollection<AnalyzerInfo> CreateAnalyzers(
@@ -199,12 +199,12 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
             cancellationToken.ThrowIfCancellationRequested();
             if (analyzers.Count == maxResults)
             {
-                return ToolExecutionHelpers.CreatePreboundedCollection(analyzers, hasMore: true);
+                return BoundedCollection<AnalyzerInfo>.CreatePrebounded(analyzers, hasMore: true);
             }
 
             analyzers.Add(InspectionProjectionFactory.CreateAnalyzerInfo(candidate.Reference));
         }
 
-        return ToolExecutionHelpers.CreatePreboundedCollection(analyzers, hasMore: false);
+        return BoundedCollection<AnalyzerInfo>.CreatePrebounded(analyzers, hasMore: false);
     }
 }

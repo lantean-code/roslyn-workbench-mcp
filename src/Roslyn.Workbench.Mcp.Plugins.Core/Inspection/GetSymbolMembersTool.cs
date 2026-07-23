@@ -16,7 +16,7 @@ internal sealed class GetSymbolMembersTool : QueryToolHandler<GetSymbolMembersRe
 
         if (symbolResolution.Value is not INamedTypeSymbol namedType)
         {
-            return ToolExecutionHelpers.Rejected<SymbolMembersData>("InvalidRequest", "Get symbol members requires a named type symbol.");
+            return PluginExecutionResultFactory.Rejected<SymbolMembersData>("InvalidRequest", "Get symbol members requires a named type symbol.");
         }
 
         var members = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
@@ -75,7 +75,7 @@ internal sealed class GetSymbolMembersTool : QueryToolHandler<GetSymbolMembersRe
         var data = new SymbolMembersData
         {
             Symbol = symbolReference,
-            Members = ToolExecutionHelpers.CreatePreboundedCollection(projectedMembers, hasMore),
+            Members = BoundedCollection<SymbolReference>.CreatePrebounded(projectedMembers, hasMore),
         };
 
         return PluginExecutionResult<SymbolMembersData>.Success(data);

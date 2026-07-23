@@ -1,9 +1,13 @@
 global using AwesomeAssertions;
 global using Moq;
+global using Roslyn.Workbench.Mcp.Plugins.Analysis;
 global using Roslyn.Workbench.Mcp.Plugins.Configuration;
+global using Roslyn.Workbench.Mcp.Plugins.Context;
+global using Roslyn.Workbench.Mcp.Plugins.Diagnostics;
 global using Roslyn.Workbench.Mcp.Plugins.Execution;
 global using Roslyn.Workbench.Mcp.Plugins.Preparation;
 global using Roslyn.Workbench.Mcp.Plugins.Registration;
+global using Roslyn.Workbench.Mcp.Plugins.Services;
 global using Roslyn.Workbench.Mcp.Plugins.Validation;
 global using Roslyn.Workbench.Mcp.TestSupport;
 global using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;

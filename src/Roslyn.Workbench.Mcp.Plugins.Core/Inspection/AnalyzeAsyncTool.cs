@@ -106,7 +106,7 @@ internal sealed class AnalyzeAsyncTool : QueryToolHandler<AnalyzeAsyncRequest, A
 
         var data = new AsyncAnalysisData
         {
-            Findings = ToolExecutionHelpers.CreatePreboundedCollection(
+            Findings = BoundedCollection<AsyncFinding>.CreatePrebounded(
                 orderedFindings,
                 hasMore),
         };

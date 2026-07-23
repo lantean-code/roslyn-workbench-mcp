@@ -32,12 +32,7 @@ public sealed class PluginPublicApiContractTests
         "Roslyn.Workbench.Mcp.Plugins.Services.ICompilerDiagnosticService",
         "Roslyn.Workbench.Mcp.Plugins.Services.IDependencyAnalysisService",
         "Roslyn.Workbench.Mcp.Plugins.Services.IInspectionContextService",
-        "Roslyn.Workbench.Mcp.Plugins.Services.IProjectStructureService",
-        "Roslyn.Workbench.Mcp.Plugins.Services.IProjectTargetFrameworkResolver",
         "Roslyn.Workbench.Mcp.Plugins.Services.IToolRequestResolver",
-        "Roslyn.Workbench.Mcp.Plugins.Services.ProjectTargetFrameworksResult",
-        "Roslyn.Workbench.Mcp.Plugins.Services.SolutionFolderInfo",
-        "Roslyn.Workbench.Mcp.Plugins.Services.SolutionHierarchyResult",
         "Roslyn.Workbench.Mcp.Plugins.Services.TestImpactInfo",
         "Roslyn.Workbench.Mcp.Plugins.Services.ToolResolutionResult`2",
         "Roslyn.Workbench.Mcp.Plugins.ToolConfigurationBuilder`1",
@@ -59,7 +54,7 @@ public sealed class PluginPublicApiContractTests
 
     [Fact]
     [Trait("Category", "Contract")]
-    public void GIVEN_PluginsPublicApi_WHEN_InspectingWorkspaceTypes_THEN_ShouldExposeOnlyContractsAndResolution()
+    public void GIVEN_PluginsPublicApi_WHEN_InspectingWorkspaceTypes_THEN_ShouldExposeOnlyContractsProjectsAndResolution()
     {
         var workspaceTypes = typeof(IRoslynPlugin).Assembly
             .GetExportedTypes()
@@ -72,8 +67,9 @@ public sealed class PluginPublicApiContractTests
 
         workspaceTypes.Should().OnlyContain(static type =>
             type.Namespace != null
-            && type.Namespace.StartsWith("Roslyn.Workbench.Mcp.Workspace.Contracts.", StringComparison.Ordinal)
-            || string.Equals(type.Namespace, "Roslyn.Workbench.Mcp.Workspace.Resolution", StringComparison.Ordinal));
+            && (type.Namespace.StartsWith("Roslyn.Workbench.Mcp.Workspace.Contracts.", StringComparison.Ordinal)
+                || string.Equals(type.Namespace, "Roslyn.Workbench.Mcp.Workspace.Projects", StringComparison.Ordinal)
+                || string.Equals(type.Namespace, "Roslyn.Workbench.Mcp.Workspace.Resolution", StringComparison.Ordinal)));
     }
 
     [Fact]

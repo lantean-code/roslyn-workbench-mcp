@@ -18,7 +18,7 @@ internal sealed class RenameSymbolTool : MutationToolHandler<RenameSymbolRequest
 
         if (string.IsNullOrWhiteSpace(request.NewName))
         {
-            return ToolExecutionHelpers.Rejected<MutationCandidate>("InvalidRequest", "A newName value is required.");
+            return PluginExecutionResultFactory.Rejected<MutationCandidate>("InvalidRequest", "A newName value is required.");
         }
 
         var symbol = symbolResolution.Value;

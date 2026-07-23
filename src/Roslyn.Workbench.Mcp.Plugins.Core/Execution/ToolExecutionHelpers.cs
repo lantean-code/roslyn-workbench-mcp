@@ -7,58 +7,10 @@ internal static class ToolExecutionHelpers
         return Math.Max(0, requestLimit ?? defaultMaxResults);
     }
 
-    public static BoundedCollection<T> CreateBoundedCollection<T>(
-        IReadOnlyList<T> items,
-        int maxResults)
-    {
-
-        return BoundedCollection<T>.Create(items, maxResults);
-    }
-
-    public static BoundedCollection<T> CreatePreboundedCollection<T>(
-        IReadOnlyList<T> items,
-        bool hasMore)
-    {
-        if (items.Count == 0 && !hasMore)
-        {
-            return BoundedCollection<T>.Empty();
-        }
-
-        return new BoundedCollection<T>
-        {
-            Items = items,
-            HasMore = hasMore,
-        };
-    }
-
     public static IReadOnlyList<T> ApplyLimit<T>(IReadOnlyList<T> items, int maxResults, out bool hasMore)
     {
-
         hasMore = items.Count > maxResults;
         return hasMore ? items.Take(maxResults).ToArray() : items;
-    }
-
-    public static PluginExecutionResult<T> RejectFromStatus<T>(SelectorResolveStatus status, string targetCode, string targetDisplayName)
-    {
-        return status switch
-        {
-            SelectorResolveStatus.Ambiguous => Rejected<T>($"{targetCode}Ambiguous", $"The {targetDisplayName} selector matched multiple results.", RequiredAction.ResolveTargetAgain),
-            _ => Rejected<T>($"{targetCode}NotFound", $"The {targetDisplayName} selector did not match any result.", RequiredAction.ResolveTargetAgain),
-        };
-    }
-
-    public static PluginExecutionResult<T> Rejected<T>(string code, string message, RequiredAction? requiredAction = null)
-    {
-        return PluginExecutionResult<T>.Rejected(new PluginExecutionError
-        {
-            Code = code,
-            Message = message,
-        }, requiredAction);
-    }
-
-    public static PluginExecutionResult<T> RejectProjectStructureFailure<T>(string message)
-    {
-        return Rejected<T>("ProjectStructureUnavailable", message, RequiredAction.Retry);
     }
 
     public static SymbolSelector? CreateSourceSymbolSelector(ISymbol symbol, IWorkspaceResolver resolver)

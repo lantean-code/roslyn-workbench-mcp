@@ -50,7 +50,7 @@ internal sealed class GetSymbolAttributesTool : QueryToolHandler<GetSymbolAttrib
         var data = new SymbolAttributesData
         {
             Symbol = symbolReference,
-            Attributes = ToolExecutionHelpers.CreatePreboundedCollection(attributes, hasMore),
+            Attributes = BoundedCollection<AttributeInfo>.CreatePrebounded(attributes, hasMore),
         };
 
         return PluginExecutionResult<SymbolAttributesData>.Success(data);

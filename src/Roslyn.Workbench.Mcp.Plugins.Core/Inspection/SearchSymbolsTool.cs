@@ -21,7 +21,7 @@ internal sealed class SearchSymbolsTool : QueryToolHandler<SearchSymbolsRequest,
 
         if (string.IsNullOrWhiteSpace(pattern))
         {
-            return ToolExecutionHelpers.Rejected<SymbolSearchData>("InvalidRequest", "Search symbols requires query or metadataName.");
+            return PluginExecutionResultFactory.Rejected<SymbolSearchData>("InvalidRequest", "Search symbols requires query or metadataName.");
         }
 
         var requestedKinds = request.Kinds is { Count: > 0 }
@@ -76,7 +76,7 @@ internal sealed class SearchSymbolsTool : QueryToolHandler<SearchSymbolsRequest,
 
         var data = new SymbolSearchData
         {
-            Symbols = ToolExecutionHelpers.CreatePreboundedCollection(symbols, hasMore),
+            Symbols = BoundedCollection<SymbolReference>.CreatePrebounded(symbols, hasMore),
         };
 
         return PluginExecutionResult<SymbolSearchData>.Success(data);

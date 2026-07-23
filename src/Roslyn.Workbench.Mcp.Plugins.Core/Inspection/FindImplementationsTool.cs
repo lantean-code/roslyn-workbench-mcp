@@ -44,7 +44,7 @@ internal sealed class FindImplementationsTool : QueryToolHandler<FindImplementat
         var data = new ImplementationSearchData
         {
             Symbol = symbolReference,
-            Implementations = ToolExecutionHelpers.CreatePreboundedCollection(
+            Implementations = BoundedCollection<SymbolReference>.CreatePrebounded(
                 implementations,
                 hasMore),
         };

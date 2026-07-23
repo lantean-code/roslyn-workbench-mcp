@@ -17,7 +17,7 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
 
         if (!hierarchy.IsSucceeded)
         {
-            return ToolExecutionHelpers.RejectProjectStructureFailure<SolutionStructureData>(hierarchy.ErrorMessage);
+            return PluginExecutionResultFactory.ProjectStructureUnavailable<SolutionStructureData>(hierarchy.ErrorMessage);
         }
 
         var folders = new List<SolutionFolderInfo>();
@@ -74,7 +74,7 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
 
                 if (!targetFrameworks.IsSucceeded)
                 {
-                    return ToolExecutionHelpers.RejectProjectStructureFailure<SolutionStructureData>(targetFrameworks.ErrorMessage);
+                    return PluginExecutionResultFactory.ProjectStructureUnavailable<SolutionStructureData>(targetFrameworks.ErrorMessage);
                 }
 
                 var projectPath = context.WorkspaceResolver.NormalizeProjectPath(project.FilePath ?? project.Name);
@@ -139,8 +139,8 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
         var data = new SolutionStructureData
         {
             SolutionPath = context.WorkspaceIdentity.LoadedPath,
-            Folders = ToolExecutionHelpers.CreatePreboundedCollection(folders, foldersHaveMore),
-            Projects = ToolExecutionHelpers.CreatePreboundedCollection(projectStructures, projectsHaveMore),
+            Folders = BoundedCollection<SolutionFolderInfo>.CreatePrebounded(folders, foldersHaveMore),
+            Projects = BoundedCollection<ProjectStructureInfo>.CreatePrebounded(projectStructures, projectsHaveMore),
         };
 
         return PluginExecutionResult<SolutionStructureData>.Success(data);

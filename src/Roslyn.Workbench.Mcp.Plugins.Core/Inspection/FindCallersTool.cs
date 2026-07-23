@@ -81,7 +81,7 @@ internal sealed class FindCallersTool : QueryToolHandler<FindCallersRequest, Cal
         var data = new CallerSearchData
         {
             Symbol = symbolReference,
-            Callers = ToolExecutionHelpers.CreatePreboundedCollection(callers, hasMore),
+            Callers = BoundedCollection<CallerInfo>.CreatePrebounded(callers, hasMore),
         };
 
         return PluginExecutionResult<CallerSearchData>.Success(data);

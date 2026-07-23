@@ -97,13 +97,13 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
 
         if (selector is null)
         {
-            return ToolResolutionResult<ResolvedCodeContext, CodeContextData>.Rejected(ToolExecutionHelpers.Rejected<CodeContextData>("InvalidRequest", "A location selector is required."));
+            return ToolResolutionResult<ResolvedCodeContext, CodeContextData>.Rejected(PluginExecutionResultFactory.Rejected<CodeContextData>("InvalidRequest", "A location selector is required."));
         }
 
         var location = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken);
         if (!location.IsResolved)
         {
-            return ToolResolutionResult<ResolvedCodeContext, CodeContextData>.Rejected(ToolExecutionHelpers.RejectFromStatus<CodeContextData>(location.Status, "Location", "location"));
+            return ToolResolutionResult<ResolvedCodeContext, CodeContextData>.Rejected(PluginExecutionResultFactory.RejectedFromStatus<CodeContextData>(location.Status, "Location", "location"));
         }
 
         var sourceLocation = location.Value;
@@ -114,14 +114,14 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
         var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(sourceLocation);
         if (document is null || resolvedLocation?.Document?.Path is null)
         {
-            return ToolResolutionResult<ResolvedCodeContext, CodeContextData>.Rejected(ToolExecutionHelpers.Rejected<CodeContextData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
+            return ToolResolutionResult<ResolvedCodeContext, CodeContextData>.Rejected(PluginExecutionResultFactory.Rejected<CodeContextData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
         }
 
         var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
         if (syntaxRoot is null || semanticModel is null)
         {
-            return ToolResolutionResult<ResolvedCodeContext, CodeContextData>.Rejected(ToolExecutionHelpers.Rejected<CodeContextData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
+            return ToolResolutionResult<ResolvedCodeContext, CodeContextData>.Rejected(PluginExecutionResultFactory.Rejected<CodeContextData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
         }
 
         return ToolResolutionResult<ResolvedCodeContext, CodeContextData>.Resolved(new ResolvedCodeContext(

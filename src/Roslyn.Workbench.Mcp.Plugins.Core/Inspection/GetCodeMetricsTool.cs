@@ -77,7 +77,7 @@ internal sealed class GetCodeMetricsTool : QueryToolHandler<GetCodeMetricsReques
 
         var data = new CodeMetricsData
         {
-            Metrics = ToolExecutionHelpers.CreatePreboundedCollection(metrics, hasMore),
+            Metrics = BoundedCollection<MetricInfo>.CreatePrebounded(metrics, hasMore),
         };
 
         return PluginExecutionResult<CodeMetricsData>.Success(data);

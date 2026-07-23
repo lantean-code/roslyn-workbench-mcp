@@ -7,12 +7,12 @@ internal sealed class GetDependencyGraphTool : QueryToolHandler<GetDependencyGra
     {
         if (!context.ToolExecutionServices.DependencyAnalysisService.IsSupportedGraphGranularity(request.Granularity))
         {
-            return ToolExecutionHelpers.Rejected<DependencyGraphData>("InvalidRequest", "Granularity must be Project, Namespace, Type, or Symbol.");
+            return PluginExecutionResultFactory.Rejected<DependencyGraphData>("InvalidRequest", "Granularity must be Project, Namespace, Type, or Symbol.");
         }
 
         if (request.NodesLimit is < 0 || request.EdgesLimit is < 0)
         {
-            return ToolExecutionHelpers.Rejected<DependencyGraphData>("InvalidRequest", "NodesLimit and EdgesLimit must be zero or greater when provided.");
+            return PluginExecutionResultFactory.Rejected<DependencyGraphData>("InvalidRequest", "NodesLimit and EdgesLimit must be zero or greater when provided.");
         }
 
         var documents = context.ToolExecutionServices.RequestResolver.ResolveDocuments<DependencyGraphData>(request.Scope, context);
@@ -38,8 +38,8 @@ internal sealed class GetDependencyGraphTool : QueryToolHandler<GetDependencyGra
 
         var data = new DependencyGraphData
         {
-            Nodes = ToolExecutionHelpers.CreatePreboundedCollection(nodes, nodesHaveMore),
-            Edges = ToolExecutionHelpers.CreatePreboundedCollection(edges, edgesHaveMore),
+            Nodes = BoundedCollection<GraphNode>.CreatePrebounded(nodes, nodesHaveMore),
+            Edges = BoundedCollection<GraphEdge>.CreatePrebounded(edges, edgesHaveMore),
         };
 
         return PluginExecutionResult<DependencyGraphData>.Success(data);

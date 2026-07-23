@@ -87,7 +87,7 @@ internal sealed class FindUnusedSymbolsTool : QueryToolHandler<FindUnusedSymbols
 
         var data = new UnusedSymbolsData
         {
-            Candidates = ToolExecutionHelpers.CreatePreboundedCollection(
+            Candidates = BoundedCollection<UnusedSymbolCandidate>.CreatePrebounded(
                 candidates,
                 hasMore),
         };

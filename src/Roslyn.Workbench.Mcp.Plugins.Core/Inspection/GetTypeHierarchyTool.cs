@@ -9,7 +9,7 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
     {
         if (request.MaxDepth < 1)
         {
-            return ToolExecutionHelpers.Rejected<TypeHierarchyData>("InvalidRequest", "MaxDepth must be at least 1.");
+            return PluginExecutionResultFactory.Rejected<TypeHierarchyData>("InvalidRequest", "MaxDepth must be at least 1.");
         }
 
         var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<TypeHierarchyData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken);
@@ -20,7 +20,7 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
 
         if (symbolResolution.Value is not INamedTypeSymbol namedType)
         {
-            return ToolExecutionHelpers.Rejected<TypeHierarchyData>("InvalidRequest", "Get type hierarchy requires a named type symbol.");
+            return PluginExecutionResultFactory.Rejected<TypeHierarchyData>("InvalidRequest", "Get type hierarchy requires a named type symbol.");
         }
 
         var baseTypes = new List<SymbolReference>();
@@ -71,7 +71,7 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
                 });
             }
 
-            derivedTypes = ToolExecutionHelpers.CreatePreboundedCollection(projectedTypes, derivedTypesHaveMore);
+            derivedTypes = BoundedCollection<TypeHierarchyNode>.CreatePrebounded(projectedTypes, derivedTypesHaveMore);
         }
 
         var orderedInterfaces = namedType.AllInterfaces
@@ -94,8 +94,8 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
         var data = new TypeHierarchyData
         {
             Type = type,
-            BaseTypes = ToolExecutionHelpers.CreatePreboundedCollection(baseTypes, baseTypesHaveMore),
-            Interfaces = ToolExecutionHelpers.CreatePreboundedCollection(interfaces, interfacesHaveMore),
+            BaseTypes = BoundedCollection<SymbolReference>.CreatePrebounded(baseTypes, baseTypesHaveMore),
+            Interfaces = BoundedCollection<SymbolReference>.CreatePrebounded(interfaces, interfacesHaveMore),
             DerivedTypes = derivedTypes,
         };
 

@@ -52,29 +52,25 @@ public sealed record BoundedCollection<TItem>
     }
 
     /// <summary>
-    /// Creates a bounded collection from an ordered source set.
+    /// Creates a bounded collection from items that have already been limited by the caller.
     /// </summary>
-    /// <param name="orderedItems">The ordered items to bound.</param>
-    /// <param name="maxResults">The maximum number of items to return.</param>
-    /// <returns>The bounded collection projection.</returns>
-    public static BoundedCollection<TItem> Create(
-        IReadOnlyList<TItem> orderedItems,
-        int maxResults)
+    /// <param name="items">The already-limited items to publish.</param>
+    /// <param name="hasMore">Whether additional items were available.</param>
+    /// <returns>The prebounded collection projection.</returns>
+    public static BoundedCollection<TItem> CreatePrebounded(
+        IReadOnlyList<TItem> items,
+        bool hasMore)
     {
-        ArgumentNullException.ThrowIfNull(orderedItems);
+        ArgumentNullException.ThrowIfNull(items);
 
-        var limitedItems = orderedItems.Count > maxResults
-            ? orderedItems.Take(maxResults).ToArray()
-            : orderedItems;
-        var hasMore = orderedItems.Count > limitedItems.Count;
-        if (!hasMore && limitedItems.Count == 0)
+        if (items.Count == 0 && !hasMore)
         {
             return Empty();
         }
 
         return new BoundedCollection<TItem>
         {
-            Items = limitedItems,
+            Items = items,
             HasMore = hasMore,
         };
     }

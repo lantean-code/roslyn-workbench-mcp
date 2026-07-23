@@ -4,6 +4,21 @@ This project is the repeatable, manually invoked external-repository scenario fr
 
 The framework is permanent. Repository clones, restored assets, published Host binaries and Host recovery state are disposable execution data kept beneath the operating system's temporary directory. Results, validation, traces, counters and heap captures are retained beneath the gitignored `artifacts/performance/results` directory in the repository root.
 
+## Project structure
+
+The project root contains only the executable entry point, project/runtime assets and platform wrappers. Implementation types are grouped by responsibility:
+
+- `Application` owns command-line parsing and top-level orchestration;
+- `Configuration` owns the checked-in suite contract and scenario definitions;
+- `Hosting` owns the published Host process and MCP client lifetime;
+- `Repositories` owns checkout preparation, Git interaction and restoration;
+- `Scenarios` owns common invocation measurement plus feature folders for cancellation, commit cancellation, concurrency, conflicts, crash recovery, durable commits and state sequences;
+- `Diagnostics` owns trace, counter and heap-capture projection;
+- `Validation` owns terminal repository, Workspace and recovery-state validation; and
+- `Reporting` owns environment projection and durable result output.
+
+Folders and namespaces are aligned. Scenario-specific execution and result types remain with their scenario family, while shared suite definitions and infrastructure have one project-level owner.
+
 ## What it measures
 
 `measure` records each MCP invocation's end-to-end elapsed time, Host CPU time, working set, working-set change, peak working set and structured response size. It also records an exact response hash, mutation `staged` state and every bounded collection's JSON path, `HasMore` value and ordered item hashes. These observations prove deterministic ordering and prefix equivalence without retaining large response bodies. It writes the raw observations and run environment to `measurements.json` and a first/subsequent plus median/P95 summary to `summary.md`. Warm-ups are excluded and their count is recorded so a zero-warm-up first invocation can be interpreted as cold. For mutation scenarios, transaction start and rollback are also excluded from the timed observation, while Host-side validation and staging performed by the measured tool remain included.
@@ -196,3 +211,13 @@ Measurements, summaries, workspace state and diagnostic captures default to a un
 - Compare like with like: same repository commit, scenario parameters, Host build and machine state.
 - Use measurements to locate weaknesses. Do not turn the observed timings into functional-test thresholds.
 - Retain dated summaries when they inform an optimisation; raw diagnostic captures can remain in the ignored artifacts directory because they are large and machine-specific.
+
+## Release automation and retained metrics
+
+The external-repository suite is release validation, not pull-request validation. Automated runs should be limited to release branches and explicit manual dispatch. Pull requests use the published-Host acceptance project with small checked-in fixtures.
+
+Release-branch runs upload the complete result directory as a temporary workflow artifact and also produce a versioned normalised aggregate for comparison. The final aggregate and Markdown comparison are attached to the GitHub release; they are not committed to the source branch. The next release downloads the previous release's aggregate as its default baseline.
+
+Like-for-like comparison requires the same command, scenario, target repository commit, operating system and architecture. The aggregate also records the Host commit and version, scenario-suite hash, .NET runtime, parameters, warm-ups and sample count so environmental or scenario drift is visible. Initially, timing differences are advisory. Correctness and cleanup validation remain release-gating.
+
+Raw traces, counters and heap captures remain workflow artifacts unless they are needed to explain a release decision. This keeps permanent release assets small while preserving detailed diagnostics during release validation.

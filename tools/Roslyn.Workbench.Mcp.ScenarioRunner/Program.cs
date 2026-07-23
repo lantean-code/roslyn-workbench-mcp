@@ -1,10 +1,18 @@
-using Roslyn.Workbench.Mcp.ScenarioRunner;
+using Roslyn.Workbench.Mcp.ScenarioRunner.Application;
 
-using var cancellationSource = new CancellationTokenSource();
-Console.CancelKeyPress += (_, eventArgs) =>
+namespace Roslyn.Workbench.Mcp.ScenarioRunner;
+
+internal static class Program
 {
-    eventArgs.Cancel = true;
-    cancellationSource.Cancel();
-};
+    public static async Task<int> Main(string[] args)
+    {
+        using var cancellationSource = new CancellationTokenSource();
+        Console.CancelKeyPress += (_, eventArgs) =>
+        {
+            eventArgs.Cancel = true;
+            cancellationSource.Cancel();
+        };
 
-return await ScenarioApplication.RunAsync(args, cancellationSource.Token);
+        return await ScenarioApplication.RunAsync(args, cancellationSource.Token);
+    }
+}

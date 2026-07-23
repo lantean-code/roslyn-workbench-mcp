@@ -151,4 +151,21 @@ Tests run with `--no-build --no-restore` after their job has produced the requir
 
 The Code Action compatibility audit remains a separate workflow because it is slower, version-sensitive coverage rather than part of the normal component-integration path.
 
+## Release validation and performance history
+
+Published-Host acceptance remains a pull-request gate on native Ubuntu and Windows. It uses small checked-in fixtures and deterministic public MCP workflows. The external-repository scenario runner is a separate release-validation system: run it only from release branches or by explicit manual dispatch, not for ordinary pull requests or pushes.
+
+Scenario output has two retention levels:
+
+- detailed JSON, summaries, validation files, traces, counters and heap captures are workflow artifacts for diagnosis and short-term release evidence; and
+- a versioned normalised metrics aggregate plus its previous-release comparison are durable GitHub release assets.
+
+GitHub Actions artifacts are not the permanent performance history because their retention is bounded by repository or organisation policy. The final aggregate is attached to its release and becomes the baseline downloaded by the next release run. Generated metrics are not committed to `main`.
+
+The aggregate records enough identity to prevent invalid comparisons: Host commit and version, scenario-suite hash, pinned target-repository commits, command and parameters, operating system, architecture, .NET runtime and sample counts. Compare only like-for-like observations. Display runner or scenario drift explicitly.
+
+Performance comparisons are advisory until several releases establish normal variance on comparable runners. Correctness, repository cleanliness, recovery-state cleanup and Host shutdown remain release-gating outcomes. Raw diagnostic captures are retained beyond workflow-artifact expiry only when they support a release decision or investigation.
+
+The detailed acceptance gaps and dependency-ordered implementation batches are recorded in [Published Host Acceptance Coverage Audit](AcceptanceCoverageAudit-2026-07-23.md).
+
 VSTest remains the selected runner. The Stage 7 MTP evaluation found that migration would require executable test projects and changes to filtering, reporting, coverage and CI commands for a modest measured gain. MTP v2 remains the intended future direction, but migration is deferred until xUnit 4 is stable rather than adopting its prerelease packages. NuGet caching remains disabled until the repository adopts an explicit lock-file policy.

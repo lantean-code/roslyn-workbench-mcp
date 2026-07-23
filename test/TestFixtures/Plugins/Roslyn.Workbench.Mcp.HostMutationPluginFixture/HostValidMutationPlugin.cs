@@ -1,7 +1,7 @@
-using Roslyn.Workbench.Mcp.Plugins;
-using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
+using Roslyn.Workbench.Mcp.Plugins;
+using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 
 namespace Roslyn.Workbench.Mcp.TestSupport;
 

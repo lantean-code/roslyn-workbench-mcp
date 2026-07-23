@@ -20,13 +20,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\TestFixtures\Plugins\Roslyn.Workbench.Mcp.HostQueryPluginFixture.csproj"
+    <ProjectReference Include="..\TestFixtures\Plugins\Roslyn.Workbench.Mcp.HostQueryPluginFixture\Roslyn.Workbench.Mcp.HostQueryPluginFixture.csproj"
                       ReferenceOutputAssembly="false" />
-    <ProjectReference Include="..\TestFixtures\Plugins\Roslyn.Workbench.Mcp.HostMutationPluginFixture.csproj"
+    <ProjectReference Include="..\TestFixtures\Plugins\Roslyn.Workbench.Mcp.HostMutationPluginFixture\Roslyn.Workbench.Mcp.HostMutationPluginFixture.csproj"
                       ReferenceOutputAssembly="false" />
-    <ProjectReference Include="..\TestFixtures\Plugins\Roslyn.Workbench.Mcp.InvalidPluginFixture.csproj"
+    <ProjectReference Include="..\TestFixtures\Plugins\Roslyn.Workbench.Mcp.InvalidPluginFixture\Roslyn.Workbench.Mcp.InvalidPluginFixture.csproj"
                       ReferenceOutputAssembly="false" />
-    <ProjectReference Include="..\TestFixtures\Plugins\Roslyn.Workbench.Mcp.ThrowingPluginFixture.csproj"
+    <ProjectReference Include="..\TestFixtures\Plugins\Roslyn.Workbench.Mcp.ThrowingPluginFixture\Roslyn.Workbench.Mcp.ThrowingPluginFixture.csproj"
                       ReferenceOutputAssembly="false" />
   </ItemGroup>
 

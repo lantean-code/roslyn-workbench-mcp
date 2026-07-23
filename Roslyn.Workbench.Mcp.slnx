@@ -32,10 +32,10 @@
   </Folder>
   <Folder Name="/Test Fixtures/">
     <File Path="test/TestFixtures/README.md" />
-    <Project Path="test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.HostMutationPluginFixture.csproj" />
-    <Project Path="test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.HostQueryPluginFixture.csproj" />
-    <Project Path="test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.InvalidPluginFixture.csproj" />
-    <Project Path="test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.ThrowingPluginFixture.csproj" />
+    <Project Path="test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.HostMutationPluginFixture/Roslyn.Workbench.Mcp.HostMutationPluginFixture.csproj" />
+    <Project Path="test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.HostQueryPluginFixture/Roslyn.Workbench.Mcp.HostQueryPluginFixture.csproj" />
+    <Project Path="test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.InvalidPluginFixture/Roslyn.Workbench.Mcp.InvalidPluginFixture.csproj" />
+    <Project Path="test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.ThrowingPluginFixture/Roslyn.Workbench.Mcp.ThrowingPluginFixture.csproj" />
   </Folder>
   <Folder Name="/Tools/">
     <Project Path="tools/Roslyn.Workbench.Mcp.ScenarioRunner/Roslyn.Workbench.Mcp.ScenarioRunner.csproj" />

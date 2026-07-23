@@ -1,6 +1,10 @@
 global using Microsoft.CodeAnalysis;
+global using Roslyn.Workbench.Mcp.Plugins.Configuration;
 global using Roslyn.Workbench.Mcp.Plugins.Execution;
+global using Roslyn.Workbench.Mcp.Plugins.Preparation;
+global using Roslyn.Workbench.Mcp.Plugins.Registration;
 global using Roslyn.Workbench.Mcp.Plugins.Services;
+global using Roslyn.Workbench.Mcp.Plugins.Validation;
 global using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
 global using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 global using Roslyn.Workbench.Mcp.Workspace.ExecutionContexts;

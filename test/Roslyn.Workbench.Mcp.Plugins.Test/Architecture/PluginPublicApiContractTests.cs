@@ -6,7 +6,6 @@ public sealed class PluginPublicApiContractTests
 {
     private static readonly string[] _expectedExportedTypes =
     [
-        "Roslyn.Workbench.Mcp.Plugins.Execution.ToolResolutionResult`2",
         "Roslyn.Workbench.Mcp.Plugins.IMutationContext",
         "Roslyn.Workbench.Mcp.Plugins.IMutationToolHandler",
         "Roslyn.Workbench.Mcp.Plugins.IMutationToolHandler`1",
@@ -40,6 +39,7 @@ public sealed class PluginPublicApiContractTests
         "Roslyn.Workbench.Mcp.Plugins.Services.SolutionFolderInfo",
         "Roslyn.Workbench.Mcp.Plugins.Services.SolutionHierarchyResult",
         "Roslyn.Workbench.Mcp.Plugins.Services.TestImpactInfo",
+        "Roslyn.Workbench.Mcp.Plugins.Services.ToolResolutionResult`2",
         "Roslyn.Workbench.Mcp.Plugins.ToolConfigurationBuilder`1",
     ];
 

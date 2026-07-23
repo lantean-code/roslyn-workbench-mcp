@@ -13,6 +13,7 @@ global using Roslyn.Workbench.Mcp.IntegrationTestSupport;
 global using Roslyn.Workbench.Mcp.PluginFixtures;
 global using Roslyn.Workbench.Mcp.PluginLoading;
 global using Roslyn.Workbench.Mcp.Plugins;
+global using Roslyn.Workbench.Mcp.Plugins.Configuration;
 global using Roslyn.Workbench.Mcp.Plugins.Core;
 global using Roslyn.Workbench.Mcp.Plugins.Execution;
 global using Roslyn.Workbench.Mcp.Protocol;

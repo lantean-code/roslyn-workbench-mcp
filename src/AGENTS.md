@@ -17,6 +17,7 @@
 - `Roslyn.Workbench.Mcp.Workspace` owns workspace contracts, selector resolution, neutral execution leases, transaction state, external-change handling, reload behaviour, and commit coordination.
 - `Roslyn.Workbench.Mcp.CodeActions` owns internal Code Action contracts, catalogue metadata, execution contexts, and workflows. It may depend on Workspace but not Plugins.
 - `Roslyn.Workbench.Mcp.Plugins` owns the public third-party plugin API, plugin metadata, typed registrations, execution services, and Workspace context adaptation. It may depend on Workspace but not CodeActions or the MCP SDK.
+- Keep the `Roslyn.Workbench.Mcp.Plugins` root namespace focused on the core third-party author experience: plugin entry points, handler and context contracts, execution results, and registration/configuration entry points. Place supplementary public APIs in responsibility-based subnamespaces. Place internal or server-used implementation types in responsibility-based subnamespaces unless a documented author-facing reason requires the root.
 - `Roslyn.Workbench.Mcp.Plugins.Core` owns bundled inspection contracts and first-party plugin implementations.
 - Internal Code Action tools must not be registered or executed through the plugin system.
 - Plugins must not directly own or mutate host-only concerns such as the `MSBuildWorkspace`, transaction coordinator, file writer, or commit journal.

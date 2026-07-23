@@ -20,6 +20,8 @@ The framework is permanent. Repository clones, restored assets, published Host b
 
 `state-sequence` runs a checked-in sequence against one long-lived Workspace. The external-reload sequence warms a semantic query, changes a source file outside the Host, proves the stale query is rejected, reloads the Workspace and verifies the refreshed query observes the new reference. The multi-revision sequence warms a semantic query, stages two mutations, traverses undo and redo history, commits the selected revision and verifies the post-commit query resolves the moved definition. Each iteration restores the checkout and validates Host, Workspace and recovery state. Results are written to `state-sequence.json`, `state-sequence.md` and `validation.json`.
 
+`concurrency` starts a configured number of query requests behind one client-side start gate. Successful responses must match the warmed baseline exactly; excess requests may only reject with the documented `WorkspaceBusy` and `Retry` result, after which a sequential retry must succeed with the same response. The command also opens a project Workspace alongside the repository solution, proves both are listed and independently queryable while either owns the single transaction, validates non-owner transaction rejection, and runs one query against each Workspace concurrently. Results are written to `concurrency.json`, `concurrency.md` and `validation.json`.
+
 Every completed measurement or profile explicitly closes the workspace and then closes the Host's stdin so the stdio server can shut down normally. The runner writes `validation.json` with the Host exit status and stderr, repository commit, recovery-state files and any new workspace coordination or lock files. A run fails when the Host requires forced termination, exits unsuccessfully, leaves tracked repository changes, retains recovery state or leaks new coordination files.
 
 `profile` repeatedly invokes one scenario while one diagnostic collector is attached:
@@ -152,6 +154,14 @@ Validate cancellation immediately before and after durable application begins:
 ./tools/Roslyn.Workbench.Mcp.ScenarioRunner/run-scenarios.sh \
   commit-cancellation --repository serilog --scenario rename-ilogger-durable \
   --iterations 1 --warmups 0 --skip-prepare
+```
+
+Measure the default two-query Workspace bound with four simultaneous requests, then validate two loaded Workspaces and transaction ownership:
+
+```bash
+./tools/Roslyn.Workbench.Mcp.ScenarioRunner/run-scenarios.sh \
+  concurrency --repository serilog --scenario solution-structure \
+  --parallelism 4 --iterations 5 --warmups 1 --skip-prepare
 ```
 
 Measure cancellation and Workspace lease recovery for a large scan:

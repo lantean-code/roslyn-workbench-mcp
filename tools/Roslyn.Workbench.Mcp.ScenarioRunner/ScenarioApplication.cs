@@ -165,6 +165,19 @@ internal static class ScenarioApplication
                 {
                     await MeasureCancellationAsync(options, repository, scenarios, runner, environment, outputDirectory, cancellationToken);
                 }
+                else if (options.Command == ScenarioCommand.Concurrency)
+                {
+                    await MeasureConcurrencyAsync(
+                        options,
+                        repository,
+                        scenarios,
+                        host,
+                        workspaceId,
+                        repositoryRoot,
+                        environment,
+                        outputDirectory,
+                        cancellationToken);
+                }
                 else
                 {
                     await ProfileAsync(options, repository, scenarios, host, runner, environment, frameworkRoot, outputDirectory, cancellationToken);
@@ -322,6 +335,82 @@ internal static class ScenarioApplication
         };
 
         await ResultWriter.WriteCancellationAsync(outputDirectory, result, cancellationToken);
+    }
+
+    private static async Task MeasureConcurrencyAsync(
+        ScenarioOptions options,
+        RepositoryDefinition repository,
+        IReadOnlyList<ScenarioDefinition> scenarios,
+        ScenarioHost host,
+        string primaryWorkspaceId,
+        string repositoryRoot,
+        RunEnvironmentInfo environment,
+        string outputDirectory,
+        CancellationToken cancellationToken)
+    {
+        if (scenarios.Count != 1)
+        {
+            throw new ArgumentException(
+                "Concurrency measurement requires exactly one query scenario.");
+        }
+
+        var scenario = scenarios[0];
+        var definition = scenario.Concurrency
+            ?? throw new ArgumentException(
+                $"Scenario '{scenario.Id}' does not define concurrency settings.");
+        var secondaryWorkspacePath = Path.Combine(
+            repositoryRoot,
+            definition.SecondaryWorkspacePath);
+
+        await Console.Out.WriteLineAsync(
+            $"Measuring concurrency {repository.Id}/{scenario.Id}");
+
+        var secondaryWorkspaceId = await OpenWorkspaceAsync(
+            host,
+            secondaryWorkspacePath,
+            repositoryRoot,
+            cancellationToken,
+            alias: "concurrency-secondary");
+
+        try
+        {
+            var runner = new ConcurrencyRunner(
+                host,
+                primaryWorkspaceId,
+                secondaryWorkspaceId,
+                repositoryRoot);
+            var startedAtUtc = DateTimeOffset.UtcNow;
+            var execution = await runner.ExecuteAsync(
+                scenario,
+                options.Warmups,
+                options.Iterations,
+                options.Parallelism,
+                cancellationToken);
+
+            var result = new ConcurrencyRunResult
+            {
+                Repository = repository.Id,
+                RepositorySize = repository.Size,
+                Commit = repository.Commit,
+                Scenario = scenario.Id,
+                Tool = scenario.Tool,
+                StartedAtUtc = startedAtUtc,
+                Environment = environment,
+                WarmupCount = options.Warmups,
+                Parallelism = options.Parallelism,
+                Batches = execution.Batches,
+                MultiWorkspace = execution.MultiWorkspace,
+            };
+
+            await ResultWriter.WriteConcurrencyAsync(
+                outputDirectory,
+                result,
+                cancellationToken);
+        }
+        finally
+        {
+            await CloseWorkspaceAsync(host, secondaryWorkspaceId);
+        }
     }
 
     private static async Task MeasureDurableCommitsAsync(
@@ -1993,13 +2082,14 @@ internal static class ScenarioApplication
         ScenarioHost host,
         string workspacePath,
         string repositoryRoot,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string alias = "performance")
     {
         var result = await host.CallToolAsync(
             "workspace-open",
             new Dictionary<string, object?>
             {
-                ["alias"] = "performance",
+                ["alias"] = alias,
                 ["path"] = workspacePath,
                 ["workspaceRoot"] = repositoryRoot,
             },
@@ -2076,7 +2166,8 @@ internal static class ScenarioApplication
                 or ScenarioCommand.CommitCancellation
                 or ScenarioCommand.Conflict
                 or ScenarioCommand.CrashRecovery
-                or ScenarioCommand.StateSequence)
+                or ScenarioCommand.StateSequence
+                or ScenarioCommand.Concurrency)
             {
                 throw new ArgumentException($"{command} requires one scenario; '--scenario all' is not supported.");
             }
@@ -2112,6 +2203,13 @@ internal static class ScenarioApplication
         {
             throw new ArgumentException(
                 "The state-sequence command requires scenarios with a stateSequence definition.");
+        }
+
+        if (command == ScenarioCommand.Concurrency
+            && scenarios.Any(static scenario => scenario.Concurrency is null))
+        {
+            throw new ArgumentException(
+                "The concurrency command requires a scenario with a concurrency definition.");
         }
 
         return scenarios;
@@ -2240,6 +2338,7 @@ internal static class ScenarioApplication
               conflict --repository <id> --scenario <conflict-id> --host <path> [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
               crash-recovery --repository <id> --scenario <mutation-id> --host <path> [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
               state-sequence --repository <id> --scenario <state-sequence-id> --host <path> [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
+              concurrency --repository <id> --scenario <concurrency-id> --host <path> [--parallelism 4] [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
               cancel --repository <id> --scenario <id> --host <path> [--cancel-after 00:00:00.050] [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
               profile --repository <id> --scenario <id[,id...]> --host <path> [--profile trace|counters|gcdump] [--duration 00:00:30] [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
 

@@ -284,6 +284,15 @@
           "id": "solution-structure",
           "description": "Projects and documents exercise the curated high-bound solution projection.",
           "tool": "get-solution-structure",
+          "concurrency": {
+            "secondaryWorkspacePath": "src/Serilog/Serilog.csproj",
+            "secondaryArguments": {
+              "workspace": { "workspaceId": "${workspaceId}" },
+              "includeDocuments": true,
+              "projectsLimit": 25,
+              "foldersLimit": 100
+            }
+          },
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
             "includeDocuments": true,

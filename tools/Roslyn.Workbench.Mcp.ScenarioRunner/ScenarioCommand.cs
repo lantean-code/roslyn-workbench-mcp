@@ -11,6 +11,7 @@ internal enum ScenarioCommand
     Conflict,
     CrashRecovery,
     StateSequence,
+    Concurrency,
     Cancel,
     Profile,
 }

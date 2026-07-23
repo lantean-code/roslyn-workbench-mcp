@@ -3,6 +3,7 @@ namespace Roslyn.Workbench.Mcp.ScenarioRunner;
 internal sealed class ScenarioOptions
 {
     private const int _defaultIterations = 5;
+    private const int _defaultParallelism = 4;
     private const int _defaultWarmups = 1;
     private static readonly TimeSpan _defaultCancellationDelay = TimeSpan.FromMilliseconds(50);
     private static readonly TimeSpan _defaultProfileDuration = TimeSpan.FromSeconds(30);
@@ -22,6 +23,8 @@ internal sealed class ScenarioOptions
     public string? FrameworkRoot { get; init; }
 
     public int Iterations { get; init; } = _defaultIterations;
+
+    public int Parallelism { get; init; } = _defaultParallelism;
 
     public int Warmups { get; init; } = _defaultWarmups;
 
@@ -79,6 +82,7 @@ internal sealed class ScenarioOptions
             OutputDirectory = GetValue(values, "--output"),
             FrameworkRoot = GetValue(values, "--framework-root"),
             Iterations = ParsePositiveInteger(values, "--iterations", _defaultIterations),
+            Parallelism = ParsePositiveInteger(values, "--parallelism", _defaultParallelism),
             Warmups = ParseNonNegativeInteger(values, "--warmups", _defaultWarmups),
             ProfileDuration = ParseDuration(values, "--duration", _defaultProfileDuration),
             CancellationDelay = ParseDuration(values, "--cancel-after", _defaultCancellationDelay),
@@ -133,6 +137,11 @@ internal sealed class ScenarioOptions
         if (string.Equals(value, "state-sequence", StringComparison.OrdinalIgnoreCase))
         {
             return ScenarioCommand.StateSequence;
+        }
+
+        if (string.Equals(value, "concurrency", StringComparison.OrdinalIgnoreCase))
+        {
+            return ScenarioCommand.Concurrency;
         }
 
         if (string.Equals(value, "cancel", StringComparison.OrdinalIgnoreCase))

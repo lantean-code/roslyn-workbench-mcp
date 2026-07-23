@@ -40,6 +40,131 @@ internal static class ResultWriter
         await JsonSerializer.SerializeAsync(stream, result, _serializerOptions, cancellationToken);
     }
 
+    public static async Task WriteConcurrencyAsync(
+        string outputDirectory,
+        ConcurrencyRunResult result,
+        CancellationToken cancellationToken)
+    {
+        Directory.CreateDirectory(outputDirectory);
+        var jsonPath = Path.Combine(outputDirectory, "concurrency.json");
+        await using (var stream = File.Create(jsonPath))
+        {
+            await JsonSerializer.SerializeAsync(
+                stream,
+                result,
+                _serializerOptions,
+                cancellationToken);
+        }
+
+        var batchTimings = new double[result.Batches.Count];
+        var successfulInvocationTimings = new List<double>();
+        var busyResponseTimings = new List<double>();
+        var successfulThroughputs = new double[result.Batches.Count];
+        var busyCount = 0;
+        var successfulRetryCount = 0;
+        for (var batchIndex = 0; batchIndex < result.Batches.Count; batchIndex++)
+        {
+            var batch = result.Batches[batchIndex];
+            batchTimings[batchIndex] = batch.ElapsedMilliseconds;
+            var successfulInvocationCount = 0;
+            foreach (var invocation in batch.Invocations)
+            {
+                if (invocation.IsError)
+                {
+                    busyCount++;
+                    busyResponseTimings.Add(invocation.ElapsedMilliseconds);
+                }
+                else
+                {
+                    successfulInvocationCount++;
+                    successfulInvocationTimings.Add(invocation.ElapsedMilliseconds);
+                }
+
+                if (invocation.RetrySucceeded)
+                {
+                    successfulRetryCount++;
+                }
+            }
+
+            successfulThroughputs[batchIndex] = batch.ElapsedMilliseconds <= 0
+                ? 0
+                : successfulInvocationCount / (batch.ElapsedMilliseconds / 1000);
+        }
+
+        Array.Sort(batchTimings);
+        Array.Sort(successfulThroughputs);
+        successfulInvocationTimings.Sort();
+        busyResponseTimings.Sort();
+        var successfulInvocationTimingArray = successfulInvocationTimings.ToArray();
+        var busyResponseTimingArray = busyResponseTimings.ToArray();
+
+        var builder = new StringBuilder()
+            .AppendLine("# Roslyn Workbench concurrency summary")
+            .AppendLine()
+            .Append("Repository: ").AppendLine(result.Repository)
+            .Append("Scenario: ").AppendLine(result.Scenario)
+            .Append("Tool: ").AppendLine(result.Tool)
+            .Append("Parallelism: ").AppendLine(
+                result.Parallelism.ToString(CultureInfo.InvariantCulture))
+            .Append("Measured batches: ").AppendLine(
+                result.Batches.Count.ToString(CultureInfo.InvariantCulture))
+            .Append("WorkspaceBusy responses: ").AppendLine(
+                busyCount.ToString(CultureInfo.InvariantCulture))
+            .Append("Successful retries: ").AppendLine(
+                successfulRetryCount.ToString(CultureInfo.InvariantCulture))
+            .Append("Median batch: ").Append(
+                Percentile(batchTimings, 0.5).ToString("F2", CultureInfo.InvariantCulture)).AppendLine(" ms")
+            .Append("P95 batch: ").Append(
+                Percentile(batchTimings, 0.95).ToString("F2", CultureInfo.InvariantCulture)).AppendLine(" ms")
+            .Append("Median successful query: ").Append(
+                Percentile(
+                    successfulInvocationTimingArray,
+                    0.5).ToString("F2", CultureInfo.InvariantCulture)).AppendLine(" ms")
+            .Append("P95 successful query: ").Append(
+                Percentile(
+                    successfulInvocationTimingArray,
+                    0.95).ToString("F2", CultureInfo.InvariantCulture)).AppendLine(" ms")
+            .Append("Median WorkspaceBusy response: ").Append(
+                Percentile(
+                    busyResponseTimingArray,
+                    0.5).ToString("F2", CultureInfo.InvariantCulture)).AppendLine(" ms")
+            .Append("Median successful throughput: ").Append(
+                Percentile(
+                    successfulThroughputs,
+                    0.5).ToString("F2", CultureInfo.InvariantCulture)).AppendLine(" queries/s")
+            .AppendLine()
+            .AppendLine("## Multi-Workspace validation")
+            .AppendLine()
+            .Append("Listed Workspaces: ").AppendLine(
+                result.MultiWorkspace.ListedWorkspaceCount.ToString(CultureInfo.InvariantCulture))
+            .Append("Parallel cross-Workspace query pair: ").Append(
+                result.MultiWorkspace.ParallelQueryElapsedMilliseconds.ToString(
+                    "F2",
+                    CultureInfo.InvariantCulture)).AppendLine(" ms")
+            .AppendLine()
+            .AppendLine("| Step | Tool | Elapsed (ms) | Error | Code | Required action |")
+            .AppendLine("|---|---|---:|---|---|---|");
+
+        foreach (var step in result.MultiWorkspace.Steps)
+        {
+            builder
+                .Append("| ").Append(step.Name)
+                .Append(" | ").Append(step.Tool)
+                .Append(" | ").Append(
+                    step.ElapsedMilliseconds.ToString("F2", CultureInfo.InvariantCulture))
+                .Append(" | ").Append(step.IsError ? "Yes" : "No")
+                .Append(" | ").Append(step.ErrorCode ?? string.Empty)
+                .Append(" | ").Append(step.RequiredAction ?? string.Empty)
+                .AppendLine(" |");
+        }
+
+        await File.WriteAllTextAsync(
+            Path.Combine(outputDirectory, "concurrency.md"),
+            builder.ToString(),
+            Encoding.UTF8,
+            cancellationToken);
+    }
+
     public static async Task WriteDurableCommitAsync(
         string outputDirectory,
         DurableCommitRunResult result,

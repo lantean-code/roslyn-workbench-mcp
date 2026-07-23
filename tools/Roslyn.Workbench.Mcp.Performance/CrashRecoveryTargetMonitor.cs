@@ -11,7 +11,8 @@ internal sealed class CrashRecoveryTargetMonitor
     public CrashRecoveryTargetMonitor(
         PerformanceHost host,
         string repositoryRoot,
-        IReadOnlyList<string> targetPaths)
+        IReadOnlyList<DurableCommitTarget> targets,
+        DurableCommitFileOperation? requiredOperation)
     {
         _host = host;
         _targetStates = new Dictionary<string, (bool, long, long)>(
@@ -19,10 +20,24 @@ internal sealed class CrashRecoveryTargetMonitor
                 ? StringComparer.OrdinalIgnoreCase
                 : StringComparer.Ordinal);
 
-        foreach (var path in targetPaths)
+        foreach (var target in targets)
         {
-            var resolvedPath = ResolvePath(repositoryRoot, path);
+            if (requiredOperation is not null
+                && target.Operation != requiredOperation)
+            {
+                continue;
+            }
+
+            var resolvedPath = ResolvePath(repositoryRoot, target.Path);
             _targetStates.TryAdd(resolvedPath, CaptureState(resolvedPath));
+        }
+
+        if (_targetStates.Count == 0)
+        {
+            throw new InvalidOperationException(
+                requiredOperation is null
+                    ? "The staged mutation did not expose a target to monitor."
+                    : $"The staged mutation did not expose a {requiredOperation} target to monitor.");
         }
     }
 

@@ -438,6 +438,36 @@
             "newName": "IPerformanceLogger",
             "renameFile": false
           }
+        },
+        {
+          "id": "move-no-enumeration-to-file-durable",
+          "description": "Stages Roslyn's move-type refactoring for a secondary type, creating its own source file and updating the original document.",
+          "tool": "move-type-to-file",
+          "commitOnly": true,
+          "crashAfterOperation": "Create",
+          "setup": [
+            {
+              "tool": "transaction-start",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            }
+          ],
+          "cleanup": [
+            {
+              "tool": "transaction-rollback",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            }
+          ],
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "type": {
+              "project": {
+                "path": "src/Serilog/Serilog.csproj",
+                "targetFramework": "net10.0"
+              },
+              "documentationCommentId": "T:JetBrains.Annotations.NoEnumerationAttribute"
+            },
+            "preserveNamespace": true
+          }
         }
       ]
     },

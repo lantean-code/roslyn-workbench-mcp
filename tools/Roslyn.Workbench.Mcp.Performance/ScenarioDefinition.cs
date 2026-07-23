@@ -20,5 +20,7 @@ internal sealed record ScenarioDefinition
     public bool CommitOnly { get; init; }
 
     public ConflictDefinition? Conflict { get; init; }
+
+    public DurableCommitFileOperation? CrashAfterOperation { get; init; }
 }
 #pragma warning restore CA1812

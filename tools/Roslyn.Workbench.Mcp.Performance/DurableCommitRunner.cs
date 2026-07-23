@@ -59,13 +59,13 @@ internal sealed class DurableCommitRunner
             cancellationToken);
         previewStopwatch.Stop();
 
-        var changedDocumentPaths = GetChangedDocumentPaths(previewResult);
+        var (previewDocumentCount, changedTargets) = GetPreviewChanges(previewResult);
         return new DurableCommitPreparation
         {
             StagingMilliseconds = stagingStopwatch.Elapsed.TotalMilliseconds,
             PreviewMilliseconds = previewStopwatch.Elapsed.TotalMilliseconds,
-            PreviewDocumentCount = changedDocumentPaths.Count,
-            ChangedDocumentPaths = changedDocumentPaths,
+            PreviewDocumentCount = previewDocumentCount,
+            ChangedTargets = changedTargets,
         };
     }
 
@@ -146,7 +146,8 @@ internal sealed class DurableCommitRunner
         return result;
     }
 
-    private static List<string> GetChangedDocumentPaths(CallToolResult result)
+    private static (int DocumentCount, List<DurableCommitTarget> Targets) GetPreviewChanges(
+        CallToolResult result)
     {
         var content = result.StructuredContent
             ?? throw new InvalidDataException("transaction-preview returned no structured content.");
@@ -154,7 +155,11 @@ internal sealed class DurableCommitRunner
             .GetProperty("data")
             .GetProperty("documents");
 
-        var paths = new List<string>(documents.GetArrayLength());
+        var targets = new Dictionary<string, DurableCommitFileOperation>(
+            OperatingSystem.IsWindows()
+                ? StringComparer.OrdinalIgnoreCase
+                : StringComparer.Ordinal);
+
         foreach (var document in documents.EnumerateArray())
         {
             var path = document
@@ -168,10 +173,38 @@ internal sealed class DurableCommitRunner
                     "transaction-preview returned a changed document without a path.");
             }
 
-            paths.Add(path);
+            var operation = ParseOperation(document.GetProperty("changeKind"));
+            if (targets.TryGetValue(path, out var existingOperation)
+                && existingOperation != operation)
+            {
+                throw new InvalidDataException(
+                    $"transaction-preview returned conflicting operations for '{path}'.");
+            }
+
+            targets.TryAdd(path, operation);
         }
 
-        return paths;
+        var changedTargets = targets
+            .Select(static target => new DurableCommitTarget
+            {
+                Path = target.Key,
+                Operation = target.Value,
+            })
+            .ToList();
+
+        return (documents.GetArrayLength(), changedTargets);
+    }
+
+    private static DurableCommitFileOperation ParseOperation(JsonElement value)
+    {
+        return value.GetString() switch
+        {
+            "Added" => DurableCommitFileOperation.Create,
+            "Modified" => DurableCommitFileOperation.Replace,
+            "Deleted" => DurableCommitFileOperation.Delete,
+            var operation => throw new InvalidDataException(
+                $"transaction-preview returned unsupported change kind '{operation}'."),
+        };
     }
 
     private static void EnsureCommitted(CallToolResult result)

@@ -27,13 +27,15 @@ internal sealed class CrashRecoveryRunner
 
     public async Task<CrashRecoveryInterruption> InterruptAsync(
         DurableCommitPreparation preparation,
+        DurableCommitFileOperation? requiredOperation,
         CancellationToken cancellationToken)
     {
         var interruptionStopwatch = Stopwatch.StartNew();
         var targetMonitor = new CrashRecoveryTargetMonitor(
             _host,
             _repositoryRoot,
-            preparation.ChangedDocumentPaths);
+            preparation.ChangedTargets,
+            requiredOperation);
 
         var commitTask = _host.CallToolAsync(
             "transaction-commit",
@@ -52,7 +54,8 @@ internal sealed class CrashRecoveryRunner
             _stateDirectory,
             cancellationToken);
 
-        var appliedTargetPath = await FindAppliedReplacementAsync(
+        var appliedTargetPath = await FindAppliedMutationAsync(
+            requiredOperation,
             cancellationToken);
 
         if (!string.Equals(
@@ -76,7 +79,8 @@ internal sealed class CrashRecoveryRunner
         };
     }
 
-    private async Task<string> FindAppliedReplacementAsync(
+    private async Task<string> FindAppliedMutationAsync(
+        DurableCommitFileOperation? requiredOperation,
         CancellationToken cancellationToken)
     {
         var recoveryDirectory = Path.Combine(_stateDirectory, "recovery");
@@ -87,8 +91,9 @@ internal sealed class CrashRecoveryRunner
                 "manifest.json",
                 SearchOption.AllDirectories))
             {
-                var appliedTargetPath = await TryFindAppliedReplacementAsync(
+                var appliedTargetPath = await TryFindAppliedMutationAsync(
                     manifestPath,
+                    requiredOperation,
                     cancellationToken);
 
                 if (appliedTargetPath is not null)
@@ -99,11 +104,12 @@ internal sealed class CrashRecoveryRunner
         }
 
         throw new InvalidOperationException(
-            "Host termination occurred before an applied replacement could be verified.");
+            "Host termination occurred before an applied mutation could be verified.");
     }
 
-    private async Task<string?> TryFindAppliedReplacementAsync(
+    private async Task<string?> TryFindAppliedMutationAsync(
         string manifestPath,
+        DurableCommitFileOperation? requiredOperation,
         CancellationToken cancellationToken)
     {
         try
@@ -124,19 +130,40 @@ internal sealed class CrashRecoveryRunner
 
             foreach (var entry in root.GetProperty("entries").EnumerateArray())
             {
-                if (!IsReplace(entry.GetProperty("operation")))
+                var operation = ParseOperation(entry.GetProperty("operation"));
+                if (operation is null
+                    || (requiredOperation is not null
+                        && operation != requiredOperation))
                 {
                     continue;
                 }
 
-                var intendedHash = entry.GetProperty("intendedHash").GetString();
                 var targetPath = entry.GetProperty("targetPath").GetString();
-                if (intendedHash is null || targetPath is null)
+                if (targetPath is null)
                 {
                     continue;
                 }
 
                 var resolvedPath = ResolveRepositoryPath(targetPath);
+                if (operation == DurableCommitFileOperation.Delete)
+                {
+                    var deleteMarkerPath = entry.GetProperty("deleteMarkerPath").GetString();
+                    if (!File.Exists(resolvedPath)
+                        && deleteMarkerPath is not null
+                        && File.Exists(ResolveRepositoryPath(deleteMarkerPath)))
+                    {
+                        return resolvedPath;
+                    }
+
+                    continue;
+                }
+
+                var intendedHash = entry.GetProperty("intendedHash").GetString();
+                if (intendedHash is null)
+                {
+                    continue;
+                }
+
                 if (!File.Exists(resolvedPath))
                 {
                     continue;
@@ -231,16 +258,19 @@ internal sealed class CrashRecoveryRunner
         }
     }
 
-    private static bool IsReplace(JsonElement operation)
+    private static DurableCommitFileOperation? ParseOperation(JsonElement operation)
     {
         return operation.ValueKind switch
         {
-            JsonValueKind.Number => operation.GetInt32() == 1,
-            JsonValueKind.String => string.Equals(
+            JsonValueKind.Number when operation.TryGetInt32(out var value)
+                && Enum.IsDefined((DurableCommitFileOperation)value)
+                => (DurableCommitFileOperation)value,
+            JsonValueKind.String when Enum.TryParse<DurableCommitFileOperation>(
                 operation.GetString(),
-                "Replace",
-                StringComparison.Ordinal),
-            _ => false,
+                ignoreCase: false,
+                out var value)
+                => value,
+            _ => null,
         };
     }
 }

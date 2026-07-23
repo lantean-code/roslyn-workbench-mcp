@@ -14,7 +14,7 @@ The framework is permanent. Repository clones, restored assets, published Host b
 
 `conflict` exercises a checked-in controlled-conflict definition. `PreWriteDrift` changes a selected input after staging and proves commit validation rejects before recovery persistence. `DuringApplication` waits for the durable manifest to enter `Applying`, changes the final replacement target while earlier files are being written, then proves recovery restores every server-written file without overwriting or reverting the external edit. Recovery evidence is inspected before the disposable state and checkout are restored. Results are written to `conflict.json`, `conflict.md` and `validation.json`.
 
-`crash-recovery` starts a real durable commit, waits until at least one replacement contains its intended bytes, and forcibly terminates the published Host while its manifest remains `Applying`. It then starts a fresh Host against the same state directory, allowing normal startup recovery to run before MCP initialisation. The run proves that the partially applied repository is restored, recovery artifacts are removed, the Workspace can be reopened, the recovery Host shuts down normally and only the expected persistent commit-lock marker was created before runner cleanup. Results are written to `crash-recovery.json`, `crash-recovery.md` and `validation.json`.
+`crash-recovery` starts a real durable commit, waits until the scenario's requested create, replace or delete operation is observable, and forcibly terminates the published Host while its manifest remains `Applying`. Scenarios without an explicit operation stop at the first observable mutation. The runner then starts a fresh Host against the same state directory, allowing normal startup recovery to run before MCP initialisation. The run proves that the partially applied repository is restored, recovery artifacts are removed, the Workspace can be reopened, the recovery Host shuts down normally and only the expected persistent commit-lock marker was created before runner cleanup. Results are written to `crash-recovery.json`, `crash-recovery.md` and `validation.json`.
 
 Every completed measurement or profile explicitly closes the workspace and then closes the Host's stdin so the stdio server can shut down normally. The runner writes `validation.json` with the Host exit status and stderr, repository commit, recovery-state files and any new workspace coordination or lock files. A run fails when the Host requires forced termination, exits unsuccessfully, leaves tracked repository changes, retains recovery state or leaks new coordination files.
 
@@ -94,6 +94,14 @@ Measure and trace a real medium multi-file commit:
   --iterations 1 --warmups 0 --capture-trace --duration 00:00:05 --skip-prepare
 ```
 
+Measure a real Code Action that creates a source file and updates its original document:
+
+```bash
+./tools/Roslyn.Workbench.Mcp.Performance/run-performance.sh \
+  commit --repository serilog --scenario move-no-enumeration-to-file-durable \
+  --iterations 1 --warmups 0 --skip-prepare
+```
+
 Measure pre-write conflict detection and broad in-progress recovery:
 
 ```bash
@@ -111,6 +119,14 @@ Terminate a partially applied replacement commit and validate fresh-Host startup
 ```bash
 ./tools/Roslyn.Workbench.Mcp.Performance/run-performance.sh \
   crash-recovery --repository serilog --scenario rename-ilogger-durable \
+  --iterations 1 --warmups 0 --skip-prepare
+```
+
+Terminate the Code Action commit after its created file is observable and validate fresh-Host recovery of both operations:
+
+```bash
+./tools/Roslyn.Workbench.Mcp.Performance/run-performance.sh \
+  crash-recovery --repository serilog --scenario move-no-enumeration-to-file-durable \
   --iterations 1 --warmups 0 --skip-prepare
 ```
 

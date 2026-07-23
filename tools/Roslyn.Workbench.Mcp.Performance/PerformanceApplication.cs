@@ -974,6 +974,7 @@ internal static class PerformanceApplication
 
             interruption = await crashRunner.InterruptAsync(
                 preparation,
+                scenario.CrashAfterOperation,
                 cancellationToken);
 
             filesBeforeRecovery = await restorer.CaptureChangesAsync(
@@ -982,7 +983,8 @@ internal static class PerformanceApplication
             ValidateCrashInterruption(
                 interruption,
                 filesBeforeRecovery,
-                repositoryRoot);
+                repositoryRoot,
+                scenario.CrashAfterOperation);
 
             var recoveryStartupStopwatch = Stopwatch.StartNew();
             recoveryHost = await PerformanceHost.StartAsync(
@@ -1148,7 +1150,8 @@ internal static class PerformanceApplication
     private static void ValidateCrashInterruption(
         CrashRecoveryInterruption interruption,
         RepositoryChangeSet filesBeforeRecovery,
-        string repositoryRoot)
+        string repositoryRoot,
+        DurableCommitFileOperation? requiredOperation)
     {
         if (!interruption.HostShutdown.ForcedTermination)
         {
@@ -1159,14 +1162,7 @@ internal static class PerformanceApplication
         if (filesBeforeRecovery.Files.Count == 0)
         {
             throw new InvalidOperationException(
-                "Host termination occurred before any repository replacement was observable.");
-        }
-
-        if (filesBeforeRecovery.Files.Any(
-            static file => file.Operation != DurableCommitFileOperation.Replace))
-        {
-            throw new InvalidOperationException(
-                "Batch 1 crash recovery requires a replacement-only mutation scenario.");
+                "Host termination occurred before any repository mutation was observable.");
         }
 
         var pathComparison = OperatingSystem.IsWindows()
@@ -1174,16 +1170,23 @@ internal static class PerformanceApplication
             : StringComparison.Ordinal;
 
         var appliedTargetPath = Path.GetFullPath(interruption.AppliedTargetPath);
-        var appliedTargetCaptured = filesBeforeRecovery.Files.Any(file =>
+        var appliedTarget = filesBeforeRecovery.Files.FirstOrDefault(file =>
             string.Equals(
                 Path.GetFullPath(Path.Combine(repositoryRoot, file.Path)),
                 appliedTargetPath,
                 pathComparison));
 
-        if (!appliedTargetCaptured)
+        if (appliedTarget is null)
         {
             throw new InvalidOperationException(
-                "The repository snapshot did not contain the replacement observed before Host termination.");
+                "The repository snapshot did not contain the mutation observed before Host termination.");
+        }
+
+        if (requiredOperation is not null
+            && appliedTarget.Operation != requiredOperation)
+        {
+            throw new InvalidOperationException(
+                $"The observed crash target was {appliedTarget.Operation} instead of the required {requiredOperation} operation.");
         }
     }
 

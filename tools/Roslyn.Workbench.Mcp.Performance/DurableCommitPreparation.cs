@@ -8,5 +8,5 @@ internal sealed record DurableCommitPreparation
 
     public required int PreviewDocumentCount { get; init; }
 
-    public required IReadOnlyList<string> ChangedDocumentPaths { get; init; }
+    public required IReadOnlyList<DurableCommitTarget> ChangedTargets { get; init; }
 }

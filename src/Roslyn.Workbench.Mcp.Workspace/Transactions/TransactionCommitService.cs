@@ -1,3 +1,5 @@
+using Roslyn.Workbench.Mcp.Workspace.Diagnostics;
+
 namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
 internal sealed class TransactionCommitService : ITransactionCommitService
@@ -54,14 +56,28 @@ internal sealed class TransactionCommitService : ITransactionCommitService
                 RequiredAction.StartTransaction);
         }
 
-        var validationFailure = ValidateCommit(session, transaction, expectedSnapshot, cancellationToken);
+        WorkspaceOperationResult<TransactionCommitOutcome>? validationFailure;
+        using (WorkbenchPerformanceEventSource.Log.StartPhase(
+            WorkbenchPerformanceEventSource.TransactionCommitOperation,
+            WorkbenchPerformanceEventSource.CommitValidationPhase))
+        {
+            validationFailure = ValidateCommit(session, transaction, expectedSnapshot, cancellationToken);
+        }
+
         if (validationFailure is not null)
         {
             return validationFailure;
         }
 
         var context = CreateContext(session);
-        var lockAcquisition = _commitLockManager.Acquire(session.Workspace.WorkspaceRoot);
+        WorkspaceCommitLockAcquisition lockAcquisition;
+        using (WorkbenchPerformanceEventSource.Log.StartPhase(
+            WorkbenchPerformanceEventSource.TransactionCommitOperation,
+            WorkbenchPerformanceEventSource.CommitLockAcquisitionPhase))
+        {
+            lockAcquisition = _commitLockManager.Acquire(session.Workspace.WorkspaceRoot);
+        }
+
         if (lockAcquisition.IsContended)
         {
             return _resultFactory.Rejected<TransactionCommitOutcome>(
@@ -143,31 +159,74 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         var applicationStarted = false;
         try
         {
-            var planningResult = await CreateCommitPlanAsync(
-                session,
-                transaction,
-                commitId,
-                cancellationToken);
+            WorkspaceCommitPlanResult planningResult;
+            using (WorkbenchPerformanceEventSource.Log.StartPhase(
+                WorkbenchPerformanceEventSource.TransactionCommitOperation,
+                WorkbenchPerformanceEventSource.CommitPlanningPhase))
+            {
+                planningResult = await CreateCommitPlanAsync(
+                    session,
+                    transaction,
+                    commitId,
+                    cancellationToken);
+            }
+
             if (!planningResult.IsSucceeded)
             {
-                return await TransitionCommitConflictAsync(session, transaction);
+                return await TransitionCommitConflictAsync(
+                    session,
+                    transaction,
+                    planningResult.ErrorMessage);
             }
 
             var plan = planningResult.Plan;
             manifest = plan.Manifest;
-            await StageCommitAsync(session, transaction, commitId, plan, cancellationToken);
+            using (WorkbenchPerformanceEventSource.Log.StartPhase(
+                WorkbenchPerformanceEventSource.TransactionCommitOperation,
+                WorkbenchPerformanceEventSource.CommitPlanPersistencePhase))
+            {
+                await StageCommitAsync(session, transaction, commitId, plan, cancellationToken);
+            }
 
-            var revalidation = await _commitWriter.RevalidateAsync(plan.Manifest, cancellationToken);
+            WorkspaceCommitValidationResult revalidation;
+            using (WorkbenchPerformanceEventSource.Log.StartPhase(
+                WorkbenchPerformanceEventSource.TransactionCommitOperation,
+                WorkbenchPerformanceEventSource.CommitRevalidationPhase))
+            {
+                revalidation = await _commitWriter.RevalidateAsync(plan.Manifest, cancellationToken);
+            }
+
             if (!revalidation.IsValid)
             {
                 _recoveryStore.DeleteStatus(commitId);
-                return await TransitionCommitConflictAsync(session, transaction);
+                return await TransitionCommitConflictAsync(
+                    session,
+                    transaction,
+                    revalidation.ErrorMessage);
             }
 
-            manifest = await BeginApplyingAsync(session, transaction, commitId, plan.Manifest, cancellationToken);
+            using (WorkbenchPerformanceEventSource.Log.StartPhase(
+                WorkbenchPerformanceEventSource.TransactionCommitOperation,
+                WorkbenchPerformanceEventSource.CommitApplyingPersistencePhase))
+            {
+                manifest = await BeginApplyingAsync(
+                    session,
+                    transaction,
+                    commitId,
+                    plan.Manifest,
+                    cancellationToken);
+            }
+
             applicationStarted = true;
 
-            var application = await _commitWriter.ApplyAsync(manifest);
+            WorkspaceCommitValidationResult application;
+            using (WorkbenchPerformanceEventSource.Log.StartPhase(
+                WorkbenchPerformanceEventSource.TransactionCommitOperation,
+                WorkbenchPerformanceEventSource.CommitApplicationPhase))
+            {
+                application = await _commitWriter.ApplyAsync(manifest);
+            }
+
             if (!application.IsValid)
             {
                 return await RecoverFailedCommitAsync(
@@ -181,8 +240,20 @@ internal sealed class TransactionCommitService : ITransactionCommitService
                     validationConflict: true);
             }
 
-            var committedSession = CreateCommittedSession(session, transaction);
-            await CompleteCommitAsync(committedSession, manifest);
+            WorkspaceSessionSnapshot committedSession;
+            using (WorkbenchPerformanceEventSource.Log.StartPhase(
+                WorkbenchPerformanceEventSource.TransactionCommitOperation,
+                WorkbenchPerformanceEventSource.CommitWorkspacePromotionPhase))
+            {
+                committedSession = CreateCommittedSession(session, transaction);
+            }
+
+            using (WorkbenchPerformanceEventSource.Log.StartPhase(
+                WorkbenchPerformanceEventSource.TransactionCommitOperation,
+                WorkbenchPerformanceEventSource.CommitCleanupPhase))
+            {
+                await CompleteCommitAsync(committedSession, manifest);
+            }
 
             return _resultFactory.Succeeded(
                 new TransactionCommitOutcome
@@ -205,7 +276,7 @@ internal sealed class TransactionCommitService : ITransactionCommitService
                 commitId,
                 manifest,
                 applicationStarted,
-                exception.Message,
+                CreateFileSystemFailureMessage(exception),
                 validationConflict: false);
         }
     }
@@ -315,6 +386,10 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         string failureMessage,
         bool validationConflict)
     {
+        using var recoveryPhase = WorkbenchPerformanceEventSource.Log.StartPhase(
+            WorkbenchPerformanceEventSource.TransactionCommitOperation,
+            WorkbenchPerformanceEventSource.CommitRecoveryPhase);
+
         var state = manifest is null
             ? RecoveryState.RecoveryIncomplete
             : await _commitWriter.RestoreAsync(manifest);
@@ -334,19 +409,26 @@ internal sealed class TransactionCommitService : ITransactionCommitService
 
         if (validationConflict && state == RecoveryState.Restored)
         {
-            return await TransitionCommitConflictAsync(session, transaction);
+            return await TransitionCommitConflictAsync(
+                session,
+                transaction,
+                failureMessage);
         }
 
         return _resultFactory.Faulted<TransactionCommitOutcome>(
             applicationStarted ? "CommitFailed" : "CommitPreparationFailed",
-            CreateCommitFailureMessage(applicationStarted, recoveryStatePersisted),
+            CreateCommitFailureMessage(
+                applicationStarted,
+                recoveryStatePersisted,
+                failureMessage),
             !applicationStarted || state == RecoveryState.Restored ? RequiredAction.Retry : RequiredAction.ResolveRecovery,
             context);
     }
 
     private async ValueTask<WorkspaceOperationResult<TransactionCommitOutcome>> TransitionCommitConflictAsync(
         WorkspaceSessionSnapshot session,
-        WorkspaceTransaction transaction)
+        WorkspaceTransaction transaction,
+        string failureMessage)
     {
         var conflictedSession = _workspaceStateTransitions.ApplyExternalChangeDetected(session);
         _sessionStore.ReplaceSession(conflictedSession);
@@ -357,7 +439,7 @@ internal sealed class TransactionCommitService : ITransactionCommitService
             commitPhase: WorkspaceLifecycleState.TransactionConflicted.ToString());
         return _resultFactory.Conflict<TransactionCommitOutcome>(
             WorkspaceErrorCodes.TransactionConflicted,
-            "A commit target changed after the transaction was staged.",
+            failureMessage,
             RequiredAction.RollbackTransaction,
             CreateContext(conflictedSession));
     }
@@ -389,14 +471,27 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         }
     }
 
-    private static string CreateCommitFailureMessage(bool applicationStarted, bool recoveryStatePersisted)
+    private static string CreateCommitFailureMessage(
+        bool applicationStarted,
+        bool recoveryStatePersisted,
+        string failureMessage)
     {
         var message = applicationStarted
             ? "The transaction commit failed and its changes were restored or retained for recovery."
             : "The transaction commit could not update its recovery record and no workspace changes were applied.";
+        var detailedMessage = $"{message} Failure: {failureMessage}";
+
         return recoveryStatePersisted
-            ? message
-            : $"{message} The final recovery state could not be persisted; any retained recovery record may report an earlier phase.";
+            ? detailedMessage
+            : $"{detailedMessage} The final recovery state could not be persisted; any retained recovery record may report an earlier phase.";
+    }
+
+    private static string CreateFileSystemFailureMessage(Exception exception)
+    {
+        var underlyingException = exception.GetBaseException();
+        return ReferenceEquals(exception, underlyingException)
+            ? exception.Message
+            : $"{exception.Message} {underlyingException.Message}";
     }
 
     private static bool IsRecoverableFileSystemException(Exception exception)

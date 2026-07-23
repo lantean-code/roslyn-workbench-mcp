@@ -2,13 +2,17 @@
 
 This project is the repeatable, manually invoked performance framework for Roslyn Workbench. It is intentionally outside the normal test projects and CI path: elapsed-time assertions are too sensitive to machine load, and large repository preparation is too expensive for ordinary functional validation.
 
-The framework is permanent. Repository clones, restored assets and published Host binaries are disposable execution data kept beneath the operating system's temporary directory. Results, validation, traces, counters and heap captures are retained beneath the gitignored `artifacts/performance/results` directory in the repository root.
+The framework is permanent. Repository clones, restored assets, published Host binaries and Host recovery state are disposable execution data kept beneath the operating system's temporary directory. Results, validation, traces, counters and heap captures are retained beneath the gitignored `artifacts/performance/results` directory in the repository root.
 
 ## What it measures
 
 `measure` records each MCP invocation's end-to-end elapsed time, Host CPU time, working set, working-set change, peak working set and structured response size. It also records an exact response hash, mutation `staged` state and every bounded collection's JSON path, `HasMore` value and ordered item hashes. These observations prove deterministic ordering and prefix equivalence without retaining large response bodies. It writes the raw observations and run environment to `measurements.json` and a first/subsequent plus median/P95 summary to `summary.md`. Warm-ups are excluded and their count is recorded so a zero-warm-up first invocation can be interpreted as cold. For mutation scenarios, transaction start and rollback are also excluded from the timed observation, while Host-side validation and staging performed by the measured tool remain included.
 
 `cancel` starts one selected query with a known JSON-RPC request ID, sends and awaits the protocol `notifications/cancelled` message after the configured delay, and measures both client-visible cancellation latency and the time until an exclusive transaction lease can be acquired. The explicit notification avoids mistaking cancellation of the runner's local client wait for server-side cancellation. The lease check polls only the explicit `WorkspaceBusy` result, rolls the verification transaction back, and writes `cancellation.json` plus `cancellation.md`.
+
+`commit` starts a fresh Host for each iteration, starts a transaction, stages one selected mutation, previews it and performs a real durable commit. It records staging, preview, commit and repository-restoration timings plus the changed file set, operations and byte volume. After the Host shuts down, the runner restores only the tracked paths and new files recorded for that iteration, removes coordination files created by that Host and verifies the pinned checkout is clean. `--capture-trace` attaches the phase provider immediately before `transaction-commit`, keeping potentially long mutation staging outside the diagnostic capture. Results are written to `commit.json`, `commit.md` and `validation.json`.
+
+`conflict` exercises a checked-in controlled-conflict definition. `PreWriteDrift` changes a selected input after staging and proves commit validation rejects before recovery persistence. `DuringApplication` waits for the durable manifest to enter `Applying`, changes the final replacement target while earlier files are being written, then proves recovery restores every server-written file without overwriting or reverting the external edit. Recovery evidence is inspected before the disposable state and checkout are restored. Results are written to `conflict.json`, `conflict.md` and `validation.json`.
 
 Every completed measurement or profile explicitly closes the workspace and then closes the Host's stdin so the stdio server can shut down normally. The runner writes `validation.json` with the Host exit status and stderr, repository commit, recovery-state files and any new workspace coordination or lock files. A run fails when the Host requires forced termination, exits unsuccessfully, leaves tracked repository changes, retains recovery state or leaks new coordination files.
 
@@ -78,6 +82,26 @@ Collect a 30-second CPU trace for a suspected weak scenario:
 ./tools/Roslyn.Workbench.Mcp.Performance/run-performance.sh \
     profile --repository serilog --scenario find-references-low-limit \
     --profile trace --duration 00:00:30 --skip-prepare
+```
+
+Measure and trace a real medium multi-file commit:
+
+```bash
+./tools/Roslyn.Workbench.Mcp.Performance/run-performance.sh \
+  commit --repository serilog --scenario rename-ilogger-durable \
+  --iterations 1 --warmups 0 --capture-trace --duration 00:00:05 --skip-prepare
+```
+
+Measure pre-write conflict detection and broad in-progress recovery:
+
+```bash
+./tools/Roslyn.Workbench.Mcp.Performance/run-performance.sh \
+  conflict --repository guardclauses --scenario rename-symbol-pre-write-drift \
+  --iterations 5 --warmups 1 --skip-prepare
+
+./tools/Roslyn.Workbench.Mcp.Performance/run-performance.sh \
+  conflict --repository efcore --scenario rename-dbcontext-application-conflict \
+  --iterations 2 --warmups 0 --skip-prepare
 ```
 
 Measure cancellation and Workspace lease recovery for a large scan:

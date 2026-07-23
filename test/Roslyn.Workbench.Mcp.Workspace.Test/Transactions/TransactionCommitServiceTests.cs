@@ -282,10 +282,17 @@ public sealed class TransactionCommitServiceTests : IDisposable
             .ReturnsAsync(WorkspaceCommitPlanResult.Succeeded(plan));
         _commitWriter.Setup(item => item.RevalidateAsync(manifest, It.IsAny<CancellationToken>()))
             .ReturnsAsync(WorkspaceCommitValidationResult.Valid());
-        _commitWriter.Setup(item => item.ApplyAsync(It.IsAny<WorkspaceCommitManifest>())).ThrowsAsync(new IOException("failure"));
+        _commitWriter.Setup(item => item.ApplyAsync(It.IsAny<WorkspaceCommitManifest>()))
+            .ThrowsAsync(new IOException("Apply failed.", new InvalidOperationException("File is in use.")));
+
         _commitWriter.Setup(item => item.RestoreAsync(It.IsAny<WorkspaceCommitManifest>())).ReturnsAsync(RecoveryState.Restored);
         _resultFactory.Setup(item => item.Faulted<TransactionCommitOutcome>(
-            "CommitFailed", It.IsAny<string>(), RequiredAction.Retry, It.IsAny<WorkspaceOperationContext>(), null, null)).Returns(expected);
+            "CommitFailed",
+            "The transaction commit failed and its changes were restored or retained for recovery. Failure: Apply failed. File is in use.",
+            RequiredAction.Retry,
+            It.IsAny<WorkspaceOperationContext>(),
+            null,
+            null)).Returns(expected);
 
         var result = await _target.CommitAsync(CreateSelection(session), null, TestContext.Current.CancellationToken);
 
@@ -492,14 +499,14 @@ public sealed class TransactionCommitServiceTests : IDisposable
         var expected = CreateResult(WorkspaceOperationStatus.Faulted);
         SetupProtocol(session, plan);
         _commitWriter.Setup(item => item.RevalidateAsync(manifest, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new IOException("revalidate"));
+            .ThrowsAsync(new IOException("revalidate."));
         _commitWriter.Setup(item => item.RestoreAsync(manifest)).ReturnsAsync(RecoveryState.Restored);
         _recoveryStore.Setup(item => item.WriteManifestAsync(
             It.Is<WorkspaceCommitManifest>(value => value.State == RecoveryState.Restored),
             CancellationToken.None)).ThrowsAsync(new UnauthorizedAccessException("recovery manifest"));
         _resultFactory.Setup(item => item.Faulted<TransactionCommitOutcome>(
             "CommitPreparationFailed",
-            "The transaction commit could not update its recovery record and no workspace changes were applied. The final recovery state could not be persisted; any retained recovery record may report an earlier phase.",
+            "The transaction commit could not update its recovery record and no workspace changes were applied. Failure: revalidate. The final recovery state could not be persisted; any retained recovery record may report an earlier phase.",
             RequiredAction.Retry,
             It.IsAny<WorkspaceOperationContext>(),
             null,
@@ -558,14 +565,14 @@ public sealed class TransactionCommitServiceTests : IDisposable
         var plan = new WorkspaceCommitPlan(manifest, new Dictionary<string, ReadOnlyMemory<byte>>());
         var expected = CreateResult(WorkspaceOperationStatus.Faulted);
         SetupProtocol(session, plan);
-        _commitWriter.Setup(item => item.ApplyAsync(It.IsAny<WorkspaceCommitManifest>())).ThrowsAsync(new IOException("apply"));
+        _commitWriter.Setup(item => item.ApplyAsync(It.IsAny<WorkspaceCommitManifest>())).ThrowsAsync(new IOException("apply."));
         _commitWriter.Setup(item => item.RestoreAsync(It.IsAny<WorkspaceCommitManifest>())).ReturnsAsync(RecoveryState.RecoveryConflict);
         _recoveryStore.Setup(item => item.WriteManifestAsync(
             It.Is<WorkspaceCommitManifest>(value => value.State == RecoveryState.RecoveryConflict),
             CancellationToken.None)).ThrowsAsync(new IOException("recovery manifest"));
         _resultFactory.Setup(item => item.Faulted<TransactionCommitOutcome>(
             "CommitFailed",
-            "The transaction commit failed and its changes were restored or retained for recovery. The final recovery state could not be persisted; any retained recovery record may report an earlier phase.",
+            "The transaction commit failed and its changes were restored or retained for recovery. Failure: apply. The final recovery state could not be persisted; any retained recovery record may report an earlier phase.",
             RequiredAction.ResolveRecovery,
             It.IsAny<WorkspaceOperationContext>(),
             null,

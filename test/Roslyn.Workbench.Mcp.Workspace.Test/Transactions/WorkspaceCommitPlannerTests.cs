@@ -67,7 +67,7 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
     }
 
     [Fact]
-    public async Task GIVEN_DuplicateCanonicalTargets_WHEN_Planning_THEN_ShouldRejectPlan()
+    public async Task GIVEN_ConflictingDuplicateCanonicalTargets_WHEN_Planning_THEN_ShouldRejectPlan()
     {
         var projectId = ProjectId.CreateNewId();
         var firstId = DocumentId.CreateNewId(projectId);
@@ -89,7 +89,55 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
             TestContext.Current.CancellationToken);
 
         result.IsSucceeded.Should().BeFalse();
-        result.ErrorMessage.Should().Contain("duplicate target");
+        result.ErrorMessage.Should().Contain("conflicting changes for the duplicate target");
+    }
+
+    [Fact]
+    public async Task GIVEN_IdenticalDuplicateCanonicalTargets_WHEN_Planning_THEN_ShouldCreateOneEntry()
+    {
+        var firstProjectId = ProjectId.CreateNewId();
+        var secondProjectId = ProjectId.CreateNewId();
+        var firstId = DocumentId.CreateNewId(firstProjectId);
+        var secondId = DocumentId.CreateNewId(secondProjectId);
+        var firstProjectPath = Path.GetFullPath("/workspace/project/first.csproj");
+        var secondProjectPath = Path.GetFullPath("/workspace/project/second.csproj");
+        var targetPath = Path.GetFullPath("/workspace/project/shared.cs");
+        var baseline = _workspace.CurrentSolution
+            .AddProject(ProjectInfo.Create(
+                firstProjectId,
+                VersionStamp.Create(),
+                "First",
+                "First",
+                LanguageNames.CSharp,
+                filePath: firstProjectPath))
+            .AddProject(ProjectInfo.Create(
+                secondProjectId,
+                VersionStamp.Create(),
+                "Second",
+                "Second",
+                LanguageNames.CSharp,
+                filePath: secondProjectPath))
+            .AddDocument(firstId, "shared.cs", SourceText.From("before"), filePath: targetPath)
+            .AddDocument(secondId, "shared.cs", SourceText.From("before"), filePath: targetPath);
+        var current = baseline
+            .WithDocumentText(firstId, SourceText.From("after"))
+            .WithDocumentText(secondId, SourceText.From("after"));
+        _file.Setup(item => item.Exists(targetPath)).Returns(true);
+        _file.Setup(item => item.ReadAllBytesAsync(targetPath, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Encode(Encoding.UTF8, "before"));
+
+        var result = await _target.CreateAsync(
+            "commit",
+            "/workspace/solution.slnx",
+            "/workspace",
+            baseline,
+            current,
+            TestContext.Current.CancellationToken);
+        var plan = result.Plan ?? throw new InvalidOperationException("The commit plan was not created.");
+
+        plan.Manifest.Entries.Should().ContainSingle();
+        plan.Manifest.Entries[0].TargetPath.Should().Be(targetPath);
+        plan.Artifacts.Should().HaveCount(2);
     }
 
     [Fact]

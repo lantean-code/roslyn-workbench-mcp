@@ -154,6 +154,17 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
             return WorkspaceCommitValidationResult.Invalid(targetError);
         }
 
+        var intendedContents = await GetDocumentBytesAsync(document, cancellationToken);
+        var intendedHash = Hash(intendedContents);
+        if (context.EntriesByTarget.TryGetValue(path, out var existingEntry))
+        {
+            return existingEntry.Operation == operation
+                && string.Equals(existingEntry.IntendedHash, intendedHash, StringComparison.Ordinal)
+                    ? WorkspaceCommitValidationResult.Valid()
+                    : WorkspaceCommitValidationResult.Invalid(
+                        $"The commit contains conflicting changes for the duplicate target '{path}'.");
+        }
+
         var originalExists = _fileSystem.File.Exists(path);
         if ((operation == WorkspaceFileOperation.Create) == originalExists)
         {
@@ -164,7 +175,6 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         var originalContents = originalExists
             ? await _fileSystem.File.ReadAllBytesAsync(path, cancellationToken)
             : null;
-        var intendedContents = await GetDocumentBytesAsync(document, cancellationToken);
         var artifactIndex = GetArtifactIndex(context);
         var backupPath = originalExists ? $"backup/{artifactIndex}.bin" : null;
         var stagedPath = $"staged/{artifactIndex}.bin";
@@ -176,16 +186,19 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
 
         context.Artifacts.Add(stagedPath, intendedContents);
         AddMissingDirectories(context, path);
-        context.Entries.Add(new WorkspaceCommitEntry
+        var entry = new WorkspaceCommitEntry
         {
             TargetPath = path,
             Operation = operation,
             OriginalExists = originalExists,
             OriginalHash = originalContents is null ? null : Hash(originalContents),
-            IntendedHash = Hash(intendedContents),
+            IntendedHash = intendedHash,
             BackupPath = backupPath,
             StagedPath = stagedPath,
-        });
+        };
+
+        context.Entries.Add(entry);
+        context.EntriesByTarget.Add(path, entry);
         return WorkspaceCommitValidationResult.Valid();
     }
 
@@ -205,6 +218,14 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
             return WorkspaceCommitValidationResult.Invalid(targetError);
         }
 
+        if (context.EntriesByTarget.TryGetValue(path, out var existingEntry))
+        {
+            return existingEntry.Operation == WorkspaceFileOperation.Delete
+                ? WorkspaceCommitValidationResult.Valid()
+                : WorkspaceCommitValidationResult.Invalid(
+                    $"The commit contains conflicting changes for the duplicate target '{path}'.");
+        }
+
         if (!_fileSystem.File.Exists(path))
         {
             return WorkspaceCommitValidationResult.Invalid($"The target '{path}' no longer exists.");
@@ -221,7 +242,7 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         }
 
         context.Artifacts.Add(backupPath, originalContents);
-        context.Entries.Add(new WorkspaceCommitEntry
+        var entry = new WorkspaceCommitEntry
         {
             TargetPath = path,
             Operation = WorkspaceFileOperation.Delete,
@@ -229,7 +250,10 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
             OriginalHash = Hash(originalContents),
             BackupPath = backupPath,
             DeleteMarkerPath = deleteMarkerPath,
-        });
+        };
+
+        context.Entries.Add(entry);
+        context.EntriesByTarget.Add(path, entry);
         return WorkspaceCommitValidationResult.Valid();
     }
 
@@ -241,13 +265,7 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
     {
         canonicalPath = null;
         var targetPath = _fileSystem.Path.GetFullPath(path);
-        if (!context.Targets.Add(targetPath))
-        {
-            errorMessage = $"The commit contains the duplicate target '{targetPath}'.";
-            return false;
-        }
-
-        if (context.Targets.Comparer.Equals(context.WorkspaceRoot, targetPath)
+        if (context.EntriesByTarget.Comparer.Equals(context.WorkspaceRoot, targetPath)
             || !IsWithinBoundary(context.WorkspaceRoot, targetPath))
         {
             errorMessage = $"The target '{targetPath}' is outside the workspace root.";

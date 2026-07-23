@@ -11,6 +11,7 @@ public sealed class MutationStagingServiceTests : IDisposable
     private readonly Mock<IWorkspaceResolverFactory> _resolverFactory;
     private readonly Mock<IWorkspaceInstanceStatusPublisher> _instanceStatusPublisher;
     private readonly Mock<IWorkspaceMutationCandidateValidator> _candidateValidator;
+    private readonly Mock<ILinkedDocumentChangeMerger> _linkedDocumentChangeMerger;
     private readonly MutationStagingService _target;
 
     public MutationStagingServiceTests()
@@ -22,13 +23,25 @@ public sealed class MutationStagingServiceTests : IDisposable
         _resolverFactory = new Mock<IWorkspaceResolverFactory>();
         _instanceStatusPublisher = new Mock<IWorkspaceInstanceStatusPublisher>();
         _candidateValidator = new Mock<IWorkspaceMutationCandidateValidator>();
+        _linkedDocumentChangeMerger = new Mock<ILinkedDocumentChangeMerger>();
+        _linkedDocumentChangeMerger
+            .Setup(item => item.MergeAsync(
+                It.IsAny<Solution>(),
+                It.IsAny<Solution>(),
+                It.IsAny<CancellationToken>()))
+            .Returns((
+                Solution _,
+                Solution candidateSolution,
+                CancellationToken _) => ValueTask.FromResult(
+                    LinkedDocumentChangeMergeResult.Succeeded(candidateSolution)));
         _target = new MutationStagingService(
             _resultFactory.Object,
             _sessionStore.Object,
             _diffBuilder.Object,
             _resolverFactory.Object,
             _instanceStatusPublisher.Object,
-            _candidateValidator.Object);
+            _candidateValidator.Object,
+            _linkedDocumentChangeMerger.Object);
     }
 
     [Fact]
@@ -89,6 +102,92 @@ public sealed class MutationStagingServiceTests : IDisposable
             TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
+        _linkedDocumentChangeMerger.Verify(item => item.MergeAsync(
+            It.IsAny<Solution>(),
+            It.IsAny<Solution>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_LinkedDocumentMergeFails_WHEN_Staging_THEN_ShouldReturnValidationFailure()
+    {
+        var currentSolution = CreateSolution();
+        var candidate = new WorkspaceMutationCandidate { CandidateSolution = currentSolution };
+        var transaction = CreateTransaction(currentSolution);
+        var session = CreateSession(transaction);
+        var error = new WorkspaceOperationError
+        {
+            Code = WorkspaceErrorCodes.LinkedDocumentConflict,
+            Message = "Message",
+        };
+        var expected = CreateRejectedResult(error.Code);
+        SetupOwner(session);
+        _linkedDocumentChangeMerger
+            .Setup(item => item.MergeAsync(
+                currentSolution,
+                candidate.CandidateSolution,
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(LinkedDocumentChangeMergeResult.Failed(error));
+        _resultFactory
+            .Setup(item => item.Rejected<MutationStagingOutcome>(
+                error,
+                null,
+                It.IsAny<IReadOnlyList<DiagnosticInfo>>(),
+                It.IsAny<IReadOnlyList<WarningInfo>>()))
+            .Returns(expected);
+
+        var result = await _target.StageAsync(
+            "OperationName",
+            candidate,
+            [],
+            [],
+            TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _sessionStore.Verify(
+            item => item.ReplaceSession(It.IsAny<WorkspaceSessionSnapshot>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_MergedCandidateValidationFails_WHEN_Staging_THEN_ShouldReturnValidationFailure()
+    {
+        var currentSolution = CreateSolution();
+        var candidate = new WorkspaceMutationCandidate { CandidateSolution = currentSolution };
+        var transaction = CreateTransaction(currentSolution);
+        var session = CreateSession(transaction);
+        var error = new WorkspaceOperationError
+        {
+            Code = "UnsupportedChange",
+            Message = "Message",
+        };
+        var expected = CreateRejectedResult(error.Code);
+        SetupOwner(session);
+        _candidateValidator
+            .SetupSequence(item => item.Validate(
+                currentSolution,
+                candidate.CandidateSolution))
+            .Returns((WorkspaceOperationError?)null)
+            .Returns(error);
+        _resultFactory
+            .Setup(item => item.Rejected<MutationStagingOutcome>(
+                error,
+                null,
+                It.IsAny<IReadOnlyList<DiagnosticInfo>>(),
+                It.IsAny<IReadOnlyList<WarningInfo>>()))
+            .Returns(expected);
+
+        var result = await _target.StageAsync(
+            "OperationName",
+            candidate,
+            [],
+            [],
+            TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _sessionStore.Verify(
+            item => item.ReplaceSession(It.IsAny<WorkspaceSessionSnapshot>()),
+            Times.Never);
     }
 
     [Fact]

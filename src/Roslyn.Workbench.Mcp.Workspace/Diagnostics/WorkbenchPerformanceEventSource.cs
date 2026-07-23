@@ -9,6 +9,16 @@ internal sealed class WorkbenchPerformanceEventSource : EventSource
     public const string CandidateProjectionPhase = "candidate-projection";
     public const string CodeActionProjectionPhase = "code-action-projection";
     public const string CodeFixDiscoveryPhase = "code-fix-discovery";
+    public const string CommitApplicationPhase = "commit-application";
+    public const string CommitCleanupPhase = "commit-cleanup";
+    public const string CommitLockAcquisitionPhase = "commit-lock-acquisition";
+    public const string CommitPlanningPhase = "commit-planning";
+    public const string CommitApplyingPersistencePhase = "commit-applying-persistence";
+    public const string CommitPlanPersistencePhase = "commit-plan-persistence";
+    public const string CommitRecoveryPhase = "commit-recovery";
+    public const string CommitRevalidationPhase = "commit-revalidation";
+    public const string CommitValidationPhase = "commit-validation";
+    public const string CommitWorkspacePromotionPhase = "commit-workspace-promotion";
     public const string ContextAcquisitionPhase = "context-acquisition";
     public const string ContextConstructionPhase = "context-construction";
     public const string DiscoveryPhase = "discovery";
@@ -30,6 +40,7 @@ internal sealed class WorkbenchPerformanceEventSource : EventSource
     public const string SolutionHierarchyPhase = "solution-hierarchy";
     public const string TargetFrameworkEvaluationPhase = "target-framework-evaluation";
     public const string ToolTotalPhase = "tool-total";
+    public const string TransactionCommitOperation = "transaction-commit";
     public const string WorkspaceCompatibilityPhase = "workspace-compatibility";
     public const string WorkspaceLeaseAcquisitionPhase = "workspace-lease-acquisition";
     public const string WorkspaceLoadPhase = "workspace-load";

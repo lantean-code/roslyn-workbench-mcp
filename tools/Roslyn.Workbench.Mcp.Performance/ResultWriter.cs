@@ -6,6 +6,7 @@ namespace Roslyn.Workbench.Mcp.Performance;
 
 internal static class ResultWriter
 {
+    private const string _transactionCommitOperation = "transaction-commit";
     private static readonly JsonSerializerOptions _serializerOptions = CreateSerializerOptions();
 
     public static async Task WriteMeasurementsAsync(
@@ -37,6 +38,151 @@ internal static class ResultWriter
         var jsonPath = Path.Combine(outputDirectory, "profile.json");
         await using var stream = File.Create(jsonPath);
         await JsonSerializer.SerializeAsync(stream, result, _serializerOptions, cancellationToken);
+    }
+
+    public static async Task WriteDurableCommitAsync(
+        string outputDirectory,
+        DurableCommitRunResult result,
+        CancellationToken cancellationToken)
+    {
+        Directory.CreateDirectory(outputDirectory);
+        var jsonPath = Path.Combine(outputDirectory, "commit.json");
+        await using (var stream = File.Create(jsonPath))
+        {
+            await JsonSerializer.SerializeAsync(stream, result, _serializerOptions, cancellationToken);
+        }
+
+        var validations = result.Measurements
+            .Select(static measurement => measurement.Validation)
+            .ToArray();
+        var validationPath = Path.Combine(outputDirectory, "validation.json");
+        await using (var stream = File.Create(validationPath))
+        {
+            await JsonSerializer.SerializeAsync(stream, validations, _serializerOptions, cancellationToken);
+        }
+
+        var commitTimings = result.Measurements
+            .Select(static item => item.CommitMilliseconds)
+            .Order()
+            .ToArray();
+        var stagingTimings = result.Measurements
+            .Select(static item => item.StagingMilliseconds)
+            .Order()
+            .ToArray();
+        var previewTimings = result.Measurements
+            .Select(static item => item.PreviewMilliseconds)
+            .Order()
+            .ToArray();
+        var restorationTimings = result.Measurements
+            .Select(static item => item.RestorationMilliseconds)
+            .Order()
+            .ToArray();
+        var first = result.Measurements[0];
+        var stableFileSet = HasStableFileSet(result.Measurements);
+        var builder = new StringBuilder()
+            .AppendLine("# Roslyn Workbench durable commit summary")
+            .AppendLine()
+            .Append("Repository: ").AppendLine(result.Repository)
+            .Append("Scenario: ").AppendLine(result.Scenario)
+            .Append("Mutation tool: ").AppendLine(result.MutationTool)
+            .Append("Warm-ups: ").AppendLine(result.WarmupCount.ToString(CultureInfo.InvariantCulture))
+            .Append("Measured iterations: ").AppendLine(result.Measurements.Count.ToString(CultureInfo.InvariantCulture))
+            .Append("Changed files: ").AppendLine(first.ChangedFileCount.ToString(CultureInfo.InvariantCulture))
+            .Append("Created/replaced/deleted: ")
+            .Append(first.CreatedFileCount.ToString(CultureInfo.InvariantCulture)).Append('/')
+            .Append(first.ReplacedFileCount.ToString(CultureInfo.InvariantCulture)).Append('/')
+            .AppendLine(first.DeletedFileCount.ToString(CultureInfo.InvariantCulture))
+            .Append("Original bytes: ").AppendLine(first.OriginalBytes.ToString(CultureInfo.InvariantCulture))
+            .Append("Committed bytes: ").AppendLine(first.CommittedBytes.ToString(CultureInfo.InvariantCulture))
+            .Append("Stable changed-file set: ").AppendLine(stableFileSet ? "Yes" : "No")
+            .AppendLine()
+            .AppendLine("| Phase | Median (ms) | P95 (ms) |")
+            .AppendLine("|---|---:|---:|")
+            .Append("| Mutation staging | ")
+            .Append(Percentile(stagingTimings, 0.5).ToString("F2", CultureInfo.InvariantCulture)).Append(" | ")
+            .Append(Percentile(stagingTimings, 0.95).ToString("F2", CultureInfo.InvariantCulture)).AppendLine(" |")
+            .Append("| Transaction preview | ")
+            .Append(Percentile(previewTimings, 0.5).ToString("F2", CultureInfo.InvariantCulture)).Append(" | ")
+            .Append(Percentile(previewTimings, 0.95).ToString("F2", CultureInfo.InvariantCulture)).AppendLine(" |")
+            .Append("| Durable commit | ")
+            .Append(Percentile(commitTimings, 0.5).ToString("F2", CultureInfo.InvariantCulture)).Append(" | ")
+            .Append(Percentile(commitTimings, 0.95).ToString("F2", CultureInfo.InvariantCulture)).AppendLine(" |")
+            .Append("| Repository restoration | ")
+            .Append(Percentile(restorationTimings, 0.5).ToString("F2", CultureInfo.InvariantCulture)).Append(" | ")
+            .Append(Percentile(restorationTimings, 0.95).ToString("F2", CultureInfo.InvariantCulture)).AppendLine(" |");
+
+        AppendDurableCommitPhases(builder, first.PhaseSummary);
+
+        await File.WriteAllTextAsync(
+            Path.Combine(outputDirectory, "commit.md"),
+            builder.ToString(),
+            Encoding.UTF8,
+            cancellationToken);
+    }
+
+    private static bool HasStableFileSet(IReadOnlyList<DurableCommitMeasurement> measurements)
+    {
+        var expected = measurements[0].Files;
+        for (var measurementIndex = 1; measurementIndex < measurements.Count; measurementIndex++)
+        {
+            var actual = measurements[measurementIndex].Files;
+            if (actual.Count != expected.Count)
+            {
+                return false;
+            }
+
+            for (var fileIndex = 0; fileIndex < expected.Count; fileIndex++)
+            {
+                if (expected[fileIndex].Operation != actual[fileIndex].Operation
+                    || !string.Equals(
+                        expected[fileIndex].Path,
+                        actual[fileIndex].Path,
+                        StringComparison.Ordinal))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private static void AppendDurableCommitPhases(
+        StringBuilder builder,
+        IReadOnlyList<PhaseTraceSummary> phases)
+    {
+        var headingWritten = false;
+        foreach (var phase in phases)
+        {
+            if (!string.Equals(
+                phase.Operation,
+                _transactionCommitOperation,
+                StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (!headingWritten)
+            {
+                builder
+                    .AppendLine()
+                    .AppendLine("## Host commit phases")
+                    .AppendLine()
+                    .AppendLine("Nested phases overlap their parent and must not be added together.")
+                    .AppendLine()
+                    .AppendLine("| Phase | Count | Median (ms) | P95 (ms) | Total (ms) |")
+                    .AppendLine("|---|---:|---:|---:|---:|");
+                headingWritten = true;
+            }
+
+            builder
+                .Append("| ").Append(phase.Phase)
+                .Append(" | ").Append(phase.Count.ToString(CultureInfo.InvariantCulture))
+                .Append(" | ").Append(phase.MedianMilliseconds.ToString("F2", CultureInfo.InvariantCulture))
+                .Append(" | ").Append(phase.P95Milliseconds.ToString("F2", CultureInfo.InvariantCulture))
+                .Append(" | ").Append(phase.TotalMilliseconds.ToString("F2", CultureInfo.InvariantCulture))
+                .AppendLine(" |");
+        }
     }
 
     public static async Task WriteCancellationAsync(
@@ -79,6 +225,91 @@ internal static class ResultWriter
         await File.WriteAllTextAsync(
             Path.Combine(outputDirectory, "cancellation.md"),
             markdown,
+            Encoding.UTF8,
+            cancellationToken);
+    }
+
+    public static async Task WriteConflictAsync(
+        string outputDirectory,
+        ConflictRunResult result,
+        CancellationToken cancellationToken)
+    {
+        Directory.CreateDirectory(outputDirectory);
+        var jsonPath = Path.Combine(outputDirectory, "conflict.json");
+        await using (var stream = File.Create(jsonPath))
+        {
+            await JsonSerializer.SerializeAsync(
+                stream,
+                result,
+                _serializerOptions,
+                cancellationToken);
+        }
+
+        var validations = result.Measurements
+            .Select(static measurement => measurement.Validation)
+            .ToArray();
+        var validationPath = Path.Combine(outputDirectory, "validation.json");
+        await using (var stream = File.Create(validationPath))
+        {
+            await JsonSerializer.SerializeAsync(
+                stream,
+                validations,
+                _serializerOptions,
+                cancellationToken);
+        }
+
+        var commit = result.Measurements
+            .Select(static measurement => measurement.CommitMilliseconds)
+            .Order()
+            .ToArray();
+        var detection = result.Measurements
+            .Select(static measurement => measurement.ConflictDetectionMilliseconds)
+            .Order()
+            .ToArray();
+        var recovery = result.Measurements
+            .Select(static measurement => measurement.RecoveryMilliseconds)
+            .Order()
+            .ToArray();
+        var first = result.Measurements[0];
+        var builder = new StringBuilder()
+            .AppendLine("# Roslyn Workbench controlled conflict summary")
+            .AppendLine()
+            .Append("Repository: ").AppendLine(result.Repository)
+            .Append("Scenario: ").AppendLine(result.Scenario)
+            .Append("Mode: ").AppendLine(result.Mode.ToString())
+            .Append("Warm-ups: ").AppendLine(
+                result.WarmupCount.ToString(CultureInfo.InvariantCulture))
+            .Append("Measured iterations: ").AppendLine(
+                result.Measurements.Count.ToString(CultureInfo.InvariantCulture))
+            .Append("Error/next: ").Append(first.ErrorCode).Append('/')
+            .AppendLine(first.RequiredAction ?? "None")
+            .Append("Files left changed before runner restoration: ").AppendLine(
+                first.FilesBeforeRestoration.Count.ToString(CultureInfo.InvariantCulture))
+            .Append("Recovery state/artifacts: ")
+            .Append(first.RecoveryState ?? "None").Append('/')
+            .AppendLine(first.RecoveryArtifactCount.ToString(CultureInfo.InvariantCulture))
+            .AppendLine()
+            .AppendLine("| Measurement | Median (ms) | P95 (ms) |")
+            .AppendLine("|---|---:|---:|")
+            .Append("| Commit result | ")
+            .Append(Percentile(commit, 0.5).ToString("F2", CultureInfo.InvariantCulture))
+            .Append(" | ")
+            .Append(Percentile(commit, 0.95).ToString("F2", CultureInfo.InvariantCulture))
+            .AppendLine(" |")
+            .Append("| Conflict detection/injection | ")
+            .Append(Percentile(detection, 0.5).ToString("F2", CultureInfo.InvariantCulture))
+            .Append(" | ")
+            .Append(Percentile(detection, 0.95).ToString("F2", CultureInfo.InvariantCulture))
+            .AppendLine(" |")
+            .Append("| Recovery after injection | ")
+            .Append(Percentile(recovery, 0.5).ToString("F2", CultureInfo.InvariantCulture))
+            .Append(" | ")
+            .Append(Percentile(recovery, 0.95).ToString("F2", CultureInfo.InvariantCulture))
+            .AppendLine(" |");
+
+        await File.WriteAllTextAsync(
+            Path.Combine(outputDirectory, "conflict.md"),
+            builder.ToString(),
             Encoding.UTF8,
             cancellationToken);
     }

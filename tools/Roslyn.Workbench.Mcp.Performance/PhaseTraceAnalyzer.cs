@@ -17,12 +17,14 @@ internal static class PhaseTraceAnalyzer
                 $"Trace '{tracePath}' contains no '{_performanceProviderName}' phase events.");
         }
 
-        var toolTotalMedian = GetToolTotalMedian(observations);
+        var toolTotalMedians = GetToolTotalMedians(observations);
         return observations
             .GroupBy(static item => (item.Operation, item.Phase))
             .OrderBy(static group => group.Key.Operation, StringComparer.Ordinal)
             .ThenBy(static group => group.Key.Phase, StringComparer.Ordinal)
-            .Select(group => CreateSummary(group, toolTotalMedian))
+            .Select(group => CreateSummary(
+                group,
+                toolTotalMedians.GetValueOrDefault(group.Key.Operation)))
             .ToArray();
     }
 
@@ -55,15 +57,21 @@ internal static class PhaseTraceAnalyzer
         return observations;
     }
 
-    private static double GetToolTotalMedian(IReadOnlyList<PhaseTraceObservation> observations)
+    private static Dictionary<string, double> GetToolTotalMedians(
+        IReadOnlyList<PhaseTraceObservation> observations)
     {
-        var toolTotals = observations
+        return observations
             .Where(static item => string.Equals(item.Phase, _toolTotalPhase, StringComparison.Ordinal))
-            .Select(static item => item.ElapsedMilliseconds)
-            .Order()
-            .ToArray();
-
-        return Percentile(toolTotals, 0.5);
+            .GroupBy(static item => item.Operation, StringComparer.Ordinal)
+            .ToDictionary(
+                static group => group.Key,
+                static group => Percentile(
+                    group
+                        .Select(static item => item.ElapsedMilliseconds)
+                        .Order()
+                        .ToArray(),
+                    0.5),
+                StringComparer.Ordinal);
     }
 
     private static PhaseTraceSummary CreateSummary(

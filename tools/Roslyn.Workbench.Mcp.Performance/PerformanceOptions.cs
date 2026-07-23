@@ -33,6 +33,8 @@ internal sealed class PerformanceOptions
 
     public bool SkipPreparation { get; init; }
 
+    public bool CaptureTrace { get; init; }
+
     public static PerformanceOptions Parse(IReadOnlyList<string> arguments)
     {
         if (arguments.Count == 0 || IsHelp(arguments[0]))
@@ -52,7 +54,8 @@ internal sealed class PerformanceOptions
                 throw new ArgumentException($"Unexpected argument '{argument}'. Options must start with '--'.");
             }
 
-            if (string.Equals(argument, "--skip-prepare", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(argument, "--skip-prepare", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(argument, "--capture-trace", StringComparison.OrdinalIgnoreCase))
             {
                 switches.Add(argument);
                 continue;
@@ -81,6 +84,7 @@ internal sealed class PerformanceOptions
             CancellationDelay = ParseDuration(values, "--cancel-after", _defaultCancellationDelay),
             Profile = ParseProfile(GetValue(values, "--profile")),
             SkipPreparation = switches.Contains("--skip-prepare"),
+            CaptureTrace = switches.Contains("--capture-trace"),
         };
     }
 
@@ -104,6 +108,16 @@ internal sealed class PerformanceOptions
         if (string.Equals(value, "measure", StringComparison.OrdinalIgnoreCase))
         {
             return PerformanceCommand.Measure;
+        }
+
+        if (string.Equals(value, "commit", StringComparison.OrdinalIgnoreCase))
+        {
+            return PerformanceCommand.Commit;
+        }
+
+        if (string.Equals(value, "conflict", StringComparison.OrdinalIgnoreCase))
+        {
+            return PerformanceCommand.Conflict;
         }
 
         if (string.Equals(value, "cancel", StringComparison.OrdinalIgnoreCase))

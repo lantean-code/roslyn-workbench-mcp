@@ -346,6 +346,63 @@ The forced-GC evidence retained at `artifacts/performance/results/20260722-20585
 
 **Exit evidence:** achieved. Repeated target-framework evaluation is removed from the warm path, partial cache misses remain request-batched, response output is unchanged, and workspace close releases all target-framework entries. Further operations require their own attributable latency and retained-memory evidence rather than automatic cache adoption.
 
+### 12. Measure durable multi-file mutation commit performance
+
+**Status:** Completed
+
+The mutation evidence in investigation 9 ends after staging. It proves the cost and outcome of `rename-symbol`, `format-document` and `sort-usings`, but does not measure `transaction-preview` or the durable `transaction-commit` path. Commit work includes filesystem and recovery guarantees that are not represented by mutation-tool latency.
+
+Extend the permanent runner with an end-to-end transaction sequence: start a transaction, stage a deterministic mutation, preview it, commit it and validate both the resulting Workspace snapshot and files on disk. Include at least one symbol rename selected for broad reference fan-out across many files. Record the changed-file count, create/replace/delete operation counts and changed-byte volume so scaling can be distinguished from fixed transaction overhead. Use small and broad commits rather than treating one rename as representative.
+
+Add phase evidence for external-change validation, commit planning and diff construction, recovery-artifact and journal persistence, file-lock acquisition, atomic file operations, Workspace promotion or reload, input-manifest refresh, query-cache invalidation and recovery cleanup. Capture elapsed time, CPU, allocation and filesystem activity. Compare native Windows and native WSL storage if durable-write cost is material; WSL access to Windows-mounted storage remains a warning case rather than a recommended baseline.
+
+Include controlled external-change scenarios between staging and commit. Measure the pre-write case separately: external drift discovered during commit validation should reject without creating a rollback requirement. Also exercise a conflict or injected write failure after a broad multi-file commit has begun, forcing recovery to restore files already written. Record conflict detection, rollback and cleanup phases independently, and prove that files changed by the external actor are neither overwritten nor reverted by server recovery.
+
+Measurements must use disposable checkouts at pinned commits. After successful and deliberately interrupted scenarios, verify file contents, transaction state, recovery manifests and artifacts, coordination data, lock state, Host shutdown and repository reproducibility. Do not optimise or weaken durability guarantees until phase evidence identifies a material cost that scales with the commit size.
+
+The permanent runner now has a dedicated `commit` command. Every warm-up and measured iteration uses a fresh Host, starts and previews a transaction, performs the real durable commit, records changed paths and byte volume, closes the Workspace and Host, restores only the recorded repository paths and removes coordination files created by that iteration. The pinned checkout, Host shutdown and recovery state are validated after restoration. Optional tracing starts immediately before `transaction-commit`, so a broad Roslyn rename cannot consume the diagnostic window before the commit begins.
+
+The first Serilog attempt exposed a functional dependency: identical physical source files appear in several Roslyn projects for a multi-target build, and the commit planner rejected those identical projections as duplicate targets. The planner now coalesces only duplicates with the same operation and intended bytes into one durable entry. Conflicting content or operations for one canonical target remain rejected, with focused planner coverage.
+
+The native-Windows Serilog commit then exposed a second linked-document case that WSL could not exercise. Serilog adds `net48`, `net471` and `net462` target-framework projects only on Windows, and their conditional-compilation views produced compatible but non-identical rename edits for the same physical test file. Mutation staging now reconciles linked source documents before validation, preview and revision storage: identical edits are deduplicated, non-overlapping edits are combined and propagated to every linked Roslyn document, and overlapping edits return `LinkedDocumentConflict` rather than allowing the commit planner to choose one projection. Focused linked-document and staging tests cover those outcomes. The confirming native-Windows run committed the same 27 physical files across three stable measured iterations and restored the pinned checkout and state after each one. Evidence: `artifacts/performance/results/20260723-091651-serilog-476bd0335bc54d3398382a449df52aac`.
+
+The first native-Windows EF Core commit reached source application but failed on a 269-character same-directory temporary path. Managed file creation supported the path, while the direct `MoveFileExW` call received an unextended path and returned `ERROR_PATH_NOT_FOUND`. The Windows atomic committer now converts local and UNC inputs to absolute extended-length paths before invoking `MoveFileExW`, covering both replacement and durable delete-marker moves without depending on machine-level long-path policy. A focused native-Windows executable validated the production committer with a 267-character temporary path. Commit failures now also retain the operation/path and base operating-system error in the MCP response after successful recovery, rather than discarding the detail needed to diagnose a retryable fault. The confirming full native-Windows EF Core run committed and restored all 948 files cleanly. Evidence: `artifacts/performance/results/20260723-100133-efcore-3b1df8a58aa847ebb1fa521f59ace249`.
+
+Successful native-WSL measurements produced:
+
+| Repository | Changed files | Original bytes | Mutation staging | Durable commit | Runner restoration | Result |
+|---|---:|---:|---:|---:|---:|---|
+| GuardClauses | 1 | 6,291 | 1,580.93 ms median | 224.22 ms median | 22.40 ms median | `artifacts/performance/results/20260723-075558-guardclauses-3ba8b81fdddf4a2786a35bacff4d4296` |
+| Serilog | 27 | 366,488 | 3,911.25 ms median | 768.66 ms median | 50.74 ms median | `artifacts/performance/results/20260723-075634-serilog-f30bec42cd4240cf92cbfdeceb42904f` |
+| EF Core | 948 | 18,100,444 | 33,650.86 ms | 11,725.67 ms | 415.59 ms | `artifacts/performance/results/20260723-075041-efcore-5aef58e506644786a87ab837784a2bcf` |
+
+Equivalent native-Windows measurements produced:
+
+| Repository | Changed files | Mutation staging | Durable commit | Runner restoration | Windows/WSL commit ratio | Result |
+|---|---:|---:|---:|---:|---:|---|
+| GuardClauses | 1 | 1,773.47 ms median | 449.35 ms median | 126.15 ms median | 2.00x | `artifacts/performance/results/20260723-083554-guardclauses-38ca2599a6ee4801b409ed3626476e8c` |
+| Serilog | 27 | 4,422.26 ms median | 1,520.86 ms median | 228.94 ms median | 1.98x | `artifacts/performance/results/20260723-091651-serilog-476bd0335bc54d3398382a449df52aac` |
+| EF Core | 948 | 44,199.04 ms | 21,059.58 ms | 1,662.74 ms | 1.80x | `artifacts/performance/results/20260723-100133-efcore-3b1df8a58aa847ebb1fa521f59ace249` |
+
+The initial traced EF Core commit wrote Host recovery state beneath the retained result directory on `/mnt/c`. It took 54,904.50 ms, of which recovery-plan persistence consumed 43,325.85 ms. Host recovery state is execution data, not a retained result, so the runner now places it in a unique OS-temporary directory and deletes that directory after validation. With native WSL state storage, the equivalent traced commit took 12,141.40 ms: plan persistence was 6,483.79 ms, atomic source application 3,286.18 ms and rebuilding the committed Workspace input manifest 2,050.04 ms. Planning, revalidation, locking and response work together remained below 300 ms. The clean trace is retained at `artifacts/performance/results/20260723-075215-efcore-091a627e99af4706ba229753533c6ea5`.
+
+The native-Windows trace recorded 4,632.51 ms for recovery-plan persistence and 8,962.72 ms for atomic source application. Its configured 20-second collection window ended before the 21,059.58-millisecond commit completed, so the final Workspace-promotion, cleanup and response scopes are absent; the remaining tail is bounded at approximately 6.77 seconds and occurs after source application. This does not affect the main attribution: Windows plan persistence was faster than native WSL, while its 948 durable replacements were 2.73 times slower. The full commit remained a one-time 21.06-second operation for an unusually broad 948-file mutation.
+
+The evidence does not support another query cache or a durability redesign. Small and medium commits complete in approximately 0.45 and 1.52 seconds on Windows. Broad-commit cost scales through required recovery artifacts, per-file durable atomic replacement and input-manifest refresh rather than repeated semantic query work. Bundling artifacts, parallelising durable writes or incrementally rebuilding the input manifest would add recovery and correctness complexity to optimise an extreme one-time case. The current cost is consciously accepted; those changes require new product latency requirements and equivalent recovery-safety evidence rather than being inferred from this baseline.
+
+Both controlled conflict paths now have repeatable evidence:
+
+- GuardClauses pre-write drift returned `TransactionConflicted/RollbackTransaction` in a 7.56 ms median. It created no recovery manifest or artifact, left only the external edit on disk, preserved its exact hash, rolled the conflicted transaction back and closed the Workspace normally. Two measured iterations and the warm-up restored the checkout and coordination state cleanly. Evidence: `artifacts/performance/results/20260723-081931-guardclauses-42f0eb242b89469b929cf6b901992051`.
+- EF Core in-progress conflict waited for the recovery manifest to enter `Applying`, selected the final replacement entry and changed it only while its hash still matched the manifest's original hash. Across two measured iterations, injection occurred after 6,422.24–6,786.89 ms and recovery completed 6,707.38–6,779.59 ms later. Both calls returned `CommitFailed/ResolveRecovery`, retained `RecoveryConflict` with 1,896 artifacts, restored every server-written file and preserved the exact external bytes as the only repository difference. The Host exited normally, then the runner restored the disposable checkout and state. Evidence: `artifacts/performance/results/20260723-082201-efcore-8b7bae005780422abee4818a0e9eeed2`.
+
+Native Windows produced the same safety outcomes. GuardClauses pre-write drift rejected in a 24.81-millisecond median with no recovery artifact and only the exact external edit left before runner restoration. EF Core injection occurred after 4,840.23–4,841.77 ms; recovery then took 16,950.05–19,312.91 ms, returned `CommitFailed/ResolveRecovery`, retained `RecoveryConflict` with 1,896 artifacts, restored every server-written file and preserved the external target. All Hosts exited normally and every pinned checkout and state directory validated cleanly. Evidence: `artifacts/performance/results/20260723-100639-guardclauses-f3443c6f11cf4f61b5ff7cfd240112bd` and `artifacts/performance/results/20260723-101215-efcore-97a2f561cf0f43feb6ada616cf2738ac`.
+
+The recovery tests confirm that the existing safety model works under a late broad-commit conflict on both supported operating-system families. They also reinforce the successful-commit attribution: recovery reads and durably rewrites hundreds of individual backup artifacts, so any future persistence optimisation must be evaluated against both successful and recovery timings and must preserve the externally modified target.
+
+**Dependencies:** investigations 2, 8 and 9, completed. The existing phase instrumentation, retained-memory method and mutation validation evidence should be reused rather than creating a separate measurement model.
+
+**Exit evidence:** clean small and broad commit profiles exist, changed-file and byte counts explain the measured scaling, pre-write external drift rejects safely, an in-progress failure restores only server-written files, success and interruption leave the expected durable state, and any material attributable bottleneck has been remediated or consciously accepted.
+
 ## Working rules
 
 - Change one attributable cost centre at a time and retain before/after evidence from the same environment.

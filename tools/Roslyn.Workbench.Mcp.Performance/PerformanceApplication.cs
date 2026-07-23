@@ -14,6 +14,7 @@ internal static class PerformanceApplication
         Justification = "The manual runner must preserve workload, workspace-close, and Host-disposal failures so cleanup is attempted and every failure is reported together.")]
     public static async Task<int> RunAsync(IReadOnlyList<string> arguments, CancellationToken cancellationToken)
     {
+        string? executionDirectory = null;
         try
         {
             var options = PerformanceOptions.Parse(arguments);
@@ -47,9 +48,46 @@ internal static class PerformanceApplication
 
             var hostPath = ResolveRequiredPath(options.HostPath, "--host");
             var outputDirectory = ResolveOutputDirectory(options.OutputDirectory, frameworkRoot, repository.Id);
+            executionDirectory = CreateExecutionDirectory(repository.Id);
             var scenarios = ResolveScenarios(repository, options.Scenario, options.Command);
             var environment = RunEnvironmentInfo.Capture(hostPath);
-            var stateDirectory = Path.Combine(outputDirectory, "state");
+
+            if (options.Command == PerformanceCommand.Commit)
+            {
+                await MeasureDurableCommitsAsync(
+                    options,
+                    repository,
+                    scenarios,
+                    hostPath,
+                    repositoryRoot,
+                    environment,
+                    frameworkRoot,
+                    executionDirectory,
+                    outputDirectory,
+                    cancellationToken);
+
+                await Console.Out.WriteLineAsync($"Results: {outputDirectory}");
+                return 0;
+            }
+
+            if (options.Command == PerformanceCommand.Conflict)
+            {
+                await MeasureConflictsAsync(
+                    options,
+                    repository,
+                    scenarios,
+                    hostPath,
+                    repositoryRoot,
+                    environment,
+                    executionDirectory,
+                    outputDirectory,
+                    cancellationToken);
+
+                await Console.Out.WriteLineAsync($"Results: {outputDirectory}");
+                return 0;
+            }
+
+            var stateDirectory = Path.Combine(executionDirectory, "state");
             var workspacePath = Path.Combine(repositoryRoot, repository.WorkspacePath);
             var initialWorkspaceStateFiles = RunStateValidator.CaptureWorkspaceStateFiles(repositoryRoot);
 
@@ -153,6 +191,10 @@ internal static class PerformanceApplication
             await Console.Error.WriteLineAsync(exception.Message);
             return 1;
         }
+        finally
+        {
+            DeleteExecutionDirectory(executionDirectory);
+        }
     }
 
     private static async Task MeasureAsync(
@@ -228,6 +270,623 @@ internal static class PerformanceApplication
         };
 
         await ResultWriter.WriteCancellationAsync(outputDirectory, result, cancellationToken);
+    }
+
+    private static async Task MeasureDurableCommitsAsync(
+        PerformanceOptions options,
+        RepositoryDefinition repository,
+        IReadOnlyList<ScenarioDefinition> scenarios,
+        string hostPath,
+        string repositoryRoot,
+        RunEnvironmentInfo environment,
+        string frameworkRoot,
+        string executionDirectory,
+        string outputDirectory,
+        CancellationToken cancellationToken)
+    {
+        if (scenarios.Count != 1)
+        {
+            throw new ArgumentException("Durable commit measurement requires exactly one mutation scenario.");
+        }
+
+        var scenario = scenarios[0];
+        var workspacePath = Path.Combine(repositoryRoot, repository.WorkspacePath);
+        var restorer = await RepositoryRestorer.CreateAsync(
+            repositoryRoot,
+            repository.Commit,
+            cancellationToken);
+        var initialWorkspaceStateFiles = RunStateValidator.CaptureWorkspaceStateFiles(repositoryRoot);
+        DiagnosticCollector? collector = null;
+        if (options.CaptureTrace)
+        {
+            await DiagnosticCollector.EnsureToolsRestoredAsync(frameworkRoot, cancellationToken);
+            collector = new DiagnosticCollector(frameworkRoot);
+        }
+
+        var startedAtUtc = DateTimeOffset.UtcNow;
+
+        for (var warmup = 1; warmup <= options.Warmups; warmup++)
+        {
+            await Console.Out.WriteLineAsync(
+                $"Warming durable commit {repository.Id}/{scenario.Id} ({warmup}/{options.Warmups})");
+            _ = await RunDurableCommitIterationAsync(
+                repository,
+                scenario,
+                hostPath,
+                repositoryRoot,
+                workspacePath,
+                Path.Combine(executionDirectory, "state", $"warmup-{warmup}"),
+                initialWorkspaceStateFiles,
+                restorer,
+                iteration: 0,
+                collector: null,
+                diagnosticArtifact: null,
+                options.ProfileDuration,
+                cancellationToken);
+        }
+
+        var measurements = new List<DurableCommitMeasurement>();
+        for (var iteration = 1; iteration <= options.Iterations; iteration++)
+        {
+            await Console.Out.WriteLineAsync(
+                $"Measuring durable commit {repository.Id}/{scenario.Id} ({iteration}/{options.Iterations})");
+            var measurement = await RunDurableCommitIterationAsync(
+                repository,
+                scenario,
+                hostPath,
+                repositoryRoot,
+                workspacePath,
+                Path.Combine(executionDirectory, "state", $"iteration-{iteration}"),
+                initialWorkspaceStateFiles,
+                restorer,
+                iteration,
+                collector,
+                collector is null
+                    ? null
+                    : Path.Combine(outputDirectory, $"commit-iteration-{iteration}.nettrace"),
+                options.ProfileDuration,
+                cancellationToken);
+
+            measurements.Add(measurement);
+        }
+
+        var result = new DurableCommitRunResult
+        {
+            Repository = repository.Id,
+            RepositorySize = repository.Size,
+            Commit = repository.Commit,
+            Scenario = scenario.Id,
+            MutationTool = scenario.Tool,
+            StartedAtUtc = startedAtUtc,
+            Environment = environment,
+            WarmupCount = options.Warmups,
+            Measurements = measurements,
+        };
+
+        await ResultWriter.WriteDurableCommitAsync(outputDirectory, result, cancellationToken);
+    }
+
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "The manual runner must preserve workload, workspace-close, Host-disposal, restoration, and validation failures so every cleanup step is attempted and all failures are reported together.")]
+    private static async Task<DurableCommitMeasurement> RunDurableCommitIterationAsync(
+        RepositoryDefinition repository,
+        ScenarioDefinition scenario,
+        string hostPath,
+        string repositoryRoot,
+        string workspacePath,
+        string stateDirectory,
+        IReadOnlySet<string> initialWorkspaceStateFiles,
+        RepositoryRestorer restorer,
+        int iteration,
+        DiagnosticCollector? collector,
+        string? diagnosticArtifact,
+        TimeSpan profileDuration,
+        CancellationToken cancellationToken)
+    {
+        await using var host = await PerformanceHost.StartAsync(
+            hostPath,
+            repositoryRoot,
+            stateDirectory,
+            cancellationToken);
+        string? workspaceId = null;
+        DurableCommitRunner? runner = null;
+        DurableCommitExecution? execution = null;
+        ExceptionDispatchInfo? runFailure = null;
+
+        try
+        {
+            workspaceId = await OpenWorkspaceAsync(host, workspacePath, repositoryRoot, cancellationToken);
+            runner = new DurableCommitRunner(host, workspaceId, repositoryRoot);
+            if (collector is null || diagnosticArtifact is null)
+            {
+                execution = await runner.ExecuteAsync(scenario, cancellationToken);
+            }
+            else
+            {
+                var preparation = await runner.PrepareAsync(scenario, cancellationToken);
+                Directory.CreateDirectory(Path.GetDirectoryName(diagnosticArtifact)!);
+                using var diagnosticProcess = collector.StartDurationProfile(
+                    ProfileKind.Trace,
+                    host.ProcessId,
+                    profileDuration,
+                    diagnosticArtifact);
+                var standardOutput = diagnosticProcess.StandardOutput.ReadToEndAsync(cancellationToken);
+                var standardError = diagnosticProcess.StandardError.ReadToEndAsync(cancellationToken);
+
+                try
+                {
+                    await DiagnosticCollector.WaitForCollectionStartAsync(
+                        diagnosticProcess,
+                        cancellationToken);
+
+                    execution = await runner.CommitAsync(preparation, cancellationToken);
+                    await diagnosticProcess.WaitForExitAsync(cancellationToken);
+                    if (diagnosticProcess.ExitCode != 0)
+                    {
+                        throw new InvalidOperationException(
+                            $"Diagnostic collection failed with exit code {diagnosticProcess.ExitCode}.{Environment.NewLine}{await standardError}{await standardOutput}");
+                    }
+                }
+                finally
+                {
+                    if (!diagnosticProcess.HasExited)
+                    {
+                        diagnosticProcess.Kill(entireProcessTree: true);
+                        await diagnosticProcess.WaitForExitAsync(CancellationToken.None);
+                    }
+                }
+            }
+        }
+        catch (Exception exception)
+        {
+            runFailure = ExceptionDispatchInfo.Capture(exception);
+        }
+        finally
+        {
+            if (runFailure is not null && runner is not null)
+            {
+                try
+                {
+                    await runner.RollbackAsync(CancellationToken.None);
+                }
+                catch (Exception exception)
+                {
+                    runFailure = CombineFailures(runFailure, exception);
+                }
+            }
+
+            if (workspaceId is not null)
+            {
+                try
+                {
+                    await CloseWorkspaceAsync(host, workspaceId);
+                }
+                catch (Exception exception)
+                {
+                    runFailure = CombineFailures(runFailure, exception);
+                }
+            }
+
+            try
+            {
+                await host.DisposeAsync();
+            }
+            catch (Exception exception)
+            {
+                runFailure = CombineFailures(runFailure, exception);
+            }
+        }
+
+        RepositoryChangeSet? changes = null;
+        double restorationMilliseconds = 0;
+        try
+        {
+            changes = await restorer.CaptureChangesAsync(CancellationToken.None);
+            restorationMilliseconds = await restorer.RestoreAsync(changes, CancellationToken.None);
+            RunStateValidator.RestoreWorkspaceStateFiles(
+                repositoryRoot,
+                initialWorkspaceStateFiles);
+        }
+        catch (Exception exception)
+        {
+            runFailure = CombineFailures(runFailure, exception);
+        }
+
+        var shutdown = host.GetShutdownResult();
+        var validation = await RunStateValidator.ValidateAsync(
+            repository,
+            repositoryRoot,
+            stateDirectory,
+            initialWorkspaceStateFiles,
+            shutdown,
+            CancellationToken.None);
+        if (!validation.Succeeded)
+        {
+            runFailure = CombineFailures(
+                runFailure,
+                new InvalidOperationException(
+                    $"Durable commit validation failed: {string.Join(" ", validation.Issues)}"));
+        }
+
+        if (execution is not null && execution.PreviewDocumentCount == 0)
+        {
+            runFailure = CombineFailures(
+                runFailure,
+                new InvalidOperationException(
+                    "transaction-preview reported no changed documents for the staged mutation."));
+        }
+
+        if (execution is not null
+            && changes is not null
+            && changes.Files.Count == 0)
+        {
+            runFailure = CombineFailures(
+                runFailure,
+                new InvalidOperationException(
+                    "transaction-commit reported success without changing any repository files."));
+        }
+
+        runFailure?.Throw();
+
+        var completedExecution = execution
+            ?? throw new InvalidOperationException("Durable commit execution did not produce a measurement.");
+        var completedChanges = changes
+            ?? throw new InvalidOperationException("Durable commit execution did not produce a repository change set.");
+
+        return new DurableCommitMeasurement
+        {
+            Iteration = iteration,
+            StagingMilliseconds = completedExecution.StagingMilliseconds,
+            PreviewMilliseconds = completedExecution.PreviewMilliseconds,
+            CommitMilliseconds = completedExecution.CommitMilliseconds,
+            CommitHostCpuMilliseconds = completedExecution.CommitHostCpuMilliseconds,
+            RestorationMilliseconds = restorationMilliseconds,
+            WorkingSetBytes = completedExecution.WorkingSetBytes,
+            PeakWorkingSetBytes = completedExecution.PeakWorkingSetBytes,
+            CommitResponseBytes = completedExecution.CommitResponseBytes,
+            CommitResponseSha256 = completedExecution.CommitResponseSha256,
+            PreviewDocumentCount = completedExecution.PreviewDocumentCount,
+            Files = completedChanges.Files,
+            HostShutdown = shutdown,
+            Validation = validation,
+            DiagnosticArtifact = diagnosticArtifact,
+            PhaseSummary = diagnosticArtifact is not null && File.Exists(diagnosticArtifact)
+                ? PhaseTraceAnalyzer.Analyze(diagnosticArtifact)
+                : [],
+        };
+    }
+
+    private static async Task MeasureConflictsAsync(
+        PerformanceOptions options,
+        RepositoryDefinition repository,
+        IReadOnlyList<ScenarioDefinition> scenarios,
+        string hostPath,
+        string repositoryRoot,
+        RunEnvironmentInfo environment,
+        string executionDirectory,
+        string outputDirectory,
+        CancellationToken cancellationToken)
+    {
+        if (scenarios.Count != 1)
+        {
+            throw new ArgumentException(
+                "Conflict measurement requires exactly one conflict scenario.");
+        }
+
+        var scenario = scenarios[0];
+        var conflict = scenario.Conflict
+            ?? throw new ArgumentException(
+                $"Scenario '{scenario.Id}' does not define a controlled conflict.");
+        var workspacePath = Path.Combine(repositoryRoot, repository.WorkspacePath);
+        var restorer = await RepositoryRestorer.CreateAsync(
+            repositoryRoot,
+            repository.Commit,
+            cancellationToken);
+        var initialWorkspaceStateFiles = RunStateValidator.CaptureWorkspaceStateFiles(
+            repositoryRoot);
+        var startedAtUtc = DateTimeOffset.UtcNow;
+
+        for (var warmup = 1; warmup <= options.Warmups; warmup++)
+        {
+            await Console.Out.WriteLineAsync(
+                $"Warming conflict {repository.Id}/{scenario.Id} ({warmup}/{options.Warmups})");
+            _ = await RunConflictIterationAsync(
+                repository,
+                scenario,
+                hostPath,
+                repositoryRoot,
+                workspacePath,
+                Path.Combine(executionDirectory, "state", $"warmup-{warmup}"),
+                initialWorkspaceStateFiles,
+                restorer,
+                iteration: 0,
+                cancellationToken);
+        }
+
+        var measurements = new List<ConflictMeasurement>();
+        for (var iteration = 1; iteration <= options.Iterations; iteration++)
+        {
+            await Console.Out.WriteLineAsync(
+                $"Measuring conflict {repository.Id}/{scenario.Id} ({iteration}/{options.Iterations})");
+            var measurement = await RunConflictIterationAsync(
+                repository,
+                scenario,
+                hostPath,
+                repositoryRoot,
+                workspacePath,
+                Path.Combine(executionDirectory, "state", $"iteration-{iteration}"),
+                initialWorkspaceStateFiles,
+                restorer,
+                iteration,
+                cancellationToken);
+
+            measurements.Add(measurement);
+        }
+
+        var result = new ConflictRunResult
+        {
+            Repository = repository.Id,
+            RepositorySize = repository.Size,
+            Commit = repository.Commit,
+            Scenario = scenario.Id,
+            Mode = conflict.Mode,
+            StartedAtUtc = startedAtUtc,
+            Environment = environment,
+            WarmupCount = options.Warmups,
+            Measurements = measurements,
+        };
+
+        await ResultWriter.WriteConflictAsync(
+            outputDirectory,
+            result,
+            cancellationToken);
+    }
+
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "The manual runner must preserve conflict, shutdown, evidence, restoration, and validation failures so every cleanup step is attempted and all failures are reported together.")]
+    private static async Task<ConflictMeasurement> RunConflictIterationAsync(
+        RepositoryDefinition repository,
+        ScenarioDefinition scenario,
+        string hostPath,
+        string repositoryRoot,
+        string workspacePath,
+        string stateDirectory,
+        IReadOnlySet<string> initialWorkspaceStateFiles,
+        RepositoryRestorer restorer,
+        int iteration,
+        CancellationToken cancellationToken)
+    {
+        var conflict = scenario.Conflict
+            ?? throw new InvalidOperationException(
+                $"Scenario '{scenario.Id}' does not define a controlled conflict.");
+        await using var host = await PerformanceHost.StartAsync(
+            hostPath,
+            repositoryRoot,
+            stateDirectory,
+            cancellationToken);
+        string? workspaceId = null;
+        ConflictExecution? execution = null;
+        ExceptionDispatchInfo? runFailure = null;
+
+        try
+        {
+            workspaceId = await OpenWorkspaceAsync(
+                host,
+                workspacePath,
+                repositoryRoot,
+                cancellationToken);
+            var durableRunner = new DurableCommitRunner(
+                host,
+                workspaceId,
+                repositoryRoot);
+            var preparation = await durableRunner.PrepareAsync(
+                scenario,
+                cancellationToken);
+            var conflictRunner = new ConflictRunner(
+                host,
+                workspaceId,
+                repositoryRoot,
+                stateDirectory);
+            execution = await conflictRunner.ExecuteAsync(
+                scenario,
+                preparation,
+                cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            runFailure = ExceptionDispatchInfo.Capture(exception);
+        }
+        finally
+        {
+            if (workspaceId is not null
+                && conflict.Mode == ConflictMode.PreWriteDrift)
+            {
+                try
+                {
+                    await CloseWorkspaceAsync(host, workspaceId);
+                }
+                catch (Exception exception)
+                {
+                    runFailure = CombineFailures(runFailure, exception);
+                }
+            }
+
+            try
+            {
+                await host.DisposeAsync();
+            }
+            catch (Exception exception)
+            {
+                runFailure = CombineFailures(runFailure, exception);
+            }
+        }
+
+        RecoveryEvidence? recoveryEvidence = null;
+        RepositoryChangeSet? changes = null;
+        double restorationMilliseconds = 0;
+        try
+        {
+            recoveryEvidence = await RecoveryEvidenceReader.ReadAsync(
+                stateDirectory,
+                CancellationToken.None);
+            changes = await restorer.CaptureChangesAsync(CancellationToken.None);
+            ValidateConflictEvidence(
+                conflict.Mode,
+                execution,
+                changes,
+                recoveryEvidence,
+                repositoryRoot);
+        }
+        catch (Exception exception)
+        {
+            runFailure = CombineFailures(runFailure, exception);
+        }
+
+        try
+        {
+            changes ??= await restorer.CaptureChangesAsync(CancellationToken.None);
+            restorationMilliseconds = await restorer.RestoreAsync(
+                changes,
+                CancellationToken.None);
+            ClearDirectory(stateDirectory);
+            RunStateValidator.RestoreWorkspaceStateFiles(
+                repositoryRoot,
+                initialWorkspaceStateFiles);
+        }
+        catch (Exception exception)
+        {
+            runFailure = CombineFailures(runFailure, exception);
+        }
+
+        var shutdown = host.GetShutdownResult();
+        var validation = await RunStateValidator.ValidateAsync(
+            repository,
+            repositoryRoot,
+            stateDirectory,
+            initialWorkspaceStateFiles,
+            shutdown,
+            CancellationToken.None);
+        if (!validation.Succeeded)
+        {
+            runFailure = CombineFailures(
+                runFailure,
+                new InvalidOperationException(
+                    $"Conflict validation failed: {string.Join(" ", validation.Issues)}"));
+        }
+
+        runFailure?.Throw();
+        var completedExecution = execution
+            ?? throw new InvalidOperationException(
+                "Conflict execution did not produce a measurement.");
+        var completedChanges = changes
+            ?? throw new InvalidOperationException(
+                "Conflict execution did not produce a repository change set.");
+        var completedRecoveryEvidence = recoveryEvidence
+            ?? throw new InvalidOperationException(
+                "Conflict execution did not produce recovery evidence.");
+
+        return new ConflictMeasurement
+        {
+            Iteration = iteration,
+            StagingMilliseconds = completedExecution.StagingMilliseconds,
+            PreviewMilliseconds = completedExecution.PreviewMilliseconds,
+            CommitMilliseconds = completedExecution.CommitMilliseconds,
+            ConflictDetectionMilliseconds = completedExecution.ConflictDetectionMilliseconds,
+            RecoveryMilliseconds = completedExecution.RecoveryMilliseconds,
+            RestorationMilliseconds = restorationMilliseconds,
+            ErrorCode = completedExecution.ErrorCode,
+            RequiredAction = completedExecution.RequiredAction,
+            ExternalMutation = completedExecution.ExternalMutation,
+            FilesBeforeRestoration = completedChanges.Files,
+            RecoveryState = completedRecoveryEvidence.State,
+            RecoveryArtifactCount = completedRecoveryEvidence.ArtifactCount,
+            HostShutdown = shutdown,
+            Validation = validation,
+        };
+    }
+
+    private static void ValidateConflictEvidence(
+        ConflictMode mode,
+        ConflictExecution? execution,
+        RepositoryChangeSet changes,
+        RecoveryEvidence recoveryEvidence,
+        string repositoryRoot)
+    {
+        if (execution is null)
+        {
+            return;
+        }
+
+        var expectedPath = Path.GetFullPath(execution.ExternalMutation.Path);
+        var actualPath = changes.Files.Count == 1
+            ? Path.GetFullPath(Path.Combine(repositoryRoot, changes.Files[0].Path))
+            : null;
+        var pathComparison = OperatingSystem.IsWindows()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+
+        if (changes.Files.Count != 1
+            || !string.Equals(
+                actualPath,
+                expectedPath,
+                pathComparison))
+        {
+            var changedPaths = changes.Files.Count == 0
+                ? "<none>"
+                : string.Join(", ", changes.Files.Select(static file => file.Path));
+
+            throw new InvalidOperationException(
+                $"Conflict recovery expected only '{expectedPath}' to remain modified but observed: {changedPaths}.");
+        }
+
+        var actualSha256 = HashFile(execution.ExternalMutation.Path);
+        if (!string.Equals(
+            actualSha256,
+            execution.ExternalMutation.ExternalSha256,
+            StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Conflict recovery overwrote or reverted the externally changed file.");
+        }
+
+        if (mode == ConflictMode.PreWriteDrift
+            && (recoveryEvidence.State is not null
+                || recoveryEvidence.ArtifactCount != 0))
+        {
+            throw new InvalidOperationException(
+                "Pre-write drift created recovery state before any durable write.");
+        }
+
+        if (mode == ConflictMode.DuringApplication
+            && (!string.Equals(
+                recoveryEvidence.State,
+                "RecoveryConflict",
+                StringComparison.Ordinal)
+                || recoveryEvidence.ArtifactCount == 0))
+        {
+            throw new InvalidOperationException(
+                "In-progress conflict did not retain the expected RecoveryConflict evidence.");
+        }
+    }
+
+    private static string HashFile(string path)
+    {
+        using var stream = File.OpenRead(path);
+        return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(stream));
+    }
+
+    private static void ClearDirectory(string path)
+    {
+        if (Directory.Exists(path))
+        {
+            Directory.Delete(path, recursive: true);
+        }
+
+        Directory.CreateDirectory(path);
     }
 
     private static async Task ProfileAsync(
@@ -424,12 +1083,16 @@ internal static class PerformanceApplication
 
         if (string.Equals(scenarioId, _allScenarios, StringComparison.OrdinalIgnoreCase))
         {
-            if (command == PerformanceCommand.Profile)
+            if (command is PerformanceCommand.Profile
+                or PerformanceCommand.Commit
+                or PerformanceCommand.Conflict)
             {
-                throw new ArgumentException("Profiling requires one scenario; '--scenario all' is not supported.");
+                throw new ArgumentException($"{command} requires one scenario; '--scenario all' is not supported.");
             }
 
-            return repository.Scenarios;
+            return repository.Scenarios
+                .Where(static scenario => !scenario.CommitOnly)
+                .ToArray();
         }
 
         var requestedScenarioIds = scenarioId.Split(
@@ -483,6 +1146,37 @@ internal static class PerformanceApplication
             "performance",
             "results",
             $"{DateTime.UtcNow:yyyyMMdd-HHmmss}-{repositoryId}-{Guid.NewGuid():N}");
+    }
+
+    private static string CreateExecutionDirectory(string repositoryId)
+    {
+        var path = Path.Combine(
+            Path.GetTempPath(),
+            "roslyn-workbench-mcp",
+            "performance",
+            "execution",
+            $"{repositoryId}-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(path);
+        return path;
+    }
+
+    private static void DeleteExecutionDirectory(string? path)
+    {
+        if (path is null || !Directory.Exists(path))
+        {
+            return;
+        }
+
+        try
+        {
+            Directory.Delete(path, recursive: true);
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
     }
 
     private static string ResolveFrameworkRoot(string? value)
@@ -543,6 +1237,8 @@ internal static class PerformanceApplication
               list
               prepare --repository <id> [--cache <path>] [--framework-root <path>]
               measure --repository <id> --scenario <id|all> --host <path> [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
+              commit --repository <id> --scenario <mutation-id> --host <path> [--iterations 5] [--warmups 1] [--capture-trace] [--duration 00:00:30] [--output <path>] [--framework-root <path>] [--skip-prepare]
+              conflict --repository <id> --scenario <conflict-id> --host <path> [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
               cancel --repository <id> --scenario <id> --host <path> [--cancel-after 00:00:00.050] [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
               profile --repository <id> --scenario <id[,id...]> --host <path> [--profile trace|counters|gcdump] [--duration 00:00:30] [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
 

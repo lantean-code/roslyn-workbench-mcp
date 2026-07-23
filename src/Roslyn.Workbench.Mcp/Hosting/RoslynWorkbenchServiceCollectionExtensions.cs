@@ -80,6 +80,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IWorkspaceStateTransitions, WorkspaceStateTransitions>();
         services.AddSingleton<ISnapshotGuard, SnapshotGuard>();
         services.AddSingleton<IWorkspaceMutationCandidateValidator, WorkspaceMutationCandidateValidator>();
+        services.AddSingleton<ILinkedDocumentChangeMerger, LinkedDocumentChangeMerger>();
         services.AddSingleton<IMutationStagingService, MutationStagingService>();
         services.AddSingleton<IWorkspaceDiffBuilder, WorkspaceDiffService>();
         services.AddSingleton<ITransactionCommitService, TransactionCommitService>();

@@ -5,6 +5,7 @@ namespace Roslyn.Workbench.Mcp.Performance;
 internal sealed class DiagnosticCollector
 {
     private const string _performanceProvider = "Roslyn-Workbench-Mcp:0xFFFFFFFFFFFFFFFF:4";
+    private static readonly TimeSpan _collectionStartupDelay = TimeSpan.FromSeconds(1);
     private readonly string _frameworkRoot;
 
     public DiagnosticCollector(string frameworkRoot)
@@ -27,6 +28,18 @@ internal sealed class DiagnosticCollector
         };
 
         return ExternalCommand.Start("dotnet", arguments, _frameworkRoot);
+    }
+
+    public static async Task WaitForCollectionStartAsync(
+        Process diagnosticProcess,
+        CancellationToken cancellationToken)
+    {
+        await Task.Delay(_collectionStartupDelay, cancellationToken);
+        if (diagnosticProcess.HasExited)
+        {
+            throw new InvalidOperationException(
+                $"The diagnostic collector exited before collection started with code {diagnosticProcess.ExitCode}.");
+        }
     }
 
     public async Task CollectGcDumpAsync(

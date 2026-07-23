@@ -16,5 +16,9 @@ internal sealed record ScenarioDefinition
     public IReadOnlyList<ToolCallDefinition> Setup { get; init; } = [];
 
     public IReadOnlyList<ToolCallDefinition> Cleanup { get; init; } = [];
+
+    public bool CommitOnly { get; init; }
+
+    public ConflictDefinition? Conflict { get; init; }
 }
 #pragma warning restore CA1812

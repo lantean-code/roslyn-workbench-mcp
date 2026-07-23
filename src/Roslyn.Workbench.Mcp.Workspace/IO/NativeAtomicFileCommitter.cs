@@ -7,6 +7,9 @@ namespace Roslyn.Workbench.Mcp.Workspace.IO;
 
 internal sealed partial class NativeAtomicFileCommitter : IAtomicFileCommitter
 {
+    private const string _extendedPathPrefix = @"\\?\";
+    private const string _extendedUncPathPrefix = @"\\?\UNC\";
+    private const string _uncPathPrefix = @"\\";
     private const uint _moveFileReplaceExisting = 0x1;
     private const uint _moveFileWriteThrough = 0x8;
 
@@ -48,10 +51,26 @@ internal sealed partial class NativeAtomicFileCommitter : IAtomicFileCommitter
 
     private static void MoveWindows(string sourcePath, string destinationPath, uint flags, string failureMessage)
     {
-        if (MoveFileEx(sourcePath, destinationPath, flags) == 0)
+        var extendedSourcePath = GetExtendedWindowsPath(sourcePath);
+        var extendedDestinationPath = GetExtendedWindowsPath(destinationPath);
+
+        if (MoveFileEx(extendedSourcePath, extendedDestinationPath, flags) == 0)
         {
             throw new IOException(failureMessage, new Win32Exception(Marshal.GetLastPInvokeError()));
         }
+    }
+
+    private static string GetExtendedWindowsPath(string path)
+    {
+        if (path.StartsWith(_extendedPathPrefix, StringComparison.Ordinal))
+        {
+            return path;
+        }
+
+        var fullPath = Path.GetFullPath(path);
+        return fullPath.StartsWith(_uncPathPrefix, StringComparison.Ordinal)
+            ? _extendedUncPathPrefix + fullPath[_uncPathPrefix.Length..]
+            : _extendedPathPrefix + fullPath;
     }
 
     private static void MoveUnix(string sourcePath, string destinationPath, bool overwrite)

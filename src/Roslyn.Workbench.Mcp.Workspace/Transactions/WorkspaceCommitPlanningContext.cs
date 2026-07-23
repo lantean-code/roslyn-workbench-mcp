@@ -12,7 +12,7 @@ internal sealed class WorkspaceCommitPlanningContext
 
     public HashSet<string> BaselineDocumentPaths { get; }
 
-    public HashSet<string> Targets { get; }
+    public Dictionary<string, WorkspaceCommitEntry> EntriesByTarget { get; }
 
     public List<WorkspaceCommitEntry> Entries { get; } = [];
 
@@ -33,7 +33,7 @@ internal sealed class WorkspaceCommitPlanningContext
         WorkspaceRoot = workspaceRoot;
         ProjectRoots = projectRoots;
         BaselineDocumentPaths = baselineDocumentPaths;
-        Targets = new HashSet<string>(pathComparer);
+        EntriesByTarget = new Dictionary<string, WorkspaceCommitEntry>(pathComparer);
         CreatedDirectories = new HashSet<string>(pathComparer);
     }
 }

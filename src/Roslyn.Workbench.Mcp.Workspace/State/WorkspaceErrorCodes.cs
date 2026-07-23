@@ -15,5 +15,6 @@ internal static class WorkspaceErrorCodes
     internal const string TransactionOwner = "TransactionOwnedByWorkspace";
     internal const string TransactionHistoryUnavailable = "TransactionHistoryUnavailable";
     internal const string TransactionCapacity = "RevisionCapacityReached";
+    internal const string LinkedDocumentConflict = "LinkedDocumentConflict";
     internal const string SnapshotMismatch = "SnapshotMismatch";
 }

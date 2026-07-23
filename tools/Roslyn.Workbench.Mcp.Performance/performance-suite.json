@@ -231,6 +231,28 @@
             "newName": "TestEnum",
             "renameFile": false
           }
+        },
+        {
+          "id": "rename-symbol-pre-write-drift",
+          "description": "Injects external drift after staging and proves commit rejection occurs before recovery persistence.",
+          "tool": "rename-symbol",
+          "commitOnly": true,
+          "conflict": {
+            "mode": "PreWriteDrift",
+            "externalChangePath": "test/GuardClauses.UnitTests/GuardAgainstOutOfRangeForEnum.cs"
+          },
+          "setup": [
+            {
+              "tool": "transaction-start",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            }
+          ],
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "symbol": { "documentationCommentId": "T:GuardClauses.UnitTests.TestEnum" },
+            "newName": "PerformanceTestEnum",
+            "renameFile": false
+          }
         }
       ]
     },
@@ -385,6 +407,36 @@
             "granularity": "Type",
             "nodesLimit": 200,
             "edgesLimit": 400
+          }
+        },
+        {
+          "id": "rename-ilogger-durable",
+          "description": "Stages a medium solution-wide ILogger rename for durable commit measurement.",
+          "tool": "rename-symbol",
+          "commitOnly": true,
+          "setup": [
+            {
+              "tool": "transaction-start",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            }
+          ],
+          "cleanup": [
+            {
+              "tool": "transaction-rollback",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            }
+          ],
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "symbol": {
+              "project": {
+                "path": "src/Serilog/Serilog.csproj",
+                "targetFramework": "net10.0"
+              },
+              "documentationCommentId": "T:Serilog.ILogger"
+            },
+            "newName": "IPerformanceLogger",
+            "renameFile": false
           }
         }
       ]
@@ -652,6 +704,63 @@
             "granularity": "Type",
             "nodesLimit": 500,
             "edgesLimit": 1000
+          }
+        },
+        {
+          "id": "rename-dbcontext-durable",
+          "description": "Stages a broad solution-wide DbContext rename for durable commit measurement.",
+          "tool": "rename-symbol",
+          "commitOnly": true,
+          "setup": [
+            {
+              "tool": "transaction-start",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            }
+          ],
+          "cleanup": [
+            {
+              "tool": "transaction-rollback",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            }
+          ],
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "symbol": {
+              "project": {
+                "path": "src/EFCore/EFCore.csproj",
+                "targetFramework": "net10.0"
+              },
+              "documentationCommentId": "T:Microsoft.EntityFrameworkCore.DbContext"
+            },
+            "newName": "PerformanceDbContext",
+            "renameFile": false
+          }
+        },
+        {
+          "id": "rename-dbcontext-application-conflict",
+          "description": "Changes a late commit target after application begins and measures conflict recovery.",
+          "tool": "rename-symbol",
+          "commitOnly": true,
+          "conflict": {
+            "mode": "DuringApplication"
+          },
+          "setup": [
+            {
+              "tool": "transaction-start",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            }
+          ],
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "symbol": {
+              "project": {
+                "path": "src/EFCore/EFCore.csproj",
+                "targetFramework": "net10.0"
+              },
+              "documentationCommentId": "T:Microsoft.EntityFrameworkCore.DbContext"
+            },
+            "newName": "PerformanceDbContext",
+            "renameFile": false
           }
         }
       ]

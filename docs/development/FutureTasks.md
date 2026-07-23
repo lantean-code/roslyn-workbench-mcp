@@ -38,18 +38,6 @@ Complete the high-priority production batches before recording performance basel
 
 Source: [Analyzer Inventory.md](Analyzer%20Inventory.md)
 
-### Investigate MCP cancellation propagation and server-side lease release
-
-**Status:** Complete
-
-The original measurements cancelled the pinned C# SDK client's local `CallToolAsync` wait, but a controlled in-memory protocol test established that no `notifications/cancelled` message reached the server. Those timings therefore did not measure server-side cancellation. The permanent runner now starts cancellation scenarios with a known JSON-RPC request ID and explicitly sends and awaits the standard cancellation notification before checking Workspace lease recovery.
-
-A protocol-level integration test proves that the server maps `notifications/cancelled` to the active handler token. EF Core evidence then confirmed that the same token reaches both external-change validation and `SymbolFinder.FindReferencesAsync`. The investigation exposed one server-owned leak: cancellation after shared or exclusive Workspace acquisition but before the execution-context lease was constructed abandoned the raw operation lease. Query and mutation context creation now dispose the acquired lease when validation or context construction throws, with focused regression coverage for both paths.
-
-The confirming EF Core run cancelled all five warmed reference searches. Median client-visible cancellation latency was 0.20 milliseconds, and exclusive-lease recovery measured a 14.51 millisecond median and 45.01 millisecond P95. Repository and state validation passed. No residual non-cancellable Roslyn stage was observed, so no further server-side cancellation optimisation is required. Evidence: `artifacts/performance/results/20260722-190812-efcore-546a761dafd44caaa3a8c0c3a79ed14d`.
-
-Source: [Performance Investigation Tracker — 2026-07-20](PerformanceInvestigationTracker-2026-07-20.md)
-
 ## P2 — Release Support and Plugin Ecosystem
 
 ### Add a plugin-authoring analyser

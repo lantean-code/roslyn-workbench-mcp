@@ -20,6 +20,46 @@ internal static class RunStateValidator
             .ToHashSet(PathComparer);
     }
 
+    public static void RestoreWorkspaceStateFiles(
+        string repositoryRoot,
+        IReadOnlySet<string> initialWorkspaceStateFiles)
+    {
+        var root = Path.Combine(repositoryRoot, ".vs", "roslyn-workbench-mcp");
+        if (!Directory.Exists(root))
+        {
+            return;
+        }
+
+        var currentFiles = Directory
+            .EnumerateFiles(root, "*", SearchOption.AllDirectories)
+            .Select(Path.GetFullPath)
+            .ToArray();
+        foreach (var path in currentFiles)
+        {
+            if (!initialWorkspaceStateFiles.Contains(path))
+            {
+                File.Delete(path);
+            }
+        }
+
+        var directories = Directory
+            .EnumerateDirectories(root, "*", SearchOption.AllDirectories)
+            .OrderDescending()
+            .ToArray();
+        foreach (var directory in directories)
+        {
+            if (!Directory.EnumerateFileSystemEntries(directory).Any())
+            {
+                Directory.Delete(directory);
+            }
+        }
+
+        if (!Directory.EnumerateFileSystemEntries(root).Any())
+        {
+            Directory.Delete(root);
+        }
+    }
+
     public static async Task<RunValidationResult> ValidateAsync(
         RepositoryDefinition repository,
         string repositoryRoot,

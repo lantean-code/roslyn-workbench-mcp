@@ -78,6 +78,18 @@ public sealed class StartupAndRecoveryWorkflowIntegrationTests
                     && recovery.GetProperty("state").GetString() == "RecoveryConflict"
                     && recovery.GetProperty("message").GetString() == "Acceptance recovery conflict.");
 
+            var blockedOpenResult = await target.CallToolAsync(
+                "workspace-open",
+                new Dictionary<string, object?>
+                {
+                    ["path"] = loadedPath,
+                    ["workspaceRoot"] = target.WorkspaceRoot,
+                },
+                TestContext.Current.CancellationToken);
+
+            blockedOpenResult.IsError.Should().BeTrue();
+            AcceptanceProtocol.GetError(blockedOpenResult).GetProperty("code").GetString().Should().Be("RecoveryPending");
+            blockedOpenResult.StructuredContent!.Value.GetProperty("next").GetString().Should().Be("ResolveRecovery");
             File.Exists(manifestPath).Should().BeTrue();
 
             using var persistedManifest = JsonDocument.Parse(

@@ -344,6 +344,8 @@ The acceptance inventory is now 28 discovered cases. The CI minimum is raised to
 
 ### Batch 4 — Mutation families and transaction state
 
+**Implementation status:** Complete on 2026-07-23. Runtime evidence will be supplied by the next manually initiated acceptance run and the Ubuntu/Windows pull-request matrix.
+
 - bundled mutation pre-commit disk invariant;
 - external plugin mutation staging and rollback;
 - token and dedicated/replay Code Action mutation paths;
@@ -353,7 +355,19 @@ The acceptance inventory is now 28 discovered cases. The CI minimum is raised to
 - promoted post-commit query; and
 - transaction ownership transfer between Workspaces.
 
+Implemented evidence:
+
+- the packaged external mutation now performs a deterministic document replacement, proves disk remains unchanged before commit and rolls back to the original bytes;
+- returning the immutable current solution exercises the no-change envelope and retains revision zero;
+- a stale mutation snapshot is rejected without consuming a revision, after which two compatible renames stage successfully;
+- staged semantic queries follow revision zero, revision one, revision two, undo and redo before rollback restores baseline bytes and semantics;
+- the existing token-based Code Action remains covered, while `move-type-to-file` supplies the dedicated replay path and a real create/replace commit;
+- multi-file bundled rename and dedicated Code Action cases assert the pre-commit disk invariant and promoted post-commit semantics; and
+- two loaded Workspaces prove blocked concurrent ownership, rollback release, ownership transfer and the public `workspace-list` owner projection.
+
 ### Batch 5 — Durability and restart
+
+**Implementation status:** Complete on 2026-07-23. Runtime evidence will be supplied by the next manually initiated acceptance run and the Ubuntu/Windows pull-request matrix.
 
 - small multi-file and linked/multi-target physical-target commit;
 - deterministic pre-write external conflict and preservation;
@@ -363,6 +377,17 @@ The acceptance inventory is now 28 discovered cases. The CI minimum is raised to
 - Windows-specific duplicate-target regression.
 
 Application-phase conflict, abrupt termination and durable cancellation boundaries remain release-runner responsibilities.
+
+Implemented evidence:
+
+- a solution-wide rename previews and commits the exact two-file replacement set;
+- a linked multi-target rename collapses duplicate Roslyn documents to one physical target and commits that target once;
+- external drift after staging returns `TransactionConflicted` with `RollbackTransaction`, preserves the exact external bytes and leaves no recovery artifact after rollback;
+- the synthetic blocked-recovery case now rejects unsafe Workspace open with `RecoveryPending` and `ResolveRecovery`;
+- the create/replace Code Action commit survives Host restart, reopens cleanly and returns promoted semantic results; and
+- successful commits and the pre-write conflict path assert an empty public recovery inventory and no persisted recovery files.
+
+The acceptance inventory is now 36 discovered cases. The CI minimum is raised to 36 so omission of any Batch 1–5 case fails the acceptance job.
 
 ### Batch 6 — Cancellation, concurrency and failure containment
 

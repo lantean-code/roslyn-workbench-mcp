@@ -144,8 +144,9 @@ Pull-request CI separates fast coverage, component integration and published-Hos
 - the fast Ubuntu job runs Unit and Contract tests after one restore and build;
 - four Ubuntu component jobs preserve Workspace, Plugins.Core, CodeActions and Host ownership;
 - Ubuntu and Windows acceptance jobs test the explicitly published Release Host over stdio;
-- the Windows acceptance job also runs the full Workspace integration project for filesystem, durability, recovery and inter-process-lock evidence; and
-- scheduled macOS coverage runs Workspace integration and published-Host acceptance without acting as a pull-request gate.
+- the Windows acceptance job also runs the full Workspace integration project for filesystem, durability, recovery and inter-process-lock evidence.
+
+macOS is a best-effort release platform, not a pull-request gate. Do not run recurring macOS jobs while the repository is private. When public v1 release-candidate preparation begins, release-branch or manually dispatched validation should run published-Host acceptance, Workspace integration and a curated external-repository scenario subset on macOS. macOS failures inform the support statement and release decision without redefining the authoritative Windows and Linux gates.
 
 Tests run with `--no-build --no-restore` after their job has produced the required outputs. Every test job writes structured results, verifies a minimum expected count and uploads those results even when testing fails. Roslyn/MSBuild test runs use bounded hang detection. Failed acceptance runs additionally retain and upload the Host's stderr, process details and isolated scenario state.
 
@@ -153,7 +154,7 @@ The Code Action compatibility audit remains a separate workflow because it is sl
 
 ## Release validation and performance history
 
-Published-Host acceptance remains a pull-request gate on native Ubuntu and Windows. It uses small checked-in fixtures and deterministic public MCP workflows. The external-repository scenario runner is a separate release-validation system: run it only from release branches or by explicit manual dispatch, not for ordinary pull requests or pushes.
+Published-Host acceptance remains a pull-request gate on native Ubuntu and Windows. It uses small checked-in fixtures and deterministic public MCP workflows. The external-repository scenario runner is a separate release-validation system: run it only from release branches or by explicit manual dispatch, not for ordinary pull requests, pushes or recurring schedules. Once the repository is public, release validation may include a curated macOS scenario subset as best-effort evidence.
 
 Scenario output has two retention levels:
 
@@ -168,4 +169,6 @@ Performance comparisons are advisory until several releases establish normal var
 
 The detailed acceptance gaps and dependency-ordered implementation batches are recorded in [Published Host Acceptance Coverage Audit](AcceptanceCoverageAudit-2026-07-23.md).
 
-VSTest remains the selected runner. The Stage 7 MTP evaluation found that migration would require executable test projects and changes to filtering, reporting, coverage and CI commands for a modest measured gain. MTP v2 remains the intended future direction, but migration is deferred until xUnit 4 is stable rather than adopting its prerelease packages. NuGet caching remains disabled until the repository adopts an explicit lock-file policy.
+VSTest remains the selected runner. The Stage 7 MTP evaluation found that migration would require executable test projects and changes to filtering, reporting, coverage and CI commands for a modest measured gain. MTP v2 remains the intended future direction, but migration is deferred until xUnit 4 is stable rather than adopting its prerelease packages.
+
+The repository does not use `packages.lock.json`. Release reproducibility comes from the release tag, GitVersion-derived artifact version, pinned SDK, centrally managed exact direct dependency versions and retention of the exact artifacts produced by the release workflow. NuGet package caching remains disabled; restore performance must become a measured problem before either caching or its supporting dependency policy is reconsidered.

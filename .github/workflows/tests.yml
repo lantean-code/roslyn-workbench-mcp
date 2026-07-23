@@ -5,8 +5,6 @@ on:
   push:
     branches:
       - main
-  schedule:
-    - cron: "0 3 * * 1"
   workflow_dispatch:
 
 permissions:
@@ -160,69 +158,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: acceptance-diagnostics-${{ matrix.os }}
-          path: |
-            ${{ runner.temp }}/roslyn-workbench-mcp-acceptance
-            ${{ runner.temp }}/roslyn-workbench-mcp-acceptance-lifetime
-          if-no-files-found: ignore
-
-  macos-scheduled:
-    name: Scheduled macOS platform evidence
-    if: github.event_name == 'schedule'
-    runs-on: macos-latest
-    timeout-minutes: 45
-    env:
-      ROSLYN_WORKBENCH_MCP_ACCEPTANCE_RETAIN_ROOT: true
-      TMPDIR: ${{ runner.temp }}
-      TMP: ${{ runner.temp }}
-      TEMP: ${{ runner.temp }}
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-dotnet@v5
-        with:
-          global-json-file: global.json
-      - name: Restore
-        run: dotnet restore
-      - name: Build
-        run: dotnet build --configuration Release --no-restore
-      - name: Publish Host
-        run: >-
-          dotnet publish src/Roslyn.Workbench.Mcp/Roslyn.Workbench.Mcp.csproj
-          --configuration Release --no-build --no-restore
-          --output .ci/publish
-      - name: Test Workspace durability
-        run: >-
-          dotnet test test/Roslyn.Workbench.Mcp.Workspace.IntegrationTest/Roslyn.Workbench.Mcp.Workspace.IntegrationTest.csproj
-          --configuration Release --no-build --no-restore
-          --logger "trx;LogFileName=workspace-macos.trx"
-          --results-directory TestResults/workspace-macos
-          --blame-hang --blame-hang-timeout 5m --blame-hang-dump-type none
-      - name: Verify Workspace test count
-        shell: pwsh
-        run: ./eng/Assert-TrxTestCount.ps1 -Path TestResults/workspace-macos -Minimum 52
-      - name: Test published Host
-        shell: pwsh
-        run: |
-          $env:ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH = Join-Path (Resolve-Path '.ci/publish') 'Roslyn.Workbench.Mcp'
-          dotnet test test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.Mcp.AcceptanceTest.csproj `
-            --configuration Release --no-build --no-restore `
-            --logger "trx;LogFileName=acceptance-macos.trx" `
-            --results-directory TestResults/acceptance-macos `
-            --blame-hang --blame-hang-timeout 5m --blame-hang-dump-type none
-      - name: Verify acceptance test count
-        shell: pwsh
-        run: ./eng/Assert-TrxTestCount.ps1 -Path TestResults/acceptance-macos -Minimum 10
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results-platform-macos
-          path: TestResults
-          if-no-files-found: error
-      - name: Upload failed acceptance diagnostics
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: acceptance-diagnostics-macos
           path: |
             ${{ runner.temp }}/roslyn-workbench-mcp-acceptance
             ${{ runner.temp }}/roslyn-workbench-mcp-acceptance-lifetime

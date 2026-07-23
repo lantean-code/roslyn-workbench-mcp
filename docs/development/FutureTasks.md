@@ -26,7 +26,34 @@ When a task is completed, remove it from this document rather than retaining a c
 
 ## P0 — Release Decisions and Blockers
 
-No open P0 release decisions or blockers remain from the documentation audit.
+### Prepare and publish the v1 release artifacts
+
+**Status:** Not started
+
+Implement tag-driven release publication using GitVersion. A release tag must produce one consistent version across the Host assemblies, .NET tool package, standalone executable archives and Plugins NuGet package.
+
+Publish and retain these immutable artifacts:
+
+- the MCP server as a .NET tool package;
+- standalone executable archives for every supported runtime identifier;
+- the third-party Plugins library as a NuGet package;
+- symbol packages where applicable;
+- checksums for downloadable standalone artifacts; and
+- release notes identifying the source tag and commit.
+
+Release reproducibility is based on the tagged source, pinned .NET SDK, centrally managed exact direct dependency versions and retention of the artifacts produced by the release workflow. Do not adopt `packages.lock.json` files solely for release publication or GitHub Actions caching. Leave NuGet package caching disabled unless restore performance later becomes a measured problem that justifies revisiting the policy.
+
+Before publishing:
+
+1. Restore, build, test, pack and publish from the release tag in one controlled workflow.
+2. Confirm every artifact carries the GitVersion-derived release version.
+3. Install the generated .NET tool package from an isolated local package source and run a published-Host acceptance smoke test.
+4. Run each standalone executable on its target operating system without relying on repository build output.
+5. Inspect the Plugins package's generated `.nuspec` and deliberately approve its direct dependency ranges.
+6. Install the Plugins package into a clean external sample plugin with no project references to this repository, then build and exercise that plugin against the packaged Host.
+7. Publish only the exact artifacts that passed validation, and retain them without rebuilding the same version.
+
+The Plugins package validation is the consumer-compatibility boundary. A repository lock file would constrain the dependency graph used to build the package, but it would not force downstream plugin projects to restore that graph.
 
 ## P1 — Production Confidence and Performance
 
@@ -48,13 +75,16 @@ Add a release-branch and manual-dispatch workflow for the existing external-repo
 
 Upload detailed scenario output as temporary workflow artifacts. Attach the final aggregate and comparison to the GitHub release for durable release-to-release history. Do not commit generated metrics to `main`, and do not introduce hard timing gates until repeated comparable release runs establish normal variance.
 
+The repository is private before v1 release-candidate preparation, so do not run billed recurring macOS automation. When the repository becomes public, add best-effort macOS release/manual validation covering the published Host acceptance suite, Workspace integration and a curated external-repository scenario subset. macOS is not a pull-request gate. The external-repository scenario runner remains release-only on every platform.
+
 Implementation order:
 
 1. Select and document the release-branch naming convention.
 2. Define and emit the versioned aggregate and scenario-suite identity.
 3. Add compatible previous-release comparison and Markdown reporting.
 4. Add manual and release-branch workflow orchestration.
-5. Attach the final aggregate and comparison to the GitHub release.
+5. Once the repository is public, add best-effort macOS release validation.
+6. Attach the final aggregate and comparison to the GitHub release.
 
 Source: [Testing Strategy](TestingStrategy.md#release-validation-and-performance-history), [Published Host Acceptance Coverage Audit](AcceptanceCoverageAudit-2026-07-23.md#release-only-scenario-validation-and-metrics)
 
@@ -80,24 +110,6 @@ Pair the authoring diagnostics with Host-side detection of unexpected live Works
 This must precede a release that actively promotes third-party plugin authoring. It does not block a Host release that continues to describe plugins as trusted in-process extensions and states the current runtime guarantees.
 
 Sources: [2026-07-13-mef-plugin-composition.md](superpowers/plans/2026-07-13-mef-plugin-composition.md), [PluginApiSurfaceAudit-2026-07-18.md](PluginApiSurfaceAudit-2026-07-18.md)
-
-### Decide whether macOS should gate pull requests
-
-**Status:** Started
-
-Scheduled macOS Workspace integration and published-Host acceptance coverage is configured. Gather hosted-runner reliability and runtime evidence, then decide whether to promote macOS to a pull-request gate. Record the decision in the release support matrix as supported, best-effort or unverified; the support statement must not be inferred from whether CI gates pull requests.
-
-Sources: [TestArchitectureReaudit-2026-07-18.md](TestArchitectureReaudit-2026-07-18.md#deferred-decisions), [IntegrationTestingStage7Results-2026-07-18.md](IntegrationTestingStage7Results-2026-07-18.md#platform-evidence)
-
-## P3 — Engineering Efficiency
-
-### Decide the NuGet lock-file and caching policy
-
-**Status:** Not started
-
-Decide whether the repository should adopt `packages.lock.json` files. Enable `setup-dotnet` package caching only if the approved dependency policy makes cache keys and restore behaviour reliable. Treat dependency reproducibility as the decision driver; do not adopt lock files solely to enable CI caching.
-
-Sources: [IntegrationTestingImplementationPlan.md](IntegrationTestingImplementationPlan.md#decisions-deliberately-deferred), [IntegrationTestingStage7Results-2026-07-18.md](IntegrationTestingStage7Results-2026-07-18.md#nuget-caching-decision)
 
 ## Conditional Backlog
 

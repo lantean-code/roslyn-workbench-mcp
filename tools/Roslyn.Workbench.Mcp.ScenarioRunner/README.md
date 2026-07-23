@@ -4,6 +4,8 @@ This project is the repeatable, manually invoked external-repository scenario fr
 
 The framework is permanent. Repository clones, restored assets, published Host binaries and Host recovery state are disposable execution data kept beneath the operating system's temporary directory. Results, validation, traces, counters and heap captures are retained beneath the gitignored `artifacts/performance/results` directory in the repository root.
 
+Automated scenario runs are release validation only: invoke them from release branches or by explicit manual dispatch, not for ordinary pull requests, pushes or recurring schedules. Native Windows and Linux provide the authoritative correctness, cleanup and performance evidence. Once the repository is public and v1 release-candidate preparation begins, macOS should run published-Host acceptance, Workspace integration and a curated scenario subset as best-effort evidence. Do not use billed recurring macOS automation while the repository is private, and do not compare macOS timing directly with the Windows or Linux performance baselines.
+
 ## Project structure
 
 The project root contains only the executable entry point, project/runtime assets and platform wrappers. Implementation types are grouped by responsibility:

@@ -55,8 +55,8 @@ An acceptance case is warranted when a defect could exist despite the owning uni
 |---|---|---|---|
 | Fast development | Developer choice and fast CI job | Developer environment and Ubuntu CI | Unit and Contract only |
 | Pull-request acceptance | Every pull request | Native Ubuntu and Windows | Correctness, cleanup and process termination |
-| Scheduled platform acceptance | Existing schedule | macOS | Evidence until macOS support policy is decided |
-| Release scenario validation | Release branches and explicit manual dispatch | Native Windows and Linux; WSL evidence where the path environment is relevant | Correctness and cleanup gate the release; performance is initially advisory |
+| Best-effort platform validation | Public v1 release-candidate preparation, release branches and explicit manual dispatch | macOS | Advisory acceptance, Workspace and curated scenario evidence |
+| Release scenario validation | Release branches and explicit manual dispatch | Native Windows and Linux; curated macOS evidence; WSL evidence where the path environment is relevant | Windows and Linux correctness and cleanup gate the release; macOS and performance evidence are advisory |
 
 The current `tests.yml` workflow already runs the published-Host acceptance project on every pull request on Ubuntu and Windows. The coverage expansion therefore changes tests, fixtures and minimum counts rather than adding another ordinary pull-request workflow.
 
@@ -236,7 +236,7 @@ The Host has distinct bundled/external plugin and internal Code Action paths. Ea
 |---|---|
 | Ubuntu pull requests | Published executable, stdio, SDK/MSBuild loading, case-sensitive paths, plugins, all deterministic acceptance workflows |
 | Windows pull requests | Same public workflows plus Windows file replacement, path casing, linked-target regression and the existing native Workspace durability suite |
-| macOS schedule | Run the complete deterministic acceptance suite and Workspace integration; collect reliability evidence before making it a PR gate |
+| macOS release/manual | Run the deterministic acceptance suite, Workspace integration and a curated external-repository scenario subset as best-effort evidence once public v1 release-candidate preparation begins |
 | Native Linux release | External repositories, destructive recovery and performance baseline |
 | Native Windows release | External repositories, Windows durable replacement/conflict/recovery and performance baseline |
 | WSL release/manual | `/mnt/<drive>` warning and comparison of Windows-mounted versus native-Linux storage where relevant |
@@ -385,7 +385,7 @@ The release acceptance programme is complete when:
 - every production execution family in the target set is exercised through the exact Release-published executable;
 - the acceptance project still has no production project reference;
 - CI minimum counts match the final inventory and failures retain actionable diagnostics;
-- scheduled macOS runs the expanded deterministic suite;
+- public v1 release-candidate validation runs the deterministic suite and a curated scenario subset on macOS as best-effort evidence;
 - release-only correctness scenarios pass on native Windows and Linux, with WSL evidence where applicable;
 - terminal cleanup is verified for copied workspaces, transactions, recovery state and Host processes;
 - the release-branch convention and workflow are implemented; and

@@ -8,6 +8,14 @@
 - The .NET SDKs and build tooling required by the solutions or projects you
   intend to load.
 
+## Platform support
+
+Windows and Linux are the supported release platforms. macOS support is best
+effort: it is validated during release-candidate preparation through the
+published Host, Workspace integration and a curated external-repository
+scenario subset. macOS is not a pull-request gate or an authoritative
+performance baseline.
+
 ## Build from source
 
 From the repository root:

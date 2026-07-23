@@ -51,8 +51,13 @@ internal sealed class SearchSymbolsTool : QueryToolHandler<SearchSymbolsRequest,
         SymbolReference[] orderedSymbols;
         using (WorkbenchPerformanceEventSource.Log.StartPhase(_toolName, WorkbenchPerformanceEventSource.CandidateProjectionPhase))
         {
-            orderedSymbols = matchedSymbols
-                .Select(symbol => context.WorkspaceResolver.CreateSymbolReference(symbol))
+            var symbolReferences = new List<SymbolReference>();
+            foreach (var matchedSymbol in matchedSymbols)
+            {
+                symbolReferences.Add(context.WorkspaceResolver.CreateSymbolReference(matchedSymbol));
+            }
+
+            orderedSymbols = symbolReferences
                 .OrderBy(static symbol => symbol.DisplayName, StringComparer.Ordinal)
                 .ThenBy(static symbol => symbol.Location?.Document?.Path ?? string.Empty, StringComparer.Ordinal)
                 .ToArray();

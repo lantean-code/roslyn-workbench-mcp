@@ -27,10 +27,17 @@ internal sealed class FindOverridesTool : QueryToolHandler<FindOverridesRequest,
         }
 
         var discoveredOverrides = await SymbolFinder.FindOverridesAsync(symbol, context.CurrentSolution, scopeResolution.Value.ToImmutableHashSet(), cancellationToken);
-        var orderedOverrides = discoveredOverrides
-            .Distinct(SymbolEqualityComparer.Default)
-            .Select(item => context.WorkspaceResolver.CreateSymbolReference(item))
-            .OrderBy(static item => item.DisplayName, StringComparer.Ordinal);
+        var uniqueOverrides = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
+        var projectedOverrides = new List<SymbolReference>();
+        foreach (var discoveredOverride in discoveredOverrides)
+        {
+            if (uniqueOverrides.Add(discoveredOverride))
+            {
+                projectedOverrides.Add(context.WorkspaceResolver.CreateSymbolReference(discoveredOverride));
+            }
+        }
+
+        var orderedOverrides = projectedOverrides.OrderBy(static item => item.DisplayName, StringComparer.Ordinal);
 
         var overrides = new List<SymbolReference>();
         var hasMore = false;

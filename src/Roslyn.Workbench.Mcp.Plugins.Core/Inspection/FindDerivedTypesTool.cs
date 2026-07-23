@@ -30,11 +30,18 @@ internal sealed class FindDerivedTypesTool : QueryToolHandler<FindDerivedTypesRe
         }
 
         var discoveredTypes = await FindDerivedTypeSymbolsAsync(namedType, context.CurrentSolution, scopeResolution.Value.ToImmutableHashSet(), cancellationToken);
-        var orderedTypes = discoveredTypes
-            .Distinct(SymbolEqualityComparer.Default)
-            .OfType<INamedTypeSymbol>()
-            .Select(symbol => (Symbol: symbol, Reference: context.WorkspaceResolver.CreateSymbolReference(symbol)))
-            .OrderBy(static item => item.Reference.DisplayName, StringComparer.Ordinal);
+        var uniqueTypes = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
+        var projectedTypes = new List<(INamedTypeSymbol Symbol, SymbolReference Reference)>();
+        foreach (var discoveredType in discoveredTypes)
+        {
+            if (uniqueTypes.Add(discoveredType))
+            {
+                var reference = context.WorkspaceResolver.CreateSymbolReference(discoveredType);
+                projectedTypes.Add((discoveredType, reference));
+            }
+        }
+
+        var orderedTypes = projectedTypes.OrderBy(static item => item.Reference.DisplayName, StringComparer.Ordinal);
 
         var derivedTypes = new List<TypeHierarchyNode>();
         var hasMore = false;

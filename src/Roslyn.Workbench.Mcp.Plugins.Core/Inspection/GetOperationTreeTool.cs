@@ -116,9 +116,9 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
             return ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>.Rejected(PluginExecutionResultFactory.Rejected<OperationTreeData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
         }
 
-        return ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>.Resolved(new ResolvedSyntaxNode(
-                syntaxRoot.FindNode(location.SourceSpan, getInnermostNodeForTie: true),
-                semanticModel));
+        var node = syntaxRoot.FindNode(location.SourceSpan, getInnermostNodeForTie: true);
+        var resolvedSyntaxNode = new ResolvedSyntaxNode(node, semanticModel);
+        return ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>.Resolved(resolvedSyntaxNode);
     }
 
     private sealed record ResolvedSyntaxNode

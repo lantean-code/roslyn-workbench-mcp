@@ -193,9 +193,28 @@ Validation evidence:
 
 ### Batch 5 — Plugins.Core tool review
 
+**Status:** Complete
+
 Revisit only the 41 production candidates in Plugins.Core. Retain simple deterministic ordering pipelines. Replace LINQ only where it combines multiple stages or obscures bounded work, and do not claim a performance improvement without measurement.
 
 Validation: focused tool tests with coverage, Plugins.Core analyzer build, the fast suite and scenario measurement only when a hot-path implementation changes.
+
+Completed work:
+
+- separated filtering, de-duplication and Workspace projection from deterministic ordering;
+- made bounded reference and change-impact selection explicit after canonical ordering;
+- replaced nested selector, attribute, resolution and projection construction with named intermediate values;
+- reused analyzer options during projection instead of resolving them once per key; and
+- reduced the Plugins.Core syntax scan from 41 candidates to 12 intentional ordering-only pipelines.
+
+The retained pipelines express stable sort-key precedence for diagnostics, symbols, references and using directives. Converting those sorts to custom comparers or manual ordering would make the behaviour harder to verify. The changes preserve the existing discovery, ordering and materialisation boundaries, so no performance improvement is claimed and no scenario comparison was required.
+
+Validation evidence:
+
+- the Plugins.Core project built with zero `latest-all` analyzer warnings;
+- all 287 Plugins.Core unit tests and 7 Plugins.Core integration tests passed;
+- focused line coverage across the 21 changed Plugins.Core files was 94.75%; and
+- the fast unit and contract suite passed 1,886 tests.
 
 ### Batch 6 — Test statement separation
 

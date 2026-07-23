@@ -75,21 +75,29 @@ internal sealed class FindReferencesTool : QueryToolHandler<FindReferencesReques
         }
 
         var maxResults = request.EffectiveReferencesLimit;
-        PendingReference[] selectedReferences;
+        var selectedReferences = new List<PendingReference>();
         using (WorkbenchPerformanceEventSource.Log.StartPhase(_toolName, WorkbenchPerformanceEventSource.ResultSelectionPhase))
         {
-            selectedReferences = pendingReferences
+            var orderedReferences = pendingReferences
                 .OrderBy(static reference => reference.ResolvedLocation.Document?.Path, StringComparer.Ordinal)
                 .ThenBy(static reference => reference.ResolvedLocation.Span?.Start)
                 .ThenBy(static reference => reference.ResolvedLocation.Document?.ProjectId, StringComparer.Ordinal)
                 .ThenBy(static reference => reference.ResolvedLocation.Document?.DocumentId, StringComparer.Ordinal)
                 .ThenBy(static reference => reference.ResolvedLocation.Span?.Length)
-                .ThenBy(static reference => reference.IsDefinition)
-                .Take(maxResults)
-                .ToArray();
+                .ThenBy(static reference => reference.IsDefinition);
+
+            foreach (var reference in orderedReferences)
+            {
+                if (selectedReferences.Count == maxResults)
+                {
+                    break;
+                }
+
+                selectedReferences.Add(reference);
+            }
         }
 
-        var references = new List<ContractReferenceLocation>(selectedReferences.Length);
+        var references = new List<ContractReferenceLocation>();
         using (WorkbenchPerformanceEventSource.Log.StartPhase(_toolName, WorkbenchPerformanceEventSource.ResultEnrichmentPhase))
         {
             foreach (var pendingReference in selectedReferences)

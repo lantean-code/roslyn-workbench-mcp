@@ -75,13 +75,22 @@ internal sealed class GetChangeImpactTool : QueryToolHandler<GetChangeImpactRequ
         }
 
         var maxResults = request.EffectiveLocationsLimit;
-        var selectedReferences = pendingReferences
+        var orderedReferences = pendingReferences
             .OrderBy(static reference => reference.Location.Document?.Path, StringComparer.Ordinal)
-            .ThenBy(static reference => reference.Location.Span?.Start)
-            .Take(maxResults)
-            .ToArray();
+            .ThenBy(static reference => reference.Location.Span?.Start);
 
-        var locations = new List<ContractReferenceLocation>(selectedReferences.Length);
+        var selectedReferences = new List<PendingReference>();
+        foreach (var reference in orderedReferences)
+        {
+            if (selectedReferences.Count == maxResults)
+            {
+                break;
+            }
+
+            selectedReferences.Add(reference);
+        }
+
+        var locations = new List<ContractReferenceLocation>();
         foreach (var pendingReference in selectedReferences)
         {
             var reference = pendingReference.Reference;

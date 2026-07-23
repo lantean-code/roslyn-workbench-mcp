@@ -1,3 +1,5 @@
+using ContractTypeInfo = Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection.TypeInfo;
+
 namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection;
 
 [RoslynTool("find-overloads", "Find Overloads", "Returns overload signatures for a resolved method or constructor.")]
@@ -16,22 +18,40 @@ internal sealed class FindOverloadsTool : QueryToolHandler<FindOverloadsRequest,
             return PluginExecutionResultFactory.Rejected<OverloadSearchData>("InvalidRequest", "Find overloads requires a method or constructor symbol.");
         }
 
-        IEnumerable<IMethodSymbol> overloads;
+        var overloads = new List<IMethodSymbol>();
         if (methodSymbol.MethodKind == MethodKind.Constructor)
         {
-            overloads = methodSymbol.ContainingType.InstanceConstructors
-                .Where(static item => !item.IsImplicitlyDeclared);
+            foreach (var constructor in methodSymbol.ContainingType.InstanceConstructors)
+            {
+                if (!constructor.IsImplicitlyDeclared)
+                {
+                    overloads.Add(constructor);
+                }
+            }
         }
         else
         {
-            overloads = methodSymbol.ContainingType.GetMembers(methodSymbol.Name)
-                .OfType<IMethodSymbol>()
-                .Where(item => item.MethodKind == methodSymbol.MethodKind);
+            foreach (var member in methodSymbol.ContainingType.GetMembers(methodSymbol.Name))
+            {
+                if (member is IMethodSymbol overload
+                    && overload.MethodKind == methodSymbol.MethodKind)
+                {
+                    overloads.Add(overload);
+                }
+            }
         }
 
-        var orderedOverloads = overloads
-            .Distinct(SymbolEqualityComparer.Default)
-            .OfType<IMethodSymbol>()
+        var uniqueOverloads = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
+        var distinctOverloads = new List<IMethodSymbol>();
+        foreach (var overload in overloads)
+        {
+            if (uniqueOverloads.Add(overload))
+            {
+                distinctOverloads.Add(overload);
+            }
+        }
+
+        var orderedOverloads = distinctOverloads
             .OrderBy(static item => item.Parameters.Length)
             .ThenBy(static item => item.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat), StringComparer.Ordinal);
 
@@ -60,12 +80,24 @@ internal sealed class FindOverloadsTool : QueryToolHandler<FindOverloadsRequest,
 
     private static CallableSignature CreateCallableSignature(IMethodSymbol methodSymbol)
     {
+        var parameters = new List<ParameterInfo>();
+        foreach (var parameter in methodSymbol.Parameters)
+        {
+            parameters.Add(InspectionProjectionFactory.CreateParameterInfo(parameter));
+        }
+
+        ContractTypeInfo? returnType = null;
+        if (methodSymbol.MethodKind != MethodKind.Constructor)
+        {
+            returnType = InspectionProjectionFactory.CreateTypeInfo(methodSymbol.ReturnType);
+        }
+
         return new CallableSignature
         {
             DisplayName = methodSymbol.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat),
             Kind = methodSymbol.MethodKind.ToString(),
-            Parameters = methodSymbol.Parameters.Select(InspectionProjectionFactory.CreateParameterInfo).ToArray(),
-            ReturnType = methodSymbol.MethodKind == MethodKind.Constructor ? null : InspectionProjectionFactory.CreateTypeInfo(methodSymbol.ReturnType),
+            Parameters = parameters,
+            ReturnType = returnType,
         };
     }
 }

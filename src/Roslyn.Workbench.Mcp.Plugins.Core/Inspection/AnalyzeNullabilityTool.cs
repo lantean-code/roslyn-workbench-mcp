@@ -45,9 +45,17 @@ internal sealed class AnalyzeNullabilityTool : QueryToolHandler<AnalyzeNullabili
         var maxResults = request.EffectiveFindingsLimit;
         var findings = new List<NullabilityFinding>();
         var hasMore = false;
-        var orderedDiagnostics = diagnostics
-            .Where(static diagnostic => diagnostic.Id.StartsWith("CS86", StringComparison.Ordinal))
-            .Where(diagnostic => selectedSpan is null || diagnostic.Location.SourceSpan.IntersectsWith(selectedSpan.Value))
+        var applicableDiagnostics = new List<Diagnostic>();
+        foreach (var diagnostic in diagnostics)
+        {
+            if (diagnostic.Id.StartsWith("CS86", StringComparison.Ordinal)
+                && (selectedSpan is null || diagnostic.Location.SourceSpan.IntersectsWith(selectedSpan.Value)))
+            {
+                applicableDiagnostics.Add(diagnostic);
+            }
+        }
+
+        var orderedDiagnostics = applicableDiagnostics
             .OrderBy(static diagnostic => diagnostic.Location.SourceTree?.FilePath ?? string.Empty, StringComparer.Ordinal)
             .ThenBy(static diagnostic => diagnostic.Location.SourceSpan.Start);
 

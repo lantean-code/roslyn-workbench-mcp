@@ -12,9 +12,18 @@ internal sealed class GetPartialDeclarationsTool : QueryToolHandler<GetPartialDe
         }
 
         var symbol = symbolResolution.Value;
-        var orderedLocations = symbol.DeclaringSyntaxReferences
-            .Select(reference => context.WorkspaceResolver.CreateResolvedLocation(reference.SyntaxTree.GetLocation(reference.Span)))
-            .OfType<ResolvedLocation>()
+        var resolvedLocations = new List<ResolvedLocation>();
+        foreach (var declaration in symbol.DeclaringSyntaxReferences)
+        {
+            var location = declaration.SyntaxTree.GetLocation(declaration.Span);
+            var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(location);
+            if (resolvedLocation is not null)
+            {
+                resolvedLocations.Add(resolvedLocation);
+            }
+        }
+
+        var orderedLocations = resolvedLocations
             .OrderBy(static location => location.Document?.Path, StringComparer.Ordinal)
             .ThenBy(static location => location.Span?.Start);
 

@@ -66,10 +66,12 @@ internal sealed class AnalyzeControlFlowTool : QueryToolHandler<AnalyzeControlFl
             return ToolResolutionResult<ResolvedStatement, ControlFlowAnalysisData>.Rejected(PluginExecutionResultFactory.Rejected<ControlFlowAnalysisData>("InvalidRequest", "The selected region must resolve to an executable statement."));
         }
 
-        return ToolResolutionResult<ResolvedStatement, ControlFlowAnalysisData>.Resolved(new ResolvedStatement(
-                statement,
-                resolvedSyntaxNode.SemanticModel,
-                resolvedSyntaxNode.ResolvedLocation));
+        var resolvedStatement = new ResolvedStatement(
+            statement,
+            resolvedSyntaxNode.SemanticModel,
+            resolvedSyntaxNode.ResolvedLocation);
+
+        return ToolResolutionResult<ResolvedStatement, ControlFlowAnalysisData>.Resolved(resolvedStatement);
     }
 
     private static async ValueTask<ToolResolutionResult<ResolvedSyntaxNode, ControlFlowAnalysisData>> ResolveSyntaxNodeAsync(LocationSelector? selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)
@@ -114,10 +116,9 @@ internal sealed class AnalyzeControlFlowTool : QueryToolHandler<AnalyzeControlFl
             return ToolResolutionResult<ResolvedSyntaxNode, ControlFlowAnalysisData>.Rejected(PluginExecutionResultFactory.Rejected<ControlFlowAnalysisData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
         }
 
-        return ToolResolutionResult<ResolvedSyntaxNode, ControlFlowAnalysisData>.Resolved(new ResolvedSyntaxNode(
-                syntaxRoot.FindNode(location.SourceSpan, getInnermostNodeForTie: true),
-                semanticModel,
-                resolvedLocation));
+        var node = syntaxRoot.FindNode(location.SourceSpan, getInnermostNodeForTie: true);
+        var resolvedSyntaxNode = new ResolvedSyntaxNode(node, semanticModel, resolvedLocation);
+        return ToolResolutionResult<ResolvedSyntaxNode, ControlFlowAnalysisData>.Resolved(resolvedSyntaxNode);
     }
 
     private sealed record ResolvedStatement

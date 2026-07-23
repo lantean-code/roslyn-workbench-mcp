@@ -11,27 +11,25 @@ internal static class InspectionProjectionFactory
         cancellationToken.ThrowIfCancellationRequested();
         var syntaxTree = await document.GetSyntaxTreeAsync(cancellationToken);
         var optionsProvider = document.Project.AnalyzerOptions.AnalyzerConfigOptionsProvider;
-        var options = syntaxTree is null
-            ? new Dictionary<string, string>(StringComparer.Ordinal)
-            : optionsProvider.GetOptions(syntaxTree).Keys
-                .OrderBy(static key => key, StringComparer.Ordinal)
-                .ToDictionary(
-                    static key => key,
-                    key => optionsProvider.GetOptions(syntaxTree).TryGetValue(key, out var value) ? value : string.Empty,
-                    StringComparer.Ordinal);
+        var options = new Dictionary<string, string>(StringComparer.Ordinal);
+        if (syntaxTree is not null)
+        {
+            var analyzerOptions = optionsProvider.GetOptions(syntaxTree);
+            foreach (var key in analyzerOptions.Keys.OrderBy(static key => key, StringComparer.Ordinal))
+            {
+                options[key] = analyzerOptions.TryGetValue(key, out var value)
+                    ? value
+                    : string.Empty;
+            }
+        }
+
+        var globalConfigPaths = GetAnalyzerConfigPaths(document.Project.AnalyzerConfigDocuments, ".globalconfig");
+        var editorConfigPaths = GetAnalyzerConfigPaths(document.Project.AnalyzerConfigDocuments, ".editorconfig");
 
         return new AnalyzerConfigInfo
         {
-            GlobalConfigPaths = document.Project.AnalyzerConfigDocuments
-                .Where(static config => config.Name.EndsWith(".globalconfig", StringComparison.OrdinalIgnoreCase))
-                .Select(static config => config.FilePath ?? config.Name)
-                .OrderBy(static path => path, StringComparer.Ordinal)
-                .ToArray(),
-            EditorConfigPaths = document.Project.AnalyzerConfigDocuments
-                .Where(static config => config.Name.EndsWith(".editorconfig", StringComparison.OrdinalIgnoreCase))
-                .Select(static config => config.FilePath ?? config.Name)
-                .OrderBy(static path => path, StringComparer.Ordinal)
-                .ToArray(),
+            GlobalConfigPaths = globalConfigPaths,
+            EditorConfigPaths = editorConfigPaths,
             Options = options,
         };
     }
@@ -80,17 +78,20 @@ internal static class InspectionProjectionFactory
     public static DefinitionLocation CreateDefinitionLocation(ISymbol symbol, IWorkspaceResolver resolver)
     {
         var sourceLocation = symbol.Locations.FirstOrDefault(static location => location.IsInSource);
-        return sourceLocation is null
-            ? new DefinitionLocation
+        if (sourceLocation is null)
+        {
+            return new DefinitionLocation
             {
                 IsMetadata = true,
                 MetadataName = symbol.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat),
                 ContainingAssembly = symbol.ContainingAssembly?.ToDisplayString(),
-            }
-            : new DefinitionLocation
-            {
-                Location = resolver.CreateResolvedLocation(sourceLocation),
             };
+        }
+
+        return new DefinitionLocation
+        {
+            Location = resolver.CreateResolvedLocation(sourceLocation),
+        };
     }
 
     public static IReadOnlyList<string> GetModifiers(ISymbol symbol)
@@ -161,12 +162,22 @@ internal static class InspectionProjectionFactory
             return null;
         }
 
+        var languageVersion = string.Empty;
+        string[] preprocessorSymbols = [];
+        if (options is CSharpParseOptions csharpOptions)
+        {
+            languageVersion = csharpOptions.LanguageVersion.ToDisplayString();
+            preprocessorSymbols = csharpOptions.PreprocessorSymbolNames
+                .OrderBy(static value => value, StringComparer.Ordinal)
+                .ToArray();
+        }
+
         return new ParseOptionsInfo
         {
             Language = options.Language,
-            LanguageVersion = options is CSharpParseOptions csharpOptions ? csharpOptions.LanguageVersion.ToDisplayString() : string.Empty,
+            LanguageVersion = languageVersion,
             DocumentationMode = options.DocumentationMode.ToString(),
-            PreprocessorSymbols = options is CSharpParseOptions csharpParseOptions ? csharpParseOptions.PreprocessorSymbolNames.OrderBy(static value => value, StringComparer.Ordinal).ToArray() : [],
+            PreprocessorSymbols = preprocessorSymbols,
         };
     }
 
@@ -218,4 +229,17 @@ internal static class InspectionProjectionFactory
         };
     }
 
+    private static string[] GetAnalyzerConfigPaths(IEnumerable<AnalyzerConfigDocument> documents, string fileExtension)
+    {
+        var paths = new List<string>();
+        foreach (var document in documents)
+        {
+            if (document.Name.EndsWith(fileExtension, StringComparison.OrdinalIgnoreCase))
+            {
+                paths.Add(document.FilePath ?? document.Name);
+            }
+        }
+
+        return paths.OrderBy(static path => path, StringComparer.Ordinal).ToArray();
+    }
 }

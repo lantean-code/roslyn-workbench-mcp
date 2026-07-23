@@ -22,10 +22,17 @@ internal sealed class FindImplementationsTool : QueryToolHandler<FindImplementat
 
         var projects = scopeResolution.Value.ToImmutableHashSet();
         var discoveredImplementations = await SymbolFinder.FindImplementationsAsync(symbol, context.CurrentSolution, projects, cancellationToken);
-        var orderedImplementations = discoveredImplementations
-            .Distinct(SymbolEqualityComparer.Default)
-            .Select(implementation => context.WorkspaceResolver.CreateSymbolReference(implementation))
-            .OrderBy(static implementation => implementation.DisplayName, StringComparer.Ordinal);
+        var uniqueImplementations = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
+        var projectedImplementations = new List<SymbolReference>();
+        foreach (var implementation in discoveredImplementations)
+        {
+            if (uniqueImplementations.Add(implementation))
+            {
+                projectedImplementations.Add(context.WorkspaceResolver.CreateSymbolReference(implementation));
+            }
+        }
+
+        var orderedImplementations = projectedImplementations.OrderBy(static implementation => implementation.DisplayName, StringComparer.Ordinal);
 
         var implementations = new List<SymbolReference>();
         var hasMore = false;

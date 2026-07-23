@@ -33,8 +33,16 @@ internal sealed class GetDiagnosticsTool : QueryToolHandler<GetDiagnosticsReques
         var maxResults = request.EffectiveDiagnosticsLimit;
         var projectedDiagnostics = new List<DiagnosticInfo>();
         var hasMore = false;
-        var orderedDiagnostics = diagnostics
-            .Where(diagnostic => MatchesDiagnosticFilters(diagnostic, includedIds, includedSeverities))
+        var filteredDiagnostics = new List<Diagnostic>();
+        foreach (var diagnostic in diagnostics)
+        {
+            if (MatchesDiagnosticFilters(diagnostic, includedIds, includedSeverities))
+            {
+                filteredDiagnostics.Add(diagnostic);
+            }
+        }
+
+        var orderedDiagnostics = filteredDiagnostics
             .OrderBy(static diagnostic => diagnostic.Location.SourceTree?.FilePath ?? string.Empty, StringComparer.Ordinal)
             .ThenBy(static diagnostic => diagnostic.Location.SourceSpan.Start)
             .ThenBy(static diagnostic => diagnostic.Id, StringComparer.Ordinal);
@@ -75,16 +83,28 @@ internal sealed class GetDiagnosticsTool : QueryToolHandler<GetDiagnosticsReques
 
         if (!analyzers.IsDefaultOrEmpty)
         {
-            diagnostics.AddRange(await compilation
+            var analyzerDiagnostics = await compilation
                 .WithAnalyzers(analyzers, project.AnalyzerOptions)
-                .GetAnalyzerDiagnosticsAsync(cancellationToken)
-                );
+                .GetAnalyzerDiagnosticsAsync(cancellationToken);
+
+            diagnostics.AddRange(analyzerDiagnostics);
         }
 
-        return diagnostics
-            .Where(diagnostic => !restrictToSelectedDocuments || IsInSelectedDocument(diagnostic, project.Solution, selectedDocumentIds))
-            .Distinct(DiagnosticComparer.Instance)
-            .ToArray();
+        var uniqueDiagnostics = new HashSet<Diagnostic>(DiagnosticComparer.Instance);
+        var selectedDiagnostics = new List<Diagnostic>();
+        foreach (var diagnostic in diagnostics)
+        {
+            if (!restrictToSelectedDocuments
+                || IsInSelectedDocument(diagnostic, project.Solution, selectedDocumentIds))
+            {
+                if (uniqueDiagnostics.Add(diagnostic))
+                {
+                    selectedDiagnostics.Add(diagnostic);
+                }
+            }
+        }
+
+        return selectedDiagnostics;
     }
 
     private static bool IsInSelectedDocument(Diagnostic diagnostic, Solution solution, ImmutableHashSet<DocumentId> selectedDocumentIds)

@@ -42,11 +42,18 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
         if (request.IncludeDerived)
         {
             var discoveredTypes = await FindDerivedTypeSymbolsAsync(namedType, context.CurrentSolution, context.CurrentSolution.Projects.ToImmutableHashSet(), cancellationToken);
-            var orderedTypes = discoveredTypes
-                .Distinct(SymbolEqualityComparer.Default)
-                .OfType<INamedTypeSymbol>()
-                .Select(symbol => (Symbol: symbol, Reference: context.WorkspaceResolver.CreateSymbolReference(symbol)))
-                .OrderBy(static item => item.Reference.DisplayName, StringComparer.Ordinal);
+            var uniqueTypes = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
+            var typeReferences = new List<(INamedTypeSymbol Symbol, SymbolReference Reference)>();
+            foreach (var discoveredType in discoveredTypes)
+            {
+                if (uniqueTypes.Add(discoveredType))
+                {
+                    var reference = context.WorkspaceResolver.CreateSymbolReference(discoveredType);
+                    typeReferences.Add((discoveredType, reference));
+                }
+            }
+
+            var orderedTypes = typeReferences.OrderBy(static item => item.Reference.DisplayName, StringComparer.Ordinal);
 
             var projectedTypes = new List<TypeHierarchyNode>();
             var derivedTypesHaveMore = false;

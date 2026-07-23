@@ -53,8 +53,13 @@ internal sealed class GetSymbolMembersTool : QueryToolHandler<GetSymbolMembersRe
             }
         }
 
-        var orderedMembers = members
-            .Select(member => context.WorkspaceResolver.CreateSymbolReference(member))
+        var memberReferences = new List<SymbolReference>();
+        foreach (var member in members)
+        {
+            memberReferences.Add(context.WorkspaceResolver.CreateSymbolReference(member));
+        }
+
+        var orderedMembers = memberReferences
             .OrderBy(static member => member.DisplayName, StringComparer.Ordinal)
             .ThenBy(static member => member.Location?.Document?.Path ?? string.Empty, StringComparer.Ordinal);
 

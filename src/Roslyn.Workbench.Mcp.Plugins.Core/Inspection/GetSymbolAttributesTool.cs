@@ -58,22 +58,34 @@ internal sealed class GetSymbolAttributesTool : QueryToolHandler<GetSymbolAttrib
 
     private static AttributeInfo CreateAttributeInfo(AttributeData attributeData, bool inherited)
     {
+        var constructorArguments = new List<AttributeArgumentInfo>();
+        foreach (var argument in attributeData.ConstructorArguments)
+        {
+            constructorArguments.Add(new AttributeArgumentInfo
+            {
+                Type = argument.Type?.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat),
+                Value = argument.Value?.ToString(),
+            });
+        }
+
+        var namedArguments = new List<AttributeArgumentInfo>();
+        foreach (var argument in attributeData.NamedArguments)
+        {
+            namedArguments.Add(new AttributeArgumentInfo
+            {
+                Name = argument.Key,
+                Type = argument.Value.Type?.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat),
+                Value = argument.Value.Value?.ToString(),
+            });
+        }
+
         return new AttributeInfo
         {
             Name = attributeData.AttributeClass?.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat) ?? string.Empty,
             Type = InspectionProjectionFactory.CreateTypeInfo(attributeData.AttributeClass),
             Inherited = inherited,
-            ConstructorArguments = attributeData.ConstructorArguments.Select(static argument => new AttributeArgumentInfo
-            {
-                Type = argument.Type?.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat),
-                Value = argument.Value?.ToString(),
-            }).ToArray(),
-            NamedArguments = attributeData.NamedArguments.Select(static argument => new AttributeArgumentInfo
-            {
-                Name = argument.Key,
-                Type = argument.Value.Type?.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat),
-                Value = argument.Value.Value?.ToString(),
-            }).ToArray(),
+            ConstructorArguments = constructorArguments,
+            NamedArguments = namedArguments,
         };
     }
 }

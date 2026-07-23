@@ -124,12 +124,15 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
             return ToolResolutionResult<ResolvedCodeContext, CodeContextData>.Rejected(PluginExecutionResultFactory.Rejected<CodeContextData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
         }
 
-        return ToolResolutionResult<ResolvedCodeContext, CodeContextData>.Resolved(new ResolvedCodeContext(
-                document,
-                sourceLocation,
-                syntaxRoot.FindNode(sourceLocation.SourceSpan, getInnermostNodeForTie: true),
-                resolvedLocation,
-                semanticModel));
+        var node = syntaxRoot.FindNode(sourceLocation.SourceSpan, getInnermostNodeForTie: true);
+        var codeContext = new ResolvedCodeContext(
+            document,
+            sourceLocation,
+            node,
+            resolvedLocation,
+            semanticModel);
+
+        return ToolResolutionResult<ResolvedCodeContext, CodeContextData>.Resolved(codeContext);
     }
 
     private sealed record ResolvedCodeContext

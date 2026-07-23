@@ -262,9 +262,9 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
             return ToolResolutionResult<ResolvedCalleeLocation, CalleeSearchData>.Rejected(PluginExecutionResultFactory.Rejected<CalleeSearchData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
         }
 
-        return ToolResolutionResult<ResolvedCalleeLocation, CalleeSearchData>.Resolved(new ResolvedCalleeLocation(
-                syntaxRoot.FindNode(sourceLocation.SourceSpan, getInnermostNodeForTie: true),
-                semanticModel));
+        var node = syntaxRoot.FindNode(sourceLocation.SourceSpan, getInnermostNodeForTie: true);
+        var resolvedLocation = new ResolvedCalleeLocation(node, semanticModel);
+        return ToolResolutionResult<ResolvedCalleeLocation, CalleeSearchData>.Resolved(resolvedLocation);
     }
 
     private sealed record ResolvedCalleeLocation

@@ -27,8 +27,16 @@ internal sealed class FindUnusedSymbolsTool : QueryToolHandler<FindUnusedSymbols
         SyntaxTree? activeSyntaxTree = null;
         SyntaxNode? syntaxRoot = null;
         SemanticModel? semanticModel = null;
-        var orderedDiagnostics = diagnostics
-            .Where(static diagnostic => IsUnusedDiagnosticId(diagnostic.Id))
+        var unusedDiagnostics = new List<Diagnostic>();
+        foreach (var diagnostic in diagnostics)
+        {
+            if (IsUnusedDiagnosticId(diagnostic.Id))
+            {
+                unusedDiagnostics.Add(diagnostic);
+            }
+        }
+
+        var orderedDiagnostics = unusedDiagnostics
             .OrderBy(static diagnostic => diagnostic.Location.SourceTree?.FilePath ?? string.Empty, StringComparer.Ordinal)
             .ThenBy(static diagnostic => diagnostic.Location.SourceSpan.Start)
             .ThenBy(static diagnostic => diagnostic.Id, StringComparer.Ordinal);

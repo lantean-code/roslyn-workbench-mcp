@@ -32,17 +32,21 @@ internal static class ToolExecutionHelpers
             return null;
         }
 
+        var span = new TextSpanSelector
+        {
+            Document = CreateDocumentSelector(resolvedLocation.Document),
+            Start = resolvedLocation.Span.Start,
+            Length = resolvedLocation.Span.Length,
+        };
+
+        var location = new LocationSelector
+        {
+            Span = span,
+        };
+
         return new SymbolSelector
         {
-            Location = new LocationSelector
-            {
-                Span = new TextSpanSelector
-                {
-                    Document = CreateDocumentSelector(resolvedLocation.Document),
-                    Start = resolvedLocation.Span.Start,
-                    Length = resolvedLocation.Span.Length,
-                },
-            },
+            Location = location,
         };
     }
 
@@ -53,27 +57,32 @@ internal static class ToolExecutionHelpers
             return null;
         }
 
+        var span = new TextSpanSelector
+        {
+            Document = CreateDocumentSelector(resolvedLocation.Document),
+            Start = resolvedLocation.Span.Start,
+            Length = resolvedLocation.Span.Length,
+        };
+
         return new LocationSelector
         {
-            Span = new TextSpanSelector
-            {
-                Document = CreateDocumentSelector(resolvedLocation.Document),
-                Start = resolvedLocation.Span.Start,
-                Length = resolvedLocation.Span.Length,
-            },
+            Span = span,
         };
     }
 
     private static DocumentSelector CreateDocumentSelector(DocumentReference document)
     {
-        return !string.IsNullOrWhiteSpace(document.DocumentId)
-            ? new DocumentSelector
+        if (!string.IsNullOrWhiteSpace(document.DocumentId))
+        {
+            return new DocumentSelector
             {
                 DocumentId = document.DocumentId,
-            }
-            : new DocumentSelector
-            {
-                Path = document.Path,
             };
+        }
+
+        return new DocumentSelector
+        {
+            Path = document.Path,
+        };
     }
 }

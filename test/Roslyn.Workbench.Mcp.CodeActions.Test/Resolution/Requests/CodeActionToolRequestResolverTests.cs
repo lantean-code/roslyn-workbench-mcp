@@ -123,11 +123,13 @@ public sealed class CodeActionToolRequestResolverTests
     }
 
     [Theory]
-    [InlineData("DocumentId", "DocumentPath", "DocumentId", null)]
-    [InlineData("", "DocumentPath", null, "DocumentPath")]
+    [InlineData("DocumentId", "DocumentPath", "ProjectId", "DocumentId", null)]
+    [InlineData("", "DocumentPath", "ProjectId", null, "DocumentPath")]
+    [InlineData("DocumentId", "DocumentPath", "", "DocumentId", null)]
     public void GIVEN_ResolvedLocation_WHEN_CreatingLocationSelector_THEN_ShouldProjectDocumentIdentityAndSpan(
         string documentId,
         string documentPath,
+        string projectId,
         string? expectedDocumentId,
         string? expectedPath)
     {
@@ -137,6 +139,7 @@ public sealed class CodeActionToolRequestResolverTests
             {
                 DocumentId = documentId,
                 Path = documentPath,
+                ProjectId = projectId,
             },
             Span = new TextSpanRange
             {
@@ -147,6 +150,15 @@ public sealed class CodeActionToolRequestResolverTests
 
         var result = _target.CreateLocationSelector(location);
 
+        ProjectSelector? expectedProject = null;
+        if (!string.IsNullOrWhiteSpace(projectId))
+        {
+            expectedProject = new ProjectSelector
+            {
+                ProjectId = projectId,
+            };
+        }
+
         result.Should().BeEquivalentTo(new LocationSelector
         {
             Span = new TextSpanSelector
@@ -155,6 +167,7 @@ public sealed class CodeActionToolRequestResolverTests
                 {
                     DocumentId = expectedDocumentId,
                     Path = expectedPath,
+                    Project = expectedProject,
                 },
                 Start = 1,
                 Length = 2,

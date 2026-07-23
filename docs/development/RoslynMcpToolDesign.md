@@ -608,8 +608,9 @@ Use common, strongly typed contracts for:
 - `IQueryContext` and `IMutationContext`: extend `IToolExecutionContext`.
   They remain intentionally similar; the tool's query or mutation contract,
   rather than ambient services, determines what it is permitted to return.
-- `DocumentSelector`: a workspace-local Roslyn `DocumentId`, with an optional
-  normalised workspace-relative path for JSON and human readability.
+- `DocumentSelector`: a workspace-local Roslyn `DocumentId` or normalised
+  workspace-relative path, with an optional `ProjectSelector` that disambiguates
+  linked or multi-target documents.
 - `TextSpanSelector`: a document selector plus zero-based UTF-16 `start` and
   `length`, directly matching Roslyn's `TextSpan` model.
 - `TextSelectionSelector`: an agent-friendly input locator containing a

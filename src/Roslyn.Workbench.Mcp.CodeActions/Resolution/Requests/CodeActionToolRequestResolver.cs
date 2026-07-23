@@ -131,17 +131,33 @@ internal sealed class CodeActionToolRequestResolver : ICodeActionToolRequestReso
 
     private static DocumentSelector CreateDocumentSelector(DocumentReference document)
     {
+        var project = CreateProjectSelector(document);
         if (!string.IsNullOrWhiteSpace(document.DocumentId))
         {
             return new DocumentSelector
             {
                 DocumentId = document.DocumentId,
+                Project = project,
             };
         }
 
         return new DocumentSelector
         {
             Path = document.Path,
+            Project = project,
+        };
+    }
+
+    private static ProjectSelector? CreateProjectSelector(DocumentReference document)
+    {
+        if (string.IsNullOrWhiteSpace(document.ProjectId))
+        {
+            return null;
+        }
+
+        return new ProjectSelector
+        {
+            ProjectId = document.ProjectId,
         };
     }
 }

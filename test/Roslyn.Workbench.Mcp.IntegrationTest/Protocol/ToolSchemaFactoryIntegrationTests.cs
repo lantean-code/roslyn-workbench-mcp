@@ -52,6 +52,22 @@ public sealed class ToolSchemaFactoryIntegrationTests
 
     [Fact]
     [Trait("Category", "Contract")]
+    public void GIVEN_DocumentRequest_WHEN_ExportingInputSchema_THEN_ShouldPublishProjectQualifier()
+    {
+        var target = CreateTarget();
+
+        var result = target.CreateInputSchema<FormatDocumentRequest>();
+
+        var documentProperty = GetProperty(result, "document");
+        var projectProperty = GetProperty(documentProperty, "project");
+        GetProperty(projectProperty, "projectId").ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        GetProperty(projectProperty, "name").ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        GetProperty(projectProperty, "path").ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        GetProperty(projectProperty, "targetFramework").ValueKind.Should().NotBe(JsonValueKind.Undefined);
+    }
+
+    [Fact]
+    [Trait("Category", "Contract")]
     public void GIVEN_BuiltInToolRequests_WHEN_AuditingLimitProperties_THEN_EveryLimitShouldDeclareAndPublishItsDefault()
     {
         var target = CreateTarget();

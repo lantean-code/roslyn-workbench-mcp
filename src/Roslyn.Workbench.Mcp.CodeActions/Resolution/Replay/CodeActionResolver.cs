@@ -89,10 +89,22 @@ internal sealed class CodeActionResolver : ICodeActionResolver
             return CodeActionTokenContextResolution.Unresolved();
         }
 
-        var documentResolution = context.WorkspaceResolver.ResolveDocument(new DocumentSelector
+        ProjectSelector? project = null;
+        if (!string.IsNullOrWhiteSpace(payload.ProjectId))
+        {
+            project = new ProjectSelector
+            {
+                ProjectId = payload.ProjectId,
+            };
+        }
+
+        var documentSelector = new DocumentSelector
         {
             Path = payload.DocumentPath,
-        });
+            Project = project,
+        };
+
+        var documentResolution = context.WorkspaceResolver.ResolveDocument(documentSelector);
 
         if (documentResolution.Status != SelectorResolveStatus.Resolved || documentResolution.Value is null)
         {

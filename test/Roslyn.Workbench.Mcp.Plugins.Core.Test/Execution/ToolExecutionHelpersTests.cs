@@ -57,6 +57,7 @@ public sealed class ToolExecutionHelpersTests
         selector.Span!.Document.Should().NotBeNull();
         selector.Span.Document!.DocumentId.Should().Be("DocumentId");
         selector.Span.Document.Path.Should().BeNull();
+        selector.Span.Document.Project!.ProjectId.Should().Be("ProjectId");
     }
 
     [Fact]
@@ -71,6 +72,33 @@ public sealed class ToolExecutionHelpersTests
         selector.Location.Span!.Document.Should().NotBeNull();
         selector.Location.Span.Document!.DocumentId.Should().Be("DocumentId");
         selector.Location.Span.Document.Path.Should().BeNull();
+        selector.Location.Span.Document.Project!.ProjectId.Should().Be("ProjectId");
+    }
+
+    [Fact]
+    public void GIVEN_PathOnlyResolvedLocation_WHEN_CreatingLocationSelector_THEN_ShouldPreserveUnqualifiedPath()
+    {
+        var resolvedLocation = new ResolvedLocation
+        {
+            Document = new DocumentReference
+            {
+                Path = "Shared/SharedClass.cs",
+            },
+            Span = new TextSpanRange
+            {
+                Start = 10,
+                Length = 5,
+            },
+        };
+
+        var selector = ToolExecutionHelpers.CreateLocationSelector(resolvedLocation);
+
+        selector.Should().NotBeNull();
+        selector!.Span.Should().NotBeNull();
+        selector.Span!.Document.Should().NotBeNull();
+        selector.Span.Document!.Path.Should().Be("Shared/SharedClass.cs");
+        selector.Span.Document.DocumentId.Should().BeNull();
+        selector.Span.Document.Project.Should().BeNull();
     }
 
     [Fact]

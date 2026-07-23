@@ -32,7 +32,7 @@ No open P0 release decisions or blockers remain from the documentation audit.
 
 ### Expand published-Host acceptance coverage
 
-**Status:** Started
+**Status:** Not started
 
 Implement the dependency-ordered release-capability batches covering the exact published artifact, configuration, discovery, public result contracts, valid and failing external packages, supported Workspace open shapes, selector families, every production query and mutation execution path, transaction history, durability, restart, protocol cancellation, concurrency and failure containment.
 
@@ -42,7 +42,7 @@ Source: [Published Host Acceptance Coverage Audit](AcceptanceCoverageAudit-2026-
 
 ### Automate release scenario validation and performance history
 
-**Status:** Started
+**Status:** Not started
 
 Add a release-branch and manual-dispatch workflow for the existing external-repository scenario runner after the repository's release-branch naming convention is selected. Produce a versioned normalised metrics aggregate, compare it with the previous GitHub release asset and publish an advisory Markdown regression report.
 
@@ -59,16 +59,6 @@ Implementation order:
 Source: [Testing Strategy](TestingStrategy.md#release-validation-and-performance-history), [Published Host Acceptance Coverage Audit](AcceptanceCoverageAudit-2026-07-23.md#release-only-scenario-validation-and-metrics)
 
 ## P2 — Release Support and Plugin Ecosystem
-
-### Make location selectors project-aware in multi-target workspaces
-
-**Status:** Not started
-
-Allow location-based tools to disambiguate a physical document that is loaded into more than one target-framework project. A path-only `DocumentSelector` currently matches every Roslyn document for that path, so tools such as `get-operation-tree` return `LocationAmbiguous` even when the caller knows the intended project and target framework.
-
-Add an optional project selector at the document or location boundary, preserve path-only behaviour for single matches, and require the qualified selector to resolve within the selected project variant. Apply the same qualifier consistently to span and copied-selection locations, publish it in MCP metadata and cover multi-target success, invalid project and genuinely ambiguous cases. Project-qualified symbol selectors are the existing model for the intended request shape.
-
-Source: Batch 5 findings in [Performance Scenario Coverage Audit](PerformanceScenarioCoverageAudit-2026-07-23.md#batch-5-implementation).
 
 ### Add a plugin-authoring analyser
 
@@ -122,21 +112,6 @@ Scheduled macOS Workspace integration and published-Host acceptance coverage is 
 Sources: [TestArchitectureReaudit-2026-07-18.md](TestArchitectureReaudit-2026-07-18.md#deferred-decisions), [IntegrationTestingStage7Results-2026-07-18.md](IntegrationTestingStage7Results-2026-07-18.md#platform-evidence)
 
 ## P3 — Engineering Efficiency
-
-### Audit repository-wide readability and incidental complexity
-
-**Status:** Started
-
-Extend the completed tool readability pass across all production and test code. Apply the general source rules consistently rather than limiting them to tool implementations:
-
-- insert a blank line after every multiline statement before the next statement;
-- replace conditional and null-coalescing expressions that perform non-trivial work on both alternatives with named intermediate values or ordinary branching;
-- simplify nested construction, long variable chains and dense LINQ where they make control flow or allocation behaviour difficult to verify; and
-- retain simple ternaries and null coalescing between values where the expression remains clearer than an expanded branch.
-
-Perform the audit in cohesive project-level batches, preserving behaviour and avoiding unrelated architectural changes. Keep general cleanup separate from measured performance changes, and require performance evidence before altering hot-path implementation choices.
-
-Source: [`src/AGENTS.md`](../../src/AGENTS.md), [ReadabilityAudit-2026-07-23.md](ReadabilityAudit-2026-07-23.md)
 
 ### Decide the NuGet lock-file and caching policy
 

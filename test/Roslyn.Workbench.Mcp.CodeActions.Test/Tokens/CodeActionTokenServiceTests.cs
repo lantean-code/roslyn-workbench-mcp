@@ -102,6 +102,7 @@ public sealed class CodeActionTokenServiceTests
             TransactionRevision = 4,
             ExpiresAt = "2000-01-01T00:00:00.0000000Z",
             DocumentPath = "DocumentPath",
+            ProjectId = "ProjectId",
             Start = 5,
             Length = 6,
         };

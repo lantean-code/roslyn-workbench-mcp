@@ -24,6 +24,8 @@ internal sealed record CodeActionTokenPayload
 
     public string DocumentPath { get; init; } = string.Empty;
 
+    public string ProjectId { get; init; } = string.Empty;
+
     public int Start { get; init; }
 
     public int Length { get; init; }

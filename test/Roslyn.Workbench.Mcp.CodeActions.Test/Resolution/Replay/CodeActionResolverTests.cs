@@ -201,12 +201,40 @@ public sealed class CodeActionResolverTests : IDisposable
         SelectorResolveStatus status)
     {
         _workspaceResolver
-            .Setup(item => item.ResolveDocument(It.Is<DocumentSelector>(selector => selector.Path == "DocumentPath")))
+            .Setup(item => item.ResolveDocument(It.Is<DocumentSelector>(selector =>
+                selector.Path == "DocumentPath"
+                && selector.Project != null
+                && selector.Project.ProjectId == "ProjectId")))
             .Returns(SelectorTestFactory.CreateUnresolvedResult<Document>(status));
 
         var result = await ResolveAsync();
 
         AssertExpired(result);
+    }
+
+    [Fact]
+    public async Task GIVEN_TokenProject_WHEN_ResolvingAction_THEN_ShouldQualifyDocumentSelector()
+    {
+        var result = await ResolveAsync();
+
+        result.HasRejection.Should().BeFalse();
+        _workspaceResolver.Verify(item => item.ResolveDocument(It.Is<DocumentSelector>(selector =>
+            selector.Path == "DocumentPath"
+            && selector.Project != null
+            && selector.Project.ProjectId == "ProjectId")), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_LegacyTokenWithoutProject_WHEN_ResolvingAction_THEN_ShouldUseUnqualifiedDocumentSelector()
+    {
+        SetupToken(CreatePayload() with { ProjectId = string.Empty });
+
+        var result = await ResolveAsync();
+
+        result.HasRejection.Should().BeFalse();
+        _workspaceResolver.Verify(item => item.ResolveDocument(It.Is<DocumentSelector>(selector =>
+            selector.Path == "DocumentPath"
+            && selector.Project == null)), Times.Once);
     }
 
     [Theory]
@@ -433,6 +461,7 @@ public sealed class CodeActionResolverTests : IDisposable
             TransactionRevision = 2,
             ExpiresAt = _utcNow.AddHours(1).ToString("O"),
             DocumentPath = "DocumentPath",
+            ProjectId = "ProjectId",
             Start = 3,
             Length = 4,
         };

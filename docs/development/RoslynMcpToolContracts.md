@@ -173,7 +173,7 @@ Roslyn `TextSpan`.
 | Component | Fields |
 |---|---|
 | `WorkspaceSelector` | `workspaceId?: string`, `alias?: string`, `path?: string`. At least one is required; multiple values must resolve to one loaded workspace session. |
-| `DocumentSelector` | `path?: string`, `documentId?: string`. Exactly one is required. `path` is normalised and workspace-relative. |
+| `DocumentSelector` | `path?: string`, `documentId?: string`, `project?: ProjectSelector`. Exactly one document identity is required. `path` is normalised and workspace-relative. The optional project scope disambiguates linked or multi-target documents and must resolve to the project containing the selected document. |
 | `ProjectSelector` | `projectId?: string`, `name?: string`, `path?: string`, `targetFramework?: string`. At least one is required; multiple values must resolve to one project. `targetFramework` selects the target-specific Roslyn project produced for multi-target builds. |
 | `SnapshotPrecondition` | `{ workspaceId?: string, workspaceEpoch: long, transactionRevision?: int }`. It asserts the effective solution snapshot on which a prior location, selection or symbol result was obtained. |
 | `TextSpanSelector` | `document: DocumentSelector`, `start: int`, `length: int`. |

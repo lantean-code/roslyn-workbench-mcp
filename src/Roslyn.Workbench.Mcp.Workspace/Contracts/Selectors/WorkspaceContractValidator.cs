@@ -4,9 +4,18 @@ internal static class WorkspaceContractValidator
 {
     public static IReadOnlyList<string> Validate(DocumentSelector selector)
     {
-        return CountProvided(selector.Path, selector.DocumentId) == 1
-            ? []
-            : ["DocumentSelector must provide exactly one of Path or DocumentId."];
+        var errors = new List<string>();
+        if (CountProvided(selector.Path, selector.DocumentId) != 1)
+        {
+            errors.Add("DocumentSelector must provide exactly one of Path or DocumentId.");
+        }
+
+        if (selector.Project is not null)
+        {
+            errors.AddRange(Validate(selector.Project));
+        }
+
+        return errors;
     }
 
     public static IReadOnlyList<string> Validate(ProjectSelector selector)

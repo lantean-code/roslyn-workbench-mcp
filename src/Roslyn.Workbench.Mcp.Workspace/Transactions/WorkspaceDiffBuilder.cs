@@ -82,10 +82,22 @@ internal static class WorkspaceDiffBuilder
         int contextLines,
         CancellationToken cancellationToken)
     {
-        var currentDocumentResolution = resolver.ResolveDocument(new DocumentSelector
+        ProjectSelector? project = null;
+        if (!string.IsNullOrWhiteSpace(documentReference.ProjectId))
+        {
+            project = new ProjectSelector
+            {
+                ProjectId = documentReference.ProjectId,
+            };
+        }
+
+        var documentSelector = new DocumentSelector
         {
             DocumentId = documentReference.DocumentId,
-        });
+            Project = project,
+        };
+
+        var currentDocumentResolution = resolver.ResolveDocument(documentSelector);
 
         var currentDocument = currentDocumentResolution.Value;
         var baselineDocument = baselineSolution.Projects

@@ -259,6 +259,151 @@ public sealed class WorkspaceResolverTests
     }
 
     [Fact]
+    public void GIVEN_DuplicateDocumentPathAndProjectSelector_WHEN_ResolvingDocument_THEN_ShouldReturnProjectDocument()
+    {
+        using var workspace = CreateWorkspace("FirstProject", "Document.cs", "class C { }");
+        var expectedProject = AddProject(workspace, "SecondProject");
+        var expectedDocument = AddDocument(
+            workspace,
+            expectedProject,
+            "Document.cs",
+            "class D { }",
+            Path.Combine(GetWorkspaceRoot(), "FirstProject", "Document.cs"));
+
+        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+        var selector = new DocumentSelector
+        {
+            Path = "FirstProject/Document.cs",
+            Project = new ProjectSelector
+            {
+                ProjectId = expectedProject.Id.Id.ToString(),
+            },
+        };
+
+        var result = target.ResolveDocument(selector);
+
+        result.Status.Should().Be(SelectorResolveStatus.Resolved);
+        result.Value!.Id.Should().Be(expectedDocument.Id);
+        result.Value.Project.Id.Should().Be(expectedProject.Id);
+    }
+
+    [Fact]
+    public void GIVEN_MultiTargetDocumentPathAndTargetFramework_WHEN_ResolvingDocument_THEN_ShouldReturnTargetProjectDocument()
+    {
+        using var workspace = CreateWorkspace("Sample(net8.0)", "Document.cs", "class C { }");
+        var expectedProject = AddProject(workspace, "Sample(net10.0)");
+        var expectedDocument = AddDocument(
+            workspace,
+            expectedProject,
+            "Document.cs",
+            "class C { }",
+            Path.Combine(GetWorkspaceRoot(), "Sample", "Document.cs"));
+
+        var firstDocument = workspace.CurrentSolution.Projects
+            .Single(static project => project.Name == "Sample(net8.0)")
+            .Documents
+            .Single();
+
+        workspace.TryApplyChanges(workspace.CurrentSolution.WithDocumentFilePath(
+            firstDocument.Id,
+            Path.Combine(GetWorkspaceRoot(), "Sample", "Document.cs"))).Should().BeTrue();
+
+        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+        var selector = new DocumentSelector
+        {
+            Path = "Sample/Document.cs",
+            Project = new ProjectSelector
+            {
+                TargetFramework = "net10.0",
+            },
+        };
+
+        var result = target.ResolveDocument(selector);
+
+        result.Status.Should().Be(SelectorResolveStatus.Resolved);
+        result.Value!.Id.Should().Be(expectedDocument.Id);
+        result.Value.Project.Id.Should().Be(expectedProject.Id);
+    }
+
+    [Fact]
+    public void GIVEN_SharedSerializedDocumentIdAndProjectSelector_WHEN_ResolvingDocument_THEN_ShouldReturnProjectDocument()
+    {
+        using var workspace = new AdhocWorkspace();
+        var documentGuid = Guid.NewGuid();
+        var firstProject = AddProject(workspace, "FirstProject");
+        var secondProject = AddProject(workspace, "SecondProject");
+        AddDocument(
+            workspace,
+            firstProject,
+            "Document.cs",
+            "class C { }",
+            Path.Combine(GetWorkspaceRoot(), "FirstProject", "Document.cs"),
+            documentGuid);
+
+        var expectedDocument = AddDocument(
+            workspace,
+            secondProject,
+            "Document.cs",
+            "class D { }",
+            Path.Combine(GetWorkspaceRoot(), "SecondProject", "Document.cs"),
+            documentGuid);
+
+        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+        var selector = new DocumentSelector
+        {
+            DocumentId = documentGuid.ToString(),
+            Project = new ProjectSelector
+            {
+                Name = "SecondProject",
+            },
+        };
+
+        var result = target.ResolveDocument(selector);
+
+        result.Status.Should().Be(SelectorResolveStatus.Resolved);
+        result.Value.Should().BeSameAs(expectedDocument);
+    }
+
+    [Fact]
+    public void GIVEN_UnknownDocumentProject_WHEN_ResolvingDocument_THEN_ShouldReturnNotFound()
+    {
+        using var workspace = CreateWorkspace("Project", "Document.cs", "class C { }");
+        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+        var selector = new DocumentSelector
+        {
+            Path = "Project/Document.cs",
+            Project = new ProjectSelector
+            {
+                Name = "UnknownProject",
+            },
+        };
+
+        var result = target.ResolveDocument(selector);
+
+        result.Status.Should().Be(SelectorResolveStatus.NotFound);
+    }
+
+    [Fact]
+    public void GIVEN_AmbiguousDocumentProject_WHEN_ResolvingDocument_THEN_ShouldReturnAmbiguous()
+    {
+        using var workspace = CreateWorkspace("Project", "Document.cs", "class C { }");
+        AddProject(workspace, "Project");
+        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+        var selector = new DocumentSelector
+        {
+            Path = "Project/Document.cs",
+            Project = new ProjectSelector
+            {
+                Name = "Project",
+            },
+        };
+
+        var result = target.ResolveDocument(selector);
+
+        result.Status.Should().Be(SelectorResolveStatus.Ambiguous);
+    }
+
+    [Fact]
     public void GIVEN_ProjectIdNameOrPath_WHEN_ResolvingProject_THEN_ShouldReturnMatchingProject()
     {
         using var workspace = CreateWorkspace("Project", "Document.cs", "class C { }");
@@ -373,6 +518,42 @@ public sealed class WorkspaceResolverTests
 
         unique.Status.Should().Be(SelectorResolveStatus.Resolved);
         repeated.Status.Should().Be(SelectorResolveStatus.Ambiguous);
+    }
+
+    [Fact]
+    public async Task GIVEN_ProjectQualifiedSharedPath_WHEN_ResolvingLocation_THEN_ShouldResolveWithoutAmbiguity()
+    {
+        using var workspace = CreateWorkspace("FirstProject", "Document.cs", "class C { }");
+        var secondProject = AddProject(workspace, "SecondProject");
+        AddDocument(
+            workspace,
+            secondProject,
+            "Document.cs",
+            "class D { }",
+            Path.Combine(GetWorkspaceRoot(), "FirstProject", "Document.cs"));
+
+        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+        var selector = new LocationSelector
+        {
+            Span = new TextSpanSelector
+            {
+                Document = new DocumentSelector
+                {
+                    Path = "FirstProject/Document.cs",
+                    Project = new ProjectSelector
+                    {
+                        Name = "SecondProject",
+                    },
+                },
+                Start = 6,
+                Length = 1,
+            },
+        };
+
+        var result = await target.ResolveLocationAsync(selector, TestContext.Current.CancellationToken);
+
+        result.Status.Should().Be(SelectorResolveStatus.Resolved);
+        result.Value!.SourceSpan.Should().Be(new TextSpan(6, 1));
     }
 
     [Fact]
@@ -916,6 +1097,80 @@ public sealed class WorkspaceResolverTests
                 },
             },
         }, TestContext.Current.CancellationToken);
+
+        result.Status.Should().Be(SelectorResolveStatus.NotFound);
+    }
+
+    [Fact]
+    public async Task GIVEN_MatchingSymbolAndDocumentProjects_WHEN_ResolvingSymbol_THEN_ShouldReturnProjectSymbol()
+    {
+        using var workspace = CreateWorkspace("FirstProject", "Document.cs", "class C { }");
+        var secondProject = AddProject(workspace, "SecondProject");
+        AddDocument(
+            workspace,
+            secondProject,
+            "Document.cs",
+            "class D { }",
+            Path.Combine(GetWorkspaceRoot(), "FirstProject", "Document.cs"));
+
+        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+        var projectSelector = new ProjectSelector { Name = "SecondProject" };
+        var selector = new SymbolSelector
+        {
+            Project = projectSelector,
+            Location = new LocationSelector
+            {
+                Span = new TextSpanSelector
+                {
+                    Document = new DocumentSelector
+                    {
+                        Path = "FirstProject/Document.cs",
+                        Project = projectSelector,
+                    },
+                    Start = 6,
+                    Length = 1,
+                },
+            },
+        };
+
+        var result = await target.ResolveSymbolAsync(selector, TestContext.Current.CancellationToken);
+
+        result.Status.Should().Be(SelectorResolveStatus.Resolved);
+        result.Value!.ContainingAssembly.Name.Should().Be("SecondProject");
+    }
+
+    [Fact]
+    public async Task GIVEN_ConflictingSymbolAndDocumentProjects_WHEN_ResolvingSymbol_THEN_ShouldReturnNotFound()
+    {
+        using var workspace = CreateWorkspace("FirstProject", "Document.cs", "class C { }");
+        var secondProject = AddProject(workspace, "SecondProject");
+        AddDocument(
+            workspace,
+            secondProject,
+            "Document.cs",
+            "class D { }",
+            Path.Combine(GetWorkspaceRoot(), "FirstProject", "Document.cs"));
+
+        var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
+        var selector = new SymbolSelector
+        {
+            Project = new ProjectSelector { Name = "FirstProject" },
+            Location = new LocationSelector
+            {
+                Span = new TextSpanSelector
+                {
+                    Document = new DocumentSelector
+                    {
+                        Path = "FirstProject/Document.cs",
+                        Project = new ProjectSelector { Name = "SecondProject" },
+                    },
+                    Start = 6,
+                    Length = 1,
+                },
+            },
+        };
+
+        var result = await target.ResolveSymbolAsync(selector, TestContext.Current.CancellationToken);
 
         result.Status.Should().Be(SelectorResolveStatus.NotFound);
     }

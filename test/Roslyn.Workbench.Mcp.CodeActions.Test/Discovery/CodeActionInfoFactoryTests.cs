@@ -47,6 +47,7 @@ public sealed class CodeActionInfoFactoryTests
                 && payload.TransactionRevision == 2
                 && payload.ExpiresAt == "2000-01-01T00:05:00.0000000+00:00"
                 && payload.DocumentPath == "DocumentPath"
+                && payload.ProjectId == roslyn.Document.Project.Id.Id.ToString()
                 && payload.Start == 3
                 && payload.Length == 4)))
             .Returns("ActionId");
@@ -109,7 +110,8 @@ public sealed class CodeActionInfoFactoryTests
         tokenService
             .Setup(item => item.Encode(It.Is<CodeActionTokenPayload>(payload =>
                 payload.Kind == "CodeFix"
-                && payload.DocumentPath == "NormalizedDocumentName")))
+                && payload.DocumentPath == "NormalizedDocumentName"
+                && payload.ProjectId == document.Project.Id.Id.ToString())))
             .Returns("ActionId");
 
         var target = new CodeActionInfoFactory(

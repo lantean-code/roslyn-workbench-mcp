@@ -164,7 +164,10 @@ public sealed class WorkspaceDiffBuilderTests : IDisposable
         var currentDocument = currentSolution.GetDocument(documentId)!;
         var expectedReference = CreateDocumentReference(currentDocument);
         _resolver
-            .Setup(item => item.ResolveDocument(It.Is<DocumentSelector>(selector => selector.DocumentId == expectedReference.DocumentId)))
+            .Setup(item => item.ResolveDocument(It.Is<DocumentSelector>(selector =>
+                selector.DocumentId == expectedReference.DocumentId
+                && selector.Project != null
+                && selector.Project.ProjectId == expectedReference.ProjectId)))
             .Returns(SelectorResolveResult<Document>.Resolved(currentDocument));
 
         _resolver.Setup(item => item.CreateDocumentReference(currentDocument)).Returns(expectedReference);

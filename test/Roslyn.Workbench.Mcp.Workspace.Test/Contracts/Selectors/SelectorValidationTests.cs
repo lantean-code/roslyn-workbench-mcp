@@ -48,6 +48,37 @@ public sealed class SelectorValidationTests
     }
 
     [Fact]
+    public void GIVEN_DocumentSelectorWithValidProject_WHEN_Validated_THEN_ShouldReturnNoValidationErrors()
+    {
+        var selector = new DocumentSelector
+        {
+            Path = "Path",
+            Project = new ProjectSelector
+            {
+                ProjectId = "ProjectId",
+            },
+        };
+
+        var errors = WorkspaceContractValidator.Validate(selector);
+
+        errors.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void GIVEN_DocumentSelectorWithEmptyProject_WHEN_Validated_THEN_ShouldReturnProjectValidationError()
+    {
+        var selector = new DocumentSelector
+        {
+            Path = "Path",
+            Project = new ProjectSelector(),
+        };
+
+        var errors = WorkspaceContractValidator.Validate(selector);
+
+        errors.Should().ContainSingle(error => error.Contains("ProjectSelector", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void GIVEN_ProjectSelectorWithoutAnySelector_WHEN_Validated_THEN_ShouldReturnValidationError()
     {
         var selector = new ProjectSelector();

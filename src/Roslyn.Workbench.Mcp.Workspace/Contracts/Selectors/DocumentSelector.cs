@@ -6,6 +6,11 @@ namespace Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
 public sealed record DocumentSelector
 {
     /// <summary>
+    /// Gets the optional project scope used to disambiguate the document.
+    /// </summary>
+    public ProjectSelector? Project { get; init; }
+
+    /// <summary>
     /// Gets the normalized workspace-relative document path.
     /// </summary>
     public string? Path { get; init; }

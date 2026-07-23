@@ -208,6 +208,22 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
 
     private SelectorResolveResult<Document> ResolveDocument(DocumentSelector selector, Project? project)
     {
+        if (selector.Project is not null)
+        {
+            var projectResolution = ResolveProject(selector.Project);
+            if (!projectResolution.IsResolved)
+            {
+                return CreateUnresolvedResult<Document>(projectResolution.Status);
+            }
+
+            if (project is not null && project.Id != projectResolution.Value.Id)
+            {
+                return SelectorResolveResult<Document>.NotFound();
+            }
+
+            project = projectResolution.Value;
+        }
+
         IEnumerable<Project> projects = project is null
             ? _solution.Projects
             : [project];

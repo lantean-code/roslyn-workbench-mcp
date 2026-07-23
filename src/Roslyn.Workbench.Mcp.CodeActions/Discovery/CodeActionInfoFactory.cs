@@ -40,6 +40,7 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
             TransactionRevision = context.TransactionRevision,
             ExpiresAt = expiresAtText,
             DocumentPath = context.WorkspaceResolver.NormalizeDocumentPath(document.FilePath ?? document.Name),
+            ProjectId = document.Project.Id.Id.ToString(),
             Start = span.Start,
             Length = span.Length,
         };

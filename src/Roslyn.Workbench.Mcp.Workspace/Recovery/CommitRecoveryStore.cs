@@ -19,7 +19,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
     private readonly string _recoveryDirectory;
 
     public CommitRecoveryStore(
-        IOptions<WorkspaceCoordinatorOptions> options,
+        IOptions<WorkspaceOptions> options,
         IFileSystem fileSystem,
         IAtomicFileWriter atomicFileWriter,
         IWorkspacePathComparison pathComparison)

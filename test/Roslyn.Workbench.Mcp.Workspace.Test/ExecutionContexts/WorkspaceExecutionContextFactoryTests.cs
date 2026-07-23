@@ -32,7 +32,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         _resolverFactory.Setup(item => item.Create(It.IsAny<Solution>(), It.IsAny<WorkspaceIdentity>(), It.IsAny<int?>()))
             .Returns(_resolver.Object);
         _target = new WorkspaceExecutionContextFactory(
-            Options.Create(new WorkspaceCoordinatorOptions { DefaultMaxResults = 25 }),
+            Options.Create(new WorkspaceOptions { DefaultMaxResults = 25 }),
             _sessionStore.Object,
             _sessionAcquirer.Object,
             _changeDetector.Object,

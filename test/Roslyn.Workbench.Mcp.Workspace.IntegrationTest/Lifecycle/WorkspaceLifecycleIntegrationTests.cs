@@ -1,4 +1,4 @@
-namespace Roslyn.Workbench.Mcp.Workspace.Test;
+namespace Roslyn.Workbench.Mcp.Workspace.Test.Lifecycle;
 
 public sealed class WorkspaceLifecycleIntegrationTests
 {
@@ -173,7 +173,7 @@ public sealed class WorkspaceLifecycleIntegrationTests
         using var stateDirectory = TemporaryDirectory.Create("roslyn-workbench-mcp-recovery-tests");
         var fileSystem = new FileSystem();
         var recoveryStore = new CommitRecoveryStore(
-            Options.Create(new WorkspaceCoordinatorOptions { StateDirectory = stateDirectory.DirectoryPath }),
+            Options.Create(new WorkspaceOptions { StateDirectory = stateDirectory.DirectoryPath }),
             fileSystem,
             new AtomicFileWriter(fileSystem, new NativeAtomicFileCommitter()),
             new WorkspacePathComparison());

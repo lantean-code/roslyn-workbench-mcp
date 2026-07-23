@@ -1,4 +1,4 @@
-namespace Roslyn.Workbench.Mcp.Workspace.Test;
+namespace Roslyn.Workbench.Mcp.Workspace.Test.IO;
 
 public sealed class AtomicFileWriterIntegrationTests
 {

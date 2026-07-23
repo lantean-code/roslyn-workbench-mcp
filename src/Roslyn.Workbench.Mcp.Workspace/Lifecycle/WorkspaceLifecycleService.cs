@@ -4,7 +4,7 @@ namespace Roslyn.Workbench.Mcp.Workspace.Lifecycle;
 
 internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
 {
-    private readonly WorkspaceCoordinatorOptions _options;
+    private readonly WorkspaceOptions _options;
     private readonly IWorkspaceSessionStore _sessionStore;
     private readonly IWorkspaceSessionAcquirer _sessionAcquirer;
     private readonly IWorkspaceLoader _workspaceLoader;
@@ -18,7 +18,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
     private readonly IWorkspaceInstanceStatusPublisher _instanceStatusPublisher;
 
     public WorkspaceLifecycleService(
-        IOptions<WorkspaceCoordinatorOptions> options,
+        IOptions<WorkspaceOptions> options,
         IWorkspaceSessionStore sessionStore,
         IWorkspaceSessionAcquirer sessionAcquirer,
         IWorkspaceLoader workspaceLoader,

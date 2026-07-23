@@ -4,7 +4,7 @@ namespace Roslyn.Workbench.Mcp.Workspace.ExecutionContexts;
 
 internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionContextFactory
 {
-    private readonly WorkspaceCoordinatorOptions _options;
+    private readonly WorkspaceOptions _options;
     private readonly IWorkspaceSessionStore _sessionStore;
     private readonly IWorkspaceSessionAcquirer _sessionAcquirer;
     private readonly IWorkspaceChangeDetector _workspaceChangeDetector;
@@ -13,7 +13,7 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
     private readonly IWorkspaceResolverFactory _resolverFactory;
 
     public WorkspaceExecutionContextFactory(
-        IOptions<WorkspaceCoordinatorOptions> options,
+        IOptions<WorkspaceOptions> options,
         IWorkspaceSessionStore sessionStore,
         IWorkspaceSessionAcquirer sessionAcquirer,
         IWorkspaceChangeDetector workspaceChangeDetector,

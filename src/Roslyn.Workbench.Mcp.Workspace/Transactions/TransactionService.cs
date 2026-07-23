@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
 internal sealed class TransactionService : ITransactionService
 {
-    private readonly WorkspaceCoordinatorOptions _options;
+    private readonly WorkspaceOptions _options;
     private readonly IWorkspaceSessionStore _sessionStore;
     private readonly IWorkspaceSessionAcquirer _sessionAcquirer;
     private readonly IWorkspaceStateTransitions _workspaceStateTransitions;
@@ -15,7 +15,7 @@ internal sealed class TransactionService : ITransactionService
     private readonly IWorkspaceInstanceStatusPublisher _instanceStatusPublisher;
 
     public TransactionService(
-        IOptions<WorkspaceCoordinatorOptions> options,
+        IOptions<WorkspaceOptions> options,
         IWorkspaceSessionStore sessionStore,
         IWorkspaceSessionAcquirer sessionAcquirer,
         IWorkspaceStateTransitions workspaceStateTransitions,

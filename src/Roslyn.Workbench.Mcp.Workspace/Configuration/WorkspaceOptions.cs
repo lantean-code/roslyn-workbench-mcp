@@ -1,9 +1,9 @@
 namespace Roslyn.Workbench.Mcp.Workspace.Configuration;
 
 /// <summary>
-/// Represents the configuration options for the workspace coordinator.
+/// Represents configuration shared by workspace subsystems.
 /// </summary>
-internal sealed class WorkspaceCoordinatorOptions
+internal sealed class WorkspaceOptions
 {
     /// <summary>
     /// Gets the maximum number of concurrent query leases.

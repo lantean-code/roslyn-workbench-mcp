@@ -54,7 +54,7 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
                 MaxTransactionRevisions = options.MaxTransactionRevisions,
                 StateDirectory = stateDirectory,
             });
-            services.Configure<WorkspaceCoordinatorOptions>(configured =>
+            services.Configure<WorkspaceOptions>(configured =>
                 configured.MaxLoadedWorkspaces = options.MaxLoadedWorkspaces);
             services.Configure<CodeActionCompositionOptions>(configured =>
                 configured.IncludeBuiltInAssemblies = false);

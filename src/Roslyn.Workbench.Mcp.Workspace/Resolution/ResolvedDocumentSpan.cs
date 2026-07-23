@@ -1,4 +1,4 @@
-namespace Roslyn.Workbench.Mcp.Workspace.Selection;
+namespace Roslyn.Workbench.Mcp.Workspace.Resolution;
 
 internal sealed record ResolvedDocumentSpan
 {

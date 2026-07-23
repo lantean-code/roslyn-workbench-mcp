@@ -131,7 +131,7 @@ Repeat the completed Code Actions structural audit across the remaining producti
 
 Do not introduce arbitrary alphabetical or verb-based subfolders for large but cohesive groups. Preserve project boundaries and behaviour, update all consumers as namespace changes are made, and validate each project-level batch with formatting, the solution build, the `latest-all` analyzer set and affected tests.
 
-The scenario runner and `Roslyn.Workbench.Mcp.Plugins.Core` batches are complete. Their roots now contain only entry/runtime assets, implementation folders and namespaces are responsibility-aligned, matching tests mirror the production structure, scenario families remain cohesive, and misleading `Default` prefixes have been removed from sole internal plugin-core implementations. Continue with the remaining production and test projects as separate project-level batches.
+The scenario runner, `Roslyn.Workbench.Mcp.Plugins.Core` and `Roslyn.Workbench.Mcp.Workspace` batches are complete. Their roots now contain only entry/runtime assets, implementation folders and namespaces are responsibility-aligned, matching tests mirror the production structure, scenario families remain cohesive, and misleading or stale implementation names have been corrected. Continue with the remaining production and test projects as separate project-level batches.
 
 Source: completed `Roslyn.Workbench.Mcp.CodeActions` folder and namespace audit.
 

@@ -55,7 +55,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             .Setup(item => item.GetOtherLiveInstancesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(WorkspaceInstanceStatusResult.Empty);
         _target = new WorkspaceLifecycleService(
-            Options.Create(new WorkspaceCoordinatorOptions
+            Options.Create(new WorkspaceOptions
             {
                 MaxConcurrentQueries = 3,
                 MaxLoadedWorkspaces = 2,

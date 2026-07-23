@@ -1,4 +1,4 @@
-namespace Roslyn.Workbench.Mcp.Workspace.IntegrationTest.Loading;
+namespace Roslyn.Workbench.Mcp.Workspace.Test.Loading;
 
 public sealed class WorkspaceProjectCompatibilityInspectorIntegrationTests
 {

@@ -1,4 +1,4 @@
-namespace Roslyn.Workbench.Mcp.Workspace.Test;
+namespace Roslyn.Workbench.Mcp.Workspace.Test.TestSupport;
 
 [Trait("Category", "Integration")]
 public sealed class WorkspaceAssetMaterializerIntegrationTests

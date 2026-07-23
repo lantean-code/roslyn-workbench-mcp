@@ -39,7 +39,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
             {
                 options.TokenLifetime = configuredStartupOptions.Value.CodeActionTokenLifetime;
             });
-        services.AddOptions<WorkspaceCoordinatorOptions>()
+        services.AddOptions<WorkspaceOptions>()
             .Configure<IOptions<StartupOptions>>((options, configuredStartupOptions) =>
             {
                 var configured = configuredStartupOptions.Value;

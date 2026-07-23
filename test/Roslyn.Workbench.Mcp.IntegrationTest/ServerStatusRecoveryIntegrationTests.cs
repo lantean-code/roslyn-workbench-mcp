@@ -10,7 +10,7 @@ public sealed class ServerStatusRecoveryIntegrationTests
         using var stateDirectory = TemporaryDirectory.Create("roslyn-workbench-mcp-status-tests");
         var fileSystem = new FileSystem();
         var recoveryStore = new CommitRecoveryStore(
-            Options.Create(new WorkspaceCoordinatorOptions { StateDirectory = stateDirectory.DirectoryPath }),
+            Options.Create(new WorkspaceOptions { StateDirectory = stateDirectory.DirectoryPath }),
             fileSystem,
             new AtomicFileWriter(fileSystem, new NativeAtomicFileCommitter()),
             new WorkspacePathComparison());

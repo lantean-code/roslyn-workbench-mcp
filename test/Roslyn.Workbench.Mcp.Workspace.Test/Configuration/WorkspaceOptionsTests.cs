@@ -2,12 +2,12 @@ using Roslyn.Workbench.Mcp.Workspace.Configuration;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test.Configuration;
 
-public sealed class WorkspaceCoordinatorOptionsTests
+public sealed class WorkspaceOptionsTests
 {
     [Fact]
     public void GIVEN_DefaultOptions_WHEN_ReadingValues_THEN_ShouldExposeOperationalDefaults()
     {
-        var target = new WorkspaceCoordinatorOptions();
+        var target = new WorkspaceOptions();
 
         target.MaxConcurrentQueries.Should().Be(2);
         target.DefaultMaxResults.Should().Be(100);

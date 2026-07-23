@@ -56,7 +56,7 @@ public sealed class CommitRecoveryStoreTests
         _pathComparison.Setup(item => item.GetComparison(It.IsAny<string>())).Returns(StringComparison.Ordinal);
         _pathComparison.Setup(item => item.GetComparer(It.IsAny<string>())).Returns(StringComparer.Ordinal);
         _target = new CommitRecoveryStore(
-            Options.Create(new WorkspaceCoordinatorOptions { StateDirectory = "StateDirectory" }),
+            Options.Create(new WorkspaceOptions { StateDirectory = "StateDirectory" }),
             _fileSystem.Object,
             _atomicFileWriter.Object,
             _pathComparison.Object);

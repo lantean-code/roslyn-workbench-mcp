@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using Moq;
 
-namespace Roslyn.Workbench.Mcp.Workspace.Test;
+namespace Roslyn.Workbench.Mcp.Workspace.Test.Transactions;
 
 public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
 {
@@ -22,7 +22,7 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
         _fileCommitter = new NativeAtomicFileCommitter();
         _atomicWriter = new AtomicFileWriter(_fileSystem, _fileCommitter);
         _store = new CommitRecoveryStore(
-            Options.Create(new WorkspaceCoordinatorOptions { StateDirectory = _stateDirectory }),
+            Options.Create(new WorkspaceOptions { StateDirectory = _stateDirectory }),
             _fileSystem,
             _atomicWriter,
             new WorkspacePathComparison());
@@ -242,7 +242,7 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
         var fileCommitter = new NativeAtomicFileCommitter();
         var atomicWriter = new AtomicFileWriter(fileSystem, fileCommitter);
         var store = new CommitRecoveryStore(
-            Options.Create(new WorkspaceCoordinatorOptions { StateDirectory = _stateDirectory }),
+            Options.Create(new WorkspaceOptions { StateDirectory = _stateDirectory }),
             fileSystem,
             atomicWriter,
             new WorkspacePathComparison());

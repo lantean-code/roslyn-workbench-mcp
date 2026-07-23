@@ -36,7 +36,7 @@ public sealed class TransactionServiceTests : IDisposable
         _resolver = new Mock<IWorkspaceResolver>();
         _instanceStatusPublisher = new Mock<IWorkspaceInstanceStatusPublisher>();
         _target = new TransactionService(
-            Options.Create(new WorkspaceCoordinatorOptions { MaxTransactionRevisions = 5 }),
+            Options.Create(new WorkspaceOptions { MaxTransactionRevisions = 5 }),
             _sessionStore.Object,
             _sessionAcquirer.Object,
             _stateTransitions.Object,

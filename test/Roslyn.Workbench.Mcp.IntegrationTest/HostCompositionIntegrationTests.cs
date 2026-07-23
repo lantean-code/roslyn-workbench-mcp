@@ -19,7 +19,7 @@ public sealed class HostCompositionIntegrationTests
         using var host = builder.Build();
         var startupOptions = host.Services.GetRequiredService<IOptions<StartupOptions>>().Value;
         var startupConfiguration = host.Services.GetRequiredService<StartupConfigurationSnapshot>();
-        var workspaceOptions = host.Services.GetRequiredService<IOptions<WorkspaceCoordinatorOptions>>().Value;
+        var workspaceOptions = host.Services.GetRequiredService<IOptions<WorkspaceOptions>>().Value;
 
         startupOptions.DefaultMaxResults.Should().Be(100);
         workspaceOptions.DefaultMaxResults.Should().Be(100);
@@ -48,7 +48,7 @@ public sealed class HostCompositionIntegrationTests
 
         using var host = builder.Build();
         var startupOptions = host.Services.GetRequiredService<IOptions<StartupOptions>>().Value;
-        var workspaceOptions = host.Services.GetRequiredService<IOptions<WorkspaceCoordinatorOptions>>().Value;
+        var workspaceOptions = host.Services.GetRequiredService<IOptions<WorkspaceOptions>>().Value;
         var codeActionOptions = host.Services.GetRequiredService<IOptions<CodeActionExecutionOptions>>().Value;
 
         startupOptions.DefaultMaxResults.Should().Be(123);

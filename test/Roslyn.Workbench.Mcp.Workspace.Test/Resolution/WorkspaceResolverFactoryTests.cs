@@ -1,4 +1,4 @@
-namespace Roslyn.Workbench.Mcp.Workspace.Test.Selection;
+namespace Roslyn.Workbench.Mcp.Workspace.Test.Resolution;
 
 public sealed class WorkspaceResolverFactoryTests : IDisposable
 {

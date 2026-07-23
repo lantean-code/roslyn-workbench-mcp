@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace Roslyn.Workbench.Mcp.Workspace.Test;
+namespace Roslyn.Workbench.Mcp.Workspace.Test.Transactions;
 
 public sealed class WorkspaceTransactionIntegrationTests
 {

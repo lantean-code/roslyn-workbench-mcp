@@ -1,6 +1,6 @@
-namespace Roslyn.Workbench.Mcp.Plugins.Core;
+namespace Roslyn.Workbench.Mcp.Plugins.Core.Projects;
 
-internal sealed class DefaultProjectStructureService : IProjectStructureService
+internal sealed class ProjectStructureService : IProjectStructureService
 {
     public ProjectTargetFrameworksResult GetTargetFrameworks(Project project)
     {

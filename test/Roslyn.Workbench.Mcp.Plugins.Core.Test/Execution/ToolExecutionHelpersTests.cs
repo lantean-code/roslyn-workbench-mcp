@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
-namespace Roslyn.Workbench.Mcp.Plugins.Core.Test;
+namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Execution;
 
 public sealed class ToolExecutionHelpersTests
 {

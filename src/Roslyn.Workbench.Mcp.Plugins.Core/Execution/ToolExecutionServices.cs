@@ -1,6 +1,6 @@
 using Roslyn.Workbench.Mcp.Workspace.Contracts.Caching;
 
-namespace Roslyn.Workbench.Mcp.Plugins.Core;
+namespace Roslyn.Workbench.Mcp.Plugins.Core.Execution;
 
 internal sealed class ToolExecutionServices : IToolExecutionServices
 {

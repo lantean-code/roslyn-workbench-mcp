@@ -1,4 +1,4 @@
-namespace Roslyn.Workbench.Mcp.Plugins.Core;
+namespace Roslyn.Workbench.Mcp.Plugins.Core.Diagnostics;
 
 internal static class CompilerDiagnosticHelpers
 {

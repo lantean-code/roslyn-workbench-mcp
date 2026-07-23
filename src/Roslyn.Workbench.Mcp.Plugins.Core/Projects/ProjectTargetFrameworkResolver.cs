@@ -1,7 +1,7 @@
-using Roslyn.Workbench.Mcp.Plugins.Core.Inspection.Caching;
+using Roslyn.Workbench.Mcp.Plugins.Core.Projects.Caching;
 using Roslyn.Workbench.Mcp.Workspace.Contracts.Caching;
 
-namespace Roslyn.Workbench.Mcp.Plugins.Core;
+namespace Roslyn.Workbench.Mcp.Plugins.Core.Projects;
 
 internal sealed class ProjectTargetFrameworkResolver : IProjectTargetFrameworkResolver
 {

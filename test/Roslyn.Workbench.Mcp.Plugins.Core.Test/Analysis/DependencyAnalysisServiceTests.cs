@@ -1,6 +1,6 @@
-namespace Roslyn.Workbench.Mcp.Plugins.Core.Test;
+namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Analysis;
 
-public sealed class DefaultDependencyAnalysisServiceTests
+public sealed class DependencyAnalysisServiceTests
 {
     [Theory]
     [InlineData("Project", true)]
@@ -9,7 +9,7 @@ public sealed class DefaultDependencyAnalysisServiceTests
     [InlineData("Symbol", false)]
     public void GIVEN_GranularityValue_WHEN_CheckingCycleSupport_THEN_ShouldReturnExpectedResult(string value, bool expected)
     {
-        var target = new DefaultDependencyAnalysisService();
+        var target = new DependencyAnalysisService();
 
         var result = target.IsSupportedCycleGranularity(value);
 
@@ -24,7 +24,7 @@ public sealed class DefaultDependencyAnalysisServiceTests
     [InlineData("Invalid", false)]
     public void GIVEN_GranularityValue_WHEN_CheckingGraphSupport_THEN_ShouldReturnExpectedResult(string value, bool expected)
     {
-        var target = new DefaultDependencyAnalysisService();
+        var target = new DependencyAnalysisService();
 
         var result = target.IsSupportedGraphGranularity(value);
 
@@ -54,7 +54,7 @@ public sealed class DefaultDependencyAnalysisServiceTests
             },
         ]);
 
-        var target = new DefaultDependencyAnalysisService();
+        var target = new DependencyAnalysisService();
         var queryContext = new Mock<IQueryContext>();
 
         queryContext
@@ -101,7 +101,7 @@ public sealed class DefaultDependencyAnalysisServiceTests
             }
             """);
 
-        var target = new DefaultDependencyAnalysisService();
+        var target = new DependencyAnalysisService();
         var queryContext = new Mock<IQueryContext>();
         var workspaceResolver = new Mock<IWorkspaceResolver>();
 
@@ -163,7 +163,7 @@ public sealed class DefaultDependencyAnalysisServiceTests
             }
             """);
 
-        var target = new DefaultDependencyAnalysisService();
+        var target = new DependencyAnalysisService();
         var queryContext = new Mock<IQueryContext>();
         var workspaceResolver = new Mock<IWorkspaceResolver>();
         var targetSymbol = await RoslynDocumentTestHelper.GetRequiredNamedTypeSymbolAsync(
@@ -216,7 +216,7 @@ public sealed class DefaultDependencyAnalysisServiceTests
             }
             """);
 
-        var target = new DefaultDependencyAnalysisService();
+        var target = new DependencyAnalysisService();
         var queryContext = new Mock<IQueryContext>();
         var workspaceResolver = new Mock<IWorkspaceResolver>();
 

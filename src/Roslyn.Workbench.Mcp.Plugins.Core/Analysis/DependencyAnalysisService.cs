@@ -1,6 +1,6 @@
-namespace Roslyn.Workbench.Mcp.Plugins.Core;
+namespace Roslyn.Workbench.Mcp.Plugins.Core.Analysis;
 
-internal sealed class DefaultDependencyAnalysisService : IDependencyAnalysisService
+internal sealed class DependencyAnalysisService : IDependencyAnalysisService
 {
     public bool IsSupportedCycleGranularity(string value)
     {

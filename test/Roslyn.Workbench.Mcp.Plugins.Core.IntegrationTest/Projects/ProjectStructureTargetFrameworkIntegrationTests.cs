@@ -1,13 +1,13 @@
 using Microsoft.CodeAnalysis;
 
-namespace Roslyn.Workbench.Mcp.Plugins.Core.Test;
+namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Projects;
 
-public sealed class ProjectTargetFrameworkServiceIntegrationTests
+public sealed class ProjectStructureTargetFrameworkIntegrationTests
 {
     [Fact]
     public void GIVEN_TargetFrameworksImportedFromProps_WHEN_GettingTargetFrameworks_THEN_ShouldReturnEvaluatedValues()
     {
-        var target = new DefaultProjectStructureService();
+        var target = new ProjectStructureService();
         var directoryPath = CreateDirectoryPath();
 
         try
@@ -45,7 +45,7 @@ public sealed class ProjectTargetFrameworkServiceIntegrationTests
     [Fact]
     public void GIVEN_MissingProjectFile_WHEN_GettingTargetFrameworks_THEN_ShouldReturnFailure()
     {
-        var target = new DefaultProjectStructureService();
+        var target = new ProjectStructureService();
         var projectPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("n"), "Missing.csproj");
 
         var result = target.GetTargetFrameworks(projectPath);
@@ -57,7 +57,7 @@ public sealed class ProjectTargetFrameworkServiceIntegrationTests
     [Fact]
     public void GIVEN_MalformedProject_WHEN_GettingTargetFrameworks_THEN_ShouldReturnFailure()
     {
-        var target = new DefaultProjectStructureService();
+        var target = new ProjectStructureService();
         var directoryPath = CreateDirectoryPath();
 
         try
@@ -79,7 +79,7 @@ public sealed class ProjectTargetFrameworkServiceIntegrationTests
     [Fact]
     public void GIVEN_ProjectWithoutTargetFramework_WHEN_GettingTargetFrameworks_THEN_ShouldReturnSuccessfulEmptyResult()
     {
-        var target = new DefaultProjectStructureService();
+        var target = new ProjectStructureService();
         var directoryPath = CreateDirectoryPath();
 
         try
@@ -101,7 +101,7 @@ public sealed class ProjectTargetFrameworkServiceIntegrationTests
     [Fact]
     public void GIVEN_ProjectWithSingleTargetFramework_WHEN_GettingTargetFrameworks_THEN_ShouldReturnEvaluatedValue()
     {
-        var target = new DefaultProjectStructureService();
+        var target = new ProjectStructureService();
         var directoryPath = CreateDirectoryPath();
 
         try
@@ -125,7 +125,7 @@ public sealed class ProjectTargetFrameworkServiceIntegrationTests
     {
         using var workspace = new AdhocWorkspace();
         var project = workspace.AddProject("Project", LanguageNames.CSharp);
-        var target = new DefaultProjectStructureService();
+        var target = new ProjectStructureService();
 
         var result = target.GetTargetFrameworks(project);
 
@@ -137,7 +137,7 @@ public sealed class ProjectTargetFrameworkServiceIntegrationTests
     public void GIVEN_ProjectBatchContainsDuplicateAndMissingPaths_WHEN_GettingTargetFrameworks_THEN_ShouldPreserveInputOrder()
     {
         using var workspace = new AdhocWorkspace();
-        var target = new DefaultProjectStructureService();
+        var target = new ProjectStructureService();
         var directoryPath = CreateDirectoryPath();
 
         try

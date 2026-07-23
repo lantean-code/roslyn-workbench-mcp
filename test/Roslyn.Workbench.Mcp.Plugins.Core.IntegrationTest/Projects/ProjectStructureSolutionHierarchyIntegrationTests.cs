@@ -1,11 +1,11 @@
-namespace Roslyn.Workbench.Mcp.Plugins.Core.Test;
+namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Projects;
 
-public sealed class SolutionHierarchyServiceIntegrationTests
+public sealed class ProjectStructureSolutionHierarchyIntegrationTests
 {
     [Fact]
     public async Task GIVEN_MissingSolutionPath_WHEN_GettingSolutionHierarchy_THEN_ShouldReturnEmpty()
     {
-        var target = new DefaultProjectStructureService();
+        var target = new ProjectStructureService();
 
         var result = await target.GetSolutionHierarchyAsync(null, TestContext.Current.CancellationToken);
 
@@ -17,7 +17,7 @@ public sealed class SolutionHierarchyServiceIntegrationTests
     [Fact]
     public async Task GIVEN_UnsupportedSolutionExtension_WHEN_GettingSolutionHierarchy_THEN_ShouldReturnEmpty()
     {
-        var target = new DefaultProjectStructureService();
+        var target = new ProjectStructureService();
         var directoryPath = CreateDirectoryPath();
 
         try
@@ -40,7 +40,7 @@ public sealed class SolutionHierarchyServiceIntegrationTests
     [Fact]
     public async Task GIVEN_InvalidSolutionContent_WHEN_GettingSolutionHierarchy_THEN_ShouldReturnFailure()
     {
-        var target = new DefaultProjectStructureService();
+        var target = new ProjectStructureService();
         var directoryPath = CreateDirectoryPath();
 
         try
@@ -62,7 +62,7 @@ public sealed class SolutionHierarchyServiceIntegrationTests
     [Fact]
     public async Task GIVEN_SlnHierarchy_WHEN_GettingSolutionHierarchy_THEN_ShouldReturnFoldersAndProjectMembership()
     {
-        var target = new DefaultProjectStructureService();
+        var target = new ProjectStructureService();
         var directoryPath = CreateDirectoryPath();
 
         try
@@ -90,7 +90,7 @@ public sealed class SolutionHierarchyServiceIntegrationTests
     [Fact]
     public async Task GIVEN_SlnxHierarchy_WHEN_GettingSolutionHierarchy_THEN_ShouldReturnFoldersAndProjectMembership()
     {
-        var target = new DefaultProjectStructureService();
+        var target = new ProjectStructureService();
         var directoryPath = CreateDirectoryPath();
 
         try
@@ -119,7 +119,7 @@ public sealed class SolutionHierarchyServiceIntegrationTests
     [Fact]
     public async Task GIVEN_MissingSolutionFile_WHEN_GettingSolutionHierarchy_THEN_ShouldReturnFailure()
     {
-        var target = new DefaultProjectStructureService();
+        var target = new ProjectStructureService();
         var directoryPath = CreateDirectoryPath();
         var solutionPath = Path.Combine(directoryPath, "Missing.slnx");
 
@@ -139,7 +139,7 @@ public sealed class SolutionHierarchyServiceIntegrationTests
     [Fact]
     public async Task GIVEN_CancelledToken_WHEN_GettingSolutionHierarchy_THEN_ShouldPropagateCancellation()
     {
-        var target = new DefaultProjectStructureService();
+        var target = new ProjectStructureService();
         var directoryPath = CreateDirectoryPath();
 
         try

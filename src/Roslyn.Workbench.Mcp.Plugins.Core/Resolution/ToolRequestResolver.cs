@@ -1,8 +1,8 @@
-namespace Roslyn.Workbench.Mcp.Plugins.Core;
+namespace Roslyn.Workbench.Mcp.Plugins.Core.Resolution;
 
-internal sealed class DefaultToolRequestResolver : IToolRequestResolver
+internal sealed class ToolRequestResolver : IToolRequestResolver
 {
-    public DefaultToolRequestResolver()
+    public ToolRequestResolver()
     {
     }
 

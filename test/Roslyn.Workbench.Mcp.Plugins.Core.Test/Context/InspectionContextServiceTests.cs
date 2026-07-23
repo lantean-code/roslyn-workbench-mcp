@@ -1,13 +1,13 @@
 using Microsoft.CodeAnalysis.Text;
 
-namespace Roslyn.Workbench.Mcp.Plugins.Core.Test;
+namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Context;
 
-public sealed class DefaultInspectionContextServiceTests
+public sealed class InspectionContextServiceTests
 {
     [Fact]
     public async Task GIVEN_NullDocument_WHEN_ReadingContext_THEN_ShouldReturnNull()
     {
-        var target = new DefaultInspectionContextService();
+        var target = new InspectionContextService();
 
         var result = await target.ReadContextAsync(null, new TextSpan(0, 0), TestContext.Current.CancellationToken);
 
@@ -28,7 +28,7 @@ public sealed class DefaultInspectionContextServiceTests
                 }
             }
             """);
-        var target = new DefaultInspectionContextService();
+        var target = new InspectionContextService();
         var document = workspace.Solution.Projects.Single().Documents.Single();
 
         var result = await target.ReadContextAsync(document, new TextSpan(workspace.GetLocationSelector("return value.Trim();").Span!.Start, 1), TestContext.Current.CancellationToken);
@@ -40,7 +40,7 @@ public sealed class DefaultInspectionContextServiceTests
     public async Task GIVEN_PositionWithoutResolvableSymbol_WHEN_TryingToCreateContainingSymbol_THEN_ShouldReturnNull()
     {
         using var workspace = MiniWorkspaceFactory.CreateCSharp(string.Empty);
-        var target = new DefaultInspectionContextService();
+        var target = new InspectionContextService();
         var document = workspace.Solution.Projects.Single().Documents.Single();
 
         var result = await target.TryCreateContainingSymbolAsync(document, 0, TestContext.Current.CancellationToken);
@@ -62,7 +62,7 @@ public sealed class DefaultInspectionContextServiceTests
                 }
             }
             """);
-        var target = new DefaultInspectionContextService();
+        var target = new InspectionContextService();
         var document = workspace.Solution.Projects.Single().Documents.Single();
         var selector = workspace.GetLocationSelector("Trim");
 

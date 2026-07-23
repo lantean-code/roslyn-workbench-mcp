@@ -1,6 +1,6 @@
 using Roslyn.Workbench.Mcp.Plugins.Core.Inspection.Caching;
 
-namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Inspection.Caching;
+namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Projects.Caching;
 
 public sealed class ProjectTargetFrameworkCacheEntryTests
 {

@@ -1,8 +1,8 @@
 using System.Collections.Immutable;
 
-namespace Roslyn.Workbench.Mcp.Plugins.Core;
+namespace Roslyn.Workbench.Mcp.Plugins.Core.Diagnostics;
 
-internal sealed class DefaultCompilerDiagnosticService : ICompilerDiagnosticService
+internal sealed class CompilerDiagnosticService : ICompilerDiagnosticService
 {
     public async ValueTask<IReadOnlyList<Diagnostic>> GetCompilerDiagnosticsAsync(
         IReadOnlyList<Document> selectedDocuments,

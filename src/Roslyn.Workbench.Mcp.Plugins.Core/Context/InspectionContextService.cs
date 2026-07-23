@@ -1,6 +1,6 @@
-namespace Roslyn.Workbench.Mcp.Plugins.Core;
+namespace Roslyn.Workbench.Mcp.Plugins.Core.Context;
 
-internal sealed class DefaultInspectionContextService : IInspectionContextService
+internal sealed class InspectionContextService : IInspectionContextService
 {
     public async ValueTask<string?> ReadContextAsync(Document? document, TextSpan span, CancellationToken cancellationToken)
     {

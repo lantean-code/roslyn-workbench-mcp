@@ -1,4 +1,4 @@
-namespace Roslyn.Workbench.Mcp.Plugins.Core;
+namespace Roslyn.Workbench.Mcp.Plugins.Core.Execution;
 
 internal abstract class MutationToolHandler<TRequest> : IMutationToolHandler<TRequest>
     where TRequest : WorkspaceBoundRequest

@@ -30,6 +30,7 @@
 - Use PascalCase for public constants.
 - Use camelCase for local variables and parameters.
 - Interfaces must begin with `I`.
+- Use the `Default` prefix only for an implementation that is deliberately provided as the default among replaceable alternatives. Name a sole internal implementation directly after its responsibility.
 
 ### Formatting
 - Braces on a new line and never omitted.

@@ -1,4 +1,4 @@
-namespace Roslyn.Workbench.Mcp.Plugins.Core.Test;
+namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Execution;
 
 public sealed class ToolHandlerExecutionTests
 {

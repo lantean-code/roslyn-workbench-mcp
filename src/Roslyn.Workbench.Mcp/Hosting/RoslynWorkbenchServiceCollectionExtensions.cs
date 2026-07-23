@@ -1,6 +1,12 @@
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Roslyn.Workbench.Mcp.Plugins.Core;
+using Roslyn.Workbench.Mcp.Plugins.Core.Analysis;
+using Roslyn.Workbench.Mcp.Plugins.Core.Context;
+using Roslyn.Workbench.Mcp.Plugins.Core.Diagnostics;
+using Roslyn.Workbench.Mcp.Plugins.Core.Execution;
+using Roslyn.Workbench.Mcp.Plugins.Core.Projects;
+using Roslyn.Workbench.Mcp.Plugins.Core.Resolution;
 using Roslyn.Workbench.Mcp.ToolExecution;
 using Roslyn.Workbench.Mcp.ToolExecution.CodeActions;
 using Roslyn.Workbench.Mcp.ToolExecution.Plugins;
@@ -91,12 +97,12 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
 
     public static void AddPluginServices(this IServiceCollection services)
     {
-        services.AddSingleton<IToolRequestResolver, DefaultToolRequestResolver>();
-        services.AddSingleton<ICompilerDiagnosticService, DefaultCompilerDiagnosticService>();
-        services.AddSingleton<IInspectionContextService, DefaultInspectionContextService>();
-        services.AddSingleton<IProjectStructureService, DefaultProjectStructureService>();
+        services.AddSingleton<IToolRequestResolver, ToolRequestResolver>();
+        services.AddSingleton<ICompilerDiagnosticService, CompilerDiagnosticService>();
+        services.AddSingleton<IInspectionContextService, InspectionContextService>();
+        services.AddSingleton<IProjectStructureService, ProjectStructureService>();
         services.AddSingleton<IProjectTargetFrameworkResolver, ProjectTargetFrameworkResolver>();
-        services.AddSingleton<IDependencyAnalysisService, DefaultDependencyAnalysisService>();
+        services.AddSingleton<IDependencyAnalysisService, DependencyAnalysisService>();
         services.AddSingleton<IToolExecutionServices, ToolExecutionServices>();
         services.AddSingleton<IToolExecutionContextFactory, PluginExecutionContextFactory>();
     }

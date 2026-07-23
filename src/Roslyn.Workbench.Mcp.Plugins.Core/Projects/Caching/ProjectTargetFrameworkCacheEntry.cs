@@ -1,4 +1,4 @@
-namespace Roslyn.Workbench.Mcp.Plugins.Core.Inspection.Caching;
+namespace Roslyn.Workbench.Mcp.Plugins.Core.Projects.Caching;
 
 internal sealed class ProjectTargetFrameworkCacheEntry
 {

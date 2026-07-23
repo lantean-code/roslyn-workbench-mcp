@@ -1,9 +1,9 @@
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 
-namespace Roslyn.Workbench.Mcp.Plugins.Core.Test;
+namespace Roslyn.Workbench.Mcp.Plugins.Core.Test.Diagnostics;
 
-public sealed class DefaultCompilerDiagnosticServiceTests
+public sealed class CompilerDiagnosticServiceTests
 {
     [Fact]
     public async Task GIVEN_ProjectWithoutDiagnostics_WHEN_GettingCompilerDiagnostics_THEN_ShouldReturnEmpty()
@@ -19,7 +19,7 @@ public sealed class DefaultCompilerDiagnosticServiceTests
                 }
             }
             """);
-        var target = new DefaultCompilerDiagnosticService();
+        var target = new CompilerDiagnosticService();
         var document = workspace.Solution.Projects.Single().Documents.Single();
 
         var result = await target.GetCompilerDiagnosticsAsync([document], TestContext.Current.CancellationToken);
@@ -53,7 +53,7 @@ public sealed class DefaultCompilerDiagnosticServiceTests
                     }
                 }
                 """));
-        var target = new DefaultCompilerDiagnosticService();
+        var target = new CompilerDiagnosticService();
         var selectedDocument = workspace.CurrentSolution.Projects.Single(static project => project.Name == "ProjectOne").Documents.Single();
 
         var result = await target.GetCompilerDiagnosticsAsync([selectedDocument], TestContext.Current.CancellationToken);
@@ -75,7 +75,7 @@ public sealed class DefaultCompilerDiagnosticServiceTests
                 }
             }
             """);
-        var target = new DefaultCompilerDiagnosticService();
+        var target = new CompilerDiagnosticService();
         var selectedDocuments = workspace.CurrentSolution.Projects.SelectMany(static project => project.Documents).ToArray();
 
         var result = await target.GetCompilerDiagnosticsAsync(selectedDocuments, TestContext.Current.CancellationToken);

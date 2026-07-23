@@ -6,6 +6,28 @@ The acceptance build also assembles deterministic external query and mutation fi
 
 Set `ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH` to the absolute path of the exact Release-published executable being tested. The suite does not search build output or infer a configuration.
 
+## Run the suite
+
+The repository scripts publish the Release Host to a temporary directory, run the acceptance suite against that exact executable and remove the published files afterwards:
+
+### Linux and macOS
+
+```bash
+./test/Roslyn.Workbench.Mcp.AcceptanceTest/run-acceptance-tests.sh
+```
+
+### Windows PowerShell
+
+```powershell
+.\test\Roslyn.Workbench.Mcp.AcceptanceTest\run-acceptance-tests.ps1
+```
+
+Additional arguments are passed to `dotnet test`. For example, append `--filter FullyQualifiedName~WorkspaceLifecycleAcceptanceTests` to run a subset.
+
+## Run against an existing publish
+
+Set `ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH` directly when the published executable must be retained or was produced separately.
+
 ## Linux and macOS
 
 ```bash

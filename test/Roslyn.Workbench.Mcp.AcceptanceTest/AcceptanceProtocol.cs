@@ -6,13 +6,23 @@ namespace Roslyn.Workbench.Mcp.AcceptanceTest;
 
 internal sealed record AcceptanceWorkspaceIdentity
 {
-    private AcceptanceWorkspaceIdentity(string workspaceId, long workspaceEpoch)
+    private AcceptanceWorkspaceIdentity(
+        string workspaceId,
+        string? alias,
+        string loadedPath,
+        long workspaceEpoch)
     {
         WorkspaceId = workspaceId;
+        Alias = alias;
+        LoadedPath = loadedPath;
         WorkspaceEpoch = workspaceEpoch;
     }
 
     public string WorkspaceId { get; }
+
+    public string? Alias { get; }
+
+    public string LoadedPath { get; }
 
     public long WorkspaceEpoch { get; }
 
@@ -24,6 +34,9 @@ internal sealed record AcceptanceWorkspaceIdentity
 
         return new AcceptanceWorkspaceIdentity(
             workspaceId,
+            workspace.TryGetProperty("alias", out var alias) ? alias.GetString() : null,
+            workspace.GetProperty("loadedPath").GetString()
+                ?? throw new InvalidOperationException("The workspace-open response did not contain a loaded path."),
             workspace.GetProperty("workspaceEpoch").GetInt64());
     }
 

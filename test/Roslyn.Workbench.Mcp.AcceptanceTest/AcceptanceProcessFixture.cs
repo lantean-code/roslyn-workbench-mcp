@@ -13,12 +13,16 @@ internal enum AcceptanceWorkspaceAsset
     SolutionHierarchy,
     MixedSolution,
     MultiTargetLinked,
+    MalformedSdkProject,
 }
 
 internal enum AcceptancePluginAsset
 {
     HostQuery,
+    HostQueryDuplicate,
     HostMutation,
+    Invalid,
+    Throwing,
 }
 
 internal sealed record AcceptanceToolInvocation(RequestId RequestId, Task<CallToolResult> Completion);
@@ -37,6 +41,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
     private readonly StringBuilder _standardError = new();
     private readonly string _command;
     private readonly IReadOnlyList<string> _arguments;
+    private readonly IReadOnlyDictionary<string, string?> _environmentVariables;
     private readonly bool _retainInitializationFailure;
     private McpClient? _client;
     private Task<ClientCompletionDetails>? _completion;
@@ -48,15 +53,18 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
     private AcceptanceProcessFixture(
         string command,
         IReadOnlyList<string> arguments,
+        IReadOnlyDictionary<string, string?> environmentVariables,
         string scenarioRoot,
         bool retainInitializationFailure)
     {
         _command = command;
         _arguments = arguments;
+        _environmentVariables = environmentVariables;
         _retainInitializationFailure = retainInitializationFailure;
         ScenarioRoot = scenarioRoot;
         WorkspaceRoot = Path.Combine(scenarioRoot, "workspace");
         StateRoot = Path.Combine(scenarioRoot, "state");
+        PluginRoot = Path.Combine(scenarioRoot, "plugins");
     }
 
     public string ScenarioRoot { get; }
@@ -65,11 +73,14 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
 
     public string StateRoot { get; }
 
+    public string PluginRoot { get; }
+
     public static Task<AcceptanceProcessFixture> StartPublishedHostAsync(
         CancellationToken cancellationToken,
         AcceptanceWorkspaceAsset workspaceAsset = AcceptanceWorkspaceAsset.SdkProject,
         IReadOnlyList<string>? additionalArguments = null,
-        IReadOnlyList<AcceptancePluginAsset>? pluginAssets = null)
+        IReadOnlyList<AcceptancePluginAsset>? pluginAssets = null,
+        IReadOnlyDictionary<string, string?>? environmentVariables = null)
     {
         var executablePath = PublishedHostExecutable.ResolveFromEnvironment();
         var arguments = new List<string>
@@ -90,6 +101,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
             arguments,
             workspaceAsset,
             pluginAssets,
+            environmentVariables,
             retainInitializationFailure: true,
             cancellationToken);
     }
@@ -104,6 +116,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
             arguments,
             workspaceAsset: null,
             pluginAssets: null,
+            environmentVariables: null,
             retainInitializationFailure: false,
             cancellationToken);
     }
@@ -191,6 +204,20 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         _retainRoot = true;
     }
 
+    public string CopyWorkspaceAsset(AcceptanceWorkspaceAsset workspaceAsset, string directoryName)
+    {
+        var destinationDirectory = Path.Combine(ScenarioRoot, "workspaces", directoryName);
+        CopyDirectory(GetWorkspaceAssetPath(workspaceAsset), destinationDirectory);
+        return destinationDirectory;
+    }
+
+    public void InstallPluginAsset(AcceptancePluginAsset pluginAsset)
+    {
+        CopyDirectory(
+            GetPluginAssetPath(pluginAsset),
+            Path.Combine(PluginRoot, GetPluginPackageDirectoryName(pluginAsset)));
+    }
+
     public async Task RestartAsync(CancellationToken cancellationToken)
     {
         await StopAsync();
@@ -275,6 +302,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         IReadOnlyList<string> arguments,
         AcceptanceWorkspaceAsset? workspaceAsset,
         IReadOnlyList<AcceptancePluginAsset>? pluginAssets,
+        IReadOnlyDictionary<string, string?>? environmentVariables,
         bool retainInitializationFailure,
         CancellationToken cancellationToken)
     {
@@ -297,6 +325,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         var target = new AcceptanceProcessFixture(
             command,
             effectiveArguments,
+            environmentVariables ?? new Dictionary<string, string?>(),
             scenarioRoot,
             retainInitializationFailure);
 
@@ -314,9 +343,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         {
             foreach (var pluginAsset in pluginAssets)
             {
-                CopyDirectory(
-                    GetPluginAssetPath(pluginAsset),
-                    Path.Combine(pluginRoot, GetPluginPackageDirectoryName(pluginAsset)));
+                target.InstallPluginAsset(pluginAsset);
             }
         }
 
@@ -326,6 +353,12 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
 
     private async Task ConnectAsync(CancellationToken cancellationToken)
     {
+        var environmentVariables = StdioClientTransportOptions.GetDefaultEnvironmentVariables();
+        foreach (var (name, value) in _environmentVariables)
+        {
+            environmentVariables[name] = value;
+        }
+
         var transport = new StdioClientTransport(
             new StdioClientTransportOptions
             {
@@ -334,7 +367,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
                 Arguments = _arguments.ToArray(),
                 WorkingDirectory = WorkspaceRoot,
                 InheritEnvironmentVariables = false,
-                EnvironmentVariables = StdioClientTransportOptions.GetDefaultEnvironmentVariables(),
+                EnvironmentVariables = environmentVariables,
                 ShutdownTimeout = _shutdownTimeout,
                 StandardErrorLines = CaptureStandardError,
             },
@@ -378,6 +411,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
             AcceptanceWorkspaceAsset.SolutionHierarchy => "SolutionHierarchy",
             AcceptanceWorkspaceAsset.MixedSolution => Path.Combine("CompatibilitySamples", "MixedSolution"),
             AcceptanceWorkspaceAsset.MultiTargetLinked => "MultiTargetLinked",
+            AcceptanceWorkspaceAsset.MalformedSdkProject => Path.Combine("CompatibilitySamples", "MalformedSdkProject"),
             _ => throw new ArgumentOutOfRangeException(nameof(workspaceAsset), workspaceAsset, "Unknown acceptance workspace asset."),
         };
 
@@ -389,7 +423,10 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         var assetDirectory = pluginAsset switch
         {
             AcceptancePluginAsset.HostQuery => "HostQuery",
+            AcceptancePluginAsset.HostQueryDuplicate => "HostQuery",
             AcceptancePluginAsset.HostMutation => "HostMutation",
+            AcceptancePluginAsset.Invalid => "Invalid",
+            AcceptancePluginAsset.Throwing => "Throwing",
             _ => throw new ArgumentOutOfRangeException(nameof(pluginAsset), pluginAsset, "Unknown acceptance plugin asset."),
         };
 
@@ -401,7 +438,10 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         return pluginAsset switch
         {
             AcceptancePluginAsset.HostQuery => "host-query",
+            AcceptancePluginAsset.HostQueryDuplicate => "host-query-duplicate",
             AcceptancePluginAsset.HostMutation => "host-mutation",
+            AcceptancePluginAsset.Invalid => "invalid",
+            AcceptancePluginAsset.Throwing => "throwing",
             _ => throw new ArgumentOutOfRangeException(nameof(pluginAsset), pluginAsset, "Unknown acceptance plugin asset."),
         };
     }

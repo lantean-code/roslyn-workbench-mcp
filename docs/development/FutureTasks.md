@@ -65,7 +65,7 @@ Implement the dependency-ordered release-capability batches covering the exact p
 
 Keep the acceptance project independent of production references and drive only the Release-published executable through the public MCP protocol. Use small checked-in fixtures, deterministic synchronization and the existing Ubuntu/Windows pull-request matrix. Do not move repository-scale, timing-sensitive or destructive release scenarios into pull-request acceptance.
 
-Batch 1 is implemented: the acceptance boundary now has known request IDs and cancellation notifications, deterministic query and mutation packages, shared public response and selector projections, the required copied Workspace assets, consistent scenario cleanup and an absolute Release-artifact path contract. Batches 2–6 remain.
+Batches 1–3 are implemented. The acceptance boundary now has the shared published-process infrastructure, distribution/configuration and plugin-package coverage, supported Workspace load formats, multi-Workspace lifecycle routing, selector representatives, ambiguity and external-reload semantics. Batches 4–6 remain; the next manually initiated acceptance run and the Ubuntu/Windows pull-request matrix will provide runtime evidence for the newly added Batch 2 and 3 cases.
 
 Source: [Published Host Acceptance Coverage Audit](AcceptanceCoverageAudit-2026-07-23.md)
 

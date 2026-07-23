@@ -64,7 +64,7 @@ The external-repository scenario runner must not run on ordinary pull requests o
 
 ## Current acceptance baseline
 
-The acceptance project contains twelve tests:
+Before Batches 2 and 3, the acceptance project contained twelve tests:
 
 - eight launch the published Roslyn Workbench Host;
 - one launches a deliberately broken `dotnet` command to validate startup diagnostics; and
@@ -85,6 +85,8 @@ Current published-Host evidence covers:
 This is a useful smoke suite, but it does not yet represent the complete release capability set.
 
 ## Release-capability matrix
+
+The `Gap` column below records the baseline that produced the implementation batches. The dated implementation status and evidence under each batch are authoritative for completed work; the next manual/CI acceptance execution supplies runtime evidence.
 
 ### Distribution, process and configuration
 
@@ -292,6 +294,8 @@ Implemented evidence:
 
 ### Batch 2 — Distribution, discovery and plugin boundary
 
+**Implementation status:** Complete on 2026-07-23. Runtime evidence will be supplied by the next manually initiated acceptance run and the Ubuntu/Windows pull-request matrix.
+
 - configuration precedence and sensitive-value omission;
 - default versus full output-schema publication;
 - catalogue stability across Workspace state;
@@ -302,7 +306,19 @@ Implemented evidence:
 
 This batch precedes broader workflows because it establishes the published package fixtures and common result assertions used later.
 
+Implemented evidence:
+
+- published configuration precedence now covers environment values, repeated command-line scalars and omission of state/plugin roots from full public status;
+- default and `Full` output-schema modes sample server, bundled query/mutation, Code Action and external query/mutation tools;
+- catalogue names, descriptions, annotations and input schemas are compared before open, during a transaction and after close;
+- a bounded semantic query proves omitted-default execution, zero limits, `hasMore`, stable ordering and prefix equivalence;
+- valid query and mutation packages are loaded alongside invalid and throwing packages without losing unaffected tools;
+- duplicate plugin IDs disable both packages deterministically, and throwing configuration diagnostics omit the exception message; and
+- installing another package leaves the live catalogue unchanged until process restart.
+
 ### Batch 3 — Workspace compatibility and selectors
+
+**Implementation status:** Complete on 2026-07-23. Runtime evidence will be supplied by the next manually initiated acceptance run and the Ubuntu/Windows pull-request matrix.
 
 - `.csproj`, `.sln` and `.slnx`;
 - mixed supported/unsupported solution diagnostics;
@@ -313,6 +329,18 @@ This batch precedes broader workflows because it establishes the published packa
 - project, document, location, copied-selection and project-qualified symbol representatives;
 - ambiguous and stale selector results; and
 - external edit, reload, epoch change and refreshed semantics.
+
+Implemented evidence:
+
+- checked-in `.csproj`, `.sln` and `.slnx` inputs exercise the published loader;
+- mixed-language/legacy solutions retain supported C# projects with load diagnostics, while malformed SDK input returns a structured load failure;
+- Workspace ID, alias, canonical path and single-Workspace implicit routing resolve consistently;
+- duplicate open, close with an active transaction, multiple-Workspace selector requirements and closing one of two Workspaces exercise public lifecycle mappings;
+- a linked multi-target fixture covers target-framework-qualified projects, project-qualified documents and symbols, span and copied-selection resolution, and ambiguous unqualified documents;
+- an external edit rejects a warmed query with `WorkspaceOutOfDate` and `ReloadWorkspace`; reload advances the epoch and exposes refreshed semantics; and
+- the old snapshot is rejected after reload with `SnapshotMismatch`.
+
+The acceptance inventory is now 28 discovered cases. The CI minimum is raised to 28 so omission of any Batch 1–3 case fails the acceptance job.
 
 ### Batch 4 — Mutation families and transaction state
 

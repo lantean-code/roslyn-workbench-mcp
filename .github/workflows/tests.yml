@@ -104,9 +104,6 @@ jobs:
           - windows-latest
     env:
       ROSLYN_WORKBENCH_MCP_ACCEPTANCE_RETAIN_ROOT: true
-      TMPDIR: ${{ runner.temp }}
-      TMP: ${{ runner.temp }}
-      TEMP: ${{ runner.temp }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-dotnet@v5
@@ -135,6 +132,10 @@ jobs:
         run: ./eng/Assert-TrxTestCount.ps1 -Path TestResults/workspace-windows -Minimum 52
       - name: Test published Host
         shell: pwsh
+        env:
+          TMPDIR: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
+          TEMP: ${{ runner.temp }}
         run: |
           $executableName = if ($IsWindows) { 'Roslyn.Workbench.Mcp.exe' } else { 'Roslyn.Workbench.Mcp' }
           $env:ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH = Join-Path (Resolve-Path '.ci/publish') $executableName
@@ -145,7 +146,7 @@ jobs:
             --blame-hang --blame-hang-timeout 5m --blame-hang-dump-type none
       - name: Verify acceptance test count
         shell: pwsh
-        run: ./eng/Assert-TrxTestCount.ps1 -Path TestResults/acceptance -Minimum 12
+        run: ./eng/Assert-TrxTestCount.ps1 -Path TestResults/acceptance -Minimum 28
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4

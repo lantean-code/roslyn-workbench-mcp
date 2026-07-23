@@ -24,6 +24,10 @@
                       ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\TestFixtures\Plugins\Roslyn.Workbench.Mcp.HostMutationPluginFixture.csproj"
                       ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\TestFixtures\Plugins\Roslyn.Workbench.Mcp.InvalidPluginFixture.csproj"
+                      ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\TestFixtures\Plugins\Roslyn.Workbench.Mcp.ThrowingPluginFixture.csproj"
+                      ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <ItemGroup>
@@ -41,6 +45,10 @@
     </Content>
     <Content Include="..\TestAssets\Workspaces\CompatibilitySamples\MixedSolution\**\*">
       <Link>TestAssets\Workspaces\CompatibilitySamples\MixedSolution\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\TestAssets\Workspaces\CompatibilitySamples\MalformedSdkProject\**\*">
+      <Link>TestAssets\Workspaces\CompatibilitySamples\MalformedSdkProject\%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="..\TestAssets\Workspaces\MultiTargetLinked\**\*">
@@ -84,6 +92,42 @@
       <HostMutationPluginPackageAsset Include="@(HostMutationPluginAssembly->'%(RootDir)%(Directory)%(Filename).deps.json')" />
     </ItemGroup>
     <Copy SourceFiles="@(HostMutationPluginPackageAsset)" DestinationFolder="$(OutDir)/TestAssets/Plugins/HostMutation" />
+  </Target>
+
+  <Target Name="CopyInvalidPluginPackageAssets" AfterTargets="Build">
+    <ItemGroup>
+      <InvalidPluginProject Include="@(ProjectReference)"
+                            Condition="'%(Filename)' == 'Roslyn.Workbench.Mcp.InvalidPluginFixture'" />
+    </ItemGroup>
+    <MSBuild Projects="@(InvalidPluginProject)"
+             Targets="GetTargetPath"
+             BuildInParallel="$(BuildInParallel)"
+             Properties="Configuration=$(Configuration);Platform=$(Platform);ArtifactsPath=$(ArtifactsPath)">
+      <Output TaskParameter="TargetOutputs" ItemName="InvalidPluginAssembly" />
+    </MSBuild>
+    <ItemGroup>
+      <InvalidPluginPackageAsset Include="@(InvalidPluginAssembly)" />
+      <InvalidPluginPackageAsset Include="@(InvalidPluginAssembly->'%(RootDir)%(Directory)%(Filename).deps.json')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(InvalidPluginPackageAsset)" DestinationFolder="$(OutDir)/TestAssets/Plugins/Invalid" />
+  </Target>
+
+  <Target Name="CopyThrowingPluginPackageAssets" AfterTargets="Build">
+    <ItemGroup>
+      <ThrowingPluginProject Include="@(ProjectReference)"
+                             Condition="'%(Filename)' == 'Roslyn.Workbench.Mcp.ThrowingPluginFixture'" />
+    </ItemGroup>
+    <MSBuild Projects="@(ThrowingPluginProject)"
+             Targets="GetTargetPath"
+             BuildInParallel="$(BuildInParallel)"
+             Properties="Configuration=$(Configuration);Platform=$(Platform);ArtifactsPath=$(ArtifactsPath)">
+      <Output TaskParameter="TargetOutputs" ItemName="ThrowingPluginAssembly" />
+    </MSBuild>
+    <ItemGroup>
+      <ThrowingPluginPackageAsset Include="@(ThrowingPluginAssembly)" />
+      <ThrowingPluginPackageAsset Include="@(ThrowingPluginAssembly->'%(RootDir)%(Directory)%(Filename).deps.json')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ThrowingPluginPackageAsset)" DestinationFolder="$(OutDir)/TestAssets/Plugins/Throwing" />
   </Target>
 
 </Project>

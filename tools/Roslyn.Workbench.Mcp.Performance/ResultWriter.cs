@@ -55,6 +55,7 @@ internal static class ResultWriter
         var validations = result.Measurements
             .Select(static measurement => measurement.Validation)
             .ToArray();
+
         var validationPath = Path.Combine(outputDirectory, "validation.json");
         await using (var stream = File.Create(validationPath))
         {
@@ -309,6 +310,93 @@ internal static class ResultWriter
 
         await File.WriteAllTextAsync(
             Path.Combine(outputDirectory, "conflict.md"),
+            builder.ToString(),
+            Encoding.UTF8,
+            cancellationToken);
+    }
+
+    public static async Task WriteCrashRecoveryAsync(
+        string outputDirectory,
+        CrashRecoveryRunResult result,
+        CancellationToken cancellationToken)
+    {
+        Directory.CreateDirectory(outputDirectory);
+        var jsonPath = Path.Combine(outputDirectory, "crash-recovery.json");
+        await using (var stream = File.Create(jsonPath))
+        {
+            await JsonSerializer.SerializeAsync(
+                stream,
+                result,
+                _serializerOptions,
+                cancellationToken);
+        }
+
+        var validations = result.Measurements
+            .Select(static measurement => measurement.Validation)
+            .ToArray();
+        var validationPath = Path.Combine(outputDirectory, "validation.json");
+        await using (var stream = File.Create(validationPath))
+        {
+            await JsonSerializer.SerializeAsync(
+                stream,
+                validations,
+                _serializerOptions,
+                cancellationToken);
+        }
+
+        var interruption = result.Measurements
+            .Select(static measurement => measurement.InterruptionMilliseconds)
+            .Order()
+            .ToArray();
+
+        var startupRecovery = result.Measurements
+            .Select(static measurement => measurement.RecoveryStartupMilliseconds)
+            .Order()
+            .ToArray();
+
+        var workspaceReopen = result.Measurements
+            .Select(static measurement => measurement.WorkspaceReopenMilliseconds)
+            .Order()
+            .ToArray();
+
+        var first = result.Measurements[0];
+        var builder = new StringBuilder()
+            .AppendLine("# Roslyn Workbench crash recovery summary")
+            .AppendLine()
+            .Append("Repository: ").AppendLine(result.Repository)
+            .Append("Scenario: ").AppendLine(result.Scenario)
+            .Append("Mutation tool: ").AppendLine(result.MutationTool)
+            .Append("Warm-ups: ").AppendLine(
+                result.WarmupCount.ToString(CultureInfo.InvariantCulture))
+            .Append("Measured iterations: ").AppendLine(
+                result.Measurements.Count.ToString(CultureInfo.InvariantCulture))
+            .Append("Prepared recovery state/artifacts: ")
+            .Append(first.PreparedRecoveryState ?? "None").Append('/')
+            .AppendLine(first.PreparedRecoveryArtifactCount.ToString(CultureInfo.InvariantCulture))
+            .Append("Files partially applied before termination: ")
+            .AppendLine(first.FilesBeforeRecovery.Count.ToString(CultureInfo.InvariantCulture))
+            .Append("Observed applied target: ").AppendLine(first.AppliedTargetPath)
+            .AppendLine()
+            .AppendLine("| Measurement | Median (ms) | P95 (ms) |")
+            .AppendLine("|---|---:|---:|")
+            .Append("| Commit start to forced termination | ")
+            .Append(Percentile(interruption, 0.5).ToString("F2", CultureInfo.InvariantCulture))
+            .Append(" | ")
+            .Append(Percentile(interruption, 0.95).ToString("F2", CultureInfo.InvariantCulture))
+            .AppendLine(" |")
+            .Append("| Fresh Host startup and recovery | ")
+            .Append(Percentile(startupRecovery, 0.5).ToString("F2", CultureInfo.InvariantCulture))
+            .Append(" | ")
+            .Append(Percentile(startupRecovery, 0.95).ToString("F2", CultureInfo.InvariantCulture))
+            .AppendLine(" |")
+            .Append("| Workspace reopen after recovery | ")
+            .Append(Percentile(workspaceReopen, 0.5).ToString("F2", CultureInfo.InvariantCulture))
+            .Append(" | ")
+            .Append(Percentile(workspaceReopen, 0.95).ToString("F2", CultureInfo.InvariantCulture))
+            .AppendLine(" |");
+
+        await File.WriteAllTextAsync(
+            Path.Combine(outputDirectory, "crash-recovery.md"),
             builder.ToString(),
             Encoding.UTF8,
             cancellationToken);

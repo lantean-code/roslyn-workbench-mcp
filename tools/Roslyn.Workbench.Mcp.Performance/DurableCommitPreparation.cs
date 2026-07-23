@@ -7,4 +7,6 @@ internal sealed record DurableCommitPreparation
     public required double PreviewMilliseconds { get; init; }
 
     public required int PreviewDocumentCount { get; init; }
+
+    public required IReadOnlyList<string> ChangedDocumentPaths { get; init; }
 }

@@ -5,13 +5,17 @@ namespace Roslyn.Workbench.Mcp.Performance;
 internal sealed class RepositoryRestorer
 {
     private const int _restoreBatchSize = 100;
-    private readonly IReadOnlySet<string> _baselineUntrackedPaths;
-    private readonly string _commit;
-    private readonly string _repositoryRoot;
-
     private static StringComparer PathComparer => OperatingSystem.IsWindows()
         ? StringComparer.OrdinalIgnoreCase
         : StringComparer.Ordinal;
+
+    private static StringComparison PathComparison => OperatingSystem.IsWindows()
+        ? StringComparison.OrdinalIgnoreCase
+        : StringComparison.Ordinal;
+
+    private readonly IReadOnlySet<string> _baselineUntrackedPaths;
+    private readonly string _commit;
+    private readonly string _repositoryRoot;
 
     private RepositoryRestorer(
         string repositoryRoot,
@@ -124,6 +128,8 @@ internal sealed class RepositoryRestorer
             {
                 File.Delete(fullPath);
             }
+
+            DeleteEmptyCreatedDirectories(fullPath);
         }
 
         await VerifyRestoredAsync(cancellationToken);
@@ -191,6 +197,23 @@ internal sealed class RepositoryRestorer
         }
 
         return fullPath;
+    }
+
+    private void DeleteEmptyCreatedDirectories(string createdFilePath)
+    {
+        var directory = Path.GetDirectoryName(createdFilePath);
+        while (directory is not null
+            && !string.Equals(directory, _repositoryRoot, PathComparison))
+        {
+            if (!Directory.Exists(directory)
+                || Directory.EnumerateFileSystemEntries(directory).Any())
+            {
+                return;
+            }
+
+            Directory.Delete(directory);
+            directory = Path.GetDirectoryName(directory);
+        }
     }
 
     private async Task RunRequiredGitAsync(

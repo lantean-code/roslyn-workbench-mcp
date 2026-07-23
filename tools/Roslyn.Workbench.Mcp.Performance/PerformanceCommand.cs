@@ -8,6 +8,7 @@ internal enum PerformanceCommand
     Measure,
     Commit,
     Conflict,
+    CrashRecovery,
     Cancel,
     Profile,
 }

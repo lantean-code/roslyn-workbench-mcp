@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.ExceptionServices;
 using System.Text.Json;
@@ -73,6 +74,23 @@ internal static class PerformanceApplication
             if (options.Command == PerformanceCommand.Conflict)
             {
                 await MeasureConflictsAsync(
+                    options,
+                    repository,
+                    scenarios,
+                    hostPath,
+                    repositoryRoot,
+                    environment,
+                    executionDirectory,
+                    outputDirectory,
+                    cancellationToken);
+
+                await Console.Out.WriteLineAsync($"Results: {outputDirectory}");
+                return 0;
+            }
+
+            if (options.Command == PerformanceCommand.CrashRecovery)
+            {
+                await MeasureCrashRecoveriesAsync(
                     options,
                     repository,
                     scenarios,
@@ -584,8 +602,10 @@ internal static class PerformanceApplication
             repositoryRoot,
             repository.Commit,
             cancellationToken);
+
         var initialWorkspaceStateFiles = RunStateValidator.CaptureWorkspaceStateFiles(
             repositoryRoot);
+
         var startedAtUtc = DateTimeOffset.UtcNow;
 
         for (var warmup = 1; warmup <= options.Warmups; warmup++)
@@ -807,6 +827,422 @@ internal static class PerformanceApplication
             HostShutdown = shutdown,
             Validation = validation,
         };
+    }
+
+    private static async Task MeasureCrashRecoveriesAsync(
+        PerformanceOptions options,
+        RepositoryDefinition repository,
+        IReadOnlyList<ScenarioDefinition> scenarios,
+        string hostPath,
+        string repositoryRoot,
+        RunEnvironmentInfo environment,
+        string executionDirectory,
+        string outputDirectory,
+        CancellationToken cancellationToken)
+    {
+        if (scenarios.Count != 1)
+        {
+            throw new ArgumentException(
+                "Crash recovery measurement requires exactly one mutation scenario.");
+        }
+
+        var scenario = scenarios[0];
+        var workspacePath = Path.Combine(repositoryRoot, repository.WorkspacePath);
+        var restorer = await RepositoryRestorer.CreateAsync(
+            repositoryRoot,
+            repository.Commit,
+            cancellationToken);
+        var initialWorkspaceStateFiles = RunStateValidator.CaptureWorkspaceStateFiles(
+            repositoryRoot);
+        var startedAtUtc = DateTimeOffset.UtcNow;
+
+        for (var warmup = 1; warmup <= options.Warmups; warmup++)
+        {
+            await Console.Out.WriteLineAsync(
+                $"Warming crash recovery {repository.Id}/{scenario.Id} ({warmup}/{options.Warmups})");
+            _ = await RunCrashRecoveryIterationAsync(
+                repository,
+                scenario,
+                hostPath,
+                repositoryRoot,
+                workspacePath,
+                Path.Combine(executionDirectory, "state", $"warmup-{warmup}"),
+                initialWorkspaceStateFiles,
+                restorer,
+                iteration: 0,
+                cancellationToken);
+        }
+
+        var measurements = new List<CrashRecoveryMeasurement>();
+        for (var iteration = 1; iteration <= options.Iterations; iteration++)
+        {
+            await Console.Out.WriteLineAsync(
+                $"Measuring crash recovery {repository.Id}/{scenario.Id} ({iteration}/{options.Iterations})");
+            var measurement = await RunCrashRecoveryIterationAsync(
+                repository,
+                scenario,
+                hostPath,
+                repositoryRoot,
+                workspacePath,
+                Path.Combine(executionDirectory, "state", $"iteration-{iteration}"),
+                initialWorkspaceStateFiles,
+                restorer,
+                iteration,
+                cancellationToken);
+
+            measurements.Add(measurement);
+        }
+
+        var result = new CrashRecoveryRunResult
+        {
+            Repository = repository.Id,
+            RepositorySize = repository.Size,
+            Commit = repository.Commit,
+            Scenario = scenario.Id,
+            MutationTool = scenario.Tool,
+            StartedAtUtc = startedAtUtc,
+            Environment = environment,
+            WarmupCount = options.Warmups,
+            Measurements = measurements,
+        };
+
+        await ResultWriter.WriteCrashRecoveryAsync(
+            outputDirectory,
+            result,
+            cancellationToken);
+    }
+
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "The manual runner must preserve interruption, restart, shutdown, restoration, and validation failures so every cleanup step is attempted and all failures are reported together.")]
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "Both Host instances are retained in nullable locals and disposed in the unconditional finally block; the interrupted Host may already have been disposed by deliberate termination, which is idempotent.")]
+    private static async Task<CrashRecoveryMeasurement> RunCrashRecoveryIterationAsync(
+        RepositoryDefinition repository,
+        ScenarioDefinition scenario,
+        string hostPath,
+        string repositoryRoot,
+        string workspacePath,
+        string stateDirectory,
+        IReadOnlySet<string> initialWorkspaceStateFiles,
+        RepositoryRestorer restorer,
+        int iteration,
+        CancellationToken cancellationToken)
+    {
+        PerformanceHost? interruptedHost = null;
+        PerformanceHost? recoveryHost = null;
+        CrashRecoveryInterruption? interruption = null;
+        RepositoryChangeSet? filesBeforeRecovery = null;
+        RepositoryChangeSet? filesAfterRecovery = null;
+        RunValidationResult? validation = null;
+        ExceptionDispatchInfo? runFailure = null;
+        string? recoveryWorkspaceId = null;
+        double recoveryStartupMilliseconds = 0;
+        double workspaceReopenMilliseconds = 0;
+
+        try
+        {
+            interruptedHost = await PerformanceHost.StartAsync(
+                hostPath,
+                repositoryRoot,
+                stateDirectory,
+                cancellationToken);
+
+            var workspaceId = await OpenWorkspaceAsync(
+                interruptedHost,
+                workspacePath,
+                repositoryRoot,
+                cancellationToken);
+
+            var durableRunner = new DurableCommitRunner(
+                interruptedHost,
+                workspaceId,
+                repositoryRoot);
+
+            var preparation = await durableRunner.PrepareAsync(
+                scenario,
+                cancellationToken);
+
+            var crashRunner = new CrashRecoveryRunner(
+                interruptedHost,
+                workspaceId,
+                repositoryRoot,
+                stateDirectory);
+
+            interruption = await crashRunner.InterruptAsync(
+                preparation,
+                cancellationToken);
+
+            filesBeforeRecovery = await restorer.CaptureChangesAsync(
+                cancellationToken);
+
+            ValidateCrashInterruption(
+                interruption,
+                filesBeforeRecovery,
+                repositoryRoot);
+
+            var recoveryStartupStopwatch = Stopwatch.StartNew();
+            recoveryHost = await PerformanceHost.StartAsync(
+                hostPath,
+                repositoryRoot,
+                stateDirectory,
+                cancellationToken);
+
+            recoveryStartupStopwatch.Stop();
+            recoveryStartupMilliseconds = recoveryStartupStopwatch.Elapsed.TotalMilliseconds;
+
+            var workspaceReopenStopwatch = Stopwatch.StartNew();
+            recoveryWorkspaceId = await OpenWorkspaceAsync(
+                recoveryHost,
+                workspacePath,
+                repositoryRoot,
+                cancellationToken);
+
+            workspaceReopenStopwatch.Stop();
+            workspaceReopenMilliseconds = workspaceReopenStopwatch.Elapsed.TotalMilliseconds;
+
+            await CloseWorkspaceAsync(recoveryHost, recoveryWorkspaceId);
+            recoveryWorkspaceId = null;
+            await recoveryHost.DisposeAsync();
+
+            var evidenceAfterRecovery = await RecoveryEvidenceReader.ReadAsync(
+                stateDirectory,
+                cancellationToken);
+
+            filesAfterRecovery = await restorer.CaptureChangesAsync(
+                cancellationToken);
+
+            ValidateCrashRecovery(evidenceAfterRecovery, filesAfterRecovery);
+            ValidateCrashWorkspaceStateFiles(
+                repositoryRoot,
+                initialWorkspaceStateFiles);
+        }
+        catch (Exception exception)
+        {
+            runFailure = CombineFailures(runFailure, exception);
+        }
+        finally
+        {
+            if (recoveryWorkspaceId is not null && recoveryHost is not null)
+            {
+                try
+                {
+                    await CloseWorkspaceAsync(recoveryHost, recoveryWorkspaceId);
+                }
+                catch (Exception exception)
+                {
+                    runFailure = CombineFailures(runFailure, exception);
+                }
+            }
+
+            if (recoveryHost is not null)
+            {
+                try
+                {
+                    await recoveryHost.DisposeAsync();
+                }
+                catch (Exception exception)
+                {
+                    runFailure = CombineFailures(runFailure, exception);
+                }
+            }
+
+            if (interruptedHost is not null)
+            {
+                try
+                {
+                    await interruptedHost.DisposeAsync();
+                }
+                catch (Exception exception)
+                {
+                    runFailure = CombineFailures(runFailure, exception);
+                }
+            }
+        }
+
+        double runnerCleanupMilliseconds = 0;
+        try
+        {
+            filesAfterRecovery ??= await restorer.CaptureChangesAsync(
+                CancellationToken.None);
+
+            runnerCleanupMilliseconds = await restorer.RestoreAsync(
+                filesAfterRecovery,
+                CancellationToken.None);
+
+            ClearDirectory(stateDirectory);
+            RunStateValidator.RestoreWorkspaceStateFiles(
+                repositoryRoot,
+                initialWorkspaceStateFiles);
+        }
+        catch (Exception exception)
+        {
+            runFailure = CombineFailures(runFailure, exception);
+        }
+
+        if (recoveryHost is not null)
+        {
+            try
+            {
+                validation = await RunStateValidator.ValidateAsync(
+                    repository,
+                    repositoryRoot,
+                    stateDirectory,
+                    initialWorkspaceStateFiles,
+                    recoveryHost.GetShutdownResult(),
+                    CancellationToken.None);
+
+                if (!validation.Succeeded)
+                {
+                    runFailure = CombineFailures(
+                        runFailure,
+                        new InvalidOperationException(
+                            $"Crash recovery validation failed: {string.Join(" ", validation.Issues)}"));
+                }
+            }
+            catch (Exception exception)
+            {
+                runFailure = CombineFailures(runFailure, exception);
+            }
+        }
+
+        runFailure?.Throw();
+
+        var completedInterruption = interruption
+            ?? throw new InvalidOperationException(
+                "Crash recovery did not produce interruption evidence.");
+        var completedFilesBeforeRecovery = filesBeforeRecovery
+            ?? throw new InvalidOperationException(
+                "Crash recovery did not capture the partially applied repository state.");
+        var completedRecoveryHost = recoveryHost
+            ?? throw new InvalidOperationException(
+                "Crash recovery did not start a fresh Host.");
+        var completedValidation = validation
+            ?? throw new InvalidOperationException(
+                "Crash recovery did not produce final validation.");
+
+        return new CrashRecoveryMeasurement
+        {
+            Iteration = iteration,
+            StagingMilliseconds = completedInterruption.StagingMilliseconds,
+            PreviewMilliseconds = completedInterruption.PreviewMilliseconds,
+            InterruptionMilliseconds = completedInterruption.InterruptionMilliseconds,
+            RecoveryStartupMilliseconds = recoveryStartupMilliseconds,
+            WorkspaceReopenMilliseconds = workspaceReopenMilliseconds,
+            RunnerCleanupMilliseconds = runnerCleanupMilliseconds,
+            AppliedTargetPath = Path.GetRelativePath(
+                repositoryRoot,
+                completedInterruption.AppliedTargetPath),
+            FilesBeforeRecovery = completedFilesBeforeRecovery.Files,
+            PreparedRecoveryState = completedInterruption.RecoveryEvidence.State,
+            PreparedRecoveryArtifactCount = completedInterruption.RecoveryEvidence.ArtifactCount,
+            InterruptedHostShutdown = completedInterruption.HostShutdown,
+            RecoveryHostShutdown = completedRecoveryHost.GetShutdownResult(),
+            Validation = completedValidation,
+        };
+    }
+
+    private static void ValidateCrashInterruption(
+        CrashRecoveryInterruption interruption,
+        RepositoryChangeSet filesBeforeRecovery,
+        string repositoryRoot)
+    {
+        if (!interruption.HostShutdown.ForcedTermination)
+        {
+            throw new InvalidOperationException(
+                "The interrupted Host did not record deliberate forced termination.");
+        }
+
+        if (filesBeforeRecovery.Files.Count == 0)
+        {
+            throw new InvalidOperationException(
+                "Host termination occurred before any repository replacement was observable.");
+        }
+
+        if (filesBeforeRecovery.Files.Any(
+            static file => file.Operation != DurableCommitFileOperation.Replace))
+        {
+            throw new InvalidOperationException(
+                "Batch 1 crash recovery requires a replacement-only mutation scenario.");
+        }
+
+        var pathComparison = OperatingSystem.IsWindows()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+
+        var appliedTargetPath = Path.GetFullPath(interruption.AppliedTargetPath);
+        var appliedTargetCaptured = filesBeforeRecovery.Files.Any(file =>
+            string.Equals(
+                Path.GetFullPath(Path.Combine(repositoryRoot, file.Path)),
+                appliedTargetPath,
+                pathComparison));
+
+        if (!appliedTargetCaptured)
+        {
+            throw new InvalidOperationException(
+                "The repository snapshot did not contain the replacement observed before Host termination.");
+        }
+    }
+
+    private static void ValidateCrashRecovery(
+        RecoveryEvidence recoveryEvidence,
+        RepositoryChangeSet filesAfterRecovery)
+    {
+        if (recoveryEvidence.State is not null
+            || recoveryEvidence.ArtifactCount != 0)
+        {
+            throw new InvalidOperationException(
+                "Fresh-Host startup left unfinished recovery state.");
+        }
+
+        if (filesAfterRecovery.Files.Count != 0)
+        {
+            throw new InvalidOperationException(
+                "Fresh-Host startup recovery did not restore the pinned repository state.");
+        }
+    }
+
+    private static void ValidateCrashWorkspaceStateFiles(
+        string repositoryRoot,
+        IReadOnlySet<string> initialWorkspaceStateFiles)
+    {
+        var pathComparison = OperatingSystem.IsWindows()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+        var pathComparer = OperatingSystem.IsWindows()
+            ? StringComparer.OrdinalIgnoreCase
+            : StringComparer.Ordinal;
+
+        var expectedLockPath = Path.GetFullPath(
+            Path.Combine(
+                repositoryRoot,
+                ".vs",
+                "roslyn-workbench-mcp",
+                "locks",
+                "commit.lock"));
+
+        var finalWorkspaceStateFiles = RunStateValidator.CaptureWorkspaceStateFiles(
+            repositoryRoot);
+
+        var unexpectedPaths = new List<string>();
+        foreach (var path in finalWorkspaceStateFiles.Except(
+            initialWorkspaceStateFiles,
+            pathComparer))
+        {
+            if (!string.Equals(path, expectedLockPath, pathComparison))
+            {
+                unexpectedPaths.Add(path);
+            }
+        }
+
+        if (unexpectedPaths.Count != 0)
+        {
+            throw new InvalidOperationException(
+                $"Fresh-Host recovery left unexpected workspace state files: {string.Join(", ", unexpectedPaths)}.");
+        }
     }
 
     private static void ValidateConflictEvidence(
@@ -1085,7 +1521,8 @@ internal static class PerformanceApplication
         {
             if (command is PerformanceCommand.Profile
                 or PerformanceCommand.Commit
-                or PerformanceCommand.Conflict)
+                or PerformanceCommand.Conflict
+                or PerformanceCommand.CrashRecovery)
             {
                 throw new ArgumentException($"{command} requires one scenario; '--scenario all' is not supported.");
             }
@@ -1239,6 +1676,7 @@ internal static class PerformanceApplication
               measure --repository <id> --scenario <id|all> --host <path> [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
               commit --repository <id> --scenario <mutation-id> --host <path> [--iterations 5] [--warmups 1] [--capture-trace] [--duration 00:00:30] [--output <path>] [--framework-root <path>] [--skip-prepare]
               conflict --repository <id> --scenario <conflict-id> --host <path> [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
+              crash-recovery --repository <id> --scenario <mutation-id> --host <path> [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
               cancel --repository <id> --scenario <id> --host <path> [--cancel-after 00:00:00.050] [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
               profile --repository <id> --scenario <id[,id...]> --host <path> [--profile trace|counters|gcdump] [--duration 00:00:30] [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
 

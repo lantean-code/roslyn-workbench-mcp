@@ -120,6 +120,11 @@ internal sealed class PerformanceOptions
             return PerformanceCommand.Conflict;
         }
 
+        if (string.Equals(value, "crash-recovery", StringComparison.OrdinalIgnoreCase))
+        {
+            return PerformanceCommand.CrashRecovery;
+        }
+
         if (string.Equals(value, "cancel", StringComparison.OrdinalIgnoreCase))
         {
             return PerformanceCommand.Cancel;

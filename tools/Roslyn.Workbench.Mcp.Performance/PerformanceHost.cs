@@ -13,6 +13,7 @@ internal sealed class PerformanceHost : IAsyncDisposable
     private static readonly TimeSpan _shutdownTimeout = TimeSpan.FromSeconds(5);
     private readonly Process _process;
     private readonly StringBuilder _standardError = new();
+    private readonly object _terminationLock = new();
     private McpClient? _client;
     private int? _exitCode;
     private long _lastCancellationRequestId;
@@ -152,6 +153,37 @@ internal sealed class PerformanceHost : IAsyncDisposable
         };
     }
 
+    public async ValueTask TerminateAsync()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        _ = TryTerminate();
+        if (!_process.HasExited)
+        {
+            await _process.WaitForExitAsync(CancellationToken.None);
+        }
+
+        await DisposeResourcesAsync();
+    }
+
+    public bool TryTerminate()
+    {
+        lock (_terminationLock)
+        {
+            if (_isDisposed || _process.HasExited)
+            {
+                return false;
+            }
+
+            _process.Kill(entireProcessTree: true);
+            _forcedTermination = true;
+            return true;
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (_isDisposed)
@@ -181,9 +213,25 @@ internal sealed class PerformanceHost : IAsyncDisposable
             }
         }
 
-        _exitCode = _process.ExitCode;
-        _process.Dispose();
-        _isDisposed = true;
+        await DisposeResourcesAsync();
+    }
+
+    private async ValueTask DisposeResourcesAsync()
+    {
+        try
+        {
+            if (_client is not null)
+            {
+                await _client.DisposeAsync();
+                _client = null;
+            }
+        }
+        finally
+        {
+            _exitCode = _process.ExitCode;
+            _process.Dispose();
+            _isDisposed = true;
+        }
     }
 
     private static ProcessStartInfo CreateStartInfo(

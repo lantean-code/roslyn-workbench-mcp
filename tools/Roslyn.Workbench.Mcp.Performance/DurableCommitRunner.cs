@@ -59,12 +59,13 @@ internal sealed class DurableCommitRunner
             cancellationToken);
         previewStopwatch.Stop();
 
-        var previewDocumentCount = GetPreviewDocumentCount(previewResult);
+        var changedDocumentPaths = GetChangedDocumentPaths(previewResult);
         return new DurableCommitPreparation
         {
             StagingMilliseconds = stagingStopwatch.Elapsed.TotalMilliseconds,
             PreviewMilliseconds = previewStopwatch.Elapsed.TotalMilliseconds,
-            PreviewDocumentCount = previewDocumentCount,
+            PreviewDocumentCount = changedDocumentPaths.Count,
+            ChangedDocumentPaths = changedDocumentPaths,
         };
     }
 
@@ -145,7 +146,7 @@ internal sealed class DurableCommitRunner
         return result;
     }
 
-    private static int GetPreviewDocumentCount(CallToolResult result)
+    private static List<string> GetChangedDocumentPaths(CallToolResult result)
     {
         var content = result.StructuredContent
             ?? throw new InvalidDataException("transaction-preview returned no structured content.");
@@ -153,7 +154,24 @@ internal sealed class DurableCommitRunner
             .GetProperty("data")
             .GetProperty("documents");
 
-        return documents.GetArrayLength();
+        var paths = new List<string>(documents.GetArrayLength());
+        foreach (var document in documents.EnumerateArray())
+        {
+            var path = document
+                .GetProperty("document")
+                .GetProperty("path")
+                .GetString();
+
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                throw new InvalidDataException(
+                    "transaction-preview returned a changed document without a path.");
+            }
+
+            paths.Add(path);
+        }
+
+        return paths;
     }
 
     private static void EnsureCommitted(CallToolResult result)

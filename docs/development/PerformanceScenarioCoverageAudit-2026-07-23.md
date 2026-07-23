@@ -60,6 +60,8 @@ The broad `.Result` text scan returned 79 matches, all reviewed as namespaces, r
 
 The gaps should not be implemented as one batch. The runner changes alter process lifetime and cleanup rules, while the Code Action work depends on reliable create/delete restoration.
 
+Each completed batch must record a **Production fix required** outcome. Use `Yes` when the scenario exposes a defect or justified performance change in the shipped Host, Workspace, plugin or Code Action projects, and describe the fix and confirming evidence. Use `No` when only the manual runner, scenario definition, documentation or validation model changes. A discovered problem must not be described as a production fix until its ownership has been established.
+
 1. Add runner support for deliberate Host termination and restart recovery. Correct created-directory cleanup as part of the same runner-safety batch.
 2. Add the Code Action create/replace durable scenario, then extend it to delete and interrupted recovery once a deterministic delete action is selected.
 3. Add lifecycle sequences for cache freshness and multi-revision transactions.
@@ -68,3 +70,19 @@ The gaps should not be implemented as one batch. The runner changes alter proces
 6. Add concurrency measurements only after the single-client state sequences are stable.
 
 The first deliverable is intentionally the crash/restart harness. It validates the strongest durability claim and provides infrastructure needed to test create/delete interruption safely. Performance tuning should remain paused until the P0 scenarios complete cleanly on Windows and WSL.
+
+## Batch 1 implementation
+
+**Status:** Complete; native WSL and native Windows validation passed.
+
+**Production fix required:** No. The published Host correctly restored the partially applied commit during fresh-process startup. The only failed initial validation came from the manual runner treating the intentionally persistent `commit.lock` marker as leaked lock ownership. The runner now distinguishes the marker file from the OS lock it coordinates and removes the marker as disposable benchmark state after recovery validation.
+
+The permanent runner now provides a `crash-recovery` command. It stages and previews a configured mutation, starts `transaction-commit`, waits until an `Applying` manifest exists and at least one replacement target contains its intended bytes, then forcibly terminates the published Host. A fresh Host starts with the same state directory, performs normal startup recovery before MCP initialisation, reopens and closes the Workspace, and must leave the pinned repository and recovery directory clean.
+
+Crash-specific validation distinguishes the persistent `commit.lock` marker from live lock ownership. The fresh Host must successfully consume and remove the recovery manifest, restore the repository and shut down normally. The marker is then removed as disposable runner state before the ordinary final validation. Mutation restoration also removes newly empty parent directories after deleting runner-observed created files, preparing the restoration boundary for the create/delete scenarios in Batch 2.
+
+The native WSL Serilog run terminated the Host with an `Applying` manifest containing 54 artifacts after four of 27 replacement files had become observable. Fresh-Host startup restored the repository in 700.44 ms, the recovered Workspace reopened successfully, the recovery Host exited normally and final repository, recovery, coordination and lock-state validation passed. Evidence: `artifacts/performance/results/20260723-104059-serilog-9263da897f3f464f821dd7cd990c13fe`.
+
+The first native Windows attempt completed all 27 replacements inside the runner's 2 ms polling interval, so no crash was injected. Replacing that polling with filesystem notifications still allowed native Windows to complete before its notification callback was scheduled. These failures exposed runner timing flaws rather than production defects. The runner now obtains the changed target paths from `transaction-preview`, captures their file state before starting the commit, and actively monitors those targets without an asynchronous scheduling interval so it can terminate the Host as soon as a replacement becomes visible. A repeat WSL run using the active monitor interrupted after three observable replacements and again passed recovery and final-state validation. Evidence: `artifacts/performance/results/20260723-110222-serilog-3e3c247555d043f2b4ce1183dd3a679c`.
+
+The native Windows confirmation interrupted after two observable replacements with an `Applying` manifest containing all 54 artifacts. Fresh-Host startup recovery completed in 708.97 ms, the Workspace reopened successfully, the interrupted Host recorded forced termination, the recovery Host exited normally, and final validation found no repository changes, unfinished recovery data, new Workspace state files or lock residue. Evidence: `artifacts/performance/results/20260723-110330-serilog-b75ae3d8b19e4212bf7fc06a6a0f8e9d`.

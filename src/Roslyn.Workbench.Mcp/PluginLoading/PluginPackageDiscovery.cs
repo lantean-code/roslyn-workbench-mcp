@@ -51,9 +51,10 @@ internal sealed class PluginPackageDiscovery : IPluginPackageDiscovery
             }
         }
 
-        results.AddRange(packageDirectories
-            .OrderBy(static path => path, StringComparer.Ordinal)
-            .Select(DiscoverPackage));
+        foreach (var packageDirectory in packageDirectories.OrderBy(static path => path, StringComparer.Ordinal))
+        {
+            results.Add(DiscoverPackage(packageDirectory));
+        }
 
         return results;
     }
@@ -104,15 +105,17 @@ internal sealed class PluginPackageDiscovery : IPluginPackageDiscovery
         }
 
         var markedAssembly = markedAssemblies[0];
+        var candidate = new PluginPackageCandidate
+        {
+            PackageDirectory = packageDirectory,
+            EntryAssemblyPath = markedAssembly.Path,
+            EntryPoint = markedAssembly.EntryPoint,
+        };
+
         return new PluginPackageDiscoveryResult
         {
             FallbackIdentity = fallbackIdentity,
-            Candidate = new PluginPackageCandidate
-            {
-                PackageDirectory = packageDirectory,
-                EntryAssemblyPath = markedAssembly.Path,
-                EntryPoint = markedAssembly.EntryPoint,
-            },
+            Candidate = candidate,
         };
     }
 

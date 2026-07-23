@@ -4,46 +4,76 @@ internal sealed class PluginCollisionPolicy : IPluginCollisionPolicy
 {
     public string? FindProtectedToolCollision(PreparedCatalogPlugin plugin, IReadOnlySet<string> protectedToolNames)
     {
-        return GetToolNames(plugin).FirstOrDefault(protectedToolNames.Contains);
+        foreach (var tool in plugin.Preparation.Tools)
+        {
+            var toolName = tool.Tool.Metadata.Name;
+            if (protectedToolNames.Contains(toolName))
+            {
+                return toolName;
+            }
+        }
+
+        return null;
     }
 
     public IReadOnlySet<string> FindDuplicateExternalPluginIds(IReadOnlyList<PluginPackageDiscoveryResult> discoveryResults)
     {
-        return discoveryResults
-            .Select(static result => result.Candidate)
-            .OfType<PluginPackageCandidate>()
-            .Select(static candidate => candidate.EntryPoint.PluginId)
-            .Where(static pluginId => !string.IsNullOrWhiteSpace(pluginId))
-            .GroupBy(static pluginId => pluginId, StringComparer.Ordinal)
-            .Where(static group => group.Count() > 1)
-            .Select(static group => group.Key)
-            .ToHashSet(StringComparer.Ordinal);
+        var observedPluginIds = new HashSet<string>(StringComparer.Ordinal);
+        var duplicatePluginIds = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var discoveryResult in discoveryResults)
+        {
+            var pluginId = discoveryResult.Candidate?.EntryPoint.PluginId;
+            if (string.IsNullOrWhiteSpace(pluginId))
+            {
+                continue;
+            }
+
+            if (!observedPluginIds.Add(pluginId))
+            {
+                _ = duplicatePluginIds.Add(pluginId);
+            }
+        }
+
+        return duplicatePluginIds;
     }
 
     public IReadOnlySet<string> FindExternalToolCollisions(
         IReadOnlyList<PreparedCatalogPlugin> plugins,
         IReadOnlySet<string> protectedToolNames)
     {
-        var collisions = plugins
-            .Where(plugin => GetToolNames(plugin).Any(protectedToolNames.Contains))
-            .Select(static plugin => plugin.Metadata.PluginId)
-            .ToHashSet(StringComparer.Ordinal);
+        var collisions = new HashSet<string>(StringComparer.Ordinal);
+        var pluginIdsByToolName = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
 
-        var sharedNames = plugins
-            .SelectMany(plugin => GetToolNames(plugin).Select(toolName => (plugin.Metadata.PluginId, ToolName: toolName)))
-            .GroupBy(static item => item.ToolName, StringComparer.Ordinal)
-            .Where(static group => group.Select(static item => item.PluginId).Distinct(StringComparer.Ordinal).Count() > 1);
-
-        foreach (var sharedName in sharedNames)
+        foreach (var plugin in plugins)
         {
-            collisions.UnionWith(sharedName.Select(static item => item.PluginId));
+            var pluginId = plugin.Metadata.PluginId;
+            foreach (var tool in plugin.Preparation.Tools)
+            {
+                var toolName = tool.Tool.Metadata.Name;
+                if (protectedToolNames.Contains(toolName))
+                {
+                    _ = collisions.Add(pluginId);
+                }
+
+                if (!pluginIdsByToolName.TryGetValue(toolName, out var pluginIds))
+                {
+                    pluginIds = new HashSet<string>(StringComparer.Ordinal);
+                    pluginIdsByToolName.Add(toolName, pluginIds);
+                }
+
+                _ = pluginIds.Add(pluginId);
+            }
+        }
+
+        foreach (var pluginIds in pluginIdsByToolName.Values)
+        {
+            if (pluginIds.Count > 1)
+            {
+                collisions.UnionWith(pluginIds);
+            }
         }
 
         return collisions;
-    }
-
-    private static IEnumerable<string> GetToolNames(PreparedCatalogPlugin plugin)
-    {
-        return plugin.Preparation.Tools.Select(static tool => tool.Tool.Metadata.Name);
     }
 }

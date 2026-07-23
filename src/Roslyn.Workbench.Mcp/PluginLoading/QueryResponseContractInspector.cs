@@ -13,26 +13,28 @@ internal static class QueryResponseContractInspector
             return [];
         }
 
-        var offendingProperties = tool.ResponseType
-            .GetProperties(BindingFlags.Instance | BindingFlags.Public)
-            .Where(static property => IsRawTopLevelCollection(property.PropertyType))
-            .Select(static property => property.Name)
-            .ToArray();
+        var offendingProperties = new List<string>();
+        foreach (var property in tool.ResponseType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+        {
+            if (IsRawTopLevelCollection(property.PropertyType))
+            {
+                offendingProperties.Add(property.Name);
+            }
+        }
 
-        if (offendingProperties.Length == 0)
+        if (offendingProperties.Count == 0)
         {
             return [];
         }
 
-        return
-        [
-            new DiagnosticInfo
-            {
-                Id = "QueryResponseContract",
-                Severity = DiagnosticSeverity.Warning,
-                Message = $"Tool '{tool.Metadata.Name}' publishes unbounded top-level collections on response '{tool.ResponseType.Name}': {string.Join(", ", offendingProperties)}. Prefer BoundedCollection<TItem> for agent-facing top-level collections.",
-            },
-        ];
+        var diagnostic = new DiagnosticInfo
+        {
+            Id = "QueryResponseContract",
+            Severity = DiagnosticSeverity.Warning,
+            Message = $"Tool '{tool.Metadata.Name}' publishes unbounded top-level collections on response '{tool.ResponseType.Name}': {string.Join(", ", offendingProperties)}. Prefer BoundedCollection<TItem> for agent-facing top-level collections.",
+        };
+
+        return [diagnostic];
     }
 
     private static bool IsRawTopLevelCollection(Type propertyType)

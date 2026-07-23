@@ -10,23 +10,8 @@ internal static class ToolSchemaBuilder
         JsonElement errorSchema,
         JsonElement nextSchema)
     {
-        return CreateResponseSchema(
-            new JsonObject
-            {
-                ["type"] = "object",
-                ["required"] = new JsonArray("ok", "data"),
-                ["properties"] = new JsonObject
-                {
-                    ["ok"] = new JsonObject
-                    {
-                        ["const"] = true,
-                    },
-                    ["data"] = JsonNode.Parse(valueSchema.GetRawText()),
-                },
-            },
-            [valueSchema],
-            errorSchema,
-            nextSchema);
+        var successSchema = CreateSuccessSchema(ParseNode(valueSchema));
+        return CreateResponseSchema(successSchema, [valueSchema], errorSchema, nextSchema);
     }
 
     public static JsonElement CreateResponseSchema(
@@ -36,27 +21,17 @@ internal static class ToolSchemaBuilder
         JsonElement nextSchema)
     {
         var mergedDefinitions = MergeDefinitions(componentSchemas.Concat([errorSchema, nextSchema]));
+        var failureSchema = CreateFailureSchema(errorSchema, nextSchema);
+        var alternatives = new JsonArray
+        {
+            successSchema,
+            failureSchema,
+        };
+
         var root = new JsonObject
         {
             ["type"] = "object",
-            ["oneOf"] = new JsonArray
-            {
-                successSchema,
-                new JsonObject
-                {
-                    ["type"] = "object",
-                    ["required"] = new JsonArray("ok", "error"),
-                    ["properties"] = new JsonObject
-                    {
-                        ["ok"] = new JsonObject
-                        {
-                            ["const"] = false,
-                        },
-                        ["error"] = JsonNode.Parse(errorSchema.GetRawText()),
-                        ["next"] = AllowNull(nextSchema),
-                    },
-                },
-            },
+            ["oneOf"] = alternatives,
         };
 
         if (mergedDefinitions.Count > 0)
@@ -70,18 +45,23 @@ internal static class ToolSchemaBuilder
     public static JsonElement CreateBoundedCollectionSchema(JsonElement itemSchema)
     {
         var definitions = MergeDefinitions([itemSchema]);
+        var hasMoreSchema = new JsonObject
+        {
+            ["type"] = "boolean",
+        };
+
+        var properties = new JsonObject
+        {
+            ["items"] = CreateArraySchema(itemSchema),
+            ["hasMore"] = hasMoreSchema,
+        };
+
+        var requiredProperties = new JsonArray("items", "hasMore");
         var schema = new JsonObject
         {
             ["type"] = "object",
-            ["required"] = new JsonArray("items", "hasMore"),
-            ["properties"] = new JsonObject
-            {
-                ["items"] = CreateArraySchema(itemSchema),
-                ["hasMore"] = new JsonObject
-                {
-                    ["type"] = "boolean",
-                },
-            },
+            ["required"] = requiredProperties,
+            ["properties"] = properties,
         };
 
         if (definitions.Count > 0)
@@ -94,10 +74,11 @@ internal static class ToolSchemaBuilder
 
     public static JsonObject CreateArraySchema(JsonElement itemSchema)
     {
+        var parsedItemSchema = ParseNode(itemSchema);
         return new JsonObject
         {
             ["type"] = "array",
-            ["items"] = JsonNode.Parse(itemSchema.GetRawText()),
+            ["items"] = parsedItemSchema,
         };
     }
 
@@ -121,16 +102,20 @@ internal static class ToolSchemaBuilder
             return schemaObject;
         }
 
+        var nullSchema = new JsonObject
+        {
+            ["type"] = "null",
+        };
+
+        var alternatives = new JsonArray
+        {
+            schemaObject,
+            nullSchema,
+        };
+
         return new JsonObject
         {
-            ["anyOf"] = new JsonArray
-            {
-                schemaObject,
-                new JsonObject
-                {
-                    ["type"] = "null",
-                },
-            },
+            ["anyOf"] = alternatives,
         };
     }
 
@@ -138,9 +123,10 @@ internal static class ToolSchemaBuilder
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(type);
 
+        var allowedTypes = new JsonArray(type, "null");
         return new JsonObject
         {
-            ["type"] = new JsonArray(type, "null"),
+            ["type"] = allowedTypes,
         };
     }
 
@@ -160,6 +146,51 @@ internal static class ToolSchemaBuilder
         }
 
         return JsonSerializer.SerializeToElement(schemaObject);
+    }
+
+    public static JsonObject CreateSuccessSchema(JsonNode? dataSchema)
+    {
+        var okSchema = new JsonObject
+        {
+            ["const"] = true,
+        };
+
+        var properties = new JsonObject
+        {
+            ["ok"] = okSchema,
+            ["data"] = dataSchema,
+        };
+
+        var requiredProperties = new JsonArray("ok", "data");
+        return new JsonObject
+        {
+            ["type"] = "object",
+            ["required"] = requiredProperties,
+            ["properties"] = properties,
+        };
+    }
+
+    private static JsonObject CreateFailureSchema(JsonElement errorSchema, JsonElement nextSchema)
+    {
+        var okSchema = new JsonObject
+        {
+            ["const"] = false,
+        };
+
+        var properties = new JsonObject
+        {
+            ["ok"] = okSchema,
+            ["error"] = ParseNode(errorSchema),
+            ["next"] = AllowNull(nextSchema),
+        };
+
+        var requiredProperties = new JsonArray("ok", "error");
+        return new JsonObject
+        {
+            ["type"] = "object",
+            ["required"] = requiredProperties,
+            ["properties"] = properties,
+        };
     }
 
     private static JsonObject MergeDefinitions(IEnumerable<JsonElement> schemas)
@@ -184,7 +215,17 @@ internal static class ToolSchemaBuilder
 
     private static JsonObject ParseObject(JsonElement element)
     {
-        return JsonNode.Parse(element.GetRawText()) as JsonObject
-            ?? throw new InvalidOperationException("Generated schema was not a JSON object.");
+        var node = ParseNode(element);
+        if (node is not JsonObject schemaObject)
+        {
+            throw new InvalidOperationException("Generated schema was not a JSON object.");
+        }
+
+        return schemaObject;
+    }
+
+    private static JsonNode? ParseNode(JsonElement element)
+    {
+        return JsonNode.Parse(element.GetRawText());
     }
 }

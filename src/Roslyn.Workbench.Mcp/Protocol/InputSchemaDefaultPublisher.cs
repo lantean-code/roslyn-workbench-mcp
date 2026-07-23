@@ -11,8 +11,11 @@ internal static class InputSchemaDefaultPublisher
 {
     public static JsonElement Publish(JsonElement schema, Type requestType)
     {
-        var root = JsonNode.Parse(schema.GetRawText()) as JsonObject
-            ?? throw new InvalidOperationException("Generated input schema was not a JSON object.");
+        var parsedSchema = JsonNode.Parse(schema.GetRawText());
+        if (parsedSchema is not JsonObject root)
+        {
+            throw new InvalidOperationException("Generated input schema was not a JSON object.");
+        }
 
         var visited = new HashSet<(Type Type, JsonObject Schema)>(SchemaVisitComparer.Instance);
 
@@ -35,8 +38,11 @@ internal static class InputSchemaDefaultPublisher
 
         foreach (var property in contractType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
         {
-            var jsonPropertyName = property.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name
-                ?? JsonNamingPolicy.CamelCase.ConvertName(property.Name);
+            var jsonPropertyName = property.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name;
+            if (jsonPropertyName is null)
+            {
+                jsonPropertyName = JsonNamingPolicy.CamelCase.ConvertName(property.Name);
+            }
 
             if (schemaProperties[jsonPropertyName] is not JsonObject propertySchema)
             {

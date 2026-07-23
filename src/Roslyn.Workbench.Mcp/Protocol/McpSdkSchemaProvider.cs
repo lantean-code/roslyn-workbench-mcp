@@ -45,9 +45,13 @@ internal sealed class McpSdkSchemaProvider : IMcpSdkSchemaProvider
         var method = GetRequiredMethod(typeof(McpSdkSchemaProvider), nameof(CreateValueSchemaCoreGeneric), BindingFlags.NonPublic | BindingFlags.Static)
             .MakeGenericMethod(valueType);
 
-        return method.Invoke(null, null) is JsonElement schema
-            ? schema
-            : throw new InvalidOperationException("Schema generation did not return a JSON element.");
+        var invocationResult = method.Invoke(null, null);
+        if (invocationResult is not JsonElement schema)
+        {
+            throw new InvalidOperationException("Schema generation did not return a JSON element.");
+        }
+
+        return schema;
     }
 
     private static JsonElement CreateValueSchemaCoreGeneric<TValue>()
@@ -63,8 +67,13 @@ internal sealed class McpSdkSchemaProvider : IMcpSdkSchemaProvider
 
     private static MethodInfo GetRequiredMethod(Type type, string name, BindingFlags bindingFlags)
     {
-        return type.GetMethod(name, bindingFlags)
-            ?? throw new InvalidOperationException($"Schema method '{type.FullName}.{name}' was not found.");
+        var method = type.GetMethod(name, bindingFlags);
+        if (method is null)
+        {
+            throw new InvalidOperationException($"Schema method '{type.FullName}.{name}' was not found.");
+        }
+
+        return method;
     }
 
     private sealed record SchemaValueWrapper<TValue>

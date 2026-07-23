@@ -170,9 +170,26 @@ Validation evidence:
 
 ### Batch 4 — Host expression cleanup
 
+**Status:** Complete
+
 Review Host protocol/schema construction, result serialisation and plugin loading. Schema construction should be split into named schema fragments without changing the published contract.
 
 Validation: Host unit and protocol integration tests, schema contract tests, analyzer build and the fast suite.
+
+Completed work:
+
+- split response, mutation, transaction and nullable schema construction into named JSON fragments while retaining the published property names, required members and union shapes;
+- changed published-result and Workspace-result mapping to explicit outcome-first control flow;
+- replaced multi-stage plugin collision and response-contract LINQ with loops that expose ownership, duplicate and protected-name decisions;
+- separated plugin bootstrap, catalogue status and server status construction into named values; and
+- reduced the Host syntax scan from 64 candidates to zero across all audited categories.
+
+Validation evidence:
+
+- the Host project built with zero `latest-all` analyzer warnings;
+- all 270 Host unit tests and 44 Host integration tests passed, including schema contract tests;
+- all 10 published-host acceptance tests passed; and
+- the fast unit and contract suite passed 1,886 tests.
 
 ### Batch 5 — Plugins.Core tool review
 

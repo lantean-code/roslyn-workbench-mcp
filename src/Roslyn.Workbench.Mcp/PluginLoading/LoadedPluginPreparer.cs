@@ -35,19 +35,20 @@ internal sealed class LoadedPluginPreparer : ILoadedPluginPreparer
 
     private static PreparedCatalogPlugin CreateCompositionFailure(PluginMetadata metadata, string error)
     {
+        var diagnostic = PluginCatalogStatusFactory.CreateDiagnostic(
+            PluginDiagnosticIds.Composition,
+            DiagnosticSeverity.Error,
+            error);
+
+        var preparation = new PluginPreparationResult
+        {
+            Diagnostics = [diagnostic],
+        };
+
         return new PreparedCatalogPlugin
         {
             Metadata = metadata,
-            Preparation = new PluginPreparationResult
-            {
-                Diagnostics =
-                [
-                    PluginCatalogStatusFactory.CreateDiagnostic(
-                        PluginDiagnosticIds.Composition,
-                        DiagnosticSeverity.Error,
-                        error),
-                ],
-            },
+            Preparation = preparation,
         };
     }
 

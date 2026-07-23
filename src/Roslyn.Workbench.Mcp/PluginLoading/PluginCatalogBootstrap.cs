@@ -10,31 +10,37 @@ internal sealed class PluginCatalogBootstrap : IPluginCatalogBootstrap
         IEnumerable<string>? reservedToolNames = null)
     {
         var fileSystem = new FileSystem();
-        var packagePathPolicy = new PluginPackagePathPolicy(fileSystem, new WorkspacePathComparison());
+        var pathComparison = new WorkspacePathComparison();
+        var packagePathPolicy = new PluginPackagePathPolicy(fileSystem, pathComparison);
         var metadataReader = new PluginAssemblyMetadataReader(fileSystem);
+
+        var handlerTypeInspector = new PluginHandlerTypeInspector();
+        var handlerContractResolver = new PluginHandlerContractResolver();
+        var handlerWarningInspector = new PluginHandlerWarningInspector();
         var configurationPreparer = new PluginConfigurationPreparer(
-            new PluginHandlerTypeInspector(),
-            new PluginHandlerContractResolver(),
-            new PluginHandlerWarningInspector());
+            handlerTypeInspector,
+            handlerContractResolver,
+            handlerWarningInspector);
 
         var toolRegistrationMaterializer = new PluginToolRegistrationMaterializer();
-        var loadedPluginPreparer = new LoadedPluginPreparer(
-            new MefPluginComposer(),
-            configurationPreparer);
+        var pluginComposer = new MefPluginComposer();
+        var loadedPluginPreparer = new LoadedPluginPreparer(pluginComposer, configurationPreparer);
 
+        var entryPointValidator = new PluginEntryPointValidator();
+        var loadContextFactory = new PluginLoadContextFactory(packagePathPolicy);
         var candidatePreparer = new PluginCandidatePreparer(
             metadataReader,
-            new PluginEntryPointValidator(),
+            entryPointValidator,
             loadedPluginPreparer,
-            new PluginLoadContextFactory(packagePathPolicy));
+            loadContextFactory);
 
         var entryMaterializer = new PluginCatalogEntryMaterializer(toolRegistrationMaterializer);
         var packageDiscovery = new PluginPackageDiscovery(fileSystem, metadataReader, packagePathPolicy);
-
+        var collisionPolicy = new PluginCollisionPolicy();
         var loader = new PluginCatalogLoader(
             candidatePreparer,
             entryMaterializer,
-            new PluginCollisionPolicy(),
+            collisionPolicy,
             packageDiscovery);
 
         return loader.Load(startupOptions, bundledAssemblies, reservedToolNames);

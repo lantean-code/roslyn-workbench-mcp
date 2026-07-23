@@ -43,28 +43,40 @@ internal sealed class ServerStatusService : IServerStatusService
         cancellationToken.ThrowIfCancellationRequested();
 
         var includeExpandedDetail = detail == StatusDetailLevel.Full;
+        IReadOnlyList<RecoveryStatus>? recovery = null;
+        ServerConfiguration? configuration = null;
+        IReadOnlyList<WarningInfo>? startupWarnings = null;
+        IReadOnlyList<PluginStatus>? plugins = null;
 
-        var recovery = includeExpandedDetail
-            ? await _recoveryStore.GetStatusesAsync(cancellationToken)
-            : null;
+        if (includeExpandedDetail)
+        {
+            recovery = await _recoveryStore.GetStatusesAsync(cancellationToken);
+            configuration = GetConfiguration();
+            startupWarnings = _startupConfiguration.Warnings;
+            plugins = _pluginCatalogSnapshot.Plugins;
+        }
 
-        return ToolResult<ServerStatusData>.Succeeded(new ServerStatusData
+        var codeActions = new ComponentStatus
+        {
+            IsAvailable = _codeActionProviderCatalog.Status.IsAvailable,
+            Version = _codeActionProviderCatalog.Status.Version,
+            Message = _codeActionProviderCatalog.Status.Message,
+        };
+
+        var status = new ServerStatusData
         {
             ServerVersion = _serverVersion,
             RoslynVersion = _roslynVersion,
             MsBuild = _msBuildRegistrationService.CurrentStatus,
-            CodeActions = new ComponentStatus
-            {
-                IsAvailable = _codeActionProviderCatalog.Status.IsAvailable,
-                Version = _codeActionProviderCatalog.Status.Version,
-                Message = _codeActionProviderCatalog.Status.Message,
-            },
-            Configuration = includeExpandedDetail ? GetConfiguration() : null,
-            StartupWarnings = includeExpandedDetail ? _startupConfiguration.Warnings : null,
+            CodeActions = codeActions,
+            Configuration = configuration,
+            StartupWarnings = startupWarnings,
             ToolCount = _toolCount,
-            Plugins = includeExpandedDetail ? _pluginCatalogSnapshot.Plugins : null,
+            Plugins = plugins,
             Recovery = recovery,
-        });
+        };
+
+        return ToolResult<ServerStatusData>.Succeeded(status);
     }
 
     private ServerConfiguration GetConfiguration()

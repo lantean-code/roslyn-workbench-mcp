@@ -37,75 +37,66 @@ internal sealed class ToolSchemaFactory
 
     public JsonElement CreateOutputSchema(PublishedToolKind kind, Type responseType)
     {
-        return kind == PublishedToolKind.Mutation
-            ? CreateMutationResponseSchema()
-            : CreateQueryResponseSchema(responseType);
+        if (kind == PublishedToolKind.Mutation)
+        {
+            return CreateMutationResponseSchema();
+        }
+
+        return CreateQueryResponseSchema(responseType);
     }
 
     private JsonElement CreateQueryResponseSchema(Type responseType)
     {
         var valueSchema = _schemaProvider.GetValueSchema(responseType);
+        var dataSchema = JsonNode.Parse(valueSchema.GetRawText());
+        var successSchema = ToolSchemaBuilder.CreateSuccessSchema(dataSchema);
 
-        return CreateResponseSchema(
-            new JsonObject
-            {
-                ["type"] = "object",
-                ["required"] = new JsonArray("ok", "data"),
-                ["properties"] = new JsonObject
-                {
-                    ["ok"] = new JsonObject
-                    {
-                        ["const"] = true,
-                    },
-                    ["data"] = JsonNode.Parse(valueSchema.GetRawText()),
-                },
-            },
-            [valueSchema]);
+        return CreateResponseSchema(successSchema, [valueSchema]);
     }
 
     private JsonElement CreateMutationResponseSchema()
     {
+        var stagedSchema = new JsonObject
+        {
+            ["type"] = "boolean",
+        };
+
+        var revisionSchema = new JsonObject
+        {
+            ["type"] = "integer",
+        };
+
+        var transactionProperties = new JsonObject
+        {
+            ["revision"] = revisionSchema,
+        };
+
+        var transactionTypes = new JsonArray("object", "null");
+        var requiredTransactionProperties = new JsonArray("revision");
+        var transactionSchema = new JsonObject
+        {
+            ["type"] = transactionTypes,
+            ["required"] = requiredTransactionProperties,
+            ["properties"] = transactionProperties,
+        };
+
+        var mutationProperties = new JsonObject
+        {
+            ["staged"] = stagedSchema,
+            ["summary"] = ToolSchemaBuilder.CreateNullablePrimitiveSchema("string"),
+            ["transaction"] = transactionSchema,
+        };
+
+        var requiredMutationProperties = new JsonArray("staged");
         var mutationDataSchema = new JsonObject
         {
             ["type"] = "object",
-            ["required"] = new JsonArray("staged"),
-            ["properties"] = new JsonObject
-            {
-                ["staged"] = new JsonObject
-                {
-                    ["type"] = "boolean",
-                },
-                ["summary"] = ToolSchemaBuilder.CreateNullablePrimitiveSchema("string"),
-                ["transaction"] = new JsonObject
-                {
-                    ["type"] = new JsonArray("object", "null"),
-                    ["required"] = new JsonArray("revision"),
-                    ["properties"] = new JsonObject
-                    {
-                        ["revision"] = new JsonObject
-                        {
-                            ["type"] = "integer",
-                        },
-                    },
-                },
-            },
+            ["required"] = requiredMutationProperties,
+            ["properties"] = mutationProperties,
         };
 
-        return CreateResponseSchema(
-            new JsonObject
-            {
-                ["type"] = "object",
-                ["required"] = new JsonArray("ok", "data"),
-                ["properties"] = new JsonObject
-                {
-                    ["ok"] = new JsonObject
-                    {
-                        ["const"] = true,
-                    },
-                    ["data"] = mutationDataSchema,
-                },
-            },
-            []);
+        var successSchema = ToolSchemaBuilder.CreateSuccessSchema(mutationDataSchema);
+        return CreateResponseSchema(successSchema, []);
     }
 
     private JsonElement CreateResponseSchema(JsonObject successSchema, IReadOnlyList<JsonElement> componentSchemas)

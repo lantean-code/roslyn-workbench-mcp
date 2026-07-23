@@ -6,7 +6,6 @@ internal static class McpPublishedResultSerializer
 {
     public static JsonElement SerializePluginFailure(ToolExecutionFailureResult result)
     {
-
         if (!result.Outcome.IsError())
         {
             throw new InvalidOperationException($"Failure serialization requires an error outcome, but '{result.Outcome}' was supplied.");
@@ -17,25 +16,29 @@ internal static class McpPublishedResultSerializer
 
     public static JsonElement SerializePluginQuery<TResponse>(PluginExecutionResult<TResponse> result)
     {
+        if (result.HasError)
+        {
+            var failure = CreatePluginFailure(result, result.Error);
+            return SerializePluginFailure(failure);
+        }
 
-        return result.HasError
-            ? SerializePluginFailure(CreatePluginFailure(result, result.Error))
-            : ToolResultEnvelopeSerializer.CreateSuccess(result.Data);
+        return ToolResultEnvelopeSerializer.CreateSuccess(result.Data);
     }
 
     public static JsonElement SerializePluginMutation(PluginExecutionResult<MutationData> result)
     {
+        if (result.HasError)
+        {
+            var failure = CreatePluginFailure(result, result.Error);
+            return SerializePluginFailure(failure);
+        }
 
-        return result.HasError
-            ? SerializePluginFailure(CreatePluginFailure(result, result.Error))
-            : ToolResultEnvelopeSerializer.CreateMutationSuccess(
-                result.Data,
-                result.Outcome != PluginExecutionOutcome.NoChange && result.Data is not null);
+        var staged = result.Outcome != PluginExecutionOutcome.NoChange && result.Data is not null;
+        return ToolResultEnvelopeSerializer.CreateMutationSuccess(result.Data, staged);
     }
 
     public static JsonElement SerializeCodeActionFailure(CodeActionExecutionFailure result)
     {
-
         if (!result.Outcome.IsError())
         {
             throw new InvalidOperationException($"Failure serialization requires an error outcome, but '{result.Outcome}' was supplied.");
@@ -46,20 +49,25 @@ internal static class McpPublishedResultSerializer
 
     public static JsonElement SerializeCodeActionQuery<TResponse>(CodeActionExecutionResult<TResponse> result)
     {
+        if (result.HasError)
+        {
+            var failure = CreateCodeActionFailure(result, result.Error);
+            return SerializeCodeActionFailure(failure);
+        }
 
-        return result.HasError
-            ? SerializeCodeActionFailure(CreateCodeActionFailure(result, result.Error))
-            : ToolResultEnvelopeSerializer.CreateSuccess(result.Data);
+        return ToolResultEnvelopeSerializer.CreateSuccess(result.Data);
     }
 
     public static JsonElement SerializeCodeActionMutation(CodeActionExecutionResult<MutationData> result)
     {
+        if (result.HasError)
+        {
+            var failure = CreateCodeActionFailure(result, result.Error);
+            return SerializeCodeActionFailure(failure);
+        }
 
-        return result.HasError
-            ? SerializeCodeActionFailure(CreateCodeActionFailure(result, result.Error))
-            : ToolResultEnvelopeSerializer.CreateMutationSuccess(
-                result.Data,
-                result.Outcome != CodeActionExecutionOutcome.NoChange && result.Data is not null);
+        var staged = result.Outcome != CodeActionExecutionOutcome.NoChange && result.Data is not null;
+        return ToolResultEnvelopeSerializer.CreateMutationSuccess(result.Data, staged);
     }
 
     private static ToolExecutionFailureResult CreatePluginFailure<TResponse>(
@@ -94,13 +102,13 @@ internal static class McpPublishedResultSerializer
         string? correlationId,
         RequiredAction? requiredAction)
     {
-        return ToolResultEnvelopeSerializer.CreateFailure(
-            new ToolError
-            {
-                Code = code,
-                Message = message,
-                CorrelationId = correlationId,
-            },
-            requiredAction);
+        var error = new ToolError
+        {
+            Code = code,
+            Message = message,
+            CorrelationId = correlationId,
+        };
+
+        return ToolResultEnvelopeSerializer.CreateFailure(error, requiredAction);
     }
 }

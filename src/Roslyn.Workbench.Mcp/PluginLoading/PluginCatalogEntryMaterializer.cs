@@ -21,28 +21,36 @@ internal sealed class PluginCatalogEntryMaterializer : IPluginCatalogEntryMateri
         {
             var result = _toolRegistrationMaterializer.Materialize(plugin.Preparation);
             var diagnostics = CreateDiagnostics(result);
+            var status = PluginCatalogStatusFactory.CreateEnabled(plugin.Metadata, diagnostics);
+
             return new PluginCatalogEntryMaterialization
             {
                 Tools = result.Tools,
-                Status = PluginCatalogStatusFactory.CreateEnabled(plugin.Metadata, diagnostics),
+                Status = status,
             };
         }
         catch (Exception exception)
         {
+            var status = PluginCatalogStatusFactory.CreateDisabled(
+                plugin.Metadata,
+                PluginDiagnosticIds.Materialization,
+                $"Plugin tool materialization failed because {exception.GetType().Name} was raised.");
+
             return new PluginCatalogEntryMaterialization
             {
-                Status = PluginCatalogStatusFactory.CreateDisabled(
-                    plugin.Metadata,
-                    PluginDiagnosticIds.Materialization,
-                    $"Plugin tool materialization failed because {exception.GetType().Name} was raised."),
+                Status = status,
             };
         }
     }
 
     private static DiagnosticInfo[] CreateDiagnostics(PluginMaterializationResult result)
     {
-        return result.Diagnostics
-            .Concat(result.Tools.SelectMany(static tool => QueryResponseContractInspector.Inspect(tool.Tool)))
-            .ToArray();
+        var diagnostics = new List<DiagnosticInfo>(result.Diagnostics);
+        foreach (var tool in result.Tools)
+        {
+            diagnostics.AddRange(QueryResponseContractInspector.Inspect(tool.Tool));
+        }
+
+        return diagnostics.ToArray();
     }
 }

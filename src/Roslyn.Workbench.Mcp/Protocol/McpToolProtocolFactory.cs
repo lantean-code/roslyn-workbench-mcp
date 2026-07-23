@@ -20,6 +20,15 @@ internal sealed class McpToolProtocolFactory : IMcpToolProtocolFactory
         where TRequest : class
     {
         var publishedDescription = CreatePublishedDescription(description, resultSummary);
+        var annotations = new ToolAnnotations
+        {
+            Title = title,
+            ReadOnlyHint = readOnly,
+            IdempotentHint = readOnly,
+            OpenWorldHint = false,
+            DestructiveHint = destructive,
+        };
+
         return new Tool
         {
             Name = name,
@@ -29,14 +38,7 @@ internal sealed class McpToolProtocolFactory : IMcpToolProtocolFactory
             OutputSchema = outputSchemaMode == ToolOutputSchemaMode.Full
                 ? _schemaFactory.CreateDirectOutputSchema(typeof(TResponse))
                 : null,
-            Annotations = new ToolAnnotations
-            {
-                Title = title,
-                ReadOnlyHint = readOnly,
-                IdempotentHint = readOnly,
-                OpenWorldHint = false,
-                DestructiveHint = destructive,
-            },
+            Annotations = annotations,
         };
     }
 
@@ -84,6 +86,16 @@ internal sealed class McpToolProtocolFactory : IMcpToolProtocolFactory
         where TRequest : WorkspaceBoundRequest
     {
         var publishedDescription = CreatePublishedDescription(description, resultSummary);
+        var readOnly = kind == PublishedToolKind.Query;
+        var annotations = new ToolAnnotations
+        {
+            Title = title,
+            ReadOnlyHint = readOnly,
+            IdempotentHint = readOnly,
+            OpenWorldHint = false,
+            DestructiveHint = kind == PublishedToolKind.Mutation && destructive,
+        };
+
         return new Tool
         {
             Name = name,
@@ -93,14 +105,7 @@ internal sealed class McpToolProtocolFactory : IMcpToolProtocolFactory
             OutputSchema = outputSchemaMode == ToolOutputSchemaMode.Full
                 ? _schemaFactory.CreateOutputSchema(kind, responseType)
                 : null,
-            Annotations = new ToolAnnotations
-            {
-                Title = title,
-                ReadOnlyHint = kind == PublishedToolKind.Query,
-                IdempotentHint = kind == PublishedToolKind.Query,
-                OpenWorldHint = false,
-                DestructiveHint = kind == PublishedToolKind.Mutation && destructive,
-            },
+            Annotations = annotations,
         };
     }
 

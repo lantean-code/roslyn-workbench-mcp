@@ -1029,17 +1029,28 @@ public sealed class TransactionServiceTests : IDisposable
 
     private static WorkspaceSessionAcquisition CreateAcquisition(WorkspaceSessionSnapshot session, bool exclusive)
     {
-        var lease = exclusive
-            ? session.OperationGate.TryAcquireExclusive()
-            : session.OperationGate.TryAcquireShared();
+        IWorkspaceOperationLease? lease;
+        if (exclusive)
+        {
+            lease = session.OperationGate.TryAcquireExclusive();
+        }
+        else
+        {
+            lease = session.OperationGate.TryAcquireShared();
+        }
 
-        return lease is null
-            ? WorkspaceSessionAcquisition.Rejected(CreateError(WorkspaceErrorCodes.WorkspaceBusy), session)
-            : WorkspaceSessionAcquisition.Acquired(new WorkspaceSelection
-            {
-                WorkspaceId = session.Workspace.WorkspaceId,
-                Session = session,
-            }, session, lease);
+        if (lease is null)
+        {
+            return WorkspaceSessionAcquisition.Rejected(CreateError(WorkspaceErrorCodes.WorkspaceBusy), session);
+        }
+
+        var selection = new WorkspaceSelection
+        {
+            WorkspaceId = session.Workspace.WorkspaceId,
+            Session = session,
+        };
+
+        return WorkspaceSessionAcquisition.Acquired(selection, session, lease);
     }
 
     private void SetupWorkspaceRequiredAcquisitions()

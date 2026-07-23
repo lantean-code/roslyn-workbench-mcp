@@ -35,13 +35,16 @@ public sealed class HostValidQueryPlugin : IRoslynPlugin
             _ = context;
             _ = cancellationToken;
 
-            return ValueTask.FromResult(PluginExecutionResult<Response>.Success(new Response
+            var response = new Response
             {
                 Value = request.Name,
                 PrivateDependencyVersion = typeof(NuGetVersion).Assembly
                     .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
                     ?? string.Empty,
-            }));
+            };
+
+            var result = PluginExecutionResult<Response>.Success(response);
+            return ValueTask.FromResult(result);
         }
     }
 }

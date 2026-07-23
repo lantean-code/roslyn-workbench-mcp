@@ -98,6 +98,8 @@ Cross-project test ownership and execution-path policy are defined in `../docs/d
 ## Test execution
 - After each behaviour-affecting set of changes, follow the test execution instructions in the repository root `AGENTS.md`.
 - If the change is docs-only or markdown-only and does not affect behaviour, test execution is optional unless explicitly requested.
+- Do not run `Roslyn.Workbench.Mcp.AcceptanceTest` automatically during per-turn validation, even when the affected code participates in published-host scenarios.
+- Run acceptance tests only when the user explicitly requests them. Otherwise report the non-acceptance validation that was completed without treating the omitted acceptance suite as a validation gap.
 - When contributing PR summaries or PR bodies, describe testing in terms of the coverage added or updated by the change, not just the commands executed.
 
 ## Anti-smell rules
@@ -130,7 +132,8 @@ Cross-project test ownership and execution-path policy are defined in `../docs/d
 - Default local development loop: run unit and contract coverage, excluding integration and audit categories.
 - Integration coverage should run for touched areas during development and in CI for broader regression confidence.
 - Audit coverage should run in broader CI or release gates, not in the default local loop.
-- Preferred fast-loop command: `dotnet test --filter "Category!=Integration&Category!=Audit"`, with the WSL-specific artifacts path from the repository root `AGENTS.md` when required.
+- Acceptance coverage is manually initiated and must not be included in automatic per-turn agent validation.
+- Preferred fast-loop command: `dotnet test <affected-non-acceptance-test-project> --filter "Category!=Integration&Category!=Audit"`, with the WSL-specific artifacts path from the repository root `AGENTS.md` when required.
 
 ## Pre-flight checklist (must confirm all before generating tests)
 - [ ] I am using xUnit, Moq, and AwesomeAssertions.

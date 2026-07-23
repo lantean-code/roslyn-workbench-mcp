@@ -194,10 +194,21 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
         var project = _workspace.CurrentSolution.AddProject(ProjectInfo.Create(
             projectId, VersionStamp.Create(), "Project", "Project", LanguageNames.CSharp, filePath: projectPath));
 
-        var baseline = creating ? project : project.AddDocument(documentId, "target.cs", SourceText.From("text"), filePath: targetPath);
-        var current = creating
-            ? baseline.AddDocument(documentId, "target.cs", SourceText.From("text"), filePath: targetPath)
-            : baseline.RemoveDocument(documentId);
+        var baseline = project;
+        if (!creating)
+        {
+            baseline = project.AddDocument(documentId, "target.cs", SourceText.From("text"), filePath: targetPath);
+        }
+
+        Solution current;
+        if (creating)
+        {
+            current = baseline.AddDocument(documentId, "target.cs", SourceText.From("text"), filePath: targetPath);
+        }
+        else
+        {
+            current = baseline.RemoveDocument(documentId);
+        }
 
         _file.Setup(item => item.Exists(targetPath)).Returns(creating);
 

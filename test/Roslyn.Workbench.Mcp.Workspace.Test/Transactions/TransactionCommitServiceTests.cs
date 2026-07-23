@@ -483,9 +483,19 @@ public sealed class TransactionCommitServiceTests : IDisposable
 
         result.Should().BeSameAs(expected);
         _commitWriter.Verify(item => item.ApplyAsync(It.IsAny<WorkspaceCommitManifest>()), Times.Never);
+        Times expectedRestorations;
+        if (failurePoint == "Plan")
+        {
+            expectedRestorations = Times.Never();
+        }
+        else
+        {
+            expectedRestorations = Times.Once();
+        }
+
         _commitWriter.Verify(
             item => item.RestoreAsync(It.IsAny<WorkspaceCommitManifest>()),
-            failurePoint == "Plan" ? Times.Never() : Times.Once());
+            expectedRestorations);
     }
 
     [Fact]
@@ -748,9 +758,13 @@ public sealed class TransactionCommitServiceTests : IDisposable
 
     private static WorkspaceCommitLockAcquisition CreateLockAcquisition(bool lockAvailable)
     {
-        return lockAvailable
-            ? WorkspaceCommitLockAcquisition.Acquired(new Mock<IWorkspaceCommitLock>().Object)
-            : WorkspaceCommitLockAcquisition.Contended();
+        if (!lockAvailable)
+        {
+            return WorkspaceCommitLockAcquisition.Contended();
+        }
+
+        var commitLock = new Mock<IWorkspaceCommitLock>();
+        return WorkspaceCommitLockAcquisition.Acquired(commitLock.Object);
     }
 
     private void SetupProtocol(WorkspaceSessionSnapshot session, WorkspaceCommitPlan plan)

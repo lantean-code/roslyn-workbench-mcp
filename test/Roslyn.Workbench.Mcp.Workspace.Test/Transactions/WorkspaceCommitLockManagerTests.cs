@@ -77,9 +77,15 @@ public sealed class WorkspaceCommitLockManagerTests
     [InlineData(false)]
     public void GIVEN_LockProviderFailure_WHEN_Acquiring_THEN_ShouldReportFailure(bool accessDenied)
     {
-        var exception = accessDenied
-            ? (Exception)new UnauthorizedAccessException("denied")
-            : new IOException("failed");
+        Exception exception;
+        if (accessDenied)
+        {
+            exception = new UnauthorizedAccessException("denied");
+        }
+        else
+        {
+            exception = new IOException("failed");
+        }
 
         _provider.Setup(item => item.TryAcquire(It.IsAny<string>())).Throws(exception);
 

@@ -87,16 +87,26 @@ public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
     {
         var currentSolution = CreateSolution(projectHasPath: changeKind != "ProjectWithoutPath");
         var project = currentSolution.Projects.Single();
+        string? filePath;
+        if (changeKind == "AddedWithoutPath")
+        {
+            filePath = null;
+        }
+        else if (changeKind == "AddedOutsideProject")
+        {
+            filePath = Path.Combine(Path.GetTempPath(), "OutsideProject", "AddedDocument.cs");
+        }
+        else
+        {
+            filePath = Path.Combine(Path.GetTempPath(), "Project", "AddedDocument.cs");
+        }
+
         var documentInfo = DocumentInfo.Create(
             DocumentId.CreateNewId(project.Id),
             "AddedDocument.cs",
             loader: TextLoader.From(TextAndVersion.Create(SourceText.From("class Added { }"), VersionStamp.Default)),
             sourceCodeKind: changeKind == "AddedScript" ? SourceCodeKind.Script : SourceCodeKind.Regular,
-            filePath: changeKind == "AddedWithoutPath"
-                ? null
-                : changeKind == "AddedOutsideProject"
-                    ? Path.Combine(Path.GetTempPath(), "OutsideProject", "AddedDocument.cs")
-                    : Path.Combine(Path.GetTempPath(), "Project", "AddedDocument.cs"));
+            filePath: filePath);
 
         var candidateSolution = currentSolution.AddDocument(documentInfo);
 
@@ -135,9 +145,15 @@ public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
     {
         var currentSolution = CreateSolution(documentHasPath: false);
         var document = currentSolution.Projects.Single().Documents.Single();
-        var candidateSolution = changeKind == "Removed"
-            ? currentSolution.RemoveDocument(document.Id)
-            : currentSolution.WithDocumentText(document.Id, SourceText.From("class Updated { }"));
+        Solution candidateSolution;
+        if (changeKind == "Removed")
+        {
+            candidateSolution = currentSolution.RemoveDocument(document.Id);
+        }
+        else
+        {
+            candidateSolution = currentSolution.WithDocumentText(document.Id, SourceText.From("class Updated { }"));
+        }
 
         var result = _target.Validate(currentSolution, candidateSolution);
 

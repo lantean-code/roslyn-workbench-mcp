@@ -180,14 +180,25 @@ public sealed class TestCodeFixProvider : CodeFixProvider
                 return document;
             }
 
-            var declarations = diagnostics
-                .Select(diagnostic => root.FindNode(diagnostic.Location.SourceSpan, getInnermostNodeForTie: true).AncestorsAndSelf().OfType<LocalDeclarationStatementSyntax>().FirstOrDefault())
-                .Where(static declaration => declaration is not null)
-                .Distinct()
-                .Cast<LocalDeclarationStatementSyntax>()
-                .ToArray();
+            var declarations = new HashSet<LocalDeclarationStatementSyntax>();
+            foreach (var diagnostic in diagnostics)
+            {
+                var diagnosticNode = root.FindNode(
+                    diagnostic.Location.SourceSpan,
+                    getInnermostNodeForTie: true);
 
-            if (declarations.Length == 0)
+                var declaration = diagnosticNode
+                    .AncestorsAndSelf()
+                    .OfType<LocalDeclarationStatementSyntax>()
+                    .FirstOrDefault();
+
+                if (declaration is not null)
+                {
+                    declarations.Add(declaration);
+                }
+            }
+
+            if (declarations.Count == 0)
             {
                 return document;
             }

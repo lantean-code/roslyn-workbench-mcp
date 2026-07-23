@@ -56,7 +56,9 @@ public sealed class PluginConfigurationTests
     {
         public ValueTask<PluginExecutionResult<Response>> ExecuteAsync(Request request, IQueryContext context, CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(PluginExecutionResult<Response>.Success(new Response()));
+            var response = new Response();
+            var result = PluginExecutionResult<Response>.Success(response);
+            return ValueTask.FromResult(result);
         }
     }
 

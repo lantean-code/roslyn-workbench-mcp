@@ -524,14 +524,20 @@ public sealed class GetControlFlowGraphToolTests
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
-            .Returns<ISymbol>(item => item.Name == ownerSymbol.Name
-                ? new SymbolReference
+            .Returns<ISymbol>(item =>
+            {
+                if (item.Name == ownerSymbol.Name)
                 {
-                    DisplayName = item.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat),
-                    Kind = item.Kind.ToString(),
-                    DocumentationCommentId = item.GetDocumentationCommentId(),
+                    return new SymbolReference
+                    {
+                        DisplayName = item.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat),
+                        Kind = item.Kind.ToString(),
+                        DocumentationCommentId = item.GetDocumentationCommentId(),
+                    };
                 }
-                : SelectorTestFactory.CreateSymbolReference(item));
+
+                return SelectorTestFactory.CreateSymbolReference(item);
+            });
 
         var result = await target.ExecuteAsync(new GetControlFlowGraphRequest
         {

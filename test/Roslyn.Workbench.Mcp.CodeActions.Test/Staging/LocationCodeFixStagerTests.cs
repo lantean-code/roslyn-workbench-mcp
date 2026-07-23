@@ -244,9 +244,15 @@ public sealed class LocationCodeFixStagerTests
         var diagnostic = CreateDiagnostic(location);
         IReadOnlyList<Diagnostic> diagnostics = [diagnostic];
         var action = CreateDiscoveredAction(roslyn.Solution, "Title", "EquivalenceKey", [1], ["DiagnosticId"]);
-        var request = filter == LocationFixFilter.Title
-            ? CreateRequest(selector) with { Title = "OtherTitle" }
-            : CreateRequest(selector) with { EquivalenceKey = "OtherEquivalenceKey" };
+        var request = CreateRequest(selector);
+        if (filter == LocationFixFilter.Title)
+        {
+            request = request with { Title = "OtherTitle" };
+        }
+        else
+        {
+            request = request with { EquivalenceKey = "OtherEquivalenceKey" };
+        }
 
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))

@@ -33,10 +33,13 @@ public sealed class DuplicateToolNameTestPlugin : IRoslynPlugin
             _ = context;
             _ = cancellationToken;
 
-            return ValueTask.FromResult(PluginExecutionResult<Response>.Success(new Response
+            var response = new Response
             {
                 Value = string.Empty,
-            }));
+            };
+
+            var result = PluginExecutionResult<Response>.Success(response);
+            return ValueTask.FromResult(result);
         }
     }
 }

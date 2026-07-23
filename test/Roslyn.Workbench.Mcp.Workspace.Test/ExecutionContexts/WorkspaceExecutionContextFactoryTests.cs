@@ -460,22 +460,35 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         bool sessionRemains,
         bool exclusive)
     {
-        var lease = exclusive
-            ? session.OperationGate.TryAcquireExclusive()
-            : session.OperationGate.TryAcquireShared();
+        IWorkspaceOperationLease? lease;
+        if (exclusive)
+        {
+            lease = session.OperationGate.TryAcquireExclusive();
+        }
+        else
+        {
+            lease = session.OperationGate.TryAcquireShared();
+        }
 
         if (lease is null)
         {
             return WorkspaceSessionAcquisition.Rejected(CreateError(WorkspaceErrorCodes.WorkspaceBusy), session);
         }
 
-        return sessionRemains
-            ? WorkspaceSessionAcquisition.Acquired(new WorkspaceSelection
-            {
-                WorkspaceId = session.Workspace.WorkspaceId,
-                Session = session,
-            }, session, lease)
-            : WorkspaceSessionAcquisition.Rejected(CreateError(WorkspaceErrorCodes.WorkspaceNotOpen), lease: lease);
+        if (!sessionRemains)
+        {
+            return WorkspaceSessionAcquisition.Rejected(
+                CreateError(WorkspaceErrorCodes.WorkspaceNotOpen),
+                lease: lease);
+        }
+
+        var selection = new WorkspaceSelection
+        {
+            WorkspaceId = session.Workspace.WorkspaceId,
+            Session = session,
+        };
+
+        return WorkspaceSessionAcquisition.Acquired(selection, session, lease);
     }
 
     private void SetupWorkspaceRequiredAcquisitions()

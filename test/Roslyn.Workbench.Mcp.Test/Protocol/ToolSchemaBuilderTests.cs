@@ -38,9 +38,11 @@ public sealed class ToolSchemaBuilderTests
         bool alreadyAllowsNull,
         int expectedCount)
     {
-        var types = alreadyAllowsNull
-            ? new JsonArray("string", "null")
-            : new JsonArray("string");
+        var types = new JsonArray("string");
+        if (alreadyAllowsNull)
+        {
+            types.Add("null");
+        }
 
         var schema = JsonSerializer.SerializeToElement(new JsonObject
         {

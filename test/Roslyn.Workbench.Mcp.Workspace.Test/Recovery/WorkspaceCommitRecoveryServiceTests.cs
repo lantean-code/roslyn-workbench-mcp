@@ -29,7 +29,17 @@ public sealed class WorkspaceCommitRecoveryServiceTests
 
         _store.Verify(item => item.DeleteStatus("commit"), Times.Once);
         _writer.Verify(item => item.RestoreAsync(It.IsAny<WorkspaceCommitManifest>()), Times.Never);
-        _writer.Verify(item => item.CompleteAsync(manifest), state == RecoveryState.Committed ? Times.Once() : Times.Never());
+        Times expectedCompletions;
+        if (state == RecoveryState.Committed)
+        {
+            expectedCompletions = Times.Once();
+        }
+        else
+        {
+            expectedCompletions = Times.Never();
+        }
+
+        _writer.Verify(item => item.CompleteAsync(manifest), expectedCompletions);
     }
 
     [Fact]
@@ -95,7 +105,17 @@ public sealed class WorkspaceCommitRecoveryServiceTests
 
         await _target.RecoverAsync(TestContext.Current.CancellationToken);
 
-        _store.Verify(item => item.DeleteStatus("orphan"), lockAvailable ? Times.Once() : Times.Never());
+        Times expectedDeletes;
+        if (lockAvailable)
+        {
+            expectedDeletes = Times.Once();
+        }
+        else
+        {
+            expectedDeletes = Times.Never();
+        }
+
+        _store.Verify(item => item.DeleteStatus("orphan"), expectedDeletes);
     }
 
     [Fact]
@@ -138,8 +158,12 @@ public sealed class WorkspaceCommitRecoveryServiceTests
 
     private static WorkspaceCommitLockAcquisition CreateAcquisition(bool lockAvailable)
     {
-        return lockAvailable
-            ? WorkspaceCommitLockAcquisition.Acquired(new Mock<IWorkspaceCommitLock>().Object)
-            : WorkspaceCommitLockAcquisition.Contended();
+        if (!lockAvailable)
+        {
+            return WorkspaceCommitLockAcquisition.Contended();
+        }
+
+        var commitLock = new Mock<IWorkspaceCommitLock>();
+        return WorkspaceCommitLockAcquisition.Acquired(commitLock.Object);
     }
 }

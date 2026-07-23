@@ -114,7 +114,9 @@ public sealed class CodeActionMcpToolRegistrationVisitorTests
             ICodeActionQueryContext context,
             CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(CodeActionExecutionResult<TestResponse>.Success(new TestResponse()));
+            var response = new TestResponse();
+            var result = CodeActionExecutionResult<TestResponse>.Success(response);
+            return ValueTask.FromResult(result);
         }
     }
 

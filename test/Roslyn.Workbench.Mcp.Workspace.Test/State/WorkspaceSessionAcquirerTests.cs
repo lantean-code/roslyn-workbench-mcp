@@ -136,9 +136,12 @@ public sealed class WorkspaceSessionAcquirerTests : IDisposable
 
     private WorkspaceSessionAcquisition Acquire(bool exclusive)
     {
-        return exclusive
-            ? _target.AcquireExclusive(selector: null)
-            : _target.AcquireShared(selector: null);
+        if (exclusive)
+        {
+            return _target.AcquireExclusive(selector: null);
+        }
+
+        return _target.AcquireShared(selector: null);
     }
 
     private void SetupSelection(WorkspaceSessionSnapshot session)

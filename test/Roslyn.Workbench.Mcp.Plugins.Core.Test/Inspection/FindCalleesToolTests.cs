@@ -810,13 +810,19 @@ public sealed class FindCalleesToolTests
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
-            .Returns<ISymbol>(item => string.IsNullOrWhiteSpace(item.Name)
-                ? new SymbolReference
+            .Returns<ISymbol>(item =>
+            {
+                if (string.IsNullOrWhiteSpace(item.Name))
                 {
-                    DisplayName = "Anonymous",
-                    Kind = item.Kind.ToString(),
+                    return new SymbolReference
+                    {
+                        DisplayName = "Anonymous",
+                        Kind = item.Kind.ToString(),
+                    };
                 }
-                : SelectorTestFactory.CreateSymbolReference(item));
+
+                return SelectorTestFactory.CreateSymbolReference(item);
+            });
 
         var result = await target.ExecuteAsync(new FindCalleesRequest
         {

@@ -66,14 +66,22 @@ public sealed class PluginHandlerContractResolverTests
 
     private static ConfiguredToolDefinition CreateDefinition(Type handlerType, ToolKind kind)
     {
+        IToolConfigurationBuilderState builder;
+        if (kind == ToolKind.Query)
+        {
+            builder = new QueryToolConfigurationBuilder();
+        }
+        else
+        {
+            builder = new MutationToolConfigurationBuilder();
+        }
+
         return new ConfiguredToolDefinition
         {
             HandlerType = handlerType,
             HandlerFactory = static () => new object(),
             Kind = kind,
-            Builder = kind == ToolKind.Query
-                ? new QueryToolConfigurationBuilder()
-                : new MutationToolConfigurationBuilder(),
+            Builder = builder,
         };
     }
 
@@ -98,7 +106,9 @@ public sealed class PluginHandlerContractResolverTests
     {
         public ValueTask<PluginExecutionResult<Response>> ExecuteAsync(Request request, IQueryContext context, CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(PluginExecutionResult<Response>.Success(new Response()));
+            var response = new Response();
+            var result = PluginExecutionResult<Response>.Success(response);
+            return ValueTask.FromResult(result);
         }
     }
 
@@ -142,7 +152,9 @@ public sealed class PluginHandlerContractResolverTests
             IQueryContext context,
             CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(PluginExecutionResult<Response>.Success(new Response()));
+            var response = new Response();
+            var result = PluginExecutionResult<Response>.Success(response);
+            return ValueTask.FromResult(result);
         }
 
         public ValueTask<PluginExecutionResult<MutationCandidate>> ExecuteAsync(
@@ -160,12 +172,16 @@ public sealed class PluginHandlerContractResolverTests
     {
         public ValueTask<PluginExecutionResult<Response>> ExecuteAsync(Request request, IQueryContext context, CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(PluginExecutionResult<Response>.Success(new Response()));
+            var response = new Response();
+            var result = PluginExecutionResult<Response>.Success(response);
+            return ValueTask.FromResult(result);
         }
 
         public ValueTask<PluginExecutionResult<Response>> ExecuteAsync(SecondRequest request, IQueryContext context, CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(PluginExecutionResult<Response>.Success(new Response()));
+            var response = new Response();
+            var result = PluginExecutionResult<Response>.Success(response);
+            return ValueTask.FromResult(result);
         }
     }
 
@@ -173,7 +189,9 @@ public sealed class PluginHandlerContractResolverTests
     {
         public ValueTask<PluginExecutionResult<Response>> ExecuteAsync(PrivateRequest request, IQueryContext context, CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(PluginExecutionResult<Response>.Success(new Response()));
+            var response = new Response();
+            var result = PluginExecutionResult<Response>.Success(response);
+            return ValueTask.FromResult(result);
         }
     }
 

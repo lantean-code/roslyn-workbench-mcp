@@ -96,9 +96,12 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
             .Returns((string path, ReadOnlyMemory<byte> contents, CancellationToken cancellationToken) =>
             {
                 writes++;
-                return writes == 2
-                    ? ValueTask.FromException(new IOException("Injected second-target failure."))
-                    : _atomicWriter.WriteAllBytesAsync(path, contents, cancellationToken);
+                if (writes == 2)
+                {
+                    return ValueTask.FromException(new IOException("Injected second-target failure."));
+                }
+
+                return _atomicWriter.WriteAllBytesAsync(path, contents, cancellationToken);
             });
 
         var writer = new WorkspaceCommitWriter(_fileSystem, faultingAtomicWriter.Object, _store, _fileCommitter);

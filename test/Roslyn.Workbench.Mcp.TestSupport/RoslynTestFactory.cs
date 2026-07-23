@@ -73,10 +73,11 @@ public static class RoslynTestFactory
 
         workspace.TryApplyChanges(solution);
 
+        var document = workspace.CurrentSolution.Projects.Single().Documents.Single();
         return new InMemoryRoslynDocument(
             workspace,
             workspace.CurrentSolution,
-            workspace.CurrentSolution.Projects.Single().Documents.Single());
+            document);
     }
 
     /// <summary>
@@ -177,9 +178,18 @@ public static class RoslynTestFactory
         ArgumentOutOfRangeException.ThrowIfNegative(start);
         ArgumentOutOfRangeException.ThrowIfNegative(length);
 
+        var descriptor = new DiagnosticDescriptor(
+            id,
+            id,
+            "Message",
+            "Category",
+            Microsoft.CodeAnalysis.DiagnosticSeverity.Warning,
+            isEnabledByDefault: true);
+
+        var location = syntaxTree.GetLocation(new TextSpan(start, length));
         return Diagnostic.Create(
-            new DiagnosticDescriptor(id, id, "Message", "Category", Microsoft.CodeAnalysis.DiagnosticSeverity.Warning, isEnabledByDefault: true),
-            syntaxTree.GetLocation(new TextSpan(start, length)));
+            descriptor,
+            location);
     }
 
     /// <summary>

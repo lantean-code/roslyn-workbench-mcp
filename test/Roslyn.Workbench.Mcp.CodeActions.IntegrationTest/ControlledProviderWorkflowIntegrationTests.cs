@@ -107,12 +107,14 @@ public sealed class ControlledProviderWorkflowIntegrationTests
         bool includeRefactorings = true,
         bool includeCodeFixes = true)
     {
-        return await session.ListAsync(new ListCodeActionsRequest
+        var request = new ListCodeActionsRequest
         {
             Location = location,
             IncludeRefactorings = includeRefactorings,
             IncludeCodeFixes = includeCodeFixes,
             ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, transactionRevision),
-        }, TestContext.Current.CancellationToken);
+        };
+
+        return await session.ListAsync(request, TestContext.Current.CancellationToken);
     }
 }

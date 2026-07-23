@@ -232,14 +232,20 @@ public sealed class GetChangeImpactToolTests
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
-            .Returns<ISymbol>(item => string.IsNullOrWhiteSpace(item.Name)
-                ? new SymbolReference
+            .Returns<ISymbol>(item =>
+            {
+                if (string.IsNullOrWhiteSpace(item.Name))
                 {
-                    DisplayName = item.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat),
-                    Kind = item.Kind.ToString(),
-                    DocumentationCommentId = item.GetDocumentationCommentId(),
+                    return new SymbolReference
+                    {
+                        DisplayName = item.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat),
+                        Kind = item.Kind.ToString(),
+                        DocumentationCommentId = item.GetDocumentationCommentId(),
+                    };
                 }
-                : SelectorTestFactory.CreateSymbolReference(item));
+
+                return SelectorTestFactory.CreateSymbolReference(item);
+            });
 
         inspectionContextService
             .Setup(item => item.ReadContextAsync(
@@ -372,14 +378,20 @@ public sealed class GetChangeImpactToolTests
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
-            .Returns<ISymbol>(item => string.IsNullOrWhiteSpace(item.Name)
-                ? new SymbolReference
+            .Returns<ISymbol>(item =>
+            {
+                if (string.IsNullOrWhiteSpace(item.Name))
                 {
-                    DisplayName = item.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat),
-                    Kind = item.Kind.ToString(),
-                    DocumentationCommentId = item.GetDocumentationCommentId(),
+                    return new SymbolReference
+                    {
+                        DisplayName = item.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat),
+                        Kind = item.Kind.ToString(),
+                        DocumentationCommentId = item.GetDocumentationCommentId(),
+                    };
                 }
-                : SelectorTestFactory.CreateSymbolReference(item));
+
+                return SelectorTestFactory.CreateSymbolReference(item);
+            });
 
         inspectionContextService
             .Setup(item => item.ReadContextAsync(

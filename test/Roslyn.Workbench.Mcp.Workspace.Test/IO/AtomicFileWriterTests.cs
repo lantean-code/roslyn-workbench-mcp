@@ -160,7 +160,16 @@ public sealed class AtomicFileWriterTests : IDisposable
 
         var exception = await action.Should().ThrowAsync<InvalidOperationException>();
         exception.Which.Should().BeSameAs(expected);
-        var expectedDeletes = cleanupOutcome == "missing" ? Times.Never() : Times.Once();
+        Times expectedDeletes;
+        if (cleanupOutcome == "missing")
+        {
+            expectedDeletes = Times.Never();
+        }
+        else
+        {
+            expectedDeletes = Times.Once();
+        }
+
         _file.Verify(item => item.Delete(It.IsAny<string>()), expectedDeletes);
     }
 }

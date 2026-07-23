@@ -248,9 +248,26 @@ Validation evidence:
 
 ### Batch 7 — Test expression cleanup
 
+**Status:** Complete
+
 Review the remaining test conditional, coalescing, LINQ and nested-return candidates. Keep parameterised test setup concise when a conditional selects simple values, but replace branches that construct or invoke work on both sides. Retain readable Roslyn-object and mock construction.
 
 Validation: affected-project analyzer builds and the relevant test projects.
+
+Completed work:
+
+- replaced all 36 complex conditional candidates with explicit branches, without eagerly invoking either alternative;
+- separated chained repository-root and reflected-type fallbacks while retaining 21 concise `value ?? throw` test invariants;
+- replaced two multi-responsibility LINQ pipelines with explicit collection stages while retaining 32 short filtering, projection and deterministic-ordering pipelines;
+- separated plugin and Code Action response construction from result factories and `ValueTask` wrappers; and
+- reduced nested-return candidates from 49 to 15, all of which are intentional test-data, Roslyn-object or provider factories.
+
+Validation evidence:
+
+- a repeat Roslyn syntax scan found zero test complex conditional or statement-separation candidates;
+- the solution and all affected test projects built with zero `latest-all` analyzer warnings;
+- all 2,105 unit, integration and CodeActions audit tests passed; and
+- all 10 published-host acceptance tests passed.
 
 ## Recommended first delivery
 

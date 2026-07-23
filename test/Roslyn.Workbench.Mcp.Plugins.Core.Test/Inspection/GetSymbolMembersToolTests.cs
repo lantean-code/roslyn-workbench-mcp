@@ -106,11 +106,12 @@ public sealed class GetSymbolMembersToolTests
             {
                 if (item.Name == "Decorate")
                 {
+                    var resolvedLocation = new ResolvedLocation();
                     return SelectorTestFactory.CreateSymbolReference(
                         item.Name,
                         item.Kind,
                         item.GetDocumentationCommentId(),
-                        new ResolvedLocation());
+                        resolvedLocation);
                 }
 
                 var sourceLocation = item.Locations.FirstOrDefault(static location => location.IsInSource);

@@ -396,7 +396,8 @@ internal static class BuiltInCodeActionAuditHarness
 
     private static string GetProviderId(object provider)
     {
-        return provider.GetType().FullName ?? provider.GetType().Name;
+        var providerType = provider.GetType();
+        return providerType.FullName ?? providerType.Name;
     }
 
     private sealed record DiscoveredAuditCodeAction

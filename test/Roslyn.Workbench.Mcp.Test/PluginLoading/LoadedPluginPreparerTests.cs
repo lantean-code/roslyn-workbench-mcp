@@ -108,7 +108,9 @@ public sealed class LoadedPluginPreparerTests
             IQueryContext context,
             CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(PluginExecutionResult<Response>.Success(new Response()));
+            var response = new Response();
+            var result = PluginExecutionResult<Response>.Success(response);
+            return ValueTask.FromResult(result);
         }
     }
 }

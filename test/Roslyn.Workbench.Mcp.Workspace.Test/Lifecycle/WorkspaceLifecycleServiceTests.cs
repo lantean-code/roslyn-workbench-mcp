@@ -803,9 +803,19 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         var result = await _target.GetStatusAsync(null, null, null, StatusDetailLevel.Standard, TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
+        Times expectedChangeChecks;
+        if (shouldCheckForChanges)
+        {
+            expectedChangeChecks = Times.Once();
+        }
+        else
+        {
+            expectedChangeChecks = Times.Never();
+        }
+
         _changeDetector.Verify(
             item => item.HasChanged(session.InputManifest, TestContext.Current.CancellationToken),
-            shouldCheckForChanges ? Times.Once() : Times.Never());
+            expectedChangeChecks);
     }
 
     [Theory]
@@ -1266,17 +1276,28 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
 
     private static WorkspaceSessionAcquisition CreateAcquisition(WorkspaceSessionSnapshot session, bool exclusive)
     {
-        var lease = exclusive
-            ? session.OperationGate.TryAcquireExclusive()
-            : session.OperationGate.TryAcquireShared();
+        IWorkspaceOperationLease? lease;
+        if (exclusive)
+        {
+            lease = session.OperationGate.TryAcquireExclusive();
+        }
+        else
+        {
+            lease = session.OperationGate.TryAcquireShared();
+        }
 
-        return lease is null
-            ? WorkspaceSessionAcquisition.Rejected(CreateError(WorkspaceErrorCodes.WorkspaceBusy), session)
-            : WorkspaceSessionAcquisition.Acquired(new WorkspaceSelection
-            {
-                WorkspaceId = session.Workspace.WorkspaceId,
-                Session = session,
-            }, session, lease);
+        if (lease is null)
+        {
+            return WorkspaceSessionAcquisition.Rejected(CreateError(WorkspaceErrorCodes.WorkspaceBusy), session);
+        }
+
+        var selection = new WorkspaceSelection
+        {
+            WorkspaceId = session.Workspace.WorkspaceId,
+            Session = session,
+        };
+
+        return WorkspaceSessionAcquisition.Acquired(selection, session, lease);
     }
 
     private void SetupWorkspaceRequiredAcquisitions()

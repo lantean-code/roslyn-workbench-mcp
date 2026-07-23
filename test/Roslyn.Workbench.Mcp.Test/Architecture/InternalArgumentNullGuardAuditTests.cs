@@ -21,16 +21,17 @@ public sealed class InternalArgumentNullGuardAuditTests
     private static IEnumerable<string> FindArgumentNullGuards(string path)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(File.ReadAllText(path), path: path);
-        return syntaxTree
+        var guards = syntaxTree
             .GetRoot()
             .DescendantNodes()
             .Where(IsArgumentNullGuard)
-            .Where(IsInsideInternalType)
-            .Select(node =>
-            {
-                var line = node.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
-                return $"{Path.GetRelativePath(ProductionSourceAudit.RepositoryRoot, path)}:{line}: {node}";
-            });
+            .Where(IsInsideInternalType);
+
+        foreach (var guard in guards)
+        {
+            var line = guard.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
+            yield return $"{Path.GetRelativePath(ProductionSourceAudit.RepositoryRoot, path)}:{line}: {guard}";
+        }
     }
 
     private static bool IsArgumentNullGuard(SyntaxNode node)

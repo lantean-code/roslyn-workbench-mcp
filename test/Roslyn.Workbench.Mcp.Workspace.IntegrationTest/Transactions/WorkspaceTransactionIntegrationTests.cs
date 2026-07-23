@@ -257,9 +257,11 @@ public sealed class WorkspaceTransactionIntegrationTests
         await using var lease = target.CreateMutationContext(new StageMutationRequest(), TestContext.Current.CancellationToken);
         lease.HasFailure.Should().BeFalse();
         var candidateSolution = lease.Context!.CurrentSolution;
-        var documents = stageEveryDocument
-            ? candidateSolution.Projects.SelectMany(static project => project.Documents)
-            : candidateSolution.Projects.SelectMany(static project => project.Documents).Where(static document => document.Name == "Class1.cs");
+        var documents = candidateSolution.Projects.SelectMany(static project => project.Documents);
+        if (!stageEveryDocument)
+        {
+            documents = documents.Where(static document => document.Name == "Class1.cs");
+        }
 
         foreach (var document in documents)
         {

@@ -26,11 +26,14 @@ public sealed class ValidMutationTestPlugin : IRoslynPlugin
             _ = context;
             _ = cancellationToken;
 
-            return ValueTask.FromResult(PluginExecutionResult<MutationCandidate>.Success(new MutationCandidate
+            var candidate = new MutationCandidate
             {
                 CandidateSolution = context.CurrentSolution,
                 Summary = request.Summary,
-            }));
+            };
+
+            var result = PluginExecutionResult<MutationCandidate>.Success(candidate);
+            return ValueTask.FromResult(result);
         }
     }
 }

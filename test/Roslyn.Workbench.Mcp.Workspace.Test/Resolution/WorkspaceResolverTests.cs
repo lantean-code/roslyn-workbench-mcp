@@ -949,18 +949,28 @@ public sealed class WorkspaceResolverTests
         string filePath,
         Guid? documentGuid = null)
     {
-        return workspace.AddDocument(DocumentInfo.Create(
-            documentGuid is null
-                ? DocumentId.CreateNewId(project.Id)
-                : DocumentId.CreateFromSerialized(project.Id, documentGuid.Value),
+        DocumentId documentId;
+        if (documentGuid is null)
+        {
+            documentId = DocumentId.CreateNewId(project.Id);
+        }
+        else
+        {
+            documentId = DocumentId.CreateFromSerialized(project.Id, documentGuid.Value);
+        }
+
+        var documentInfo = DocumentInfo.Create(
+            documentId,
             documentName,
             loader: TextLoader.From(TextAndVersion.Create(SourceText.From(text), VersionStamp.Default)),
-            filePath: filePath));
+            filePath: filePath);
+
+        return workspace.AddDocument(documentInfo);
     }
 
     private static Project AddProject(AdhocWorkspace workspace, string projectName, string? outputFilePath = null)
     {
-        return workspace.AddProject(ProjectInfo.Create(
+        var projectInfo = ProjectInfo.Create(
             ProjectId.CreateNewId(),
             VersionStamp.Default,
             projectName,
@@ -969,7 +979,9 @@ public sealed class WorkspaceResolverTests
             filePath: Path.Combine(GetWorkspaceRoot(), projectName, $"{projectName}.csproj"),
             outputFilePath: outputFilePath,
             compilationOptions: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary),
-            metadataReferences: [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)]));
+            metadataReferences: [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)]);
+
+        return workspace.AddProject(projectInfo);
     }
 
     private static string GetWorkspaceRoot()

@@ -641,12 +641,18 @@ public sealed class GetSymbolDependenciesToolTests
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
-            .Returns<ISymbol>(item => string.IsNullOrWhiteSpace(item.Name)
-                ? SelectorTestFactory.CreateSymbolReference(
+            .Returns<ISymbol>(item =>
+            {
+                if (string.IsNullOrWhiteSpace(item.Name))
+                {
+                    return SelectorTestFactory.CreateSymbolReference(
                     "AnonymousFunction",
                     item.Kind,
-                    item.GetDocumentationCommentId())
-                : SelectorTestFactory.CreateSymbolReference(item));
+                    item.GetDocumentationCommentId());
+                }
+
+                return SelectorTestFactory.CreateSymbolReference(item);
+            });
 
         var result = await target.ExecuteAsync(new GetSymbolDependenciesRequest
         {

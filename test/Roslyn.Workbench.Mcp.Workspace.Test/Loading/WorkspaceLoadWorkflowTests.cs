@@ -81,7 +81,17 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
         result.HasFailure.Should().BeTrue();
         result.Failure.Should().Be(ValidatedWorkspaceLoadFailure.LoadFailed);
         result.Diagnostics.Should().Equal(diagnostics);
-        loadedWorkspace.Verify(item => item.Dispose(), hasSolution ? Times.Never() : Times.Once());
+        Times expectedDisposals;
+        if (hasSolution)
+        {
+            expectedDisposals = Times.Never();
+        }
+        else
+        {
+            expectedDisposals = Times.Once();
+        }
+
+        loadedWorkspace.Verify(item => item.Dispose(), expectedDisposals);
     }
 
     [Fact]

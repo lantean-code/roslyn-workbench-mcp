@@ -278,9 +278,15 @@ public sealed class CommitRecoveryStoreTests
     {
         var directory = _recoveryDirectory + "/CommitId";
         var path = directory + "/manifest.json";
-        var entry = creating
-            ? CreateCreateEntry("/Workspace/File.cs")
-            : CreateDeleteEntry("/Workspace/File.cs");
+        WorkspaceCommitEntry entry;
+        if (creating)
+        {
+            entry = CreateCreateEntry("/Workspace/File.cs");
+        }
+        else
+        {
+            entry = CreateDeleteEntry("/Workspace/File.cs");
+        }
 
         var manifest = CreateManifest() with { Entries = [entry] };
         _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
@@ -641,7 +647,17 @@ public sealed class CommitRecoveryStoreTests
 
         _target.DeleteStatus("CommitId");
 
-        _file.Verify(item => item.Delete(path), exists ? Times.Once() : Times.Never());
+        Times expectedDeletes;
+        if (exists)
+        {
+            expectedDeletes = Times.Once();
+        }
+        else
+        {
+            expectedDeletes = Times.Never();
+        }
+
+        _file.Verify(item => item.Delete(path), expectedDeletes);
     }
 
     private static WorkspaceCommitManifest CreateInvalidManifest(string scenario)

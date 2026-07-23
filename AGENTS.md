@@ -40,9 +40,10 @@
   - Do not expand a scoped change into repository-wide analyzer cleanup merely because referenced projects report existing diagnostics.
   - The current solution baseline, known `latest-all` exclusions and remediation policy are recorded in `./docs/development/Analyzer Inventory.md`.
 - Run tests:
-  - `dotnet test`
+  - Run the affected non-acceptance test projects, or use the preferred fast-loop command defined in `./test/AGENTS.md`.
+  - Do not run the acceptance-test project automatically as part of per-turn validation. Run acceptance tests only when the user explicitly requests them.
 - After each behavior-affecting set of changes:
-  - Run `dotnet test`, applying the WSL-specific artifacts path above when required.
+  - Run the relevant non-acceptance tests, applying the WSL-specific artifacts path above when required.
   - Behavior-affecting includes edits to production code, test code, project/package/build configuration, tool contracts, plugin registration, or other runtime-impacting assets.
   - Docs-only or markdown-only edits do not require restore/build/test unless explicitly requested.
 
@@ -90,7 +91,8 @@
 - [ ] Code adheres to `./src/AGENTS.md` standards.
 - [ ] Tests adhere to `./test/AGENTS.md` and achieve required coverage.
 - [ ] No secrets, tokens, or user-specific paths committed.
-- [ ] Builds with the pinned SDK; `dotnet restore`, `dotnet build`, and `dotnet test` succeed when required by the change.
+- [ ] Builds with the pinned SDK; `dotnet restore`, `dotnet build`, and the relevant non-acceptance tests succeed when required by the change.
+- [ ] Acceptance tests have been run only when explicitly requested by the user.
 - [ ] Error messages and logs are clear and actionable.
 
 ## Communication and assumptions

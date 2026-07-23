@@ -221,13 +221,33 @@ public sealed class WorkspaceCommitWriterTests
         var result = await _target.RestoreAsync(CreateManifest(entry));
 
         result.Should().Be(expected);
+        Times expectedMoves;
+        if (scenario == "markerOnly")
+        {
+            expectedMoves = Times.Once();
+        }
+        else
+        {
+            expectedMoves = Times.Never();
+        }
+
         _fileCommitter.Verify(
             item => item.Move(markerPath, entry.TargetPath),
-            scenario == "markerOnly" ? Times.Once() : Times.Never());
+            expectedMoves);
+
+        Times expectedDeletes;
+        if (scenario == "markerAndOriginal")
+        {
+            expectedDeletes = Times.Once();
+        }
+        else
+        {
+            expectedDeletes = Times.Never();
+        }
 
         _file.Verify(
             item => item.Delete(markerPath),
-            scenario == "markerAndOriginal" ? Times.Once() : Times.Never());
+            expectedDeletes);
     }
 
     [Theory]

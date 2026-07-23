@@ -420,9 +420,15 @@ public sealed class ScopedCodeFixStagerTests : IDisposable
     public async Task GIVEN_DirectDocumentActionDoesNotMatch_WHEN_StagingScopedFix_THEN_ShouldRejectCodeFix(DirectActionMismatch mismatch)
     {
         var selector = new DocumentSelector { Path = "DocumentPath" };
-        var directAction = mismatch == DirectActionMismatch.Title
-            ? _discoveredAction with { Title = "OtherTitle" }
-            : _discoveredAction with { EquivalenceKey = "OtherEquivalenceKey" };
+        var directAction = _discoveredAction;
+        if (mismatch == DirectActionMismatch.Title)
+        {
+            directAction = directAction with { Title = "OtherTitle" };
+        }
+        else
+        {
+            directAction = directAction with { EquivalenceKey = "OtherEquivalenceKey" };
+        }
 
         _provider.Setup(item => item.GetFixAllProvider()).Returns((FixAllProvider?)null);
         _discoveryService

@@ -40,12 +40,10 @@ internal sealed class FindOverridesTool : QueryToolHandler<FindOverridesRequest,
         var orderedOverrides = projectedOverrides.OrderBy(static item => item.DisplayName, StringComparer.Ordinal);
 
         var overrides = new List<SymbolReference>();
-        var hasMore = false;
         foreach (var overrideReference in orderedOverrides)
         {
             if (overrides.Count == request.EffectiveOverridesLimit)
             {
-                hasMore = true;
                 break;
             }
 
@@ -57,7 +55,7 @@ internal sealed class FindOverridesTool : QueryToolHandler<FindOverridesRequest,
             Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
             Overrides = BoundedCollection<SymbolReference>.CreatePrebounded(
                 overrides,
-                hasMore),
+                projectedOverrides.Count),
         };
 
         return PluginExecutionResult<OverrideSearchData>.Success(data);

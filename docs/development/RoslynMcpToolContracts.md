@@ -148,6 +148,12 @@ inside the response DTO. When `ToolOutputSchemaMode` is `Full`,
 tool instead of a generic wrapper. Malformed MCP requests remain protocol-level
 failures rather than structured tool results.
 
+`BoundedCollection<TItem>` has the shape
+`{ items: TItem[], hasMore: boolean, totalCount?: int }`. `totalCount` describes
+the complete post-filter result count before the response bound when that count
+is already known or cheaply available. It is omitted when calculating it would
+require continuing otherwise bounded Roslyn analysis.
+
 Common fields used by the data shapes below:
 
 | Type | Shape |

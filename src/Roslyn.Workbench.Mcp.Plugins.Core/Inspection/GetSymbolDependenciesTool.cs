@@ -42,12 +42,10 @@ internal sealed class GetSymbolDependenciesTool : QueryToolHandler<GetSymbolDepe
             .OrderBy(static item => item.Reference.DisplayName, StringComparer.Ordinal);
 
         var projectedDependencies = new List<DependencyInfo>();
-        var hasMore = false;
         foreach (var (dependency, dependencyReference) in orderedDependencies)
         {
             if (projectedDependencies.Count == request.EffectiveDependenciesLimit)
             {
-                hasMore = true;
                 break;
             }
 
@@ -63,7 +61,7 @@ internal sealed class GetSymbolDependenciesTool : QueryToolHandler<GetSymbolDepe
         var data = new SymbolDependenciesData
         {
             Symbol = symbolReference,
-            Dependencies = BoundedCollection<DependencyInfo>.CreatePrebounded(projectedDependencies, hasMore),
+            Dependencies = BoundedCollection<DependencyInfo>.CreatePrebounded(projectedDependencies, dependencies.Count),
         };
 
         return PluginExecutionResult<SymbolDependenciesData>.Success(data);

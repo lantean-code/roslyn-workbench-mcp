@@ -154,12 +154,15 @@ public sealed class ToolSchemaBuilderTests
     }
 
     [Fact]
-    public void GIVEN_ItemSchemaWithoutDefinitions_WHEN_CreatingBoundedCollectionSchema_THEN_ShouldPublishItemsAndHasMore()
+    public void GIVEN_ItemSchemaWithoutDefinitions_WHEN_CreatingBoundedCollectionSchema_THEN_ShouldPublishBoundedCollectionProperties()
     {
         var result = ToolSchemaBuilder.CreateBoundedCollectionSchema(CreatePrimitiveSchema("string"));
 
         result.GetProperty("properties").GetProperty("items").GetProperty("type").GetString().Should().Be("array");
         result.GetProperty("properties").GetProperty("hasMore").GetProperty("type").GetString().Should().Be("boolean");
+        result.GetProperty("properties").GetProperty("totalCount").GetProperty("type").GetString().Should().Be("integer");
+        result.GetProperty("properties").GetProperty("totalCount").GetProperty("minimum").GetInt32().Should().Be(0);
+        result.GetProperty("required").EnumerateArray().Select(static item => item.GetString()).Should().NotContain("totalCount");
         result.TryGetProperty("$defs", out _).Should().BeFalse();
     }
 

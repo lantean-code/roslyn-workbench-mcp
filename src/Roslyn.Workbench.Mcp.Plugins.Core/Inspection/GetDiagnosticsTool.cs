@@ -32,7 +32,6 @@ internal sealed class GetDiagnosticsTool : QueryToolHandler<GetDiagnosticsReques
 
         var maxResults = request.EffectiveDiagnosticsLimit;
         var projectedDiagnostics = new List<DiagnosticInfo>();
-        var hasMore = false;
         var filteredDiagnostics = new List<Diagnostic>();
         foreach (var diagnostic in diagnostics)
         {
@@ -51,7 +50,6 @@ internal sealed class GetDiagnosticsTool : QueryToolHandler<GetDiagnosticsReques
         {
             if (projectedDiagnostics.Count == maxResults)
             {
-                hasMore = true;
                 break;
             }
 
@@ -62,7 +60,7 @@ internal sealed class GetDiagnosticsTool : QueryToolHandler<GetDiagnosticsReques
         {
             Diagnostics = BoundedCollection<DiagnosticInfo>.CreatePrebounded(
                 projectedDiagnostics,
-                hasMore),
+                filteredDiagnostics.Count),
         };
 
         return PluginExecutionResult<DiagnosticsData>.Success(data);

@@ -100,12 +100,10 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
             .OrderBy(static symbol => symbol.DisplayName, StringComparer.Ordinal);
 
         var callees = new List<SymbolReference>();
-        var hasMore = false;
         foreach (var calleeReference in orderedCallees)
         {
             if (callees.Count == request.EffectiveCalleesLimit)
             {
-                hasMore = true;
                 break;
             }
 
@@ -116,7 +114,7 @@ internal sealed class FindCalleesTool : QueryToolHandler<FindCalleesRequest, Cal
         var data = new CalleeSearchData
         {
             Source = source,
-            Callees = BoundedCollection<SymbolReference>.CreatePrebounded(callees, hasMore),
+            Callees = BoundedCollection<SymbolReference>.CreatePrebounded(callees, directCallees.Count),
         };
 
         return PluginExecutionResult<CalleeSearchData>.Success(data);

@@ -241,7 +241,7 @@ public sealed class DependencyAnalysisServiceTests
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
 
         var project = document.Solution.Projects.Single();
-        var (cycles, hasMore) = await target.FindCyclesAsync(
+        var (cycles, totalCount) = await target.FindCyclesAsync(
             "Type",
             [project],
             [document.Document],
@@ -250,6 +250,6 @@ public sealed class DependencyAnalysisServiceTests
             TestContext.Current.CancellationToken);
 
         cycles.Should().BeEmpty();
-        hasMore.Should().BeTrue();
+        totalCount.Should().Be(1);
     }
 }

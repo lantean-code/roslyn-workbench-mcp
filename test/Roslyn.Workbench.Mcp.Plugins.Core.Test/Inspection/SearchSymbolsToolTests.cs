@@ -285,6 +285,7 @@ public sealed class SearchSymbolsToolTests
         result.Data!.Symbols.Items.Should().HaveCount(2);
         result.Data.Symbols.Items.Select(item => item.Location!.Document!.Path).Should().Equal("Alpha.cs", "Beta.cs");
         result.Data.Symbols.HasMore.Should().BeTrue();
+        result.Data.Symbols.TotalCount.Should().Be(6);
     }
 
     [Fact]

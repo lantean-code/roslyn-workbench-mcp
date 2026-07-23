@@ -12,7 +12,7 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
         return value is "Project" or "Namespace" or "Type" or "Symbol";
     }
 
-    public async ValueTask<(IReadOnlyList<DependencyCycle> Cycles, bool HasMore)> FindCyclesAsync(
+    public async ValueTask<(IReadOnlyList<DependencyCycle> Cycles, int TotalCount)> FindCyclesAsync(
         string granularity,
         IReadOnlyList<Project> projects,
         IReadOnlyList<Document> documents,
@@ -55,7 +55,7 @@ internal sealed class DependencyAnalysisService : IDependencyAnalysisService
             ? orderedCycles.Take(maxResults).ToArray()
             : orderedCycles;
 
-        return (selectedCycles, hasMore);
+        return (selectedCycles, orderedCycles.Length);
 
         void Visit(string nodeId)
         {

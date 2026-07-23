@@ -35,12 +35,10 @@ internal sealed class FindImplementationsTool : QueryToolHandler<FindImplementat
         var orderedImplementations = projectedImplementations.OrderBy(static implementation => implementation.DisplayName, StringComparer.Ordinal);
 
         var implementations = new List<SymbolReference>();
-        var hasMore = false;
         foreach (var implementationReference in orderedImplementations)
         {
             if (implementations.Count == request.EffectiveImplementationsLimit)
             {
-                hasMore = true;
                 break;
             }
 
@@ -53,7 +51,7 @@ internal sealed class FindImplementationsTool : QueryToolHandler<FindImplementat
             Symbol = symbolReference,
             Implementations = BoundedCollection<SymbolReference>.CreatePrebounded(
                 implementations,
-                hasMore),
+                projectedImplementations.Count),
         };
 
         return PluginExecutionResult<ImplementationSearchData>.Success(data);

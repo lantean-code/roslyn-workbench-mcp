@@ -268,8 +268,10 @@ public sealed class GetDependencyGraphToolTests
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Nodes.Items.Select(item => item.Id).Should().Equal("A", "B");
         result.Data.Nodes.HasMore.Should().BeTrue();
+        result.Data.Nodes.TotalCount.Should().BeNull();
         result.Data.Edges.Items.Should().ContainSingle();
         result.Data.Edges.Items[0].FromId.Should().Be("A");
         result.Data.Edges.Items[0].ToId.Should().Be("B");
+        result.Data.Edges.TotalCount.Should().Be(1);
     }
 }

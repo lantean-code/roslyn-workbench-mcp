@@ -178,7 +178,7 @@ public sealed class FindDependencyCyclesToolTests
                 1,
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync((cycles[..1], true));
+            .ReturnsAsync((cycles[..1], cycles.Length));
 
         var result = await target.ExecuteAsync(new FindDependencyCyclesRequest
         {
@@ -190,5 +190,6 @@ public sealed class FindDependencyCyclesToolTests
         result.Data!.Cycles.Items.Should().ContainSingle();
         result.Data.Cycles.Items[0].Should().BeEquivalentTo(cycles[0]);
         result.Data.Cycles.HasMore.Should().BeTrue();
+        result.Data.Cycles.TotalCount.Should().Be(2);
     }
 }

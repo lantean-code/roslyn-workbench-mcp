@@ -34,12 +34,10 @@ internal sealed class GetSymbolAttributesTool : QueryToolHandler<GetSymbolAttrib
             .ThenBy(static item => item.Inherited);
 
         var attributes = new List<AttributeInfo>();
-        var hasMore = false;
         foreach (var (attribute, inherited) in orderedAttributes)
         {
             if (attributes.Count == request.EffectiveAttributesLimit)
             {
-                hasMore = true;
                 break;
             }
 
@@ -50,7 +48,7 @@ internal sealed class GetSymbolAttributesTool : QueryToolHandler<GetSymbolAttrib
         var data = new SymbolAttributesData
         {
             Symbol = symbolReference,
-            Attributes = BoundedCollection<AttributeInfo>.CreatePrebounded(attributes, hasMore),
+            Attributes = BoundedCollection<AttributeInfo>.CreatePrebounded(attributes, discoveredAttributes.Count),
         };
 
         return PluginExecutionResult<SymbolAttributesData>.Success(data);

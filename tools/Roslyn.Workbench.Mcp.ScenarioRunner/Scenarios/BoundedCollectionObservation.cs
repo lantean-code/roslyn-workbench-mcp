@@ -8,5 +8,7 @@ internal sealed record BoundedCollectionObservation
 
     public required bool HasMore { get; init; }
 
+    public int? TotalCount { get; init; }
+
     public IReadOnlyList<string> OrderedItemSha256 { get; init; } = [];
 }

@@ -29,8 +29,8 @@ public interface IDependencyAnalysisService
     /// <param name="maxResults">The maximum number of cycles to return.</param>
     /// <param name="context">The current query context.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The detected dependency cycles and whether additional cycles were found.</returns>
-    ValueTask<(IReadOnlyList<DependencyCycle> Cycles, bool HasMore)> FindCyclesAsync(
+    /// <returns>The detected dependency cycles and complete cycle count.</returns>
+    ValueTask<(IReadOnlyList<DependencyCycle> Cycles, int TotalCount)> FindCyclesAsync(
         string granularity,
         IReadOnlyList<Project> projects,
         IReadOnlyList<Document> documents,

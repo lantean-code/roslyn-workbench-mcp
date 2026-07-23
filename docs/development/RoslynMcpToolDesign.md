@@ -149,8 +149,9 @@ the existing host, direct-write, or incomplete rollback design.
   baseline for third-party plugins. `0` means “return none from this
   collection”. Results have a documented deterministic order. Top-level
   published collections should use `BoundedCollection<TItem>`, which carries
-  `items` and `hasMore`. A larger limit recomputes from the start. There are no
-  cursors or generic paging.
+  `items`, `hasMore` and an optional `totalCount` when the complete post-filter
+  count is already known or cheaply available. A larger limit recomputes from
+  the start. There are no cursors or generic paging.
 - Large code and diff results use explicit document and range selectors, or a
   focused follow-up call, rather than pagination.
 

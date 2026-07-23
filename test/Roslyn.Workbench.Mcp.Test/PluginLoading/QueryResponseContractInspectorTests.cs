@@ -68,7 +68,7 @@ public sealed class QueryResponseContractInspectorTests
 
         public int Count { get; init; }
 
-        public BoundedCollection<string> BoundedItems { get; init; } = new();
+        public BoundedCollection<string> BoundedItems { get; init; } = BoundedCollection<string>.Empty();
     }
 
     private sealed record RawCollectionResponse

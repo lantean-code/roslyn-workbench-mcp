@@ -21,14 +21,12 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
         }
 
         var folders = new List<SolutionFolderInfo>();
-        var foldersHaveMore = false;
         using (WorkbenchPerformanceEventSource.Log.StartPhase(_toolName, WorkbenchPerformanceEventSource.FolderSelectionPhase))
         {
             foreach (var folder in hierarchy.Folders)
             {
                 if (folders.Count == request.EffectiveFoldersLimit)
                 {
-                    foldersHaveMore = true;
                     break;
                 }
 
@@ -37,7 +35,6 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
         }
 
         var selectedProjects = new List<Project>();
-        var projectsHaveMore = false;
         using (WorkbenchPerformanceEventSource.Log.StartPhase(_toolName, WorkbenchPerformanceEventSource.ProjectSelectionPhase))
         {
             var orderedProjects = context.CurrentSolution.Projects
@@ -47,7 +44,6 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
             {
                 if (selectedProjects.Count == request.EffectiveProjectsLimit)
                 {
-                    projectsHaveMore = true;
                     break;
                 }
 
@@ -139,8 +135,8 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
         var data = new SolutionStructureData
         {
             SolutionPath = context.WorkspaceIdentity.LoadedPath,
-            Folders = BoundedCollection<SolutionFolderInfo>.CreatePrebounded(folders, foldersHaveMore),
-            Projects = BoundedCollection<ProjectStructureInfo>.CreatePrebounded(projectStructures, projectsHaveMore),
+            Folders = BoundedCollection<SolutionFolderInfo>.CreatePrebounded(folders, hierarchy.Folders.Count),
+            Projects = BoundedCollection<ProjectStructureInfo>.CreatePrebounded(projectStructures, context.CurrentSolution.ProjectIds.Count),
         };
 
         return PluginExecutionResult<SolutionStructureData>.Success(data);

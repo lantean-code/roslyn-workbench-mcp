@@ -131,13 +131,13 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
             cancellationToken.ThrowIfCancellationRequested();
             if (projectReferences.Count == maxResults)
             {
-                return BoundedCollection<ProjectReferenceInfo>.CreatePrebounded(projectReferences, hasMore: true);
+                return BoundedCollection<ProjectReferenceInfo>.CreatePrebounded(projectReferences, candidates.Count);
             }
 
             projectReferences.Add(InspectionProjectionFactory.CreateProjectReferenceInfo(candidate.Project, workspaceResolver));
         }
 
-        return BoundedCollection<ProjectReferenceInfo>.CreatePrebounded(projectReferences, hasMore: false);
+        return BoundedCollection<ProjectReferenceInfo>.CreatePrebounded(projectReferences, candidates.Count);
     }
 
     private static BoundedCollection<MetadataReferenceInfo> CreateMetadataReferences(
@@ -165,13 +165,13 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
             cancellationToken.ThrowIfCancellationRequested();
             if (metadataReferences.Count == maxResults)
             {
-                return BoundedCollection<MetadataReferenceInfo>.CreatePrebounded(metadataReferences, hasMore: true);
+                return BoundedCollection<MetadataReferenceInfo>.CreatePrebounded(metadataReferences, candidates.Count);
             }
 
             metadataReferences.Add(InspectionProjectionFactory.CreateMetadataReferenceInfo(candidate.Reference));
         }
 
-        return BoundedCollection<MetadataReferenceInfo>.CreatePrebounded(metadataReferences, hasMore: false);
+        return BoundedCollection<MetadataReferenceInfo>.CreatePrebounded(metadataReferences, candidates.Count);
     }
 
     private static BoundedCollection<AnalyzerInfo> CreateAnalyzers(
@@ -199,12 +199,12 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
             cancellationToken.ThrowIfCancellationRequested();
             if (analyzers.Count == maxResults)
             {
-                return BoundedCollection<AnalyzerInfo>.CreatePrebounded(analyzers, hasMore: true);
+                return BoundedCollection<AnalyzerInfo>.CreatePrebounded(analyzers, candidates.Count);
             }
 
             analyzers.Add(InspectionProjectionFactory.CreateAnalyzerInfo(candidate.Reference));
         }
 
-        return BoundedCollection<AnalyzerInfo>.CreatePrebounded(analyzers, hasMore: false);
+        return BoundedCollection<AnalyzerInfo>.CreatePrebounded(analyzers, candidates.Count);
     }
 }

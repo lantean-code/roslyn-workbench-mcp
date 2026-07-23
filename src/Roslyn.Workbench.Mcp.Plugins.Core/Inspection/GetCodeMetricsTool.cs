@@ -63,12 +63,10 @@ internal sealed class GetCodeMetricsTool : QueryToolHandler<GetCodeMetricsReques
         orderedCandidates.Sort(static (left, right) => StringComparer.Ordinal.Compare(left.DisplayName, right.DisplayName));
 
         var metrics = new List<MetricInfo>();
-        var hasMore = false;
         foreach (var candidate in orderedCandidates)
         {
             if (metrics.Count == maxResults)
             {
-                hasMore = true;
                 break;
             }
 
@@ -77,7 +75,7 @@ internal sealed class GetCodeMetricsTool : QueryToolHandler<GetCodeMetricsReques
 
         var data = new CodeMetricsData
         {
-            Metrics = BoundedCollection<MetricInfo>.CreatePrebounded(metrics, hasMore),
+            Metrics = BoundedCollection<MetricInfo>.CreatePrebounded(metrics, orderedCandidates.Count),
         };
 
         return PluginExecutionResult<CodeMetricsData>.Success(data);

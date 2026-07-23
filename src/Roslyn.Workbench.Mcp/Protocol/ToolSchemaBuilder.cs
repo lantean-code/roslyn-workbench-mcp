@@ -50,10 +50,17 @@ internal static class ToolSchemaBuilder
             ["type"] = "boolean",
         };
 
+        var totalCountSchema = new JsonObject
+        {
+            ["type"] = "integer",
+            ["minimum"] = 0,
+        };
+
         var properties = new JsonObject
         {
             ["items"] = CreateArraySchema(itemSchema),
             ["hasMore"] = hasMoreSchema,
+            ["totalCount"] = totalCountSchema,
         };
 
         var requiredProperties = new JsonArray("items", "hasMore");

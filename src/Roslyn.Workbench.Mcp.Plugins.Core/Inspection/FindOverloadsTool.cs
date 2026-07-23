@@ -56,12 +56,10 @@ internal sealed class FindOverloadsTool : QueryToolHandler<FindOverloadsRequest,
             .ThenBy(static item => item.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat), StringComparer.Ordinal);
 
         var signatures = new List<CallableSignature>();
-        var hasMore = false;
         foreach (var overload in orderedOverloads)
         {
             if (signatures.Count == request.EffectiveOverloadsLimit)
             {
-                hasMore = true;
                 break;
             }
 
@@ -72,7 +70,7 @@ internal sealed class FindOverloadsTool : QueryToolHandler<FindOverloadsRequest,
         var data = new OverloadSearchData
         {
             Symbol = symbolReference,
-            Overloads = BoundedCollection<CallableSignature>.CreatePrebounded(signatures, hasMore),
+            Overloads = BoundedCollection<CallableSignature>.CreatePrebounded(signatures, distinctOverloads.Count),
         };
 
         return PluginExecutionResult<OverloadSearchData>.Success(data);

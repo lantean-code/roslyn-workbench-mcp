@@ -195,6 +195,7 @@ public sealed class AnalyzeAsyncToolTests
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Findings.Items.Should().BeEmpty();
         result.Data.Findings.HasMore.Should().BeTrue();
+        result.Data.Findings.TotalCount.Should().BeNull();
         queryContextMocks.WorkspaceResolver.Verify(item => item.CreateResolvedLocation(It.IsAny<Location>()), Times.Never);
         queryContextMocks.WorkspaceResolver.Verify(item => item.CreateSymbolReference(It.IsAny<ISymbol>()), Times.Never);
     }

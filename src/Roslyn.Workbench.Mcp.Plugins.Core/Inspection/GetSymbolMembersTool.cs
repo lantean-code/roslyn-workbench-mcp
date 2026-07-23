@@ -64,12 +64,10 @@ internal sealed class GetSymbolMembersTool : QueryToolHandler<GetSymbolMembersRe
             .ThenBy(static member => member.Location?.Document?.Path ?? string.Empty, StringComparer.Ordinal);
 
         var projectedMembers = new List<SymbolReference>();
-        var hasMore = false;
         foreach (var memberReference in orderedMembers)
         {
             if (projectedMembers.Count == request.EffectiveMembersLimit)
             {
-                hasMore = true;
                 break;
             }
 
@@ -80,7 +78,7 @@ internal sealed class GetSymbolMembersTool : QueryToolHandler<GetSymbolMembersRe
         var data = new SymbolMembersData
         {
             Symbol = symbolReference,
-            Members = BoundedCollection<SymbolReference>.CreatePrebounded(projectedMembers, hasMore),
+            Members = BoundedCollection<SymbolReference>.CreatePrebounded(projectedMembers, memberReferences.Count),
         };
 
         return PluginExecutionResult<SymbolMembersData>.Success(data);

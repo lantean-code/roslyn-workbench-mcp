@@ -32,12 +32,14 @@ public sealed class McpSdkSchemaProviderIntegrationTests
 
     [Fact]
     [Trait("Category", "Integration")]
-    public void GIVEN_PrimitiveBoundedCollection_WHEN_ExportingValueSchema_THEN_ShouldPublishItemsAndHasMore()
+    public void GIVEN_PrimitiveBoundedCollection_WHEN_ExportingValueSchema_THEN_ShouldPublishBoundedCollectionProperties()
     {
         var result = _target.GetValueSchema<BoundedCollection<string>>();
 
         result.GetProperty("properties").TryGetProperty("items", out _).Should().BeTrue();
         result.GetProperty("properties").TryGetProperty("hasMore", out _).Should().BeTrue();
+        result.GetProperty("properties").TryGetProperty("totalCount", out _).Should().BeTrue();
+        result.GetProperty("required").EnumerateArray().Select(static item => item.GetString()).Should().NotContain("totalCount");
     }
 
     [Fact]

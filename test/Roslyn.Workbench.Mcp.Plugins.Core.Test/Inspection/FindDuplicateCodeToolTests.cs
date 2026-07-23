@@ -329,6 +329,7 @@ public sealed class FindDuplicateCodeToolTests
         result.Data!.Groups.Items.Should().ContainSingle();
         result.Data.Groups.Items[0].StatementCount.Should().Be(3);
         result.Data.Groups.HasMore.Should().BeTrue();
+        result.Data.Groups.TotalCount.Should().Be(2);
         queryContextMocks.WorkspaceResolver.Verify(item => item.CreateSymbolReference(It.IsAny<ISymbol>()), Times.Exactly(2));
     }
 }

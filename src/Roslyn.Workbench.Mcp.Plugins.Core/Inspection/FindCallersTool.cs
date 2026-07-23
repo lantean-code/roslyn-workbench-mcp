@@ -23,15 +23,14 @@ internal sealed class FindCallersTool : QueryToolHandler<FindCallersRequest, Cal
         var discoveredCallers = await SymbolFinder.FindCallersAsync(symbol, context.CurrentSolution, documents.Value.ToImmutableHashSet(), cancellationToken);
         var orderedCallers = discoveredCallers
             .Select(caller => (Caller: caller, Reference: context.WorkspaceResolver.CreateSymbolReference(caller.CallingSymbol)))
-            .OrderBy(static item => item.Reference.DisplayName, StringComparer.Ordinal);
+            .OrderBy(static item => item.Reference.DisplayName, StringComparer.Ordinal)
+            .ToArray();
 
         var callers = new List<CallerInfo>();
-        var hasMore = false;
         foreach (var (caller, reference) in orderedCallers)
         {
             if (callers.Count == request.EffectiveCallersLimit)
             {
-                hasMore = true;
                 break;
             }
 
@@ -81,7 +80,7 @@ internal sealed class FindCallersTool : QueryToolHandler<FindCallersRequest, Cal
         var data = new CallerSearchData
         {
             Symbol = symbolReference,
-            Callers = BoundedCollection<CallerInfo>.CreatePrebounded(callers, hasMore),
+            Callers = BoundedCollection<CallerInfo>.CreatePrebounded(callers, orderedCallers.Length),
         };
 
         return PluginExecutionResult<CallerSearchData>.Success(data);

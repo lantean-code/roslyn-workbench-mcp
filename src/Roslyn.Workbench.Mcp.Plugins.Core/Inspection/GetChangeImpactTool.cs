@@ -128,7 +128,7 @@ internal sealed class GetChangeImpactTool : QueryToolHandler<GetChangeImpactRequ
             Impact = impact,
             Locations = BoundedCollection<ContractReferenceLocation>.CreatePrebounded(
                 locations,
-                pendingReferences.Count > maxResults),
+                pendingReferences.Count),
         };
 
         return PluginExecutionResult<ChangeImpactData>.Success(data);

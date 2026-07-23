@@ -149,7 +149,7 @@ internal sealed class FindReferencesTool : QueryToolHandler<FindReferencesReques
             Symbol = symbolReference,
             References = BoundedCollection<ContractReferenceLocation>.CreatePrebounded(
                 references,
-                pendingReferences.Count > maxResults),
+                pendingReferences.Count),
         };
 
         return PluginExecutionResult<ReferenceSearchData>.Success(data);

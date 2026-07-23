@@ -64,14 +64,12 @@ internal sealed class SearchSymbolsTool : QueryToolHandler<SearchSymbolsRequest,
         }
 
         var symbols = new List<SymbolReference>();
-        var hasMore = false;
         using (WorkbenchPerformanceEventSource.Log.StartPhase(_toolName, WorkbenchPerformanceEventSource.ResultSelectionPhase))
         {
             foreach (var symbolReference in orderedSymbols)
             {
                 if (symbols.Count == request.EffectiveSymbolsLimit)
                 {
-                    hasMore = true;
                     break;
                 }
 
@@ -81,7 +79,7 @@ internal sealed class SearchSymbolsTool : QueryToolHandler<SearchSymbolsRequest,
 
         var data = new SymbolSearchData
         {
-            Symbols = BoundedCollection<SymbolReference>.CreatePrebounded(symbols, hasMore),
+            Symbols = BoundedCollection<SymbolReference>.CreatePrebounded(symbols, orderedSymbols.Length),
         };
 
         return PluginExecutionResult<SymbolSearchData>.Success(data);

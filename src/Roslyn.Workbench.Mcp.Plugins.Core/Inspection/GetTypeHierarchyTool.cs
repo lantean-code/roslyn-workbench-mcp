@@ -24,18 +24,16 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
         }
 
         var baseTypes = new List<SymbolReference>();
-        var baseTypesHaveMore = false;
         var baseTypeDepth = 0;
+        var baseTypeCount = 0;
         for (var current = namedType.BaseType; current is not null && baseTypeDepth < request.MaxDepth; current = current.BaseType)
         {
             baseTypeDepth++;
-            if (baseTypes.Count == request.EffectiveBaseTypesLimit)
+            baseTypeCount++;
+            if (baseTypes.Count < request.EffectiveBaseTypesLimit)
             {
-                baseTypesHaveMore = true;
-                break;
+                baseTypes.Add(context.WorkspaceResolver.CreateSymbolReference(current));
             }
-
-            baseTypes.Add(context.WorkspaceResolver.CreateSymbolReference(current));
         }
 
         BoundedCollection<TypeHierarchyNode>? derivedTypes = null;
@@ -43,54 +41,50 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
         {
             var discoveredTypes = await FindDerivedTypeSymbolsAsync(namedType, context.CurrentSolution, context.CurrentSolution.Projects.ToImmutableHashSet(), cancellationToken);
             var uniqueTypes = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
-            var typeReferences = new List<(INamedTypeSymbol Symbol, SymbolReference Reference)>();
+            var typeReferences = new List<TypeHierarchyNode>();
             foreach (var discoveredType in discoveredTypes)
             {
                 if (uniqueTypes.Add(discoveredType))
                 {
+                    var depth = GetTypeDepth(discoveredType, namedType);
+                    if (depth > request.MaxDepth)
+                    {
+                        continue;
+                    }
+
                     var reference = context.WorkspaceResolver.CreateSymbolReference(discoveredType);
-                    typeReferences.Add((discoveredType, reference));
+                    typeReferences.Add(new TypeHierarchyNode
+                    {
+                        Type = reference,
+                        Depth = depth,
+                    });
                 }
             }
 
-            var orderedTypes = typeReferences.OrderBy(static item => item.Reference.DisplayName, StringComparer.Ordinal);
+            var orderedTypes = typeReferences.OrderBy(static item => item.Type?.DisplayName ?? string.Empty, StringComparer.Ordinal);
 
             var projectedTypes = new List<TypeHierarchyNode>();
-            var derivedTypesHaveMore = false;
-            foreach (var (symbol, reference) in orderedTypes)
+            foreach (var typeNode in orderedTypes)
             {
-                var depth = GetTypeDepth(symbol, namedType);
-                if (depth > request.MaxDepth)
-                {
-                    continue;
-                }
-
                 if (projectedTypes.Count == request.EffectiveDerivedTypesLimit)
                 {
-                    derivedTypesHaveMore = true;
                     break;
                 }
 
-                projectedTypes.Add(new TypeHierarchyNode
-                {
-                    Type = reference,
-                    Depth = depth,
-                });
+                projectedTypes.Add(typeNode);
             }
 
-            derivedTypes = BoundedCollection<TypeHierarchyNode>.CreatePrebounded(projectedTypes, derivedTypesHaveMore);
+            derivedTypes = BoundedCollection<TypeHierarchyNode>.CreatePrebounded(projectedTypes, typeReferences.Count);
         }
 
         var orderedInterfaces = namedType.AllInterfaces
             .OrderBy(static item => item.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat), StringComparer.Ordinal);
 
         var interfaces = new List<SymbolReference>();
-        var interfacesHaveMore = false;
         foreach (var interfaceSymbol in orderedInterfaces)
         {
             if (interfaces.Count == request.EffectiveInterfacesLimit)
             {
-                interfacesHaveMore = true;
                 break;
             }
 
@@ -101,8 +95,8 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
         var data = new TypeHierarchyData
         {
             Type = type,
-            BaseTypes = BoundedCollection<SymbolReference>.CreatePrebounded(baseTypes, baseTypesHaveMore),
-            Interfaces = BoundedCollection<SymbolReference>.CreatePrebounded(interfaces, interfacesHaveMore),
+            BaseTypes = BoundedCollection<SymbolReference>.CreatePrebounded(baseTypes, baseTypeCount),
+            Interfaces = BoundedCollection<SymbolReference>.CreatePrebounded(interfaces, namedType.AllInterfaces.Length),
             DerivedTypes = derivedTypes,
         };
 

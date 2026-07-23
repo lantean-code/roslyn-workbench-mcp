@@ -61,11 +61,19 @@ internal sealed record ResponseObservation
                 itemHashes.Add(Hash(item.GetRawText()));
             }
 
+            int? totalCount = null;
+            if (element.TryGetProperty("totalCount", out var totalCountElement)
+                && totalCountElement.TryGetInt32(out var parsedTotalCount))
+            {
+                totalCount = parsedTotalCount;
+            }
+
             observations.Add(new BoundedCollectionObservation
             {
                 Path = path,
                 ItemCount = items.GetArrayLength(),
                 HasMore = hasMore.GetBoolean(),
+                TotalCount = totalCount,
                 OrderedItemSha256 = itemHashes,
             });
         }

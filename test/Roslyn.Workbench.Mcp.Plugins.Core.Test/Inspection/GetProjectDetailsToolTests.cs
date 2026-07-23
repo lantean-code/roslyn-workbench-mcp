@@ -220,14 +220,18 @@ public sealed class GetProjectDetailsToolTests
         result.Data.Documents!.Items.Should().ContainSingle();
         result.Data.Documents.Items[0].Path.Should().Be("A.cs");
         result.Data.Documents.HasMore.Should().BeTrue();
+        result.Data.Documents.TotalCount.Should().BeNull();
         result.Data.ProjectReferences.Items.Should().ContainSingle();
         result.Data.ProjectReferences.Items[0].Name.Should().Be("AnotherReferenced");
         result.Data.ProjectReferences.HasMore.Should().BeTrue();
+        result.Data.ProjectReferences.TotalCount.Should().Be(2);
         result.Data.MetadataReferences.Items.Should().Contain(item => item.Path == null);
         result.Data.MetadataReferences.Items.Should().Contain(item => item.Path != null);
+        result.Data.MetadataReferences.TotalCount.Should().Be(4);
         result.Data.Analyzers.Items.Should().ContainSingle();
         result.Data.Analyzers.Items[0].DisplayName.Should().Be("AAnalyzer");
         result.Data.Analyzers.HasMore.Should().BeTrue();
+        result.Data.Analyzers.TotalCount.Should().Be(3);
         queryContextMocks.WorkspaceResolver.Verify(item => item.CreateDocumentReference(It.IsAny<Document>()), Times.Exactly(2));
     }
 

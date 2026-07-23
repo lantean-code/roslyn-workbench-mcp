@@ -81,16 +81,6 @@ This must precede a release that actively promotes third-party plugin authoring.
 
 Sources: [2026-07-13-mef-plugin-composition.md](superpowers/plans/2026-07-13-mef-plugin-composition.md), [PluginApiSurfaceAudit-2026-07-18.md](PluginApiSurfaceAudit-2026-07-18.md)
 
-### Publish known totals for bounded collections
-
-**Status:** Not started
-
-Extend the shared bounded-collection response contract with a nullable `TotalCount`. Populate it only when the authoritative result count is already known or can be obtained without completing additional expensive work. The count must describe results after the request's scope and semantic filters but before the response bound. Leave it absent when a tool stops discovery at the bound or would otherwise need to continue Roslyn analysis solely to calculate the total; retain `HasMore` for those cases.
-
-Start with an inventory of every bounded-collection producer and classify each total as already known, cheaply available or expensive/unknown. Update the shared contract, MCP schema generation, serialisation metadata, helpers and response tests together. When `TotalCount` is present, require it to be at least the returned item count and require `HasMore` to agree with whether the total exceeds that count. Do not combine this cross-cutting contract change with individual tool performance work.
-
-Source: [`BoundedCollection.cs`](../../src/Roslyn.Workbench.Mcp.Plugins.Core/Contracts/Collections/BoundedCollection.cs)
-
 ### Minimise the public surface of built-in tool contracts
 
 **Status:** Not started

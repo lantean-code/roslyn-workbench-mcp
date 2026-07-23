@@ -44,7 +44,6 @@ internal sealed class AnalyzeNullabilityTool : QueryToolHandler<AnalyzeNullabili
         var diagnostics = await context.ToolExecutionServices.CompilerDiagnosticService.GetCompilerDiagnosticsAsync(documents, cancellationToken);
         var maxResults = request.EffectiveFindingsLimit;
         var findings = new List<NullabilityFinding>();
-        var hasMore = false;
         var applicableDiagnostics = new List<Diagnostic>();
         foreach (var diagnostic in diagnostics)
         {
@@ -63,7 +62,6 @@ internal sealed class AnalyzeNullabilityTool : QueryToolHandler<AnalyzeNullabili
         {
             if (findings.Count == maxResults)
             {
-                hasMore = true;
                 break;
             }
 
@@ -77,7 +75,7 @@ internal sealed class AnalyzeNullabilityTool : QueryToolHandler<AnalyzeNullabili
         {
             Findings = BoundedCollection<NullabilityFinding>.CreatePrebounded(
                 findings,
-                hasMore),
+                applicableDiagnostics.Count),
         };
 
         return PluginExecutionResult<NullabilityAnalysisData>.Success(data);

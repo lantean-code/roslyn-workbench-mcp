@@ -16,7 +16,7 @@ internal sealed class FindDuplicateCodeTool : QueryToolHandler<FindDuplicateCode
             return documents.Rejection;
         }
 
-        var (groups, hasMore) = await FindDuplicateGroupsAsync(
+        var (groups, totalCount) = await FindDuplicateGroupsAsync(
             documents.Value,
             context,
             request.MinimumStatements,
@@ -25,13 +25,13 @@ internal sealed class FindDuplicateCodeTool : QueryToolHandler<FindDuplicateCode
 
         var data = new DuplicateCodeData
         {
-            Groups = BoundedCollection<DuplicateCodeGroup>.CreatePrebounded(groups, hasMore),
+            Groups = BoundedCollection<DuplicateCodeGroup>.CreatePrebounded(groups, totalCount),
         };
 
         return PluginExecutionResult<DuplicateCodeData>.Success(data);
     }
 
-    private static async ValueTask<(IReadOnlyList<DuplicateCodeGroup> Groups, bool HasMore)> FindDuplicateGroupsAsync(
+    private static async ValueTask<(IReadOnlyList<DuplicateCodeGroup> Groups, int TotalCount)> FindDuplicateGroupsAsync(
         IReadOnlyList<Document> documents,
         IQueryContext context,
         int minimumStatements,
@@ -125,7 +125,6 @@ internal sealed class FindDuplicateCodeTool : QueryToolHandler<FindDuplicateCode
         }
 
         groupCandidates.Sort(CompareDuplicateGroups);
-        var hasMore = groupCandidates.Count > maxResults;
         var selectedGroupCount = Math.Min(groupCandidates.Count, maxResults);
         var groups = new List<DuplicateCodeGroup>();
         for (var index = 0; index < selectedGroupCount; index++)
@@ -149,7 +148,7 @@ internal sealed class FindDuplicateCodeTool : QueryToolHandler<FindDuplicateCode
             });
         }
 
-        return (groups, hasMore);
+        return (groups, groupCandidates.Count);
     }
 
     private static string CreateContext(IReadOnlyList<StatementSyntax> statements)

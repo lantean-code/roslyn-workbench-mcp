@@ -22,7 +22,7 @@ internal sealed class FindDependencyCyclesTool : QueryToolHandler<FindDependency
             return projects.Rejection;
         }
 
-        var (cycles, hasMore) = await context.ToolExecutionServices.DependencyAnalysisService.FindCyclesAsync(
+        var (cycles, totalCount) = await context.ToolExecutionServices.DependencyAnalysisService.FindCyclesAsync(
             request.Granularity,
             projects.Value,
             documents.Value,
@@ -32,7 +32,7 @@ internal sealed class FindDependencyCyclesTool : QueryToolHandler<FindDependency
 
         var data = new DependencyCyclesData
         {
-            Cycles = BoundedCollection<DependencyCycle>.CreatePrebounded(cycles, hasMore),
+            Cycles = BoundedCollection<DependencyCycle>.CreatePrebounded(cycles, totalCount),
         };
 
         return PluginExecutionResult<DependencyCyclesData>.Success(data);

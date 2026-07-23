@@ -7,6 +7,7 @@ internal enum PerformanceCommand
     Prepare,
     Measure,
     Commit,
+    CommitCancellation,
     Conflict,
     CrashRecovery,
     StateSequence,

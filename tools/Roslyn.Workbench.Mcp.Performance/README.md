@@ -10,6 +10,8 @@ The framework is permanent. Repository clones, restored assets, published Host b
 
 `cancel` starts one selected query with a known JSON-RPC request ID, sends and awaits the protocol `notifications/cancelled` message after the configured delay, and measures both client-visible cancellation latency and the time until an exclusive transaction lease can be acquired. The explicit notification avoids mistaking cancellation of the runner's local client wait for server-side cancellation. The lease check polls only the explicit `WorkspaceBusy` result, rolls the verification transaction back, and writes `cancellation.json` plus `cancellation.md`.
 
+`commit-cancellation` validates both sides of the durable application boundary using the selected mutation scenario. It sends a real MCP cancellation notification after the Host publishes `Staging`, requiring cancellation with the staged transaction still previewable and no source changes. A fresh execution sends cancellation after `Applying`, requiring the Host to ignore cancellation and reach a successful durable commit. Each boundary uses a fresh Host, restores the checkout and validates recovery, Workspace and shutdown state. Results are written to `commit-cancellation.json`, `commit-cancellation.md` and `validation.json`.
+
 `commit` starts a fresh Host for each iteration, starts a transaction, stages one selected mutation, previews it and performs a real durable commit. It records staging, preview, commit and repository-restoration timings plus the changed file set, operations and byte volume. After the Host shuts down, the runner restores only the tracked paths and new files recorded for that iteration, removes coordination files created by that Host and verifies the pinned checkout is clean. `--capture-trace` attaches the phase provider immediately before `transaction-commit`, keeping potentially long mutation staging outside the diagnostic capture. Results are written to `commit.json`, `commit.md` and `validation.json`.
 
 `conflict` exercises a checked-in controlled-conflict definition. `PreWriteDrift` changes a selected input after staging and proves commit validation rejects before recovery persistence. `DuringApplication` waits for the durable manifest to enter `Applying`, changes the final replacement target while earlier files are being written, then proves recovery restores every server-written file without overwriting or reverting the external edit. Recovery evidence is inspected before the disposable state and checkout are restored. Results are written to `conflict.json`, `conflict.md` and `validation.json`.
@@ -141,6 +143,14 @@ Validate cache freshness across an external edit/reload and a committed multi-re
 
 ./tools/Roslyn.Workbench.Mcp.Performance/run-performance.sh \
   state-sequence --repository serilog --scenario find-no-enumeration-cache-multi-revision \
+  --iterations 1 --warmups 0 --skip-prepare
+```
+
+Validate cancellation immediately before and after durable application begins:
+
+```bash
+./tools/Roslyn.Workbench.Mcp.Performance/run-performance.sh \
+  commit-cancellation --repository serilog --scenario rename-ilogger-durable \
   --iterations 1 --warmups 0 --skip-prepare
 ```
 

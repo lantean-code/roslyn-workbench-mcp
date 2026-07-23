@@ -115,6 +115,11 @@ internal sealed class PerformanceOptions
             return PerformanceCommand.Commit;
         }
 
+        if (string.Equals(value, "commit-cancellation", StringComparison.OrdinalIgnoreCase))
+        {
+            return PerformanceCommand.CommitCancellation;
+        }
+
         if (string.Equals(value, "conflict", StringComparison.OrdinalIgnoreCase))
         {
             return PerformanceCommand.Conflict;

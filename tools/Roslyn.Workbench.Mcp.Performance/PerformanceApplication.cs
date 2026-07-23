@@ -71,6 +71,23 @@ internal static class PerformanceApplication
                 return 0;
             }
 
+            if (options.Command == PerformanceCommand.CommitCancellation)
+            {
+                await MeasureCommitCancellationsAsync(
+                    options,
+                    repository,
+                    scenarios,
+                    hostPath,
+                    repositoryRoot,
+                    environment,
+                    executionDirectory,
+                    outputDirectory,
+                    cancellationToken);
+
+                await Console.Out.WriteLineAsync($"Results: {outputDirectory}");
+                return 0;
+            }
+
             if (options.Command == PerformanceCommand.Conflict)
             {
                 await MeasureConflictsAsync(
@@ -399,6 +416,284 @@ internal static class PerformanceApplication
         };
 
         await ResultWriter.WriteDurableCommitAsync(outputDirectory, result, cancellationToken);
+    }
+
+    private static async Task MeasureCommitCancellationsAsync(
+        PerformanceOptions options,
+        RepositoryDefinition repository,
+        IReadOnlyList<ScenarioDefinition> scenarios,
+        string hostPath,
+        string repositoryRoot,
+        RunEnvironmentInfo environment,
+        string executionDirectory,
+        string outputDirectory,
+        CancellationToken cancellationToken)
+    {
+        if (scenarios.Count != 1)
+        {
+            throw new ArgumentException(
+                "Commit-cancellation measurement requires exactly one mutation scenario.");
+        }
+
+        var scenario = scenarios[0];
+        var workspacePath = Path.Combine(repositoryRoot, repository.WorkspacePath);
+        var restorer = await RepositoryRestorer.CreateAsync(
+            repositoryRoot,
+            repository.Commit,
+            cancellationToken);
+        var initialWorkspaceStateFiles = RunStateValidator.CaptureWorkspaceStateFiles(
+            repositoryRoot);
+        var startedAtUtc = DateTimeOffset.UtcNow;
+        var boundaries = Enum.GetValues<CommitCancellationBoundary>();
+
+        for (var warmup = 1; warmup <= options.Warmups; warmup++)
+        {
+            foreach (var boundary in boundaries)
+            {
+                await Console.Out.WriteLineAsync(
+                    $"Warming commit cancellation {repository.Id}/{scenario.Id}/{boundary} ({warmup}/{options.Warmups})");
+                _ = await RunCommitCancellationIterationAsync(
+                    repository,
+                    scenario,
+                    boundary,
+                    hostPath,
+                    repositoryRoot,
+                    workspacePath,
+                    Path.Combine(
+                        executionDirectory,
+                        "state",
+                        $"warmup-{warmup}-{boundary}"),
+                    initialWorkspaceStateFiles,
+                    restorer,
+                    iteration: 0,
+                    cancellationToken);
+            }
+        }
+
+        var measurements = new List<CommitCancellationMeasurement>();
+        for (var iteration = 1; iteration <= options.Iterations; iteration++)
+        {
+            foreach (var boundary in boundaries)
+            {
+                await Console.Out.WriteLineAsync(
+                    $"Measuring commit cancellation {repository.Id}/{scenario.Id}/{boundary} ({iteration}/{options.Iterations})");
+                var measurement = await RunCommitCancellationIterationAsync(
+                    repository,
+                    scenario,
+                    boundary,
+                    hostPath,
+                    repositoryRoot,
+                    workspacePath,
+                    Path.Combine(
+                        executionDirectory,
+                        "state",
+                        $"iteration-{iteration}-{boundary}"),
+                    initialWorkspaceStateFiles,
+                    restorer,
+                    iteration,
+                    cancellationToken);
+
+                measurements.Add(measurement);
+            }
+        }
+
+        var result = new CommitCancellationRunResult
+        {
+            Repository = repository.Id,
+            RepositorySize = repository.Size,
+            Commit = repository.Commit,
+            Scenario = scenario.Id,
+            MutationTool = scenario.Tool,
+            StartedAtUtc = startedAtUtc,
+            Environment = environment,
+            WarmupCount = options.Warmups,
+            Measurements = measurements,
+        };
+
+        await ResultWriter.WriteCommitCancellationAsync(
+            outputDirectory,
+            result,
+            cancellationToken);
+    }
+
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "The manual runner must preserve cancellation, rollback, workspace-close, Host-disposal, restoration, and validation failures so every cleanup step is attempted and all failures are reported together.")]
+    private static async Task<CommitCancellationMeasurement> RunCommitCancellationIterationAsync(
+        RepositoryDefinition repository,
+        ScenarioDefinition scenario,
+        CommitCancellationBoundary boundary,
+        string hostPath,
+        string repositoryRoot,
+        string workspacePath,
+        string stateDirectory,
+        IReadOnlySet<string> initialWorkspaceStateFiles,
+        RepositoryRestorer restorer,
+        int iteration,
+        CancellationToken cancellationToken)
+    {
+        await using var host = await PerformanceHost.StartAsync(
+            hostPath,
+            repositoryRoot,
+            stateDirectory,
+            cancellationToken);
+        string? workspaceId = null;
+        CommitCancellationRunner? runner = null;
+        CommitCancellationExecution? execution = null;
+        ExceptionDispatchInfo? runFailure = null;
+
+        try
+        {
+            workspaceId = await OpenWorkspaceAsync(
+                host,
+                workspacePath,
+                repositoryRoot,
+                cancellationToken);
+
+            runner = new CommitCancellationRunner(
+                host,
+                workspaceId,
+                repositoryRoot,
+                stateDirectory);
+
+            execution = await runner.ExecuteAsync(
+                scenario,
+                boundary,
+                cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            runFailure = ExceptionDispatchInfo.Capture(exception);
+        }
+        finally
+        {
+            if (runner?.HasOpenTransaction == true)
+            {
+                try
+                {
+                    await runner.RollbackAsync(CancellationToken.None);
+                }
+                catch (Exception exception)
+                {
+                    runFailure = CombineFailures(runFailure, exception);
+                }
+            }
+
+            if (workspaceId is not null)
+            {
+                try
+                {
+                    await CloseWorkspaceAsync(host, workspaceId);
+                }
+                catch (Exception exception)
+                {
+                    runFailure = CombineFailures(runFailure, exception);
+                }
+            }
+
+            try
+            {
+                await host.DisposeAsync();
+            }
+            catch (Exception exception)
+            {
+                runFailure = CombineFailures(runFailure, exception);
+            }
+        }
+
+        RepositoryChangeSet? changes = null;
+        double restorationMilliseconds = 0;
+        try
+        {
+            changes = await restorer.CaptureChangesAsync(CancellationToken.None);
+            restorationMilliseconds = await restorer.RestoreAsync(
+                changes,
+                CancellationToken.None);
+
+            RunStateValidator.RestoreWorkspaceStateFiles(
+                repositoryRoot,
+                initialWorkspaceStateFiles);
+        }
+        catch (Exception exception)
+        {
+            runFailure = CombineFailures(runFailure, exception);
+        }
+
+        var shutdown = host.GetShutdownResult();
+        var validation = await RunStateValidator.ValidateAsync(
+            repository,
+            repositoryRoot,
+            stateDirectory,
+            initialWorkspaceStateFiles,
+            shutdown,
+            CancellationToken.None);
+
+        if (!validation.Succeeded)
+        {
+            runFailure = CombineFailures(
+                runFailure,
+                new InvalidOperationException(
+                    $"Commit-cancellation validation failed: {string.Join(" ", validation.Issues)}"));
+        }
+
+        if (changes is not null)
+        {
+            ValidateCommitCancellationChanges(boundary, changes);
+        }
+
+        runFailure?.Throw();
+
+        var completedExecution = execution
+            ?? throw new InvalidOperationException(
+                "Commit cancellation did not produce execution evidence.");
+        var completedChanges = changes
+            ?? throw new InvalidOperationException(
+                "Commit cancellation did not produce a repository change set.");
+
+        return new CommitCancellationMeasurement
+        {
+            Iteration = iteration,
+            Boundary = boundary,
+            ObservedPhase = completedExecution.ObservedPhase,
+            StagingMilliseconds = completedExecution.StagingMilliseconds,
+            PreviewMilliseconds = completedExecution.PreviewMilliseconds,
+            CancellationNotificationMilliseconds =
+                completedExecution.CancellationNotificationMilliseconds,
+            CompletionAfterCancellationMilliseconds =
+                completedExecution.CompletionAfterCancellationMilliseconds,
+            SettlementMilliseconds =
+                completedExecution.SettlementMilliseconds,
+            OperationCanceled = completedExecution.OperationCanceled,
+            Committed = completedExecution.Committed,
+            PreviewDocumentCount = completedExecution.PreviewDocumentCount,
+            PostCancellationPreviewDocumentCount =
+                completedExecution.PostCancellationPreviewDocumentCount,
+            RecoveryEvidence = completedExecution.RecoveryEvidence,
+            RestorationMilliseconds = restorationMilliseconds,
+            Files = completedChanges.Files,
+            HostShutdown = shutdown,
+            Validation = validation,
+        };
+    }
+
+    private static void ValidateCommitCancellationChanges(
+        CommitCancellationBoundary boundary,
+        RepositoryChangeSet changes)
+    {
+        if (boundary == CommitCancellationBoundary.BeforeApplying
+            && changes.Files.Count != 0)
+        {
+            throw new InvalidOperationException(
+                "Pre-application cancellation changed repository files.");
+        }
+
+        if (boundary == CommitCancellationBoundary.AfterApplying
+            && changes.Files.Count == 0)
+        {
+            throw new InvalidOperationException(
+                "Post-application cancellation did not complete the durable commit.");
+        }
     }
 
     private static async Task MeasureStateSequencesAsync(
@@ -1778,6 +2073,7 @@ internal static class PerformanceApplication
         {
             if (command is PerformanceCommand.Profile
                 or PerformanceCommand.Commit
+                or PerformanceCommand.CommitCancellation
                 or PerformanceCommand.Conflict
                 or PerformanceCommand.CrashRecovery
                 or PerformanceCommand.StateSequence)
@@ -1940,6 +2236,7 @@ internal static class PerformanceApplication
               prepare --repository <id> [--cache <path>] [--framework-root <path>]
               measure --repository <id> --scenario <id|all> --host <path> [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
               commit --repository <id> --scenario <mutation-id> --host <path> [--iterations 5] [--warmups 1] [--capture-trace] [--duration 00:00:30] [--output <path>] [--framework-root <path>] [--skip-prepare]
+              commit-cancellation --repository <id> --scenario <mutation-id> --host <path> [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
               conflict --repository <id> --scenario <conflict-id> --host <path> [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
               crash-recovery --repository <id> --scenario <mutation-id> --host <path> [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
               state-sequence --repository <id> --scenario <state-sequence-id> --host <path> [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]

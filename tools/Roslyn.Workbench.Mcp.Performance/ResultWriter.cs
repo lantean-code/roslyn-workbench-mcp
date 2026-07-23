@@ -230,6 +230,85 @@ internal static class ResultWriter
             cancellationToken);
     }
 
+    public static async Task WriteCommitCancellationAsync(
+        string outputDirectory,
+        CommitCancellationRunResult result,
+        CancellationToken cancellationToken)
+    {
+        Directory.CreateDirectory(outputDirectory);
+        var jsonPath = Path.Combine(
+            outputDirectory,
+            "commit-cancellation.json");
+        await using (var stream = File.Create(jsonPath))
+        {
+            await JsonSerializer.SerializeAsync(
+                stream,
+                result,
+                _serializerOptions,
+                cancellationToken);
+        }
+
+        var validations = result.Measurements
+            .Select(static measurement => measurement.Validation)
+            .ToArray();
+        var validationPath = Path.Combine(outputDirectory, "validation.json");
+        await using (var stream = File.Create(validationPath))
+        {
+            await JsonSerializer.SerializeAsync(
+                stream,
+                validations,
+                _serializerOptions,
+                cancellationToken);
+        }
+
+        var builder = new StringBuilder()
+            .AppendLine("# Roslyn Workbench commit cancellation summary")
+            .AppendLine()
+            .Append("Repository: ").AppendLine(result.Repository)
+            .Append("Scenario: ").AppendLine(result.Scenario)
+            .Append("Mutation tool: ").AppendLine(result.MutationTool)
+            .Append("Warm-ups: ").AppendLine(
+                result.WarmupCount.ToString(CultureInfo.InvariantCulture))
+            .Append("Measured boundary executions: ").AppendLine(
+                result.Measurements.Count.ToString(CultureInfo.InvariantCulture))
+            .AppendLine()
+            .AppendLine("| Boundary | Observed phase | Notification (ms) | Client completion (ms) | Settlement (ms) | Cancelled | Committed | Changed files |")
+            .AppendLine("|---|---|---:|---:|---:|---|---|---:|");
+
+        foreach (var measurement in result.Measurements)
+        {
+            builder
+                .Append("| ").Append(measurement.Boundary)
+                .Append(" | ").Append(measurement.ObservedPhase)
+                .Append(" | ").Append(
+                    measurement.CancellationNotificationMilliseconds.ToString(
+                        "F2",
+                        CultureInfo.InvariantCulture))
+                .Append(" | ").Append(
+                    measurement.CompletionAfterCancellationMilliseconds.ToString(
+                        "F2",
+                        CultureInfo.InvariantCulture))
+                .Append(" | ").Append(
+                    measurement.SettlementMilliseconds.ToString(
+                        "F2",
+                        CultureInfo.InvariantCulture))
+                .Append(" | ").Append(
+                    measurement.OperationCanceled ? "Yes" : "No")
+                .Append(" | ").Append(
+                    measurement.Committed ? "Yes" : "No")
+                .Append(" | ").Append(
+                    measurement.Files.Count.ToString(
+                        CultureInfo.InvariantCulture))
+                .AppendLine(" |");
+        }
+
+        await File.WriteAllTextAsync(
+            Path.Combine(outputDirectory, "commit-cancellation.md"),
+            builder.ToString(),
+            Encoding.UTF8,
+            cancellationToken);
+    }
+
     public static async Task WriteConflictAsync(
         string outputDirectory,
         ConflictRunResult result,

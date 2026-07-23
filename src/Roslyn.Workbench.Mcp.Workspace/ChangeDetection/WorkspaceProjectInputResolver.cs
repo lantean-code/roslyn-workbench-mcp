@@ -28,6 +28,7 @@ internal sealed class WorkspaceProjectInputResolver : IWorkspaceProjectInputReso
                 .Select(static path => Path.GetFullPath(path))
                 .Distinct(StringComparer.Ordinal)
                 .ToArray();
+
             return WorkspaceProjectInputResolution.Succeeded(paths);
         }
         catch (Exception exception) when (exception is Microsoft.Build.Exceptions.InvalidProjectFileException or IOException or UnauthorizedAccessException)

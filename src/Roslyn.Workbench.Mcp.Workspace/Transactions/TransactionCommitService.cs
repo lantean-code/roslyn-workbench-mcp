@@ -327,6 +327,7 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         var inputManifest = _workspaceChangeDetector.BuildManifest(
             transaction.CurrentSolution,
             session.Workspace.LoadedPath);
+
         var committedSession = session with
         {
             Transaction = null,
@@ -393,6 +394,7 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         var state = manifest is null
             ? RecoveryState.RecoveryIncomplete
             : await _commitWriter.RestoreAsync(manifest);
+
         var recoveryStatePersisted = true;
         if (manifest is not null)
         {
@@ -437,6 +439,7 @@ internal sealed class TransactionCommitService : ITransactionCommitService
             transaction.CurrentRevision,
             commitId: null,
             commitPhase: WorkspaceLifecycleState.TransactionConflicted.ToString());
+
         return _resultFactory.Conflict<TransactionCommitOutcome>(
             WorkspaceErrorCodes.TransactionConflicted,
             failureMessage,
@@ -479,6 +482,7 @@ internal sealed class TransactionCommitService : ITransactionCommitService
         var message = applicationStarted
             ? "The transaction commit failed and its changes were restored or retained for recovery."
             : "The transaction commit could not update its recovery record and no workspace changes were applied.";
+
         var detailedMessage = $"{message} Failure: {failureMessage}";
 
         return recoveryStatePersisted

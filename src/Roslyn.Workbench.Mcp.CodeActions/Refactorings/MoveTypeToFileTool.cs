@@ -30,6 +30,7 @@ internal sealed class MoveTypeToFileTool : CodeActionMutationToolHandler<MoveTyp
             request.ExpectedSnapshot,
             context,
             cancellationToken);
+
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;

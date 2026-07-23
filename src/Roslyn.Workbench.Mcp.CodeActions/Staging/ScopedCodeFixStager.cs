@@ -256,6 +256,7 @@ internal sealed class ScopedCodeFixStager : IScopedCodeFixStager
                 candidate.EquivalenceKey,
                 request.SyntheticDiagnosticId,
                 cancellationToken);
+
             if (fixAllResult.HasFailure)
             {
                 return fixAllResult;
@@ -281,6 +282,7 @@ internal sealed class ScopedCodeFixStager : IScopedCodeFixStager
             analyzerTypeName,
             syntheticDiagnosticId,
             cancellationToken);
+
         if (diagnostics.Count == 0)
         {
             return FailedApplication(
@@ -294,6 +296,7 @@ internal sealed class ScopedCodeFixStager : IScopedCodeFixStager
                 string.Equals(action.Title, candidate.Title, StringComparison.OrdinalIgnoreCase)
                 && string.Equals(action.EquivalenceKey, candidate.EquivalenceKey, StringComparison.Ordinal))
             .ToArray();
+
         if (matches.Length == 0)
         {
             return FailedApplication(
@@ -335,6 +338,7 @@ internal sealed class ScopedCodeFixStager : IScopedCodeFixStager
             equivalenceKey,
             syntheticDiagnosticId,
             cancellationToken);
+
         if (creation.HasFailure)
         {
             return CodeActionApplyResult.Failed(
@@ -365,6 +369,7 @@ internal sealed class ScopedCodeFixStager : IScopedCodeFixStager
             equivalenceKey,
             syntheticDiagnosticId,
             cancellationToken);
+
         if (creation.HasFailure)
         {
             return CodeActionApplyResult.Failed(

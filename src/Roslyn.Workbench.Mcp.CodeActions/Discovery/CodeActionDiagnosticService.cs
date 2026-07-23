@@ -46,6 +46,7 @@ internal sealed class CodeActionDiagnosticService : ICodeActionDiagnosticService
             compilation,
             diagnosticIds,
             cancellationToken);
+
         var syntaxTree = await document.GetSyntaxTreeAsync(cancellationToken);
 
         var documentDiagnostics = new List<Diagnostic>();

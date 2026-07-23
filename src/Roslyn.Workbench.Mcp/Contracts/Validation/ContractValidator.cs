@@ -22,6 +22,7 @@ internal static class ContractValidator
                 {
                     errors.Add("ToolResult Succeeded outcome requires Data.");
                 }
+
                 break;
 
             case ToolOutcome.NoChange:
@@ -34,6 +35,7 @@ internal static class ContractValidator
                 {
                     errors.Add("ToolResult NoChange outcome must not include Error.");
                 }
+
                 break;
 
             case ToolOutcome.Rejected:
@@ -53,6 +55,7 @@ internal static class ContractValidator
                 {
                     errors.Add($"ToolResult {result.Outcome} outcome must not include Changes.");
                 }
+
                 break;
         }
 

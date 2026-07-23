@@ -125,7 +125,7 @@ Sources: [TestArchitectureReaudit-2026-07-18.md](TestArchitectureReaudit-2026-07
 
 ### Audit repository-wide readability and incidental complexity
 
-**Status:** Not started
+**Status:** Started
 
 Extend the completed tool readability pass across all production and test code. Apply the general source rules consistently rather than limiting them to tool implementations:
 
@@ -136,7 +136,7 @@ Extend the completed tool readability pass across all production and test code. 
 
 Perform the audit in cohesive project-level batches, preserving behaviour and avoiding unrelated architectural changes. Keep general cleanup separate from measured performance changes, and require performance evidence before altering hot-path implementation choices.
 
-Source: [`src/AGENTS.md`](../../src/AGENTS.md)
+Source: [`src/AGENTS.md`](../../src/AGENTS.md), [ReadabilityAudit-2026-07-23.md](ReadabilityAudit-2026-07-23.md)
 
 ### Decide the NuGet lock-file and caching policy
 

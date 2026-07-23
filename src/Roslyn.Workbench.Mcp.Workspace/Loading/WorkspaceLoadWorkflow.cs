@@ -117,6 +117,7 @@ internal sealed class WorkspaceLoadWorkflow : IWorkspaceLoadWorkflow
                     Severity = Contracts.Results.DiagnosticSeverity.Error,
                     Message = $"Loaded workspace input '{outsideRootInput}' is outside the workspace root '{workspaceRoot}'.",
                 });
+
                 loadedWorkspace.Workspace.Dispose();
                 return ValidatedWorkspaceLoadResult.Failed(
                     ValidatedWorkspaceLoadFailure.OutsideWorkspaceRoot,

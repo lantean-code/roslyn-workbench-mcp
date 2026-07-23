@@ -46,6 +46,7 @@ internal sealed class LinkedDocumentChangeMerger : ILinkedDocumentChangeMerger
                 changedDocumentId,
                 relatedDocumentIds,
                 cancellationToken);
+
             if (!mergeResult.IsSucceeded)
             {
                 return mergeResult;
@@ -85,6 +86,7 @@ internal sealed class LinkedDocumentChangeMerger : ILinkedDocumentChangeMerger
         {
             firstDocumentId,
         };
+
         documentIds.AddRange(relatedDocumentIds);
 
         foreach (var documentId in documentIds)
@@ -100,6 +102,7 @@ internal sealed class LinkedDocumentChangeMerger : ILinkedDocumentChangeMerger
             var documentChanges = await candidateDocument.GetTextChangesAsync(
                 currentDocument,
                 cancellationToken);
+
             changes.AddRange(documentChanges);
         }
 

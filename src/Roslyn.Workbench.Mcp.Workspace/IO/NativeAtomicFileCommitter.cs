@@ -25,6 +25,7 @@ internal sealed partial class NativeAtomicFileCommitter : IAtomicFileCommitter
                 destinationPath,
                 _moveFileReplaceExisting | _moveFileWriteThrough,
                 $"The atomic replacement of '{destinationPath}' failed.");
+
             return;
         }
 
@@ -43,6 +44,7 @@ internal sealed partial class NativeAtomicFileCommitter : IAtomicFileCommitter
                 destinationPath,
                 _moveFileWriteThrough,
                 $"The durable move from '{sourcePath}' to '{destinationPath}' failed.");
+
             return;
         }
 

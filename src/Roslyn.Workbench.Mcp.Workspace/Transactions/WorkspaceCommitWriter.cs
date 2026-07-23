@@ -149,6 +149,7 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
                     var backup = await _recoveryStore.ReadArtifactAsync(manifest.CommitId, entry.GetRequiredBackupPath(), CancellationToken.None);
                     var targetDirectory = _fileSystem.Path.GetDirectoryName(entry.TargetPath)
                         ?? throw new InvalidOperationException($"The target '{entry.TargetPath}' does not have a parent directory.");
+
                     _fileSystem.Directory.CreateDirectory(targetDirectory);
                     await _atomicFileWriter.WriteAllBytesAsync(entry.TargetPath, backup, CancellationToken.None);
                 }

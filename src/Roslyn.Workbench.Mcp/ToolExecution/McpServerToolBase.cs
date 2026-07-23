@@ -22,6 +22,7 @@ internal abstract class McpServerToolBase : McpServerTool
     {
         var arguments = requestContext.Params.Arguments
             ?? new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+
         return await InvokeArgumentsAsync(arguments, cancellationToken);
     }
 
@@ -62,6 +63,7 @@ internal abstract class McpServerToolBase : McpServerTool
                 Code = "InvalidRequest",
                 Message = $"The tool arguments did not match the request contract. {exception.Message}",
             };
+
             var content = ToolResultEnvelopeSerializer.CreateFailure(error, requiredAction: null);
             rejection = CreateStructuredResult(content, isError: true);
             return false;

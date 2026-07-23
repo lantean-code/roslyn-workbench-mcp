@@ -60,6 +60,7 @@ internal sealed class WorkspaceSelectorService : IWorkspaceSelector
         {
             var aliasMatch = hostSnapshot.Workspaces.SingleOrDefault(pair =>
                 string.Equals(pair.Value.Workspace.Alias, selector.Alias, StringComparison.Ordinal));
+
             if (string.IsNullOrEmpty(aliasMatch.Key))
             {
                 return CreateNotFoundResult();
@@ -74,6 +75,7 @@ internal sealed class WorkspaceSelectorService : IWorkspaceSelector
             var normalizedPath = NormalizeSelectorPath(selectorPath);
             var pathMatch = hostSnapshot.Workspaces.SingleOrDefault(pair =>
                 string.Equals(pair.Value.Workspace.LoadedPath, normalizedPath, StringComparison.Ordinal));
+
             if (string.IsNullOrEmpty(pathMatch.Key))
             {
                 return CreateNotFoundResult();

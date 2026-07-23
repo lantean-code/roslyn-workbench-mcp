@@ -92,6 +92,7 @@ internal sealed class PluginCatalogLoader
                     plugin.Metadata,
                     PluginDiagnosticIds.Collision,
                     "Plugin tool names collide with reserved, bundled, or other external plugin tools."));
+
                 continue;
             }
 

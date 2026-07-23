@@ -87,6 +87,7 @@ internal sealed class CodeActionFixAllStager : ICodeActionFixAllStager
             scopeResolution,
             context.CurrentSolution,
             cancellationToken);
+
         if (application.HasFailure)
         {
             return Rejected<WorkspaceMutationCandidate>(application.Failure);
@@ -97,6 +98,7 @@ internal sealed class CodeActionFixAllStager : ICodeActionFixAllStager
             context.CurrentSolution,
             application.CandidateSolution,
             cancellationToken);
+
         return limitRejection ?? CreateSuccess(operation.Action, application.CandidateSolution);
     }
 
@@ -225,6 +227,7 @@ internal sealed class CodeActionFixAllStager : ICodeActionFixAllStager
                 operation,
                 targetProject,
                 cancellationToken);
+
             if (application.HasFailure)
             {
                 return application;
@@ -252,6 +255,7 @@ internal sealed class CodeActionFixAllStager : ICodeActionFixAllStager
             operation.Action.EquivalenceKey,
             syntheticDiagnosticId: null,
             cancellationToken);
+
         if (creation.HasFailure)
         {
             return CodeActionApplyResult.Failed(
@@ -278,6 +282,7 @@ internal sealed class CodeActionFixAllStager : ICodeActionFixAllStager
             operation.Action.EquivalenceKey,
             syntheticDiagnosticId: null,
             cancellationToken);
+
         if (creation.HasFailure)
         {
             return CodeActionApplyResult.Failed(
@@ -301,6 +306,7 @@ internal sealed class CodeActionFixAllStager : ICodeActionFixAllStager
             originalSolution,
             candidateSolution,
             cancellationToken);
+
         if (maxChanges is null || changedDocumentCount <= maxChanges.Value)
         {
             return null;

@@ -19,6 +19,7 @@ internal sealed class CodeActionExecutionContextFactory : ICodeActionExecutionCo
             var context = workspaceLease.Context is null
                 ? null
                 : new CodeActionQueryContext(workspaceLease.Context);
+
             return CodeActionQueryExecutionLease.Rejected(
                 workspaceLease,
                 CodeActionWorkspaceResultMapper.MapFailure(workspaceLease.Failure),
@@ -40,6 +41,7 @@ internal sealed class CodeActionExecutionContextFactory : ICodeActionExecutionCo
             var context = workspaceLease.Context is null
                 ? null
                 : new CodeActionMutationContext(workspaceLease.Context);
+
             return CodeActionMutationExecutionLease.Rejected(
                 workspaceLease,
                 CodeActionWorkspaceResultMapper.MapFailure(workspaceLease.Failure),

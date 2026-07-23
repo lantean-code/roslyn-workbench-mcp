@@ -21,6 +21,7 @@ internal sealed class PluginHandlerWarningInspector : IPluginHandlerWarningInspe
             type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
                 .Any(static property => property.SetMethod is not null)
             || type.GetEvents(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly).Length > 0);
+
         if (hasMutableMembers)
         {
             diagnostics.Add(CreateDiagnostic(
@@ -30,6 +31,7 @@ internal sealed class PluginHandlerWarningInspector : IPluginHandlerWarningInspe
 
         var staticFields = hierarchy.SelectMany(static type => type.GetFields(
             BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)).ToArray();
+
         if (staticFields.Any(static field => !field.IsLiteral && !field.IsInitOnly))
         {
             diagnostics.Add(CreateDiagnostic(
@@ -41,6 +43,7 @@ internal sealed class PluginHandlerWarningInspector : IPluginHandlerWarningInspe
             || hierarchy.SelectMany(static type => type.GetMethods(
                 BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
                 .Any(static method => string.Equals(method.Name, "Register", StringComparison.Ordinal));
+
         if (hasLegacyMetadata)
         {
             diagnostics.Add(CreateDiagnostic(

@@ -31,6 +31,7 @@ internal sealed class InlineVariableTool : CodeActionMutationToolHandler<InlineV
             request.ExpectedSnapshot,
             context,
             cancellationToken);
+
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;

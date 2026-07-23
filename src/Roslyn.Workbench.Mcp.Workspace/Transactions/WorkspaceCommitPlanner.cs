@@ -46,6 +46,7 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
                 baselineSolution,
                 currentSolution,
                 cancellationToken);
+
             if (!validation.IsValid)
             {
                 return WorkspaceCommitPlanResult.Failed(validation.ErrorMessage);
@@ -93,6 +94,7 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         var changedDocuments = projectChanges.GetChangedDocuments()
             .Select(currentSolution.GetDocument)
             .OfType<Document>();
+
         foreach (var document in changedDocuments)
         {
             var validation = await AddWriteAsync(
@@ -100,6 +102,7 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
                 document,
                 WorkspaceFileOperation.Replace,
                 cancellationToken);
+
             if (!validation.IsValid)
             {
                 return validation;
@@ -109,6 +112,7 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         var addedDocuments = projectChanges.GetAddedDocuments()
             .Select(currentSolution.GetDocument)
             .OfType<Document>();
+
         foreach (var document in addedDocuments)
         {
             var validation = await AddWriteAsync(
@@ -116,6 +120,7 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
                 document,
                 WorkspaceFileOperation.Create,
                 cancellationToken);
+
             if (!validation.IsValid)
             {
                 return validation;
@@ -125,6 +130,7 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         var removedDocuments = projectChanges.GetRemovedDocuments()
             .Select(baselineSolution.GetDocument)
             .OfType<Document>();
+
         foreach (var document in removedDocuments)
         {
             var validation = await AddDeleteAsync(context, document, cancellationToken);
@@ -175,6 +181,7 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         var originalContents = originalExists
             ? await _fileSystem.File.ReadAllBytesAsync(path, cancellationToken)
             : null;
+
         var artifactIndex = GetArtifactIndex(context);
         var backupPath = originalExists ? $"backup/{artifactIndex}.bin" : null;
         var stagedPath = $"staged/{artifactIndex}.bin";

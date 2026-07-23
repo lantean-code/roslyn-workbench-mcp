@@ -12,6 +12,7 @@ internal sealed class WorkspaceProjectCompatibilityInspector : IWorkspaceProject
 
             var isSdkStyle = !string.IsNullOrWhiteSpace(root.Sdk)
                 || root.Children.OfType<Microsoft.Build.Construction.ProjectSdkElement>().Any();
+
             return (isSdkStyle, []);
         }
         catch (Exception exception) when (exception is Microsoft.Build.Exceptions.InvalidProjectFileException or IOException or UnauthorizedAccessException)

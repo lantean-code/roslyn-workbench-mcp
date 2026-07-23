@@ -23,6 +23,7 @@ internal sealed class ConvertToInterpolatedStringTool : CodeActionMutationToolHa
         var snapshotRejection = _requestResolver.ValidateSnapshot<WorkspaceMutationCandidate>(
             context,
             request.ExpectedSnapshot);
+
         if (snapshotRejection is not null)
         {
             return snapshotRejection;
@@ -32,6 +33,7 @@ internal sealed class ConvertToInterpolatedStringTool : CodeActionMutationToolHa
             request.Selection,
             context,
             cancellationToken);
+
         if (locationResolution.HasRejection)
         {
             return locationResolution.Rejection;

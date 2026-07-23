@@ -84,6 +84,7 @@ internal sealed class WorkspacePathComparison : IWorkspacePathComparison
             var superOptions = fields[separatorIndex + 3];
             var isWindowsMount = string.Equals(fileSystemType, "drvfs", StringComparison.Ordinal)
                 || superOptions.Split(',').Any(static option => option.StartsWith("aname=drvfs", StringComparison.Ordinal));
+
             var hasCaseSensitiveOption = mountOptions.Split(',').Any(IsCaseSensitiveOption)
                 || superOptions.Split(',').Any(IsCaseSensitiveOption);
 

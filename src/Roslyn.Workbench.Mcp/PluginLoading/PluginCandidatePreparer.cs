@@ -81,6 +81,7 @@ internal sealed class PluginCandidatePreparer : IPluginCandidatePreparer
                 PluginApiVersions.V1,
                 PluginDiagnosticIds.Discovery,
                 inspection.Error ?? "Bundled plugin assembly must contain exactly one RoslynPlugin entry point."));
+
             return;
         }
 
@@ -121,6 +122,7 @@ internal sealed class PluginCandidatePreparer : IPluginCandidatePreparer
                 PluginApiVersions.V1,
                 PluginDiagnosticIds.Discovery,
                 discoveryResult.Error ?? "Plugin package discovery failed."));
+
             return;
         }
 
@@ -131,6 +133,7 @@ internal sealed class PluginCandidatePreparer : IPluginCandidatePreparer
                 candidate.EntryPoint,
                 PluginDiagnosticIds.Metadata,
                 validationError));
+
             return;
         }
 
@@ -140,6 +143,7 @@ internal sealed class PluginCandidatePreparer : IPluginCandidatePreparer
                 candidate.EntryPoint,
                 PluginDiagnosticIds.Collision,
                 "Multiple external plugin packages declare the same plugin ID."));
+
             return;
         }
 
@@ -163,6 +167,7 @@ internal sealed class PluginCandidatePreparer : IPluginCandidatePreparer
                 statuses.Add(PluginCatalogStatusFactory.CreateDisabled(
                     candidate.EntryPoint,
                     "External plugin entry assembly resolves outside its package directory."));
+
                 return;
             }
 

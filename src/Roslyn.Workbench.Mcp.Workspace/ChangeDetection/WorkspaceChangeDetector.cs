@@ -126,6 +126,7 @@ internal sealed class WorkspaceChangeDetector : IWorkspaceChangeDetector
             LastWriteTimeUtc = file.LastWriteTimeUtc,
             Length = file.Length,
         };
+
         AddDirectory(directories, _fileSystem.Path.GetDirectoryName(file.FullName));
     }
 

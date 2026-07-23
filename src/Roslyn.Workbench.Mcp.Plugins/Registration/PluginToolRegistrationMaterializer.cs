@@ -35,6 +35,7 @@ internal sealed class PluginToolRegistrationMaterializer : IPluginToolRegistrati
         var materializationMethod = preparedTool.Tool.Kind == ToolKind.Query
             ? _createQueryRegistrationMethod.MakeGenericMethod(preparedTool.HandlerContract.GenericTypeArguments)
             : _createMutationRegistrationMethod.MakeGenericMethod(preparedTool.HandlerContract.GenericTypeArguments);
+
         var materialize = materializationMethod.CreateDelegate<Func<RegisteredTool, object, IRegisteredPluginTool>>();
         return materialize(preparedTool.Tool, handler);
     }

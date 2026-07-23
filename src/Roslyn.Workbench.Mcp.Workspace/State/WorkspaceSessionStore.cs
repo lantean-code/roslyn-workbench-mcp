@@ -61,6 +61,7 @@ internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
             {
                 [session.Workspace.WorkspaceId] = session,
             };
+
             _snapshot = _snapshot with
             {
                 Workspaces = workspaces,
@@ -138,6 +139,7 @@ internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
         {
             [session.Workspace.WorkspaceId] = session,
         };
+
         _snapshot = _snapshot with
         {
             Workspaces = workspaces,

@@ -61,6 +61,7 @@ internal sealed class PluginAssemblyLoadContext : AssemblyLoadContext
     {
         var loadedAssembly = AssemblyLoadContext.Default.Assemblies
             .FirstOrDefault(assembly => string.Equals(assembly.GetName().Name, assemblyName.Name, StringComparison.Ordinal));
+
         return loadedAssembly ?? AssemblyLoadContext.Default.LoadFromAssemblyName(assemblyName);
     }
 

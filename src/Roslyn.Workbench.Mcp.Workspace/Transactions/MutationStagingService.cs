@@ -59,6 +59,7 @@ internal sealed class MutationStagingService : IMutationStagingService
             session.CurrentSolution,
             candidate.CandidateSolution,
             cancellationToken);
+
         if (!mergeResult.IsSucceeded)
         {
             return CreateValidationFailureResult(mergeResult.Error, diagnostics, warnings);
@@ -72,6 +73,7 @@ internal sealed class MutationStagingService : IMutationStagingService
         validationError = _candidateValidator.Validate(
             session.CurrentSolution,
             mergedCandidate.CandidateSolution);
+
         if (validationError is not null)
         {
             return CreateValidationFailureResult(validationError, diagnostics, warnings);
@@ -83,6 +85,7 @@ internal sealed class MutationStagingService : IMutationStagingService
             session,
             transaction,
             cancellationToken);
+
         _sessionStore.ReplaceSession(stagedMutation.Session);
         await PublishStatusAsync(stagedMutation);
 
@@ -101,6 +104,7 @@ internal sealed class MutationStagingService : IMutationStagingService
             candidate.CandidateSolution,
             _resolverFactory.Create(candidate.CandidateSolution, session.Workspace, transaction.CurrentRevision + 1),
             cancellationToken);
+
         var revision = CreateRevision(operationName, candidate, changes);
         var updatedTransaction = transaction.Append(revision);
         var updatedSession = session with

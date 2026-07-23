@@ -24,6 +24,7 @@ internal sealed class EncapsulateFieldTool : CodeActionMutationToolHandler<Encap
             request.ExpectedSnapshot,
             context,
             cancellationToken);
+
         if (symbolResolution.HasRejection)
         {
             return symbolResolution.Rejection;

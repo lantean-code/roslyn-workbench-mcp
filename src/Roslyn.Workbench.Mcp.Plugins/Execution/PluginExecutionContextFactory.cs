@@ -23,6 +23,7 @@ internal sealed class PluginExecutionContextFactory : IToolExecutionContextFacto
             var context = workspaceLease.Context is null
                 ? null
                 : new PluginMutationContext(workspaceLease.Context, _toolExecutionServices);
+
             return PluginMutationExecutionLease.Rejected(
                 workspaceLease,
                 PluginWorkspaceResultMapper.MapFailure(workspaceLease.Failure),
@@ -44,6 +45,7 @@ internal sealed class PluginExecutionContextFactory : IToolExecutionContextFacto
             var context = workspaceLease.Context is null
                 ? null
                 : new PluginQueryContext(workspaceLease.Context, _toolExecutionServices);
+
             return ToolExecutionContextLease<IQueryContext>.Rejected(
                 PluginWorkspaceResultMapper.MapFailure(workspaceLease.Failure),
                 context,

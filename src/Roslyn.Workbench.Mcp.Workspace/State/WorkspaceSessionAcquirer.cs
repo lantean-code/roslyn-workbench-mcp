@@ -39,6 +39,7 @@ internal sealed class WorkspaceSessionAcquirer : IWorkspaceSessionAcquirer
         var lease = requiresExclusiveAccess
             ? selection.Session.OperationGate.TryAcquireExclusive()
             : selection.Session.OperationGate.TryAcquireShared();
+
         if (lease is null)
         {
             return WorkspaceSessionAcquisition.Rejected(CreateBusyError(), selection.Session);

@@ -58,6 +58,7 @@ internal static class WorkspaceContractValidator
                 {
                     errors.Add("ScopeSelector Kind Solution must not provide Project, Document, or Projects.");
                 }
+
                 break;
 
             case ScopeKind.Project:
@@ -70,6 +71,7 @@ internal static class WorkspaceContractValidator
                 {
                     errors.Add("ScopeSelector Kind Project must not provide Document or Projects.");
                 }
+
                 break;
 
             case ScopeKind.Document:
@@ -82,6 +84,7 @@ internal static class WorkspaceContractValidator
                 {
                     errors.Add("ScopeSelector Kind Document must not provide Project or Projects.");
                 }
+
                 break;
 
             case ScopeKind.Projects:
@@ -94,6 +97,7 @@ internal static class WorkspaceContractValidator
                 {
                     errors.Add("ScopeSelector Kind Projects must not provide Project or Document.");
                 }
+
                 break;
         }
 

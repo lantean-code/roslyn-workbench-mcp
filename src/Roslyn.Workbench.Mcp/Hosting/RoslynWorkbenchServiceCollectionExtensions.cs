@@ -26,6 +26,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
                 options.StateDirectory = startupOptions.StateDirectory;
             })
             .ValidateOnStart();
+
         services.AddSingleton<IValidateOptions<StartupOptions>, StartupOptionsValidator>();
         services.AddOptions<CodeActionCompositionOptions>();
         services.AddOptions<CodeActionExecutionOptions>()
@@ -33,6 +34,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
             {
                 options.TokenLifetime = configuredStartupOptions.Value.CodeActionTokenLifetime;
             });
+
         services.AddOptions<WorkspaceOptions>()
             .Configure<IOptions<StartupOptions>>((options, configuredStartupOptions) =>
             {

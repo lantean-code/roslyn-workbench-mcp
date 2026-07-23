@@ -147,6 +147,7 @@ internal static class WorkspaceDiffBuilder
             false,
             false,
             Math.Max(0, contextLines));
+
         var lines = SplitLines(unifiedDiff);
         var hunks = new List<DiffHunk>();
         DiffHunkBuilder? currentHunk = null;

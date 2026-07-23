@@ -13,6 +13,7 @@ internal static class InputSchemaDefaultPublisher
     {
         var root = JsonNode.Parse(schema.GetRawText()) as JsonObject
             ?? throw new InvalidOperationException("Generated input schema was not a JSON object.");
+
         var visited = new HashSet<(Type Type, JsonObject Schema)>(SchemaVisitComparer.Instance);
 
         PublishContractDefaults(root, root, requestType, visited);
@@ -36,6 +37,7 @@ internal static class InputSchemaDefaultPublisher
         {
             var jsonPropertyName = property.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name
                 ?? JsonNamingPolicy.CamelCase.ConvertName(property.Name);
+
             if (schemaProperties[jsonPropertyName] is not JsonObject propertySchema)
             {
                 continue;

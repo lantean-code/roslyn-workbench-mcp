@@ -250,13 +250,16 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
     {
         var idMatches = string.IsNullOrWhiteSpace(selector.ProjectId)
             || string.Equals(project.Id.Id.ToString(), selector.ProjectId, StringComparison.OrdinalIgnoreCase);
+
         var nameMatches = string.IsNullOrWhiteSpace(selector.Name)
             || string.Equals(project.Name, selector.Name, StringComparison.Ordinal);
+
         var pathMatches = string.IsNullOrWhiteSpace(selector.Path)
             || string.Equals(
                 NormalizeProjectPath(project.FilePath ?? string.Empty),
                 NormalizeProjectPath(selector.Path),
                 StringComparison.Ordinal);
+
         var targetFrameworkMatches = MatchesTargetFramework(project, selector.TargetFramework);
 
         return idMatches && nameMatches && pathMatches && targetFrameworkMatches;

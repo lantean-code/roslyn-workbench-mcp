@@ -10,6 +10,7 @@ internal sealed class MefPluginComposer : IPluginComposer
         using var container = new ContainerConfiguration()
             .WithAssembly(assembly)
             .CreateContainer();
+
         var plugins = container.GetExports<IRoslynPlugin>().ToArray();
         if (plugins.Length != 1)
         {

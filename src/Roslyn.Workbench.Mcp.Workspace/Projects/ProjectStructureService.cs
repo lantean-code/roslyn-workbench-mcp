@@ -79,6 +79,7 @@ internal sealed class ProjectStructureService : IProjectStructureService
                     .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                     .Where(static value => !string.IsNullOrWhiteSpace(value))
                     .ToArray();
+
                 return ProjectTargetFrameworksResult.Succeeded(evaluatedMultipleTargetFrameworks);
             }
 
@@ -86,6 +87,7 @@ internal sealed class ProjectStructureService : IProjectStructureService
             var evaluatedSingleTargetFramework = string.IsNullOrWhiteSpace(singleTargetFramework)
                 ? []
                 : new[] { singleTargetFramework.Trim() };
+
             return ProjectTargetFrameworksResult.Succeeded(evaluatedSingleTargetFramework);
         }
         catch (Exception exception) when (exception is Microsoft.Build.Exceptions.InvalidProjectFileException or IOException or UnauthorizedAccessException)
@@ -125,6 +127,7 @@ internal sealed class ProjectStructureService : IProjectStructureService
                 .Select(static folder => CreateSolutionFolderInfo(folder))
                 .OrderBy(static folder => folder.Path, StringComparer.Ordinal)
                 .ToArray();
+
             var projectFolderPaths = model.SolutionProjects.ToDictionary(
                 static project => NormalizeRelativeProjectPath(project.FilePath),
                 static project => project.Parent is not null ? NormalizeFolderPath(project.Parent.Path) : null,

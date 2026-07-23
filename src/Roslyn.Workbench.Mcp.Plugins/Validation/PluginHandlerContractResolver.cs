@@ -16,13 +16,16 @@ internal sealed class PluginHandlerContractResolver : IPluginHandlerContractReso
         var matchingDefinition = definition.Kind == ToolKind.Query
             ? _queryHandlerDefinition
             : _mutationHandlerDefinition;
+
         var otherDefinition = definition.Kind == ToolKind.Query
             ? _mutationHandlerDefinition
             : _queryHandlerDefinition;
+
         var interfaces = definition.HandlerType.GetInterfaces();
         var matchingContracts = interfaces
             .Where(type => type.IsGenericType && type.GetGenericTypeDefinition() == matchingDefinition)
             .ToArray();
+
         var hasMismatchedContract = interfaces.Any(type => type.IsGenericType && type.GetGenericTypeDefinition() == otherDefinition);
 
         if (matchingContracts.Length != 1 || hasMismatchedContract)
@@ -31,6 +34,7 @@ internal sealed class PluginHandlerContractResolver : IPluginHandlerContractReso
             contract = null;
             diagnostic = CreateDiagnostic(
                 $"Plugin handler '{definition.HandlerType.FullName}' must implement exactly one {handlerFamily} handler contract and no handler contract from the other family.");
+
             return false;
         }
 
@@ -76,6 +80,7 @@ internal sealed class PluginHandlerContractResolver : IPluginHandlerContractReso
         var typeDefinition = contractType.IsGenericType
             ? contractType.GetGenericTypeDefinition()
             : contractType;
+
         if (!typeDefinition.IsNested)
         {
             return typeDefinition.IsPublic;

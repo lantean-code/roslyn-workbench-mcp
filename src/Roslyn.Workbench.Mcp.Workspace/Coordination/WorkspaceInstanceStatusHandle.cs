@@ -40,6 +40,7 @@ internal sealed class WorkspaceInstanceStatusHandle : IDisposable
             CommitId = commitId,
             CommitPhase = commitPhase,
         };
+
         await WriteAsync();
     }
 
@@ -57,6 +58,7 @@ internal sealed class WorkspaceInstanceStatusHandle : IDisposable
             _status,
             _serializerOptions,
             CancellationToken.None);
+
         await _stream.FlushAsync(CancellationToken.None);
     }
 }

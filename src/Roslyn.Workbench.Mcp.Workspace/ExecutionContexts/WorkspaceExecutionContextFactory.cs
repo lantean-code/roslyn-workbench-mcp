@@ -142,6 +142,7 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
             session.CurrentSolution,
             session.Workspace,
             session.Transaction?.CurrentRevision);
+
         return new WorkspaceExecutionContext(
             session.CurrentSolution,
             session.Workspace,

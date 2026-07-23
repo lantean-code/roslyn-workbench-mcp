@@ -198,6 +198,7 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
             WorkspaceRoot = canonicalWorkspaceRoot,
             WorkspaceState = state,
         };
+
         return new WorkspaceInstanceStatusHandle(filePath, stream, status, _serializerOptions);
     }
 
@@ -242,6 +243,7 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         var orderedInstances = instances
             .OrderBy(instance => instance.InstanceId, StringComparer.Ordinal)
             .ToArray();
+
         return new WorkspaceInstanceStatusResult(
             isAvailable: true,
             hasOtherLiveInstance,
@@ -281,6 +283,7 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
                 FileMode.Open,
                 FileAccess.Read,
                 FileShare.ReadWrite | FileShare.Delete);
+
             return await JsonSerializer.DeserializeAsync<WorkspaceInstanceStatus>(
                 stream,
                 _serializerOptions,

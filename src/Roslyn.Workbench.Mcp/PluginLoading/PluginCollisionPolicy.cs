@@ -33,6 +33,7 @@ internal sealed class PluginCollisionPolicy : IPluginCollisionPolicy
             .SelectMany(plugin => GetToolNames(plugin).Select(toolName => (plugin.Metadata.PluginId, ToolName: toolName)))
             .GroupBy(static item => item.ToolName, StringComparer.Ordinal)
             .Where(static group => group.Select(static item => item.PluginId).Distinct(StringComparer.Ordinal).Count() > 1);
+
         foreach (var sharedName in sharedNames)
         {
             collisions.UnionWith(sharedName.Select(static item => item.PluginId));

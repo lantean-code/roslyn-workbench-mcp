@@ -39,6 +39,7 @@ internal sealed class LocationCodeFixStager : ILocationCodeFixStager
         var snapshotRejection = _requestResolver.ValidateSnapshot<WorkspaceMutationCandidate>(
             context,
             request.ExpectedSnapshot);
+
         if (snapshotRejection is not null)
         {
             return snapshotRejection;
@@ -58,6 +59,7 @@ internal sealed class LocationCodeFixStager : ILocationCodeFixStager
             request.Location,
             context,
             cancellationToken);
+
         if (locationResolution.HasRejection)
         {
             return locationResolution.Rejection;
@@ -151,6 +153,7 @@ internal sealed class LocationCodeFixStager : ILocationCodeFixStager
                 candidate.Action,
                 context.CurrentSolution,
                 cancellationToken);
+
             if (application.HasFailure)
             {
                 return Rejected<WorkspaceMutationCandidate>(application.Failure);

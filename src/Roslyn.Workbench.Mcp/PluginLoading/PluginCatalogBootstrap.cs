@@ -16,15 +16,18 @@ internal sealed class PluginCatalogBootstrap : IPluginCatalogBootstrap
             new PluginHandlerTypeInspector(),
             new PluginHandlerContractResolver(),
             new PluginHandlerWarningInspector());
+
         var toolRegistrationMaterializer = new PluginToolRegistrationMaterializer();
         var loadedPluginPreparer = new LoadedPluginPreparer(
             new MefPluginComposer(),
             configurationPreparer);
+
         var candidatePreparer = new PluginCandidatePreparer(
             metadataReader,
             new PluginEntryPointValidator(),
             loadedPluginPreparer,
             new PluginLoadContextFactory(packagePathPolicy));
+
         var entryMaterializer = new PluginCatalogEntryMaterializer(toolRegistrationMaterializer);
         var packageDiscovery = new PluginPackageDiscovery(fileSystem, metadataReader, packagePathPolicy);
 

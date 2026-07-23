@@ -88,6 +88,7 @@ internal sealed class TransactionService : ITransactionService
             CurrentRevision = 0,
             MaxRevisions = _options.MaxTransactionRevisions,
         };
+
         var updatedSession = session with
         {
             Transaction = transaction,
@@ -144,11 +145,13 @@ internal sealed class TransactionService : ITransactionService
             session.Transaction.CurrentSolution,
             session.Workspace,
             session.Transaction.CurrentRevision);
+
         var changes = await _diffBuilder.CreateChangeSummaryAsync(
             session.Transaction.BaselineSolution,
             session.Transaction.CurrentSolution,
             resolver,
             cancellationToken);
+
         var documents = changes.Added.Concat(changes.Modified).Concat(changes.Deleted).ToArray();
         DocumentDiff? diff = null;
 
@@ -300,6 +303,7 @@ internal sealed class TransactionService : ITransactionService
         var rollbackState = session.State == WorkspaceLifecycleState.TransactionConflicted
             ? TransactionRollbackState.WorkspaceOutOfDate
             : TransactionRollbackState.Ready;
+
         var updatedSession = session with
         {
             Transaction = null,

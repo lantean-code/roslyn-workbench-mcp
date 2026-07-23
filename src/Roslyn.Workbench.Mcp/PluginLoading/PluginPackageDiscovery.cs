@@ -54,6 +54,7 @@ internal sealed class PluginPackageDiscovery : IPluginPackageDiscovery
         results.AddRange(packageDirectories
             .OrderBy(static path => path, StringComparer.Ordinal)
             .Select(DiscoverPackage));
+
         return results;
     }
 
@@ -68,6 +69,7 @@ internal sealed class PluginPackageDiscovery : IPluginPackageDiscovery
                 .EnumerateFiles(packageDirectory, "*.dll", SearchOption.TopDirectoryOnly)
                 .OrderBy(static path => path, StringComparer.Ordinal)
                 .ToArray();
+
             foreach (var assemblyPath in assemblyPaths)
             {
                 if (!_packagePathPolicy.TryGetContainedPath(packageDirectory, assemblyPath, out var containedAssemblyPath))

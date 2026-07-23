@@ -40,6 +40,7 @@ internal sealed class AtomicFileWriter : IAtomicFileWriter
 
         var directoryPath = _fileSystem.Path.GetDirectoryName(destinationPath)
             ?? throw new ArgumentException("The destination path must have a parent directory.", nameof(destinationPath));
+
         var temporaryPath = _fileSystem.Path.Combine(
             directoryPath,
             $".{_fileSystem.Path.GetFileName(destinationPath)}.{Guid.NewGuid():n}.tmp");
@@ -53,6 +54,7 @@ internal sealed class AtomicFileWriter : IAtomicFileWriter
                 Options = FileOptions.Asynchronous | FileOptions.WriteThrough,
                 Share = FileShare.None,
             };
+
             await using (var stream = _fileSystem.FileStream.New(temporaryPath, options))
             {
                 await stream.WriteAsync(contents, cancellationToken);

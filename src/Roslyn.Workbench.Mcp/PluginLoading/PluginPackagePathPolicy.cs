@@ -84,6 +84,7 @@ internal sealed class PluginPackagePathPolicy : IPluginPackagePathPolicy
         var linkTarget = _fileSystem.Directory.Exists(path)
             ? _fileSystem.Directory.ResolveLinkTarget(path, true)
             : null;
+
         return _fileSystem.Path.GetFullPath(linkTarget?.FullName ?? path);
     }
 

@@ -19,6 +19,7 @@ internal sealed class HostStartupComposer
         {
             Tools = BundledCodeActionCatalog.Create(),
         };
+
         var plugins = _pluginCatalogBootstrap.Load(
             configuration.Options,
             [typeof(BundledCorePlugin).Assembly],

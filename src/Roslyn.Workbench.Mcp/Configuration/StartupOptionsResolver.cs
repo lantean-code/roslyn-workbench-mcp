@@ -143,6 +143,7 @@ internal static class StartupOptionsResolver
         var directories = value.Split(
             Path.PathSeparator,
             StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
         if (directories.Length == 0)
         {
             AddFallbackWarning(warnings, environmentVariable, "no plugin directory");

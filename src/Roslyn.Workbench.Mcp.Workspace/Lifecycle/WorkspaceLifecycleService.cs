@@ -69,6 +69,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             request.LoadedPath,
             request.WorkspaceRoot,
             cancellationToken);
+
         if (hasPendingRecovery)
         {
             return _resultFactory.Rejected<WorkspaceOpenOutcome>(
@@ -100,6 +101,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             request.LoadedPath,
             WorkspaceLifecycleState.Ready,
             cancellationToken);
+
         WorkspaceInputManifest inputManifest;
         try
         {
@@ -241,6 +243,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         var instanceStatus = await _instanceStatusPublisher.GetOtherLiveInstancesAsync(
             session.Workspace.WorkspaceRoot,
             cancellationToken);
+
         return _resultFactory.Succeeded(CreateStatusOutcome(session, detail, instanceStatus), CreateContext(session));
     }
 
@@ -280,6 +283,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             currentSession.Workspace.LoadedPath,
             currentSession.Workspace.WorkspaceRoot,
             cancellationToken);
+
         if (loadedWorkspace.HasFailure)
         {
             return CreateLoadFailureResult<WorkspaceReloadOutcome>(loadedWorkspace, "reloaded", context);
@@ -288,6 +292,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         var inputManifest = _workspaceChangeDetector.BuildManifest(
             loadedWorkspace.Solution,
             currentSession.Workspace.LoadedPath);
+
         if (!inputManifest.IsComplete)
         {
             loadedWorkspace.Workspace.Dispose();

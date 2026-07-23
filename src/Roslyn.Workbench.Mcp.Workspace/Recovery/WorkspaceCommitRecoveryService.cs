@@ -41,6 +41,7 @@ internal sealed class WorkspaceCommitRecoveryService : IWorkspaceCommitRecoveryS
                         continue;
                     }
                 }
+
                 _store.DeleteStatus(manifest.CommitId);
                 continue;
             }

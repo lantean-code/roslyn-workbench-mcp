@@ -39,6 +39,7 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
         var snapshotRejection = _requestResolver.ValidateSnapshot<CodeActionListData>(
             context,
             request.ExpectedSnapshot);
+
         if (snapshotRejection is not null)
         {
             return snapshotRejection;
@@ -48,6 +49,7 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
             request.Location,
             context,
             cancellationToken);
+
         if (locationResolution.HasRejection)
         {
             return locationResolution.Rejection;

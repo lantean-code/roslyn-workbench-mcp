@@ -16,6 +16,7 @@ internal sealed class MefHostExportProviderCompatibilityAdapter : IMefHostExport
             .GetMethods(BindingFlags.Instance | BindingFlags.NonPublic)
             .Where(IsExportMethod)
             .ToArray();
+
         if (methods.Length != 1)
         {
             return Failure<T>($"Expected one Roslyn MEF export method but found {methods.Length}.");
@@ -72,6 +73,7 @@ internal sealed class MefHostExportProviderCompatibilityAdapter : IMefHostExport
                 .GetProperties(BindingFlags.Instance | BindingFlags.Public)
                 .Where(static property => property.Name == "Value")
                 .ToArray();
+
             if (valueProperties.Length != 1)
             {
                 return Failure<T>($"A Roslyn MEF export entry exposed {valueProperties.Length} public Value properties instead of one.");
@@ -119,6 +121,7 @@ internal sealed class MefHostExportProviderCompatibilityAdapter : IMefHostExport
         var underlyingException = exception is TargetInvocationException invocationException
             ? invocationException.InnerException
             : null;
+
         var failureType = underlyingException?.GetType().Name ?? exception.GetType().Name;
         return Failure<T>($"Failed while {stage} ({failureType}).");
     }

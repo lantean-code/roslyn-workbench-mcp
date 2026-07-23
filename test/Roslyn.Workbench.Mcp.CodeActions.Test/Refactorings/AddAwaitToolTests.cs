@@ -16,6 +16,7 @@ public sealed class AddAwaitToolTests
             },
             Kind = AddAwaitKind.Await,
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new AddAwaitTool(selectionStager.Object);
 
@@ -63,6 +64,7 @@ public sealed class AddAwaitToolTests
             },
             Kind = AddAwaitKind.AwaitConfigureAwaitFalse,
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new AddAwaitTool(selectionStager.Object);
 

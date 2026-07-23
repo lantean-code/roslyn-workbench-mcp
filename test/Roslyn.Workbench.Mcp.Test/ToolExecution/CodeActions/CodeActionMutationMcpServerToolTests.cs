@@ -30,12 +30,14 @@ public sealed class CodeActionMutationMcpServerToolTests
                 },
             },
             lease: operationLease.Object);
+
         var failure = CodeActionMcpServerToolTestData.CreateExecutionFailure(CodeActionExecutionOutcome.Rejected, "WorkspaceBusy");
         contextFactory
             .Setup(item => item.CreateMutationContext(
                 It.Is<TestMutationRequest>(request => request.Name == "Name"),
                 CancellationToken.None))
             .Returns(CodeActionMutationExecutionLease.Rejected(workspaceLease, failure));
+
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
         var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
@@ -46,6 +48,7 @@ public sealed class CodeActionMutationMcpServerToolTests
             It.IsAny<TestMutationRequest>(),
             It.IsAny<ICodeActionMutationContext>(),
             It.IsAny<CancellationToken>()), Times.Never);
+
         operationLease.Verify(item => item.Dispose(), Times.Once);
     }
 
@@ -64,9 +67,11 @@ public sealed class CodeActionMutationMcpServerToolTests
         contextFactory
             .Setup(item => item.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
             .Returns(CodeActionMutationExecutionLease.Acquired(workspaceLease, context.Object));
+
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestMutationRequest>(), context.Object, CancellationToken.None))
             .ReturnsAsync(CreateFailure(outcomeName));
+
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
         var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
@@ -93,9 +98,11 @@ public sealed class CodeActionMutationMcpServerToolTests
         contextFactory
             .Setup(item => item.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
             .Returns(CodeActionMutationExecutionLease.Acquired(workspaceLease, context.Object));
+
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestMutationRequest>(), context.Object, CancellationToken.None))
             .ReturnsAsync(CodeActionExecutionResult<WorkspaceMutationCandidate>.NoChange());
+
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
         var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
@@ -123,29 +130,35 @@ public sealed class CodeActionMutationMcpServerToolTests
             Id = "Id",
             Message = "Message",
         };
+
         var warning = new WarningInfo
         {
             Code = "Warning",
             Message = "Message",
         };
+
         var proposal = new WorkspaceMutationCandidate
         {
             CandidateSolution = MutationCandidateTestData.Solution,
             Summary = "Summary",
         };
+
         var workspaceLease = WorkspaceMutationExecutionLease.Acquired(
             new Mock<IWorkspaceExecutionContext>().Object,
             stager.Object,
             operationLease.Object);
+
         contextFactory
             .Setup(item => item.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
             .Returns(CodeActionMutationExecutionLease.Acquired(workspaceLease, context.Object));
+
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestMutationRequest>(), context.Object, CancellationToken.None))
             .ReturnsAsync(CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(
                 proposal,
                 diagnostics: [diagnostic],
                 warnings: [warning]));
+
         stager
             .Setup(item => item.StageAsync(
                 "test-code-action-mutation",
@@ -162,6 +175,7 @@ public sealed class CodeActionMutationMcpServerToolTests
                     Revision = 2,
                 },
             }));
+
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
         var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
@@ -177,6 +191,7 @@ public sealed class CodeActionMutationMcpServerToolTests
             It.IsAny<IReadOnlyList<DiagnosticInfo>>(),
             It.IsAny<IReadOnlyList<WarningInfo>>(),
             CancellationToken.None), Times.Once);
+
         operationLease.Verify(item => item.Dispose(), Times.Once);
     }
 
@@ -191,6 +206,7 @@ public sealed class CodeActionMutationMcpServerToolTests
         contextFactory
             .Setup(item => item.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
             .Returns(CodeActionMutationExecutionLease.Acquired(workspaceLease, context.Object));
+
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestMutationRequest>(), context.Object, CancellationToken.None))
             .ReturnsAsync(CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(new WorkspaceMutationCandidate
@@ -198,6 +214,7 @@ public sealed class CodeActionMutationMcpServerToolTests
                 CandidateSolution = MutationCandidateTestData.Solution,
                 Summary = "Summary",
             }));
+
         stager
             .Setup(item => item.StageAsync(
                 It.IsAny<string>(),
@@ -211,6 +228,7 @@ public sealed class CodeActionMutationMcpServerToolTests
                 Message = "Message",
                 RequiredAction = RequiredAction.CommitOrRollback,
             }));
+
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
         var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
@@ -231,9 +249,11 @@ public sealed class CodeActionMutationMcpServerToolTests
         contextFactory
             .Setup(item => item.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
             .Returns(CodeActionMutationExecutionLease.Acquired(workspaceLease, context.Object));
+
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestMutationRequest>(), context.Object, CancellationToken.None))
             .Returns(() => ValueTask.FromException<CodeActionExecutionResult<WorkspaceMutationCandidate>>(new InvalidOperationException("Message")));
+
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
         var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
@@ -256,9 +276,11 @@ public sealed class CodeActionMutationMcpServerToolTests
         contextFactory
             .Setup(item => item.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), cancellationSource.Token))
             .Returns(CodeActionMutationExecutionLease.Acquired(workspaceLease, context.Object));
+
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestMutationRequest>(), context.Object, cancellationSource.Token))
             .Returns(() => ValueTask.FromCanceled<CodeActionExecutionResult<WorkspaceMutationCandidate>>(cancellationSource.Token));
+
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
         var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), cancellationSource.Token);
@@ -279,9 +301,11 @@ public sealed class CodeActionMutationMcpServerToolTests
         contextFactory
             .Setup(item => item.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
             .Returns(CodeActionMutationExecutionLease.Acquired(workspaceLease, context.Object));
+
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestMutationRequest>(), context.Object, CancellationToken.None))
             .ReturnsAsync(CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate()));
+
         stager
             .Setup(item => item.StageAsync(
                 It.IsAny<string>(),
@@ -290,6 +314,7 @@ public sealed class CodeActionMutationMcpServerToolTests
                 It.IsAny<IReadOnlyList<WarningInfo>>(),
                 CancellationToken.None))
             .Returns(() => ValueTask.FromException<WorkspaceOperationResult<MutationStagingOutcome>>(new InvalidOperationException("Message")));
+
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
         var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
@@ -312,9 +337,11 @@ public sealed class CodeActionMutationMcpServerToolTests
         contextFactory
             .Setup(item => item.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), cancellationSource.Token))
             .Returns(CodeActionMutationExecutionLease.Acquired(workspaceLease, context.Object));
+
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestMutationRequest>(), context.Object, cancellationSource.Token))
             .ReturnsAsync(CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate()));
+
         stager
             .Setup(item => item.StageAsync(
                 It.IsAny<string>(),
@@ -323,6 +350,7 @@ public sealed class CodeActionMutationMcpServerToolTests
                 It.IsAny<IReadOnlyList<WarningInfo>>(),
                 cancellationSource.Token))
             .Returns(() => ValueTask.FromCanceled<WorkspaceOperationResult<MutationStagingOutcome>>(cancellationSource.Token));
+
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
         var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), cancellationSource.Token);

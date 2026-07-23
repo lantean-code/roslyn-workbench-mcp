@@ -51,9 +51,11 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
                 It.IsAny<WorkspaceLifecycleState>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(WorkspaceInstanceStatusResult.Empty);
+
         _instanceStatusPublisher
             .Setup(item => item.GetOtherLiveInstancesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(WorkspaceInstanceStatusResult.Empty);
+
         _target = new WorkspaceLifecycleService(
             Options.Create(new WorkspaceOptions
             {
@@ -177,6 +179,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
                 ["SecondId"] = second,
             },
         });
+
         SetupRejectedErrorResult(expected, WorkspaceErrorCodes.WorkspaceCapacityReached);
 
         var result = await _target.OpenAsync("Path", null, TestContext.Current.CancellationToken);
@@ -216,6 +219,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
                 State = RecoveryState.RecoveryIncomplete,
             },
         ]);
+
         SetupRejectedResult(expected, "RecoveryPending");
 
         var result = await _target.OpenAsync("Path", null, TestContext.Current.CancellationToken);
@@ -236,6 +240,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         _recoveryStore.Setup(item => item.GetStatusesAsync(TestContext.Current.CancellationToken)).ReturnsAsync([
             new RecoveryStatus { SolutionPath = recoveryPath, State = recoveryState },
         ]);
+
         SetupLoadFailure("/workspace/New.sln", ValidatedWorkspaceLoadFailure.LoadFailed);
         SetupRejectedResult(expected, WorkspaceErrorCodes.WorkspaceLoadFailed);
 
@@ -268,6 +273,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             "/workspace/New.csproj",
             hasDiagnostics ? ValidatedWorkspaceLoadFailure.LoadFailed : ValidatedWorkspaceLoadFailure.NotSupported,
             hasDiagnostics ? [new DiagnosticInfo { Message = "Message" }] : []);
+
         SetupRejectedResult(
             expected,
             hasDiagnostics ? WorkspaceErrorCodes.WorkspaceLoadFailed : WorkspaceErrorCodes.WorkspaceNotSupported);
@@ -325,6 +331,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             "/workspace/New.sln",
             hasDiagnostics ? ValidatedWorkspaceLoadFailure.LoadFailed : ValidatedWorkspaceLoadFailure.NotSupported,
             hasDiagnostics ? [new DiagnosticInfo { Message = "Message" }] : []);
+
         SetupRejectedResult(
             expected,
             hasDiagnostics ? WorkspaceErrorCodes.WorkspaceLoadFailed : WorkspaceErrorCodes.WorkspaceNotSupported);
@@ -351,6 +358,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             It.IsAny<Func<WorkspaceHostSnapshot, WorkspaceOperationError?>>())).Returns((
                 WorkspaceSessionSnapshot _,
                 Func<WorkspaceHostSnapshot, WorkspaceOperationError?> validate) => validate(CreateRaceSnapshot(raceKind)));
+
         SetupRejectedErrorResult(expected, expectedCode);
 
         var result = await _target.OpenAsync("Path", "Alias", TestContext.Current.CancellationToken);
@@ -373,6 +381,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         _sessionStore.Setup(item => item.TryAddWorkspace(
             It.IsAny<WorkspaceSessionSnapshot>(),
             It.IsAny<Func<WorkspaceHostSnapshot, WorkspaceOperationError?>>())).Returns((WorkspaceOperationError?)null);
+
         _resultFactory.Setup(item => item.Succeeded(
             It.Is<WorkspaceOpenOutcome>(outcome =>
                 outcome.Workspace.WorkspaceId == "WorkspaceId" && outcome.ProjectCount == 1),
@@ -409,6 +418,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
                 hasOtherLiveInstance: true,
                 hasUnreadableLiveInstance: false,
                 instances: []));
+
         _resultFactory.Setup(item => item.Succeeded(
             It.Is<WorkspaceOpenOutcome>(outcome =>
                 outcome.LoadDiagnostics.Count == 1
@@ -440,6 +450,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             "/workspace/New.sln",
             WorkspaceLifecycleState.Ready,
             TestContext.Current.CancellationToken)).ReturnsAsync(WorkspaceInstanceStatusResult.Unavailable);
+
         _resultFactory.Setup(item => item.Succeeded(
             It.Is<WorkspaceOpenOutcome>(outcome =>
                 outcome.LoadDiagnostics.Count == 1
@@ -511,12 +522,14 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         _sessionStore.Verify(item => item.TryAddWorkspace(
             It.IsAny<WorkspaceSessionSnapshot>(),
             It.IsAny<Func<WorkspaceHostSnapshot, WorkspaceOperationError?>>()), Times.Never);
+
         _instanceStatusPublisher.Verify(item => item.OpenAsync(
             "WorkspaceId",
             "/workspace",
             "/workspace/New.sln",
             WorkspaceLifecycleState.Ready,
             TestContext.Current.CancellationToken), Times.Once);
+
         _instanceStatusPublisher.Verify(item => item.CloseAsync("WorkspaceId"), Times.Once);
     }
 
@@ -555,6 +568,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             },
             TransactionOwnerWorkspaceId = "2",
         });
+
         _resultFactory.Setup(item => item.Succeeded(
             It.Is<WorkspaceListOutcome>(outcome =>
                 outcome.Workspaces.Select(workspace => workspace.WorkspaceId).SequenceEqual(new[] { "1", "2" })
@@ -621,6 +635,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns((WorkspaceSessionSnapshot?)null);
         _sessionAcquirer.Setup(item => item.AcquireShared(It.IsAny<WorkspaceSelector?>()))
             .Returns(WorkspaceSessionAcquisition.Rejected(CreateError(WorkspaceErrorCodes.WorkspaceNotOpen), lease: operationLease.Object));
+
         SetupRejectedResult(expected, WorkspaceErrorCodes.WorkspaceNotOpen);
 
         var result = await _target.CloseAsync(null, null, null, TestContext.Current.CancellationToken);
@@ -640,6 +655,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             OperationGate = gate.Object,
             State = state,
         };
+
         var expected = CreateResult<WorkspaceCloseOutcome>();
         SetupSelectedSession(session, gate, operationLease, exclusive: true);
         SetupRejectedResult(expected, "TransactionOpen");
@@ -676,6 +692,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             OperationGate = gate.Object,
             LoadedWorkspace = loadedWorkspace.Object,
         };
+
         var expected = CreateResult<WorkspaceCloseOutcome>();
         SetupSelectedSession(session, gate, operationLease, exclusive: true);
         _sessionStore.Setup(item => item.RemoveWorkspace("WorkspaceId")).Returns(session);
@@ -744,6 +761,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns((WorkspaceSessionSnapshot?)null);
         _sessionAcquirer.Setup(item => item.AcquireShared(It.IsAny<WorkspaceSelector?>()))
             .Returns(WorkspaceSessionAcquisition.Rejected(CreateError(WorkspaceErrorCodes.WorkspaceNotOpen), lease: operationLease.Object));
+
         SetupRejectedResult(expected, WorkspaceErrorCodes.WorkspaceNotOpen);
 
         var result = await _target.GetStatusAsync(null, null, null, StatusDetailLevel.Standard, TestContext.Current.CancellationToken);
@@ -767,11 +785,13 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             OperationGate = gate.Object,
             State = state,
         };
+
         var updatedSession = session with { State = WorkspaceLifecycleState.WorkspaceOutOfDate };
         var expected = CreateResult<WorkspaceStatusOutcome>();
         SetupSelectedSession(session, gate, operationLease, exclusive: false);
         _changeDetector.Setup(item => item.HasChanged(session.InputManifest, TestContext.Current.CancellationToken))
             .Returns(shouldCheckForChanges);
+
         _stateTransitions.Setup(item => item.ApplyExternalChangeDetected(session)).Returns(updatedSession);
         _resultFactory.Setup(item => item.Succeeded(
             It.Is<WorkspaceStatusOutcome>(outcome =>
@@ -802,6 +822,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             OperationGate = gate.Object,
             LoadDiagnostics = [new DiagnosticInfo { Message = "Message" }],
         };
+
         var expected = CreateResult<WorkspaceStatusOutcome>();
         SetupSelectedSession(session, gate, operationLease, exclusive: false);
         _resultFactory.Setup(item => item.Succeeded(
@@ -830,6 +851,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             TransactionRevision = 2,
             CommitPhase = "Applying",
         };
+
         var expected = CreateResult<WorkspaceStatusOutcome>();
         SetupSelectedSession(session, gate, operationLease, exclusive: false);
         _instanceStatusPublisher
@@ -839,6 +861,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
                 hasOtherLiveInstance: true,
                 hasUnreadableLiveInstance: false,
                 instances: [instance]));
+
         _resultFactory.Setup(item => item.Succeeded(
             It.Is<WorkspaceStatusOutcome>(outcome => outcome.Instances.Count == 1 && outcome.Instances[0] == instance),
             It.IsAny<WorkspaceOperationContext>(),
@@ -865,6 +888,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
                 hasOtherLiveInstance: true,
                 hasUnreadableLiveInstance: true,
                 instances: []));
+
         _resultFactory.Setup(item => item.Succeeded(
             It.Is<WorkspaceStatusOutcome>(outcome =>
                 outcome.Instances.Count == 0
@@ -936,6 +960,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns((WorkspaceSessionSnapshot?)null);
         _sessionAcquirer.Setup(item => item.AcquireExclusive(It.IsAny<WorkspaceSelector?>()))
             .Returns(WorkspaceSessionAcquisition.Rejected(CreateError(WorkspaceErrorCodes.WorkspaceNotOpen), lease: operationLease.Object));
+
         SetupRejectedResult(expected, WorkspaceErrorCodes.WorkspaceNotOpen);
 
         var result = await _target.ReloadAsync(null, null, null, TestContext.Current.CancellationToken);
@@ -955,6 +980,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             OperationGate = gate.Object,
             State = state,
         };
+
         var expected = CreateResult<WorkspaceReloadOutcome>();
         SetupSelectedSession(session, gate, operationLease, exclusive: true);
         SetupRejectedResult(expected, "WorkspaceReloadBlocked");
@@ -991,12 +1017,14 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             OperationGate = gate.Object,
             State = WorkspaceLifecycleState.WorkspaceOutOfDate,
         };
+
         var expected = CreateResult<WorkspaceReloadOutcome>();
         SetupSelectedSession(session, gate, operationLease, exclusive: true);
         SetupLoadFailure(
             "/workspace/Project.csproj",
             hasDiagnostics ? ValidatedWorkspaceLoadFailure.LoadFailed : ValidatedWorkspaceLoadFailure.NotSupported,
             hasDiagnostics ? [new DiagnosticInfo { Message = "Message" }] : []);
+
         SetupRejectedResult(
             expected,
             hasDiagnostics ? WorkspaceErrorCodes.WorkspaceLoadFailed : WorkspaceErrorCodes.WorkspaceNotSupported);
@@ -1016,6 +1044,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             OperationGate = gate.Object,
             State = WorkspaceLifecycleState.WorkspaceOutOfDate,
         };
+
         var expected = CreateResult<WorkspaceReloadOutcome>();
         SetupSelectedSession(session, gate, operationLease, exclusive: true);
         SetupLoadFailure("/workspace/Project.csproj", ValidatedWorkspaceLoadFailure.LoadFailed);
@@ -1036,6 +1065,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             OperationGate = gate.Object,
             State = WorkspaceLifecycleState.WorkspaceOutOfDate,
         };
+
         var expected = CreateResult<WorkspaceReloadOutcome>();
         SetupSelectedSession(session, gate, operationLease, exclusive: true);
         SetupLoadFailure("/workspace/Solution.sln", ValidatedWorkspaceLoadFailure.LoadFailed);
@@ -1056,6 +1086,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             OperationGate = gate.Object,
             State = WorkspaceLifecycleState.WorkspaceOutOfDate,
         };
+
         var expected = CreateResult<WorkspaceReloadOutcome>();
         SetupSelectedSession(session, gate, operationLease, exclusive: true);
         SetupLoadFailure("/workspace/Solution.sln", ValidatedWorkspaceLoadFailure.OutsideWorkspaceRoot);
@@ -1080,11 +1111,13 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             LoadedWorkspace = oldWorkspace.Object,
             State = WorkspaceLifecycleState.WorkspaceOutOfDate,
         };
+
         var expected = CreateResult<WorkspaceReloadOutcome>();
         SetupSelectedSession(session, gate, operationLease, exclusive: true);
         SetupLoadedWorkspace("/workspace/Solution.sln", solution, newWorkspace);
         _changeDetector.Setup(item => item.BuildManifest(solution, "/workspace/Solution.sln"))
             .Returns(new WorkspaceInputManifest());
+
         _sessionStore.Setup(item => item.AllocateWorkspaceEpoch()).Returns(3);
         _sessionStore.SetupSequence(item => item.ReadSession("WorkspaceId")).Returns(session).Returns(session);
         _resultFactory.Setup(item => item.Succeeded(
@@ -1118,6 +1151,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             LoadedWorkspace = oldWorkspace.Object,
             State = WorkspaceLifecycleState.WorkspaceOutOfDate,
         };
+
         var manifest = CreateIncompleteManifest("/workspace/Project.csproj");
         var expected = CreateResult<WorkspaceReloadOutcome>();
         SetupSelectedSession(session, gate, operationLease, exclusive: true);
@@ -1150,15 +1184,18 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             OperationGate = gate.Object,
             State = WorkspaceLifecycleState.WorkspaceOutOfDate,
         };
+
         var expected = CreateResult<WorkspaceReloadOutcome>();
         SetupSelection(session);
         gate.Setup(item => item.TryAcquireExclusive()).Returns(operationLease.Object);
         _sessionStore.SetupSequence(item => item.ReadSession("WorkspaceId"))
             .Returns(session)
             .Returns((WorkspaceSessionSnapshot?)null);
+
         SetupLoadedWorkspace("/workspace/Solution.sln", _workspace.CurrentSolution, newWorkspace);
         _changeDetector.Setup(item => item.BuildManifest(_workspace.CurrentSolution, "/workspace/Solution.sln"))
             .Returns(new WorkspaceInputManifest());
+
         _resultFactory.Setup(item => item.Succeeded(
             It.IsAny<WorkspaceReloadOutcome>(),
             It.IsAny<WorkspaceOperationContext>(),
@@ -1194,6 +1231,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         loadedWorkspace.SetupGet(item => item.CurrentSolution).Returns(solution);
         _workspaceLoadWorkflow.Setup(item => item.LoadAsync(path, It.IsAny<string>(), TestContext.Current.CancellationToken))
             .ReturnsAsync(ValidatedWorkspaceLoadResult.Succeeded(loadedWorkspace.Object, solution, []));
+
         _changeDetector.Setup(item => item.BuildManifest(solution, path)).Returns(new WorkspaceInputManifest());
     }
 
@@ -1211,6 +1249,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         _sessionStore.Setup(item => item.ReadSnapshot()).Returns(CreateHostSnapshot(session));
         _sessionAcquirer.Setup(item => item.AcquireShared(It.IsAny<WorkspaceSelector?>()))
             .Returns(() => CreateAcquisition(session, exclusive: false));
+
         _sessionAcquirer.Setup(item => item.AcquireExclusive(It.IsAny<WorkspaceSelector?>()))
             .Returns(() => CreateAcquisition(session, exclusive: true));
     }
@@ -1220,6 +1259,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         _sessionStore.Setup(item => item.ReadSnapshot()).Returns(CreateHostSnapshot(session));
         _sessionAcquirer.Setup(item => item.AcquireShared(It.IsAny<WorkspaceSelector?>()))
             .Returns(WorkspaceSessionAcquisition.Rejected(error));
+
         _sessionAcquirer.Setup(item => item.AcquireExclusive(It.IsAny<WorkspaceSelector?>()))
             .Returns(WorkspaceSessionAcquisition.Rejected(error));
     }
@@ -1229,6 +1269,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         var lease = exclusive
             ? session.OperationGate.TryAcquireExclusive()
             : session.OperationGate.TryAcquireShared();
+
         return lease is null
             ? WorkspaceSessionAcquisition.Rejected(CreateError(WorkspaceErrorCodes.WorkspaceBusy), session)
             : WorkspaceSessionAcquisition.Acquired(new WorkspaceSelection
@@ -1243,6 +1284,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         var error = CreateError(WorkspaceErrorCodes.WorkspaceNotOpen);
         _sessionAcquirer.Setup(item => item.AcquireShared(It.IsAny<WorkspaceSelector?>()))
             .Returns(WorkspaceSessionAcquisition.Rejected(error));
+
         _sessionAcquirer.Setup(item => item.AcquireExclusive(It.IsAny<WorkspaceSelector?>()))
             .Returns(WorkspaceSessionAcquisition.Rejected(error));
     }
@@ -1302,6 +1344,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             It.IsAny<WorkspaceOperationContext?>(),
             It.IsAny<IReadOnlyList<DiagnosticInfo>?>(),
             null)).Returns(result);
+
         _resultFactory.Setup(item => item.Rejected<TOutcome>(
             It.Is<WorkspaceOperationError>(error => error.Code == code),
             It.IsAny<WorkspaceOperationContext?>(),
@@ -1381,10 +1424,12 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             raceKind == "Path" ? "/workspace/New.sln" : "/workspace/Existing.sln",
             raceKind == "Alias" ? "Alias" : null,
             transaction: null);
+
         var workspaces = new Dictionary<string, WorkspaceSessionSnapshot>
         {
             ["ExistingId"] = first,
         };
+
         if (raceKind == "Capacity")
         {
             workspaces["SecondId"] = CreateSession("SecondId", "/workspace/Second.sln", alias: null, transaction: null);

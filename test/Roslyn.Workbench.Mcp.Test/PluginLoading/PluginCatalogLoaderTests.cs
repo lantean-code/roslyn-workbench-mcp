@@ -18,16 +18,20 @@ public sealed class PluginCatalogLoaderTests
         _packageDiscovery = new Mock<IPluginPackageDiscovery>();
         _candidatePreparer.Setup(static value => value.PrepareBundled(It.IsAny<IReadOnlyList<Assembly>>()))
             .Returns(new PluginCandidatePreparation());
+
         _candidatePreparer.Setup(static value => value.PrepareExternal(
             It.IsAny<IReadOnlyList<PluginPackageDiscoveryResult>>(),
             It.IsAny<IReadOnlySet<string>>()))
             .Returns(new PluginCandidatePreparation());
+
         _collisionPolicy.Setup(static value => value.FindDuplicateExternalPluginIds(It.IsAny<IReadOnlyList<PluginPackageDiscoveryResult>>()))
             .Returns(new HashSet<string>(StringComparer.Ordinal));
+
         _collisionPolicy.Setup(static value => value.FindExternalToolCollisions(
             It.IsAny<IReadOnlyList<PreparedCatalogPlugin>>(),
             It.IsAny<IReadOnlySet<string>>()))
             .Returns(new HashSet<string>(StringComparer.Ordinal));
+
         _packageDiscovery.Setup(static value => value.Discover(It.IsAny<IReadOnlyList<string>>())).Returns([]);
     }
 
@@ -48,6 +52,7 @@ public sealed class PluginCatalogLoaderTests
                 Plugins = [bundledPlugin],
                 Statuses = [bundledStatus],
             });
+
         _packageDiscovery.Setup(static value => value.Discover(It.IsAny<IReadOnlyList<string>>())).Returns(discoveryResults);
         _candidatePreparer.Setup(value => value.PrepareExternal(discoveryResults, It.IsAny<IReadOnlySet<string>>()))
             .Returns(new PluginCandidatePreparation
@@ -56,6 +61,7 @@ public sealed class PluginCatalogLoaderTests
                 Statuses = [externalStatus],
                 LoadContexts = [loadContext],
             });
+
         _entryMaterializer.Setup(value => value.Materialize(bundledPlugin)).Returns(bundledMaterialization);
         _entryMaterializer.Setup(value => value.Materialize(externalPlugin)).Returns(externalMaterialization);
         var target = CreateTarget();
@@ -76,8 +82,10 @@ public sealed class PluginCatalogLoaderTests
         var plugin = CreatePreparedPlugin("bundled", "reserved");
         _candidatePreparer.Setup(static value => value.PrepareBundled(It.IsAny<IReadOnlyList<Assembly>>()))
             .Returns(new PluginCandidatePreparation { Plugins = [plugin] });
+
         _collisionPolicy.Setup(value => value.FindProtectedToolCollision(plugin, It.IsAny<IReadOnlySet<string>>()))
             .Returns("reserved");
+
         var target = CreateTarget();
 
         var action = () => target.Load(new StartupOptions(), [typeof(BundledCorePlugin).Assembly], ["reserved"]);
@@ -93,12 +101,15 @@ public sealed class PluginCatalogLoaderTests
         var secondPlugin = CreatePreparedPlugin("second", "shared");
         _candidatePreparer.Setup(static value => value.PrepareBundled(It.IsAny<IReadOnlyList<Assembly>>()))
             .Returns(new PluginCandidatePreparation { Plugins = [firstPlugin, secondPlugin] });
+
         _collisionPolicy.Setup(value => value.FindProtectedToolCollision(firstPlugin, It.IsAny<IReadOnlySet<string>>()))
             .Returns((string?)null);
+
         _collisionPolicy.Setup(value => value.FindProtectedToolCollision(
             secondPlugin,
             It.Is<IReadOnlySet<string>>(names => names.Contains("shared"))))
             .Returns("shared");
+
         var target = CreateTarget();
 
         var action = () => target.Load(new StartupOptions(), [typeof(BundledCorePlugin).Assembly]);
@@ -115,10 +126,12 @@ public sealed class PluginCatalogLoaderTests
             It.IsAny<IReadOnlyList<PluginPackageDiscoveryResult>>(),
             It.IsAny<IReadOnlySet<string>>()))
             .Returns(new PluginCandidatePreparation { Plugins = [plugin] });
+
         _collisionPolicy.Setup(static value => value.FindExternalToolCollisions(
             It.IsAny<IReadOnlyList<PreparedCatalogPlugin>>(),
             It.IsAny<IReadOnlySet<string>>()))
             .Returns(new HashSet<string>(["external"], StringComparer.Ordinal));
+
         var target = CreateTarget();
 
         var result = target.Load(new StartupOptions(), []);
@@ -130,6 +143,7 @@ public sealed class PluginCatalogLoaderTests
             && status.Diagnostics.Any(diagnostic =>
                 diagnostic.Id == "PluginCollision"
                 && diagnostic.Message.Contains("collide", StringComparison.Ordinal)));
+
         _entryMaterializer.Verify(static value => value.Materialize(It.IsAny<PreparedCatalogPlugin>()), Times.Never);
     }
 

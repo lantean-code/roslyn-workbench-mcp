@@ -110,9 +110,11 @@ public sealed class DependencyAnalysisServiceTests
         queryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContext
             .SetupGet(item => item.WorkspaceResolver)
             .Returns(workspaceResolver.Object);
+
         workspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -131,6 +133,7 @@ public sealed class DependencyAnalysisServiceTests
         nodesHaveMore.Should().BeFalse();
         edges.Should().Contain(edge => edge.FromDisplayName.Contains(expectedFromName, StringComparison.Ordinal)
             && edge.ToDisplayName.Contains(expectedToName, StringComparison.Ordinal));
+
         edgesHaveMore.Should().BeFalse();
     }
 
@@ -176,12 +179,15 @@ public sealed class DependencyAnalysisServiceTests
         queryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContext
             .SetupGet(item => item.WorkspaceResolver)
             .Returns(workspaceResolver.Object);
+
         workspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
         workspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, "Code.cs"));
@@ -225,9 +231,11 @@ public sealed class DependencyAnalysisServiceTests
         queryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContext
             .SetupGet(item => item.WorkspaceResolver)
             .Returns(workspaceResolver.Object);
+
         workspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));

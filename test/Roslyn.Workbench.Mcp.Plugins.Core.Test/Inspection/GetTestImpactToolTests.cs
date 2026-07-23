@@ -12,11 +12,13 @@ public sealed class GetTestImpactToolTests
             Code = "SymbolNotFound",
             Message = "SymbolNotFound",
         });
+
         var dependencyAnalysisService = new Mock<IDependencyAnalysisService>();
 
         queryContextMocks.ToolExecutionServices
             .SetupGet(item => item.DependencyAnalysisService)
             .Returns(dependencyAnalysisService.Object);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<TestImpactData>(
                 It.IsAny<SymbolSelector?>(),
@@ -48,6 +50,7 @@ public sealed class GetTestImpactToolTests
             document.Document,
             "Formatter",
             TestContext.Current.CancellationToken);
+
         var expected = PluginExecutionResult<TestImpactData>.Rejected(new PluginExecutionError
         {
             Code = "DocumentNotFound",
@@ -57,6 +60,7 @@ public sealed class GetTestImpactToolTests
         queryContextMocks.ToolExecutionServices
             .SetupGet(item => item.DependencyAnalysisService)
             .Returns(dependencyAnalysisService.Object);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<TestImpactData>(
                 It.IsAny<SymbolSelector?>(),
@@ -64,6 +68,7 @@ public sealed class GetTestImpactToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, TestImpactData>.Resolved(symbol));
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<TestImpactData>(
                 It.IsAny<ScopeSelector?>(),
@@ -118,6 +123,7 @@ public sealed class GetTestImpactToolTests
             solution.GetDocument("App.cs"),
             "Formatter",
             TestContext.Current.CancellationToken);
+
         var documents = solution.Solution.Projects.Single().Documents.Where(item => item.Name == "FormatterTests.cs").ToArray();
         var impactedTests = new[]
         {
@@ -136,9 +142,11 @@ public sealed class GetTestImpactToolTests
         queryContextMocks.ToolExecutionServices
             .SetupGet(item => item.DependencyAnalysisService)
             .Returns(dependencyAnalysisService.Object);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(1);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<TestImpactData>(
                 It.IsAny<SymbolSelector?>(),
@@ -146,14 +154,17 @@ public sealed class GetTestImpactToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, TestImpactData>.Resolved(symbol));
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<TestImpactData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Document>, TestImpactData>.Resolved(documents));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
         dependencyAnalysisService
             .Setup(item => item.FindTestImpactsAsync(
                 symbol,

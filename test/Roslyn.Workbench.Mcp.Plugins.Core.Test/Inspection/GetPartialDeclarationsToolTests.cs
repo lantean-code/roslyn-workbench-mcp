@@ -80,6 +80,7 @@ public sealed class GetPartialDeclarationsToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<PartialDeclarationsData>(
                 It.IsAny<SymbolSelector?>(),
@@ -87,9 +88,11 @@ public sealed class GetPartialDeclarationsToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, PartialDeclarationsData>.Resolved(symbol));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => Path.GetFileName(item.SourceTree!.FilePath!) == "B.cs"

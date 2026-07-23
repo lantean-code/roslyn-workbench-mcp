@@ -12,6 +12,7 @@ public sealed class ConvertToInterpolatedStringToolTests
             Code = "SnapshotMismatch",
             Message = "The request snapshot does not match the current workspace snapshot.",
         }, RequiredAction.ResolveTargetAgain);
+
         var workspaceResolver = new Mock<IWorkspaceResolver>();
         var context = new Mock<ICodeActionMutationContext>();
         var request = new ConvertToInterpolatedStringRequest
@@ -22,12 +23,14 @@ public sealed class ConvertToInterpolatedStringToolTests
                 WorkspaceEpoch = 1,
             },
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = CreateTarget(selectionStager.Object);
 
         context
             .Setup(item => item.WorkspaceResolver)
             .Returns(workspaceResolver.Object);
+
         workspaceResolver
             .Setup(item => item.ValidateSnapshot(request.ExpectedSnapshot))
             .Returns(SnapshotMatchResult.WorkspaceEpochMismatch());
@@ -38,6 +41,7 @@ public sealed class ConvertToInterpolatedStringToolTests
         workspaceResolver.Verify(
             item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()),
             Times.Never);
+
         selectionStager.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), context.Object, It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -54,12 +58,14 @@ public sealed class ConvertToInterpolatedStringToolTests
                 WorkspaceEpoch = 1,
             },
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = CreateTarget(selectionStager.Object);
 
         context
             .Setup(item => item.WorkspaceResolver)
             .Returns(workspaceResolver.Object);
+
         workspaceResolver
             .Setup(item => item.ValidateSnapshot(request.ExpectedSnapshot))
             .Returns(SnapshotMatchResult.Matched());
@@ -72,6 +78,7 @@ public sealed class ConvertToInterpolatedStringToolTests
         workspaceResolver.Verify(
             item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()),
             Times.Never);
+
         selectionStager.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), context.Object, It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -88,15 +95,18 @@ public sealed class ConvertToInterpolatedStringToolTests
                 WorkspaceEpoch = 1,
             },
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = CreateTarget(selectionStager.Object);
 
         context
             .Setup(item => item.WorkspaceResolver)
             .Returns(workspaceResolver.Object);
+
         workspaceResolver
             .Setup(item => item.ValidateSnapshot(request.ExpectedSnapshot))
             .Returns(SnapshotMatchResult.Matched());
+
         workspaceResolver
             .Setup(item => item.ResolveLocationAsync(request.Selection, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.NotFound());
@@ -125,19 +135,23 @@ public sealed class ConvertToInterpolatedStringToolTests
                 WorkspaceEpoch = 1,
             },
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = CreateTarget(selectionStager.Object);
 
         context
             .Setup(item => item.WorkspaceResolver)
             .Returns(workspaceResolver.Object);
+
         context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
         workspaceResolver
             .Setup(item => item.ValidateSnapshot(request.ExpectedSnapshot))
             .Returns(SnapshotMatchResult.Matched());
+
         workspaceResolver
             .Setup(item => item.ResolveLocationAsync(request.Selection, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+
         selectionStager
             .Setup(item => item.StageReplayCodeActionAsync(
                 It.Is<ReplayCodeActionRequest>(replayRequest =>

@@ -10,6 +10,7 @@ public sealed class StageCodeFixToolTests
         {
             ActionId = "ActionId",
         };
+
         var context = new Mock<ICodeActionMutationContext>();
         var tokenStager = new Mock<ICodeActionTokenStager>();
         var target = new StageCodeFixTool(tokenStager.Object);

@@ -16,6 +16,7 @@ public sealed class ConvertIfToSwitchToolTests
             },
             Kind = ConvertIfToSwitchKind.Statement,
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new ConvertIfToSwitchTool(selectionStager.Object);
 
@@ -63,6 +64,7 @@ public sealed class ConvertIfToSwitchToolTests
             },
             Kind = ConvertIfToSwitchKind.Expression,
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new ConvertIfToSwitchTool(selectionStager.Object);
 

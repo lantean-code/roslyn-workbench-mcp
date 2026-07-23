@@ -10,6 +10,7 @@ public sealed class AddMissingUsingsToolTests
         {
             PreferGlobalUsings = true,
         };
+
         var scopedFixStager = new Mock<IScopedCodeFixStager>();
         var target = new AddMissingUsingsTool(scopedFixStager.Object);
 
@@ -40,6 +41,7 @@ public sealed class AddMissingUsingsToolTests
             },
             PreferGlobalUsings = false,
         };
+
         var scopedFixStager = new Mock<IScopedCodeFixStager>();
         var target = new AddMissingUsingsTool(scopedFixStager.Object);
 

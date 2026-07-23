@@ -14,19 +14,23 @@ public sealed class StartupPrerequisiteLifecycleServiceIntegrationTests
             .InSequence(sequence)
             .Setup(static service => service.EnsureRegistered())
             .Returns(new ComponentStatus());
+
         var workspaceCommitRecoveryService = new Mock<IWorkspaceCommitRecoveryService>(MockBehavior.Strict);
         workspaceCommitRecoveryService
             .InSequence(sequence)
             .Setup(service => service.RecoverAsync(It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask);
+
         var transport = new Mock<IHostedService>(MockBehavior.Strict);
         transport
             .InSequence(sequence)
             .Setup(service => service.StartAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
+
         transport
             .Setup(service => service.StopAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
+
         var builder = Host.CreateApplicationBuilder();
         builder.Services.AddSingleton(msBuildRegistrationService.Object);
         builder.Services.AddSingleton(workspaceCommitRecoveryService.Object);

@@ -44,6 +44,7 @@ public sealed class FindImplementationsToolTests
             document.Document,
             "IMessageFormatter",
             TestContext.Current.CancellationToken);
+
         var expected = PluginExecutionResult<ImplementationSearchData>.Rejected(new PluginExecutionError
         {
             Code = "ProjectNotFound",
@@ -57,6 +58,7 @@ public sealed class FindImplementationsToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, ImplementationSearchData>.Resolved(symbol));
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveProjects<ImplementationSearchData>(
                 It.IsAny<ScopeSelector?>(),
@@ -108,14 +110,17 @@ public sealed class FindImplementationsToolTests
             solution.GetDocument("Code.cs"),
             "IMessageFormatter",
             TestContext.Current.CancellationToken);
+
         var project = solution.Solution.Projects.Single();
 
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(solution.Solution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<ImplementationSearchData>(
                 It.IsAny<SymbolSelector?>(),
@@ -123,11 +128,13 @@ public sealed class FindImplementationsToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, ImplementationSearchData>.Resolved(symbol));
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveProjects<ImplementationSearchData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Project>, ImplementationSearchData>.Resolved([project]));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));

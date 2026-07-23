@@ -11,6 +11,7 @@ public sealed class CodeActionExecutionLeaseTests
         var workspaceLease = WorkspaceExecutionContextLease.Acquired(
             new Mock<IWorkspaceExecutionContext>().Object,
             operationLease.Object);
+
         var target = CodeActionQueryExecutionLease.Acquired(
             workspaceLease,
             new Mock<ICodeActionQueryContext>().Object);
@@ -29,6 +30,7 @@ public sealed class CodeActionExecutionLeaseTests
             new Mock<IWorkspaceExecutionContext>().Object,
             new Mock<IWorkspaceMutationStager>().Object,
             operationLease.Object);
+
         var target = CodeActionMutationExecutionLease.Acquired(workspaceLease, new Mock<ICodeActionMutationContext>().Object);
 
         await target.DisposeAsync();
@@ -56,9 +58,11 @@ public sealed class CodeActionExecutionLeaseTests
                 Operation = "Operation",
                 Summary = "Summary",
             }));
+
         var workspaceLease = WorkspaceMutationExecutionLease.Acquired(
             new Mock<IWorkspaceExecutionContext>().Object,
             stager.Object);
+
         var target = CodeActionMutationExecutionLease.Acquired(workspaceLease, new Mock<ICodeActionMutationContext>().Object);
 
         var result = await target.StageAsync(
@@ -90,6 +94,7 @@ public sealed class CodeActionExecutionLeaseTests
                 Message = "Message",
             },
         });
+
         var target = CodeActionMutationExecutionLease.Rejected(
             workspaceLease,
             new CodeActionExecutionFailure

@@ -42,6 +42,7 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
         var ownedStateDirectory = options.StateDirectory is null
             ? TemporaryDirectory.Create("roslyn-workbench-mcp-state")
             : null;
+
         var stateDirectory = options.StateDirectory ?? ownedStateDirectory!.DirectoryPath;
 
         try
@@ -54,10 +55,13 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
                 MaxTransactionRevisions = options.MaxTransactionRevisions,
                 StateDirectory = stateDirectory,
             });
+
             services.Configure<WorkspaceOptions>(configured =>
                 configured.MaxLoadedWorkspaces = options.MaxLoadedWorkspaces);
+
             services.Configure<CodeActionCompositionOptions>(configured =>
                 configured.IncludeBuiltInAssemblies = false);
+
             services.AddSingleton(TimeProvider.System);
             services.AddWorkspaceServices();
             if (options.Boundary != ComponentWorkspaceBoundary.CodeActions)
@@ -76,6 +80,7 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
                 {
                     IncludeBuiltInAssemblies = false,
                 });
+
             if (codeActionProviderCatalog is not null)
             {
                 services.AddSingleton(codeActionProviderCatalog);
@@ -92,6 +97,7 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
                 ValidateOnBuild = true,
                 ValidateScopes = true,
             });
+
             return new ComponentWorkspace(serviceProvider, stateDirectory, ownedStateDirectory);
         }
         catch

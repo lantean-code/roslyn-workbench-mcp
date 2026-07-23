@@ -78,6 +78,7 @@ public sealed class ProjectStructureSolutionHierarchyIntegrationTests
                 new { Name = "src", Path = "src", ParentPath = (string?)null },
                 new { Name = "core", Path = "src/core", ParentPath = (string?)"src" },
             ]);
+
             result.ProjectFolderPaths.Should().Contain(new KeyValuePair<string, string?>("Lib/Lib.csproj", "src/core"));
             result.ProjectFolderPaths.Should().Contain(new KeyValuePair<string, string?>("Root/Root.csproj", null));
         }
@@ -106,6 +107,7 @@ public sealed class ProjectStructureSolutionHierarchyIntegrationTests
                 new { Name = "src", Path = "src", ParentPath = (string?)null },
                 new { Name = "core", Path = "src/core", ParentPath = (string?)"src" },
             ]);
+
             result.ProjectFolderPaths.Should().Contain(new KeyValuePair<string, string?>("Lib/Lib.csproj", "src/core"));
             result.ProjectFolderPaths.Should().Contain(new KeyValuePair<string, string?>("Root/Root.csproj", null));
         }

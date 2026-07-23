@@ -61,6 +61,7 @@ public sealed class WorkspaceToolResultMapperTests
             WorkspaceEpoch = 2,
             TransactionRevision = 3,
         };
+
         var diagnostics = new[] { new DiagnosticInfo { Id = "Id", Message = "Message" } };
         var warnings = new[] { new WarningInfo { Code = "Code", Message = "Message" } };
 

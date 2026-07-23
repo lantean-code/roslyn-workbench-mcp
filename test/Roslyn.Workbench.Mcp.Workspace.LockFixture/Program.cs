@@ -27,6 +27,7 @@ internal static class Program
             FileShare.ReadWrite,
             bufferSize: 1,
             FileOptions.WriteThrough);
+
         if (stream.Length == 0)
         {
             stream.SetLength(1);

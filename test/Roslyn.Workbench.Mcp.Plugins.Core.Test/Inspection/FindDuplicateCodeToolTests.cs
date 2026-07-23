@@ -70,14 +70,17 @@ public sealed class FindDuplicateCodeToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<DuplicateCodeData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Document>, DuplicateCodeData>.Resolved([unsupportedDocument.Document, supportedDocument.Document]));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, Path.GetFileName(item.SourceTree!.FilePath!)));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -115,6 +118,7 @@ public sealed class FindDuplicateCodeToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<DuplicateCodeData>(
                 It.IsAny<ScopeSelector?>(),
@@ -156,14 +160,17 @@ public sealed class FindDuplicateCodeToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<DuplicateCodeData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Document>, DuplicateCodeData>.Resolved([document.Document]));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns((ResolvedLocation?)null);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -230,14 +237,17 @@ public sealed class FindDuplicateCodeToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<DuplicateCodeData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Document>, DuplicateCodeData>.Resolved([document.Document]));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, Path.GetFileName(item.SourceTree!.FilePath!)));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -300,9 +310,11 @@ public sealed class FindDuplicateCodeToolTests
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Document>, DuplicateCodeData>.Resolved([document.Document]));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, "Code.cs"));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));

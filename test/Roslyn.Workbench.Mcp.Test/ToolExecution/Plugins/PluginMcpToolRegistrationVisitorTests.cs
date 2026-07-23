@@ -23,6 +23,7 @@ public sealed class PluginMcpToolRegistrationVisitorTests
             descriptor.ServiceType == typeof(PluginQueryRegistration<TestRequest, TestResponse>)
             && descriptor.ImplementationInstance == registration
             && descriptor.Lifetime == ServiceLifetime.Singleton);
+
         services.Should().Contain(descriptor =>
             descriptor.ServiceType == typeof(McpServerTool)
             && descriptor.ImplementationType == typeof(PluginQueryMcpServerTool<TestRequest, TestResponse>)
@@ -51,6 +52,7 @@ public sealed class PluginMcpToolRegistrationVisitorTests
             descriptor.ServiceType == typeof(PluginMutationRegistration<TestRequest>)
             && descriptor.ImplementationInstance == registration
             && descriptor.Lifetime == ServiceLifetime.Singleton);
+
         services.Should().Contain(descriptor =>
             descriptor.ServiceType == typeof(McpServerTool)
             && descriptor.ImplementationType == typeof(PluginMutationMcpServerTool<TestRequest>)

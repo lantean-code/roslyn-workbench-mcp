@@ -17,6 +17,7 @@ public sealed class PluginAssemblyLoadContextIntegrationTests
         packagePathPolicy
             .Setup(value => value.TryGetContainedPath(packageDirectory, entryAssemblyPath, out containedEntryAssemblyPath))
             .Returns(true);
+
         var factory = new PluginLoadContextFactory(packagePathPolicy.Object);
 
         var created = factory.TryCreate(packageDirectory, entryAssemblyPath, out var target);
@@ -45,6 +46,7 @@ public sealed class PluginAssemblyLoadContextIntegrationTests
         packagePathPolicy
             .Setup(value => value.TryGetContainedPath(packageDirectory, entryAssemblyPath, out containedEntryAssemblyPath))
             .Returns(true);
+
         var factory = new PluginLoadContextFactory(packagePathPolicy.Object);
         var created = factory.TryCreate(packageDirectory, entryAssemblyPath, out var target);
         created.Should().BeTrue();
@@ -63,6 +65,7 @@ public sealed class PluginAssemblyLoadContextIntegrationTests
         packagePathPolicy
             .Setup(value => value.TryGetContainedPath("package", "outside.dll", out rejectedPath))
             .Returns(false);
+
         var target = new PluginLoadContextFactory(packagePathPolicy.Object);
 
         var result = target.TryCreate("package", "outside.dll", out var loadContext);
@@ -83,9 +86,11 @@ public sealed class PluginAssemblyLoadContextIntegrationTests
         packagePathPolicy
             .Setup(value => value.TryGetContainedPath(packageDirectory, entryAssemblyPath, out containedEntryAssemblyPath))
             .Returns(true);
+
         packagePathPolicy
             .Setup(value => value.TryGetContainedPath(packageDirectory, dependencyPath, out containedDependencyPath))
             .Returns(true);
+
         var factory = new PluginLoadContextFactory(packagePathPolicy.Object);
         var created = factory.TryCreate(packageDirectory, entryAssemblyPath, out var target);
         created.Should().BeTrue();
@@ -109,9 +114,11 @@ public sealed class PluginAssemblyLoadContextIntegrationTests
         packagePathPolicy
             .Setup(value => value.TryGetContainedPath(packageDirectory, entryAssemblyPath, out containedEntryAssemblyPath))
             .Returns(true);
+
         packagePathPolicy
             .Setup(value => value.TryGetContainedPath(packageDirectory, dependencyPath, out rejectedDependencyPath))
             .Returns(false);
+
         var factory = new PluginLoadContextFactory(packagePathPolicy.Object);
         var created = factory.TryCreate(packageDirectory, entryAssemblyPath, out var target);
         created.Should().BeTrue();
@@ -137,6 +144,7 @@ public sealed class PluginAssemblyLoadContextIntegrationTests
         packagePathPolicy
             .Setup(value => value.TryGetContainedPath(packageDirectory, entryAssemblyPath, out containedEntryAssemblyPath))
             .Returns(true);
+
         var factory = new PluginLoadContextFactory(packagePathPolicy.Object);
         var created = factory.TryCreate(packageDirectory, entryAssemblyPath, out var target);
         created.Should().BeTrue();

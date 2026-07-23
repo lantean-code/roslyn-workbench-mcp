@@ -271,6 +271,7 @@ public sealed class WorkspaceSelectorServiceTests
         var hostSnapshot = CreateHostSnapshot(
             CreateSession("FirstWorkspaceId", "FirstAlias", "FirstPath"),
             CreateSession("SecondWorkspaceId", "SecondAlias", "SecondPath"));
+
         var selector = new WorkspaceSelector
         {
             WorkspaceId = "FirstWorkspaceId",
@@ -291,6 +292,7 @@ public sealed class WorkspaceSelectorServiceTests
         var hostSnapshot = CreateHostSnapshot(
             CreateSession("FirstWorkspaceId", "FirstAlias", "FirstPath"),
             CreateSession("SecondWorkspaceId", "SecondAlias", "SecondPath"));
+
         var selector = new WorkspaceSelector
         {
             Alias = "FirstAlias",

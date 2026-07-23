@@ -36,6 +36,7 @@ public sealed class AnalyzeDisposablesToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<DisposableAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
@@ -75,6 +76,7 @@ public sealed class AnalyzeDisposablesToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<DisposableAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
@@ -116,6 +118,7 @@ public sealed class AnalyzeDisposablesToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<DisposableAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
@@ -146,6 +149,7 @@ public sealed class AnalyzeDisposablesToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<DisposableAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
@@ -186,6 +190,7 @@ public sealed class AnalyzeDisposablesToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<DisposableAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
@@ -228,6 +233,7 @@ public sealed class AnalyzeDisposablesToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<DisposableAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
@@ -321,9 +327,11 @@ public sealed class AnalyzeDisposablesToolTests
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Document>, DisposableAnalysisData>.Resolved(documents));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, item.SourceTree?.FilePath is null ? "Code.cs" : Path.GetFileName(item.SourceTree.FilePath)));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -376,14 +384,17 @@ public sealed class AnalyzeDisposablesToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<DisposableAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Document>, DisposableAnalysisData>.Resolved([document.Document]));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, "Code.cs"));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -426,9 +437,11 @@ public sealed class AnalyzeDisposablesToolTests
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Document>, DisposableAnalysisData>.Resolved([document.Document]));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, "Code.cs"));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -467,14 +480,17 @@ public sealed class AnalyzeDisposablesToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<DisposableAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Document>, DisposableAnalysisData>.Resolved([document.Document]));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, document.Document.Name));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));

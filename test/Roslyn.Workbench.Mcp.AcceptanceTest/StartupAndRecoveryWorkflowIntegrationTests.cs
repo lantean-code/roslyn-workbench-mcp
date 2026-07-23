@@ -22,6 +22,7 @@ public sealed class StartupAndRecoveryWorkflowIntegrationTests
                     ["detail"] = "Full",
                 },
                 TestContext.Current.CancellationToken);
+
             var initialStatus = initialStatusResult.StructuredContent!.Value.GetProperty("data");
 
             initialStatusResult.IsError.Should().NotBeTrue();
@@ -64,6 +65,7 @@ public sealed class StartupAndRecoveryWorkflowIntegrationTests
                     ["detail"] = "Full",
                 },
                 TestContext.Current.CancellationToken);
+
             var restartedStatus = restartedStatusResult.StructuredContent!.Value.GetProperty("data");
 
             restartedStatusResult.IsError.Should().NotBeTrue();
@@ -75,10 +77,12 @@ public sealed class StartupAndRecoveryWorkflowIntegrationTests
                     && recovery.GetProperty("solutionPath").GetString() == loadedPath
                     && recovery.GetProperty("state").GetString() == "RecoveryConflict"
                     && recovery.GetProperty("message").GetString() == "Acceptance recovery conflict.");
+
             File.Exists(manifestPath).Should().BeTrue();
 
             using var persistedManifest = JsonDocument.Parse(
                 await File.ReadAllTextAsync(manifestPath, TestContext.Current.CancellationToken));
+
             persistedManifest.RootElement.GetProperty("state").GetString().Should().Be("RecoveryConflict");
         }
         catch

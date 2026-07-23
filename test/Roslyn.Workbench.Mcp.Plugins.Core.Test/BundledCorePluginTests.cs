@@ -26,10 +26,12 @@ public sealed class BundledCorePluginTests
             Version = "1.0.0",
             SupportedApiVersion = PluginApiVersions.V1,
         };
+
         var configurationPreparer = new PluginConfigurationPreparer(
             new PluginHandlerTypeInspector(),
             new PluginHandlerContractResolver(),
             new PluginHandlerWarningInspector());
+
         var toolRegistrationMaterializer = new PluginToolRegistrationMaterializer();
 
         var preparation = configurationPreparer.Prepare(metadata, configuration);

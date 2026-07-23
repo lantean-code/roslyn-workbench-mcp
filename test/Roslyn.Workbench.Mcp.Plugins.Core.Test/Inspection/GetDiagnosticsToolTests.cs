@@ -38,9 +38,11 @@ public sealed class GetDiagnosticsToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<DiagnosticsData>(
                 It.IsAny<ScopeSelector?>(),
@@ -78,11 +80,13 @@ public sealed class GetDiagnosticsToolTests
             "Category",
             Microsoft.CodeAnalysis.DiagnosticSeverity.Warning,
             isEnabledByDefault: true);
+
         var analyzer = CreateFixedDiagnosticAnalyzer(Diagnostic.Create(descriptor, Location.None));
         var analyzerReference = new Mock<AnalyzerReference>();
         analyzerReference
             .Setup(item => item.GetAnalyzers(LanguageNames.CSharp))
             .Returns([analyzer.Object]);
+
         analyzerReference
             .Setup(item => item.GetGenerators(LanguageNames.CSharp))
             .Returns([]);
@@ -97,9 +101,11 @@ public sealed class GetDiagnosticsToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Workspace.CurrentSolution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<DiagnosticsData>(
                 It.IsAny<ScopeSelector?>(),
@@ -138,6 +144,7 @@ public sealed class GetDiagnosticsToolTests
             "Category",
             Microsoft.CodeAnalysis.DiagnosticSeverity.Warning,
             isEnabledByDefault: true);
+
         var sharedDiagnostic = Diagnostic.Create(descriptor, Location.None);
         var analyzerOne = CreateFixedDiagnosticAnalyzer(sharedDiagnostic);
         var analyzerTwo = CreateFixedDiagnosticAnalyzer(sharedDiagnostic);
@@ -146,12 +153,15 @@ public sealed class GetDiagnosticsToolTests
         analyzerReferenceOne
             .Setup(item => item.GetAnalyzers(LanguageNames.CSharp))
             .Returns([analyzerOne.Object]);
+
         analyzerReferenceOne
             .Setup(item => item.GetGenerators(LanguageNames.CSharp))
             .Returns([]);
+
         analyzerReferenceTwo
             .Setup(item => item.GetAnalyzers(LanguageNames.CSharp))
             .Returns([analyzerTwo.Object]);
+
         analyzerReferenceTwo
             .Setup(item => item.GetGenerators(LanguageNames.CSharp))
             .Returns([]);
@@ -169,14 +179,17 @@ public sealed class GetDiagnosticsToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Workspace.CurrentSolution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<DiagnosticsData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Document>, DiagnosticsData>.Resolved([currentDocument]));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, currentDocument.Name));
@@ -218,14 +231,17 @@ public sealed class GetDiagnosticsToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<DiagnosticsData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Document>, DiagnosticsData>.Resolved([document.Document]));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, document.Document.Name));
@@ -259,11 +275,13 @@ public sealed class GetDiagnosticsToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<DiagnosticsData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Document>, DiagnosticsData>.Resolved([document.Document]));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, document.Document.Name));
@@ -298,14 +316,17 @@ public sealed class GetDiagnosticsToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<DiagnosticsData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Document>, DiagnosticsData>.Resolved([document.Document]));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, document.Document.Name));
@@ -366,6 +387,7 @@ public sealed class GetDiagnosticsToolTests
             "Category",
             Microsoft.CodeAnalysis.DiagnosticSeverity.Warning,
             isEnabledByDefault: true);
+
         var analyzerOne = CreateDuplicateWarningAnalyzer(descriptor);
         var analyzerTwo = CreateDuplicateWarningAnalyzer(descriptor);
         var analyzerReferenceOne = new Mock<AnalyzerReference>();
@@ -373,12 +395,15 @@ public sealed class GetDiagnosticsToolTests
         analyzerReferenceOne
             .Setup(item => item.GetAnalyzers(LanguageNames.CSharp))
             .Returns([analyzerOne.Object]);
+
         analyzerReferenceOne
             .Setup(item => item.GetGenerators(LanguageNames.CSharp))
             .Returns([]);
+
         analyzerReferenceTwo
             .Setup(item => item.GetAnalyzers(LanguageNames.CSharp))
             .Returns([analyzerTwo.Object]);
+
         analyzerReferenceTwo
             .Setup(item => item.GetGenerators(LanguageNames.CSharp))
             .Returns([]);
@@ -396,14 +421,17 @@ public sealed class GetDiagnosticsToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(solution.Workspace.CurrentSolution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<DiagnosticsData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Document>, DiagnosticsData>.Resolved([selectedDocument]));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, Path.GetFileName(item.SourceTree!.FilePath!)));
@@ -433,6 +461,7 @@ public sealed class GetDiagnosticsToolTests
         analyzer
             .SetupGet(item => item.SupportedDiagnostics)
             .Returns([diagnostic.Descriptor]);
+
         analyzer
             .Setup(item => item.Initialize(It.IsAny<AnalysisContext>()))
             .Callback<AnalysisContext>(analysisContext =>
@@ -451,6 +480,7 @@ public sealed class GetDiagnosticsToolTests
         analyzer
             .SetupGet(item => item.SupportedDiagnostics)
             .Returns([descriptor]);
+
         analyzer
             .Setup(item => item.Initialize(It.IsAny<AnalysisContext>()))
             .Callback<AnalysisContext>(analysisContext =>

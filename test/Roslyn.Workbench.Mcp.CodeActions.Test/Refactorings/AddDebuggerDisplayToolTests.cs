@@ -15,6 +15,7 @@ public sealed class AddDebuggerDisplayToolTests
                 WorkspaceEpoch = 1,
             },
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new AddDebuggerDisplayTool(selectionStager.Object);
 

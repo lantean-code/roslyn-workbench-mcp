@@ -43,10 +43,12 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
             .AddProject(ProjectInfo.Create(projectId, VersionStamp.Create(), "Project", "Project", LanguageNames.CSharp, filePath: projectPath))
             .AddDocument(changedId, "changed.cs", SourceText.From("old"), filePath: changedPath)
             .AddDocument(removedId, "removed.cs", SourceText.From("remove"), filePath: removedPath);
+
         var current = baseline
             .WithDocumentText(changedId, SourceText.From("new", Encoding.Unicode))
             .RemoveDocument(removedId)
             .AddDocument(addedId, "added.cs", SourceText.From("add", Encoding.UTF8), filePath: addedPath);
+
         _file.Setup(item => item.Exists(changedPath)).Returns(true);
         _file.Setup(item => item.Exists(removedPath)).Returns(true);
         _file.Setup(item => item.Exists(addedPath)).Returns(false);
@@ -60,6 +62,7 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
             WorkspaceFileOperation.Replace,
             WorkspaceFileOperation.Create,
             WorkspaceFileOperation.Delete]);
+
         plan.Artifacts["backup/000000.bin"].ToArray().Should().Equal(1, 2);
         plan.Artifacts["staged/000000.bin"].ToArray().Should().Equal(Encode(Encoding.Unicode, "new"));
         plan.Artifacts["staged/000001.bin"].ToArray().Should().Equal(Encode(Encoding.UTF8, "add"));
@@ -76,6 +79,7 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
         var targetPath = Path.GetFullPath("/workspace/project/shared.cs");
         var baseline = _workspace.CurrentSolution.AddProject(ProjectInfo.Create(
             projectId, VersionStamp.Create(), "Project", "Project", LanguageNames.CSharp, filePath: projectPath));
+
         var current = baseline
             .AddDocument(firstId, "first.cs", SourceText.From("first"), filePath: targetPath)
             .AddDocument(secondId, "second.cs", SourceText.From("second"), filePath: targetPath);
@@ -119,9 +123,11 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
                 filePath: secondProjectPath))
             .AddDocument(firstId, "shared.cs", SourceText.From("before"), filePath: targetPath)
             .AddDocument(secondId, "shared.cs", SourceText.From("before"), filePath: targetPath);
+
         var current = baseline
             .WithDocumentText(firstId, SourceText.From("after"))
             .WithDocumentText(secondId, SourceText.From("after"));
+
         _file.Setup(item => item.Exists(targetPath)).Returns(true);
         _file.Setup(item => item.ReadAllBytesAsync(targetPath, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encode(Encoding.UTF8, "before"));
@@ -133,6 +139,7 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
             baseline,
             current,
             TestContext.Current.CancellationToken);
+
         var plan = result.Plan ?? throw new InvalidOperationException("The commit plan was not created.");
 
         plan.Manifest.Entries.Should().ContainSingle();
@@ -163,6 +170,7 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
             .AddProject(ProjectInfo.Create(projectId, VersionStamp.Create(), "Project", "Project", LanguageNames.CSharp))
             .AddDocument(changedId, "changed.cs", SourceText.From("before"))
             .AddDocument(removedId, "removed.cs", SourceText.From("removed"));
+
         var current = baseline.WithDocumentText(changedId, SourceText.From("after"))
             .RemoveDocument(removedId)
             .AddDocument(addedId, "added.cs", SourceText.From("added"));
@@ -185,10 +193,12 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
         var targetPath = Path.GetFullPath("/workspace/project/target.cs");
         var project = _workspace.CurrentSolution.AddProject(ProjectInfo.Create(
             projectId, VersionStamp.Create(), "Project", "Project", LanguageNames.CSharp, filePath: projectPath));
+
         var baseline = creating ? project : project.AddDocument(documentId, "target.cs", SourceText.From("text"), filePath: targetPath);
         var current = creating
             ? baseline.AddDocument(documentId, "target.cs", SourceText.From("text"), filePath: targetPath)
             : baseline.RemoveDocument(documentId);
+
         _file.Setup(item => item.Exists(targetPath)).Returns(creating);
 
         var result = await _target.CreateAsync(
@@ -219,6 +229,7 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
                 LanguageNames.CSharp,
                 filePath: projectPath))
             .AddDocument(documentId, "target.cs", SourceText.From("before"), filePath: targetPath);
+
         var current = baseline.WithDocumentText(documentId, SourceText.From("after"));
         _file.Setup(item => item.Exists(targetPath)).Returns(false);
 
@@ -243,6 +254,7 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
         var outsidePath = Path.GetFullPath("/workspace/other/added.cs");
         var baseline = _workspace.CurrentSolution.AddProject(ProjectInfo.Create(
             projectId, VersionStamp.Create(), "Project", "Project", LanguageNames.CSharp, filePath: projectPath));
+
         var current = baseline.AddDocument(documentId, "added.cs", SourceText.From("text"), filePath: outsidePath);
 
         var result = await _target.CreateAsync(
@@ -268,6 +280,7 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
         var baseline = _workspace.CurrentSolution
             .AddProject(ProjectInfo.Create(projectId, VersionStamp.Create(), "Project", "Project", LanguageNames.CSharp, filePath: projectPath))
             .AddDocument(documentId, "target.cs", SourceText.From("text"), filePath: targetPath);
+
         var current = baseline.RemoveDocument(documentId);
         _file.Setup(item => item.Exists(targetPath)).Returns(true);
         _file.Setup(item => item.Exists(deleteMarkerPath)).Returns(true);
@@ -297,6 +310,7 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
             "Project",
             LanguageNames.CSharp,
             filePath: projectPath));
+
         _path.Setup(item => item.GetDirectoryName(projectPath)).Returns((string?)null);
 
         var result = await _target.CreateAsync(
@@ -325,6 +339,7 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
             "Project",
             LanguageNames.CSharp,
             filePath: projectPath));
+
         var current = baseline.AddDocument(documentId, "added.cs", SourceText.From("text"), filePath: targetPath);
         _file.Setup(item => item.Exists(targetPath)).Returns(false);
         _path.Setup(item => item.GetDirectoryName(targetPath)).Returns((string?)null);
@@ -336,6 +351,7 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
             baseline,
             current,
             TestContext.Current.CancellationToken);
+
         var plan = result.Plan ?? throw new InvalidOperationException("The commit plan was not created.");
 
         plan.Manifest.CreatedDirectories.Should().BeEmpty();
@@ -350,6 +366,7 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
         var targetPath = Path.GetFullPath("/workspace/project/added.cs");
         var baseline = _workspace.CurrentSolution.AddProject(ProjectInfo.Create(
             projectId, VersionStamp.Create(), "Project", "Project", LanguageNames.CSharp, filePath: projectPath));
+
         var current = baseline.AddDocument(documentId, "added.cs", SourceText.From("text"), filePath: targetPath);
 
         var result = await _target.CreateAsync(
@@ -380,6 +397,7 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
                 LanguageNames.CSharp,
                 filePath: projectPath))
             .AddDocument(documentId, "removed.cs", SourceText.From("text"), filePath: targetPath);
+
         var current = baseline.RemoveDocument(documentId);
 
         var result = await _target.CreateAsync(
@@ -403,6 +421,7 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
         var targetPath = Path.GetFullPath("/workspace");
         var baseline = _workspace.CurrentSolution.AddProject(ProjectInfo.Create(
             projectId, VersionStamp.Create(), "Project", "Project", LanguageNames.CSharp, filePath: projectPath));
+
         var current = baseline.AddDocument(documentId, "added.cs", SourceText.From("text"), filePath: targetPath);
 
         var result = await _target.CreateAsync(
@@ -429,6 +448,7 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
         var targetPath = Path.Combine(secondDirectory, "added.cs");
         var baseline = _workspace.CurrentSolution.AddProject(ProjectInfo.Create(
             projectId, VersionStamp.Create(), "Project", "Project", LanguageNames.CSharp, filePath: projectPath));
+
         var current = baseline.AddDocument(documentId, "added.cs", SourceText.From("text"), filePath: targetPath);
         _directory.Setup(item => item.Exists(firstDirectory)).Returns(false);
         _directory.Setup(item => item.Exists(secondDirectory)).Returns(false);

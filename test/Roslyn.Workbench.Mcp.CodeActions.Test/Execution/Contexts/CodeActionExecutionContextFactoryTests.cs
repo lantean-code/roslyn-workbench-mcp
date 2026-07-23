@@ -13,6 +13,7 @@ public sealed class CodeActionExecutionContextFactoryTests
         workspaceFactory
             .Setup(item => item.CreateQueryContext(null, CancellationToken.None))
             .Returns(WorkspaceExecutionContextLease.Acquired(workspaceContext));
+
         var target = new CodeActionExecutionContextFactory(workspaceFactory.Object);
 
         var result = target.CreateQueryContext(request, CancellationToken.None);
@@ -37,6 +38,7 @@ public sealed class CodeActionExecutionContextFactoryTests
                     Message = "Message",
                 },
             }));
+
         var target = new CodeActionExecutionContextFactory(workspaceFactory.Object);
 
         var result = target.CreateMutationContext(new TestRequest(), CancellationToken.None);
@@ -61,6 +63,7 @@ public sealed class CodeActionExecutionContextFactoryTests
                     Message = "Message",
                 },
             }));
+
         var target = new CodeActionExecutionContextFactory(workspaceFactory.Object);
 
         var result = target.CreateQueryContext(new TestRequest(), CancellationToken.None);
@@ -89,6 +92,7 @@ public sealed class CodeActionExecutionContextFactoryTests
                     },
                 },
                 workspaceContext));
+
         var target = new CodeActionExecutionContextFactory(workspaceFactory.Object);
 
         var result = target.CreateQueryContext(new TestRequest(), CancellationToken.None);
@@ -110,6 +114,7 @@ public sealed class CodeActionExecutionContextFactoryTests
             .Returns(WorkspaceMutationExecutionLease.Acquired(
                 workspaceContext,
                 new Mock<IWorkspaceMutationStager>().Object));
+
         var target = new CodeActionExecutionContextFactory(workspaceFactory.Object);
 
         var result = target.CreateMutationContext(new TestRequest(), CancellationToken.None);
@@ -138,6 +143,7 @@ public sealed class CodeActionExecutionContextFactoryTests
                     },
                 },
                 workspaceContext));
+
         var target = new CodeActionExecutionContextFactory(workspaceFactory.Object);
 
         var result = target.CreateMutationContext(new TestRequest(), CancellationToken.None);

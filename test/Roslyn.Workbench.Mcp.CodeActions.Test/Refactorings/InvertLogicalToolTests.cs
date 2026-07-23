@@ -15,6 +15,7 @@ public sealed class InvertLogicalToolTests
                 WorkspaceEpoch = 1,
             },
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new InvertLogicalTool(selectionStager.Object);
 

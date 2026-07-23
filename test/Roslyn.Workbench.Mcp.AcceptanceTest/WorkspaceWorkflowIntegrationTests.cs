@@ -36,10 +36,12 @@ public sealed class WorkspaceWorkflowIntegrationTests
             {
                 ["workspaceId"] = workspaceId,
             };
+
             var listResult = await target.CallToolAsync(
                 "workspace-list",
                 new Dictionary<string, object?>(),
                 TestContext.Current.CancellationToken);
+
             var statusResult = await target.CallToolAsync(
                 "workspace-status",
                 new Dictionary<string, object?>
@@ -48,6 +50,7 @@ public sealed class WorkspaceWorkflowIntegrationTests
                     ["detail"] = "Full",
                 },
                 TestContext.Current.CancellationToken);
+
             var searchResult = await target.CallToolAsync(
                 "search-symbols",
                 new Dictionary<string, object?>
@@ -78,10 +81,12 @@ public sealed class WorkspaceWorkflowIntegrationTests
                     ["workspace"] = workspaceSelector,
                 },
                 TestContext.Current.CancellationToken);
+
             var closedListResult = await target.CallToolAsync(
                 "workspace-list",
                 new Dictionary<string, object?>(),
                 TestContext.Current.CancellationToken);
+
             var closedStatusResult = await target.CallToolAsync(
                 "workspace-status",
                 new Dictionary<string, object?>(),
@@ -117,6 +122,7 @@ public sealed class WorkspaceWorkflowIntegrationTests
                     ["workspaceRoot"] = target.WorkspaceRoot,
                 },
                 TestContext.Current.CancellationToken);
+
             var open = openResult.StructuredContent!.Value.GetProperty("data");
             var workspace = open.GetProperty("workspace");
             var workspaceId = workspace.GetProperty("workspaceId").GetString();
@@ -125,6 +131,7 @@ public sealed class WorkspaceWorkflowIntegrationTests
             {
                 ["workspaceId"] = workspaceId,
             };
+
             var initialSnapshot = new Dictionary<string, object?>
             {
                 ["workspaceId"] = workspaceId,
@@ -139,6 +146,7 @@ public sealed class WorkspaceWorkflowIntegrationTests
                     ["workspace"] = workspaceSelector,
                 },
                 TestContext.Current.CancellationToken);
+
             var renameResult = await target.CallToolAsync(
                 "rename-symbol",
                 new Dictionary<string, object?>
@@ -152,6 +160,7 @@ public sealed class WorkspaceWorkflowIntegrationTests
                     ["expectedSnapshot"] = initialSnapshot,
                 },
                 TestContext.Current.CancellationToken);
+
             var previewResult = await target.CallToolAsync(
                 "transaction-preview",
                 new Dictionary<string, object?>

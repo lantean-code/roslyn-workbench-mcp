@@ -17,6 +17,7 @@ public sealed class QueryCacheTests
             memoryCache,
             Options.Create(new QueryCacheOptions { SizeLimit = 10 }),
             invalidationTokenSource.Object);
+
         var key = new ValueKey("Key");
         var expected = new CacheValue("Value");
 

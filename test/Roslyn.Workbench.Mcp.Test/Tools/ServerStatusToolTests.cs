@@ -15,6 +15,7 @@ public sealed class ServerStatusToolTests
             {
                 ToolCount = 5,
             }));
+
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var target = new ServerStatusTool(
             Options.Create(new StartupOptions()),

@@ -97,6 +97,7 @@ public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
                 : changeKind == "AddedOutsideProject"
                     ? Path.Combine(Path.GetTempPath(), "OutsideProject", "AddedDocument.cs")
                     : Path.Combine(Path.GetTempPath(), "Project", "AddedDocument.cs"));
+
         var candidateSolution = currentSolution.AddDocument(documentInfo);
 
         var result = _target.Validate(currentSolution, candidateSolution);
@@ -166,6 +167,7 @@ public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
         var project = _workspace.AddProject(ProjectInfo.Create(
             ProjectId.CreateNewId(), VersionStamp.Default, "Project", "Project", LanguageNames.CSharp,
             filePath: projectHasPath ? Path.Combine(Path.GetTempPath(), "Project", "Project.csproj") : null));
+
         _workspace.AddDocument(DocumentInfo.Create(
             DocumentId.CreateNewId(project.Id),
             "Document.cs",
@@ -173,6 +175,7 @@ public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
             filePath: documentHasPath
                 ? Path.Combine(Path.GetTempPath(), documentPathDiffersByCase ? "project" : "Project", "Document.cs")
                 : null));
+
         return _workspace.CurrentSolution;
     }
 
@@ -221,6 +224,7 @@ public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
     {
         var current = solution.AddProject(ProjectInfo.Create(
             referencedProjectId, VersionStamp.Default, "ReferencedProject", "ReferencedProject", LanguageNames.CSharp));
+
         return (current, current.AddProjectReference(projectId, reference));
     }
 
@@ -230,6 +234,7 @@ public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
             .AddProject(ProjectInfo.Create(
                 referencedProjectId, VersionStamp.Default, "ReferencedProject", "ReferencedProject", LanguageNames.CSharp))
             .AddProjectReference(projectId, reference);
+
         return (current, current.RemoveProjectReference(projectId, reference));
     }
 

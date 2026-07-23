@@ -19,9 +19,11 @@ public static class MutationContextMockHelper
         toolExecutionServices
             .SetupGet(item => item.RequestResolver)
             .Returns(requestResolver.Object);
+
         mutationContext
             .SetupGet(item => item.WorkspaceResolver)
             .Returns(workspaceResolver.Object);
+
         mutationContext
             .SetupGet(item => item.ToolExecutionServices)
             .Returns(toolExecutionServices.Object);

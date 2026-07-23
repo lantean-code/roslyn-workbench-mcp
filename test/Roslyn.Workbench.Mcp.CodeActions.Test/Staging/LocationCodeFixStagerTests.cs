@@ -30,6 +30,7 @@ public sealed class LocationCodeFixStagerTests
         _workspaceResolver
             .Setup(item => item.ValidateSnapshot(It.IsAny<SnapshotPrecondition?>()))
             .Returns(SnapshotMatchResult.Matched());
+
         _context.SetupGet(item => item.WorkspaceResolver).Returns(_workspaceResolver.Object);
         _target = new LocationCodeFixStager(
             _providerCatalog.Object,
@@ -152,6 +153,7 @@ public sealed class LocationCodeFixStagerTests
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+
         _context.SetupGet(item => item.CurrentSolution).Returns(currentRoslyn.Solution);
 
         var result = await _target.StageLocationCodeFixAsync(
@@ -172,6 +174,7 @@ public sealed class LocationCodeFixStagerTests
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+
         _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
         _discoveryService
             .Setup(item => item.GetMatchingCodeFixProviders("ProviderId"))
@@ -203,10 +206,12 @@ public sealed class LocationCodeFixStagerTests
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+
         _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
         _discoveryService
             .Setup(item => item.GetMatchingCodeFixProviders("ProviderId"))
             .Returns([provider.Object]);
+
         _diagnosticService
             .Setup(item => item.GetLocationScopedCodeFixDiagnosticsAsync(
                 roslyn.Document,
@@ -242,13 +247,16 @@ public sealed class LocationCodeFixStagerTests
         var request = filter == LocationFixFilter.Title
             ? CreateRequest(selector) with { Title = "OtherTitle" }
             : CreateRequest(selector) with { EquivalenceKey = "OtherEquivalenceKey" };
+
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+
         _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
         _discoveryService
             .Setup(item => item.GetMatchingCodeFixProviders("ProviderId"))
             .Returns([provider.Object]);
+
         _diagnosticService
             .Setup(item => item.GetLocationScopedCodeFixDiagnosticsAsync(
                 roslyn.Document,
@@ -258,6 +266,7 @@ public sealed class LocationCodeFixStagerTests
                 "SyntheticDiagnosticId",
                 CancellationToken.None))
             .ReturnsAsync(diagnostics);
+
         _discoveryService
             .Setup(item => item.DiscoverCodeFixesAsync(provider.Object, roslyn.Document, diagnostics, CancellationToken.None))
             .ReturnsAsync([action]);
@@ -294,10 +303,12 @@ public sealed class LocationCodeFixStagerTests
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+
         _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
         _discoveryService
             .Setup(item => item.GetMatchingCodeFixProviders(null))
             .Returns([provider.Object]);
+
         _diagnosticService
             .Setup(item => item.GetLocationScopedCodeFixDiagnosticsAsync(
                 roslyn.Document,
@@ -307,9 +318,11 @@ public sealed class LocationCodeFixStagerTests
                 "SyntheticDiagnosticId",
                 CancellationToken.None))
             .ReturnsAsync(diagnostics);
+
         _discoveryService
             .Setup(item => item.DiscoverCodeFixesAsync(provider.Object, roslyn.Document, diagnostics, CancellationToken.None))
             .ReturnsAsync([action]);
+
         var result = await _target.StageLocationCodeFixAsync(request, _context.Object, CancellationToken.None);
 
         result.Error!.Code.Should().Be("CodeFixUnavailable");
@@ -334,10 +347,12 @@ public sealed class LocationCodeFixStagerTests
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+
         _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
         _discoveryService
             .Setup(item => item.GetMatchingCodeFixProviders("ProviderId"))
             .Returns([provider.Object]);
+
         _diagnosticService
             .Setup(item => item.GetLocationScopedCodeFixDiagnosticsAsync(
                 roslyn.Document,
@@ -347,9 +362,11 @@ public sealed class LocationCodeFixStagerTests
                 "SyntheticDiagnosticId",
                 CancellationToken.None))
             .ReturnsAsync(diagnostics);
+
         _discoveryService
             .Setup(item => item.DiscoverCodeFixesAsync(provider.Object, roslyn.Document, diagnostics, CancellationToken.None))
             .ReturnsAsync([firstAction, secondAction]);
+
         var result = await _target.StageLocationCodeFixAsync(request, _context.Object, CancellationToken.None);
 
         result.Error!.Code.Should().Be("ActionAmbiguous");
@@ -383,10 +400,12 @@ public sealed class LocationCodeFixStagerTests
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+
         _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
         _discoveryService
             .Setup(item => item.GetMatchingCodeFixProviders("ProviderId"))
             .Returns([provider.Object]);
+
         _diagnosticService
             .Setup(item => item.GetLocationScopedCodeFixDiagnosticsAsync(
                 roslyn.Document,
@@ -396,9 +415,11 @@ public sealed class LocationCodeFixStagerTests
                 "SyntheticDiagnosticId",
                 CancellationToken.None))
             .ReturnsAsync(diagnostics);
+
         _discoveryService
             .Setup(item => item.DiscoverCodeFixesAsync(provider.Object, roslyn.Document, diagnostics, CancellationToken.None))
             .ReturnsAsync([action]);
+
         _evaluator
             .Setup(item => item.EvaluateAsync(action.Action, roslyn.Solution, CancellationToken.None))
             .ReturnsAsync(CodeActionApplyResult.Applied(candidate.CandidateSolution));
@@ -430,10 +451,12 @@ public sealed class LocationCodeFixStagerTests
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+
         _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
         _discoveryService
             .Setup(item => item.GetMatchingCodeFixProviders("ProviderId"))
             .Returns([provider.Object]);
+
         _diagnosticService
             .Setup(item => item.GetLocationScopedCodeFixDiagnosticsAsync(
                 roslyn.Document,
@@ -443,9 +466,11 @@ public sealed class LocationCodeFixStagerTests
                 "SyntheticDiagnosticId",
                 CancellationToken.None))
             .ReturnsAsync(diagnostics);
+
         _discoveryService
             .Setup(item => item.DiscoverCodeFixesAsync(provider.Object, roslyn.Document, diagnostics, CancellationToken.None))
             .ReturnsAsync([action]);
+
         var result = await _target.StageLocationCodeFixAsync(request, _context.Object, CancellationToken.None);
 
         result.Error!.Code.Should().Be("CodeFixUnavailable");
@@ -474,10 +499,12 @@ public sealed class LocationCodeFixStagerTests
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+
         _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
         _discoveryService
             .Setup(item => item.GetMatchingCodeFixProviders("ProviderId"))
             .Returns([provider.Object]);
+
         _diagnosticService
             .Setup(item => item.GetLocationScopedCodeFixDiagnosticsAsync(
                 roslyn.Document,
@@ -487,9 +514,11 @@ public sealed class LocationCodeFixStagerTests
                 "SyntheticDiagnosticId",
                 CancellationToken.None))
             .ReturnsAsync(diagnostics);
+
         _discoveryService
             .Setup(item => item.DiscoverCodeFixesAsync(provider.Object, roslyn.Document, diagnostics, CancellationToken.None))
             .ReturnsAsync([firstAction, secondAction]);
+
         _evaluator
             .Setup(item => item.EvaluateAsync(firstAction.Action, roslyn.Solution, CancellationToken.None))
             .ReturnsAsync(CodeActionApplyResult.Applied(candidate.CandidateSolution));

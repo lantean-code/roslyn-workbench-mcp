@@ -92,6 +92,7 @@ public sealed class WorkspaceExecutionLeaseTests
         {
             Status = WorkspaceOperationStatus.Rejected,
         };
+
         var target = WorkspaceMutationExecutionLease.Rejected(failure, lease: operationLease.Object);
 
         await target.DisposeAsync();

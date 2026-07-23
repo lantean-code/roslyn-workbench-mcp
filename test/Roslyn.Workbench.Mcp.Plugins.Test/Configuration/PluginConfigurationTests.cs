@@ -12,6 +12,7 @@ public sealed class PluginConfigurationTests
             .WithTitle("Query")
             .WithDescription("Query description")
             .WithResultSummary("Query result");
+
         var mutationBuilder = target.AddMutationTool<MutationHandler>()
             .WithName("mutation")
             .WithTitle("Mutation")

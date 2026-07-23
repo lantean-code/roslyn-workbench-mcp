@@ -25,6 +25,7 @@ public sealed class WorkspaceOpenToolTests
                 ProjectCount = 2,
                 DocumentCount = 5,
             }));
+
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var target = new WorkspaceOpenTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
 

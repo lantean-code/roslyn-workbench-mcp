@@ -52,6 +52,7 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
         result.Failure.Should().Be(hasDiagnostics
             ? ValidatedWorkspaceLoadFailure.LoadFailed
             : ValidatedWorkspaceLoadFailure.NotSupported);
+
         result.Diagnostics.Should().Equal(diagnostics);
         _workspaceLoader.Verify(item => item.LoadAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -91,6 +92,7 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
         SetupLoadedWorkspace("/workspace/Solution.sln", solution, loadedWorkspace);
         _workspaceLoader.Setup(item => item.InspectCompatibility("/outside/Project.csproj"))
             .Returns((true, []));
+
         _workspaceRootResolver.Setup(item => item.Contains("/workspace", "/outside/Project.csproj")).Returns(false);
 
         var result = await _target.LoadAsync(
@@ -104,6 +106,7 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
             diagnostic.Id == "WorkspaceInputOutsideRoot"
             && diagnostic.Message.Contains("/outside/Project.csproj", StringComparison.Ordinal)
             && diagnostic.Message.Contains("/workspace", StringComparison.Ordinal));
+
         loadedWorkspace.Verify(item => item.Dispose(), Times.Once);
     }
 
@@ -129,6 +132,7 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
         result.Failure.Should().Be(hasDiagnostics
             ? ValidatedWorkspaceLoadFailure.LoadFailed
             : ValidatedWorkspaceLoadFailure.NotSupported);
+
         if (hasDiagnostics)
         {
             result.Diagnostics.Should().Equal(diagnostics);
@@ -150,6 +154,7 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
         SetupLoadedWorkspace("/workspace/Solution.sln", solution, loadedWorkspace, cancellationSource.Token);
         _workspaceLoader.Setup(item => item.InspectCompatibility("/workspace/Project.csproj"))
             .Returns((true, []));
+
         _workspaceRootResolver
             .Setup(item => item.Contains("/workspace", It.IsAny<string>()))
             .Returns(() =>
@@ -175,6 +180,7 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
         SetupLoadedWorkspace("/workspace/Solution.sln", solution, loadedWorkspace);
         _workspaceLoader.Setup(item => item.InspectCompatibility("/workspace/Project.csproj"))
             .Returns((true, []));
+
         _workspaceRootResolver.Setup(item => item.Contains("/workspace", It.IsAny<string>()))
             .Throws<InvalidOperationException>();
 
@@ -196,6 +202,7 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
         _workspaceLoader.SetupSequence(item => item.InspectCompatibility("/workspace/Project.csproj"))
             .Returns((true, []))
             .Returns((true, []));
+
         _workspaceLoader.Setup(item => item.LoadAsync("/workspace/Project.csproj", TestContext.Current.CancellationToken))
             .ReturnsAsync(new WorkspaceLoadResult
             {
@@ -230,6 +237,7 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
                 LanguageNames.VisualBasic,
                 filePath: "/workspace/VisualBasicProject.vbproj"))
             .AddProject("PathlessProject", "PathlessProject", LanguageNames.CSharp).Solution;
+
         SetupLoadedWorkspace("/workspace/Solution.sln", solution, loadedWorkspace);
         _workspaceLoader.Setup(item => item.InspectCompatibility("/workspace/Project.csproj"))
             .Returns((true, []));
@@ -257,6 +265,7 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
                 "/workspace/Document.cs",
                 "public class C { } public class D : C { }")
             .AddAnalyzerReference(solutionAnalyzer);
+
         var projectId = solution.ProjectIds.Single();
         solution = solution.AddAnalyzerReference(projectId, projectAnalyzer);
         SetupLoadedWorkspace("/workspace/Solution.sln", solution, loadedWorkspace);
@@ -277,6 +286,7 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
             item.Id == "WorkspaceAnalyzerReferenceSkipped"
             && item.Message.Contains("missing-solution-analyzer.dll", StringComparison.Ordinal)
             && item.Message.Contains("the solution", StringComparison.Ordinal));
+
         result.Diagnostics.Should().ContainSingle(item =>
             item.Id == "WorkspaceAnalyzerReferenceSkipped"
             && item.Message.Contains("missing-project-analyzer.dll", StringComparison.Ordinal)
@@ -305,6 +315,7 @@ public sealed class WorkspaceLoadWorkflowTests : IDisposable
             "VisualBasicProject",
             LanguageNames.VisualBasic,
             filePath: "/workspace/VisualBasicProject.vbproj"));
+
         SetupLoadedWorkspace("/workspace/Solution.sln", solution, loadedWorkspace);
 
         var result = await _target.LoadAsync(

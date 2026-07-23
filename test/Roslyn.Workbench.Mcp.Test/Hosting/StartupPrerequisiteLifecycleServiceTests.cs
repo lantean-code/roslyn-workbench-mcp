@@ -9,6 +9,7 @@ public sealed class StartupPrerequisiteLifecycleServiceTests
         msBuildRegistrationService
             .Setup(static service => service.EnsureRegistered())
             .Returns(new ComponentStatus());
+
         var workspaceCommitRecoveryService = new Mock<IWorkspaceCommitRecoveryService>();
         var target = new StartupPrerequisiteLifecycleService(
             msBuildRegistrationService.Object,
@@ -30,6 +31,7 @@ public sealed class StartupPrerequisiteLifecycleServiceTests
         var target = new StartupPrerequisiteLifecycleService(
             msBuildRegistrationService.Object,
             workspaceCommitRecoveryService.Object);
+
         using var cancellationTokenSource = new CancellationTokenSource();
         await cancellationTokenSource.CancelAsync();
 

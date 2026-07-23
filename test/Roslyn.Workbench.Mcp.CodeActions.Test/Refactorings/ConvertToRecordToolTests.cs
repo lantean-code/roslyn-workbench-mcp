@@ -15,6 +15,7 @@ public sealed class ConvertToRecordToolTests
                 WorkspaceEpoch = 1,
             },
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new ConvertToRecordTool(selectionStager.Object);
 

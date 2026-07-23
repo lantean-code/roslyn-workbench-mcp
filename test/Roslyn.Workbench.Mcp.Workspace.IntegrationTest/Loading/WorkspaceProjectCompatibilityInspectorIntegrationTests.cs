@@ -19,6 +19,7 @@ public sealed class WorkspaceProjectCompatibilityInspectorIntegrationTests
                   </PropertyGroup>
                 </Project>
                 """);
+
             var target = new WorkspaceProjectCompatibilityInspector();
 
             var result = target.Inspect(projectPath);
@@ -48,6 +49,7 @@ public sealed class WorkspaceProjectCompatibilityInspectorIntegrationTests
                   </PropertyGroup>
                 </Project>
                 """);
+
             var target = new WorkspaceProjectCompatibilityInspector();
 
             var result = target.Inspect(projectPath);

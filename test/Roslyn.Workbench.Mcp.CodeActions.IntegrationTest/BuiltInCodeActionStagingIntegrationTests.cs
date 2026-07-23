@@ -22,6 +22,7 @@ public sealed class BuiltInCodeActionStagingIntegrationTests
             },
             ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0),
         }, TestContext.Current.CancellationToken);
+
         var preview = await coordinator.PreviewTransactionAsync(
             TestContext.Current.CancellationToken,
             document: new DocumentSelector

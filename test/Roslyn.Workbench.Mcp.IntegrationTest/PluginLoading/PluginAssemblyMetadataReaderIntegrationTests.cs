@@ -100,6 +100,7 @@ public sealed class PluginAssemblyMetadataReaderIntegrationTests
                 }
             }
             """, [typeof(IRoslynPlugin).Assembly.Location, typeof(ExportAttribute).Assembly.Location]);
+
         _file.Setup(static value => value.ReadAllBytes("plugin.dll")).Returns(assemblyBytes);
 
         var result = _target.Inspect("plugin.dll");
@@ -130,6 +131,7 @@ public sealed class PluginAssemblyMetadataReaderIntegrationTests
             {
             }
             """, []);
+
         _file.Setup(static value => value.ReadAllBytes("plugin.dll")).Returns(assemblyBytes);
 
         var result = _target.Inspect("plugin.dll");
@@ -152,6 +154,7 @@ public sealed class PluginAssemblyMetadataReaderIntegrationTests
             {
             }
             """, []);
+
         CorruptCustomAttributePrologue(assemblyBytes, "VersionMarker");
         _file.Setup(static value => value.ReadAllBytes("plugin.dll")).Returns(assemblyBytes);
 
@@ -176,6 +179,7 @@ public sealed class PluginAssemblyMetadataReaderIntegrationTests
                 }
             }
             """, [typeof(IRoslynPlugin).Assembly.Location, typeof(ExportAttribute).Assembly.Location]);
+
         _file.Setup(static value => value.ReadAllBytes("plugin.dll")).Returns(assemblyBytes);
 
         var result = _target.Inspect("plugin.dll");
@@ -205,17 +209,21 @@ public sealed class PluginAssemblyMetadataReaderIntegrationTests
     {
         var trustedPlatformAssemblies = AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string
             ?? throw new InvalidOperationException("Trusted platform assemblies are unavailable.");
+
         var referencePaths = trustedPlatformAssemblies
             .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
             .Concat(additionalReferencePaths);
+
         var references = referencePaths
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .Select(static path => MetadataReference.CreateFromFile(path));
+
         var compilation = CSharpCompilation.Create(
             "PluginFixture",
             [CSharpSyntaxTree.ParseText(source)],
             references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
         using var stream = new MemoryStream();
 
         var emitResult = compilation.Emit(stream);

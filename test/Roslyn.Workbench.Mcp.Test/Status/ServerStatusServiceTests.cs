@@ -18,6 +18,7 @@ public sealed class ServerStatusServiceTests
                 Version = "1.0.0",
                 Message = "MSBuildPath",
             });
+
         _codeActionProviderCatalog
             .SetupGet(item => item.Status)
             .Returns(new CodeActionProviderCatalogStatus
@@ -58,10 +59,12 @@ public sealed class ServerStatusServiceTests
             CodeActionTokenLifetime = TimeSpan.FromMinutes(5),
             StateDirectory = "/state",
         };
+
         var recovery = new RecoveryStatus
         {
             CommitId = "CommitId",
         };
+
         _recoveryStore.Setup(item => item.GetStatusesAsync(TestContext.Current.CancellationToken)).ReturnsAsync([recovery]);
         var pluginSnapshot = CreatePluginSnapshot();
         var startupWarning = new WarningInfo
@@ -69,6 +72,7 @@ public sealed class ServerStatusServiceTests
             Code = "Code",
             Message = "Message",
         };
+
         var target = CreateTarget(options, pluginSnapshot, startupWarnings: [startupWarning]);
 
         var result = await target.GetStatusAsync(StatusDetailLevel.Full, TestContext.Current.CancellationToken);
@@ -91,6 +95,7 @@ public sealed class ServerStatusServiceTests
                 IsAvailable = false,
                 Message = "Code-action composition is unavailable.",
             });
+
         var target = CreateTarget(new StartupOptions(), new PluginCatalogSnapshot());
 
         var result = await target.GetStatusAsync(StatusDetailLevel.Standard, CancellationToken.None);
@@ -111,6 +116,7 @@ public sealed class ServerStatusServiceTests
         {
             Tools = [pluginTool.Object],
         };
+
         var codeActionSnapshot = new CodeActionCatalogSnapshot
         {
             Tools =
@@ -119,6 +125,7 @@ public sealed class ServerStatusServiceTests
                 secondCodeActionTool.Object,
             ],
         };
+
         var target = CreateTarget(new StartupOptions(), pluginSnapshot, codeActionSnapshot);
 
         var result = await target.GetStatusAsync(StatusDetailLevel.Standard, CancellationToken.None);

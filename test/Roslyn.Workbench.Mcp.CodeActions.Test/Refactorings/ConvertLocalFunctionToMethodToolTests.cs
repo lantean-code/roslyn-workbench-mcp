@@ -15,6 +15,7 @@ public sealed class ConvertLocalFunctionToMethodToolTests
                 WorkspaceEpoch = 1,
             },
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new ConvertLocalFunctionToMethodTool(selectionStager.Object);
 

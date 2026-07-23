@@ -19,6 +19,7 @@ public sealed class MoveTypeToFileToolTests
         workspaceResolver.Verify(item => item.ResolveSymbolAsync(
             It.IsAny<SymbolSelector>(),
             It.IsAny<CancellationToken>()), Times.Never);
+
         selectionStager.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), context.Object, It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -30,6 +31,7 @@ public sealed class MoveTypeToFileToolTests
             Code = "SymbolNotFound",
             Message = "The symbol selector did not match any result.",
         }, RequiredAction.ResolveTargetAgain);
+
         var workspaceResolver = new Mock<IWorkspaceResolver>();
         var context = CreateContext(workspaceResolver);
         var request = CreateRequest();
@@ -107,6 +109,7 @@ public sealed class MoveTypeToFileToolTests
         workspaceResolver
             .Setup(item => item.ResolveSymbolAsync(request.Type!, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<ISymbol>.Resolved(type.Object));
+
         workspaceResolver
             .Setup(item => item.CreateResolvedLocation(location))
             .Returns((ResolvedLocation?)null);
@@ -135,9 +138,11 @@ public sealed class MoveTypeToFileToolTests
         workspaceResolver
             .Setup(item => item.ResolveSymbolAsync(request.Type!, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<ISymbol>.Resolved(type.Object));
+
         workspaceResolver
             .Setup(item => item.CreateResolvedLocation(location))
             .Returns(resolvedLocation);
+
         selectionStager
             .Setup(item => item.StageReplayCodeActionAsync(
                 It.Is<ReplayCodeActionRequest>(replayRequest =>

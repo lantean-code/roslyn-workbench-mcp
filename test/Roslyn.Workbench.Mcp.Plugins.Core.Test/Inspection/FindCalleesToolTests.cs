@@ -18,11 +18,13 @@ public sealed class FindCalleesToolTests
             Code = "InvalidRequest",
             Message = "Specify exactly one of symbol or location.",
         });
+
         queryContextMocks.RequestResolver.Verify(item => item.ResolveSymbolAsync<CalleeSearchData>(
             It.IsAny<SymbolSelector?>(),
             It.IsAny<SnapshotPrecondition?>(),
             It.IsAny<IToolExecutionContext>(),
             It.IsAny<CancellationToken>()), Times.Never);
+
         queryContextMocks.WorkspaceResolver.Verify(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -64,6 +66,7 @@ public sealed class FindCalleesToolTests
                 }
             }
             """);
+
         using var emptyWorkspace = new AdhocWorkspace();
 
         var target = new FindCalleesTool();
@@ -77,6 +80,7 @@ public sealed class FindCalleesToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(emptyWorkspace.CurrentSolution);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<CalleeSearchData>(
                 It.IsAny<SymbolSelector?>(),
@@ -140,6 +144,7 @@ public sealed class FindCalleesToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<CalleeSearchData>(
                 It.IsAny<SymbolSelector?>(),
@@ -202,6 +207,7 @@ public sealed class FindCalleesToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<SnapshotPrecondition?>()))
             .Returns((PluginExecutionResult<CalleeSearchData>?)null);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(SelectorResolveResult<Location>.NotFound());
@@ -217,6 +223,7 @@ public sealed class FindCalleesToolTests
             Code = "LocationNotFound",
             Message = "The location selector did not match any result.",
         });
+
         result.RequiredAction.Should().Be(RequiredAction.ResolveTargetAgain);
     }
 
@@ -236,6 +243,7 @@ public sealed class FindCalleesToolTests
                 }
             }
             """);
+
         using var emptyWorkspace = new AdhocWorkspace();
 
         var target = new FindCalleesTool();
@@ -245,11 +253,13 @@ public sealed class FindCalleesToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(emptyWorkspace.CurrentSolution);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ValidateSnapshot<CalleeSearchData>(
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<SnapshotPrecondition?>()))
             .Returns((PluginExecutionResult<CalleeSearchData>?)null);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(selectedLocation));
@@ -265,6 +275,7 @@ public sealed class FindCalleesToolTests
             Code = "LocationNotFound",
             Message = "The location selector did not resolve to a source document.",
         });
+
         result.RequiredAction.Should().Be(RequiredAction.ResolveTargetAgain);
     }
 
@@ -292,11 +303,13 @@ public sealed class FindCalleesToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ValidateSnapshot<CalleeSearchData>(
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<SnapshotPrecondition?>()))
             .Returns((PluginExecutionResult<CalleeSearchData>?)null);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(selectedLocation));
@@ -343,17 +356,21 @@ public sealed class FindCalleesToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ValidateSnapshot<CalleeSearchData>(
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<SnapshotPrecondition?>()))
             .Returns((PluginExecutionResult<CalleeSearchData>?)null);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(selectedLocation));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -421,9 +438,11 @@ public sealed class FindCalleesToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<CalleeSearchData>(
                 It.IsAny<SymbolSelector?>(),
@@ -431,6 +450,7 @@ public sealed class FindCalleesToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, CalleeSearchData>.Resolved(symbol));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -476,9 +496,11 @@ public sealed class FindCalleesToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<CalleeSearchData>(
                 It.IsAny<SymbolSelector?>(),
@@ -486,6 +508,7 @@ public sealed class FindCalleesToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, CalleeSearchData>.Resolved(symbol));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -526,6 +549,7 @@ public sealed class FindCalleesToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<CalleeSearchData>(
                 It.IsAny<SymbolSelector?>(),
@@ -533,6 +557,7 @@ public sealed class FindCalleesToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, CalleeSearchData>.Resolved(symbol));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -578,6 +603,7 @@ public sealed class FindCalleesToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<CalleeSearchData>(
                 It.IsAny<SymbolSelector?>(),
@@ -585,6 +611,7 @@ public sealed class FindCalleesToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, CalleeSearchData>.Resolved(symbol));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -626,6 +653,7 @@ public sealed class FindCalleesToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<CalleeSearchData>(
                 It.IsAny<SymbolSelector?>(),
@@ -633,6 +661,7 @@ public sealed class FindCalleesToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, CalleeSearchData>.Resolved(symbol));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -673,6 +702,7 @@ public sealed class FindCalleesToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<CalleeSearchData>(
                 It.IsAny<SymbolSelector?>(),
@@ -680,6 +710,7 @@ public sealed class FindCalleesToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, CalleeSearchData>.Resolved(symbol));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -717,6 +748,7 @@ public sealed class FindCalleesToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<CalleeSearchData>(
                 It.IsAny<SymbolSelector?>(),
@@ -724,6 +756,7 @@ public sealed class FindCalleesToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, CalleeSearchData>.Resolved(symbol));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -766,6 +799,7 @@ public sealed class FindCalleesToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<CalleeSearchData>(
                 It.IsAny<SymbolSelector?>(),
@@ -773,6 +807,7 @@ public sealed class FindCalleesToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, CalleeSearchData>.Resolved(symbol));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => string.IsNullOrWhiteSpace(item.Name)

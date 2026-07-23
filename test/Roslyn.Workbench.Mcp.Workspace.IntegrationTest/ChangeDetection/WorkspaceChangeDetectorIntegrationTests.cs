@@ -25,6 +25,7 @@ public sealed class WorkspaceChangeDetectorIntegrationTests
                   </PropertyGroup>
                 </Project>
                 """);
+
             File.WriteAllText(documentPath, """
                 namespace Sample;
 
@@ -32,6 +33,7 @@ public sealed class WorkspaceChangeDetectorIntegrationTests
                 {
                 }
                 """);
+
             File.WriteAllText(importedPropsPath, """
                 <Project>
                   <PropertyGroup>
@@ -77,6 +79,7 @@ public sealed class WorkspaceChangeDetectorIntegrationTests
                 "Malformed",
                 LanguageNames.CSharp,
                 filePath: projectPath));
+
             var target = new WorkspaceChangeDetector(new FileSystem(), new WorkspaceProjectInputResolver());
 
             var manifest = target.BuildManifest(solution, projectPath);

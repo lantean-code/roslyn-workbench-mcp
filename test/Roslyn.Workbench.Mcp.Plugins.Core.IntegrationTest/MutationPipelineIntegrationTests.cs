@@ -22,6 +22,7 @@ public sealed class MutationPipelineIntegrationTests
                 NewName = "SessionState",
                 ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(openResult, startResult.Data!.Transaction.Revision),
             }, TestContext.Current.CancellationToken);
+
         var sortUsings = await session.ExecuteMutationAsync(
             "sort-usings",
             new SortUsingsRequest
@@ -32,6 +33,7 @@ public sealed class MutationPipelineIntegrationTests
                 },
                 ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(openResult, rename.Data!.Transaction!.Revision),
             }, TestContext.Current.CancellationToken);
+
         var formatDocument = await session.ExecuteMutationAsync(
             "format-document",
             new FormatDocumentRequest
@@ -42,6 +44,7 @@ public sealed class MutationPipelineIntegrationTests
                 },
                 ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(openResult, sortUsings.Data!.Transaction!.Revision),
             }, TestContext.Current.CancellationToken);
+
         var transactionPreview = await coordinator.PreviewTransactionAsync(TestContext.Current.CancellationToken);
         var usingsPreview = await coordinator.PreviewTransactionAsync(
             TestContext.Current.CancellationToken,
@@ -50,6 +53,7 @@ public sealed class MutationPipelineIntegrationTests
                 Path = "Usings.cs",
             },
             includeDiff: true);
+
         var renamePreview = await coordinator.PreviewTransactionAsync(
             TestContext.Current.CancellationToken,
             document: new DocumentSelector

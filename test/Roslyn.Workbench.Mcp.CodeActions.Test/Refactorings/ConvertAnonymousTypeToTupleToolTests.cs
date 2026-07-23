@@ -15,6 +15,7 @@ public sealed class ConvertAnonymousTypeToTupleToolTests
                 WorkspaceEpoch = 1,
             },
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new ConvertAnonymousTypeToTupleTool(selectionStager.Object);
 

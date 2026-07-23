@@ -9,6 +9,7 @@ public sealed class WorkspacePathComparisonTests
         var expectedComparison = OperatingSystem.IsWindows()
             ? StringComparison.OrdinalIgnoreCase
             : StringComparison.Ordinal;
+
         var expectedComparer = OperatingSystem.IsWindows()
             ? StringComparer.OrdinalIgnoreCase
             : StringComparer.Ordinal;
@@ -23,6 +24,7 @@ public sealed class WorkspacePathComparisonTests
         var fileSystem = CreateFileSystem([
             "23 134 0:72 / /mnt/c rw,noatime - 9p C: rw,aname=drvfs;path=C:",
         ]);
+
         var target = new WorkspacePathComparison(fileSystem.Object);
 
         var mountComparison = target.GetComparison("/mnt/c");
@@ -61,6 +63,7 @@ public sealed class WorkspacePathComparisonTests
             "23 134 0:72 / /mnt/c rw,noatime - 9p C: rw,aname=drvfs;path=C:",
             "24 23 8:1 / /mnt/c/native rw,relatime - ext4 /dev/sda rw",
         ]);
+
         var target = new WorkspacePathComparison(fileSystem.Object);
 
         var result = target.IsWindowsFileSystemPath("/mnt/c/native/Repository");
@@ -80,6 +83,7 @@ public sealed class WorkspacePathComparisonTests
         var expectedComparison = OperatingSystem.IsWindows()
             ? StringComparison.OrdinalIgnoreCase
             : StringComparison.Ordinal;
+
         var expectedComparer = OperatingSystem.IsWindows()
             ? StringComparer.OrdinalIgnoreCase
             : StringComparer.Ordinal;
@@ -98,6 +102,7 @@ public sealed class WorkspacePathComparisonTests
             "23 134 0:72 / /mnt/c rw,noatime - 9p C: rw,aname=drvfs;path=C:",
             "24 23 8:1 / /mnt/c/case-sensitive rw,relatime - ext4 /dev/sda rw",
         ]);
+
         var target = new WorkspacePathComparison(fileSystem.Object);
         var expectedComparison = OperatingSystem.IsWindows()
             ? StringComparison.OrdinalIgnoreCase
@@ -115,6 +120,7 @@ public sealed class WorkspacePathComparisonTests
             "23 134 0:72 / /mnt/c rw,noatime - 9p C: rw,aname=drvfs;path=C:",
             "24 23 8:1 / /mnt rw,relatime - ext4 /dev/sda rw",
         ]);
+
         var target = new WorkspacePathComparison(fileSystem.Object);
 
         var comparison = target.GetComparison("/mnt/c/Repository");
@@ -128,6 +134,7 @@ public sealed class WorkspacePathComparisonTests
         var fileSystem = CreateFileSystem([
             "23 134 0:72 / /mnt/c rw,noatime - 9p C: rw,aname=drvfs;path=C:",
         ]);
+
         var target = new WorkspacePathComparison(fileSystem.Object);
         var expectedComparison = OperatingSystem.IsWindows()
             ? StringComparison.OrdinalIgnoreCase
@@ -144,6 +151,7 @@ public sealed class WorkspacePathComparisonTests
         var fileSystem = CreateFileSystem([
             "23 134 0:72 / /windows\\040drive rw,noatime - drvfs C: rw",
         ]);
+
         var target = new WorkspacePathComparison(fileSystem.Object);
 
         var comparison = target.GetComparison("/windows drive/Repository");

@@ -33,13 +33,16 @@ public sealed class PluginPackageDiscoveryTests
         _packagePathPolicy
             .Setup(value => value.TryGetContainedPath("root-one", "package", out containedPackageDirectory))
             .Returns(true);
+
         _packagePathPolicy
             .Setup(value => value.TryGetContainedPath("root-two", "package", out containedPackageDirectory))
             .Returns(true);
+
         var containedAssemblyPath = "plugin.dll";
         _packagePathPolicy
             .Setup(value => value.TryGetContainedPath("/packages/package", "plugin.dll", out containedAssemblyPath))
             .Returns(true);
+
         _path.Setup(static value => value.GetFileName("/packages/package")).Returns("package");
         _directory.Setup(static value => value.EnumerateFiles("/packages/package", "*.dll", SearchOption.TopDirectoryOnly)).Returns(["plugin.dll"]);
         _metadataReader.Setup(static value => value.Inspect("plugin.dll")).Returns(CreateInspection("PluginId"));
@@ -63,11 +66,13 @@ public sealed class PluginPackageDiscoveryTests
         var entryPoints = Enumerable.Range(0, markerCount)
             .Select(index => CreateEntryPoint($"PluginId{index}"))
             .ToArray();
+
         _metadataReader.Setup(static value => value.Inspect("plugin.dll")).Returns(new PluginAssemblyInspection
         {
             IsManagedAssembly = true,
             EntryPoints = entryPoints,
         });
+
         var target = CreateTarget();
 
         var result = target.Discover(["root"]);
@@ -86,6 +91,7 @@ public sealed class PluginPackageDiscoveryTests
         {
             Error = "Malformed",
         });
+
         _path.Setup(static value => value.GetFileName("plugin.dll")).Returns("plugin.dll");
         var target = CreateTarget();
 
@@ -119,10 +125,12 @@ public sealed class PluginPackageDiscoveryTests
         _packagePathPolicy
             .Setup(value => value.TryGetContainedPath("root", "package", out containedPackageDirectory))
             .Returns(true);
+
         _path.Setup(static value => value.GetFileName("package")).Returns("package");
         _directory
             .Setup(static value => value.EnumerateFiles("package", "*.dll", SearchOption.TopDirectoryOnly))
             .Throws(new UnauthorizedAccessException("Denied"));
+
         var target = CreateTarget();
 
         var result = target.Discover(["root"]);
@@ -154,6 +162,7 @@ public sealed class PluginPackageDiscoveryTests
         _packagePathPolicy
             .Setup(value => value.TryGetContainedPath("root", "outside-package", out rejectedPath))
             .Returns(false);
+
         var target = CreateTarget();
 
         var result = target.Discover(["root"]);
@@ -163,6 +172,7 @@ public sealed class PluginPackageDiscoveryTests
             && discovery.Candidate == null
             && discovery.Error != null
             && discovery.Error.Contains("outside", StringComparison.Ordinal));
+
         _directory.Verify(
             static value => value.EnumerateFiles(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<SearchOption>()),
             Times.Never);
@@ -176,6 +186,7 @@ public sealed class PluginPackageDiscoveryTests
         _packagePathPolicy
             .Setup(value => value.TryGetContainedPath("package", "plugin.dll", out rejectedPath))
             .Returns(false);
+
         var target = CreateTarget();
 
         var result = target.Discover(["root"]);
@@ -184,6 +195,7 @@ public sealed class PluginPackageDiscoveryTests
             discovery.Candidate == null
             && discovery.Error != null
             && discovery.Error.Contains("outside", StringComparison.Ordinal));
+
         _metadataReader.Verify(static value => value.Inspect(It.IsAny<string>()), Times.Never);
     }
 
@@ -196,18 +208,22 @@ public sealed class PluginPackageDiscoveryTests
         _packagePathPolicy
             .Setup(value => value.TryGetContainedPath("root", "package", out containedPackageDirectory))
             .Returns(true);
+
         _path.Setup(static value => value.GetFileName("package")).Returns("package");
         _directory
             .Setup(static value => value.EnumerateFiles("package", "*.dll", SearchOption.TopDirectoryOnly))
             .Returns(["z.dll", "a.dll"]);
+
         var containedFirstAssemblyPath = "a.dll";
         var containedSecondAssemblyPath = "z.dll";
         _packagePathPolicy
             .Setup(value => value.TryGetContainedPath("package", "a.dll", out containedFirstAssemblyPath))
             .Returns(true);
+
         _packagePathPolicy
             .Setup(value => value.TryGetContainedPath("package", "z.dll", out containedSecondAssemblyPath))
             .Returns(true);
+
         var sequence = new MockSequence();
         _metadataReader.InSequence(sequence).Setup(static value => value.Inspect("a.dll")).Returns(new PluginAssemblyInspection());
         _metadataReader.InSequence(sequence).Setup(static value => value.Inspect("z.dll")).Returns(new PluginAssemblyInspection());
@@ -219,6 +235,7 @@ public sealed class PluginPackageDiscoveryTests
             discovery.Candidate == null
             && discovery.Error != null
             && discovery.Error.Contains("does not contain", StringComparison.Ordinal));
+
         _metadataReader.Verify(static value => value.Inspect("a.dll"), Times.Once);
         _metadataReader.Verify(static value => value.Inspect("z.dll"), Times.Once);
     }
@@ -236,6 +253,7 @@ public sealed class PluginPackageDiscoveryTests
         _packagePathPolicy
             .Setup(value => value.TryGetContainedPath("root", "package", out containedPackageDirectory))
             .Returns(true);
+
         _path.Setup(static value => value.GetFileName("package")).Returns("package");
         _directory.Setup(static value => value.EnumerateFiles("package", "*.dll", SearchOption.TopDirectoryOnly)).Returns(["plugin.dll"]);
         var containedAssemblyPath = "plugin.dll";

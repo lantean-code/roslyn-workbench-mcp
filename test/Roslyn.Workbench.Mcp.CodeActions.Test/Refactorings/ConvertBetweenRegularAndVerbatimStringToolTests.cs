@@ -15,6 +15,7 @@ public sealed class ConvertBetweenRegularAndVerbatimStringToolTests
                 WorkspaceEpoch = 1,
             },
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new ConvertBetweenRegularAndVerbatimStringTool(selectionStager.Object);
 

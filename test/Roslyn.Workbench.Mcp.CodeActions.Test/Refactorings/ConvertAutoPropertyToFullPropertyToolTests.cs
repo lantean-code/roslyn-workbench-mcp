@@ -15,6 +15,7 @@ public sealed class ConvertAutoPropertyToFullPropertyToolTests
                 WorkspaceEpoch = 1,
             },
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new ConvertAutoPropertyToFullPropertyTool(selectionStager.Object);
 

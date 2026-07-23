@@ -22,6 +22,7 @@ public sealed class WorkspaceFixAllDiagnosticProviderTests : IDisposable
                 ],
             },
         ]);
+
         _diagnosticIds = ["DiagnosticId"];
         _target = new WorkspaceFixAllDiagnosticProvider(_diagnosticService.Object, _diagnosticIds, "SyntheticDiagnosticId");
     }
@@ -87,12 +88,14 @@ public sealed class WorkspaceFixAllDiagnosticProviderTests : IDisposable
                 _diagnosticIds,
                 TestContext.Current.CancellationToken))
             .ReturnsAsync([firstDiagnostic]);
+
         _diagnosticService
             .Setup(item => item.GetDocumentDiagnosticsAsync(
                 secondDocument,
                 _diagnosticIds,
                 TestContext.Current.CancellationToken))
             .ReturnsAsync([secondDiagnostic]);
+
         _diagnosticService
             .Setup(item => item.GetProjectDiagnosticsAsync(
                 project,
@@ -107,6 +110,7 @@ public sealed class WorkspaceFixAllDiagnosticProviderTests : IDisposable
             It.IsAny<Document>(),
             _diagnosticIds,
             TestContext.Current.CancellationToken), Times.Exactly(2));
+
         _diagnosticService.Verify(item => item.GetProjectDiagnosticsAsync(
             project,
             _diagnosticIds,
@@ -127,6 +131,7 @@ public sealed class WorkspaceFixAllDiagnosticProviderTests : IDisposable
             "Category",
             Microsoft.CodeAnalysis.DiagnosticSeverity.Warning,
             isEnabledByDefault: true);
+
         return Diagnostic.Create(descriptor, Location.None);
     }
 }

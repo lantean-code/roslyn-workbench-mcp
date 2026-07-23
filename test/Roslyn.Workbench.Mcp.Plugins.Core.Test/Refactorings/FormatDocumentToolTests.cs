@@ -10,11 +10,13 @@ public sealed class FormatDocumentToolTests
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
         });
+
         var contextMocks = MutationContextMockHelper.Create();
         var request = new FormatDocumentRequest
         {
             Document = new DocumentSelector(),
         };
+
         var target = new FormatDocumentTool();
 
         contextMocks.RequestResolver
@@ -38,6 +40,7 @@ public sealed class FormatDocumentToolTests
             Code = "SnapshotMismatch",
             Message = "SnapshotMismatch",
         });
+
         var contextMocks = MutationContextMockHelper.Create();
         var request = new FormatDocumentRequest
         {
@@ -47,11 +50,13 @@ public sealed class FormatDocumentToolTests
                 WorkspaceEpoch = 1,
             },
         };
+
         var target = new FormatDocumentTool();
 
         contextMocks.RequestResolver
             .Setup(item => item.ResolveDocument<MutationCandidate>(request.Document, contextMocks.MutationContext.Object))
             .Returns(ToolResolutionResult<Document, MutationCandidate>.Resolved(document.Document));
+
         contextMocks.RequestResolver
             .Setup(item => item.ValidateSnapshot<MutationCandidate>(contextMocks.MutationContext.Object, request.ExpectedSnapshot))
             .Returns(expected);
@@ -70,11 +75,13 @@ public sealed class FormatDocumentToolTests
         {
             Document = new DocumentSelector(),
         };
+
         var target = new FormatDocumentTool();
 
         contextMocks.RequestResolver
             .Setup(item => item.ResolveDocument<MutationCandidate>(request.Document, contextMocks.MutationContext.Object))
             .Returns(ToolResolutionResult<Document, MutationCandidate>.Resolved(document.Document));
+
         contextMocks.RequestResolver
             .Setup(item => item.ValidateSnapshot<MutationCandidate>(contextMocks.MutationContext.Object, request.ExpectedSnapshot))
             .Returns((PluginExecutionResult<MutationCandidate>?)null);
@@ -99,11 +106,13 @@ public sealed class FormatDocumentToolTests
                 Length = source.Length,
             },
         };
+
         var target = new FormatDocumentTool();
 
         contextMocks.RequestResolver
             .Setup(item => item.ResolveDocument<MutationCandidate>(request.Document, contextMocks.MutationContext.Object))
             .Returns(ToolResolutionResult<Document, MutationCandidate>.Resolved(document.Document));
+
         contextMocks.RequestResolver
             .Setup(item => item.ValidateSnapshot<MutationCandidate>(contextMocks.MutationContext.Object, request.ExpectedSnapshot))
             .Returns((PluginExecutionResult<MutationCandidate>?)null);

@@ -18,10 +18,12 @@ public static class BundledPluginCatalogueFactory
             Version = "1.0.0",
             SupportedApiVersion = PluginApiVersions.V1,
         };
+
         var configurationPreparer = new PluginConfigurationPreparer(
             new PluginHandlerTypeInspector(),
             new PluginHandlerContractResolver(),
             new PluginHandlerWarningInspector());
+
         var preparation = configurationPreparer.Prepare(metadata, configuration);
         var materialization = new PluginToolRegistrationMaterializer().Materialize(preparation);
         return new PluginToolCatalogue(materialization.Tools);

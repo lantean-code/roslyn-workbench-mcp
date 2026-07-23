@@ -65,6 +65,7 @@ public sealed class PluginCandidatePreparerTests
             && status.Diagnostics.Any(diagnostic =>
                 diagnostic.Id == "PluginDiscovery"
                 && diagnostic.Message.Contains(expectedMessage, StringComparison.Ordinal)));
+
         _loadedPluginPreparer.Verify(static value => value.Prepare(It.IsAny<Assembly>(), It.IsAny<PluginEntryPointMetadata>()), Times.Never);
     }
 
@@ -97,6 +98,7 @@ public sealed class PluginCandidatePreparerTests
             && status.Diagnostics.Any(diagnostic =>
                 diagnostic.Id == "PluginMetadata"
                 && diagnostic.Message == "Validation failed"));
+
         _loadedPluginPreparer.Verify(static value => value.Prepare(It.IsAny<Assembly>(), It.IsAny<PluginEntryPointMetadata>()), Times.Never);
     }
 
@@ -129,6 +131,7 @@ public sealed class PluginCandidatePreparerTests
             CreateDiagnostic("PluginHandlerContract", DiagnosticSeverity.Error, "Contract failed"),
             CreateDiagnostic("PluginHandlerState", DiagnosticSeverity.Warning, "State warning"),
         };
+
         var preparedPlugin = CreatePreparedPlugin(entryPoint, diagnostics);
         _metadataReader.Setup(value => value.Inspect(assembly.Location)).Returns(CreateInspection(entryPoint));
         _loadedPluginPreparer.Setup(value => value.Prepare(assembly, entryPoint)).Returns(preparedPlugin);
@@ -178,6 +181,7 @@ public sealed class PluginCandidatePreparerTests
         result.Statuses.Should().ContainSingle(status =>
             !status.Enabled
             && status.Diagnostics.Any(static diagnostic => diagnostic.Id == "PluginMetadata"));
+
         _loadContextFactory.Verify(
             static value => value.TryCreate(
                 It.IsAny<string>(),
@@ -201,6 +205,7 @@ public sealed class PluginCandidatePreparerTests
             && status.Diagnostics.Any(diagnostic =>
                 diagnostic.Id == "PluginCollision"
                 && diagnostic.Message.Contains("same plugin ID", StringComparison.Ordinal)));
+
         _loadContextFactory.Verify(
             static value => value.TryCreate(
                 It.IsAny<string>(),
@@ -222,6 +227,7 @@ public sealed class PluginCandidatePreparerTests
                 It.IsAny<string>(),
                 out loadContext))
             .Returns(true);
+
         _loadedPluginPreparer.Setup(value => value.Prepare(It.IsAny<Assembly>(), entryPoint)).Returns(preparedPlugin);
 
         var result = _target.PrepareExternal([discoveryResult], new HashSet<string>(StringComparer.Ordinal));
@@ -245,6 +251,7 @@ public sealed class PluginCandidatePreparerTests
                 EntryPoint = entryPoint,
             },
         };
+
         var loadContext = AssemblyLoadContext.Default;
         _loadContextFactory
             .Setup(value => value.TryCreate(
@@ -259,6 +266,7 @@ public sealed class PluginCandidatePreparerTests
         result.Statuses.Should().ContainSingle(status =>
             !status.Enabled
             && status.Diagnostics.Any(static diagnostic => diagnostic.Id == "PluginLoad"));
+
         result.LoadContexts.Should().ContainSingle().Which.Should().BeSameAs(AssemblyLoadContext.Default);
     }
 
@@ -284,6 +292,7 @@ public sealed class PluginCandidatePreparerTests
             && status.Diagnostics.Any(diagnostic =>
                 diagnostic.Id == "PluginLoad"
                 && diagnostic.Message.Contains("outside", StringComparison.Ordinal)));
+
         _loadedPluginPreparer.Verify(
             static value => value.Prepare(It.IsAny<Assembly>(), It.IsAny<PluginEntryPointMetadata>()),
             Times.Never);

@@ -29,6 +29,7 @@ public sealed class PluginToolRegistrationMaterializerTests
                 },
             ],
         };
+
         var visitor = new Mock<IPluginToolRegistrationVisitor<string>>();
         visitor.Setup(static value => value.VisitQuery(It.IsAny<PluginQueryRegistration<Request, Response>>())).Returns("query");
         visitor.Setup(static value => value.VisitMutation(It.IsAny<PluginMutationRegistration<Request>>())).Returns("mutation");
@@ -40,6 +41,7 @@ public sealed class PluginToolRegistrationMaterializerTests
         result.Diagnostics.Should().ContainSingle(diagnostic =>
             diagnostic.Id == "PluginHandlerState"
             && diagnostic.Message == "Warning");
+
         visitor.Verify(static value => value.VisitQuery(It.IsAny<PluginQueryRegistration<Request, Response>>()), Times.Once);
         visitor.Verify(static value => value.VisitMutation(It.IsAny<PluginMutationRegistration<Request>>()), Times.Once);
     }
@@ -67,6 +69,7 @@ public sealed class PluginToolRegistrationMaterializerTests
         {
             HandlerFactory = static () => throw new InvalidOperationException("Factory failed."),
         };
+
         var preparation = new PluginPreparationResult
         {
             Tools = [preparedTool],

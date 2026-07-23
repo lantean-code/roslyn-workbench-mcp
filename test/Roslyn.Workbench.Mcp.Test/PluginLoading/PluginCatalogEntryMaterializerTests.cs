@@ -67,6 +67,7 @@ public sealed class PluginCatalogEntryMaterializerTests
             Version = "1.0.0",
             SupportedApiVersion = PluginApiVersions.V1,
         };
+
         return new PreparedCatalogPlugin
         {
             Metadata = metadata,

@@ -121,6 +121,7 @@ public sealed class PluginPackagePathPolicyTests
     {
         _path.Setup(static value => value.GetRelativePath("C:\\packages\\plugin", "D:\\plugin.dll"))
             .Returns("D:\\plugin.dll");
+
         _path.Setup(static value => value.IsPathRooted("D:\\plugin.dll")).Returns(true);
 
         var result = _target.TryGetContainedPath("C:\\packages\\plugin", "D:\\plugin.dll", out var containedPath);

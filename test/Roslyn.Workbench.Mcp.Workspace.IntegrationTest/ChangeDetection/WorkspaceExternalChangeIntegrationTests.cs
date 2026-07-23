@@ -102,6 +102,7 @@ public sealed class WorkspaceExternalChangeIntegrationTests
               <PropertyGroup>
                 <TargetFramework>net10.0</TargetFramework>
             """, TestContext.Current.CancellationToken);
+
         await target.GetStatusAsync(TestContext.Current.CancellationToken);
 
         var result = await target.ReloadAsync(TestContext.Current.CancellationToken);

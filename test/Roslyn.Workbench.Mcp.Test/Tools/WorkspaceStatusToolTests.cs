@@ -46,6 +46,7 @@ public sealed class WorkspaceStatusToolTests
                         },
                     ],
             }));
+
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var target = new WorkspaceStatusTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
         var arguments = ServerOwnedToolTestData.CreateWorkspaceArguments(includeWorkspace);
@@ -70,6 +71,7 @@ public sealed class WorkspaceStatusToolTests
             ServerOwnedToolTestData.GetWorkspacePath(includeWorkspace),
             StatusDetailLevel.Full,
             CancellationToken.None), Times.Once);
+
         protocolFactory.Verify(item => item.CreateServerOwnedTool<WorkspaceStatusRequest, WorkspaceStatusData>(
             "workspace-status",
             "Workspace Status",

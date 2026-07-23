@@ -41,6 +41,7 @@ public sealed class ToolSchemaBuilderTests
         var types = alreadyAllowsNull
             ? new JsonArray("string", "null")
             : new JsonArray("string");
+
         var schema = JsonSerializer.SerializeToElement(new JsonObject
         {
             ["type"] = types,
@@ -89,6 +90,7 @@ public sealed class ToolSchemaBuilderTests
             valueSchema,
             CreateObjectSchema("code"),
             CreatePrimitiveSchema("string"));
+
         var success = GetSuccessVariant(result);
 
         var data = success.GetProperty("properties").GetProperty("data");
@@ -104,6 +106,7 @@ public sealed class ToolSchemaBuilderTests
             CreatePrimitiveSchema("string"),
             CreateObjectSchema("code"),
             CreatePrimitiveSchema("string"));
+
         var success = GetSuccessVariant(result);
 
         success.GetProperty("properties").EnumerateObject().Select(item => item.Name).Should().Equal("ok", "data");
@@ -184,6 +187,7 @@ public sealed class ToolSchemaBuilderTests
         {
             ["type"] = new JsonArray(null, "object", "null"),
         });
+
         var root = CreateSchemaWithDefinitions("Definition");
 
         var result = ToolSchemaBuilder.NormalizeExportedSchema(schema, root);

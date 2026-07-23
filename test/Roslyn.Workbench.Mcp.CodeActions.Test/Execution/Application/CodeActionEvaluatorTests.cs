@@ -75,6 +75,7 @@ public sealed class CodeActionEvaluatorTests : IDisposable
         var changedSolution = _roslyn.Solution.WithDocumentText(
             _roslyn.Document.Id,
             SourceText.From("class Changed { }"));
+
         var action = new TestCodeAction(
         [
             new WrapItemsAction.RecordCodeActionOperation(),

@@ -15,6 +15,7 @@ public sealed class IntroduceUsingStatementToolTests
                 WorkspaceEpoch = 1,
             },
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new IntroduceUsingStatementTool(selectionStager.Object);
 

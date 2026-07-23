@@ -22,6 +22,7 @@ public sealed class UnhandledToolExceptionFilterTests
             Content = [],
             IsError = false,
         };
+
         var context = CreateContext();
         McpRequestHandler<CallToolRequestParams, CallToolResult> next = (_, _) => ValueTask.FromResult(expected);
 
@@ -53,6 +54,7 @@ public sealed class UnhandledToolExceptionFilterTests
         var exception = new InvalidOperationException("Sensitive message");
         McpRequestHandler<CallToolRequestParams, CallToolResult> next = (_, _) =>
             ValueTask.FromException<CallToolResult>(exception);
+
         var result = await _target.InvokeAsync(next, context, CancellationToken.None);
 
         result.Content.Should().BeEmpty();

@@ -10,6 +10,7 @@ public sealed class EncapsulateFieldToolTests
             Code = "SymbolNotFound",
             Message = "The symbol selector did not match any result.",
         }, RequiredAction.ResolveTargetAgain);
+
         var workspaceResolver = new Mock<IWorkspaceResolver>();
         var context = CreateContext(workspaceResolver);
         var request = CreateRequest();
@@ -87,6 +88,7 @@ public sealed class EncapsulateFieldToolTests
         workspaceResolver
             .Setup(item => item.ResolveSymbolAsync(request.Field!, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<ISymbol>.Resolved(field.Object));
+
         workspaceResolver
             .Setup(item => item.CreateResolvedLocation(location))
             .Returns((ResolvedLocation?)null);
@@ -115,9 +117,11 @@ public sealed class EncapsulateFieldToolTests
         workspaceResolver
             .Setup(item => item.ResolveSymbolAsync(request.Field!, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<ISymbol>.Resolved(field.Object));
+
         workspaceResolver
             .Setup(item => item.CreateResolvedLocation(location))
             .Returns(resolvedLocation);
+
         selectionStager
             .Setup(item => item.StageReplayCodeActionAsync(
                 It.Is<ReplayCodeActionRequest>(replayRequest =>
@@ -158,9 +162,11 @@ public sealed class EncapsulateFieldToolTests
         workspaceResolver
             .Setup(item => item.ResolveSymbolAsync(request.Field!, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<ISymbol>.Resolved(field.Object));
+
         workspaceResolver
             .Setup(item => item.CreateResolvedLocation(location))
             .Returns(resolvedLocation);
+
         selectionStager
             .Setup(item => item.StageReplayCodeActionAsync(
                 It.Is<ReplayCodeActionRequest>(replayRequest =>
@@ -225,6 +231,7 @@ public sealed class EncapsulateFieldToolTests
         symbol
             .Setup(item => item.Name)
             .Returns(name);
+
         symbol
             .Setup(item => item.Locations)
             .Returns(System.Collections.Immutable.ImmutableArray.CreateRange(locations));

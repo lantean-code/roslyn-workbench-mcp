@@ -12,6 +12,7 @@ public sealed class WorkspaceMutationStagerTests
             CandidateSolution = workspace.CurrentSolution,
             Summary = "Summary",
         };
+
         var diagnostic = new DiagnosticInfo { Id = "Id" };
         var warning = new WarningInfo { Code = "Code", Message = "Message" };
         var expected = WorkspaceOperationResult<MutationStagingOutcome>.NoChange();
@@ -21,6 +22,7 @@ public sealed class WorkspaceMutationStagerTests
             It.Is<IReadOnlyList<DiagnosticInfo>>(items => items.SequenceEqual(new[] { diagnostic })),
             It.Is<IReadOnlyList<WarningInfo>>(items => items.SequenceEqual(new[] { warning })),
             TestContext.Current.CancellationToken)).ReturnsAsync(expected);
+
         var target = new WorkspaceMutationStager(stagingService.Object);
 
         var result = await target.StageAsync(

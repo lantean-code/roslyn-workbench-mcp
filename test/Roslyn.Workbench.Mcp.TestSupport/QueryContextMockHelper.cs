@@ -22,18 +22,23 @@ public static class QueryContextMockHelper
         toolExecutionServices
             .SetupGet(item => item.RequestResolver)
             .Returns(requestResolver.Object);
+
         toolExecutionServices
             .SetupGet(item => item.ProjectTargetFrameworkResolver)
             .Returns(projectTargetFrameworkResolver.Object);
+
         queryContext
             .SetupGet(item => item.WorkspaceResolver)
             .Returns(workspaceResolver.Object);
+
         queryContext
             .SetupGet(item => item.ToolExecutionServices)
             .Returns(toolExecutionServices.Object);
+
         queryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(workspace.CurrentSolution);
+
         queryContext
             .SetupGet(item => item.WorkspaceIdentity)
             .Returns(new WorkspaceIdentity

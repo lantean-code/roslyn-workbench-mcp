@@ -18,6 +18,7 @@ public sealed class RemoveUnusedUsingsToolTests
                 WorkspaceEpoch = 1,
             },
         };
+
         var scopedFixStager = new Mock<IScopedCodeFixStager>();
         var target = new RemoveUnusedUsingsTool(scopedFixStager.Object);
 

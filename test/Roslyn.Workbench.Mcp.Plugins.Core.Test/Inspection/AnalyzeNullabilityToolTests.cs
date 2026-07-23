@@ -45,6 +45,7 @@ public sealed class AnalyzeNullabilityToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<SnapshotPrecondition?>()))
             .Returns((PluginExecutionResult<NullabilityAnalysisData>?)null);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(SelectorResolveResult<Location>.NotFound());
@@ -60,6 +61,7 @@ public sealed class AnalyzeNullabilityToolTests
             Code = "LocationNotFound",
             Message = "The location selector did not match any result.",
         });
+
         result.RequiredAction.Should().Be(RequiredAction.ResolveTargetAgain);
     }
 
@@ -74,6 +76,7 @@ public sealed class AnalyzeNullabilityToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<SnapshotPrecondition?>()))
             .Returns((PluginExecutionResult<NullabilityAnalysisData>?)null);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(SelectorResolveResult<Location>.Ambiguous());
@@ -89,6 +92,7 @@ public sealed class AnalyzeNullabilityToolTests
             Code = "LocationAmbiguous",
             Message = "The location selector matched multiple results.",
         });
+
         result.RequiredAction.Should().Be(RequiredAction.ResolveTargetAgain);
     }
 
@@ -106,6 +110,7 @@ public sealed class AnalyzeNullabilityToolTests
                 }
             }
             """);
+
         using var emptyWorkspace = new AdhocWorkspace();
 
         var target = new AnalyzeNullabilityTool();
@@ -115,11 +120,13 @@ public sealed class AnalyzeNullabilityToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(emptyWorkspace.CurrentSolution);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ValidateSnapshot<NullabilityAnalysisData>(
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<SnapshotPrecondition?>()))
             .Returns((PluginExecutionResult<NullabilityAnalysisData>?)null);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(selectedLocation));
@@ -135,6 +142,7 @@ public sealed class AnalyzeNullabilityToolTests
             Code = "LocationNotFound",
             Message = "The location selector did not resolve to a source document.",
         });
+
         result.RequiredAction.Should().Be(RequiredAction.ResolveTargetAgain);
     }
 
@@ -168,25 +176,31 @@ public sealed class AnalyzeNullabilityToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.ToolExecutionServices
             .SetupGet(item => item.CompilerDiagnosticService)
             .Returns(compilerDiagnosticService.Object);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ValidateSnapshot<NullabilityAnalysisData>(
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<SnapshotPrecondition?>()))
             .Returns((PluginExecutionResult<NullabilityAnalysisData>?)null);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(selectedLocation));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.Is<Location>(location =>
                 location.SourceSpan == selectedLocation.SourceSpan
                 && location.SourceTree == syntaxTree)))
             .Returns(projectedSelectedLocation);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.Is<Location>(location =>
                 location.SourceSpan == outsideLocation.SourceSpan
@@ -296,19 +310,23 @@ public sealed class AnalyzeNullabilityToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.ToolExecutionServices
             .SetupGet(item => item.CompilerDiagnosticService)
             .Returns(compilerDiagnosticService.Object);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<NullabilityAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Document>, NullabilityAnalysisData>.Resolved(documents));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.Is<Location>(location =>
                 location.SourceSpan == firstValueLocation.SourceSpan
                 && location.SourceTree == firstTree)))
             .Returns(firstProjectedLocation);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.Is<Location>(location =>
                 location.SourceSpan == secondValueLocation.SourceSpan
@@ -364,14 +382,17 @@ public sealed class AnalyzeNullabilityToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.ToolExecutionServices
             .SetupGet(item => item.CompilerDiagnosticService)
             .Returns(compilerDiagnosticService.Object);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<NullabilityAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Document>, NullabilityAnalysisData>.Resolved([document.Document]));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.Is<Location>(location =>
                 location.SourceSpan == valueLocation.SourceSpan

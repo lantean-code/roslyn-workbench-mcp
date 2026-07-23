@@ -48,6 +48,7 @@ public sealed class GetSymbolDependentsToolTests
             "Format",
             "Formatter",
             TestContext.Current.CancellationToken);
+
         var expected = PluginExecutionResult<SymbolDependentsData>.Rejected(new PluginExecutionError
         {
             Code = "DocumentNotFound",
@@ -61,6 +62,7 @@ public sealed class GetSymbolDependentsToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, SymbolDependentsData>.Resolved(symbol));
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<SymbolDependentsData>(
                 It.IsAny<ScopeSelector?>(),
@@ -137,14 +139,17 @@ public sealed class GetSymbolDependentsToolTests
             "Format",
             "Formatter",
             TestContext.Current.CancellationToken);
+
         var documents = solution.Solution.Projects.Single().Documents.ToArray();
 
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(solution.Solution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(1);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<SymbolDependentsData>(
                 It.IsAny<SymbolSelector?>(),
@@ -152,11 +157,13 @@ public sealed class GetSymbolDependentsToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, SymbolDependentsData>.Resolved(symbol));
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<SymbolDependentsData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Document>, SymbolDependentsData>.Resolved(documents));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));

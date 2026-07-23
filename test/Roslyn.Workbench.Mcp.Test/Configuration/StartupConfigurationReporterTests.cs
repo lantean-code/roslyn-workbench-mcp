@@ -69,6 +69,7 @@ public sealed class StartupConfigurationReporterTests
                 Options = new StartupOptions(),
             },
             logger.Object);
+
         using var cancellationSource = new CancellationTokenSource();
         await cancellationSource.CancelAsync();
 

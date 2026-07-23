@@ -21,12 +21,14 @@ public sealed class ControlledProviderWorkflowIntegrationTests
             Location = fixture.GetLocation("StateHolder"),
             ExpectedSnapshot = snapshot,
         }, TestContext.Current.CancellationToken);
+
         var parameterisedAction = listed.Data!.Actions.Single(static action => action.Title == "Change signature test refactoring");
         var described = await session.DescribeAsync(new DescribeCodeActionRequest
         {
             ActionId = parameterisedAction.ActionId,
             ExpectedSnapshot = snapshot,
         }, TestContext.Current.CancellationToken);
+
         var staged = await session.StageCodeActionAsync(new StageCodeActionRequest
         {
             ActionId = parameterisedAction.ActionId,
@@ -56,12 +58,14 @@ public sealed class ControlledProviderWorkflowIntegrationTests
             ActionId = refactorings.Data!.Actions.Single(static action => action.Title == "Apply test refactoring").ActionId,
             ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0),
         }, TestContext.Current.CancellationToken);
+
         var codeFixes = await ListActionsAsync(session, fixture.GetLocation("unused"), open, 1, includeRefactorings: false);
         var stagedCodeFix = await session.StageCodeFixAsync(new StageCodeFixRequest
         {
             ActionId = codeFixes.Data!.Actions.Single(static action => action.Title == "Apply test code fix").ActionId,
             ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 1),
         }, TestContext.Current.CancellationToken);
+
         var preview = await coordinator.PreviewTransactionAsync(TestContext.Current.CancellationToken);
 
         stagedRefactoring.Data!.Transaction!.Revision.Should().Be(1);

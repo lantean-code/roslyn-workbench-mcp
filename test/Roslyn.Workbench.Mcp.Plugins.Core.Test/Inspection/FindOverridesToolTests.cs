@@ -85,6 +85,7 @@ public sealed class FindOverridesToolTests
             "Run",
             null,
             TestContext.Current.CancellationToken);
+
         var expected = PluginExecutionResult<OverrideSearchData>.Rejected(new PluginExecutionError
         {
             Code = "ProjectNotFound",
@@ -98,6 +99,7 @@ public sealed class FindOverridesToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, OverrideSearchData>.Resolved(symbol));
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveProjects<OverrideSearchData>(
                 It.IsAny<ScopeSelector?>(),
@@ -159,14 +161,17 @@ public sealed class FindOverridesToolTests
             "Run",
             "BaseType",
             TestContext.Current.CancellationToken);
+
         var project = solution.Solution.Projects.Single();
 
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(solution.Solution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<OverrideSearchData>(
                 It.IsAny<SymbolSelector?>(),
@@ -174,11 +179,13 @@ public sealed class FindOverridesToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, OverrideSearchData>.Resolved(symbol));
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveProjects<OverrideSearchData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Project>, OverrideSearchData>.Resolved([project]));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => new SymbolReference

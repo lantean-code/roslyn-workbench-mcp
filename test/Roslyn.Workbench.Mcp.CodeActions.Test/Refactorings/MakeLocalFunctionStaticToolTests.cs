@@ -15,6 +15,7 @@ public sealed class MakeLocalFunctionStaticToolTests
                 WorkspaceEpoch = 1,
             },
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new MakeLocalFunctionStaticTool(selectionStager.Object);
 

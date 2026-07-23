@@ -243,6 +243,7 @@ public sealed class CodeActionScopeResolverTests
         workspaceResolver
             .Setup(item => item.ResolveProject(firstSelector))
             .Returns(SelectorResolveResult<Project>.Resolved(firstProject));
+
         workspaceResolver
             .Setup(item => item.ResolveProject(secondSelector))
             .Returns(SelectorResolveResult<Project>.Resolved(secondProject));

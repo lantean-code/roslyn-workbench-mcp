@@ -34,6 +34,7 @@ public sealed class McpServerToolBaseTests
                 It.Is<TestRequest>(request => request.Name == string.Empty),
                 CancellationToken.None))
             .Returns(ToolExecutionContextLease<IQueryContext>.Acquired(context.Object));
+
         handler
             .Setup(item => item.ExecuteAsync(
                 It.Is<TestRequest>(request => request.Name == string.Empty),
@@ -43,14 +44,17 @@ public sealed class McpServerToolBaseTests
             {
                 Value = "Value",
             }));
+
         var registration = McpServerToolTestData.CreatePluginQueryRegistration(handler.Object, "test-query");
         var protocolFactory = McpServerToolTestData.CreateProtocolFactory(
             McpServerToolTestData.CreateProtocolTool("test-query"));
+
         var target = new PluginQueryMcpServerTool<TestRequest, TestResponse>(
             registration,
             contextFactory.Object,
             protocolFactory.Object,
             McpServerToolTestData.CreateOptions());
+
         var server = ServerOwnedToolTestSupport.CreateServer();
         await using var serverDisposal = server;
         var requestContext = new RequestContext<CallToolRequestParams>(

@@ -83,11 +83,13 @@ public sealed class ResolveSymbolToolTests
             document.Document,
             static item => item.Identifier.ValueText == "Format",
             TestContext.Current.CancellationToken);
+
         var requestLocation = SelectorTestFactory.CreateSpanLocationSelector("Code.cs", sourceLocation.SourceSpan.Start, sourceLocation.SourceSpan.Length);
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(requestLocation, It.IsAny<CancellationToken>()))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(sourceLocation));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveSymbolAsync(
                 It.Is<SymbolSelector>(selector => selector.Location == requestLocation),
@@ -164,10 +166,12 @@ public sealed class ResolveSymbolToolTests
             solution.GetDocument("A.cs"),
             "Formatter",
             TestContext.Current.CancellationToken);
+
         var usageLocation = await RoslynDocumentTestHelper.GetSingleNodeLocationAsync<IdentifierNameSyntax>(
             solution.GetDocument("A.cs"),
             static item => item.Identifier.ValueText == "Formatter" && item.Parent is ObjectCreationExpressionSyntax,
             TestContext.Current.CancellationToken);
+
         var requestLocation = SelectorTestFactory.CreateSpanLocationSelector("A.cs", usageLocation.SourceSpan.Start, usageLocation.SourceSpan.Length);
         var firstSourceLocation = symbol.Locations.First(static item => item.IsInSource);
         var firstSourcePath = Path.GetFileName(firstSourceLocation.SourceTree!.FilePath!);
@@ -175,6 +179,7 @@ public sealed class ResolveSymbolToolTests
             .Where(static item => item.IsInSource)
             .Select(item => Path.GetFileName(item.SourceTree!.FilePath!))
             .First(item => item != null && item != firstSourcePath);
+
         var expectedPaths = symbol.Locations
             .Where(static item => item.IsInSource)
             .Select(item => Path.GetFileName(item.SourceTree!.FilePath!))
@@ -185,14 +190,17 @@ public sealed class ResolveSymbolToolTests
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(requestLocation, It.IsAny<CancellationToken>()))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(usageLocation));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveSymbolAsync(
                 It.Is<SymbolSelector>(selector => selector.Location == requestLocation),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(SelectorResolveResult<ISymbol>.Resolved(symbol));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item =>
@@ -241,24 +249,29 @@ public sealed class ResolveSymbolToolTests
             document.Document,
             static item => item.ToString().Contains("ToUpperInvariant()", StringComparison.Ordinal),
             TestContext.Current.CancellationToken);
+
         var usageLocation = await RoslynDocumentTestHelper.GetSingleNodeLocationAsync<InvocationExpressionSyntax>(
             document.Document,
             static item => item.ToString().Contains("ToUpperInvariant()", StringComparison.Ordinal),
             TestContext.Current.CancellationToken);
+
         var requestLocation = SelectorTestFactory.CreateSpanLocationSelector("Code.cs", usageLocation.SourceSpan.Start, usageLocation.SourceSpan.Length);
         var resolvedUsageLocation = SelectorTestFactory.CreateResolvedLocation("Code.cs", usageLocation.SourceSpan.Start, usageLocation.SourceSpan.Length);
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(requestLocation, It.IsAny<CancellationToken>()))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(usageLocation));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveSymbolAsync(
                 It.Is<SymbolSelector>(selector => selector.Location == requestLocation),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(SelectorResolveResult<ISymbol>.Resolved(symbol));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.Is<Location>(item => item == usageLocation)))
             .Returns(resolvedUsageLocation);

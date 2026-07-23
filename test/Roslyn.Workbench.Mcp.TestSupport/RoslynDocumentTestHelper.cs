@@ -119,6 +119,7 @@ public static class RoslynDocumentTestHelper
             .DescendantNodes()
             .OfType<InvocationExpressionSyntax>()
             .Single(predicate);
+
         var symbolInfo = semanticModel.GetSymbolInfo(invocation, cancellationToken);
 
         return symbolInfo.Symbol
@@ -166,6 +167,7 @@ public static class RoslynDocumentTestHelper
             .DescendantNodes()
             .OfType<AnonymousFunctionExpressionSyntax>()
             .Single();
+
         var operation = semanticModel.GetOperation(anonymousFunction, cancellationToken) as IAnonymousFunctionOperation;
 
         return operation?.Symbol

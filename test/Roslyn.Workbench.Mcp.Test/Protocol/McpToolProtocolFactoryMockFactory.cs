@@ -9,6 +9,7 @@ internal static class McpToolProtocolFactoryMockFactory
         {
             Name = "Name",
         });
+
         return protocolFactory;
     }
 }

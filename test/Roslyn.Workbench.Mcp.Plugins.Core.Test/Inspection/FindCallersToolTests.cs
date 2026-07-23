@@ -66,6 +66,7 @@ public sealed class FindCallersToolTests
             "Callee",
             null,
             TestContext.Current.CancellationToken);
+
         var expected = PluginExecutionResult<CallerSearchData>.Rejected(new PluginExecutionError
         {
             Code = "DocumentNotFound",
@@ -75,6 +76,7 @@ public sealed class FindCallersToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(solution.Solution);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<CallerSearchData>(
                 It.IsAny<SymbolSelector?>(),
@@ -82,6 +84,7 @@ public sealed class FindCallersToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, CallerSearchData>.Resolved(symbol));
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<CallerSearchData>(
                 It.IsAny<ScopeSelector?>(),
@@ -153,6 +156,7 @@ public sealed class FindCallersToolTests
             "Callee",
             null,
             TestContext.Current.CancellationToken);
+
         var callerDocument = solution.GetDocument("Callers.cs");
         var betaCalleeLocations = await GetCalleeIdentifierLocationsAsync(callerDocument, "RunBeta");
         var omittedSpanStart = betaCalleeLocations[0].SourceSpan.Start;
@@ -160,9 +164,11 @@ public sealed class FindCallersToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(solution.Solution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<CallerSearchData>(
                 It.IsAny<SymbolSelector?>(),
@@ -170,14 +176,17 @@ public sealed class FindCallersToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, CallerSearchData>.Resolved(symbol));
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<CallerSearchData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Document>, CallerSearchData>.Resolved(solution.Solution.Projects.Single().Documents.ToArray()));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(resolved => SelectorTestFactory.CreateSymbolReference(resolved));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(location =>
@@ -271,6 +280,7 @@ public sealed class FindCallersToolTests
             "Callee",
             null,
             TestContext.Current.CancellationToken);
+
         var callerDocument = solution.GetDocument("Callers.cs");
         var alphaCalleeLocation = (await GetCalleeIdentifierLocationsAsync(callerDocument, "RunAlpha")).Single();
         var betaCalleeLocations = await GetCalleeIdentifierLocationsAsync(callerDocument, "RunBeta");
@@ -278,12 +288,15 @@ public sealed class FindCallersToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(solution.Solution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.ToolExecutionServices
             .SetupGet(item => item.InspectionContextService)
             .Returns(inspectionContextService.Object);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<CallerSearchData>(
                 It.IsAny<SymbolSelector?>(),
@@ -291,29 +304,35 @@ public sealed class FindCallersToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, CallerSearchData>.Resolved(symbol));
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<CallerSearchData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Document>, CallerSearchData>.Resolved(solution.Solution.Projects.Single().Documents.ToArray()));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(resolved => SelectorTestFactory.CreateSymbolReference(resolved));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(location => SelectorTestFactory.CreateResolvedLocation(location, Path.GetFileName(location.SourceTree!.FilePath!)));
+
         inspectionContextService
             .Setup(item => item.ReadContextAsync(
                 callerDocument,
                 It.Is<TextSpan>(span => span.Start == alphaCalleeLocation.SourceSpan.Start),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync("target.Callee();");
+
         inspectionContextService
             .Setup(item => item.ReadContextAsync(
                 callerDocument,
                 It.Is<TextSpan>(span => span.Start == betaCalleeLocations[0].SourceSpan.Start),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync("   ");
+
         inspectionContextService
             .Setup(item => item.ReadContextAsync(
                 callerDocument,

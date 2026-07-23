@@ -33,6 +33,7 @@ public sealed class ToolExecutionHelpersTests
             Code = "Code",
             Message = "Message",
         });
+
         var rejected = ToolResolutionResult<string, object>.Rejected(rejection);
         var resolved = ToolResolutionResult<string, object>.Resolved("Value");
 

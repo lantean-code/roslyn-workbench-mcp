@@ -37,14 +37,17 @@ public sealed class GetProjectDetailsToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveProject<ProjectDetailsData>(
                 It.IsAny<ProjectSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<Project, ProjectDetailsData>.Resolved(project));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.NormalizeProjectPath(It.IsAny<string>()))
             .Returns<string>(item => item);
+
         queryContextMocks.ProjectTargetFrameworkResolver
             .Setup(item => item.Resolve("WorkspaceId", project, It.IsAny<CancellationToken>()))
             .Returns(ProjectTargetFrameworksResult.Succeeded(["TargetFramework"]));
@@ -120,28 +123,36 @@ public sealed class GetProjectDetailsToolTests
         analyzerReferenceOne
             .SetupGet(item => item.Display)
             .Returns("ZAnalyzer");
+
         analyzerReferenceOne
             .Setup(item => item.GetAnalyzers(It.IsAny<string>()))
             .Returns([]);
+
         analyzerReferenceOne
             .Setup(item => item.GetGenerators(It.IsAny<string>()))
             .Returns([]);
+
         analyzerReferenceTwo
             .SetupGet(item => item.Display)
             .Returns("AAnalyzer");
+
         analyzerReferenceTwo
             .Setup(item => item.GetAnalyzers(It.IsAny<string>()))
             .Returns([]);
+
         analyzerReferenceTwo
             .Setup(item => item.GetGenerators(It.IsAny<string>()))
             .Returns([]);
+
         var analyzerReferenceThree = new Mock<AnalyzerReference>();
         analyzerReferenceThree
             .SetupGet(item => item.Display)
             .Returns((string)null!);
+
         analyzerReferenceThree
             .Setup(item => item.GetAnalyzers(It.IsAny<string>()))
             .Returns([]);
+
         analyzerReferenceThree
             .Setup(item => item.GetGenerators(It.IsAny<string>()))
             .Returns([]);
@@ -155,6 +166,7 @@ public sealed class GetProjectDetailsToolTests
                 .AddAnalyzerReference(mainProject.Id, analyzerReferenceOne.Object)
                 .AddAnalyzerReference(mainProject.Id, analyzerReferenceTwo.Object)
                 .AddAnalyzerReference(mainProject.Id, analyzerReferenceThree.Object));
+
         mainProject = solution.Workspace.CurrentSolution.Projects.Single(item => item.Name == "Main");
 
         var target = new GetProjectDetailsTool();
@@ -162,20 +174,25 @@ public sealed class GetProjectDetailsToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(solution.Workspace.CurrentSolution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveProject<ProjectDetailsData>(
                 It.IsAny<ProjectSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<Project, ProjectDetailsData>.Resolved(mainProject));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.NormalizeProjectPath(It.IsAny<string>()))
             .Returns<string>(item => Path.GetFileNameWithoutExtension(item));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.NormalizeDocumentPath(It.IsAny<string>()))
             .Returns<string>(item => Path.GetFileName(item));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateDocumentReference(It.IsAny<Document>()))
             .Returns<Document>(item => new DocumentReference
@@ -184,6 +201,7 @@ public sealed class GetProjectDetailsToolTests
                 ProjectId = item.Project.Id.Id.ToString(),
                 Path = Path.GetFileName(item.FilePath)!,
             });
+
         queryContextMocks.ProjectTargetFrameworkResolver
             .Setup(item => item.Resolve("WorkspaceId", mainProject, It.IsAny<CancellationToken>()))
             .Returns(ProjectTargetFrameworksResult.Succeeded(["net10.0", "net9.0"]));
@@ -237,6 +255,7 @@ public sealed class GetProjectDetailsToolTests
             solution.Solution.AddMetadataReference(
                 project.Id,
                 MetadataReference.CreateFromFile(typeof(object).Assembly.Location)));
+
         project = solution.Workspace.CurrentSolution.Projects.Single();
 
         var target = new GetProjectDetailsTool();
@@ -244,20 +263,25 @@ public sealed class GetProjectDetailsToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(solution.Workspace.CurrentSolution);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveProject<ProjectDetailsData>(
                 It.IsAny<ProjectSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<Project, ProjectDetailsData>.Resolved(project));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.NormalizeDocumentPath(It.IsAny<string>()))
             .Returns<string>(item => item);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.NormalizeProjectPath(It.IsAny<string>()))
             .Returns<string>(item => item);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateDocumentReference(It.IsAny<Document>()))
             .Returns((DocumentReference?)null);
+
         queryContextMocks.ProjectTargetFrameworkResolver
             .Setup(item => item.Resolve("WorkspaceId", project, It.IsAny<CancellationToken>()))
             .Returns(ProjectTargetFrameworksResult.Succeeded([]));
@@ -293,6 +317,7 @@ public sealed class GetProjectDetailsToolTests
                 ],
             },
         ]);
+
         var target = new GetProjectDetailsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
         var project = solution.Solution.Projects.Single();
@@ -301,6 +326,7 @@ public sealed class GetProjectDetailsToolTests
                 It.IsAny<ProjectSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<Project, ProjectDetailsData>.Resolved(project));
+
         queryContextMocks.ProjectTargetFrameworkResolver
             .Setup(item => item.Resolve("WorkspaceId", project, It.IsAny<CancellationToken>()))
             .Returns(ProjectTargetFrameworksResult.Failed("Failure"));

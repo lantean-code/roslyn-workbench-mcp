@@ -44,6 +44,7 @@ public sealed class IntroduceParameterToolTests
             Strategy = strategy,
             AllOccurrences = allOccurrences,
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new IntroduceParameterTool(selectionStager.Object);
 

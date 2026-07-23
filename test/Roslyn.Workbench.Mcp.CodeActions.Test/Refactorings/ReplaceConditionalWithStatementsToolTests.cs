@@ -15,6 +15,7 @@ public sealed class ReplaceConditionalWithStatementsToolTests
                 WorkspaceEpoch = 1,
             },
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new ReplaceConditionalWithStatementsTool(selectionStager.Object);
 

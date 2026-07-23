@@ -15,6 +15,7 @@ public sealed class WorkspaceTransactionIntegrationTests
             fixtureA.ProjectPath,
             TestContext.Current.CancellationToken,
             alias: "alpha");
+
         var openB = await target.OpenAsync(
             fixtureB.ProjectPath,
             TestContext.Current.CancellationToken,
@@ -23,12 +24,15 @@ public sealed class WorkspaceTransactionIntegrationTests
         var startA = await target.StartTransactionAsync(
             TestContext.Current.CancellationToken,
             workspaceId: openA.Data!.Workspace.WorkspaceId);
+
         var startBRejected = await target.StartTransactionAsync(
             TestContext.Current.CancellationToken,
             workspaceId: openB.Data!.Workspace.WorkspaceId);
+
         var rollbackA = await target.RollbackTransactionAsync(
             TestContext.Current.CancellationToken,
             workspaceId: openA.Data.Workspace.WorkspaceId);
+
         var startBAfterRollback = await target.StartTransactionAsync(
             TestContext.Current.CancellationToken,
             workspaceId: openB.Data.Workspace.WorkspaceId);
@@ -103,6 +107,7 @@ public sealed class WorkspaceTransactionIntegrationTests
                 WorkspaceEpoch = preview.Context.WorkspaceEpoch!.Value,
                 TransactionRevision = preview.Context.TransactionRevision,
             });
+
         var redo = await target.MoveTransactionHistoryAsync(
             TransactionHistoryDirection.Redo,
             TestContext.Current.CancellationToken,
@@ -153,6 +158,7 @@ public sealed class WorkspaceTransactionIntegrationTests
                 WorkspaceEpoch = preview.Context.WorkspaceEpoch!.Value,
                 TransactionRevision = preview.Context.TransactionRevision,
             });
+
         var status = await target.GetStatusAsync(TestContext.Current.CancellationToken);
         var text = await File.ReadAllTextAsync(fixture.DocumentPath, TestContext.Current.CancellationToken);
         using var pristineFixture = TestWorkspaceFixture.Create();
@@ -212,6 +218,7 @@ public sealed class WorkspaceTransactionIntegrationTests
                 WorkspaceEpoch = preview.Context.WorkspaceEpoch!.Value,
                 TransactionRevision = preview.Context.TransactionRevision,
             });
+
         var text = await File.ReadAllTextAsync(fixture.DocumentPath, TestContext.Current.CancellationToken);
         var bytes = await File.ReadAllBytesAsync(fixture.DocumentPath, TestContext.Current.CancellationToken);
 

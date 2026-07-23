@@ -76,6 +76,7 @@ public sealed class GetSymbolAttributesToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, SymbolAttributesData>.Resolved(symbol));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -118,6 +119,7 @@ public sealed class GetSymbolAttributesToolTests
             "Format",
             null,
             TestContext.Current.CancellationToken);
+
         var symbol = method.Parameters.Single();
 
         queryContextMocks.RequestResolver
@@ -127,6 +129,7 @@ public sealed class GetSymbolAttributesToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, SymbolAttributesData>.Resolved(symbol));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -176,9 +179,11 @@ public sealed class GetSymbolAttributesToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, SymbolAttributesData>.Resolved(symbol));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);

@@ -13,6 +13,7 @@ public sealed class ReferenceDiscoveryCacheKeyTests
             document,
             "Current",
             TestContext.Current.CancellationToken);
+
         var first = new ReferenceDiscoveryCacheKey(solution.Solution, symbol, [document]);
         var second = new ReferenceDiscoveryCacheKey(solution.Solution, symbol, [document]);
 
@@ -29,6 +30,7 @@ public sealed class ReferenceDiscoveryCacheKeyTests
             document,
             "Current",
             TestContext.Current.CancellationToken);
+
         var first = new ReferenceDiscoveryCacheKey(solution.Solution, symbol, [document]);
         var changedSolution = solution.Solution.AddDocument(DocumentId.CreateNewId(document.Project.Id), "Other.cs", "class Other { }");
         var second = new ReferenceDiscoveryCacheKey(changedSolution, symbol, [document]);
@@ -46,6 +48,7 @@ public sealed class ReferenceDiscoveryCacheKeyTests
             firstDocument,
             "Current",
             TestContext.Current.CancellationToken);
+
         var first = new ReferenceDiscoveryCacheKey(solution.Solution, symbol, [firstDocument, secondDocument]);
         var second = new ReferenceDiscoveryCacheKey(solution.Solution, symbol, [secondDocument, firstDocument]);
 

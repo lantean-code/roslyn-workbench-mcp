@@ -14,9 +14,11 @@ public sealed class ToolSchemaFactoryTests
         _schemaProvider
             .Setup(item => item.GetValueSchema<ToolError>())
             .Returns(CreateObjectSchema("code"));
+
         _schemaProvider
             .Setup(item => item.GetValueSchema<RequiredAction>())
             .Returns(CreatePrimitiveSchema("string"));
+
         _target = new ToolSchemaFactory(_schemaProvider.Object);
     }
 
@@ -48,6 +50,7 @@ public sealed class ToolSchemaFactoryTests
         var successVariant = first.GetProperty("oneOf")
             .EnumerateArray()
             .Single(variant => variant.GetProperty("properties").GetProperty("ok").GetProperty("const").GetBoolean());
+
         successVariant.GetProperty("required").EnumerateArray().Select(static value => value.GetString()).Should().Contain(["ok", "data"]);
         successVariant.GetProperty("properties").GetProperty("data").GetRawText().Should().Contain("value");
         _schemaProvider.Verify(item => item.GetValueSchema(typeof(TestResponse)), Times.Once);

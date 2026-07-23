@@ -52,6 +52,7 @@ public sealed class FindReferencesToolTests
             document.Document,
             "Current",
             TestContext.Current.CancellationToken);
+
         var expected = PluginExecutionResult<ReferenceSearchData>.Rejected(new PluginExecutionError
         {
             Code = "DocumentNotFound",
@@ -65,6 +66,7 @@ public sealed class FindReferencesToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, ReferenceSearchData>.Resolved(symbol));
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<ReferenceSearchData>(
                 It.IsAny<ScopeSelector?>(),
@@ -132,20 +134,25 @@ public sealed class FindReferencesToolTests
             solution.GetDocument("StateHolder.cs"),
             "Current",
             TestContext.Current.CancellationToken);
+
         var documents = solution.Solution.Projects.Single().Documents.ToArray();
 
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(solution.Solution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.ToolExecutionServices
             .SetupGet(item => item.InspectionContextService)
             .Returns(inspectionContextService.Object);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<ReferenceSearchData>(
                 It.IsAny<SymbolSelector?>(),
@@ -153,14 +160,17 @@ public sealed class FindReferencesToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, ReferenceSearchData>.Resolved(symbol));
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<ReferenceSearchData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Document>, ReferenceSearchData>.Resolved(documents));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, Path.GetFileName(item.SourceTree!.FilePath!)));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -183,6 +193,7 @@ public sealed class FindReferencesToolTests
             It.IsAny<Document>(),
             It.IsAny<int>(),
             It.IsAny<CancellationToken>()), Times.Once);
+
         inspectionContextService.Verify(item => item.ReadContextAsync(
             It.IsAny<Document>(),
             It.IsAny<TextSpan>(),
@@ -242,9 +253,11 @@ public sealed class FindReferencesToolTests
             solution.GetDocument("StateHolder.cs"),
             "Current",
             TestContext.Current.CancellationToken);
+
         var usageDocument = solution.GetDocument("Usage.cs");
         var usageRoot = await usageDocument.GetSyntaxRootAsync(TestContext.Current.CancellationToken)
             ?? throw new InvalidOperationException("The test document must have a syntax root.");
+
         var locationToSkip = usageRoot.DescendantNodes()
             .OfType<IdentifierNameSyntax>()
             .Where(static item => item.Identifier.ValueText == "Current")
@@ -254,12 +267,15 @@ public sealed class FindReferencesToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(solution.Solution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.ToolExecutionServices
             .SetupGet(item => item.InspectionContextService)
             .Returns(inspectionContextService.Object);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<ReferenceSearchData>(
                 It.IsAny<SymbolSelector?>(),
@@ -267,25 +283,30 @@ public sealed class FindReferencesToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, ReferenceSearchData>.Resolved(symbol));
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<ReferenceSearchData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Document>, ReferenceSearchData>.Resolved(solution.Solution.Projects.Single().Documents.ToArray()));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => Path.GetFileName(item.SourceTree?.FilePath) == "StateHolder.cs" || item.SourceSpan.Start == locationToSkip
                 ? null
                 : SelectorTestFactory.CreateResolvedLocation(item, Path.GetFileName(item.SourceTree!.FilePath!)));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
         inspectionContextService
             .Setup(item => item.TryCreateContainingSymbolAsync(
                 It.IsAny<Document>(),
                 It.IsAny<int>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((ISymbol?)null);
+
         inspectionContextService
             .Setup(item => item.ReadContextAsync(
                 It.IsAny<Document>(),
@@ -454,17 +475,21 @@ public sealed class FindReferencesToolTests
             solution.GetDocument("Code.cs"),
             "Current",
             TestContext.Current.CancellationToken);
+
         var codeDocument = solution.GetDocument("Code.cs");
 
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(solution.Solution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.ToolExecutionServices
             .SetupGet(item => item.InspectionContextService)
             .Returns(inspectionContextService.Object);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<ReferenceSearchData>(
                 It.IsAny<SymbolSelector?>(),
@@ -472,17 +497,21 @@ public sealed class FindReferencesToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, ReferenceSearchData>.Resolved(symbol));
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<ReferenceSearchData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Document>, ReferenceSearchData>.Resolved([codeDocument]));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, Path.GetFileName(item.SourceTree!.FilePath!)));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
+
         inspectionContextService
             .Setup(item => item.TryCreateContainingSymbolAsync(
                 It.IsAny<Document>(),
@@ -493,6 +522,7 @@ public sealed class FindReferencesToolTests
                 "Update",
                 null,
                 TestContext.Current.CancellationToken));
+
         inspectionContextService
             .Setup(item => item.ReadContextAsync(
                 It.IsAny<Document>(),

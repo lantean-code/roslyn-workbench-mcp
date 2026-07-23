@@ -37,6 +37,7 @@ public sealed class GetDocumentOutlineToolTests
                 It.IsAny<DocumentSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<Document, DocumentOutlineData>.Resolved(document.Document));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateDocumentReference(It.IsAny<Document>()))
             .Returns<Document>(item => new DocumentReference
@@ -76,6 +77,7 @@ public sealed class GetDocumentOutlineToolTests
                 It.IsAny<DocumentSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<Document, DocumentOutlineData>.Resolved(document.Document));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateDocumentReference(It.IsAny<Document>()))
             .Returns<Document>(item => new DocumentReference
@@ -84,6 +86,7 @@ public sealed class GetDocumentOutlineToolTests
                 ProjectId = item.Project.Id.Id.ToString(),
                 Path = item.Name,
             });
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, document.Document.Name));
@@ -141,6 +144,7 @@ public sealed class GetDocumentOutlineToolTests
                 It.IsAny<DocumentSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<Document, DocumentOutlineData>.Resolved(document.Document));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateDocumentReference(It.IsAny<Document>()))
             .Returns<Document>(item => new DocumentReference
@@ -149,6 +153,7 @@ public sealed class GetDocumentOutlineToolTests
                 ProjectId = item.Project.Id.Id.ToString(),
                 Path = item.Name,
             });
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, document.Document.Name));

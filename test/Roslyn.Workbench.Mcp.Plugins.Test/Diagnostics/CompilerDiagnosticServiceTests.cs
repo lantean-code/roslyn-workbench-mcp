@@ -20,6 +20,7 @@ public sealed class CompilerDiagnosticServiceTests
                 }
             }
             """);
+
         var target = new CompilerDiagnosticService();
         var document = workspace.Solution.Projects.Single().Documents.Single();
 
@@ -54,6 +55,7 @@ public sealed class CompilerDiagnosticServiceTests
                     }
                 }
                 """));
+
         var target = new CompilerDiagnosticService();
         var selectedDocument = workspace.CurrentSolution.Projects.Single(static project => project.Name == "ProjectOne").Documents.Single();
 
@@ -76,6 +78,7 @@ public sealed class CompilerDiagnosticServiceTests
                 }
             }
             """);
+
         var target = new CompilerDiagnosticService();
         var selectedDocuments = workspace.CurrentSolution.Projects.SelectMany(static project => project.Documents).ToArray();
 
@@ -134,6 +137,7 @@ public sealed class CompilerDiagnosticServiceTests
                 metadataReferences: GetMetadataReferences(),
                 compilationOptions: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary),
                 parseOptions: new CSharpParseOptions(LanguageVersion.Preview)));
+
             solution = solution.AddDocument(DocumentInfo.Create(
                 DocumentId.CreateNewId(projectId, project.DocumentName),
                 project.DocumentName,

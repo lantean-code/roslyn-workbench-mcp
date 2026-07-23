@@ -22,6 +22,7 @@ public sealed class ProjectStructureTargetFrameworkIntegrationTests
                   <Import Project="build\Frameworks.props" />
                 </Project>
                 """);
+
             File.WriteAllText(importedPropsPath, """
                 <Project>
                   <PropertyGroup>

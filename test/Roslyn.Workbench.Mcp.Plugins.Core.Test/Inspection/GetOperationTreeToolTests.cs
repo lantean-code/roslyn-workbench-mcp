@@ -55,6 +55,7 @@ public sealed class GetOperationTreeToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<SnapshotPrecondition?>()))
             .Returns((PluginExecutionResult<OperationTreeData>?)null);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(SelectorResolveResult<Location>.Ambiguous());
@@ -98,9 +99,11 @@ public sealed class GetOperationTreeToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<SnapshotPrecondition?>()))
             .Returns((PluginExecutionResult<OperationTreeData>?)null);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns((ResolvedLocation?)null);
@@ -144,9 +147,11 @@ public sealed class GetOperationTreeToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<SnapshotPrecondition?>()))
             .Returns((PluginExecutionResult<OperationTreeData>?)null);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns(new ResolvedLocation
@@ -193,9 +198,11 @@ public sealed class GetOperationTreeToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<SnapshotPrecondition?>()))
             .Returns((PluginExecutionResult<OperationTreeData>?)null);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, document.Document.Name));
@@ -224,14 +231,17 @@ public sealed class GetOperationTreeToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ValidateSnapshot<OperationTreeData>(
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<SnapshotPrecondition?>()))
             .Returns((PluginExecutionResult<OperationTreeData>?)null);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, document.Document.Name));
@@ -268,14 +278,17 @@ public sealed class GetOperationTreeToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ValidateSnapshot<OperationTreeData>(
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<SnapshotPrecondition?>()))
             .Returns((PluginExecutionResult<OperationTreeData>?)null);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, document.Document.Name));
@@ -321,14 +334,17 @@ public sealed class GetOperationTreeToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ValidateSnapshot<OperationTreeData>(
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<SnapshotPrecondition?>()))
             .Returns((PluginExecutionResult<OperationTreeData>?)null);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, document.Document.Name));
@@ -371,14 +387,17 @@ public sealed class GetOperationTreeToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ValidateSnapshot<OperationTreeData>(
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<SnapshotPrecondition?>()))
             .Returns((PluginExecutionResult<OperationTreeData>?)null);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, document.Document.Name));

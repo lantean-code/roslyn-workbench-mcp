@@ -56,6 +56,7 @@ public sealed class WorkspaceSessionStoreTests
             Code = "Code",
             Message = "Message",
         };
+
         var validate = new Mock<Func<WorkspaceHostSnapshot, WorkspaceOperationError?>>();
         validate.Setup(item => item(It.IsAny<WorkspaceHostSnapshot>())).Returns(error);
 

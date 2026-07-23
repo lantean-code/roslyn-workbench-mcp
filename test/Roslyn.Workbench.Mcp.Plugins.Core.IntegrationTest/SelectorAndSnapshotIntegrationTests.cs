@@ -53,12 +53,14 @@ public sealed class SelectorAndSnapshotIntegrationTests
                     WorkspaceEpoch = openResult.Context.WorkspaceEpoch!.Value,
                 },
             }, TestContext.Current.CancellationToken);
+
         var definition = await session.ExecuteQueryAsync<GoToDefinitionRequest, DefinitionData>(
             "go-to-definition",
             new GoToDefinitionRequest
             {
                 Symbol = resolved.Data!.Selector,
             }, TestContext.Current.CancellationToken);
+
         var search = await session.ExecuteQueryAsync<SearchSymbolsRequest, SymbolSearchData>(
             "search-symbols",
             new SearchSymbolsRequest

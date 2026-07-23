@@ -104,6 +104,7 @@ public sealed class FindDerivedTypesToolTests
             document.Document,
             "BaseType",
             TestContext.Current.CancellationToken);
+
         var expected = PluginExecutionResult<DerivedTypesData>.Rejected(new PluginExecutionError
         {
             Code = "ProjectNotFound",
@@ -117,6 +118,7 @@ public sealed class FindDerivedTypesToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, DerivedTypesData>.Resolved(symbol));
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveProjects<DerivedTypesData>(
                 It.IsAny<ScopeSelector?>(),
@@ -172,14 +174,17 @@ public sealed class FindDerivedTypesToolTests
             solution.GetDocument("Code.cs"),
             "BaseType",
             TestContext.Current.CancellationToken);
+
         var project = solution.Solution.Projects.Single();
 
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(solution.Solution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<DerivedTypesData>(
                 It.IsAny<SymbolSelector?>(),
@@ -187,11 +192,13 @@ public sealed class FindDerivedTypesToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, DerivedTypesData>.Resolved(baseType));
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveProjects<DerivedTypesData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Project>, DerivedTypesData>.Resolved([project]));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -255,14 +262,17 @@ public sealed class FindDerivedTypesToolTests
             solution.GetDocument("Code.cs"),
             "IMessageFormatter",
             TestContext.Current.CancellationToken);
+
         var project = solution.Solution.Projects.Single();
 
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(solution.Solution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<DerivedTypesData>(
                 It.IsAny<SymbolSelector?>(),
@@ -270,11 +280,13 @@ public sealed class FindDerivedTypesToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, DerivedTypesData>.Resolved(symbol));
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveProjects<DerivedTypesData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Project>, DerivedTypesData>.Resolved([project]));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));

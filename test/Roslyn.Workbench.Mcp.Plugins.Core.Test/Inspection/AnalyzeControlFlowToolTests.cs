@@ -57,6 +57,7 @@ public sealed class AnalyzeControlFlowToolTests
             Code = "InvalidRequest",
             Message = "A location selector is required.",
         });
+
         queryContextMocks.WorkspaceResolver.Verify(item => item.ResolveLocationAsync(
             It.IsAny<LocationSelector>(),
             It.IsAny<CancellationToken>()), Times.Never);
@@ -73,6 +74,7 @@ public sealed class AnalyzeControlFlowToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<SnapshotPrecondition?>()))
             .Returns((PluginExecutionResult<ControlFlowAnalysisData>?)null);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(SelectorResolveResult<Location>.NotFound());
@@ -88,6 +90,7 @@ public sealed class AnalyzeControlFlowToolTests
             Code = "LocationNotFound",
             Message = "The location selector did not match any result.",
         });
+
         result.RequiredAction.Should().Be(RequiredAction.ResolveTargetAgain);
         queryContextMocks.WorkspaceResolver.Verify(item => item.CreateResolvedLocation(It.IsAny<Location>()), Times.Never);
     }
@@ -103,6 +106,7 @@ public sealed class AnalyzeControlFlowToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<SnapshotPrecondition?>()))
             .Returns((PluginExecutionResult<ControlFlowAnalysisData>?)null);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(SelectorResolveResult<Location>.Ambiguous());
@@ -118,6 +122,7 @@ public sealed class AnalyzeControlFlowToolTests
             Code = "LocationAmbiguous",
             Message = "The location selector matched multiple results.",
         });
+
         result.RequiredAction.Should().Be(RequiredAction.ResolveTargetAgain);
         queryContextMocks.WorkspaceResolver.Verify(item => item.CreateResolvedLocation(It.IsAny<Location>()), Times.Never);
     }
@@ -147,14 +152,17 @@ public sealed class AnalyzeControlFlowToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ValidateSnapshot<ControlFlowAnalysisData>(
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<SnapshotPrecondition?>()))
             .Returns((PluginExecutionResult<ControlFlowAnalysisData>?)null);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(selectedLocation));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.Is<Location>(item => item.SourceSpan == selectedLocation.SourceSpan)))
             .Returns(new ResolvedLocation());
@@ -170,6 +178,7 @@ public sealed class AnalyzeControlFlowToolTests
             Code = "LocationNotFound",
             Message = "The location selector did not resolve to a source document.",
         });
+
         result.RequiredAction.Should().Be(RequiredAction.ResolveTargetAgain);
     }
 
@@ -190,6 +199,7 @@ public sealed class AnalyzeControlFlowToolTests
                 }
             }
             """);
+
         using var emptyWorkspace = new AdhocWorkspace();
 
         var target = new AnalyzeControlFlowTool();
@@ -199,14 +209,17 @@ public sealed class AnalyzeControlFlowToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(emptyWorkspace.CurrentSolution);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ValidateSnapshot<ControlFlowAnalysisData>(
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<SnapshotPrecondition?>()))
             .Returns((PluginExecutionResult<ControlFlowAnalysisData>?)null);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(selectedLocation));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.Is<Location>(item => item.SourceSpan == selectedLocation.SourceSpan)))
             .Returns(SelectorTestFactory.CreateResolvedLocation(selectedLocation, "Code.cs"));
@@ -222,6 +235,7 @@ public sealed class AnalyzeControlFlowToolTests
             Code = "LocationNotFound",
             Message = "The location selector did not resolve to a source document.",
         });
+
         result.RequiredAction.Should().Be(RequiredAction.ResolveTargetAgain);
     }
 
@@ -250,14 +264,17 @@ public sealed class AnalyzeControlFlowToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ValidateSnapshot<ControlFlowAnalysisData>(
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<SnapshotPrecondition?>()))
             .Returns((PluginExecutionResult<ControlFlowAnalysisData>?)null);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(selectedLocation));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.Is<Location>(item => item.SourceSpan == selectedLocation.SourceSpan)))
             .Returns(SelectorTestFactory.CreateResolvedLocation(selectedLocation, "Code.cs"));
@@ -303,17 +320,21 @@ public sealed class AnalyzeControlFlowToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ValidateSnapshot<ControlFlowAnalysisData>(
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<SnapshotPrecondition?>()))
             .Returns((PluginExecutionResult<ControlFlowAnalysisData>?)null);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(selectedLocation));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.Is<Location>(item => item.SourceSpan == selectedLocation.SourceSpan)))
             .Returns(region);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.Is<Location>(item => item.SourceSpan == returnLocation.SourceSpan)))
             .Returns(projectedReturn);
@@ -342,6 +363,7 @@ public sealed class AnalyzeControlFlowToolTests
                 projectedReturn,
             ],
         });
+
         queryContextMocks.WorkspaceResolver.Verify(item => item.CreateResolvedLocation(It.IsAny<Location>()), Times.Exactly(3));
     }
 
@@ -373,17 +395,21 @@ public sealed class AnalyzeControlFlowToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ValidateSnapshot<ControlFlowAnalysisData>(
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<SnapshotPrecondition?>()))
             .Returns((PluginExecutionResult<ControlFlowAnalysisData>?)null);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(selectedLocation));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.Is<Location>(item => item.SourceSpan == selectedLocation.SourceSpan)))
             .Returns(region);
+
         queryContextMocks.WorkspaceResolver
             .SetupSequence(item => item.CreateResolvedLocation(It.Is<Location>(item => item.SourceSpan == returnLocation.SourceSpan)))
             .Returns(projectedExit)
@@ -410,6 +436,7 @@ public sealed class AnalyzeControlFlowToolTests
             ],
             Returns = [],
         });
+
         queryContextMocks.WorkspaceResolver.Verify(item => item.CreateResolvedLocation(
             It.Is<Location>(item => item.SourceSpan == returnLocation.SourceSpan)), Times.Exactly(2));
     }

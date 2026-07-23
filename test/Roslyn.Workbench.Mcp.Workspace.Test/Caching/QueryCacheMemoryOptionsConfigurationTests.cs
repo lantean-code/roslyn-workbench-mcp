@@ -14,6 +14,7 @@ public sealed class QueryCacheMemoryOptionsConfigurationTests
         queryCacheOptions
             .SetupGet(item => item.Value)
             .Returns(new QueryCacheOptions { SizeLimit = 42 });
+
         var target = new QueryCacheMemoryOptionsConfiguration(queryCacheOptions.Object);
         var options = new MemoryCacheOptions();
 

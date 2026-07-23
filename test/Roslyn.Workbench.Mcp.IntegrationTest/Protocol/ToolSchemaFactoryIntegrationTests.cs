@@ -57,18 +57,21 @@ public sealed class ToolSchemaFactoryIntegrationTests
         var target = CreateTarget();
         var schemaMethod = typeof(ToolSchemaFactory).GetMethod(nameof(ToolSchemaFactory.CreateInputSchema))
             ?? throw new InvalidOperationException("The input-schema factory method was not found.");
+
         var requestAssemblies = new[]
         {
             typeof(TransactionPreviewRequest).Assembly,
             typeof(StageFixAllRequest).Assembly,
             typeof(FindCalleesRequest).Assembly,
         };
+
         var requestTypes = requestAssemblies
             .Distinct()
             .SelectMany(static assembly => assembly.GetTypes())
             .Where(static type => type.Name.EndsWith("Request", StringComparison.Ordinal)
                 && type.Namespace?.Contains(".Contracts", StringComparison.Ordinal) == true)
             .ToArray();
+
         var limitProperties = requestTypes
             .SelectMany(static type => type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
             .Where(IsLimitProperty)
@@ -79,18 +82,22 @@ public sealed class ToolSchemaFactoryIntegrationTests
         {
             var declaringType = limitProperty.DeclaringType
                 ?? throw new InvalidOperationException("The limit property did not have a declaring type.");
+
             var closedSchemaMethod = schemaMethod.MakeGenericMethod(declaringType);
             var publishedSchema = closedSchemaMethod.Invoke(target, null) is JsonElement schema
                 ? schema
                 : throw new InvalidOperationException("The input-schema factory did not return a JSON element.");
+
             var jsonPropertyName = JsonNamingPolicy.CamelCase.ConvertName(limitProperty.Name);
             var publishedDefault = GetProperty(publishedSchema, jsonPropertyName).GetProperty("default");
 
             var fixedDefault = limitProperty.GetCustomAttribute<DefaultValueAttribute>()
                 ?? throw new InvalidOperationException($"{declaringType.Name}.{limitProperty.Name} must declare its fixed default.");
+
             publishedDefault.GetInt32().Should().Be(Convert.ToInt32(fixedDefault.Value, System.Globalization.CultureInfo.InvariantCulture));
             var defaultRequest = Activator.CreateInstance(declaringType, nonPublic: true)
                 ?? throw new InvalidOperationException($"{declaringType.Name} could not be constructed for its default-value audit.");
+
             limitProperty.GetValue(defaultRequest).Should().Be(fixedDefault.Value);
         }
     }

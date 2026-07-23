@@ -14,6 +14,7 @@ public sealed class MefCodeActionProviderCatalogTests
         {
             IncludeBuiltInAssemblies = false,
         });
+
         var exportProvider = new Mock<IMefHostExportProviderCompatibilityAdapter>();
 
         var target = new MefCodeActionProviderCatalog(options, exportProvider.Object);

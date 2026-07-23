@@ -15,6 +15,7 @@ public sealed class PluginExecutionContextTests
             workspaceContext.Object,
             stager.Object,
             operationLease.Object);
+
         var target = PluginMutationExecutionLease.Acquired(workspaceLease, context.Object);
 
         await target.DisposeAsync();
@@ -51,6 +52,7 @@ public sealed class PluginExecutionContextTests
             CandidateSolution = roslyn.Solution,
             Summary = "Summary",
         };
+
         var outcome = new MutationStagingOutcome
         {
             Operation = "Operation",
@@ -60,6 +62,7 @@ public sealed class PluginExecutionContextTests
                 Revision = 1,
             },
         };
+
         stager
             .Setup(item => item.StageAsync(
                 "Operation",
@@ -68,6 +71,7 @@ public sealed class PluginExecutionContextTests
                 It.IsAny<IReadOnlyList<WarningInfo>>(),
                 CancellationToken.None))
             .ReturnsAsync(WorkspaceOperationResult<MutationStagingOutcome>.Succeeded(outcome));
+
         var workspaceLease = WorkspaceMutationExecutionLease.Acquired(workspaceContext, stager.Object);
         var toolExecutionServices = new Mock<IToolExecutionServices>();
         var target = PluginMutationExecutionLease.Acquired(
@@ -102,6 +106,7 @@ public sealed class PluginExecutionContextTests
                 Message = "Message",
             },
         };
+
         var workspaceLease = WorkspaceMutationExecutionLease.Rejected(workspaceFailure);
         var failure = PluginWorkspaceResultMapper.MapFailure(workspaceFailure);
         var target = PluginMutationExecutionLease.Rejected(workspaceLease, failure);

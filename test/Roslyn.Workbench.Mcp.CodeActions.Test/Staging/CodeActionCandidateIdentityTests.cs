@@ -13,6 +13,7 @@ public sealed class CodeActionCandidateIdentityTests
             "EquivalenceKey",
             [1, 2],
             ["SecondDiagnosticId", "FirstDiagnosticId"]);
+
         var second = new CodeActionCandidateIdentity(
             "ProviderId",
             "Title",
@@ -42,6 +43,7 @@ public sealed class CodeActionCandidateIdentityTests
             "EquivalenceKey",
             [1],
             ["DiagnosticId"]);
+
         var second = difference switch
         {
             CandidateDifference.ProviderId => new CodeActionCandidateIdentity("OtherProviderId", "Title", "EquivalenceKey", [1], ["DiagnosticId"]),

@@ -38,6 +38,7 @@ public sealed class GetSymbolDependenciesToolTests
                 }
             }
             """);
+
         using var foreignDocument = RoslynTestFactory.CreateDocument("""
             public class ForeignFormatter
             {
@@ -59,9 +60,11 @@ public sealed class GetSymbolDependenciesToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<SymbolDependenciesData>(
                 It.IsAny<SymbolSelector?>(),
@@ -69,6 +72,7 @@ public sealed class GetSymbolDependenciesToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, SymbolDependenciesData>.Resolved(symbol));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -134,9 +138,11 @@ public sealed class GetSymbolDependenciesToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(20);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<SymbolDependenciesData>(
                 It.IsAny<SymbolSelector?>(),
@@ -144,6 +150,7 @@ public sealed class GetSymbolDependenciesToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, SymbolDependenciesData>.Resolved(symbol));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -202,9 +209,11 @@ public sealed class GetSymbolDependenciesToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<SymbolDependenciesData>(
                 It.IsAny<SymbolSelector?>(),
@@ -212,6 +221,7 @@ public sealed class GetSymbolDependenciesToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, SymbolDependenciesData>.Resolved(symbol));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -246,14 +256,17 @@ public sealed class GetSymbolDependenciesToolTests
             document.Document,
             "Formatter",
             TestContext.Current.CancellationToken);
+
         var field = symbol.GetMembers().OfType<IFieldSymbol>().Single(item => item.Name == "_dependency");
 
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<SymbolDependenciesData>(
                 It.IsAny<SymbolSelector?>(),
@@ -261,6 +274,7 @@ public sealed class GetSymbolDependenciesToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, SymbolDependenciesData>.Resolved(field));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -301,9 +315,11 @@ public sealed class GetSymbolDependenciesToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<SymbolDependenciesData>(
                 It.IsAny<SymbolSelector?>(),
@@ -311,6 +327,7 @@ public sealed class GetSymbolDependenciesToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, SymbolDependenciesData>.Resolved(symbol));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -358,9 +375,11 @@ public sealed class GetSymbolDependenciesToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<SymbolDependenciesData>(
                 It.IsAny<SymbolSelector?>(),
@@ -368,6 +387,7 @@ public sealed class GetSymbolDependenciesToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, SymbolDependenciesData>.Resolved(symbol));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -418,9 +438,11 @@ public sealed class GetSymbolDependenciesToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<SymbolDependenciesData>(
                 It.IsAny<SymbolSelector?>(),
@@ -428,6 +450,7 @@ public sealed class GetSymbolDependenciesToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, SymbolDependenciesData>.Resolved(symbol));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -466,9 +489,11 @@ public sealed class GetSymbolDependenciesToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<SymbolDependenciesData>(
                 It.IsAny<SymbolSelector?>(),
@@ -476,6 +501,7 @@ public sealed class GetSymbolDependenciesToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, SymbolDependenciesData>.Resolved(symbol));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -527,15 +553,18 @@ public sealed class GetSymbolDependenciesToolTests
             document.Document,
             "Formatter",
             TestContext.Current.CancellationToken);
+
         var blockGetter = containingType.GetMembers().OfType<IPropertySymbol>().Single(item => item.Name == "BlockValue").GetMethod!;
         var expressionGetter = containingType.GetMembers().OfType<IPropertySymbol>().Single(item => item.Name == "ExpressionValue").GetMethod!;
 
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => SelectorTestFactory.CreateSymbolReference(item));
@@ -597,9 +626,11 @@ public sealed class GetSymbolDependenciesToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<SymbolDependenciesData>(
                 It.IsAny<SymbolSelector?>(),
@@ -607,6 +638,7 @@ public sealed class GetSymbolDependenciesToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, SymbolDependenciesData>.Resolved(symbol));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => string.IsNullOrWhiteSpace(item.Name)

@@ -18,6 +18,7 @@ public sealed class PluginQueryMcpServerToolTests
                 It.Is<TestQueryRequest>(request => request.Name == "Name"),
                 CancellationToken.None))
             .Returns(ToolExecutionContextLease<IQueryContext>.Rejected(failure, lease: operationLease.Object));
+
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
         var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
@@ -30,6 +31,7 @@ public sealed class PluginQueryMcpServerToolTests
             It.IsAny<TestQueryRequest>(),
             It.IsAny<IQueryContext>(),
             It.IsAny<CancellationToken>()), Times.Never);
+
         operationLease.Verify(item => item.DisposeAsync(), Times.Once);
     }
 
@@ -49,6 +51,7 @@ public sealed class PluginQueryMcpServerToolTests
                     && request.Workspace.WorkspaceId == "WorkspaceId"),
                 CancellationToken.None))
             .Returns(ToolExecutionContextLease<IQueryContext>.Acquired(context.Object, operationLease.Object));
+
         handler
             .Setup(item => item.ExecuteAsync(
                 It.Is<TestQueryRequest>(request => request.Name == "Name"),
@@ -58,6 +61,7 @@ public sealed class PluginQueryMcpServerToolTests
             {
                 Value = "Value",
             }));
+
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
         var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(includeWorkspace: true), CancellationToken.None);
@@ -68,10 +72,12 @@ public sealed class PluginQueryMcpServerToolTests
         contextFactory.Verify(item => item.CreateQueryContext(
             It.Is<TestQueryRequest>(request => request.Workspace!.WorkspaceId == "WorkspaceId"),
             CancellationToken.None), Times.Once);
+
         handler.Verify(item => item.ExecuteAsync(
             It.Is<TestQueryRequest>(request => request.Name == "Name"),
             context.Object,
             CancellationToken.None), Times.Once);
+
         operationLease.Verify(item => item.DisposeAsync(), Times.Once);
     }
 
@@ -84,9 +90,11 @@ public sealed class PluginQueryMcpServerToolTests
         contextFactory
             .Setup(item => item.CreateQueryContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
             .Returns(ToolExecutionContextLease<IQueryContext>.Acquired(context.Object));
+
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestQueryRequest>(), context.Object, CancellationToken.None))
             .ReturnsAsync(PluginExecutionResult<TestQueryResponse>.NoChange());
+
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
         var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
@@ -110,9 +118,11 @@ public sealed class PluginQueryMcpServerToolTests
         contextFactory
             .Setup(item => item.CreateQueryContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
             .Returns(ToolExecutionContextLease<IQueryContext>.Acquired(context.Object));
+
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestQueryRequest>(), context.Object, CancellationToken.None))
             .ReturnsAsync(CreateFailure(outcome, code));
+
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
         var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
@@ -134,9 +144,11 @@ public sealed class PluginQueryMcpServerToolTests
         contextFactory
             .Setup(item => item.CreateQueryContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
             .Returns(ToolExecutionContextLease<IQueryContext>.Acquired(context.Object, operationLease.Object));
+
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestQueryRequest>(), context.Object, CancellationToken.None))
             .Returns(() => ValueTask.FromException<PluginExecutionResult<TestQueryResponse>>(new InvalidOperationException("Message")));
+
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
         var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
@@ -158,9 +170,11 @@ public sealed class PluginQueryMcpServerToolTests
         contextFactory
             .Setup(item => item.CreateQueryContext(It.IsAny<WorkspaceBoundRequest>(), cancellationSource.Token))
             .Returns(ToolExecutionContextLease<IQueryContext>.Acquired(context.Object, operationLease.Object));
+
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestQueryRequest>(), context.Object, cancellationSource.Token))
             .Returns(() => ValueTask.FromCanceled<PluginExecutionResult<TestQueryResponse>>(cancellationSource.Token));
+
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
         var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), cancellationSource.Token);
@@ -186,6 +200,7 @@ public sealed class PluginQueryMcpServerToolTests
         contextFactory.Verify(item => item.CreateQueryContext(
             It.IsAny<WorkspaceBoundRequest>(),
             It.IsAny<CancellationToken>()), Times.Never);
+
         handler.Verify(item => item.ExecuteAsync(
             It.IsAny<TestQueryRequest>(),
             It.IsAny<IQueryContext>(),
@@ -216,6 +231,7 @@ public sealed class PluginQueryMcpServerToolTests
         var registration = McpServerToolTestData.CreatePluginQueryRegistration(handler, "test-query");
         var protocolFactory = McpServerToolTestData.CreateProtocolFactory(
             McpServerToolTestData.CreateProtocolTool("test-query"));
+
         return new PluginQueryMcpServerTool<TestQueryRequest, TestQueryResponse>(
             registration,
             contextFactory,

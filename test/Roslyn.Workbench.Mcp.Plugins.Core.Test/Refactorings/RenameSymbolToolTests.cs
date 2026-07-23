@@ -10,12 +10,14 @@ public sealed class RenameSymbolToolTests
             Code = "SymbolNotFound",
             Message = "SymbolNotFound",
         });
+
         var contextMocks = MutationContextMockHelper.Create();
         var request = new RenameSymbolRequest
         {
             Symbol = new SymbolSelector(),
             NewName = "NewName",
         };
+
         var target = new RenameSymbolTool();
 
         contextMocks.RequestResolver
@@ -41,6 +43,7 @@ public sealed class RenameSymbolToolTests
             Symbol = new SymbolSelector(),
             NewName = " ",
         };
+
         var symbol = new Mock<ISymbol>();
         var target = new RenameSymbolTool();
 
@@ -60,6 +63,7 @@ public sealed class RenameSymbolToolTests
             Code = "InvalidRequest",
             Message = "A newName value is required.",
         });
+
         contextMocks.MutationContext.VerifyGet(item => item.CurrentSolution, Times.Never);
     }
 
@@ -72,12 +76,14 @@ public sealed class RenameSymbolToolTests
             Symbol = new SymbolSelector(),
             NewName = "ExistingName",
         };
+
         var symbol = new Mock<ISymbol>();
         var target = new RenameSymbolTool();
 
         symbol
             .SetupGet(item => item.Name)
             .Returns("ExistingName");
+
         contextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<MutationCandidate>(
                 request.Symbol,
@@ -101,6 +107,7 @@ public sealed class RenameSymbolToolTests
             document.Document,
             "ExistingName",
             CancellationToken.None);
+
         var contextMocks = MutationContextMockHelper.Create();
         var request = new RenameSymbolRequest
         {
@@ -109,11 +116,13 @@ public sealed class RenameSymbolToolTests
             RenameOverloads = true,
             RenameFile = true,
         };
+
         var target = new RenameSymbolTool();
 
         contextMocks.MutationContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         contextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<MutationCandidate>(
                 request.Symbol,
@@ -140,6 +149,7 @@ public sealed class RenameSymbolToolTests
                 public const string Description = "ExistingName is referenced in this string.";
             }
             """;
+
         using var document = RoslynTestFactory.CreateDocument(source, "ExistingName.cs");
         var symbol = await RoslynDocumentTestHelper.GetRequiredNamedTypeSymbolAsync(
             document.Document,
@@ -154,11 +164,13 @@ public sealed class RenameSymbolToolTests
             RenameInStrings = true,
             RenameInComments = true,
         };
+
         var target = new RenameSymbolTool();
 
         contextMocks.MutationContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         contextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<MutationCandidate>(
                 request.Symbol,
@@ -192,6 +204,7 @@ public sealed class RenameSymbolToolTests
                 }
             }
             """;
+
         using var document = RoslynTestFactory.CreateDocument(source);
         var compilation = await document.Document.Project.GetCompilationAsync(CancellationToken.None);
         var contract = compilation!.GetTypeByMetadataName("IContract");
@@ -202,11 +215,13 @@ public sealed class RenameSymbolToolTests
             Symbol = new SymbolSelector(),
             NewName = "UpdatedName",
         };
+
         var target = new RenameSymbolTool();
 
         contextMocks.MutationContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(document.Solution);
+
         contextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<MutationCandidate>(
                 request.Symbol,

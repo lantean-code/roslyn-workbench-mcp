@@ -53,6 +53,7 @@ public sealed class PluginPackageDiscoveryIntegrationTests
         using var pluginDirectory = CreatePluginDirectory(
             typeof(HostValidQueryPlugin).Assembly,
             typeof(HostValidQueryPlugin).Assembly);
+
         var bootstrap = new PluginCatalogBootstrap();
 
         var snapshot = bootstrap.Load(CreateStartupOptions(pluginDirectory.DirectoryPath), []);

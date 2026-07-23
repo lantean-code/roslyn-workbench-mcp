@@ -26,12 +26,14 @@ public sealed class LoadedPluginPreparerTests
             Version = "1.0.0",
             SupportedApiVersion = PluginApiVersions.V1,
         };
+
         var preparation = new PluginPreparationResult();
         var configurations = new List<PluginConfiguration>();
         _composer
             .Setup(value => value.Configure(assembly, It.IsAny<IPluginConfiguration>()))
             .Callback<Assembly, IPluginConfiguration>((_, configuration) => configurations.Add((PluginConfiguration)configuration))
             .Returns(PluginCompositionResult.Success());
+
         _configurationPreparer
             .Setup(value => value.Prepare(It.IsAny<PluginMetadata>(), It.IsAny<PluginConfiguration>()))
             .Returns(preparation);
@@ -47,6 +49,7 @@ public sealed class LoadedPluginPreparerTests
         _configurationPreparer.Verify(value => value.Prepare(
             It.Is<PluginMetadata>(metadata => metadata.PluginId == "PluginId"),
             It.IsAny<PluginConfiguration>()), Times.Once);
+
         var configuration = configurations.Single();
         var action = () => configuration.AddQueryTool<QueryHandler>();
         action.Should().Throw<InvalidOperationException>();
@@ -63,6 +66,7 @@ public sealed class LoadedPluginPreparerTests
             Version = "1.0.0",
             SupportedApiVersion = PluginApiVersions.V1,
         };
+
         var configurations = new List<PluginConfiguration>();
         _composer
             .Setup(value => value.Configure(assembly, It.IsAny<IPluginConfiguration>()))
@@ -77,9 +81,11 @@ public sealed class LoadedPluginPreparerTests
             diagnostic.Id == "PluginComposition"
             && diagnostic.Severity == DiagnosticSeverity.Error
             && diagnostic.Message == "Composition failed");
+
         _configurationPreparer.Verify(
             static value => value.Prepare(It.IsAny<PluginMetadata>(), It.IsAny<PluginConfiguration>()),
             Times.Never);
+
         var configuration = configurations.Single();
         var action = () => configuration.AddQueryTool<QueryHandler>();
         action.Should().Throw<InvalidOperationException>();

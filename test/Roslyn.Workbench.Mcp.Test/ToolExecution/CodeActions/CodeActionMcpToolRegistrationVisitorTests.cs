@@ -21,9 +21,11 @@ public sealed class CodeActionMcpToolRegistrationVisitorTests
         services.Should().Contain(descriptor =>
             descriptor.ServiceType == typeof(CodeActionQueryRegistration<TestQueryHandler, TestRequest, TestResponse>)
             && descriptor.ImplementationInstance == registration);
+
         services.Should().Contain(descriptor =>
             descriptor.ServiceType == typeof(TestQueryHandler)
             && descriptor.ImplementationType == typeof(TestQueryHandler));
+
         services.Should().Contain(descriptor =>
             descriptor.ServiceType == typeof(McpServerTool)
             && descriptor.ImplementationType == typeof(CodeActionQueryMcpServerTool<TestQueryHandler, TestRequest, TestResponse>)
@@ -50,9 +52,11 @@ public sealed class CodeActionMcpToolRegistrationVisitorTests
         services.Should().Contain(descriptor =>
             descriptor.ServiceType == typeof(CodeActionMutationRegistration<TestMutationHandler, TestRequest>)
             && descriptor.ImplementationInstance == registration);
+
         services.Should().Contain(descriptor =>
             descriptor.ServiceType == typeof(TestMutationHandler)
             && descriptor.ImplementationType == typeof(TestMutationHandler));
+
         services.Should().Contain(descriptor =>
             descriptor.ServiceType == typeof(McpServerTool)
             && descriptor.ImplementationType == typeof(CodeActionMutationMcpServerTool<TestMutationHandler, TestRequest>)

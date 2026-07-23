@@ -78,6 +78,7 @@ public sealed class PluginPublicApiContractTests
     {
         var mutationMembers = typeof(IMutationContext).GetMembers(
             BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);
+
         var contextProperties = typeof(IToolExecutionContext).GetProperties();
 
         mutationMembers.Should().BeEmpty();
@@ -91,6 +92,7 @@ public sealed class PluginPublicApiContractTests
             nameof(IToolExecutionContext.WorkspaceIdentity),
             nameof(IToolExecutionContext.WorkspaceResolver),
         ]);
+
         typeof(IWorkspaceMutationStager).IsAssignableFrom(typeof(IMutationContext)).Should().BeFalse();
     }
 

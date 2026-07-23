@@ -26,6 +26,7 @@ public sealed class CodeActionWorkflowIntegrationTests
                     ["workspaceRoot"] = target.WorkspaceRoot,
                 },
                 TestContext.Current.CancellationToken);
+
             var workspace = openResult.StructuredContent!.Value.GetProperty("data").GetProperty("workspace");
             var workspaceId = workspace.GetProperty("workspaceId").GetString();
             var workspaceEpoch = workspace.GetProperty("workspaceEpoch").GetInt64();
@@ -33,6 +34,7 @@ public sealed class CodeActionWorkflowIntegrationTests
             {
                 ["workspaceId"] = workspaceId,
             };
+
             var snapshot = new Dictionary<string, object?>
             {
                 ["workspaceId"] = workspaceId,
@@ -47,6 +49,7 @@ public sealed class CodeActionWorkflowIntegrationTests
                     ["workspace"] = workspaceSelector,
                 },
                 TestContext.Current.CancellationToken);
+
             var listResult = await target.CallToolAsync(
                 "list-code-actions",
                 new Dictionary<string, object?>
@@ -76,6 +79,7 @@ public sealed class CodeActionWorkflowIntegrationTests
             var action = actions.Single(static candidate => candidate.GetProperty("title").GetString() == "Convert to raw string");
             action.GetProperty("providerId").GetString().Should().Be(
                 "Microsoft.CodeAnalysis.CSharp.ConvertToRawString.ConvertStringToRawStringCodeRefactoringProvider");
+
             action.GetProperty("actionId").GetString().Should().NotBeNullOrWhiteSpace();
 
             var stageResult = await target.CallToolAsync(
@@ -87,6 +91,7 @@ public sealed class CodeActionWorkflowIntegrationTests
                     ["expectedSnapshot"] = snapshot,
                 },
                 TestContext.Current.CancellationToken);
+
             var previewResult = await target.CallToolAsync(
                 "transaction-preview",
                 new Dictionary<string, object?>
@@ -115,6 +120,7 @@ public sealed class CodeActionWorkflowIntegrationTests
                     ["workspace"] = workspaceSelector,
                 },
                 TestContext.Current.CancellationToken);
+
             var currentBytes = await File.ReadAllBytesAsync(documentPath, TestContext.Current.CancellationToken);
 
             rollbackResult.IsError.Should().NotBeTrue();
@@ -128,6 +134,7 @@ public sealed class CodeActionWorkflowIntegrationTests
                     ["detail"] = "Full",
                 },
                 TestContext.Current.CancellationToken);
+
             var pluginIds = statusResult.StructuredContent!.Value
                 .GetProperty("data")
                 .GetProperty("plugins")

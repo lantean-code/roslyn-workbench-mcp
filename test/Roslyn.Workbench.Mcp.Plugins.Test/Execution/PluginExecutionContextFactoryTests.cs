@@ -16,9 +16,11 @@ public sealed class PluginExecutionContextFactoryTests
                 WorkspaceId = "WorkspaceId",
             },
         };
+
         workspaceFactory
             .Setup(item => item.CreateQueryContext(request.Workspace, CancellationToken.None))
             .Returns(WorkspaceExecutionContextLease.Acquired(workspaceContext));
+
         var target = new PluginExecutionContextFactory(workspaceFactory.Object, services.Object);
 
         var result = target.CreateQueryContext(request, CancellationToken.None);
@@ -45,6 +47,7 @@ public sealed class PluginExecutionContextFactoryTests
                     Message = "Message",
                 },
             }));
+
         var toolExecutionServices = new Mock<IToolExecutionServices>();
         var target = new PluginExecutionContextFactory(workspaceFactory.Object, toolExecutionServices.Object);
 
@@ -71,6 +74,7 @@ public sealed class PluginExecutionContextFactoryTests
                     Message = "Message",
                 },
             }));
+
         var toolExecutionServices = new Mock<IToolExecutionServices>();
         var target = new PluginExecutionContextFactory(workspaceFactory.Object, toolExecutionServices.Object);
 
@@ -101,6 +105,7 @@ public sealed class PluginExecutionContextFactoryTests
                     },
                 },
                 workspaceContext));
+
         var toolExecutionServices = new Mock<IToolExecutionServices>();
         var target = new PluginExecutionContextFactory(workspaceFactory.Object, toolExecutionServices.Object);
 
@@ -124,6 +129,7 @@ public sealed class PluginExecutionContextFactoryTests
             .Returns(WorkspaceMutationExecutionLease.Acquired(
                 workspaceContext,
                 new Mock<IWorkspaceMutationStager>().Object));
+
         var toolExecutionServices = new Mock<IToolExecutionServices>();
         var target = new PluginExecutionContextFactory(workspaceFactory.Object, toolExecutionServices.Object);
 
@@ -155,6 +161,7 @@ public sealed class PluginExecutionContextFactoryTests
                     },
                 },
                 workspaceContext));
+
         var toolExecutionServices = new Mock<IToolExecutionServices>();
         var target = new PluginExecutionContextFactory(workspaceFactory.Object, toolExecutionServices.Object);
 

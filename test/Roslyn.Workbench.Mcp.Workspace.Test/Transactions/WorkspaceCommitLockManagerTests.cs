@@ -19,8 +19,10 @@ public sealed class WorkspaceCommitLockManagerTests
         _path.Setup(item => item.GetFullPath("Root")).Returns("Root");
         _path.Setup(item => item.Combine(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .Returns((string first, string second, string third, string fourth) => $"{first}/{second}/{third}/{fourth}");
+
         _path.Setup(item => item.Combine(It.IsAny<string>(), It.IsAny<string>()))
             .Returns((string first, string second) => $"{first}/{second}");
+
         _target = new WorkspaceCommitLockManager(_fileSystem.Object, _provider.Object);
     }
 
@@ -78,6 +80,7 @@ public sealed class WorkspaceCommitLockManagerTests
         var exception = accessDenied
             ? (Exception)new UnauthorizedAccessException("denied")
             : new IOException("failed");
+
         _provider.Setup(item => item.TryAcquire(It.IsAny<string>())).Throws(exception);
 
         var result = _target.Acquire("Root");

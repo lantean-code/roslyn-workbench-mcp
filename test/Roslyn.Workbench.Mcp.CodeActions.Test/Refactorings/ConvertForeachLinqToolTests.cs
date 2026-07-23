@@ -32,6 +32,7 @@ public sealed class ConvertForeachLinqToolTests
             },
             ConversionKind = ConvertForeachLinqKind.ForeachToCallForm,
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new ConvertForeachLinqTool(selectionStager.Object);
 
@@ -73,6 +74,7 @@ public sealed class ConvertForeachLinqToolTests
             },
             ConversionKind = ConvertForeachLinqKind.LinqToForeach,
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new ConvertForeachLinqTool(selectionStager.Object);
 
@@ -114,6 +116,7 @@ public sealed class ConvertForeachLinqToolTests
             },
             ConversionKind = ConvertForeachLinqKind.ForeachToQuery,
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new ConvertForeachLinqTool(selectionStager.Object);
 

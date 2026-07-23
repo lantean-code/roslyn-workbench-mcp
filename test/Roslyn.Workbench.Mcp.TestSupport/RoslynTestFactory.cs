@@ -64,11 +64,13 @@ public static class RoslynTestFactory
             "Sample",
             "NoLanguage",
             filePath: "/workspace/Sample.proj"));
+
         solution = solution.AddDocument(DocumentInfo.Create(
             DocumentId.CreateNewId(projectId),
             documentName,
             filePath: $"/workspace/{documentName}",
             loader: TextLoader.From(TextAndVersion.Create(SourceText.From(source), versionStamp))));
+
         workspace.TryApplyChanges(solution);
 
         return new InMemoryRoslynDocument(

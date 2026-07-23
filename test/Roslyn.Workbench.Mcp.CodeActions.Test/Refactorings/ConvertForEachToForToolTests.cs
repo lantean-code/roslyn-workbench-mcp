@@ -15,6 +15,7 @@ public sealed class ConvertForEachToForToolTests
                 WorkspaceEpoch = 1,
             },
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new ConvertForEachToForTool(selectionStager.Object);
 

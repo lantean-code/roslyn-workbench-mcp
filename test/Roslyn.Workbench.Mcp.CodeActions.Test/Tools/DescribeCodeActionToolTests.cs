@@ -97,6 +97,7 @@ public sealed class DescribeCodeActionToolTests
             ContextKind = CodeActionDescriptorContextKind.MemberSelection,
             Message = "Message",
         };
+
         action = action with { Descriptor = descriptor };
 
         var info = new CodeActionInfo
@@ -127,6 +128,7 @@ public sealed class DescribeCodeActionToolTests
         infoFactory
             .Setup(item => item.Create(action, context.Object, roslyn.Document, new TextSpan(1, 2), descriptor))
             .Returns(info);
+
         var target = new DescribeCodeActionTool(providerCatalog.Object, resolver.Object, infoFactory.Object);
 
         var result = await target.ExecuteAsync(

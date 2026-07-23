@@ -42,6 +42,7 @@ public sealed class WorkspaceCommitRecoveryServiceTests
         _store.InSequence(sequence).Setup(item => item.WriteManifestAsync(
             It.Is<WorkspaceCommitManifest>(value => value.State == RecoveryState.Restored),
             CancellationToken.None));
+
         _store.InSequence(sequence).Setup(item => item.DeleteStatus("commit"));
 
         await _target.RecoverAsync(TestContext.Current.CancellationToken);
@@ -87,6 +88,7 @@ public sealed class WorkspaceCommitRecoveryServiceTests
             LoadedPath = "/workspace/orphan.slnx",
             WorkspaceRoot = "/workspace",
         };
+
         _store.Setup(item => item.GetOrphanedCommitOwnersAsync(It.IsAny<CancellationToken>())).ReturnsAsync([owner]);
         _store.Setup(item => item.GetManifestsAsync(It.IsAny<CancellationToken>())).ReturnsAsync([]);
         _lockManager.Setup(item => item.Acquire(owner.WorkspaceRoot)).Returns(CreateAcquisition(lockAvailable));

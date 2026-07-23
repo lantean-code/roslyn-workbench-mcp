@@ -10,6 +10,7 @@ public sealed class StageFixAllToolTests
         {
             ActionId = "ActionId",
         };
+
         var context = new Mock<ICodeActionMutationContext>();
         var fixAllStager = new Mock<ICodeActionFixAllStager>();
         var target = new StageFixAllTool(fixAllStager.Object);

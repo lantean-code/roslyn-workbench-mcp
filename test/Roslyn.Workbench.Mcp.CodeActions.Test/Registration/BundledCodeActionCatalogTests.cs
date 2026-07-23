@@ -83,9 +83,11 @@ public sealed class BundledCodeActionCatalogTests
         var visibleToolNames = dedicatedFamilies
             .Where(static group => group.Any(static family => family.IsDedicatedToolVisible))
             .Select(static group => group.Key);
+
         var hiddenToolNames = dedicatedFamilies
             .Where(static group => group.All(static family => !family.IsDedicatedToolVisible))
             .Select(static group => group.Key);
+
         toolNames.Should().OnlyHaveUniqueItems();
         toolNames.Should().Contain(visibleToolNames);
         toolNames.Intersect(hiddenToolNames, StringComparer.Ordinal).Should().BeEmpty();

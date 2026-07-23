@@ -73,6 +73,7 @@ public sealed class HostCompositionIntegrationTests
 
         var codeActionProviderCatalogRegistration = builder.Services.Single(
             static descriptor => descriptor.ServiceType == typeof(ICodeActionProviderCatalog));
+
         var workspaceFactoryRegistration = builder.Services.Single(
             static descriptor => descriptor.ServiceType == typeof(IMsBuildWorkspaceFactory));
 

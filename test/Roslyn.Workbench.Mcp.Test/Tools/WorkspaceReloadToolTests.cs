@@ -27,6 +27,7 @@ public sealed class WorkspaceReloadToolTests
                 ProjectCount = 4,
                 DocumentCount = 10,
             }));
+
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var target = new WorkspaceReloadTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
 

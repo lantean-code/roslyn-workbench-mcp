@@ -28,6 +28,7 @@ public sealed class CodeActionSelectionStagerTests
         _workspaceResolver
             .Setup(item => item.ValidateSnapshot(It.IsAny<SnapshotPrecondition?>()))
             .Returns(SnapshotMatchResult.Matched());
+
         _context.SetupGet(item => item.WorkspaceResolver).Returns(_workspaceResolver.Object);
         _target = new CodeActionSelectionStager(
             _providerCatalog.Object,
@@ -150,6 +151,7 @@ public sealed class CodeActionSelectionStagerTests
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+
         _context.SetupGet(item => item.CurrentSolution).Returns(currentRoslyn.Solution);
 
         var result = await _target.StageReplayCodeActionAsync(
@@ -173,6 +175,7 @@ public sealed class CodeActionSelectionStagerTests
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+
         _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
         _discoveryService
             .Setup(item => item.GetMatchingRefactoringProviders("ProviderId"))
@@ -207,10 +210,12 @@ public sealed class CodeActionSelectionStagerTests
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+
         _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
         _discoveryService
             .Setup(item => item.GetMatchingRefactoringProviders("ProviderId"))
             .Returns([provider.Object]);
+
         _discoveryService
             .Setup(item => item.DiscoverRefactoringsAsync(provider.Object, roslyn.Document, location.SourceSpan, CancellationToken.None))
             .ReturnsAsync([action]);
@@ -238,13 +243,16 @@ public sealed class CodeActionSelectionStagerTests
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+
         _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
         _discoveryService
             .Setup(item => item.GetMatchingRefactoringProviders(null))
             .Returns([provider.Object]);
+
         _discoveryService
             .Setup(item => item.DiscoverRefactoringsAsync(provider.Object, roslyn.Document, location.SourceSpan, CancellationToken.None))
             .ReturnsAsync([action]);
+
         var result = await _target.StageReplayCodeActionAsync(
             new ReplayCodeActionRequest
             {
@@ -269,16 +277,20 @@ public sealed class CodeActionSelectionStagerTests
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+
         _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
         _discoveryService
             .Setup(item => item.GetMatchingRefactoringProviders(null))
             .Returns([firstProvider.Object, secondProvider.Object]);
+
         _discoveryService
             .Setup(item => item.DiscoverRefactoringsAsync(firstProvider.Object, roslyn.Document, location.SourceSpan, CancellationToken.None))
             .ReturnsAsync([firstAction]);
+
         _discoveryService
             .Setup(item => item.DiscoverRefactoringsAsync(secondProvider.Object, roslyn.Document, location.SourceSpan, CancellationToken.None))
             .ReturnsAsync([secondAction]);
+
         var result = await _target.StageReplayCodeActionAsync(
             new ReplayCodeActionRequest
             {
@@ -306,13 +318,16 @@ public sealed class CodeActionSelectionStagerTests
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+
         _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
         _discoveryService
             .Setup(item => item.GetMatchingRefactoringProviders("ProviderId"))
             .Returns([provider.Object]);
+
         _discoveryService
             .Setup(item => item.DiscoverRefactoringsAsync(provider.Object, roslyn.Document, location.SourceSpan, CancellationToken.None))
             .ReturnsAsync([action]);
+
         var result = await _target.StageReplayCodeActionAsync(
             new ReplayCodeActionRequest
             {
@@ -341,13 +356,16 @@ public sealed class CodeActionSelectionStagerTests
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+
         _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
         _discoveryService
             .Setup(item => item.GetMatchingRefactoringProviders("ProviderId"))
             .Returns([provider.Object]);
+
         _discoveryService
             .Setup(item => item.DiscoverRefactoringsAsync(provider.Object, roslyn.Document, location.SourceSpan, CancellationToken.None))
             .ReturnsAsync([action]);
+
         _evaluator
             .Setup(item => item.EvaluateAsync(action.Action, roslyn.Solution, CancellationToken.None))
             .ReturnsAsync(CodeActionApplyResult.Applied(roslyn.Solution));
@@ -385,13 +403,16 @@ public sealed class CodeActionSelectionStagerTests
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+
         _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
         _discoveryService
             .Setup(item => item.GetMatchingRefactoringProviders("ProviderId"))
             .Returns([provider.Object]);
+
         _discoveryService
             .Setup(item => item.DiscoverRefactoringsAsync(provider.Object, roslyn.Document, location.SourceSpan, CancellationToken.None))
             .ReturnsAsync([firstAction, secondAction]);
+
         _evaluator
             .Setup(item => item.EvaluateAsync(firstAction.Action, roslyn.Solution, CancellationToken.None))
             .ReturnsAsync(CodeActionApplyResult.Applied(roslyn.Solution));

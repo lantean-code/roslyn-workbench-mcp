@@ -40,6 +40,7 @@ internal static class ServerOwnedToolTestSupport
             Name = "Test Client",
             Version = "1.0.0",
         });
+
         server.SetupGet(value => value.ServerOptions).Returns(new McpServerOptions());
         server.SetupGet(value => value.Services).Returns(new Mock<IServiceProvider>().Object);
         server.SetupGet(value => value.LoggingLevel).Returns((LoggingLevel?)null);
@@ -52,12 +53,15 @@ internal static class ServerOwnedToolTestSupport
             {
                 Result = new JsonObject(),
             });
+
         server
             .Setup(value => value.SendMessageAsync(It.IsAny<JsonRpcMessage>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
+
         server
             .Setup(value => value.RegisterNotificationHandler(It.IsAny<string>(), It.IsAny<Func<JsonRpcNotification, CancellationToken, ValueTask>>()))
             .Returns(asyncDisposable.Object);
+
         server.Setup(value => value.DisposeAsync()).Returns(ValueTask.CompletedTask);
 
         return server.Object;

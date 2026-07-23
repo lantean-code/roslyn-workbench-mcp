@@ -23,6 +23,7 @@ public sealed class TransactionStartToolTests
                     Revision = 1,
                 },
             }));
+
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var target = new TransactionStartTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
 
@@ -39,6 +40,7 @@ public sealed class TransactionStartToolTests
             ServerOwnedToolTestData.GetWorkspaceAlias(includeWorkspace),
             ServerOwnedToolTestData.GetWorkspacePath(includeWorkspace),
             CancellationToken.None), Times.Once);
+
         protocolFactory.Verify(item => item.CreateServerOwnedTool<TransactionStartRequest, TransactionStartData>(
             "transaction-start",
             "Transaction Start",

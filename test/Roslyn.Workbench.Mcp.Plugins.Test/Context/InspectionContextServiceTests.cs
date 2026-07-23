@@ -28,6 +28,7 @@ public sealed class InspectionContextServiceTests
                 }
             }
             """);
+
         var target = new InspectionContextService();
         var document = workspace.Solution.Projects.Single().Documents.Single();
 
@@ -62,6 +63,7 @@ public sealed class InspectionContextServiceTests
                 }
             }
             """);
+
         var target = new InspectionContextService();
         var document = workspace.Solution.Projects.Single().Documents.Single();
         var selector = workspace.GetLocationSelector("Trim");

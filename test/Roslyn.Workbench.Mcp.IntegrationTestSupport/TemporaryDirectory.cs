@@ -21,6 +21,7 @@ public sealed class TemporaryDirectory : IDisposable
             Path.GetTempPath(),
             prefix,
             Guid.NewGuid().ToString("n"));
+
         Directory.CreateDirectory(directoryPath);
         return new TemporaryDirectory(directoryPath);
     }

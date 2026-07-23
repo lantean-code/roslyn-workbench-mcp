@@ -19,6 +19,7 @@ public sealed class SolutionSearchIntegrationTests
                     DocumentationCommentId = "T:Sample.IMessageFormatter",
                 },
             }, TestContext.Current.CancellationToken);
+
         var references = await session.ExecuteQueryAsync<FindReferencesRequest, ReferenceSearchData>(
             "find-references",
             new FindReferencesRequest
@@ -29,6 +30,7 @@ public sealed class SolutionSearchIntegrationTests
                 },
                 IncludeDefinitions = false,
             }, TestContext.Current.CancellationToken);
+
         var callers = await session.ExecuteQueryAsync<FindCallersRequest, CallerSearchData>(
             "find-callers",
             new FindCallersRequest
@@ -38,6 +40,7 @@ public sealed class SolutionSearchIntegrationTests
                     DocumentationCommentId = "M:Sample.AppFormatter.Format(System.String)",
                 },
             }, TestContext.Current.CancellationToken);
+
         var derivedTypes = await session.ExecuteQueryAsync<FindDerivedTypesRequest, DerivedTypesData>(
             "find-derived-types",
             new FindDerivedTypesRequest
@@ -47,6 +50,7 @@ public sealed class SolutionSearchIntegrationTests
                     DocumentationCommentId = "T:Sample.IMessageFormatter",
                 },
             }, TestContext.Current.CancellationToken);
+
         var dependencies = await session.ExecuteQueryAsync<GetSymbolDependenciesRequest, SymbolDependenciesData>(
             "get-symbol-dependencies",
             new GetSymbolDependenciesRequest
@@ -56,6 +60,7 @@ public sealed class SolutionSearchIntegrationTests
                     DocumentationCommentId = "T:Sample.AppFormatter",
                 },
             }, TestContext.Current.CancellationToken);
+
         var graph = await session.ExecuteQueryAsync<GetDependencyGraphRequest, DependencyGraphData>(
             "get-dependency-graph",
             new GetDependencyGraphRequest

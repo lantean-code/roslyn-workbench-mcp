@@ -71,6 +71,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
             "--state-directory",
             PendingStateRootArgument,
         };
+
         arguments.AddRange(additionalArguments ?? []);
         if (pluginAsset is not null)
         {
@@ -233,6 +234,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
             Path.GetTempPath(),
             "roslyn-workbench-mcp-acceptance",
             Guid.NewGuid().ToString("N"));
+
         var stateRoot = Path.Combine(scenarioRoot, "state");
         var pluginRoot = Path.Combine(scenarioRoot, "plugins");
         var effectiveArguments = arguments
@@ -243,6 +245,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
                 _ => argument,
             })
             .ToArray();
+
         var target = new AcceptanceProcessFixture(
             command,
             effectiveArguments,
@@ -285,6 +288,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
                 StandardErrorLines = CaptureStandardError,
             },
             NullLoggerFactory.Instance);
+
         using var timeoutSource = CreateTimeoutSource(_initializationTimeout, cancellationToken);
 
         try
@@ -297,6 +301,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
                 },
                 NullLoggerFactory.Instance,
                 timeoutSource.Token);
+
             _completion = _client.Completion;
         }
         catch (Exception exception)

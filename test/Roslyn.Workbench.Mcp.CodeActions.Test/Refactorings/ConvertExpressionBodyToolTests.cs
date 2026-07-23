@@ -15,6 +15,7 @@ public sealed class ConvertExpressionBodyToolTests
                 WorkspaceEpoch = 1,
             },
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new ConvertExpressionBodyTool(selectionStager.Object);
 
@@ -46,6 +47,7 @@ public sealed class ConvertExpressionBodyToolTests
             null,
             null,
             null), Times.Once);
+
         selectionStager.Verify(item => item.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
@@ -67,6 +69,7 @@ public sealed class ConvertExpressionBodyToolTests
             Code = "InvalidRequest",
             Message = "InvalidRequest",
         });
+
         var context = new Mock<ICodeActionMutationContext>();
         var request = new LocationRefactoringRequest
         {
@@ -76,6 +79,7 @@ public sealed class ConvertExpressionBodyToolTests
                 WorkspaceEpoch = 1,
             },
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new ConvertExpressionBodyTool(selectionStager.Object);
 
@@ -107,6 +111,7 @@ public sealed class ConvertExpressionBodyToolTests
             null,
             null,
             null), Times.Once);
+
         selectionStager.Verify(item => item.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
@@ -128,6 +133,7 @@ public sealed class ConvertExpressionBodyToolTests
             Code = "Rejected",
             Message = "Message",
         });
+
         var context = new Mock<ICodeActionMutationContext>();
         var request = new LocationRefactoringRequest
         {
@@ -137,6 +143,7 @@ public sealed class ConvertExpressionBodyToolTests
                 WorkspaceEpoch = 1,
             },
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new ConvertExpressionBodyTool(selectionStager.Object);
 
@@ -168,6 +175,7 @@ public sealed class ConvertExpressionBodyToolTests
             null,
             null,
             null), Times.Once);
+
         selectionStager.Verify(item => item.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,
@@ -194,6 +202,7 @@ public sealed class ConvertExpressionBodyToolTests
                 WorkspaceEpoch = 1,
             },
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new ConvertExpressionBodyTool(selectionStager.Object);
 
@@ -214,6 +223,7 @@ public sealed class ConvertExpressionBodyToolTests
                 Code = "CodeActionUnavailable",
                 Message = "CodeActionUnavailable",
             }));
+
         selectionStager
             .Setup(item => item.StageSelectionAsync(
                 request.Selection,
@@ -242,6 +252,7 @@ public sealed class ConvertExpressionBodyToolTests
             null,
             null,
             null), Times.Once);
+
         selectionStager.Verify(item => item.StageSelectionAsync(
             request.Selection,
             request.ExpectedSnapshot,

@@ -42,6 +42,7 @@ public sealed class GetDocumentOptionsToolTests
                 It.IsAny<DocumentSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<Document, DocumentOptionsData>.Resolved(document.Document));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateDocumentReference(It.IsAny<Document>()))
             .Returns<Document>(item => new DocumentReference
@@ -74,6 +75,7 @@ public sealed class GetDocumentOptionsToolTests
                 It.IsAny<DocumentSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<Document, DocumentOptionsData>.Resolved(document.Document));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateDocumentReference(It.IsAny<Document>()))
             .Returns<Document>(item => new DocumentReference

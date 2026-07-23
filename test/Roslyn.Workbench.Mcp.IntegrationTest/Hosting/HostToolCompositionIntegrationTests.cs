@@ -17,6 +17,7 @@ public sealed class HostToolCompositionIntegrationTests
             ValidateOnBuild = true,
             ValidateScopes = true,
         });
+
         var pluginCatalog = serviceProvider.GetRequiredService<PluginCatalogSnapshot>();
         var codeActionCatalog = serviceProvider.GetRequiredService<CodeActionCatalogSnapshot>();
         var startupConfiguration = serviceProvider.GetRequiredService<StartupConfigurationSnapshot>();
@@ -28,18 +29,22 @@ public sealed class HostToolCompositionIntegrationTests
             pluginCatalog.Tools.Count
             + codeActionCatalog.Tools.Count
             + ServerOwnedToolRegistration.ToolCount);
+
         tools.Select(static tool => tool.ProtocolTool.Name).Should().OnlyHaveUniqueItems();
         mcpServerOptions.Filters.Request.CallToolFilters.Should().ContainSingle();
         startupConfiguration.Options.StateDirectory.Should().Be(Path.GetTempPath());
         serviceProvider.GetRequiredService<IWorkspaceLifecycleService>()
             .Should()
             .BeSameAs(serviceProvider.GetRequiredService<IWorkspaceLifecycleService>());
+
         serviceProvider.GetRequiredService<IToolExecutionContextFactory>()
             .Should()
             .BeSameAs(serviceProvider.GetRequiredService<IToolExecutionContextFactory>());
+
         serviceProvider.GetRequiredService<ICodeActionExecutionContextFactory>()
             .Should()
             .BeSameAs(serviceProvider.GetRequiredService<ICodeActionExecutionContextFactory>());
+
         serviceProvider.GetRequiredService<IServerStatusService>()
             .Should()
             .BeSameAs(serviceProvider.GetRequiredService<IServerStatusService>());
@@ -56,10 +61,12 @@ public sealed class HostToolCompositionIntegrationTests
             {
                 Name = "tool-name",
             });
+
         var expected = new CallToolResult
         {
             Content = [],
         };
+
         McpRequestHandler<CallToolRequestParams, CallToolResult> next = (_, _) => ValueTask.FromResult(expected);
         var result = await mcpServerOptions.Filters.Request.CallToolFilters.Single()(next)(context, CancellationToken.None);
 
@@ -83,6 +90,7 @@ public sealed class HostToolCompositionIntegrationTests
             {
                 Name = "tool-name",
             });
+
         McpRequestHandler<CallToolRequestParams, CallToolResult> next = (_, _) =>
             ValueTask.FromResult(new CallToolResult());
 

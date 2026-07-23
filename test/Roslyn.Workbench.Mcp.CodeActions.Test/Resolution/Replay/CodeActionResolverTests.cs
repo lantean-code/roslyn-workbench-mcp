@@ -45,9 +45,11 @@ public sealed class CodeActionResolverTests : IDisposable
         _workspaceResolver
             .Setup(item => item.ValidateSnapshot(It.IsAny<SnapshotPrecondition?>()))
             .Returns(SnapshotMatchResult.Matched());
+
         _workspaceResolver
             .Setup(item => item.ResolveDocument(It.IsAny<DocumentSelector>()))
             .Returns(SelectorResolveResult<Document>.Resolved(_roslyn.Document));
+
         _context.SetupGet(item => item.WorkspaceResolver).Returns(_workspaceResolver.Object);
         _context.SetupGet(item => item.WorkspaceIdentity).Returns(new WorkspaceIdentity
         {
@@ -59,6 +61,7 @@ public sealed class CodeActionResolverTests : IDisposable
         _discoveryService
             .Setup(item => item.GetMatchingRefactoringProviders("ProviderId"))
             .Returns([_refactoringProvider.Object]);
+
         _discoveryService
             .Setup(item => item.DiscoverRefactoringsAsync(
                 _refactoringProvider.Object,
@@ -66,6 +69,7 @@ public sealed class CodeActionResolverTests : IDisposable
                 new TextSpan(3, 4),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([_matchingAction]);
+
         SetupToken(CreatePayload());
 
         _target = new CodeActionResolver(
@@ -216,6 +220,7 @@ public sealed class CodeActionResolverTests : IDisposable
         IReadOnlyList<CodeRefactoringProvider> providers = providerCount == 0
             ? []
             : [firstProvider.Object, secondProvider.Object];
+
         _discoveryService
             .Setup(item => item.GetMatchingRefactoringProviders("ProviderId"))
             .Returns(providers);
@@ -356,6 +361,7 @@ public sealed class CodeActionResolverTests : IDisposable
         _discoveryService
             .Setup(item => item.GetMatchingCodeFixProviders("ProviderId"))
             .Returns([_codeFixProvider.Object]);
+
         _diagnosticService
             .Setup(item => item.GetDocumentDiagnosticsAsync(
                 _roslyn.Document,
@@ -363,6 +369,7 @@ public sealed class CodeActionResolverTests : IDisposable
                 It.Is<IReadOnlyList<string>>(ids => ids.SequenceEqual(new[] { "DiagnosticId" })),
                 CancellationToken.None))
             .ReturnsAsync(diagnostics);
+
         _discoveryService
             .Setup(item => item.DiscoverCodeFixesAsync(
                 _codeFixProvider.Object,

@@ -15,6 +15,7 @@ public sealed class InvertIfToolTests
                 WorkspaceEpoch = 1,
             },
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new InvertIfTool(selectionStager.Object);
 

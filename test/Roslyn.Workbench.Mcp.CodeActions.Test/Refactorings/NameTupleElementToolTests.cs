@@ -15,6 +15,7 @@ public sealed class NameTupleElementToolTests
                 WorkspaceEpoch = 1,
             },
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new NameTupleElementTool(selectionStager.Object);
 

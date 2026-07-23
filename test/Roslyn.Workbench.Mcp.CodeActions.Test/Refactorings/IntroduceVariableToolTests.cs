@@ -45,6 +45,7 @@ public sealed class IntroduceVariableToolTests
             },
             Kind = kind,
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new IntroduceVariableTool(selectionStager.Object);
 

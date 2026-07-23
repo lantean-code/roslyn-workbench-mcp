@@ -16,6 +16,7 @@ public sealed class AddImportToolTests
             },
             SimplifyAllOccurrences = false,
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new AddImportTool(selectionStager.Object);
 
@@ -64,6 +65,7 @@ public sealed class AddImportToolTests
             },
             SimplifyAllOccurrences = true,
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new AddImportTool(selectionStager.Object);
 

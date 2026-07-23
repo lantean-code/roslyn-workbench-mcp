@@ -56,6 +56,7 @@ public sealed class FixAllActionFactoryTests : IDisposable
             "FixAllTitle",
             _ => Task.FromResult(_roslyn.Solution),
             "EquivalenceKey");
+
         fixAllProvider
             .Setup(item => item.GetFixAsync(It.IsAny<FixAllContext>()))
             .ReturnsAsync(action);
@@ -91,6 +92,7 @@ public sealed class FixAllActionFactoryTests : IDisposable
             "FixAllTitle",
             _ => Task.FromResult(_roslyn.Solution),
             "EquivalenceKey");
+
         fixAllProvider
             .Setup(item => item.GetFixAsync(It.IsAny<FixAllContext>()))
             .ReturnsAsync(action);

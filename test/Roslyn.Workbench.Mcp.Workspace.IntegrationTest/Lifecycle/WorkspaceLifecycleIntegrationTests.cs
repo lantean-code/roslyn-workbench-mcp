@@ -51,10 +51,12 @@ public sealed class WorkspaceLifecycleIntegrationTests
         {
             StateDirectory = firstStateDirectory.DirectoryPath,
         });
+
         await using var second = ComponentWorkspace.Create(new ComponentWorkspaceOptions
         {
             StateDirectory = secondStateDirectory.DirectoryPath,
         });
+
         await first.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
 
         var secondOpen = await second.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
@@ -104,6 +106,7 @@ public sealed class WorkspaceLifecycleIntegrationTests
             fixtureA.ProjectPath,
             TestContext.Current.CancellationToken,
             alias: "alpha");
+
         var openB = await target.OpenAsync(
             fixtureB.ProjectPath,
             TestContext.Current.CancellationToken,
@@ -177,6 +180,7 @@ public sealed class WorkspaceLifecycleIntegrationTests
             fileSystem,
             new AtomicFileWriter(fileSystem, new NativeAtomicFileCommitter()),
             new WorkspacePathComparison());
+
         await recoveryStore.WriteStatusAsync(new RecoveryStatus
         {
             CommitId = "commit-id",
@@ -184,6 +188,7 @@ public sealed class WorkspaceLifecycleIntegrationTests
             State = RecoveryState.RecoveryIncomplete,
             Message = "Message",
         }, TestContext.Current.CancellationToken);
+
         await using var target = ComponentWorkspace.Create(new ComponentWorkspaceOptions
         {
             StateDirectory = stateDirectory.DirectoryPath,

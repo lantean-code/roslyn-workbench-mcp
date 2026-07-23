@@ -41,9 +41,11 @@ public sealed class GetSolutionStructureToolTests
         queryContextMocks.ToolExecutionServices
             .SetupGet(item => item.ProjectStructureService)
             .Returns(projectStructureService.Object);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(solution.Solution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.WorkspaceIdentity)
             .Returns(new WorkspaceIdentity
@@ -51,12 +53,15 @@ public sealed class GetSolutionStructureToolTests
                 WorkspaceId = "WorkspaceId",
                 LoadedPath = "/workspace/Sample.slnx",
             });
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.NormalizeProjectPath(It.IsAny<string>()))
             .Returns<string>(item => Path.GetFileNameWithoutExtension(item));
+
         projectStructureService
             .Setup(item => item.GetSolutionHierarchyAsync("/workspace/Sample.slnx", It.IsAny<CancellationToken>()))
             .ReturnsAsync(SolutionHierarchyResult.Succeeded(
@@ -141,9 +146,11 @@ public sealed class GetSolutionStructureToolTests
         queryContextMocks.ToolExecutionServices
             .SetupGet(item => item.ProjectStructureService)
             .Returns(projectStructureService.Object);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(solution.Solution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.WorkspaceIdentity)
             .Returns(new WorkspaceIdentity
@@ -151,15 +158,19 @@ public sealed class GetSolutionStructureToolTests
                 WorkspaceId = "WorkspaceId",
                 LoadedPath = "/workspace/Sample.slnx",
             });
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.NormalizeProjectPath(It.IsAny<string>()))
             .Returns<string>(item => Path.GetFileNameWithoutExtension(item));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.NormalizeDocumentPath(It.IsAny<string>()))
             .Returns<string>(item => Path.GetFileName(item));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateDocumentReference(It.IsAny<Document>()))
             .Returns<Document>(item => new DocumentReference
@@ -168,9 +179,11 @@ public sealed class GetSolutionStructureToolTests
                 ProjectId = item.Project.Id.Id.ToString(),
                 Path = Path.GetFileName(item.FilePath)!,
             });
+
         projectStructureService
             .Setup(item => item.GetSolutionHierarchyAsync("/workspace/Sample.slnx", It.IsAny<CancellationToken>()))
             .ReturnsAsync(SolutionHierarchyResult.Succeeded());
+
         queryContextMocks.ProjectTargetFrameworkResolver
             .Setup(item => item.Resolve(
                 "WorkspaceId",
@@ -250,9 +263,11 @@ public sealed class GetSolutionStructureToolTests
         queryContextMocks.ToolExecutionServices
             .SetupGet(item => item.ProjectStructureService)
             .Returns(projectStructureService.Object);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(updatedSolution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.WorkspaceIdentity)
             .Returns(new WorkspaceIdentity
@@ -260,15 +275,19 @@ public sealed class GetSolutionStructureToolTests
                 WorkspaceId = "WorkspaceId",
                 LoadedPath = "/workspace/Sample.slnx",
             });
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.NormalizeProjectPath(It.IsAny<string>()))
             .Returns<string>(item => item);
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.NormalizeDocumentPath(It.IsAny<string>()))
             .Returns<string>(item => Path.GetFileName(item));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateDocumentReference(It.IsAny<Document>()))
             .Returns<Document>(item => new DocumentReference
@@ -277,6 +296,7 @@ public sealed class GetSolutionStructureToolTests
                 ProjectId = item.Project.Id.Id.ToString(),
                 Path = Path.GetFileName(item.FilePath)!,
             });
+
         projectStructureService
             .Setup(item => item.GetSolutionHierarchyAsync("/workspace/Sample.slnx", It.IsAny<CancellationToken>()))
             .ReturnsAsync(SolutionHierarchyResult.Succeeded(
@@ -331,6 +351,7 @@ public sealed class GetSolutionStructureToolTests
         queryContextMocks.ToolExecutionServices
             .SetupGet(item => item.ProjectStructureService)
             .Returns(projectStructureService.Object);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.WorkspaceIdentity)
             .Returns(new WorkspaceIdentity
@@ -338,6 +359,7 @@ public sealed class GetSolutionStructureToolTests
                 WorkspaceId = "WorkspaceId",
                 LoadedPath = "/workspace/Sample.slnx",
             });
+
         projectStructureService
             .Setup(item => item.GetSolutionHierarchyAsync("/workspace/Sample.slnx", TestContext.Current.CancellationToken))
             .ReturnsAsync(SolutionHierarchyResult.Failed("Failure"));
@@ -375,15 +397,18 @@ public sealed class GetSolutionStructureToolTests
                 ],
             },
         ]);
+
         var target = new GetSolutionStructureTool();
         var queryContextMocks = QueryContextMockHelper.Create();
         var projectStructureService = new Mock<IProjectStructureService>();
         queryContextMocks.ToolExecutionServices
             .SetupGet(item => item.ProjectStructureService)
             .Returns(projectStructureService.Object);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.CurrentSolution)
             .Returns(solution.Solution);
+
         queryContextMocks.QueryContext
             .SetupGet(item => item.WorkspaceIdentity)
             .Returns(new WorkspaceIdentity
@@ -391,12 +416,15 @@ public sealed class GetSolutionStructureToolTests
                 WorkspaceId = "WorkspaceId",
                 LoadedPath = "/workspace/Sample.slnx",
             });
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.NormalizeProjectPath(It.IsAny<string>()))
             .Returns<string>(item => item);
+
         projectStructureService
             .Setup(item => item.GetSolutionHierarchyAsync("/workspace/Sample.slnx", TestContext.Current.CancellationToken))
             .ReturnsAsync(SolutionHierarchyResult.Succeeded());
+
         queryContextMocks.ProjectTargetFrameworkResolver
             .Setup(item => item.Resolve(
                 "WorkspaceId",

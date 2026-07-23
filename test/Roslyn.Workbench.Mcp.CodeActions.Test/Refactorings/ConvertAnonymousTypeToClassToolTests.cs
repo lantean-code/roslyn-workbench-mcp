@@ -16,6 +16,7 @@ public sealed class ConvertAnonymousTypeToClassToolTests
             },
             Kind = ConvertAnonymousTypeToClassKind.Class,
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new ConvertAnonymousTypeToClassTool(selectionStager.Object);
 
@@ -63,6 +64,7 @@ public sealed class ConvertAnonymousTypeToClassToolTests
             },
             Kind = ConvertAnonymousTypeToClassKind.Record,
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new ConvertAnonymousTypeToClassTool(selectionStager.Object);
 

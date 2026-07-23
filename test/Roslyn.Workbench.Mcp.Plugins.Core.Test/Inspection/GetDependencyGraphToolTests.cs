@@ -12,6 +12,7 @@ public sealed class GetDependencyGraphToolTests
         queryContextMocks.ToolExecutionServices
             .SetupGet(item => item.DependencyAnalysisService)
             .Returns(dependencyAnalysisService.Object);
+
         dependencyAnalysisService
             .Setup(item => item.IsSupportedGraphGranularity("Granularity"))
             .Returns(false);
@@ -39,6 +40,7 @@ public sealed class GetDependencyGraphToolTests
         queryContextMocks.ToolExecutionServices
             .SetupGet(item => item.DependencyAnalysisService)
             .Returns(dependencyAnalysisService.Object);
+
         dependencyAnalysisService
             .Setup(item => item.IsSupportedGraphGranularity("Type"))
             .Returns(true);
@@ -67,6 +69,7 @@ public sealed class GetDependencyGraphToolTests
         queryContextMocks.ToolExecutionServices
             .SetupGet(item => item.DependencyAnalysisService)
             .Returns(dependencyAnalysisService.Object);
+
         dependencyAnalysisService
             .Setup(item => item.IsSupportedGraphGranularity("Type"))
             .Returns(true);
@@ -100,9 +103,11 @@ public sealed class GetDependencyGraphToolTests
         queryContextMocks.ToolExecutionServices
             .SetupGet(item => item.DependencyAnalysisService)
             .Returns(dependencyAnalysisService.Object);
+
         dependencyAnalysisService
             .Setup(item => item.IsSupportedGraphGranularity("Type"))
             .Returns(true);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<DependencyGraphData>(
                 It.IsAny<ScopeSelector?>(),
@@ -134,14 +139,17 @@ public sealed class GetDependencyGraphToolTests
         queryContextMocks.ToolExecutionServices
             .SetupGet(item => item.DependencyAnalysisService)
             .Returns(dependencyAnalysisService.Object);
+
         dependencyAnalysisService
             .Setup(item => item.IsSupportedGraphGranularity("Type"))
             .Returns(true);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<DependencyGraphData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Document>, DependencyGraphData>.Resolved([document.Document]));
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveProjects<DependencyGraphData>(
                 It.IsAny<ScopeSelector?>(),
@@ -186,6 +194,7 @@ public sealed class GetDependencyGraphToolTests
                 DisplayName = "C",
             },
         };
+
         var edges = new[]
         {
             new GraphEdge
@@ -217,22 +226,27 @@ public sealed class GetDependencyGraphToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.ToolExecutionServices
             .SetupGet(item => item.DependencyAnalysisService)
             .Returns(dependencyAnalysisService.Object);
+
         dependencyAnalysisService
             .Setup(item => item.IsSupportedGraphGranularity("Type"))
             .Returns(true);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<DependencyGraphData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Document>, DependencyGraphData>.Resolved([document.Document]));
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveProjects<DependencyGraphData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Project>, DependencyGraphData>.Resolved([project]));
+
         dependencyAnalysisService
             .Setup(item => item.BuildGraphAsync(
                 "Type",

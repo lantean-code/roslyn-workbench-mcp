@@ -40,11 +40,13 @@ public sealed class ExternalPluginWorkflowIntegrationTests
                     ["workspaceRoot"] = target.WorkspaceRoot,
                 },
                 TestContext.Current.CancellationToken);
+
             var workspaceId = openResult.StructuredContent!.Value
                 .GetProperty("data")
                 .GetProperty("workspace")
                 .GetProperty("workspaceId")
                 .GetString();
+
             var queryResult = await target.CallToolAsync(
                 "host-valid-query",
                 new Dictionary<string, object?>

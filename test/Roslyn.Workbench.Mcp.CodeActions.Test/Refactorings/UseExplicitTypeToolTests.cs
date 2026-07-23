@@ -15,6 +15,7 @@ public sealed class UseExplicitTypeToolTests
                 WorkspaceEpoch = 1,
             },
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new UseExplicitTypeTool(selectionStager.Object);
 

@@ -15,6 +15,7 @@ public sealed class UseRecursivePatternsToolTests
                 WorkspaceEpoch = 1,
             },
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new UseRecursivePatternsTool(selectionStager.Object);
 

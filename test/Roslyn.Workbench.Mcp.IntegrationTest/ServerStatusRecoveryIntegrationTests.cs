@@ -14,6 +14,7 @@ public sealed class ServerStatusRecoveryIntegrationTests
             fileSystem,
             new AtomicFileWriter(fileSystem, new NativeAtomicFileCommitter()),
             new WorkspacePathComparison());
+
         await recoveryStore.WriteStatusAsync(new RecoveryStatus
         {
             CommitId = "commit-id",
@@ -21,10 +22,12 @@ public sealed class ServerStatusRecoveryIntegrationTests
             State = RecoveryState.RecoveryIncomplete,
             Message = "Message",
         }, TestContext.Current.CancellationToken);
+
         var options = new StartupOptions
         {
             StateDirectory = stateDirectory.DirectoryPath,
         };
+
         var msBuildRegistrationService = new Mock<IMsBuildRegistrationService>();
         msBuildRegistrationService
             .SetupGet(item => item.CurrentStatus)
@@ -32,6 +35,7 @@ public sealed class ServerStatusRecoveryIntegrationTests
             {
                 IsAvailable = true,
             });
+
         var codeActionProviderCatalog = new Mock<ICodeActionProviderCatalog>();
         codeActionProviderCatalog
             .SetupGet(item => item.Status)
@@ -39,6 +43,7 @@ public sealed class ServerStatusRecoveryIntegrationTests
             {
                 IsAvailable = true,
             });
+
         var service = new ServerStatusService(
             Options.Create(options),
             new StartupConfigurationSnapshot
@@ -50,6 +55,7 @@ public sealed class ServerStatusRecoveryIntegrationTests
             msBuildRegistrationService.Object,
             codeActionProviderCatalog.Object,
             recoveryStore);
+
         var result = await service.GetStatusAsync(StatusDetailLevel.Full, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(ToolOutcome.Succeeded);

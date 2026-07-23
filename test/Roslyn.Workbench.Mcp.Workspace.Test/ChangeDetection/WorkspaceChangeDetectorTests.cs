@@ -66,6 +66,7 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
             .AddAnalyzerConfigDocument(DocumentId.CreateNewId(projectId), ".editorconfig", SourceText.From("root = true"), filePath: editorConfigPath)
             .AddAnalyzerReference(projectId, analyzerReference.Object)
             .AddMetadataReference(projectId, MetadataReference.CreateFromFile(referencePath));
+
         foreach (var filePath in new[] { root + "/Workspace.sln", projectPath, sourcePath, additionalPath, editorConfigPath, analyzerPath, referencePath, importPath })
         {
             SetupFile(filePath);
@@ -75,6 +76,7 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
         SetupDirectory(root + "/Project/Source");
         _projectInputResolver.Setup(item => item.Resolve(projectPath))
             .Returns(WorkspaceProjectInputResolution.Succeeded([importPath]));
+
         _directory.Setup(item => item.EnumerateDirectories(root + "/Project", "*", SearchOption.AllDirectories)).Returns(
             [root + "/Project/Source", root + "/Project/bin", root + "/Project/obj"]);
 
@@ -89,6 +91,7 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
             analyzerPath,
             referencePath,
             importPath);
+
         result.Directories.Select(item => item.Path).Should().Contain(root + "/Project/Source");
         result.Directories.Select(item => item.Path).Should().NotContain(root + "/Project/bin", root + "/Project/obj");
     }
@@ -104,6 +107,7 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
             "Project",
             LanguageNames.CSharp,
             filePath: "/Missing/Project.csproj"));
+
         SetupMissingFile("/Missing/Workspace.sln");
         SetupMissingFile("/Missing/Project.csproj");
         _projectInputResolver.Setup(item => item.Resolve("/Missing/Project.csproj"))
@@ -128,6 +132,7 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
             "Project",
             LanguageNames.CSharp,
             filePath: projectPath));
+
         SetupMissingFile("/Missing/Workspace.sln");
         SetupFile(projectPath);
         SetupMissingDirectory("/Workspace/Project");
@@ -174,6 +179,7 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
         var solution = _workspace.CurrentSolution
             .AddProject(ProjectInfo.Create(projectId, VersionStamp.Create(), "Project", "Project", LanguageNames.CSharp))
             .AddDocument(DocumentId.CreateNewId(projectId), "Document.cs", SourceText.From("class Document { }"));
+
         SetupFile("/Workspace/Workspace.sln");
         SetupDirectory("/Workspace");
         _projectInputResolver.Setup(item => item.Resolve(null))
@@ -202,6 +208,7 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
             "Project",
             LanguageNames.CSharp,
             filePath: projectPath));
+
         SetupFile("/Workspace/Workspace.sln");
         SetupFile(projectPath);
         SetupDirectory("/Workspace");
@@ -218,6 +225,7 @@ public sealed class WorkspaceChangeDetectorTests : IDisposable
             ProjectPath = projectPath,
             Message = "Message",
         });
+
         hasChanged.Should().BeTrue();
     }
 

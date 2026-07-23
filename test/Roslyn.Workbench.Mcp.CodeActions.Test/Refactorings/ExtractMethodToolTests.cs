@@ -32,6 +32,7 @@ public sealed class ExtractMethodToolTests
             },
             TargetKind = ExtractMethodTargetKind.LocalFunction,
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new ExtractMethodTool(selectionStager.Object);
 
@@ -73,6 +74,7 @@ public sealed class ExtractMethodToolTests
             },
             TargetKind = ExtractMethodTargetKind.Method,
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new ExtractMethodTool(selectionStager.Object);
 

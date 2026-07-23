@@ -336,6 +336,7 @@ public sealed class WorkspaceResolverTests
         {
             Span = new TextSpanSelector { Document = documentSelector, Start = 6, Length = 1 },
         }, TestContext.Current.CancellationToken);
+
         var notFound = await target.ResolveLocationAsync(new LocationSelector
         {
             Span = new TextSpanSelector { Document = documentSelector, Start = -1, Length = 1 },
@@ -364,6 +365,7 @@ public sealed class WorkspaceResolverTests
                 ContextAfter = " after",
             },
         }, TestContext.Current.CancellationToken);
+
         var repeated = await target.ResolveLocationAsync(new LocationSelector
         {
             Selection = new TextSelectionSelector { Document = documentSelector, SelectedText = "value" },
@@ -611,6 +613,7 @@ public sealed class WorkspaceResolverTests
         {
             Span = new TextSpanSelector { Document = documentSelector, Start = 0, Length = 1 },
         }, TestContext.Current.CancellationToken);
+
         var selectionResult = await target.ResolveLocationAsync(new LocationSelector
         {
             Selection = new TextSelectionSelector { Document = documentSelector, SelectedText = "value" },

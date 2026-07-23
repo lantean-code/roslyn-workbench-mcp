@@ -34,6 +34,7 @@ public sealed class MutationStagingServiceTests : IDisposable
                 Solution candidateSolution,
                 CancellationToken _) => ValueTask.FromResult(
                     LinkedDocumentChangeMergeResult.Succeeded(candidateSolution)));
+
         _target = new MutationStagingService(
             _resultFactory.Object,
             _sessionStore.Object,
@@ -120,6 +121,7 @@ public sealed class MutationStagingServiceTests : IDisposable
             Code = WorkspaceErrorCodes.LinkedDocumentConflict,
             Message = "Message",
         };
+
         var expected = CreateRejectedResult(error.Code);
         SetupOwner(session);
         _linkedDocumentChangeMerger
@@ -128,6 +130,7 @@ public sealed class MutationStagingServiceTests : IDisposable
                 candidate.CandidateSolution,
                 TestContext.Current.CancellationToken))
             .ReturnsAsync(LinkedDocumentChangeMergeResult.Failed(error));
+
         _resultFactory
             .Setup(item => item.Rejected<MutationStagingOutcome>(
                 error,
@@ -161,6 +164,7 @@ public sealed class MutationStagingServiceTests : IDisposable
             Code = "UnsupportedChange",
             Message = "Message",
         };
+
         var expected = CreateRejectedResult(error.Code);
         SetupOwner(session);
         _candidateValidator
@@ -169,6 +173,7 @@ public sealed class MutationStagingServiceTests : IDisposable
                 candidate.CandidateSolution))
             .Returns((WorkspaceOperationError?)null)
             .Returns(error);
+
         _resultFactory
             .Setup(item => item.Rejected<MutationStagingOutcome>(
                 error,
@@ -198,6 +203,7 @@ public sealed class MutationStagingServiceTests : IDisposable
         {
             TransactionOwnerWorkspaceId = "WorkspaceId",
         });
+
         _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns((WorkspaceSessionSnapshot?)null);
         SetupTransactionRequiredResult(expected);
 
@@ -242,6 +248,7 @@ public sealed class MutationStagingServiceTests : IDisposable
             CurrentRevision = 0,
             MaxRevisions = 3,
         };
+
         var session = CreateSession(transaction);
         SetupOwner(session);
         var changes = new ChangeSummary();
@@ -255,6 +262,7 @@ public sealed class MutationStagingServiceTests : IDisposable
                 It.IsAny<IWorkspaceResolver>(),
                 TestContext.Current.CancellationToken))
             .ReturnsAsync(changes);
+
         _resultFactory
             .Setup(item => item.Succeeded(
                 It.Is<MutationStagingOutcome>(outcome =>
@@ -298,6 +306,7 @@ public sealed class MutationStagingServiceTests : IDisposable
         {
             TransactionOwnerWorkspaceId = "WorkspaceId",
         });
+
         _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
     }
 
@@ -324,9 +333,11 @@ public sealed class MutationStagingServiceTests : IDisposable
             Code = code,
             Message = message,
         };
+
         _candidateValidator
             .Setup(item => item.Validate(It.IsAny<Solution>(), It.IsAny<Solution>()))
             .Returns(error);
+
         _resultFactory
             .Setup(item => item.Rejected<MutationStagingOutcome>(
                 error,
@@ -345,11 +356,13 @@ public sealed class MutationStagingServiceTests : IDisposable
             "Project",
             LanguageNames.CSharp,
             filePath: Path.Combine(Path.GetTempPath(), "Project", "Project.csproj")));
+
         _workspace.AddDocument(DocumentInfo.Create(
             DocumentId.CreateNewId(project.Id),
             "Document.cs",
             loader: TextLoader.From(TextAndVersion.Create(SourceText.From("class C { }"), VersionStamp.Default)),
             filePath: Path.Combine(Path.GetTempPath(), documentPathDiffersByCase ? "project" : "Project", "Document.cs")));
+
         return _workspace.CurrentSolution;
     }
 

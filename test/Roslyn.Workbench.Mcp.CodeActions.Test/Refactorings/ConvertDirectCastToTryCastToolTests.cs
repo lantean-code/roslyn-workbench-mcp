@@ -15,6 +15,7 @@ public sealed class ConvertDirectCastToTryCastToolTests
                 WorkspaceEpoch = 1,
             },
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new ConvertDirectCastToTryCastTool(selectionStager.Object);
 

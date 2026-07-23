@@ -12,6 +12,7 @@ public sealed class FindDependencyCyclesToolTests
         queryContextMocks.ToolExecutionServices
             .SetupGet(item => item.DependencyAnalysisService)
             .Returns(dependencyAnalysisService.Object);
+
         dependencyAnalysisService
             .Setup(item => item.IsSupportedCycleGranularity("Invalid"))
             .Returns(false);
@@ -27,6 +28,7 @@ public sealed class FindDependencyCyclesToolTests
             Code = "InvalidRequest",
             Message = "Granularity must be Project, Namespace, or Type.",
         });
+
         queryContextMocks.RequestResolver.Verify(item => item.ResolveDocuments<DependencyCyclesData>(It.IsAny<ScopeSelector?>(), It.IsAny<IToolExecutionContext>()), Times.Never);
     }
 
@@ -45,9 +47,11 @@ public sealed class FindDependencyCyclesToolTests
         queryContextMocks.ToolExecutionServices
             .SetupGet(item => item.DependencyAnalysisService)
             .Returns(dependencyAnalysisService.Object);
+
         dependencyAnalysisService
             .Setup(item => item.IsSupportedCycleGranularity("Type"))
             .Returns(true);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<DependencyCyclesData>(
                 It.IsAny<ScopeSelector?>(),
@@ -77,14 +81,17 @@ public sealed class FindDependencyCyclesToolTests
         queryContextMocks.ToolExecutionServices
             .SetupGet(item => item.DependencyAnalysisService)
             .Returns(dependencyAnalysisService.Object);
+
         dependencyAnalysisService
             .Setup(item => item.IsSupportedCycleGranularity("Type"))
             .Returns(true);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<DependencyCyclesData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Document>, DependencyCyclesData>.Resolved([document.Document]));
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveProjects<DependencyCyclesData>(
                 It.IsAny<ScopeSelector?>(),
@@ -142,22 +149,27 @@ public sealed class FindDependencyCyclesToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(2);
+
         queryContextMocks.ToolExecutionServices
             .SetupGet(item => item.DependencyAnalysisService)
             .Returns(dependencyAnalysisService.Object);
+
         dependencyAnalysisService
             .Setup(item => item.IsSupportedCycleGranularity("Type"))
             .Returns(true);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<DependencyCyclesData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Document>, DependencyCyclesData>.Resolved([document.Document]));
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveProjects<DependencyCyclesData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Project>, DependencyCyclesData>.Resolved([document.Document.Project!]));
+
         dependencyAnalysisService
             .Setup(item => item.FindCyclesAsync(
                 "Type",

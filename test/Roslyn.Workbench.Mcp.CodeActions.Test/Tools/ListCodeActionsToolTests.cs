@@ -31,6 +31,7 @@ public sealed class ListCodeActionsToolTests
         _workspaceResolver
             .Setup(item => item.ValidateSnapshot(It.IsAny<SnapshotPrecondition?>()))
             .Returns(SnapshotMatchResult.Matched());
+
         _context.SetupGet(item => item.WorkspaceResolver).Returns(_workspaceResolver.Object);
         _target = new ListCodeActionsTool(
             _providerCatalog.Object,
@@ -124,6 +125,7 @@ public sealed class ListCodeActionsToolTests
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+
         _context.SetupGet(item => item.CurrentSolution).Returns(currentRoslyn.Solution);
 
         var result = await _target.ExecuteAsync(
@@ -147,6 +149,7 @@ public sealed class ListCodeActionsToolTests
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+
         _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
 
         var result = await _target.ExecuteAsync(
@@ -178,6 +181,7 @@ public sealed class ListCodeActionsToolTests
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+
         _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
         _discoveryService.Setup(item => item.GetMatchingRefactoringProviders(null)).Returns([]);
         _discoveryService.Setup(item => item.GetMatchingCodeFixProviders(null)).Returns([]);
@@ -234,12 +238,14 @@ public sealed class ListCodeActionsToolTests
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+
         _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
         _discoveryService.Setup(item => item.GetMatchingRefactoringProviders(null)).Returns([refactoringProvider.Object]);
         _discoveryService.Setup(item => item.GetMatchingCodeFixProviders(null)).Returns([codeFixProvider.Object]);
         _discoveryService
             .Setup(item => item.DiscoverRefactoringsAsync(refactoringProvider.Object, roslyn.Document, location.SourceSpan, CancellationToken.None))
             .ReturnsAsync([laterProvider, secondPath, hidden]);
+
         _diagnosticService
             .Setup(item => item.GetDocumentDiagnosticsAsync(
                 roslyn.Document,
@@ -247,6 +253,7 @@ public sealed class ListCodeActionsToolTests
                 It.Is<IReadOnlyList<string>>(diagnosticIds => diagnosticIds.Count == 1 && diagnosticIds[0] == "DiagnosticId"),
                 CancellationToken.None))
             .ReturnsAsync(diagnostics);
+
         _discoveryService
             .Setup(item => item.DiscoverCodeFixesAsync(codeFixProvider.Object, roslyn.Document, diagnostics, CancellationToken.None))
             .ReturnsAsync([equivalence, earlier, nestedFirstPath, firstPath]);
@@ -300,18 +307,22 @@ public sealed class ListCodeActionsToolTests
         firstProvider
             .SetupGet(item => item.FixableDiagnosticIds)
             .Returns(["FirstId", "SharedId"]);
+
         var secondProvider = new Mock<CodeFixProvider>();
         secondProvider
             .SetupGet(item => item.FixableDiagnosticIds)
             .Returns(["SharedId", "SecondId"]);
+
         IReadOnlyList<Diagnostic> diagnostics = [];
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+
         _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
         _discoveryService
             .Setup(item => item.GetMatchingCodeFixProviders(null))
             .Returns([firstProvider.Object, secondProvider.Object]);
+
         _diagnosticService
             .Setup(item => item.GetDocumentDiagnosticsAsync(
                 roslyn.Document,
@@ -322,9 +333,11 @@ public sealed class ListCodeActionsToolTests
                     && diagnosticIds[1] == "SecondId"),
                 CancellationToken.None))
             .ReturnsAsync(diagnostics);
+
         _discoveryService
             .Setup(item => item.DiscoverCodeFixesAsync(firstProvider.Object, roslyn.Document, diagnostics, CancellationToken.None))
             .ReturnsAsync([]);
+
         _discoveryService
             .Setup(item => item.DiscoverCodeFixesAsync(secondProvider.Object, roslyn.Document, diagnostics, CancellationToken.None))
             .ReturnsAsync([]);
@@ -357,9 +370,11 @@ public sealed class ListCodeActionsToolTests
         codeFixProvider
             .SetupGet(item => item.FixableDiagnosticIds)
             .Returns(["FixableId"]);
+
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
             .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+
         _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
         _discoveryService.Setup(item => item.GetMatchingCodeFixProviders(null)).Returns([codeFixProvider.Object]);
 

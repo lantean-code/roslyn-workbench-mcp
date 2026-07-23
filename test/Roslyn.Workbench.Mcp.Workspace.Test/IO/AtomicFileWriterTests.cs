@@ -30,8 +30,10 @@ public sealed class AtomicFileWriterTests : IDisposable
         _path.Setup(item => item.GetFileName(_destinationPath)).Returns("File.txt");
         _path.Setup(item => item.Combine("/Directory", It.IsAny<string>()))
             .Returns((string directory, string fileName) => directory + "/" + fileName);
+
         _fileStreamFactory.Setup(item => item.New(It.IsAny<string>(), It.IsAny<FileStreamOptions>()))
             .Returns(stream.Object);
+
         _target = new AtomicFileWriter(_fileSystem.Object, _fileCommitter.Object);
     }
 
@@ -115,6 +117,7 @@ public sealed class AtomicFileWriterTests : IDisposable
                 && options.Mode == FileMode.CreateNew
                 && options.Options == (FileOptions.Asynchronous | FileOptions.WriteThrough)
                 && options.Share == FileShare.None)), Times.Once);
+
         _fileCommitter.Verify(item => item.Commit(
             It.Is<string>(path => path.StartsWith("/Directory/.File.txt.", StringComparison.Ordinal) && path.EndsWith(".tmp", StringComparison.Ordinal)),
             _destinationPath), Times.Once);

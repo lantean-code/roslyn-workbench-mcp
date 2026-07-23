@@ -13,6 +13,7 @@ public sealed class ServerOwnedToolBaseTests
         {
             Name = "workspace-list",
         };
+
         var protocolFactory = new Mock<IMcpToolProtocolFactory>();
         protocolFactory
             .Setup(item => item.CreateServerOwnedTool<WorkspaceListRequest, WorkspaceListData>(
@@ -24,6 +25,7 @@ public sealed class ServerOwnedToolBaseTests
                 null,
                 ToolOutputSchemaMode.Omit))
             .Returns(protocolTool);
+
         var service = new Mock<IWorkspaceLifecycleService>();
         var target = new WorkspaceListTool(
             Options.Create(new StartupOptions()),
@@ -69,6 +71,7 @@ public sealed class ServerOwnedToolBaseTests
             Message = "Message",
             RequiredAction = RequiredAction.Retry,
         };
+
         var serviceResult = status switch
         {
             WorkspaceOperationStatus.Rejected => WorkspaceOperationResult<WorkspaceListOutcome>.Rejected(error),
@@ -76,10 +79,12 @@ public sealed class ServerOwnedToolBaseTests
             WorkspaceOperationStatus.Faulted => WorkspaceOperationResult<WorkspaceListOutcome>.Faulted(error),
             _ => throw new ArgumentOutOfRangeException(nameof(statusName), statusName, "A failure status is required."),
         };
+
         var service = new Mock<IWorkspaceLifecycleService>();
         service
             .Setup(item => item.ListAsync(CancellationToken.None))
             .ReturnsAsync(serviceResult);
+
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var target = new WorkspaceListTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
 
@@ -103,6 +108,7 @@ public sealed class ServerOwnedToolBaseTests
         service
             .Setup(item => item.ListAsync(cancellationSource.Token))
             .Returns(() => ValueTask.FromCanceled<WorkspaceOperationResult<WorkspaceListOutcome>>(cancellationSource.Token));
+
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var target = new WorkspaceListTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
 
@@ -145,6 +151,7 @@ public sealed class ServerOwnedToolBaseTests
         service
             .Setup(item => item.ListAsync(CancellationToken.None))
             .ReturnsAsync(WorkspaceOperationResult<WorkspaceListOutcome>.Succeeded(new WorkspaceListOutcome()));
+
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var target = new WorkspaceListTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
         var server = ServerOwnedToolTestSupport.CreateServer();

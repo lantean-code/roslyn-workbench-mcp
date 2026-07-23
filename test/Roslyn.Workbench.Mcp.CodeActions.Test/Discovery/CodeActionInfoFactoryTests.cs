@@ -26,9 +26,11 @@ public sealed class CodeActionInfoFactoryTests
         timeProvider
             .Setup(item => item.GetUtcNow())
             .Returns(new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.Zero));
+
         resolver
             .Setup(item => item.NormalizeDocumentPath(roslyn.Document.FilePath ?? roslyn.Document.Name))
             .Returns("DocumentPath");
+
         context.SetupGet(item => item.WorkspaceIdentity).Returns(workspaceIdentity);
         context.SetupGet(item => item.TransactionRevision).Returns(2);
         context.SetupGet(item => item.WorkspaceResolver).Returns(resolver.Object);
@@ -48,6 +50,7 @@ public sealed class CodeActionInfoFactoryTests
                 && payload.Start == 3
                 && payload.Length == 4)))
             .Returns("ActionId");
+
         var target = new CodeActionInfoFactory(
             tokenService.Object,
             timeProvider.Object,
@@ -93,6 +96,7 @@ public sealed class CodeActionInfoFactoryTests
         timeProvider
             .Setup(item => item.GetUtcNow())
             .Returns(new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.Zero));
+
         resolver.Setup(item => item.NormalizeDocumentPath("DocumentName.cs")).Returns("NormalizedDocumentName");
         context.SetupGet(item => item.WorkspaceIdentity).Returns(new WorkspaceIdentity
         {
@@ -107,6 +111,7 @@ public sealed class CodeActionInfoFactoryTests
                 payload.Kind == "CodeFix"
                 && payload.DocumentPath == "NormalizedDocumentName")))
             .Returns("ActionId");
+
         var target = new CodeActionInfoFactory(
             tokenService.Object,
             timeProvider.Object,

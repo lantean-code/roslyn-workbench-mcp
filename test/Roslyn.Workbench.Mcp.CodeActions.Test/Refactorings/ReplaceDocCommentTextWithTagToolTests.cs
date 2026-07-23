@@ -15,6 +15,7 @@ public sealed class ReplaceDocCommentTextWithTagToolTests
                 WorkspaceEpoch = 1,
             },
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new ReplaceDocCommentTextWithTagTool(selectionStager.Object);
 

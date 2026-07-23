@@ -103,6 +103,7 @@ public sealed class CodeActionsArchitectureTests
             .GetCustomAttributes<AssemblyMetadataAttribute>()
             .Single(static attribute => attribute.Key == "RepositoryRoot")
             .Value;
+
         return repositoryRoot ?? throw new InvalidOperationException("RepositoryRoot assembly metadata was not configured.");
     }
 }

@@ -78,6 +78,7 @@ public sealed class CodeActionDiagnosticServiceTests
                 ],
             },
         ]);
+
         var document = roslyn.GetDocument("First.cs");
         var syntaxTree = await document.GetSyntaxTreeAsync(TestContext.Current.CancellationToken);
 
@@ -98,6 +99,7 @@ public sealed class CodeActionDiagnosticServiceTests
             roslyn.Document,
             ["CS0246"],
             TestContext.Current.CancellationToken);
+
         var selectedSpan = diagnostics[0].Location.SourceSpan;
 
         var result = await _target.GetDocumentDiagnosticsAsync(
@@ -133,6 +135,7 @@ public sealed class CodeActionDiagnosticServiceTests
                 ],
             },
         ]);
+
         var analyzer = CreateCompilationAnalyzer("SOURCE001", "PROJECT001");
         var analyzerReference = CreateAnalyzerReference(analyzer.Object);
         var project = roslyn.GetProject("Project");
@@ -140,24 +143,29 @@ public sealed class CodeActionDiagnosticServiceTests
         roslyn.Workspace.TryApplyChanges(updatedSolution).Should().BeTrue();
         var document = roslyn.Workspace.CurrentSolution.GetDocument(roslyn.GetDocument("First.cs").Id)
             ?? throw new InvalidOperationException("The updated test document could not be resolved.");
+
         var updatedProject = document.Project;
 
         var documentDiagnostics = await _target.GetDocumentDiagnosticsAsync(
             document,
             ["SOURCE001"],
             TestContext.Current.CancellationToken);
+
         var projectDiagnostics = await _target.GetProjectDiagnosticsAsync(
             updatedProject,
             ["PROJECT001"],
             TestContext.Current.CancellationToken);
+
         var unfilteredProjectDiagnostics = await _target.GetProjectDiagnosticsAsync(
             updatedProject,
             diagnosticIds: null,
             TestContext.Current.CancellationToken);
+
         var emptyFilterProjectDiagnostics = await _target.GetProjectDiagnosticsAsync(
             updatedProject,
             [],
             TestContext.Current.CancellationToken);
+
         var excludedProjectDiagnostics = await _target.GetProjectDiagnosticsAsync(
             updatedProject,
             ["PROJECT002"],
@@ -180,10 +188,12 @@ public sealed class CodeActionDiagnosticServiceTests
             ("MATCH001", new TextSpan(0, 1)),
             ("OTHER001", new TextSpan(1, 1)),
         ]);
+
         var unrelatedAnalyzer = CreateSourceAnalyzer(
         [
             ("UNRELATED001", new TextSpan(0, 1)),
         ]);
+
         var analyzerReference = CreateAnalyzerReference(matchingAnalyzer.Object, unrelatedAnalyzer.Object);
         var updatedSolution = roslyn.Solution.AddAnalyzerReference(roslyn.Document.Project.Id, analyzerReference.Object);
         roslyn.Workspace.TryApplyChanges(updatedSolution).Should().BeTrue();
@@ -246,6 +256,7 @@ public sealed class CodeActionDiagnosticServiceTests
             ("ANALYZER001", new TextSpan(0, 1)),
             ("ANALYZER002", new TextSpan(20, 1)),
         ]);
+
         _analyzerActivator
             .Setup(item => item.Activate("AnalyzerTypeName"))
             .Returns(CodeActionAnalyzerActivationResult.Available(analyzer.Object));
@@ -257,6 +268,7 @@ public sealed class CodeActionDiagnosticServiceTests
             "AnalyzerTypeName",
             "SYNTHETIC001",
             TestContext.Current.CancellationToken);
+
         var documentDiagnostics = await _target.GetScopedCodeFixDiagnosticsAsync(
             roslyn.Document,
             ["ANALYZER002"],
@@ -292,10 +304,12 @@ public sealed class CodeActionDiagnosticServiceTests
                 ],
             },
         ]);
+
         var analyzer = CreateCompilationAnalyzer("SOURCE001", "PROJECT001");
         _analyzerActivator
             .Setup(item => item.Activate("AnalyzerTypeName"))
             .Returns(CodeActionAnalyzerActivationResult.Available(analyzer.Object));
+
         var document = roslyn.GetDocument("First.cs");
         var syntaxTree = await document.GetSyntaxTreeAsync(TestContext.Current.CancellationToken);
 
@@ -450,9 +464,11 @@ public sealed class CodeActionDiagnosticServiceTests
         analyzerReference
             .Setup(item => item.GetAnalyzers(LanguageNames.CSharp))
             .Returns(analyzers.ToImmutableArray());
+
         analyzerReference
             .Setup(item => item.GetGenerators(LanguageNames.CSharp))
             .Returns([]);
+
         return analyzerReference;
     }
 
@@ -464,6 +480,7 @@ public sealed class CodeActionDiagnosticServiceTests
         analyzer
             .SetupGet(item => item.SupportedDiagnostics)
             .Returns([sourceDescriptor, projectDescriptor]);
+
         analyzer
             .Setup(item => item.Initialize(It.IsAny<AnalysisContext>()))
             .Callback<AnalysisContext>(context =>
@@ -482,6 +499,7 @@ public sealed class CodeActionDiagnosticServiceTests
                     compilationContext.ReportDiagnostic(Diagnostic.Create(projectDescriptor, Location.None));
                 });
             });
+
         return analyzer;
     }
 
@@ -490,10 +508,12 @@ public sealed class CodeActionDiagnosticServiceTests
         var descriptors = definitions
             .Select(static definition => CreateDescriptor(definition.Id))
             .ToImmutableArray();
+
         var analyzer = new Mock<DiagnosticAnalyzer>();
         analyzer
             .SetupGet(item => item.SupportedDiagnostics)
             .Returns(descriptors);
+
         analyzer
             .Setup(item => item.Initialize(It.IsAny<AnalysisContext>()))
             .Callback<AnalysisContext>(context =>
@@ -510,6 +530,7 @@ public sealed class CodeActionDiagnosticServiceTests
                     }
                 });
             });
+
         return analyzer;
     }
 

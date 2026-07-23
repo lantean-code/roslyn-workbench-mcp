@@ -22,6 +22,7 @@ public sealed class PluginConfigurationPreparerTests
             Version = "1.0.0",
             SupportedApiVersion = PluginApiVersions.V1,
         };
+
         _target = new PluginConfigurationPreparer(_typeInspector.Object, _contractResolver.Object, _warningInspector.Object);
     }
 
@@ -34,6 +35,7 @@ public sealed class PluginConfigurationPreparerTests
             .WithTitle("Fluent Title")
             .WithDescription("Fluent description")
             .WithResultSummary("Fluent result");
+
         configuration.Freeze();
         SetupContract(typeof(IQueryToolHandler<Request, Response>));
 
@@ -86,10 +88,12 @@ public sealed class PluginConfigurationPreparerTests
         missingResult.Diagnostics.Should().ContainSingle(diagnostic =>
             diagnostic.Id == "PluginToolMetadata"
             && diagnostic.Message.Contains("metadata must provide", StringComparison.Ordinal));
+
         missingResult.Tools.Should().BeEmpty();
         duplicateResult.Diagnostics.Should().ContainSingle(diagnostic =>
             diagnostic.Id == "PluginToolName"
             && diagnostic.Message.Contains("more than once", StringComparison.Ordinal));
+
         duplicateResult.Tools.Should().BeEmpty();
     }
 
@@ -132,6 +136,7 @@ public sealed class PluginConfigurationPreparerTests
         result.Diagnostics.Should().ContainSingle(diagnostic =>
             diagnostic.Id == "PluginHandlerState"
             && diagnostic.Message == "Warning");
+
         _warningInspector.Verify(static value => value.Inspect(typeof(AttributedQueryHandler)), Times.Once);
     }
 
@@ -164,10 +169,12 @@ public sealed class PluginConfigurationPreparerTests
             CreateDiagnostic("PluginHandlerLifetime", DiagnosticSeverity.Error, "Lifetime error"),
             CreateDiagnostic("PluginHandlerComposition", DiagnosticSeverity.Error, "Composition error"),
         ]);
+
         _warningInspector.Setup(static value => value.Inspect(typeof(FluentQueryHandler))).Returns(
         [
             CreateDiagnostic("PluginHandlerState", DiagnosticSeverity.Warning, "State warning"),
         ]);
+
         SetupContractFailure(CreateDiagnostic("PluginHandlerContract", DiagnosticSeverity.Error, "Contract error"));
 
         var result = _target.Prepare(_pluginMetadata, configuration);

@@ -44,6 +44,7 @@ public sealed class ScopedCodeFixStagerTests : IDisposable
             "Fix all",
             _ => Task.FromResult(_roslyn.Solution),
             "FixAllEquivalenceKey");
+
         _diagnostics = [CreateDiagnostic()];
         _discoveredAction = CreateDiscoveredAction(_roslyn.Solution, "Title", "EquivalenceKey", ["DiagnosticId"]);
         _candidate = new ScopedCodeFixCandidate
@@ -55,6 +56,7 @@ public sealed class ScopedCodeFixStagerTests : IDisposable
             EquivalenceKey = "EquivalenceKey",
             DiagnosticIds = ["DiagnosticId"],
         };
+
         _providerCatalog.SetupGet(item => item.Status).Returns(new CodeActionProviderCatalogStatus
         {
             IsAvailable = true,
@@ -63,18 +65,22 @@ public sealed class ScopedCodeFixStagerTests : IDisposable
         _workspaceResolver
             .Setup(item => item.ValidateSnapshot(It.IsAny<SnapshotPrecondition?>()))
             .Returns(SnapshotMatchResult.Matched());
+
         _workspaceResolver
             .Setup(item => item.NormalizeDocumentPath(It.IsAny<string>()))
             .Returns("NormalizedPath");
+
         _context.SetupGet(item => item.WorkspaceResolver).Returns(_workspaceResolver.Object);
         _context.SetupGet(item => item.CurrentSolution).Returns(_roslyn.Solution);
         SetupDefaultScopeResolutions();
         _discoveryService
             .Setup(item => item.GetMatchingCodeFixProviders(It.IsAny<string?>()))
             .Returns([_provider.Object]);
+
         _discoveryService
             .Setup(item => item.GetProviderId(_provider.Object))
             .Returns("ProviderId");
+
         _diagnosticService
             .Setup(item => item.GetScopedCodeFixDiagnosticsAsync(
                 It.IsAny<Document>(),
@@ -99,6 +105,7 @@ public sealed class ScopedCodeFixStagerTests : IDisposable
                 _diagnostics,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([_discoveredAction]);
+
         _provider.Setup(item => item.GetFixAllProvider()).Returns(_fixAllProvider.Object);
         _fixAllActionFactory
             .Setup(item => item.CreateAsync(
@@ -137,6 +144,7 @@ public sealed class ScopedCodeFixStagerTests : IDisposable
                 It.IsAny<Solution>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(0);
+
         _target = new ScopedCodeFixStager(
             _providerCatalog.Object,
             _discoveryService.Object,
@@ -415,6 +423,7 @@ public sealed class ScopedCodeFixStagerTests : IDisposable
         var directAction = mismatch == DirectActionMismatch.Title
             ? _discoveredAction with { Title = "OtherTitle" }
             : _discoveredAction with { EquivalenceKey = "OtherEquivalenceKey" };
+
         _provider.Setup(item => item.GetFixAllProvider()).Returns((FixAllProvider?)null);
         _discoveryService
             .Setup(item => item.DiscoverCodeFixesAsync(

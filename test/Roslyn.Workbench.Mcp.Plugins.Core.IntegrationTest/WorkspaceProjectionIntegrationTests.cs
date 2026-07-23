@@ -14,6 +14,7 @@ public sealed class WorkspaceProjectionIntegrationTests
             "get-solution-structure",
             new GetSolutionStructureRequest(),
             TestContext.Current.CancellationToken);
+
         var project = await session.ExecuteQueryAsync<GetProjectDetailsRequest, ProjectDetailsData>(
             "get-project-details",
             new GetProjectDetailsRequest
@@ -24,6 +25,7 @@ public sealed class WorkspaceProjectionIntegrationTests
                 },
                 IncludeDocuments = true,
             }, TestContext.Current.CancellationToken);
+
         var document = await session.ExecuteQueryAsync<GetDocumentOptionsRequest, DocumentOptionsData>(
             "get-document-options",
             new GetDocumentOptionsRequest
@@ -56,6 +58,7 @@ public sealed class WorkspaceProjectionIntegrationTests
             "get-solution-structure",
             new GetSolutionStructureRequest(),
             TestContext.Current.CancellationToken);
+
         var application = await session.ExecuteQueryAsync<GetProjectDetailsRequest, ProjectDetailsData>(
             "get-project-details",
             new GetProjectDetailsRequest

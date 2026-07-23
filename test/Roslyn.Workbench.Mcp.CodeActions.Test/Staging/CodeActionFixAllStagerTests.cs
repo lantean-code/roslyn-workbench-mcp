@@ -40,6 +40,7 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
             "Fix all",
             _ => Task.FromResult(_roslyn.Solution),
             "FixAllEquivalenceKey");
+
         _discoveredAction = CreateDiscoveredAction(_roslyn.Solution);
         _providerCatalog.SetupGet(item => item.Status).Returns(new CodeActionProviderCatalogStatus
         {
@@ -57,6 +58,7 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
                 _context.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateResolution());
+
         _discoveryService.Setup(item => item.FindCodeFixProvider("ProviderId")).Returns(_provider.Object);
         _provider.Setup(item => item.GetFixAllProvider()).Returns(_fixAllProvider.Object);
         _fixAllActionFactory
@@ -96,6 +98,7 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
                 It.IsAny<Solution>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(0);
+
         _target = new CodeActionFixAllStager(
             _providerCatalog.Object,
             _discoveryService.Object,
@@ -271,6 +274,7 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
         {
             Message = "The fix-all action could not be created.",
         };
+
         _fixAllActionFactory
             .Setup(item => item.CreateAsync(
                 _provider.Object,

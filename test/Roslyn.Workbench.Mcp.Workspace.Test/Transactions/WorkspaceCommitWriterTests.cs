@@ -104,6 +104,7 @@ public sealed class WorkspaceCommitWriterTests
             CreateEntry(WorkspaceFileOperation.Replace, Hash(beforeReplace), "C", "/workspace/b.cs", "staged/b.bin"),
             CreateEntry(WorkspaceFileOperation.Delete, Hash(beforeDelete), null, "/workspace/d.cs", null),
         };
+
         var manifest = CreateManifest(entries);
         _recoveryStore.Setup(item => item.ReadArtifactAsync("commit", "staged/a.bin", CancellationToken.None)).ReturnsAsync([1]);
         _recoveryStore.Setup(item => item.ReadArtifactAsync("commit", "staged/b.bin", CancellationToken.None)).ReturnsAsync([2]);
@@ -131,6 +132,7 @@ public sealed class WorkspaceCommitWriterTests
         _file.SetupSequence(item => item.Exists(entry.GetRequiredDeleteMarkerPath()))
             .Returns(false)
             .Returns(true);
+
         _file.Setup(item => item.Exists(entry.TargetPath)).Returns(true);
         _file.Setup(item => item.ReadAllBytesAsync(entry.TargetPath, CancellationToken.None)).ReturnsAsync(original);
 
@@ -166,6 +168,7 @@ public sealed class WorkspaceCommitWriterTests
             CreateEntry(WorkspaceFileOperation.Create, null, Hash(intended), "/workspace/a.cs", "staged/a.bin"),
             CreateEntry(WorkspaceFileOperation.Replace, Hash(original), Hash(intended), "/workspace/b.cs", "staged/b.bin", "backup/b.bin"),
         };
+
         var manifest = CreateManifest(entries);
         _file.Setup(item => item.Exists(It.IsAny<string>())).Returns(true);
         _file.Setup(item => item.ReadAllBytesAsync(It.IsAny<string>(), CancellationToken.None)).ReturnsAsync(intended);
@@ -221,6 +224,7 @@ public sealed class WorkspaceCommitWriterTests
         _fileCommitter.Verify(
             item => item.Move(markerPath, entry.TargetPath),
             scenario == "markerOnly" ? Times.Once() : Times.Never());
+
         _file.Verify(
             item => item.Delete(markerPath),
             scenario == "markerAndOriginal" ? Times.Once() : Times.Never());

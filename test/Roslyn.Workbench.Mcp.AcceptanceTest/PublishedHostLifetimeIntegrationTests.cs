@@ -14,6 +14,7 @@ public sealed class PublishedHostLifetimeIntegrationTests
             Path.GetTempPath(),
             "roslyn-workbench-mcp-acceptance-lifetime",
             Guid.NewGuid().ToString("N"));
+
         var workspaceRoot = Path.Combine(scenarioRoot, "workspace");
         var stateRoot = Path.Combine(scenarioRoot, "state");
         Directory.CreateDirectory(workspaceRoot);
@@ -32,6 +33,7 @@ public sealed class PublishedHostLifetimeIntegrationTests
                 RedirectStandardError = true,
             },
         };
+
         process.StartInfo.ArgumentList.Add("--state-directory");
         process.StartInfo.ArgumentList.Add(stateRoot);
         var retainRoot = false;

@@ -218,6 +218,8 @@ Validation evidence:
 
 ### Batch 6 — Test statement separation
 
+**Status:** Complete
+
 Apply the 1,531 mechanical test-only separation fixes in owned project groups:
 
 1. CodeActions tests;
@@ -228,6 +230,21 @@ Apply the 1,531 mechanical test-only separation fixes in owned project groups:
 Plugins.Core tests form the largest group and should remain last so that their 648 mechanical separation fixes are not mixed with the production tool review.
 
 Validation: format changed files, affected-project analyzer builds and the relevant test project after each group.
+
+Completed work:
+
+- inserted all 1,531 required separators across 222 test files;
+- completed the work in the four planned ownership groups: 251 CodeActions, 290 Workspace, 302 Host/shared and 688 Plugins;
+- verified that the complete test diff contains only blank-line additions; and
+- reduced test statement-separation findings to zero.
+
+Validation evidence:
+
+- all 14 affected test and support projects built with zero `latest-all` analyzer warnings;
+- the fast unit and contract suite passed 1,886 tests;
+- all 126 affected integration tests passed;
+- all 93 CodeActions audit tests passed; and
+- all 10 published-host acceptance tests passed.
 
 ### Batch 7 — Test expression cleanup
 

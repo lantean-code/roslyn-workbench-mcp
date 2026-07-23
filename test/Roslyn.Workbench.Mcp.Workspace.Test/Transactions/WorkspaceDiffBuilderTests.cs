@@ -33,6 +33,7 @@ public sealed class WorkspaceDiffBuilderTests : IDisposable
         var baselineSolution = CreateSolution(
             ("Modified.cs", "first\nsecond"),
             ("Deleted.cs", "deleted one\ndeleted two"));
+
         var project = baselineSolution.Projects.Single();
         var secondProjectId = ProjectId.CreateNewId();
         baselineSolution = baselineSolution.AddProject(ProjectInfo.Create(
@@ -42,6 +43,7 @@ public sealed class WorkspaceDiffBuilderTests : IDisposable
             "SecondProject",
             LanguageNames.CSharp,
             filePath: "/workspace/SecondProject/SecondProject.csproj"));
+
         var modifiedDocument = project.Documents.Single(document => document.Name == "Modified.cs");
         var deletedDocument = project.Documents.Single(document => document.Name == "Deleted.cs");
         var addedDocumentId = DocumentId.CreateNewId(secondProjectId);
@@ -49,6 +51,7 @@ public sealed class WorkspaceDiffBuilderTests : IDisposable
             .WithDocumentText(modifiedDocument.Id, SourceText.From("changed\nsecond"))
             .RemoveDocument(deletedDocument.Id)
             .AddDocument(addedDocumentId, "Added.cs", SourceText.From("added one\nadded two"));
+
         _resolver
             .Setup(item => item.CreateDocumentReference(It.IsAny<Document>()))
             .Returns((Document document) => CreateDocumentReference(document));
@@ -65,12 +68,14 @@ public sealed class WorkspaceDiffBuilderTests : IDisposable
             ChangeKind = DocumentChangeKind.Added,
             Preview = new DiffSummary { AddedLines = 2 },
         });
+
         result.Modified.Should().ContainSingle().Which.Should().BeEquivalentTo(new DocumentChange
         {
             Document = CreateDocumentReference(currentSolution.GetDocument(modifiedDocument.Id)!),
             ChangeKind = DocumentChangeKind.Modified,
             Preview = new DiffSummary { ChangedLines = 1 },
         });
+
         result.Deleted.Should().ContainSingle().Which.Should().BeEquivalentTo(new DocumentChange
         {
             Document = CreateDocumentReference(deletedDocument),
@@ -88,6 +93,7 @@ public sealed class WorkspaceDiffBuilderTests : IDisposable
             DocumentId.CreateNewId(project.Id),
             "Added.cs",
             SourceText.From("class Added { }"));
+
         using var cancellationSource = new CancellationTokenSource();
         await cancellationSource.CancelAsync();
 
@@ -128,6 +134,7 @@ public sealed class WorkspaceDiffBuilderTests : IDisposable
         var documentReference = CreateDocumentReference(document);
         _resolver.Setup(item => item.ResolveDocument(It.IsAny<DocumentSelector>()))
             .Returns(SelectorResolveResult<Document>.Resolved(document));
+
         _resolver.Setup(item => item.CreateDocumentReference(document)).Returns(documentReference);
 
         var result = await WorkspaceDiffBuilder.CreateDocumentDiffAsync(
@@ -153,11 +160,13 @@ public sealed class WorkspaceDiffBuilderTests : IDisposable
             documentId,
             "Added.cs",
             SourceText.From("first\nsecond"));
+
         var currentDocument = currentSolution.GetDocument(documentId)!;
         var expectedReference = CreateDocumentReference(currentDocument);
         _resolver
             .Setup(item => item.ResolveDocument(It.Is<DocumentSelector>(selector => selector.DocumentId == expectedReference.DocumentId)))
             .Returns(SelectorResolveResult<Document>.Resolved(currentDocument));
+
         _resolver.Setup(item => item.CreateDocumentReference(currentDocument)).Returns(expectedReference);
 
         var result = await WorkspaceDiffBuilder.CreateDocumentDiffAsync(
@@ -190,6 +199,7 @@ public sealed class WorkspaceDiffBuilderTests : IDisposable
         _resolver
             .Setup(item => item.ResolveDocument(It.Is<DocumentSelector>(selector => selector.DocumentId == documentReference.DocumentId)))
             .Returns(SelectorResolveResult<Document>.NotFound());
+
         _resolver.Setup(item => item.CreateDocumentReference(baselineDocument)).Returns(expectedReference);
 
         var result = await WorkspaceDiffBuilder.CreateDocumentDiffAsync(
@@ -221,10 +231,12 @@ public sealed class WorkspaceDiffBuilderTests : IDisposable
         var currentSolution = baselineSolution.WithDocumentText(
             baselineDocument.Id,
             SourceText.From("unchanged\nnew\nunchanged again\n"));
+
         var currentDocument = currentSolution.GetDocument(baselineDocument.Id)!;
         var documentReference = CreateDocumentReference(currentDocument);
         _resolver.Setup(item => item.ResolveDocument(It.IsAny<DocumentSelector>()))
             .Returns(SelectorResolveResult<Document>.Resolved(currentDocument));
+
         _resolver.Setup(item => item.CreateDocumentReference(currentDocument)).Returns(documentReference);
 
         var result = await WorkspaceDiffBuilder.CreateDocumentDiffAsync(
@@ -248,6 +260,7 @@ public sealed class WorkspaceDiffBuilderTests : IDisposable
         var documentReference = CreateDocumentReference(currentDocument);
         _resolver.Setup(item => item.ResolveDocument(It.IsAny<DocumentSelector>()))
             .Returns(SelectorResolveResult<Document>.Resolved(currentDocument));
+
         _resolver.Setup(item => item.CreateDocumentReference(currentDocument)).Returns(documentReference);
 
         var result = await WorkspaceDiffBuilder.CreateDocumentDiffAsync(
@@ -280,6 +293,7 @@ public sealed class WorkspaceDiffBuilderTests : IDisposable
         var documentReference = CreateDocumentReference(currentDocument);
         _resolver.Setup(item => item.ResolveDocument(It.IsAny<DocumentSelector>()))
             .Returns(SelectorResolveResult<Document>.Resolved(currentDocument));
+
         _resolver.Setup(item => item.CreateDocumentReference(currentDocument)).Returns(documentReference);
 
         var result = await WorkspaceDiffBuilder.CreateDocumentDiffAsync(
@@ -305,6 +319,7 @@ public sealed class WorkspaceDiffBuilderTests : IDisposable
         var documentReference = CreateDocumentReference(currentDocument);
         _resolver.Setup(item => item.ResolveDocument(It.IsAny<DocumentSelector>()))
             .Returns(SelectorResolveResult<Document>.Resolved(currentDocument));
+
         _resolver.Setup(item => item.CreateDocumentReference(currentDocument)).Returns(documentReference);
 
         var result = await WorkspaceDiffBuilder.CreateDocumentDiffAsync(

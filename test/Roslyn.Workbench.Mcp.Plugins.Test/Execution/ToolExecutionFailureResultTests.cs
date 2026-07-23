@@ -41,6 +41,7 @@ public sealed class ToolExecutionFailureResultTests
             Code = "Rejected",
             Message = "Message",
         });
+
         pluginResult.RequiredAction.Should().Be(RequiredAction.Retry);
         pluginResult.Diagnostics.Should().ContainSingle();
         pluginResult.Warnings.Should().ContainSingle();

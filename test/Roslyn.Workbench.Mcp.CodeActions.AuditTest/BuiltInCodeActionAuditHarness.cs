@@ -33,17 +33,20 @@ internal static class BuiltInCodeActionAuditHarness
         {
             IncludeBuiltInAssemblies = true,
         });
+
         await using var coordinator = ComponentWorkspace.Create(
             new ComponentWorkspaceOptions
             {
                 Boundary = ComponentWorkspaceBoundary.CodeActions,
             },
             providerCatalog);
+
         var session = new CodeActionComponentTestSession(coordinator);
         var openResult = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         await using var queryLease = coordinator.CodeActionContextFactory.CreateQueryContext(
             new ListCodeActionsRequest(),
             TestContext.Current.CancellationToken);
+
         var queryContext = queryLease.Context!;
         var location = auditCase.LocationFactory(fixture);
         var resolution = await queryContext.WorkspaceResolver.ResolveLocationAsync(location, TestContext.Current.CancellationToken);
@@ -89,10 +92,12 @@ internal static class BuiltInCodeActionAuditHarness
                 resolution.Value.SourceSpan,
                 TestContext.Current.CancellationToken);
         }
+
         var matching = discovered
             .Where(action => MatchesTitle(auditCase, action.Title))
             .Where(action => auditCase.ActionPath.Count == 0 || action.ActionPath.SequenceEqual(auditCase.ActionPath))
             .ToArray();
+
         var visibilityResult = await session.ListAsync(
             new ListCodeActionsRequest
             {
@@ -194,6 +199,7 @@ internal static class BuiltInCodeActionAuditHarness
         var matchingDiagnostics = diagnostics
             .Where(diagnostic => provider.FixableDiagnosticIds.Contains(diagnostic.Id, StringComparer.Ordinal))
             .ToImmutableArray();
+
         if (matchingDiagnostics.IsDefaultOrEmpty)
         {
             return [];
@@ -243,6 +249,7 @@ internal static class BuiltInCodeActionAuditHarness
         var analyzers = document.Project.AnalyzerReferences
             .SelectMany(reference => reference.GetAnalyzers(document.Project.Language))
             .ToImmutableArray();
+
         if (!analyzers.IsDefaultOrEmpty)
         {
             diagnostics.AddRange(await compilation

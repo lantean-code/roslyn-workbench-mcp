@@ -132,6 +132,7 @@ public sealed class ProjectTargetFrameworkResolverTests
         queryCache
             .Setup(item => item.TryGet<ProjectTargetFrameworkCacheEntry>("WorkspaceId", cacheKey, out cacheEntry))
             .Returns(true);
+
         projectStructureService
             .Setup(item => item.GetTargetFrameworks(It.Is<IReadOnlyList<Project>>(projects =>
                 projects.Count == 1 && projects[0] == uncachedProject)))

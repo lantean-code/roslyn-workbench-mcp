@@ -46,6 +46,7 @@ public sealed class LinkedDocumentChangeMergerTests : IDisposable
                 SourceText.From(_baselineText),
                 VersionStamp.Default)),
             filePath: Path.Combine(Path.GetTempPath(), "Project", "Document.cs")));
+
         var currentSolution = _workspace.CurrentSolution;
         var candidateSolution = currentSolution.WithDocumentText(
             document.Id,
@@ -66,6 +67,7 @@ public sealed class LinkedDocumentChangeMergerTests : IDisposable
         var (currentSolution, firstDocumentId, secondDocumentId) = CreateLinkedSolution();
         var updatedText = SourceText.From(
             _baselineText.Replace("int A;", "int Updated;", StringComparison.Ordinal));
+
         var candidateSolution = currentSolution.WithDocumentText(firstDocumentId, updatedText);
 
         var result = await _target.MergeAsync(
@@ -76,6 +78,7 @@ public sealed class LinkedDocumentChangeMergerTests : IDisposable
         result.IsSucceeded.Should().BeTrue();
         var firstText = await GetRequiredDocument(result.Solution, firstDocumentId)
             .GetTextAsync(TestContext.Current.CancellationToken);
+
         var secondText = await GetRequiredDocument(result.Solution, secondDocumentId)
             .GetTextAsync(TestContext.Current.CancellationToken);
 
@@ -89,8 +92,10 @@ public sealed class LinkedDocumentChangeMergerTests : IDisposable
         var (currentSolution, firstDocumentId, secondDocumentId) = CreateLinkedSolution();
         var firstText = SourceText.From(
             _baselineText.Replace("int A;", "int First;", StringComparison.Ordinal));
+
         var secondText = SourceText.From(
             _baselineText.Replace("int B;", "int Second;", StringComparison.Ordinal));
+
         var candidateSolution = currentSolution
             .WithDocumentText(firstDocumentId, firstText)
             .WithDocumentText(secondDocumentId, secondText);
@@ -104,8 +109,10 @@ public sealed class LinkedDocumentChangeMergerTests : IDisposable
         var expectedText = _baselineText
             .Replace("int A;", "int First;", StringComparison.Ordinal)
             .Replace("int B;", "int Second;", StringComparison.Ordinal);
+
         var firstMergedText = await GetRequiredDocument(result.Solution, firstDocumentId)
             .GetTextAsync(TestContext.Current.CancellationToken);
+
         var secondMergedText = await GetRequiredDocument(result.Solution, secondDocumentId)
             .GetTextAsync(TestContext.Current.CancellationToken);
 
@@ -119,6 +126,7 @@ public sealed class LinkedDocumentChangeMergerTests : IDisposable
         var (currentSolution, firstDocumentId, secondDocumentId) = CreateLinkedSolution();
         var updatedText = SourceText.From(
             _baselineText.Replace("int A;", "int Updated;", StringComparison.Ordinal));
+
         var candidateSolution = currentSolution
             .WithDocumentText(firstDocumentId, updatedText)
             .WithDocumentText(secondDocumentId, updatedText);
@@ -141,8 +149,10 @@ public sealed class LinkedDocumentChangeMergerTests : IDisposable
         var (currentSolution, firstDocumentId, secondDocumentId) = CreateLinkedSolution();
         var firstText = SourceText.From(
             _baselineText.Replace("int A;", "int First;", StringComparison.Ordinal));
+
         var secondText = SourceText.From(
             _baselineText.Replace("int A;", "int Second;", StringComparison.Ordinal));
+
         var candidateSolution = currentSolution
             .WithDocumentText(firstDocumentId, firstText)
             .WithDocumentText(secondDocumentId, secondText);
@@ -177,6 +187,7 @@ public sealed class LinkedDocumentChangeMergerTests : IDisposable
                 SourceText.From(_baselineText),
                 VersionStamp.Default)),
             filePath: filePath));
+
         var secondDocument = _workspace.AddDocument(DocumentInfo.Create(
             DocumentId.CreateNewId(secondProject.Id),
             "Document.cs",

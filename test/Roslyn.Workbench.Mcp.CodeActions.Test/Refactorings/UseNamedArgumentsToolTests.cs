@@ -16,6 +16,7 @@ public sealed class UseNamedArgumentsToolTests
             },
             IncludeTrailingArguments = false,
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new UseNamedArgumentsTool(selectionStager.Object);
 
@@ -64,6 +65,7 @@ public sealed class UseNamedArgumentsToolTests
             },
             IncludeTrailingArguments = true,
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new UseNamedArgumentsTool(selectionStager.Object);
 

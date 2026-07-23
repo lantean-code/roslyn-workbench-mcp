@@ -34,6 +34,7 @@ public sealed class CommitRecoveryStoreTests
         _path.Setup(item => item.GetFullPath("StateDirectory")).Returns("/State");
         _path.Setup(item => item.GetRelativePath(It.IsAny<string>(), It.IsAny<string>()))
             .Returns((string root, string path) => Path.GetRelativePath(root, path));
+
         _path.Setup(item => item.IsPathRooted(It.IsAny<string>())).Returns((string path) => Path.IsPathRooted(path));
         _path.Setup(item => item.IsPathFullyQualified(It.IsAny<string>())).Returns((string path) => Path.IsPathFullyQualified(path));
         _path.Setup(item => item.GetFileName(It.IsAny<string>())).Returns((string path) => Path.GetFileName(path));
@@ -46,11 +47,14 @@ public sealed class CommitRecoveryStoreTests
         _path
             .Setup(item => item.Combine(_recoveryDirectory, It.IsAny<string>()))
             .Returns((string _, string fileName) => _recoveryDirectory + "/" + fileName);
+
         _path
             .Setup(item => item.Combine(It.Is<string>(value => value.StartsWith(_recoveryDirectory, StringComparison.Ordinal)), It.IsAny<string>()))
             .Returns((string directory, string fileName) => directory + "/" + fileName);
+
         _path.Setup(item => item.GetFullPath(It.Is<string>(value => value.StartsWith(_recoveryDirectory, StringComparison.Ordinal))))
             .Returns((string path) => Path.GetFullPath(path));
+
         _pathComparison.SetupGet(item => item.Comparison).Returns(StringComparison.Ordinal);
         _pathComparison.SetupGet(item => item.Comparer).Returns(StringComparer.Ordinal);
         _pathComparison.Setup(item => item.GetComparison(It.IsAny<string>())).Returns(StringComparison.Ordinal);
@@ -85,8 +89,10 @@ public sealed class CommitRecoveryStoreTests
         _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
         _directory.Setup(item => item.EnumerateFiles(_recoveryDirectory, "*.json", SearchOption.TopDirectoryOnly)).Returns(
             [validPath, nullPath, malformedPath, ioFailurePath, accessFailurePath]);
+
         _file.Setup(item => item.ReadAllTextAsync(validPath, TestContext.Current.CancellationToken)).ReturnsAsync(
             JsonSerializer.Serialize(new RecoveryStatus { CommitId = "CommitId", SolutionPath = "SolutionPath" }, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+
         _file.Setup(item => item.ReadAllTextAsync(nullPath, TestContext.Current.CancellationToken)).ReturnsAsync("null");
         _file.Setup(item => item.ReadAllTextAsync(malformedPath, TestContext.Current.CancellationToken)).ReturnsAsync("{");
         _file.Setup(item => item.ReadAllTextAsync(ioFailurePath, TestContext.Current.CancellationToken)).ThrowsAsync(new IOException());
@@ -181,10 +187,12 @@ public sealed class CommitRecoveryStoreTests
         {
             ["staged/File.bin"] = new byte[] { 1, 2 },
         });
+
         _atomicFileWriter.Setup(item => item.WriteAllTextAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Encoding>(), It.IsAny<CancellationToken>()))
             .Callback((string path, string _, Encoding _, CancellationToken _) => operations.Add(path))
             .Returns(ValueTask.CompletedTask);
+
         _atomicFileWriter.Setup(item => item.WriteAllBytesAsync(
                 It.IsAny<string>(), It.IsAny<ReadOnlyMemory<byte>>(), It.IsAny<CancellationToken>()))
             .Callback((string path, ReadOnlyMemory<byte> _, CancellationToken _) => operations.Add(path))
@@ -196,6 +204,7 @@ public sealed class CommitRecoveryStoreTests
             _recoveryDirectory + "/CommitId/owner.json",
             _recoveryDirectory + "/CommitId/staged/File.bin",
             _recoveryDirectory + "/CommitId/manifest.json");
+
         _directory.Verify(item => item.CreateDirectory(_recoveryDirectory + "/CommitId"), Times.AtLeastOnce);
         _directory.Verify(item => item.CreateDirectory(_recoveryDirectory + "/CommitId/staged"), Times.Once);
     }
@@ -272,6 +281,7 @@ public sealed class CommitRecoveryStoreTests
         var entry = creating
             ? CreateCreateEntry("/Workspace/File.cs")
             : CreateDeleteEntry("/Workspace/File.cs");
+
         var manifest = CreateManifest() with { Entries = [entry] };
         _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
         _directory.Setup(item => item.EnumerateDirectories(_recoveryDirectory)).Returns([directory]);
@@ -385,6 +395,7 @@ public sealed class CommitRecoveryStoreTests
         _file.Setup(item => item.Exists(path)).Returns(true);
         _file.Setup(item => item.ReadAllTextAsync(path, TestContext.Current.CancellationToken))
             .ReturnsAsync(JsonSerializer.Serialize(manifest, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+
         if (scenario == "artifactArgument")
         {
             _path.Setup(item => item.GetFullPath(_recoveryDirectory + "/CommitId/invalid"))
@@ -394,6 +405,7 @@ public sealed class CommitRecoveryStoreTests
         {
             _path.Setup(item => item.GetFullPath(_recoveryDirectory + "/CommitId/relative"))
                 .Returns("relative");
+
             _path.Setup(item => item.GetRelativePath(_recoveryDirectory + "/CommitId", "relative"))
                 .Returns("relative");
         }
@@ -428,6 +440,7 @@ public sealed class CommitRecoveryStoreTests
             "targetPath" => json.Replace("\"targetPath\":\"/Workspace/File.cs\"", "\"targetPath\":null", StringComparison.Ordinal),
             _ => json.Replace("\"createdDirectories\":[\"/Workspace/NewDirectory\"]", "\"createdDirectories\":[null]", StringComparison.Ordinal),
         };
+
         _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
         _directory.Setup(item => item.EnumerateDirectories(_recoveryDirectory)).Returns([directory]);
         _file.Setup(item => item.Exists(path)).Returns(true);
@@ -505,6 +518,7 @@ public sealed class CommitRecoveryStoreTests
             WorkspaceRoot = scenario == "root" ? "Workspace" : "/Workspace",
             Version = scenario == "version" ? 1 : 2,
         };
+
         _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
         _directory.Setup(item => item.EnumerateDirectories(_recoveryDirectory)).Returns([directory]);
         _file.Setup(item => item.Exists(manifestPath)).Returns(scenario == "manifest");
@@ -544,6 +558,7 @@ public sealed class CommitRecoveryStoreTests
             WorkspaceRoot = scenario == "root" ? "Workspace" : "/Workspace",
             Version = scenario == "version" ? 1 : 2,
         };
+
         _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
         _directory.Setup(item => item.EnumerateDirectories(_recoveryDirectory)).Returns([directory]);
         _directory.Setup(item => item.EnumerateFiles(_recoveryDirectory, "*.json", SearchOption.TopDirectoryOnly)).Returns([]);
@@ -584,6 +599,7 @@ public sealed class CommitRecoveryStoreTests
         {
             ["File.bin"] = new byte[] { 1 },
         });
+
         _path.Setup(item => item.GetDirectoryName(_recoveryDirectory + "/CommitId/File.bin")).Returns((string?)null);
 
         var action = async () => await _target.PersistPlanAsync(plan, TestContext.Current.CancellationToken);

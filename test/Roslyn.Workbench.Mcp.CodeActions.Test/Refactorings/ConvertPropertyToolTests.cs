@@ -16,6 +16,7 @@ public sealed class ConvertPropertyToolTests
             },
             Direction = ConvertPropertyDirection.ToFull,
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var locationFixStager = new Mock<ILocationCodeFixStager>();
         var target = new ConvertPropertyTool(selectionStager.Object, locationFixStager.Object);
@@ -64,6 +65,7 @@ public sealed class ConvertPropertyToolTests
             },
             Direction = ConvertPropertyDirection.ToAutoWhenSafe,
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var locationFixStager = new Mock<ILocationCodeFixStager>();
         var target = new ConvertPropertyTool(selectionStager.Object, locationFixStager.Object);
@@ -109,6 +111,7 @@ public sealed class ConvertPropertyToolTests
             Selection = new LocationSelector(),
             Direction = (ConvertPropertyDirection)999,
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var locationFixStager = new Mock<ILocationCodeFixStager>();
         var target = new ConvertPropertyTool(selectionStager.Object, locationFixStager.Object);
@@ -128,6 +131,7 @@ public sealed class ConvertPropertyToolTests
             It.IsAny<string?>(),
             It.IsAny<string?>(),
             It.IsAny<IReadOnlyList<int>?>()), Times.Never);
+
         locationFixStager.Verify(item => item.StageLocationCodeFixAsync(
             It.IsAny<LocationCodeFixRequest>(),
             context.Object,

@@ -31,6 +31,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         _resolver = new Mock<IWorkspaceResolver>();
         _resolverFactory.Setup(item => item.Create(It.IsAny<Solution>(), It.IsAny<WorkspaceIdentity>(), It.IsAny<int?>()))
             .Returns(_resolver.Object);
+
         _target = new WorkspaceExecutionContextFactory(
             Options.Create(new WorkspaceOptions { DefaultMaxResults = 25 }),
             _sessionStore.Object,
@@ -343,6 +344,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
                 LoadedPath = ownerPath!,
             },
         };
+
         SetupSelection(session, ownerWorkspaceId: "OwnerWorkspaceId", ownerSession: ownerSession);
 
         var result = _target.CreateMutationContext(workspace: null, CancellationToken.None);
@@ -364,6 +366,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
             State = WorkspaceLifecycleState.TransactionConflicted,
             CurrentSolution = transitionedSolution,
         };
+
         SetupSelection(session);
         _changeDetector.Setup(item => item.HasChanged(session.InputManifest, CancellationToken.None)).Returns(true);
         _stateTransitions.Setup(item => item.ApplyExternalChangeDetected(session)).Returns(transitioned);
@@ -400,6 +403,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
             CurrentRevision = 2,
             MaxRevisions = 2,
         };
+
         var session = CreateSession(gate.Object, transaction: transaction);
         SetupSelection(session);
 
@@ -441,6 +445,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         _sessionStore
             .Setup(item => item.ReadSession(selectedSession.Workspace.WorkspaceId))
             .Returns(sessionRemains ? selectedSession : null);
+
         if (ownerWorkspaceId is not null)
         {
             _sessionStore.Setup(item => item.ReadSession(ownerWorkspaceId)).Returns(ownerSession);
@@ -458,6 +463,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         var lease = exclusive
             ? session.OperationGate.TryAcquireExclusive()
             : session.OperationGate.TryAcquireShared();
+
         if (lease is null)
         {
             return WorkspaceSessionAcquisition.Rejected(CreateError(WorkspaceErrorCodes.WorkspaceBusy), session);
@@ -477,6 +483,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         var error = CreateError(WorkspaceErrorCodes.WorkspaceNotOpen);
         _sessionAcquirer.Setup(item => item.AcquireShared(It.IsAny<WorkspaceSelector?>()))
             .Returns(WorkspaceSessionAcquisition.Rejected(error));
+
         _sessionAcquirer.Setup(item => item.AcquireExclusive(It.IsAny<WorkspaceSelector?>()))
             .Returns(WorkspaceSessionAcquisition.Rejected(error));
     }

@@ -24,16 +24,19 @@ public sealed class TestRefactoringProvider : CodeRefactoringProvider
             "Apply test refactoring",
             cancellationToken => ReplaceAsync(document, "string.Empty", "\"RefactoredValue\"", cancellationToken),
             "TestRefactoring.Apply");
+
         var parameterisedAction = new ParameterisedTestCodeAction(document);
         var hiddenAction = CodeAction.Create(
             "Extract method test refactoring",
             cancellationToken => ReplaceAsync(document, "string.Empty", "\"HiddenValue\"", cancellationToken),
             "TestRefactoring.Hidden");
+
         var unsupportedAction = new UnsupportedOptionsTestCodeAction(document);
         var retainAction = CodeAction.Create(
             "Retain test state",
             cancellationToken => ReplaceAsync(document, "private set;", "private init;", cancellationToken),
             "TestRefactoring.Retain");
+
         var lateUnsupportedAction = new UnsupportedTestCodeAction(document);
         var groupAction = CodeAction.Create(
             "Test refactoring group",
@@ -110,6 +113,7 @@ public sealed class TestRefactoringProvider : CodeRefactoringProvider
             {
                 Replacement = "\"UnsupportedValue\"",
             };
+
             var updatedDocument = await ReplaceAsync(_document, "string.Empty", parameterisedOptions.Replacement, cancellationToken);
             return [new ApplyChangesOperation(updatedDocument.Project.Solution)];
         }
@@ -149,6 +153,7 @@ public sealed class TestRefactoringProvider : CodeRefactoringProvider
             {
                 Replacement = "\"ParameterisedValue\"",
             };
+
             var updatedDocument = await ReplaceAsync(_document, "string.Empty", parameterisedOptions.Replacement, cancellationToken);
             return [new ApplyChangesOperation(updatedDocument.Project.Solution)];
         }
@@ -181,6 +186,7 @@ public sealed class TestCodeFixProvider : CodeFixProvider
                 .Distinct()
                 .Cast<LocalDeclarationStatementSyntax>()
                 .ToArray();
+
             if (declarations.Length == 0)
             {
                 return document;
@@ -189,6 +195,7 @@ public sealed class TestCodeFixProvider : CodeFixProvider
             var replacements = declarations.ToDictionary(
                 static declaration => declaration,
                 static declaration => SyntaxFactory.ParseStatement("_ = 42;").WithTriviaFrom(declaration));
+
             var updatedRoot = root.ReplaceNodes(replacements.Keys, (original, _) => replacements[original]);
             return document.WithSyntaxRoot(updatedRoot);
         });

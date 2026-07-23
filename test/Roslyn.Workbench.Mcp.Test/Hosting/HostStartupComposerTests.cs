@@ -13,6 +13,7 @@ public sealed class HostStartupComposerTests
                 It.IsAny<IReadOnlyList<System.Reflection.Assembly>>(),
                 It.IsAny<IEnumerable<string>>()))
             .Returns(pluginCatalog);
+
         var target = new HostStartupComposer(pluginCatalogBootstrap.Object);
 
         var result = target.Compose(
@@ -35,6 +36,7 @@ public sealed class HostStartupComposerTests
             .Select(static tool => tool.Metadata.Name)
             .Concat(ServerOwnedToolRegistration.ToolNames)
             .ToHashSet(StringComparer.Ordinal);
+
         pluginCatalogBootstrap.Verify(bootstrap => bootstrap.Load(
             result.Options,
             It.Is<IReadOnlyList<System.Reflection.Assembly>>(assemblies =>

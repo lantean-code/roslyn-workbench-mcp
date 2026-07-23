@@ -193,10 +193,13 @@ public sealed class TransactionCommitServiceTests : IDisposable
         _planner.Setup(item => item.CreateAsync(
             It.IsAny<string>(), "/workspace/solution.slnx", "/workspace", transaction.BaselineSolution, transaction.CurrentSolution, TestContext.Current.CancellationToken))
             .ReturnsAsync(WorkspaceCommitPlanResult.Succeeded(plan));
+
         _commitWriter.Setup(item => item.RevalidateAsync(manifest, TestContext.Current.CancellationToken))
             .ReturnsAsync(WorkspaceCommitValidationResult.Valid());
+
         _commitWriter.Setup(item => item.ApplyAsync(It.IsAny<WorkspaceCommitManifest>()))
             .ReturnsAsync(WorkspaceCommitValidationResult.Valid());
+
         _changeDetector.Setup(item => item.BuildManifest(transaction.CurrentSolution, "/workspace/solution.slnx")).Returns(inputManifest);
         _stateTransitions.Setup(item => item.Fire(WorkspaceLifecycleState.TransactionActive, WorkspaceTrigger.TransactionCommitted)).Returns(WorkspaceLifecycleState.Ready);
         _commitWriter.Setup(item => item.CompleteAsync(It.IsAny<WorkspaceCommitManifest>())).ReturnsAsync(true);
@@ -215,6 +218,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
         _commitWriter.Verify(item => item.CompleteAsync(It.Is<WorkspaceCommitManifest>(value => value.State == RecoveryState.Committed)), Times.Once);
         _sessionStore.Verify(item => item.ReplaceSessionAndSetTransactionOwner(
             It.Is<WorkspaceSessionSnapshot>(value => value.Transaction == null && value.CurrentSolution == transaction.CurrentSolution && value.InputManifest == inputManifest), null), Times.Once);
+
         _recoveryStore.Verify(item => item.DeleteStatus(It.IsAny<string>()), Times.Once);
         commitLock.Verify(item => item.Dispose(), Times.Once);
     }
@@ -237,10 +241,12 @@ public sealed class TransactionCommitServiceTests : IDisposable
                 },
             ],
         };
+
         var expected = CreateResult(WorkspaceOperationStatus.Succeeded);
         SetupProtocol(session, plan);
         _changeDetector.Setup(item => item.BuildManifest(transaction.CurrentSolution, "/workspace/solution.slnx"))
             .Returns(inputManifest);
+
         _stateTransitions.Setup(item => item.ApplyExternalChangeDetected(It.Is<WorkspaceSessionSnapshot>(value =>
                 value.State == WorkspaceLifecycleState.Ready
                 && value.Transaction == null
@@ -249,6 +255,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
                 && value.LoadDiagnostics.Count == 1
                 && value.LoadDiagnostics[0].Id == "WorkspaceInputEvaluationFailed")))
             .Returns((WorkspaceSessionSnapshot value) => value with { State = WorkspaceLifecycleState.WorkspaceOutOfDate });
+
         _resultFactory.Setup(item => item.Succeeded(
             It.Is<TransactionCommitOutcome>(outcome => outcome.Committed),
             It.IsAny<WorkspaceOperationContext>(),
@@ -280,8 +287,10 @@ public sealed class TransactionCommitServiceTests : IDisposable
         _lockManager.Setup(item => item.Acquire(It.IsAny<string>())).Returns(CreateLockAcquisition(lockAvailable: true));
         _planner.Setup(item => item.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Solution>(), It.IsAny<Solution>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(WorkspaceCommitPlanResult.Succeeded(plan));
+
         _commitWriter.Setup(item => item.RevalidateAsync(manifest, It.IsAny<CancellationToken>()))
             .ReturnsAsync(WorkspaceCommitValidationResult.Valid());
+
         _commitWriter.Setup(item => item.ApplyAsync(It.IsAny<WorkspaceCommitManifest>()))
             .ThrowsAsync(new IOException("Apply failed.", new InvalidOperationException("File is in use.")));
 
@@ -319,6 +328,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
             transaction.CurrentSolution,
             TestContext.Current.CancellationToken))
             .ReturnsAsync(WorkspaceCommitPlanResult.Failed("Target changed."));
+
         _stateTransitions.Setup(item => item.ApplyExternalChangeDetected(session)).Returns(conflictedSession);
         _resultFactory.Setup(item => item.Conflict<TransactionCommitOutcome>(
             WorkspaceErrorCodes.TransactionConflicted,
@@ -348,6 +358,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
         SetupProtocol(session, plan);
         _commitWriter.Setup(item => item.RevalidateAsync(manifest, It.IsAny<CancellationToken>()))
             .ReturnsAsync(WorkspaceCommitValidationResult.Invalid("Target changed."));
+
         _stateTransitions.Setup(item => item.ApplyExternalChangeDetected(session)).Returns(conflictedSession);
         _resultFactory.Setup(item => item.Conflict<TransactionCommitOutcome>(
             WorkspaceErrorCodes.TransactionConflicted,
@@ -376,8 +387,10 @@ public sealed class TransactionCommitServiceTests : IDisposable
         SetupProtocol(session, plan);
         _commitWriter.Setup(item => item.ApplyAsync(It.IsAny<WorkspaceCommitManifest>()))
             .ReturnsAsync(WorkspaceCommitValidationResult.Invalid("Target changed."));
+
         _commitWriter.Setup(item => item.RestoreAsync(It.IsAny<WorkspaceCommitManifest>()))
             .ReturnsAsync(RecoveryState.Restored);
+
         _stateTransitions.Setup(item => item.ApplyExternalChangeDetected(session)).Returns(conflictedSession);
         _resultFactory.Setup(item => item.Conflict<TransactionCommitOutcome>(
             WorkspaceErrorCodes.TransactionConflicted,
@@ -396,6 +409,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
                 value.State == RecoveryState.Restored
                 && value.Message == "Target changed."),
             CancellationToken.None), Times.Once);
+
         _sessionStore.Verify(item => item.ReplaceSession(conflictedSession), Times.Once);
     }
 
@@ -409,8 +423,10 @@ public sealed class TransactionCommitServiceTests : IDisposable
         SetupProtocol(session, plan);
         _commitWriter.Setup(item => item.ApplyAsync(It.IsAny<WorkspaceCommitManifest>()))
             .ReturnsAsync(WorkspaceCommitValidationResult.Invalid("Target changed."));
+
         _commitWriter.Setup(item => item.RestoreAsync(It.IsAny<WorkspaceCommitManifest>()))
             .ReturnsAsync(RecoveryState.RecoveryIncomplete);
+
         _resultFactory.Setup(item => item.Faulted<TransactionCommitOutcome>(
             "CommitFailed",
             It.IsAny<string>(),
@@ -444,6 +460,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
             case "Plan":
                 _planner.Setup(item => item.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Solution>(), It.IsAny<Solution>(), It.IsAny<CancellationToken>()))
                     .ThrowsAsync(new IOException("plan"));
+
                 break;
             case "Persist":
                 _recoveryStore.Setup(item => item.PersistPlanAsync(plan, It.IsAny<CancellationToken>())).ThrowsAsync(new IOException("persist"));
@@ -455,6 +472,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
                 _recoveryStore.Setup(item => item.WriteManifestAsync(
                     It.Is<WorkspaceCommitManifest>(value => value.State == RecoveryState.Applying),
                     It.IsAny<CancellationToken>())).ThrowsAsync(new IOException("manifest"));
+
                 break;
         }
 
@@ -481,6 +499,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
         _planner.Setup(item => item.CreateAsync(
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Solution>(), It.IsAny<Solution>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new UnauthorizedAccessException("denied"));
+
         _resultFactory.Setup(item => item.Faulted<TransactionCommitOutcome>(
             "CommitPreparationFailed", It.IsAny<string>(), RequiredAction.Retry, It.IsAny<WorkspaceOperationContext>(), null, null)).Returns(expected);
 
@@ -500,10 +519,12 @@ public sealed class TransactionCommitServiceTests : IDisposable
         SetupProtocol(session, plan);
         _commitWriter.Setup(item => item.RevalidateAsync(manifest, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new IOException("revalidate."));
+
         _commitWriter.Setup(item => item.RestoreAsync(manifest)).ReturnsAsync(RecoveryState.Restored);
         _recoveryStore.Setup(item => item.WriteManifestAsync(
             It.Is<WorkspaceCommitManifest>(value => value.State == RecoveryState.Restored),
             CancellationToken.None)).ThrowsAsync(new UnauthorizedAccessException("recovery manifest"));
+
         _resultFactory.Setup(item => item.Faulted<TransactionCommitOutcome>(
             "CommitPreparationFailed",
             "The transaction commit could not update its recovery record and no workspace changes were applied. Failure: revalidate. The final recovery state could not be persisted; any retained recovery record may report an earlier phase.",
@@ -546,6 +567,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
         _recoveryStore.Setup(item => item.WriteManifestAsync(
             It.Is<WorkspaceCommitManifest>(value => value.State == RecoveryState.Committed),
             CancellationToken.None)).ThrowsAsync(new IOException("committed"));
+
         _commitWriter.Setup(item => item.RestoreAsync(It.IsAny<WorkspaceCommitManifest>())).ReturnsAsync(RecoveryState.Restored);
         _resultFactory.Setup(item => item.Faulted<TransactionCommitOutcome>(
             "CommitFailed", It.IsAny<string>(), RequiredAction.Retry, It.IsAny<WorkspaceOperationContext>(), null, null)).Returns(expected);
@@ -570,6 +592,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
         _recoveryStore.Setup(item => item.WriteManifestAsync(
             It.Is<WorkspaceCommitManifest>(value => value.State == RecoveryState.RecoveryConflict),
             CancellationToken.None)).ThrowsAsync(new IOException("recovery manifest"));
+
         _resultFactory.Setup(item => item.Faulted<TransactionCommitOutcome>(
             "CommitFailed",
             "The transaction commit failed and its changes were restored or retained for recovery. Failure: apply. The final recovery state could not be persisted; any retained recovery record may report an earlier phase.",
@@ -584,6 +607,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
         _recoveryStore.Verify(item => item.WriteManifestAsync(
             It.Is<WorkspaceCommitManifest>(value => value.State == RecoveryState.RecoveryConflict),
             CancellationToken.None), Times.Once);
+
         _recoveryStore.Verify(item => item.DeleteStatus(It.IsAny<string>()), Times.Never);
     }
 
@@ -659,6 +683,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
             CurrentRevision = 1,
             MaxRevisions = 3,
         };
+
         return new WorkspaceSessionSnapshot
         {
             State = WorkspaceLifecycleState.TransactionActive,
@@ -735,10 +760,13 @@ public sealed class TransactionCommitServiceTests : IDisposable
         _planner.Setup(item => item.CreateAsync(
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Solution>(), It.IsAny<Solution>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(WorkspaceCommitPlanResult.Succeeded(plan));
+
         _commitWriter.Setup(item => item.RevalidateAsync(It.IsAny<WorkspaceCommitManifest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(WorkspaceCommitValidationResult.Valid());
+
         _commitWriter.Setup(item => item.ApplyAsync(It.IsAny<WorkspaceCommitManifest>()))
             .ReturnsAsync(WorkspaceCommitValidationResult.Valid());
+
         _changeDetector.Setup(item => item.BuildManifest(It.IsAny<Solution>(), It.IsAny<string>())).Returns(new WorkspaceInputManifest());
         _stateTransitions.Setup(item => item.Fire(It.IsAny<WorkspaceLifecycleState>(), WorkspaceTrigger.TransactionCommitted)).Returns(WorkspaceLifecycleState.Ready);
     }

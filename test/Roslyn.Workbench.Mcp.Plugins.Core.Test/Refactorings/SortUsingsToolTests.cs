@@ -10,11 +10,13 @@ public sealed class SortUsingsToolTests
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
         });
+
         var contextMocks = MutationContextMockHelper.Create();
         var request = new SortUsingsRequest
         {
             Document = new DocumentSelector(),
         };
+
         var target = new SortUsingsTool();
 
         contextMocks.RequestResolver
@@ -38,6 +40,7 @@ public sealed class SortUsingsToolTests
             Code = "SnapshotMismatch",
             Message = "SnapshotMismatch",
         });
+
         var contextMocks = MutationContextMockHelper.Create();
         var request = new SortUsingsRequest
         {
@@ -47,11 +50,13 @@ public sealed class SortUsingsToolTests
                 WorkspaceEpoch = 1,
             },
         };
+
         var target = new SortUsingsTool();
 
         contextMocks.RequestResolver
             .Setup(item => item.ResolveDocument<MutationCandidate>(request.Document, contextMocks.MutationContext.Object))
             .Returns(ToolResolutionResult<Document, MutationCandidate>.Resolved(document.Document));
+
         contextMocks.RequestResolver
             .Setup(item => item.ValidateSnapshot<MutationCandidate>(contextMocks.MutationContext.Object, request.ExpectedSnapshot))
             .Returns(expected);
@@ -70,11 +75,13 @@ public sealed class SortUsingsToolTests
         {
             Document = new DocumentSelector(),
         };
+
         var target = new SortUsingsTool();
 
         contextMocks.RequestResolver
             .Setup(item => item.ResolveDocument<MutationCandidate>(request.Document, contextMocks.MutationContext.Object))
             .Returns(ToolResolutionResult<Document, MutationCandidate>.Resolved(document.Document));
+
         contextMocks.RequestResolver
             .Setup(item => item.ValidateSnapshot<MutationCandidate>(contextMocks.MutationContext.Object, request.ExpectedSnapshot))
             .Returns((PluginExecutionResult<MutationCandidate>?)null);
@@ -99,11 +106,13 @@ public sealed class SortUsingsToolTests
             Document = new DocumentSelector(),
             SystemFirst = false,
         };
+
         var target = new SortUsingsTool();
 
         contextMocks.RequestResolver
             .Setup(item => item.ResolveDocument<MutationCandidate>(request.Document, contextMocks.MutationContext.Object))
             .Returns(ToolResolutionResult<Document, MutationCandidate>.Resolved(document.Document));
+
         contextMocks.RequestResolver
             .Setup(item => item.ValidateSnapshot<MutationCandidate>(contextMocks.MutationContext.Object, request.ExpectedSnapshot))
             .Returns((PluginExecutionResult<MutationCandidate>?)null);
@@ -123,11 +132,13 @@ public sealed class SortUsingsToolTests
             Document = new DocumentSelector(),
             SystemFirst = true,
         };
+
         var target = new SortUsingsTool();
 
         contextMocks.RequestResolver
             .Setup(item => item.ResolveDocument<MutationCandidate>(request.Document, contextMocks.MutationContext.Object))
             .Returns(ToolResolutionResult<Document, MutationCandidate>.Resolved(document.Document));
+
         contextMocks.RequestResolver
             .Setup(item => item.ValidateSnapshot<MutationCandidate>(contextMocks.MutationContext.Object, request.ExpectedSnapshot))
             .Returns((PluginExecutionResult<MutationCandidate>?)null);
@@ -150,11 +161,13 @@ public sealed class SortUsingsToolTests
             Document = new DocumentSelector(),
             SystemFirst = true,
         };
+
         var target = new SortUsingsTool();
 
         contextMocks.RequestResolver
             .Setup(item => item.ResolveDocument<MutationCandidate>(request.Document, contextMocks.MutationContext.Object))
             .Returns(ToolResolutionResult<Document, MutationCandidate>.Resolved(document.Document));
+
         contextMocks.RequestResolver
             .Setup(item => item.ValidateSnapshot<MutationCandidate>(contextMocks.MutationContext.Object, request.ExpectedSnapshot))
             .Returns((PluginExecutionResult<MutationCandidate>?)null);

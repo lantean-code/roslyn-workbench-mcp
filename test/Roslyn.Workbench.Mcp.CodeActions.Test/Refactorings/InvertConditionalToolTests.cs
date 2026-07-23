@@ -15,6 +15,7 @@ public sealed class InvertConditionalToolTests
                 WorkspaceEpoch = 1,
             },
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new InvertConditionalTool(selectionStager.Object);
 

@@ -15,6 +15,7 @@ public sealed class AddNullChecksToolTests
                 WorkspaceEpoch = 1,
             },
         };
+
         var selectionStager = new Mock<ICodeActionSelectionStager>();
         var target = new AddNullChecksTool(selectionStager.Object);
 

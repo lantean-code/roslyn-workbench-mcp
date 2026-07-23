@@ -28,6 +28,7 @@ public sealed class SemanticInspectionIntegrationTests
                 },
                 Ids = ["CS0219"],
             }, TestContext.Current.CancellationToken);
+
         var operation = await session.ExecuteQueryAsync<GetOperationTreeRequest, OperationTreeData>(
             "get-operation-tree",
             new GetOperationTreeRequest
@@ -35,6 +36,7 @@ public sealed class SemanticInspectionIntegrationTests
                 Location = fixture.GetLocation("formatter.Format(\"hi\")"),
                 ExpectedSnapshot = snapshot,
             }, TestContext.Current.CancellationToken);
+
         var flow = await session.ExecuteQueryAsync<AnalyzeControlFlowRequest, ControlFlowAnalysisData>(
             "analyze-control-flow",
             new AnalyzeControlFlowRequest
@@ -42,6 +44,7 @@ public sealed class SemanticInspectionIntegrationTests
                 Location = fixture.GetLocation("if (trimmed.Length == 0)"),
                 ExpectedSnapshot = snapshot,
             }, TestContext.Current.CancellationToken);
+
         var exceptionalGraph = await session.ExecuteQueryAsync<GetControlFlowGraphRequest, ControlFlowGraphData>(
             "get-control-flow-graph",
             new GetControlFlowGraphRequest
@@ -51,6 +54,7 @@ public sealed class SemanticInspectionIntegrationTests
                     DocumentationCommentId = "M:Sample.FlowSamples.AnalyseExceptional(System.String)",
                 },
             }, TestContext.Current.CancellationToken);
+
         var boundedGraph = await session.ExecuteQueryAsync<GetControlFlowGraphRequest, ControlFlowGraphData>(
             "get-control-flow-graph",
             new GetControlFlowGraphRequest

@@ -191,6 +191,7 @@ public sealed class CodeActionDiscoveryServiceTests
                 context.RegisterRefactoring(groupAction);
                 return Task.CompletedTask;
             });
+
         var providerId = _target.GetProviderId(provider.Object);
         var result = await _target.DiscoverRefactoringsAsync(
             provider.Object,
@@ -205,6 +206,7 @@ public sealed class CodeActionDiscoveryServiceTests
             && item.ProviderId == providerId
             && item.Descriptor == _descriptor
             && item.DiagnosticIds.Count == 0);
+
         _descriptorRegistry.Verify(item => item.ResolveActionDependentDescriptor(
             It.IsAny<CodeAction>(),
             It.IsAny<string>(),
@@ -304,6 +306,7 @@ public sealed class CodeActionDiscoveryServiceTests
                 context.RegisterCodeFix(action, context.Diagnostics);
                 return Task.CompletedTask;
             });
+
         var providerId = _target.GetProviderId(provider.Object);
         var result = await _target.DiscoverCodeFixesAsync(
             provider.Object,
@@ -319,8 +322,10 @@ public sealed class CodeActionDiscoveryServiceTests
             && item.ProviderId == providerId
             && item.Descriptor == _descriptor
             && item.ActionPath.SequenceEqual(new[] { 0 }));
+
         provider.Verify(item => item.RegisterCodeFixesAsync(
             It.Is<CodeFixContext>(context => context.Span == new TextSpan(0, 1) && context.Diagnostics.Length == 3)), Times.Once);
+
         provider.Verify(item => item.RegisterCodeFixesAsync(
             It.Is<CodeFixContext>(context => context.Span == new TextSpan(2, 1) && context.Diagnostics.Length == 1)), Times.Once);
     }

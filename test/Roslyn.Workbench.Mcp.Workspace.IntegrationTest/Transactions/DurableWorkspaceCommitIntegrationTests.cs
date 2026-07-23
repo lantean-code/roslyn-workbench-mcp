@@ -26,6 +26,7 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
             _fileSystem,
             _atomicWriter,
             new WorkspacePathComparison());
+
         _writer = new WorkspaceCommitWriter(_fileSystem, _atomicWriter, _store, _fileCommitter);
     }
 
@@ -99,6 +100,7 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
                     ? ValueTask.FromException(new IOException("Injected second-target failure."))
                     : _atomicWriter.WriteAllBytesAsync(path, contents, cancellationToken);
             });
+
         var writer = new WorkspaceCommitWriter(_fileSystem, faultingAtomicWriter.Object, _store, _fileCommitter);
 
         var apply = async () => await writer.ApplyAsync(transaction.Manifest);
@@ -159,6 +161,7 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
                 transaction.Manifest.Entries[0] with { BackupPath = $"..{Path.DirectorySeparatorChar}outside.bin" },
             ],
         };
+
         await _store.WriteManifestAsync(unsafeManifest, TestContext.Current.CancellationToken);
 
         var statuses = await _store.GetStatusesAsync(TestContext.Current.CancellationToken);
@@ -182,6 +185,7 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
             contended.Status.Should().Be(
                 WorkspaceCommitLockAcquisitionStatus.Contended,
                 contended.ErrorMessage);
+
             await process.StandardInput.WriteLineAsync();
             await process.StandardInput.FlushAsync(TestContext.Current.CancellationToken);
             await WaitForExitAsync(process, TestContext.Current.CancellationToken);
@@ -246,6 +250,7 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
             fileSystem,
             atomicWriter,
             new WorkspacePathComparison());
+
         var writer = new WorkspaceCommitWriter(fileSystem, atomicWriter, store, fileCommitter);
         return new WorkspaceCommitRecoveryService(store, writer, CreateLockManager(fileSystem));
     }
@@ -267,12 +272,14 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
         var executableName = OperatingSystem.IsWindows()
             ? "Roslyn.Workbench.Mcp.Workspace.LockFixture.exe"
             : "Roslyn.Workbench.Mcp.Workspace.LockFixture";
+
         var startInfo = new ProcessStartInfo(Path.Combine(AppContext.BaseDirectory, executableName))
         {
             RedirectStandardInput = true,
             RedirectStandardOutput = true,
             UseShellExecute = false,
         };
+
         startInfo.ArgumentList.Add(lockPath);
         var process = Process.Start(startInfo) ?? throw new InvalidOperationException("Failed to start the Workspace lock fixture process.");
         try
@@ -375,6 +382,7 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
                 },
             ],
         };
+
         await _store.PersistPlanAsync(new WorkspaceCommitPlan(manifest, new Dictionary<string, ReadOnlyMemory<byte>>
         {
             ["backup/replace.bin"] = replaceOriginal,
@@ -382,6 +390,7 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
             ["staged/create.bin"] = createIntended,
             ["backup/delete.bin"] = deleteOriginal,
         }), TestContext.Current.CancellationToken);
+
         if (state != RecoveryState.Prepared)
         {
             await _store.WriteManifestAsync(manifest, TestContext.Current.CancellationToken);

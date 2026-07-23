@@ -42,6 +42,7 @@ public sealed class GetCodeMetricsToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<CodeMetricsData>(
                 It.IsAny<SymbolSelector?>(),
@@ -112,6 +113,7 @@ public sealed class GetCodeMetricsToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveSymbolAsync<CodeMetricsData>(
                 It.IsAny<SymbolSelector?>(),
@@ -119,6 +121,7 @@ public sealed class GetCodeMetricsToolTests
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, CodeMetricsData>.Resolved(symbol));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => new SymbolReference
@@ -127,6 +130,7 @@ public sealed class GetCodeMetricsToolTests
                 Kind = item.Kind.ToString(),
                 DocumentationCommentId = item.GetDocumentationCommentId(),
             });
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, document.Document.Name));
@@ -178,6 +182,7 @@ public sealed class GetCodeMetricsToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<CodeMetricsData>(
                 It.IsAny<ScopeSelector?>(),
@@ -261,6 +266,7 @@ public sealed class GetCodeMetricsToolTests
                 ],
             },
         ]);
+
         using var unsupportedDocument = RoslynTestFactory.CreateUnsupportedDocument();
 
         var target = new GetCodeMetricsTool();
@@ -269,11 +275,13 @@ public sealed class GetCodeMetricsToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<CodeMetricsData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Document>, CodeMetricsData>.Resolved([solution.GetDocument("B.cs"), solution.GetDocument("A.cs"), unsupportedDocument.Document]));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => new SymbolReference
@@ -282,6 +290,7 @@ public sealed class GetCodeMetricsToolTests
                 Kind = item.Kind.ToString(),
                 DocumentationCommentId = item.GetDocumentationCommentId(),
             });
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, Path.GetFileName(item.SourceTree!.FilePath!)));
@@ -358,11 +367,13 @@ public sealed class GetCodeMetricsToolTests
         queryContextMocks.QueryContext
             .SetupGet(item => item.DefaultMaxResults)
             .Returns(10);
+
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<CodeMetricsData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Document>, CodeMetricsData>.Resolved([document.Document]));
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
             .Returns<ISymbol>(item => new SymbolReference
@@ -371,6 +382,7 @@ public sealed class GetCodeMetricsToolTests
                 Kind = item.Kind.ToString(),
                 DocumentationCommentId = item.GetDocumentationCommentId(),
             });
+
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, document.Document.Name));

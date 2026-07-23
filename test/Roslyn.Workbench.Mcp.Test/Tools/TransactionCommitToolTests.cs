@@ -25,6 +25,7 @@ public sealed class TransactionCommitToolTests
                     Revision = 4,
                 },
             }));
+
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var target = new TransactionCommitTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
 

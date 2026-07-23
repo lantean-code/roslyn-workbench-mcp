@@ -47,6 +47,7 @@ internal static class MiniWorkspaceFactory
                 normalizedPath,
                 filePath: $"/workspace/{normalizedPath}",
                 loader: TextLoader.From(TextAndVersion.Create(SourceText.From(document.Source), versionStamp))));
+
             documentIdsByPath[normalizedPath] = documentId;
         }
 

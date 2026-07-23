@@ -22,5 +22,7 @@ internal sealed record ScenarioDefinition
     public ConflictDefinition? Conflict { get; init; }
 
     public DurableCommitFileOperation? CrashAfterOperation { get; init; }
+
+    public StateSequenceDefinition? StateSequence { get; init; }
 }
 #pragma warning restore CA1812

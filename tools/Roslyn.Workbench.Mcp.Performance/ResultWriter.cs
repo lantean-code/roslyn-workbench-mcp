@@ -402,6 +402,86 @@ internal static class ResultWriter
             cancellationToken);
     }
 
+    public static async Task WriteStateSequenceAsync(
+        string outputDirectory,
+        StateSequenceRunResult result,
+        CancellationToken cancellationToken)
+    {
+        Directory.CreateDirectory(outputDirectory);
+        var jsonPath = Path.Combine(outputDirectory, "state-sequence.json");
+        await using (var stream = File.Create(jsonPath))
+        {
+            await JsonSerializer.SerializeAsync(
+                stream,
+                result,
+                _serializerOptions,
+                cancellationToken);
+        }
+
+        var validations = result.Measurements
+            .Select(static measurement => measurement.Validation)
+            .ToArray();
+        var validationPath = Path.Combine(outputDirectory, "validation.json");
+        await using (var stream = File.Create(validationPath))
+        {
+            await JsonSerializer.SerializeAsync(
+                stream,
+                validations,
+                _serializerOptions,
+                cancellationToken);
+        }
+
+        var first = result.Measurements[0];
+        var createdCount = first.Files.Count(
+            static file => file.Operation == DurableCommitFileOperation.Create);
+        var replacedCount = first.Files.Count(
+            static file => file.Operation == DurableCommitFileOperation.Replace);
+        var deletedCount = first.Files.Count(
+            static file => file.Operation == DurableCommitFileOperation.Delete);
+        var builder = new StringBuilder()
+            .AppendLine("# Roslyn Workbench state-sequence summary")
+            .AppendLine()
+            .Append("Repository: ").AppendLine(result.Repository)
+            .Append("Scenario: ").AppendLine(result.Scenario)
+            .Append("Sequence kind: ").AppendLine(result.Kind.ToString())
+            .Append("Warm-ups: ").AppendLine(
+                result.WarmupCount.ToString(CultureInfo.InvariantCulture))
+            .Append("Measured iterations: ").AppendLine(
+                result.Measurements.Count.ToString(CultureInfo.InvariantCulture))
+            .Append("Created/replaced/deleted before restoration: ")
+            .Append(createdCount.ToString(CultureInfo.InvariantCulture)).Append('/')
+            .Append(replacedCount.ToString(CultureInfo.InvariantCulture)).Append('/')
+            .AppendLine(deletedCount.ToString(CultureInfo.InvariantCulture))
+            .AppendLine()
+            .AppendLine("| Step | Tool | Elapsed (ms) | Error | References | Revision | Revisions |")
+            .AppendLine("|---|---|---:|---|---:|---:|---:|");
+
+        foreach (var step in first.Steps)
+        {
+            builder
+                .Append("| ").Append(step.Name)
+                .Append(" | ").Append(step.Tool)
+                .Append(" | ").Append(
+                    step.ElapsedMilliseconds.ToString("F2", CultureInfo.InvariantCulture))
+                .Append(" | ").Append(step.ErrorCode ?? string.Empty)
+                .Append(" | ").Append(FormatNullable(step.ReferenceCount))
+                .Append(" | ").Append(FormatNullable(step.TransactionRevision))
+                .Append(" | ").Append(FormatNullable(step.TransactionRevisionCount))
+                .AppendLine(" |");
+        }
+
+        await File.WriteAllTextAsync(
+            Path.Combine(outputDirectory, "state-sequence.md"),
+            builder.ToString(),
+            Encoding.UTF8,
+            cancellationToken);
+    }
+
+    private static string FormatNullable(int? value)
+    {
+        return value?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
+    }
+
     public static async Task WritePhaseSummaryAsync(
         string outputDirectory,
         IReadOnlyList<PhaseTraceSummary> phases,

@@ -125,6 +125,11 @@ internal sealed class PerformanceOptions
             return PerformanceCommand.CrashRecovery;
         }
 
+        if (string.Equals(value, "state-sequence", StringComparison.OrdinalIgnoreCase))
+        {
+            return PerformanceCommand.StateSequence;
+        }
+
         if (string.Equals(value, "cancel", StringComparison.OrdinalIgnoreCase))
         {
             return PerformanceCommand.Cancel;

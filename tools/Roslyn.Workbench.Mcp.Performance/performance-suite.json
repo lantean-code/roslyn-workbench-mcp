@@ -468,6 +468,86 @@
             },
             "preserveNamespace": true
           }
+        },
+        {
+          "id": "find-no-enumeration-cache-external-reload",
+          "description": "Warms reference discovery, changes one source input externally, proves stale-query rejection, reloads, and verifies the refreshed semantic result.",
+          "tool": "find-references",
+          "commitOnly": true,
+          "stateSequence": {
+            "kind": "ExternalReload",
+            "externalMutation": {
+              "path": "src/Serilog/Core/Logger.cs",
+              "typeDeclaration": "public sealed class Logger : ILogger, ILogEventSink, IDisposable",
+              "memberDeclaration": "readonly JetBrains.Annotations.NoEnumerationAttribute? _performanceCacheProbe;"
+            }
+          },
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "symbol": {
+              "project": {
+                "path": "src/Serilog/Serilog.csproj",
+                "targetFramework": "net10.0"
+              },
+              "documentationCommentId": "T:JetBrains.Annotations.NoEnumerationAttribute"
+            },
+            "includeDefinitions": true,
+            "includeContext": false,
+            "referencesLimit": 500
+          }
+        },
+        {
+          "id": "find-no-enumeration-cache-multi-revision",
+          "description": "Warms reference discovery, stages two compatible mutations, traverses transaction history, commits, and verifies a refreshed post-commit definition path.",
+          "tool": "find-references",
+          "commitOnly": true,
+          "stateSequence": {
+            "kind": "MultiRevisionCommit",
+            "mutations": [
+              {
+                "tool": "move-type-to-file",
+                "arguments": {
+                  "workspace": { "workspaceId": "${workspaceId}" },
+                  "type": {
+                    "project": {
+                      "path": "src/Serilog/Serilog.csproj",
+                      "targetFramework": "net10.0"
+                    },
+                    "documentationCommentId": "T:JetBrains.Annotations.NoEnumerationAttribute"
+                  },
+                  "preserveNamespace": true
+                }
+              },
+              {
+                "tool": "rename-symbol",
+                "arguments": {
+                  "workspace": { "workspaceId": "${workspaceId}" },
+                  "symbol": {
+                    "project": {
+                      "path": "src/Serilog/Serilog.csproj",
+                      "targetFramework": "net10.0"
+                    },
+                    "documentationCommentId": "T:Serilog.Events.EventProperty"
+                  },
+                  "newName": "PerformanceEventProperty",
+                  "renameFile": false
+                }
+              }
+            ]
+          },
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "symbol": {
+              "project": {
+                "path": "src/Serilog/Serilog.csproj",
+                "targetFramework": "net10.0"
+              },
+              "documentationCommentId": "T:JetBrains.Annotations.NoEnumerationAttribute"
+            },
+            "includeDefinitions": true,
+            "includeContext": false,
+            "referencesLimit": 100
+          }
         }
       ]
     },

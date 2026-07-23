@@ -9,6 +9,7 @@ internal enum PerformanceCommand
     Commit,
     Conflict,
     CrashRecovery,
+    StateSequence,
     Cancel,
     Profile,
 }

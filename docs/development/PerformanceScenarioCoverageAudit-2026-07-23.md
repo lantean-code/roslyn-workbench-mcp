@@ -10,7 +10,7 @@ The audit treats scenario coverage as more important than raw tool count. A sepa
 
 ## Current coverage
 
-The checked-in suite contains 47 repository/scenario definitions across GuardClauses, Serilog and EF Core. They cover ten distinct tools:
+The checked-in suite contains 50 repository/scenario definitions across GuardClauses, Serilog and EF Core. They cover ten distinct primary tools:
 
 - six bundled query tools;
 - Code Action discovery;
@@ -100,3 +100,17 @@ Crash recovery can now select the operation at which to interrupt from the trans
 Native Windows confirmed both paths. The successful commit staged in 2166.98 ms, previewed in 7.28 ms, committed in 1432.35 ms and restored the checkout in 218.31 ms; the Host exited normally and final validation was clean. The interrupted run terminated 116.81 ms after commit invocation with the created file and original-file replacement both observable, retained an `Applying` manifest with three artifacts, recovered during fresh-Host startup in 693.99 ms, reopened the Workspace and left no repository, recovery, coordination or lock residue. Evidence: `artifacts/performance/results/20260723-111919-serilog-dc17a6b6599f4d9b860feb2ff19a4b3d` and `artifacts/performance/results/20260723-111942-serilog-aaa727d9a67f43d58f03123ed8152a30`.
 
 The delete candidate audit found no currently validated built-in Code Action that removes a source document. Roslyn's move-type provider creates a new document while retaining and updating the original when types share a file. It does not offer the move-to-file action for the sole type in a mismatched filename, as confirmed against EF Core's `NullableStructCurrentProviderValueComparer<TModel,TProvider>`. No production Code Action implementation or compatibility fixture uses `Solution.RemoveDocument`; the only occurrence is synthetic solution-change counting coverage. A delete scenario must therefore remain dependent on a real, deterministic action becoming available rather than using a fabricated Workspace mutation.
+
+## Batch 3 implementation
+
+**Status:** Complete; native WSL and native Windows validation passed.
+
+**Production fix required:** No. Both published-Host lifecycle sequences returned fresh semantic results at their intended invalidation boundaries. The initial external-edit assertions were runner defects: commonly referenced symbols saturated the 500-item response bound, and one physical Serilog source edit appears in 25 loaded Roslyn documents across target-framework projects. The curated scenario now uses the lower-cardinality `NoEnumerationAttribute` symbol and requires the refreshed semantic result to grow without assuming a one-file-to-one-document mapping.
+
+The permanent runner now provides a `state-sequence` command. Each iteration keeps one Host and Workspace alive for the complete scenario, records every MCP step, captures response hashes and relevant semantic or transaction state, restores any committed changes, and performs the ordinary repository, recovery-state, Workspace-state and Host-shutdown validation.
+
+The external-reload sequence warmed `find-references` from 2169.58 ms to 10.70 ms, changed `Logger.cs` outside the Host, and received `WorkspaceOutOfDate` with `ReloadWorkspace` from the next query. After `workspace-reload`, the response changed and its bounded semantic references increased from 35 to 60. The external change was restored before repository validation, the Host exited normally, and no source, recovery, coordination or lock residue remained. Evidence: `artifacts/performance/results/20260723-113440-serilog-22b9796adaa446a6bfa0bdf3c508a14b`.
+
+The multi-revision sequence warmed the same query from 2227.81 ms to 12.61 ms, staged `move-type-to-file` as revision 1 and `rename-symbol` as revision 2, then verified preview at revision 2, undo to revision 1 and redo to revision 2 before committing. The post-commit query resolved the moved definition from `NoEnumerationAttribute.cs` rather than `Guard.cs`, proving it did not serve the warmed pre-transaction entry. The commit created one file and replaced seven, after which runner restoration returned the checkout to its pinned state and final validation passed. Evidence: `artifacts/performance/results/20260723-113420-serilog-6fb18ceaab7e42c3872495ae436693c7`.
+
+Native Windows confirmed both sequences. The external-reload run reproduced the warmed response, rejected the stale query with `WorkspaceOutOfDate` and `ReloadWorkspace`, then increased the semantic reference result from 63 to 112 after reload. It restored the external edit, exited normally and reported no validation issues. The multi-revision run reproduced revisions 0, 1 and 2, moved backward to revision 1 and forward to revision 2, committed one created and seven replaced files, and resolved the moved definition from `NoEnumerationAttribute.cs`. Runner restoration returned the checkout to the pinned commit; both runs left no recovery or new Workspace state files. Evidence: `artifacts/performance/results/20260723-121349-serilog-d89cca1bdabe4d4cb69c1ba698d5a5ac` and `artifacts/performance/results/20260723-121549-serilog-1b05634fe5a44106a4a31215b8be7b86`.

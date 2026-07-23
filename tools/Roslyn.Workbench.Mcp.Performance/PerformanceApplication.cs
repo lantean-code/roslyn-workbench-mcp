@@ -105,6 +105,23 @@ internal static class PerformanceApplication
                 return 0;
             }
 
+            if (options.Command == PerformanceCommand.StateSequence)
+            {
+                await MeasureStateSequencesAsync(
+                    options,
+                    repository,
+                    scenarios,
+                    hostPath,
+                    repositoryRoot,
+                    environment,
+                    executionDirectory,
+                    outputDirectory,
+                    cancellationToken);
+
+                await Console.Out.WriteLineAsync($"Results: {outputDirectory}");
+                return 0;
+            }
+
             var stateDirectory = Path.Combine(executionDirectory, "state");
             var workspacePath = Path.Combine(repositoryRoot, repository.WorkspacePath);
             var initialWorkspaceStateFiles = RunStateValidator.CaptureWorkspaceStateFiles(repositoryRoot);
@@ -382,6 +399,243 @@ internal static class PerformanceApplication
         };
 
         await ResultWriter.WriteDurableCommitAsync(outputDirectory, result, cancellationToken);
+    }
+
+    private static async Task MeasureStateSequencesAsync(
+        PerformanceOptions options,
+        RepositoryDefinition repository,
+        IReadOnlyList<ScenarioDefinition> scenarios,
+        string hostPath,
+        string repositoryRoot,
+        RunEnvironmentInfo environment,
+        string executionDirectory,
+        string outputDirectory,
+        CancellationToken cancellationToken)
+    {
+        if (scenarios.Count != 1)
+        {
+            throw new ArgumentException(
+                "State-sequence measurement requires exactly one state-sequence scenario.");
+        }
+
+        var scenario = scenarios[0];
+        var definition = scenario.StateSequence
+            ?? throw new ArgumentException(
+                $"Scenario '{scenario.Id}' does not define a state sequence.");
+        var workspacePath = Path.Combine(repositoryRoot, repository.WorkspacePath);
+        var restorer = await RepositoryRestorer.CreateAsync(
+            repositoryRoot,
+            repository.Commit,
+            cancellationToken);
+        var initialWorkspaceStateFiles = RunStateValidator.CaptureWorkspaceStateFiles(
+            repositoryRoot);
+        var startedAtUtc = DateTimeOffset.UtcNow;
+
+        for (var warmup = 1; warmup <= options.Warmups; warmup++)
+        {
+            await Console.Out.WriteLineAsync(
+                $"Warming state sequence {repository.Id}/{scenario.Id} ({warmup}/{options.Warmups})");
+            _ = await RunStateSequenceIterationAsync(
+                repository,
+                scenario,
+                hostPath,
+                repositoryRoot,
+                workspacePath,
+                Path.Combine(executionDirectory, "state", $"warmup-{warmup}"),
+                initialWorkspaceStateFiles,
+                restorer,
+                iteration: 0,
+                cancellationToken);
+        }
+
+        var measurements = new List<StateSequenceMeasurement>();
+        for (var iteration = 1; iteration <= options.Iterations; iteration++)
+        {
+            await Console.Out.WriteLineAsync(
+                $"Measuring state sequence {repository.Id}/{scenario.Id} ({iteration}/{options.Iterations})");
+            var measurement = await RunStateSequenceIterationAsync(
+                repository,
+                scenario,
+                hostPath,
+                repositoryRoot,
+                workspacePath,
+                Path.Combine(executionDirectory, "state", $"iteration-{iteration}"),
+                initialWorkspaceStateFiles,
+                restorer,
+                iteration,
+                cancellationToken);
+
+            measurements.Add(measurement);
+        }
+
+        var result = new StateSequenceRunResult
+        {
+            Repository = repository.Id,
+            RepositorySize = repository.Size,
+            Commit = repository.Commit,
+            Scenario = scenario.Id,
+            Kind = definition.Kind,
+            StartedAtUtc = startedAtUtc,
+            Environment = environment,
+            WarmupCount = options.Warmups,
+            Measurements = measurements,
+        };
+
+        await ResultWriter.WriteStateSequenceAsync(
+            outputDirectory,
+            result,
+            cancellationToken);
+    }
+
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "The manual runner must preserve workload, workspace-close, Host-disposal, restoration, and validation failures so every cleanup step is attempted and all failures are reported together.")]
+    private static async Task<StateSequenceMeasurement> RunStateSequenceIterationAsync(
+        RepositoryDefinition repository,
+        ScenarioDefinition scenario,
+        string hostPath,
+        string repositoryRoot,
+        string workspacePath,
+        string stateDirectory,
+        IReadOnlySet<string> initialWorkspaceStateFiles,
+        RepositoryRestorer restorer,
+        int iteration,
+        CancellationToken cancellationToken)
+    {
+        await using var host = await PerformanceHost.StartAsync(
+            hostPath,
+            repositoryRoot,
+            stateDirectory,
+            cancellationToken);
+        string? workspaceId = null;
+        StateSequenceExecution? execution = null;
+        ExceptionDispatchInfo? runFailure = null;
+
+        try
+        {
+            workspaceId = await OpenWorkspaceAsync(
+                host,
+                workspacePath,
+                repositoryRoot,
+                cancellationToken);
+
+            var runner = new StateSequenceRunner(
+                host,
+                workspaceId,
+                repositoryRoot);
+
+            execution = await runner.ExecuteAsync(scenario, cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            runFailure = ExceptionDispatchInfo.Capture(exception);
+        }
+        finally
+        {
+            if (workspaceId is not null)
+            {
+                try
+                {
+                    await CloseWorkspaceAsync(host, workspaceId);
+                }
+                catch (Exception exception)
+                {
+                    runFailure = CombineFailures(runFailure, exception);
+                }
+            }
+
+            try
+            {
+                await host.DisposeAsync();
+            }
+            catch (Exception exception)
+            {
+                runFailure = CombineFailures(runFailure, exception);
+            }
+        }
+
+        RepositoryChangeSet? changes = null;
+        double restorationMilliseconds = 0;
+        try
+        {
+            changes = await restorer.CaptureChangesAsync(CancellationToken.None);
+            restorationMilliseconds = await restorer.RestoreAsync(
+                changes,
+                CancellationToken.None);
+
+            RunStateValidator.RestoreWorkspaceStateFiles(
+                repositoryRoot,
+                initialWorkspaceStateFiles);
+        }
+        catch (Exception exception)
+        {
+            runFailure = CombineFailures(runFailure, exception);
+        }
+
+        var shutdown = host.GetShutdownResult();
+        var validation = await RunStateValidator.ValidateAsync(
+            repository,
+            repositoryRoot,
+            stateDirectory,
+            initialWorkspaceStateFiles,
+            shutdown,
+            CancellationToken.None);
+
+        if (!validation.Succeeded)
+        {
+            runFailure = CombineFailures(
+                runFailure,
+                new InvalidOperationException(
+                    $"State-sequence validation failed: {string.Join(" ", validation.Issues)}"));
+        }
+
+        if (changes is not null)
+        {
+            ValidateStateSequenceChanges(scenario, changes);
+        }
+
+        runFailure?.Throw();
+
+        var completedExecution = execution
+            ?? throw new InvalidOperationException(
+                "State sequence did not produce execution evidence.");
+        var completedChanges = changes
+            ?? throw new InvalidOperationException(
+                "State sequence did not produce a repository change set.");
+
+        return new StateSequenceMeasurement
+        {
+            Iteration = iteration,
+            Steps = completedExecution.Steps,
+            RestorationMilliseconds = restorationMilliseconds,
+            Files = completedChanges.Files,
+            HostShutdown = shutdown,
+            Validation = validation,
+        };
+    }
+
+    private static void ValidateStateSequenceChanges(
+        ScenarioDefinition scenario,
+        RepositoryChangeSet changes)
+    {
+        var definition = scenario.StateSequence
+            ?? throw new InvalidOperationException(
+                $"Scenario '{scenario.Id}' does not define a state sequence.");
+
+        if (definition.Kind == StateSequenceKind.ExternalReload
+            && changes.Files.Count != 0)
+        {
+            throw new InvalidOperationException(
+                "External-reload sequence did not restore its externally changed source file.");
+        }
+
+        if (definition.Kind == StateSequenceKind.MultiRevisionCommit
+            && changes.Files.Count == 0)
+        {
+            throw new InvalidOperationException(
+                "Multi-revision sequence committed without changing repository files.");
+        }
     }
 
     [SuppressMessage(
@@ -1525,7 +1779,8 @@ internal static class PerformanceApplication
             if (command is PerformanceCommand.Profile
                 or PerformanceCommand.Commit
                 or PerformanceCommand.Conflict
-                or PerformanceCommand.CrashRecovery)
+                or PerformanceCommand.CrashRecovery
+                or PerformanceCommand.StateSequence)
             {
                 throw new ArgumentException($"{command} requires one scenario; '--scenario all' is not supported.");
             }
@@ -1554,6 +1809,13 @@ internal static class PerformanceApplication
             }
 
             scenarios.Add(scenario);
+        }
+
+        if (command == PerformanceCommand.StateSequence
+            && scenarios.Any(static scenario => scenario.StateSequence is null))
+        {
+            throw new ArgumentException(
+                "The state-sequence command requires scenarios with a stateSequence definition.");
         }
 
         return scenarios;
@@ -1680,6 +1942,7 @@ internal static class PerformanceApplication
               commit --repository <id> --scenario <mutation-id> --host <path> [--iterations 5] [--warmups 1] [--capture-trace] [--duration 00:00:30] [--output <path>] [--framework-root <path>] [--skip-prepare]
               conflict --repository <id> --scenario <conflict-id> --host <path> [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
               crash-recovery --repository <id> --scenario <mutation-id> --host <path> [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
+              state-sequence --repository <id> --scenario <state-sequence-id> --host <path> [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
               cancel --repository <id> --scenario <id> --host <path> [--cancel-after 00:00:00.050] [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
               profile --repository <id> --scenario <id[,id...]> --host <path> [--profile trace|counters|gcdump] [--duration 00:00:30] [--iterations 5] [--warmups 1] [--output <path>] [--framework-root <path>] [--skip-prepare]
 

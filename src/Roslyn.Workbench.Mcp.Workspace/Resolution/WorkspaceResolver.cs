@@ -47,7 +47,6 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
 
     public DocumentReference? CreateDocumentReference(Document document)
     {
-
         return new DocumentReference
         {
             DocumentId = document.Id.Id.ToString(),
@@ -58,7 +57,6 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
 
     public SymbolReference CreateSymbolReference(ISymbol symbol)
     {
-
         var sourceLocation = symbol.Locations.FirstOrDefault(static location => location.IsInSource);
 
         return new SymbolReference
@@ -118,24 +116,25 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
 
     public async ValueTask<SelectorResolveResult<Location>> ResolveLocationAsync(LocationSelector selector, CancellationToken cancellationToken)
     {
-
         var resolution = await ResolveDocumentSpanAsync(selector, project: null, cancellationToken);
         if (resolution.IsResolved)
         {
             var syntaxTree = await resolution.Value.Document.GetSyntaxTreeAsync(cancellationToken);
-            return syntaxTree is null
-                ? SelectorResolveResult<Location>.NotFound()
-                : SelectorResolveResult<Location>.Resolved(syntaxTree.GetLocation(resolution.Value.Span));
+            if (syntaxTree is null)
+            {
+                return SelectorResolveResult<Location>.NotFound();
+            }
+
+            var location = syntaxTree.GetLocation(resolution.Value.Span);
+
+            return SelectorResolveResult<Location>.Resolved(location);
         }
 
-        return resolution.Status == SelectorResolveStatus.Ambiguous
-            ? SelectorResolveResult<Location>.Ambiguous()
-            : SelectorResolveResult<Location>.NotFound();
+        return CreateUnresolvedResult<Location>(resolution.Status);
     }
 
     public SelectorResolveResult<Project> ResolveProject(ProjectSelector selector)
     {
-
         var matches = _solution.Projects.Where(project => MatchesProjectSelector(project, selector)).ToArray();
         return matches.Length switch
         {
@@ -153,9 +152,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
             var projectResolution = ResolveProject(selector.Project);
             if (!projectResolution.IsResolved)
             {
-                return projectResolution.Status == SelectorResolveStatus.Ambiguous
-                    ? SelectorResolveResult<ISymbol>.Ambiguous()
-                    : SelectorResolveResult<ISymbol>.NotFound();
+                return CreateUnresolvedResult<ISymbol>(projectResolution.Status);
             }
 
             project = projectResolution.Value;
@@ -174,9 +171,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         var locationResolution = await ResolveDocumentSpanAsync(selector.Location, project, cancellationToken);
         if (!locationResolution.IsResolved)
         {
-            return locationResolution.Status == SelectorResolveStatus.Ambiguous
-                ? SelectorResolveResult<ISymbol>.Ambiguous()
-                : SelectorResolveResult<ISymbol>.NotFound();
+            return CreateUnresolvedResult<ISymbol>(locationResolution.Status);
         }
 
         var document = locationResolution.Value.Document;
@@ -194,14 +189,21 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
 
         var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
         var node = syntaxRoot?.FindNode(locationResolution.Value.Span, getInnermostNodeForTie: true);
-        symbol = node is null
-            ? null
-            : semanticModel.GetDeclaredSymbol(node, cancellationToken)
-                ?? semanticModel.GetSymbolInfo(node, cancellationToken).Symbol;
+        if (node is not null)
+        {
+            symbol = semanticModel.GetDeclaredSymbol(node, cancellationToken);
+            if (symbol is null)
+            {
+                symbol = semanticModel.GetSymbolInfo(node, cancellationToken).Symbol;
+            }
+        }
 
-        return symbol is null
-            ? SelectorResolveResult<ISymbol>.NotFound()
-            : SelectorResolveResult<ISymbol>.Resolved(symbol);
+        if (symbol is null)
+        {
+            return SelectorResolveResult<ISymbol>.NotFound();
+        }
+
+        return SelectorResolveResult<ISymbol>.Resolved(symbol);
     }
 
     private SelectorResolveResult<Document> ResolveDocument(DocumentSelector selector, Project? project)
@@ -213,16 +215,24 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         if (!string.IsNullOrWhiteSpace(selector.DocumentId)
             && Guid.TryParse(selector.DocumentId, out var documentGuid))
         {
-            var matchesById = projects.SelectMany(static candidateProject => candidateProject.Documents)
-                .Where(document => document.Id.Id == documentGuid)
-                .ToArray();
+            var matchesById = new List<Document>();
+            foreach (var candidateProject in projects)
+            {
+                foreach (var document in candidateProject.Documents)
+                {
+                    if (document.Id.Id == documentGuid)
+                    {
+                        matchesById.Add(document);
+                    }
+                }
+            }
 
-            if (matchesById.Length == 1)
+            if (matchesById.Count == 1)
             {
                 return SelectorResolveResult<Document>.Resolved(matchesById[0]);
             }
 
-            if (matchesById.Length > 1)
+            if (matchesById.Count > 1)
             {
                 return SelectorResolveResult<Document>.Ambiguous();
             }
@@ -234,11 +244,20 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         }
 
         var normalizedPath = NormalizeDocumentPath(selector.Path);
-        var matches = projects.SelectMany(static candidateProject => candidateProject.Documents)
-            .Where(document => string.Equals(NormalizeDocumentPath(document.FilePath ?? string.Empty), normalizedPath, StringComparison.Ordinal))
-            .ToArray();
+        var matches = new List<Document>();
+        foreach (var candidateProject in projects)
+        {
+            foreach (var document in candidateProject.Documents)
+            {
+                var documentPath = NormalizeDocumentPath(document.FilePath ?? string.Empty);
+                if (string.Equals(documentPath, normalizedPath, StringComparison.Ordinal))
+                {
+                    matches.Add(document);
+                }
+            }
+        }
 
-        return matches.Length switch
+        return matches.Count switch
         {
             1 => SelectorResolveResult<Document>.Resolved(matches[0]),
             > 1 => SelectorResolveResult<Document>.Ambiguous(),
@@ -296,9 +315,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         var documentResolution = ResolveDocument(selector.Document, project);
         if (!documentResolution.IsResolved)
         {
-            return documentResolution.Status == SelectorResolveStatus.Ambiguous
-                ? SelectorResolveResult<ResolvedDocumentSpan>.Ambiguous()
-                : SelectorResolveResult<ResolvedDocumentSpan>.NotFound();
+            return CreateUnresolvedResult<ResolvedDocumentSpan>(documentResolution.Status);
         }
 
         var document = documentResolution.Value;
@@ -348,9 +365,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         var documentResolution = ResolveDocument(selector.Document, project);
         if (!documentResolution.IsResolved)
         {
-            return documentResolution.Status == SelectorResolveStatus.Ambiguous
-                ? SelectorResolveResult<ResolvedDocumentSpan>.Ambiguous()
-                : SelectorResolveResult<ResolvedDocumentSpan>.NotFound();
+            return CreateUnresolvedResult<ResolvedDocumentSpan>(documentResolution.Status);
         }
 
         var document = documentResolution.Value;
@@ -428,6 +443,17 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         }
 
         return Path.GetRelativePath(_workspaceRoot, fullPath).Replace('\\', '/');
+    }
+
+    private static SelectorResolveResult<T> CreateUnresolvedResult<T>(SelectorResolveStatus status)
+        where T : class
+    {
+        if (status == SelectorResolveStatus.Ambiguous)
+        {
+            return SelectorResolveResult<T>.Ambiguous();
+        }
+
+        return SelectorResolveResult<T>.NotFound();
     }
 
     private static bool MatchesTargetFramework(Project project, string? targetFramework)

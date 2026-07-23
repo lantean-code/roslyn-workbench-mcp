@@ -164,11 +164,14 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         var intendedHash = Hash(intendedContents);
         if (context.EntriesByTarget.TryGetValue(path, out var existingEntry))
         {
-            return existingEntry.Operation == operation
-                && string.Equals(existingEntry.IntendedHash, intendedHash, StringComparison.Ordinal)
-                    ? WorkspaceCommitValidationResult.Valid()
-                    : WorkspaceCommitValidationResult.Invalid(
-                        $"The commit contains conflicting changes for the duplicate target '{path}'.");
+            if (existingEntry.Operation == operation
+                && string.Equals(existingEntry.IntendedHash, intendedHash, StringComparison.Ordinal))
+            {
+                return WorkspaceCommitValidationResult.Valid();
+            }
+
+            return WorkspaceCommitValidationResult.Invalid(
+                $"The commit contains conflicting changes for the duplicate target '{path}'.");
         }
 
         var originalExists = _fileSystem.File.Exists(path);
@@ -227,10 +230,13 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
 
         if (context.EntriesByTarget.TryGetValue(path, out var existingEntry))
         {
-            return existingEntry.Operation == WorkspaceFileOperation.Delete
-                ? WorkspaceCommitValidationResult.Valid()
-                : WorkspaceCommitValidationResult.Invalid(
-                    $"The commit contains conflicting changes for the duplicate target '{path}'.");
+            if (existingEntry.Operation == WorkspaceFileOperation.Delete)
+            {
+                return WorkspaceCommitValidationResult.Valid();
+            }
+
+            return WorkspaceCommitValidationResult.Invalid(
+                $"The commit contains conflicting changes for the duplicate target '{path}'.");
         }
 
         if (!_fileSystem.File.Exists(path))
@@ -354,28 +360,34 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         Solution baselineSolution,
         IEqualityComparer<string> comparer)
     {
-        return baselineSolution.Projects
-            .SelectMany(project => project.Documents)
-            .Select(document => document.FilePath)
-            .OfType<string>()
-            .Where(path => !string.IsNullOrWhiteSpace(path))
-            .Select(_fileSystem.Path.GetFullPath)
-            .ToHashSet(comparer);
+        var paths = new HashSet<string>(comparer);
+        foreach (var project in baselineSolution.Projects)
+        {
+            foreach (var document in project.Documents)
+            {
+                if (!string.IsNullOrWhiteSpace(document.FilePath))
+                {
+                    paths.Add(_fileSystem.Path.GetFullPath(document.FilePath));
+                }
+            }
+        }
+
+        return paths;
     }
 
     private static WorkspaceCommitPlan CreatePlan(WorkspaceCommitPlanningContext context)
     {
-        return new WorkspaceCommitPlan(
-            new WorkspaceCommitManifest
-            {
-                CommitId = context.CommitId,
-                LoadedPath = context.LoadedPath,
-                WorkspaceRoot = context.WorkspaceRoot,
-                State = Contracts.Results.RecoveryState.Prepared,
-                Entries = context.Entries,
-                CreatedDirectories = context.CreatedDirectories.OrderBy(path => path.Length).ToArray(),
-            },
-            context.Artifacts);
+        var manifest = new WorkspaceCommitManifest
+        {
+            CommitId = context.CommitId,
+            LoadedPath = context.LoadedPath,
+            WorkspaceRoot = context.WorkspaceRoot,
+            State = Contracts.Results.RecoveryState.Prepared,
+            Entries = context.Entries,
+            CreatedDirectories = context.CreatedDirectories.OrderBy(path => path.Length).ToArray(),
+        };
+
+        return new WorkspaceCommitPlan(manifest, context.Artifacts);
     }
 
     private static async ValueTask<byte[]> GetDocumentBytesAsync(

@@ -147,9 +147,26 @@ Completed evidence:
 
 ### Batch 3 — Workspace expression cleanup
 
+**Status:** Complete
+
 Review Workspace resolution, loading, lifecycle, change detection and transaction code. Keep transaction and commit changes especially narrow even when a readability rewrite is behaviour-preserving.
 
 Validation: Workspace unit and integration tests, transaction and recovery acceptance scenarios where touched, analyzer build and the fast suite.
+
+Completed work:
+
+- replaced complex conditional expressions and non-trivial coalescing with explicit failure-first control flow;
+- simplified multi-stage collection searches and builders while preserving ordering, ambiguity and first-failure behaviour;
+- separated result, outcome, context and commit-plan construction from enclosing return statements;
+- retained six concise invariant guards and five single-purpose LINQ pipelines where the existing form remains clearer; and
+- reduced the Workspace syntax scan to zero complex conditional, non-trivial coalescing and multiline statement-separation candidates.
+
+Validation evidence:
+
+- the Workspace project built with zero `latest-all` analyzer warnings;
+- all 741 Workspace unit tests and 70 Workspace integration tests passed; and
+- all 10 published-host acceptance tests passed, including transaction commit, recovery and rollback workflows; and
+- the fast unit and contract suite passed 1,886 tests.
 
 ### Batch 4 — Host expression cleanup
 

@@ -71,9 +71,27 @@ internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCa
         ProjectChanges projectChanges,
         IReadOnlySet<DocumentId> textChangedDocuments)
     {
-        return TryValidateSourceDocuments(currentProject, projectChanges.GetRemovedDocuments(), "deleted")
-            ?? TryValidateSourceDocuments(candidateProject, projectChanges.GetAddedDocuments(), "created")
-            ?? TryValidateSourceDocuments(candidateProject, textChangedDocuments, "changed");
+        var validationError = TryValidateSourceDocuments(
+            currentProject,
+            projectChanges.GetRemovedDocuments(),
+            "deleted");
+
+        if (validationError is not null)
+        {
+            return validationError;
+        }
+
+        validationError = TryValidateSourceDocuments(
+            candidateProject,
+            projectChanges.GetAddedDocuments(),
+            "created");
+
+        if (validationError is not null)
+        {
+            return validationError;
+        }
+
+        return TryValidateSourceDocuments(candidateProject, textChangedDocuments, "changed");
     }
 
     private WorkspaceOperationError? TryValidateSourceDocuments(

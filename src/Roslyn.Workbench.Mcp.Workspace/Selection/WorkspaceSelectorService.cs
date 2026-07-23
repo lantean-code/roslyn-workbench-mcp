@@ -19,10 +19,23 @@ internal sealed class WorkspaceSelectorService : IWorkspaceSelector
             return CreateSuccess(pair.Key, pair.Value);
         }
 
-        return WorkspaceSelectionResult.Failure(
-            hostSnapshot.Workspaces.Count == 0
-                ? CreateError(_workspaceSelectorNotFoundCode, "Open a workspace before invoking this tool.", RequiredAction.OpenWorkspace)
-                : CreateError(_workspaceSelectorRequiredCode, "Select a workspace when more than one workspace is loaded.", RequiredAction.ResolveTargetAgain));
+        WorkspaceOperationError error;
+        if (hostSnapshot.Workspaces.Count == 0)
+        {
+            error = CreateError(
+                _workspaceSelectorNotFoundCode,
+                "Open a workspace before invoking this tool.",
+                RequiredAction.OpenWorkspace);
+        }
+        else
+        {
+            error = CreateError(
+                _workspaceSelectorRequiredCode,
+                "Select a workspace when more than one workspace is loaded.",
+                RequiredAction.ResolveTargetAgain);
+        }
+
+        return WorkspaceSelectionResult.Failure(error);
     }
 
     private static WorkspaceSelectionResult ResolveSelection(

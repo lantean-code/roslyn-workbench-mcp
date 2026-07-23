@@ -73,9 +73,21 @@ internal sealed class WorkspaceLoader : IWorkspaceLoader
 
         try
         {
-            var solution = string.Equals(Path.GetExtension(path), ".csproj", StringComparison.OrdinalIgnoreCase)
-                ? (await workspace.OpenProjectAsync(path, cancellationToken: cancellationToken)).Solution
-                : await workspace.OpenSolutionAsync(path, cancellationToken: cancellationToken);
+            Solution solution;
+            if (string.Equals(Path.GetExtension(path), ".csproj", StringComparison.OrdinalIgnoreCase))
+            {
+                var project = await workspace.OpenProjectAsync(
+                    path,
+                    cancellationToken: cancellationToken);
+
+                solution = project.Solution;
+            }
+            else
+            {
+                solution = await workspace.OpenSolutionAsync(
+                    path,
+                    cancellationToken: cancellationToken);
+            }
 
             return new WorkspaceLoadResult
             {

@@ -104,12 +104,14 @@ internal sealed class TransactionService : ITransactionService
             null,
             null);
 
-        return _resultFactory.Succeeded(
-            new TransactionStartOutcome
-            {
-                Transaction = transaction.ToInfo(conflicted: false),
-            },
-            CreateContext(updatedSession));
+        var outcome = new TransactionStartOutcome
+        {
+            Transaction = transaction.ToInfo(conflicted: false),
+        };
+
+        var updatedContext = CreateContext(updatedSession);
+
+        return _resultFactory.Succeeded(outcome, updatedContext);
     }
 
     public async ValueTask<WorkspaceOperationResult<TransactionPreviewOutcome>> PreviewAsync(
@@ -173,14 +175,16 @@ internal sealed class TransactionService : ITransactionService
             }
         }
 
-        return _resultFactory.Succeeded(
-            new TransactionPreviewOutcome
-            {
-                Transaction = session.Transaction.ToInfo(session.State == WorkspaceLifecycleState.TransactionConflicted),
-                Documents = documents,
-                Diff = diff,
-            },
-            CreateContext(session));
+        var outcome = new TransactionPreviewOutcome
+        {
+            Transaction = session.Transaction.ToInfo(session.State == WorkspaceLifecycleState.TransactionConflicted),
+            Documents = documents,
+            Diff = diff,
+        };
+
+        var context = CreateContext(session);
+
+        return _resultFactory.Succeeded(outcome, context);
     }
 
     public async ValueTask<WorkspaceOperationResult<TransactionHistoryOutcome>> MoveHistoryAsync(
@@ -250,12 +254,14 @@ internal sealed class TransactionService : ITransactionService
             null,
             null);
 
-        return _resultFactory.Succeeded(
-            new TransactionHistoryOutcome
-            {
-                Transaction = updatedTransaction.ToInfo(conflicted: false),
-            },
-            CreateContext(updatedSession));
+        var outcome = new TransactionHistoryOutcome
+        {
+            Transaction = updatedTransaction.ToInfo(conflicted: false),
+        };
+
+        var updatedContext = CreateContext(updatedSession);
+
+        return _resultFactory.Succeeded(outcome, updatedContext);
     }
 
     public async ValueTask<WorkspaceOperationResult<TransactionCommitOutcome>> CommitAsync(
@@ -323,12 +329,14 @@ internal sealed class TransactionService : ITransactionService
             null,
             null);
 
-        return _resultFactory.Succeeded(
-            new TransactionRollbackOutcome
-            {
-                State = rollbackState,
-            },
-            CreateContext(updatedSession));
+        var outcome = new TransactionRollbackOutcome
+        {
+            State = rollbackState,
+        };
+
+        var updatedContext = CreateContext(updatedSession);
+
+        return _resultFactory.Succeeded(outcome, updatedContext);
     }
 
     private static string GetWorkspaceDisplayName(WorkspaceSessionSnapshot? session)

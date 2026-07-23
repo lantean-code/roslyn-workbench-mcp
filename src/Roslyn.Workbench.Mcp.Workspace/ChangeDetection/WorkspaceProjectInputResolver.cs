@@ -21,15 +21,24 @@ internal sealed class WorkspaceProjectInputResolver : IWorkspaceProjectInputReso
             using var projectCollection = new Microsoft.Build.Evaluation.ProjectCollection();
             var project = projectCollection.LoadProject(projectPath);
 
-            var paths = project.Imports
-                .Select(static import => import.ImportedProject?.FullPath)
-                .Where(static path => !string.IsNullOrWhiteSpace(path))
-                .OfType<string>()
-                .Select(static path => Path.GetFullPath(path))
-                .Distinct(StringComparer.Ordinal)
-                .ToArray();
+            var paths = new List<string>();
+            var uniquePaths = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var import in project.Imports)
+            {
+                var path = import.ImportedProject?.FullPath;
+                if (string.IsNullOrWhiteSpace(path))
+                {
+                    continue;
+                }
 
-            return WorkspaceProjectInputResolution.Succeeded(paths);
+                var fullPath = Path.GetFullPath(path);
+                if (uniquePaths.Add(fullPath))
+                {
+                    paths.Add(fullPath);
+                }
+            }
+
+            return WorkspaceProjectInputResolution.Succeeded(paths.ToArray());
         }
         catch (Exception exception) when (exception is Microsoft.Build.Exceptions.InvalidProjectFileException or IOException or UnauthorizedAccessException)
         {

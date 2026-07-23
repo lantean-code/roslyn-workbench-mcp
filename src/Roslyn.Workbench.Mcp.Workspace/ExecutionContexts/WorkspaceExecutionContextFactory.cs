@@ -156,9 +156,9 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
         CancellationToken cancellationToken)
     {
         var effectiveSession = RefreshExternalChanges(session, cancellationToken);
-        return new WorkspaceExecutionSessionValidation(
-            effectiveSession,
-            CreateUnavailableStateFailure(effectiveSession.State));
+        var failure = CreateUnavailableStateFailure(effectiveSession.State);
+
+        return new WorkspaceExecutionSessionValidation(effectiveSession, failure);
     }
 
     private WorkspaceExecutionSessionValidation ValidateMutationSession(
@@ -172,13 +172,13 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
             && !string.Equals(ownerWorkspaceId, workspaceId, StringComparison.Ordinal))
         {
             var ownerSession = _sessionStore.ReadSession(ownerWorkspaceId);
-            return new WorkspaceExecutionSessionValidation(
-                session,
-                CreateFailure(
-                    WorkspaceOperationStatus.Rejected,
-                    WorkspaceErrorCodes.TransactionOwner,
-                    $"Commit or roll back the transaction on workspace '{GetWorkspaceDisplayName(ownerSession)}' before mutating this workspace.",
-                    RequiredAction.CommitOrRollback));
+            var failure = CreateFailure(
+                WorkspaceOperationStatus.Rejected,
+                WorkspaceErrorCodes.TransactionOwner,
+                $"Commit or roll back the transaction on workspace '{GetWorkspaceDisplayName(ownerSession)}' before mutating this workspace.",
+                RequiredAction.CommitOrRollback);
+
+            return new WorkspaceExecutionSessionValidation(session, failure);
         }
 
         var effectiveSession = RefreshExternalChanges(session, cancellationToken);
@@ -190,24 +190,24 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
 
         if (effectiveSession.Transaction is null)
         {
-            return new WorkspaceExecutionSessionValidation(
-                effectiveSession,
-                CreateFailure(
-                    WorkspaceOperationStatus.Rejected,
-                    WorkspaceErrorCodes.TransactionRequired,
-                    "Start a transaction before invoking mutation tools.",
-                    RequiredAction.StartTransaction));
+            var failure = CreateFailure(
+                WorkspaceOperationStatus.Rejected,
+                WorkspaceErrorCodes.TransactionRequired,
+                "Start a transaction before invoking mutation tools.",
+                RequiredAction.StartTransaction);
+
+            return new WorkspaceExecutionSessionValidation(effectiveSession, failure);
         }
 
         if (effectiveSession.Transaction.CurrentRevision >= effectiveSession.Transaction.MaxRevisions)
         {
-            return new WorkspaceExecutionSessionValidation(
-                effectiveSession,
-                CreateFailure(
-                    WorkspaceOperationStatus.Rejected,
-                    WorkspaceErrorCodes.TransactionCapacity,
-                    "Reduce transaction history before staging more changes.",
-                    RequiredAction.ReduceTransactionHistory));
+            var failure = CreateFailure(
+                WorkspaceOperationStatus.Rejected,
+                WorkspaceErrorCodes.TransactionCapacity,
+                "Reduce transaction history before staging more changes.",
+                RequiredAction.ReduceTransactionHistory);
+
+            return new WorkspaceExecutionSessionValidation(effectiveSession, failure);
         }
 
         return new WorkspaceExecutionSessionValidation(effectiveSession);

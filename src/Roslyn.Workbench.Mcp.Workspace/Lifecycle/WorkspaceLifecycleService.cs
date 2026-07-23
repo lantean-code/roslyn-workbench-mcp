@@ -143,9 +143,12 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             return _resultFactory.Rejected<WorkspaceOpenOutcome>(latestValidationError);
         }
 
-        return CreateOpenSuccessResult(
-            session,
-            CreateOpenDiagnostics(session.LoadDiagnostics, instanceStatus, request.LoadedPath));
+        var openDiagnostics = CreateOpenDiagnostics(
+            session.LoadDiagnostics,
+            instanceStatus,
+            request.LoadedPath);
+
+        return CreateOpenSuccessResult(session, openDiagnostics);
     }
 
     public ValueTask<WorkspaceOperationResult<WorkspaceOpenOutcome>> OpenAsync(
@@ -161,15 +164,20 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         cancellationToken.ThrowIfCancellationRequested();
 
         var snapshot = _sessionStore.ReadSnapshot();
-        return ValueTask.FromResult(_resultFactory.Succeeded(
-            new WorkspaceListOutcome
-            {
-                Workspaces = snapshot.Workspaces.Values
-                    .OrderBy(static session => session.Workspace.WorkspaceId, StringComparer.Ordinal)
-                    .Select(static session => session.Workspace)
-                    .ToArray(),
-                TransactionOwnerWorkspaceId = snapshot.TransactionOwnerWorkspaceId,
-            }));
+        var workspaces = snapshot.Workspaces.Values
+            .OrderBy(static session => session.Workspace.WorkspaceId, StringComparer.Ordinal)
+            .Select(static session => session.Workspace)
+            .ToArray();
+
+        var outcome = new WorkspaceListOutcome
+        {
+            Workspaces = workspaces,
+            TransactionOwnerWorkspaceId = snapshot.TransactionOwnerWorkspaceId,
+        };
+
+        var result = _resultFactory.Succeeded(outcome);
+
+        return ValueTask.FromResult(result);
     }
 
     public async ValueTask<WorkspaceOperationResult<WorkspaceCloseOutcome>> CloseAsync(string? workspaceId, string? alias, string? path, CancellationToken cancellationToken)
@@ -206,12 +214,14 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
 
         await _instanceStatusPublisher.CloseAsync(removedSession.Workspace.WorkspaceId);
         removedSession.LoadedWorkspace.Dispose();
-        return _resultFactory.Succeeded(
-            new WorkspaceCloseOutcome
-            {
-                ClosedPath = removedSession.Workspace.LoadedPath,
-            },
-            CreateContext(removedSession));
+        var outcome = new WorkspaceCloseOutcome
+        {
+            ClosedPath = removedSession.Workspace.LoadedPath,
+        };
+
+        var context = CreateContext(removedSession);
+
+        return _resultFactory.Succeeded(outcome, context);
     }
 
     public async ValueTask<WorkspaceOperationResult<WorkspaceStatusOutcome>> GetStatusAsync(
@@ -315,15 +325,17 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         oldSession?.LoadedWorkspace.Dispose();
         _sessionStore.ReplaceSession(reloadedSession);
 
-        return _resultFactory.Succeeded(
-            new WorkspaceReloadOutcome
-            {
-                Workspace = reloadedSession.Workspace,
-                ProjectCount = reloadedSession.ProjectCount,
-                DocumentCount = reloadedSession.DocumentCount,
-                LoadDiagnostics = reloadedSession.LoadDiagnostics,
-            },
-            CreateContext(reloadedSession));
+        var outcome = new WorkspaceReloadOutcome
+        {
+            Workspace = reloadedSession.Workspace,
+            ProjectCount = reloadedSession.ProjectCount,
+            DocumentCount = reloadedSession.DocumentCount,
+            LoadDiagnostics = reloadedSession.LoadDiagnostics,
+        };
+
+        var reloadedContext = CreateContext(reloadedSession);
+
+        return _resultFactory.Succeeded(outcome, reloadedContext);
     }
 
     private ResolvedWorkspaceOpenRequest ResolveOpenRequest(string path, string? alias, string? workspaceRoot)
@@ -357,8 +369,13 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
     private WorkspaceOperationError? ValidateOpenPreflight(string loadedPath, string? alias)
     {
         var snapshot = _sessionStore.ReadSnapshot();
-        return ValidateOpenCapacity(snapshot)
-            ?? ValidateOpenUniqueness(snapshot, loadedPath, alias);
+        var capacityError = ValidateOpenCapacity(snapshot);
+        if (capacityError is not null)
+        {
+            return capacityError;
+        }
+
+        return ValidateOpenUniqueness(snapshot, loadedPath, alias);
     }
 
     private async ValueTask<bool> HasPendingRecoveryAsync(
@@ -382,8 +399,13 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
     {
         return _sessionStore.TryAddWorkspace(session, snapshot =>
         {
-            return ValidateOpenCapacity(snapshot)
-                ?? ValidateOpenUniqueness(snapshot, loadedPath, alias);
+            var capacityError = ValidateOpenCapacity(snapshot);
+            if (capacityError is not null)
+            {
+                return capacityError;
+            }
+
+            return ValidateOpenUniqueness(snapshot, loadedPath, alias);
         });
     }
 
@@ -391,15 +413,17 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         WorkspaceSessionSnapshot session,
         IReadOnlyList<DiagnosticInfo> openDiagnostics)
     {
-        return _resultFactory.Succeeded(
-            new WorkspaceOpenOutcome
-            {
-                Workspace = session.Workspace,
-                ProjectCount = session.ProjectCount,
-                DocumentCount = session.DocumentCount,
-                LoadDiagnostics = openDiagnostics,
-            },
-            CreateContext(session));
+        var outcome = new WorkspaceOpenOutcome
+        {
+            Workspace = session.Workspace,
+            ProjectCount = session.ProjectCount,
+            DocumentCount = session.DocumentCount,
+            LoadDiagnostics = openDiagnostics,
+        };
+
+        var context = CreateContext(session);
+
+        return _resultFactory.Succeeded(outcome, context);
     }
 
     private IReadOnlyList<DiagnosticInfo> CreateOpenDiagnostics(
@@ -432,17 +456,19 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         WorkspaceInputManifest inputManifest,
         IWorkspaceOperationGate? operationGate)
     {
+        var workspaceIdentity = new WorkspaceIdentity
+        {
+            WorkspaceId = workspaceId,
+            Alias = alias,
+            WorkspaceEpoch = workspaceEpoch,
+            LoadedPath = loadedPath,
+            WorkspaceRoot = workspaceRoot,
+        };
+
         return new WorkspaceSessionSnapshot
         {
             State = WorkspaceLifecycleState.Ready,
-            Workspace = new WorkspaceIdentity
-            {
-                WorkspaceId = workspaceId,
-                Alias = alias,
-                WorkspaceEpoch = workspaceEpoch,
-                LoadedPath = loadedPath,
-                WorkspaceRoot = workspaceRoot,
-            },
+            Workspace = workspaceIdentity,
             LoadedWorkspace = workspace,
             CurrentSolution = solution,
             Transaction = null,

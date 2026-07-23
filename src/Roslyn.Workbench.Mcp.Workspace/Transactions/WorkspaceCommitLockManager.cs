@@ -19,9 +19,12 @@ internal sealed class WorkspaceCommitLockManager : IWorkspaceCommitLockManager
             var directory = _fileSystem.Path.Combine(canonicalRoot, ".vs", "roslyn-workbench-mcp", "locks");
             _fileSystem.Directory.CreateDirectory(directory);
             var ownership = _fileLockProvider.TryAcquire(_fileSystem.Path.Combine(directory, "commit.lock"));
-            return ownership is null
-                ? WorkspaceCommitLockAcquisition.Contended()
-                : WorkspaceCommitLockAcquisition.Acquired(ownership);
+            if (ownership is null)
+            {
+                return WorkspaceCommitLockAcquisition.Contended();
+            }
+
+            return WorkspaceCommitLockAcquisition.Acquired(ownership);
         }
         catch (IOException exception)
         {

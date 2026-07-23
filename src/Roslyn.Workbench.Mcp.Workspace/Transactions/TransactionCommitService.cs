@@ -125,13 +125,13 @@ internal sealed class TransactionCommitService : ITransactionCommitService
 
         if (transaction.CurrentRevision == 0)
         {
-            return _resultFactory.NoChange(
-                context,
-                new TransactionCommitOutcome
-                {
-                    Committed = false,
-                    Transaction = transaction.ToInfo(conflicted: false),
-                });
+            var outcome = new TransactionCommitOutcome
+            {
+                Committed = false,
+                Transaction = transaction.ToInfo(conflicted: false),
+            };
+
+            return _resultFactory.NoChange(context, outcome);
         }
 
         if (!_workspaceChangeDetector.HasChanged(session.InputManifest, cancellationToken))
@@ -255,12 +255,14 @@ internal sealed class TransactionCommitService : ITransactionCommitService
                 await CompleteCommitAsync(committedSession, manifest);
             }
 
-            return _resultFactory.Succeeded(
-                new TransactionCommitOutcome
-                {
-                    Committed = true,
-                },
-                CreateContext(committedSession));
+            var outcome = new TransactionCommitOutcome
+            {
+                Committed = true,
+            };
+
+            var committedContext = CreateContext(committedSession);
+
+            return _resultFactory.Succeeded(outcome, committedContext);
         }
         catch (OperationCanceledException) when (!applicationStarted)
         {

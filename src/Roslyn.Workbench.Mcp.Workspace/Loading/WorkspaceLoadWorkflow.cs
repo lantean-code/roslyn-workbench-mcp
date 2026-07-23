@@ -140,13 +140,25 @@ internal sealed class WorkspaceLoadWorkflow : IWorkspaceLoadWorkflow
 
     private string? FindInputOutsideRoot(Solution solution, string workspaceRoot)
     {
-        return solution.Projects
-            .SelectMany(static project => project.Documents
-                .Select(static document => document.FilePath)
-                .Prepend(project.FilePath))
-            .OfType<string>()
-            .Where(static path => !string.IsNullOrWhiteSpace(path))
-            .FirstOrDefault(path => !_workspaceRootResolver.Contains(workspaceRoot, path));
+        foreach (var project in solution.Projects)
+        {
+            if (!string.IsNullOrWhiteSpace(project.FilePath)
+                && !_workspaceRootResolver.Contains(workspaceRoot, project.FilePath))
+            {
+                return project.FilePath;
+            }
+
+            foreach (var document in project.Documents)
+            {
+                if (!string.IsNullOrWhiteSpace(document.FilePath)
+                    && !_workspaceRootResolver.Contains(workspaceRoot, document.FilePath))
+                {
+                    return document.FilePath;
+                }
+            }
+        }
+
+        return null;
     }
 
     private ValidatedWorkspaceLoadResult? InspectCompatibility(string projectPath)

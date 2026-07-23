@@ -36,9 +36,15 @@ internal sealed class WorkspaceSessionAcquirer : IWorkspaceSessionAcquirer
         }
 
         var selection = selectionResult.Selection;
-        var lease = requiresExclusiveAccess
-            ? selection.Session.OperationGate.TryAcquireExclusive()
-            : selection.Session.OperationGate.TryAcquireShared();
+        IWorkspaceOperationLease? lease;
+        if (requiresExclusiveAccess)
+        {
+            lease = selection.Session.OperationGate.TryAcquireExclusive();
+        }
+        else
+        {
+            lease = selection.Session.OperationGate.TryAcquireShared();
+        }
 
         if (lease is null)
         {
@@ -46,9 +52,14 @@ internal sealed class WorkspaceSessionAcquirer : IWorkspaceSessionAcquirer
         }
 
         var session = _sessionStore.ReadSession(selection.WorkspaceId);
-        return session is null
-            ? WorkspaceSessionAcquisition.Rejected(CreateWorkspaceRequiredError(), lease: lease)
-            : WorkspaceSessionAcquisition.Acquired(selection with { Session = session }, session, lease);
+        if (session is null)
+        {
+            return WorkspaceSessionAcquisition.Rejected(CreateWorkspaceRequiredError(), lease: lease);
+        }
+
+        var updatedSelection = selection with { Session = session };
+
+        return WorkspaceSessionAcquisition.Acquired(updatedSelection, session, lease);
     }
 
     private static WorkspaceOperationError CreateBusyError()

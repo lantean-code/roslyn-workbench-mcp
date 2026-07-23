@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <Compile Include="HostValidQueryPlugin.cs" />
+    <Compile Include="PluginFixtureControl.cs" />
   </ItemGroup>
 
   <ItemGroup>

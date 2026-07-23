@@ -18,6 +18,8 @@ public sealed class HostValidQueryPlugin : IRoslynPlugin
     public sealed record Request : WorkspaceBoundRequest
     {
         public string Name { get; init; } = string.Empty;
+
+        public string? ControlDirectory { get; init; }
     }
 
     public sealed record Response
@@ -30,10 +32,11 @@ public sealed class HostValidQueryPlugin : IRoslynPlugin
     [RoslynTool("host-valid-query", "Host Valid Query", "Returns a stable host test payload.")]
     private sealed class Handler : IQueryToolHandler<Request, Response>
     {
-        public ValueTask<PluginExecutionResult<Response>> ExecuteAsync(Request request, IQueryContext context, CancellationToken cancellationToken)
+        public async ValueTask<PluginExecutionResult<Response>> ExecuteAsync(Request request, IQueryContext context, CancellationToken cancellationToken)
         {
             _ = context;
-            _ = cancellationToken;
+
+            await PluginFixtureControl.WaitForReleaseAsync(request.ControlDirectory, cancellationToken);
 
             var response = new Response
             {
@@ -44,7 +47,7 @@ public sealed class HostValidQueryPlugin : IRoslynPlugin
             };
 
             var result = PluginExecutionResult<Response>.Success(response);
-            return ValueTask.FromResult(result);
+            return result;
         }
     }
 }

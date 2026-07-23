@@ -22,6 +22,8 @@
   <ItemGroup>
     <ProjectReference Include="..\TestFixtures\Plugins\Roslyn.Workbench.Mcp.HostQueryPluginFixture.csproj"
                       ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\TestFixtures\Plugins\Roslyn.Workbench.Mcp.HostMutationPluginFixture.csproj"
+                      ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <ItemGroup>
@@ -31,6 +33,18 @@
     </Content>
     <Content Include="..\TestAssets\Workspaces\InspectionSample\Base\**\*">
       <Link>TestAssets\Workspaces\InspectionSample\Base\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\TestAssets\Workspaces\SolutionHierarchy\**\*">
+      <Link>TestAssets\Workspaces\SolutionHierarchy\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\TestAssets\Workspaces\CompatibilitySamples\MixedSolution\**\*">
+      <Link>TestAssets\Workspaces\CompatibilitySamples\MixedSolution\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\TestAssets\Workspaces\MultiTargetLinked\**\*">
+      <Link>TestAssets\Workspaces\MultiTargetLinked\%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
@@ -52,6 +66,24 @@
       <HostQueryPluginPackageAsset Include="@(HostQueryPluginAssembly->'%(RootDir)%(Directory)NuGet.Versioning.dll')" />
     </ItemGroup>
     <Copy SourceFiles="@(HostQueryPluginPackageAsset)" DestinationFolder="$(OutDir)/TestAssets/Plugins/HostQuery" />
+  </Target>
+
+  <Target Name="CopyHostMutationPluginPackageAssets" AfterTargets="Build">
+    <ItemGroup>
+      <HostMutationPluginProject Include="@(ProjectReference)"
+                                Condition="'%(Filename)' == 'Roslyn.Workbench.Mcp.HostMutationPluginFixture'" />
+    </ItemGroup>
+    <MSBuild Projects="@(HostMutationPluginProject)"
+             Targets="GetTargetPath"
+             BuildInParallel="$(BuildInParallel)"
+             Properties="Configuration=$(Configuration);Platform=$(Platform);ArtifactsPath=$(ArtifactsPath)">
+      <Output TaskParameter="TargetOutputs" ItemName="HostMutationPluginAssembly" />
+    </MSBuild>
+    <ItemGroup>
+      <HostMutationPluginPackageAsset Include="@(HostMutationPluginAssembly)" />
+      <HostMutationPluginPackageAsset Include="@(HostMutationPluginAssembly->'%(RootDir)%(Directory)%(Filename).deps.json')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(HostMutationPluginPackageAsset)" DestinationFolder="$(OutDir)/TestAssets/Plugins/HostMutation" />
   </Target>
 
 </Project>

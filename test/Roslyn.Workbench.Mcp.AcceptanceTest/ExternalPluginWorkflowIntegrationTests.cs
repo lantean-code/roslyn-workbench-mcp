@@ -7,7 +7,7 @@ public sealed class ExternalPluginWorkflowIntegrationTests
     {
         await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
             TestContext.Current.CancellationToken,
-            pluginAsset: AcceptancePluginAsset.HostQuery);
+            pluginAssets: [AcceptancePluginAsset.HostQuery]);
 
         try
         {
@@ -22,8 +22,7 @@ public sealed class ExternalPluginWorkflowIntegrationTests
 
             tools.Select(static tool => tool.Name).Should().Contain("host-valid-query");
             statusResult.IsError.Should().NotBeTrue();
-            statusResult.StructuredContent!.Value
-                .GetProperty("data")
+            AcceptanceProtocol.GetSuccessData(statusResult)
                 .GetProperty("plugins")
                 .EnumerateArray()
                 .Should()
@@ -41,26 +40,19 @@ public sealed class ExternalPluginWorkflowIntegrationTests
                 },
                 TestContext.Current.CancellationToken);
 
-            var workspaceId = openResult.StructuredContent!.Value
-                .GetProperty("data")
-                .GetProperty("workspace")
-                .GetProperty("workspaceId")
-                .GetString();
+            var workspace = AcceptanceWorkspaceIdentity.FromOpenResult(openResult);
 
             var queryResult = await target.CallToolAsync(
                 "host-valid-query",
                 new Dictionary<string, object?>
                 {
-                    ["workspace"] = new Dictionary<string, object?>
-                    {
-                        ["workspaceId"] = workspaceId,
-                    },
+                    ["workspace"] = workspace.CreateSelector(),
                     ["name"] = "Acceptance",
                 },
                 TestContext.Current.CancellationToken);
 
             queryResult.IsError.Should().NotBeTrue();
-            var queryData = queryResult.StructuredContent!.Value.GetProperty("data");
+            var queryData = AcceptanceProtocol.GetSuccessData(queryResult);
             queryData.GetProperty("value").GetString().Should().Be("Acceptance");
             queryData.GetProperty("privateDependencyVersion").GetString().Should().NotBeNullOrWhiteSpace();
         }

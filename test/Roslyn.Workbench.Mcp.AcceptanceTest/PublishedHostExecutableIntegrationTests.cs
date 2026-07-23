@@ -13,6 +13,18 @@ public sealed class PublishedHostExecutableIntegrationTests
     }
 
     [Fact]
+    public void GIVEN_HostPathIsRelative_WHEN_ResolvingPublishedHost_THEN_ShouldReturnActionableFailure()
+    {
+        var relativePath = Path.Combine("publish", "Roslyn.Workbench.Mcp");
+
+        var action = () => PublishedHostExecutable.Resolve(relativePath);
+
+        action.Should()
+            .Throw<InvalidOperationException>()
+            .WithMessage($"*{PublishedHostExecutable.EnvironmentVariableName}*absolute path*{relativePath}*");
+    }
+
+    [Fact]
     public void GIVEN_HostPathDoesNotExist_WHEN_ResolvingPublishedHost_THEN_ShouldReturnActionableFailure()
     {
         var missingPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "Roslyn.Workbench.Mcp");

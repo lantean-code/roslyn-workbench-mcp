@@ -23,19 +23,16 @@ public sealed class WorkspaceWorkflowIntegrationTests
                 TestContext.Current.CancellationToken);
 
             openResult.IsError.Should().NotBeTrue();
-            var open = openResult.StructuredContent!.Value.GetProperty("data");
+            var open = AcceptanceProtocol.GetSuccessData(openResult);
+            var workspaceIdentity = AcceptanceWorkspaceIdentity.FromOpenResult(openResult);
             var workspace = open.GetProperty("workspace");
-            var workspaceId = workspace.GetProperty("workspaceId").GetString();
 
-            workspaceId.Should().NotBeNullOrWhiteSpace();
+            workspaceIdentity.WorkspaceId.Should().NotBeNullOrWhiteSpace();
             workspace.GetProperty("loadedPath").GetString().Should().Be(projectPath);
             open.GetProperty("projectCount").GetInt32().Should().Be(1);
             open.GetProperty("documentCount").GetInt32().Should().BeGreaterThanOrEqualTo(1);
 
-            var workspaceSelector = new Dictionary<string, object?>
-            {
-                ["workspaceId"] = workspaceId,
-            };
+            var workspaceSelector = workspaceIdentity.CreateSelector();
 
             var listResult = await target.CallToolAsync(
                 "workspace-list",
@@ -62,14 +59,14 @@ public sealed class WorkspaceWorkflowIntegrationTests
                 TestContext.Current.CancellationToken);
 
             listResult.IsError.Should().NotBeTrue();
-            listResult.StructuredContent!.Value.GetProperty("data").GetProperty("workspaces").GetArrayLength().Should().Be(1);
+            AcceptanceProtocol.GetSuccessData(listResult).GetProperty("workspaces").GetArrayLength().Should().Be(1);
             statusResult.IsError.Should().NotBeTrue();
-            var status = statusResult.StructuredContent!.Value.GetProperty("data");
+            var status = AcceptanceProtocol.GetSuccessData(statusResult);
             status.GetProperty("state").GetString().Should().Be("Ready");
             status.GetProperty("loadDiagnostics").ValueKind.Should().Be(JsonValueKind.Array);
             searchResult.IsError.Should().NotBeTrue();
 
-            var symbols = searchResult.StructuredContent!.Value.GetProperty("data").GetProperty("symbols").GetProperty("items");
+            var symbols = AcceptanceProtocol.GetSuccessData(searchResult).GetProperty("symbols").GetProperty("items");
             symbols.GetArrayLength().Should().Be(1);
             symbols[0].GetProperty("displayName").GetString().Should().Be("Sample.Class1");
             symbols[0].GetProperty("kind").GetString().Should().Be("NamedType");
@@ -94,9 +91,9 @@ public sealed class WorkspaceWorkflowIntegrationTests
 
             closeResult.IsError.Should().NotBeTrue();
             closeResult.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeTrue();
-            closedListResult.StructuredContent!.Value.GetProperty("data").GetProperty("workspaces").GetArrayLength().Should().Be(0);
+            AcceptanceProtocol.GetSuccessData(closedListResult).GetProperty("workspaces").GetArrayLength().Should().Be(0);
             closedStatusResult.IsError.Should().BeTrue();
-            closedStatusResult.StructuredContent!.Value.GetProperty("error").GetProperty("code").GetString().Should().Be("WorkspaceNotOpen");
+            AcceptanceProtocol.GetError(closedStatusResult).GetProperty("code").GetString().Should().Be("WorkspaceNotOpen");
         }
         catch
         {
@@ -123,21 +120,9 @@ public sealed class WorkspaceWorkflowIntegrationTests
                 },
                 TestContext.Current.CancellationToken);
 
-            var open = openResult.StructuredContent!.Value.GetProperty("data");
-            var workspace = open.GetProperty("workspace");
-            var workspaceId = workspace.GetProperty("workspaceId").GetString();
-            var workspaceEpoch = workspace.GetProperty("workspaceEpoch").GetInt64();
-            var workspaceSelector = new Dictionary<string, object?>
-            {
-                ["workspaceId"] = workspaceId,
-            };
-
-            var initialSnapshot = new Dictionary<string, object?>
-            {
-                ["workspaceId"] = workspaceId,
-                ["workspaceEpoch"] = workspaceEpoch,
-                ["transactionRevision"] = 0,
-            };
+            var workspace = AcceptanceWorkspaceIdentity.FromOpenResult(openResult);
+            var workspaceSelector = workspace.CreateSelector();
+            var initialSnapshot = workspace.CreateSnapshot(transactionRevision: 0);
 
             var startResult = await target.CallToolAsync(
                 "transaction-start",
@@ -170,31 +155,26 @@ public sealed class WorkspaceWorkflowIntegrationTests
                 TestContext.Current.CancellationToken);
 
             startResult.IsError.Should().NotBeTrue();
-            startResult.StructuredContent!.Value.GetProperty("data").GetProperty("transaction").GetProperty("revision").GetInt32().Should().Be(0);
+            AcceptanceProtocol.GetSuccessData(startResult).GetProperty("transaction").GetProperty("revision").GetInt32().Should().Be(0);
             renameResult.IsError.Should().NotBeTrue();
-            var rename = renameResult.StructuredContent!.Value.GetProperty("data");
+            var rename = AcceptanceProtocol.GetSuccessData(renameResult);
             rename.GetProperty("staged").GetBoolean().Should().BeTrue();
             rename.GetProperty("summary").GetString().Should().NotBeNullOrWhiteSpace();
             rename.GetProperty("transaction").GetProperty("revision").GetInt32().Should().Be(1);
             previewResult.IsError.Should().NotBeTrue();
-            previewResult.StructuredContent!.Value.GetProperty("data").GetProperty("documents").GetArrayLength().Should().Be(1);
+            AcceptanceProtocol.GetSuccessData(previewResult).GetProperty("documents").GetArrayLength().Should().Be(1);
 
             var commitResult = await target.CallToolAsync(
                 "transaction-commit",
                 new Dictionary<string, object?>
                 {
                     ["workspace"] = workspaceSelector,
-                    ["expectedSnapshot"] = new Dictionary<string, object?>
-                    {
-                        ["workspaceId"] = workspaceId,
-                        ["workspaceEpoch"] = workspaceEpoch,
-                        ["transactionRevision"] = 1,
-                    },
+                    ["expectedSnapshot"] = workspace.CreateSnapshot(transactionRevision: 1),
                 },
                 TestContext.Current.CancellationToken);
 
             commitResult.IsError.Should().NotBeTrue();
-            commitResult.StructuredContent!.Value.GetProperty("data").GetProperty("committed").GetBoolean().Should().BeTrue();
+            AcceptanceProtocol.GetSuccessData(commitResult).GetProperty("committed").GetBoolean().Should().BeTrue();
             var committedText = await File.ReadAllTextAsync(documentPath, TestContext.Current.CancellationToken);
             committedText.Should().Be(
                 "namespace Sample;\r\n\r\npublic sealed class RenamedClass\r\n{\r\n}\r\n");
@@ -209,8 +189,7 @@ public sealed class WorkspaceWorkflowIntegrationTests
                 TestContext.Current.CancellationToken);
 
             searchResult.IsError.Should().NotBeTrue();
-            searchResult.StructuredContent!.Value
-                .GetProperty("data")
+            AcceptanceProtocol.GetSuccessData(searchResult)
                 .GetProperty("symbols")
                 .GetProperty("items")[0]
                 .GetProperty("displayName")

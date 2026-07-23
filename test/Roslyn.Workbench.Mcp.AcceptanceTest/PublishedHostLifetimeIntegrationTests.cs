@@ -84,7 +84,7 @@ public sealed class PublishedHostLifetimeIntegrationTests
             }
             else
             {
-                Directory.Delete(scenarioRoot, recursive: true);
+                await AcceptanceScenarioCleanup.DeleteAsync(scenarioRoot);
             }
         }
     }

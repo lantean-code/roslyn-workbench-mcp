@@ -18,6 +18,12 @@ internal static class PublishedHostExecutable
                 + "See the acceptance-test README for explicit Debug and Release commands.");
         }
 
+        if (!Path.IsPathFullyQualified(configuredPath))
+        {
+            throw new InvalidOperationException(
+                $"The published Host executable configured by {EnvironmentVariableName} must be an absolute path: '{configuredPath}'.");
+        }
+
         var executablePath = Path.GetFullPath(configuredPath);
 
         if (!File.Exists(executablePath))

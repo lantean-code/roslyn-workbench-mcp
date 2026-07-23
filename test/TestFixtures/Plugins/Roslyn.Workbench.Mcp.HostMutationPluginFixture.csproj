@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <Compile Include="HostValidMutationPlugin.cs" />
+    <Compile Include="PluginFixtureControl.cs" />
   </ItemGroup>
 
   <ItemGroup>

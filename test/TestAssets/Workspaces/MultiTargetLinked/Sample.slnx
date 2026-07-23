@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Linked/Linked.csproj" />
+  <Project Path="MultiTarget/MultiTarget.csproj" />
+</Solution>

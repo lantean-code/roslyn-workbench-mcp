@@ -27,20 +27,9 @@ public sealed class CodeActionWorkflowIntegrationTests
                 },
                 TestContext.Current.CancellationToken);
 
-            var workspace = openResult.StructuredContent!.Value.GetProperty("data").GetProperty("workspace");
-            var workspaceId = workspace.GetProperty("workspaceId").GetString();
-            var workspaceEpoch = workspace.GetProperty("workspaceEpoch").GetInt64();
-            var workspaceSelector = new Dictionary<string, object?>
-            {
-                ["workspaceId"] = workspaceId,
-            };
-
-            var snapshot = new Dictionary<string, object?>
-            {
-                ["workspaceId"] = workspaceId,
-                ["workspaceEpoch"] = workspaceEpoch,
-                ["transactionRevision"] = 0,
-            };
+            var workspace = AcceptanceWorkspaceIdentity.FromOpenResult(openResult);
+            var workspaceSelector = workspace.CreateSelector();
+            var snapshot = workspace.CreateSnapshot(transactionRevision: 0);
 
             var startResult = await target.CallToolAsync(
                 "transaction-start",
@@ -75,7 +64,7 @@ public sealed class CodeActionWorkflowIntegrationTests
 
             startResult.IsError.Should().NotBeTrue();
             listResult.IsError.Should().NotBeTrue();
-            var actions = listResult.StructuredContent!.Value.GetProperty("data").GetProperty("actions").EnumerateArray().ToArray();
+            var actions = AcceptanceProtocol.GetSuccessData(listResult).GetProperty("actions").EnumerateArray().ToArray();
             var action = actions.Single(static candidate => candidate.GetProperty("title").GetString() == "Convert to raw string");
             action.GetProperty("providerId").GetString().Should().Be(
                 "Microsoft.CodeAnalysis.CSharp.ConvertToRawString.ConvertStringToRawStringCodeRefactoringProvider");
@@ -101,13 +90,12 @@ public sealed class CodeActionWorkflowIntegrationTests
                 TestContext.Current.CancellationToken);
 
             stageResult.IsError.Should().NotBeTrue();
-            var stage = stageResult.StructuredContent!.Value.GetProperty("data");
+            var stage = AcceptanceProtocol.GetSuccessData(stageResult);
             stage.GetProperty("staged").GetBoolean().Should().BeTrue();
             stage.GetProperty("summary").GetString().Should().NotBeNullOrWhiteSpace();
             stage.GetProperty("transaction").GetProperty("revision").GetInt32().Should().Be(1);
             previewResult.IsError.Should().NotBeTrue();
-            previewResult.StructuredContent!.Value
-                .GetProperty("data")
+            AcceptanceProtocol.GetSuccessData(previewResult)
                 .GetProperty("documents")
                 .EnumerateArray()
                 .Should()
@@ -124,7 +112,7 @@ public sealed class CodeActionWorkflowIntegrationTests
             var currentBytes = await File.ReadAllBytesAsync(documentPath, TestContext.Current.CancellationToken);
 
             rollbackResult.IsError.Should().NotBeTrue();
-            rollbackResult.StructuredContent!.Value.GetProperty("data").GetProperty("state").GetString().Should().Be("Ready");
+            AcceptanceProtocol.GetSuccessData(rollbackResult).GetProperty("state").GetString().Should().Be("Ready");
             currentBytes.Should().Equal(originalBytes);
 
             var statusResult = await target.CallToolAsync(
@@ -135,8 +123,7 @@ public sealed class CodeActionWorkflowIntegrationTests
                 },
                 TestContext.Current.CancellationToken);
 
-            var pluginIds = statusResult.StructuredContent!.Value
-                .GetProperty("data")
+            var pluginIds = AcceptanceProtocol.GetSuccessData(statusResult)
                 .GetProperty("plugins")
                 .EnumerateArray()
                 .Select(static plugin => plugin.GetProperty("pluginId").GetString())

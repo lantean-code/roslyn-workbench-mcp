@@ -23,7 +23,7 @@ public sealed class StartupAndRecoveryWorkflowIntegrationTests
                 },
                 TestContext.Current.CancellationToken);
 
-            var initialStatus = initialStatusResult.StructuredContent!.Value.GetProperty("data");
+            var initialStatus = AcceptanceProtocol.GetSuccessData(initialStatusResult);
 
             initialStatusResult.IsError.Should().NotBeTrue();
             initialStatus.GetProperty("configuration").GetProperty("defaultMaxResults").GetInt32().Should().Be(100);
@@ -66,7 +66,7 @@ public sealed class StartupAndRecoveryWorkflowIntegrationTests
                 },
                 TestContext.Current.CancellationToken);
 
-            var restartedStatus = restartedStatusResult.StructuredContent!.Value.GetProperty("data");
+            var restartedStatus = AcceptanceProtocol.GetSuccessData(restartedStatusResult);
 
             restartedStatusResult.IsError.Should().NotBeTrue();
             restartedStatus.GetProperty("recovery")

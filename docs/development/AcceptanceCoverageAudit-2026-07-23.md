@@ -64,11 +64,11 @@ The external-repository scenario runner must not run on ordinary pull requests o
 
 ## Current acceptance baseline
 
-The acceptance project contains ten tests:
+The acceptance project contains twelve tests:
 
-- seven launch the published Roslyn Workbench Host;
+- eight launch the published Roslyn Workbench Host;
 - one launches a deliberately broken `dotnet` command to validate startup diagnostics; and
-- two validate Host-path configuration without starting a process.
+- three validate Host-path configuration without starting a process.
 
 Current published-Host evidence covers:
 
@@ -78,6 +78,7 @@ Current published-Host evidence covers:
 - one bundled rename transaction through durable commit;
 - one token-based Code Action through staging, preview and rollback;
 - one valid external query plugin with a private dependency;
+- deterministic external query and mutation packages plus known-request-ID invocation readiness;
 - blocked-recovery reporting from a synthetic `RecoveryConflict` manifest; and
 - stdin end-of-stream shutdown.
 
@@ -266,6 +267,8 @@ This is execution-architecture coverage, not one acceptance test per tool. Indiv
 
 ### Batch 1 — Acceptance infrastructure and release artifact contract
 
+**Implementation status:** Complete on 2026-07-23. The next manually initiated acceptance run supplies runtime evidence for the newly discovered cases.
+
 - Keep the acceptance assembly free of production references.
 - Centralise only repeated public envelope, Workspace identity and transaction selectors; do not import the scenario runner or hide scenario assertions behind a general harness.
 - Add support for known request IDs and MCP cancellation notifications.
@@ -275,6 +278,17 @@ This is execution-architecture coverage, not one acceptance test per tool. Indiv
 - Assert that CI is exercising the exact Release publish output and record its product version.
 
 This batch changes infrastructure but should add at least one focused protocol/configuration acceptance case so its new seams are exercised immediately.
+
+Implemented evidence:
+
+- the acceptance project retains only external package references and build-only fixture references;
+- public success-data, Workspace identity, Workspace selector and snapshot projection are centralised without importing production contracts;
+- the process fixture can send a tool request with a known request ID and publish the matching MCP cancellation notification;
+- deterministic external query and mutation packages use readiness and release files rather than sleeps;
+- small project, solution hierarchy, mixed solution and multi-target linked-document assets are copied into isolated scenario roots;
+- process-backed and direct-stdio cases share bounded scenario-root cleanup;
+- Host-path configuration requires an absolute path, CI supplies the exact Release publish output and server status asserts a non-empty product version; and
+- a focused known-request-ID protocol case exercises deterministic readiness, while test discovery and the CI minimum are updated to twelve cases.
 
 ### Batch 2 — Distribution, discovery and plugin boundary
 

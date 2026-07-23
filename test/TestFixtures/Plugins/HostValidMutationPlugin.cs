@@ -16,15 +16,16 @@ public sealed class HostValidMutationPlugin : IRoslynPlugin
     public sealed record Request : WorkspaceBoundRequest
     {
         public string Summary { get; init; } = string.Empty;
+
+        public string? ControlDirectory { get; init; }
     }
 
     [RoslynTool("host-valid-mutation", "Host Valid Mutation", "Returns a stable host test mutation proposal.")]
     private sealed class Handler : IMutationToolHandler<Request>
     {
-        public ValueTask<PluginExecutionResult<MutationCandidate>> ExecuteAsync(Request request, IMutationContext context, CancellationToken cancellationToken)
+        public async ValueTask<PluginExecutionResult<MutationCandidate>> ExecuteAsync(Request request, IMutationContext context, CancellationToken cancellationToken)
         {
-            _ = context;
-            _ = cancellationToken;
+            await PluginFixtureControl.WaitForReleaseAsync(request.ControlDirectory, cancellationToken);
 
             var candidate = new MutationCandidate
             {
@@ -33,7 +34,7 @@ public sealed class HostValidMutationPlugin : IRoslynPlugin
             };
 
             var result = PluginExecutionResult<MutationCandidate>.Success(candidate);
-            return ValueTask.FromResult(result);
+            return result;
         }
     }
 }

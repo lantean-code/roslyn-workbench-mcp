@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.Logging.Abstractions;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
@@ -9,21 +10,25 @@ internal enum AcceptanceWorkspaceAsset
 {
     SdkProject,
     InspectionSample,
+    SolutionHierarchy,
+    MixedSolution,
+    MultiTargetLinked,
 }
 
 internal enum AcceptancePluginAsset
 {
     HostQuery,
+    HostMutation,
 }
+
+internal sealed record AcceptanceToolInvocation(RequestId RequestId, Task<CallToolResult> Completion);
 
 internal sealed class AcceptanceProcessFixture : IAsyncDisposable
 {
-    private const string PendingStateRootArgument = "{acceptance-state-root}";
-    private const string PendingPluginRootArgument = "{acceptance-plugin-root}";
+    private const string _pendingStateRootArgument = "{acceptance-state-root}";
+    private const string _pendingPluginRootArgument = "{acceptance-plugin-root}";
     private static readonly TimeSpan _initializationTimeout = TimeSpan.FromSeconds(45);
     private static readonly TimeSpan _invocationTimeout = TimeSpan.FromSeconds(30);
-    private static readonly TimeSpan _cleanupTimeout = TimeSpan.FromSeconds(2);
-    private static readonly TimeSpan _cleanupRetryInterval = TimeSpan.FromMilliseconds(50);
 
     // MCP C# SDK 1.4.1 waits before closing stdin, so keep its forced-cleanup fallback short; direct EOF coverage owns graceful Host shutdown evidence.
     private static readonly TimeSpan _shutdownTimeout = TimeSpan.FromSeconds(2);
@@ -36,6 +41,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
     private McpClient? _client;
     private Task<ClientCompletionDetails>? _completion;
     private ClientCompletionDetails? _completionDetails;
+    private long _lastRequestId;
     private bool _retainRoot;
     private bool _disposed;
 
@@ -63,27 +69,27 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         CancellationToken cancellationToken,
         AcceptanceWorkspaceAsset workspaceAsset = AcceptanceWorkspaceAsset.SdkProject,
         IReadOnlyList<string>? additionalArguments = null,
-        AcceptancePluginAsset? pluginAsset = null)
+        IReadOnlyList<AcceptancePluginAsset>? pluginAssets = null)
     {
         var executablePath = PublishedHostExecutable.ResolveFromEnvironment();
         var arguments = new List<string>
         {
             "--state-directory",
-            PendingStateRootArgument,
+            _pendingStateRootArgument,
         };
 
         arguments.AddRange(additionalArguments ?? []);
-        if (pluginAsset is not null)
+        if (pluginAssets is { Count: > 0 })
         {
             arguments.Add("--plugin-directory");
-            arguments.Add(PendingPluginRootArgument);
+            arguments.Add(_pendingPluginRootArgument);
         }
 
         return StartAsync(
             executablePath,
             arguments,
             workspaceAsset,
-            pluginAsset,
+            pluginAssets,
             retainInitializationFailure: true,
             cancellationToken);
     }
@@ -97,7 +103,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
             command,
             arguments,
             workspaceAsset: null,
-            pluginAsset: null,
+            pluginAssets: null,
             retainInitializationFailure: false,
             cancellationToken);
     }
@@ -136,6 +142,48 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
             _retainRoot = true;
             throw CreateDiagnosticException($"MCP tool '{toolName}' failed", exception);
         }
+    }
+
+    public AcceptanceToolInvocation StartCancellableToolCall(
+        string toolName,
+        IReadOnlyDictionary<string, object?> arguments,
+        CancellationToken cancellationToken)
+    {
+        var requestId = new RequestId($"acceptance-{Interlocked.Increment(ref _lastRequestId)}");
+        var requestArguments = new Dictionary<string, JsonElement>(arguments.Count);
+        foreach (var (name, value) in arguments)
+        {
+            requestArguments.Add(
+                name,
+                JsonSerializer.SerializeToElement(value, value?.GetType() ?? typeof(object)));
+        }
+
+        var request = new CallToolRequestParams
+        {
+            Name = toolName,
+            Arguments = requestArguments,
+        };
+
+        var completion = GetClient().SendRequestAsync<CallToolRequestParams, CallToolResult>(
+            RequestMethods.ToolsCall,
+            request,
+            requestId: requestId,
+            cancellationToken: cancellationToken).AsTask();
+
+        return new AcceptanceToolInvocation(requestId, completion);
+    }
+
+    public Task CancelToolCallAsync(RequestId requestId, CancellationToken cancellationToken)
+    {
+        var parameters = new CancelledNotificationParams
+        {
+            RequestId = requestId,
+        };
+
+        return GetClient().SendNotificationAsync(
+            NotificationMethods.CancelledNotification,
+            parameters,
+            cancellationToken: cancellationToken);
     }
 
     public void RetainRootOnFailure()
@@ -217,7 +265,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
             }
             else
             {
-                await DeleteScenarioRootAsync();
+                await AcceptanceScenarioCleanup.DeleteAsync(ScenarioRoot);
             }
         }
     }
@@ -226,7 +274,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         string command,
         IReadOnlyList<string> arguments,
         AcceptanceWorkspaceAsset? workspaceAsset,
-        AcceptancePluginAsset? pluginAsset,
+        IReadOnlyList<AcceptancePluginAsset>? pluginAssets,
         bool retainInitializationFailure,
         CancellationToken cancellationToken)
     {
@@ -240,8 +288,8 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         var effectiveArguments = arguments
             .Select(argument => argument switch
             {
-                PendingStateRootArgument => stateRoot,
-                PendingPluginRootArgument => pluginRoot,
+                _pendingStateRootArgument => stateRoot,
+                _pendingPluginRootArgument => pluginRoot,
                 _ => argument,
             })
             .ToArray();
@@ -262,11 +310,14 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
                 target.WorkspaceRoot);
         }
 
-        if (pluginAsset is not null)
+        if (pluginAssets is not null)
         {
-            CopyDirectory(
-                GetPluginAssetPath(pluginAsset.Value),
-                Path.Combine(pluginRoot, "host-query"));
+            foreach (var pluginAsset in pluginAssets)
+            {
+                CopyDirectory(
+                    GetPluginAssetPath(pluginAsset),
+                    Path.Combine(pluginRoot, GetPluginPackageDirectoryName(pluginAsset)));
+            }
         }
 
         await target.ConnectAsync(cancellationToken);
@@ -324,6 +375,9 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         {
             AcceptanceWorkspaceAsset.SdkProject => "SdkProject",
             AcceptanceWorkspaceAsset.InspectionSample => Path.Combine("InspectionSample", "Base"),
+            AcceptanceWorkspaceAsset.SolutionHierarchy => "SolutionHierarchy",
+            AcceptanceWorkspaceAsset.MixedSolution => Path.Combine("CompatibilitySamples", "MixedSolution"),
+            AcceptanceWorkspaceAsset.MultiTargetLinked => "MultiTargetLinked",
             _ => throw new ArgumentOutOfRangeException(nameof(workspaceAsset), workspaceAsset, "Unknown acceptance workspace asset."),
         };
 
@@ -335,10 +389,21 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         var assetDirectory = pluginAsset switch
         {
             AcceptancePluginAsset.HostQuery => "HostQuery",
+            AcceptancePluginAsset.HostMutation => "HostMutation",
             _ => throw new ArgumentOutOfRangeException(nameof(pluginAsset), pluginAsset, "Unknown acceptance plugin asset."),
         };
 
         return Path.Combine(AppContext.BaseDirectory, "TestAssets", "Plugins", assetDirectory);
+    }
+
+    private static string GetPluginPackageDirectoryName(AcceptancePluginAsset pluginAsset)
+    {
+        return pluginAsset switch
+        {
+            AcceptancePluginAsset.HostQuery => "host-query",
+            AcceptancePluginAsset.HostMutation => "host-mutation",
+            _ => throw new ArgumentOutOfRangeException(nameof(pluginAsset), pluginAsset, "Unknown acceptance plugin asset."),
+        };
     }
 
     private static CancellationTokenSource CreateTimeoutSource(
@@ -428,32 +493,4 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         return AcceptanceFailureDiagnostics.IsRetentionEnabled();
     }
 
-    private async Task DeleteScenarioRootAsync()
-    {
-        using var retryTimer = new PeriodicTimer(_cleanupRetryInterval);
-        var elapsed = System.Diagnostics.Stopwatch.StartNew();
-        Exception? lastException = null;
-
-        do
-        {
-            try
-            {
-                if (!Directory.Exists(ScenarioRoot))
-                {
-                    return;
-                }
-
-                Directory.Delete(ScenarioRoot, recursive: true);
-                return;
-            }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-            {
-                lastException = exception;
-            }
-        }
-        while (elapsed.Elapsed < _cleanupTimeout
-            && await retryTimer.WaitForNextTickAsync());
-
-        throw new IOException($"The acceptance scenario root '{ScenarioRoot}' could not be removed.", lastException);
-    }
 }

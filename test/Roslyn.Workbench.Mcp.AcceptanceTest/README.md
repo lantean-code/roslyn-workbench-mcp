@@ -2,40 +2,30 @@
 
 These tests launch a published Roslyn Workbench MCP executable through the official MCP C# `StdioClientTransport`. They consume only the executable and its public MCP protocol; the project has no production project references.
 
-The acceptance build also assembles the existing `HostQueryPluginFixture` into `TestAssets/Plugins/HostQuery` using a build-only project reference with `ReferenceOutputAssembly=false`. The acceptance test assembly receives no production or plugin-fixture compile reference. Only the plugin entry assembly, dependency manifest and deliberately private `NuGet.Versioning` dependency are copied into the external package asset.
+The acceptance build also assembles deterministic external query and mutation fixture packages into `TestAssets/Plugins` using build-only project references with `ReferenceOutputAssembly=false`. The acceptance test assembly receives no production or plugin-fixture compile reference. The query package includes its entry assembly, dependency manifest and deliberately private `NuGet.Versioning` dependency. The mutation package includes its entry assembly and dependency manifest. Both packages can publish a file-based readiness signal and await an explicit release signal, which lets protocol cancellation and concurrency cases coordinate without sleeps.
 
-Set `ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH` to the exact executable produced by the configuration being tested. The suite does not guess between Debug and Release output.
+Set `ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH` to the absolute path of the exact Release-published executable being tested. The suite does not search build output or infer a configuration.
 
 ## Linux and macOS
 
-Debug:
-
 ```bash
-dotnet publish src/Roslyn.Workbench.Mcp/Roslyn.Workbench.Mcp.csproj -c Debug
-ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH="$PWD/src/Roslyn.Workbench.Mcp/bin/Debug/net10.0/publish/Roslyn.Workbench.Mcp" \
-  dotnet test test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.Mcp.AcceptanceTest.csproj -c Debug
-```
-
-Release uses `-c Release` for both commands and this explicit path:
-
-```text
-src/Roslyn.Workbench.Mcp/bin/Release/net10.0/publish/Roslyn.Workbench.Mcp
+dotnet publish src/Roslyn.Workbench.Mcp/Roslyn.Workbench.Mcp.csproj \
+  --configuration Release \
+  --output /tmp/roslyn-workbench-mcp-acceptance-publish
+ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH=/tmp/roslyn-workbench-mcp-acceptance-publish/Roslyn.Workbench.Mcp \
+  dotnet test test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.Mcp.AcceptanceTest.csproj \
+  --configuration Release
 ```
 
 ## Windows PowerShell
 
-Debug:
-
 ```powershell
-dotnet publish src/Roslyn.Workbench.Mcp/Roslyn.Workbench.Mcp.csproj -c Debug
-$env:ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH = Join-Path $PWD 'src\Roslyn.Workbench.Mcp\bin\Debug\net10.0\publish\Roslyn.Workbench.Mcp.exe'
-dotnet test test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.Mcp.AcceptanceTest.csproj -c Debug
-```
-
-Release uses `-c Release` for both commands and this explicit assignment:
-
-```powershell
-$env:ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH = Join-Path $PWD 'src\Roslyn.Workbench.Mcp\bin\Release\net10.0\publish\Roslyn.Workbench.Mcp.exe'
+dotnet publish src/Roslyn.Workbench.Mcp/Roslyn.Workbench.Mcp.csproj `
+  --configuration Release `
+  --output (Join-Path $env:TEMP 'roslyn-workbench-mcp-acceptance-publish')
+$env:ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH = Join-Path $env:TEMP 'roslyn-workbench-mcp-acceptance-publish\Roslyn.Workbench.Mcp.exe'
+dotnet test test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.Mcp.AcceptanceTest.csproj `
+  --configuration Release
 ```
 
 Set `ROSLYN_WORKBENCH_MCP_ACCEPTANCE_RETAIN_ROOT=true` while diagnosing a failure to retain a failed scenario root. Without it, scenario workspaces and state are removed during asynchronous fixture disposal.

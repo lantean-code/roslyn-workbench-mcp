@@ -59,11 +59,13 @@ The Plugins package validation is the consumer-compatibility boundary. A reposit
 
 ### Expand published-Host acceptance coverage
 
-**Status:** Not started
+**Status:** Started
 
 Implement the dependency-ordered release-capability batches covering the exact published artifact, configuration, discovery, public result contracts, valid and failing external packages, supported Workspace open shapes, selector families, every production query and mutation execution path, transaction history, durability, restart, protocol cancellation, concurrency and failure containment.
 
 Keep the acceptance project independent of production references and drive only the Release-published executable through the public MCP protocol. Use small checked-in fixtures, deterministic synchronization and the existing Ubuntu/Windows pull-request matrix. Do not move repository-scale, timing-sensitive or destructive release scenarios into pull-request acceptance.
+
+Batch 1 is implemented: the acceptance boundary now has known request IDs and cancellation notifications, deterministic query and mutation packages, shared public response and selector projections, the required copied Workspace assets, consistent scenario cleanup and an absolute Release-artifact path contract. Batches 2–6 remain.
 
 Source: [Published Host Acceptance Coverage Audit](AcceptanceCoverageAudit-2026-07-23.md)
 

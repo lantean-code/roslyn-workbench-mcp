@@ -38,6 +38,6 @@
     <Project Path="test/TestFixtures/Plugins/Roslyn.Workbench.Mcp.ThrowingPluginFixture.csproj" />
   </Folder>
   <Folder Name="/Tools/">
-    <Project Path="tools/Roslyn.Workbench.Mcp.Performance/Roslyn.Workbench.Mcp.Performance.csproj" />
+    <Project Path="tools/Roslyn.Workbench.Mcp.ScenarioRunner/Roslyn.Workbench.Mcp.ScenarioRunner.csproj" />
   </Folder>
 </Solution>

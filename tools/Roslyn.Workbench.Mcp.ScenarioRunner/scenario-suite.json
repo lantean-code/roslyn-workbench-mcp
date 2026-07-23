@@ -1,0 +1,1044 @@
+{
+  "repositories": [
+    {
+      "id": "guardclauses",
+      "size": "small",
+      "url": "https://github.com/ardalis/GuardClauses.git",
+      "commit": "ad43aa02babf3bc8aee8efc2258f5ad3571c8ec5",
+      "workspacePath": "GuardClauses.sln",
+      "preparation": [
+        {
+          "fileName": "dotnet",
+          "arguments": ["restore", "GuardClauses.sln"]
+        }
+      ],
+      "scenarios": [
+        {
+          "id": "solution-structure-low-limit",
+          "description": "One project and folder with documents demonstrate low-bound solution projection.",
+          "tool": "get-solution-structure",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "includeDocuments": true,
+            "projectsLimit": 1,
+            "foldersLimit": 1
+          }
+        },
+        {
+          "id": "solution-structure",
+          "description": "Projects and documents exercise the curated high-bound solution projection.",
+          "tool": "get-solution-structure",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "includeDocuments": true,
+            "projectsLimit": 25,
+            "foldersLimit": 50
+          }
+        },
+        {
+          "id": "solution-structure-without-documents",
+          "description": "The high-bound solution projection without optional document payloads.",
+          "tool": "get-solution-structure",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "includeDocuments": false,
+            "projectsLimit": 25,
+            "foldersLimit": 50
+          }
+        },
+        {
+          "id": "project-details",
+          "description": "Project metadata, references, analyzers, and documents.",
+          "tool": "get-project-details",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "project": { "name": "GuardClauses(net8.0)" },
+            "includeDocuments": true,
+            "documentsLimit": 100,
+            "projectReferencesLimit": 25,
+            "metadataReferencesLimit": 50,
+            "analyzersLimit": 25
+          }
+        },
+        {
+          "id": "search-symbols-low-limit",
+          "description": "Declaration search with an intentionally small response bound.",
+          "tool": "search-symbols",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "query": "Guard",
+            "symbolsLimit": 5
+          }
+        },
+        {
+          "id": "search-symbols-high-limit",
+          "description": "The same declaration search with a larger response bound.",
+          "tool": "search-symbols",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "query": "Guard",
+            "symbolsLimit": 100
+          }
+        },
+        {
+          "id": "find-references-low-limit",
+          "description": "Solution-wide reference discovery with a small projection bound.",
+          "tool": "find-references",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "symbol": { "documentationCommentId": "T:GuardClauses.UnitTests.TestEnum" },
+            "includeDefinitions": true,
+            "includeContext": true,
+            "referencesLimit": 5
+          }
+        },
+        {
+          "id": "find-references-high-limit",
+          "description": "The same reference discovery with a larger projection bound.",
+          "tool": "find-references",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "symbol": { "documentationCommentId": "T:GuardClauses.UnitTests.TestEnum" },
+            "includeDefinitions": true,
+            "includeContext": true,
+            "referencesLimit": 100
+          }
+        },
+        {
+          "id": "diagnostics",
+          "description": "Compiler and analyzer diagnostic production for one project.",
+          "tool": "get-diagnostics",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "scope": { "kind": "Project", "project": { "name": "GuardClauses(net8.0)" } },
+            "diagnosticsLimit": 100
+          }
+        },
+        {
+          "id": "dependency-graph",
+          "description": "Type dependency discovery and bounded graph projection.",
+          "tool": "get-dependency-graph",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "scope": { "kind": "Project", "project": { "name": "GuardClauses(net8.0)" } },
+            "granularity": "Type",
+            "nodesLimit": 100,
+            "edgesLimit": 200
+          }
+        },
+        {
+          "id": "list-code-actions",
+          "description": "Discovers refactorings and code fixes at a stable declaration in the pinned source.",
+          "tool": "list-code-actions",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "location": {
+              "span": {
+                "document": { "path": "test/GuardClauses.UnitTests/GuardAgainstOutOfRangeForEnum.cs" },
+                "start": 6189,
+                "length": 0
+              }
+            },
+            "includeRefactorings": true,
+            "includeCodeFixes": true
+          }
+        },
+        {
+          "id": "format-document",
+          "description": "Stages full-document formatting through the mutation transaction path.",
+          "tool": "format-document",
+          "setup": [
+            {
+              "tool": "transaction-start",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            }
+          ],
+          "cleanup": [
+            {
+              "tool": "transaction-rollback",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            }
+          ],
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "document": { "path": "test/GuardClauses.UnitTests/GuardAgainstOutOfRangeForEnum.cs" }
+          }
+        },
+        {
+          "id": "sort-usings",
+          "description": "Stages using-directive ordering through the mutation transaction path.",
+          "tool": "sort-usings",
+          "setup": [
+            {
+              "tool": "transaction-start",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            }
+          ],
+          "cleanup": [
+            {
+              "tool": "transaction-rollback",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            }
+          ],
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "document": { "path": "test/GuardClauses.UnitTests/GuardAgainstOutOfRangeForEnum.cs" },
+            "systemFirst": true
+          }
+        },
+        {
+          "id": "rename-symbol",
+          "description": "Stages a solution-wide rename and rolls the transaction back after each invocation.",
+          "tool": "rename-symbol",
+          "setup": [
+            {
+              "tool": "transaction-start",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            }
+          ],
+          "cleanup": [
+            {
+              "tool": "transaction-rollback",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            }
+          ],
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "symbol": { "documentationCommentId": "T:GuardClauses.UnitTests.TestEnum" },
+            "newName": "PerformanceTestEnum",
+            "renameFile": false
+          }
+        },
+        {
+          "id": "rename-symbol-no-change",
+          "description": "Exercises the mutation no-change path by renaming a symbol to its current name.",
+          "tool": "rename-symbol",
+          "setup": [
+            {
+              "tool": "transaction-start",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            }
+          ],
+          "cleanup": [
+            {
+              "tool": "transaction-rollback",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            }
+          ],
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "symbol": { "documentationCommentId": "T:GuardClauses.UnitTests.TestEnum" },
+            "newName": "TestEnum",
+            "renameFile": false
+          }
+        },
+        {
+          "id": "rename-symbol-pre-write-drift",
+          "description": "Injects external drift after staging and proves commit rejection occurs before recovery persistence.",
+          "tool": "rename-symbol",
+          "commitOnly": true,
+          "conflict": {
+            "mode": "PreWriteDrift",
+            "externalChangePath": "test/GuardClauses.UnitTests/GuardAgainstOutOfRangeForEnum.cs"
+          },
+          "setup": [
+            {
+              "tool": "transaction-start",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            }
+          ],
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "symbol": { "documentationCommentId": "T:GuardClauses.UnitTests.TestEnum" },
+            "newName": "PerformanceTestEnum",
+            "renameFile": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "serilog",
+      "size": "medium",
+      "url": "https://github.com/serilog/serilog.git",
+      "commit": "0597ddfbd4ec594d9c42edd745fe728a2198bad9",
+      "workspacePath": "Serilog.sln",
+      "preparation": [
+        {
+          "fileName": "dotnet",
+          "arguments": ["restore", "Serilog.sln", "--configfile", "NuGet.config", "-p:NuGetAudit=false"]
+        }
+      ],
+      "scenarios": [
+        {
+          "id": "solution-structure-low-limit",
+          "description": "One project and folder with documents demonstrate low-bound solution projection.",
+          "tool": "get-solution-structure",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "includeDocuments": true,
+            "projectsLimit": 1,
+            "foldersLimit": 1
+          }
+        },
+        {
+          "id": "solution-structure",
+          "description": "Projects and documents exercise the curated high-bound solution projection.",
+          "tool": "get-solution-structure",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "includeDocuments": true,
+            "projectsLimit": 25,
+            "foldersLimit": 100
+          }
+        },
+        {
+          "id": "solution-structure-without-documents",
+          "description": "The high-bound solution projection without optional document payloads.",
+          "tool": "get-solution-structure",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "includeDocuments": false,
+            "projectsLimit": 25,
+            "foldersLimit": 100
+          }
+        },
+        {
+          "id": "project-details",
+          "description": "Project metadata, references, analyzers, and documents.",
+          "tool": "get-project-details",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "project": {
+              "path": "src/Serilog/Serilog.csproj",
+              "targetFramework": "net10.0"
+            },
+            "includeDocuments": true,
+            "documentsLimit": 250,
+            "projectReferencesLimit": 25,
+            "metadataReferencesLimit": 100,
+            "analyzersLimit": 25
+          }
+        },
+        {
+          "id": "search-symbols-low-limit",
+          "description": "Declaration search with an intentionally small response bound.",
+          "tool": "search-symbols",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "query": "Logger",
+            "symbolsLimit": 5
+          }
+        },
+        {
+          "id": "search-symbols-high-limit",
+          "description": "The same declaration search with a larger response bound.",
+          "tool": "search-symbols",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "query": "Logger",
+            "symbolsLimit": 100
+          }
+        },
+        {
+          "id": "find-references-low-limit",
+          "description": "Solution-wide reference discovery with a small projection bound.",
+          "tool": "find-references",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "symbol": {
+              "project": {
+                "path": "src/Serilog/Serilog.csproj",
+                "targetFramework": "net10.0"
+              },
+              "documentationCommentId": "T:Serilog.ILogger"
+            },
+            "includeDefinitions": true,
+            "includeContext": true,
+            "referencesLimit": 5
+          }
+        },
+        {
+          "id": "find-references-high-limit",
+          "description": "The same reference discovery with a larger projection bound.",
+          "tool": "find-references",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "symbol": {
+              "project": {
+                "path": "src/Serilog/Serilog.csproj",
+                "targetFramework": "net10.0"
+              },
+              "documentationCommentId": "T:Serilog.ILogger"
+            },
+            "includeDefinitions": true,
+            "includeContext": true,
+            "referencesLimit": 100
+          }
+        },
+        {
+          "id": "diagnostics",
+          "description": "Compiler and analyzer diagnostic production for one project.",
+          "tool": "get-diagnostics",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "scope": {
+              "kind": "Project",
+              "project": {
+                "path": "src/Serilog/Serilog.csproj",
+                "targetFramework": "net10.0"
+              }
+            },
+            "diagnosticsLimit": 200
+          }
+        },
+        {
+          "id": "dependency-graph",
+          "description": "Type dependency discovery and bounded graph projection.",
+          "tool": "get-dependency-graph",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "scope": {
+              "kind": "Project",
+              "project": {
+                "path": "src/Serilog/Serilog.csproj",
+                "targetFramework": "net10.0"
+              }
+            },
+            "granularity": "Type",
+            "nodesLimit": 200,
+            "edgesLimit": 400
+          }
+        },
+        {
+          "id": "change-impact-low-limit",
+          "description": "Combined reference and implementation discovery with a small source-location projection bound.",
+          "tool": "get-change-impact",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "symbol": {
+              "project": {
+                "path": "src/Serilog/Serilog.csproj",
+                "targetFramework": "net10.0"
+              },
+              "documentationCommentId": "T:Serilog.ILogger"
+            },
+            "scope": {
+              "kind": "Project",
+              "project": {
+                "path": "src/Serilog/Serilog.csproj",
+                "targetFramework": "net10.0"
+              }
+            },
+            "locationsLimit": 5
+          }
+        },
+        {
+          "id": "change-impact-high-limit",
+          "description": "The same combined relationship search with a larger source-location projection bound.",
+          "tool": "get-change-impact",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "symbol": {
+              "project": {
+                "path": "src/Serilog/Serilog.csproj",
+                "targetFramework": "net10.0"
+              },
+              "documentationCommentId": "T:Serilog.ILogger"
+            },
+            "scope": {
+              "kind": "Project",
+              "project": {
+                "path": "src/Serilog/Serilog.csproj",
+                "targetFramework": "net10.0"
+              }
+            },
+            "locationsLimit": 100
+          }
+        },
+        {
+          "id": "code-metrics-low-limit",
+          "description": "Project-wide syntax and semantic metric scanning with a small result projection bound.",
+          "tool": "get-code-metrics",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "scope": {
+              "kind": "Project",
+              "project": {
+                "path": "src/Serilog/Serilog.csproj",
+                "targetFramework": "net10.0"
+              }
+            },
+            "includeChildren": true,
+            "metricsLimit": 5
+          }
+        },
+        {
+          "id": "code-metrics-high-limit",
+          "description": "The same project-wide metric scan with a larger result projection bound.",
+          "tool": "get-code-metrics",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "scope": {
+              "kind": "Project",
+              "project": {
+                "path": "src/Serilog/Serilog.csproj",
+                "targetFramework": "net10.0"
+              }
+            },
+            "includeChildren": true,
+            "metricsLimit": 100
+          }
+        },
+        {
+          "id": "duplicate-code",
+          "description": "Whole-project executable-block collection, normalization, grouping and bounded projection.",
+          "tool": "find-duplicate-code",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "scope": {
+              "kind": "Project",
+              "project": {
+                "path": "src/Serilog/Serilog.csproj",
+                "targetFramework": "net10.0"
+              }
+            },
+            "minimumStatements": 3,
+            "groupsLimit": 10
+          }
+        },
+        {
+          "id": "control-flow-shallow",
+          "description": "Control-flow projection with deliberately small block and region bounds.",
+          "tool": "get-control-flow-graph",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "symbol": {
+              "project": {
+                "path": "src/Serilog/Serilog.csproj",
+                "targetFramework": "net10.0"
+              },
+              "documentationCommentId": "M:Serilog.Core.Logger.Dispatch(Serilog.Events.LogEvent)"
+            },
+            "maxBlocks": 2,
+            "maxRegions": 2
+          }
+        },
+        {
+          "id": "control-flow-deep",
+          "description": "The same control-flow graph projected with bounds above its complete block and region counts.",
+          "tool": "get-control-flow-graph",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "symbol": {
+              "project": {
+                "path": "src/Serilog/Serilog.csproj",
+                "targetFramework": "net10.0"
+              },
+              "documentationCommentId": "M:Serilog.Core.Logger.Dispatch(Serilog.Events.LogEvent)"
+            },
+            "maxBlocks": 64,
+            "maxRegions": 32
+          }
+        },
+        {
+          "id": "rename-ilogger-durable",
+          "description": "Stages a medium solution-wide ILogger rename for durable commit measurement.",
+          "tool": "rename-symbol",
+          "commitOnly": true,
+          "setup": [
+            {
+              "tool": "transaction-start",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            }
+          ],
+          "cleanup": [
+            {
+              "tool": "transaction-rollback",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            }
+          ],
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "symbol": {
+              "project": {
+                "path": "src/Serilog/Serilog.csproj",
+                "targetFramework": "net10.0"
+              },
+              "documentationCommentId": "T:Serilog.ILogger"
+            },
+            "newName": "IPerformanceLogger",
+            "renameFile": false
+          }
+        },
+        {
+          "id": "move-no-enumeration-to-file-durable",
+          "description": "Stages Roslyn's move-type refactoring for a secondary type, creating its own source file and updating the original document.",
+          "tool": "move-type-to-file",
+          "commitOnly": true,
+          "crashAfterOperation": "Create",
+          "setup": [
+            {
+              "tool": "transaction-start",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            }
+          ],
+          "cleanup": [
+            {
+              "tool": "transaction-rollback",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            }
+          ],
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "type": {
+              "project": {
+                "path": "src/Serilog/Serilog.csproj",
+                "targetFramework": "net10.0"
+              },
+              "documentationCommentId": "T:JetBrains.Annotations.NoEnumerationAttribute"
+            },
+            "preserveNamespace": true
+          }
+        },
+        {
+          "id": "find-no-enumeration-cache-external-reload",
+          "description": "Warms reference discovery, changes one source input externally, proves stale-query rejection, reloads, and verifies the refreshed semantic result.",
+          "tool": "find-references",
+          "commitOnly": true,
+          "stateSequence": {
+            "kind": "ExternalReload",
+            "externalMutation": {
+              "path": "src/Serilog/Core/Logger.cs",
+              "typeDeclaration": "public sealed class Logger : ILogger, ILogEventSink, IDisposable",
+              "memberDeclaration": "readonly JetBrains.Annotations.NoEnumerationAttribute? _performanceCacheProbe;"
+            }
+          },
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "symbol": {
+              "project": {
+                "path": "src/Serilog/Serilog.csproj",
+                "targetFramework": "net10.0"
+              },
+              "documentationCommentId": "T:JetBrains.Annotations.NoEnumerationAttribute"
+            },
+            "includeDefinitions": true,
+            "includeContext": false,
+            "referencesLimit": 500
+          }
+        },
+        {
+          "id": "find-no-enumeration-cache-multi-revision",
+          "description": "Warms reference discovery, stages two compatible mutations, traverses transaction history, commits, and verifies a refreshed post-commit definition path.",
+          "tool": "find-references",
+          "commitOnly": true,
+          "stateSequence": {
+            "kind": "MultiRevisionCommit",
+            "mutations": [
+              {
+                "tool": "move-type-to-file",
+                "arguments": {
+                  "workspace": { "workspaceId": "${workspaceId}" },
+                  "type": {
+                    "project": {
+                      "path": "src/Serilog/Serilog.csproj",
+                      "targetFramework": "net10.0"
+                    },
+                    "documentationCommentId": "T:JetBrains.Annotations.NoEnumerationAttribute"
+                  },
+                  "preserveNamespace": true
+                }
+              },
+              {
+                "tool": "rename-symbol",
+                "arguments": {
+                  "workspace": { "workspaceId": "${workspaceId}" },
+                  "symbol": {
+                    "project": {
+                      "path": "src/Serilog/Serilog.csproj",
+                      "targetFramework": "net10.0"
+                    },
+                    "documentationCommentId": "T:Serilog.Events.EventProperty"
+                  },
+                  "newName": "PerformanceEventProperty",
+                  "renameFile": false
+                }
+              }
+            ]
+          },
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "symbol": {
+              "project": {
+                "path": "src/Serilog/Serilog.csproj",
+                "targetFramework": "net10.0"
+              },
+              "documentationCommentId": "T:JetBrains.Annotations.NoEnumerationAttribute"
+            },
+            "includeDefinitions": true,
+            "includeContext": false,
+            "referencesLimit": 100
+          }
+        }
+      ]
+    },
+    {
+      "id": "efcore",
+      "size": "large",
+      "url": "https://github.com/dotnet/efcore.git",
+      "commit": "12b8d44bf691d2e6933a6d1003647cce4f13c3d3",
+      "workspacePath": "EFCore.sln",
+      "preparation": [
+        {
+          "fileName": "bash",
+          "arguments": ["restore.sh", "-p:NuGetAudit=false"],
+          "windowsFileName": "cmd.exe",
+          "windowsArguments": ["/d", "/c", "restore.cmd", "/p:NuGetAudit=false"]
+        }
+      ],
+      "scenarios": [
+        {
+          "id": "solution-structure-low-limit",
+          "description": "One project and folder with documents demonstrate low-bound solution projection.",
+          "tool": "get-solution-structure",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "includeDocuments": true,
+            "projectsLimit": 1,
+            "foldersLimit": 1
+          }
+        },
+        {
+          "id": "solution-structure",
+          "description": "Projects and documents exercise the curated high-bound solution projection.",
+          "tool": "get-solution-structure",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "includeDocuments": true,
+            "projectsLimit": 100,
+            "foldersLimit": 200
+          }
+        },
+        {
+          "id": "solution-structure-without-documents",
+          "description": "The high-bound solution projection without optional document payloads.",
+          "tool": "get-solution-structure",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "includeDocuments": false,
+            "projectsLimit": 100,
+            "foldersLimit": 200
+          }
+        },
+        {
+          "id": "project-details",
+          "description": "Project metadata, references, analyzers, and documents.",
+          "tool": "get-project-details",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "project": {
+              "path": "src/EFCore/EFCore.csproj",
+              "targetFramework": "net10.0"
+            },
+            "includeDocuments": true,
+            "documentsLimit": 500,
+            "projectReferencesLimit": 50,
+            "metadataReferencesLimit": 100,
+            "analyzersLimit": 50
+          }
+        },
+        {
+          "id": "search-symbols-zero-limit",
+          "description": "Declaration search with a zero response bound.",
+          "tool": "search-symbols",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "query": "DbContext",
+            "symbolsLimit": 0
+          }
+        },
+        {
+          "id": "search-symbols-one-limit",
+          "description": "Declaration search with a one-result response bound.",
+          "tool": "search-symbols",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "query": "DbContext",
+            "symbolsLimit": 1
+          }
+        },
+        {
+          "id": "search-symbols-default-limit",
+          "description": "Declaration search using the tool's published default response bound.",
+          "tool": "search-symbols",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "query": "DbContext"
+          }
+        },
+        {
+          "id": "search-symbols-low-limit",
+          "description": "Declaration search with an intentionally small response bound.",
+          "tool": "search-symbols",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "query": "DbContext",
+            "symbolsLimit": 5
+          }
+        },
+        {
+          "id": "search-symbols-high-limit",
+          "description": "The same declaration search with a larger response bound.",
+          "tool": "search-symbols",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "query": "DbContext",
+            "symbolsLimit": 250
+          }
+        },
+        {
+          "id": "search-symbols-above-result-count",
+          "description": "Declaration search with a response bound above the complete result count.",
+          "tool": "search-symbols",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "query": "DbContext",
+            "symbolsLimit": 100000
+          }
+        },
+        {
+          "id": "find-references-zero-limit",
+          "description": "Solution-wide reference discovery with a zero projection bound.",
+          "tool": "find-references",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "symbol": {
+              "project": {
+                "path": "src/EFCore/EFCore.csproj",
+                "targetFramework": "net10.0"
+              },
+              "documentationCommentId": "T:Microsoft.EntityFrameworkCore.DbContext"
+            },
+            "includeDefinitions": true,
+            "includeContext": true,
+            "referencesLimit": 0
+          }
+        },
+        {
+          "id": "find-references-one-limit",
+          "description": "Solution-wide reference discovery with a one-result projection bound.",
+          "tool": "find-references",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "symbol": {
+              "project": {
+                "path": "src/EFCore/EFCore.csproj",
+                "targetFramework": "net10.0"
+              },
+              "documentationCommentId": "T:Microsoft.EntityFrameworkCore.DbContext"
+            },
+            "includeDefinitions": true,
+            "includeContext": true,
+            "referencesLimit": 1
+          }
+        },
+        {
+          "id": "find-references-default-limit",
+          "description": "Solution-wide reference discovery using the tool's published default projection bound.",
+          "tool": "find-references",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "symbol": {
+              "project": {
+                "path": "src/EFCore/EFCore.csproj",
+                "targetFramework": "net10.0"
+              },
+              "documentationCommentId": "T:Microsoft.EntityFrameworkCore.DbContext"
+            },
+            "includeDefinitions": true,
+            "includeContext": true
+          }
+        },
+        {
+          "id": "find-references-low-limit",
+          "description": "Solution-wide reference discovery with a small projection bound.",
+          "tool": "find-references",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "symbol": {
+              "project": {
+                "path": "src/EFCore/EFCore.csproj",
+                "targetFramework": "net10.0"
+              },
+              "documentationCommentId": "T:Microsoft.EntityFrameworkCore.DbContext"
+            },
+            "includeDefinitions": true,
+            "includeContext": true,
+            "referencesLimit": 5
+          }
+        },
+        {
+          "id": "find-references-high-limit",
+          "description": "The same reference discovery with a larger projection bound.",
+          "tool": "find-references",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "symbol": {
+              "project": {
+                "path": "src/EFCore/EFCore.csproj",
+                "targetFramework": "net10.0"
+              },
+              "documentationCommentId": "T:Microsoft.EntityFrameworkCore.DbContext"
+            },
+            "includeDefinitions": true,
+            "includeContext": true,
+            "referencesLimit": 500
+          }
+        },
+        {
+          "id": "find-references-above-result-count",
+          "description": "Solution-wide reference discovery with a projection bound above the complete result count.",
+          "tool": "find-references",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "symbol": {
+              "project": {
+                "path": "src/EFCore/EFCore.csproj",
+                "targetFramework": "net10.0"
+              },
+              "documentationCommentId": "T:Microsoft.EntityFrameworkCore.DbContext"
+            },
+            "includeDefinitions": true,
+            "includeContext": true,
+            "referencesLimit": 100000
+          }
+        },
+        {
+          "id": "diagnostics",
+          "description": "Compiler and analyzer diagnostic production for one project.",
+          "tool": "get-diagnostics",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "scope": {
+              "kind": "Project",
+              "project": {
+                "path": "src/EFCore/EFCore.csproj",
+                "targetFramework": "net10.0"
+              }
+            },
+            "diagnosticsLimit": 200
+          }
+        },
+        {
+          "id": "dependency-graph",
+          "description": "Type dependency discovery and bounded graph projection.",
+          "tool": "get-dependency-graph",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "scope": {
+              "kind": "Project",
+              "project": {
+                "path": "src/EFCore/EFCore.csproj",
+                "targetFramework": "net10.0"
+              }
+            },
+            "granularity": "Type",
+            "nodesLimit": 500,
+            "edgesLimit": 1000
+          }
+        },
+        {
+          "id": "code-metrics-low-limit",
+          "description": "Large-project syntax and semantic metric scanning with a small result projection bound.",
+          "tool": "get-code-metrics",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "scope": {
+              "kind": "Project",
+              "project": {
+                "path": "src/EFCore/EFCore.csproj",
+                "targetFramework": "net10.0"
+              }
+            },
+            "includeChildren": true,
+            "metricsLimit": 5
+          }
+        },
+        {
+          "id": "duplicate-code",
+          "description": "Large-project executable-block collection, normalization, grouping and bounded projection.",
+          "tool": "find-duplicate-code",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "scope": {
+              "kind": "Project",
+              "project": {
+                "path": "src/EFCore/EFCore.csproj",
+                "targetFramework": "net10.0"
+              }
+            },
+            "minimumStatements": 3,
+            "groupsLimit": 10
+          }
+        },
+        {
+          "id": "rename-dbcontext-durable",
+          "description": "Stages a broad solution-wide DbContext rename for durable commit measurement.",
+          "tool": "rename-symbol",
+          "commitOnly": true,
+          "setup": [
+            {
+              "tool": "transaction-start",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            }
+          ],
+          "cleanup": [
+            {
+              "tool": "transaction-rollback",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            }
+          ],
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "symbol": {
+              "project": {
+                "path": "src/EFCore/EFCore.csproj",
+                "targetFramework": "net10.0"
+              },
+              "documentationCommentId": "T:Microsoft.EntityFrameworkCore.DbContext"
+            },
+            "newName": "PerformanceDbContext",
+            "renameFile": false
+          }
+        },
+        {
+          "id": "rename-dbcontext-application-conflict",
+          "description": "Changes a late commit target after application begins and measures conflict recovery.",
+          "tool": "rename-symbol",
+          "commitOnly": true,
+          "conflict": {
+            "mode": "DuringApplication"
+          },
+          "setup": [
+            {
+              "tool": "transaction-start",
+              "arguments": { "workspace": { "workspaceId": "${workspaceId}" } }
+            }
+          ],
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "symbol": {
+              "project": {
+                "path": "src/EFCore/EFCore.csproj",
+                "targetFramework": "net10.0"
+              },
+              "documentationCommentId": "T:Microsoft.EntityFrameworkCore.DbContext"
+            },
+            "newName": "PerformanceDbContext",
+            "renameFile": false
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -40,6 +40,16 @@ Source: [Analyzer Inventory.md](Analyzer%20Inventory.md)
 
 ## P2 — Release Support and Plugin Ecosystem
 
+### Make location selectors project-aware in multi-target workspaces
+
+**Status:** Not started
+
+Allow location-based tools to disambiguate a physical document that is loaded into more than one target-framework project. A path-only `DocumentSelector` currently matches every Roslyn document for that path, so tools such as `get-operation-tree` return `LocationAmbiguous` even when the caller knows the intended project and target framework.
+
+Add an optional project selector at the document or location boundary, preserve path-only behaviour for single matches, and require the qualified selector to resolve within the selected project variant. Apply the same qualifier consistently to span and copied-selection locations, publish it in MCP metadata and cover multi-target success, invalid project and genuinely ambiguous cases. Project-qualified symbol selectors are the existing model for the intended request shape.
+
+Source: Batch 5 findings in [Performance Scenario Coverage Audit](PerformanceScenarioCoverageAudit-2026-07-23.md#batch-5-implementation).
+
 ### Add a plugin-authoring analyser
 
 **Status:** Not started

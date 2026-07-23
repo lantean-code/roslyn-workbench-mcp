@@ -10,10 +10,11 @@ The audit treats scenario coverage as more important than raw tool count. A sepa
 
 ## Current coverage
 
-The checked-in suite contains 50 repository/scenario definitions across GuardClauses, Serilog and EF Core. They cover ten distinct primary tools:
+The checked-in suite contains 59 repository/scenario definitions across GuardClauses, Serilog and EF Core. They cover fifteen distinct primary tools:
 
-- six bundled query tools;
+- ten bundled query tools;
 - Code Action discovery;
+- one Code Action mutation;
 - the three bundled refactoring tools; and
 - server-owned Workspace and transaction tools used as supporting steps.
 
@@ -37,7 +38,7 @@ The durable runner already records create, replace and delete operations and can
 | P1 | Code Action execution and mutation staging | `list-code-actions` establishes discovery cost only. None of the 46 registered mutation paths is measured through the published Host, even though Code Actions use different resolution, replay, operation evaluation and staging code from bundled refactorings. | Add one token-based Code Action, one dedicated replay refactoring, and one scoped/fix-all action. Select representatives by execution architecture, not by attempting to benchmark every action. The create-file action should also satisfy the durable-operation gap above. |
 | P1 | Multiple revisions in one real transaction | The runner starts a fresh transaction for one mutation and then commits or rolls it back. Component integration tests cover history and multiple staged documents, but not a sequence of real plugin or Code Action mutations through MCP. This misses revision growth, linked-change merging across revisions, preview aggregation and cache invalidation at the final promotion boundary. | Stage two compatible mutations, inspect preview and history, move backward and forward once, then commit. Add an overlapping or incompatible second mutation as a rejection case in automated acceptance coverage rather than a timing benchmark. |
 | P1 | Protocol cancellation at commit phase boundaries | Query cancellation is measured, but transaction commit has deliberately different semantics: cancellation is honoured before application begins and ignored once durable application has started. That contract is not exercised through an MCP cancellation notification. | Cancel once during planning or recovery-plan persistence and prove no source change or unfinished state remains. Cancel once after `Applying` and prove the commit or recovery reaches a durable terminal state despite client cancellation. |
-| P2 | Representative unmeasured query families | Thirty-two bundled query handlers have no direct scenario. The static audit improved them, but there is no end-to-end evidence for several materially different cost shapes. | Add a small representative set: `get-change-impact` for combined Roslyn relationship searches; `get-code-metrics` or an analyser for source scanning; `find-duplicate-code` or cycle discovery for whole-solution algorithms; and a deep operation/control-flow projection. Do not add one scenario per tool unless a representative reveals a distinct bottleneck. |
+| P2 | Representative unmeasured query families | Twenty-eight bundled query handlers have no direct scenario. The static audit improved them, but most remaining handlers are represented by an already measured cost shape rather than needing one scenario per tool. | Completed in Batch 5 with `get-change-impact`, `get-code-metrics`, `find-duplicate-code` and shallow/deep `get-control-flow-graph` scenarios. Add another query only when it presents a materially different cost shape. |
 | P2 | Concurrent clients, multiple Workspaces and cross-process commit-lock contention | Integration tests cover transaction ownership and native lock release, but the runner is single-client and opens one Workspace. Contention, queueing and cleanup are not measured through MCP or under repository-scale load. | Add a bounded concurrency scenario with parallel read queries, then a two-Workspace transaction-ownership sequence. Add cross-process lock contention only if the published Host behaviour differs from the existing native integration test. |
 | P3 | Other supported open shapes and path environments | All performance repositories use `.sln`. Functional coverage should continue to prove direct project and `.slnx` opening, unsupported-project filtering, WSL-to-Windows warnings, long Windows paths and UNC path conversion. These do not each require a performance baseline. | Keep these in published-host acceptance coverage. Promote one to the runner only if preparation or loading behaviour is materially different or a platform defect is found. |
 
@@ -128,3 +129,36 @@ The pre-application Serilog run observed `Staging`, delivered cancellation in 1.
 The post-application run observed `Applying`, delivered cancellation in 0.16 ms and received client cancellation after 0.07 ms. The server continued independently for 516.08 ms, published `Committed`, replaced all 27 intended files and removed its recovery state. The runner then restored the pinned checkout. Both Hosts exited normally and final validation reported no repository, recovery, coordination or lock issue. Evidence: `artifacts/performance/results/20260723-122709-serilog-c17e7f1b67c34cb585db96b07b332725`.
 
 Native Windows confirmed both boundaries. Pre-application cancellation was delivered in 1.65 ms, completed the client request after another 0.40 ms and settled the server lease within 64.79 ms. All 137 preview documents remained staged until deliberate rollback, no source file changed and recovery state was empty. Post-application cancellation was delivered in 0.14 ms and completed the client request after 0.07 ms; the server continued for 1690.97 ms, published `Committed`, replaced all 27 files and removed its recovery state. Runner restoration returned the checkout to the pinned commit. Both Hosts exited normally without recovery, coordination or lock residue. Evidence: `artifacts/performance/results/20260723-123134-serilog-0408ddb402f24eccbd64747870b7ea94`.
+
+## Batch 5 implementation
+
+**Status:** Complete on native WSL storage. The measured query paths are platform-neutral Roslyn and managed projection work, so a second native-Windows correctness run is not required.
+
+**Production fix required:** No. The representative families produced deterministic bounded responses, completed within proportionate steady-state times and left the repository, Workspace coordination and recovery state clean. The measurements do not justify another production cache or algorithm rewrite.
+
+The permanent suite now includes:
+
+- low/high `get-change-impact` scenarios over `Serilog.ILogger`, combining reference and implementation discovery with 5- and 100-location projections;
+- low/high project-scoped `get-code-metrics` scenarios over Serilog, plus a five-result EF Core project scan;
+- project-scoped `find-duplicate-code` scenarios over Serilog and EF Core; and
+- shallow/deep `get-control-flow-graph` projections over the same project-qualified Serilog method.
+
+The five-measurement Serilog run recorded:
+
+| Scenario | Median | P95 | Returned bound |
+|---|---:|---:|---|
+| Change impact, 5 locations | 9.85 ms | 10.78 ms | 5, `HasMore: true` |
+| Change impact, 100 locations | 17.93 ms | 22.37 ms | 100, `HasMore: true` |
+| Code metrics, 5 results | 29.79 ms | 47.40 ms | 5, `HasMore: true` |
+| Code metrics, 100 results | 49.42 ms | 52.32 ms | 100, `HasMore: true` |
+| Duplicate code | 80.21 ms | 132.92 ms | 3 complete groups |
+| Control flow, shallow | 5.84 ms | 6.05 ms | 2 blocks and 2 regions |
+| Control flow, deep | 5.84 ms | 6.00 ms | complete graph |
+
+The matching EF Core scale check retained a 429.22-millisecond median for five code metrics and a 610.08-millisecond median for ten duplicate groups. Later invocations settled at 368.14 milliseconds and 465.25 milliseconds respectively as Roslyn and filesystem caches warmed. Both bounded collections reported `HasMore: true`; response hashes were stable. Evidence: `artifacts/performance/results/20260723-124230-serilog-0f8ca3ba1fba4fb5af6868c0136bbfde` and `artifacts/performance/results/20260723-124754-efcore-2bb866fe6eb34bd5ab3727ca726c0784`.
+
+The limit comparisons confirm the intended boundary. `get-code-metrics` must still identify and globally order lightweight candidates across the selected project, but it calculates syntax metrics and projects DTOs only for returned candidates. `find-duplicate-code` must complete normalization and grouping before it can know which groups are duplicates; it already defers occurrence projection until after the group bound. The shallow/deep control-flow timings are indistinguishable, showing that its bounded projection is not a material cost beside Roslyn graph construction.
+
+A focused static pass over the four measured handlers found no `async void`, blocking `Task` access, per-call JSON options, runtime regular expressions, `Task.Run`, culture-sensitive string search or case-normalization pattern. It counted fifteen explicit `List`, `Dictionary` or `HashSet` constructions, twelve LINQ operations and two `string.Join` calls. Each collection is request-local analysis state or bounded response state; the remaining LINQ calls are small terminal aggregation/ordering operations or the complete discovery required by the contracts. All eight reference types in the selected files are sealed; the ninth declaration is a `readonly record struct`. No static signal contradicts the measured outcome.
+
+An attempted location-based operation-tree scenario also exposed a separate contract gap: a path-only `DocumentSelector` is ambiguous when the same physical file appears in several target-framework projects. The suite uses project-qualified symbol selection for control flow instead, and the broader location-selector improvement is recorded in `FutureTasks.md`.

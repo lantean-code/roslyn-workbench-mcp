@@ -31,7 +31,7 @@ The durable runner already records create, replace and delete operations and can
 ## Risk-ordered gaps
 
 | Priority | Missing scenario | Why existing evidence is insufficient | Recommended evidence |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | P0 | Published-Host termination during durable application, followed by a fresh Host using the same state directory | The conflict runner lets the original Host catch the failure and perform recovery. Durable integration tests construct persisted manifests and a fresh recovery service, but they do not terminate a published MCP Host while real source writes are in progress. Startup composition, process locks, stdio termination and OS file semantics are therefore not exercised together. | Terminate a broad commit after its manifest reaches `Applying`, start a fresh Host with the same state directory, and prove startup recovery restores the checkout, removes recoverable state, releases locks and permits the Workspace to open. Run on native Windows and WSL. |
 | P0 | Durable create and delete operations through a real Code Action | The production planner, writer and recovery code have distinct create and delete paths, including directory creation and delete-marker moves. Current external-repository commits exercise only replacements. Unit and integration tests cover synthetic create/delete manifests, but not Roslyn Code Action output through MCP, staging, preview, commit and cleanup. | Add a deterministic `move-type-to-file` commit that creates a source file and updates the original. Add or curate an action that deletes a source file if one is reliably available. Exercise success first, then recovery after application has crossed a create or delete entry. |
 | P1 | Cache freshness across external change, reload and commit | Cache invalidation tests verify calls at the session-store boundary, and lifecycle integration tests verify reload state transitions. No published-Host scenario warms `find-references` or target-framework data, changes an input, proves the stale query is rejected, reloads, and proves the next query is computed from the new snapshot. The same gap exists after a successful commit promotes a new solution. | Add a state-sequence scenario covering warm query, external edit, rejected stale query, `workspace-reload`, and refreshed query. Add a smaller sequence covering warm query, mutation commit and a post-commit query. Validate response hashes as well as cache-hit phase evidence. |
@@ -46,14 +46,14 @@ The durable runner already records create, replace and delete operations and can
 
 A fresh production-source scan found no new critical async or construction pattern requiring immediate optimisation:
 
-| Signal | Result |
-|---|---:|
-| `async void` | 0 |
-| `GetAwaiter().GetResult()` | 0 |
-| Per-call `new JsonSerializerOptions` | 0 |
-| `stackalloc` sites | 0 |
-| Runtime `new Regex(...)` sites | 0 |
-| `Task.Run(...)` sites | 0 |
+| Signal                               | Result |
+| ------------------------------------ | -----: |
+| `async void`                         |      0 |
+| `GetAwaiter().GetResult()`           |      0 |
+| Per-call `new JsonSerializerOptions` |      0 |
+| `stackalloc` sites                   |      0 |
+| Runtime `new Regex(...)` sites       |      0 |
+| `Task.Run(...)` sites                |      0 |
 
 The broad `.Result` text scan returned 79 matches, all reviewed as namespaces, result contracts, result properties or performance phase names rather than blocking `Task.Result` calls. The three `ContainsKey` sites are membership checks without a following indexer lookup. No static finding takes priority over the scenario gaps above.
 
@@ -145,15 +145,15 @@ The permanent suite now includes:
 
 The five-measurement Serilog run recorded:
 
-| Scenario | Median | P95 | Returned bound |
-|---|---:|---:|---|
-| Change impact, 5 locations | 9.85 ms | 10.78 ms | 5, `HasMore: true` |
-| Change impact, 100 locations | 17.93 ms | 22.37 ms | 100, `HasMore: true` |
-| Code metrics, 5 results | 29.79 ms | 47.40 ms | 5, `HasMore: true` |
-| Code metrics, 100 results | 49.42 ms | 52.32 ms | 100, `HasMore: true` |
-| Duplicate code | 80.21 ms | 132.92 ms | 3 complete groups |
-| Control flow, shallow | 5.84 ms | 6.05 ms | 2 blocks and 2 regions |
-| Control flow, deep | 5.84 ms | 6.00 ms | complete graph |
+| Scenario                     |   Median |       P95 | Returned bound         |
+| ---------------------------- | -------: | --------: | ---------------------- |
+| Change impact, 5 locations   |  9.85 ms |  10.78 ms | 5, `HasMore: true`     |
+| Change impact, 100 locations | 17.93 ms |  22.37 ms | 100, `HasMore: true`   |
+| Code metrics, 5 results      | 29.79 ms |  47.40 ms | 5, `HasMore: true`     |
+| Code metrics, 100 results    | 49.42 ms |  52.32 ms | 100, `HasMore: true`   |
+| Duplicate code               | 80.21 ms | 132.92 ms | 3 complete groups      |
+| Control flow, shallow        |  5.84 ms |   6.05 ms | 2 blocks and 2 regions |
+| Control flow, deep           |  5.84 ms |   6.00 ms | complete graph         |
 
 The matching EF Core scale check retained a 429.22-millisecond median for five code metrics and a 610.08-millisecond median for ten duplicate groups. Later invocations settled at 368.14 milliseconds and 465.25 milliseconds respectively as Roslyn and filesystem caches warmed. Both bounded collections reported `HasMore: true`; response hashes were stable. Evidence: `artifacts/performance/results/20260723-124230-serilog-0f8ca3ba1fba4fb5af6868c0136bbfde` and `artifacts/performance/results/20260723-124754-efcore-2bb866fe6eb34bd5ab3727ca726c0784`.
 

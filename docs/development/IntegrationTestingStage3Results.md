@@ -52,7 +52,7 @@ Windows briefly retained the loaded private dependency after process completion 
 The following direct-MCP evidence is now superseded at the public process boundary. The existing tests remain in place until Stage 4 applies the replacement-evidence gates.
 
 | Acceptance workflow | Direct/component MCP evidence superseded | Evidence intentionally retained below the process boundary |
-|---|---|---|
+| --- | --- | --- |
 | Workspace lifecycle and query | `WorkspaceLifecycleMcpIntegrationTests.GIVEN_WorkspaceLifecycleTools_WHEN_OpeningListingReadingReloadingAndClosing_THEN_ShouldReturnStructuredResults`; query publication path in `RepresentativeMcpToolIntegrationTests.GIVEN_InspectionWorkspace_WHEN_InvokingRepresentativeQueryThroughMcp_THEN_ShouldReturnStructuredResult` | Workspace loading, resolver and lifecycle edge cases |
 | Transactional plugin mutation | Public transaction/mutation path in `WorkspaceLifecycleMcpIntegrationTests.GIVEN_OpenedWorkspace_WHEN_InvokingMutationAndTransactionToolsThroughMcp_THEN_ShouldCompleteTransactionWorkflows` | Transaction history, conflicts, staging capacity, durable commit and recovery mechanics |
 | Code Action mutation | Public list/stage path in `RepresentativeMcpToolIntegrationTests.GIVEN_ControlledCodeActionProvider_WHEN_ListingAndStagingThroughMcp_THEN_ShouldStageRepresentativeCodeAction` | Controlled-provider parameter, token, fix-all and failure workflows |

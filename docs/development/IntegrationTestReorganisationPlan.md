@@ -17,7 +17,7 @@ The intended result is a faster and more diagnostic suite without losing protect
 The baseline after the code-action discovery cleanup includes every project under `test` that is present in the solution:
 
 | Project | Project kind | Current role | Discovered tests | Recent duration |
-| --- | --- | --- | ---: | ---: |
+| --- | --- | --- | --: | --: |
 | `Roslyn.Workbench.Mcp.Contracts.Test` | Test project | Contract DTO, schema, selector, validation, and serialisation coverage | 53 | less than 1 second |
 | `Roslyn.Workbench.Mcp.Plugins.Test` | Test project | Plugin abstraction, registration, protocol, and execution-plumbing coverage | 22 | less than 1 second |
 | `Roslyn.Workbench.Mcp.Workspace.Test` | Test project | Mixed workspace unit, contract, and integration coverage | 123 | approximately 28 seconds |

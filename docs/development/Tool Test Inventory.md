@@ -83,12 +83,7 @@ Acceptance remains representative rather than per-tool. Its ten cases cover prer
 
 ## Partial Branch Reassessment
 
-The 2026-07-18 coverage-focused round is complete. A fresh
-`Roslyn.Workbench.Mcp.Plugins.Core.Test` Coverlet run passed 272 tests. The raw
-Plugins.Core assembly result moved from 78.12% line/67.44% branch coverage to
-78.17% line/68.27% branch coverage. These assembly-wide percentages include
-contracts, registrations, compiler-lowered conditions and defensive Roslyn
-guards; they are evidence for investigation rather than a release threshold.
+The 2026-07-18 coverage-focused round is complete. A fresh `Roslyn.Workbench.Mcp.Plugins.Core.Test` Coverlet run passed 272 tests. The raw Plugins.Core assembly result moved from 78.12% line/67.44% branch coverage to 78.17% line/68.27% branch coverage. These assembly-wide percentages include contracts, registrations, compiler-lowered conditions and defensive Roslyn guards; they are evidence for investigation rather than a release threshold.
 
 | Tool | Reassessment and disposition |
 | --- | --- |
@@ -102,22 +97,14 @@ guards; they are evidence for investigation rather than a release threshold.
 | `RenameSymbolTool` | For a valid source symbol, Roslyn's renamer returns a candidate `Solution`; the reference-equal no-change result cannot be produced through the supported API flow. The guard remains as defensive handling for future Roslyn behaviour and is approved without a fake symbol or test hook. |
 | `SortUsingsTool` | Roslyn supplies a `NameSyntax` node even for a parsed missing name; the existing malformed `using ;` test proves that recovery shape. A null `UsingDirectiveSyntax.Name` cannot be produced by supported parsing or factory creation, so the fallback remains an approved defensive guard. |
 
-No reachable case from the previous nine-entry partial-branch inventory remains
-open. Raw condition coverage can report compiler-lowered nullable and ordering
-fallback alternatives; those are not separate supported behaviours and must
-not be forced through reflection, fake Roslyn runtime objects or production
-test hooks.
+No reachable case from the previous nine-entry partial-branch inventory remains open. Raw condition coverage can report compiler-lowered nullable and ordering fallback alternatives; those are not separate supported behaviours and must not be forced through reflection, fake Roslyn runtime objects or production test hooks.
 
 ## Comprehensive Tool Coverage Ledger
 
-The same 2026-07-18 report was audited across every `*Tool.cs` file. The table
-records raw uncovered executable lines and branch counts after the final test
-changes. `Covered` means the supported alternative now has direct evidence.
-`Approved defensive` means the remaining raw alternatives require a state that
-cannot enter through the supported C# Workspace, resolver or Roslyn API flow.
+The same 2026-07-18 report was audited across every `*Tool.cs` file. The table records raw uncovered executable lines and branch counts after the final test changes. `Covered` means the supported alternative now has direct evidence. `Approved defensive` means the remaining raw alternatives require a state that cannot enter through the supported C# Workspace, resolver or Roslyn API flow.
 
 | Tool | Raw lines | Raw branches | Final disposition |
-| --- | ---: | ---: | --- |
+| --- | --: | --: | --- |
 | `AnalyzeAsyncTool` | 2 | 42/50 | All four supported Task/ValueTask return families, awaited and unawaited calls, non-task calls and missing executable bodies are covered. Remaining alternatives require a method invocation without a Roslyn named return type or absent projected ordering fields. Approved defensive. |
 | `AnalyzeControlFlowTool` | 11 | 26/34 | Snapshot, selector, location, source-document, no-statement, successful analysis and null return projection are covered. Remaining lines are successful-result invariants, Roslyn's nullable analysis-result guard and missing C# syntax/semantic services after source resolution. Approved defensive. |
 | `AnalyzeDataFlowTool` | 11 | 26/34 | Snapshot, selector, location, source-document, no-statement and successful analysis outputs are covered. Remaining lines are successful-result invariants, Roslyn's nullable analysis-result guard and missing C# syntax/semantic services after source resolution. Approved defensive. |
@@ -149,9 +136,6 @@ cannot enter through the supported C# Workspace, resolver or Roslyn API flow.
 | `SearchSymbolsTool` | 0 | 41/44 | Query and metadata-name modes, kind/accessibility/namespace filters, global namespace, missing projections, ordering and bounds are covered. Remaining alternatives are the post-validation missing-pattern invariant and a null containing namespace that Roslyn symbols do not expose. Approved defensive. |
 | `SortUsingsTool` | 0 | 17/20 | Validation, no-change, normal/system-first ordering, aliases and malformed missing-name syntax are covered. Roslyn still supplies a missing `NameSyntax` node for `using ;`; a null name and associated ordering fallback cannot be produced by parsing or factory creation. Approved defensive. |
 
-The comprehensive ledger contains no untested supported tool behaviour known
-from the fresh report. Future production changes must add behaviour-focused
-coverage, and Roslyn/MSBuild upgrades should rerun this ledger before comparing
-performance results.
+The comprehensive ledger contains no untested supported tool behaviour known from the fresh report. Future production changes must add behaviour-focused coverage, and Roslyn/MSBuild upgrades should rerun this ledger before comparing performance results.
 
 The Host coverage round also identified deliberate integration boundaries in `Program`, `MsBuildRegistrationService`, `RecoveryStatusReader` and `RoslynWorkbenchHostApplicationBuilderExtensions`. `MsBuildRegistrationService` owns its cached state as the registered DI singleton and handles the ordinary already-registered state explicitly; actual locator discovery, registration failures and the external registration race remain integration boundaries. `PluginCatalogLoader` now has focused unit coverage for orchestration, candidate preparation, collision policy and materialisation, with real MEF and load-context behaviour retained as integration concerns. Defensive assembly-version fallbacks in `ServerStatusService` and MCP SDK schema-exporter compatibility paths in `ToolSchemaBuilder` cannot be driven through the supported unit surface and remain documented rather than forcing production hooks solely for coverage.

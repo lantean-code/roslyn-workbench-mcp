@@ -13,6 +13,7 @@
 ### Task 1: Lock The Taxonomy
 
 **Files:**
+
 - Modify: `test/AGENTS.md`
 - Modify: `docs/test-project-audit-2026-07-07.md`
 
@@ -23,6 +24,7 @@
 ### Task 2: Decouple Shared Test Fixtures
 
 **Files:**
+
 - Create: `test/Roslyn.Workbench.Mcp.TestSupport/HostValidQueryPlugin.cs`
 - Create: `test/Roslyn.Workbench.Mcp.TestSupport/HostValidMutationPlugin.cs`
 - Create: `test/Roslyn.Workbench.Mcp.TestSupport/TestWorkspaceFixture.cs`
@@ -38,6 +40,7 @@
 ### Task 3: Split The Host Test Project
 
 **Files:**
+
 - Create: `test/Roslyn.Workbench.Mcp.IntegrationTest/Roslyn.Workbench.Mcp.IntegrationTest.csproj`
 - Create: `test/Roslyn.Workbench.Mcp.IntegrationTest/GlobalUsings.cs`
 - Create: `test/Roslyn.Workbench.Mcp.IntegrationTest/TestAssemblyInitialization.cs`
@@ -58,6 +61,7 @@
 ### Task 4: Split The Plugins-Core Test Project
 
 **Files:**
+
 - Create: `test/Roslyn.Workbench.Mcp.Plugins.Core.IntegrationTest/Roslyn.Workbench.Mcp.Plugins.Core.IntegrationTest.csproj`
 - Create: `test/Roslyn.Workbench.Mcp.Plugins.Core.IntegrationTest/GlobalUsings.cs`
 - Create: `test/Roslyn.Workbench.Mcp.Plugins.Core.IntegrationTest/TestAssemblyInitialization.cs`
@@ -75,6 +79,7 @@
 ### Task 5: Categorise The Workspace Project And Record The Blocker
 
 **Files:**
+
 - Modify: `test/Roslyn.Workbench.Mcp.Workspace.Test/*.cs`
 - Modify: `docs/test-project-audit-2026-07-07.md`
 
@@ -86,6 +91,7 @@
 ### Task 6: Add Additional Unit Coverage Without Production Changes
 
 **Files:**
+
 - Modify or create focused tests in `test/Roslyn.Workbench.Mcp.Test`
 - Modify or create focused tests in `test/Roslyn.Workbench.Mcp.Plugins.Core.Test`
 - Modify or create focused tests in `test/Roslyn.Workbench.Mcp.Workspace.Test`
@@ -97,6 +103,7 @@
 ### Task 7: Verify, Format, And Normalise
 
 **Files:**
+
 - Modify: all changed test/docs/solution files from this task
 
 - [ ] Run `dotnet format --include <changed files> --artifacts-path=/tmp/artifacts/roslyn-workbench-mcp`

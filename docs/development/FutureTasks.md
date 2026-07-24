@@ -26,6 +26,21 @@ When a task is completed, remove it from this document rather than retaining a c
 
 ## P0 — Release Decisions and Blockers
 
+### Complete the pre-release readiness review
+
+**Status:** Started
+
+Align the release documentation and package-facing material, remove development-only content from public surfaces, validate the complete supported functionality, perform a security and trust-boundary audit, and finish the product polish needed before release packaging begins.
+
+Implement the dependency-ordered batches defined by the [Pre-release Readiness Audit](PreReleaseReadinessAudit-2026-07-24.md):
+
+1. release documentation, backlog and package-facing documentation alignment — complete;
+2. supported-functionality and public-contract audit;
+3. security, trust-boundary and dependency audit; and
+4. final product polish and release-readiness validation.
+
+Do not begin artifact publication until the audit has no unresolved release-blocking findings. Development records may remain under `docs/development`, but release-facing documentation and package content must describe only supported behaviour.
+
 ### Prepare and publish the v1 release artifacts
 
 **Status:** Not started
@@ -59,18 +74,6 @@ The Plugins package validation is the consumer-compatibility boundary. A reposit
 
 ## P1 — Production Confidence and Performance
 
-### Expand published-Host acceptance coverage
-
-**Status:** Complete
-
-Implement the dependency-ordered release-capability batches covering the exact published artifact, configuration, discovery, public result contracts, valid and failing external packages, supported Workspace open shapes, selector families, every production query and mutation execution path, transaction history, durability, restart, protocol cancellation, concurrency and failure containment.
-
-Keep the acceptance project independent of production references and drive only the Release-published executable through the public MCP protocol. Use small checked-in fixtures, deterministic synchronization and the existing Ubuntu/Windows pull-request matrix. Do not move repository-scale, timing-sensitive or destructive release scenarios into pull-request acceptance.
-
-Batches 1–6 are implemented. The acceptance boundary now covers published-process infrastructure, distribution/configuration and plugin packages, supported Workspace formats and selectors, every mutation execution family, transaction history and ownership, multi-file and linked-target durability, pre-write conflict preservation, blocked recovery, clean restart, protocol cancellation, concurrency/retry behaviour, cross-Workspace isolation, exception containment and public path boundaries. Complete WSL/Linux and native Windows runs passed all 40 cases; native Ubuntu evidence remains owned by the pull-request matrix.
-
-Source: [Published Host Acceptance Coverage Audit](AcceptanceCoverageAudit-2026-07-23.md)
-
 ### Automate release scenario validation and performance history
 
 **Status:** Not started
@@ -91,37 +94,6 @@ Implementation order:
 6. Attach the final aggregate and comparison to the GitHub release.
 
 Source: [Testing Strategy](TestingStrategy.md#release-validation-and-performance-history), [Published Host Acceptance Coverage Audit](AcceptanceCoverageAudit-2026-07-23.md#release-only-scenario-validation-and-metrics)
-
-## P2 — Release Support and Plugin Ecosystem
-
-### Add a plugin-authoring analyser
-
-**Status:** Complete
-
-The authoring surface has been audited and divided into 19 diagnostics covering Workspace snapshot safety, startup configuration lifetime, handler contracts and state, cancellation, bounded response design and plugin entry-point metadata. Generic constraints remain authoritative for construction and request-base eligibility; runtime validation remains authoritative for loaded binaries, final merged metadata, package layout, schema generation and cross-package collisions.
-
-Implement the dependency-ordered batches defined by the audit:
-
-1. analyser infrastructure, Workspace safety diagnostics and Host containment — complete;
-2. handler contract, lifetime and state diagnostics — complete;
-3. invocation, response and entry-point diagnostics — complete; and
-4. Plugins package inclusion, consumer-build validation and author documentation — complete.
-
-Batch 1 added stable descriptors and exact-location tests for `RWMCP001`–`RWMCP004`. The Host now detects an unexpected in-memory `Workspace.TryApplyChanges` before or after plugin execution, invalidates cached queries, rejects the affected result and moves the session through the existing workspace-out-of-date or transaction-conflicted recovery path. Real query and mutation integration coverage proves containment when `RWMCP001` is deliberately suppressed.
-
-Batch 2 added `RWMCP005`–`RWMCP012` for handler contract shape, lifetime, MEF imports, external transport accessibility, instance and static state, disposable-valued fields and destructive query metadata. The diagnostics are mapped to runtime preparation checks, the misleading name-only `Register` warning has been removed, and a valid external plugin fixture is compiled with the analyser enabled.
-
-Batch 3 added `RWMCP013`–`RWMCP019` for cancellation observation, bounded query responses, plugin entry-point composition, API and identity metadata, and misplaced tool metadata. Runtime query-response validation now detects raw collection response types as well as raw collection properties.
-
-The shared `BoundedCollection<TItem>` response contract now belongs to the public Plugins authoring surface. Its `CreatePrebounded` factories deliberately require authors to apply collection limits before constructing the response and give the bounded-response diagnostic an actionable remediation.
-
-The analyser and analyser-test projects target the intended frameworks and are included in the solution. The Plugins package includes the analyser assembly under `analyzers/dotnet/cs`.
-
-The .NET Standard 2.0 C# analyser assembly ships inside the Plugins NuGet package so diagnostics run in the IDE and at build time without becoming a runtime dependency. Package integration coverage verifies the generated archive and `.nuspec`, builds an isolated package-only consumer, proves automatic diagnostic activation, and confirms the valid consumer remains clean. Treat the analyser as an engineering guardrail rather than a security boundary: plugins remain trusted in-process code and deliberate suppression, reflection or indirection cannot be prevented.
-
-This work now satisfies the analyser prerequisite for actively promoting third-party plugin authoring. Plugins remain trusted in-process extensions, so release documentation must continue to state the runtime guarantees and trust boundary.
-
-Sources: [Plugin authoring analyser audit](PluginAuthoringAnalyserAudit-2026-07-24.md), [2026-07-13-mef-plugin-composition.md](superpowers/plans/2026-07-13-mef-plugin-composition.md), [PluginApiSurfaceAudit-2026-07-18.md](PluginApiSurfaceAudit-2026-07-18.md)
 
 ## Conditional Backlog
 

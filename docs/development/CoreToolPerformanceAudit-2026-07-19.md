@@ -60,7 +60,7 @@ For every proposed optimisation, validation must answer:
 The counts below are exact textual signals within the 50-file scope. Manual review removed false positives before findings were classified.
 
 | Scan | Hits | Review outcome |
-|---|---:|---|
+| --- | --: | --- |
 | `async void` | 0 | No issue. |
 | Sync-over-async candidates | 1 | False positive from the `DiagnosticSeverity` alias; no blocking async use found. |
 | `ValueTask` declarations | 77 | Expected handler/service contracts; no multiple-await use found. |
@@ -206,7 +206,7 @@ No critical correctness or deadlock finding was identified.
 Every use found during the baseline is treated as a smell because the helper can only truncate after its input collection exists. The table records whether moving the limit can avoid meaningful upstream work.
 
 | Tool and collection | Work completed before the bound | Disposition |
-|---|---|---|
+| --- | --- | --- |
 | `analyze-async` findings | Full document/operation scan and finding projection | High-value migration in source-scanner batch. |
 | `analyze-disposables` findings | Full document scan, repeated executable scan and finding projection | High-value migration in source-scanner batch. |
 | `find-callers` callers | All location/context enrichment and caller projection | High-value migration in relationship batch. |
@@ -366,7 +366,7 @@ The review applied the repository rules for simple LINQ, explicit hot-path or mu
 ### Re-audit scan checklist
 
 | Scan | Hits | Review outcome |
-|---|---:|---|
+| --- | --: | --- |
 | Concrete sealed / unsealed tool classes | 100 / 0 | All concrete tools are sealed. |
 | Files containing LINQ / total LINQ operator calls | 36 / 194 | Nine files contain multi-stage or heavily repeated pipelines that should be simplified. The remaining uses are short predicates, projections, contractual ordering or previously measured code. |
 | `Select` / `Where` / `Cast` / `Take` / `Aggregate` calls | 57 | Manually reviewed with their surrounding stages and bounds. |
@@ -427,7 +427,7 @@ C1–C3 were completed as one focused readability batch before the exception-flo
 The post-remediation scan records 155 LINQ operator calls across 34 tools, down from 194 calls across 36 tools. Nested `Success(new Response...)` and direct `return ValueTask.FromResult(Rejected(...))` sites are both zero. `CreateBoundedCollection` remains at zero and all 39 pre-bounded result publications remain intact.
 
 | Severity | Finding count | Top issue |
-|---|---:|---|
+| --- | --: | --- |
 | Critical | 0 | None identified. |
 | Remaining | 0 | No actionable concrete-tool compliance finding remains from this re-audit. |
 | Completed compliance | 3 | Multi-stage LINQ and nested result assembly were simplified without changing bounds or ordering. |
@@ -462,7 +462,7 @@ The tool-call scenarios must include the bundled refactoring tools: whole-docume
 ## Summary
 
 | Severity | Finding count | Top issue |
-|---|---:|---|
+| --- | --: | --- |
 | Critical | 0 | None identified. |
 | Moderate | 8 | Thirty collection bounds are applied only after their input collections have been built. |
 | Informational / benchmark-gated | 3 | Duplicate fingerprinting and local tree projections require measurement. |

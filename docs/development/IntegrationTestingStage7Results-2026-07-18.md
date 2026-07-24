@@ -28,7 +28,7 @@ During validation, the Host integration project was found to locate plugin fixtu
 Measurements used already-built Debug projects with `--no-build --no-restore`. They are local WSL comparison evidence, not timing assertions. Each project passed on every sequential and concurrent run.
 
 | Project | Tests | Run 1 | Run 2 | Run 3 | Median | Median peak memory |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| --- | --: | --: | --: | --: | --: | --: |
 | Workspace | 52 | 10.73 s | 11.38 s | 10.83 s | 10.83 s | 344.2 MiB |
 | Plugins.Core | 20 | 5.44 s | 5.75 s | 5.65 s | 5.65 s | 374.4 MiB |
 | CodeActions | 5 | 8.42 s | 8.63 s | 8.43 s | 8.43 s | 381.7 MiB |
@@ -40,9 +40,9 @@ The sum of project medians is 27.57 seconds. Compared with the Stage 0 sum of 48
 
 The consolidated proxy runs the four owners sequentially after a shared build. The owner-matrix proxy starts the same four already-built projects together and uses the longest owner as its critical path.
 
-| Layout | Run 1 | Run 2 | Run 3 | Median |
-| --- | ---: | ---: | ---: | ---: |
-| Consolidated sequential | 27.30 s | 28.42 s | 27.52 s | 27.52 s |
+| Layout                              |   Run 1 |   Run 2 |   Run 3 |  Median |
+| ----------------------------------- | ------: | ------: | ------: | ------: |
+| Consolidated sequential             | 27.30 s | 28.42 s | 27.52 s | 27.52 s |
 | Four-owner concurrent critical path | 12.84 s | 12.84 s | 13.19 s | 12.84 s |
 
 The concurrent proxy is 53.3% faster than the current sequential proxy and 73.4% faster than the Stage 0 sequential baseline. Hosted CI will add four checkouts, restores, builds and runner allocations, so this is not presented as a hosted-runner duration. The matrix was selected because pull-request wall time and isolated owner reporting are more valuable than minimising aggregate runner work. The four jobs retain exact project names, counts and result artifacts; future hosted-runner evidence can revisit the choice without changing test ownership.
@@ -66,7 +66,7 @@ Compatibility is not yet equivalent:
 A representative CodeActions comparison produced:
 
 | Mode | VSTest median | MTP median | MTP change |
-| --- | ---: | ---: | ---: |
+| --- | --: | --: | --: |
 | Clean output, cached packages, build and test | 14.58 s | 13.48 s | 7.5% faster |
 | Warm, already-built test execution | 8.65 s | 7.30 s | 15.6% faster |
 
@@ -91,4 +91,3 @@ The gain is not material enough to justify the compatibility and operational mig
 - Native Windows Workspace integration passed all 52 tests.
 - The minimum-count script accepted a real ten-test acceptance TRX and rejects missing or insufficient results.
 - Governed files were formatted where applicable and normalised to CRLF.
-

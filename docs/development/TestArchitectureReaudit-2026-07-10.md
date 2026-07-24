@@ -34,7 +34,7 @@ The 388-test Workspace unit project now covers the principal pure selection, sta
 ## Current Project Topology
 
 | Project | Category | Responsibility | Tests |
-| --- | --- | --- | ---: |
+| --- | --- | --- | --: |
 | `Roslyn.Workbench.Mcp.Plugins.Test` | Unit/Contract | Typed plugin registration, context adaptation, execution results and public surface | 26 |
 | `Roslyn.Workbench.Mcp.Workspace.Test` | Unit/Contract | Workspace-owned selectors, validation and execution-boundary primitives | 190 |
 | `Roslyn.Workbench.Mcp.Plugins.Core.Test` | Unit | Bundled inspection and normal-refactoring branches | 308 |

@@ -13,6 +13,7 @@
 ## File Map
 
 **Primary production files**
+
 - Modify: `docs/RoslynMcpToolDesign.md`
 - Modify: `docs/RoslynMcpToolContracts.md`
 - Modify: `src/Roslyn.Workbench.Mcp.Plugins/RegisteredTool.cs`
@@ -28,11 +29,13 @@
 - Create: `src/Roslyn.Workbench.Mcp.Plugins/ToolOutputSchemaMode.cs`
 
 **Likely supporting production files**
+
 - Modify: `src/Roslyn.Workbench.Mcp/WorkspaceLifecycleToolFactory.cs`
 - Modify: `src/Roslyn.Workbench.Mcp/TransactionToolFactory.cs`
 - Modify: selected files under `src/Roslyn.Workbench.Mcp.Plugins.Core/` only if a short result hint is genuinely needed for specific tools such as `list-code-actions`
 
 **Tests**
+
 - Modify: `test/Roslyn.Workbench.Mcp.Plugins.Test/ToolSchemaFactoryTests.cs`
 - Modify: `test/Roslyn.Workbench.Mcp.Contracts.Test/Schema/SchemaGenerationTests.cs`
 - Modify: `test/Roslyn.Workbench.Mcp.Test/PluginDiscoveryAndMcpToolTests.cs`
@@ -49,6 +52,7 @@
 ### Task 1: Update The Contract And Design Docs First
 
 **Files:**
+
 - Modify: `docs/RoslynMcpToolDesign.md`
 - Modify: `docs/RoslynMcpToolContracts.md`
 
@@ -85,6 +89,7 @@ Do not restate the full DTO in every description.
 ### Task 2: Introduce An Explicit Output-Schema Publication Mode
 
 **Files:**
+
 - Create: `src/Roslyn.Workbench.Mcp.Plugins/ToolOutputSchemaMode.cs`
 - Modify: `src/Roslyn.Workbench.Mcp.Plugins/RegisteredTool.cs`
 - Modify: `src/Roslyn.Workbench.Mcp.Plugins/ToolRegistrationMetadata.cs`
@@ -144,6 +149,7 @@ ROSLYN_WORKBENCH_MCP_TOOL_OUTPUT_SCHEMA_MODE
 ### Task 3: Change Tool Registration To Respect The Publication Mode
 
 **Files:**
+
 - Modify: `src/Roslyn.Workbench.Mcp.Plugins/PluginRegistry.cs`
 - Modify: `src/Roslyn.Workbench.Mcp/ServerToolMcpServerTool.cs`
 - Modify: `src/Roslyn.Workbench.Mcp/PluginMcpServerTool.cs`
@@ -186,6 +192,7 @@ var description = metadata.ResultSummary is null
 ```
 
 Good candidates:
+
 - `workspace-status`
 - `transaction-preview`
 - `transaction-history`
@@ -193,11 +200,13 @@ Good candidates:
 - `describe-code-action`
 
 Poor candidates:
+
 - simple selector or navigation tools whose responses are already obvious from the name
 
 - [ ] **Step 4: Verify that runtime structured responses are untouched**
 
 Do not alter:
+
 - `ToolExecutor`
 - `ToolResult<TData>`
 - response DTOs in `Roslyn.Workbench.Mcp.Contracts`
@@ -207,6 +216,7 @@ This plan is about metadata publication, not about changing the runtime payload 
 ### Task 4: Tighten The Schema Factory Tests Around The New Behaviour
 
 **Files:**
+
 - Modify: `test/Roslyn.Workbench.Mcp.Plugins.Test/ToolSchemaFactoryTests.cs`
 - Modify: `test/Roslyn.Workbench.Mcp.Contracts.Test/Schema/SchemaGenerationTests.cs`
 - Modify: `test/Roslyn.Workbench.Mcp.Test/PluginDiscoveryAndMcpToolTests.cs`
@@ -241,6 +251,7 @@ For a tool that genuinely needs it, assert the description includes the concise 
 ### Task 5: Format, Verify, And Document The Behaviour Change
 
 **Files:**
+
 - Modify only the changed files from this task
 
 - [ ] **Step 1: Format only the touched C# files**

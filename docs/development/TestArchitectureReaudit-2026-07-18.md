@@ -15,7 +15,7 @@ This document supersedes the current-state conclusions and counts in `TestArchit
 ## Current Project Topology
 
 | Layer | Projects | Tests | Responsibility |
-| --- | ---: | ---: | --- |
+| --- | --: | --: | --- |
 | Unit/Contract | 5 | 1,732 | Reachable behaviour, branches, public contracts, MCP schemas and isolated adapters |
 | Component integration | 4 | 117 | Real owner boundaries: filesystem/MSBuild/Roslyn, composition and assembly loading |
 | Published-Host acceptance | 1 | 10 | Published executable, official MCP client, stdio and representative public workflows |

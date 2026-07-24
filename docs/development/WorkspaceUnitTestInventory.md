@@ -26,7 +26,7 @@ The production assembly currently contains 173 C# source files after the contrac
 The existing six Workspace unit tests were removed after review because they did not fully meet the current namespace, reusable Roslyn-data setup and coverage standards. The current replacement baseline is:
 
 | Test class | Tests | Current scope and coverage |
-| --- | ---: | ---: |
+| --- | --: | --: |
 | `WorkspaceSelectionResultTests` | 2 | 100% line, 100% branch |
 | `WorkspaceSelectorServiceTests` | 17 | Supported selection flow: 100% line and branch |
 | `WorkspaceResolverTests` | 47 | 98.62% line, 92.96% branch; Roslyn defensive branches documented below |
@@ -68,14 +68,14 @@ The existing six Workspace unit tests were removed after review because they did
 
 The historical pre-removal unit-project Coverlet run produced:
 
-| Assembly | Line coverage | Branch coverage |
-| --- | ---: | ---: |
-| `Roslyn.Workbench.Mcp.Workspace` | 7.93% | 5.01% |
+| Assembly                         | Line coverage | Branch coverage |
+| -------------------------------- | ------------: | --------------: |
+| `Roslyn.Workbench.Mcp.Workspace` |         7.93% |           5.01% |
 
 Only three implementations recorded unit coverage before removal:
 
 | Implementation | Line coverage | Branch coverage |
-| --- | ---: | ---: |
+| --- | --: | --: |
 | `WorkspaceOperationGate` | 100% | 75% |
 | `WorkspaceStateMachine` | 71.42% | 100% reported for currently visited decisions |
 | `WorkspaceDiffBuilder` | 97.29% | 85% |
@@ -89,7 +89,7 @@ The final 2026-07-15 Workspace unit checkpoint discovers 631 tests and measures 
 Coverlet emits compiler-generated async and closure classes separately. The table below aggregates their sequence points back into the owning production file so percentages describe the implementation developers maintain.
 
 | Implementation | Line | Branch | Current interpretation |
-| --- | ---: | ---: | --- |
+| --- | --: | --: | --- |
 | `WorkspaceProjectCompatibilityInspector` | 0% | 0% | Real MSBuild compatibility boundary; retain focused integration coverage. |
 | `FileStreamWorkspaceFileLockProvider` | 0% | 0% | OS locking and crash-release boundary; retain integration coverage. |
 | `NativeAtomicFileCommitter` | 0% | 0% | OS atomic replacement boundary; retain integration coverage. |
@@ -123,16 +123,14 @@ This checkpoint distinguishes three categories: genuine unit gaps, approved or c
 
 The reachable branch-only cleanup is complete. Further percentage gains should come only from the owning integration and cross-assembly contract suites, not artificial Workspace property tests or mocks of operating-system and MSBuild behaviour.
 
-Keep `NativeAtomicFileCommitter`, `FileStreamWorkspaceFileLockProvider`,
-`WorkspaceProjectCompatibilityInspector`, the MSBuild portion of `WorkspaceLoader` and
-`LoadedWorkspace` in focused integration coverage.
+Keep `NativeAtomicFileCommitter`, `FileStreamWorkspaceFileLockProvider`, `WorkspaceProjectCompatibilityInspector`, the MSBuild portion of `WorkspaceLoader` and `LoadedWorkspace` in focused integration coverage.
 
 ### Current integration safety net
 
 `Roslyn.Workbench.Mcp.Workspace.IntegrationTest` contains 62 tests:
 
 | Test class | Tests | Boundary coverage |
-| --- | ---: | --- |
+| --- | --: | --- |
 | `WorkspaceCoordinatorIntegrationTests` | 32 | Open/close/reload/status, multi-workspace selection, transaction workflow, staging, history, commit, encoding, change detection, recovery and cancellation |
 | `WorkspaceResolverIntegrationTests` | 9 | Real-workspace project/document ambiguity, snapshots, locations and symbols |
 | `WorkspaceProjectCompatibilityInspectorIntegrationTests` | 3 | SDK-style, legacy and malformed project compatibility |
@@ -553,19 +551,9 @@ The source-only commit path now has distinct logic-bearing units for:
 - `WorkspaceInstanceStatusPublisher`: advisory creation, updates, live/stale detection, versioned status parsing, structured cross-instance queries and cleanup without recovery authority.
 - `TransactionCommitService`: durable state ordering, cancellation boundary, session promotion and result mapping.
 
-Unit coverage belongs in `Roslyn.Workbench.Mcp.Workspace.Test` with mocked I/O
-and collaborators. OS file replacement, file-share locking, exact bytes across
-restart, and multi-file end-to-end behaviour belong in
-`Roslyn.Workbench.Mcp.Workspace.IntegrationTest`.
+Unit coverage belongs in `Roslyn.Workbench.Mcp.Workspace.Test` with mocked I/O and collaborators. OS file replacement, file-share locking, exact bytes across restart, and multi-file end-to-end behaviour belong in `Roslyn.Workbench.Mcp.Workspace.IntegrationTest`.
 
-The durability checkpoint additionally covers fresh-process-equivalent
-recovery from `Prepared`, `Applying`, `Committed`, `RecoveryIncomplete`,
-`RecoveryConflict`, and pre-manifest owner states; deterministic second-target
-failure and reverse restoration; exact binary create/replace/delete outcomes;
-external divergence; unsafe and malformed journals; real OS lock contention;
-and Linux crash-style lock release. `NativeAtomicFileCommitter` and
-the `FileStreamWorkspaceFileLockProvider` is an OS-bound implementation and is dispositioned
-to focused integration coverage rather than mocked unit coverage.
+The durability checkpoint additionally covers fresh-process-equivalent recovery from `Prepared`, `Applying`, `Committed`, `RecoveryIncomplete`, `RecoveryConflict`, and pre-manifest owner states; deterministic second-target failure and reverse restoration; exact binary create/replace/delete outcomes; external divergence; unsafe and malformed journals; real OS lock contention; and Linux crash-style lock release. `NativeAtomicFileCommitter` and the `FileStreamWorkspaceFileLockProvider` is an OS-bound implementation and is dispositioned to focused integration coverage rather than mocked unit coverage.
 
 ## Test-Support Rules for This Work
 

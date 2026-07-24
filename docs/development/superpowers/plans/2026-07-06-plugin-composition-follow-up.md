@@ -226,14 +226,14 @@ Metadata resolution is deterministic:
 
 Expected outcomes:
 
-| Attribute metadata | Fluent metadata | Outcome |
-|---|---|---|
-| Complete | None | Valid |
-| None | Complete | Valid |
-| Complete | Partial overrides | Valid; fluent values win |
-| Partial | Completes missing values | Valid |
-| None | None | Registration error |
-| Partial | Still incomplete | Registration error |
+| Attribute metadata | Fluent metadata          | Outcome                  |
+| ------------------ | ------------------------ | ------------------------ |
+| Complete           | None                     | Valid                    |
+| None               | Complete                 | Valid                    |
+| Complete           | Partial overrides        | Valid; fluent values win |
+| Partial            | Completes missing values | Valid                    |
+| None               | None                     | Registration error       |
+| Partial            | Still incomplete         | Registration error       |
 
 Rules:
 

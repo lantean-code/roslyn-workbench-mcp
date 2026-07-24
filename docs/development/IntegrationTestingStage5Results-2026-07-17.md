@@ -13,7 +13,7 @@ The component adapter owns one isolated state directory, one validated service p
 The Stage 3 acceptance suite remains the public-boundary replacement for every removed direct-MCP workflow:
 
 | Removed direct-MCP responsibility | Published-process replacement |
-|---|---|
+| --- | --- |
 | Workspace open, list, status, reload, close and representative query invocation | Workspace lifecycle and query acceptance workflow |
 | Transaction start, plugin mutation, preview and commit | Transactional plugin mutation acceptance workflow |
 | Code Action list, stage, preview and rollback | Code Action mutation acceptance workflow |

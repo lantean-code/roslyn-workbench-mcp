@@ -13,11 +13,13 @@
 ## File Map
 
 **Primary docs**
+
 - Modify: `docs/RoslynMcpToolDesign.md`
 - Modify: `docs/RoslynMcpToolContracts.md`
 - Modify: `docs/RoslynMcpToolImplementationMatrix.md`
 
 **Primary contracts**
+
 - Modify: `src/Roslyn.Workbench.Mcp.Contracts/Results/ToolResult.cs`
 - Modify: `src/Roslyn.Workbench.Mcp.Contracts/Results/WorkspaceIdentity.cs`
 - Modify: `src/Roslyn.Workbench.Mcp.Contracts/Selectors/SnapshotPrecondition.cs`
@@ -36,12 +38,14 @@
 - Create: `src/Roslyn.Workbench.Mcp.Contracts/Server/WorkspaceListRequest.cs`
 
 **Representative request-contract batches**
+
 - Modify all request contracts under:
   - `src/Roslyn.Workbench.Mcp.Contracts/Inspection/`
   - `src/Roslyn.Workbench.Mcp.Contracts/CodeActions/`
   - `src/Roslyn.Workbench.Mcp.Contracts/Refactorings/`
 
 **Primary host and workspace layer**
+
 - Modify: `src/Roslyn.Workbench.Mcp.Plugins/IToolExecutionContext.cs`
 - Modify: `src/Roslyn.Workbench.Mcp.Plugins/IToolExecutionContextFactory.cs`
 - Modify: `src/Roslyn.Workbench.Mcp.Plugins/ToolExecutor.cs`
@@ -58,11 +62,13 @@
 - Create: `src/Roslyn.Workbench.Mcp.Workspace/WorkspaceSelection.cs`
 
 **Server-owned tools**
+
 - Modify: `src/Roslyn.Workbench.Mcp/WorkspaceLifecycleToolFactory.cs`
 - Modify: `src/Roslyn.Workbench.Mcp/TransactionToolFactory.cs`
 - Modify: `src/Roslyn.Workbench.Mcp/Program.cs`
 
 **Tests**
+
 - Modify: `test/Roslyn.Workbench.Mcp.Test/WorkspaceLifecycleToolTests.cs`
 - Modify: `test/Roslyn.Workbench.Mcp.Workspace.Test/WorkspaceCoordinatorTests.cs`
 - Modify: `test/Roslyn.Workbench.Mcp.Workspace.Test/WorkspaceStateMachineTests.cs`
@@ -82,6 +88,7 @@
 ### Task 1: Rewrite The Public Design And Contract Docs Around Workspace Sessions
 
 **Files:**
+
 - Modify: `docs/RoslynMcpToolDesign.md`
 - Modify: `docs/RoslynMcpToolContracts.md`
 - Modify: `docs/RoslynMcpToolImplementationMatrix.md`
@@ -121,6 +128,7 @@ workspace-list -> WorkspaceListData { workspaces: WorkspaceIdentity[], transacti
 - [ ] **Step 4: Update lifecycle and transaction tool descriptions**
 
 Explicitly document:
+
 - `workspace-status`, `workspace-close`, and `workspace-reload` now target one selected workspace
 - query and mutation tools accept an optional `workspace` selector
 - `transaction-start` rejects if another workspace already owns the global transaction slot
@@ -128,6 +136,7 @@ Explicitly document:
 ### Task 2: Extend The Shared Contracts With Workspace Identity And Routing
 
 **Files:**
+
 - Modify: `src/Roslyn.Workbench.Mcp.Contracts/Results/ToolResult.cs`
 - Modify: `src/Roslyn.Workbench.Mcp.Contracts/Results/WorkspaceIdentity.cs`
 - Create: `src/Roslyn.Workbench.Mcp.Contracts/Selectors/WorkspaceSelector.cs`
@@ -168,6 +177,7 @@ public string? WorkspaceId { get; init; }
 ```
 
 Apply that to:
+
 - `ToolResult<TData>`
 - `SnapshotPrecondition`
 - `ResolvedLocation`
@@ -191,6 +201,7 @@ Keep the existing `Outcome`, `Changes`, diagnostics, warnings, and error invaria
 ### Task 3: Add Workspace Selection To Every Request Surface
 
 **Files:**
+
 - Modify all request DTOs under:
   - `src/Roslyn.Workbench.Mcp.Contracts/Inspection/`
   - `src/Roslyn.Workbench.Mcp.Contracts/CodeActions/`
@@ -207,6 +218,7 @@ public WorkspaceSelector? Workspace { get; init; }
 ```
 
 That includes:
+
 - read-only queries
 - mutation tools
 - `transaction-start`, `transaction-preview`, `transaction-history`, `transaction-commit`, `transaction-rollback`
@@ -246,6 +258,7 @@ requestProperties.TryGetProperty("workspace", out var workspaceProperty).Should(
 ### Task 4: Replace The Single Snapshot With Host State Plus Per-Workspace Sessions
 
 **Files:**
+
 - Replace: `src/Roslyn.Workbench.Mcp.Workspace/WorkspaceSnapshot.cs`
 - Create: `src/Roslyn.Workbench.Mcp.Workspace/WorkspaceHostSnapshot.cs`
 - Create: `src/Roslyn.Workbench.Mcp.Workspace/WorkspaceSessionSnapshot.cs`
@@ -304,6 +317,7 @@ Each session should own its own `WorkspaceOperationGate`. Queries on workspace `
 ### Task 5: Thread Workspace Routing Through The Tool Executor And Coordinator
 
 **Files:**
+
 - Modify: `src/Roslyn.Workbench.Mcp.Plugins/IToolExecutionContext.cs`
 - Modify: `src/Roslyn.Workbench.Mcp.Plugins/IToolExecutionContextFactory.cs`
 - Modify: `src/Roslyn.Workbench.Mcp.Plugins/ToolExecutor.cs`
@@ -351,6 +365,7 @@ ToolResult<TData>.Rejected(
 ### Task 6: Rework Lifecycle And Transaction Operations Around The Global Mutation Owner
 
 **Files:**
+
 - Modify: `src/Roslyn.Workbench.Mcp.Workspace/IWorkspaceCoordinator.cs`
 - Modify: `src/Roslyn.Workbench.Mcp.Workspace/WorkspaceCoordinator.cs`
 - Modify: `src/Roslyn.Workbench.Mcp/WorkspaceLifecycleToolFactory.cs`
@@ -362,6 +377,7 @@ ToolResult<TData>.Rejected(
 - [ ] **Step 1: Make `workspace-open` additive**
 
 `OpenAsync` should:
+
 - validate uniqueness of `path`
 - validate uniqueness of `alias` when provided
 - allocate `workspaceId`
@@ -393,6 +409,7 @@ Return an error that identifies the owning workspace so the caller can make a cl
 - [ ] **Step 4: Clear or preserve the owner in the right places**
 
 Rules:
+
 - start transaction -> set `TransactionOwnerWorkspaceId`
 - commit success -> clear it
 - rollback success -> clear it
@@ -402,6 +419,7 @@ Rules:
 ### Task 7: Add The Multi-Workspace Test Matrix
 
 **Files:**
+
 - Modify: `test/Roslyn.Workbench.Mcp.Test/WorkspaceLifecycleToolTests.cs`
 - Modify: `test/Roslyn.Workbench.Mcp.Workspace.Test/WorkspaceCoordinatorTests.cs`
 - Modify: `test/Roslyn.Workbench.Mcp.Workspace.Test/WorkspaceStateMachineTests.cs`
@@ -412,6 +430,7 @@ Rules:
 - [ ] **Step 1: Add lifecycle tests for two loaded workspaces**
 
 Cover:
+
 - open `A`
 - open `B`
 - list returns both
@@ -421,6 +440,7 @@ Cover:
 - [ ] **Step 2: Add transaction-owner exclusivity tests**
 
 Cover:
+
 - start transaction on `A`
 - attempt start on `B`
 - expect rejection naming `A`
@@ -430,6 +450,7 @@ Cover:
 - [ ] **Step 3: Add concurrency-behaviour tests**
 
 At minimum verify:
+
 - query on `B` succeeds while `A` has an active transaction
 - mutation on `B` is rejected while `A` owns the transaction slot
 - query on `A` is rejected only when `A` itself is out of date or conflicted
@@ -447,6 +468,7 @@ workspaceProperty.GetRawText().Should().Contain("alias");
 ### Task 8: Format, Normalize, And Verify The Change
 
 **Files:**
+
 - Modify only the files changed by this implementation
 
 - [ ] **Step 1: Run targeted formatting on changed C# files**

@@ -8,10 +8,8 @@
 
 This plan covers two related gaps identified during the functional review:
 
-- `Point 2`
-  The repository documentation still describes a set of query and mutation tools that are not present in the current server registration surface.
-- `Point 3`
-  `get-control-flow-graph` is registered and documented, but its `regions` result is currently hard-coded to an empty array instead of reflecting Roslyn control-flow regions.
+- `Point 2` The repository documentation still describes a set of query and mutation tools that are not present in the current server registration surface.
+- `Point 3` `get-control-flow-graph` is registered and documented, but its `regions` result is currently hard-coded to an empty array instead of reflecting Roslyn control-flow regions.
 
 The implementation should move the server monotonically toward the documented catalogue. During the work, documentation may briefly lag behind implementation, but the repository should not continue to document a tool as shipping when the server does not actually expose it.
 
@@ -259,4 +257,3 @@ This point 2 and point 3 work is complete when:
 - `get-control-flow-graph` returns real region data consistent with the documented contract
 - the design and contract documents describe the actual shipping server surface rather than the previous aspirational gap state
 - the relevant restore, build, format, and test commands required by the repository instructions pass for the behaviour-affecting implementation changes
-

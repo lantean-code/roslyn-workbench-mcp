@@ -1,7 +1,6 @@
 # Integration Testing Strategy Proposal
 
-Date: 2026-07-17
-Status: Implemented on 2026-07-18; final evidence is recorded in `IntegrationTestingStage8Results-2026-07-18.md`
+Date: 2026-07-17 Status: Implemented on 2026-07-18; final evidence is recorded in `IntegrationTestingStage8Results-2026-07-18.md`
 
 > The audit and rationale in this document were converted into the standalone, staged `IntegrationTestingImplementationPlan.md`. `TestingStrategy.md` now describes the implemented model; this proposal remains the design rationale and historical baseline.
 
@@ -93,7 +92,7 @@ The timing measurements are diagnostic samples from the current WSL environment,
 Warm runs used already-built outputs with restore disabled.
 
 | Area | Tests | Test-run duration | Wall time | Peak resident memory | Current principal boundary |
-| --- | ---: | ---: | ---: | ---: | --- |
+| --- | --: | --: | --: | --: | --- |
 | Workspace integration | 62 | 20 s | 21.58 s | 375 MiB | MSBuild, filesystem, transactions, resolver |
 | Plugins.Core integration | 21 | 4 s | 6.00 s | 385 MiB | real Roslyn inspection and mutation |
 | CodeActions integration | 11 | 14 s | 16.14 s | 496 MiB | controlled and built-in providers |

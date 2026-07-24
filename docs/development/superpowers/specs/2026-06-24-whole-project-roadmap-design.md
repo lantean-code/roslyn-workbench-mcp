@@ -2,11 +2,7 @@
 
 **Status:** Superseded on 2026-07-18 as an active implementation checklist.
 
-This document remains a historical record of the dependency-led sequence used
-to build the initial system. It is not authoritative for the current
-architecture, supported catalogue or release backlog. Current unfinished work
-is maintained in [Future Tasks](../../FutureTasks.md), and the documentation
-intended for release starts at the [release documentation index](../../../README.md).
+This document remains a historical record of the dependency-led sequence used to build the initial system. It is not authoritative for the current architecture, supported catalogue or release backlog. Current unfinished work is maintained in [Future Tasks](../../FutureTasks.md), and the documentation intended for release starts at the [release documentation index](../../../README.md).
 
 **Goal:** Define a dependency-led, testable implementation roadmap for the entire Roslyn Workbench MCP project, with one eventual release and an early internal deliverable focused on workspace and inspection capabilities.
 
@@ -14,11 +10,7 @@ intended for release starts at the [release documentation index](../../../README
 
 ## Closure Audit
 
-The 2026-07-18 audit closed the two remaining stage boxes against the current
-repository and release scope. Later architecture decisions supersede original
-details such as the shared Contracts project, single-workspace product shape,
-fixed catalogue target and fixed response-size model; those historical details
-must not be used to infer the current public contract.
+The 2026-07-18 audit closed the two remaining stage boxes against the current repository and release scope. Later architecture decisions supersede original details such as the shared Contracts project, single-workspace product shape, fixed catalogue target and fixed response-size model; those historical details must not be used to infer the current public contract.
 
 | Original stage or requirement | Current disposition | Evidence |
 | --- | --- | --- |
@@ -31,10 +23,7 @@ must not be used to infer the current public contract.
 | Stage 8 coverage and end-to-end verification | Complete at the architecture-programme level: 1,952 tests passed across Unit/Contract, component integration, published-Host acceptance and compatibility audit layers. The later partial-branch round added reachable coverage, corrected code-metrics behaviour and explicitly approved defensive Roslyn-only paths. | [Integration Testing Stage 8 results](../../IntegrationTestingStage8Results-2026-07-18.md), [Tool test inventory](../../Tool%20Test%20Inventory.md#partial-branch-reassessment) |
 | Stage 8 operational and plugin documentation | Complete for the initial release-documentation baseline. The release index, getting-started, configuration, tool-discovery, workspace/transaction and plugin-authoring guides are separate from the historical engineering records. | [Release documentation index](../../../README.md) |
 
-This closes the original roadmap as a release-decision blocker. It does not
-declare every desirable hardening or ecosystem improvement complete. The
-remaining performance, coverage, platform, plugin-authoring and engineering
-efficiency work is deliberately prioritised in [Future Tasks](../../FutureTasks.md).
+This closes the original roadmap as a release-decision blocker. It does not declare every desirable hardening or ecosystem improvement complete. The remaining performance, coverage, platform, plugin-authoring and engineering efficiency work is deliberately prioritised in [Future Tasks](../../FutureTasks.md).
 
 ## Planning Decisions
 
@@ -49,16 +38,11 @@ Roslyn Workbench is a local stdio MCP server with a contract-first tool surface,
 
 The solution architecture is intentionally split across five product projects:
 
-- `src/Roslyn.Workbench.Mcp`
-  The executable host, dependency composition root, MCP server bootstrap, and server-owned lifecycle tools.
-- `src/Roslyn.Workbench.Mcp.Contracts`
-  Shared request, response, schema, selector, result-envelope, and error contracts.
-- `src/Roslyn.Workbench.Mcp.Workspace`
-  Workspace loading, epoch management, transaction coordination, reload handling, commit, and recovery infrastructure.
-- `src/Roslyn.Workbench.Mcp.Plugins`
-  Plugin abstractions, registration, tool metadata, validation, and execution plumbing.
-- `src/Roslyn.Workbench.Mcp.Plugins.Core`
-  First-party query and mutation tool implementations that sit on top of the shared plugin and workspace abstractions.
+- `src/Roslyn.Workbench.Mcp` The executable host, dependency composition root, MCP server bootstrap, and server-owned lifecycle tools.
+- `src/Roslyn.Workbench.Mcp.Contracts` Shared request, response, schema, selector, result-envelope, and error contracts.
+- `src/Roslyn.Workbench.Mcp.Workspace` Workspace loading, epoch management, transaction coordination, reload handling, commit, and recovery infrastructure.
+- `src/Roslyn.Workbench.Mcp.Plugins` Plugin abstractions, registration, tool metadata, validation, and execution plumbing.
+- `src/Roslyn.Workbench.Mcp.Plugins.Core` First-party query and mutation tool implementations that sit on top of the shared plugin and workspace abstractions.
 
 The design docs describe an end-state catalogue of 80 tools. The roadmap should therefore prioritise stable shared seams that let the catalogue expand without revisiting host/workspace/contract fundamentals.
 
@@ -68,10 +52,8 @@ The project should be planned as one release made up of internal implementation 
 
 ### External milestones
 
-- `Deliverable 1`
-  A usable `workspace + inspection` server with working startup, plugin registration, typed tool execution, structured results, workspace lifecycle operations, and a first set of read-only inspection tools.
-- `Final release`
-  The complete server architecture capable of supporting the documented catalogue, including transaction-safe staged mutations, MEF-backed action integration, commit/recovery workflows, and broader query/mutation coverage.
+- `Deliverable 1` A usable `workspace + inspection` server with working startup, plugin registration, typed tool execution, structured results, workspace lifecycle operations, and a first set of read-only inspection tools.
+- `Final release` The complete server architecture capable of supporting the documented catalogue, including transaction-safe staged mutations, MEF-backed action integration, commit/recovery workflows, and broader query/mutation coverage.
 
 ### Internal stages
 
@@ -331,10 +313,7 @@ You chose MEF as a mid-stage concern. That allows the transaction platform to ex
 
 ### Stage 7: Mutation tools and catalogue expansion
 
-**Closure:** Complete for the supported catalogue. The final classification
-and evidence are recorded in the [closure audit](#closure-audit); this stage
-does not require implementation of families blocked by unsupported public
-Roslyn APIs or host-only interaction models.
+**Closure:** Complete for the supported catalogue. The final classification and evidence are recorded in the [closure audit](#closure-audit); this stage does not require implementation of families blocked by unsupported public Roslyn APIs or host-only interaction models.
 
 **Purpose**
 
@@ -370,9 +349,7 @@ Within this stage, tools should be batched by shared semantic building blocks an
 
 ### Stage 8: Hardening, compatibility, and release readiness
 
-**Closure:** Complete as an implementation and release-readiness stage. The
-[closure audit](#closure-audit) records the later evidence and separates
-genuine follow-up work from this historical stage.
+**Closure:** Complete as an implementation and release-readiness stage. The [closure audit](#closure-audit) records the later evidence and separates genuine follow-up work from this historical stage.
 
 **Purpose**
 
@@ -436,16 +413,11 @@ Representative test solutions are a dependency for meaningful workspace, symbol,
 
 The implementation roadmap should keep tests aligned to the architectural layer being added.
 
-- `Contracts`
-  Serialisation, schema generation, validation invariants, and result-shape tests.
-- `Plugins`
-  Registration, metadata validation, execution pipeline, and adapter tests.
-- `Workspace`
-  Lifecycle, selector resolution, epoch/revision handling, transaction state, commit, and recovery tests.
-- `Plugin Core`
-  Tool-family behaviour tests over representative sample solutions.
-- `Host integration`
-  End-to-end MCP tool registration and invocation tests across workspace states.
+- `Contracts` Serialisation, schema generation, validation invariants, and result-shape tests.
+- `Plugins` Registration, metadata validation, execution pipeline, and adapter tests.
+- `Workspace` Lifecycle, selector resolution, epoch/revision handling, transaction state, commit, and recovery tests.
+- `Plugin Core` Tool-family behaviour tests over representative sample solutions.
+- `Host integration` End-to-end MCP tool registration and invocation tests across workspace states.
 
 The roadmap should avoid a test strategy where only the final stage exercises the full stack. Each stage should add tests that prove the newly introduced seam works in isolation and as part of the stack.
 

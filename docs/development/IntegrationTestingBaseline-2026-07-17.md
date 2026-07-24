@@ -1,8 +1,6 @@
 # Integration Testing Baseline Evidence
 
-Date: 2026-07-17
-Status: Pre-Stage 0 baseline
-Revision: `3e405e82cb8fb1eedfe257642809393c0e01b5ed`
+Date: 2026-07-17 Status: Pre-Stage 0 baseline Revision: `3e405e82cb8fb1eedfe257642809393c0e01b5ed`
 
 ## Purpose
 
@@ -12,15 +10,15 @@ The evidence is intended for comparison after lifecycle hardening, fixture migra
 
 ## Environment
 
-| Item | Value |
-| --- | --- |
-| Operating system | Ubuntu 24.04.4 LTS under WSL2 |
-| Kernel | Linux 6.18.33.2-microsoft-standard-WSL2 x86_64 |
-| .NET SDK | 10.0.102 |
-| Target framework | `net10.0` |
-| Build configuration | Debug |
-| Test runner | VSTest 18.0.1, x64 |
-| Test authoring framework | xUnit v3 |
+| Item                     | Value                                          |
+| ------------------------ | ---------------------------------------------- |
+| Operating system         | Ubuntu 24.04.4 LTS under WSL2                  |
+| Kernel                   | Linux 6.18.33.2-microsoft-standard-WSL2 x86_64 |
+| .NET SDK                 | 10.0.102                                       |
+| Target framework         | `net10.0`                                      |
+| Build configuration      | Debug                                          |
+| Test runner              | VSTest 18.0.1, x64                             |
+| Test authoring framework | xUnit v3                                       |
 
 The working tree contained pre-existing documentation changes when the measurements were taken. The solution built successfully with no warnings or errors before the measured runs.
 
@@ -50,7 +48,7 @@ Wall time and maximum resident set size are the values reported by GNU `time` fo
 ## Project Summary
 
 | Project | Tests | Wall time runs | Median wall time | Peak RSS runs | Median peak RSS |
-| --- | ---: | --- | ---: | --- | ---: |
+| --- | --: | --- | --: | --- | --: |
 | Workspace integration | 62 | 21.81 s, 21.02 s, 20.94 s | 21.02 s | 383.2 MiB, 356.4 MiB, 368.3 MiB | 368.3 MiB |
 | Plugins.Core integration | 21 | 5.92 s, 5.89 s, 5.90 s | 5.90 s | 386.8 MiB, 391.7 MiB, 391.0 MiB | 391.0 MiB |
 | CodeActions integration | 11 | 15.87 s, 15.72 s, 15.65 s | 15.72 s | 496.8 MiB, 491.0 MiB, 487.6 MiB | 491.0 MiB |
@@ -64,7 +62,7 @@ All 15 runs passed without failed or skipped tests. The four normal integration-
 ### Workspace Integration
 
 | Rank | Median | Test case |
-| ---: | ---: | --- |
+| --: | --: | --- |
 | 1 | 1.468 s | `WorkspaceCoordinatorIntegrationTests.GIVEN_TwoOpenedWorkspaces_WHEN_StartingTransactionOnSecondWorkspace_THEN_ShouldRejectUntilOwnerRollsBack` |
 | 2 | 1.448 s | `WorkspaceCoordinatorIntegrationTests.GIVEN_AnotherLiveServerInstance_WHEN_OpeningAndQueryingStatus_THEN_ShouldSurfaceItsAdvisoryState` |
 | 3 | 1.419 s | `WorkspaceCoordinatorIntegrationTests.GIVEN_StagedTransaction_WHEN_MovingHistoryBackwardAndForward_THEN_ShouldUpdateCurrentRevision` |
@@ -79,7 +77,7 @@ All 15 runs passed without failed or skipped tests. The four normal integration-
 ### Plugins.Core Integration
 
 | Rank | Median | Test case |
-| ---: | ---: | --- |
+| --: | --: | --- |
 | 1 | 3.581 s | `MutationPipelineIntegrationTests.GIVEN_ActiveTransaction_WHEN_ExecutingBundledMutations_THEN_ShouldStageRevisionsAndPreviewResultingContent` |
 | 2 | 3.543 s | `SemanticInspectionIntegrationTests.GIVEN_LoadedSemanticWorkspace_WHEN_InspectingDiagnosticsOperationsAndFlow_THEN_ShouldReturnRoslynProjections` |
 | 3 | 3.184 s | `SolutionSearchIntegrationTests.GIVEN_CrossProjectSolution_WHEN_SearchingRelationships_THEN_ShouldResolveAcrossProjectBoundary` |
@@ -94,7 +92,7 @@ All 15 runs passed without failed or skipped tests. The four normal integration-
 ### CodeActions Integration
 
 | Rank | Median | Test case |
-| ---: | ---: | --- |
+| --: | --: | --- |
 | 1 | 4.010 s | `BuiltInCodeActionStagingIntegrationTests.GIVEN_BuiltInCodeFixProvider_WHEN_RemovingUnusedUsings_THEN_ShouldStageRepresentativeBuiltInMutation` |
 | 2 | 3.971 s | `ControlledProviderWorkflowIntegrationTests.GIVEN_ControlledRefactoringAndCodeFix_WHEN_StagingBoth_THEN_ShouldAdvanceRevisionsAndPreviewChanges` |
 | 3 | 2.504 s | `ControlledProviderWorkflowIntegrationTests.GIVEN_TamperedExpiredOrStaleActionTokens_WHEN_Staging_THEN_ShouldRejectEachToken` |
@@ -109,7 +107,7 @@ All 15 runs passed without failed or skipped tests. The four normal integration-
 ### Host Integration
 
 | Rank | Median | Test case |
-| ---: | ---: | --- |
+| --: | --: | --- |
 | 1 | 3.164 s | `WorkspaceLifecycleMcpIntegrationTests.GIVEN_OpenedWorkspace_WHEN_InvokingMutationAndTransactionToolsThroughMcp_THEN_ShouldCompleteTransactionWorkflows` |
 | 2 | 2.960 s | `RepresentativeMcpToolIntegrationTests.GIVEN_ControlledCodeActionProvider_WHEN_ListingAndStagingThroughMcp_THEN_ShouldStageRepresentativeCodeAction` |
 | 3 | 1.296 s | `RepresentativeMcpToolIntegrationTests.GIVEN_InspectionWorkspace_WHEN_InvokingRepresentativeQueryThroughMcp_THEN_ShouldReturnStructuredResult` |
@@ -124,7 +122,7 @@ All 15 runs passed without failed or skipped tests. The four normal integration-
 ### CodeActions Audit
 
 | Rank | Median | Test case |
-| ---: | ---: | --- |
+| --: | --: | --- |
 | 1 | 3.548 s | `ReplayRefactoringToolsTests.GIVEN_ActiveTransactionAndBuiltInCodeActions_WHEN_ExecutingReplayWrapper_THEN_ShouldStageStructuredMutation(toolName: "convert-if-to-switch")` |
 | 2 | 2.123 s | `InternalArgumentNullGuardAuditTests.GIVEN_InternalProductionTypes_WHEN_InspectingArgumentNullGuards_THEN_ShouldContainNoRedundantGuards` |
 | 3 | 2.123 s | `ProductionNullForgivingOperatorAuditTests.GIVEN_ProductionSource_WHEN_InspectingNullableSuppressionSyntax_THEN_ShouldContainNoNullForgivingOperators` |

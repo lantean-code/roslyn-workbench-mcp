@@ -1,8 +1,6 @@
 # Integration Testing Stage 0 Evidence
 
-Date: 2026-07-17
-Status: Complete
-Baseline: `IntegrationTestingBaseline-2026-07-17.md`
+Date: 2026-07-17 Status: Complete Baseline: `IntegrationTestingBaseline-2026-07-17.md`
 
 ## Scope
 
@@ -48,13 +46,13 @@ Historical entries that pre-dated this verification were not deleted as part of 
 
 The solution built with no warnings or errors. Each affected project then passed independently:
 
-| Project | Passed | Failed | Skipped |
-| --- | ---: | ---: | ---: |
-| Workspace integration | 63 | 0 | 0 |
-| Plugins.Core integration | 21 | 0 | 0 |
-| CodeActions integration | 11 | 0 | 0 |
-| Host integration | 23 | 0 | 0 |
-| CodeActions audit | 95 | 0 | 0 |
+| Project                  | Passed | Failed | Skipped |
+| ------------------------ | -----: | -----: | ------: |
+| Workspace integration    |     63 |      0 |       0 |
+| Plugins.Core integration |     21 |      0 |       0 |
+| CodeActions integration  |     11 |      0 |       0 |
+| Host integration         |     23 |      0 |       0 |
+| CodeActions audit        |     95 |      0 |       0 |
 
 A subsequent full solution run passed all 1,968 tests with no failures or skips. That run repeated every affected integration and audit project after the independent checks and produced no new temporary-directory entries or surviving child process.
 

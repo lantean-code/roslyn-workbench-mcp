@@ -92,7 +92,7 @@ Use the `RWMCP` prefix for public authoring diagnostics. Reserve one ID per reme
 ### Workspace and configuration safety
 
 | ID | Default | Diagnostic | Detection and scope | Code fix |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `RWMCP001` | Error | Do not mutate the Roslyn Workspace directly | Report direct invocation of `Microsoft.CodeAnalysis.Workspace.TryApplyChanges`. Enable compilation-wide when the assembly declares a source `RoslynPluginAttribute`; always enable inside a handler implementation. Access to `Solution.Workspace` for legitimate query APIs remains allowed. | None. The correct mutation must be returned as a `MutationCandidate`, which cannot be reconstructed safely. |
 | `RWMCP002` | Error | Use the invocation solution snapshot | Report reads of `Microsoft.CodeAnalysis.Workspace.CurrentSolution` in the same plugin scope. Continue to permit `context.CurrentSolution` and immutable transformations derived from it. | Defer. Replacing a live solution with a context snapshot is safe only when the correct context symbol and intended snapshot are unambiguous. |
 | `RWMCP003` | Error | Plugin configuration must complete synchronously | Report an `async` implementation of `IRoslynPlugin.Configure`. Its `void` contract would otherwise return before awaited registration completes and move failures outside startup validation. | None. The author must move asynchronous preparation outside the unsupported configuration path. |
@@ -103,7 +103,7 @@ The Workspace rules deliberately target the two mutation/snapshot hazards, not e
 ### Handler contract and lifetime
 
 | ID | Default | Diagnostic | Detection and scope | Code fix |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `RWMCP005` | Error | Implement exactly one handler contract | A concrete handler must expose exactly one closed query or mutation contract and no contract from the other family. This catches direct marker implementations and ambiguous contracts before runtime preparation. | None. Choosing the intended family and contracts is an author decision. |
 | `RWMCP006` | Error | Plugin handlers must not own a disposable lifetime | Report handlers assignable to `IDisposable` or `IAsyncDisposable`. | None. Invocation-scoped resources must be acquired and disposed within execution or supplied through supported context services. |
 | `RWMCP007` | Error | Plugin handlers must not declare MEF imports | Report `Import`, `ImportMany` and `ImportingConstructor` across the source-visible handler hierarchy. Handler construction is owned by typed registration, not MEF. | None. Host services are not an authoring extension point. |
@@ -118,7 +118,7 @@ The Workspace rules deliberately target the two mutation/snapshot hazards, not e
 ### Invocation and response reliability
 
 | ID | Default | Diagnostic | Detection and scope | Code fix |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `RWMCP013` | Info | Observe the invocation cancellation token | Report a concrete `ExecuteAsync` implementation whose cancellation-token parameter is never meaningfully read or forwarded. Assignment to a discard does not satisfy the rule. A fast synchronous implementation may suppress the advisory; cancellable Roslyn or I/O work should propagate it. | None. Adding a token check or forwarding it requires knowledge of the operation. |
 | `RWMCP014` | Warning | Bound agent-facing query collections | Report a raw array or common list, set, dictionary or asynchronous collection as the query response itself, and equivalent raw collection properties directly on the response. Recommend the public `BoundedCollection<TItem>` contract, which publishes already-bounded items, `HasMore` and `TotalCount` when cheaply available. | None. Changing the response contract is an API design change. |
 
@@ -129,7 +129,7 @@ The `BoundedCollection<TItem>` factories enforce internally consistent response 
 ### Plugin entry-point metadata
 
 | ID | Default | Diagnostic | Detection and scope | Code fix |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `RWMCP015` | Error | Plugin entry-point marker and contract must agree | Report `RoslynPluginAttribute` on a type that cannot be composed as a concrete `IRoslynPlugin`, and report a concrete source `IRoslynPlugin` implementation with no marker. Abstract shared bases are allowed without a marker. | Add the interface or marker only when the existing type already satisfies the corresponding contract; otherwise no automatic fix. |
 | `RWMCP016` | Error | A plugin assembly cannot declare multiple marked entry points | At compilation end, report every marked source type when more than one exists. Do not require an entry point in ordinary dependency assemblies that merely reference the Plugins package. | None. |
 | `RWMCP017` | Error | Declare the supported plugin API version | Compare the attribute's constant API argument with the `PluginApiVersions.V1` constant from the referenced Plugins assembly. Runtime remains authoritative against the installed Host. | Defer. Replacing the value is simple, but adding a code-fix assembly for one edit is not justified initially. |
@@ -168,7 +168,7 @@ Runtime validation should retain every objective safety and package check. The a
 The Batch 2 diagnostics map to the stable runtime diagnostics as follows:
 
 | Authoring diagnostic | Runtime diagnostic |
-|---|---|
+| --- | --- |
 | `RWMCP005`, `RWMCP008` | `PluginHandlerContract` |
 | `RWMCP006` | `PluginHandlerLifetime` |
 | `RWMCP007` | `PluginHandlerComposition` |

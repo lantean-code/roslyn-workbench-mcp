@@ -27,13 +27,13 @@ The audit found that the acceptance fixture-copy target still derived an externa
 
 ## Final Counts and Performance
 
-| Layer | Projects | Classes or tests | Tests |
-| --- | ---: | ---: | ---: |
-| Unit/Contract | 5 | — | 1,732 |
-| Component integration | 4 | 30 classes | 117 |
-| Published-Host acceptance | 1 | 8 classes | 10 |
-| Compatibility audit | 1 | — | 93 |
-| Total | 11 | — | 1,952 |
+| Layer                     | Projects | Classes or tests | Tests |
+| ------------------------- | -------: | ---------------: | ----: |
+| Unit/Contract             |        5 |                — | 1,732 |
+| Component integration     |        4 |       30 classes |   117 |
+| Published-Host acceptance |        1 |        8 classes |    10 |
+| Compatibility audit       |        1 |                — |    93 |
+| Total                     |       11 |                — | 1,952 |
 
 Stage 7 measurements remain the final performance evidence: 27.57 seconds median sequential component time, 12.84 seconds concurrent matrix critical path, component median peak memory from 344.2 MiB to 506.5 MiB, and a 53.28-second/1,074.2 MiB compatibility-audit median. The component suite is 42.8% faster than the Stage 0 baseline.
 

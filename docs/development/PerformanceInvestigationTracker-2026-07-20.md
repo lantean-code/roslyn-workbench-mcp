@@ -18,7 +18,7 @@ The measurements are evidence for investigation, not elapsed-time release thresh
 - Working set is process-wide and cumulative within a repository run. It cannot by itself attribute retained memory to the scenario beside which it appears.
 
 | Repository | Size | Commit | Result | Validation |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | GuardClauses | Small | `ad43aa02babf3bc8aee8efc2258f5ad3571c8ec5` | `artifacts/performance/results/20260720-122348-guardclauses-7c59ac493407413f8ea86debfcbc819b` | Passed |
 | Serilog | Medium | `0597ddfbd4ec594d9c42edd745fe728a2198bad9` | `artifacts/performance/results/20260720-122433-serilog-5d9ef79f59ee43b2a415438140c71c8e` | Passed |
 | EF Core | Large | `12b8d44bf691d2e6933a6d1003647cce4f13c3d3` | `artifacts/performance/results/20260720-125807-efcore-6e2e1fcf4b2f4e0cbfc6b9811a1aef20` | Blocked during `find-references-low-limit`; Host and repository validation passed |
@@ -28,18 +28,18 @@ The measurements are evidence for investigation, not elapsed-time release thresh
 The comparison uses the same source tree, pinned repository commits, scenario definitions, warm-up count, measured iteration count and physical machine. Native Windows stores execution data beneath `%TEMP%`; WSL stores it beneath `/tmp`. Durable result files are written to the repository only after measurements complete. Windows used .NET 10.0.10 and WSL used .NET 10.0.2, so this is strong environment evidence rather than a controlled operating-system benchmark.
 
 | Repository | Windows result | WSL result | Validation |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | GuardClauses | `artifacts/performance/results/20260720-141118-guardclauses-9fff60d7285b4007a58c5b0ffb4f0128` | `artifacts/performance/results/20260720-145646-guardclauses-a129f0c06d754a59a2d3b44fc8294b96` | Both passed |
 | Serilog | `artifacts/performance/results/20260720-141157-serilog-21337ca716704b368a9ab151e0bd8f92` | `artifacts/performance/results/20260720-145713-serilog-a7ff82be13134743af771d98a500526f` | Both passed |
 | EF Core | `artifacts/performance/results/20260720-144928-efcore-5d1e643a37d94cd1ab4cb9981d48b16e` | `artifacts/performance/results/20260720-145912-efcore-21c708f1bd764b22858e19db318e5cc8` | Both passed |
 
 Workspace opening is consistently faster on the native WSL filesystem:
 
-| Repository | Windows | WSL | WSL improvement |
-|---|---:|---:|---:|
-| GuardClauses | 4,034.74 ms | 2,436.20 ms | 1.66x |
-| Serilog | 7,413.96 ms | 3,379.42 ms | 2.19x |
-| EF Core | 19,656.59 ms | 15,207.63 ms | 1.29x |
+| Repository   |      Windows |          WSL | WSL improvement |
+| ------------ | -----------: | -----------: | --------------: |
+| GuardClauses |  4,034.74 ms |  2,436.20 ms |           1.66x |
+| Serilog      |  7,413.96 ms |  3,379.42 ms |           2.19x |
+| EF Core      | 19,656.59 ms | 15,207.63 ms |           1.29x |
 
 Across scenario medians, the geometric-mean WSL elapsed time is 40.0% of Windows for GuardClauses, 38.8% for Serilog and 59.3% for EF Core. Treat these aggregate ratios as orientation only: project-details and solution-structure responses contain platform-specific paths and, in some cases, different loaded analyzer or project details. The like-for-like bounded search, reference and graph responses still show the same broad WSL advantage.
 
@@ -85,7 +85,7 @@ The Host now emits opt-in `Roslyn-Workbench-Mcp` EventSource phase timings only 
 The same bounded symbol-search request was profiled across the three native-WSL repositories:
 
 | Repository | Result | End-to-end median | Host tool median | Outside Host tool | Change detection | Handler |
-|---|---|---:|---:|---:|---:|---:|
+| --- | --- | --: | --: | --: | --: | --: |
 | GuardClauses | `artifacts/performance/results/20260720-155448-guardclauses-d24b987ca6244e248f9de9a7305e5463` | 7.73 ms | 7.22 ms | 0.51 ms | 2.41 ms / 33.3% | 4.63 ms / 64.1% |
 | Serilog | `artifacts/performance/results/20260720-155516-serilog-6beed630d8f44375800ae90ab52e53c5` | 32.24 ms | 31.78 ms | 0.47 ms | 4.68 ms / 14.7% | 26.24 ms / 82.6% |
 | EF Core | `artifacts/performance/results/20260720-155542-efcore-d352e638fc02472db33ac689ee9a75c4` | 160.17 ms | 159.13 ms | 1.03 ms | 18.81 ms / 11.8% | 139.64 ms / 87.8% |
@@ -134,11 +134,11 @@ Preserve the supported behaviour of loading mixed solutions while ignoring proje
 
 The native WSL baseline records:
 
-| Repository | Median elapsed | Median Host CPU | Response |
-|---|---:|---:|---:|
-| GuardClauses | 110.12 ms | 70 ms | 17.19 KiB |
-| Serilog | 404.29 ms | 290 ms | 150.19 KiB |
-| EF Core | 1,521.47 ms | 1,180 ms | 1,124.52 KiB |
+| Repository   | Median elapsed | Median Host CPU |     Response |
+| ------------ | -------------: | --------------: | -----------: |
+| GuardClauses |      110.12 ms |           70 ms |    17.19 KiB |
+| Serilog      |      404.29 ms |          290 ms |   150.19 KiB |
+| EF Core      |    1,521.47 ms |        1,180 ms | 1,124.52 KiB |
 
 Separate shared validation from solution traversal, projection and serialisation. Confirm whether document and folder bounds stop traversal early or only reduce the final response. Assess whether the current response shape forces avoidable repeated project/document work.
 
@@ -155,7 +155,7 @@ The high-bound no-document trace records 1,069.10 ms compared with 1,112.83 ms w
 Untraced post-change measurements confirm the improvement across all three repositories:
 
 | Repository | Previous median | Batched median | Improvement | Result |
-|---|---:|---:|---:|---|
+| --- | --: | --: | --: | --- |
 | GuardClauses | 110.12 ms | 79.60 ms | 27.7% | `artifacts/performance/results/20260720-192209-guardclauses-cf27dbb3aae74191bedb0fe416e3ae18` |
 | Serilog | 404.29 ms | 130.86 ms | 67.6% | `artifacts/performance/results/20260720-192217-serilog-4ff452ac4a82484480b5a20d16b53803` |
 | EF Core | 1,521.47 ms | 1,059.72 ms | 30.3% | `artifacts/performance/results/20260720-192247-efcore-33c8b84b33534b52bf3a08e998b90170` |
@@ -173,7 +173,7 @@ All seven focused runs retained the pinned repository commit, shut down the Host
 Native low and high limits change response size but have little effect on elapsed time:
 
 | Repository/tool | Low-limit median | High-limit median | Low response | High response |
-|---|---:|---:|---:|---:|
+| --- | --: | --: | --: | --: |
 | GuardClauses `search-symbols` | 7.09 ms | 8.01 ms | 2.17 KiB | 23.61 KiB |
 | GuardClauses `find-references` | 4.00 ms | 5.89 ms | 5.11 KiB | 29.79 KiB |
 | Serilog `search-symbols` | 26.39 ms | 27.42 ms | 2.27 KiB | 52.67 KiB |
@@ -184,7 +184,7 @@ Native low and high limits change response size but have little effect on elapse
 Focused EF Core traces now separate Roslyn discovery, candidate projection, result selection and selected-result enrichment:
 
 | Tool/bound | Result | End-to-end median | Discovery | Candidate projection | Selection | Enrichment |
-|---|---|---:|---:|---:|---:|---:|
+| --- | --- | --: | --: | --: | --: | --: |
 | `search-symbols` low | `artifacts/performance/results/20260720-184755-efcore-a7b75971afc1466faf1c22eb3c0d4078` | 178.95 ms | 155.52 ms / 87.2% | 1.75 ms / 1.0% | <0.01 ms | n/a |
 | `search-symbols` high | `artifacts/performance/results/20260720-184852-efcore-4b8a588e0a1543609baf47ac64823af6` | 186.39 ms | 156.31 ms / 86.0% | 1.81 ms / 1.0% | <0.01 ms | n/a |
 | `find-references` low | `artifacts/performance/results/20260720-184951-efcore-45ae7e437e244dd2b3f4dff51afa6b2e` | 801.73 ms | 771.00 ms / 96.0% | 4.60 ms / 0.6% | 0.35 ms | 0.42 ms / 0.1% |
@@ -243,7 +243,7 @@ Running ten lightweight queries followed by ten Code Action queries retained 40.
 Paired before/after-close captures produced the following results:
 
 | Repository | Workload | Workspace open | After close | Released | Result |
-|---|---|---:|---:|---:|---|
+| --- | --- | --: | --: | --: | --- |
 | GuardClauses | 10 Code Action listings | 40.25 MiB | 27.57 MiB | 31.5% | `artifacts/performance/results/20260722-175232-guardclauses-48aac8e169ca4ae5813f218d19384d48` |
 | Serilog | 5 representative queries, 3 invocations each | 159.68 MiB | 56.34 MiB | 64.7% | `artifacts/performance/results/20260722-175402-serilog-19e465961df04515913b6c28c2f229bd` |
 | EF Core | 5 representative queries, 1 invocation each | 762.40 MiB | 88.40 MiB | 88.4% | `artifacts/performance/results/20260722-175447-efcore-bebf665ef68342c9a88d714767ac632b` |
@@ -274,7 +274,7 @@ The runner now retains the evidence needed to validate behaviour alongside laten
 The final native-WSL baseline uses one warm-up and five measured invocations per scenario:
 
 | Repository | Result | Validation |
-|---|---|---|
+| --- | --- | --- |
 | GuardClauses | `artifacts/performance/results/20260722-182616-guardclauses-709ccbeeda144875a95b3b9d63fd3bfe` | Passed |
 | Serilog | `artifacts/performance/results/20260722-182636-serilog-4c8132a85a574498b8054c0264180c41` | Passed |
 | EF Core | `artifacts/performance/results/20260722-182701-efcore-a3691b5ae3324dd39c655eca82e3b037` | Passed |
@@ -282,7 +282,7 @@ The final native-WSL baseline uses one warm-up and five measured invocations per
 Representative final medians are:
 
 | Repository | Solution structure | Symbol search low/high | References low/high | Diagnostics | Dependency graph |
-|---|---:|---:|---:|---:|---:|
+| --- | --: | --: | --: | --: | --: |
 | GuardClauses | 90.22 ms | 8.53 / 8.93 ms | 4.36 / 6.88 ms | 144.18 ms | 13.36 ms |
 | Serilog | 145.66 ms | 32.53 / 35.42 ms | 16.66 / 30.65 ms | 560.00 ms | 33.52 ms |
 | EF Core | 1,031.45 ms | 171.64 / 176.18 ms | 781.10 / 799.57 ms | 3,236.92 ms | 141.54 ms |
@@ -318,7 +318,7 @@ Keys combine the stable workspace ID with the immutable `Solution` instance, sem
 The focused zero-warm-up EF Core measurement retained at `artifacts/performance/results/20260722-195101-efcore-82ba0c647c8c4cba81a4461cb8085b25` records:
 
 | Scenario | Previous warm median | First cold miss | Cached subsequent median | Improvement from previous warm median |
-|---|---:|---:|---:|---:|
+| --- | --: | --: | --: | --: |
 | References low bound | 778.25 ms | 25,326.10 ms | 24.02 ms | 96.9% / 32.4x |
 | References high bound | 787.79 ms | 95.88 ms after the low-bound population | 57.75 ms | 92.7% / 13.6x |
 
@@ -371,7 +371,7 @@ The first native-Windows EF Core commit reached source application but failed on
 Successful native-WSL measurements produced:
 
 | Repository | Changed files | Original bytes | Mutation staging | Durable commit | Runner restoration | Result |
-|---|---:|---:|---:|---:|---:|---|
+| --- | --: | --: | --: | --: | --: | --- |
 | GuardClauses | 1 | 6,291 | 1,580.93 ms median | 224.22 ms median | 22.40 ms median | `artifacts/performance/results/20260723-075558-guardclauses-3ba8b81fdddf4a2786a35bacff4d4296` |
 | Serilog | 27 | 366,488 | 3,911.25 ms median | 768.66 ms median | 50.74 ms median | `artifacts/performance/results/20260723-075634-serilog-f30bec42cd4240cf92cbfdeceb42904f` |
 | EF Core | 948 | 18,100,444 | 33,650.86 ms | 11,725.67 ms | 415.59 ms | `artifacts/performance/results/20260723-075041-efcore-5aef58e506644786a87ab837784a2bcf` |
@@ -379,7 +379,7 @@ Successful native-WSL measurements produced:
 Equivalent native-Windows measurements produced:
 
 | Repository | Changed files | Mutation staging | Durable commit | Runner restoration | Windows/WSL commit ratio | Result |
-|---|---:|---:|---:|---:|---:|---|
+| --- | --: | --: | --: | --: | --: | --- |
 | GuardClauses | 1 | 1,773.47 ms median | 449.35 ms median | 126.15 ms median | 2.00x | `artifacts/performance/results/20260723-083554-guardclauses-38ca2599a6ee4801b409ed3626476e8c` |
 | Serilog | 27 | 4,422.26 ms median | 1,520.86 ms median | 228.94 ms median | 1.98x | `artifacts/performance/results/20260723-091651-serilog-476bd0335bc54d3398382a449df52aac` |
 | EF Core | 948 | 44,199.04 ms | 21,059.58 ms | 1,662.74 ms | 1.80x | `artifacts/performance/results/20260723-100133-efcore-3b1df8a58aa847ebb1fa521f59ace249` |

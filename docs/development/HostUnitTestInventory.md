@@ -38,7 +38,7 @@ No production change is authorised by this inventory. Any proposed seam or defen
 Two measurements are required because 24 currently uncategorised tests cross boundaries that `TestingStrategy.md` assigns to integration coverage.
 
 | Measure | Fast-loop project result | Isolation-only result |
-| --- | ---: | ---: |
+| --- | --: | --: |
 | Executed tests | 300 | 276 |
 | Production C# files | 118 | 118 |
 | Files with executable sequence points | 93 | 93 |
@@ -70,7 +70,7 @@ The isolated Host tests generally follow the active unit-test pattern:
 The material pattern issue is categorisation. The following tests are useful boundary evidence but currently have ordinary unit names and no `Integration` category:
 
 | Current test | Boundary exercised | Test cases |
-| --- | --- | ---: |
+| --- | --- | --: |
 | `HostToolCompositionTests` | Production Host DI and MCP composition | 2 |
 | `MefPluginComposerTests` | Real MEF composition | 3 |
 | `PluginCatalogBootstrapTests` | Bundled plugin composition and materialisation | 1 |
@@ -107,7 +107,7 @@ Data-only contracts that execute through these tests do not need one test per pr
 The isolation-only zero-coverage files all require real runtime or composition behaviour.
 
 | Target | Isolation line | Isolation branch | Required evidence |
-| --- | ---: | ---: | --- |
+| --- | --: | --: | --- |
 | `Program` | 0 / 6 | No branches | Process startup and stdio Host integration; do not invoke the private entry point by reflection. |
 | `RoslynWorkbenchHostApplicationBuilderExtensions` | 0 / 31 | No branches | Production Host composition and published MCP tool set. |
 | `RoslynWorkbenchServiceCollectionExtensions` | 0 / 125 | 0 / 4 | DI registration, container validation and singleton lifetime integration. |
@@ -124,7 +124,7 @@ The fast-loop run covers portions of these files and raises the raw assembly res
 ## Remaining Isolated Gap
 
 | Target | Isolation line | Isolation branch | Complexity | Remaining work |
-| --- | ---: | ---: | --- | --- |
+| --- | --: | --: | --- | --- |
 | `ServerStatusService` | 56 / 56 (100%) | 12 / 14 (85.71%) | Approved framework-nullable branch | All supported summary/full, recovery, catalogue, configuration caching, availability and cancellation behaviour is covered. `AssemblyName.Version` is nullable, so the public status fields now preserve that nullable contract and publish explicit JSON nulls. The two missing branches are the null-propagation paths for the concrete Host and Roslyn assemblies; both assemblies carry version metadata in supported deployments. |
 
 No ordinary unit-testable Host behaviour is otherwise missing from the isolation-only result.

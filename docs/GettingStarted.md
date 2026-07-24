@@ -2,19 +2,13 @@
 
 ## Prerequisites
 
-- A supported Roslyn Workbench executable or a source checkout built with the
-  .NET 10 SDK selected by `global.json`.
+- A supported Roslyn Workbench executable or a source checkout built with the .NET 10 SDK selected by `global.json`.
 - An MCP client that can start a local stdio server.
-- The .NET SDKs and build tooling required by the solutions or projects you
-  intend to load.
+- The .NET SDKs and build tooling required by the solutions or projects you intend to load.
 
 ## Platform support
 
-Windows and Linux are the supported release platforms. macOS support is best
-effort: it is validated during release-candidate preparation through the
-published Host, Workspace integration and a curated external-repository
-scenario subset. macOS is not a pull-request gate or an authoritative
-performance baseline.
+Windows and Linux are the supported release platforms. macOS is not currently a supported release platform because durable transaction commit locking has not yet been enabled or validated there. The intended v1 classification is best effort rather than a pull-request gate or authoritative performance baseline.
 
 ## Build from source
 
@@ -26,37 +20,26 @@ dotnet publish src/Roslyn.Workbench.Mcp/Roslyn.Workbench.Mcp.csproj \
   --output artifacts/publish/Roslyn.Workbench.Mcp/release
 ```
 
-The published executable is placed beneath
-`artifacts/publish/Roslyn.Workbench.Mcp/release`.
+The published executable is placed beneath `artifacts/publish/Roslyn.Workbench.Mcp/release`.
 
 ## Connect a client
 
-Configure the MCP client to launch the absolute path to the published
-`Roslyn.Workbench.Mcp` executable. Client configuration formats differ, but the
-equivalent process configuration is:
+Configure the MCP client to launch the absolute path to the published `Roslyn.Workbench.Mcp` executable. Client configuration formats differ, but the equivalent process configuration is:
 
 ```json
 {
   "command": "/absolute/path/to/Roslyn.Workbench.Mcp",
-  "args": [
-    "--state-directory",
-    "/absolute/path/to/roslyn-workbench-state"
-  ]
+  "args": ["--state-directory", "/absolute/path/to/roslyn-workbench-state"]
 }
 ```
 
-The server communicates over standard input and standard output. Protocol data
-uses stdout; operational logging uses stderr.
+The server communicates over standard input and standard output. Protocol data uses stdout; operational logging uses stderr.
 
 ## First workflow
 
-1. Call `server-status` with `detail` set to `Full` and review component status,
-   startup fallbacks, recovery state and the published tool count.
-2. Call `workspace-open` with the absolute path to a `.sln`, `.slnx` or
-   `.csproj`. All loaded C# projects must use the SDK-style project format.
+1. Call `server-status` with `detail` set to `Full` and review component status, startup fallbacks, recovery state and the published tool count.
+2. Call `workspace-open` with the absolute path to a `.sln`, `.slnx` or `.csproj`. A solution may contain unsupported languages or non-SDK-style projects; they are skipped with load diagnostics. At least one supported SDK-style C# project must remain.
 3. Use query tools against the loaded workspace.
-4. Before any mutation, read [Workspaces and transactions](WorkspacesAndTransactions.md)
-   and check `workspace-status`.
+4. Before any mutation, read [Workspaces and transactions](WorkspacesAndTransactions.md) and check `workspace-status`.
 
-The server starts without a loaded workspace. It can keep multiple workspaces
-open, but only one loaded workspace may own the active transaction slot.
+The server starts without a loaded workspace. It can keep multiple workspaces open, but only one loaded workspace may own the active transaction slot.

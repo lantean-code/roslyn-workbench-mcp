@@ -12,15 +12,16 @@ Cross-project test ownership and execution-path policy are defined in `../docs/d
 - Deconstruct tuples when their elements are consumed separately and deconstruction makes the subsequent code clearer.
 
 ## Naming
+
 - Test class name: `<ClassName>Tests`
 - Integration test class name: `<ClassName>IntegrationTests`
-- Test namespace should mirror the product namespace with `.Test` inserted into the project-specific root namespace.
-  Example:
+- Test namespace should mirror the product namespace with `.Test` inserted into the project-specific root namespace. Example:
   - Product: `Roslyn.Workbench.Mcp.Workspace.Transactions`
   - Tests: `Roslyn.Workbench.Mcp.Workspace.Test.Transactions`
 - Test method names use Given-When-Then: `GIVEN_StateOfItem_WHEN_PerformingOperation_THEN_ShouldBeExpectedState`
 
 ## Test class structure
+
 - For non-component unit tests, use a readonly field named `_target` only when one shared constructor setup genuinely serves most tests in the class.
 - When `_target` is used, construct it in the test class constructor.
 - When constructor arguments, dependency behaviour, or lifetime vary per test and local construction is the common case, do not force a class-level `_target`; construct the system under test inside each test and store it in a method-local variable named `target`.
@@ -37,6 +38,7 @@ Cross-project test ownership and execution-path policy are defined in `../docs/d
 - Keep the split explicit: shared helpers may create Roslyn data objects or repeatable mock graphs, but scenario-specific `Setup(...)`, `Verify(...)`, assertions, and branch-specific configuration stay in the test class.
 
 ## Tool unit tests
+
 - Tool unit tests are the default for query and mutation tools. They belong in the normal `*.Test` project owned by the implementation, not the integration test project.
 - Keep the two tool systems explicit: third-party and bundled ordinary tools use Plugins/Plugins.Core contexts, while internal Code Action tools use CodeActions contexts and catalogues. Tests must not adapt one through the other.
 - Host owns four transport adapters: plugin query, plugin mutation, Code Action query and Code Action mutation. Each adapter requires focused Host unit coverage for its type-specific acquisition, result mapping and staging behaviour.
@@ -49,6 +51,7 @@ Cross-project test ownership and execution-path policy are defined in `../docs/d
 - Query and mutation context helpers are acceptable when they only construct visible mocks and connect them together, for example `QueryContextMockHelper` or `MutationContextMockHelper`.
 
 ## Real Roslyn objects in unit tests
+
 - Moq remains the default. Use real in-memory Roslyn objects only when the behaviour under test depends on Roslyn syntax, semantic model, compilation, symbol search, or solution graph behaviour that Moq cannot represent faithfully.
 - Real Roslyn helpers must be dedicated to creating Roslyn objects only. They must not become general tool harnesses or hide test scenario setup.
 - Prefer factory-based creation for real Roslyn test objects. A single factory may create multiple narrow result shapes, for example a document-scoped object and a solution-scoped object.
@@ -63,12 +66,14 @@ Cross-project test ownership and execution-path policy are defined in `../docs/d
 - Test helpers must not instantiate real production service implementations for unit tests. If a helper creates a real runtime collaborator instead of a Roslyn data object, the test is no longer following the unit-test rules and must be reworked or reclassified.
 
 ## Test data conventions
+
 - Strings use the property name as the value (not `nameof`), for example `request.Name = "Name"`.
 - Dates use a fixed point in time: `2000-01-01 00:00` with the correct `DateTimeKind`. Adjust earlier or later than this when ranges or ordering are required.
 - Numeric values must be contextually appropriate.
 - Construct invariant-bearing result and state types through their named factories. Do not use object initializers, reflection, or test-only seams to manufacture combinations that the production contract deliberately makes unrepresentable.
 
 ## Coverage and access
+
 - Tests must cover 100% of the lines and branches of the implementation under test unless the user explicitly relaxes that rule.
 - Approved exception: defensive null-guard branches that protect Roslyn-owned APIs may remain below 100% when all of the following are true:
   - the branch cannot be reached through the real public execution flow of the tool
@@ -81,21 +86,25 @@ Cross-project test ownership and execution-path policy are defined in `../docs/d
 - Do not reshape production contracts or runtime design to make assertions easier. Tests must follow the production API and behaviour, not the other way around.
 
 ## Clarification policy
+
 - Do not make assumptions. If any referenced code or behaviour is unclear, ask for clarification before writing tests.
 
 ## Line endings
+
 - Use CRLF line terminators for any files you write or modify.
 - After editing any test file that is expected to use CRLF, run `unix2dos <changed files>` to normalize the entire file and eliminate any LF or mixed endings introduced by patching tools.
 - Do not run `unix2dos` on files that are intentionally LF per `.gitattributes` or repository convention.
 - Before finishing, verify every changed CRLF-governed file is `crlf` and not `mixed`.
 
 ## Formatting
+
 - After modifying test files, run `dotnet format --include <changed files>` for the files changed in the current task only, following the environment-specific artifacts-path rule in the repository root `AGENTS.md`.
 - Run the SDK `latest-all` .NET analyzer build defined in the repository root `AGENTS.md` and address applicable `CAxxxx` diagnostics in every changed test file. A normal build with zero warnings is not sufficient because the IDE reports additional default-disabled rules.
 - Retain test-specific clarity and the repository's test conventions when evaluating analyzer suggestions; explicitly justify any diagnostic intentionally left in a changed test file.
 - Do not format unrelated files.
 
 ## Test execution
+
 - After each behaviour-affecting set of changes, follow the test execution instructions in the repository root `AGENTS.md`.
 - If the change is docs-only or markdown-only and does not affect behaviour, test execution is optional unless explicitly requested.
 - Do not run `Roslyn.Workbench.Mcp.AcceptanceTest` automatically during per-turn validation, even when the affected code participates in published-host scenarios.
@@ -103,6 +112,7 @@ Cross-project test ownership and execution-path policy are defined in `../docs/d
 - When contributing PR summaries or PR bodies, describe testing in terms of the coverage added or updated by the change, not just the commands executed.
 
 ## Anti-smell rules
+
 - Do not add tests that pass `null!` to constructor dependencies of internal DI-created types or to non-nullable parameters on internal methods. Production code must rely on nullable warnings and controlled composition for those contracts rather than adding redundant null-guard branches.
 - Do not inspect invocation internals in assertions. Avoid `Invocations.Count/Any/Where/Single/First/Last`, `Method.Name`, and `Arguments[...]` in test assertions.
 - Prefer `Verify(...)` for Moq assertions.
@@ -111,6 +121,7 @@ Cross-project test ownership and execution-path policy are defined in `../docs/d
 - Use deterministic waiting or polling primitives instead.
 
 ## Test taxonomy
+
 - `Unit` tests are the default. They must not create temporary projects, open real workspaces, or drive real coordinator or transaction flows.
 - `Contract` tests deliberately lock schema shape, validation rules, serialisation, MCP metadata, or the supported public plugin surface. Contract tests live with the production assembly that owns the contract; there is no shared Contracts test project.
 - `Integration` tests use the real file system, Roslyn workspace, coordinator, plugin assembly discovery, transaction pipeline, Host composition, MCP publication, or an equivalent multi-component runtime flow.
@@ -120,6 +131,7 @@ Cross-project test ownership and execution-path policy are defined in `../docs/d
 - Roslyn fixture or coordinator coverage belongs in the integration test projects and should use `IntegrationTests` class suffixes, not `Tests`.
 
 ## Architecture boundary tests
+
 - Prefer compilation, assignability, project-reference inspection and observable behaviour over reflection-only shape assertions.
 - Workspace tests own neutral execution-context and separate-stager behaviour.
 - Plugins tests own typed visitor dispatch, plugin-service adaptation and Workspace proposal/result mapping.
@@ -128,6 +140,7 @@ Cross-project test ownership and execution-path policy are defined in `../docs/d
 - Integration tests own plugin discovery, reserved-name collisions, full Host composition and the absence of CodeActions from plugin status.
 
 ## Execution policy
+
 - Do not use `ConfigureAwait(false)`. Tests should await tasks directly, consistent with the console-hosted production execution model.
 - Default local development loop: run unit and contract coverage, excluding integration and audit categories.
 - Integration coverage should run for touched areas during development and in CI for broader regression confidence.
@@ -136,6 +149,7 @@ Cross-project test ownership and execution-path policy are defined in `../docs/d
 - Preferred fast-loop command: `dotnet test <affected-non-acceptance-test-project> --filter "Category!=Integration&Category!=Audit"`, with the WSL-specific artifacts path from the repository root `AGENTS.md` when required.
 
 ## Pre-flight checklist (must confirm all before generating tests)
+
 - [ ] I am using xUnit, Moq, and AwesomeAssertions.
 - [ ] Any test-code comment explains necessary non-obvious intent; no structural or narration comments are included.
 - [ ] Class name is `<ClassName>Tests`.

@@ -12,7 +12,7 @@ dotnet add package Roslyn.Workbench.Mcp.Plugins
 
 The package supplies the plugin API and brings in the matching Workspace contracts transitively. Plugin projects should not add repository project references or a second direct Workspace package reference.
 
-The package also installs the C# plugin-authoring analyser automatically. Its `RWMCP001`–`RWMCP019` diagnostics appear during command-line builds and in IDEs that support NuGet-delivered Roslyn analysers. See [Plugin authoring diagnostics](PluginAuthoringDiagnostics.md) for each rule and its remediation. Runtime validation remains authoritative when diagnostics are suppressed or a plugin was built without the analyser.
+The package also installs the C# plugin-authoring analyser automatically. Its `RWMCP001`–`RWMCP019` diagnostics appear during command-line builds and in IDEs that support NuGet-delivered Roslyn analysers. See [Plugin authoring diagnostics](https://github.com/lantean-code/roslyn-workbench-mcp/blob/main/docs/PluginAuthoringDiagnostics.md) for each rule and its remediation. Runtime validation remains authoritative when diagnostics are suppressed or a plugin was built without the analyser.
 
 ## Entry point
 
@@ -107,7 +107,7 @@ The marked entry assembly may have any file name. Other DLLs in the same package
 
 Host creates one non-collectible `AssemblyLoadContext` and `AssemblyDependencyResolver` per valid external package. Plugins, Workspace, `System.Composition` and `Microsoft.CodeAnalysis*` identities are shared from the default context. Other managed and native dependencies resolve from the package, allowing separate plugins to carry different private dependency versions.
 
-Plugins.Core is bundled differently: it remains a normal Host project reference and normal publish output, but its entry point uses the same marker, MEF configuration, validation and materialisation pipeline in the default load context.
+The bundled first-party tools are loaded with the Host rather than discovered from an external package directory. They use the same entry-point marker, validation and materialisation rules, and their tool names take precedence over external plugin names.
 
 ## Diagnostics and collisions
 

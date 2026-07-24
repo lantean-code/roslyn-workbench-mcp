@@ -39,7 +39,7 @@ MCP `tools/list` remains authoritative for the enabled tool inventory. Acceptanc
 ### Evidence ownership
 
 | Layer | Owns | Does not prove |
-|---|---|---|
+| --- | --- | --- |
 | Unit | Branch behaviour, validation, result invariants and isolated failure mapping | Packaging, MSBuild, filesystem or MCP transport |
 | Contract | JSON, schemas, defaults, annotations, public plugin API and exported surface | End-to-end execution |
 | Component integration | Real Roslyn, MSBuild, filesystem, plugin composition, transaction services and native locks | Published executable composition and stdio mapping |
@@ -52,7 +52,7 @@ An acceptance case is warranted when a defect could exist despite the owning uni
 ### Execution tiers
 
 | Tier | Trigger | Platforms | Gate |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Fast development | Developer choice and fast CI job | Developer environment and Ubuntu CI | Unit and Contract only |
 | Pull-request acceptance | Every pull request | Native Ubuntu and Windows | Correctness, cleanup and process termination |
 | Best-effort platform validation | Public v1 release-candidate preparation, release branches and explicit manual dispatch | macOS | Advisory acceptance, Workspace and curated scenario evidence |
@@ -91,7 +91,7 @@ The `Gap` column below records the baseline that produced the implementation bat
 ### Distribution, process and configuration
 
 | Release capability | Existing evidence | Required published acceptance | Tier/platform | Gap |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | Release-published executable starts as a local stdio MCP server | CI publishes then launches the Host; protocol acceptance initialises it | Continue to run the exact Release publish output and verify initialisation, process identity and zero protocol output on stderr | PR: Ubuntu, Windows | Covered for the current distribution format |
 | Version and component status are observable | Protocol acceptance checks non-empty server and Roslyn versions | Assert product version is the version embedded in the tested release artifact and MSBuild availability is actionable | PR: Ubuntu, Windows | Product-version identity is not locked to the artifact being tested |
 | Protocol uses stdout and operational logging uses stderr | Successful MCP traffic and stderr capture exist separately | Retain successful protocol traffic plus failed-startup stderr diagnostics; ensure logs never corrupt stdout | PR: Ubuntu, Windows | Covered representatively |
@@ -105,7 +105,7 @@ The `Gap` column below records the baseline that produced the implementation bat
 ### Tool discovery and public result contracts
 
 | Release capability | Existing evidence | Required published acceptance | Tier/platform | Gap |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | Catalogue is fixed for process lifetime and independent of Workspace state | Unit/integration composition; initial acceptance list | Compare catalogue identity before open, during transaction and after close | PR: Ubuntu, Windows | Stability across state transitions is not asserted |
 | Names, titles, descriptions, annotations and input schemas are published | Contract tests; acceptance samples three names and two defaults | Validate representative server, query, bundled mutation, Code Action and external plugin metadata; keep exhaustive schema ownership in Contract tests | PR: Ubuntu, Windows | Execution-family metadata sampling is incomplete |
 | Curated defaults are published and applied | Contract/integration audit covers all built-in limits; acceptance samples two | Invoke one bounded tool with omitted and explicit limits, proving the published default matches execution | PR: Ubuntu, Windows | Runtime use of a discovered default is not accepted |
@@ -117,7 +117,7 @@ The `Gap` column below records the baseline that produced the implementation bat
 ### Plugin ecosystem
 
 | Release capability | Existing evidence | Required published acceptance | Tier/platform | Gap |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | Bundled plugin is composed through production startup | Protocol and status acceptance | Retain catalogue, status and real bundled query/mutation execution | PR: Ubuntu, Windows | Bundled query and mutation are covered across existing workflows |
 | Valid external package loads with a private dependency | Existing external-plugin acceptance | Retain enabled status and invocation | PR: Ubuntu, Windows | Covered |
 | External mutation returns a candidate and Host stages it through the transaction pipeline | Component and adapter tests; external mutation fixture exists | Package and invoke the external mutation, preview it, roll back, and prove disk remains unchanged | PR: Ubuntu, Windows | No external mutation through the published package boundary |
@@ -131,7 +131,7 @@ The `Gap` column below records the baseline that produced the implementation bat
 ### Workspace loading, selection and lifecycle
 
 | Release capability | Existing evidence | Required published acceptance | Tier/platform | Gap |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | Server starts with no Workspace | Existing protocol and lifecycle acceptance | Retain no-workspace status/rejection | PR: Ubuntu, Windows | Covered |
 | Absolute `.csproj` opens and remains queryable | Existing SDK-project acceptance | Retain | PR: Ubuntu, Windows | Covered |
 | Absolute `.sln` opens | Component integration and release runner | Add a small checked-in solution acceptance | PR: Ubuntu, Windows | Missing |
@@ -154,7 +154,7 @@ The `Gap` column below records the baseline that produced the implementation bat
 Acceptance does not need one test per query tool. It must sample every distinct public execution and resolution boundary while unit tests retain exhaustive tool branches.
 
 | Execution or selector family | Representative acceptance | Existing evidence | Gap |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Server-owned lifecycle query | `server-status` and `workspace-status` | Existing | Covered |
 | Bundled plugin query | `search-symbols` plus one bounded structural query | Existing search only | Add bounded/default evidence |
 | External plugin query | Packaged query with private dependency | Existing | Covered |
@@ -176,7 +176,7 @@ Acceptance does not need one test per query tool. It must sample every distinct 
 The Host has distinct bundled/external plugin and internal Code Action paths. Each production execution architecture needs a published representative.
 
 | Release capability | Existing evidence | Required published acceptance | Tier/platform | Gap |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | Bundled mutation stages but does not write before commit | Existing rename commit; Code Action rollback checks disk | Explicitly check disk before bundled preview/commit | PR: Ubuntu, Windows | Pre-commit disk invariant is not explicit for bundled mutation |
 | External plugin mutation proposes and Host stages | Adapter/component tests | Package, invoke, preview and roll back external mutation | PR: Ubuntu, Windows | Missing |
 | Token-based Code Action mutation stages and rolls back | Existing raw-string action | Retain | PR: Ubuntu, Windows | Covered |
@@ -194,7 +194,7 @@ The Host has distinct bundled/external plugin and internal Code Action paths. Ea
 ### Durability, conflicts and recovery
 
 | Release capability | Existing evidence | Required acceptance or release evidence | Tier/platform | Gap |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | Single and multi-file replacement is atomic from the public workflow | Existing one-file acceptance; component multi-file; runner large rename | Add small multi-file or linked-document commit and validate exact disk set | PR: Ubuntu, Windows | Missing small multi-file published regression |
 | Duplicate physical targets are merged or rejected before writing | Unit/component coverage after runner-discovered Windows defect | Commit a linked/multi-target rename and prove one physical write per target | PR: Ubuntu, Windows | Critical regression not accepted |
 | Encoding and line endings are preserved | Component integration | Add only if the acceptance fixture crosses Host projection differently; otherwise component evidence is sufficient | Component sufficient | No acceptance case required now |
@@ -211,7 +211,7 @@ The Host has distinct bundled/external plugin and internal Code Action paths. Ea
 ### Cancellation, concurrency and isolation
 
 | Release capability | Existing evidence | Required published acceptance | Tier/platform | Gap |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | MCP cancellation reaches the server handler token | Host integration through MCP SDK; release runner query cancellation | Use a deterministic cancellable external query fixture and known request ID | PR: Ubuntu, Windows | No published executable case |
 | Cancelled query releases its shared lease | Release runner | After cancellation, start and roll back a transaction | PR: Ubuntu, Windows | Missing |
 | Queries run concurrently up to configured bound | Operation-gate units and release runner | Use a deterministic blocking external query with `max-concurrent-queries=1`; second request must return `WorkspaceBusy` and `Retry` | PR: Ubuntu, Windows | Missing deterministic small case |
@@ -223,7 +223,7 @@ The Host has distinct bundled/external plugin and internal Code Action paths. Ea
 ### Failure safety, paths and operational diagnostics
 
 | Release capability | Existing evidence | Required published acceptance | Tier/platform | Gap |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | Invalid selectors and state return actionable codes and next actions | Unit/component and one acceptance rejection | Cover Workspace required, selector required, ambiguous target, snapshot mismatch, conflict and retry families across other workflows | PR: Ubuntu, Windows | Several public mappings missing |
 | Unexpected tool/plugin exceptions do not terminate Host or expose details | Host adapter tests and throwing fixtures | Invoke throwing external query or mutation, inspect sanitised error and then invoke `server-status` successfully | PR: Ubuntu, Windows | Missing |
 | Workspace/project-relative paths cannot escape allowed roots | Unit/component path validation | Sample one public `WorkspaceProjectOutsideRoot` or mutation target traversal rejection | PR: Ubuntu, Windows | Missing published path rejection |
@@ -236,7 +236,7 @@ The Host has distinct bundled/external plugin and internal Code Action paths. Ea
 ### Platform support matrix
 
 | Environment | Acceptance responsibility |
-|---|---|
+| --- | --- |
 | Ubuntu pull requests | Published executable, stdio, SDK/MSBuild loading, case-sensitive paths, plugins, all deterministic acceptance workflows |
 | Windows pull requests | Same public workflows plus Windows file replacement, path casing, linked-target regression and the existing native Workspace durability suite |
 | macOS release/manual | Run the deterministic acceptance suite, Workspace integration and a curated external-repository scenario subset as best-effort evidence once public v1 release-candidate preparation begins |
@@ -249,7 +249,7 @@ The Host has distinct bundled/external plugin and internal Code Action paths. Ea
 The expanded suite is complete only when these production paths each have at least one published representative:
 
 | Production path | Required representative |
-|---|---|
+| --- | --- |
 | Server lifecycle/status | Startup, catalogue, status and shutdown |
 | Workspace lifecycle | Open, list, status, reload and close |
 | Bundled query | Bounded semantic or structural query |

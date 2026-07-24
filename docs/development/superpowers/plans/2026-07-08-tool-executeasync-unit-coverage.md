@@ -13,6 +13,7 @@
 ### Task 1: Build Reusable Tool Test Harnesses
 
 **Files:**
+
 - Modify: `test/Roslyn.Workbench.Mcp.TestSupport/QueryContextBuilder.cs`
 - Modify: `test/Roslyn.Workbench.Mcp.TestSupport/MutationContextBuilder.cs`
 - Modify: `test/Roslyn.Workbench.Mcp.TestSupport/ToolExecutionServicesBuilder.cs`
@@ -26,6 +27,7 @@
 ### Task 2: Complete Host Tool ExecuteAsync Coverage
 
 **Files:**
+
 - Modify: `test/Roslyn.Workbench.Mcp.Test/ServerStatusToolTests.cs`
 - Modify: `test/Roslyn.Workbench.Mcp.Test/WorkspaceListToolTests.cs`
 - Create: `test/Roslyn.Workbench.Mcp.Test/WorkspaceLifecycleToolUnitTests.cs`
@@ -38,6 +40,7 @@
 ### Task 3: Cover Simple Code Action And Replay Refactoring Tools
 
 **Files:**
+
 - Create: `test/Roslyn.Workbench.Mcp.Plugins.Core.Test/CodeActions/CodeActionDelegationToolTests.cs`
 - Create: `test/Roslyn.Workbench.Mcp.Plugins.Core.Test/Refactorings/SimpleReplayRefactoringToolTests.cs`
 
@@ -48,6 +51,7 @@
 ### Task 4: Cover Branching Refactoring Tools
 
 **Files:**
+
 - Modify: `test/Roslyn.Workbench.Mcp.Plugins.Core.Test/Refactorings/ConvertPropertyToolTests.cs`
 - Create: `test/Roslyn.Workbench.Mcp.Plugins.Core.Test/Refactorings/BranchingRefactoringToolTests.cs`
 
@@ -58,6 +62,7 @@
 ### Task 5: Cover Branching Inspection Tools
 
 **Files:**
+
 - Modify: `test/Roslyn.Workbench.Mcp.Plugins.Core.Test/GetProjectDetailsToolTests.cs`
 - Modify: `test/Roslyn.Workbench.Mcp.Plugins.Core.Test/Inspection/AnalyzeNullabilityToolTests.cs`
 - Modify: `test/Roslyn.Workbench.Mcp.Plugins.Core.Test/Inspection/FindCallersToolTests.cs`
@@ -77,6 +82,7 @@
 ### Task 6: Run Cobertura And Close Gaps
 
 **Files:**
+
 - Modify: `docs/test-project-audit-2026-07-07.md`
 - Modify: `docs/superpowers/plans/2026-07-08-tool-executeasync-unit-coverage.md`
 
@@ -87,6 +93,7 @@
 ### Task 7: Format, Normalise, And Verify
 
 **Files:**
+
 - Modify: all changed files from this task
 
 - [ ] Run `dotnet format --include <changed files> --artifacts-path=/tmp/artifacts/roslyn-workbench-mcp`
@@ -99,16 +106,19 @@
 ## Execution Status (2026-07-08)
 
 Completed in this pass:
+
 - Added reusable host-side and plugin-core `ExecuteAsync` test support and expanded host tool unit coverage.
 - Added grouped code-action, replay-refactoring, dependency-analysis, diagnostics, async-analysis, document/symbol inspection, and symbol-search unit suites.
 - Added Cobertura-driven verification runs for `Roslyn.Workbench.Mcp.Plugins.Core.Test` and for the repo fast loop.
 - Ran `dotnet format` on the touched test files, normalised CRLF with `unix2dos`, and reran the filtered fast loop successfully.
 
 Current verified commands:
+
 - `dotnet test --filter "Category!=Integration&Category!=Audit" --artifacts-path=/tmp/artifacts/roslyn-workbench-mcp`
 - `dotnet test --filter "Category!=Integration&Category!=Audit" --collect:"XPlat Code Coverage" --results-directory /tmp/artifacts/roslyn-workbench-mcp/coverage-fast-loop --artifacts-path=/tmp/artifacts/roslyn-workbench-mcp`
 
 Current notable remaining low-coverage bundled-core tool files from the latest plugin-core Cobertura pass:
+
 - `GetCodeMetricsTool.cs` at about `4.4%`
 - `FindCalleesTool.cs` at about `4.6%`
 - `GetControlFlowGraphTool.cs` at about `6.8%`
@@ -121,6 +131,7 @@ Current notable remaining low-coverage bundled-core tool files from the latest p
 - `GetTypeHierarchyTool.cs` at about `12.0%`
 
 Follow-on work still required for full branch-complete tool coverage:
+
 - Add dedicated unit suites for the remaining heavy Roslyn graph, flow, duplicate-code, dependency, and type-hierarchy tools listed above.
 - Expand the symbol inspection coverage further for `SearchSymbolsTool`, `ResolveSymbolTool`, `GetSymbolMembersTool`, `FindOverloadsTool`, `GoToDefinitionTool`, `FindImplementationsTool`, and neighbouring tools until their full request-driven branches are exercised.
 - Add the remaining branch-rich refactoring coverage for `ConvertToInterpolatedStringTool`, `RenameSymbolTool`, `SortUsingsTool`, `InlineVariableTool`, `EncapsulateFieldTool`, `MoveTypeToFileTool`, and `FormatDocumentTool`.

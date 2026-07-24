@@ -4,13 +4,14 @@ on:
   pull_request:
     paths:
       - .github/workflows/code-action-audit.yml
-      - Directory.Packages.props
+      - src/Directory.Packages.props
+      - test/Directory.Packages.props
       - global.json
       - src/Roslyn.Workbench.Mcp.CodeActions/**
       - test/Roslyn.Workbench.Mcp.CodeActions.AuditTest/**
       - test/Roslyn.Workbench.Mcp.IntegrationTestSupport/**
       - test/TestAssets/Workspaces/InspectionSample/**
-      - docs/RoslynCodeActionsAudit.md
+      - docs/development/RoslynCodeActionsAudit.md
   push:
     branches:
       - main

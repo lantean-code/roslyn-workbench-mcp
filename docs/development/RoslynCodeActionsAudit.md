@@ -10,8 +10,7 @@ It defines:
 2. the authoritative source of truth
 3. the final supported versus hidden classification for built-in C# families
 
-This audit is specifically about built-in Roslyn MEF refactoring/code-fix
-families under:
+This audit is specifically about built-in Roslyn MEF refactoring/code-fix families under:
 
 - `ref/roslyn/src/Features/CSharp`
 - `ref/roslyn/src/EditorFeatures/CSharp`
@@ -20,8 +19,7 @@ families under:
 
 ### Visibility rule
 
-A built-in Roslyn family is visible only when the production ledger marks it
-supported. Unlisted or unsupported families stay hidden by default.
+A built-in Roslyn family is visible only when the production ledger marks it supported. Unlisted or unsupported families stay hidden by default.
 
 The ledger is authoritative for:
 
@@ -42,8 +40,7 @@ A family is considered implemented only when all of these are true:
 
 ### Impossible-under-current-rules rule
 
-A family is hidden as impossible under current rules when support would require
-one of:
+A family is hidden as impossible under current rules when support would require one of:
 
 - `CodeActionWithOptions` or dialog-owned option gathering
 - internal-only Roslyn services
@@ -62,18 +59,16 @@ Production now has:
 - one executable compatibility matrix for supported providers
 - hidden-by-default catalogue behaviour
 
-Every built-in C# Roslyn MEF refactoring/code-fix family in the checked-out
-source has a final production state.
+Every built-in C# Roslyn MEF refactoring/code-fix family in the checked-out source has a final production state.
 
 ## Validated Support
 
-The ledger contains the earlier replay-backed families plus the final
-completion-wave promotions below.
+The ledger contains the earlier replay-backed families plus the final completion-wave promotions below.
 
 ### Final completion-wave support
 
 | Roslyn family | Execution mode | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `AddFileBanner` | Replay | Validated with sibling-banner discovery and exact `Add file header` title. |
 | `EnableNullable` | Replay | Validated with nullable-disabled project fixture. |
 | `SyncNamespace` | Replay | Validated with mismatched folder/namespace fixture. |
@@ -149,11 +144,10 @@ Earlier Stage 7 waves already validated:
 
 ## Hidden Families
 
-These families remain hidden because the current server model cannot support
-them without violating the rules above.
+These families remain hidden because the current server model cannot support them without violating the rules above.
 
 | Roslyn family | Hide reason |
-|---|---|
+| --- | --- |
 | `AddMissingImports` | Requires paste-tracking host state and internal services instead of deterministic location replay. |
 | `ChangeSignature` | `CodeActionWithOptions` plus internal change-signature services. |
 | `ExtractInterface` | `CodeActionWithOptions` plus internal extract-interface services/options service. |
@@ -182,11 +176,6 @@ Stage 7 is complete in repository terms:
 - the ledger is authoritative for discovery and wrapper visibility
 - the compatibility matrix protects supported providers against Roslyn changes
 
-Broad provider discovery is no longer part of the recurring test suite. It is
-an explicit maintenance activity when upgrading Roslyn or evaluating a new
-provider family. Any resulting decision must update the ledger to either
-supported or impossible under current rules.
+Broad provider discovery is no longer part of the recurring test suite. It is an explicit maintenance activity when upgrading Roslyn or evaluating a new provider family. Any resulting decision must update the ledger to either supported or impossible under current rules.
 
-Ad-hoc source-vs-ledger regex scripts may still report parse artefacts around
-already-ledgered providers such as `AddImport`, `FullyQualify`, and
-`GenerateType`, but there is no remaining real built-in C# family backlog.
+Ad-hoc source-vs-ledger regex scripts may still report parse artefacts around already-ledgered providers such as `AddImport`, `FullyQualify`, and `GenerateType`, but there is no remaining real built-in C# family backlog.

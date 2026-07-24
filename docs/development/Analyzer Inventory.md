@@ -28,14 +28,14 @@ The clean baseline build succeeded with zero compiler errors.
 
 ## Progress Summary
 
-| Measure | Baseline | Remaining |
-| --- | ---: | ---: |
-| Analyzer findings | 2,228 | 0 |
-| Diagnostic IDs | 33 | 0 |
-| Files | 379 | 0 |
-| Projects | 23 | 0 |
-| Production findings | 154 | 0 |
-| Test and fixture findings | 2,074 | 0 |
+| Measure                   | Baseline | Remaining |
+| ------------------------- | -------: | --------: |
+| Analyzer findings         |    2,228 |         0 |
+| Diagnostic IDs            |       33 |         0 |
+| Files                     |      379 |         0 |
+| Projects                  |       23 |         0 |
+| Production findings       |      154 |         0 |
+| Test and fixture findings |    2,074 |         0 |
 
 The remaining counts come from the latest successful solution-wide analyzer build. Resolved diagnostics are excluded from the active inventory and recorded separately below.
 
@@ -50,7 +50,7 @@ There are no active diagnostics in the solution-wide `latest-all` baseline.
 ## Resolved Diagnostics
 
 | Diagnostic | Baseline | Resolution |
-| --- | ---: | --- |
+| --- | --: | --- |
 | `CA1000` | 15 | Retained cohesive static factories on generic result and bounded-collection contracts with source-local rationale; internalising Host-only result types removed the remaining findings |
 | `CA1001` | 1 | Made the owning test class disposable and disposed its reusable memory stream |
 | `CA1002` | 1 | Suppressed for test and plugin-fixture builds because the mutable `List<T>` contract is an intentional negative contract-inspection scenario |

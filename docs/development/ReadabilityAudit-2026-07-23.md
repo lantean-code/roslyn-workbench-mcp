@@ -30,7 +30,7 @@ This distinction matters:
 ## Inventory
 
 | Area | Missing separation | Complex conditional | Complex coalescing | Dense LINQ | Nested return construction | Nested object construction |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| --- | --: | --: | --: | --: | --: | --: |
 | Host | 27 | 6 | 4 | 5 | 7 | 42 |
 | CodeActions | 69 | 1 | 1 | 0 | 2 | 8 |
 | Plugins | 11 | 11 | 0 | 5 | 3 | 4 |

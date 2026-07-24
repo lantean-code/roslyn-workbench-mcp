@@ -1,8 +1,6 @@
 # Integration Testing Redesign Implementation Plan
 
-Date: 2026-07-18
-Status: Complete; final evidence is recorded in `IntegrationTestingStage8Results-2026-07-18.md`
-Source audit: `IntegrationTestingStrategyProposal.md`
+Date: 2026-07-18 Status: Complete; final evidence is recorded in `IntegrationTestingStage8Results-2026-07-18.md` Source audit: `IntegrationTestingStrategyProposal.md`
 
 ## Purpose
 
@@ -80,7 +78,7 @@ The agreed testing direction is:
 The following warm runs used already-built output with restore disabled in WSL. They are comparison evidence, not portable performance assertions.
 
 | Area | Tests | Test duration | Wall time | Peak resident memory |
-| --- | ---: | ---: | ---: | ---: |
+| --- | --: | --: | --: | --: |
 | Workspace integration | 62 | 20 s | 21.58 s | 375 MiB |
 | Plugins.Core integration | 21 | 4 s | 6.00 s | 385 MiB |
 | CodeActions integration | 11 | 14 s | 16.14 s | 496 MiB |
@@ -775,16 +773,16 @@ The implementing agent must not silently resolve these during an unrelated stage
 
 ## Stage Progress Summary
 
-| Stage | Description | Status |
-| --- | --- | --- |
-| 0 | Existing-suite safety and reproducible baseline | Complete |
-| 1 | Checked-in fixture assets | Complete |
-| 2 | Out-of-process acceptance foundation | Complete |
-| 3 | Representative acceptance workflows | Complete |
-| 4 | Component integration migration | Complete |
-| 5 | Obsolete harness removal and support narrowing | Complete |
-| 6 | Compatibility/governance separation | Complete |
-| 7 | Performance, runner evaluation and CI | Complete |
-| 8 | Final re-audit and canonical documentation | Complete |
+| Stage | Description                                     | Status   |
+| ----- | ----------------------------------------------- | -------- |
+| 0     | Existing-suite safety and reproducible baseline | Complete |
+| 1     | Checked-in fixture assets                       | Complete |
+| 2     | Out-of-process acceptance foundation            | Complete |
+| 3     | Representative acceptance workflows             | Complete |
+| 4     | Component integration migration                 | Complete |
+| 5     | Obsolete harness removal and support narrowing  | Complete |
+| 6     | Compatibility/governance separation             | Complete |
+| 7     | Performance, runner evaluation and CI           | Complete |
+| 8     | Final re-audit and canonical documentation      | Complete |
 
 Update this table and the detailed checkboxes as work is completed. A stage is complete only when its exit criteria and verification items are satisfied, not merely when its code changes have been written.

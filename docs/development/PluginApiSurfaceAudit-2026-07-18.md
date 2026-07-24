@@ -62,10 +62,4 @@ Plugin authors must treat `CurrentSolution` as query-only and must not call `Cur
 
 The Plugins assembly now exposes no Host-owned staging or lifecycle capability through its supported public API. The exported surface and its transitive Workspace dependencies are locked by contract tests, while the trusted in-process limitation is explicit in release-facing plugin-authoring guidance.
 
-The built-in tool assemblies now expose only intentional entry points. Code
-Actions export no types because their catalogue and MCP publication are
-Host-owned. `Plugins.Core` exports only `BundledCorePlugin`; its request,
-response and supporting DTOs are internal. Bundled preparation explicitly
-allows non-public transport contracts, while external plugin preparation
-continues to reject any request or response graph containing a non-public type.
-Contract tests lock both exported type sets and the two validation policies.
+The built-in tool assemblies now expose only intentional entry points. Code Actions export no types because their catalogue and MCP publication are Host-owned. `Plugins.Core` exports only `BundledCorePlugin`; its request, response and supporting DTOs are internal. Bundled preparation explicitly allows non-public transport contracts, while external plugin preparation continues to reject any request or response graph containing a non-public type. Contract tests lock both exported type sets and the two validation policies.

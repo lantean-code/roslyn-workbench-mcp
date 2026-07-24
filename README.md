@@ -1,13 +1,21 @@
-# roslyn-workbench-mcp
+# Roslyn Workbench MCP
 
-Roslyn MCP server with a transaction-based workspace model for safe local
-analysis and refactoring.
+Roslyn Workbench is a local stdio MCP server for inspecting C# workspaces and staging Roslyn-powered source changes through explicit transactions.
+
+It provides:
+
+- persistent multi-workspace sessions instead of reloading a solution for every tool call;
+- Roslyn queries for symbols, references, diagnostics, dependencies, metrics and code structure;
+- transactional mutation and Code Action workflows with preview, history, rollback, conflict detection and crash recovery; and
+- trusted in-process plugins for additional query and mutation tools.
 
 ## Documentation
 
-Start with the [documentation](docs/README.md) for setup, configuration, tool
-discovery and safe workspace operation. Historical plans, audits and
-implementation evidence are kept separately under `docs/development`.
+Start with the [documentation](docs/README.md) for setup, configuration, tool discovery and safe workspace operation. Historical plans, audits and implementation evidence are kept separately under `docs/development`.
+
+Security concerns must be reported privately through the process in [SECURITY.md](SECURITY.md). Development and pull-request guidance is available in [CONTRIBUTING.md](CONTRIBUTING.md).
+
+Roslyn Workbench MCP is licensed under the [MIT License](LICENSE).
 
 ## External plugins
 
@@ -22,7 +30,3 @@ plugins/
 ```
 
 The package must contain exactly one assembly with exactly one `RoslynPluginAttribute`. Plugin identity and compatibility come from assembly metadata, so no JSON manifest is required. See [Third-Party Plugin Authoring](docs/PluginAuthoring.md) for the public API and packaging rules.
-
-### Next
-
-IReplayCodeActionExecutor takes a nullable selection parameter only to throw if selection is null. Tracing the call stack up to the request using AddAwaitTool as an example AddAwaitRequest allows Selection to be null. If the calling code don't allow for nulls then the request shouldn't - this provides the wrong hint to the agent.

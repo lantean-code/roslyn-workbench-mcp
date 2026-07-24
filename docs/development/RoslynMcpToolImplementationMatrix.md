@@ -1,24 +1,15 @@
 # Roslyn MCP Server - Tool Implementation Matrix
 
-> **Engineering record:** This matrix records implementation planning and
-> historical capability decisions. It is not the release inventory for a
-> running server. MCP `tools/list` is authoritative for the current process;
-> see [Tool discovery](../ToolDiscovery.md).
+> **Engineering record:** This matrix records implementation planning and historical capability decisions. It is not the release inventory for a running server. MCP `tools/list` is authoritative for the current process; see [Tool discovery](../ToolDiscovery.md).
 
 ## Purpose
 
-This matrix records the planned implementation source for every public tool.
-It prevents the catalogue from treating Roslyn as a single capability that
-automatically supplies all refactorings. `Core` means a stable public Roslyn or
-host API is sufficient. `Custom` means the plugin owns syntax/semantic logic.
-`MEF` means an installed Roslyn code-fix or refactoring provider is required;
-the tool is not enabled unless that provider is successfully composed and
-validated.
+This matrix records the planned implementation source for every public tool. It prevents the catalogue from treating Roslyn as a single capability that automatically supplies all refactorings. `Core` means a stable public Roslyn or host API is sufficient. `Custom` means the plugin owns syntax/semantic logic. `MEF` means an installed Roslyn code-fix or refactoring provider is required; the tool is not enabled unless that provider is successfully composed and validated.
 
 ## Server and Workspace Context
 
 | Tool | Implementation source | Status |
-|---|---|---|
+| --- | --- | --- |
 | `server-status` | Host diagnostics and plugin registry | Core |
 | `workspace-open` | Host `MSBuildWorkspace` loader and SDK-style validation | Core |
 | `workspace-close` | Host workspace/transaction coordinator | Core |
@@ -31,7 +22,7 @@ validated.
 ## Semantic Inspection and Navigation
 
 | Tool | Implementation source | Status |
-|---|---|---|
+| --- | --- | --- |
 | `get-document-outline` | Custom syntax tree and semantic-model projection | Custom |
 | `get-code-context` | Custom source-text and enclosing-symbol projection | Custom |
 | `search-symbols` | Public `SymbolFinder` declaration search | Core |
@@ -55,7 +46,7 @@ validated.
 ## Analysis and Architecture
 
 | Tool | Implementation source | Status |
-|---|---|---|
+| --- | --- | --- |
 | `get-diagnostics` | Public compilation and analyzer diagnostics | Core |
 | `get-code-metrics` | Custom syntax/semantic metrics implementation | Custom |
 | `analyze-control-flow` | Public `SemanticModel.AnalyzeControlFlow` | Core |
@@ -76,7 +67,7 @@ validated.
 ## Specific Refactorings, Generation and Formatting
 
 | Tool | Implementation source | Status |
-|---|---|---|
+| --- | --- | --- |
 | `move-type-to-file` | Future host wrapper over Roslyn move-type support using the narrowed Roslyn-chosen own-file contract | Planned with narrowed contract |
 | `move-type-to-namespace` | Roslyn move-to-namespace support still depends on internal service and options seams | Not planned with current public Roslyn APIs |
 | `rename-symbol` | Public `Renamer.RenameSymbolAsync` | Core |
@@ -108,7 +99,7 @@ validated.
 ## Code Actions and Transaction Control
 
 | Tool | Implementation source | Status |
-|---|---|---|
+| --- | --- | --- |
 | `list-code-actions` | MEF-composed code-fix and refactoring providers plus descriptor classification | Batch 2 |
 | `describe-code-action` | Host token revalidation plus descriptor classification | Batch 2 |
 | `stage-code-action` | Host action-token revalidation plus replay-only MEF provider execution | Batch 2 |
@@ -130,29 +121,11 @@ validated.
 
 The Stage 7 Roslyn MEF catalogue audit is complete.
 
-- The authoritative ledger now covers the built-in C# `ExportCodeRefactoringProvider`
-  and `ExportCodeFixProvider` families from the checked-out Roslyn source.
-- Final completion-wave replay promotions include:
-  `AddFileBanner`, `EnableNullable`, `SyncNamespace`, `ConvertNamespace`,
-  `ConvertToProgramMain` refactoring, `ConvertToTopLevelStatements`
-  refactoring, `ConvertToExtension`, `ConvertToRawString`,
-  `AddParameterCheck`, `InitializeMemberFromPrimaryConstructorParameter`,
-  `Wrapping`, `FullyQualify` code fix, `ConvertToProgramMain` code fix,
-  `ConvertToTopLevelStatements` code fix, `RemoveUnusedVariable` code fix,
-  and `SpellCheck` code fix.
-- Families that remain hidden are hidden intentionally in the ledger because
-  they require `CodeActionWithOptions`, internal-only Roslyn services,
-  external Copilot/package/reference flows, paste-tracking host state, or
-  IDE-only diagnostics that are not available through the server’s public
-  diagnostics path.
-- There is no remaining built-in C# family backlog; refer to
-  [RoslynCodeActionsAudit.md](./RoslynCodeActionsAudit.md) for the final
-  classification rationale.
+- The authoritative ledger now covers the built-in C# `ExportCodeRefactoringProvider` and `ExportCodeFixProvider` families from the checked-out Roslyn source.
+- Final completion-wave replay promotions include: `AddFileBanner`, `EnableNullable`, `SyncNamespace`, `ConvertNamespace`, `ConvertToProgramMain` refactoring, `ConvertToTopLevelStatements` refactoring, `ConvertToExtension`, `ConvertToRawString`, `AddParameterCheck`, `InitializeMemberFromPrimaryConstructorParameter`, `Wrapping`, `FullyQualify` code fix, `ConvertToProgramMain` code fix, `ConvertToTopLevelStatements` code fix, `RemoveUnusedVariable` code fix, and `SpellCheck` code fix.
+- Families that remain hidden are hidden intentionally in the ledger because they require `CodeActionWithOptions`, internal-only Roslyn services, external Copilot/package/reference flows, paste-tracking host state, or IDE-only diagnostics that are not available through the server’s public diagnostics path.
+- There is no remaining built-in C# family backlog; refer to [RoslynCodeActionsAudit.md](./RoslynCodeActionsAudit.md) for the final classification rationale.
 
 ## Provider Rule
 
-An `MEF` tool is registered only when its provider and all required feature
-assemblies are available, compose successfully, and pass the server's contract
-tests. Failure disables that tool through normal plugin loading diagnostics; it
-does not silently fall back to a different behaviour. The matrix must be
-updated before a custom replacement is advertised.
+An `MEF` tool is registered only when its provider and all required feature assemblies are available, compose successfully, and pass the server's contract tests. Failure disables that tool through normal plugin loading diagnostics; it does not silently fall back to a different behaviour. The matrix must be updated before a custom replacement is advertised.

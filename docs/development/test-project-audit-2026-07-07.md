@@ -55,7 +55,7 @@ The suite is not worthless. It does catch real regressions. It is better describ
 Current test projects:
 
 | Project | Test count | Predominant character |
-| --- | ---: | --- |
+| --- | --: | --- |
 | `Roslyn.Workbench.Mcp.Contracts.Test` | 53 | Mostly contract validation and schema/surface tests |
 | `Roslyn.Workbench.Mcp.Plugins.Test` | 22 | Mostly small unit tests plus surface-shape tests |
 | `Roslyn.Workbench.Mcp.Plugins.Core.Test` | 181 | Mixed, but heavily dominated by fixture-driven workflow/component tests |
@@ -566,11 +566,7 @@ If this work starts immediately, the highest-value first moves are:
 2. Split `Roslyn.Workbench.Mcp.Test` so host unit tests stop sitting beside integration flows.
 3. Split `Roslyn.Workbench.Mcp.Workspace.Test` into unit and integration projects.
 4. Split `Roslyn.Workbench.Mcp.Plugins.Core.Test` into small unit tests versus real-workspace tool execution tests.
-5. Keep and expand good unit examples such as:
-   `MsBuildRegistrationHostedServiceTests`
-   `ToolExecutionFailureResultTests`
-   `SelectorValidationTests`
-   small Moq-driven portions of `ToolExecutorTests`
+5. Keep and expand good unit examples such as: `MsBuildRegistrationHostedServiceTests` `ToolExecutionFailureResultTests` `SelectorValidationTests` small Moq-driven portions of `ToolExecutorTests`
 
 ## Bottom Line
 

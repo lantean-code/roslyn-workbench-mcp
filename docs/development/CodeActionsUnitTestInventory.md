@@ -35,19 +35,19 @@ No production change is authorised by this inventory. Any seam or defensive-bran
 
 The current measurement was captured from the CodeActions unit project with Coverlet after C6 completed.
 
-| Measure | Current value |
-| --- | ---: |
-| Production C# files | 181 |
-| Files with executable sequence points | 135 |
-| Interfaces, enums and other files without sequence points | 46 |
-| Discovered unit tests | 496 |
-| Covered executable lines | 4,081 / 4,263 |
-| Line coverage | 95.73% |
-| Covered branches | 685 / 762 |
-| Branch coverage | 89.94% |
-| Executable files at 100% line and branch | 126 |
-| Executable files with partial coverage | 6 |
-| Executable files with zero unit coverage | 3 |
+| Measure                                                   | Current value |
+| --------------------------------------------------------- | ------------: |
+| Production C# files                                       |           181 |
+| Files with executable sequence points                     |           135 |
+| Interfaces, enums and other files without sequence points |            46 |
+| Discovered unit tests                                     |           496 |
+| Covered executable lines                                  | 4,081 / 4,263 |
+| Line coverage                                             |        95.73% |
+| Covered branches                                          |     685 / 762 |
+| Branch coverage                                           |        89.94% |
+| Executable files at 100% line and branch                  |           126 |
+| Executable files with partial coverage                    |             6 |
+| Executable files with zero unit coverage                  |             3 |
 
 Coverlet emits compiler-generated async and closure classes separately. The figures and tables in this document aggregate their sequence points into the owning source file.
 
@@ -107,7 +107,7 @@ No uncovered logic-bearing target in this section remains suitable for ordinary 
 ## MEF Composition Boundary
 
 | Target | Line | Branch | Disposition |
-| --- | ---: | ---: | --- |
+| --- | --: | --: | --- |
 | `MefCodeActionProviderCatalog` | 28.57% | 9.09% | Unit portion complete. Empty configuration and complete unavailable catalogue projection are covered without constructing MEF. Every remaining branch creates or consumes a real `MefHostServices`, including assembly resolution, export reads, metadata filtering and available composition; defer those branches to the later integration-test pattern. |
 | `MefHostExportProviderCompatibilityAdapter` | 0% | 0% | Integration boundary. Its behaviour depends on Roslyn's non-public runtime export shape. Retain and expand the focused real-MEF integration test for successful enumeration and actionable failure reporting when feasible. |
 | `CodeActionCompositionOptions` | 100% | 100% | Complete through empty catalogue configuration. |
@@ -121,7 +121,7 @@ Real MEF execution does not become a unit test merely because it is in the unit 
 ## Partial-Coverage Inventory
 
 | Target | Line | Branch | Complexity | Remaining work |
-| --- | ---: | ---: | --- | --- |
+| --- | --: | --: | --- | --- |
 | `CodeActionAnalyzerActivator` | 84.34% | 52.63% | Approved external-runtime gaps | Available, missing, incompatible and four supported construction-failure shapes are covered. The remaining lines are the loaded-assembly inspection-exception path; remaining branches distinguish runtime exception types that normal loaded assemblies and analyzer construction cannot deterministically produce. |
 | `CodeActionDiagnosticService` | 98.28% | 97.92% | Approved Roslyn defensive gap | Lines 163-164 handle `GetSyntaxTreeAsync` returning `null` after the same source document successfully produced a C# compilation. Supported in-memory and loaded-workspace flows cannot produce that inconsistent Roslyn state. |
 | `CodeActionFixAllService` | 98.60% | 97.56% | Approved defensive gap | All reachable behaviour is covered. Lines 145-147 are the unsupported-scope default; the real `CodeActionScopeResolver` rejects invalid `ScopeKind` values before this method is called. Covering it would require an inconsistent mocked boundary and would duplicate the resolver's validation rather than model production behaviour. |

@@ -8,7 +8,7 @@
 
 ## Platform support
 
-Windows and Linux are the supported release platforms. macOS is not currently a supported release platform because durable transaction commit locking has not yet been enabled or validated there. The intended v1 classification is best effort rather than a pull-request gate or authoritative performance baseline.
+Windows and Linux are the supported release platforms. macOS is implemented on a best-effort basis using native advisory locking and the shared Unix atomic-write path, but it has not yet been validated on macOS hardware or a hosted macOS runner. It is not a pull-request gate or authoritative performance baseline.
 
 ## Build from source
 

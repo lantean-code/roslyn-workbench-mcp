@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 
 using Microsoft.Win32.SafeHandles;
@@ -29,7 +30,7 @@ internal sealed partial class NativeAtomicFileCommitter : IAtomicFileCommitter
             return;
         }
 
-        MoveUnix(temporaryPath, destinationPath, overwrite: true);
+        MovePosix(temporaryPath, destinationPath, overwrite: true);
     }
 
     public void Move(string sourcePath, string destinationPath)
@@ -48,7 +49,7 @@ internal sealed partial class NativeAtomicFileCommitter : IAtomicFileCommitter
             return;
         }
 
-        MoveUnix(sourcePath, destinationPath, overwrite: false);
+        MovePosix(sourcePath, destinationPath, overwrite: false);
     }
 
     private static void MoveWindows(string sourcePath, string destinationPath, uint flags, string failureMessage)
@@ -75,7 +76,7 @@ internal sealed partial class NativeAtomicFileCommitter : IAtomicFileCommitter
             : _extendedPathPrefix + fullPath;
     }
 
-    private static void MoveUnix(string sourcePath, string destinationPath, bool overwrite)
+    private static void MovePosix(string sourcePath, string destinationPath, bool overwrite)
     {
         File.Move(sourcePath, destinationPath, overwrite);
         SyncDirectory(GetRequiredDirectoryName(destinationPath));
@@ -83,7 +84,7 @@ internal sealed partial class NativeAtomicFileCommitter : IAtomicFileCommitter
 
     private static void SyncDirectory(string directoryPath)
     {
-        var rawFileDescriptor = Open(directoryPath, 0);
+        var rawFileDescriptor = OpenDirectory(directoryPath);
         if (rawFileDescriptor < 0)
         {
             throw new IOException(
@@ -92,12 +93,32 @@ internal sealed partial class NativeAtomicFileCommitter : IAtomicFileCommitter
         }
 
         using var fileDescriptor = new SafeFileHandle((IntPtr)rawFileDescriptor, ownsHandle: true);
-        if (Fsync(fileDescriptor.DangerousGetHandle().ToInt32()) != 0)
+        if (FsyncDirectory(fileDescriptor.DangerousGetHandle().ToInt32()) != 0)
         {
             throw new IOException(
                 $"The directory '{directoryPath}' could not be synchronised after atomic replacement.",
                 new Win32Exception(Marshal.GetLastPInvokeError()));
         }
+    }
+
+    private static int OpenDirectory(string directoryPath)
+    {
+        if (OperatingSystem.IsMacOS())
+        {
+            return OpenMacOs(directoryPath, 0);
+        }
+
+        return OpenUnix(directoryPath, 0);
+    }
+
+    private static int FsyncDirectory(int fileDescriptor)
+    {
+        if (OperatingSystem.IsMacOS())
+        {
+            return FsyncMacOs(fileDescriptor);
+        }
+
+        return FsyncUnix(fileDescriptor);
     }
 
     private static string GetRequiredDirectoryName(string path)
@@ -110,12 +131,20 @@ internal sealed partial class NativeAtomicFileCommitter : IAtomicFileCommitter
     [LibraryImport("kernel32", EntryPoint = "MoveFileExW", StringMarshalling = StringMarshalling.Utf16, SetLastError = true)]
     private static partial int MoveFileEx(string existingFileName, string newFileName, uint flags);
 
-    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    [SuppressMessage("Security", "CA5392", Justification = "DefaultDllImportSearchPaths has no effect on non-Windows platforms; this import targets the platform system library.")]
     [LibraryImport("libc", EntryPoint = "open", StringMarshalling = StringMarshalling.Utf8, SetLastError = true)]
-    private static partial int Open(string path, int flags);
+    private static partial int OpenUnix(string path, int flags);
 
-    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    [SuppressMessage("Security", "CA5392", Justification = "DefaultDllImportSearchPaths has no effect on non-Windows platforms; this import targets the platform system library.")]
     [LibraryImport("libc", EntryPoint = "fsync", SetLastError = true)]
-    private static partial int Fsync(int fileDescriptor);
+    private static partial int FsyncUnix(int fileDescriptor);
+
+    [SuppressMessage("Security", "CA5392", Justification = "DefaultDllImportSearchPaths has no effect on non-Windows platforms; this import targets the platform system library.")]
+    [LibraryImport("libSystem.dylib", EntryPoint = "open", StringMarshalling = StringMarshalling.Utf8, SetLastError = true)]
+    private static partial int OpenMacOs(string path, int flags);
+
+    [SuppressMessage("Security", "CA5392", Justification = "DefaultDllImportSearchPaths has no effect on non-Windows platforms; this import targets the platform system library.")]
+    [LibraryImport("libSystem.dylib", EntryPoint = "fsync", SetLastError = true)]
+    private static partial int FsyncMacOs(int fileDescriptor);
 
 }

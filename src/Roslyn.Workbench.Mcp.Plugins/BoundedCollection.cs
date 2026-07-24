@@ -1,13 +1,13 @@
 using System.Text.Json.Serialization;
 
-namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Collections;
+namespace Roslyn.Workbench.Mcp.Plugins;
 
 #pragma warning disable CA1000, CA1711 // The bounded-collection wire contract uses cohesive generic factories and accurately describes its collection payload.
 /// <summary>
 /// Represents a bounded collection result published to tool consumers.
 /// </summary>
 /// <typeparam name="TItem">The collection item type.</typeparam>
-internal sealed record BoundedCollection<TItem>
+public sealed record BoundedCollection<TItem>
 {
     private static readonly BoundedCollection<TItem> _empty = new(Array.Empty<TItem>(), hasMore: false, totalCount: 0);
 
@@ -44,21 +44,6 @@ internal sealed record BoundedCollection<TItem>
     }
 
     /// <summary>
-    /// Creates an untruncated bounded collection from the supplied items.
-    /// </summary>
-    /// <param name="items">The items to publish.</param>
-    /// <returns>The untruncated bounded collection projection.</returns>
-    public static BoundedCollection<TItem> Create(IReadOnlyList<TItem> items)
-    {
-        if (items.Count == 0)
-        {
-            return Empty();
-        }
-
-        return new BoundedCollection<TItem>(items, hasMore: false, totalCount: items.Count);
-    }
-
-    /// <summary>
     /// Creates a bounded collection from items that have already been limited by the caller.
     /// </summary>
     /// <param name="items">The already-limited items to publish.</param>
@@ -68,6 +53,8 @@ internal sealed record BoundedCollection<TItem>
         IReadOnlyList<TItem> items,
         bool hasMore)
     {
+        ArgumentNullException.ThrowIfNull(items);
+
         if (items.Count == 0 && !hasMore)
         {
             return Empty();
@@ -86,6 +73,7 @@ internal sealed record BoundedCollection<TItem>
         IReadOnlyList<TItem> items,
         int totalCount)
     {
+        ArgumentNullException.ThrowIfNull(items);
         ArgumentOutOfRangeException.ThrowIfLessThan(totalCount, items.Count);
 
         if (totalCount == 0)

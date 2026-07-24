@@ -6,6 +6,7 @@ public sealed class PluginPublicApiContractTests
 {
     private static readonly string[] _expectedExportedTypes =
     [
+        "Roslyn.Workbench.Mcp.Plugins.BoundedCollection`1",
         "Roslyn.Workbench.Mcp.Plugins.IMutationContext",
         "Roslyn.Workbench.Mcp.Plugins.IMutationToolHandler",
         "Roslyn.Workbench.Mcp.Plugins.IMutationToolHandler`1",

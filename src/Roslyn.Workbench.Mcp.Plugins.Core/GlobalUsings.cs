@@ -10,7 +10,7 @@ global using Microsoft.CodeAnalysis.Formatting;
 global using Microsoft.CodeAnalysis.Operations;
 global using Microsoft.CodeAnalysis.Rename;
 global using Microsoft.CodeAnalysis.Text;
-global using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Collections;
+global using Roslyn.Workbench.Mcp.Plugins;
 global using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 global using Roslyn.Workbench.Mcp.Plugins.Core.Diagnostics;
 global using Roslyn.Workbench.Mcp.Plugins.Core.Execution;

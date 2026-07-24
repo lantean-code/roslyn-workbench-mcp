@@ -1,4 +1,4 @@
-using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Collections;
+using Roslyn.Workbench.Mcp.Plugins;
 
 namespace Roslyn.Workbench.Mcp.IntegrationTest.Protocol;
 

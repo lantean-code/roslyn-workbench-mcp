@@ -26,7 +26,6 @@ global using Roslyn.Workbench.Mcp.Plugins;
 global using Roslyn.Workbench.Mcp.Plugins.Analysis;
 global using Roslyn.Workbench.Mcp.Plugins.Configuration;
 global using Roslyn.Workbench.Mcp.Plugins.Context;
-global using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Collections;
 global using Roslyn.Workbench.Mcp.Plugins.Diagnostics;
 global using Roslyn.Workbench.Mcp.Plugins.Execution;
 global using Roslyn.Workbench.Mcp.Plugins.Preparation;

@@ -1,8 +1,8 @@
 global using AwesomeAssertions;
 global using Microsoft.CodeAnalysis;
 global using Moq;
+global using Roslyn.Workbench.Mcp.Plugins;
 global using Roslyn.Workbench.Mcp.Plugins.Configuration;
-global using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Collections;
 global using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 global using Roslyn.Workbench.Mcp.Plugins.Core.Diagnostics;
 global using Roslyn.Workbench.Mcp.Plugins.Core.Execution;

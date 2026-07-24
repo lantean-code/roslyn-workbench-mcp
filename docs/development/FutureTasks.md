@@ -65,7 +65,7 @@ Implement the dependency-ordered release-capability batches covering the exact p
 
 Keep the acceptance project independent of production references and drive only the Release-published executable through the public MCP protocol. Use small checked-in fixtures, deterministic synchronization and the existing Ubuntu/Windows pull-request matrix. Do not move repository-scale, timing-sensitive or destructive release scenarios into pull-request acceptance.
 
-Batches 1–6 are implemented. The acceptance boundary now covers published-process infrastructure, distribution/configuration and plugin packages, supported Workspace formats and selectors, every mutation execution family, transaction history and ownership, multi-file and linked-target durability, pre-write conflict preservation, blocked recovery, clean restart, protocol cancellation, concurrency/retry behaviour, cross-Workspace isolation, exception containment and public path boundaries. A complete WSL/Linux run passed all 40 cases; native Ubuntu and Windows evidence remains owned by the pull-request matrix.
+Batches 1–6 are implemented. The acceptance boundary now covers published-process infrastructure, distribution/configuration and plugin packages, supported Workspace formats and selectors, every mutation execution family, transaction history and ownership, multi-file and linked-target durability, pre-write conflict preservation, blocked recovery, clean restart, protocol cancellation, concurrency/retry behaviour, cross-Workspace isolation, exception containment and public path boundaries. Complete WSL/Linux and native Windows runs passed all 40 cases; native Ubuntu evidence remains owned by the pull-request matrix.
 
 Source: [Published Host Acceptance Coverage Audit](AcceptanceCoverageAudit-2026-07-23.md)
 
@@ -94,24 +94,26 @@ Source: [Testing Strategy](TestingStrategy.md#release-validation-and-performance
 
 ### Add a plugin-authoring analyser
 
-**Status:** Not started
+**Status:** Started
 
-Create an analyser for handler contract and lifetime rules that are useful during plugin development but cannot be proven safely by runtime structural heuristics. Generic constraints remain authoritative for family membership and construction eligibility; runtime validation remains authoritative for objectively detectable package and handler errors.
+The authoring surface has been audited and divided into 19 diagnostics covering Workspace snapshot safety, startup configuration lifetime, handler contracts and state, cancellation, bounded response design and plugin entry-point metadata. Generic constraints remain authoritative for construction and request-base eligibility; runtime validation remains authoritative for loaded binaries, final merged metadata, package layout, schema generation and cross-package collisions.
 
-Include diagnostics that protect the immutable session-snapshot model without restricting legitimate Roslyn queries:
+Implement the dependency-ordered batches defined by the audit:
 
-- report direct calls to `Workspace.TryApplyChanges` as errors because they bypass mutation validation, staging, revision history and commit handling;
-- report use of `Workspace.CurrentSolution` when it replaces the request's `CurrentSolution`, because the live Workspace may have advanced beyond the session snapshot;
-- continue to permit normal reads and immutable transformations through the request's `CurrentSolution`; and
-- permit access to its associated `Workspace` when a Roslyn query API genuinely requires it rather than prohibiting the property itself.
+1. analyser infrastructure, Workspace safety diagnostics and Host containment;
+2. handler contract, lifetime and state diagnostics;
+3. invocation, response and entry-point diagnostics; and
+4. Plugins package inclusion, consumer-build validation and author documentation.
 
-Ship the analyser with the plugin-authoring package so diagnostics run in the IDE and at build time. Treat it as an engineering guardrail rather than a security boundary: plugins remain trusted in-process code and deliberate suppression, reflection or indirection cannot be prevented by an analyser.
+The audit confirmed that file-based external-change detection does not observe an in-memory `Workspace.TryApplyChanges` against the associated `MSBuildWorkspace`. Add before/after invocation detection that invalidates cached queries and moves the affected session through the existing out-of-date/conflict path. This containment remains necessary when diagnostics are suppressed.
 
-Pair the authoring diagnostics with Host-side detection of unexpected live Workspace changes. First establish whether the existing snapshot and external-change guards already cover an uncoordinated `TryApplyChanges`; add focused coverage or invalidation behaviour where necessary so an affected session becomes stale or conflicted instead of continuing against divergent state. Detection is containment after a change, not permission for plugins to mutate the live Workspace.
+The shared `BoundedCollection<TItem>` response contract now belongs to the public Plugins authoring surface. Its `CreatePrebounded` factories deliberately require authors to apply collection limits before constructing the response and give the bounded-response diagnostic an actionable remediation.
+
+Ship the .NET Standard 2.0 C# analyser assembly inside the Plugins NuGet package so diagnostics run in the IDE and at build time without becoming a runtime dependency. Treat it as an engineering guardrail rather than a security boundary: plugins remain trusted in-process code and deliberate suppression, reflection or indirection cannot be prevented.
 
 This must precede a release that actively promotes third-party plugin authoring. It does not block a Host release that continues to describe plugins as trusted in-process extensions and states the current runtime guarantees.
 
-Sources: [2026-07-13-mef-plugin-composition.md](superpowers/plans/2026-07-13-mef-plugin-composition.md), [PluginApiSurfaceAudit-2026-07-18.md](PluginApiSurfaceAudit-2026-07-18.md)
+Sources: [Plugin authoring analyser audit](PluginAuthoringAnalyserAudit-2026-07-24.md), [2026-07-13-mef-plugin-composition.md](superpowers/plans/2026-07-13-mef-plugin-composition.md), [PluginApiSurfaceAudit-2026-07-18.md](PluginApiSurfaceAudit-2026-07-18.md)
 
 ## Conditional Backlog
 

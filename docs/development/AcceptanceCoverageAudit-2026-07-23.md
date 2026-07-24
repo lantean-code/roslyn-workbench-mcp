@@ -294,7 +294,7 @@ Implemented evidence:
 
 ### Batch 2 — Distribution, discovery and plugin boundary
 
-**Implementation status:** Complete on 2026-07-23. A complete WSL/Linux run passed all 40 acceptance cases; native Ubuntu and Windows evidence remains owned by the pull-request matrix.
+**Implementation status:** Complete on 2026-07-23. Complete WSL/Linux and native Windows runs passed all 40 acceptance cases; native Ubuntu evidence remains owned by the pull-request matrix.
 
 - configuration precedence and sensitive-value omission;
 - default versus full output-schema publication;
@@ -318,7 +318,7 @@ Implemented evidence:
 
 ### Batch 3 — Workspace compatibility and selectors
 
-**Implementation status:** Complete on 2026-07-23. A complete WSL/Linux run passed all 40 acceptance cases; native Ubuntu and Windows evidence remains owned by the pull-request matrix.
+**Implementation status:** Complete on 2026-07-23. Complete WSL/Linux and native Windows runs passed all 40 acceptance cases; native Ubuntu evidence remains owned by the pull-request matrix.
 
 - `.csproj`, `.sln` and `.slnx`;
 - mixed supported/unsupported solution diagnostics;
@@ -344,7 +344,7 @@ The acceptance inventory is now 28 discovered cases. The CI minimum is raised to
 
 ### Batch 4 — Mutation families and transaction state
 
-**Implementation status:** Complete on 2026-07-23. A complete WSL/Linux run passed all 40 acceptance cases; native Ubuntu and Windows evidence remains owned by the pull-request matrix.
+**Implementation status:** Complete on 2026-07-23. Complete WSL/Linux and native Windows runs passed all 40 acceptance cases; native Ubuntu evidence remains owned by the pull-request matrix.
 
 - bundled mutation pre-commit disk invariant;
 - external plugin mutation staging and rollback;
@@ -367,7 +367,7 @@ Implemented evidence:
 
 ### Batch 5 — Durability and restart
 
-**Implementation status:** Complete on 2026-07-23. A complete WSL/Linux run passed all 40 acceptance cases; native Ubuntu and Windows evidence remains owned by the pull-request matrix.
+**Implementation status:** Complete on 2026-07-23. Complete WSL/Linux and native Windows runs passed all 40 acceptance cases; native Ubuntu evidence remains owned by the pull-request matrix.
 
 - small multi-file and linked/multi-target physical-target commit;
 - deterministic pre-write external conflict and preservation;
@@ -392,7 +392,7 @@ The acceptance inventory is now 36 discovered cases. The CI minimum is raised to
 
 ### Batch 6 — Cancellation, concurrency and failure containment
 
-**Implementation status:** Complete on 2026-07-23. A complete WSL/Linux run passed all 40 acceptance cases; native Ubuntu and Windows evidence remains owned by the pull-request matrix.
+**Implementation status:** Complete on 2026-07-23. Complete WSL/Linux and native Windows runs passed all 40 acceptance cases; native Ubuntu evidence remains owned by the pull-request matrix.
 
 - known-ID protocol cancellation through the published executable;
 - shared-lease release after cancellation;
@@ -415,6 +415,21 @@ Implemented evidence:
 - a copied solution that references a project outside its declared root is rejected publicly with `WorkspaceProjectOutsideRoot`.
 
 The acceptance inventory is now 40 discovered cases. The CI minimum is raised to 40 so omission of any Batch 1–6 case fails the acceptance job.
+
+## Completed runtime validation
+
+### Native Windows
+
+The complete suite was run manually on native Windows on 2026-07-23 through `test/Roslyn.Workbench.Mcp.AcceptanceTest/run-acceptance-tests.ps1`. The wrapper produced a fresh Release publish, selected that exact executable through `ROSLYN_WORKBENCH_MCP_ACCEPTANCE_HOST_PATH` and retained a TRX result for review.
+
+- 40 tests were discovered, executed and passed;
+- no test failed, was skipped, timed out, aborted, was not runnable or produced a warning;
+- the run completed in approximately 44 seconds; and
+- `Assert-TrxTestCount.ps1 -Minimum 40` accepted the retained result.
+
+The first Windows attempt exposed shared `obj` state between the four plugin fixture projects, which could leave the query fixture compiling against another fixture's restored dependency graph. Each independently built plugin fixture was moved into its own project directory before the successful rerun. This was an acceptance-infrastructure correction; no production-code change was required.
+
+The complete WSL/Linux run and this native Windows run provide local cross-platform evidence. Native Ubuntu remains an authoritative pull-request-matrix responsibility.
 
 ## Release-only scenario validation and metrics
 

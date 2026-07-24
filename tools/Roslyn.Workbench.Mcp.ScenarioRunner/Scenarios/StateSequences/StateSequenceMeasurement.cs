@@ -10,6 +10,10 @@ internal sealed record StateSequenceMeasurement
 
     public required IReadOnlyList<StateSequenceStepMeasurement> Steps { get; init; }
 
+    public ExternalCommandMeasurement? ExternalCommand { get; init; }
+
+    public WatcherStressMeasurement? WatcherStress { get; init; }
+
     public required double RestorationMilliseconds { get; init; }
 
     public required IReadOnlyList<DurableCommitFileChange> Files { get; init; }

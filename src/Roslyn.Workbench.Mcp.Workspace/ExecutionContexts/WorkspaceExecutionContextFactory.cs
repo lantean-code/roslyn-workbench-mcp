@@ -11,6 +11,7 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
     private readonly IWorkspaceStateTransitions _workspaceStateTransitions;
     private readonly IWorkspaceMutationStager _mutationStager;
     private readonly IWorkspaceResolverFactory _resolverFactory;
+    private readonly IWorkspaceInstanceStatusPublisher _instanceStatusPublisher;
 
     public WorkspaceExecutionContextFactory(
         IOptions<WorkspaceOptions> options,
@@ -19,7 +20,8 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
         IWorkspaceChangeDetector workspaceChangeDetector,
         IWorkspaceStateTransitions workspaceStateTransitions,
         IMutationStagingService mutationStagingService,
-        IWorkspaceResolverFactory resolverFactory)
+        IWorkspaceResolverFactory resolverFactory,
+        IWorkspaceInstanceStatusPublisher instanceStatusPublisher)
     {
         _options = options.Value;
         _sessionStore = sessionStore;
@@ -28,6 +30,7 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
         _workspaceStateTransitions = workspaceStateTransitions;
         _mutationStager = new WorkspaceMutationStager(mutationStagingService);
         _resolverFactory = resolverFactory;
+        _instanceStatusPublisher = instanceStatusPublisher;
     }
 
     public WorkspaceMutationExecutionLease CreateMutationContext(
@@ -266,6 +269,13 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
     {
         var transitionedSession = _workspaceStateTransitions.ApplyExternalChangeDetected(session);
         _sessionStore.ReplaceSession(transitionedSession);
+        _instanceStatusPublisher.QueueUpdate(
+            transitionedSession.Workspace.WorkspaceId,
+            transitionedSession.State,
+            transitionedSession.Transaction?.CurrentRevision,
+            commitId: null,
+            commitPhase: null);
+
         return transitionedSession;
     }
 
@@ -324,15 +334,17 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
         string message,
         RequiredAction? requiredAction)
     {
+        var error = new WorkspaceOperationError
+        {
+            Code = code,
+            Message = message,
+            RequiredAction = requiredAction,
+        };
+
         return new WorkspaceExecutionFailure
         {
             Status = status,
-            Error = new WorkspaceOperationError
-            {
-                Code = code,
-                Message = message,
-                RequiredAction = requiredAction,
-            },
+            Error = error,
         };
     }
 }

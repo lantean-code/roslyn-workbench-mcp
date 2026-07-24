@@ -11,6 +11,8 @@ internal interface IWorkspaceInstanceStatusPublisher
 
     ValueTask UpdateAsync(string workspaceId, WorkspaceLifecycleState state, long? transactionRevision, string? commitId, string? commitPhase);
 
+    void QueueUpdate(string workspaceId, WorkspaceLifecycleState state, long? transactionRevision, string? commitId, string? commitPhase);
+
     ValueTask<WorkspaceInstanceStatusResult> GetOtherLiveInstancesAsync(
         string workspaceRoot,
         CancellationToken cancellationToken);

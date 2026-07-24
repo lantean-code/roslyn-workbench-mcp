@@ -213,6 +213,75 @@ public sealed class WorkspaceInstanceStatusPublisherTests
     }
 
     [Fact]
+    public async Task GIVEN_PublishedWorkspace_WHEN_QueuingUpdate_THEN_ShouldPersistItBeforeDisposalCompletes()
+    {
+        var stream = new MemoryStream();
+        _directory.Setup(item => item.EnumerateFiles(It.IsAny<string>(), "*.json")).Returns([]);
+        _streams.Setup(item => item.New(It.IsAny<string>(), FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read))
+            .Returns(new Mock<FileSystemStream>(stream, "/workspace/instance.json", false) { CallBase = true }.Object);
+
+        var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
+        await target.OpenAsync(
+            "workspace",
+            "/workspace",
+            "/workspace/solution.slnx",
+            WorkspaceLifecycleState.Ready,
+            TestContext.Current.CancellationToken);
+
+        target.QueueUpdate(
+            "workspace",
+            WorkspaceLifecycleState.WorkspaceOutOfDate,
+            transactionRevision: null,
+            commitId: null,
+            commitPhase: null);
+
+        await target.DisposeAsync();
+
+        var status = JsonSerializer.Deserialize<WorkspaceInstanceStatus>(
+            stream.ToArray(),
+            new JsonSerializerOptions(JsonSerializerDefaults.Web));
+
+        status!.WorkspaceState.Should().Be(WorkspaceLifecycleState.WorkspaceOutOfDate);
+    }
+
+    [Fact]
+    public async Task GIVEN_QueuedUpdate_WHEN_AwaitingLaterUpdate_THEN_ShouldPublishInRequestOrder()
+    {
+        var stream = new MemoryStream();
+        _directory.Setup(item => item.EnumerateFiles(It.IsAny<string>(), "*.json")).Returns([]);
+        _streams.Setup(item => item.New(It.IsAny<string>(), FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read))
+            .Returns(new Mock<FileSystemStream>(stream, "/workspace/instance.json", false) { CallBase = true }.Object);
+
+        await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
+        await target.OpenAsync(
+            "workspace",
+            "/workspace",
+            "/workspace/solution.slnx",
+            WorkspaceLifecycleState.Ready,
+            TestContext.Current.CancellationToken);
+
+        target.QueueUpdate(
+            "workspace",
+            WorkspaceLifecycleState.WorkspaceOutOfDate,
+            transactionRevision: null,
+            commitId: null,
+            commitPhase: null);
+
+        await target.UpdateAsync(
+            "workspace",
+            WorkspaceLifecycleState.Ready,
+            transactionRevision: null,
+            commitId: null,
+            commitPhase: null);
+
+        var status = JsonSerializer.Deserialize<WorkspaceInstanceStatus>(
+            stream.ToArray(),
+            new JsonSerializerOptions(JsonSerializerDefaults.Web));
+
+        status!.WorkspaceState.Should().Be(WorkspaceLifecycleState.Ready);
+    }
+
+    [Fact]
     public async Task GIVEN_PublishedWorkspaceAndWriteAccessFailure_WHEN_Updating_THEN_ShouldRetainTheLeaseForClosing()
     {
         var stream = new Mock<Stream>();

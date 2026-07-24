@@ -107,7 +107,8 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         {
             inputManifest = _workspaceChangeDetector.BuildManifest(
                 loadedWorkspace.Solution,
-                request.LoadedPath);
+                request.LoadedPath,
+                request.WorkspaceRoot);
         }
         catch
         {
@@ -118,6 +119,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
 
         if (!inputManifest.IsComplete)
         {
+            inputManifest.Dispose();
             await _instanceStatusPublisher.CloseAsync(workspaceId);
             loadedWorkspace.Workspace.Dispose();
             return CreateInputEvaluationFailureResult<WorkspaceOpenOutcome>(inputManifest);
@@ -139,6 +141,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         if (latestValidationError is not null)
         {
             await _instanceStatusPublisher.CloseAsync(workspaceId);
+            session.InputManifest.Dispose();
             session.LoadedWorkspace.Dispose();
             return _resultFactory.Rejected<WorkspaceOpenOutcome>(latestValidationError);
         }
@@ -213,6 +216,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         }
 
         await _instanceStatusPublisher.CloseAsync(removedSession.Workspace.WorkspaceId);
+        removedSession.InputManifest.Dispose();
         removedSession.LoadedWorkspace.Dispose();
         var outcome = new WorkspaceCloseOutcome
         {
@@ -248,6 +252,12 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         {
             session = _workspaceStateTransitions.ApplyExternalChangeDetected(session);
             _sessionStore.ReplaceSession(session);
+            _instanceStatusPublisher.QueueUpdate(
+                session.Workspace.WorkspaceId,
+                session.State,
+                session.Transaction?.CurrentRevision,
+                commitId: null,
+                commitPhase: null);
         }
 
         var instanceStatus = await _instanceStatusPublisher.GetOtherLiveInstancesAsync(
@@ -299,12 +309,23 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             return CreateLoadFailureResult<WorkspaceReloadOutcome>(loadedWorkspace, "reloaded", context);
         }
 
-        var inputManifest = _workspaceChangeDetector.BuildManifest(
-            loadedWorkspace.Solution,
-            currentSession.Workspace.LoadedPath);
+        WorkspaceInputManifest inputManifest;
+        try
+        {
+            inputManifest = _workspaceChangeDetector.BuildManifest(
+                loadedWorkspace.Solution,
+                currentSession.Workspace.LoadedPath,
+                currentSession.Workspace.WorkspaceRoot);
+        }
+        catch
+        {
+            loadedWorkspace.Workspace.Dispose();
+            throw;
+        }
 
         if (!inputManifest.IsComplete)
         {
+            inputManifest.Dispose();
             loadedWorkspace.Workspace.Dispose();
             return CreateInputEvaluationFailureResult<WorkspaceReloadOutcome>(inputManifest, context);
         }
@@ -322,8 +343,9 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             currentSession.OperationGate);
 
         var oldSession = _sessionStore.ReadSession(acquisition.Selection.WorkspaceId);
-        oldSession?.LoadedWorkspace.Dispose();
         _sessionStore.ReplaceSession(reloadedSession);
+        oldSession?.InputManifest.Dispose();
+        oldSession?.LoadedWorkspace.Dispose();
 
         var outcome = new WorkspaceReloadOutcome
         {
@@ -343,21 +365,25 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         var normalizedPath = _workspaceLoader.NormalizeOpenPath(path);
         if (normalizedPath is null)
         {
-            return ResolvedWorkspaceOpenRequest.Failure(new WorkspaceOperationError
+            var error = new WorkspaceOperationError
             {
                 Code = "WorkspacePathInvalid",
                 Message = "Workspace paths must be absolute .sln, .slnx, or .csproj files.",
-            });
+            };
+
+            return ResolvedWorkspaceOpenRequest.Failure(error);
         }
 
         var resolvedWorkspaceRoot = _workspaceRootResolver.Resolve(normalizedPath, workspaceRoot);
         if (resolvedWorkspaceRoot is null)
         {
-            return ResolvedWorkspaceOpenRequest.Failure(new WorkspaceOperationError
+            var error = new WorkspaceOperationError
             {
                 Code = "WorkspaceRootInvalid",
                 Message = "The workspace root must be an existing absolute directory containing the loaded path.",
-            });
+            };
+
+            return ResolvedWorkspaceOpenRequest.Failure(error);
         }
 
         return ResolvedWorkspaceOpenRequest.Success(
@@ -386,9 +412,9 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         var statuses = await _recoveryStore.GetStatusesAsync(cancellationToken);
         return statuses.Any(status =>
             (string.IsNullOrWhiteSpace(status.SolutionPath)
-                || string.Equals(Path.GetFullPath(status.SolutionPath), loadedPath, StringComparison.Ordinal)
+                || PathsEqual(Path.GetFullPath(status.SolutionPath), loadedPath)
                 || !string.IsNullOrWhiteSpace(status.WorkspaceRoot)
-                && string.Equals(Path.GetFullPath(status.WorkspaceRoot), workspaceRoot, StringComparison.Ordinal))
+                && PathsEqual(Path.GetFullPath(status.WorkspaceRoot), workspaceRoot))
             && status.State is not RecoveryState.Committed and not RecoveryState.Restored);
     }
 
@@ -494,6 +520,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             LoadDiagnostics = CreateStatusDiagnostics(session.LoadDiagnostics, detail, instanceStatus),
             Transaction = session.Transaction?.ToInfo(session.State == WorkspaceLifecycleState.TransactionConflicted),
             ReloadRequired = session.State == WorkspaceLifecycleState.WorkspaceOutOfDate,
+            ExternalChange = session.InputManifest.Change,
             Instances = instanceStatus.Instances,
         };
     }
@@ -509,9 +536,12 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             return null;
         }
 
-        return detail == StatusDetailLevel.Full
-            ? loadDiagnostics.Concat(instanceDiagnostics).ToArray()
-            : instanceDiagnostics;
+        if (detail != StatusDetailLevel.Full)
+        {
+            return instanceDiagnostics;
+        }
+
+        return loadDiagnostics.Concat(instanceDiagnostics).ToArray();
     }
 
     private static DiagnosticInfo[] CreateInstanceDiagnostics(WorkspaceInstanceStatusResult instanceStatus)
@@ -579,9 +609,9 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             : null;
     }
 
-    private static WorkspaceOperationError? ValidateOpenUniqueness(WorkspaceHostSnapshot hostSnapshot, string normalizedPath, string? alias)
+    private WorkspaceOperationError? ValidateOpenUniqueness(WorkspaceHostSnapshot hostSnapshot, string normalizedPath, string? alias)
     {
-        if (hostSnapshot.Workspaces.Values.Any(session => string.Equals(session.Workspace.LoadedPath, normalizedPath, StringComparison.Ordinal)))
+        if (hostSnapshot.Workspaces.Values.Any(session => PathsEqual(session.Workspace.LoadedPath, normalizedPath)))
         {
             return new WorkspaceOperationError
             {
@@ -601,6 +631,11 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         }
 
         return null;
+    }
+
+    private bool PathsEqual(string first, string second)
+    {
+        return string.Equals(first, second, _workspacePathComparison.GetComparison(first));
     }
 
     private static Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors.WorkspaceSelector? CreateWorkspaceSelector(string? workspaceId, string? alias, string? path)

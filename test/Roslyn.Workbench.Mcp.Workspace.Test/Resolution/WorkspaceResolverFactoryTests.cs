@@ -8,7 +8,12 @@ public sealed class WorkspaceResolverFactoryTests : IDisposable
     public WorkspaceResolverFactoryTests()
     {
         _workspace = new AdhocWorkspace();
-        _target = new WorkspaceResolverFactory();
+        var pathComparison = new Mock<IWorkspacePathComparison>();
+        pathComparison
+            .Setup(item => item.GetComparison(It.IsAny<string>()))
+            .Returns(StringComparison.Ordinal);
+
+        _target = new WorkspaceResolverFactory(pathComparison.Object);
     }
 
     [Fact]
@@ -21,6 +26,7 @@ public sealed class WorkspaceResolverFactoryTests : IDisposable
             WorkspaceId = "WorkspaceId",
             WorkspaceEpoch = 2,
             LoadedPath = "LoadedPath",
+            WorkspaceRoot = "WorkspaceRoot",
         };
 
         var result = _target.Create(document.Project.Solution, identity, 3);

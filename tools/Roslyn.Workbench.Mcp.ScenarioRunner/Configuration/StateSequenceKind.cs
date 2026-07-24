@@ -6,5 +6,7 @@ namespace Roslyn.Workbench.Mcp.ScenarioRunner.Configuration;
 internal enum StateSequenceKind
 {
     ExternalReload,
+    LiveBuild,
     MultiRevisionCommit,
+    WatcherStress,
 }

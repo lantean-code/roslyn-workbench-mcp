@@ -2,6 +2,7 @@ using Microsoft.Extensions.Options;
 
 using Roslyn.Workbench.Mcp.Workspace.ChangeDetection;
 using Roslyn.Workbench.Mcp.Workspace.Configuration;
+using Roslyn.Workbench.Mcp.Workspace.Coordination;
 using Roslyn.Workbench.Mcp.Workspace.Loading;
 using Roslyn.Workbench.Mcp.Workspace.Selection;
 
@@ -18,6 +19,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
     private readonly Mock<IWorkspaceResolverFactory> _resolverFactory;
     private readonly Mock<IWorkspaceResolver> _resolver;
     private readonly Mock<ILoadedWorkspace> _loadedWorkspace;
+    private readonly Mock<IWorkspaceInstanceStatusPublisher> _instanceStatusPublisher;
     private readonly WorkspaceExecutionContextFactory _target;
 
     public WorkspaceExecutionContextFactoryTests()
@@ -32,6 +34,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         _resolverFactory = new Mock<IWorkspaceResolverFactory>();
         _resolver = new Mock<IWorkspaceResolver>();
         _loadedWorkspace = new Mock<ILoadedWorkspace>();
+        _instanceStatusPublisher = new Mock<IWorkspaceInstanceStatusPublisher>();
         _resolverFactory.Setup(item => item.Create(It.IsAny<Solution>(), It.IsAny<WorkspaceIdentity>(), It.IsAny<int?>()))
             .Returns(_resolver.Object);
 
@@ -42,7 +45,8 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
             _changeDetector.Object,
             _stateTransitions.Object,
             _stagingService.Object,
-            _resolverFactory.Object);
+            _resolverFactory.Object,
+            _instanceStatusPublisher.Object);
     }
 
     [Fact]
@@ -254,6 +258,12 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
 
         result.Failure!.Error.Code.Should().Be(WorkspaceErrorCodes.WorkspaceOutOfDate);
         _sessionStore.Verify(item => item.ReplaceSession(transitioned), Times.Once);
+        _instanceStatusPublisher.Verify(item => item.QueueUpdate(
+            transitioned.Workspace.WorkspaceId,
+            WorkspaceLifecycleState.WorkspaceOutOfDate,
+            1,
+            null,
+            null), Times.Once);
     }
 
     [Fact]
@@ -274,6 +284,12 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
             item => item.HasChanged(It.IsAny<WorkspaceInputManifest>(), It.IsAny<CancellationToken>()),
             Times.Never);
         _sessionStore.Verify(item => item.ReplaceSession(transitioned), Times.Once);
+        _instanceStatusPublisher.Verify(item => item.QueueUpdate(
+            transitioned.Workspace.WorkspaceId,
+            WorkspaceLifecycleState.WorkspaceOutOfDate,
+            1,
+            null,
+            null), Times.Once);
     }
 
     [Fact]

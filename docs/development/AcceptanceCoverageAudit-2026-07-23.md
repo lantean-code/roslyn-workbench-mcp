@@ -143,7 +143,7 @@ The `Gap` column below records the baseline that produced the implementation bat
 | Omitting selector is allowed for one Workspace and rejected for many | Unit/component tests | Query without selector with one Workspace, then open a second and require `WorkspaceSelectorRequired` | PR: Ubuntu, Windows | Missing |
 | Multiple Workspaces remain isolated and only one owns the transaction slot | Component integration and release concurrency scenario | Query two copied Workspaces, transfer transaction ownership after rollback and verify `workspace-list` owner | PR: Ubuntu, Windows | Missing |
 | Duplicate open, maximum loaded count and close-with-transaction return structured state errors | Unit/component tests | Sample duplicate open and close-with-transaction; maximum-count branch can remain component-owned unless packaging changes it | PR: Ubuntu, Windows | Two public state mappings missing |
-| External source/configuration changes make results stale | Component integration and release state sequence | Warm query, edit source externally, require `WorkspaceOutOfDate` and `ReloadWorkspace` | PR: Ubuntu, Windows | Missing |
+| External source/configuration changes make results stale | Component integration, release state sequence and published acceptance | Warm query, edit source externally, require `WorkspaceOutOfDate` and `ReloadWorkspace`, and expose the first detection source, kind and path through `workspace-status` | PR: Ubuntu, Windows | Covered |
 | Reload advances the epoch and returns refreshed semantics | Component integration and release state sequence | Reload the stale fixture and prove the semantic result changes | PR: Ubuntu, Windows | Missing |
 | Advisory cross-instance state is reported without blocking queries | Component integration | Start two published Hosts on the same copied root, inspect advisory state and run a query | Release correctness: Windows, Linux | Too process-heavy for initial PR expansion; no published two-Host evidence |
 | WSL access to `/mnt/<drive>` is warned about | Release runner/manual evidence | Validate from WSL against a Windows-mounted path | Release/manual WSL | Hosted PR runners do not represent WSL |
@@ -430,6 +430,17 @@ The complete suite was run manually on native Windows on 2026-07-23 through `tes
 The first Windows attempt exposed shared `obj` state between the four plugin fixture projects, which could leave the query fixture compiling against another fixture's restored dependency graph. Each independently built plugin fixture was moved into its own project directory before the successful rerun. This was an acceptance-infrastructure correction; no production-code change was required.
 
 The complete WSL/Linux run and this native Windows run provide local cross-platform evidence. Native Ubuntu remains an authoritative pull-request-matrix responsibility.
+
+### External-change diagnostic extension
+
+The external-change acceptance was extended on 2026-07-24 after repository-scale live-build scenarios exposed generated Roslyn documents under `obj` as false stale-state triggers.
+
+- a genuine source edit must still reject a warmed query, and `workspace-status` must retain the first detection source, change kind and affected path;
+- a generated `obj` document is present before Workspace loading, changes after a warm query and must not make the Workspace stale; and
+- the complete WSL/Linux suite passed all 41 discovered cases in 28 seconds; and
+- the complete native Windows suite passed all 41 cases in approximately 45 seconds with no failures, warnings, skips, timeouts or aborted cases.
+
+The first native Windows attempt exposed directory-level `FileSystemWatcher` noise while the linked multi-target workspaces generated build output. Monitoring now starts only after manifest tracking, file-level `Changed` events remain authoritative, create/delete/rename events retain structural coverage, and directory timestamp churn is ignored. This was a production correction. The confirming run passed both previously failing linked-workspace cases and the generated-output case. The CI minimum is raised to 41.
 
 ## Release-only scenario validation and metrics
 

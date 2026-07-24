@@ -5,6 +5,12 @@ internal sealed class WorkspaceSelectorService : IWorkspaceSelector
     private const string _workspaceSelectorRequiredCode = "WorkspaceSelectorRequired";
     private const string _workspaceSelectorNotFoundCode = "WorkspaceSelectorNotFound";
     private const string _workspaceSelectorMismatchCode = "WorkspaceSelectorMismatch";
+    private readonly IWorkspacePathComparison _workspacePathComparison;
+
+    public WorkspaceSelectorService(IWorkspacePathComparison workspacePathComparison)
+    {
+        _workspacePathComparison = workspacePathComparison;
+    }
 
     public WorkspaceSelectionResult Select(WorkspaceHostSnapshot hostSnapshot, WorkspaceSelector? selector)
     {
@@ -38,7 +44,7 @@ internal sealed class WorkspaceSelectorService : IWorkspaceSelector
         return WorkspaceSelectionResult.Failure(error);
     }
 
-    private static WorkspaceSelectionResult ResolveSelection(
+    private WorkspaceSelectionResult ResolveSelection(
         WorkspaceHostSnapshot hostSnapshot,
         WorkspaceSelector selector)
     {
@@ -87,7 +93,7 @@ internal sealed class WorkspaceSelectorService : IWorkspaceSelector
         {
             var normalizedPath = NormalizeSelectorPath(selectorPath);
             var pathMatch = hostSnapshot.Workspaces.SingleOrDefault(pair =>
-                string.Equals(pair.Value.Workspace.LoadedPath, normalizedPath, StringComparison.Ordinal));
+                PathsEqual(pair.Value.Workspace.LoadedPath, normalizedPath));
 
             if (string.IsNullOrEmpty(pathMatch.Key))
             {
@@ -104,10 +110,12 @@ internal sealed class WorkspaceSelectorService : IWorkspaceSelector
 
         if (resolvedWorkspaceId.Length == 0)
         {
-            return WorkspaceSelectionResult.Failure(CreateError(
+            var error = CreateError(
                 _workspaceSelectorMismatchCode,
                 "The workspace selector fields must resolve to the same loaded workspace.",
-                RequiredAction.ResolveTargetAgain));
+                RequiredAction.ResolveTargetAgain);
+
+            return WorkspaceSelectionResult.Failure(error);
         }
 
         return CreateSuccess(resolvedWorkspaceId, hostSnapshot.Workspaces[resolvedWorkspaceId]);
@@ -115,24 +123,33 @@ internal sealed class WorkspaceSelectorService : IWorkspaceSelector
 
     private static WorkspaceSelectionResult CreateSuccess(string workspaceId, WorkspaceSessionSnapshot session)
     {
-        return WorkspaceSelectionResult.Success(new WorkspaceSelection
+        var selection = new WorkspaceSelection
         {
             WorkspaceId = workspaceId,
             Session = session,
-        });
+        };
+
+        return WorkspaceSelectionResult.Success(selection);
     }
 
     private static WorkspaceSelectionResult CreateNotFoundResult()
     {
-        return WorkspaceSelectionResult.Failure(CreateError(
+        var error = CreateError(
             _workspaceSelectorNotFoundCode,
             "The workspace selector did not match any loaded workspace.",
-            RequiredAction.ResolveTargetAgain));
+            RequiredAction.ResolveTargetAgain);
+
+        return WorkspaceSelectionResult.Failure(error);
     }
 
     private static string NormalizeSelectorPath(string path)
     {
         return Path.IsPathRooted(path) ? Path.GetFullPath(path) : path;
+    }
+
+    private bool PathsEqual(string first, string second)
+    {
+        return string.Equals(first, second, _workspacePathComparison.GetComparison(first));
     }
 
     private static WorkspaceOperationError CreateError(string code, string message, RequiredAction? requiredAction)

@@ -6,15 +6,24 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
     private readonly WorkspaceIdentity? _workspaceIdentity;
     private readonly int? _transactionRevision;
     private readonly string _workspaceRoot;
+    private readonly StringComparison _pathComparison;
 
-    public WorkspaceResolver(Solution solution, WorkspaceIdentity? workspaceIdentity, int? transactionRevision)
+    public WorkspaceResolver(
+        Solution solution,
+        WorkspaceIdentity? workspaceIdentity,
+        int? transactionRevision,
+        IWorkspacePathComparison workspacePathComparison)
     {
         _solution = solution;
         _workspaceIdentity = workspaceIdentity;
         _transactionRevision = transactionRevision;
         _workspaceRoot = workspaceIdentity is null
             ? string.Empty
-            : Path.GetDirectoryName(workspaceIdentity.LoadedPath) ?? string.Empty;
+            : workspaceIdentity.WorkspaceRoot;
+
+        _pathComparison = workspaceIdentity is null
+            ? StringComparison.Ordinal
+            : workspacePathComparison.GetComparison(workspaceIdentity.WorkspaceRoot);
     }
 
     public ResolvedLocation? CreateResolvedLocation(Location location)
@@ -266,7 +275,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
             foreach (var document in candidateProject.Documents)
             {
                 var documentPath = NormalizeDocumentPath(document.FilePath ?? string.Empty);
-                if (string.Equals(documentPath, normalizedPath, StringComparison.Ordinal))
+                if (string.Equals(documentPath, normalizedPath, _pathComparison))
                 {
                     matches.Add(document);
                 }
@@ -293,7 +302,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
             || string.Equals(
                 NormalizeProjectPath(project.FilePath ?? string.Empty),
                 NormalizeProjectPath(selector.Path),
-                StringComparison.Ordinal);
+                _pathComparison);
 
         var targetFrameworkMatches = MatchesTargetFramework(project, selector.TargetFramework);
 
@@ -356,16 +365,23 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
             searchStart = matchIndex + 1;
         }
 
-        return matches.Count switch
+        if (matches.Count == 1)
         {
-            1 => SelectorResolveResult<ResolvedDocumentSpan>.Resolved(new ResolvedDocumentSpan
+            var resolvedSpan = new ResolvedDocumentSpan
             {
                 Document = document,
                 Span = new TextSpan(matches[0], selector.SelectedText.Length),
-            }),
-            > 1 => SelectorResolveResult<ResolvedDocumentSpan>.Ambiguous(),
-            _ => SelectorResolveResult<ResolvedDocumentSpan>.NotFound(),
-        };
+            };
+
+            return SelectorResolveResult<ResolvedDocumentSpan>.Resolved(resolvedSpan);
+        }
+
+        if (matches.Count > 1)
+        {
+            return SelectorResolveResult<ResolvedDocumentSpan>.Ambiguous();
+        }
+
+        return SelectorResolveResult<ResolvedDocumentSpan>.NotFound();
     }
 
     private async ValueTask<SelectorResolveResult<ResolvedDocumentSpan>> ResolveTextSpanAsync(
@@ -391,11 +407,13 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
             return SelectorResolveResult<ResolvedDocumentSpan>.NotFound();
         }
 
-        return SelectorResolveResult<ResolvedDocumentSpan>.Resolved(new ResolvedDocumentSpan
+        var resolvedSpan = new ResolvedDocumentSpan
         {
             Document = document,
             Span = new TextSpan(selector.Start, selector.Length),
-        });
+        };
+
+        return SelectorResolveResult<ResolvedDocumentSpan>.Resolved(resolvedSpan);
     }
 
     private async ValueTask<SelectorResolveResult<ISymbol>> ResolveSymbolByDocumentationCommentIdAsync(

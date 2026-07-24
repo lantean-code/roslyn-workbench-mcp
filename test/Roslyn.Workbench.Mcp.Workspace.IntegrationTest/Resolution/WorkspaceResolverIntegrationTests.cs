@@ -186,7 +186,7 @@ public sealed class WorkspaceResolverIntegrationTests
 
         reference.DocumentationCommentId.Should().Be("T:Sample.ProjectTwo.Class1");
         reference.Location.Should().NotBeNull();
-        reference.Location!.Document!.Path.Should().Be("../ProjectTwo/Class1.cs");
+        reference.Location!.Document!.Path.Should().Be("ProjectTwo/Class1.cs");
     }
 
     [Fact]
@@ -199,7 +199,7 @@ public sealed class WorkspaceResolverIntegrationTests
 
         await using var contextLease = target.CreateQueryContext(new QueryRequest(), TestContext.Current.CancellationToken);
         var resolver = contextLease.Context!.WorkspaceResolver;
-        var projectSelector = new ProjectSelector { Path = "Sample.csproj" };
+        var projectSelector = new ProjectSelector { Path = "ProjectOne/Sample.csproj" };
         var projectResolution = resolver.ResolveProject(projectSelector);
 
         var resolution = await resolver.ResolveSymbolAsync(new SymbolSelector

@@ -8,13 +8,19 @@ public sealed class WorkspaceExternalChangeIntegrationTests
         using var fixture = TestWorkspaceFixture.Create();
         await using var target = fixture.CreateWorkspace();
         await target.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        await using var observer = fixture.CreateWorkspace();
+        await observer.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         await File.AppendAllTextAsync(fixture.DocumentPath, Environment.NewLine + "class Added { }", TestContext.Current.CancellationToken);
 
         var result = await target.GetStatusAsync(TestContext.Current.CancellationToken);
+        var observedState = await ObserveOtherInstanceStateAsync(
+            observer,
+            WorkspaceLifecycleState.WorkspaceOutOfDate);
 
         result.Status.Should().Be(WorkspaceOperationStatus.Succeeded);
         result.Data!.State.Should().Be(WorkspaceLifecycleState.WorkspaceOutOfDate);
         result.Data.ReloadRequired.Should().BeTrue();
+        observedState.Should().Be(WorkspaceLifecycleState.WorkspaceOutOfDate);
     }
 
     [Fact]
@@ -110,6 +116,24 @@ public sealed class WorkspaceExternalChangeIntegrationTests
         result.Status.Should().Be(WorkspaceOperationStatus.Rejected);
         result.Error!.Code.Should().Be("WorkspaceLoadFailed");
         result.Diagnostics.Should().NotBeEmpty();
+    }
+
+    private static async ValueTask<WorkspaceLifecycleState?> ObserveOtherInstanceStateAsync(
+        ComponentWorkspace observer,
+        WorkspaceLifecycleState expectedState)
+    {
+        WorkspaceLifecycleState? observedState = null;
+        for (var attempt = 0; attempt < 1000 && observedState != expectedState; attempt++)
+        {
+            var result = await observer.GetStatusAsync(TestContext.Current.CancellationToken);
+            observedState = result.Data?.Instances
+                .Select(static instance => instance.WorkspaceState)
+                .FirstOrDefault(state => state == expectedState);
+
+            await Task.Yield();
+        }
+
+        return observedState;
     }
 
     private sealed record QueryRequest : WorkspaceBoundRequest;

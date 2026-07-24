@@ -24,7 +24,11 @@ public sealed class WorkspaceResolverTests
     public void GIVEN_EmptyPathAndNoWorkspaceIdentity_WHEN_Normalizing_THEN_ShouldReturnEmptyAndAbsolutePaths()
     {
         using var workspace = new AdhocWorkspace();
-        var target = new WorkspaceResolver(workspace.CurrentSolution, workspaceIdentity: null, transactionRevision: null);
+        var target = new WorkspaceResolver(
+            workspace.CurrentSolution,
+            workspaceIdentity: null,
+            transactionRevision: null,
+            CreatePathComparison().Object);
         var relativePath = Path.Combine("Folder", "Document.cs");
 
         var emptyResult = target.NormalizeDocumentPath("   ");
@@ -32,6 +36,35 @@ public sealed class WorkspaceResolverTests
 
         emptyResult.Should().BeEmpty();
         pathResult.Should().Be(Path.GetFullPath(relativePath).Replace(Path.DirectorySeparatorChar, '/'));
+    }
+
+    [Fact]
+    public void GIVEN_ExplicitWorkspaceRootAboveLoadedPath_WHEN_NormalizingAndResolvingDocument_THEN_ShouldUseWorkspaceRoot()
+    {
+        using var workspace = new AdhocWorkspace();
+        var workspaceRoot = GetWorkspaceRoot();
+        var project = AddProject(workspace, "Project");
+        var documentPath = Path.Combine(workspaceRoot, "src", "Project", "Document.cs");
+        var document = AddDocument(workspace, project, "Document.cs", "class C { }", documentPath);
+        var pathComparison = CreatePathComparison();
+        var target = new WorkspaceResolver(
+            workspace.CurrentSolution,
+            new WorkspaceIdentity
+            {
+                WorkspaceId = "WorkspaceId",
+                WorkspaceEpoch = 2,
+                LoadedPath = Path.Combine(workspaceRoot, "src", "Workspace.sln"),
+                WorkspaceRoot = workspaceRoot,
+            },
+            transactionRevision: null,
+            pathComparison.Object);
+
+        var normalizedPath = target.NormalizeDocumentPath(documentPath);
+        var result = target.ResolveDocument(new DocumentSelector { Path = normalizedPath });
+
+        normalizedPath.Should().Be("src/Project/Document.cs");
+        result.IsResolved.Should().BeTrue();
+        result.Value.Should().BeSameAs(document);
     }
 
     [Fact]
@@ -87,7 +120,11 @@ public sealed class WorkspaceResolverTests
     {
         using var workspace = new AdhocWorkspace();
         var target = CreateTarget(workspace.CurrentSolution, GetWorkspaceRoot());
-        var targetWithoutIdentity = new WorkspaceResolver(workspace.CurrentSolution, workspaceIdentity: null, transactionRevision: null);
+        var targetWithoutIdentity = new WorkspaceResolver(
+            workspace.CurrentSolution,
+            workspaceIdentity: null,
+            transactionRevision: null,
+            CreatePathComparison().Object);
 
         var nonSourceResult = target.CreateResolvedLocation(Location.None);
         var missingIdentityResult = targetWithoutIdentity.CreateResolvedLocation(Location.None);
@@ -124,7 +161,11 @@ public sealed class WorkspaceResolverTests
     public void GIVEN_MissingWorkspaceIdentity_WHEN_ValidatingSnapshot_THEN_ShouldReturnWorkspaceEpochMismatch()
     {
         using var workspace = new AdhocWorkspace();
-        var target = new WorkspaceResolver(workspace.CurrentSolution, workspaceIdentity: null, transactionRevision: null);
+        var target = new WorkspaceResolver(
+            workspace.CurrentSolution,
+            workspaceIdentity: null,
+            transactionRevision: null,
+            CreatePathComparison().Object);
 
         var result = target.ValidateSnapshot(new SnapshotPrecondition());
 
@@ -175,6 +216,24 @@ public sealed class WorkspaceResolverTests
         byId.Value.Should().BeSameAs(document);
         byPath.Status.Should().Be(SelectorResolveStatus.Resolved);
         byPath.Value.Should().BeSameAs(document);
+    }
+
+    [Fact]
+    public void GIVEN_CaseInsensitiveWorkspace_WHEN_ResolvingDocumentAndProjectPathsWithDifferentCase_THEN_ShouldResolve()
+    {
+        using var workspace = CreateWorkspace("Project", "Document.cs", "class C { }");
+        var project = workspace.CurrentSolution.Projects.Single();
+        var document = project.Documents.Single();
+        var target = CreateTarget(
+            workspace.CurrentSolution,
+            GetWorkspaceRoot(),
+            pathComparison: StringComparison.OrdinalIgnoreCase);
+
+        var documentResult = target.ResolveDocument(new DocumentSelector { Path = "project/document.cs" });
+        var projectResult = target.ResolveProject(new ProjectSelector { Path = "project/project.csproj" });
+
+        documentResult.Value.Should().BeSameAs(document);
+        projectResult.Value.Should().BeSameAs(project);
     }
 
     [Fact]
@@ -1175,7 +1234,11 @@ public sealed class WorkspaceResolverTests
         result.Status.Should().Be(SelectorResolveStatus.NotFound);
     }
 
-    private static WorkspaceResolver CreateTarget(Solution solution, string workspaceRoot, int? transactionRevision = null)
+    private static WorkspaceResolver CreateTarget(
+        Solution solution,
+        string workspaceRoot,
+        int? transactionRevision = null,
+        StringComparison pathComparison = StringComparison.Ordinal)
     {
         return new WorkspaceResolver(
             solution,
@@ -1184,8 +1247,21 @@ public sealed class WorkspaceResolverTests
                 WorkspaceId = "WorkspaceId",
                 WorkspaceEpoch = 2,
                 LoadedPath = Path.Combine(workspaceRoot, "Workspace.sln"),
+                WorkspaceRoot = workspaceRoot,
             },
-            transactionRevision);
+            transactionRevision,
+            CreatePathComparison(pathComparison).Object);
+    }
+
+    private static Mock<IWorkspacePathComparison> CreatePathComparison(
+        StringComparison comparison = StringComparison.Ordinal)
+    {
+        var pathComparison = new Mock<IWorkspacePathComparison>();
+        pathComparison
+            .Setup(item => item.GetComparison(It.IsAny<string>()))
+            .Returns(comparison);
+
+        return pathComparison;
     }
 
     private static AdhocWorkspace CreateWorkspace(string projectName, string documentName, string text)

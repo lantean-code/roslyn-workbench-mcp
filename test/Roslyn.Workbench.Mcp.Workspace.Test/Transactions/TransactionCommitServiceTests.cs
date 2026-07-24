@@ -128,6 +128,12 @@ public sealed class TransactionCommitServiceTests : IDisposable
 
         result.Should().BeSameAs(expected);
         _sessionStore.Verify(item => item.ReplaceSession(conflicted), Times.Once);
+        _statusPublisher.Verify(item => item.QueueUpdate(
+            conflicted.Workspace.WorkspaceId,
+            WorkspaceLifecycleState.TransactionConflicted,
+            conflicted.Transaction!.CurrentRevision,
+            null,
+            null), Times.Once);
     }
 
     [Fact]
@@ -187,7 +193,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
         var manifest = CreateManifest();
         var plan = new WorkspaceCommitPlan(manifest, new Dictionary<string, ReadOnlyMemory<byte>>());
         var expected = CreateResult(WorkspaceOperationStatus.Succeeded);
-        var inputManifest = new WorkspaceInputManifest();
+        using var inputManifest = new WorkspaceInputManifest();
         _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
         _lockManager.Setup(item => item.Acquire("/workspace")).Returns(WorkspaceCommitLockAcquisition.Acquired(commitLock.Object));
         _planner.Setup(item => item.CreateAsync(
@@ -200,7 +206,9 @@ public sealed class TransactionCommitServiceTests : IDisposable
         _commitWriter.Setup(item => item.ApplyAsync(It.IsAny<WorkspaceCommitManifest>()))
             .ReturnsAsync(WorkspaceCommitValidationResult.Valid());
 
-        _changeDetector.Setup(item => item.BuildManifest(transaction.CurrentSolution, "/workspace/solution.slnx")).Returns(inputManifest);
+        _changeDetector
+            .Setup(item => item.BuildManifest(transaction.CurrentSolution, "/workspace/solution.slnx", "/workspace"))
+            .Returns(inputManifest);
         _stateTransitions.Setup(item => item.Fire(WorkspaceLifecycleState.TransactionActive, WorkspaceTrigger.TransactionCommitted)).Returns(WorkspaceLifecycleState.Ready);
         _commitWriter.Setup(item => item.CompleteAsync(It.IsAny<WorkspaceCommitManifest>())).ReturnsAsync(true);
         _resultFactory.Setup(item => item.Succeeded(
@@ -230,7 +238,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
         var transaction = session.Transaction!;
         var manifest = CreateManifest();
         var plan = new WorkspaceCommitPlan(manifest, new Dictionary<string, ReadOnlyMemory<byte>>());
-        var inputManifest = new WorkspaceInputManifest
+        using var inputManifest = new WorkspaceInputManifest
         {
             EvaluationFailures =
             [
@@ -244,7 +252,7 @@ public sealed class TransactionCommitServiceTests : IDisposable
 
         var expected = CreateResult(WorkspaceOperationStatus.Succeeded);
         SetupProtocol(session, plan);
-        _changeDetector.Setup(item => item.BuildManifest(transaction.CurrentSolution, "/workspace/solution.slnx"))
+        _changeDetector.Setup(item => item.BuildManifest(transaction.CurrentSolution, "/workspace/solution.slnx", "/workspace"))
             .Returns(inputManifest);
 
         _stateTransitions.Setup(item => item.ApplyExternalChangeDetected(It.Is<WorkspaceSessionSnapshot>(value =>
@@ -737,7 +745,8 @@ public sealed class TransactionCommitServiceTests : IDisposable
     {
         if (status == WorkspaceOperationStatus.Succeeded)
         {
-            return WorkspaceOperationResult<TransactionCommitOutcome>.Succeeded(new TransactionCommitOutcome());
+            var outcome = new TransactionCommitOutcome();
+            return WorkspaceOperationResult<TransactionCommitOutcome>.Succeeded(outcome);
         }
 
         if (status == WorkspaceOperationStatus.NoChange)
@@ -767,6 +776,10 @@ public sealed class TransactionCommitServiceTests : IDisposable
         return WorkspaceCommitLockAcquisition.Acquired(commitLock.Object);
     }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "The manifest is transferred through the change-detector mock to the commit service, which either disposes it or installs it as session-owned state.")]
     private void SetupProtocol(WorkspaceSessionSnapshot session, WorkspaceCommitPlan plan)
     {
         _sessionStore.Setup(item => item.ReadSession("WorkspaceId")).Returns(session);
@@ -781,7 +794,9 @@ public sealed class TransactionCommitServiceTests : IDisposable
         _commitWriter.Setup(item => item.ApplyAsync(It.IsAny<WorkspaceCommitManifest>()))
             .ReturnsAsync(WorkspaceCommitValidationResult.Valid());
 
-        _changeDetector.Setup(item => item.BuildManifest(It.IsAny<Solution>(), It.IsAny<string>())).Returns(new WorkspaceInputManifest());
+        _changeDetector
+            .Setup(item => item.BuildManifest(It.IsAny<Solution>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(new WorkspaceInputManifest());
         _stateTransitions.Setup(item => item.Fire(It.IsAny<WorkspaceLifecycleState>(), WorkspaceTrigger.TransactionCommitted)).Returns(WorkspaceLifecycleState.Ready);
     }
 }

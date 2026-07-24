@@ -16,5 +16,7 @@ internal sealed record WorkspaceStatusOutcome
 
     public bool ReloadRequired { get; init; }
 
+    public WorkspaceInputChange? ExternalChange { get; init; }
+
     public IReadOnlyList<WorkspaceInstanceInfo> Instances { get; init; } = [];
 }

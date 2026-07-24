@@ -33,6 +33,31 @@ public sealed class WorkspaceReloadIntegrationTests
             AcceptanceProtocol.GetError(staleSearch).GetProperty("code").GetString().Should().Be("WorkspaceOutOfDate");
             staleSearch.StructuredContent!.Value.GetProperty("next").GetString().Should().Be("ReloadWorkspace");
 
+            var statusResult = await target.CallToolAsync(
+                "workspace-status",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                },
+                TestContext.Current.CancellationToken);
+
+            var statusData = AcceptanceProtocol.GetSuccessData(statusResult);
+            statusData.GetProperty("state").GetString().Should().Be("WorkspaceOutOfDate");
+
+            var externalChange = statusData.GetProperty("externalChange");
+            var detectionSource = externalChange.GetProperty("detectionSource").GetString();
+            externalChange.GetProperty("path").GetString().Should().Be(documentPath);
+
+            if (detectionSource == "FileSystemWatcher")
+            {
+                externalChange.GetProperty("kind").GetString().Should().Be("Changed");
+            }
+            else
+            {
+                detectionSource.Should().Be("MetadataPolling");
+                externalChange.GetProperty("kind").GetString().Should().Be("MetadataChanged");
+            }
+
             var reloadResult = await target.CallToolAsync(
                 "workspace-reload",
                 new Dictionary<string, object?>
@@ -78,6 +103,63 @@ public sealed class WorkspaceReloadIntegrationTests
 
             staleSnapshotResult.IsError.Should().BeTrue();
             AcceptanceProtocol.GetError(staleSnapshotResult).GetProperty("code").GetString().Should().Be("SnapshotMismatch");
+        }
+        catch
+        {
+            target.RetainRootOnFailure();
+            throw;
+        }
+    }
+
+    [Fact]
+    public async Task GIVEN_GeneratedOutputChanges_WHEN_QueryingWorkspace_THEN_ShouldRemainReady()
+    {
+        await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(TestContext.Current.CancellationToken);
+
+        try
+        {
+            var projectPath = Path.Combine(target.WorkspaceRoot, "Sample.csproj");
+            var generatedDirectory = Path.Combine(target.WorkspaceRoot, "obj", "Debug", "net10.0");
+            var generatedDocumentPath = Path.Combine(generatedDirectory, "Sample.AssemblyInfo.cs");
+            Directory.CreateDirectory(generatedDirectory);
+            await File.WriteAllTextAsync(
+                generatedDocumentPath,
+                "// Initial generated output.\r\n",
+                TestContext.Current.CancellationToken);
+
+            var openResult = await target.CallToolAsync(
+                "workspace-open",
+                new Dictionary<string, object?>
+                {
+                    ["path"] = projectPath,
+                    ["workspaceRoot"] = target.WorkspaceRoot,
+                },
+                TestContext.Current.CancellationToken);
+
+            var workspace = AcceptanceWorkspaceIdentity.FromOpenResult(openResult);
+            var workspaceSelector = workspace.CreateSelector();
+            var initialSearch = await SearchAsync(target, workspaceSelector, "Class1");
+            initialSearch.IsError.Should().NotBeTrue();
+
+            await File.WriteAllTextAsync(
+                generatedDocumentPath,
+                "// Updated generated output.\r\n",
+                TestContext.Current.CancellationToken);
+
+            var refreshedSearch = await SearchAsync(target, workspaceSelector, "Class1");
+            refreshedSearch.IsError.Should().NotBeTrue();
+
+            var statusResult = await target.CallToolAsync(
+                "workspace-status",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                },
+                TestContext.Current.CancellationToken);
+
+            var statusData = AcceptanceProtocol.GetSuccessData(statusResult);
+            statusData.GetProperty("state").GetString().Should().Be("Ready");
+            statusData.TryGetProperty("externalChange", out _).Should().BeFalse();
         }
         catch
         {

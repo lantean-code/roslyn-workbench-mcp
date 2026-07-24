@@ -1006,6 +1006,8 @@ internal static class ScenarioApplication
         {
             Iteration = iteration,
             Steps = completedExecution.Steps,
+            ExternalCommand = completedExecution.ExternalCommand,
+            WatcherStress = completedExecution.WatcherStress,
             RestorationMilliseconds = restorationMilliseconds,
             Files = completedChanges.Files,
             HostShutdown = shutdown,
@@ -1021,11 +1023,12 @@ internal static class ScenarioApplication
             ?? throw new InvalidOperationException(
                 $"Scenario '{scenario.Id}' does not define a state sequence.");
 
-        if (definition.Kind == StateSequenceKind.ExternalReload
+        if ((definition.Kind is StateSequenceKind.ExternalReload
+                or StateSequenceKind.LiveBuild)
             && changes.Files.Count != 0)
         {
             throw new InvalidOperationException(
-                "External-reload sequence did not restore its externally changed source file.");
+                $"{definition.Kind} sequence left repository changes after completion.");
         }
 
         if (definition.Kind == StateSequenceKind.MultiRevisionCommit

@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.ExceptionServices;
 using System.Text.Json;
+using System.Threading.Channels;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Coordination;
 
@@ -10,6 +11,9 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
     private readonly IFileSystem _fileSystem;
     private readonly IWorkspacePathComparison _pathComparison;
     private readonly Dictionary<string, WorkspaceInstanceStatusHandle> _handles = new(StringComparer.Ordinal);
+    private readonly Channel<WorkspaceInstanceStatusUpdate> _updates;
+    private readonly Task _updateWorker;
+    private readonly Lock _updateSync = new();
     [SuppressMessage(
         "Usage",
         "CA2213:Disposable fields should be disposed",
@@ -22,6 +26,13 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
     {
         _fileSystem = fileSystem;
         _pathComparison = pathComparison;
+        _updates = Channel.CreateUnbounded<WorkspaceInstanceStatusUpdate>(new UnboundedChannelOptions
+        {
+            SingleReader = true,
+            SingleWriter = false,
+        });
+
+        _updateWorker = ProcessUpdatesAsync();
     }
 
     public async ValueTask<WorkspaceInstanceStatusResult> OpenAsync(
@@ -85,35 +96,47 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         }
     }
 
-    public async ValueTask UpdateAsync(
+    public ValueTask UpdateAsync(
         string workspaceId,
         WorkspaceLifecycleState state,
         long? transactionRevision,
         string? commitId,
         string? commitPhase)
     {
-        await _gate.WaitAsync();
-        try
+        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        lock (_updateSync)
         {
-            if (_isDisposed || !_handles.TryGetValue(workspaceId, out var handle))
+            if (!_updates.Writer.TryWrite(CreateUpdate(
+                workspaceId,
+                state,
+                transactionRevision,
+                commitId,
+                commitPhase,
+                completion)))
             {
-                return;
-            }
-
-            try
-            {
-                await handle.UpdateAsync(state, transactionRevision, commitId, commitPhase);
-            }
-            catch (IOException)
-            {
-            }
-            catch (UnauthorizedAccessException)
-            {
+                completion.SetResult();
             }
         }
-        finally
+
+        return new ValueTask(completion.Task);
+    }
+
+    public void QueueUpdate(
+        string workspaceId,
+        WorkspaceLifecycleState state,
+        long? transactionRevision,
+        string? commitId,
+        string? commitPhase)
+    {
+        lock (_updateSync)
         {
-            _gate.Release();
+            _updates.Writer.TryWrite(CreateUpdate(
+                workspaceId,
+                state,
+                transactionRevision,
+                commitId,
+                commitPhase,
+                completion: null));
         }
     }
 
@@ -141,6 +164,13 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         Justification = "Disposal must attempt every workspace status handle, retain the first failure, and rethrow it after all handles have been closed.")]
     public async ValueTask DisposeAsync()
     {
+        lock (_updateSync)
+        {
+            _updates.Writer.TryComplete();
+        }
+
+        await _updateWorker;
+
         await _gate.WaitAsync();
         try
         {
@@ -172,6 +202,76 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         {
             _gate.Release();
         }
+    }
+
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "The owned update worker must complete awaited updates with their failure and continue draining later advisory writes before shutdown.")]
+    private async Task ProcessUpdatesAsync()
+    {
+        await foreach (var update in _updates.Reader.ReadAllAsync())
+        {
+            try
+            {
+                await ApplyUpdateAsync(update);
+                update.Completion?.SetResult();
+            }
+            catch (Exception exception)
+            {
+                update.Completion?.SetException(exception);
+            }
+        }
+    }
+
+    private async ValueTask ApplyUpdateAsync(WorkspaceInstanceStatusUpdate update)
+    {
+        await _gate.WaitAsync();
+        try
+        {
+            if (_isDisposed || !_handles.TryGetValue(update.WorkspaceId, out var handle))
+            {
+                return;
+            }
+
+            try
+            {
+                await handle.UpdateAsync(
+                    update.State,
+                    update.TransactionRevision,
+                    update.CommitId,
+                    update.CommitPhase);
+            }
+            catch (IOException)
+            {
+            }
+            catch (UnauthorizedAccessException)
+            {
+            }
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    private static WorkspaceInstanceStatusUpdate CreateUpdate(
+        string workspaceId,
+        WorkspaceLifecycleState state,
+        long? transactionRevision,
+        string? commitId,
+        string? commitPhase,
+        TaskCompletionSource? completion)
+    {
+        return new WorkspaceInstanceStatusUpdate
+        {
+            WorkspaceId = workspaceId,
+            State = state,
+            TransactionRevision = transactionRevision,
+            CommitId = commitId,
+            CommitPhase = commitPhase,
+            Completion = completion,
+        };
     }
 
     private async ValueTask<WorkspaceInstanceStatusResult> PrepareInstanceDirectoryAsync(

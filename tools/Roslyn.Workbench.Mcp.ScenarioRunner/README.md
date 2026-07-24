@@ -35,7 +35,7 @@ Folders and namespaces are aligned. Scenario-specific execution and result types
 
 `crash-recovery` starts a real durable commit, waits until the scenario's requested create, replace or delete operation is observable, and forcibly terminates the published Host while its manifest remains `Applying`. Scenarios without an explicit operation stop at the first observable mutation. The runner then starts a fresh Host against the same state directory, allowing normal startup recovery to run before MCP initialisation. The run proves that the partially applied repository is restored, recovery artifacts are removed, the Workspace can be reopened, the recovery Host shuts down normally and only the expected persistent commit-lock marker was created before runner cleanup. Results are written to `crash-recovery.json`, `crash-recovery.md` and `validation.json`.
 
-`state-sequence` runs a checked-in sequence against one long-lived Workspace. The external-reload sequence warms a semantic query, changes a source file outside the Host, proves the stale query is rejected, reloads the Workspace and verifies the refreshed query observes the new reference. The multi-revision sequence warms a semantic query, stages two mutations, traverses undo and redo history, commits the selected revision and verifies the post-commit query resolves the moved definition. Each iteration restores the checkout and validates Host, Workspace and recovery state. Results are written to `state-sequence.json`, `state-sequence.md` and `validation.json`.
+`state-sequence` runs a checked-in sequence against one long-lived Workspace. The external-reload sequence warms a semantic query, changes a source file outside the Host, proves the stale query is rejected, reloads the Workspace and verifies the refreshed query observes the new reference. The live-build sequence warms a projection query, executes the repository's curated full build while the Host and Workspace remain open, records build duration plus Host CPU and working-set impact, and observes whether the Workspace remains ready or requires stale rejection and reload before the post-build query succeeds. The watcher-stress sequence generates a bounded burst of create, rewrite and delete operations beneath an evaluated artifact root, then records whether the recursive filesystem monitor remained healthy or reported a classified buffer overflow. The multi-revision sequence warms a semantic query, stages two mutations, traverses undo and redo history, commits the selected revision and verifies the post-commit query resolves the moved definition. Each iteration restores the checkout and validates Host, Workspace and recovery state. Results are written to `state-sequence.json`, `state-sequence.md` and `validation.json`.
 
 `concurrency` starts a configured number of query requests behind one client-side start gate. Successful responses must match the warmed baseline exactly; excess requests may only reject with the documented `WorkspaceBusy` and `Retry` result, after which a sequential retry must succeed with the same response. The command also opens a project Workspace alongside the repository solution, proves both are listed and independently queryable while either owns the single transaction, validates non-owner transaction rejection, and runs one query against each Workspace concurrently. Results are written to `concurrency.json`, `concurrency.md` and `validation.json`.
 
@@ -162,6 +162,50 @@ Validate cache freshness across an external edit/reload and a committed multi-re
 
 ./tools/Roslyn.Workbench.Mcp.ScenarioRunner/run-scenarios.sh \
   state-sequence --repository serilog --scenario find-no-enumeration-cache-multi-revision \
+  --iterations 1 --warmups 0 --skip-prepare
+```
+
+Measure the effect of a full repository build on an open Workspace:
+
+```powershell
+.\tools\Roslyn.Workbench.Mcp.ScenarioRunner\run-scenarios.ps1 `
+  state-sequence --repository guardclauses --scenario live-build `
+  --iterations 1 --warmups 0 --skip-prepare
+
+.\tools\Roslyn.Workbench.Mcp.ScenarioRunner\run-scenarios.ps1 `
+  state-sequence --repository serilog --scenario live-build `
+  --iterations 1 --warmups 0 --skip-prepare
+
+.\tools\Roslyn.Workbench.Mcp.ScenarioRunner\run-scenarios.ps1 `
+  state-sequence --repository efcore --scenario live-build `
+  --iterations 1 --warmups 0 --skip-prepare
+```
+
+```bash
+./tools/Roslyn.Workbench.Mcp.ScenarioRunner/run-scenarios.sh \
+  state-sequence --repository guardclauses --scenario live-build \
+  --iterations 1 --warmups 0 --skip-prepare
+
+./tools/Roslyn.Workbench.Mcp.ScenarioRunner/run-scenarios.sh \
+  state-sequence --repository serilog --scenario live-build \
+  --iterations 1 --warmups 0 --skip-prepare
+
+./tools/Roslyn.Workbench.Mcp.ScenarioRunner/run-scenarios.sh \
+  state-sequence --repository efcore --scenario live-build \
+  --iterations 1 --warmups 0 --skip-prepare
+```
+
+Stress the recursive filesystem monitor with generated artifact events:
+
+```powershell
+.\tools\Roslyn.Workbench.Mcp.ScenarioRunner\run-scenarios.ps1 `
+  state-sequence --repository efcore --scenario watcher-stress `
+  --iterations 1 --warmups 0 --skip-prepare
+```
+
+```bash
+./tools/Roslyn.Workbench.Mcp.ScenarioRunner/run-scenarios.sh \
+  state-sequence --repository efcore --scenario watcher-stress \
   --iterations 1 --warmups 0 --skip-prepare
 ```
 

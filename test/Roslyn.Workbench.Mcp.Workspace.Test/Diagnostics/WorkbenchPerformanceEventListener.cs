@@ -5,8 +5,18 @@ namespace Roslyn.Workbench.Mcp.Workspace.Test.Diagnostics;
 internal sealed class WorkbenchPerformanceEventListener : EventListener
 {
     private readonly List<EventWrittenEventArgs> _events = [];
+    private readonly Lock _sync = new();
 
-    public IReadOnlyList<EventWrittenEventArgs> Events => _events;
+    public IReadOnlyList<EventWrittenEventArgs> Events
+    {
+        get
+        {
+            lock (_sync)
+            {
+                return [.. _events];
+            }
+        }
+    }
 
     public WorkbenchPerformanceEventListener(EventSource eventSource)
     {
@@ -15,6 +25,9 @@ internal sealed class WorkbenchPerformanceEventListener : EventListener
 
     protected override void OnEventWritten(EventWrittenEventArgs eventData)
     {
-        _events.Add(eventData);
+        lock (_sync)
+        {
+            _events.Add(eventData);
+        }
     }
 }

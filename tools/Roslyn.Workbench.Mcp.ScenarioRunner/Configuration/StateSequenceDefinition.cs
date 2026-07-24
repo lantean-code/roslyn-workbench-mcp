@@ -5,8 +5,12 @@ internal sealed record StateSequenceDefinition
 {
     public required StateSequenceKind Kind { get; init; }
 
+    public CommandDefinition? Build { get; init; }
+
     public ExternalMemberInsertionDefinition? ExternalMutation { get; init; }
 
     public IReadOnlyList<ToolCallDefinition> Mutations { get; init; } = [];
+
+    public WatcherStressDefinition? WatcherStress { get; init; }
 }
 #pragma warning restore CA1812

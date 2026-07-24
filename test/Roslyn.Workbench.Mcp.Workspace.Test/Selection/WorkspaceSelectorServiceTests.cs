@@ -4,11 +4,17 @@ namespace Roslyn.Workbench.Mcp.Workspace.Test.Selection;
 
 public sealed class WorkspaceSelectorServiceTests
 {
+    private readonly Mock<IWorkspacePathComparison> _workspacePathComparison;
     private readonly WorkspaceSelectorService _target;
 
     public WorkspaceSelectorServiceTests()
     {
-        _target = new WorkspaceSelectorService();
+        _workspacePathComparison = new Mock<IWorkspacePathComparison>();
+        _workspacePathComparison
+            .Setup(item => item.GetComparison(It.IsAny<string>()))
+            .Returns(StringComparison.Ordinal);
+
+        _target = new WorkspaceSelectorService(_workspacePathComparison.Object);
     }
 
     [Fact]
@@ -177,6 +183,29 @@ public sealed class WorkspaceSelectorServiceTests
         result.Error!.Code.Should().Be("WorkspaceSelectorNotFound");
         result.Error.Message.Should().Be("The workspace selector did not match any loaded workspace.");
         result.Error.RequiredAction.Should().Be(RequiredAction.ResolveTargetAgain);
+    }
+
+    [Fact]
+    public void GIVEN_CaseInsensitiveWorkspacePath_WHEN_SelectingWithDifferentCase_THEN_ShouldReturnMatchingSession()
+    {
+        var loadedPath = Path.Combine(Path.GetTempPath(), "WorkspaceDirectory", "Workspace.sln");
+        var selectorPath = Path.Combine(Path.GetTempPath(), "workspaceDirectory", "Workspace.sln");
+        var session = CreateSession("WorkspaceId", "Alias", loadedPath);
+        var hostSnapshot = CreateHostSnapshot(session);
+        var selector = new WorkspaceSelector
+        {
+            Path = selectorPath,
+        };
+
+        _workspacePathComparison
+            .Setup(item => item.GetComparison(loadedPath))
+            .Returns(StringComparison.OrdinalIgnoreCase);
+
+        var result = _target.Select(hostSnapshot, selector);
+
+        result.HasError.Should().BeFalse();
+        result.Selection!.WorkspaceId.Should().Be("WorkspaceId");
+        result.Selection.Session.Should().BeSameAs(session);
     }
 
     [Fact]

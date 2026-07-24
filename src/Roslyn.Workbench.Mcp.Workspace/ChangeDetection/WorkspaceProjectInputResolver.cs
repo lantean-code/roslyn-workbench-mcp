@@ -2,6 +2,26 @@ namespace Roslyn.Workbench.Mcp.Workspace.ChangeDetection;
 
 internal sealed class WorkspaceProjectInputResolver : IWorkspaceProjectInputResolver
 {
+    private static readonly string[] _artifactPathPropertyNames =
+    [
+        "ArtifactsPath",
+        "BaseIntermediateOutputPath",
+        "IntermediateOutputPath",
+        "MSBuildProjectExtensionsPath",
+        "BaseOutputPath",
+        "OutputPath",
+        "OutDir",
+        "PublishDir",
+        "PackageOutputPath",
+    ];
+
+    private readonly IWorkspacePathComparison _pathComparison;
+
+    public WorkspaceProjectInputResolver(IWorkspacePathComparison pathComparison)
+    {
+        _pathComparison = pathComparison;
+    }
+
     public WorkspaceProjectInputResolution Resolve(string? projectPath)
     {
         if (string.IsNullOrWhiteSpace(projectPath))
@@ -20,9 +40,10 @@ internal sealed class WorkspaceProjectInputResolver : IWorkspaceProjectInputReso
         {
             using var projectCollection = new Microsoft.Build.Evaluation.ProjectCollection();
             var project = projectCollection.LoadProject(projectPath);
+            var comparer = _pathComparison.GetComparer(projectPath);
 
-            var paths = new List<string>();
-            var uniquePaths = new HashSet<string>(StringComparer.Ordinal);
+            var importedPaths = new List<string>();
+            var uniqueImportedPaths = new HashSet<string>(comparer);
             foreach (var import in project.Imports)
             {
                 var path = import.ImportedProject?.FullPath;
@@ -32,17 +53,86 @@ internal sealed class WorkspaceProjectInputResolver : IWorkspaceProjectInputReso
                 }
 
                 var fullPath = Path.GetFullPath(path);
-                if (uniquePaths.Add(fullPath))
+                if (uniqueImportedPaths.Add(fullPath))
                 {
-                    paths.Add(fullPath);
+                    importedPaths.Add(fullPath);
                 }
             }
 
-            return WorkspaceProjectInputResolution.Succeeded(paths.ToArray());
+            var artifactRoots = ResolveArtifactRoots(project, comparer);
+            return WorkspaceProjectInputResolution.Succeeded(
+                importedPaths.ToArray(),
+                artifactRoots);
         }
         catch (Exception exception) when (exception is Microsoft.Build.Exceptions.InvalidProjectFileException or IOException or UnauthorizedAccessException)
         {
             return WorkspaceProjectInputResolution.Failed(projectPath, exception.Message);
+        }
+    }
+
+    private static string[] ResolveArtifactRoots(
+        Microsoft.Build.Evaluation.Project project,
+        StringComparer comparer)
+    {
+        var artifactRoots = new List<string>();
+        var uniqueArtifactRoots = new HashSet<string>(comparer);
+        foreach (var propertyName in _artifactPathPropertyNames)
+        {
+            var propertyValue = project.GetPropertyValue(propertyName);
+            if (!TryResolvePath(project.DirectoryPath, propertyValue, out var artifactRoot)
+                || !uniqueArtifactRoots.Add(artifactRoot))
+            {
+                continue;
+            }
+
+            artifactRoots.Add(artifactRoot);
+        }
+
+        if (artifactRoots.Count == 0)
+        {
+            AddFallbackArtifactRoot(project.DirectoryPath, "bin", artifactRoots, uniqueArtifactRoots);
+            AddFallbackArtifactRoot(project.DirectoryPath, "obj", artifactRoots, uniqueArtifactRoots);
+        }
+
+        return artifactRoots.ToArray();
+    }
+
+    private static void AddFallbackArtifactRoot(
+        string projectDirectory,
+        string directoryName,
+        List<string> artifactRoots,
+        HashSet<string> uniqueArtifactRoots)
+    {
+        var artifactRoot = Path.GetFullPath(Path.Combine(projectDirectory, directoryName));
+        if (uniqueArtifactRoots.Add(artifactRoot))
+        {
+            artifactRoots.Add(artifactRoot);
+        }
+    }
+
+    private static bool TryResolvePath(
+        string projectDirectory,
+        string? path,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out string? resolvedPath)
+    {
+        resolvedPath = null;
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return false;
+        }
+
+        try
+        {
+            var platformPath = path
+                .Replace('\\', Path.DirectorySeparatorChar)
+                .Replace('/', Path.DirectorySeparatorChar);
+
+            resolvedPath = Path.TrimEndingDirectorySeparator(Path.GetFullPath(platformPath, projectDirectory));
+            return true;
+        }
+        catch (Exception exception) when (exception is ArgumentException or IOException or NotSupportedException)
+        {
+            return false;
         }
     }
 }

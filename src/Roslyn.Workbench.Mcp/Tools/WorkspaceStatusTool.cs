@@ -33,16 +33,35 @@ internal sealed class WorkspaceStatusTool : ServerOwnedToolBase<WorkspaceStatusR
             request.Detail,
             cancellationToken);
 
-        return WorkspaceToolResultMapper.Map(result, static data => new WorkspaceStatusData
+        return WorkspaceToolResultMapper.Map(result, CreateData);
+    }
+
+    private static WorkspaceStatusData CreateData(WorkspaceStatusOutcome outcome)
+    {
+        WorkspaceExternalChangeData? externalChange = null;
+        if (outcome.ExternalChange is not null)
         {
-            State = data.State,
-            Workspace = data.Workspace,
-            ProjectCount = data.ProjectCount,
-            DocumentCount = data.DocumentCount,
-            LoadDiagnostics = data.LoadDiagnostics,
-            Transaction = data.Transaction,
-            ReloadRequired = data.ReloadRequired,
-            Instances = data.Instances,
-        });
+            externalChange = new WorkspaceExternalChangeData
+            {
+                DetectionSource = outcome.ExternalChange.DetectionSource.ToString(),
+                ErrorCode = outcome.ExternalChange.ErrorCode?.ToString(),
+                Kind = outcome.ExternalChange.Kind.ToString(),
+                Path = outcome.ExternalChange.Path,
+                PreviousPath = outcome.ExternalChange.PreviousPath,
+            };
+        }
+
+        return new WorkspaceStatusData
+        {
+            State = outcome.State,
+            Workspace = outcome.Workspace,
+            ProjectCount = outcome.ProjectCount,
+            DocumentCount = outcome.DocumentCount,
+            LoadDiagnostics = outcome.LoadDiagnostics,
+            Transaction = outcome.Transaction,
+            ReloadRequired = outcome.ReloadRequired,
+            ExternalChange = externalChange,
+            Instances = outcome.Instances,
+        };
     }
 }

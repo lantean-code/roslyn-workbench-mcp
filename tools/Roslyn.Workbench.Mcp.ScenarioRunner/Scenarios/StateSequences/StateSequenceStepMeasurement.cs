@@ -16,6 +16,10 @@ internal sealed record StateSequenceStepMeasurement
 
     public string? RequiredAction { get; init; }
 
+    public string? WorkspaceState { get; init; }
+
+    public WorkspaceExternalChangeMeasurement? ExternalChange { get; init; }
+
     public bool? MutationStaged { get; init; }
 
     public int? ReferenceCount { get; init; }

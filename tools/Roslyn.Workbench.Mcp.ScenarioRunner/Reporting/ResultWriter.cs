@@ -667,18 +667,90 @@ internal static class ResultWriter
             .Append(createdCount.ToString(CultureInfo.InvariantCulture)).Append('/')
             .Append(replacedCount.ToString(CultureInfo.InvariantCulture)).Append('/')
             .AppendLine(deletedCount.ToString(CultureInfo.InvariantCulture))
-            .AppendLine()
-            .AppendLine("| Step | Tool | Elapsed (ms) | Error | References | Revision | Revisions |")
-            .AppendLine("|---|---|---:|---|---:|---:|---:|");
+            .AppendLine();
+
+        if (first.ExternalCommand is not null)
+        {
+            builder
+                .Append("External command: ").Append(first.ExternalCommand.FileName)
+                .Append(' ').AppendLine(string.Join(' ', first.ExternalCommand.Arguments))
+                .Append("External command elapsed: ")
+                .Append(first.ExternalCommand.ElapsedMilliseconds.ToString(
+                    "F2",
+                    CultureInfo.InvariantCulture))
+                .AppendLine(" ms")
+                .Append("Host CPU during build/settlement: ")
+                .Append(first.ExternalCommand.HostCpuMilliseconds.ToString(
+                    "F2",
+                    CultureInfo.InvariantCulture))
+                .AppendLine(" ms")
+                .Append("Host working set before/after/delta: ")
+                .Append(FormatBytes(first.ExternalCommand.HostWorkingSetBeforeBytes))
+                .Append('/')
+                .Append(FormatBytes(first.ExternalCommand.HostWorkingSetAfterBytes))
+                .Append('/')
+                .AppendLine(FormatBytes(first.ExternalCommand.HostWorkingSetDeltaBytes))
+                .Append("Host peak working set: ")
+                .AppendLine(FormatBytes(first.ExternalCommand.HostPeakWorkingSetBytes))
+                .Append("External stdout/stderr bytes: ")
+                .Append(first.ExternalCommand.StandardOutputBytes.ToString(
+                    CultureInfo.InvariantCulture))
+                .Append('/')
+                .AppendLine(first.ExternalCommand.StandardErrorBytes.ToString(
+                    CultureInfo.InvariantCulture))
+                .AppendLine();
+        }
+
+        if (first.WatcherStress is not null)
+        {
+            builder
+                .Append("Watcher stress artifact path: ")
+                .AppendLine(first.WatcherStress.ArtifactPath)
+                .Append("Watcher stress files/write passes: ")
+                .Append(first.WatcherStress.FileCount.ToString(
+                    CultureInfo.InvariantCulture))
+                .Append('/')
+                .AppendLine(first.WatcherStress.WritePasses.ToString(
+                    CultureInfo.InvariantCulture))
+                .Append("Watcher stress elapsed: ")
+                .Append(first.WatcherStress.ElapsedMilliseconds.ToString(
+                    "F2",
+                    CultureInfo.InvariantCulture))
+                .AppendLine(" ms")
+                .Append("Host CPU during stress/settlement: ")
+                .Append(first.WatcherStress.HostCpuMilliseconds.ToString(
+                    "F2",
+                    CultureInfo.InvariantCulture))
+                .AppendLine(" ms")
+                .Append("Host working set before/after/delta: ")
+                .Append(FormatBytes(first.WatcherStress.HostWorkingSetBeforeBytes))
+                .Append('/')
+                .Append(FormatBytes(first.WatcherStress.HostWorkingSetAfterBytes))
+                .Append('/')
+                .AppendLine(FormatBytes(first.WatcherStress.HostWorkingSetDeltaBytes))
+                .Append("Host peak working set: ")
+                .AppendLine(FormatBytes(first.WatcherStress.HostPeakWorkingSetBytes))
+                .AppendLine();
+        }
+
+        builder
+            .AppendLine("| Step | Tool | Elapsed (ms) | Error | Workspace state | Change source | Change kind | Change error | Change path | References | Revision | Revisions |")
+            .AppendLine("|---|---|---:|---|---|---|---|---|---|---:|---:|---:|");
 
         foreach (var step in first.Steps)
         {
+            var externalChange = step.ExternalChange;
             builder
                 .Append("| ").Append(step.Name)
                 .Append(" | ").Append(step.Tool)
                 .Append(" | ").Append(
                     step.ElapsedMilliseconds.ToString("F2", CultureInfo.InvariantCulture))
                 .Append(" | ").Append(step.ErrorCode ?? string.Empty)
+                .Append(" | ").Append(step.WorkspaceState ?? string.Empty)
+                .Append(" | ").Append(externalChange?.DetectionSource ?? string.Empty)
+                .Append(" | ").Append(externalChange?.Kind ?? string.Empty)
+                .Append(" | ").Append(externalChange?.ErrorCode ?? string.Empty)
+                .Append(" | ").Append(EscapeMarkdownCell(externalChange?.Path))
                 .Append(" | ").Append(FormatNullable(step.ReferenceCount))
                 .Append(" | ").Append(FormatNullable(step.TransactionRevision))
                 .Append(" | ").Append(FormatNullable(step.TransactionRevisionCount))
@@ -695,6 +767,16 @@ internal static class ResultWriter
     private static string FormatNullable(int? value)
     {
         return value?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
+    }
+
+    private static string EscapeMarkdownCell(string? value)
+    {
+        return value?.Replace("|", "\\|", StringComparison.Ordinal) ?? string.Empty;
+    }
+
+    private static string FormatBytes(long value)
+    {
+        return $"{value.ToString(CultureInfo.InvariantCulture)} bytes";
     }
 
     public static async Task WritePhaseSummaryAsync(

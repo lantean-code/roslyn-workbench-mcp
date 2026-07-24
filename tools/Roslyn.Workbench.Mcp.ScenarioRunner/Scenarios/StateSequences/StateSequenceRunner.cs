@@ -1,9 +1,11 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using System.Text.Json;
 using ModelContextProtocol.Protocol;
 using Roslyn.Workbench.Mcp.ScenarioRunner.Configuration;
 using Roslyn.Workbench.Mcp.ScenarioRunner.Hosting;
+using Roslyn.Workbench.Mcp.ScenarioRunner.Repositories;
 using Roslyn.Workbench.Mcp.ScenarioRunner.Scenarios;
 
 namespace Roslyn.Workbench.Mcp.ScenarioRunner.Scenarios.StateSequences;
@@ -38,7 +40,15 @@ internal sealed class StateSequenceRunner
                 scenario,
                 definition,
                 cancellationToken),
+            StateSequenceKind.LiveBuild => ExecuteLiveBuildAsync(
+                scenario,
+                definition,
+                cancellationToken),
             StateSequenceKind.MultiRevisionCommit => ExecuteMultiRevisionCommitAsync(
+                scenario,
+                definition,
+                cancellationToken),
+            StateSequenceKind.WatcherStress => ExecuteWatcherStressAsync(
                 scenario,
                 definition,
                 cancellationToken),
@@ -123,6 +133,203 @@ internal sealed class StateSequenceRunner
         ValidateExternalRefresh(baseline, refreshed);
 
         return new StateSequenceExecution { Steps = steps };
+    }
+
+    private async Task<StateSequenceExecution> ExecuteLiveBuildAsync(
+        ScenarioDefinition scenario,
+        StateSequenceDefinition definition,
+        CancellationToken cancellationToken)
+    {
+        if (definition.ExternalMutation is not null || definition.Mutations.Count > 0)
+        {
+            throw new InvalidDataException(
+                $"Live-build scenario '{scenario.Id}' must not define external or transaction mutations.");
+        }
+
+        var build = definition.Build
+            ?? throw new InvalidDataException(
+                $"Live-build scenario '{scenario.Id}' does not define a build command.");
+
+        var steps = new List<StateSequenceStepMeasurement>();
+        var queryArguments = Materialize(scenario.Arguments);
+        var baseline = await InvokeRequiredAsync(
+            "baseline-query",
+            scenario.Tool,
+            queryArguments,
+            cancellationToken);
+
+        steps.Add(baseline);
+        var cached = await InvokeRequiredAsync(
+            "cached-query",
+            scenario.Tool,
+            queryArguments,
+            cancellationToken);
+
+        steps.Add(cached);
+        ValidateEquivalentQueries(baseline, cached);
+
+        var command = await RunBuildAsync(build, cancellationToken);
+
+        var status = await InvokeRequiredAsync(
+            "post-build-status",
+            "workspace-status",
+            CreateWorkspaceArguments(),
+            cancellationToken);
+
+        steps.Add(status);
+        if (string.Equals(
+            status.WorkspaceState,
+            "Ready",
+            StringComparison.Ordinal))
+        {
+            var postBuild = await InvokeRequiredAsync(
+                "post-build-query",
+                scenario.Tool,
+                queryArguments,
+                cancellationToken);
+
+            steps.Add(postBuild);
+            ValidateEquivalentQueries(baseline, postBuild);
+            return new StateSequenceExecution
+            {
+                Steps = steps,
+                ExternalCommand = command,
+            };
+        }
+
+        if (!string.Equals(
+            status.WorkspaceState,
+            "WorkspaceOutOfDate",
+            StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"The Workspace entered unexpected state '{status.WorkspaceState ?? "unknown"}' after the live build.");
+        }
+
+        var stale = await InvokeAsync(
+            "post-build-stale-query",
+            scenario.Tool,
+            queryArguments,
+            cancellationToken);
+
+        steps.Add(stale);
+        ValidateStaleQuery(stale);
+        var reload = await InvokeRequiredAsync(
+            "post-build-reload",
+            "workspace-reload",
+            CreateWorkspaceArguments(),
+            cancellationToken);
+
+        steps.Add(reload);
+        var refreshed = await InvokeRequiredAsync(
+            "post-reload-query",
+            scenario.Tool,
+            queryArguments,
+            cancellationToken);
+
+        steps.Add(refreshed);
+
+        return new StateSequenceExecution
+        {
+            Steps = steps,
+            ExternalCommand = command,
+        };
+    }
+
+    private async Task<StateSequenceExecution> ExecuteWatcherStressAsync(
+        ScenarioDefinition scenario,
+        StateSequenceDefinition definition,
+        CancellationToken cancellationToken)
+    {
+        if (definition.Build is not null
+            || definition.ExternalMutation is not null
+            || definition.Mutations.Count > 0)
+        {
+            throw new InvalidDataException(
+                $"Watcher-stress scenario '{scenario.Id}' must not define a build, external mutation or transaction mutations.");
+        }
+
+        var watcherStress = definition.WatcherStress
+            ?? throw new InvalidDataException(
+                $"Watcher-stress scenario '{scenario.Id}' does not define its generated artifact workload.");
+
+        var steps = new List<StateSequenceStepMeasurement>();
+        var queryArguments = Materialize(scenario.Arguments);
+        var initialStatus = await InvokeRequiredAsync(
+            "pre-stress-status",
+            "workspace-status",
+            CreateWorkspaceArguments(),
+            cancellationToken);
+
+        steps.Add(initialStatus);
+        if (!string.Equals(
+            initialStatus.WorkspaceState,
+            "Ready",
+            StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"The Workspace was not ready before watcher stress. State: '{initialStatus.WorkspaceState ?? "unknown"}'.");
+        }
+
+        var stressMeasurement = await RunWatcherStressAsync(
+            watcherStress,
+            cancellationToken);
+
+        var status = await InvokeRequiredAsync(
+            "post-stress-status",
+            "workspace-status",
+            CreateWorkspaceArguments(),
+            cancellationToken);
+
+        steps.Add(status);
+        if (string.Equals(
+            status.WorkspaceState,
+            "Ready",
+            StringComparison.Ordinal))
+        {
+            var postStress = await InvokeRequiredAsync(
+                "post-stress-query",
+                scenario.Tool,
+                queryArguments,
+                cancellationToken);
+
+            steps.Add(postStress);
+            return new StateSequenceExecution
+            {
+                Steps = steps,
+                WatcherStress = stressMeasurement,
+            };
+        }
+
+        ValidateWatcherStressOverflow(status);
+        var stale = await InvokeAsync(
+            "post-stress-stale-query",
+            scenario.Tool,
+            queryArguments,
+            cancellationToken);
+
+        steps.Add(stale);
+        ValidateStaleQuery(stale);
+        var reload = await InvokeRequiredAsync(
+            "post-stress-reload",
+            "workspace-reload",
+            CreateWorkspaceArguments(),
+            cancellationToken);
+
+        steps.Add(reload);
+        var refreshed = await InvokeRequiredAsync(
+            "post-reload-query",
+            scenario.Tool,
+            queryArguments,
+            cancellationToken);
+
+        steps.Add(refreshed);
+
+        return new StateSequenceExecution
+        {
+            Steps = steps,
+            WatcherStress = stressMeasurement,
+        };
     }
 
     [SuppressMessage(
@@ -313,12 +520,14 @@ internal sealed class StateSequenceRunner
 
     private Dictionary<string, object?> CreateWorkspaceArguments()
     {
+        var workspace = new Dictionary<string, object?>
+        {
+            ["workspaceId"] = _workspaceId,
+        };
+
         return new Dictionary<string, object?>
         {
-            ["workspace"] = new Dictionary<string, object?>
-            {
-                ["workspaceId"] = _workspaceId,
-            },
+            ["workspace"] = workspace,
         };
     }
 
@@ -327,6 +536,180 @@ internal sealed class StateSequenceRunner
         var arguments = CreateWorkspaceArguments();
         arguments["direction"] = direction;
         return arguments;
+    }
+
+    private async Task<ExternalCommandMeasurement> RunBuildAsync(
+        CommandDefinition build,
+        CancellationToken cancellationToken)
+    {
+        var fileName = OperatingSystem.IsWindows()
+            && !string.IsNullOrWhiteSpace(build.WindowsFileName)
+                ? build.WindowsFileName
+                : build.FileName;
+
+        var arguments = OperatingSystem.IsWindows()
+            && build.WindowsArguments is not null
+                ? build.WindowsArguments
+                : build.Arguments;
+
+        var environment = new Dictionary<string, string>
+        {
+            ["NUGET_PACKAGES"] = RepositoryManager.GetNuGetPackagesDirectory(
+                _repositoryRoot),
+        };
+
+        await Console.Out.WriteLineAsync(
+            $"> {fileName} {string.Join(' ', arguments)}");
+
+        var before = _host.CaptureSnapshot();
+        var stopwatch = Stopwatch.StartNew();
+        var result = await ExternalCommand.RunAsync(
+            fileName,
+            arguments,
+            _repositoryRoot,
+            cancellationToken,
+            environment);
+
+        stopwatch.Stop();
+        await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+
+        var after = _host.CaptureSnapshot();
+        if (result.ExitCode != 0)
+        {
+            throw new InvalidOperationException(
+                $"Live build '{fileName}' failed with exit code {result.ExitCode}.{Environment.NewLine}{result.StandardError}{result.StandardOutput}");
+        }
+
+        return new ExternalCommandMeasurement
+        {
+            FileName = fileName,
+            Arguments = arguments,
+            ElapsedMilliseconds = stopwatch.Elapsed.TotalMilliseconds,
+            ExitCode = result.ExitCode,
+            HostCpuMilliseconds = (after.CpuTime - before.CpuTime).TotalMilliseconds,
+            HostWorkingSetBeforeBytes = before.WorkingSetBytes,
+            HostWorkingSetAfterBytes = after.WorkingSetBytes,
+            HostWorkingSetDeltaBytes = after.WorkingSetBytes - before.WorkingSetBytes,
+            HostPeakWorkingSetBytes = after.PeakWorkingSetBytes,
+            StandardOutputBytes = Encoding.UTF8.GetByteCount(
+                result.StandardOutput),
+            StandardErrorBytes = Encoding.UTF8.GetByteCount(
+                result.StandardError),
+        };
+    }
+
+    private async Task<WatcherStressMeasurement> RunWatcherStressAsync(
+        WatcherStressDefinition definition,
+        CancellationToken cancellationToken)
+    {
+        if (definition.FileCount <= 0 || definition.WritePasses < 0)
+        {
+            throw new InvalidDataException(
+                "Watcher stress requires a positive file count and a non-negative write-pass count.");
+        }
+
+        var artifactRoot = ResolveStressArtifactRoot(definition.ArtifactPath);
+        var artifactRootExisted = Directory.Exists(artifactRoot);
+        var stressRoot = Path.Combine(
+            artifactRoot,
+            $".roslyn-workbench-watcher-stress-{Guid.NewGuid():N}");
+
+        var parallelOptions = new ParallelOptions
+        {
+            CancellationToken = cancellationToken,
+            MaxDegreeOfParallelism = Environment.ProcessorCount,
+        };
+
+        var before = _host.CaptureSnapshot();
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            Directory.CreateDirectory(stressRoot);
+            Parallel.For(
+                0,
+                definition.FileCount,
+                parallelOptions,
+                index => File.WriteAllText(
+                    Path.Combine(stressRoot, $"{index:D8}.tmp"),
+                    "0"));
+
+            for (var pass = 0; pass < definition.WritePasses; pass++)
+            {
+                var content = pass.ToString(CultureInfo.InvariantCulture);
+                Parallel.For(
+                    0,
+                    definition.FileCount,
+                    parallelOptions,
+                    index => File.WriteAllText(
+                        Path.Combine(stressRoot, $"{index:D8}.tmp"),
+                        content));
+            }
+
+            Parallel.For(
+                0,
+                definition.FileCount,
+                parallelOptions,
+                index => File.Delete(
+                    Path.Combine(stressRoot, $"{index:D8}.tmp")));
+        }
+        finally
+        {
+            if (Directory.Exists(stressRoot))
+            {
+                Directory.Delete(stressRoot, recursive: true);
+            }
+
+            if (!artifactRootExisted
+                && Directory.Exists(artifactRoot)
+                && !Directory.EnumerateFileSystemEntries(artifactRoot).Any())
+            {
+                Directory.Delete(artifactRoot);
+            }
+        }
+
+        stopwatch.Stop();
+        await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+
+        var after = _host.CaptureSnapshot();
+
+        return new WatcherStressMeasurement
+        {
+            ArtifactPath = definition.ArtifactPath,
+            FileCount = definition.FileCount,
+            WritePasses = definition.WritePasses,
+            ElapsedMilliseconds = stopwatch.Elapsed.TotalMilliseconds,
+            HostCpuMilliseconds = (after.CpuTime - before.CpuTime).TotalMilliseconds,
+            HostWorkingSetBeforeBytes = before.WorkingSetBytes,
+            HostWorkingSetAfterBytes = after.WorkingSetBytes,
+            HostWorkingSetDeltaBytes = after.WorkingSetBytes - before.WorkingSetBytes,
+            HostPeakWorkingSetBytes = after.PeakWorkingSetBytes,
+        };
+    }
+
+    private string ResolveStressArtifactRoot(string artifactPath)
+    {
+        if (string.IsNullOrWhiteSpace(artifactPath))
+        {
+            throw new InvalidDataException(
+                "Watcher stress requires a repository-relative artifact path.");
+        }
+
+        var artifactRoot = Path.GetFullPath(
+            Path.Combine(_repositoryRoot, artifactPath));
+
+        var relativePath = Path.GetRelativePath(_repositoryRoot, artifactRoot);
+        if (string.Equals(relativePath, ".", StringComparison.Ordinal)
+            || Path.IsPathRooted(relativePath)
+            || string.Equals(relativePath, "..", StringComparison.Ordinal)
+            || relativePath.StartsWith(
+                $"..{Path.DirectorySeparatorChar}",
+                StringComparison.Ordinal))
+        {
+            throw new InvalidDataException(
+                $"Watcher-stress artifact path '{artifactPath}' must identify a child of the repository root.");
+        }
+
+        return artifactRoot;
     }
 
     private static StateSequenceStepMeasurement CreateStep(
@@ -346,6 +729,7 @@ internal sealed class StateSequenceRunner
         }
 
         var references = TryGetObject(content, "data", "references");
+        var externalChange = TryGetObject(content, "data", "externalChange");
 
         return new StateSequenceStepMeasurement
         {
@@ -356,6 +740,8 @@ internal sealed class StateSequenceRunner
             ResponseSha256 = observation.Sha256,
             ErrorCode = errorCode,
             RequiredAction = requiredAction,
+            WorkspaceState = TryGetString(content, "data", "state"),
+            ExternalChange = CreateExternalChange(externalChange),
             MutationStaged = observation.MutationStaged,
             ReferenceCount = GetReferenceCount(references),
             DefinitionPaths = GetDefinitionPaths(references),
@@ -363,6 +749,26 @@ internal sealed class StateSequenceRunner
             TransactionRevisionCount = TryGetInt32(transaction, "revisionCount"),
             CanUndo = TryGetBoolean(transaction, "canUndo"),
             CanRedo = TryGetBoolean(transaction, "canRedo"),
+        };
+    }
+
+    private static WorkspaceExternalChangeMeasurement? CreateExternalChange(
+        JsonElement? externalChange)
+    {
+        var detectionSource = TryGetString(externalChange, "detectionSource");
+        var kind = TryGetString(externalChange, "kind");
+        if (detectionSource is null || kind is null)
+        {
+            return null;
+        }
+
+        return new WorkspaceExternalChangeMeasurement
+        {
+            DetectionSource = detectionSource,
+            ErrorCode = TryGetString(externalChange, "errorCode"),
+            Kind = kind,
+            Path = TryGetString(externalChange, "path"),
+            PreviousPath = TryGetString(externalChange, "previousPath"),
         };
     }
 
@@ -381,6 +787,46 @@ internal sealed class StateSequenceRunner
         }
     }
 
+    private static void ValidateStaleQuery(StateSequenceStepMeasurement stale)
+    {
+        if (!stale.IsError
+            || !string.Equals(
+                stale.ErrorCode,
+                "WorkspaceOutOfDate",
+                StringComparison.Ordinal)
+            || !string.Equals(
+                stale.RequiredAction,
+                "ReloadWorkspace",
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "The post-build stale query did not require a Workspace reload.");
+        }
+    }
+
+    private static void ValidateWatcherStressOverflow(
+        StateSequenceStepMeasurement status)
+    {
+        var externalChange = status.ExternalChange;
+        if (!string.Equals(
+            status.WorkspaceState,
+            "WorkspaceOutOfDate",
+            StringComparison.Ordinal)
+            || externalChange is null
+            || !string.Equals(
+                externalChange.Kind,
+                "WatcherError",
+                StringComparison.Ordinal)
+            || !string.Equals(
+                externalChange.ErrorCode,
+                "WatcherBufferOverflow",
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Watcher stress entered unexpected state '{status.WorkspaceState ?? "unknown"}' with error '{externalChange?.ErrorCode ?? "none"}'.");
+        }
+    }
+
     private static void ValidateExternalRefresh(
         StateSequenceStepMeasurement baseline,
         StateSequenceStepMeasurement refreshed)
@@ -394,8 +840,10 @@ internal sealed class StateSequenceRunner
         {
             var baselineCount = baseline.ReferenceCount?.ToString(
                 CultureInfo.InvariantCulture) ?? "unknown";
+
             var refreshedCount = refreshed.ReferenceCount?.ToString(
                 CultureInfo.InvariantCulture) ?? "unknown";
+
             var responseChanged = !string.Equals(
                 baseline.ResponseSha256,
                 refreshed.ResponseSha256,

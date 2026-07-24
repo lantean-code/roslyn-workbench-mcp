@@ -44,6 +44,12 @@ internal sealed record WorkspaceStatusData
     public bool ReloadRequired { get; init; }
 
     /// <summary>
+    /// Gets the first detected external Workspace input change, when present.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public WorkspaceExternalChangeData? ExternalChange { get; init; }
+
+    /// <summary>
     /// Gets other live Roslyn Workbench MCP instances using this workspace.
     /// </summary>
     public IReadOnlyList<WorkspaceInstanceInfo> Instances { get; init; } = [];

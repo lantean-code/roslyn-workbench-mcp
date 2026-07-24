@@ -36,6 +36,24 @@
           }
         },
         {
+          "id": "live-build",
+          "description": "Keeps the Workspace open while the complete solution builds, then records stale-state and post-build query behaviour.",
+          "tool": "get-solution-structure",
+          "stateSequence": {
+            "kind": "LiveBuild",
+            "build": {
+              "fileName": "dotnet",
+              "arguments": ["build", "GuardClauses.sln", "--no-restore"]
+            }
+          },
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "includeDocuments": true,
+            "projectsLimit": 25,
+            "foldersLimit": 50
+          }
+        },
+        {
           "id": "solution-structure-without-documents",
           "description": "The high-bound solution projection without optional document payloads.",
           "tool": "get-solution-structure",
@@ -86,7 +104,9 @@
           "tool": "find-references",
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
-            "symbol": { "documentationCommentId": "T:GuardClauses.UnitTests.TestEnum" },
+            "symbol": {
+              "documentationCommentId": "T:GuardClauses.UnitTests.TestEnum"
+            },
             "includeDefinitions": true,
             "includeContext": true,
             "referencesLimit": 5
@@ -98,7 +118,9 @@
           "tool": "find-references",
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
-            "symbol": { "documentationCommentId": "T:GuardClauses.UnitTests.TestEnum" },
+            "symbol": {
+              "documentationCommentId": "T:GuardClauses.UnitTests.TestEnum"
+            },
             "includeDefinitions": true,
             "includeContext": true,
             "referencesLimit": 100
@@ -110,7 +132,10 @@
           "tool": "get-diagnostics",
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
-            "scope": { "kind": "Project", "project": { "name": "GuardClauses(net8.0)" } },
+            "scope": {
+              "kind": "Project",
+              "project": { "name": "GuardClauses(net8.0)" }
+            },
             "diagnosticsLimit": 100
           }
         },
@@ -120,7 +145,10 @@
           "tool": "get-dependency-graph",
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
-            "scope": { "kind": "Project", "project": { "name": "GuardClauses(net8.0)" } },
+            "scope": {
+              "kind": "Project",
+              "project": { "name": "GuardClauses(net8.0)" }
+            },
             "granularity": "Type",
             "nodesLimit": 100,
             "edgesLimit": 200
@@ -134,7 +162,9 @@
             "workspace": { "workspaceId": "${workspaceId}" },
             "location": {
               "span": {
-                "document": { "path": "test/GuardClauses.UnitTests/GuardAgainstOutOfRangeForEnum.cs" },
+                "document": {
+                  "path": "test/GuardClauses.UnitTests/GuardAgainstOutOfRangeForEnum.cs"
+                },
                 "start": 6189,
                 "length": 0
               }
@@ -161,7 +191,9 @@
           ],
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
-            "document": { "path": "test/GuardClauses.UnitTests/GuardAgainstOutOfRangeForEnum.cs" }
+            "document": {
+              "path": "test/GuardClauses.UnitTests/GuardAgainstOutOfRangeForEnum.cs"
+            }
           }
         },
         {
@@ -182,7 +214,9 @@
           ],
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
-            "document": { "path": "test/GuardClauses.UnitTests/GuardAgainstOutOfRangeForEnum.cs" },
+            "document": {
+              "path": "test/GuardClauses.UnitTests/GuardAgainstOutOfRangeForEnum.cs"
+            },
             "systemFirst": true
           }
         },
@@ -204,7 +238,9 @@
           ],
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
-            "symbol": { "documentationCommentId": "T:GuardClauses.UnitTests.TestEnum" },
+            "symbol": {
+              "documentationCommentId": "T:GuardClauses.UnitTests.TestEnum"
+            },
             "newName": "PerformanceTestEnum",
             "renameFile": false
           }
@@ -227,7 +263,9 @@
           ],
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
-            "symbol": { "documentationCommentId": "T:GuardClauses.UnitTests.TestEnum" },
+            "symbol": {
+              "documentationCommentId": "T:GuardClauses.UnitTests.TestEnum"
+            },
             "newName": "TestEnum",
             "renameFile": false
           }
@@ -249,7 +287,9 @@
           ],
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
-            "symbol": { "documentationCommentId": "T:GuardClauses.UnitTests.TestEnum" },
+            "symbol": {
+              "documentationCommentId": "T:GuardClauses.UnitTests.TestEnum"
+            },
             "newName": "PerformanceTestEnum",
             "renameFile": false
           }
@@ -265,7 +305,15 @@
       "preparation": [
         {
           "fileName": "dotnet",
-          "arguments": ["restore", "Serilog.sln", "--configfile", "NuGet.config", "-p:NuGetAudit=false"]
+          "arguments": [
+            "restore",
+            "Serilog.sln",
+            "--force",
+            "--configfile",
+            "NuGet.config",
+            "-p:NuGetAudit=false",
+            "-p:PublishAot=false"
+          ]
         }
       ],
       "scenarios": [
@@ -291,6 +339,30 @@
               "includeDocuments": true,
               "projectsLimit": 25,
               "foldersLimit": 100
+            }
+          },
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "includeDocuments": true,
+            "projectsLimit": 25,
+            "foldersLimit": 100
+          }
+        },
+        {
+          "id": "live-build",
+          "description": "Keeps the Workspace open while the complete solution builds, then records stale-state and post-build query behaviour.",
+          "tool": "get-solution-structure",
+          "stateSequence": {
+            "kind": "LiveBuild",
+            "build": {
+              "fileName": "dotnet",
+              "arguments": [
+                "build",
+                "Serilog.sln",
+                "--no-restore",
+                "-p:NuGetAudit=false",
+                "-p:PublishAot=false"
+              ]
             }
           },
           "arguments": {
@@ -743,6 +815,50 @@
           "id": "solution-structure",
           "description": "Projects and documents exercise the curated high-bound solution projection.",
           "tool": "get-solution-structure",
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "includeDocuments": true,
+            "projectsLimit": 100,
+            "foldersLimit": 200
+          }
+        },
+        {
+          "id": "live-build",
+          "description": "Keeps the Workspace open while the repository build script restores and builds the complete solution, then records stale-state and post-build query behaviour.",
+          "tool": "get-solution-structure",
+          "stateSequence": {
+            "kind": "LiveBuild",
+            "build": {
+              "fileName": "bash",
+              "arguments": ["build.sh", "-p:NuGetAudit=false"],
+              "windowsFileName": "cmd.exe",
+              "windowsArguments": [
+                "/d",
+                "/c",
+                "build.cmd",
+                "/p:NuGetAudit=false"
+              ]
+            }
+          },
+          "arguments": {
+            "workspace": { "workspaceId": "${workspaceId}" },
+            "includeDocuments": true,
+            "projectsLimit": 100,
+            "foldersLimit": 200
+          }
+        },
+        {
+          "id": "watcher-stress",
+          "description": "Generates a high-volume create, change and delete burst beneath EF Core's evaluated artifacts root while the Workspace remains open.",
+          "tool": "get-solution-structure",
+          "stateSequence": {
+            "kind": "WatcherStress",
+            "watcherStress": {
+              "artifactPath": "artifacts/watcher-stress",
+              "fileCount": 20000,
+              "writePasses": 2
+            }
+          },
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },
             "includeDocuments": true,

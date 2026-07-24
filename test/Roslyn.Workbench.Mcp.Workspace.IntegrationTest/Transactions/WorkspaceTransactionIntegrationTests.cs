@@ -232,12 +232,18 @@ public sealed class WorkspaceTransactionIntegrationTests
     {
         using var fixture = TestWorkspaceFixture.Create();
         await using var target = await CreateCoordinatorWithOneStagedRevisionAsync(fixture);
+        await using var observer = fixture.CreateWorkspace();
+        await observer.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         await File.AppendAllTextAsync(fixture.DocumentPath, Environment.NewLine + "class ExternalChange { }", TestContext.Current.CancellationToken);
 
         var status = await target.GetStatusAsync(TestContext.Current.CancellationToken);
+        var observedState = await ObserveOtherInstanceStateAsync(
+            observer,
+            WorkspaceLifecycleState.TransactionConflicted);
 
         status.Data!.State.Should().Be(WorkspaceLifecycleState.TransactionConflicted);
         status.Data.Transaction!.CanMutate.Should().BeFalse();
+        observedState.Should().Be(WorkspaceLifecycleState.TransactionConflicted);
     }
 
     private static async Task<ComponentWorkspace> CreateCoordinatorWithOneStagedRevisionAsync(TestWorkspaceFixture fixture)
@@ -286,6 +292,24 @@ public sealed class WorkspaceTransactionIntegrationTests
             [],
             [],
             TestContext.Current.CancellationToken);
+    }
+
+    private static async ValueTask<WorkspaceLifecycleState?> ObserveOtherInstanceStateAsync(
+        ComponentWorkspace observer,
+        WorkspaceLifecycleState expectedState)
+    {
+        WorkspaceLifecycleState? observedState = null;
+        for (var attempt = 0; attempt < 1000 && observedState != expectedState; attempt++)
+        {
+            var result = await observer.GetStatusAsync(TestContext.Current.CancellationToken);
+            observedState = result.Data?.Instances
+                .Select(static instance => instance.WorkspaceState)
+                .FirstOrDefault(state => state == expectedState);
+
+            await Task.Yield();
+        }
+
+        return observedState;
     }
 
     private sealed record StageMutationRequest : WorkspaceBoundRequest;

@@ -141,6 +141,13 @@ internal sealed class TransactionCommitService : ITransactionCommitService
 
         var conflictedSession = _workspaceStateTransitions.ApplyExternalChangeDetected(session);
         _sessionStore.ReplaceSession(conflictedSession);
+        _instanceStatusPublisher.QueueUpdate(
+            conflictedSession.Workspace.WorkspaceId,
+            conflictedSession.State,
+            conflictedSession.Transaction?.CurrentRevision,
+            commitId: null,
+            commitPhase: null);
+
         return _resultFactory.Conflict<TransactionCommitOutcome>(
             WorkspaceErrorCodes.TransactionConflicted,
             "The transaction conflicted with external workspace changes.",
@@ -252,7 +259,10 @@ internal sealed class TransactionCommitService : ITransactionCommitService
                 WorkbenchPerformanceEventSource.TransactionCommitOperation,
                 WorkbenchPerformanceEventSource.CommitCleanupPhase))
             {
-                await CompleteCommitAsync(committedSession, manifest);
+                await CompleteCommitAsync(
+                    session.InputManifest,
+                    committedSession,
+                    manifest);
             }
 
             var outcome = new TransactionCommitOutcome
@@ -328,40 +338,66 @@ internal sealed class TransactionCommitService : ITransactionCommitService
     {
         var inputManifest = _workspaceChangeDetector.BuildManifest(
             transaction.CurrentSolution,
-            session.Workspace.LoadedPath);
+            session.Workspace.LoadedPath,
+            session.Workspace.WorkspaceRoot);
+
+        var loadDiagnostics = session.LoadDiagnostics;
+        if (!inputManifest.IsComplete)
+        {
+            var inputEvaluationDiagnostics = WorkspaceInputEvaluationDiagnostics.Create(
+                inputManifest.EvaluationFailures);
+
+            loadDiagnostics = [.. loadDiagnostics, .. inputEvaluationDiagnostics];
+        }
 
         var committedSession = session with
         {
             Transaction = null,
             CurrentSolution = transaction.CurrentSolution,
             InputManifest = inputManifest,
-            LoadDiagnostics = inputManifest.IsComplete
-                ? session.LoadDiagnostics
-                : session.LoadDiagnostics.Concat(
-                    WorkspaceInputEvaluationDiagnostics.Create(inputManifest.EvaluationFailures)).ToArray(),
+            LoadDiagnostics = loadDiagnostics,
             State = _workspaceStateTransitions.Fire(session.State, WorkspaceTrigger.TransactionCommitted),
         };
 
-        return inputManifest.IsComplete
-            ? committedSession
-            : _workspaceStateTransitions.ApplyExternalChangeDetected(committedSession);
+        if (inputManifest.IsComplete)
+        {
+            return committedSession;
+        }
+
+        return _workspaceStateTransitions.ApplyExternalChangeDetected(committedSession);
     }
 
     private async ValueTask CompleteCommitAsync(
+        WorkspaceInputManifest previousInputManifest,
         WorkspaceSessionSnapshot committedSession,
         WorkspaceCommitManifest applyingManifest)
     {
         var committedManifest = applyingManifest with { State = RecoveryState.Committed };
-        await _recoveryStore.WriteManifestAsync(committedManifest, CancellationToken.None);
-
-        _sessionStore.ReplaceSessionAndSetTransactionOwner(committedSession, null);
-        var recoveryArtifactsRemoved = await _commitWriter.CompleteAsync(committedManifest);
-        if (recoveryArtifactsRemoved)
+        var sessionReplaced = false;
+        try
         {
-            _recoveryStore.DeleteStatus(committedManifest.CommitId);
-        }
+            await _recoveryStore.WriteManifestAsync(committedManifest, CancellationToken.None);
 
-        await PublishCommitPhaseAsync(committedSession, null, null, "Committed");
+            _sessionStore.ReplaceSessionAndSetTransactionOwner(committedSession, null);
+            sessionReplaced = true;
+            previousInputManifest.Dispose();
+            var recoveryArtifactsRemoved = await _commitWriter.CompleteAsync(committedManifest);
+            if (recoveryArtifactsRemoved)
+            {
+                _recoveryStore.DeleteStatus(committedManifest.CommitId);
+            }
+
+            await PublishCommitPhaseAsync(committedSession, null, null, "Committed");
+        }
+        catch
+        {
+            if (!sessionReplaced)
+            {
+                committedSession.InputManifest.Dispose();
+            }
+
+            throw;
+        }
     }
 
     private async ValueTask RestoreCancelledCommitAsync(WorkspaceCommitManifest? manifest)

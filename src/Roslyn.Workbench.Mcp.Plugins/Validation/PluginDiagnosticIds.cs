@@ -26,6 +26,8 @@ internal static class PluginDiagnosticIds
 
     public const string HandlerStaticState = "PluginHandlerStaticState";
 
+    public const string HandlerDisposableField = "PluginHandlerDisposableField";
+
     public const string LegacyRegistration = "PluginLegacyRegistration";
 
     public const string ToolMetadata = "PluginToolMetadata";

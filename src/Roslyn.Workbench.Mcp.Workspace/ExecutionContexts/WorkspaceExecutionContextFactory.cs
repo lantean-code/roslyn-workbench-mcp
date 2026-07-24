@@ -136,6 +136,22 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
         }
     }
 
+    public WorkspaceExecutionFailure? DetectUnexpectedWorkspaceChange(string workspaceId)
+    {
+        var session = _sessionStore.ReadSession(workspaceId);
+        if (session is null)
+        {
+            return CreateFailure(
+                WorkspaceOperationStatus.Rejected,
+                WorkspaceErrorCodes.WorkspaceNotOpen,
+                "Open a workspace before invoking this tool.",
+                RequiredAction.OpenWorkspace);
+        }
+
+        var effectiveSession = RefreshUnexpectedWorkspaceChange(session);
+        return CreateUnavailableStateFailure(effectiveSession.State);
+    }
+
     private WorkspaceExecutionContext CreateContext(WorkspaceSessionSnapshot session)
     {
         var resolver = _resolverFactory.Create(
@@ -217,12 +233,37 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
         WorkspaceSessionSnapshot session,
         CancellationToken cancellationToken)
     {
-        if (session.State is not (WorkspaceLifecycleState.Ready or WorkspaceLifecycleState.TransactionActive)
-            || !_workspaceChangeDetector.HasChanged(session.InputManifest, cancellationToken))
+        if (session.State is not (WorkspaceLifecycleState.Ready or WorkspaceLifecycleState.TransactionActive))
         {
             return session;
         }
 
+        if (session.LoadedWorkspace.HasCurrentSolutionChanged)
+        {
+            return TransitionForUnexpectedWorkspaceChange(session);
+        }
+
+        if (!_workspaceChangeDetector.HasChanged(session.InputManifest, cancellationToken))
+        {
+            return session;
+        }
+
+        return TransitionForUnexpectedWorkspaceChange(session);
+    }
+
+    private WorkspaceSessionSnapshot RefreshUnexpectedWorkspaceChange(WorkspaceSessionSnapshot session)
+    {
+        if (session.State is not (WorkspaceLifecycleState.Ready or WorkspaceLifecycleState.TransactionActive)
+            || !session.LoadedWorkspace.HasCurrentSolutionChanged)
+        {
+            return session;
+        }
+
+        return TransitionForUnexpectedWorkspaceChange(session);
+    }
+
+    private WorkspaceSessionSnapshot TransitionForUnexpectedWorkspaceChange(WorkspaceSessionSnapshot session)
+    {
         var transitionedSession = _workspaceStateTransitions.ApplyExternalChangeDetected(session);
         _sessionStore.ReplaceSession(transitionedSession);
         return transitionedSession;

@@ -9,4 +9,6 @@ internal interface IWorkspaceExecutionContextFactory
     WorkspaceMutationExecutionLease CreateMutationContext(
         WorkspaceSelector? workspace,
         CancellationToken cancellationToken);
+
+    WorkspaceExecutionFailure? DetectUnexpectedWorkspaceChange(string workspaceId);
 }

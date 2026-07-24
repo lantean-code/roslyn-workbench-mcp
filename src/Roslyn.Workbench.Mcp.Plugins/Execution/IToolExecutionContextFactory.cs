@@ -20,4 +20,9 @@ internal interface IToolExecutionContextFactory
     PluginMutationExecutionLease CreateMutationContext(
         WorkspaceBoundRequest request,
         CancellationToken cancellationToken);
+
+    /// <summary>Detects a plugin-induced change to the underlying Roslyn Workspace.</summary>
+    /// <param name="context">The active plugin execution context.</param>
+    /// <returns>A containment failure when the underlying Workspace changed; otherwise <see langword="null"/>.</returns>
+    ToolExecutionFailureResult? DetectUnexpectedWorkspaceChange(IToolExecutionContext context);
 }

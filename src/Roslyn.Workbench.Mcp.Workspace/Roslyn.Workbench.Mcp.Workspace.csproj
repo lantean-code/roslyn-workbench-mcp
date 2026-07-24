@@ -2,9 +2,19 @@
 
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Authors>lantean-code</Authors>
+    <Description>Workspace contracts and runtime support required by Roslyn Workbench MCP plugins.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/lantean-code/roslyn-workbench-mcp</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>mcp;roslyn;plugins;workspace</PackageTags>
+    <RepositoryUrl>https://github.com/lantean-code/roslyn-workbench-mcp.git</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="..\..\docs\PluginAuthoring.md"
+          Pack="true"
+          PackagePath="README.md" />
     <PackageReference Include="DiffPlex" />
     <PackageReference Include="Microsoft.Build" ExcludeAssets="runtime" PrivateAssets="all" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" />

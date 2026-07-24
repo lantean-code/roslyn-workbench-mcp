@@ -1,6 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+  <PropertyGroup>
+    <Authors>lantean-code</Authors>
+    <Description>Trusted in-process plugin contracts and authoring diagnostics for Roslyn Workbench MCP.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/lantean-code/roslyn-workbench-mcp</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>mcp;roslyn;plugins;analyzers</PackageTags>
+    <RepositoryUrl>https://github.com/lantean-code/roslyn-workbench-mcp.git</RepositoryUrl>
+  </PropertyGroup>
+
   <ItemGroup>
+    <None Include="..\..\docs\PluginAuthoring.md"
+          Pack="true"
+          PackagePath="README.md" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
     <PackageReference Include="System.Composition" />
   </ItemGroup>
@@ -12,8 +25,33 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference
+      Include="..\Roslyn.Workbench.Mcp.Plugins.Analyzers\Roslyn.Workbench.Mcp.Plugins.Analyzers.csproj"
+      ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\Roslyn.Workbench.Mcp.Workspace\Roslyn.Workbench.Mcp.Workspace.csproj" />
   </ItemGroup>
+
+  <PropertyGroup>
+    <TargetsForTfmSpecificContentInPackage>
+      $(TargetsForTfmSpecificContentInPackage);IncludePluginAnalyzersInPackage
+    </TargetsForTfmSpecificContentInPackage>
+  </PropertyGroup>
+
+  <Target Name="IncludePluginAnalyzersInPackage">
+    <MSBuild
+      Projects="..\Roslyn.Workbench.Mcp.Plugins.Analyzers\Roslyn.Workbench.Mcp.Plugins.Analyzers.csproj"
+      Targets="GetTargetPath">
+      <Output
+        TaskParameter="TargetOutputs"
+        ItemName="_PluginAnalyzerAssembly" />
+    </MSBuild>
+
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="@(_PluginAnalyzerAssembly)">
+        <PackagePath>analyzers/dotnet/cs</PackagePath>
+      </TfmSpecificPackageFile>
+    </ItemGroup>
+  </Target>
 
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">

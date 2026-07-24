@@ -60,9 +60,24 @@ internal sealed class PluginMutationMcpServerTool<TRequest> : McpServerToolBase
 
         var context = contextLease.Context;
         PluginExecutionResult<MutationCandidate> proposalResult;
+        ToolExecutionFailureResult? containmentFailure;
         using (StartPhase(WorkbenchPerformanceEventSource.HandlerExecutionPhase))
         {
-            proposalResult = await _handler.ExecuteAsync(request, context, cancellationToken);
+            try
+            {
+                proposalResult = await _handler.ExecuteAsync(request, context, cancellationToken);
+            }
+            finally
+            {
+                containmentFailure = _contextFactory.DetectUnexpectedWorkspaceChange(context);
+            }
+        }
+
+        if (containmentFailure is not null)
+        {
+            return CreateStructuredResult(
+                McpPublishedResultSerializer.SerializePluginFailure(containmentFailure),
+                isError: true);
         }
 
         if (proposalResult.HasError)

@@ -133,7 +133,8 @@ internal sealed class WorkspaceSessionStore : IWorkspaceSessionStore
         var invalidateQueryCache = !_snapshot.Workspaces.TryGetValue(session.Workspace.WorkspaceId, out var previousSession)
             || !ReferenceEquals(previousSession.CurrentSolution, session.CurrentSolution)
             || previousSession.Workspace.WorkspaceEpoch != session.Workspace.WorkspaceEpoch
-            || session.State == WorkspaceLifecycleState.WorkspaceOutOfDate;
+            || session.State is WorkspaceLifecycleState.WorkspaceOutOfDate
+                or WorkspaceLifecycleState.TransactionConflicted;
 
         var workspaces = new Dictionary<string, WorkspaceSessionSnapshot>(_snapshot.Workspaces, StringComparer.Ordinal)
         {

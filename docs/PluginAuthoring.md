@@ -2,6 +2,18 @@
 
 Roslyn Workbench plugins are trusted in-process .NET assemblies discovered once when the stdio server starts. They may add ordinary query and mutation tools. They cannot add Code Actions, replace workspace or transaction lifecycle tools, import Host services, or change the tool list after startup.
 
+## Install the authoring package
+
+Add the public authoring package to the plugin project:
+
+```bash
+dotnet add package Roslyn.Workbench.Mcp.Plugins
+```
+
+The package supplies the plugin API and brings in the matching Workspace contracts transitively. Plugin projects should not add repository project references or a second direct Workspace package reference.
+
+The package also installs the C# plugin-authoring analyser automatically. Its `RWMCP001`–`RWMCP019` diagnostics appear during command-line builds and in IDEs that support NuGet-delivered Roslyn analysers. See [Plugin authoring diagnostics](PluginAuthoringDiagnostics.md) for each rule and its remediation. Runtime validation remains authoritative when diagnostics are suppressed or a plugin was built without the analyser.
+
 ## Entry point
 
 A package has one entry assembly containing exactly one marked plugin entry type:
@@ -44,17 +56,24 @@ internal sealed class ExampleQueryTool
         IQueryContext context,
         CancellationToken cancellationToken)
     {
-        return ValueTask.FromResult(PluginExecutionResult<ExampleQueryData>.Success(new ExampleQueryData
+        _ = context;
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var data = new ExampleQueryData
         {
             Value = request.Value,
-        }));
+        };
+
+        var executionResult = PluginExecutionResult<ExampleQueryData>.Success(data);
+        var result = ValueTask.FromResult(executionResult);
+        return result;
     }
 }
 ```
 
 Fluent values override attribute values. Builders freeze when `Configure` returns; later mutation throws `InvalidOperationException`.
 
-Handler implementation types may be non-public, but they must implement the appropriate non-generic handler marker through a closed generic handler contract and provide a public parameterless constructor. The generic configuration constraints therefore reject abstract handlers, handlers from the wrong family and handlers without public parameterless construction at compile time. Request and response contracts must be public. Runtime validation reports direct marker implementations, multiple or cross-family handler contracts, disposable handlers, MEF imports and invalid transport contracts as categorised errors. It accumulates all expected authoring diagnostics and atomically disables the plugin when any error exists; exceptions are reserved for unexpected loading, composition, construction or reflection failures. Declared state and legacy static registration patterns publish categorised warnings because structural inspection cannot prove thread safety.
+Handler implementation types may be non-public, but they must implement the appropriate non-generic handler marker through a closed generic handler contract and provide a public parameterless constructor. The generic configuration constraints therefore reject abstract handlers, handlers from the wrong family and handlers without public parameterless construction at compile time. Request and response contracts must be public. Runtime validation reports direct marker implementations, multiple or cross-family handler contracts, disposable handlers, MEF imports and invalid transport contracts as categorised errors. It accumulates all expected authoring diagnostics and atomically disables the plugin when any error exists; exceptions are reserved for unexpected loading, composition, construction or reflection failures. Declared instance or static state and disposable-valued fields publish categorised warnings because structural inspection cannot prove thread safety or resource ownership.
 
 Preparation diagnostics use stable IDs for handler contracts, lifetime, composition, instance state, mutable members, static state, legacy registration, tool metadata, behaviour and duplicate tool names. Host adds distinct discovery, plugin-metadata, collision and materialisation IDs. `PluginLoad` is reserved for an unexpected exception crossing the load boundary.
 
@@ -104,7 +123,8 @@ Host validates package metadata and compatibility before executing plugin code. 
 ## Deployment checklist
 
 - Target the same supported .NET runtime as the Host.
-- Reference the public Plugins and Workspace contracts for compilation but avoid packaging private copies that could obscure dependency errors; Host always supplies their runtime identity.
+- Reference the public Plugins NuGet package for compilation. It supplies the matching Workspace contracts transitively; do not package private copies of either assembly because Host supplies their runtime identity.
+- Build with all default `RWMCP` diagnostics enabled and justify any deliberate suppression.
 - Give the entry assembly a valid informational SemVer.
 - Place exactly one marked entry assembly in one immediate package directory.
 - Keep request and response contracts public and JSON serialisable.

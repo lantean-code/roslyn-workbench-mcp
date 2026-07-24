@@ -56,4 +56,12 @@ internal sealed class PluginExecutionContextFactory : IToolExecutionContextFacto
             new PluginQueryContext(workspaceLease.Context, _toolExecutionServices),
             workspaceLease);
     }
+
+    public ToolExecutionFailureResult? DetectUnexpectedWorkspaceChange(IToolExecutionContext context)
+    {
+        var failure = _workspaceFactory.DetectUnexpectedWorkspaceChange(context.WorkspaceIdentity.WorkspaceId);
+        return failure is null
+            ? null
+            : PluginWorkspaceResultMapper.MapFailure(failure);
+    }
 }

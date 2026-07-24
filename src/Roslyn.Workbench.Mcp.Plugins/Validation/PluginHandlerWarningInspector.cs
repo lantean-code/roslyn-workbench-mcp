@@ -7,61 +7,191 @@ internal sealed class PluginHandlerWarningInspector : IPluginHandlerWarningInspe
 {
     public IReadOnlyList<DiagnosticInfo> Inspect(Type handlerType)
     {
-        var hierarchy = GetTypeHierarchy(handlerType).ToArray();
         var diagnostics = new List<DiagnosticInfo>();
-        if (hierarchy.SelectMany(static type => type.GetFields(
-            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)).Any())
+        var hasInstanceFields = false;
+        var hasMutableMembers = false;
+        var hasMutableStaticFields = false;
+        var hasDisposableFields = false;
+        var hasLegacyMetadata = false;
+        foreach (var type in GetTypeHierarchy(handlerType))
         {
-            diagnostics.Add(CreateDiagnostic(
-                PluginDiagnosticIds.HandlerInstanceState,
-                $"Plugin handler '{handlerType.FullName}' declares instance state and must remain thread-safe."));
+            var instanceFields = type.GetFields(
+                BindingFlags.Instance
+                | BindingFlags.Public
+                | BindingFlags.NonPublic
+                | BindingFlags.DeclaredOnly);
+
+            if (instanceFields.Length > 0)
+            {
+                hasInstanceFields = true;
+            }
+
+            if (ContainsDisposableField(instanceFields))
+            {
+                hasDisposableFields = true;
+            }
+
+            var properties = type.GetProperties(
+                BindingFlags.Instance
+                | BindingFlags.Public
+                | BindingFlags.NonPublic
+                | BindingFlags.DeclaredOnly);
+
+            if (ContainsWritableProperty(properties))
+            {
+                hasMutableMembers = true;
+            }
+
+            var events = type.GetEvents(
+                BindingFlags.Instance
+                | BindingFlags.Public
+                | BindingFlags.NonPublic
+                | BindingFlags.DeclaredOnly);
+
+            if (events.Length > 0)
+            {
+                hasMutableMembers = true;
+            }
+
+            var staticFields = type.GetFields(
+                BindingFlags.Static
+                | BindingFlags.Public
+                | BindingFlags.NonPublic
+                | BindingFlags.DeclaredOnly);
+
+            if (ContainsMutableStaticField(staticFields))
+            {
+                hasMutableStaticFields = true;
+            }
+
+            if (ContainsDisposableField(staticFields))
+            {
+                hasDisposableFields = true;
+            }
+
+            if (ContainsLegacyMetadata(staticFields))
+            {
+                hasLegacyMetadata = true;
+            }
         }
 
-        var hasMutableMembers = hierarchy.Any(static type =>
-            type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
-                .Any(static property => property.SetMethod is not null)
-            || type.GetEvents(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly).Length > 0);
+        var handlerName = handlerType.FullName;
+        if (hasInstanceFields)
+        {
+            var diagnostic = CreateDiagnostic(
+                PluginDiagnosticIds.HandlerInstanceState,
+                $"Plugin handler '{handlerName}' declares instance state and must remain thread-safe.");
+
+            diagnostics.Add(diagnostic);
+        }
 
         if (hasMutableMembers)
         {
-            diagnostics.Add(CreateDiagnostic(
+            var diagnostic = CreateDiagnostic(
                 PluginDiagnosticIds.HandlerMutableMembers,
-                $"Plugin handler '{handlerType.FullName}' exposes mutable properties or events."));
+                $"Plugin handler '{handlerName}' exposes mutable properties or events.");
+
+            diagnostics.Add(diagnostic);
         }
 
-        var staticFields = hierarchy.SelectMany(static type => type.GetFields(
-            BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)).ToArray();
-
-        if (staticFields.Any(static field => !field.IsLiteral && !field.IsInitOnly))
+        if (hasMutableStaticFields)
         {
-            diagnostics.Add(CreateDiagnostic(
+            var diagnostic = CreateDiagnostic(
                 PluginDiagnosticIds.HandlerStaticState,
-                $"Plugin handler '{handlerType.FullName}' declares mutable static state."));
+                $"Plugin handler '{handlerName}' declares mutable static state.");
+
+            diagnostics.Add(diagnostic);
         }
 
-        var hasLegacyMetadata = staticFields.Any(static field => field.FieldType == typeof(ToolRegistrationMetadata))
-            || hierarchy.SelectMany(static type => type.GetMethods(
-                BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
-                .Any(static method => string.Equals(method.Name, "Register", StringComparison.Ordinal));
+        if (hasDisposableFields)
+        {
+            var diagnostic = CreateDiagnostic(
+                PluginDiagnosticIds.HandlerDisposableField,
+                $"Plugin handler '{handlerName}' declares a field that may own a disposable resource.");
+
+            diagnostics.Add(diagnostic);
+        }
 
         if (hasLegacyMetadata)
         {
-            diagnostics.Add(CreateDiagnostic(
+            var diagnostic = CreateDiagnostic(
                 PluginDiagnosticIds.LegacyRegistration,
-                $"Plugin handler '{handlerType.FullName}' declares legacy static registration metadata."));
+                $"Plugin handler '{handlerName}' declares legacy static registration metadata.");
+
+            diagnostics.Add(diagnostic);
         }
 
         return diagnostics;
     }
 
+    private static bool ContainsDisposableField(FieldInfo[] fields)
+    {
+        foreach (var field in fields)
+        {
+            var fieldType = field.FieldType;
+            if (typeof(IDisposable).IsAssignableFrom(fieldType))
+            {
+                return true;
+            }
+
+            if (typeof(IAsyncDisposable).IsAssignableFrom(fieldType))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool ContainsWritableProperty(PropertyInfo[] properties)
+    {
+        foreach (var property in properties)
+        {
+            if (property.SetMethod is not null)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool ContainsMutableStaticField(FieldInfo[] fields)
+    {
+        foreach (var field in fields)
+        {
+            if (!field.IsLiteral && !field.IsInitOnly)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool ContainsLegacyMetadata(FieldInfo[] fields)
+    {
+        foreach (var field in fields)
+        {
+            if (field.FieldType == typeof(ToolRegistrationMetadata))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static DiagnosticInfo CreateDiagnostic(string id, string message)
     {
-        return new DiagnosticInfo
+        var diagnostic = new DiagnosticInfo
         {
             Id = id,
             Severity = ContractDiagnosticSeverity.Warning,
             Message = message,
         };
+
+        return diagnostic;
     }
 
     private static IEnumerable<Type> GetTypeHierarchy(Type handlerType)

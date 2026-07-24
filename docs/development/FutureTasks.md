@@ -36,7 +36,8 @@ Publish and retain these immutable artifacts:
 
 - the MCP server as a .NET tool package;
 - standalone executable archives for every supported runtime identifier;
-- the third-party Plugins library as a NuGet package;
+- the Workspace contract/support library as a NuGet dependency;
+- the third-party Plugins library as the author-facing NuGet package;
 - symbol packages where applicable;
 - checksums for downloadable standalone artifacts; and
 - release notes identifying the source tag and commit.
@@ -49,9 +50,10 @@ Before publishing:
 2. Confirm every artifact carries the GitVersion-derived release version.
 3. Install the generated .NET tool package from an isolated local package source and run a published-Host acceptance smoke test.
 4. Run each standalone executable on its target operating system without relying on repository build output.
-5. Inspect the Plugins package's generated `.nuspec` and deliberately approve its direct dependency ranges.
-6. Install the Plugins package into a clean external sample plugin with no project references to this repository, then build and exercise that plugin against the packaged Host.
-7. Publish only the exact artifacts that passed validation, and retain them without rebuilding the same version.
+5. Publish the matching Workspace dependency to the staging feed before validating the Plugins package.
+6. Inspect the Plugins package's generated `.nuspec` and deliberately approve its direct dependency ranges.
+7. Install the Plugins package into a clean external sample plugin with no project references to this repository, then build and exercise that plugin against the packaged Host.
+8. Publish only the exact artifacts that passed validation, and retain them without rebuilding the same version.
 
 The Plugins package validation is the consumer-compatibility boundary. A repository lock file would constrain the dependency graph used to build the package, but it would not force downstream plugin projects to restore that graph.
 
@@ -94,24 +96,30 @@ Source: [Testing Strategy](TestingStrategy.md#release-validation-and-performance
 
 ### Add a plugin-authoring analyser
 
-**Status:** Started
+**Status:** Complete
 
 The authoring surface has been audited and divided into 19 diagnostics covering Workspace snapshot safety, startup configuration lifetime, handler contracts and state, cancellation, bounded response design and plugin entry-point metadata. Generic constraints remain authoritative for construction and request-base eligibility; runtime validation remains authoritative for loaded binaries, final merged metadata, package layout, schema generation and cross-package collisions.
 
 Implement the dependency-ordered batches defined by the audit:
 
-1. analyser infrastructure, Workspace safety diagnostics and Host containment;
-2. handler contract, lifetime and state diagnostics;
-3. invocation, response and entry-point diagnostics; and
-4. Plugins package inclusion, consumer-build validation and author documentation.
+1. analyser infrastructure, Workspace safety diagnostics and Host containment — complete;
+2. handler contract, lifetime and state diagnostics — complete;
+3. invocation, response and entry-point diagnostics — complete; and
+4. Plugins package inclusion, consumer-build validation and author documentation — complete.
 
-The audit confirmed that file-based external-change detection does not observe an in-memory `Workspace.TryApplyChanges` against the associated `MSBuildWorkspace`. Add before/after invocation detection that invalidates cached queries and moves the affected session through the existing out-of-date/conflict path. This containment remains necessary when diagnostics are suppressed.
+Batch 1 added stable descriptors and exact-location tests for `RWMCP001`–`RWMCP004`. The Host now detects an unexpected in-memory `Workspace.TryApplyChanges` before or after plugin execution, invalidates cached queries, rejects the affected result and moves the session through the existing workspace-out-of-date or transaction-conflicted recovery path. Real query and mutation integration coverage proves containment when `RWMCP001` is deliberately suppressed.
+
+Batch 2 added `RWMCP005`–`RWMCP012` for handler contract shape, lifetime, MEF imports, external transport accessibility, instance and static state, disposable-valued fields and destructive query metadata. The diagnostics are mapped to runtime preparation checks, the misleading name-only `Register` warning has been removed, and a valid external plugin fixture is compiled with the analyser enabled.
+
+Batch 3 added `RWMCP013`–`RWMCP019` for cancellation observation, bounded query responses, plugin entry-point composition, API and identity metadata, and misplaced tool metadata. Runtime query-response validation now detects raw collection response types as well as raw collection properties.
 
 The shared `BoundedCollection<TItem>` response contract now belongs to the public Plugins authoring surface. Its `CreatePrebounded` factories deliberately require authors to apply collection limits before constructing the response and give the bounded-response diagnostic an actionable remediation.
 
-Ship the .NET Standard 2.0 C# analyser assembly inside the Plugins NuGet package so diagnostics run in the IDE and at build time without becoming a runtime dependency. Treat it as an engineering guardrail rather than a security boundary: plugins remain trusted in-process code and deliberate suppression, reflection or indirection cannot be prevented.
+The analyser and analyser-test projects target the intended frameworks and are included in the solution. The Plugins package includes the analyser assembly under `analyzers/dotnet/cs`.
 
-This must precede a release that actively promotes third-party plugin authoring. It does not block a Host release that continues to describe plugins as trusted in-process extensions and states the current runtime guarantees.
+The .NET Standard 2.0 C# analyser assembly ships inside the Plugins NuGet package so diagnostics run in the IDE and at build time without becoming a runtime dependency. Package integration coverage verifies the generated archive and `.nuspec`, builds an isolated package-only consumer, proves automatic diagnostic activation, and confirms the valid consumer remains clean. Treat the analyser as an engineering guardrail rather than a security boundary: plugins remain trusted in-process code and deliberate suppression, reflection or indirection cannot be prevented.
+
+This work now satisfies the analyser prerequisite for actively promoting third-party plugin authoring. Plugins remain trusted in-process extensions, so release documentation must continue to state the runtime guarantees and trust boundary.
 
 Sources: [Plugin authoring analyser audit](PluginAuthoringAnalyserAudit-2026-07-24.md), [2026-07-13-mef-plugin-composition.md](superpowers/plans/2026-07-13-mef-plugin-composition.md), [PluginApiSurfaceAudit-2026-07-18.md](PluginApiSurfaceAudit-2026-07-18.md)
 

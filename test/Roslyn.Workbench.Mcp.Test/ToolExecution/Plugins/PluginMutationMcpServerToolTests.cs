@@ -117,6 +117,45 @@ public sealed class PluginMutationMcpServerToolTests
     }
 
     [Fact]
+    public async Task GIVEN_HandlerChangesLiveWorkspace_WHEN_InvokingMutation_THEN_ShouldPublishContainmentFailureWithoutStaging()
+    {
+        var handler = new Mock<IMutationToolHandler<TestMutationRequest>>();
+        var contextFactory = new Mock<IToolExecutionContextFactory>();
+        var context = new Mock<IMutationContext>();
+        var stager = new Mock<IWorkspaceMutationStager>();
+        var workspaceLease = WorkspaceMutationExecutionLease.Acquired(
+            new Mock<IWorkspaceExecutionContext>().Object,
+            stager.Object);
+        var failure = PluginMcpServerToolTestData.CreateExecutionFailure(
+            PluginExecutionOutcome.Conflict,
+            "TransactionConflicted");
+        contextFactory
+            .Setup(item => item.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
+            .Returns(PluginMutationExecutionLease.Acquired(workspaceLease, context.Object));
+        contextFactory
+            .Setup(item => item.DetectUnexpectedWorkspaceChange(context.Object))
+            .Returns(failure);
+
+        handler
+            .Setup(item => item.ExecuteAsync(It.IsAny<TestMutationRequest>(), context.Object, CancellationToken.None))
+            .ReturnsAsync(PluginExecutionResult<MutationCandidate>.NoChange());
+
+        var target = CreateTarget(handler.Object, contextFactory.Object);
+
+        var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
+
+        result.IsError.Should().BeTrue();
+        result.StructuredContent!.Value.GetProperty("error").GetProperty("code").GetString()
+            .Should().Be("TransactionConflicted");
+        stager.Verify(item => item.StageAsync(
+            It.IsAny<string>(),
+            It.IsAny<WorkspaceMutationCandidate>(),
+            It.IsAny<IReadOnlyList<DiagnosticInfo>>(),
+            It.IsAny<IReadOnlyList<WarningInfo>>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task GIVEN_HandlerProposalAndSuccessfulStaging_WHEN_InvokingMutation_THEN_ShouldStageMappedProposalAndPublishSuccess()
     {
         var handler = new Mock<IMutationToolHandler<TestMutationRequest>>();
@@ -275,6 +314,7 @@ public sealed class PluginMutationMcpServerToolTests
         var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
 
         await action.Should().ThrowAsync<InvalidOperationException>();
+        contextFactory.Verify(item => item.DetectUnexpectedWorkspaceChange(context.Object), Times.Once);
         operationLease.Verify(item => item.Dispose(), Times.Once);
     }
 

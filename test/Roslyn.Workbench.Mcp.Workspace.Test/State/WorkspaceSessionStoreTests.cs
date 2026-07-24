@@ -172,15 +172,18 @@ public sealed class WorkspaceSessionStoreTests
         _queryCache.Verify(item => item.InvalidateWorkspace("WorkspaceId"), Times.Once);
     }
 
-    [Fact]
-    public void GIVEN_OutOfDateReplacement_WHEN_Replacing_THEN_ShouldInvalidateWorkspaceCache()
+    [Theory]
+    [InlineData(WorkspaceLifecycleState.WorkspaceOutOfDate)]
+    [InlineData(WorkspaceLifecycleState.TransactionConflicted)]
+    public void GIVEN_UnavailableReplacement_WHEN_Replacing_THEN_ShouldInvalidateWorkspaceCache(
+        WorkspaceLifecycleState state)
     {
         using var workspace = new AdhocWorkspace();
         var session = CreateSession("WorkspaceId", "Alias", workspace.CurrentSolution);
         var target = CreateStoreWithSession(session);
         var replacement = session with
         {
-            State = WorkspaceLifecycleState.WorkspaceOutOfDate,
+            State = state,
         };
 
         target.ReplaceSession(replacement);

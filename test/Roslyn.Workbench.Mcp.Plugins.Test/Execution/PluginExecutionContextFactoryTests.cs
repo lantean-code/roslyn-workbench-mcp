@@ -173,6 +173,56 @@ public sealed class PluginExecutionContextFactoryTests
         result.Failure.Should().NotBeNull();
     }
 
+    [Fact]
+    public void GIVEN_UnexpectedLiveWorkspaceChange_WHEN_DetectingAfterInvocation_THEN_ShouldMapWorkspaceConflict()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var workspaceFactory = new Mock<IWorkspaceExecutionContextFactory>();
+        var context = new PluginQueryContext(
+            CreateWorkspaceContext(roslyn.Solution),
+            new Mock<IToolExecutionServices>().Object);
+        workspaceFactory
+            .Setup(item => item.DetectUnexpectedWorkspaceChange("WorkspaceId"))
+            .Returns(new WorkspaceExecutionFailure
+            {
+                Status = WorkspaceOperationStatus.Conflict,
+                Error = new WorkspaceOperationError
+                {
+                    Code = "WorkspaceOutOfDate",
+                    Message = "Message",
+                    RequiredAction = RequiredAction.ReloadWorkspace,
+                },
+            });
+
+        var target = new PluginExecutionContextFactory(
+            workspaceFactory.Object,
+            new Mock<IToolExecutionServices>().Object);
+
+        var result = target.DetectUnexpectedWorkspaceChange(context);
+
+        result!.Outcome.Should().Be(PluginExecutionOutcome.Conflict);
+        result.Error.Code.Should().Be("WorkspaceOutOfDate");
+        result.RequiredAction.Should().Be(RequiredAction.ReloadWorkspace);
+    }
+
+    [Fact]
+    public void GIVEN_UnchangedLiveWorkspace_WHEN_DetectingAfterInvocation_THEN_ShouldReturnNull()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var workspaceFactory = new Mock<IWorkspaceExecutionContextFactory>();
+        var context = new PluginQueryContext(
+            CreateWorkspaceContext(roslyn.Solution),
+            new Mock<IToolExecutionServices>().Object);
+
+        var target = new PluginExecutionContextFactory(
+            workspaceFactory.Object,
+            new Mock<IToolExecutionServices>().Object);
+
+        var result = target.DetectUnexpectedWorkspaceChange(context);
+
+        result.Should().BeNull();
+    }
+
     private sealed record TestRequest : WorkspaceBoundRequest;
 
     private static WorkspaceExecutionContext CreateWorkspaceContext(Microsoft.CodeAnalysis.Solution solution)

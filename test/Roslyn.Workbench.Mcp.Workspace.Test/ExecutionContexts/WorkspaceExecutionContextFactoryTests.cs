@@ -2,6 +2,7 @@ using Microsoft.Extensions.Options;
 
 using Roslyn.Workbench.Mcp.Workspace.ChangeDetection;
 using Roslyn.Workbench.Mcp.Workspace.Configuration;
+using Roslyn.Workbench.Mcp.Workspace.Loading;
 using Roslyn.Workbench.Mcp.Workspace.Selection;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test.ExecutionContexts;
@@ -16,6 +17,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
     private readonly Mock<IMutationStagingService> _stagingService;
     private readonly Mock<IWorkspaceResolverFactory> _resolverFactory;
     private readonly Mock<IWorkspaceResolver> _resolver;
+    private readonly Mock<ILoadedWorkspace> _loadedWorkspace;
     private readonly WorkspaceExecutionContextFactory _target;
 
     public WorkspaceExecutionContextFactoryTests()
@@ -29,6 +31,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         _stagingService = new Mock<IMutationStagingService>();
         _resolverFactory = new Mock<IWorkspaceResolverFactory>();
         _resolver = new Mock<IWorkspaceResolver>();
+        _loadedWorkspace = new Mock<ILoadedWorkspace>();
         _resolverFactory.Setup(item => item.Create(It.IsAny<Solution>(), It.IsAny<WorkspaceIdentity>(), It.IsAny<int?>()))
             .Returns(_resolver.Object);
 
@@ -251,6 +254,86 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
 
         result.Failure!.Error.Code.Should().Be(WorkspaceErrorCodes.WorkspaceOutOfDate);
         _sessionStore.Verify(item => item.ReplaceSession(transitioned), Times.Once);
+    }
+
+    [Fact]
+    public void GIVEN_LiveWorkspaceChanged_WHEN_CreatingQueryContext_THEN_ShouldContainWithoutInspectingFiles()
+    {
+        var gate = new Mock<IWorkspaceOperationGate>();
+        gate.Setup(item => item.TryAcquireShared()).Returns(new Mock<IWorkspaceOperationLease>().Object);
+        var session = CreateSession(gate.Object);
+        var transitioned = session with { State = WorkspaceLifecycleState.WorkspaceOutOfDate };
+        SetupSelection(session);
+        _loadedWorkspace.SetupGet(item => item.HasCurrentSolutionChanged).Returns(true);
+        _stateTransitions.Setup(item => item.ApplyExternalChangeDetected(session)).Returns(transitioned);
+
+        var result = _target.CreateQueryContext(workspace: null, CancellationToken.None);
+
+        result.Failure!.Error.Code.Should().Be(WorkspaceErrorCodes.WorkspaceOutOfDate);
+        _changeDetector.Verify(
+            item => item.HasChanged(It.IsAny<WorkspaceInputManifest>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _sessionStore.Verify(item => item.ReplaceSession(transitioned), Times.Once);
+    }
+
+    [Fact]
+    public void GIVEN_LiveWorkspaceChangedAfterQueryInvocation_WHEN_DetectingChange_THEN_ShouldContainResult()
+    {
+        var session = CreateSession(new Mock<IWorkspaceOperationGate>().Object);
+        var transitioned = session with { State = WorkspaceLifecycleState.WorkspaceOutOfDate };
+        _sessionStore.Setup(item => item.ReadSession(session.Workspace.WorkspaceId)).Returns(session);
+        _loadedWorkspace.SetupGet(item => item.HasCurrentSolutionChanged).Returns(true);
+        _stateTransitions.Setup(item => item.ApplyExternalChangeDetected(session)).Returns(transitioned);
+
+        var result = _target.DetectUnexpectedWorkspaceChange(session.Workspace.WorkspaceId);
+
+        result!.Error.Code.Should().Be(WorkspaceErrorCodes.WorkspaceOutOfDate);
+        result.Error.RequiredAction.Should().Be(RequiredAction.ReloadWorkspace);
+        _sessionStore.Verify(item => item.ReplaceSession(transitioned), Times.Once);
+    }
+
+    [Fact]
+    public void GIVEN_LiveWorkspaceChangedDuringTransaction_WHEN_DetectingChange_THEN_ShouldConflictTransaction()
+    {
+        var session = CreateSession(
+            new Mock<IWorkspaceOperationGate>().Object,
+            WorkspaceLifecycleState.TransactionActive);
+        var transitioned = session with { State = WorkspaceLifecycleState.TransactionConflicted };
+        _sessionStore.Setup(item => item.ReadSession(session.Workspace.WorkspaceId)).Returns(session);
+        _loadedWorkspace.SetupGet(item => item.HasCurrentSolutionChanged).Returns(true);
+        _stateTransitions.Setup(item => item.ApplyExternalChangeDetected(session)).Returns(transitioned);
+
+        var result = _target.DetectUnexpectedWorkspaceChange(session.Workspace.WorkspaceId);
+
+        result!.Error.Code.Should().Be(WorkspaceErrorCodes.TransactionConflicted);
+        result.Error.RequiredAction.Should().Be(RequiredAction.RollbackTransaction);
+        _sessionStore.Verify(item => item.ReplaceSession(transitioned), Times.Once);
+    }
+
+    [Fact]
+    public void GIVEN_MissingWorkspace_WHEN_DetectingChange_THEN_ShouldRequireOpenWorkspace()
+    {
+        _sessionStore.Setup(item => item.ReadSession("WorkspaceId"))
+            .Returns((WorkspaceSessionSnapshot?)null);
+
+        var result = _target.DetectUnexpectedWorkspaceChange("WorkspaceId");
+
+        result!.Error.Code.Should().Be(WorkspaceErrorCodes.WorkspaceNotOpen);
+        result.Error.RequiredAction.Should().Be(RequiredAction.OpenWorkspace);
+    }
+
+    [Fact]
+    public void GIVEN_LiveWorkspaceUnchanged_WHEN_DetectingChange_THEN_ShouldReturnNull()
+    {
+        var session = CreateSession(new Mock<IWorkspaceOperationGate>().Object);
+        _sessionStore.Setup(item => item.ReadSession(session.Workspace.WorkspaceId)).Returns(session);
+
+        var result = _target.DetectUnexpectedWorkspaceChange(session.Workspace.WorkspaceId);
+
+        result.Should().BeNull();
+        _sessionStore.Verify(
+            item => item.ReplaceSession(It.IsAny<WorkspaceSessionSnapshot>()),
+            Times.Never);
     }
 
     [Fact]
@@ -529,7 +612,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
                 Alias = "Alias",
                 LoadedPath = "LoadedPath",
             },
-            LoadedWorkspace = null!,
+            LoadedWorkspace = _loadedWorkspace.Object,
             CurrentSolution = _workspace.CurrentSolution,
             Transaction = hasTransaction
                 ? transaction ?? new WorkspaceTransaction

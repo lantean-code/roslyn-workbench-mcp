@@ -58,9 +58,24 @@ internal sealed class PluginQueryMcpServerTool<TRequest, TResponse> : McpServerT
 
         var context = contextLease.Context;
         PluginExecutionResult<TResponse> result;
+        ToolExecutionFailureResult? containmentFailure;
         using (StartPhase(WorkbenchPerformanceEventSource.HandlerExecutionPhase))
         {
-            result = await _handler.ExecuteAsync(request, context, cancellationToken);
+            try
+            {
+                result = await _handler.ExecuteAsync(request, context, cancellationToken);
+            }
+            finally
+            {
+                containmentFailure = _contextFactory.DetectUnexpectedWorkspaceChange(context);
+            }
+        }
+
+        if (containmentFailure is not null)
+        {
+            return CreateStructuredResult(
+                McpPublishedResultSerializer.SerializePluginFailure(containmentFailure),
+                isError: true);
         }
 
         using (StartPhase(WorkbenchPerformanceEventSource.ResponseProjectionPhase))

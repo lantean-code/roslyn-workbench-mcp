@@ -30,6 +30,37 @@ public sealed class QueryResponseContractInspectorTests
     }
 
     [Fact]
+    public void GIVEN_BoundedCollectionResponse_WHEN_Inspecting_THEN_ShouldReturnNoDiagnostics()
+    {
+        var tool = CreateTool(
+            ToolKind.Query,
+            "query",
+            typeof(BoundedCollection<string>));
+
+        var result = QueryResponseContractInspector.Inspect(tool);
+
+        result.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(typeof(string[]))]
+    [InlineData(typeof(IReadOnlyList<string>))]
+    [InlineData(typeof(ISet<string>))]
+    [InlineData(typeof(IReadOnlyDictionary<string, string>))]
+    [InlineData(typeof(IAsyncEnumerable<string>))]
+    public void GIVEN_RawCollectionResponse_WHEN_Inspecting_THEN_ShouldReportDiagnostic(
+        Type responseType)
+    {
+        var tool = CreateTool(ToolKind.Query, "query", responseType);
+
+        var result = QueryResponseContractInspector.Inspect(tool);
+
+        var diagnostic = result.Should().ContainSingle().Subject;
+        diagnostic.Id.Should().Be("QueryResponseContract");
+        diagnostic.Message.Should().Contain("unbounded collection response");
+    }
+
+    [Fact]
     public void GIVEN_RawTopLevelCollections_WHEN_Inspecting_THEN_ShouldReportEveryOffendingProperty()
     {
         var tool = CreateTool(ToolKind.Query, "query", typeof(RawCollectionResponse));
@@ -46,6 +77,9 @@ public sealed class QueryResponseContractInspectorTests
         diagnostic.Message.Should().Contain("CollectionItems");
         diagnostic.Message.Should().Contain("ListInterfaceItems");
         diagnostic.Message.Should().Contain("ListItems");
+        diagnostic.Message.Should().Contain("SetItems");
+        diagnostic.Message.Should().Contain("DictionaryItems");
+        diagnostic.Message.Should().Contain("AsyncItems");
     }
 
     private static RegisteredTool CreateTool(ToolKind kind, string name, Type responseType)
@@ -86,6 +120,13 @@ public sealed class QueryResponseContractInspectorTests
         public IList<string> ListInterfaceItems { get; init; } = [];
 
         public List<string> ListItems { get; init; } = [];
+
+        public ISet<string> SetItems { get; init; } = new HashSet<string>();
+
+        public IReadOnlyDictionary<string, string> DictionaryItems { get; init; } =
+            new Dictionary<string, string>();
+
+        public IAsyncEnumerable<string>? AsyncItems { get; init; }
     }
 #pragma warning restore CA1812
 }

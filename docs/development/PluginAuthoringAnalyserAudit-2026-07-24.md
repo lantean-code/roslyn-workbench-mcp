@@ -144,6 +144,7 @@ Do not add diagnostics for:
 
 - all access to `Solution.Workspace`;
 - arbitrary `System.IO` use, because plugins may legitimately read configuration, indexes or non-source inputs and reliable source-path provenance would require brittle dataflow;
+- HTTP, socket, DNS or external-process APIs, because trusted plugins can have legitimate uses for them while malicious in-process code can bypass source diagnostics through suppression, dependencies, reflection, native code or generated IL;
 - reflection or dynamic invocation, which would create noise without establishing a security boundary;
 - semantic thread safety, lock correctness or whether a readonly reference points to mutable state;
 - handler registration completeness or global name uniqueness, because registration can be conditional and package-global collisions are known only to Host;
@@ -158,13 +159,32 @@ Do not add diagnostics for:
 
 Unregistered-handler analysis can be reconsidered only if real author feedback shows it is a recurring mistake. It is not a first implementation rule because source generators, conditional registration and handler libraries can make absence of a local registration intentional.
 
+Network and external-process diagnostics must not be presented as prompt-injection prevention. An error-level diagnostic or pre-load metadata scan would block only cooperative or straightforward implementations, while code intending to evade the policy retains the full permissions of the Host process. This would restrict legitimate trusted plugins without establishing a security boundary. If untrusted plugin execution becomes a product requirement, address it through a separately designed process and operating-system sandbox boundary rather than expanding this analyser catalogue.
+
 ## Runtime validation alignment
 
 Runtime validation should retain every objective safety and package check. The analyser adds source locations and earlier feedback; it does not replace Host preparation.
 
-Two runtime warnings should be adjusted during implementation:
+The Batch 2 diagnostics map to the stable runtime diagnostics as follows:
 
-1. `PluginLegacyRegistration` currently treats any static method named `Register` as legacy registration. The old registration metadata type is internal, so this name-only heuristic can warn about unrelated code and should be removed rather than copied into the analyser.
+| Authoring diagnostic | Runtime diagnostic |
+|---|---|
+| `RWMCP005`, `RWMCP008` | `PluginHandlerContract` |
+| `RWMCP006` | `PluginHandlerLifetime` |
+| `RWMCP007` | `PluginHandlerComposition` |
+| `RWMCP009` | `PluginHandlerInstanceState`, `PluginHandlerMutableMembers` |
+| `RWMCP010` | `PluginHandlerStaticState` |
+| `RWMCP011` | `PluginHandlerDisposableField` |
+| `RWMCP012` | `PluginToolBehaviour` |
+| `RWMCP013` | No direct runtime diagnostic; cancellation observation is advisory |
+| `RWMCP014` | `QueryResponseContract` |
+| `RWMCP015`, `RWMCP016` | `PluginDiscovery` and composition validation |
+| `RWMCP017`, `RWMCP018` | `PluginMetadata` |
+| `RWMCP019` | No direct runtime diagnostic; unregistered attributed types are not activated |
+
+The runtime warning adjustments are:
+
+1. `PluginLegacyRegistration` no longer treats an arbitrary static method named `Register` as legacy registration. The precise `ToolRegistrationMetadata` field check remains.
 2. `BoundedCollection<TItem>` now belongs to the public Plugins authoring surface rather than the bundled `Plugins.Core` contracts, so the runtime recommendation is actionable for external authors. Its intent-revealing `CreatePrebounded` factories make the plugin responsible for applying the bound before constructing the response. `QueryResponseContractInspector` should also inspect a raw collection used directly as `TResponse`, not only collection-valued response properties.
 
 Keep a documented mapping between `RWMCP` diagnostics and related runtime IDs. Do not silently rename the stable runtime IDs exposed through `server-status`.
@@ -177,6 +197,10 @@ Add:
 
 - `src/Roslyn.Workbench.Mcp.Plugins.Analyzers` targeting `netstandard2.0`; and
 - `test/Roslyn.Workbench.Mcp.Plugins.Analyzers.Test` targeting the repository test framework.
+
+The projects and Plugins package wiring are now in place. The analyser assembly is packaged under `analyzers/dotnet/cs`, and architecture coverage locks its .NET Standard 2.0 target and absence of runtime, Workspace, Plugins and MEF assembly dependencies.
+
+Batch 1 is complete. Stable descriptor infrastructure and exact-location source tests cover `RWMCP001`–`RWMCP004`. The Host retains the initially loaded Roslyn solution identity, validates it before and after plugin invocation, invalidates cached queries and moves unexpected changes through the existing workspace-out-of-date or transaction-conflicted recovery path. Focused Workspace, Plugins adapter, Host transport and real query/mutation integration tests cover the containment boundary, including deliberate `RWMCP001` suppression.
 
 Use the American-spelled `Analyzers` suffix for the .NET project/package convention while retaining British English in prose.
 
@@ -269,6 +293,8 @@ Add package tests that unpack the generated `.nupkg` and build a clean external 
 
 ### Batch 1 — Infrastructure, Workspace safety and containment
 
+**Status:** Complete
+
 1. Add the analyser and analyser-test projects with stable descriptor infrastructure.
 2. Implement `RWMCP001`–`RWMCP004`.
 3. Add Host detection and containment for unexpected underlying Roslyn Workspace changes.
@@ -278,25 +304,37 @@ This batch is first because the original risk is not adequately handled by an an
 
 ### Batch 2 — Handler contracts and lifetime
 
+**Status:** Complete
+
 1. Implement `RWMCP005`–`RWMCP012`.
 2. Map the diagnostics to the existing runtime preparation checks.
 3. Remove the name-only legacy registration warning.
 4. Verify the valid external fixture remains clean.
 
+The analyser now reports ambiguous handler contracts, unsupported lifetimes and MEF imports, inaccessible external transport types, state requiring review, disposable-valued fields and destructive query metadata. Runtime preparation retains the corresponding binary checks, including the new `PluginHandlerDisposableField` warning. The name-only `Register` heuristic has been removed, and the valid external query fixture builds with the analyser enabled and no diagnostics.
+
 ### Batch 3 — Invocation, response and entry-point guidance
+
+**Status:** Complete
 
 1. Implement `RWMCP013`–`RWMCP019`.
 2. Correct and extend runtime raw-collection inspection.
 3. Add descriptor, inheritance, incomplete-code and activation-boundary coverage.
 
+The analyser now advises when an invocation token is ignored, reports raw agent-facing query collections, validates the relationship between plugin markers and entry-point contracts, enforces a single marked entry point, checks API and identity metadata, and rejects tool metadata on non-handlers. Runtime query-response inspection now covers a raw collection used directly as `TResponse` as well as collection-valued response properties, including lists, sets, dictionaries and asynchronous collections. Source tests cover inherited response members, incomplete response types, ordinary dependency assemblies and abstract plugin bases.
+
 ### Batch 4 — Packaging and author documentation
+
+**Status:** Complete
 
 1. Include the analyser in the Plugins NuGet package.
 2. Add `.nupkg` layout and clean-consumer build tests.
 3. Publish diagnostic help pages and update plugin authoring examples.
 4. Validate IDE/build discovery and the release packaging checklist.
 
-Batch 4 depends on the v1 Plugins package work, but Batches 1–3 can be implemented and tested before the complete release workflow exists.
+The Plugins package now carries its authoring guide as the NuGet readme and includes the analyser exactly once at `analyzers/dotnet/cs`. An integration test packs matching Workspace and Plugins packages, rejects compiler-analyser dependency leakage, verifies the generated `.nuspec`, proves that an invalid clean consumer fails with `RWMCP015`, and then proves that a valid consumer with no repository project references builds cleanly. The standard NuGet analyser path supplies both command-line and compatible IDE discovery. The analyser has a nested central-package definition so its intentionally conservative compiler API baseline cannot be raised accidentally by Host Roslyn upgrades. Release publication must publish the matching Workspace dependency before the Plugins package, although plugin authors install only the Plugins package.
+
+Batch 4 establishes the package shape and clean-consumer validation needed by the later v1 release workflow. The release pipeline must reuse these validated package boundaries rather than rebuilding or reshaping them during publication.
 
 ## Completion criteria
 

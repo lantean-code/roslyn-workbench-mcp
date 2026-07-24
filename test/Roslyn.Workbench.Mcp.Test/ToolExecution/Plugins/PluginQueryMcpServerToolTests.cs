@@ -104,6 +104,39 @@ public sealed class PluginQueryMcpServerToolTests
         result.StructuredContent.Value.GetProperty("data").ValueKind.Should().Be(JsonValueKind.Null);
     }
 
+    [Fact]
+    public async Task GIVEN_HandlerChangesLiveWorkspace_WHEN_InvokingQuery_THEN_ShouldPublishContainmentFailure()
+    {
+        var handler = new Mock<IQueryToolHandler<TestQueryRequest, TestQueryResponse>>();
+        var contextFactory = new Mock<IToolExecutionContextFactory>();
+        var context = new Mock<IQueryContext>();
+        var failure = PluginMcpServerToolTestData.CreateExecutionFailure(
+            PluginExecutionOutcome.Conflict,
+            "WorkspaceOutOfDate");
+        contextFactory
+            .Setup(item => item.CreateQueryContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
+            .Returns(ToolExecutionContextLease<IQueryContext>.Acquired(context.Object));
+        contextFactory
+            .Setup(item => item.DetectUnexpectedWorkspaceChange(context.Object))
+            .Returns(failure);
+
+        handler
+            .Setup(item => item.ExecuteAsync(It.IsAny<TestQueryRequest>(), context.Object, CancellationToken.None))
+            .ReturnsAsync(PluginExecutionResult<TestQueryResponse>.Success(new TestQueryResponse
+            {
+                Value = "Value",
+            }));
+
+        var target = CreateTarget(handler.Object, contextFactory.Object);
+
+        var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
+
+        result.IsError.Should().BeTrue();
+        result.StructuredContent!.Value.GetProperty("error").GetProperty("code").GetString()
+            .Should().Be("WorkspaceOutOfDate");
+        result.StructuredContent.Value.GetProperty("next").GetString().Should().Be("Retry");
+    }
+
     [Theory]
     [InlineData(PluginExecutionOutcome.Rejected, "Rejected")]
     [InlineData(PluginExecutionOutcome.Conflict, "Conflict")]
@@ -154,6 +187,7 @@ public sealed class PluginQueryMcpServerToolTests
         var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
 
         await action.Should().ThrowAsync<InvalidOperationException>();
+        contextFactory.Verify(item => item.DetectUnexpectedWorkspaceChange(context.Object), Times.Once);
         operationLease.Verify(item => item.DisposeAsync(), Times.Once);
     }
 

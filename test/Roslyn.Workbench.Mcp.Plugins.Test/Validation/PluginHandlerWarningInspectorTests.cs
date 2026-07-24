@@ -39,6 +39,22 @@ public sealed class PluginHandlerWarningInspectorTests
         result.Should().ContainSingle(static diagnostic => diagnostic.Id == "PluginHandlerInstanceState");
     }
 
+    [Fact]
+    public void GIVEN_HandlerOwnsDisposableField_WHEN_Inspecting_THEN_ShouldPublishDisposableFieldWarning()
+    {
+        var result = _target.Inspect(typeof(DisposableFieldHandler));
+
+        result.Should().ContainSingle(static diagnostic => diagnostic.Id == "PluginHandlerDisposableField");
+    }
+
+    [Fact]
+    public void GIVEN_HandlerHasRegisterMethodOnly_WHEN_Inspecting_THEN_ShouldNotPublishLegacyWarning()
+    {
+        var result = _target.Inspect(typeof(RegisterMethodHandler));
+
+        result.Should().BeEmpty();
+    }
+
 #pragma warning disable CA1812 // Handler fixtures are inspected for reflected state and legacy registration shapes.
     private sealed class StatefulLegacyHandler
     {
@@ -93,6 +109,25 @@ public sealed class PluginHandlerWarningInspectorTests
         public void Update()
         {
             UpdateState();
+        }
+    }
+
+#pragma warning disable CA1001 // This fixture deliberately models unsupported disposable field ownership.
+    private sealed class DisposableFieldHandler
+    {
+        private readonly MemoryStream _stream = new();
+
+        public long GetLength()
+        {
+            return _stream.Length;
+        }
+    }
+#pragma warning restore CA1001
+
+    private sealed class RegisterMethodHandler
+    {
+        public static void Register()
+        {
         }
     }
 #pragma warning restore CA1812

@@ -46,43 +46,6 @@ public sealed class ConvertToInterpolatedStringToolTests
     }
 
     [Fact]
-    public async Task GIVEN_RequestWithoutSelection_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequestRejection()
-    {
-        var workspaceResolver = new Mock<IWorkspaceResolver>();
-        var context = new Mock<ICodeActionMutationContext>();
-        var request = new ConvertToInterpolatedStringRequest
-        {
-            Selection = null,
-            ExpectedSnapshot = new SnapshotPrecondition
-            {
-                WorkspaceEpoch = 1,
-            },
-        };
-
-        var selectionStager = new Mock<ICodeActionSelectionStager>();
-        var target = CreateTarget(selectionStager.Object);
-
-        context
-            .Setup(item => item.WorkspaceResolver)
-            .Returns(workspaceResolver.Object);
-
-        workspaceResolver
-            .Setup(item => item.ValidateSnapshot(request.ExpectedSnapshot))
-            .Returns(SnapshotMatchResult.Matched());
-
-        var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
-
-        result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
-        result.Error.Should().NotBeNull();
-        result.Error!.Code.Should().Be("InvalidRequest");
-        workspaceResolver.Verify(
-            item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()),
-            Times.Never);
-
-        selectionStager.Verify(item => item.StageReplayCodeActionAsync(It.IsAny<ReplayCodeActionRequest>(), context.Object, It.IsAny<CancellationToken>()), Times.Never);
-    }
-
-    [Fact]
     public async Task GIVEN_LocationResolutionIsNotResolved_WHEN_CallingExecuteAsync_THEN_ShouldReturnLocationRejection()
     {
         var workspaceResolver = new Mock<IWorkspaceResolver>();

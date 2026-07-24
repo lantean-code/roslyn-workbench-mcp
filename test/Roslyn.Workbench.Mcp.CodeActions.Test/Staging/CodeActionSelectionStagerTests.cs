@@ -38,28 +38,16 @@ public sealed class CodeActionSelectionStagerTests
     }
 
     [Fact]
-    public async Task GIVEN_SelectionIsMissing_WHEN_StagingSelection_THEN_ShouldRejectWithoutDiscoveringActions()
-    {
-        var result = await _target.StageSelectionAsync(
-            null,
-            null,
-            CancellationToken.None,
-            _context.Object,
-            "ProviderId");
-
-        result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
-        result.Error!.Code.Should().Be("InvalidRequest");
-        _discoveryService.Verify(item => item.GetMatchingRefactoringProviders(It.IsAny<string?>()), Times.Never);
-    }
-
-    [Fact]
     public async Task GIVEN_CancellationIsRequested_WHEN_ReplayingCodeAction_THEN_ShouldThrowBeforeCheckingAvailability()
     {
         using var cancellationSource = new CancellationTokenSource();
         await cancellationSource.CancelAsync();
 
         var action = async () => await _target.StageReplayCodeActionAsync(
-            new ReplayCodeActionRequest(),
+            new ReplayCodeActionRequest
+            {
+                Location = new LocationSelector(),
+            },
             _context.Object,
             cancellationSource.Token);
 
@@ -76,7 +64,10 @@ public sealed class CodeActionSelectionStagerTests
         });
 
         var result = await _target.StageReplayCodeActionAsync(
-            new ReplayCodeActionRequest(),
+            new ReplayCodeActionRequest
+            {
+                Location = new LocationSelector(),
+            },
             _context.Object,
             CancellationToken.None);
 
@@ -95,6 +86,7 @@ public sealed class CodeActionSelectionStagerTests
         var result = await _target.StageReplayCodeActionAsync(
             new ReplayCodeActionRequest
             {
+                Location = new LocationSelector(),
                 ExpectedSnapshot = expectedSnapshot,
             },
             _context.Object,
@@ -102,20 +94,6 @@ public sealed class CodeActionSelectionStagerTests
 
         result.Outcome.Should().Be(CodeActionExecutionOutcome.Conflict);
         result.Error!.Code.Should().Be("SnapshotMismatch");
-    }
-
-    [Fact]
-    public async Task GIVEN_LocationIsMissing_WHEN_ReplayingCodeAction_THEN_ShouldRejectRequest()
-    {
-        var result = await _target.StageReplayCodeActionAsync(
-            new ReplayCodeActionRequest(),
-            _context.Object,
-            CancellationToken.None);
-
-        result.Error!.Code.Should().Be("InvalidRequest");
-        _workspaceResolver.Verify(item => item.ResolveLocationAsync(
-            It.IsAny<LocationSelector>(),
-            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Theory]

@@ -8,7 +8,7 @@ internal sealed record MoveTypeToFileRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the source type to move into its own document.
     /// </summary>
-    public SymbolSelector? Type { get; init; }
+    public required SymbolSelector Type { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the moved declaration should keep its current namespace.

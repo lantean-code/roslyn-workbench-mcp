@@ -19,7 +19,7 @@ internal sealed class ToolSchemaFactory
     {
         return _inputSchemaCache.GetOrAdd(
             typeof(TRequest),
-            static (_, schemaProvider) => InputSchemaDefaultPublisher.Publish(
+            static (_, schemaProvider) => InputSchemaContractPublisher.Publish(
                 schemaProvider.GetInputSchema<TRequest>(),
                 typeof(TRequest)),
             _schemaProvider);

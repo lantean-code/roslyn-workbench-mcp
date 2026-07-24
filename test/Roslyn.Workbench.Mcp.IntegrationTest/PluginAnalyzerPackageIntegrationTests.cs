@@ -33,6 +33,12 @@ public sealed class PluginAnalyzerPackageIntegrationTests
                 "Roslyn.Workbench.Mcp.Workspace",
                 feedDirectory);
 
+            var workspacePackagePath = Path.Combine(
+                feedDirectory,
+                $"Roslyn.Workbench.Mcp.Workspace.{_packageVersion}.nupkg");
+
+            ValidateWorkspacePackageLayout(workspacePackagePath);
+
             await PackProjectAsync(
                 repositoryRoot,
                 "Roslyn.Workbench.Mcp.Plugins",
@@ -114,6 +120,11 @@ public sealed class PluginAnalyzerPackageIntegrationTests
                 "README.md",
                 StringComparison.Ordinal));
 
+        var readme = ReadTextEntry(archive, "README.md");
+        readme.Should().Contain("# Third-Party Plugin Authoring");
+        readme.Should().Contain(
+            "https://github.com/lantean-code/roslyn-workbench-mcp/blob/main/docs/PluginAuthoringDiagnostics.md");
+
         archive.Entries.Should().NotContain(
             static entry => entry.FullName.StartsWith(
                 "lib/",
@@ -136,6 +147,28 @@ public sealed class PluginAnalyzerPackageIntegrationTests
         dependencyIds.Should().Contain("Roslyn.Workbench.Mcp.Workspace");
         dependencyIds.Should().NotContain("Microsoft.CodeAnalysis.Analyzers");
         dependencyIds.Should().NotContain("Microsoft.CodeAnalysis.CSharp");
+    }
+
+    private static void ValidateWorkspacePackageLayout(string packagePath)
+    {
+        File.Exists(packagePath).Should().BeTrue();
+        using var archive = ZipFile.OpenRead(packagePath);
+
+        var readme = ReadTextEntry(archive, "README.md");
+        readme.Should().Contain("# Roslyn Workbench Workspace Support Package");
+        readme.Should().NotContain("# Third-Party Plugin Authoring");
+    }
+
+    private static string ReadTextEntry(ZipArchive archive, string path)
+    {
+        var entry = archive.Entries.Single(item => string.Equals(
+            item.FullName,
+            path,
+            StringComparison.Ordinal));
+
+        using var stream = entry.Open();
+        using var reader = new StreamReader(stream);
+        return reader.ReadToEnd();
     }
 
     private static List<string> ReadDependencyIds(XDocument nuspec)

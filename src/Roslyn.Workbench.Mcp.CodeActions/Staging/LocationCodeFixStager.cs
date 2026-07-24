@@ -45,11 +45,6 @@ internal sealed class LocationCodeFixStager : ILocationCodeFixStager
             return snapshotRejection;
         }
 
-        if (request.Location is null)
-        {
-            return Rejected<WorkspaceMutationCandidate>("InvalidRequest", "A location selector is required.");
-        }
-
         if (request.DiagnosticIds.Count == 0)
         {
             return Rejected<WorkspaceMutationCandidate>("InvalidRequest", "At least one diagnostic ID is required.");

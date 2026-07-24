@@ -13,15 +13,6 @@ internal sealed class IntroduceVariableTool : CodeActionMutationToolHandler<Intr
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(IntroduceVariableRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
-        if (request.Selection is null)
-        {
-            var rejection = CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>(
-                "InvalidRequest",
-                "A location selector is required.");
-
-            return ValueTask.FromResult(rejection);
-        }
-
         var replayRequest = request.Kind switch
         {
             IntroduceVariableKind.LocalAllOccurrences => CreateReplayRequest(request, "Introduce local for all occurrences of "),

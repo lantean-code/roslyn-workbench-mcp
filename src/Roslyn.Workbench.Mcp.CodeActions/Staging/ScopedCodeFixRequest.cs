@@ -8,7 +8,7 @@ internal sealed record ScopedCodeFixRequest
     /// <summary>
     /// Gets the scope to apply the code fix to.
     /// </summary>
-    public ScopeSelector? Scope { get; init; }
+    public required ScopeSelector Scope { get; init; }
 
     /// <summary>
     /// Gets the expected workspace snapshot for the operation.

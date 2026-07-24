@@ -68,6 +68,47 @@ public sealed class ToolSchemaFactoryIntegrationTests
 
     [Fact]
     [Trait("Category", "Contract")]
+    public void GIVEN_CodeActionTargetSelectors_WHEN_ExportingInputSchemas_THEN_ShouldPublishRequiredNonNullableProperties()
+    {
+        var target = CreateTarget();
+        var schemaMethod = typeof(ToolSchemaFactory).GetMethod(nameof(ToolSchemaFactory.CreateInputSchema))
+            ?? throw new InvalidOperationException("The input-schema factory method was not found.");
+
+        var requestTypes = typeof(StageFixAllRequest).Assembly
+            .GetTypes()
+            .Where(static type => type.Name.EndsWith("Request", StringComparison.Ordinal)
+                && type.Namespace?.Contains(".Contracts", StringComparison.Ordinal) == true)
+            .ToArray();
+
+        var targetSelectorProperties = requestTypes
+            .SelectMany(static type => type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+            .Where(IsTargetSelectorProperty)
+            .ToArray();
+
+        targetSelectorProperties.Should().HaveCount(20);
+        foreach (var targetSelectorProperty in targetSelectorProperties)
+        {
+            var declaringType = targetSelectorProperty.DeclaringType
+                ?? throw new InvalidOperationException("The target selector property did not have a declaring type.");
+
+            var closedSchemaMethod = schemaMethod.MakeGenericMethod(declaringType);
+            var publishedSchema = closedSchemaMethod.Invoke(target, null) is JsonElement schema
+                ? schema
+                : throw new InvalidOperationException("The input-schema factory did not return a JSON element.");
+
+            var jsonPropertyName = JsonNamingPolicy.CamelCase.ConvertName(targetSelectorProperty.Name);
+            var requiredProperties = publishedSchema.GetProperty("required")
+                .EnumerateArray()
+                .Select(static item => item.GetString())
+                .ToArray();
+
+            requiredProperties.Should().Contain(jsonPropertyName);
+            AllowsNull(GetProperty(publishedSchema, jsonPropertyName)).Should().BeFalse();
+        }
+    }
+
+    [Fact]
+    [Trait("Category", "Contract")]
     public void GIVEN_BuiltInToolRequests_WHEN_AuditingLimitProperties_THEN_EveryLimitShouldDeclareAndPublishItsDefault()
     {
         var target = CreateTarget();
@@ -131,6 +172,29 @@ public sealed class ToolSchemaFactoryIntegrationTests
                 || property.Name.StartsWith("Minimum", StringComparison.Ordinal)
                 || property.Name.EndsWith("Lines", StringComparison.Ordinal)
                 || property.Name.EndsWith("Limit", StringComparison.Ordinal));
+    }
+
+    private static bool IsTargetSelectorProperty(PropertyInfo property)
+    {
+        return property.PropertyType == typeof(LocationSelector)
+            || property.PropertyType == typeof(SymbolSelector)
+            || property.PropertyType == typeof(ScopeSelector);
+    }
+
+    private static bool AllowsNull(JsonElement schema)
+    {
+        if (!schema.TryGetProperty("type", out var type))
+        {
+            return false;
+        }
+
+        if (type.ValueKind == JsonValueKind.String)
+        {
+            return string.Equals(type.GetString(), "null", StringComparison.Ordinal);
+        }
+
+        return type.ValueKind == JsonValueKind.Array
+            && type.EnumerateArray().Any(static item => string.Equals(item.GetString(), "null", StringComparison.Ordinal));
     }
 
     private static JsonElement GetProperty(JsonElement schema, string propertyName)

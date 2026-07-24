@@ -9,7 +9,7 @@ internal interface ICodeActionSelectionStager
 
 #pragma warning disable CA1068 // The token precedes optional selector filters so callers need not supply unrelated options.
     ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageSelectionAsync(
-        LocationSelector? selection,
+        LocationSelector selection,
         SnapshotPrecondition? expectedSnapshot,
         CancellationToken cancellationToken,
         ICodeActionExecutionContext context,

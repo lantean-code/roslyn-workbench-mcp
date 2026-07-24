@@ -9,6 +9,10 @@ public sealed class StageFixAllToolTests
         var request = new StageFixAllRequest
         {
             ActionId = "ActionId",
+            Scope = new ScopeSelector
+            {
+                Kind = ScopeKind.Solution,
+            },
         };
 
         var context = new Mock<ICodeActionMutationContext>();

@@ -8,7 +8,7 @@ internal sealed record UseNamedArgumentsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the selected argument location.
     /// </summary>
-    public LocationSelector? Selection { get; init; }
+    public required LocationSelector Selection { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether trailing arguments should also receive names.

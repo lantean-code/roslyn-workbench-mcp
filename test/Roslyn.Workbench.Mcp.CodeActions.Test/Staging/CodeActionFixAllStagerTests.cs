@@ -179,26 +179,6 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
     }
 
     [Fact]
-    public async Task GIVEN_ScopeIsMissing_WHEN_StagingFixAll_THEN_ShouldRejectRequest()
-    {
-        var result = await _target.StageFixAllAsync(
-            new StageFixAllRequest
-            {
-                ActionId = "ActionId",
-            },
-            _context.Object,
-            CancellationToken.None);
-
-        result.Error!.Code.Should().Be("InvalidRequest");
-        _resolver.Verify(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
-            It.IsAny<string>(),
-            It.IsAny<SnapshotPrecondition?>(),
-            It.IsAny<DiscoveredActionKind?>(),
-            It.IsAny<ICodeActionExecutionContext>(),
-            It.IsAny<CancellationToken>()), Times.Never);
-    }
-
-    [Fact]
     public async Task GIVEN_ActionResolutionIsRejected_WHEN_StagingFixAll_THEN_ShouldReturnRejection()
     {
         var rejection = CreateRejection();

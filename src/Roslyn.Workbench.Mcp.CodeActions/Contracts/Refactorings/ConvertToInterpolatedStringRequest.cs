@@ -8,7 +8,7 @@ internal sealed record ConvertToInterpolatedStringRequest : WorkspaceBoundReques
     /// <summary>
     /// Gets the selected string expression to convert.
     /// </summary>
-    public LocationSelector? Selection { get; init; }
+    public required LocationSelector Selection { get; init; }
 
     /// <summary>
     /// Gets the expected snapshot for the selected location.

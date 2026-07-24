@@ -8,7 +8,7 @@ internal sealed record ExtractMethodRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the selected code to extract.
     /// </summary>
-    public LocationSelector? Selection { get; init; }
+    public required LocationSelector Selection { get; init; }
 
     /// <summary>
     /// Gets the extract-method variant to stage.

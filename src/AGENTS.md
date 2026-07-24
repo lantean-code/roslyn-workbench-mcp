@@ -1,6 +1,7 @@
 # Code Generation Rules
 
 ## Expectations
+
 - Code must be technically precise, unambiguous, and avoid bad practices.
 - Keep code consistent with the coding standards below.
 - Follow Microsoft's official best practices for C#, .NET, Roslyn, and the MCP SDK.
@@ -13,6 +14,7 @@
 - Prioritize maintainability, testability, and scalability.
 
 ## Project boundaries
+
 - `Roslyn.Workbench.Mcp` owns executable bootstrap, server startup, dependency composition, MCP schemas and envelopes, transport adapters, and server-owned lifecycle tools.
 - `Roslyn.Workbench.Mcp.Workspace` owns workspace contracts, selector resolution, neutral execution leases, transaction state, external-change handling, reload behaviour, and commit coordination.
 - `Roslyn.Workbench.Mcp.CodeActions` owns internal Code Action contracts, catalogue metadata, execution contexts, and workflows. It may depend on Workspace but not Plugins.
@@ -26,6 +28,7 @@
 ## Coding standards
 
 ### Naming
+
 - Use PascalCase for classes, records, structs, interfaces, enums, methods, properties, events, and public fields.
 - Use `_camelCase` for private fields and private constants.
 - Use PascalCase for public constants.
@@ -34,6 +37,7 @@
 - Use the `Default` prefix only for an implementation that is deliberately provided as the default among replaceable alternatives. Name a sole internal implementation directly after its responsibility.
 
 ### Formatting
+
 - Braces on a new line and never omitted.
 - Use file-scoped namespaces by default. Use block-scoped namespaces only when the file structure genuinely requires them.
 - Use blank lines where appropriate to improve readability.
@@ -59,6 +63,7 @@
 - Keep each member-order group contiguous; do not interleave members from different accessibility groups.
 
 ### Coding practices
+
 - Use `var` wherever possible unless it harms clarity.
 - Deconstruct tuples when their elements are consumed separately and deconstruction makes the subsequent code clearer.
 - Enable and properly use nullable reference types.
@@ -85,6 +90,7 @@
 - Avoid hidden ambient state. Pass required collaborators explicitly.
 
 ### Roslyn and MCP design rules
+
 - Preserve snapshot-precondition semantics. Do not reinterpret stale spans, locations, or symbols against a newer workspace snapshot.
 - Query tools must be read-only and must not write files or mutate host state.
 - Mutation tools must stage candidate changes through the transaction pipeline; they must not write directly to disk.
@@ -94,6 +100,7 @@
 - Prefer preview or analysis phases before applying refactors when Roslyn-backed tooling supports it.
 
 ### Design
+
 - Use constructor injection only unless a framework API requires otherwise.
 - Static methods and classes are acceptable when they are truly stateless.
 - Avoid partial classes in user code unless generated code or a framework requires them.
@@ -105,6 +112,7 @@
 - Do not change production contracts, inheritance, implemented interfaces, or other runtime design purely to simplify tests. Production design must drive the tests, and tests must adapt to the production API.
 
 ### Documentation
+
 - XML documentation comments are required on public APIs that form contracts, plugin extension points, or other externally consumed behaviour.
 - Include `<summary>`, `<param>` where applicable, and `<returns>` when needed.
 - Use inline comments sparingly and only to explain complex or non-obvious logic.
@@ -113,6 +121,7 @@
   - Exception: multiple small, strongly related generic variants of the same type may share a file when it materially improves readability.
 
 ## Line endings
+
 - Use CRLF line terminators for any files you write or modify.
 - After editing any source file that is expected to use CRLF, run `unix2dos <changed files>` to normalize the entire file and eliminate any LF or mixed endings introduced by patching tools.
 - Do not run `unix2dos` on files that are intentionally LF per `.gitattributes` or repository convention.
@@ -123,10 +132,12 @@
 - Do not format unrelated files.
 
 ## Enforcement
+
 - Generate C# code that follows these standards exactly.
 - If existing code does not follow these rules, call it out explicitly before proceeding.
 
 ## Pre-flight checklist (agents must confirm)
+
 - [ ] Standards here are applied to all generated code.
 - [ ] Nullable reference types are enabled and used correctly.
 - [ ] Public contract and extension-point APIs include XML docs with proper tags.

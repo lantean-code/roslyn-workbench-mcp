@@ -12,7 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="..\..\docs\PluginAuthoring.md"
+    <None Include="..\..\docs\WorkspacePackage.md"
           Pack="true"
           PackagePath="README.md" />
     <PackageReference Include="DiffPlex" />

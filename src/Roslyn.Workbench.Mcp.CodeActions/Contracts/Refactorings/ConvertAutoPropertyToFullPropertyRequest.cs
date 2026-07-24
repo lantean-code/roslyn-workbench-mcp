@@ -8,7 +8,7 @@ internal sealed record ConvertAutoPropertyToFullPropertyRequest : WorkspaceBound
     /// <summary>
     /// Gets the selected auto-property declaration to rewrite.
     /// </summary>
-    public LocationSelector? Selection { get; init; }
+    public required LocationSelector Selection { get; init; }
 
     /// <summary>
     /// Gets the expected snapshot for the selected location.

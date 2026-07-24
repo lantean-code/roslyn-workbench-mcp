@@ -8,7 +8,7 @@ internal sealed record EncapsulateFieldRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the field to encapsulate.
     /// </summary>
-    public SymbolSelector? Field { get; init; }
+    public required SymbolSelector Field { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether field references should be rewritten to use the generated property.

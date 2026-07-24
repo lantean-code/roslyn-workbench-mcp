@@ -8,7 +8,7 @@ internal sealed record AddMissingUsingsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the scope to clean.
     /// </summary>
-    public ScopeSelector? Scope { get; init; }
+    public required ScopeSelector Scope { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the request prefers global using directives.

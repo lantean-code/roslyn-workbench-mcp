@@ -8,7 +8,7 @@ internal sealed record RemoveUnusedUsingsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the scope to clean.
     /// </summary>
-    public ScopeSelector? Scope { get; init; }
+    public required ScopeSelector Scope { get; init; }
 
     /// <summary>
     /// Gets the expected snapshot for the staged mutation.

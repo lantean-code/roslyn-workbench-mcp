@@ -17,7 +17,7 @@ internal sealed record StageFixAllRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the target scope for the fix-all operation.
     /// </summary>
-    public ScopeSelector? Scope { get; init; }
+    public required ScopeSelector Scope { get; init; }
 
     /// <summary>
     /// Gets the maximum number of changed source documents to allow.

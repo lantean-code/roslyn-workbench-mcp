@@ -8,7 +8,7 @@ internal sealed record InlineVariableRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the symbol selector for the local variable to inline.
     /// </summary>
-    public SymbolSelector? Symbol { get; init; }
+    public required SymbolSelector Symbol { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the declaration should be removed after inlining.

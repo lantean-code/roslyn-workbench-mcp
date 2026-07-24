@@ -8,7 +8,7 @@ internal sealed record AddImportRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the selected qualified type reference to rewrite.
     /// </summary>
-    public LocationSelector? Selection { get; init; }
+    public required LocationSelector Selection { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether all matching occurrences should also be simplified.

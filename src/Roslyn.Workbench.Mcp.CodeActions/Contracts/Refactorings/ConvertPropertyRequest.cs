@@ -8,7 +8,7 @@ internal sealed record ConvertPropertyRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the selected property declaration to rewrite.
     /// </summary>
-    public LocationSelector? Selection { get; init; }
+    public required LocationSelector Selection { get; init; }
 
     /// <summary>
     /// Gets the property-conversion direction to stage.

@@ -19,19 +19,10 @@ internal sealed class CodeActionToolRequestResolver : ICodeActionToolRequestReso
     }
 
     public async ValueTask<CodeActionToolResolutionResult<CodeActionSourceSelection, TResponse>> ResolveLocationAsync<TResponse>(
-        LocationSelector? selector,
+        LocationSelector selector,
         ICodeActionExecutionContext context,
         CancellationToken cancellationToken)
     {
-        if (selector is null)
-        {
-            var rejection = CodeActionExecutionResultFactory.Rejected<TResponse>(
-                "InvalidRequest",
-                "A location selector is required.");
-
-            return CodeActionToolResolutionResult<CodeActionSourceSelection, TResponse>.Rejected(rejection);
-        }
-
         var resolution = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken);
         if (!resolution.IsResolved)
         {
@@ -64,27 +55,18 @@ internal sealed class CodeActionToolRequestResolver : ICodeActionToolRequestReso
     }
 
     public async ValueTask<CodeActionToolResolutionResult<ISymbol, TResponse>> ResolveSymbolAsync<TResponse>(
-        SymbolSelector? selector,
+        SymbolSelector selector,
         SnapshotPrecondition? expectedSnapshot,
         ICodeActionExecutionContext context,
         CancellationToken cancellationToken)
     {
-        if (selector?.Location is not null)
+        if (selector.Location is not null)
         {
             var snapshotRejection = ValidateSnapshot<TResponse>(context, expectedSnapshot);
             if (snapshotRejection is not null)
             {
                 return CodeActionToolResolutionResult<ISymbol, TResponse>.Rejected(snapshotRejection);
             }
-        }
-
-        if (selector is null)
-        {
-            var rejection = CodeActionExecutionResultFactory.Rejected<TResponse>(
-                "InvalidRequest",
-                "A symbol selector is required.");
-
-            return CodeActionToolResolutionResult<ISymbol, TResponse>.Rejected(rejection);
         }
 
         var resolution = await context.WorkspaceResolver.ResolveSymbolAsync(selector, cancellationToken);

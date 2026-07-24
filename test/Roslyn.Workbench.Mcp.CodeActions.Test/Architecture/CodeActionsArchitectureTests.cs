@@ -19,9 +19,14 @@ public sealed class CodeActionsArchitectureTests
     {
         var expectedReferences = new Dictionary<string, string[]>
         {
+            ["Roslyn.Workbench.Mcp.Plugins.Analyzers"] = [],
             ["Roslyn.Workbench.Mcp.Workspace"] = [],
             ["Roslyn.Workbench.Mcp.CodeActions"] = ["Roslyn.Workbench.Mcp.Workspace"],
-            ["Roslyn.Workbench.Mcp.Plugins"] = ["Roslyn.Workbench.Mcp.Workspace"],
+            ["Roslyn.Workbench.Mcp.Plugins"] =
+            [
+                "Roslyn.Workbench.Mcp.Plugins.Analyzers",
+                "Roslyn.Workbench.Mcp.Workspace",
+            ],
             ["Roslyn.Workbench.Mcp.Plugins.Core"] =
             [
                 "Roslyn.Workbench.Mcp.Plugins",

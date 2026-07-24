@@ -8,7 +8,7 @@ internal sealed record IntroduceVariableRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the selected expression to introduce.
     /// </summary>
-    public LocationSelector? Selection { get; init; }
+    public required LocationSelector Selection { get; init; }
 
     /// <summary>
     /// Gets the introduce-variable leaf action to stage.

@@ -43,12 +43,15 @@ internal static class BuiltInCodeActionAuditHarness
 
         var session = new CodeActionComponentTestSession(coordinator);
         var openResult = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        var location = auditCase.LocationFactory(fixture);
         await using var queryLease = coordinator.CodeActionContextFactory.CreateQueryContext(
-            new ListCodeActionsRequest(),
+            new ListCodeActionsRequest
+            {
+                Location = location,
+            },
             TestContext.Current.CancellationToken);
 
         var queryContext = queryLease.Context!;
-        var location = auditCase.LocationFactory(fixture);
         var resolution = await queryContext.WorkspaceResolver.ResolveLocationAsync(location, TestContext.Current.CancellationToken);
         if (resolution.Status != SelectorResolveStatus.Resolved || resolution.Value is null)
         {

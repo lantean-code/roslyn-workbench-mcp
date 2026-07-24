@@ -25,6 +25,17 @@ public sealed class ToolRequestBinderTests
         action.Should().Throw<JsonException>();
     }
 
+    [Fact]
+    public void GIVEN_ExplicitNullForNonNullableProperty_WHEN_Binding_THEN_ShouldThrowJsonException()
+    {
+        var action = () => ToolRequestBinder.Deserialize<TestRequest>(new Dictionary<string, JsonElement>
+        {
+            ["value"] = JsonSerializer.SerializeToElement((string?)null),
+        });
+
+        action.Should().Throw<JsonException>();
+    }
+
     [SuppressMessage(
         "Performance",
         "CA1812:Avoid uninstantiated internal classes",

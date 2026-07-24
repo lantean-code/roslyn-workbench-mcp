@@ -20,9 +20,9 @@ public sealed class ToolExecutionHelpersTests
 
         attributes.Should().HaveCount(2);
         attributes[0].ReturnValue.Should().BeFalse();
-        attributes[0].Members.Should().Equal(nameof(ToolResolutionResult<string, object>.Value));
+        attributes[0].Members.Should().Equal(nameof(ToolResolutionResult<,>.Value));
         attributes[1].ReturnValue.Should().BeTrue();
-        attributes[1].Members.Should().Equal(nameof(ToolResolutionResult<string, object>.Rejection));
+        attributes[1].Members.Should().Equal(nameof(ToolResolutionResult<,>.Rejection));
     }
 
     [Fact]

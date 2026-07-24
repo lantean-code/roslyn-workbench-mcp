@@ -47,7 +47,10 @@ public sealed class LocationCodeFixStagerTests
         await cancellationSource.CancelAsync();
 
         var action = async () => await _target.StageLocationCodeFixAsync(
-            new LocationCodeFixRequest(),
+            new LocationCodeFixRequest
+            {
+                Location = new LocationSelector(),
+            },
             _context.Object,
             cancellationSource.Token);
 
@@ -64,7 +67,10 @@ public sealed class LocationCodeFixStagerTests
         });
 
         var result = await _target.StageLocationCodeFixAsync(
-            new LocationCodeFixRequest(),
+            new LocationCodeFixRequest
+            {
+                Location = new LocationSelector(),
+            },
             _context.Object,
             CancellationToken.None);
 
@@ -83,6 +89,7 @@ public sealed class LocationCodeFixStagerTests
         var result = await _target.StageLocationCodeFixAsync(
             new LocationCodeFixRequest
             {
+                Location = new LocationSelector(),
                 ExpectedSnapshot = expectedSnapshot,
             },
             _context.Object,
@@ -90,20 +97,6 @@ public sealed class LocationCodeFixStagerTests
 
         result.Outcome.Should().Be(CodeActionExecutionOutcome.Conflict);
         result.Error!.Code.Should().Be("SnapshotMismatch");
-    }
-
-    [Fact]
-    public async Task GIVEN_LocationIsMissing_WHEN_StagingLocationFix_THEN_ShouldRejectRequest()
-    {
-        var result = await _target.StageLocationCodeFixAsync(
-            new LocationCodeFixRequest
-            {
-                DiagnosticIds = ["DiagnosticId"],
-            },
-            _context.Object,
-            CancellationToken.None);
-
-        result.Error!.Code.Should().Be("InvalidRequest");
     }
 
     [Fact]

@@ -16,15 +16,6 @@ internal sealed class ConvertForeachLinqTool : CodeActionMutationToolHandler<Con
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(ConvertForeachLinqRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
-        if (request.Selection is null)
-        {
-            var rejection = CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>(
-                "InvalidRequest",
-                "A location selector is required.");
-
-            return ValueTask.FromResult(rejection);
-        }
-
         var replayRequest = request.ConversionKind switch
         {
             ConvertForeachLinqKind.ForeachToCallForm => new ReplayCodeActionRequest

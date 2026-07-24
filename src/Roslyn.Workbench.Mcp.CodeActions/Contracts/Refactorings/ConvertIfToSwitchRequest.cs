@@ -8,7 +8,7 @@ internal sealed record ConvertIfToSwitchRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the selected if-chain to convert.
     /// </summary>
-    public LocationSelector? Selection { get; init; }
+    public required LocationSelector Selection { get; init; }
 
     /// <summary>
     /// Gets the target switch form to stage.

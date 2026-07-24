@@ -9,6 +9,10 @@ public sealed class AddMissingUsingsToolTests
         var request = new AddMissingUsingsRequest
         {
             PreferGlobalUsings = true,
+            Scope = new ScopeSelector
+            {
+                Kind = ScopeKind.Solution,
+            },
         };
 
         var scopedFixStager = new Mock<IScopedCodeFixStager>();

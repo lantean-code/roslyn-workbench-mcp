@@ -7,7 +7,7 @@ using System.Text.Json.Serialization;
 
 namespace Roslyn.Workbench.Mcp.Protocol;
 
-internal static class InputSchemaDefaultPublisher
+internal static class InputSchemaContractPublisher
 {
     public static JsonElement Publish(JsonElement schema, Type requestType)
     {
@@ -18,16 +18,18 @@ internal static class InputSchemaDefaultPublisher
         }
 
         var visited = new HashSet<(Type Type, JsonObject Schema)>(SchemaVisitComparer.Instance);
+        var nullabilityContext = new NullabilityInfoContext();
 
-        PublishContractDefaults(root, root, requestType, visited);
+        PublishContractMetadata(root, root, requestType, nullabilityContext, visited);
 
         return JsonSerializer.SerializeToElement(root);
     }
 
-    private static void PublishContractDefaults(
+    private static void PublishContractMetadata(
         JsonObject root,
         JsonObject schema,
         Type contractType,
+        NullabilityInfoContext nullabilityContext,
         HashSet<(Type Type, JsonObject Schema)> visited)
     {
         contractType = Nullable.GetUnderlyingType(contractType) ?? contractType;
@@ -49,6 +51,12 @@ internal static class InputSchemaDefaultPublisher
                 continue;
             }
 
+            var nullability = nullabilityContext.Create(property);
+            if (nullability.WriteState == NullabilityState.NotNull)
+            {
+                RemoveNullType(propertySchema);
+            }
+
             var declaredDefault = property.GetCustomAttribute<DefaultValueAttribute>();
             if (declaredDefault is not null)
             {
@@ -57,7 +65,25 @@ internal static class InputSchemaDefaultPublisher
 
             foreach (var nestedSchema in ResolveNestedSchemas(root, propertySchema))
             {
-                PublishContractDefaults(root, nestedSchema, property.PropertyType, visited);
+                PublishContractMetadata(root, nestedSchema, property.PropertyType, nullabilityContext, visited);
+            }
+        }
+    }
+
+    private static void RemoveNullType(JsonObject schema)
+    {
+        if (schema["type"] is not JsonArray types)
+        {
+            return;
+        }
+
+        for (var index = types.Count - 1; index >= 0; index--)
+        {
+            if (types[index] is JsonValue type
+                && type.TryGetValue<string>(out var typeName)
+                && string.Equals(typeName, "null", StringComparison.Ordinal))
+            {
+                types.RemoveAt(index);
             }
         }
     }

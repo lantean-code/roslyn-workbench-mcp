@@ -8,7 +8,7 @@ internal sealed record IntroduceParameterRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the selected expression to promote.
     /// </summary>
-    public LocationSelector? Selection { get; init; }
+    public required LocationSelector Selection { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether all matching occurrences should be promoted.

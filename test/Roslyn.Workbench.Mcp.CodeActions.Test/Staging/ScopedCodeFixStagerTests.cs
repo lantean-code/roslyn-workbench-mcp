@@ -209,20 +209,6 @@ public sealed class ScopedCodeFixStagerTests : IDisposable
     }
 
     [Fact]
-    public async Task GIVEN_ScopeIsMissing_WHEN_StagingScopedFix_THEN_ShouldRejectRequest()
-    {
-        var result = await _target.StageScopedCodeFixAsync(
-            new ScopedCodeFixRequest
-            {
-                DiagnosticIds = ["DiagnosticId"],
-            },
-            _context.Object,
-            CancellationToken.None);
-
-        result.Error!.Code.Should().Be("InvalidRequest");
-    }
-
-    [Fact]
     public async Task GIVEN_DiagnosticIdsAreEmpty_WHEN_StagingScopedFix_THEN_ShouldRejectRequest()
     {
         var result = await _target.StageScopedCodeFixAsync(

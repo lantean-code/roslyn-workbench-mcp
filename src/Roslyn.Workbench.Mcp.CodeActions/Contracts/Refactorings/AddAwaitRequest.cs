@@ -8,7 +8,7 @@ internal sealed record AddAwaitRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the selected async expression to rewrite.
     /// </summary>
-    public LocationSelector? Selection { get; init; }
+    public required LocationSelector Selection { get; init; }
 
     /// <summary>
     /// Gets the add-await variant to stage.

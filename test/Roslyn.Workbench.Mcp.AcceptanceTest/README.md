@@ -50,8 +50,7 @@ dotnet test test/Roslyn.Workbench.Mcp.AcceptanceTest/Roslyn.Workbench.Mcp.Accept
   --configuration Release
 ```
 
-Set `ROSLYN_WORKBENCH_MCP_ACCEPTANCE_RETAIN_ROOT=true` while diagnosing a failure to retain a failed scenario root. Without it, scenario workspaces and state are removed during asynchronous fixture disposal.
-Retained failure roots include `process.txt` and `server.stderr.log` alongside the scenario workspace and state.
+Set `ROSLYN_WORKBENCH_MCP_ACCEPTANCE_RETAIN_ROOT=true` while diagnosing a failure to retain a failed scenario root. Without it, scenario workspaces and state are removed during asynchronous fixture disposal. Retained failure roots include `process.txt` and `server.stderr.log` alongside the scenario workspace and state.
 
 ## Published response envelope
 

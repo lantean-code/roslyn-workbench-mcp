@@ -18,15 +18,6 @@ internal sealed class IntroduceParameterTool : CodeActionMutationToolHandler<Int
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(IntroduceParameterRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
-        if (request.Selection is null)
-        {
-            var rejection = CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>(
-                "InvalidRequest",
-                "A location selector is required.");
-
-            return ValueTask.FromResult(rejection);
-        }
-
         var title = request.Strategy switch
         {
             IntroduceParameterStrategy.IntoExtractedMethod => _intoExtractedMethodTitle,

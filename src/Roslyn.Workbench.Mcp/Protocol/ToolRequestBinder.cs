@@ -5,7 +5,10 @@ namespace Roslyn.Workbench.Mcp.Protocol;
 
 internal static class ToolRequestBinder
 {
-    private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
+    private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web)
+    {
+        RespectNullableAnnotations = true,
+    };
 
     public static TRequest Deserialize<TRequest>(IDictionary<string, JsonElement> arguments)
         where TRequest : class

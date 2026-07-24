@@ -50,7 +50,10 @@ public sealed class ListCodeActionsToolTests
         });
 
         var result = await _target.ExecuteAsync(
-            new ListCodeActionsRequest(),
+            new ListCodeActionsRequest
+            {
+                Location = new LocationSelector(),
+            },
             _context.Object,
             CancellationToken.None);
 
@@ -69,6 +72,7 @@ public sealed class ListCodeActionsToolTests
         var result = await _target.ExecuteAsync(
             new ListCodeActionsRequest
             {
+                Location = new LocationSelector(),
                 ExpectedSnapshot = expectedSnapshot,
             },
             _context.Object,
@@ -76,20 +80,6 @@ public sealed class ListCodeActionsToolTests
 
         result.Outcome.Should().Be(CodeActionExecutionOutcome.Conflict);
         result.Error!.Code.Should().Be("SnapshotMismatch");
-    }
-
-    [Fact]
-    public async Task GIVEN_LocationIsMissing_WHEN_Executing_THEN_ShouldRejectRequest()
-    {
-        var result = await _target.ExecuteAsync(
-            new ListCodeActionsRequest(),
-            _context.Object,
-            CancellationToken.None);
-
-        result.Error!.Code.Should().Be("InvalidRequest");
-        _workspaceResolver.Verify(item => item.ResolveLocationAsync(
-            It.IsAny<LocationSelector>(),
-            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Theory]

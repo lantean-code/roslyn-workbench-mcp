@@ -15,23 +15,6 @@ public sealed class CodeActionToolRequestResolverTests
     }
 
     [Fact]
-    public async Task GIVEN_MissingSymbolSelector_WHEN_Resolving_THEN_ShouldRejectInvalidRequest()
-    {
-        var result = await _target.ResolveSymbolAsync<TestResponse>(
-            null,
-            null,
-            _context.Object,
-            TestContext.Current.CancellationToken);
-
-        result.HasRejection.Should().BeTrue();
-        result.Rejection!.Error!.Code.Should().Be("InvalidRequest");
-        _workspaceResolver.Verify(item => item.ValidateSnapshot(It.IsAny<SnapshotPrecondition?>()), Times.Never);
-        _workspaceResolver.Verify(item => item.ResolveSymbolAsync(
-            It.IsAny<SymbolSelector>(),
-            It.IsAny<CancellationToken>()), Times.Never);
-    }
-
-    [Fact]
     public async Task GIVEN_LocationSelectorHasSnapshotMismatch_WHEN_ResolvingSymbol_THEN_ShouldRejectConflict()
     {
         var selector = new SymbolSelector { Location = new LocationSelector() };

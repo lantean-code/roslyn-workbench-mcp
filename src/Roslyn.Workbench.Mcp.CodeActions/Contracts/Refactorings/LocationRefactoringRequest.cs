@@ -8,7 +8,7 @@ internal sealed record LocationRefactoringRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the selected location that identifies the Roslyn refactoring target.
     /// </summary>
-    public LocationSelector? Selection { get; init; }
+    public required LocationSelector Selection { get; init; }
 
     /// <summary>
     /// Gets the expected snapshot for the selected location.

@@ -1,11 +1,18 @@
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 
 namespace Roslyn.Workbench.Mcp.Protocol;
 
 internal sealed class McpSdkSchemaProvider : IMcpSdkSchemaProvider
 {
+    private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web)
+    {
+        RespectNullableAnnotations = true,
+        TypeInfoResolver = new DefaultJsonTypeInfoResolver(),
+    };
+
     private readonly ConcurrentDictionary<Type, JsonElement> _inputSchemaCache = [];
     private readonly ConcurrentDictionary<Type, JsonElement> _valueSchemaCache = [];
 
@@ -26,8 +33,15 @@ internal sealed class McpSdkSchemaProvider : IMcpSdkSchemaProvider
 
     private static JsonElement CreateInputSchemaCore<TRequest>()
     {
-        var method = GetRequiredMethod(typeof(SchemaProbe<TRequest>), nameof(SchemaProbe<TRequest>.Invoke), BindingFlags.Public | BindingFlags.Static);
-        var tool = McpServerTool.Create(method);
+        var method = GetRequiredMethod(typeof(SchemaProbe<TRequest>), nameof(SchemaProbe<>.Invoke), BindingFlags.Public | BindingFlags.Static);
+        var tool = McpServerTool.Create(
+            method,
+            target: null,
+            new McpServerToolCreateOptions
+            {
+                SerializerOptions = _serializerOptions,
+            });
+
         var root = tool.ProtocolTool.InputSchema;
         var requestSchema = root.GetProperty("properties").GetProperty("request");
 
@@ -56,8 +70,15 @@ internal sealed class McpSdkSchemaProvider : IMcpSdkSchemaProvider
 
     private static JsonElement CreateValueSchemaCoreGeneric<TValue>()
     {
-        var method = GetRequiredMethod(typeof(SchemaValueProbe<TValue>), nameof(SchemaValueProbe<TValue>.Invoke), BindingFlags.Public | BindingFlags.Static);
-        var tool = McpServerTool.Create(method);
+        var method = GetRequiredMethod(typeof(SchemaValueProbe<TValue>), nameof(SchemaValueProbe<>.Invoke), BindingFlags.Public | BindingFlags.Static);
+        var tool = McpServerTool.Create(
+            method,
+            target: null,
+            new McpServerToolCreateOptions
+            {
+                SerializerOptions = _serializerOptions,
+            });
+
         var root = tool.ProtocolTool.InputSchema;
         var requestSchema = root.GetProperty("properties").GetProperty("request");
         var valueSchema = requestSchema.GetProperty("properties").GetProperty("value");

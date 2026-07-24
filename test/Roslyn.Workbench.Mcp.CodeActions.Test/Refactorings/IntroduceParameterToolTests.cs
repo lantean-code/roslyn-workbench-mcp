@@ -2,22 +2,6 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Refactorings;
 
 public sealed class IntroduceParameterToolTests
 {
-    [Fact]
-    public async Task GIVEN_SelectionIsNull_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequest()
-    {
-        var context = new Mock<ICodeActionMutationContext>();
-        var selectionStager = new Mock<ICodeActionSelectionStager>();
-        var target = new IntroduceParameterTool(selectionStager.Object);
-
-        var result = await target.ExecuteAsync(new IntroduceParameterRequest(), context.Object, CancellationToken.None);
-
-        result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
-        result.Error!.Code.Should().Be("InvalidRequest");
-        selectionStager.Verify(item => item.StageReplayCodeActionAsync(
-            It.IsAny<ReplayCodeActionRequest>(),
-            context.Object, It.IsAny<CancellationToken>()), Times.Never);
-    }
-
     [Theory]
     [InlineData((int)IntroduceParameterStrategy.UpdateCallSitesDirectly, false, "and update call sites directly", 0, 0)]
     [InlineData((int)IntroduceParameterStrategy.UpdateCallSitesDirectly, true, "and update call sites directly", 1, 0)]

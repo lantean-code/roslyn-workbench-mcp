@@ -3,22 +3,6 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Refactorings;
 public sealed class ExtractMethodToolTests
 {
     [Fact]
-    public async Task GIVEN_SelectionIsNull_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequest()
-    {
-        var context = new Mock<ICodeActionMutationContext>();
-        var selectionStager = new Mock<ICodeActionSelectionStager>();
-        var target = new ExtractMethodTool(selectionStager.Object);
-
-        var result = await target.ExecuteAsync(new ExtractMethodRequest(), context.Object, CancellationToken.None);
-
-        result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
-        result.Error!.Code.Should().Be("InvalidRequest");
-        selectionStager.Verify(item => item.StageReplayCodeActionAsync(
-            It.IsAny<ReplayCodeActionRequest>(),
-            context.Object, It.IsAny<CancellationToken>()), Times.Never);
-    }
-
-    [Fact]
     public async Task GIVEN_LocalFunctionTargetKind_WHEN_CallingExecuteAsync_THEN_ShouldStageLocalFunctionReplayAction()
     {
         var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());

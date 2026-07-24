@@ -7,12 +7,12 @@ internal interface ICodeActionToolRequestResolver
         SnapshotPrecondition? expectedSnapshot);
 
     ValueTask<CodeActionToolResolutionResult<CodeActionSourceSelection, TResponse>> ResolveLocationAsync<TResponse>(
-        LocationSelector? selector,
+        LocationSelector selector,
         ICodeActionExecutionContext context,
         CancellationToken cancellationToken);
 
     ValueTask<CodeActionToolResolutionResult<ISymbol, TResponse>> ResolveSymbolAsync<TResponse>(
-        SymbolSelector? selector,
+        SymbolSelector selector,
         SnapshotPrecondition? expectedSnapshot,
         ICodeActionExecutionContext context,
         CancellationToken cancellationToken);

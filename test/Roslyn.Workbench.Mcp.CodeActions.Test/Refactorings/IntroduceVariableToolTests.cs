@@ -2,22 +2,6 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Refactorings;
 
 public sealed class IntroduceVariableToolTests
 {
-    [Fact]
-    public async Task GIVEN_SelectionIsNull_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequest()
-    {
-        var context = new Mock<ICodeActionMutationContext>();
-        var selectionStager = new Mock<ICodeActionSelectionStager>();
-        var target = new IntroduceVariableTool(selectionStager.Object);
-
-        var result = await target.ExecuteAsync(new IntroduceVariableRequest(), context.Object, CancellationToken.None);
-
-        result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
-        result.Error!.Code.Should().Be("InvalidRequest");
-        selectionStager.Verify(item => item.StageReplayCodeActionAsync(
-            It.IsAny<ReplayCodeActionRequest>(),
-            context.Object, It.IsAny<CancellationToken>()), Times.Never);
-    }
-
     [Theory]
     [InlineData((int)IntroduceVariableKind.Local, "Introduce local for ", "all occurrences")]
     [InlineData((int)IntroduceVariableKind.LocalAllOccurrences, "Introduce local for all occurrences of ", null)]

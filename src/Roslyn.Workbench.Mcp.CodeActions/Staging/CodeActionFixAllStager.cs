@@ -42,12 +42,6 @@ internal sealed class CodeActionFixAllStager : ICodeActionFixAllStager
             return runtimeRejection;
         }
 
-        var scope = request.Scope;
-        if (scope is null)
-        {
-            return Rejected<WorkspaceMutationCandidate>("InvalidRequest", "A scope selector is required.");
-        }
-
         var resolution = await ResolveActionAsync(request, context, cancellationToken);
         if (resolution.HasRejection)
         {
@@ -75,14 +69,14 @@ internal sealed class CodeActionFixAllStager : ICodeActionFixAllStager
             FixAllProvider = fixAllProvider,
         };
 
-        var scopeResolution = _requestResolver.ResolveScope(scope, context);
+        var scopeResolution = _requestResolver.ResolveScope(request.Scope, context);
         if (scopeResolution.HasRejection)
         {
             return scopeResolution.Rejection;
         }
 
         var application = await ApplyScopeAsync(
-            scope.Kind,
+            request.Scope.Kind,
             operation,
             scopeResolution,
             context.CurrentSolution,

@@ -158,7 +158,7 @@ internal sealed class CodeActionSelectionStager : ICodeActionSelectionStager
     }
 
     public ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageSelectionAsync(
-        LocationSelector? selection,
+        LocationSelector selection,
         SnapshotPrecondition? expectedSnapshot,
         CancellationToken cancellationToken,
         ICodeActionExecutionContext context,
@@ -169,13 +169,6 @@ internal sealed class CodeActionSelectionStager : ICodeActionSelectionStager
         string? equivalenceKey = null,
         IReadOnlyList<int>? actionPath = null)
     {
-        if (selection is null)
-        {
-            return ValueTask.FromResult(Rejected<WorkspaceMutationCandidate>(
-                "InvalidRequest",
-                "A location selector is required."));
-        }
-
         return StageReplayCodeActionAsync(new ReplayCodeActionRequest
         {
             Location = selection,

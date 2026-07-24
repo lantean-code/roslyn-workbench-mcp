@@ -8,7 +8,7 @@ internal sealed record ConvertAnonymousTypeToClassRequest : WorkspaceBoundReques
     /// <summary>
     /// Gets the selected anonymous object creation to rewrite.
     /// </summary>
-    public LocationSelector? Selection { get; init; }
+    public required LocationSelector Selection { get; init; }
 
     /// <summary>
     /// Gets the named-type variant to stage.

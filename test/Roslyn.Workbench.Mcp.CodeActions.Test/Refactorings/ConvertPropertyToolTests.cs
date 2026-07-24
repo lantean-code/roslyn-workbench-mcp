@@ -121,7 +121,7 @@ public sealed class ConvertPropertyToolTests
         result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("InvalidRequest");
         selectionStager.Verify(item => item.StageSelectionAsync(
-            It.IsAny<LocationSelector?>(),
+            It.IsAny<LocationSelector>(),
             It.IsAny<SnapshotPrecondition?>(),
             It.IsAny<CancellationToken>(),
             context.Object,

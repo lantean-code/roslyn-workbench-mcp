@@ -19,15 +19,6 @@ internal sealed class ExtractMethodTool : CodeActionMutationToolHandler<ExtractM
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(ExtractMethodRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
-        if (request.Selection is null)
-        {
-            var rejection = CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>(
-                "InvalidRequest",
-                "A location selector is required.");
-
-            return ValueTask.FromResult(rejection);
-        }
-
         var (title, equivalenceKey) = request.TargetKind switch
         {
             ExtractMethodTargetKind.LocalFunction => (_localFunctionTitle, _localFunctionEquivalenceKey),

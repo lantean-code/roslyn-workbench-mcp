@@ -8,7 +8,7 @@ internal sealed record ConvertForeachLinqRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the selected foreach statement or query expression to convert.
     /// </summary>
-    public LocationSelector? Selection { get; init; }
+    public required LocationSelector Selection { get; init; }
 
     /// <summary>
     /// Gets the conversion variant to stage.

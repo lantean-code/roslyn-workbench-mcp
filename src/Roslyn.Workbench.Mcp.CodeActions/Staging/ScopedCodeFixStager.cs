@@ -51,11 +51,6 @@ internal sealed class ScopedCodeFixStager : IScopedCodeFixStager
             return snapshotRejection;
         }
 
-        if (request.Scope is null)
-        {
-            return Rejected<WorkspaceMutationCandidate>("InvalidRequest", "A scope selector is required.");
-        }
-
         if (request.DiagnosticIds.Count == 0)
         {
             return Rejected<WorkspaceMutationCandidate>("InvalidRequest", "At least one diagnostic ID is required.");

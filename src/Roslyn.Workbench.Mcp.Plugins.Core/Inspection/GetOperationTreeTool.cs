@@ -74,17 +74,12 @@ internal sealed class GetOperationTreeTool : QueryToolHandler<GetOperationTreeRe
         };
     }
 
-    private static async ValueTask<ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>> ResolveSyntaxNodeAsync(LocationSelector? selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)
+    private static async ValueTask<ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>> ResolveSyntaxNodeAsync(LocationSelector selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)
     {
         var rejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<OperationTreeData>(context, expectedSnapshot);
         if (rejection is not null)
         {
             return ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>.Rejected(rejection);
-        }
-
-        if (selector is null)
-        {
-            return ToolResolutionResult<ResolvedSyntaxNode, OperationTreeData>.Rejected(PluginExecutionResultFactory.Rejected<OperationTreeData>("InvalidRequest", "A location selector is required."));
         }
 
         var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken);

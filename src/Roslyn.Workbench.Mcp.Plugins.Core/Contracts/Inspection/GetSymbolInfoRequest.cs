@@ -8,12 +8,7 @@ internal sealed record GetSymbolInfoRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the symbol selector.
     /// </summary>
-    public SymbolSelector? Symbol { get; init; }
-
-    /// <summary>
-    /// Gets a value indicating whether member summaries should be included.
-    /// </summary>
-    public bool IncludeMembers { get; init; }
+    public required SymbolSelector Symbol { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether XML documentation should be included.

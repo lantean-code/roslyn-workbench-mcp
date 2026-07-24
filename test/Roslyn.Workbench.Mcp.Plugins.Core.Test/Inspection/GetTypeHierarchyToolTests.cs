@@ -10,6 +10,7 @@ public sealed class GetTypeHierarchyToolTests
 
         var result = await target.ExecuteAsync(new GetTypeHierarchyRequest
         {
+            Symbol = new SymbolSelector(),
             MaxDepth = 0,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -40,7 +41,10 @@ public sealed class GetTypeHierarchyToolTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, TypeHierarchyData>.Rejected(expected));
 
-        var result = await target.ExecuteAsync(new GetTypeHierarchyRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+        var result = await target.ExecuteAsync(new GetTypeHierarchyRequest
+        {
+            Symbol = new SymbolSelector(),
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Should().BeEquivalentTo(expected);
     }
@@ -75,7 +79,10 @@ public sealed class GetTypeHierarchyToolTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, TypeHierarchyData>.Resolved(symbol));
 
-        var result = await target.ExecuteAsync(new GetTypeHierarchyRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+        var result = await target.ExecuteAsync(new GetTypeHierarchyRequest
+        {
+            Symbol = new SymbolSelector(),
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
         result.Error!.Code.Should().Be("InvalidRequest");
@@ -144,6 +151,7 @@ public sealed class GetTypeHierarchyToolTests
 
         var result = await target.ExecuteAsync(new GetTypeHierarchyRequest
         {
+            Symbol = new SymbolSelector(),
             IncludeDerived = false,
             BaseTypesLimit = 2,
             InterfacesLimit = 1,
@@ -159,6 +167,7 @@ public sealed class GetTypeHierarchyToolTests
 
         var boundedResult = await target.ExecuteAsync(new GetTypeHierarchyRequest
         {
+            Symbol = new SymbolSelector(),
             IncludeDerived = false,
             MaxDepth = 1,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
@@ -232,6 +241,7 @@ public sealed class GetTypeHierarchyToolTests
 
         var result = await target.ExecuteAsync(new GetTypeHierarchyRequest
         {
+            Symbol = new SymbolSelector(),
             IncludeDerived = true,
             DerivedTypesLimit = 2,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
@@ -246,6 +256,7 @@ public sealed class GetTypeHierarchyToolTests
 
         var boundedResult = await target.ExecuteAsync(new GetTypeHierarchyRequest
         {
+            Symbol = new SymbolSelector(),
             IncludeDerived = true,
             MaxDepth = 1,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
@@ -316,6 +327,7 @@ public sealed class GetTypeHierarchyToolTests
 
         var result = await target.ExecuteAsync(new GetTypeHierarchyRequest
         {
+            Symbol = new SymbolSelector(),
             IncludeDerived = true,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 

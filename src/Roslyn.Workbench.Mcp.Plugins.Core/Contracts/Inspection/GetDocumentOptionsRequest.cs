@@ -8,5 +8,5 @@ internal sealed record GetDocumentOptionsRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the document selector.
     /// </summary>
-    public DocumentSelector? Document { get; init; }
+    public required DocumentSelector Document { get; init; }
 }

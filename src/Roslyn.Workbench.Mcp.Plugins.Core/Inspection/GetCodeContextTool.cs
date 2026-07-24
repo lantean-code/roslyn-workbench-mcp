@@ -87,17 +87,12 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
             .ToArray();
     }
 
-    private static async ValueTask<ToolResolutionResult<ResolvedCodeContext, CodeContextData>> ResolveLocationAsync(LocationSelector? selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)
+    private static async ValueTask<ToolResolutionResult<ResolvedCodeContext, CodeContextData>> ResolveLocationAsync(LocationSelector selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)
     {
         var snapshotRejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<CodeContextData>(context, expectedSnapshot);
         if (snapshotRejection is not null)
         {
             return ToolResolutionResult<ResolvedCodeContext, CodeContextData>.Rejected(snapshotRejection);
-        }
-
-        if (selector is null)
-        {
-            return ToolResolutionResult<ResolvedCodeContext, CodeContextData>.Rejected(PluginExecutionResultFactory.Rejected<CodeContextData>("InvalidRequest", "A location selector is required."));
         }
 
         var location = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken);

@@ -28,12 +28,10 @@ internal sealed class GetPartialDeclarationsTool : QueryToolHandler<GetPartialDe
             .ThenBy(static location => location.Span?.Start);
 
         var declarations = new List<ResolvedLocation>();
-        var hasMore = false;
         foreach (var resolvedLocation in orderedLocations)
         {
             if (declarations.Count == request.EffectiveDeclarationsLimit)
             {
-                hasMore = true;
                 break;
             }
 
@@ -44,7 +42,7 @@ internal sealed class GetPartialDeclarationsTool : QueryToolHandler<GetPartialDe
         var data = new PartialDeclarationsData
         {
             Symbol = symbolReference,
-            Declarations = BoundedCollection<ResolvedLocation>.CreatePrebounded(declarations, hasMore),
+            Declarations = BoundedCollection<ResolvedLocation>.CreatePrebounded(declarations, resolvedLocations.Count),
         };
 
         return PluginExecutionResult<PartialDeclarationsData>.Success(data);

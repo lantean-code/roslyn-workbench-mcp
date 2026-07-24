@@ -21,7 +21,10 @@ public sealed class GetProjectDetailsToolTests
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<Project, ProjectDetailsData>.Rejected(expected));
 
-        var result = await target.ExecuteAsync(new GetProjectDetailsRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+        var result = await target.ExecuteAsync(new GetProjectDetailsRequest
+        {
+            Project = new ProjectSelector(),
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Should().BeEquivalentTo(expected);
     }
@@ -54,6 +57,7 @@ public sealed class GetProjectDetailsToolTests
 
         var result = await target.ExecuteAsync(new GetProjectDetailsRequest
         {
+            Project = new ProjectSelector(),
             IncludeDocuments = false,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -208,6 +212,7 @@ public sealed class GetProjectDetailsToolTests
 
         var result = await target.ExecuteAsync(new GetProjectDetailsRequest
         {
+            Project = new ProjectSelector(),
             IncludeDocuments = true,
             DocumentsLimit = 1,
             ProjectReferencesLimit = 1,
@@ -292,6 +297,7 @@ public sealed class GetProjectDetailsToolTests
 
         var result = await target.ExecuteAsync(new GetProjectDetailsRequest
         {
+            Project = new ProjectSelector(),
             IncludeDocuments = true,
             MetadataReferencesLimit = 0,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
@@ -336,7 +342,10 @@ public sealed class GetProjectDetailsToolTests
             .Returns(ProjectTargetFrameworksResult.Failed("Failure"));
 
         var result = await target.ExecuteAsync(
-            new GetProjectDetailsRequest(),
+            new GetProjectDetailsRequest
+            {
+                Project = new ProjectSelector(),
+            },
             queryContextMocks.QueryContext.Object,
             TestContext.Current.CancellationToken);
 

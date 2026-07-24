@@ -11,7 +11,7 @@ internal sealed record GetCodeContextRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the location selector.
     /// </summary>
-    public LocationSelector? Location { get; init; }
+    public required LocationSelector Location { get; init; }
 
     /// <summary>
     /// Gets the number of lines to include before the selected location.

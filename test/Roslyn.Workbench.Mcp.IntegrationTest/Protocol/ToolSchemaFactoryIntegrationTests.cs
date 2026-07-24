@@ -68,11 +68,22 @@ public sealed class ToolSchemaFactoryIntegrationTests
 
     [Fact]
     [Trait("Category", "Contract")]
+    public void GIVEN_GetSymbolInfoRequest_WHEN_ExportingInputSchema_THEN_ShouldNotPublishUnsupportedMemberExpansion()
+    {
+        var target = CreateTarget();
+
+        var result = target.CreateInputSchema<GetSymbolInfoRequest>();
+        var properties = result.GetProperty("properties");
+
+        properties.TryGetProperty("includeMembers", out _).Should().BeFalse();
+        properties.TryGetProperty("includeDocumentation", out _).Should().BeTrue();
+    }
+
+    [Fact]
+    [Trait("Category", "Contract")]
     public void GIVEN_CodeActionTargetSelectors_WHEN_ExportingInputSchemas_THEN_ShouldPublishRequiredNonNullableProperties()
     {
         var target = CreateTarget();
-        var schemaMethod = typeof(ToolSchemaFactory).GetMethod(nameof(ToolSchemaFactory.CreateInputSchema))
-            ?? throw new InvalidOperationException("The input-schema factory method was not found.");
 
         var requestTypes = typeof(StageFixAllRequest).Assembly
             .GetTypes()
@@ -86,25 +97,44 @@ public sealed class ToolSchemaFactoryIntegrationTests
             .ToArray();
 
         targetSelectorProperties.Should().HaveCount(20);
-        foreach (var targetSelectorProperty in targetSelectorProperties)
+        AssertRequiredNonNullableProperties(target, targetSelectorProperties);
+    }
+
+    [Fact]
+    [Trait("Category", "Contract")]
+    public void GIVEN_BundledQueryRequestsWithSoleTargets_WHEN_ExportingInputSchemas_THEN_ShouldPublishRequiredNonNullableProperties()
+    {
+        var target = CreateTarget();
+        var targetSelectorProperties = new[]
         {
-            var declaringType = targetSelectorProperty.DeclaringType
-                ?? throw new InvalidOperationException("The target selector property did not have a declaring type.");
+            GetRequiredProperty<AnalyzeControlFlowRequest>(nameof(AnalyzeControlFlowRequest.Location)),
+            GetRequiredProperty<AnalyzeDataFlowRequest>(nameof(AnalyzeDataFlowRequest.Location)),
+            GetRequiredProperty<FindCallersRequest>(nameof(FindCallersRequest.Symbol)),
+            GetRequiredProperty<FindDerivedTypesRequest>(nameof(FindDerivedTypesRequest.Symbol)),
+            GetRequiredProperty<FindImplementationsRequest>(nameof(FindImplementationsRequest.Symbol)),
+            GetRequiredProperty<FindOverloadsRequest>(nameof(FindOverloadsRequest.Symbol)),
+            GetRequiredProperty<FindOverridesRequest>(nameof(FindOverridesRequest.Symbol)),
+            GetRequiredProperty<FindReferencesRequest>(nameof(FindReferencesRequest.Symbol)),
+            GetRequiredProperty<GetChangeImpactRequest>(nameof(GetChangeImpactRequest.Symbol)),
+            GetRequiredProperty<GetCodeContextRequest>(nameof(GetCodeContextRequest.Location)),
+            GetRequiredProperty<GetDocumentOptionsRequest>(nameof(GetDocumentOptionsRequest.Document)),
+            GetRequiredProperty<GetDocumentOutlineRequest>(nameof(GetDocumentOutlineRequest.Document)),
+            GetRequiredProperty<GetOperationTreeRequest>(nameof(GetOperationTreeRequest.Location)),
+            GetRequiredProperty<GetPartialDeclarationsRequest>(nameof(GetPartialDeclarationsRequest.Symbol)),
+            GetRequiredProperty<GetProjectDetailsRequest>(nameof(GetProjectDetailsRequest.Project)),
+            GetRequiredProperty<GetSymbolAttributesRequest>(nameof(GetSymbolAttributesRequest.Symbol)),
+            GetRequiredProperty<GetSymbolDependenciesRequest>(nameof(GetSymbolDependenciesRequest.Symbol)),
+            GetRequiredProperty<GetSymbolDependentsRequest>(nameof(GetSymbolDependentsRequest.Symbol)),
+            GetRequiredProperty<GetSymbolInfoRequest>(nameof(GetSymbolInfoRequest.Symbol)),
+            GetRequiredProperty<GetSymbolMembersRequest>(nameof(GetSymbolMembersRequest.Symbol)),
+            GetRequiredProperty<GetTestImpactRequest>(nameof(GetTestImpactRequest.Symbol)),
+            GetRequiredProperty<GetTypeHierarchyRequest>(nameof(GetTypeHierarchyRequest.Symbol)),
+            GetRequiredProperty<GoToDefinitionRequest>(nameof(GoToDefinitionRequest.Symbol)),
+            GetRequiredProperty<ResolveSymbolRequest>(nameof(ResolveSymbolRequest.Location)),
+        };
 
-            var closedSchemaMethod = schemaMethod.MakeGenericMethod(declaringType);
-            var publishedSchema = closedSchemaMethod.Invoke(target, null) is JsonElement schema
-                ? schema
-                : throw new InvalidOperationException("The input-schema factory did not return a JSON element.");
-
-            var jsonPropertyName = JsonNamingPolicy.CamelCase.ConvertName(targetSelectorProperty.Name);
-            var requiredProperties = publishedSchema.GetProperty("required")
-                .EnumerateArray()
-                .Select(static item => item.GetString())
-                .ToArray();
-
-            requiredProperties.Should().Contain(jsonPropertyName);
-            AllowsNull(GetProperty(publishedSchema, jsonPropertyName)).Should().BeFalse();
-        }
+        targetSelectorProperties.Should().HaveCount(24);
+        AssertRequiredNonNullableProperties(target, targetSelectorProperties);
     }
 
     [Fact]
@@ -162,6 +192,38 @@ public sealed class ToolSchemaFactoryIntegrationTests
     private static ToolSchemaFactory CreateTarget()
     {
         return new ToolSchemaFactory(new McpSdkSchemaProvider());
+    }
+
+    private static void AssertRequiredNonNullableProperties(ToolSchemaFactory target, IReadOnlyList<PropertyInfo> targetSelectorProperties)
+    {
+        var schemaMethod = typeof(ToolSchemaFactory).GetMethod(nameof(ToolSchemaFactory.CreateInputSchema))
+            ?? throw new InvalidOperationException("The input-schema factory method was not found.");
+
+        foreach (var targetSelectorProperty in targetSelectorProperties)
+        {
+            var declaringType = targetSelectorProperty.DeclaringType
+                ?? throw new InvalidOperationException("The target selector property did not have a declaring type.");
+
+            var closedSchemaMethod = schemaMethod.MakeGenericMethod(declaringType);
+            var publishedSchema = closedSchemaMethod.Invoke(target, null) is JsonElement schema
+                ? schema
+                : throw new InvalidOperationException("The input-schema factory did not return a JSON element.");
+
+            var jsonPropertyName = JsonNamingPolicy.CamelCase.ConvertName(targetSelectorProperty.Name);
+            var requiredProperties = publishedSchema.GetProperty("required")
+                .EnumerateArray()
+                .Select(static item => item.GetString())
+                .ToArray();
+
+            requiredProperties.Should().Contain(jsonPropertyName);
+            AllowsNull(GetProperty(publishedSchema, jsonPropertyName)).Should().BeFalse();
+        }
+    }
+
+    private static PropertyInfo GetRequiredProperty<TRequest>(string propertyName)
+    {
+        return typeof(TRequest).GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public)
+            ?? throw new InvalidOperationException($"{typeof(TRequest).Name}.{propertyName} was not found.");
     }
 
     private static bool IsLimitProperty(PropertyInfo property)

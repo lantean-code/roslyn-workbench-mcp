@@ -19,7 +19,10 @@ public sealed class GetDocumentOutlineToolTests
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<Document, DocumentOutlineData>.Rejected(expected));
 
-        var result = await target.ExecuteAsync(new GetDocumentOutlineRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+        var result = await target.ExecuteAsync(new GetDocumentOutlineRequest
+        {
+            Document = new DocumentSelector(),
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Should().BeEquivalentTo(expected);
     }
@@ -47,7 +50,10 @@ public sealed class GetDocumentOutlineToolTests
                 Path = item.Name,
             });
 
-        var result = await target.ExecuteAsync(new GetDocumentOutlineRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+        var result = await target.ExecuteAsync(new GetDocumentOutlineRequest
+        {
+            Document = new DocumentSelector(),
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Root.Should().BeNull();
@@ -93,6 +99,7 @@ public sealed class GetDocumentOutlineToolTests
 
         var result = await target.ExecuteAsync(new GetDocumentOutlineRequest
         {
+            Document = new DocumentSelector(),
             IncludeMembers = false,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -160,6 +167,7 @@ public sealed class GetDocumentOutlineToolTests
 
         var result = await target.ExecuteAsync(new GetDocumentOutlineRequest
         {
+            Document = new DocumentSelector(),
             IncludeMembers = true,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 

@@ -79,12 +79,10 @@ internal sealed class GetApiSurfaceTool : QueryToolHandler<GetApiSurfaceRequest,
         orderedSymbols.Sort(static (left, right) => StringComparer.Ordinal.Compare(left.SortKey, right.SortKey));
 
         var symbols = new List<ApiSymbolInfo>();
-        var hasMore = false;
         foreach (var candidate in orderedSymbols)
         {
             if (symbols.Count == maxResults)
             {
-                hasMore = true;
                 break;
             }
 
@@ -98,7 +96,7 @@ internal sealed class GetApiSurfaceTool : QueryToolHandler<GetApiSurfaceRequest,
 
         var data = new ApiSurfaceData
         {
-            Symbols = BoundedCollection<ApiSymbolInfo>.CreatePrebounded(symbols, hasMore),
+            Symbols = BoundedCollection<ApiSymbolInfo>.CreatePrebounded(symbols, orderedSymbols.Count),
         };
 
         return PluginExecutionResult<ApiSurfaceData>.Success(data);

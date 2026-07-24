@@ -8,7 +8,7 @@ internal sealed record GetDocumentOutlineRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the document selector.
     /// </summary>
-    public DocumentSelector? Document { get; init; }
+    public required DocumentSelector Document { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether member nodes should be included.

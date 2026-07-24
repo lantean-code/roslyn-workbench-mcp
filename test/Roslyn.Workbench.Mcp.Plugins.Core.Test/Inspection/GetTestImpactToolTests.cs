@@ -27,7 +27,10 @@ public sealed class GetTestImpactToolTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, TestImpactData>.Rejected(expected));
 
-        var result = await target.ExecuteAsync(new GetTestImpactRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+        var result = await target.ExecuteAsync(new GetTestImpactRequest
+        {
+            Symbol = new SymbolSelector(),
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Should().BeEquivalentTo(expected);
     }
@@ -75,7 +78,10 @@ public sealed class GetTestImpactToolTests
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<IReadOnlyList<Document>, TestImpactData>.Rejected(expected));
 
-        var result = await target.ExecuteAsync(new GetTestImpactRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+        var result = await target.ExecuteAsync(new GetTestImpactRequest
+        {
+            Symbol = new SymbolSelector(),
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Should().BeEquivalentTo(expected);
     }

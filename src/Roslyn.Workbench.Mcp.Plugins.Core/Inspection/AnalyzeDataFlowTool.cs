@@ -50,7 +50,7 @@ internal sealed class AnalyzeDataFlowTool : QueryToolHandler<AnalyzeDataFlowRequ
         return references;
     }
 
-    private static async ValueTask<ToolResolutionResult<ResolvedStatement, DataFlowAnalysisData>> ResolveStatementAsync(LocationSelector? selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)
+    private static async ValueTask<ToolResolutionResult<ResolvedStatement, DataFlowAnalysisData>> ResolveStatementAsync(LocationSelector selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)
     {
         var syntaxNodeResolution = await ResolveSyntaxNodeAsync(selector, expectedSnapshot, context, cancellationToken);
         if (syntaxNodeResolution.HasRejection)
@@ -73,17 +73,12 @@ internal sealed class AnalyzeDataFlowTool : QueryToolHandler<AnalyzeDataFlowRequ
         return ToolResolutionResult<ResolvedStatement, DataFlowAnalysisData>.Resolved(resolvedStatement);
     }
 
-    private static async ValueTask<ToolResolutionResult<ResolvedSyntaxNode, DataFlowAnalysisData>> ResolveSyntaxNodeAsync(LocationSelector? selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)
+    private static async ValueTask<ToolResolutionResult<ResolvedSyntaxNode, DataFlowAnalysisData>> ResolveSyntaxNodeAsync(LocationSelector selector, SnapshotPrecondition? expectedSnapshot, IQueryContext context, CancellationToken cancellationToken)
     {
         var rejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<DataFlowAnalysisData>(context, expectedSnapshot);
         if (rejection is not null)
         {
             return ToolResolutionResult<ResolvedSyntaxNode, DataFlowAnalysisData>.Rejected(rejection);
-        }
-
-        if (selector is null)
-        {
-            return ToolResolutionResult<ResolvedSyntaxNode, DataFlowAnalysisData>.Rejected(PluginExecutionResultFactory.Rejected<DataFlowAnalysisData>("InvalidRequest", "A location selector is required."));
         }
 
         var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken);

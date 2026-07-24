@@ -10,7 +10,7 @@ internal sealed record GetOperationTreeRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the selected location.
     /// </summary>
-    public LocationSelector? Location { get; init; }
+    public required LocationSelector Location { get; init; }
 
     /// <summary>
     /// Gets the maximum traversal depth.

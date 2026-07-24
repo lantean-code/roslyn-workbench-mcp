@@ -110,5 +110,6 @@ public sealed class GetPartialDeclarationsToolTests
         result.Data.Declarations.Items.Should().ContainSingle();
         result.Data.Declarations.Items[0].Document!.Path.Should().Be("A.cs");
         result.Data.Declarations.HasMore.Should().BeTrue();
+        result.Data.Declarations.TotalCount.Should().Be(2);
     }
 }

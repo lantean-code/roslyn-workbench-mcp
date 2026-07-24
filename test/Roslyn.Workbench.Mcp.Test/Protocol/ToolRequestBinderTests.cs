@@ -36,6 +36,14 @@ public sealed class ToolRequestBinderTests
         action.Should().Throw<JsonException>();
     }
 
+    [Fact]
+    public void GIVEN_RequiredPropertyIsMissing_WHEN_Binding_THEN_ShouldThrowJsonException()
+    {
+        var action = () => ToolRequestBinder.Deserialize<RequiredRequest>(new Dictionary<string, JsonElement>());
+
+        action.Should().Throw<JsonException>();
+    }
+
     [SuppressMessage(
         "Performance",
         "CA1812:Avoid uninstantiated internal classes",
@@ -52,6 +60,15 @@ public sealed class ToolRequestBinderTests
         Justification = "System.Text.Json creates the request through the generic deserialisation path exercised by this test.")]
     private sealed record NullRequest
     {
+    }
+
+    [SuppressMessage(
+        "Performance",
+        "CA1812:Avoid uninstantiated internal classes",
+        Justification = "System.Text.Json creates the request through the generic deserialisation path exercised by this test.")]
+    private sealed record RequiredRequest
+    {
+        public required string Value { get; init; }
     }
 
     [SuppressMessage(

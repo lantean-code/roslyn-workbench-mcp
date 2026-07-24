@@ -54,11 +54,14 @@ public sealed class SelectorAndSnapshotIntegrationTests
                 },
             }, TestContext.Current.CancellationToken);
 
+        var resolvedSelector = resolved.Data?.Selector
+            ?? throw new InvalidOperationException("Resolve symbol did not return its canonical selector.");
+
         var definition = await session.ExecuteQueryAsync<GoToDefinitionRequest, DefinitionData>(
             "go-to-definition",
             new GoToDefinitionRequest
             {
-                Symbol = resolved.Data!.Selector,
+                Symbol = resolvedSelector,
             }, TestContext.Current.CancellationToken);
 
         var search = await session.ExecuteQueryAsync<SearchSymbolsRequest, SymbolSearchData>(

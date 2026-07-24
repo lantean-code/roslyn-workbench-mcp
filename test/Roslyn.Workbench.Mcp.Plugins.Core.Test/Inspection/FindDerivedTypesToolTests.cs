@@ -10,6 +10,7 @@ public sealed class FindDerivedTypesToolTests
 
         var result = await target.ExecuteAsync(new FindDerivedTypesRequest
         {
+            Symbol = new SymbolSelector(),
             MaxDepth = 0,
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 

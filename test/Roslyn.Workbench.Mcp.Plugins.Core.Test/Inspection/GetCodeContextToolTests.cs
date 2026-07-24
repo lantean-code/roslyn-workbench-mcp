@@ -34,28 +34,6 @@ public sealed class GetCodeContextToolTests
     }
 
     [Fact]
-    public async Task GIVEN_LocationSelectorIsMissing_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequestResult()
-    {
-        var target = new GetCodeContextTool();
-        var queryContextMocks = QueryContextMockHelper.Create();
-
-        queryContextMocks.RequestResolver
-            .Setup(item => item.ValidateSnapshot<CodeContextData>(
-                queryContextMocks.QueryContext.Object,
-                It.IsAny<SnapshotPrecondition?>()))
-            .Returns((PluginExecutionResult<CodeContextData>?)null);
-
-        var result = await target.ExecuteAsync(new GetCodeContextRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
-
-        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new PluginExecutionError
-        {
-            Code = "InvalidRequest",
-            Message = "A location selector is required.",
-        });
-    }
-
-    [Fact]
     public async Task GIVEN_ResolveLocationReturnsNotFound_WHEN_CallingExecuteAsync_THEN_ShouldReturnLocationNotFoundResult()
     {
         var target = new GetCodeContextTool();

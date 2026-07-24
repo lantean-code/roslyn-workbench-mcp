@@ -21,7 +21,10 @@ public sealed class GetSymbolDependenciesToolTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(ToolResolutionResult<ISymbol, SymbolDependenciesData>.Rejected(expected));
 
-        var result = await target.ExecuteAsync(new GetSymbolDependenciesRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+        var result = await target.ExecuteAsync(new GetSymbolDependenciesRequest
+        {
+            Symbol = new SymbolSelector(),
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Should().BeEquivalentTo(expected);
     }

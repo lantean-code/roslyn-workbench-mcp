@@ -19,7 +19,10 @@ public sealed class GetDocumentOptionsToolTests
                 queryContextMocks.QueryContext.Object))
             .Returns(ToolResolutionResult<Document, DocumentOptionsData>.Rejected(expected));
 
-        var result = await target.ExecuteAsync(new GetDocumentOptionsRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+        var result = await target.ExecuteAsync(new GetDocumentOptionsRequest
+        {
+            Document = new DocumentSelector(),
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Should().BeEquivalentTo(expected);
     }
@@ -52,7 +55,10 @@ public sealed class GetDocumentOptionsToolTests
                 Path = item.Name,
             });
 
-        var result = await target.ExecuteAsync(new GetDocumentOptionsRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+        var result = await target.ExecuteAsync(new GetDocumentOptionsRequest
+        {
+            Document = new DocumentSelector(),
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.Document!.Path.Should().Be("Code.cs");
@@ -85,7 +91,10 @@ public sealed class GetDocumentOptionsToolTests
                 Path = item.Name,
             });
 
-        var result = await target.ExecuteAsync(new GetDocumentOptionsRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+        var result = await target.ExecuteAsync(new GetDocumentOptionsRequest
+        {
+            Document = new DocumentSelector(),
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(PluginExecutionOutcome.Succeeded);
         result.Data!.LanguageVersion.Should().BeEmpty();

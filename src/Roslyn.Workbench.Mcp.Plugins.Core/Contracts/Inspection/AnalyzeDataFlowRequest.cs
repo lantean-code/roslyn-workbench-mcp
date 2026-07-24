@@ -8,7 +8,7 @@ internal sealed record AnalyzeDataFlowRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the selected location.
     /// </summary>
-    public LocationSelector? Location { get; init; }
+    public required LocationSelector Location { get; init; }
 
     /// <summary>
     /// Gets the expected snapshot for the selected location.

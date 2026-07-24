@@ -38,32 +38,6 @@ public sealed class AnalyzeControlFlowToolTests
     }
 
     [Fact]
-    public async Task GIVEN_LocationSelectorIsNull_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequestResult()
-    {
-        var target = new AnalyzeControlFlowTool();
-        var queryContextMocks = QueryContextMockHelper.Create();
-
-        queryContextMocks.RequestResolver
-            .Setup(item => item.ValidateSnapshot<ControlFlowAnalysisData>(
-                queryContextMocks.QueryContext.Object,
-                It.IsAny<SnapshotPrecondition?>()))
-            .Returns((PluginExecutionResult<ControlFlowAnalysisData>?)null);
-
-        var result = await target.ExecuteAsync(new AnalyzeControlFlowRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
-
-        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
-        result.Error.Should().BeEquivalentTo(new PluginExecutionError
-        {
-            Code = "InvalidRequest",
-            Message = "A location selector is required.",
-        });
-
-        queryContextMocks.WorkspaceResolver.Verify(item => item.ResolveLocationAsync(
-            It.IsAny<LocationSelector>(),
-            It.IsAny<CancellationToken>()), Times.Never);
-    }
-
-    [Fact]
     public async Task GIVEN_ResolveLocationReturnsNotFound_WHEN_CallingExecuteAsync_THEN_ShouldReturnLocationNotFoundResult()
     {
         var target = new AnalyzeControlFlowTool();

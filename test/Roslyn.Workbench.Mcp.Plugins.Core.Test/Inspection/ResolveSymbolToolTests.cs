@@ -23,23 +23,11 @@ public sealed class ResolveSymbolToolTests
 
         var result = await target.ExecuteAsync(new ResolveSymbolRequest
         {
+            Location = new LocationSelector(),
             ExpectedSnapshot = new SnapshotPrecondition(),
         }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Should().BeEquivalentTo(expected);
-    }
-
-    [Fact]
-    public async Task GIVEN_LocationIsNull_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequest()
-    {
-        var target = new ResolveSymbolTool();
-        var queryContextMocks = QueryContextMockHelper.Create();
-
-        var result = await target.ExecuteAsync(new ResolveSymbolRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
-
-        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
-        result.Error!.Code.Should().Be("InvalidRequest");
-        result.Error.Message.Should().Be("Resolve symbol requires location.");
     }
 
     [Fact]

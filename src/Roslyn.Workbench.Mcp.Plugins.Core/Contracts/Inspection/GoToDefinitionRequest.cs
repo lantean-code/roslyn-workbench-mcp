@@ -8,7 +8,7 @@ internal sealed record GoToDefinitionRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the symbol selector.
     /// </summary>
-    public SymbolSelector? Symbol { get; init; }
+    public required SymbolSelector Symbol { get; init; }
 
     /// <summary>
     /// Gets the expected snapshot for location-based symbol selectors.

@@ -13,7 +13,7 @@ internal sealed record GetTypeHierarchyRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the symbol selector.
     /// </summary>
-    public SymbolSelector? Symbol { get; init; }
+    public required SymbolSelector Symbol { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether derived types should be included.

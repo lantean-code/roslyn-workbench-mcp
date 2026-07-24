@@ -10,7 +10,7 @@ internal sealed record GetSymbolDependenciesRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the symbol selector.
     /// </summary>
-    public SymbolSelector? Symbol { get; init; }
+    public required SymbolSelector Symbol { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether containing assembly names should be included with each dependency.

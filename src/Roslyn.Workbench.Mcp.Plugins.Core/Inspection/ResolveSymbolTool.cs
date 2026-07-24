@@ -11,11 +11,6 @@ internal sealed class ResolveSymbolTool : QueryToolHandler<ResolveSymbolRequest,
             return snapshotRejection;
         }
 
-        if (request.Location is null)
-        {
-            return PluginExecutionResultFactory.Rejected<ResolveSymbolData>("InvalidRequest", "Resolve symbol requires location.");
-        }
-
         var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(request.Location, cancellationToken);
         if (!locationResolution.IsResolved)
         {

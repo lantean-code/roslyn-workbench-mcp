@@ -21,27 +21,12 @@ public sealed class GetOperationTreeToolTests
                 It.IsAny<SnapshotPrecondition?>()))
             .Returns(expected);
 
-        var result = await target.ExecuteAsync(new GetOperationTreeRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
+        var result = await target.ExecuteAsync(new GetOperationTreeRequest
+        {
+            Location = new LocationSelector(),
+        }, queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
         result.Should().BeEquivalentTo(expected);
-    }
-
-    [Fact]
-    public async Task GIVEN_LocationSelectorIsMissing_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequestResult()
-    {
-        var target = new GetOperationTreeTool();
-        var queryContextMocks = QueryContextMockHelper.Create();
-
-        queryContextMocks.RequestResolver
-            .Setup(item => item.ValidateSnapshot<OperationTreeData>(
-                queryContextMocks.QueryContext.Object,
-                It.IsAny<SnapshotPrecondition?>()))
-            .Returns((PluginExecutionResult<OperationTreeData>?)null);
-
-        var result = await target.ExecuteAsync(new GetOperationTreeRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
-
-        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
-        result.Error!.Code.Should().Be("InvalidRequest");
     }
 
     [Fact]

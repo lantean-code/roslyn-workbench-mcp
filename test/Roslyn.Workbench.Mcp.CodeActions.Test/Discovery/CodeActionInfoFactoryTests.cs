@@ -129,6 +129,51 @@ public sealed class CodeActionInfoFactoryTests
         resolver.Verify(item => item.NormalizeDocumentPath("DocumentName.cs"), Times.Once);
     }
 
+    [Fact]
+    public void GIVEN_MaximumSupportedTokenLifetime_WHEN_CreatingInfo_THEN_ShouldCalculateExpiry()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var tokenService = new Mock<ICodeActionTokenService>();
+        var timeProvider = new Mock<TimeProvider>();
+        var context = new Mock<ICodeActionExecutionContext>();
+        var resolver = new Mock<IWorkspaceResolver>();
+        var action = CreateAction(roslyn.Solution, DiscoveredActionKind.Refactoring);
+
+        timeProvider
+            .Setup(item => item.GetUtcNow())
+            .Returns(new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.Zero));
+
+        resolver
+            .Setup(item => item.NormalizeDocumentPath(roslyn.Document.FilePath ?? roslyn.Document.Name))
+            .Returns("DocumentPath");
+
+        context.SetupGet(item => item.WorkspaceIdentity).Returns(new WorkspaceIdentity
+        {
+            WorkspaceId = "WorkspaceId",
+            WorkspaceEpoch = 1,
+        });
+
+        context.SetupGet(item => item.WorkspaceResolver).Returns(resolver.Object);
+        tokenService.Setup(item => item.Encode(It.IsAny<CodeActionTokenPayload>())).Returns("ActionId");
+
+        var target = new CodeActionInfoFactory(
+            tokenService.Object,
+            timeProvider.Object,
+            Options.Create(new CodeActionExecutionOptions
+            {
+                TokenLifetime = TimeSpan.FromDays(1),
+            }));
+
+        var result = target.Create(
+            action,
+            context.Object,
+            roslyn.Document,
+            new TextSpan(0, 1),
+            new CodeActionDescriptorEntry());
+
+        result.ExpiresAt.Should().Be("2000-01-02T00:00:00.0000000+00:00");
+    }
+
     private static DiscoveredCodeAction CreateAction(Solution solution, DiscoveredActionKind kind)
     {
         return new DiscoveredCodeAction

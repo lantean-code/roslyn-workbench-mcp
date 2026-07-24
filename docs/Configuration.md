@@ -6,7 +6,7 @@ Roslyn Workbench accepts command-line options and equivalent environment variabl
 | --- | --- | --: | --- |
 | `--plugin-directory` | `ROSLYN_WORKBENCH_MCP_PLUGIN_DIRECTORY` | None | Adds plugin search roots. The option is repeatable; the environment value uses the platform path separator. Command-line and environment roots are combined and deduplicated. |
 | `--default-max-results` | `ROSLYN_WORKBENCH_MCP_DEFAULT_MAX_RESULTS` | `100` | Positive Host compatibility baseline for third-party tools that have not established a curated request default. |
-| `--code-action-token-lifetime` | `ROSLYN_WORKBENCH_MCP_CODE_ACTION_TOKEN_LIFETIME` | `00:05:00` | Positive invariant-culture `TimeSpan` controlling discovered Code Action token lifetime. |
+| `--code-action-token-lifetime` | `ROSLYN_WORKBENCH_MCP_CODE_ACTION_TOKEN_LIFETIME` | `00:05:00` | Positive invariant-culture `TimeSpan` controlling discovered Code Action token lifetime, up to `1.00:00:00` (24 hours). |
 | `--max-transaction-revisions` | `ROSLYN_WORKBENCH_MCP_MAX_TRANSACTION_REVISIONS` | `20` | Positive maximum number of retained staged transaction revisions. |
 | `--max-concurrent-queries` | `ROSLYN_WORKBENCH_MCP_MAX_CONCURRENT_QUERIES` | `2` | Positive maximum number of concurrent query leases. |
 | `--tool-output-schema-mode` | `ROSLYN_WORKBENCH_MCP_TOOL_OUTPUT_SCHEMA_MODE` | `Omit` | `Omit` keeps `tools/list` compact; `Full` publishes generated family-specific output schemas. |

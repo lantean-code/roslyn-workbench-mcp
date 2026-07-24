@@ -1,3 +1,5 @@
+using Roslyn.Workbench.Mcp.Workspace.IO;
+
 namespace Roslyn.Workbench.Mcp.Test.Hosting;
 
 public sealed class HostStartupComposerTests
@@ -14,7 +16,12 @@ public sealed class HostStartupComposerTests
                 It.IsAny<IEnumerable<string>>()))
             .Returns(pluginCatalog);
 
-        var target = new HostStartupComposer(pluginCatalogBootstrap.Object);
+        var pathComparison = new Mock<IWorkspacePathComparison>();
+        pathComparison
+            .Setup(comparison => comparison.GetComparer(It.IsAny<string>()))
+            .Returns(StringComparer.Ordinal);
+
+        var target = new HostStartupComposer(pluginCatalogBootstrap.Object, pathComparison.Object);
 
         var result = target.Compose(
         [

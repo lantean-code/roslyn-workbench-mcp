@@ -6,7 +6,7 @@ internal static class StartupOptionsResolver
 {
     private const string _configurationFallbackCode = "StartupConfigurationFallback";
 
-    public static StartupConfigurationSnapshot Resolve(string[] args)
+    public static StartupConfigurationSnapshot Resolve(string[] args, IWorkspacePathComparison pathComparison)
     {
         var optionMap = ParseArguments(args);
         var defaults = new StartupOptions();
@@ -14,14 +14,14 @@ internal static class StartupOptionsResolver
 
         var options = new StartupOptions
         {
-            PluginDirectories = ResolvePluginDirectories(optionMap, warnings),
+            PluginDirectories = ResolvePluginDirectories(optionMap, pathComparison, warnings),
             DefaultMaxResults = ResolvePositiveInt(
                 optionMap,
                 "default-max-results",
                 "ROSLYN_WORKBENCH_MCP_DEFAULT_MAX_RESULTS",
                 defaults.DefaultMaxResults,
                 warnings),
-            CodeActionTokenLifetime = ResolvePositiveTimeSpan(
+            CodeActionTokenLifetime = ResolveCodeActionTokenLifetime(
                 optionMap,
                 "code-action-token-lifetime",
                 "ROSLYN_WORKBENCH_MCP_CODE_ACTION_TOKEN_LIFETIME",
@@ -105,6 +105,7 @@ internal static class StartupOptionsResolver
 
     private static string[] ResolvePluginDirectories(
         Dictionary<string, List<string?>> optionMap,
+        IWorkspacePathComparison pathComparison,
         List<WarningInfo> warnings)
     {
         var pluginDirectories = new List<string>();
@@ -127,7 +128,17 @@ internal static class StartupOptionsResolver
             "ROSLYN_WORKBENCH_MCP_PLUGIN_DIRECTORY",
             warnings));
 
-        return pluginDirectories.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        var distinctDirectories = new List<string>(pluginDirectories.Count);
+        foreach (var pluginDirectory in pluginDirectories)
+        {
+            var comparer = pathComparison.GetComparer(pluginDirectory);
+            if (!distinctDirectories.Contains(pluginDirectory, comparer))
+            {
+                distinctDirectories.Add(pluginDirectory);
+            }
+        }
+
+        return distinctDirectories.ToArray();
     }
 
     private static string[] ReadPluginDirectoriesFromEnvironment(
@@ -175,7 +186,7 @@ internal static class StartupOptionsResolver
         return defaultValue;
     }
 
-    private static TimeSpan ResolvePositiveTimeSpan(
+    private static TimeSpan ResolveCodeActionTokenLifetime(
         Dictionary<string, List<string?>> optionMap,
         string key,
         string environmentVariable,
@@ -189,7 +200,7 @@ internal static class StartupOptionsResolver
         }
 
         if (TimeSpan.TryParse(value, CultureInfo.InvariantCulture, out var parsedValue)
-            && StartupOptionsRules.IsPositive(parsedValue))
+            && StartupOptionsRules.IsSupportedCodeActionTokenLifetime(parsedValue))
         {
             return parsedValue;
         }

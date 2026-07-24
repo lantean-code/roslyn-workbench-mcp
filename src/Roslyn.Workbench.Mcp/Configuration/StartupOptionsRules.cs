@@ -2,6 +2,8 @@ namespace Roslyn.Workbench.Mcp.Configuration;
 
 internal static class StartupOptionsRules
 {
+    public static TimeSpan MaximumCodeActionTokenLifetime { get; } = TimeSpan.FromDays(1);
+
     public static bool IsPositive(int value)
     {
         return value > 0;
@@ -10,6 +12,11 @@ internal static class StartupOptionsRules
     public static bool IsPositive(TimeSpan value)
     {
         return value > TimeSpan.Zero;
+    }
+
+    public static bool IsSupportedCodeActionTokenLifetime(TimeSpan value)
+    {
+        return IsPositive(value) && value <= MaximumCodeActionTokenLifetime;
     }
 
     public static bool IsSupported(ToolOutputSchemaMode value)

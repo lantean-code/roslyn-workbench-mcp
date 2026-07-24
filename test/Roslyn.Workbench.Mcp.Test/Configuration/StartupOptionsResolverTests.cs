@@ -1,3 +1,5 @@
+using Roslyn.Workbench.Mcp.Workspace.IO;
+
 namespace Roslyn.Workbench.Mcp.Test.Configuration;
 
 [Collection("EnvironmentVariables")]
@@ -14,6 +16,16 @@ public sealed class StartupOptionsResolverTests
         "ROSLYN_WORKBENCH_MCP_STATE_DIRECTORY",
     ];
 
+    private readonly Mock<IWorkspacePathComparison> _pathComparison;
+
+    public StartupOptionsResolverTests()
+    {
+        _pathComparison = new Mock<IWorkspacePathComparison>();
+        _pathComparison
+            .Setup(comparison => comparison.GetComparer(It.IsAny<string>()))
+            .Returns(StringComparer.Ordinal);
+    }
+
     [Fact]
     public void GIVEN_NoArgumentsOrEnvironment_WHEN_Resolving_THEN_ShouldReturnDefaultsWithoutWarnings()
     {
@@ -21,7 +33,7 @@ public sealed class StartupOptionsResolverTests
 
         try
         {
-            var result = StartupOptionsResolver.Resolve([]);
+            var result = Resolve([]);
 
             result.Options.PluginDirectories.Should().BeEmpty();
             result.Options.DefaultMaxResults.Should().Be(100);
@@ -45,7 +57,7 @@ public sealed class StartupOptionsResolverTests
 
         try
         {
-            var result = StartupOptionsResolver.Resolve(
+            var result = Resolve(
             [
                 "ignored",
                 "--plugin-directory=/plugins/one",
@@ -78,13 +90,13 @@ public sealed class StartupOptionsResolverTests
     }
 
     [Fact]
-    public void GIVEN_DuplicateCommandLineValues_WHEN_Resolving_THEN_ShouldUseLastScalarAndDistinctDirectoryValues()
+    public void GIVEN_CaseSensitivePluginRoots_WHEN_Resolving_THEN_ShouldRetainCaseDistinctDirectories()
     {
         var previousValues = ClearEnvironment();
 
         try
         {
-            var result = StartupOptionsResolver.Resolve(
+            var result = Resolve(
             [
                 "--plugin-directory=/plugins/one",
                 "--plugin-directory=/plugins/two",
@@ -93,7 +105,7 @@ public sealed class StartupOptionsResolverTests
                 "--default-max-results=25",
             ]);
 
-            result.Options.PluginDirectories.Should().Equal("/plugins/one", "/plugins/two");
+            result.Options.PluginDirectories.Should().Equal("/plugins/one", "/plugins/two", "/PLUGINS/ONE");
             result.Options.DefaultMaxResults.Should().Be(25);
             result.Warnings.Should().BeEmpty();
         }
@@ -110,7 +122,7 @@ public sealed class StartupOptionsResolverTests
 
         try
         {
-            var result = StartupOptionsResolver.Resolve(
+            var result = Resolve(
             [
                 "ignored",
                 "--missing-value",
@@ -142,7 +154,7 @@ public sealed class StartupOptionsResolverTests
             Environment.SetEnvironmentVariable("ROSLYN_WORKBENCH_MCP_TOOL_OUTPUT_SCHEMA_MODE", "Full");
             Environment.SetEnvironmentVariable("ROSLYN_WORKBENCH_MCP_STATE_DIRECTORY", "/environment-state");
 
-            var result = StartupOptionsResolver.Resolve([]);
+            var result = Resolve([]);
 
             result.Options.PluginDirectories.Should().Equal("/plugins/one", "/plugins/two");
             result.Options.DefaultMaxResults.Should().Be(50);
@@ -175,7 +187,7 @@ public sealed class StartupOptionsResolverTests
         {
             Environment.SetEnvironmentVariable(environmentVariable, "invalid");
 
-            var result = StartupOptionsResolver.Resolve([]);
+            var result = Resolve([]);
 
             result.Options.Should().BeEquivalentTo(new StartupOptions());
             result.Warnings.Should().ContainSingle().Which.Should().BeEquivalentTo(new WarningInfo
@@ -203,10 +215,76 @@ public sealed class StartupOptionsResolverTests
         {
             Environment.SetEnvironmentVariable(environmentVariable, "0");
 
-            var result = StartupOptionsResolver.Resolve([]);
+            var result = Resolve([]);
 
             result.Options.Should().BeEquivalentTo(new StartupOptions());
             result.Warnings.Should().ContainSingle();
+        }
+        finally
+        {
+            RestoreEnvironment(previousValues);
+        }
+    }
+
+    [Fact]
+    public void GIVEN_CaseInsensitivePluginRoots_WHEN_Resolving_THEN_ShouldRemoveCaseDuplicateDirectories()
+    {
+        var previousValues = ClearEnvironment();
+        _pathComparison
+            .Setup(comparison => comparison.GetComparer(It.IsAny<string>()))
+            .Returns(StringComparer.OrdinalIgnoreCase);
+
+        try
+        {
+            var result = Resolve(
+            [
+                "--plugin-directory=/plugins/one",
+                "--plugin-directory=/plugins/two",
+                "--plugin-directory=/PLUGINS/ONE",
+            ]);
+
+            result.Options.PluginDirectories.Should().Equal("/plugins/one", "/plugins/two");
+            result.Warnings.Should().BeEmpty();
+        }
+        finally
+        {
+            RestoreEnvironment(previousValues);
+        }
+    }
+
+    [Fact]
+    public void GIVEN_MaximumCodeActionTokenLifetime_WHEN_Resolving_THEN_ShouldRetainConfiguredValue()
+    {
+        var previousValues = ClearEnvironment();
+
+        try
+        {
+            var result = Resolve(["--code-action-token-lifetime=1.00:00:00"]);
+
+            result.Options.CodeActionTokenLifetime.Should().Be(TimeSpan.FromDays(1));
+            result.Warnings.Should().BeEmpty();
+        }
+        finally
+        {
+            RestoreEnvironment(previousValues);
+        }
+    }
+
+    [Fact]
+    public void GIVEN_ExcessiveCodeActionTokenLifetime_WHEN_Resolving_THEN_ShouldUseDefaultAndReportWarning()
+    {
+        var previousValues = ClearEnvironment();
+
+        try
+        {
+            var result = Resolve(["--code-action-token-lifetime=1.00:00:00.0000001"]);
+
+            result.Options.CodeActionTokenLifetime.Should().Be(TimeSpan.FromMinutes(5));
+            result.Warnings.Should().ContainSingle().Which.Should().BeEquivalentTo(new WarningInfo
+            {
+                Code = "StartupConfigurationFallback",
+                Message = "Configuration '--code-action-token-lifetime' is invalid; using default '00:05:00'.",
+            });
         }
         finally
         {
@@ -221,7 +299,7 @@ public sealed class StartupOptionsResolverTests
 
         try
         {
-            var result = StartupOptionsResolver.Resolve(["--tool-output-schema-mode=999"]);
+            var result = Resolve(["--tool-output-schema-mode=999"]);
 
             result.Options.ToolOutputSchemaMode.Should().Be(ToolOutputSchemaMode.Omit);
             result.Warnings.Should().ContainSingle();
@@ -239,7 +317,7 @@ public sealed class StartupOptionsResolverTests
 
         try
         {
-            var result = StartupOptionsResolver.Resolve(["--default-max-results"]);
+            var result = Resolve(["--default-max-results"]);
 
             result.Options.DefaultMaxResults.Should().Be(100);
             result.Warnings.Should().ContainSingle().Which.Message.Should().Contain("--default-max-results");
@@ -257,7 +335,7 @@ public sealed class StartupOptionsResolverTests
 
         try
         {
-            var result = StartupOptionsResolver.Resolve(
+            var result = Resolve(
             [
                 "--default-max-results=25",
                 "--default-max-results=   ",
@@ -281,7 +359,7 @@ public sealed class StartupOptionsResolverTests
         {
             Environment.SetEnvironmentVariable("ROSLYN_WORKBENCH_MCP_PLUGIN_DIRECTORY", " ");
 
-            var result = StartupOptionsResolver.Resolve(
+            var result = Resolve(
             [
                 "--plugin-directory=/plugins/valid",
                 "--plugin-directory=   ",
@@ -305,7 +383,7 @@ public sealed class StartupOptionsResolverTests
         {
             Environment.SetEnvironmentVariable("ROSLYN_WORKBENCH_MCP_PLUGIN_DIRECTORY", "/plugins/environment");
 
-            var result = StartupOptionsResolver.Resolve(["--plugin-directory=/plugins/argument"]);
+            var result = Resolve(["--plugin-directory=/plugins/argument"]);
 
             result.Options.PluginDirectories.Should().Equal("/plugins/argument", "/plugins/environment");
         }
@@ -324,7 +402,7 @@ public sealed class StartupOptionsResolverTests
         {
             Environment.SetEnvironmentVariable("ROSLYN_WORKBENCH_MCP_DEFAULT_MAX_RESULTS", "25");
 
-            var result = StartupOptionsResolver.Resolve(["--default-max-results=invalid"]);
+            var result = Resolve(["--default-max-results=invalid"]);
 
             result.Options.DefaultMaxResults.Should().Be(100);
             result.Warnings.Should().ContainSingle().Which.Message.Should().Contain("--default-max-results");
@@ -342,7 +420,7 @@ public sealed class StartupOptionsResolverTests
 
         try
         {
-            var result = StartupOptionsResolver.Resolve(["--state-directory=\0"]);
+            var result = Resolve(["--state-directory=\0"]);
 
             result.Options.StateDirectory.Should().Be(Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-state"));
             result.Warnings.Should().ContainSingle();
@@ -351,6 +429,11 @@ public sealed class StartupOptionsResolverTests
         {
             RestoreEnvironment(previousValues);
         }
+    }
+
+    private StartupConfigurationSnapshot Resolve(string[] args)
+    {
+        return StartupOptionsResolver.Resolve(args, _pathComparison.Object);
     }
 
     private static Dictionary<string, string?> ClearEnvironment()

@@ -7,7 +7,11 @@ internal static class RoslynWorkbenchHostApplicationBuilderExtensions
     public static IHostApplicationBuilder AddRoslynWorkbench(this IHostApplicationBuilder builder, string[] args)
     {
         var pluginCatalogBootstrap = new PluginCatalogBootstrap();
-        var startupComposer = new HostStartupComposer(pluginCatalogBootstrap);
+        var pathComparison = new WorkspacePathComparison();
+        var startupComposer = new HostStartupComposer(
+            pluginCatalogBootstrap,
+            pathComparison);
+
         var composition = startupComposer.Compose(args);
 
         builder.Logging.ConfigureRoslynWorkbenchLogging();

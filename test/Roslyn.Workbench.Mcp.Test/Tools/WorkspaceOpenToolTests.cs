@@ -49,7 +49,7 @@ public sealed class WorkspaceOpenToolTests
         protocolFactory.Verify(item => item.CreateServerOwnedTool<WorkspaceOpenRequest, WorkspaceOpenData>(
             "workspace-open",
             "Workspace Open",
-            "Loads an additional writable workspace. If instance status reports that it is or may be in use elsewhere, use it only for necessary queries, expect results to become stale, and coordinate mutation ownership before starting a transaction.",
+            "Loads an additional writable workspace. Open only a fully trusted workspace: loading evaluates MSBuild project logic, and later diagnostic or Code Action operations can load and execute project analyzers with the Host's permissions. If instance status reports that the workspace is or may be in use elsewhere, use it only for necessary queries, expect results to become stale, and coordinate mutation ownership before starting a transaction.",
             false,
             false,
             null,

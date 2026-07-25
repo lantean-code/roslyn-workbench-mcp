@@ -1,8 +1,14 @@
 # Workspaces and transactions
 
+## Workspace trust
+
+A workspace is an executable input, not just a collection of source files. `workspace-open` evaluates MSBuild project logic, including repository-controlled projects and imports, before an agent can inspect every input. Later diagnostic and Code Action operations can load and execute project analyzers with the Host's operating system permissions. The Host does not sandbox workspace build logic or analyzers.
+
+Open only a workspace whose source, project files, imported build logic, SDK configuration and analyzer dependencies are fully trusted. Inspect an untrusted repository outside Roslyn Workbench or in an operating-system sandbox first. The absence of a trust-confirmation request property is deliberate: a caller-provided confirmation would not isolate or validate executable repository content.
+
 ## Workspace lifecycle
 
-`workspace-open` loads an absolute `.sln`, `.slnx` or `.csproj` into a workspace session. Use the returned workspace ID or alias to select it in later calls. When exactly one workspace is loaded, tools that accept an optional workspace selector may omit it.
+After the caller has established that the workspace is fully trusted, `workspace-open` loads an absolute `.sln`, `.slnx` or `.csproj` into a workspace session. Use the returned workspace ID or alias to select it in later calls. When exactly one workspace is loaded, tools that accept an optional workspace selector may omit it.
 
 Solutions may contain unsupported languages, projects without usable paths and non-SDK-style projects. The Host removes those projects from the loaded solution and returns `WorkspaceProjectSkipped` diagnostics. Loading fails when no supported SDK-style C# project remains. Unresolved analyser references are also removed and reported rather than preventing otherwise supported projects from loading.
 

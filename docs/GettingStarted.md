@@ -35,10 +35,14 @@ Configure the MCP client to launch the absolute path to the published `Roslyn.Wo
 
 The server communicates over standard input and standard output. Protocol data uses stdout; operational logging uses stderr.
 
+## Trust the workspace before opening it
+
+Open only a fully trusted workspace. `workspace-open` evaluates MSBuild project logic, including repository-controlled projects and imports, before an agent can inspect every input. Later diagnostic and Code Action operations can load and execute project analyzers with the Host's operating system permissions. Roslyn Workbench does not sandbox this code. Inspect an untrusted repository outside Roslyn Workbench or in an operating-system sandbox before opening it.
+
 ## First workflow
 
 1. Call `server-status` with `detail` set to `Full` and review component status, startup fallbacks, recovery state and the published tool count.
-2. Call `workspace-open` with the absolute path to a `.sln`, `.slnx` or `.csproj`. A solution may contain unsupported languages or non-SDK-style projects; they are skipped with load diagnostics. At least one supported SDK-style C# project must remain.
+2. After establishing that the workspace and its build inputs are fully trusted, call `workspace-open` with the absolute path to a `.sln`, `.slnx` or `.csproj`. A solution may contain unsupported languages or non-SDK-style projects; they are skipped with load diagnostics. At least one supported SDK-style C# project must remain.
 3. Use query tools against the loaded workspace.
 4. Before any mutation, read [Workspaces and transactions](WorkspacesAndTransactions.md) and check `workspace-status`.
 

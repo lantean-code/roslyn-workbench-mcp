@@ -174,7 +174,7 @@ public sealed class SchemaGenerationTests
     }
 
     [Fact]
-    public void GIVEN_StageCodeActionRequest_WHEN_GeneratingToolSchema_THEN_ShouldPublishActionTokenAndSnapshotProperties()
+    public void GIVEN_StageCodeActionRequest_WHEN_GeneratingToolSchema_THEN_ShouldPublishActionReferenceAndSnapshotProperties()
     {
         var method = typeof(ContractSchemaTestTools).GetMethod(nameof(ContractSchemaTestTools.StageCodeAction), BindingFlags.Public | BindingFlags.Static);
 
@@ -186,6 +186,8 @@ public sealed class SchemaGenerationTests
         requestProperties.TryGetProperty("expectedSnapshot", out var snapshotProperty).Should().BeTrue();
 
         actionIdProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        actionIdProperty.GetProperty("type").GetString().Should().Be("string");
+        actionIdProperty.GetProperty("format").GetString().Should().Be("uuid");
         snapshotProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
         outputSchema.GetRawText().Should().Contain("transaction");
         outputSchema.GetRawText().Should().Contain("preview");
@@ -213,7 +215,7 @@ public sealed class SchemaGenerationTests
     }
 
     [Fact]
-    public void GIVEN_StageCodeFixRequest_WHEN_GeneratingToolSchema_THEN_ShouldPublishActionTokenAndSnapshotProperties()
+    public void GIVEN_StageCodeFixRequest_WHEN_GeneratingToolSchema_THEN_ShouldPublishActionReferenceAndSnapshotProperties()
     {
         var method = typeof(ContractSchemaTestTools).GetMethod(nameof(ContractSchemaTestTools.StageCodeFix), BindingFlags.Public | BindingFlags.Static);
 

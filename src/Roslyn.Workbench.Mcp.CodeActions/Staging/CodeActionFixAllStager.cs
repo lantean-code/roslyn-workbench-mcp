@@ -154,7 +154,7 @@ internal sealed class CodeActionFixAllStager : ICodeActionFixAllStager
         {
             return FailedApplication(
                 CodeActionApplyFailureKind.ActionExpired,
-                "The requested action token is no longer valid.");
+                "The requested action reference is no longer valid.");
         }
 
         return await ApplyDocumentFixAllAsync(
@@ -306,22 +306,26 @@ internal sealed class CodeActionFixAllStager : ICodeActionFixAllStager
             return null;
         }
 
-        return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
+        var error = new CodeActionExecutionError
         {
             Code = "FixAllLimitExceeded",
             Message = $"The fix-all operation would change {changedDocumentCount} source documents, exceeding the limit of {maxChanges}.",
-        }, RequiredAction.NarrowRequest);
+        };
+
+        return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(error, RequiredAction.NarrowRequest);
     }
 
     private static CodeActionExecutionResult<WorkspaceMutationCandidate> CreateSuccess(
         DiscoveredCodeAction action,
         Solution candidateSolution)
     {
-        return CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(new WorkspaceMutationCandidate
+        var candidate = new WorkspaceMutationCandidate
         {
             CandidateSolution = candidateSolution,
             Summary = $"Fix all: {action.Title}",
-        });
+        };
+
+        return CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(candidate);
     }
 
     private static CodeActionApplyResult ProjectNotFound()

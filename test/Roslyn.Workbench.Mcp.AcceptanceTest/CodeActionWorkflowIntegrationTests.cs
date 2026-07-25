@@ -2,8 +2,6 @@ namespace Roslyn.Workbench.Mcp.AcceptanceTest;
 
 public sealed class CodeActionWorkflowIntegrationTests
 {
-    private const int _maximumCodeActionTokenLength = 256 * 1024;
-
     [Fact]
     public async Task GIVEN_BuiltInCodeAction_WHEN_ListingStagingAndRollingBack_THEN_ShouldPreservePublicCodeActionBoundary()
     {
@@ -71,14 +69,30 @@ public sealed class CodeActionWorkflowIntegrationTests
             action.GetProperty("providerId").GetString().Should().Be(
                 "Microsoft.CodeAnalysis.CSharp.ConvertToRawString.ConvertStringToRawStringCodeRefactoringProvider");
 
-            action.GetProperty("actionId").GetString().Should().NotBeNullOrWhiteSpace();
+            var actionIdText = action.GetProperty("actionId").GetString();
+            Guid.TryParse(actionIdText, out var actionId).Should().BeTrue();
+
+            var describeResult = await target.CallToolAsync(
+                "describe-code-action",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                    ["actionId"] = actionId,
+                    ["expectedSnapshot"] = snapshot,
+                },
+                TestContext.Current.CancellationToken);
+
+            describeResult.IsError.Should().NotBeTrue();
+            var describedAction = AcceptanceProtocol.GetSuccessData(describeResult).GetProperty("descriptor");
+            describedAction.GetProperty("actionId").GetGuid().Should().Be(actionId);
+            describedAction.GetProperty("expiresAt").GetString().Should().Be(action.GetProperty("expiresAt").GetString());
 
             var stageResult = await target.CallToolAsync(
                 "stage-code-action",
                 new Dictionary<string, object?>
                 {
                     ["workspace"] = workspaceSelector,
-                    ["actionId"] = action.GetProperty("actionId").GetString(),
+                    ["actionId"] = actionId,
                     ["expectedSnapshot"] = snapshot,
                 },
                 TestContext.Current.CancellationToken);
@@ -96,6 +110,24 @@ public sealed class CodeActionWorkflowIntegrationTests
             stage.GetProperty("staged").GetBoolean().Should().BeTrue();
             stage.GetProperty("summary").GetString().Should().NotBeNullOrWhiteSpace();
             stage.GetProperty("transaction").GetProperty("revision").GetInt32().Should().Be(1);
+
+            var repeatedStageResult = await target.CallToolAsync(
+                "stage-code-action",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                    ["actionId"] = actionId,
+                    ["expectedSnapshot"] = workspace.CreateSnapshot(transactionRevision: 1),
+                },
+                TestContext.Current.CancellationToken);
+
+            repeatedStageResult.IsError.Should().BeTrue();
+            AcceptanceProtocol.GetError(repeatedStageResult)
+                .GetProperty("code")
+                .GetString()
+                .Should()
+                .Be("ActionExpired");
+
             previewResult.IsError.Should().NotBeTrue();
             AcceptanceProtocol.GetSuccessData(previewResult)
                 .GetProperty("documents")
@@ -142,7 +174,7 @@ public sealed class CodeActionWorkflowIntegrationTests
     }
 
     [Fact]
-    public async Task GIVEN_OversizedCodeActionToken_WHEN_Staging_THEN_ShouldRejectAndRemainResponsive()
+    public async Task GIVEN_UnknownCodeActionReference_WHEN_Staging_THEN_ShouldRejectAndRemainResponsive()
     {
         await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
             TestContext.Current.CancellationToken,
@@ -177,7 +209,7 @@ public sealed class CodeActionWorkflowIntegrationTests
                 new Dictionary<string, object?>
                 {
                     ["workspace"] = workspaceSelector,
-                    ["actionId"] = new string('A', _maximumCodeActionTokenLength + 1),
+                    ["actionId"] = "11111111-1111-1111-1111-111111111111",
                     ["expectedSnapshot"] = snapshot,
                 },
                 TestContext.Current.CancellationToken);

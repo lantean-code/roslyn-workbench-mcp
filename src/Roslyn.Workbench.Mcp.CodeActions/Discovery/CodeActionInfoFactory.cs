@@ -5,18 +5,18 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Discovery;
 
 internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
 {
-    private readonly ICodeActionTokenService _tokenService;
+    private readonly ICodeActionReferenceStore _referenceStore;
     private readonly TimeProvider _timeProvider;
-    private readonly TimeSpan _tokenLifetime;
+    private readonly TimeSpan _referenceLifetime;
 
     public CodeActionInfoFactory(
-        ICodeActionTokenService tokenService,
+        ICodeActionReferenceStore referenceStore,
         TimeProvider timeProvider,
         IOptions<CodeActionExecutionOptions> options)
     {
-        _tokenService = tokenService;
+        _referenceStore = referenceStore;
         _timeProvider = timeProvider;
-        _tokenLifetime = options.Value.TokenLifetime;
+        _referenceLifetime = options.Value.ReferenceLifetime;
     }
 
     public bool TryCreate(
@@ -27,11 +27,10 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
         CodeActionDescriptorEntry descriptor,
         [NotNullWhen(true)] out CodeActionInfo? info)
     {
-        var expiresAt = _timeProvider.GetUtcNow().Add(_tokenLifetime);
-        var expiresAtText = expiresAt.ToString("O");
-        var payload = new CodeActionTokenPayload
+        var expiresAt = _timeProvider.GetUtcNow().Add(_referenceLifetime);
+        var recipe = new CodeActionReplayRecipe
         {
-            Kind = action.Kind.ToString(),
+            Kind = action.Kind,
             ProviderId = action.ProviderId,
             Title = action.Title,
             EquivalenceKey = action.EquivalenceKey,
@@ -40,22 +39,31 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
             WorkspaceId = context.WorkspaceIdentity.WorkspaceId,
             WorkspaceEpoch = context.WorkspaceIdentity.WorkspaceEpoch,
             TransactionRevision = context.TransactionRevision,
-            ExpiresAt = expiresAtText,
             DocumentPath = context.WorkspaceResolver.NormalizeDocumentPath(document.FilePath ?? document.Name),
             ProjectId = document.Project.Id.Id.ToString(),
             Start = span.Start,
             Length = span.Length,
         };
 
-        if (!_tokenService.TryEncode(payload, out var actionId))
+        if (!_referenceStore.TryCreate(recipe, expiresAt, out var reference))
         {
             info = null;
             return false;
         }
 
-        info = new CodeActionInfo
+        info = CreateFromReference(action, context, descriptor, reference);
+        return true;
+    }
+
+    public CodeActionInfo CreateFromReference(
+        DiscoveredCodeAction action,
+        ICodeActionExecutionContext context,
+        CodeActionDescriptorEntry descriptor,
+        CodeActionReference reference)
+    {
+        var info = new CodeActionInfo
         {
-            ActionId = actionId,
+            ActionId = reference.ActionId,
             WorkspaceId = context.WorkspaceIdentity.WorkspaceId,
             Title = action.Title,
             ProviderId = action.ProviderId,
@@ -65,7 +73,7 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
             DiagnosticIds = action.DiagnosticIds,
             WorkspaceEpoch = context.WorkspaceIdentity.WorkspaceEpoch,
             TransactionRevision = context.TransactionRevision,
-            ExpiresAt = expiresAtText,
+            ExpiresAt = reference.ExpiresAt.ToString("O"),
             ExecutionMode = descriptor.ExecutionMode,
             ExecutorTool = descriptor.ExecutorTool,
             DescribeTool = descriptor.DescribeTool,
@@ -73,6 +81,6 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
             Requirements = descriptor.Requirements,
         };
 
-        return true;
+        return info;
     }
 }

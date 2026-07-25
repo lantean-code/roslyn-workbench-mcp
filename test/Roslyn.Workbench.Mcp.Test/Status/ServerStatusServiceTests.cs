@@ -56,7 +56,7 @@ public sealed class ServerStatusServiceTests
             DefaultMaxResults = 100,
             MaxConcurrentQueries = 2,
             MaxTransactionRevisions = 20,
-            CodeActionTokenLifetime = TimeSpan.FromMinutes(5),
+            CodeActionReferenceLifetime = TimeSpan.FromMinutes(5),
             StateDirectory = "/state",
         };
 

@@ -2,15 +2,15 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Tools;
 
 internal sealed class StageCodeFixTool : CodeActionMutationToolHandler<StageCodeFixRequest>
 {
-    private readonly ICodeActionTokenStager _tokenStager;
+    private readonly ICodeActionReferenceStager _referenceStager;
 
-    public StageCodeFixTool(ICodeActionTokenStager tokenStager)
+    public StageCodeFixTool(ICodeActionReferenceStager referenceStager)
     {
-        _tokenStager = tokenStager;
+        _referenceStager = referenceStager;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(StageCodeFixRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
-        return _tokenStager.StageCodeFixAsync(request, context, cancellationToken);
+        return _referenceStager.StageCodeFixAsync(request, context, cancellationToken);
     }
 }

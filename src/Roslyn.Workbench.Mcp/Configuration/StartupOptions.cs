@@ -6,7 +6,7 @@ internal sealed class StartupOptions
 
     public int DefaultMaxResults { get; set; } = 100;
 
-    public TimeSpan CodeActionTokenLifetime { get; set; } = TimeSpan.FromMinutes(5);
+    public TimeSpan CodeActionReferenceLifetime { get; set; } = TimeSpan.FromMinutes(5);
 
     public int MaxTransactionRevisions { get; set; } = 20;
 

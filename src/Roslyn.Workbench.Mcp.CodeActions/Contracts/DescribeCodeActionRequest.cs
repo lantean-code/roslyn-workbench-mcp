@@ -6,9 +6,9 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts;
 internal sealed record DescribeCodeActionRequest : WorkspaceBoundRequest
 {
     /// <summary>
-    /// Gets the opaque action token to describe.
+    /// Gets the opaque action reference to describe.
     /// </summary>
-    public string ActionId { get; init; } = string.Empty;
+    public required Guid ActionId { get; init; }
 
     /// <summary>
     /// Gets the expected workspace snapshot.

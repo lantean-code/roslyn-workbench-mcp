@@ -2,7 +2,7 @@ namespace Roslyn.Workbench.Mcp.Configuration;
 
 internal static class StartupOptionsRules
 {
-    public static TimeSpan MaximumCodeActionTokenLifetime { get; } = TimeSpan.FromDays(1);
+    public static TimeSpan MaximumCodeActionReferenceLifetime { get; } = TimeSpan.FromDays(1);
 
     public static bool IsPositive(int value)
     {
@@ -14,9 +14,9 @@ internal static class StartupOptionsRules
         return value > TimeSpan.Zero;
     }
 
-    public static bool IsSupportedCodeActionTokenLifetime(TimeSpan value)
+    public static bool IsSupportedCodeActionReferenceLifetime(TimeSpan value)
     {
-        return IsPositive(value) && value <= MaximumCodeActionTokenLifetime;
+        return IsPositive(value) && value <= MaximumCodeActionReferenceLifetime;
     }
 
     public static bool IsSupported(ToolOutputSchemaMode value)

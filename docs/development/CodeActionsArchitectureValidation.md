@@ -36,7 +36,7 @@ The boundary does not need redesign. The remaining work is internal responsibili
 
 | Area | Finding | Decision | Complexity |
 | --- | --- | --- | --- |
-| Resolution | Complete: token validation, Workspace matching, provider rediscovery and unique selection are named stages, and fix-all reuses the boundary. | Retain the focused resolution boundary. | Complete |
+| Resolution | Complete: reference lookup, Workspace matching, provider rediscovery and unique selection are named stages, and fix-all reuses the boundary. | Retain the focused resolution boundary. | Complete |
 | Scoped and fix-all execution | Complete: shared selector resolution has one stateful boundary, while each service retains its distinct application semantics. | Retain the service split and explicit per-scope application. | Complete |
 | Diagnostic and operation boundaries | Complete: optional analyzer activation and solution change counting have focused boundaries, while diagnostic selection and Roslyn operation application remain cohesive. | Retain the two extracted seams without further method-level splitting. | Complete |
 | MEF provider composition | Complete: the catalogue owns composition while one compatibility adapter contains the non-public Roslyn export shape. Assembly deduplication now uses assembly identity. | Retain this startup-only compatibility boundary and its real-MEF evidence. | Complete |
@@ -48,40 +48,39 @@ The boundary does not need redesign. The remaining work is internal responsibili
 
 ### Current responsibilities
 
-`CodeActionResolutionService.ResolveActionAsync` currently:
+`CodeActionResolver.ResolveActionAsync` currently:
 
 1. validates the expected snapshot;
-2. decodes the signed action token;
-3. validates action kind, expiry and Workspace identity;
+2. resolves the action reference from the process-local recipe store;
+3. validates action kind and Workspace identity;
 4. resolves the originating document and span;
 5. rediscovers the provider action;
 6. matches the replay identity uniquely;
 7. classifies visibility; and
 8. returns the resolved action, descriptor, document and span.
 
-These steps form one high-level responsibility: resolving an opaque replay token against the current Workspace. The service itself is therefore justified. The problem is orchestration size and duplicated consumers, not the existence of the service.
+These steps form one high-level responsibility: resolving an opaque replay reference against the current Workspace. The resolver itself is therefore justified. The problem is orchestration size and duplicated consumers, not the existence of the resolver.
 
 ### Findings
 
-- `CodeActionFixAllService` repeats token decoding, kind, expiry, Workspace identity, document resolution, diagnostic discovery and unique-action matching.
-- The duplicated implementations can drift in expiry, matching and error semantics.
-- Snapshot validation, token rejection and selection rejection are also constructed in more than one helper class.
-- Expiry now uses `TimeProvider`, which is the correct boundary.
-- Returning a uniform `ActionExpired` for invalid token details avoids exposing which validation failed and should be preserved.
+- `CodeActionFixAllStager` repeated reference lookup, kind, Workspace identity, document resolution, diagnostic discovery and unique-action matching.
+- The duplicated implementations could drift in reference, matching and error semantics.
+- Snapshot validation, reference rejection and selection rejection were also constructed in more than one helper class.
+- Absolute expiry is owned by the reference store and uses `TimeProvider`, which is the correct boundary.
+- Returning a uniform `ActionExpired` for unknown, expired, evicted or snapshot-invalid references avoids exposing which validation failed and should be preserved.
 - Centralising fix-all resolution must preserve the existing public error codes, particularly the distinction between an expired action and an unavailable fix-all provider.
 
 ### Resolution
 
-Resolution now uses named snapshot, token-context, rediscovery and unique-selection stages. Token context is represented explicitly without null-forgiving operators, expiry parsing uses invariant round-trip semantics, and provider unavailability is carried as an internal resolution reason while preserving the existing published rejection. Fix-all consumes the resolved action, document and span and maps provider unavailability back to its existing `FixAllUnavailable` result.
+Resolution now uses named snapshot, reference-context, rediscovery and unique-selection stages. Reference context is represented explicitly without null-forgiving operators, and provider unavailability is carried as an internal resolution reason while preserving the existing published rejection. Fix-all consumes the resolved action, document and span and maps provider unavailability back to its existing `FixAllUnavailable` result. The reference store retains only replay recipes, never Roslyn `CodeAction` instances.
 
 ### Working checklist
 
-- [x] Break `ResolveActionAsync` into named private stages for request/snapshot validation, token-context validation, action rediscovery and unique selection.
+- [x] Break `ResolveActionAsync` into named private stages for request/snapshot validation, reference-context validation, action rediscovery and unique selection.
 - [x] Use small internal result records where a stage can return either a value or a rejection; do not introduce parameter objects merely to shorten signatures.
-- [x] Make `CodeActionFixAllService` consume the resolution boundary instead of decoding and replaying the token independently.
+- [x] Make `CodeActionFixAllStager` consume the resolution boundary instead of resolving and replaying the reference independently.
 - [x] Preserve the current wire-level error codes and required actions while centralising the flow.
-- [x] Use invariant round-trip parsing for the `O`-formatted expiry value.
-- [x] Keep token signing and serialisation in `CodeActionTokenService`; do not move cryptography into the resolver.
+- [x] Keep absolute expiry and bounded storage in `CodeActionReferenceStore`; do not move cache ownership into the resolver.
 
 ## Scoped and Fix-All Execution
 
@@ -89,17 +88,18 @@ Resolution now uses named snapshot, token-context, rediscovery and unique-select
 
 The earlier facade split is sound:
 
-- replay selection belongs to `CodeActionReplayService`;
-- token-backed fix-all belongs to `CodeActionFixAllService`;
-- diagnostic-driven scoped fixes belong to `CodeActionScopedFixService`; and
-- location-driven code fixes belong to `CodeActionLocationFixService`.
+- replay selection belongs to `CodeActionSelectionStager`;
+- reference-backed replay belongs to `CodeActionReferenceStager`;
+- reference-backed fix-all belongs to `CodeActionFixAllStager`;
+- diagnostic-driven scoped fixes belong to `ScopedCodeFixStager`; and
+- location-driven code fixes belong to `LocationCodeFixStager`.
 
 Recombining these behind a workflow or services aggregate would restore the dependency and capability problems already removed.
 
 ### Findings
 
-- `CodeActionFixAllService.StageFixAllAsync` is a single long orchestration method and duplicates resolution logic.
-- `CodeActionScopedFixService` is large, but its size comes from explicit scope strategies rather than unrelated responsibilities.
+- `CodeActionFixAllStager.StageFixAllAsync` was a single long orchestration method and duplicated resolution logic.
+- `ScopedCodeFixStager` is large, but its size comes from explicit scope strategies rather than unrelated responsibilities.
 - Both fix-all paths resolve document, project, projects and solution scopes, but their target application differs.
 - Scope selector resolution is stateful because it uses `IWorkspaceResolver`; it should not be presented as a pure static helper.
 - Candidate discovery, candidate application and change-limit enforcement are distinct stages and can be named without creating a class for every branch.
@@ -108,17 +108,17 @@ Recombining these behind a workflow or services aggregate would restore the depe
 
 `CodeActionScopeResolver` now owns the duplicated document, project, project-set and solution target resolution. It is injected because it delegates to the invocation's `IWorkspaceResolver`; it is not presented as a pure helper. The result carries only resolved Roslyn targets or the existing execution rejection.
 
-`CodeActionFixAllService` now has named resolution, scope-application, change-limit and result-construction stages. A small internal operation record is justified here because the resolved action, origin, provider and fix-all provider travel together through every scope strategy. `CodeActionScopedFixService` consumes the same scope result while retaining its explicit solution, document, project and multi-project application methods.
+`CodeActionFixAllStager` now has named resolution, scope-application, change-limit and result-construction stages. A small internal operation record is justified here because the resolved action, origin, provider and fix-all provider travel together through every scope strategy. `ScopedCodeFixStager` consumes the same scope result while retaining its explicit solution, document, project and multi-project application methods.
 
 Project sets are canonicalised by Roslyn `ProjectId` before application. Distinct projects are still applied sequentially against the evolving candidate solution, while duplicate selectors no longer cause the same project to be mutated twice. Change limits remain enforced only after Roslyn has produced the complete candidate and before the Workspace mutation candidate is returned.
 
 ### Working checklist
 
 - [x] Refactor `StageFixAllAsync` into private validation, scope application, change-limit and result-construction stages.
-- [x] Remove its direct token, clock and diagnostic replay dependencies by using the resolution boundary where wire compatibility permits.
+- [x] Remove its direct reference-store and diagnostic replay dependencies by using the resolution boundary where wire compatibility permits.
 - [x] Introduce one focused scope-target resolver only if it removes real duplicate selector-resolution behaviour from both services; otherwise retain private methods.
 - [x] If introduced, make the scope resolver an injected service because it calls `IWorkspaceResolver`; do not label it a pure helper.
-- [x] Retain the explicit per-scope application methods in `CodeActionScopedFixService` because they make Roslyn `FixAllScope` differences visible.
+- [x] Retain the explicit per-scope application methods in `ScopedCodeFixStager` because they make Roslyn `FixAllScope` differences visible.
 - [x] Keep multi-project application sequential against the evolving candidate solution.
 - [x] Keep `MaxChanges` enforcement after application and before returning the Workspace mutation candidate.
 - [x] Do not add a new aggregate workflow or services object.
@@ -131,9 +131,9 @@ Project sets are canonicalised by Roslyn `ProjectId` before application. Distinc
 
 Runtime analyzer activation is different: it searches loaded assemblies by a ledger-supplied type name, activates a potentially non-public analyzer and suppresses reflection failures. That is a brittle external compatibility boundary with its own reason to change.
 
-### Operation service
+### Action evaluation
 
-`CodeActionOperationService` currently:
+`CodeActionEvaluator`:
 
 - converts a Roslyn `CodeAction` into a neutral Workspace mutation candidate;
 - applies document/project fix-all operations;
@@ -148,7 +148,7 @@ Applying and validating Roslyn operations are cohesive. Counting changed documen
 
 Compiler and configured-analyzer collection now has one internal implementation, while document and project filtering remain separate and visible. This removes duplication without splitting the cohesive diagnostic outcome across more services.
 
-`CodeActionSolutionChangeCounter` now owns the deterministic source-text comparison used by both fix-all services. It is independently injectable so orchestration tests can control change-limit outcomes, but its implementation has no dependencies or policy decisions. `CodeActionOperationService` now contains only Code Action operation materialisation, supported-operation validation and fix-all application. The Roslyn wrapping bookkeeping operation remains a named and documented compatibility exception.
+`CodeActionSolutionChangeCounter` now owns the deterministic source-text comparison used by both fix-all stagers. It is independently injectable so orchestration tests can control change-limit outcomes, but its implementation has no dependencies or policy decisions. `CodeActionEvaluator` contains only Code Action operation materialisation and supported-operation validation. The Roslyn wrapping bookkeeping operation remains a named and documented compatibility exception.
 
 ### Working checklist
 
@@ -302,11 +302,11 @@ Unit testing is deliberately the next phase, after this architecture checklist i
 
 The next unit-test inventory should begin with:
 
-1. `CodeActionResolutionService` and any extracted validation results;
+1. `CodeActionResolver` and any extracted validation results;
 2. `CodeActionScopeResolver`, followed by isolated consumer tests that mock that boundary;
 3. `CodeActionDiagnosticService` and the analyzer-activation boundary;
-4. `CodeActionOperationService` and the solution-change helper;
-5. `CodeActionTokenService` malformed input, signature, payload and round-trip behaviour; and
+4. `CodeActionEvaluator` and the solution-change helper;
+5. `CodeActionReferenceStore` creation, lookup, expiry, capacity and removal behaviour; and
 6. unit-testable MEF compatibility logic, while retaining real composition as integration coverage.
 
 For materially changed, unit-testable implementation, require 100% line and branch coverage. Continue to use integration and audit tests for real Roslyn MEF composition, built-in provider compatibility and controlled-provider replay behaviour.

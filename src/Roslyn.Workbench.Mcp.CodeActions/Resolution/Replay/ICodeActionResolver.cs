@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Resolution.Replay;
 internal interface ICodeActionResolver
 {
     ValueTask<CodeActionResolution<T>> ResolveActionAsync<T>(
-        string actionId,
+        Guid actionId,
         SnapshotPrecondition? expectedSnapshot,
         DiscoveredActionKind? expectedKind,
         ICodeActionExecutionContext context,

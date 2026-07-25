@@ -21,14 +21,14 @@ public sealed class DescribeCodeActionToolTests
         var result = await target.ExecuteAsync(
             new DescribeCodeActionRequest
             {
-                ActionId = "ActionId",
+                ActionId = Guid.Empty,
             },
             context.Object,
             CancellationToken.None);
 
         result.Error!.Code.Should().Be("CodeActionsUnavailable");
         resolver.Verify(item => item.ResolveActionAsync<DescribeCodeActionData>(
-            It.IsAny<string>(),
+            It.IsAny<Guid>(),
             It.IsAny<SnapshotPrecondition?>(),
             It.IsAny<DiscoveredActionKind?>(),
             It.IsAny<ICodeActionExecutionContext>(),
@@ -56,7 +56,7 @@ public sealed class DescribeCodeActionToolTests
 
         resolver
             .Setup(item => item.ResolveActionAsync<DescribeCodeActionData>(
-                "ActionId",
+                Guid.Empty,
                 expectedSnapshot,
                 null,
                 context.Object,
@@ -68,24 +68,22 @@ public sealed class DescribeCodeActionToolTests
         var result = await target.ExecuteAsync(
             new DescribeCodeActionRequest
             {
-                ActionId = "ActionId",
+                ActionId = Guid.Empty,
                 ExpectedSnapshot = expectedSnapshot,
             },
             context.Object,
             CancellationToken.None);
 
         result.Should().BeSameAs(rejection);
-        infoFactory.Verify(item => item.TryCreate(
+        infoFactory.Verify(item => item.CreateFromReference(
             It.IsAny<DiscoveredCodeAction>(),
             It.IsAny<ICodeActionExecutionContext>(),
-            It.IsAny<Document>(),
-            It.IsAny<TextSpan>(),
             It.IsAny<CodeActionDescriptorEntry>(),
-            out It.Ref<CodeActionInfo?>.IsAny), Times.Never);
+            It.IsAny<CodeActionReference>()), Times.Never);
     }
 
     [Fact]
-    public async Task GIVEN_ActionResolves_WHEN_Executing_THEN_ShouldReturnRefreshedDescriptorAndContext()
+    public async Task GIVEN_ActionResolves_WHEN_Executing_THEN_ShouldReturnDescriptorWithOriginalReferenceAndContext()
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
         var providerCatalog = new Mock<ICodeActionProviderCatalog>();
@@ -100,10 +98,14 @@ public sealed class DescribeCodeActionToolTests
         };
 
         action = action with { Descriptor = descriptor };
+        var reference = new CodeActionReference(
+            Guid.Empty,
+            new CodeActionReplayRecipe(),
+            new DateTimeOffset(2000, 1, 1, 0, 5, 0, TimeSpan.Zero));
 
         var info = new CodeActionInfo
         {
-            ActionId = "RefreshedActionId",
+            ActionId = Guid.Empty,
             Title = "Title",
             ProviderId = "ProviderId",
             ExpiresAt = "2000-01-01T00:00:00.0000000+00:00",
@@ -116,7 +118,7 @@ public sealed class DescribeCodeActionToolTests
 
         resolver
             .Setup(item => item.ResolveActionAsync<DescribeCodeActionData>(
-                "ActionId",
+                Guid.Empty,
                 null,
                 null,
                 context.Object,
@@ -124,24 +126,23 @@ public sealed class DescribeCodeActionToolTests
             .ReturnsAsync(CodeActionResolution<DescribeCodeActionData>.Resolved(
                 action,
                 roslyn.Document,
-                new TextSpan(1, 2)));
+                new TextSpan(1, 2),
+                reference));
 
         infoFactory
-            .Setup(item => item.TryCreate(
+            .Setup(item => item.CreateFromReference(
                 action,
                 context.Object,
-                roslyn.Document,
-                new TextSpan(1, 2),
                 descriptor,
-                out info))
-            .Returns(true);
+                reference))
+            .Returns(info);
 
         var target = new DescribeCodeActionTool(providerCatalog.Object, resolver.Object, infoFactory.Object);
 
         var result = await target.ExecuteAsync(
             new DescribeCodeActionRequest
             {
-                ActionId = "ActionId",
+                ActionId = Guid.Empty,
             },
             context.Object,
             CancellationToken.None);
@@ -150,64 +151,11 @@ public sealed class DescribeCodeActionToolTests
         result.Data!.Descriptor.Should().BeSameAs(info);
         result.Data.Context!.Kind.Should().Be(CodeActionDescriptorContextKind.MemberSelection);
         result.Data.Context.Message.Should().Be("Message");
-        infoFactory.Verify(item => item.TryCreate(
+        infoFactory.Verify(item => item.CreateFromReference(
             action,
             context.Object,
-            roslyn.Document,
-            new TextSpan(1, 2),
             descriptor,
-            out It.Ref<CodeActionInfo?>.IsAny), Times.Once);
-    }
-
-    [Fact]
-    public async Task GIVEN_ResolvedActionCannotBeEncoded_WHEN_Executing_THEN_ShouldRejectAction()
-    {
-        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
-        var providerCatalog = new Mock<ICodeActionProviderCatalog>();
-        var resolver = new Mock<ICodeActionResolver>();
-        var infoFactory = new Mock<ICodeActionInfoFactory>();
-        var context = new Mock<ICodeActionQueryContext>();
-        var action = CreateDiscoveredAction(roslyn.Solution);
-        var descriptor = action.Descriptor;
-        providerCatalog.SetupGet(item => item.Status).Returns(new CodeActionProviderCatalogStatus
-        {
-            IsAvailable = true,
-        });
-
-        resolver
-            .Setup(item => item.ResolveActionAsync<DescribeCodeActionData>(
-                "ActionId",
-                null,
-                null,
-                context.Object,
-                CancellationToken.None))
-            .ReturnsAsync(CodeActionResolution<DescribeCodeActionData>.Resolved(
-                action,
-                roslyn.Document,
-                new TextSpan(1, 2)));
-
-        infoFactory
-            .Setup(item => item.TryCreate(
-                action,
-                context.Object,
-                roslyn.Document,
-                new TextSpan(1, 2),
-                descriptor,
-                out It.Ref<CodeActionInfo?>.IsAny))
-            .Returns(false);
-
-        var target = new DescribeCodeActionTool(providerCatalog.Object, resolver.Object, infoFactory.Object);
-
-        var result = await target.ExecuteAsync(
-            new DescribeCodeActionRequest
-            {
-                ActionId = "ActionId",
-            },
-            context.Object,
-            CancellationToken.None);
-
-        result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
-        result.Error!.Code.Should().Be("ActionUnavailable");
+            reference), Times.Once);
     }
 
     private static DiscoveredCodeAction CreateDiscoveredAction(Solution solution)

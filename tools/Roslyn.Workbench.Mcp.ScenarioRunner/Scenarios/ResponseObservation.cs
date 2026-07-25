@@ -13,14 +13,14 @@ internal sealed record ResponseObservation
 
     public IReadOnlyList<BoundedCollectionObservation> BoundedCollections { get; init; } = [];
 
-    public CodeActionTokenObservation? CodeActionTokens { get; init; }
+    public CodeActionReferenceObservation? CodeActionReferences { get; init; }
 
     public bool? MutationStaged { get; init; }
 
     public static ResponseObservation Create(CallToolResult result)
     {
         var boundedCollections = new List<BoundedCollectionObservation>();
-        var codeActionTokenLengths = new List<int>();
+        var codeActionReferenceLengths = new List<int>();
         string content;
         bool? mutationStaged = null;
         if (result.StructuredContent is JsonElement structuredContent)
@@ -30,7 +30,7 @@ internal sealed record ResponseObservation
                 structuredContent,
                 "$",
                 boundedCollections,
-                codeActionTokenLengths);
+                codeActionReferenceLengths);
 
             mutationStaged = GetMutationStaged(structuredContent);
         }
@@ -44,7 +44,7 @@ internal sealed record ResponseObservation
             Bytes = Encoding.UTF8.GetByteCount(content),
             Sha256 = Hash(content),
             BoundedCollections = boundedCollections,
-            CodeActionTokens = CreateCodeActionTokenObservation(codeActionTokenLengths),
+            CodeActionReferences = CreateCodeActionReferenceObservation(codeActionReferenceLengths),
             MutationStaged = mutationStaged,
         };
     }
@@ -53,7 +53,7 @@ internal sealed record ResponseObservation
         JsonElement element,
         string path,
         List<BoundedCollectionObservation> boundedCollections,
-        List<int> codeActionTokenLengths)
+        List<int> codeActionReferenceLengths)
     {
         if (element.ValueKind == JsonValueKind.Array)
         {
@@ -64,7 +64,7 @@ internal sealed record ResponseObservation
                     item,
                     $"{path}[{index}]",
                     boundedCollections,
-                    codeActionTokenLengths);
+                    codeActionReferenceLengths);
 
                 index++;
             }
@@ -80,10 +80,10 @@ internal sealed record ResponseObservation
         if (element.TryGetProperty("actionId", out var actionId)
             && actionId.ValueKind == JsonValueKind.String)
         {
-            var token = actionId.GetString();
-            if (token is not null)
+            var reference = actionId.GetString();
+            if (reference is not null)
             {
-                codeActionTokenLengths.Add(Encoding.UTF8.GetByteCount(token));
+                codeActionReferenceLengths.Add(Encoding.UTF8.GetByteCount(reference));
             }
         }
 
@@ -121,29 +121,29 @@ internal sealed record ResponseObservation
                 property.Value,
                 $"{path}.{property.Name}",
                 boundedCollections,
-                codeActionTokenLengths);
+                codeActionReferenceLengths);
         }
     }
 
-    private static CodeActionTokenObservation? CreateCodeActionTokenObservation(
-        List<int> tokenLengths)
+    private static CodeActionReferenceObservation? CreateCodeActionReferenceObservation(
+        List<int> referenceLengths)
     {
-        if (tokenLengths.Count == 0)
+        if (referenceLengths.Count == 0)
         {
             return null;
         }
 
         var maximumBytes = 0;
         long totalBytes = 0;
-        foreach (var tokenLength in tokenLengths)
+        foreach (var referenceLength in referenceLengths)
         {
-            maximumBytes = Math.Max(maximumBytes, tokenLength);
-            totalBytes += tokenLength;
+            maximumBytes = Math.Max(maximumBytes, referenceLength);
+            totalBytes += referenceLength;
         }
 
-        return new CodeActionTokenObservation
+        return new CodeActionReferenceObservation
         {
-            Count = tokenLengths.Count,
+            Count = referenceLengths.Count,
             MaximumBytes = maximumBytes,
             TotalBytes = totalBytes,
         };

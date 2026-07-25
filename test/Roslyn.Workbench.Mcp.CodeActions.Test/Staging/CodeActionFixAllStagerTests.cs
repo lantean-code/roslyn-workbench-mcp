@@ -52,7 +52,7 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
         SetupDefaultScopeResolutions();
         _resolver
             .Setup(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
-                It.IsAny<string>(),
+                It.IsAny<Guid>(),
                 It.IsAny<SnapshotPrecondition?>(),
                 DiscoveredActionKind.CodeFix,
                 _context.Object,
@@ -139,7 +139,7 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
 
         result.Error!.Code.Should().Be("CodeActionsUnavailable");
         _resolver.Verify(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
-            It.IsAny<string>(),
+            It.IsAny<Guid>(),
             It.IsAny<SnapshotPrecondition?>(),
             It.IsAny<DiscoveredActionKind?>(),
             It.IsAny<ICodeActionExecutionContext>(),
@@ -159,7 +159,7 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
 
         _resolver
             .Setup(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
-                "ActionId",
+                Guid.Empty,
                 expectedSnapshot,
                 DiscoveredActionKind.CodeFix,
                 _context.Object,
@@ -184,7 +184,7 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
         var rejection = CreateRejection();
         _resolver
             .Setup(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
-                "ActionId",
+                Guid.Empty,
                 It.IsAny<SnapshotPrecondition>(),
                 DiscoveredActionKind.CodeFix,
                 _context.Object,
@@ -204,7 +204,7 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
     {
         _resolver
             .Setup(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
-                "ActionId",
+                Guid.Empty,
                 It.IsAny<SnapshotPrecondition>(),
                 DiscoveredActionKind.CodeFix,
                 _context.Object,
@@ -603,7 +603,7 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
         return new StageFixAllRequest
         {
             ExpectedSnapshot = new SnapshotPrecondition(),
-            ActionId = "ActionId",
+            ActionId = Guid.Empty,
             Scope = new ScopeSelector
             {
                 Kind = scopeKind,
@@ -616,7 +616,7 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
         return new StageFixAllRequest
         {
             ExpectedSnapshot = new SnapshotPrecondition(),
-            ActionId = "ActionId",
+            ActionId = Guid.Empty,
             Scope = new ScopeSelector
             {
                 Kind = ScopeKind.Document,
@@ -630,7 +630,7 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
         return new StageFixAllRequest
         {
             ExpectedSnapshot = new SnapshotPrecondition(),
-            ActionId = "ActionId",
+            ActionId = Guid.Empty,
             Scope = new ScopeSelector
             {
                 Kind = scopeKind,
@@ -663,7 +663,11 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
         return CodeActionResolution<WorkspaceMutationCandidate>.Resolved(
             _discoveredAction,
             _roslyn.Document,
-            new TextSpan(0, 1));
+            new TextSpan(0, 1),
+            new CodeActionReference(
+                Guid.Empty,
+                new CodeActionReplayRecipe(),
+                new DateTimeOffset(2000, 1, 1, 0, 5, 0, TimeSpan.Zero)));
     }
 
     private static CodeActionExecutionResult<WorkspaceMutationCandidate> CreateRejection()

@@ -84,7 +84,7 @@ internal sealed class ServerStatusService : IServerStatusService
         return _configuration ??= new ServerConfiguration
         {
             DefaultMaxResults = _startupOptions.DefaultMaxResults,
-            CodeActionTokenLifetime = _startupOptions.CodeActionTokenLifetime,
+            CodeActionReferenceLifetime = _startupOptions.CodeActionReferenceLifetime,
             MaxTransactionRevisions = _startupOptions.MaxTransactionRevisions,
             MaxConcurrentQueries = _startupOptions.MaxConcurrentQueries,
             ToolOutputSchemaMode = _startupOptions.ToolOutputSchemaMode,

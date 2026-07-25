@@ -19,7 +19,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
             {
                 options.PluginDirectories = startupOptions.PluginDirectories;
                 options.DefaultMaxResults = startupOptions.DefaultMaxResults;
-                options.CodeActionTokenLifetime = startupOptions.CodeActionTokenLifetime;
+                options.CodeActionReferenceLifetime = startupOptions.CodeActionReferenceLifetime;
                 options.MaxTransactionRevisions = startupOptions.MaxTransactionRevisions;
                 options.MaxConcurrentQueries = startupOptions.MaxConcurrentQueries;
                 options.ToolOutputSchemaMode = startupOptions.ToolOutputSchemaMode;
@@ -32,7 +32,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddOptions<CodeActionExecutionOptions>()
             .Configure<IOptions<StartupOptions>>((options, configuredStartupOptions) =>
             {
-                options.TokenLifetime = configuredStartupOptions.Value.CodeActionTokenLifetime;
+                options.ReferenceLifetime = configuredStartupOptions.Value.CodeActionReferenceLifetime;
             });
 
         services.AddOptions<WorkspaceOptions>()
@@ -112,7 +112,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<ICodeActionAnalyzerActivator, CodeActionAnalyzerActivator>();
         services.AddSingleton<ICodeActionDiagnosticService, CodeActionDiagnosticService>();
         services.AddSingleton<ICodeActionDescriptorRegistry, CodeActionDescriptorRegistry>();
-        services.AddSingleton<ICodeActionTokenService, CodeActionTokenService>();
+        services.AddSingleton<ICodeActionReferenceStore, CodeActionReferenceStore>();
         services.AddSingleton<ICodeActionInfoFactory, CodeActionInfoFactory>();
         services.AddSingleton<IMefHostExportProviderCompatibilityAdapter, MefHostExportProviderCompatibilityAdapter>();
         services.AddSingleton<ICodeActionProviderCatalog, MefCodeActionProviderCatalog>();
@@ -121,7 +121,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<ICodeActionEvaluator, CodeActionEvaluator>();
         services.AddSingleton<IFixAllActionFactory, FixAllActionFactory>();
         services.AddSingleton<ICodeActionSolutionChangeCounter, CodeActionSolutionChangeCounter>();
-        services.AddSingleton<ICodeActionTokenStager, CodeActionTokenStager>();
+        services.AddSingleton<ICodeActionReferenceStager, CodeActionReferenceStager>();
         services.AddSingleton<ICodeActionSelectionStager, CodeActionSelectionStager>();
         services.AddSingleton<ICodeActionScopeResolver, CodeActionScopeResolver>();
         services.AddSingleton<ICodeActionToolRequestResolver, CodeActionToolRequestResolver>();

@@ -42,6 +42,7 @@ public sealed class CodeActionMcpToolRegistrationVisitorTests
     {
         var services = new ServiceCollection();
         var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
+        var referenceStore = new Mock<ICodeActionReferenceStore>();
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var registration = new CodeActionMutationRegistration<TestMutationHandler, TestRequest>(CreateMetadata());
         var target = new CodeActionMcpToolRegistrationVisitor(services);
@@ -63,6 +64,7 @@ public sealed class CodeActionMcpToolRegistrationVisitorTests
             && descriptor.Lifetime == ServiceLifetime.Singleton);
 
         AddAdapterDependencies(services, contextFactory.Object, protocolFactory.Object);
+        services.AddSingleton(referenceStore.Object);
         using var serviceProvider = BuildValidatedProvider(services);
         serviceProvider.GetRequiredService<McpServerTool>()
             .Should().BeOfType<CodeActionMutationMcpServerTool<TestMutationHandler, TestRequest>>();

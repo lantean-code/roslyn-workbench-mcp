@@ -11,9 +11,9 @@ internal sealed record CodeActionInfo
     public string? WorkspaceId { get; init; }
 
     /// <summary>
-    /// Gets the opaque action token.
+    /// Gets the opaque action reference.
     /// </summary>
-    public string ActionId { get; init; } = string.Empty;
+    public Guid ActionId { get; init; }
 
     /// <summary>
     /// Gets the display title.

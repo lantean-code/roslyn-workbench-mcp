@@ -38,7 +38,8 @@ public sealed class StartupAndRecoveryWorkflowIntegrationTests
             var manifestDirectory = Path.Combine(target.StateRoot, "recovery", commitId);
             var manifestPath = Path.Combine(manifestDirectory, "manifest.json");
             var loadedPath = Path.Combine(target.WorkspaceRoot, "Sample.csproj");
-            Directory.CreateDirectory(manifestDirectory);
+            AcceptanceStateDirectory.Create(manifestDirectory);
+
             await File.WriteAllTextAsync(
                 manifestPath,
                 JsonSerializer.Serialize(
@@ -55,6 +56,8 @@ public sealed class StartupAndRecoveryWorkflowIntegrationTests
                     },
                     _serializerOptions),
                 TestContext.Current.CancellationToken);
+
+            AcceptanceStateDirectory.MakeFilePrivate(manifestPath);
 
             await target.RestartAsync(TestContext.Current.CancellationToken);
 

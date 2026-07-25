@@ -1,6 +1,6 @@
 namespace Roslyn.Workbench.Mcp.CodeActions.Staging;
 
-internal interface ICodeActionTokenStager
+internal interface ICodeActionReferenceStager
 {
     ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageCodeActionAsync(
         StageCodeActionRequest request,

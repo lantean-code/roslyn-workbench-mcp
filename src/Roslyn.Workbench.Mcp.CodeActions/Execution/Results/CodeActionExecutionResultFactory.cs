@@ -69,7 +69,7 @@ internal static class CodeActionExecutionResultFactory
         return CodeActionExecutionResult<T>.Rejected(new CodeActionExecutionError
         {
             Code = "ActionExpired",
-            Message = "The requested action token is no longer valid.",
+            Message = "The requested action reference is no longer valid.",
         }, RequiredAction.ResolveTargetAgain);
     }
 }

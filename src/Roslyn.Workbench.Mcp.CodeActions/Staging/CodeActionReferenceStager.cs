@@ -2,13 +2,13 @@ using static Roslyn.Workbench.Mcp.CodeActions.Execution.Results.CodeActionExecut
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Staging;
 
-internal sealed class CodeActionTokenStager : ICodeActionTokenStager
+internal sealed class CodeActionReferenceStager : ICodeActionReferenceStager
 {
     private readonly ICodeActionProviderCatalog _providerCatalog;
     private readonly ICodeActionResolver _resolver;
     private readonly ICodeActionEvaluator _evaluator;
 
-    public CodeActionTokenStager(
+    public CodeActionReferenceStager(
         ICodeActionProviderCatalog providerCatalog,
         ICodeActionResolver resolver,
         ICodeActionEvaluator evaluator)
@@ -47,7 +47,7 @@ internal sealed class CodeActionTokenStager : ICodeActionTokenStager
     }
 
     private async ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageAsync(
-        string actionId,
+        Guid actionId,
         SnapshotPrecondition expectedSnapshot,
         DiscoveredActionKind expectedKind,
         ICodeActionExecutionContext context,

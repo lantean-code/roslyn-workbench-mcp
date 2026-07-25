@@ -21,11 +21,11 @@ internal static class StartupOptionsResolver
                 "ROSLYN_WORKBENCH_MCP_DEFAULT_MAX_RESULTS",
                 defaults.DefaultMaxResults,
                 warnings),
-            CodeActionTokenLifetime = ResolveCodeActionTokenLifetime(
+            CodeActionReferenceLifetime = ResolveCodeActionReferenceLifetime(
                 optionMap,
-                "code-action-token-lifetime",
-                "ROSLYN_WORKBENCH_MCP_CODE_ACTION_TOKEN_LIFETIME",
-                defaults.CodeActionTokenLifetime,
+                "code-action-reference-lifetime",
+                "ROSLYN_WORKBENCH_MCP_CODE_ACTION_REFERENCE_LIFETIME",
+                defaults.CodeActionReferenceLifetime,
                 warnings),
             MaxTransactionRevisions = ResolvePositiveInt(
                 optionMap,
@@ -186,7 +186,7 @@ internal static class StartupOptionsResolver
         return defaultValue;
     }
 
-    private static TimeSpan ResolveCodeActionTokenLifetime(
+    private static TimeSpan ResolveCodeActionReferenceLifetime(
         Dictionary<string, List<string?>> optionMap,
         string key,
         string environmentVariable,
@@ -200,7 +200,7 @@ internal static class StartupOptionsResolver
         }
 
         if (TimeSpan.TryParse(value, CultureInfo.InvariantCulture, out var parsedValue)
-            && StartupOptionsRules.IsSupportedCodeActionTokenLifetime(parsedValue))
+            && StartupOptionsRules.IsSupportedCodeActionReferenceLifetime(parsedValue))
         {
             return parsedValue;
         }

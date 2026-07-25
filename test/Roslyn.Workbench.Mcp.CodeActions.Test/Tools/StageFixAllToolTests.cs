@@ -9,7 +9,7 @@ public sealed class StageFixAllToolTests
         var request = new StageFixAllRequest
         {
             ExpectedSnapshot = new SnapshotPrecondition(),
-            ActionId = "ActionId",
+            ActionId = Guid.Empty,
             Scope = new ScopeSelector
             {
                 Kind = ScopeKind.Solution,

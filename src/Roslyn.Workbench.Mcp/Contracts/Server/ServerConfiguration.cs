@@ -11,9 +11,9 @@ internal sealed record ServerConfiguration
     public int DefaultMaxResults { get; init; }
 
     /// <summary>
-    /// Gets the configured code-action token lifetime.
+    /// Gets the configured code-action reference lifetime.
     /// </summary>
-    public TimeSpan CodeActionTokenLifetime { get; init; }
+    public TimeSpan CodeActionReferenceLifetime { get; init; }
 
     /// <summary>
     /// Gets the configured transaction revision capacity.

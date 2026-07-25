@@ -32,10 +32,10 @@ internal sealed class StartupOptionsValidator : IValidateOptions<StartupOptions>
             failures.Add($"{nameof(StartupOptions.DefaultMaxResults)} must be greater than zero.");
         }
 
-        if (!StartupOptionsRules.IsSupportedCodeActionTokenLifetime(options.CodeActionTokenLifetime))
+        if (!StartupOptionsRules.IsSupportedCodeActionReferenceLifetime(options.CodeActionReferenceLifetime))
         {
             failures.Add(
-                $"{nameof(StartupOptions.CodeActionTokenLifetime)} must be greater than zero and no greater than {StartupOptionsRules.MaximumCodeActionTokenLifetime:c}.");
+                $"{nameof(StartupOptions.CodeActionReferenceLifetime)} must be greater than zero and no greater than {StartupOptionsRules.MaximumCodeActionReferenceLifetime:c}.");
         }
 
         if (!StartupOptionsRules.IsPositive(options.MaxTransactionRevisions))

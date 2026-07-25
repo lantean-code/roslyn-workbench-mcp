@@ -41,7 +41,7 @@ public sealed class HostCompositionIntegrationTests
             "--default-max-results", "123",
             "--max-concurrent-queries", "7",
             "--max-transaction-revisions", "8",
-            "--code-action-token-lifetime", "00:00:09",
+            "--code-action-reference-lifetime", "00:00:09",
             "--state-directory", stateDirectory.DirectoryPath,
             "--tool-output-schema-mode", "Full",
         ]);
@@ -54,14 +54,14 @@ public sealed class HostCompositionIntegrationTests
         startupOptions.DefaultMaxResults.Should().Be(123);
         startupOptions.MaxConcurrentQueries.Should().Be(7);
         startupOptions.MaxTransactionRevisions.Should().Be(8);
-        startupOptions.CodeActionTokenLifetime.Should().Be(TimeSpan.FromSeconds(9));
+        startupOptions.CodeActionReferenceLifetime.Should().Be(TimeSpan.FromSeconds(9));
         startupOptions.StateDirectory.Should().Be(stateDirectory.DirectoryPath);
         startupOptions.ToolOutputSchemaMode.Should().Be(ToolOutputSchemaMode.Full);
         workspaceOptions.DefaultMaxResults.Should().Be(123);
         workspaceOptions.MaxConcurrentQueries.Should().Be(7);
         workspaceOptions.MaxTransactionRevisions.Should().Be(8);
         workspaceOptions.StateDirectory.Should().Be(stateDirectory.DirectoryPath);
-        codeActionOptions.TokenLifetime.Should().Be(TimeSpan.FromSeconds(9));
+        codeActionOptions.ReferenceLifetime.Should().Be(TimeSpan.FromSeconds(9));
     }
 
     [Fact]

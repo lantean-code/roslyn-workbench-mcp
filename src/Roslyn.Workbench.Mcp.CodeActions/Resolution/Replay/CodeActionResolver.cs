@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Resolution.Replay;
 
@@ -7,26 +6,23 @@ internal sealed class CodeActionResolver : ICodeActionResolver
 {
     private readonly ICodeActionDiscoveryService _discoveryService;
     private readonly ICodeActionDiagnosticService _diagnosticService;
-    private readonly ICodeActionTokenService _tokenService;
+    private readonly ICodeActionReferenceStore _referenceStore;
     private readonly ICodeActionToolRequestResolver _requestResolver;
-    private readonly TimeProvider _timeProvider;
 
     public CodeActionResolver(
         ICodeActionDiscoveryService discoveryService,
         ICodeActionDiagnosticService diagnosticService,
-        ICodeActionTokenService tokenService,
-        ICodeActionToolRequestResolver requestResolver,
-        TimeProvider timeProvider)
+        ICodeActionReferenceStore referenceStore,
+        ICodeActionToolRequestResolver requestResolver)
     {
         _discoveryService = discoveryService;
         _diagnosticService = diagnosticService;
-        _tokenService = tokenService;
+        _referenceStore = referenceStore;
         _requestResolver = requestResolver;
-        _timeProvider = timeProvider;
     }
 
     public async ValueTask<CodeActionResolution<T>> ResolveActionAsync<T>(
-        string actionId,
+        Guid actionId,
         SnapshotPrecondition? expectedSnapshot,
         DiscoveredActionKind? expectedKind,
         ICodeActionExecutionContext context,
@@ -41,13 +37,13 @@ internal sealed class CodeActionResolver : ICodeActionResolver
             return RejectedResolution(snapshotRejection);
         }
 
-        var tokenResolution = ResolveTokenContext(actionId, expectedKind, context);
-        if (!tokenResolution.IsResolved)
+        var referenceResolution = ResolveReferenceContext(actionId, expectedKind, context);
+        if (!referenceResolution.IsResolved)
         {
             return RejectedResolution(CodeActionExecutionResultFactory.ActionExpired<T>());
         }
 
-        var rediscovery = await RediscoverActionsAsync(tokenResolution.Context, cancellationToken);
+        var rediscovery = await RediscoverActionsAsync(referenceResolution.Context, cancellationToken);
         if (!rediscovery.ProviderAvailable)
         {
             return RejectedResolution(
@@ -55,7 +51,7 @@ internal sealed class CodeActionResolver : ICodeActionResolver
                 CodeActionResolutionFailureKind.ProviderUnavailable);
         }
 
-        var action = SelectUniqueAction(rediscovery.Actions, tokenResolution.Context.Payload);
+        var action = SelectUniqueAction(rediscovery.Actions, referenceResolution.Context.Reference.Recipe);
         if (action is null)
         {
             return RejectedResolution(ActionAmbiguous<T>());
@@ -71,36 +67,36 @@ internal sealed class CodeActionResolver : ICodeActionResolver
 
         return CodeActionResolution<T>.Resolved(
             action,
-            tokenResolution.Context.Document,
-            tokenResolution.Context.Span);
+            referenceResolution.Context.Document,
+            referenceResolution.Context.Span,
+            referenceResolution.Context.Reference);
     }
 
-    private CodeActionTokenContextResolution ResolveTokenContext(
-        string actionId,
+    private CodeActionReferenceContextResolution ResolveReferenceContext(
+        Guid actionId,
         DiscoveredActionKind? expectedKind,
         ICodeActionExecutionContext context)
     {
-        if (!_tokenService.TryDecode(actionId, out var payload)
-            || !Enum.TryParse<DiscoveredActionKind>(payload.Kind, ignoreCase: false, out var actualKind)
-            || expectedKind is not null && actualKind != expectedKind.Value
-            || !HasValidExpiry(payload)
-            || !MatchesWorkspace(payload, context))
+        if (!_referenceStore.TryGet(actionId, out var reference)
+            || expectedKind is not null && reference.Recipe.Kind != expectedKind.Value
+            || !MatchesWorkspace(reference.Recipe, context))
         {
-            return CodeActionTokenContextResolution.Unresolved();
+            return CodeActionReferenceContextResolution.Unresolved();
         }
 
+        var recipe = reference.Recipe;
         ProjectSelector? project = null;
-        if (!string.IsNullOrWhiteSpace(payload.ProjectId))
+        if (!string.IsNullOrWhiteSpace(recipe.ProjectId))
         {
             project = new ProjectSelector
             {
-                ProjectId = payload.ProjectId,
+                ProjectId = recipe.ProjectId,
             };
         }
 
         var documentSelector = new DocumentSelector
         {
-            Path = payload.DocumentPath,
+            Path = recipe.DocumentPath,
             Project = project,
         };
 
@@ -108,47 +104,36 @@ internal sealed class CodeActionResolver : ICodeActionResolver
 
         if (documentResolution.Status != SelectorResolveStatus.Resolved || documentResolution.Value is null)
         {
-            return CodeActionTokenContextResolution.Unresolved();
+            return CodeActionReferenceContextResolution.Unresolved();
         }
 
-        var tokenContext = new CodeActionTokenContext
+        var referenceContext = new CodeActionReferenceContext
         {
-            Payload = payload,
-            Kind = actualKind,
+            Reference = reference,
             Document = documentResolution.Value,
-            Span = new TextSpan(payload.Start, payload.Length),
+            Span = new TextSpan(recipe.Start, recipe.Length),
         };
 
-        return CodeActionTokenContextResolution.Resolved(tokenContext);
-    }
-
-    private bool HasValidExpiry(CodeActionTokenPayload payload)
-    {
-        return DateTimeOffset.TryParseExact(
-                payload.ExpiresAt,
-                "O",
-                CultureInfo.InvariantCulture,
-                DateTimeStyles.RoundtripKind,
-                out var expiresAt)
-            && expiresAt >= _timeProvider.GetUtcNow();
+        return CodeActionReferenceContextResolution.Resolved(referenceContext);
     }
 
     private static bool MatchesWorkspace(
-        CodeActionTokenPayload payload,
+        CodeActionReplayRecipe recipe,
         ICodeActionExecutionContext context)
     {
-        return string.Equals(payload.WorkspaceId, context.WorkspaceIdentity.WorkspaceId, StringComparison.Ordinal)
-            && payload.WorkspaceEpoch == context.WorkspaceIdentity.WorkspaceEpoch
-            && payload.TransactionRevision == context.TransactionRevision;
+        return string.Equals(recipe.WorkspaceId, context.WorkspaceIdentity.WorkspaceId, StringComparison.Ordinal)
+            && recipe.WorkspaceEpoch == context.WorkspaceIdentity.WorkspaceEpoch
+            && recipe.TransactionRevision == context.TransactionRevision;
     }
 
     private async ValueTask<CodeActionRediscovery> RediscoverActionsAsync(
-        CodeActionTokenContext tokenContext,
+        CodeActionReferenceContext referenceContext,
         CancellationToken cancellationToken)
     {
-        if (tokenContext.Kind == DiscoveredActionKind.Refactoring)
+        var recipe = referenceContext.Reference.Recipe;
+        if (recipe.Kind == DiscoveredActionKind.Refactoring)
         {
-            var providers = _discoveryService.GetMatchingRefactoringProviders(tokenContext.Payload.ProviderId);
+            var providers = _discoveryService.GetMatchingRefactoringProviders(recipe.ProviderId);
             if (providers.Count != 1)
             {
                 return new CodeActionRediscovery();
@@ -156,8 +141,8 @@ internal sealed class CodeActionResolver : ICodeActionResolver
 
             var refactorings = await _discoveryService.DiscoverRefactoringsAsync(
                 providers[0],
-                tokenContext.Document,
-                tokenContext.Span,
+                referenceContext.Document,
+                referenceContext.Span,
                 cancellationToken);
 
             return new CodeActionRediscovery
@@ -167,21 +152,21 @@ internal sealed class CodeActionResolver : ICodeActionResolver
             };
         }
 
-        var codeFixProviders = _discoveryService.GetMatchingCodeFixProviders(tokenContext.Payload.ProviderId);
+        var codeFixProviders = _discoveryService.GetMatchingCodeFixProviders(recipe.ProviderId);
         if (codeFixProviders.Count != 1)
         {
             return new CodeActionRediscovery();
         }
 
         var diagnostics = await _diagnosticService.GetDocumentDiagnosticsAsync(
-            tokenContext.Document,
-            tokenContext.Span,
-            tokenContext.Payload.DiagnosticIds,
+            referenceContext.Document,
+            referenceContext.Span,
+            recipe.DiagnosticIds,
             cancellationToken);
 
         var codeFixes = await _discoveryService.DiscoverCodeFixesAsync(
             codeFixProviders[0],
-            tokenContext.Document,
+            referenceContext.Document,
             diagnostics,
             cancellationToken);
 
@@ -194,15 +179,15 @@ internal sealed class CodeActionResolver : ICodeActionResolver
 
     private static DiscoveredCodeAction? SelectUniqueAction(
         IReadOnlyList<DiscoveredCodeAction> actions,
-        CodeActionTokenPayload payload)
+        CodeActionReplayRecipe recipe)
     {
         DiscoveredCodeAction? matchingAction = null;
         foreach (var action in actions)
         {
-            if (!string.Equals(action.Title, payload.Title, StringComparison.Ordinal)
-                || !string.Equals(action.EquivalenceKey, payload.EquivalenceKey, StringComparison.Ordinal)
-                || !action.ActionPath.SequenceEqual(payload.ActionPath)
-                || !action.DiagnosticIds.SequenceEqual(payload.DiagnosticIds, StringComparer.Ordinal))
+            if (!string.Equals(action.Title, recipe.Title, StringComparison.Ordinal)
+                || !string.Equals(action.EquivalenceKey, recipe.EquivalenceKey, StringComparison.Ordinal)
+                || !action.ActionPath.SequenceEqual(recipe.ActionPath)
+                || !action.DiagnosticIds.SequenceEqual(recipe.DiagnosticIds, StringComparer.Ordinal))
             {
                 continue;
             }
@@ -233,34 +218,32 @@ internal sealed class CodeActionResolver : ICodeActionResolver
             RequiredAction.ResolveTargetAgain);
     }
 
-    private sealed record CodeActionTokenContextResolution
+    private sealed record CodeActionReferenceContextResolution
     {
-        public CodeActionTokenContext? Context { get; }
+        public CodeActionReferenceContext? Context { get; }
 
         [MemberNotNullWhen(true, nameof(Context))]
         public bool IsResolved => Context is not null;
 
-        private CodeActionTokenContextResolution(CodeActionTokenContext? context)
+        private CodeActionReferenceContextResolution(CodeActionReferenceContext? context)
         {
             Context = context;
         }
 
-        public static CodeActionTokenContextResolution Resolved(CodeActionTokenContext context)
+        public static CodeActionReferenceContextResolution Resolved(CodeActionReferenceContext context)
         {
-            return new CodeActionTokenContextResolution(context);
+            return new CodeActionReferenceContextResolution(context);
         }
 
-        public static CodeActionTokenContextResolution Unresolved()
+        public static CodeActionReferenceContextResolution Unresolved()
         {
-            return new CodeActionTokenContextResolution(context: null);
+            return new CodeActionReferenceContextResolution(context: null);
         }
     }
 
-    private sealed record CodeActionTokenContext
+    private sealed record CodeActionReferenceContext
     {
-        public required CodeActionTokenPayload Payload { get; init; }
-
-        public required DiscoveredActionKind Kind { get; init; }
+        public required CodeActionReference Reference { get; init; }
 
         public required Document Document { get; init; }
 

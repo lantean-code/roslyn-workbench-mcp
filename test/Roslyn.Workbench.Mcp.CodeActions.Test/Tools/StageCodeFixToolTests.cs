@@ -9,20 +9,20 @@ public sealed class StageCodeFixToolTests
         var request = new StageCodeFixRequest
         {
             ExpectedSnapshot = new SnapshotPrecondition(),
-            ActionId = "ActionId",
+            ActionId = Guid.Empty,
         };
 
         var context = new Mock<ICodeActionMutationContext>();
-        var tokenStager = new Mock<ICodeActionTokenStager>();
-        var target = new StageCodeFixTool(tokenStager.Object);
+        var referenceStager = new Mock<ICodeActionReferenceStager>();
+        var target = new StageCodeFixTool(referenceStager.Object);
 
-        tokenStager
+        referenceStager
             .Setup(item => item.StageCodeFixAsync(request, context.Object, CancellationToken.None))
             .ReturnsAsync(expected);
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
         result.Should().BeEquivalentTo(expected);
-        tokenStager.Verify(item => item.StageCodeFixAsync(request, context.Object, CancellationToken.None), Times.Once);
+        referenceStager.Verify(item => item.StageCodeFixAsync(request, context.Object, CancellationToken.None), Times.Once);
     }
 }

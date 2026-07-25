@@ -9,11 +9,13 @@ internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpS
     private readonly CodeActionToolMetadata _metadata;
     private readonly THandler _handler;
     private readonly ICodeActionExecutionContextFactory _contextFactory;
+    private readonly ICodeActionReferenceStore _referenceStore;
 
     public CodeActionMutationMcpServerTool(
         CodeActionMutationRegistration<THandler, TRequest> registration,
         THandler handler,
         ICodeActionExecutionContextFactory contextFactory,
+        ICodeActionReferenceStore referenceStore,
         IMcpToolProtocolFactory protocolFactory,
         IOptions<StartupOptions> options)
         : base(protocolFactory.CreateCodeActionTool<TRequest>(
@@ -25,6 +27,7 @@ internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpS
         _metadata = registration.Metadata;
         _handler = handler;
         _contextFactory = contextFactory;
+        _referenceStore = referenceStore;
     }
 
     protected override async ValueTask<CallToolResult> InvokeBoundRequestAsync(
@@ -82,6 +85,11 @@ internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpS
                 proposalResult.Diagnostics,
                 proposalResult.Warnings,
                 cancellationToken);
+        }
+
+        if (stagedResult.IsSucceeded && request is ICodeActionReferenceRequest referenceRequest)
+        {
+            _referenceStore.Remove(referenceRequest.ActionId);
         }
 
         using (StartPhase(WorkbenchPerformanceEventSource.ResponseProjectionPhase))

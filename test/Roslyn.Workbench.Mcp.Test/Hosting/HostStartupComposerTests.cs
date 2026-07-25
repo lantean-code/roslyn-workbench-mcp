@@ -27,7 +27,7 @@ public sealed class HostStartupComposerTests
         [
             "--plugin-directory=/missing/plugins",
             "--default-max-results=25",
-            "--code-action-token-lifetime=00:10:00",
+            "--code-action-reference-lifetime=00:10:00",
             "--max-transaction-revisions=30",
             "--max-concurrent-queries=4",
             "--tool-output-schema-mode=full",

@@ -9,7 +9,7 @@ public sealed class StartupOptionsResolverTests
     [
         "ROSLYN_WORKBENCH_MCP_PLUGIN_DIRECTORY",
         "ROSLYN_WORKBENCH_MCP_DEFAULT_MAX_RESULTS",
-        "ROSLYN_WORKBENCH_MCP_CODE_ACTION_TOKEN_LIFETIME",
+        "ROSLYN_WORKBENCH_MCP_CODE_ACTION_REFERENCE_LIFETIME",
         "ROSLYN_WORKBENCH_MCP_MAX_TRANSACTION_REVISIONS",
         "ROSLYN_WORKBENCH_MCP_MAX_CONCURRENT_QUERIES",
         "ROSLYN_WORKBENCH_MCP_TOOL_OUTPUT_SCHEMA_MODE",
@@ -38,7 +38,7 @@ public sealed class StartupOptionsResolverTests
 
             result.Options.PluginDirectories.Should().BeEmpty();
             result.Options.DefaultMaxResults.Should().Be(100);
-            result.Options.CodeActionTokenLifetime.Should().Be(TimeSpan.FromMinutes(5));
+            result.Options.CodeActionReferenceLifetime.Should().Be(TimeSpan.FromMinutes(5));
             result.Options.MaxTransactionRevisions.Should().Be(20);
             result.Options.MaxConcurrentQueries.Should().Be(2);
             result.Options.ToolOutputSchemaMode.Should().Be(ToolOutputSchemaMode.Omit);
@@ -91,7 +91,7 @@ public sealed class StartupOptionsResolverTests
                 "/plugins/two",
                 "--default-max-results",
                 "25",
-                "--code-action-token-lifetime=00:10:00",
+                "--code-action-reference-lifetime=00:10:00",
                 "--max-transaction-revisions",
                 "30",
                 "--max-concurrent-queries=4",
@@ -102,7 +102,7 @@ public sealed class StartupOptionsResolverTests
 
             result.Options.PluginDirectories.Should().Equal("/plugins/one", "/plugins/two");
             result.Options.DefaultMaxResults.Should().Be(25);
-            result.Options.CodeActionTokenLifetime.Should().Be(TimeSpan.FromMinutes(10));
+            result.Options.CodeActionReferenceLifetime.Should().Be(TimeSpan.FromMinutes(10));
             result.Options.MaxTransactionRevisions.Should().Be(30);
             result.Options.MaxConcurrentQueries.Should().Be(4);
             result.Options.ToolOutputSchemaMode.Should().Be(ToolOutputSchemaMode.Full);
@@ -174,7 +174,7 @@ public sealed class StartupOptionsResolverTests
         {
             Environment.SetEnvironmentVariable("ROSLYN_WORKBENCH_MCP_PLUGIN_DIRECTORY", $"/plugins/one{Path.PathSeparator} /plugins/two ");
             Environment.SetEnvironmentVariable("ROSLYN_WORKBENCH_MCP_DEFAULT_MAX_RESULTS", "50");
-            Environment.SetEnvironmentVariable("ROSLYN_WORKBENCH_MCP_CODE_ACTION_TOKEN_LIFETIME", "00:15:00");
+            Environment.SetEnvironmentVariable("ROSLYN_WORKBENCH_MCP_CODE_ACTION_REFERENCE_LIFETIME", "00:15:00");
             Environment.SetEnvironmentVariable("ROSLYN_WORKBENCH_MCP_MAX_TRANSACTION_REVISIONS", "40");
             Environment.SetEnvironmentVariable("ROSLYN_WORKBENCH_MCP_MAX_CONCURRENT_QUERIES", "6");
             Environment.SetEnvironmentVariable("ROSLYN_WORKBENCH_MCP_TOOL_OUTPUT_SCHEMA_MODE", "Full");
@@ -184,7 +184,7 @@ public sealed class StartupOptionsResolverTests
 
             result.Options.PluginDirectories.Should().Equal("/plugins/one", "/plugins/two");
             result.Options.DefaultMaxResults.Should().Be(50);
-            result.Options.CodeActionTokenLifetime.Should().Be(TimeSpan.FromMinutes(15));
+            result.Options.CodeActionReferenceLifetime.Should().Be(TimeSpan.FromMinutes(15));
             result.Options.MaxTransactionRevisions.Should().Be(40);
             result.Options.MaxConcurrentQueries.Should().Be(6);
             result.Options.ToolOutputSchemaMode.Should().Be(ToolOutputSchemaMode.Full);
@@ -199,7 +199,7 @@ public sealed class StartupOptionsResolverTests
 
     [Theory]
     [InlineData("ROSLYN_WORKBENCH_MCP_DEFAULT_MAX_RESULTS", "100")]
-    [InlineData("ROSLYN_WORKBENCH_MCP_CODE_ACTION_TOKEN_LIFETIME", "00:05:00")]
+    [InlineData("ROSLYN_WORKBENCH_MCP_CODE_ACTION_REFERENCE_LIFETIME", "00:05:00")]
     [InlineData("ROSLYN_WORKBENCH_MCP_MAX_TRANSACTION_REVISIONS", "20")]
     [InlineData("ROSLYN_WORKBENCH_MCP_MAX_CONCURRENT_QUERIES", "2")]
     [InlineData("ROSLYN_WORKBENCH_MCP_TOOL_OUTPUT_SCHEMA_MODE", "Omit")]
@@ -230,7 +230,7 @@ public sealed class StartupOptionsResolverTests
 
     [Theory]
     [InlineData("ROSLYN_WORKBENCH_MCP_DEFAULT_MAX_RESULTS")]
-    [InlineData("ROSLYN_WORKBENCH_MCP_CODE_ACTION_TOKEN_LIFETIME")]
+    [InlineData("ROSLYN_WORKBENCH_MCP_CODE_ACTION_REFERENCE_LIFETIME")]
     [InlineData("ROSLYN_WORKBENCH_MCP_MAX_TRANSACTION_REVISIONS")]
     [InlineData("ROSLYN_WORKBENCH_MCP_MAX_CONCURRENT_QUERIES")]
     public void GIVEN_NonPositiveTypedEnvironmentValue_WHEN_Resolving_THEN_ShouldUseDefaultAndReportWarning(string environmentVariable)
@@ -279,15 +279,15 @@ public sealed class StartupOptionsResolverTests
     }
 
     [Fact]
-    public void GIVEN_MaximumCodeActionTokenLifetime_WHEN_Resolving_THEN_ShouldRetainConfiguredValue()
+    public void GIVEN_MaximumCodeActionReferenceLifetime_WHEN_Resolving_THEN_ShouldRetainConfiguredValue()
     {
         var previousValues = ClearEnvironment();
 
         try
         {
-            var result = Resolve(["--code-action-token-lifetime=1.00:00:00"]);
+            var result = Resolve(["--code-action-reference-lifetime=1.00:00:00"]);
 
-            result.Options.CodeActionTokenLifetime.Should().Be(TimeSpan.FromDays(1));
+            result.Options.CodeActionReferenceLifetime.Should().Be(TimeSpan.FromDays(1));
             result.Warnings.Should().BeEmpty();
         }
         finally
@@ -297,19 +297,19 @@ public sealed class StartupOptionsResolverTests
     }
 
     [Fact]
-    public void GIVEN_ExcessiveCodeActionTokenLifetime_WHEN_Resolving_THEN_ShouldUseDefaultAndReportWarning()
+    public void GIVEN_ExcessiveCodeActionReferenceLifetime_WHEN_Resolving_THEN_ShouldUseDefaultAndReportWarning()
     {
         var previousValues = ClearEnvironment();
 
         try
         {
-            var result = Resolve(["--code-action-token-lifetime=1.00:00:00.0000001"]);
+            var result = Resolve(["--code-action-reference-lifetime=1.00:00:00.0000001"]);
 
-            result.Options.CodeActionTokenLifetime.Should().Be(TimeSpan.FromMinutes(5));
+            result.Options.CodeActionReferenceLifetime.Should().Be(TimeSpan.FromMinutes(5));
             result.Warnings.Should().ContainSingle().Which.Should().BeEquivalentTo(new WarningInfo
             {
                 Code = "StartupConfigurationFallback",
-                Message = "Configuration '--code-action-token-lifetime' is invalid; using default '00:05:00'.",
+                Message = "Configuration '--code-action-reference-lifetime' is invalid; using default '00:05:00'.",
             });
         }
         finally

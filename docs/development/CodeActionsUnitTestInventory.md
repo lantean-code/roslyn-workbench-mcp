@@ -21,7 +21,7 @@ The inventory follows `TestingStrategy.md` and `test/AGENTS.md`:
 
 The final architecture re-audit found no remaining boundary or responsibility issue. Unit tests can now be written against stable responsibilities:
 
-- token validation and action rediscovery belong to `CodeActionResolutionService`;
+- reference lookup and action rediscovery belong to `CodeActionResolver`;
 - scope selection belongs to `CodeActionScopeResolver`;
 - diagnostic collection and optional analyzer activation are separate;
 - Roslyn operation materialisation and solution change counting are separate;
@@ -31,16 +31,16 @@ The final architecture re-audit found no remaining boundary or responsibility is
 
 No production change is authorised by this inventory. Any seam or defensive-branch cleanup identified below must be called out for approval before implementation.
 
-## Measured Baseline
+## Historical Measured Baseline
 
-The current measurement was captured from the CodeActions unit project with Coverlet after C6 completed.
+This measurement was captured from the CodeActions unit project with Coverlet after C6 completed and before the reference-based replay migration on 2026-07-25. It is retained as historical evidence rather than presented as the current coverage measurement. The latest full functional run contains 488 passing tests; coverage must be remeasured before quoting current percentages.
 
 | Measure                                                   | Current value |
 | --------------------------------------------------------- | ------------: |
 | Production C# files                                       |           181 |
 | Files with executable sequence points                     |           135 |
 | Interfaces, enums and other files without sequence points |            46 |
-| Discovered unit tests                                     |           496 |
+| Discovered unit tests at measurement                      |           496 |
 | Covered executable lines                                  | 4,081 / 4,263 |
 | Line coverage                                             |        95.73% |
 | Covered branches                                          |     685 / 762 |
@@ -51,7 +51,7 @@ The current measurement was captured from the CodeActions unit project with Cove
 
 Coverlet emits compiler-generated async and closure classes separately. The figures and tables in this document aggregate their sequence points into the owning source file.
 
-The assembly percentage understates the strength of the existing handler coverage but correctly exposes missing service coverage. All 43 built-in refactoring handlers, all five internal Code Action tools, the catalogue and registrar, the discovery service, the replay and location services, the scope resolver, and the scoped-fix service currently measure 100% line and branch coverage.
+At the time of measurement, the assembly percentage understated the strength of the existing handler coverage but correctly exposed missing collaborator coverage. All 43 built-in refactoring handlers, all five internal Code Action tools, the catalogue and registrar, the discovery service, the replay and location stagers, the scope resolver, and the scoped-fix stager measured 100% line and branch coverage.
 
 ## Existing Test Quality
 
@@ -77,17 +77,17 @@ The following production families need no broad replacement tests. Future work s
 | --- | --- | --- |
 | Built-in refactoring handlers | 43 test classes; every handler at 100% line and branch; registration assertions are centralised in the catalogue contract test | Complete |
 | Internal list, describe and staging tools | Five test classes; every tool at 100% line and branch; registration assertions are centralised in the catalogue contract test | Complete |
-| Replay, location and scoped-fix orchestration | `CodeActionReplayService`, `CodeActionLocationFixService` and `CodeActionScopedFixService` at 100% line and branch | Complete |
+| Replay, location and scoped-fix orchestration | `CodeActionSelectionStager`, `CodeActionReferenceStager`, `LocationCodeFixStager` and `ScopedCodeFixStager` at 100% line and branch at the recorded measurement | Complete |
 | Scope resolution | Dedicated `CodeActionScopeResolverTests` at 100% line and branch; consumers mock the boundary | Complete |
-| Action resolution | `CodeActionResolutionServiceTests` cover token context, provider rediscovery, replay identity, visibility and success at 100% line and branch | Complete |
+| Action resolution | `CodeActionResolverTests` cover reference context, provider rediscovery, replay identity, visibility and success at 100% line and branch | Complete |
 | Discovery | `CodeActionDiscoveryService` at 100% line and branch | Complete |
 | Diagnostics | `CodeActionDiagnosticServiceTests` cover compiler, configured analyzer, additional analyzer, document/project, ID/span, synthetic, unavailable and cancellation paths; only the defensive null syntax-tree result after a successful C# compilation remains | Complete with approved defensive gap |
 | Analyzer activation | Available, incompatible, missing and four construction-failure shapes covered; external assembly-inspection failures and impossible assignable-type null construction remain approved defensive gaps | Complete with approved defensive gaps |
-| Operation application | `CodeActionOperationServiceTests` cover mutation materialisation, absent, multiple and unsupported operations, recognised wrapping bookkeeping, null fix-all actions, document/project fix-all contexts and successful candidates at 100% line and branch | Complete |
+| Operation application | `CodeActionEvaluatorTests` cover mutation materialisation, absent, multiple and unsupported operations, recognised wrapping bookkeeping and successful candidates at 100% line and branch at the recorded measurement | Complete |
 | Solution change counting | `CodeActionSolutionChangeCounterTests` cover unchanged, changed, multiple and missing candidate documents plus cancellation at 100% line and branch | Complete |
 | Fix-all diagnostic projection | `WorkspaceFixAllDiagnosticProviderTests` cover document and project delegation plus ordered all-diagnostic aggregation at 100% line and branch | Complete |
-| Fix-all orchestration | `CodeActionFixAllServiceTests` cover all reachable paths, including an inconsistent project-set result from the mocked scope boundary; only the defensive invalid-scope default remains | Complete with approved defensive gap |
-| Token encoding and validation | `CodeActionTokenServiceTests` cover complete payload round-trip, process-local signing, missing and malformed parts, tampering and unpadded Base64Url output; only the approved correctly-signed `null` JSON payload guard remains | Complete with approved defensive gap |
+| Fix-all orchestration | `CodeActionFixAllStagerTests` cover all reachable paths, including an inconsistent project-set result from the mocked scope boundary; only the defensive invalid-scope default remains | Complete with approved defensive gap |
+| Reference storage and expiry | `CodeActionReferenceStoreTests` cover creation, retrieval, absolute expiry, cache-capacity refusal and explicit removal | Complete |
 | Execution leases and context adaptation | Query/mutation disposal, staging delegation, missing-stager invariant and all acquired/rejected context-factory paths at 100% line and branch | Complete |
 | Typed registration and registry | Query/mutation metadata, contract types, visitor dispatch, duplicate names, individual required metadata validation and optional defaults at 100% line and branch | Complete |
 | Workspace result mapping and outcome classification | Every operation status, full success/failure payload projection, invalid statuses and every error classification at 100% line and branch | Complete |
@@ -124,8 +124,7 @@ Real MEF execution does not become a unit test merely because it is in the unit 
 | --- | --: | --: | --- | --- |
 | `CodeActionAnalyzerActivator` | 84.34% | 52.63% | Approved external-runtime gaps | Available, missing, incompatible and four supported construction-failure shapes are covered. The remaining lines are the loaded-assembly inspection-exception path; remaining branches distinguish runtime exception types that normal loaded assemblies and analyzer construction cannot deterministically produce. |
 | `CodeActionDiagnosticService` | 98.28% | 97.92% | Approved Roslyn defensive gap | Lines 163-164 handle `GetSyntaxTreeAsync` returning `null` after the same source document successfully produced a C# compilation. Supported in-memory and loaded-workspace flows cannot produce that inconsistent Roslyn state. |
-| `CodeActionFixAllService` | 98.60% | 97.56% | Approved defensive gap | All reachable behaviour is covered. Lines 145-147 are the unsupported-scope default; the real `CodeActionScopeResolver` rejects invalid `ScopeKind` values before this method is called. Covering it would require an inconsistent mocked boundary and would duplicate the resolver's validation rather than model production behaviour. |
-| `CodeActionTokenService` | 95.56% | 90.00% | Approved defensive gap | All supported token behaviours are covered. Lines 45-46 reject a correctly signed JSON `null`; the process-local secret and valid-payload encoder make that input unreachable through the supported API. |
+| `CodeActionFixAllStager` | 98.60% | 97.56% | Approved defensive gap | At the recorded measurement, all reachable behaviour was covered. The unsupported-scope default is unreachable because the real `CodeActionScopeResolver` rejects invalid `ScopeKind` values first. Covering it would require an inconsistent mocked boundary and would duplicate the resolver's validation rather than model production behaviour. |
 | `CodeActionDescriptorContext` | 50.00% | 100% | Production review required | `Kind` and `Message` are published and asserted by `DescribeCodeActionToolTests`; `NameOptions` and `Members` are never populated by production code. Do not add property-only tests. |
 | `CodeActionListItem` and `CodeActionNameOptionInfo` | 0% | 100% | Production review required | Neither type is constructed or consumed anywhere in production. They are dead-contract candidates rather than missing unit-test scenarios. |
 
@@ -139,13 +138,11 @@ The remaining data-only request/response records are likewise covered through th
 
 The coverage passes exposed the following cases that must be reviewed before changing production code:
 
-1. `CodeActionTokenService` cannot receive a correctly signed malformed or `null` JSON payload through its supported API because its secret is process-local and generated internally. Do not add a test-only key constructor. Decide whether the defensive deserialisation branch should remain documented or whether token encoding/signing has a runtime reason to be separated.
-2. Resolved: `CodeActionAnalyzerActivator` covers known, missing, incompatible and construction-failing types. `InspectionFailed`, the associated expected-exception alternatives and the assignable-type construction-to-null branch remain documented defensive runtime gaps because normal loaded assemblies cannot produce them and `Activator.CreateInstance` cannot return `null` for a successfully constructed `DiagnosticAnalyzer` type.
-3. The MEF compatibility adapter and most catalogue composition paths require Roslyn's real internal export-provider implementation. Keep those paths in integration/audit coverage unless a production abstraction is justified independently of testing.
-4. Resolved under the existing Roslyn defensive-guard exception: after `Document.Project.GetCompilationAsync` returns a C# compilation for a source document, the same document's `GetSyntaxTreeAsync` cannot return `null` through a supported in-memory or loaded-workspace path. The additional-analyzer guard remains defensive and is not covered with a fake Roslyn document.
-5. Resolved: `CodeActionFixAllService.ApplyScopeAsync` retains an unsupported-scope default as a local defensive guard. The real `CodeActionScopeResolver` rejects invalid `ScopeKind` values first, so the default is not reachable through the production flow and does not justify a production seam.
-6. Resolved with user approval: `CodeActionTokenService.TryDecode` retains the correctly-signed JSON `null` guard. The public encoder cannot create that payload and the signing secret is deliberately process-local, so no key exposure or test-only seam will be introduced.
-7. `CodeActionListItem` and `CodeActionNameOptionInfo` are unused production contracts. `CodeActionDescriptorContext.NameOptions` and `Members` are likewise never populated. Decide whether to remove these surfaces or implement their intended owning behaviour before testing them.
+1. Resolved: `CodeActionAnalyzerActivator` covers known, missing, incompatible and construction-failing types. `InspectionFailed`, the associated expected-exception alternatives and the assignable-type construction-to-null branch remain documented defensive runtime gaps because normal loaded assemblies cannot produce them and `Activator.CreateInstance` cannot return `null` for a successfully constructed `DiagnosticAnalyzer` type.
+2. The MEF compatibility adapter and most catalogue composition paths require Roslyn's real internal export-provider implementation. Keep those paths in integration/audit coverage unless a production abstraction is justified independently of testing.
+3. Resolved under the existing Roslyn defensive-guard exception: after `Document.Project.GetCompilationAsync` returns a C# compilation for a source document, the same document's `GetSyntaxTreeAsync` cannot return `null` through a supported in-memory or loaded-workspace path. The additional-analyzer guard remains defensive and is not covered with a fake Roslyn document.
+4. Resolved: `CodeActionFixAllStager.ApplyScopeAsync` retains an unsupported-scope default as a local defensive guard. The real `CodeActionScopeResolver` rejects invalid `ScopeKind` values first, so the default is not reachable through the production flow and does not justify a production seam.
+5. `CodeActionListItem` and `CodeActionNameOptionInfo` are unused production contracts. `CodeActionDescriptorContext.NameOptions` and `Members` are likewise never populated. Decide whether to remove these surfaces or implement their intended owning behaviour before testing them.
 
 No production change should be made during this testing phase without explicit confirmation.
 
@@ -153,7 +150,7 @@ No production change should be made during this testing phase without explicit c
 
 ### C1: Resolution boundary
 
-Complete. `CodeActionResolutionServiceTests` use mocked token, descriptor, discovery, diagnostic and Workspace resolver collaborators with one in-memory Roslyn document. All supported token validation, refactoring and code-fix rediscovery, replay identity, provider availability, descriptor visibility and success paths measure 100% line and branch coverage without production changes.
+Complete. `CodeActionResolverTests` use mocked reference-store, descriptor, discovery, diagnostic and Workspace resolver collaborators with one in-memory Roslyn document. All supported reference validation, refactoring and code-fix rediscovery, replay identity, provider availability, descriptor visibility and success paths are covered without test-only production seams.
 
 ### C2: Diagnostics and activation
 
@@ -161,11 +158,11 @@ Complete. `CodeActionDiagnosticServiceTests` use in-memory Roslyn documents with
 
 ### C3: Operation application
 
-Complete. `CodeActionOperationServiceTests`, `CodeActionSolutionChangeCounterTests` and `WorkspaceFixAllDiagnosticProviderTests` retain separate collaborators and assertions while covering each target at 100% line and branch. `CodeActionFixAllServiceTests` now cover the remaining reachable inconsistent-project-set path. The exact invalid-scope defensive gap is recorded above. No production change or test-only seam was introduced.
+Complete. `CodeActionEvaluatorTests`, `CodeActionSolutionChangeCounterTests` and `WorkspaceFixAllDiagnosticProviderTests` retain separate collaborators and assertions while covering each target at 100% line and branch in the recorded measurement. `CodeActionFixAllStagerTests` cover the remaining reachable inconsistent-project-set path. The exact invalid-scope defensive gap is recorded above. No production change or test-only seam was introduced.
 
-### C4: Tokens and small execution boundaries
+### C4: References and small execution boundaries
 
-Complete. `CodeActionTokenServiceTests` cover every supported token behaviour with the exact approved defensive exception recorded above. Execution outcomes, registrations, leases, context adaptation, registry validation, selector projection, Workspace result mapping, descriptor classification and built-in-family properties now measure 100% line and branch. No production seam was introduced. The unused contract surfaces discovered by owner-based testing are recorded as a separate production decision rather than covered with property-only tests.
+Complete. `CodeActionReferenceStoreTests` cover creation, lookup, absolute expiry, bounded-cache refusal and explicit consumption. Resolver, describe-tool and Host mutation-adapter tests prove that describe preserves a reference, successful transaction staging consumes it, and rejected staging retains it. Execution outcomes, registrations, leases, context adaptation, registry validation, selector projection, Workspace result mapping, descriptor classification and built-in-family properties remain covered without a test-only production seam.
 
 ### C5: MEF boundary checkpoint
 

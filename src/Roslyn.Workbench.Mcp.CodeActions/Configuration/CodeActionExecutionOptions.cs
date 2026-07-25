@@ -2,5 +2,5 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Configuration;
 
 internal sealed class CodeActionExecutionOptions
 {
-    public TimeSpan TokenLifetime { get; set; } = TimeSpan.FromMinutes(5);
+    public TimeSpan ReferenceLifetime { get; set; } = TimeSpan.FromMinutes(5);
 }

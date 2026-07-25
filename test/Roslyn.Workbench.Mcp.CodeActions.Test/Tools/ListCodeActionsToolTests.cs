@@ -307,11 +307,22 @@ public sealed class ListCodeActionsToolTests
             .ReturnsAsync([equivalence, earlier, nestedFirstPath, firstPath]);
 
         var orderedActions = new[] { earlier, firstPath, nestedFirstPath, secondPath, equivalence, laterProvider };
-        foreach (var action in orderedActions)
+        Guid[] actionIds =
+        [
+            new("11111111-1111-1111-1111-111111111111"),
+            new("22222222-2222-2222-2222-222222222222"),
+            new("33333333-3333-3333-3333-333333333333"),
+            new("44444444-4444-4444-4444-444444444444"),
+            new("55555555-5555-5555-5555-555555555555"),
+            new("66666666-6666-6666-6666-666666666666"),
+        ];
+
+        for (var index = 0; index < orderedActions.Length; index++)
         {
+            var action = orderedActions[index];
             var info = new CodeActionInfo
             {
-                ActionId = $"{action.ProviderId}:{action.Title}:{action.EquivalenceKey}:{string.Join('.', action.ActionPath)}",
+                ActionId = actionIds[index],
                 Title = action.Title,
                 ProviderId = action.ProviderId,
                 ExpiresAt = "2000-01-01T00:00:00.0000000+00:00",
@@ -337,13 +348,7 @@ public sealed class ListCodeActionsToolTests
             _context.Object,
             CancellationToken.None);
 
-        result.Data!.Actions.Select(item => item.ActionId).Should().Equal(
-            "SecondProvider:EarlierTitle::",
-            "FirstProvider:Title::1",
-            "FirstProvider:Title::1.0",
-            "FirstProvider:Title::2",
-            "FirstProvider:Title:EquivalenceKey:",
-            "SecondProvider:Title::");
+        result.Data!.Actions.Select(item => item.ActionId).Should().Equal(actionIds);
 
         _infoFactory.Verify(item => item.TryCreate(
             hidden,

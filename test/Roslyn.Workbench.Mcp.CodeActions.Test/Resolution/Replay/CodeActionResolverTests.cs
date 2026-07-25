@@ -8,12 +8,11 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Resolution.Replay;
 #pragma warning disable CA1861 // Fresh mutable arrays keep each resolution scenario isolated from other tests.
 public sealed class CodeActionResolverTests : IDisposable
 {
-    private static readonly DateTimeOffset _utcNow = new(2000, 1, 1, 0, 0, 0, TimeSpan.Zero);
+    private static readonly Guid _actionId = new("11111111-1111-1111-1111-111111111111");
 
     private readonly Mock<ICodeActionDiscoveryService> _discoveryService;
     private readonly Mock<ICodeActionDiagnosticService> _diagnosticService;
-    private readonly Mock<ICodeActionTokenService> _tokenService;
-    private readonly Mock<TimeProvider> _timeProvider;
+    private readonly Mock<ICodeActionReferenceStore> _referenceStore;
     private readonly Mock<ICodeActionExecutionContext> _context;
     private readonly Mock<IWorkspaceResolver> _workspaceResolver;
     private readonly Mock<CodeRefactoringProvider> _refactoringProvider;
@@ -27,8 +26,7 @@ public sealed class CodeActionResolverTests : IDisposable
     {
         _discoveryService = new Mock<ICodeActionDiscoveryService>();
         _diagnosticService = new Mock<ICodeActionDiagnosticService>();
-        _tokenService = new Mock<ICodeActionTokenService>();
-        _timeProvider = new Mock<TimeProvider>();
+        _referenceStore = new Mock<ICodeActionReferenceStore>();
         _context = new Mock<ICodeActionExecutionContext>();
         _workspaceResolver = new Mock<IWorkspaceResolver>();
         _refactoringProvider = new Mock<CodeRefactoringProvider>();
@@ -41,7 +39,6 @@ public sealed class CodeActionResolverTests : IDisposable
 
         _matchingAction = CreateAction();
 
-        _timeProvider.Setup(item => item.GetUtcNow()).Returns(_utcNow);
         _workspaceResolver
             .Setup(item => item.ValidateSnapshot(It.IsAny<SnapshotPrecondition?>()))
             .Returns(SnapshotMatchResult.Matched());
@@ -70,14 +67,13 @@ public sealed class CodeActionResolverTests : IDisposable
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([_matchingAction]);
 
-        SetupToken(CreatePayload());
+        SetupReference(CreateRecipe());
 
         _target = new CodeActionResolver(
             _discoveryService.Object,
             _diagnosticService.Object,
-            _tokenService.Object,
-            new CodeActionToolRequestResolver(new CodeActionScopeResolver()),
-            _timeProvider.Object);
+            _referenceStore.Object,
+            new CodeActionToolRequestResolver(new CodeActionScopeResolver()));
     }
 
     [Fact]
@@ -87,7 +83,7 @@ public sealed class CodeActionResolverTests : IDisposable
         await cancellationSource.CancelAsync();
 
         var action = async () => await _target.ResolveActionAsync<object>(
-            "ActionId",
+            _actionId,
             expectedSnapshot: null,
             expectedKind: null,
             _context.Object,
@@ -106,7 +102,7 @@ public sealed class CodeActionResolverTests : IDisposable
             .Returns(SnapshotMatchResult.WorkspaceEpochMismatch());
 
         var result = await _target.ResolveActionAsync<object>(
-            "ActionId",
+            _actionId,
             expectedSnapshot,
             expectedKind: null,
             _context.Object,
@@ -115,14 +111,16 @@ public sealed class CodeActionResolverTests : IDisposable
         result.Rejection!.Outcome.Should().Be(CodeActionExecutionOutcome.Conflict);
         result.Rejection.Error!.Code.Should().Be("SnapshotMismatch");
         result.FailureKind.Should().Be(CodeActionResolutionFailureKind.None);
-        _tokenService.Verify(item => item.TryDecode(It.IsAny<string>(), out It.Ref<CodeActionTokenPayload>.IsAny), Times.Never);
+        _referenceStore.Verify(
+            item => item.TryGet(It.IsAny<Guid>(), out It.Ref<CodeActionReference?>.IsAny),
+            Times.Never);
     }
 
     [Fact]
-    public async Task GIVEN_TokenCannotBeDecoded_WHEN_ResolvingAction_THEN_ShouldReturnExpiredAction()
+    public async Task GIVEN_ReferenceCannotBeFound_WHEN_ResolvingAction_THEN_ShouldReturnExpiredAction()
     {
-        var payload = new CodeActionTokenPayload();
-        _tokenService.Setup(item => item.TryDecode("ActionId", out payload)).Returns(false);
+        CodeActionReference? reference = null;
+        _referenceStore.Setup(item => item.TryGet(_actionId, out reference)).Returns(false);
 
         var result = await ResolveAsync(DiscoveredActionKind.CodeFix);
 
@@ -131,41 +129,9 @@ public sealed class CodeActionResolverTests : IDisposable
     }
 
     [Fact]
-    public async Task GIVEN_TokenKindIsInvalid_WHEN_ResolvingAction_THEN_ShouldReturnExpiredAction()
-    {
-        SetupToken(CreatePayload() with { Kind = "InvalidKind" });
-
-        var result = await ResolveAsync();
-
-        AssertExpired(result);
-        _timeProvider.Verify(item => item.GetUtcNow(), Times.Never);
-    }
-
-    [Fact]
-    public async Task GIVEN_TokenKindDoesNotMatchExpectedKind_WHEN_ResolvingAction_THEN_ShouldReturnExpiredAction()
+    public async Task GIVEN_ReferenceKindDoesNotMatchExpectedKind_WHEN_ResolvingAction_THEN_ShouldReturnExpiredAction()
     {
         var result = await ResolveAsync(DiscoveredActionKind.CodeFix);
-
-        AssertExpired(result);
-        _timeProvider.Verify(item => item.GetUtcNow(), Times.Never);
-    }
-
-    [Fact]
-    public async Task GIVEN_TokenExpiryIsMalformed_WHEN_ResolvingAction_THEN_ShouldReturnExpiredAction()
-    {
-        SetupToken(CreatePayload() with { ExpiresAt = "ExpiresAt" });
-
-        var result = await ResolveAsync();
-
-        AssertExpired(result);
-    }
-
-    [Fact]
-    public async Task GIVEN_TokenHasExpired_WHEN_ResolvingAction_THEN_ShouldReturnExpiredAction()
-    {
-        SetupToken(CreatePayload() with { ExpiresAt = _utcNow.AddTicks(-1).ToString("O") });
-
-        var result = await ResolveAsync();
 
         AssertExpired(result);
     }
@@ -174,19 +140,19 @@ public sealed class CodeActionResolverTests : IDisposable
     [InlineData(WorkspaceMismatch.WorkspaceId)]
     [InlineData(WorkspaceMismatch.WorkspaceEpoch)]
     [InlineData(WorkspaceMismatch.TransactionRevision)]
-    public async Task GIVEN_TokenWorkspaceDoesNotMatch_WHEN_ResolvingAction_THEN_ShouldReturnExpiredAction(
+    public async Task GIVEN_ReferenceWorkspaceDoesNotMatch_WHEN_ResolvingAction_THEN_ShouldReturnExpiredAction(
         WorkspaceMismatch mismatch)
     {
-        var payload = CreatePayload();
-        payload = mismatch switch
+        var recipe = CreateRecipe();
+        recipe = mismatch switch
         {
-            WorkspaceMismatch.WorkspaceId => payload with { WorkspaceId = "OtherWorkspaceId" },
-            WorkspaceMismatch.WorkspaceEpoch => payload with { WorkspaceEpoch = 2 },
-            WorkspaceMismatch.TransactionRevision => payload with { TransactionRevision = 3 },
-            _ => payload,
+            WorkspaceMismatch.WorkspaceId => recipe with { WorkspaceId = "OtherWorkspaceId" },
+            WorkspaceMismatch.WorkspaceEpoch => recipe with { WorkspaceEpoch = 2 },
+            WorkspaceMismatch.TransactionRevision => recipe with { TransactionRevision = 3 },
+            _ => recipe,
         };
 
-        SetupToken(payload);
+        SetupReference(recipe);
 
         var result = await ResolveAsync();
 
@@ -197,7 +163,7 @@ public sealed class CodeActionResolverTests : IDisposable
     [Theory]
     [InlineData(SelectorResolveStatus.NotFound)]
     [InlineData(SelectorResolveStatus.Ambiguous)]
-    public async Task GIVEN_TokenDocumentDoesNotResolve_WHEN_ResolvingAction_THEN_ShouldReturnExpiredAction(
+    public async Task GIVEN_ReferenceDocumentDoesNotResolve_WHEN_ResolvingAction_THEN_ShouldReturnExpiredAction(
         SelectorResolveStatus status)
     {
         _workspaceResolver
@@ -213,7 +179,7 @@ public sealed class CodeActionResolverTests : IDisposable
     }
 
     [Fact]
-    public async Task GIVEN_TokenProject_WHEN_ResolvingAction_THEN_ShouldQualifyDocumentSelector()
+    public async Task GIVEN_ReferenceProject_WHEN_ResolvingAction_THEN_ShouldQualifyDocumentSelector()
     {
         var result = await ResolveAsync();
 
@@ -225,9 +191,9 @@ public sealed class CodeActionResolverTests : IDisposable
     }
 
     [Fact]
-    public async Task GIVEN_LegacyTokenWithoutProject_WHEN_ResolvingAction_THEN_ShouldUseUnqualifiedDocumentSelector()
+    public async Task GIVEN_LegacyReferenceWithoutProject_WHEN_ResolvingAction_THEN_ShouldUseUnqualifiedDocumentSelector()
     {
-        SetupToken(CreatePayload() with { ProjectId = string.Empty });
+        SetupReference(CreateRecipe() with { ProjectId = string.Empty });
 
         var result = await ResolveAsync();
 
@@ -267,7 +233,7 @@ public sealed class CodeActionResolverTests : IDisposable
     [Fact]
     public async Task GIVEN_CodeFixProviderIsNotUnique_WHEN_ResolvingAction_THEN_ShouldReportUnavailableProvider()
     {
-        SetupToken(CreatePayload() with { Kind = DiscoveredActionKind.CodeFix.ToString() });
+        SetupReference(CreateRecipe() with { Kind = DiscoveredActionKind.CodeFix });
         _discoveryService
             .Setup(item => item.GetMatchingCodeFixProviders("ProviderId"))
             .Returns([]);
@@ -365,6 +331,8 @@ public sealed class CodeActionResolverTests : IDisposable
         result.Descriptor.Should().BeSameAs(_visibleDescriptor);
         result.Document.Should().BeSameAs(_roslyn.Document);
         result.Span.Should().Be(new TextSpan(3, 4));
+        result.Reference.Should().NotBeNull();
+        result.Reference.ActionId.Should().Be(_actionId);
         _discoveryService.Verify(item => item.DiscoverRefactoringsAsync(
             _refactoringProvider.Object,
             _roslyn.Document,
@@ -385,7 +353,7 @@ public sealed class CodeActionResolverTests : IDisposable
                 isEnabledByDefault: true),
             Location.None)];
 
-        SetupToken(CreatePayload() with { Kind = DiscoveredActionKind.CodeFix.ToString() });
+        SetupReference(CreateRecipe() with { Kind = DiscoveredActionKind.CodeFix });
         _discoveryService
             .Setup(item => item.GetMatchingCodeFixProviders("ProviderId"))
             .Returns([_codeFixProvider.Object]);
@@ -432,25 +400,30 @@ public sealed class CodeActionResolverTests : IDisposable
         DiscoveredActionKind? expectedKind = DiscoveredActionKind.Refactoring)
     {
         return _target.ResolveActionAsync<object>(
-            "ActionId",
+            _actionId,
             expectedSnapshot: null,
             expectedKind,
             _context.Object,
             CancellationToken.None);
     }
 
-    private void SetupToken(CodeActionTokenPayload payload)
+    private void SetupReference(CodeActionReplayRecipe recipe)
     {
-        _tokenService
-            .Setup(item => item.TryDecode("ActionId", out payload))
+        CodeActionReference? reference = new(
+            _actionId,
+            recipe,
+            new DateTimeOffset(2000, 1, 1, 0, 5, 0, TimeSpan.Zero));
+
+        _referenceStore
+            .Setup(item => item.TryGet(_actionId, out reference))
             .Returns(true);
     }
 
-    private static CodeActionTokenPayload CreatePayload()
+    private static CodeActionReplayRecipe CreateRecipe()
     {
-        return new CodeActionTokenPayload
+        return new CodeActionReplayRecipe
         {
-            Kind = DiscoveredActionKind.Refactoring.ToString(),
+            Kind = DiscoveredActionKind.Refactoring,
             ProviderId = "ProviderId",
             Title = "Title",
             EquivalenceKey = "EquivalenceKey",
@@ -459,7 +432,6 @@ public sealed class CodeActionResolverTests : IDisposable
             WorkspaceId = "WorkspaceId",
             WorkspaceEpoch = 1,
             TransactionRevision = 2,
-            ExpiresAt = _utcNow.AddHours(1).ToString("O"),
             DocumentPath = "DocumentPath",
             ProjectId = "ProjectId",
             Start = 3,

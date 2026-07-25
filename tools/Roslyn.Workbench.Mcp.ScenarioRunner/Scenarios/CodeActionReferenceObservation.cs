@@ -1,6 +1,6 @@
 namespace Roslyn.Workbench.Mcp.ScenarioRunner.Scenarios;
 
-internal sealed record CodeActionTokenObservation
+internal sealed record CodeActionReferenceObservation
 {
     public required int Count { get; init; }
 

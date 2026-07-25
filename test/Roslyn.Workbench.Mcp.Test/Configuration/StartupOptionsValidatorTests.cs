@@ -31,7 +31,7 @@ public sealed class StartupOptionsValidatorTests
         result.Failures.Should().BeEquivalentTo(
         [
             "DefaultMaxResults must be greater than zero.",
-            "CodeActionTokenLifetime must be greater than zero and no greater than 1.00:00:00.",
+            "CodeActionReferenceLifetime must be greater than zero and no greater than 1.00:00:00.",
             "MaxTransactionRevisions must be greater than zero.",
             "MaxConcurrentQueries must be greater than zero.",
             "ToolOutputSchemaMode must be a supported value.",
@@ -60,18 +60,18 @@ public sealed class StartupOptionsValidatorTests
     }
 
     [Fact]
-    public void GIVEN_ExcessiveTokenLifetime_WHEN_Validating_THEN_ShouldReportFailure()
+    public void GIVEN_ExcessiveReferenceLifetime_WHEN_Validating_THEN_ShouldReportFailure()
     {
         var options = new StartupOptions
         {
-            CodeActionTokenLifetime = TimeSpan.FromDays(1) + TimeSpan.FromTicks(1),
+            CodeActionReferenceLifetime = TimeSpan.FromDays(1) + TimeSpan.FromTicks(1),
         };
 
         var result = _target.Validate(null, options);
 
         result.Failed.Should().BeTrue();
         result.Failures.Should().ContainSingle().Which.Should().Be(
-            "CodeActionTokenLifetime must be greater than zero and no greater than 1.00:00:00.");
+            "CodeActionReferenceLifetime must be greater than zero and no greater than 1.00:00:00.");
     }
 
     private static StartupOptions CreateInvalidOptions()
@@ -80,7 +80,7 @@ public sealed class StartupOptionsValidatorTests
         {
             PluginDirectories = [" "],
             DefaultMaxResults = 0,
-            CodeActionTokenLifetime = TimeSpan.Zero,
+            CodeActionReferenceLifetime = TimeSpan.Zero,
             MaxTransactionRevisions = 0,
             MaxConcurrentQueries = 0,
             ToolOutputSchemaMode = (ToolOutputSchemaMode)999,

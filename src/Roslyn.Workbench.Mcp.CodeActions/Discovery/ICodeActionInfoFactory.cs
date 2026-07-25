@@ -11,4 +11,10 @@ internal interface ICodeActionInfoFactory
         TextSpan span,
         CodeActionDescriptorEntry descriptor,
         [NotNullWhen(true)] out CodeActionInfo? info);
+
+    CodeActionInfo CreateFromReference(
+        DiscoveredCodeAction action,
+        ICodeActionExecutionContext context,
+        CodeActionDescriptorEntry descriptor,
+        CodeActionReference reference);
 }

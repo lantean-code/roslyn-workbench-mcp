@@ -20,7 +20,7 @@ internal sealed record InvocationMeasurement
 
     public IReadOnlyList<BoundedCollectionObservation> BoundedCollections { get; init; } = [];
 
-    public CodeActionTokenObservation? CodeActionTokens { get; init; }
+    public CodeActionReferenceObservation? CodeActionReferences { get; init; }
 
     public bool? MutationStaged { get; init; }
 

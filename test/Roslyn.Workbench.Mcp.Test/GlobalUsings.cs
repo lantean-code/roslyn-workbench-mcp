@@ -7,6 +7,7 @@ global using Roslyn.Workbench.Mcp.CodeActions.Contracts;
 global using Roslyn.Workbench.Mcp.CodeActions.Execution.Contexts;
 global using Roslyn.Workbench.Mcp.CodeActions.Execution.Handlers;
 global using Roslyn.Workbench.Mcp.CodeActions.Execution.Results;
+global using Roslyn.Workbench.Mcp.CodeActions.References;
 global using Roslyn.Workbench.Mcp.CodeActions.Registration;
 global using Roslyn.Workbench.Mcp.Configuration;
 global using Roslyn.Workbench.Mcp.Hosting;

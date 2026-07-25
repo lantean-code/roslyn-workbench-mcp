@@ -5,6 +5,9 @@ internal static class AcceptanceStateDirectory
     private const UnixFileMode _privateDirectoryMode =
         UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute;
 
+    private const UnixFileMode _privateFileMode =
+        UnixFileMode.UserRead | UnixFileMode.UserWrite;
+
     private const UnixFileMode _broadDirectoryMode =
         _privateDirectoryMode
         | UnixFileMode.GroupRead
@@ -39,5 +42,13 @@ internal static class AcceptanceStateDirectory
         }
 
         Create(path);
+    }
+
+    public static void MakeFilePrivate(string path)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            File.SetUnixFileMode(path, _privateFileMode);
+        }
     }
 }

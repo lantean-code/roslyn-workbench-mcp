@@ -7,10 +7,12 @@ namespace Roslyn.Workbench.Mcp.Test.ToolExecution.CodeActions;
 public sealed class CodeActionMutationMcpServerToolTests
 {
     private readonly Mock<IMcpToolProtocolFactory> _protocolFactory;
+    private readonly Mock<ICodeActionReferenceStore> _referenceStore;
 
     public CodeActionMutationMcpServerToolTests()
     {
         _protocolFactory = McpToolProtocolFactoryMockFactory.Create();
+        _referenceStore = new Mock<ICodeActionReferenceStore>();
     }
 
     [Fact]
@@ -159,6 +161,16 @@ public sealed class CodeActionMutationMcpServerToolTests
                 diagnostics: [diagnostic],
                 warnings: [warning]));
 
+        var stagingOutcome = new MutationStagingOutcome
+        {
+            Operation = "test-code-action-mutation",
+            Summary = "StagedSummary",
+            Transaction = new TransactionInfo
+            {
+                Revision = 2,
+            },
+        };
+
         stager
             .Setup(item => item.StageAsync(
                 "test-code-action-mutation",
@@ -166,15 +178,7 @@ public sealed class CodeActionMutationMcpServerToolTests
                 It.Is<IReadOnlyList<DiagnosticInfo>>(diagnostics => diagnostics.SequenceEqual(new[] { diagnostic })),
                 It.Is<IReadOnlyList<WarningInfo>>(warnings => warnings.SequenceEqual(new[] { warning })),
                 CancellationToken.None))
-            .ReturnsAsync(WorkspaceOperationResult<MutationStagingOutcome>.Succeeded(new MutationStagingOutcome
-            {
-                Operation = "test-code-action-mutation",
-                Summary = "StagedSummary",
-                Transaction = new TransactionInfo
-                {
-                    Revision = 2,
-                },
-            }));
+            .ReturnsAsync(WorkspaceOperationResult<MutationStagingOutcome>.Succeeded(stagingOutcome));
 
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
@@ -196,6 +200,53 @@ public sealed class CodeActionMutationMcpServerToolTests
     }
 
     [Fact]
+    public async Task GIVEN_CodeActionReferenceAndSuccessfulStaging_WHEN_InvokingMutation_THEN_ShouldConsumeReference()
+    {
+        var actionId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        var handler = new Mock<ICodeActionMutationToolHandler<TestReferencedMutationRequest>>();
+        var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
+        var context = new Mock<ICodeActionMutationContext>();
+        var stager = new Mock<IWorkspaceMutationStager>();
+        var workspaceLease = WorkspaceMutationExecutionLease.Acquired(
+            new Mock<IWorkspaceExecutionContext>().Object,
+            stager.Object);
+
+        contextFactory
+            .Setup(item => item.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
+            .Returns(CodeActionMutationExecutionLease.Acquired(workspaceLease, context.Object));
+
+        handler
+            .Setup(item => item.ExecuteAsync(It.IsAny<TestReferencedMutationRequest>(), context.Object, CancellationToken.None))
+            .ReturnsAsync(CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(
+                MutationCandidateTestData.CreateWorkspaceCandidate()));
+
+        var stagingOutcome = new MutationStagingOutcome
+        {
+            Operation = "test-code-action-mutation",
+            Summary = "Summary",
+            Transaction = new TransactionInfo(),
+        };
+
+        stager
+            .Setup(item => item.StageAsync(
+                It.IsAny<string>(),
+                It.IsAny<WorkspaceMutationCandidate>(),
+                It.IsAny<IReadOnlyList<DiagnosticInfo>>(),
+                It.IsAny<IReadOnlyList<WarningInfo>>(),
+                CancellationToken.None))
+            .ReturnsAsync(WorkspaceOperationResult<MutationStagingOutcome>.Succeeded(stagingOutcome));
+
+        var target = CreateTarget(handler.Object, contextFactory.Object);
+        var arguments = McpServerToolTestData.CreateMutationArguments();
+        arguments["actionId"] = JsonSerializer.SerializeToElement(actionId);
+
+        var result = await target.InvokeArgumentsAsync(arguments, CancellationToken.None);
+
+        result.IsError.Should().BeFalse();
+        _referenceStore.Verify(item => item.Remove(actionId), Times.Once);
+    }
+
+    [Fact]
     public async Task GIVEN_HandlerProposalAndRejectedStaging_WHEN_InvokingMutation_THEN_ShouldPublishStagingFailure()
     {
         var handler = new Mock<ICodeActionMutationToolHandler<TestMutationRequest>>();
@@ -207,13 +258,22 @@ public sealed class CodeActionMutationMcpServerToolTests
             .Setup(item => item.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
             .Returns(CodeActionMutationExecutionLease.Acquired(workspaceLease, context.Object));
 
+        var candidate = new WorkspaceMutationCandidate
+        {
+            CandidateSolution = MutationCandidateTestData.Solution,
+            Summary = "Summary",
+        };
+
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestMutationRequest>(), context.Object, CancellationToken.None))
-            .ReturnsAsync(CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(new WorkspaceMutationCandidate
-            {
-                CandidateSolution = MutationCandidateTestData.Solution,
-                Summary = "Summary",
-            }));
+            .ReturnsAsync(CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(candidate));
+
+        var stagingError = new WorkspaceOperationError
+        {
+            Code = "RevisionCapacityReached",
+            Message = "Message",
+            RequiredAction = RequiredAction.CommitOrRollback,
+        };
 
         stager
             .Setup(item => item.StageAsync(
@@ -222,12 +282,7 @@ public sealed class CodeActionMutationMcpServerToolTests
                 It.IsAny<IReadOnlyList<DiagnosticInfo>>(),
                 It.IsAny<IReadOnlyList<WarningInfo>>(),
                 CancellationToken.None))
-            .ReturnsAsync(WorkspaceOperationResult<MutationStagingOutcome>.Rejected(new WorkspaceOperationError
-            {
-                Code = "RevisionCapacityReached",
-                Message = "Message",
-                RequiredAction = RequiredAction.CommitOrRollback,
-            }));
+            .ReturnsAsync(WorkspaceOperationResult<MutationStagingOutcome>.Rejected(stagingError));
 
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
@@ -235,6 +290,53 @@ public sealed class CodeActionMutationMcpServerToolTests
 
         result.IsError.Should().BeTrue();
         result.StructuredContent!.Value.GetProperty("error").GetProperty("code").GetString().Should().Be("RevisionCapacityReached");
+    }
+
+    [Fact]
+    public async Task GIVEN_CodeActionReferenceAndRejectedStaging_WHEN_InvokingMutation_THEN_ShouldRetainReference()
+    {
+        var actionId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        var handler = new Mock<ICodeActionMutationToolHandler<TestReferencedMutationRequest>>();
+        var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
+        var context = new Mock<ICodeActionMutationContext>();
+        var stager = new Mock<IWorkspaceMutationStager>();
+        var workspaceLease = WorkspaceMutationExecutionLease.Acquired(
+            new Mock<IWorkspaceExecutionContext>().Object,
+            stager.Object);
+
+        contextFactory
+            .Setup(item => item.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
+            .Returns(CodeActionMutationExecutionLease.Acquired(workspaceLease, context.Object));
+
+        handler
+            .Setup(item => item.ExecuteAsync(It.IsAny<TestReferencedMutationRequest>(), context.Object, CancellationToken.None))
+            .ReturnsAsync(CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(
+                MutationCandidateTestData.CreateWorkspaceCandidate()));
+
+        var stagingError = new WorkspaceOperationError
+        {
+            Code = "RevisionCapacityReached",
+            Message = "Message",
+            RequiredAction = RequiredAction.CommitOrRollback,
+        };
+
+        stager
+            .Setup(item => item.StageAsync(
+                It.IsAny<string>(),
+                It.IsAny<WorkspaceMutationCandidate>(),
+                It.IsAny<IReadOnlyList<DiagnosticInfo>>(),
+                It.IsAny<IReadOnlyList<WarningInfo>>(),
+                CancellationToken.None))
+            .ReturnsAsync(WorkspaceOperationResult<MutationStagingOutcome>.Rejected(stagingError));
+
+        var target = CreateTarget(handler.Object, contextFactory.Object);
+        var arguments = McpServerToolTestData.CreateMutationArguments();
+        arguments["actionId"] = JsonSerializer.SerializeToElement(actionId);
+
+        var result = await target.InvokeArgumentsAsync(arguments, CancellationToken.None);
+
+        result.IsError.Should().BeTrue();
+        _referenceStore.Verify(item => item.Remove(It.IsAny<Guid>()), Times.Never);
     }
 
     [Fact]
@@ -378,9 +480,10 @@ public sealed class CodeActionMutationMcpServerToolTests
             It.IsAny<CancellationToken>()), Times.Never);
     }
 
-    private CodeActionMutationMcpServerTool<ICodeActionMutationToolHandler<TestMutationRequest>, TestMutationRequest> CreateTarget(
-        ICodeActionMutationToolHandler<TestMutationRequest> handler,
+    private CodeActionMutationMcpServerTool<ICodeActionMutationToolHandler<TRequest>, TRequest> CreateTarget<TRequest>(
+        ICodeActionMutationToolHandler<TRequest> handler,
         ICodeActionExecutionContextFactory contextFactory)
+        where TRequest : WorkspaceMutationRequest
     {
         var metadata = new CodeActionToolMetadata
         {
@@ -389,12 +492,16 @@ public sealed class CodeActionMutationMcpServerToolTests
             Description = "Description",
         };
 
-        return new CodeActionMutationMcpServerTool<ICodeActionMutationToolHandler<TestMutationRequest>, TestMutationRequest>(
-            new CodeActionMutationRegistration<ICodeActionMutationToolHandler<TestMutationRequest>, TestMutationRequest>(metadata),
+        var registration = new CodeActionMutationRegistration<ICodeActionMutationToolHandler<TRequest>, TRequest>(metadata);
+        var target = new CodeActionMutationMcpServerTool<ICodeActionMutationToolHandler<TRequest>, TRequest>(
+            registration,
             handler,
             contextFactory,
+            _referenceStore.Object,
             _protocolFactory.Object,
             Options.Create(new StartupOptions()));
+
+        return target;
     }
 
     private static CodeActionExecutionResult<WorkspaceMutationCandidate> CreateFailure(string outcomeName)
@@ -417,6 +524,13 @@ public sealed class CodeActionMutationMcpServerToolTests
 #pragma warning disable CA1515 // Moq's dynamic proxy must access this closed-generic handler contract.
     public sealed record TestMutationRequest : WorkspaceMutationRequest
     {
+        public string Name { get; init; } = string.Empty;
+    }
+
+    public sealed record TestReferencedMutationRequest : WorkspaceMutationRequest, ICodeActionReferenceRequest
+    {
+        public required Guid ActionId { get; init; }
+
         public string Name { get; init; } = string.Empty;
     }
 #pragma warning restore CA1515

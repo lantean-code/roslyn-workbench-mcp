@@ -36,7 +36,7 @@ Implement the dependency-ordered batches defined by the [Pre-release Readiness A
 
 1. release documentation, backlog and package-facing documentation alignment — complete;
 2. supported-functionality and public-contract audit — complete;
-3. security, trust-boundary and dependency audit — complete; `PRR-F020` physical Workspace containment, `PRR-F021` trusted-workspace guidance, `PRR-F022` private recovery storage and `PRR-F024` bounded token and recovery input processing are resolved; and
+3. security, trust-boundary and dependency audit — complete; `PRR-F020` physical Workspace containment, `PRR-F021` trusted-workspace guidance, `PRR-F022` private recovery storage and `PRR-F024` bounded reference and recovery input processing are resolved; and
 4. final product polish and release-readiness validation.
 
 Do not begin artifact publication until the audit has no unresolved release-blocking findings. Development records may remain under `docs/development`, but release-facing documentation and package content must describe only supported behaviour.

@@ -1,8 +1,8 @@
-namespace Roslyn.Workbench.Mcp.CodeActions.Tokens;
+namespace Roslyn.Workbench.Mcp.CodeActions.References;
 
-internal sealed record CodeActionTokenPayload
+internal sealed record CodeActionReplayRecipe
 {
-    public string Kind { get; init; } = string.Empty;
+    public DiscoveredActionKind Kind { get; init; }
 
     public string ProviderId { get; init; } = string.Empty;
 
@@ -19,8 +19,6 @@ internal sealed record CodeActionTokenPayload
     public long WorkspaceEpoch { get; init; }
 
     public int? TransactionRevision { get; init; }
-
-    public string ExpiresAt { get; init; } = string.Empty;
 
     public string DocumentPath { get; init; } = string.Empty;
 

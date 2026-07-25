@@ -9,6 +9,9 @@ internal static class WorkspaceErrorCodes
     internal const string WorkspaceOutOfDate = "WorkspaceOutOfDate";
     internal const string WorkspaceLoadFailed = "WorkspaceLoadFailed";
     internal const string WorkspaceCapacityReached = "WorkspaceCapacityReached";
+    internal const string InvalidRequest = "InvalidRequest";
+    internal const string DocumentNotFound = "DocumentNotFound";
+    internal const string DocumentAmbiguous = "DocumentAmbiguous";
     internal const string TransactionRequired = "NoActiveTransaction";
     internal const string TransactionAlreadyActive = "TransactionAlreadyActive";
     internal const string TransactionConflicted = "TransactionConflicted";

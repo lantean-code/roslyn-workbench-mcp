@@ -25,7 +25,7 @@ internal sealed class SortUsingsTool : MutationToolHandler<SortUsingsRequest>
 
         var orderedUsings = root.Usings
             .OrderBy(item => request.SystemFirst ? !IsSystemUsing(item) : false)
-            .ThenBy(static item => item.Name?.ToString() ?? string.Empty, StringComparer.Ordinal)
+            .ThenBy(static item => GetNamespaceName(item) ?? string.Empty, StringComparer.Ordinal)
             .ThenBy(static item => item.Alias?.Name.Identifier.ValueText ?? string.Empty, StringComparer.Ordinal)
             .ToArray();
 
@@ -48,6 +48,30 @@ internal sealed class SortUsingsTool : MutationToolHandler<SortUsingsRequest>
 
     private static bool IsSystemUsing(UsingDirectiveSyntax usingDirective)
     {
-        return usingDirective.Name?.ToString().StartsWith("System", StringComparison.Ordinal) == true;
+        var namespaceName = GetNamespaceName(usingDirective);
+        if (namespaceName is null)
+        {
+            return false;
+        }
+
+        return string.Equals(namespaceName, "System", StringComparison.Ordinal)
+            || namespaceName.StartsWith("System.", StringComparison.Ordinal);
+    }
+
+    private static string? GetNamespaceName(UsingDirectiveSyntax usingDirective)
+    {
+        var namespaceName = usingDirective.Name?.ToString();
+        if (namespaceName is null)
+        {
+            return null;
+        }
+
+        const string globalAlias = "global::";
+        if (namespaceName.StartsWith(globalAlias, StringComparison.Ordinal))
+        {
+            namespaceName = namespaceName[globalAlias.Length..];
+        }
+
+        return namespaceName;
     }
 }

@@ -2,6 +2,31 @@ namespace Roslyn.Workbench.Mcp.Workspace.Test.Contracts.Selectors;
 
 public sealed class SelectorValidationTests
 {
+    [Theory]
+    [InlineData(0, 0, 0, true)]
+    [InlineData(0, 10, 10, true)]
+    [InlineData(10, 0, 10, true)]
+    [InlineData(-1, 1, 10, false)]
+    [InlineData(0, -1, 10, false)]
+    [InlineData(10, 1, 10, false)]
+    [InlineData(int.MaxValue, 1, 10, false)]
+    public void GIVEN_TextSpanAndDocumentLength_WHEN_CheckingContainment_THEN_ShouldReturnExpectedResult(
+        int start,
+        int length,
+        int documentLength,
+        bool expected)
+    {
+        var selector = new TextSpanSelector
+        {
+            Start = start,
+            Length = length,
+        };
+
+        var result = WorkspaceContractValidator.IsWithinDocument(selector, documentLength);
+
+        result.Should().Be(expected);
+    }
+
     [Fact]
     public void GIVEN_DocumentSelectorWithoutAnySelector_WHEN_Validated_THEN_ShouldReturnValidationError()
     {

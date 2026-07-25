@@ -39,6 +39,13 @@ internal static class WorkspaceContractValidator
             : ["LocationSelector must provide exactly one of Span or Selection."];
     }
 
+    public static bool IsWithinDocument(TextSpanSelector selector, int documentLength)
+    {
+        return selector.Start >= 0
+            && selector.Length >= 0
+            && selector.Start <= documentLength - selector.Length;
+    }
+
     public static IReadOnlyList<string> Validate(SymbolSelector selector)
     {
         var errors = new List<string>();

@@ -8,5 +8,5 @@ internal sealed record TransactionHistoryRequest : WorkspaceMutationRequest
     /// <summary>
     /// Gets the requested history direction.
     /// </summary>
-    public TransactionHistoryDirection Direction { get; init; }
+    public required TransactionHistoryDirection Direction { get; init; }
 }

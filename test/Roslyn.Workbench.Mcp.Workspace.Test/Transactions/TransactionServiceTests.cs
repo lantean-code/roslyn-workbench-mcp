@@ -502,7 +502,39 @@ public sealed class TransactionServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GIVEN_UnresolvedDocument_WHEN_PreviewingWithDiff_THEN_ShouldReturnSummaryWithoutDiff()
+    public async Task GIVEN_DocumentIsMissing_WHEN_PreviewingWithDiff_THEN_ShouldRejectRequest()
+    {
+        var operationLease = new Mock<IWorkspaceOperationLease>();
+        var gate = new Mock<IWorkspaceOperationGate>();
+        var transaction = CreateTransaction();
+        var session = CreateSession(transaction) with { OperationGate = gate.Object };
+        var expected = CreateResult<TransactionPreviewOutcome>();
+        SetupPreview(session, transaction, gate, operationLease);
+        SetupRejectedResult(expected, WorkspaceErrorCodes.InvalidRequest);
+
+        var result = await _target.PreviewAsync(
+            null,
+            null,
+            null,
+            null,
+            true,
+            3,
+            TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+        _diffBuilder.Verify(item => item.CreateChangeSummaryAsync(
+            It.IsAny<Solution>(),
+            It.IsAny<Solution>(),
+            It.IsAny<IWorkspaceResolver>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(SelectorResolveStatus.NotFound, WorkspaceErrorCodes.DocumentNotFound)]
+    [InlineData(SelectorResolveStatus.Ambiguous, WorkspaceErrorCodes.DocumentAmbiguous)]
+    public async Task GIVEN_UnresolvedDocument_WHEN_PreviewingWithDiff_THEN_ShouldRejectRequest(
+        SelectorResolveStatus status,
+        string expectedErrorCode)
     {
         var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
@@ -511,8 +543,18 @@ public sealed class TransactionServiceTests : IDisposable
         var selector = new DocumentSelector { DocumentId = "DocumentId" };
         var expected = CreateResult<TransactionPreviewOutcome>();
         SetupPreview(session, transaction, gate, operationLease);
-        _resolver.Setup(item => item.ResolveDocument(selector)).Returns(SelectorResolveResult<Document>.NotFound());
-        SetupPreviewSuccess(expected, diff: null);
+        SelectorResolveResult<Document> resolution;
+        if (status == SelectorResolveStatus.Ambiguous)
+        {
+            resolution = SelectorResolveResult<Document>.Ambiguous();
+        }
+        else
+        {
+            resolution = SelectorResolveResult<Document>.NotFound();
+        }
+
+        _resolver.Setup(item => item.ResolveDocument(selector)).Returns(resolution);
+        SetupRejectedResult(expected, expectedErrorCode);
 
         var result = await _target.PreviewAsync(
             null,
@@ -524,17 +566,15 @@ public sealed class TransactionServiceTests : IDisposable
             TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
-        _diffBuilder.Verify(item => item.CreateDocumentDiffAsync(
+        _diffBuilder.Verify(item => item.CreateChangeSummaryAsync(
             It.IsAny<Solution>(),
             It.IsAny<Solution>(),
-            It.IsAny<DocumentReference>(),
             It.IsAny<IWorkspaceResolver>(),
-            It.IsAny<int>(),
             It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
-    public async Task GIVEN_ResolvedDocumentWithoutReference_WHEN_PreviewingWithDiff_THEN_ShouldReturnSummaryWithoutDiff()
+    public async Task GIVEN_ResolvedDocumentWithoutReference_WHEN_PreviewingWithDiff_THEN_ShouldRejectRequest()
     {
         var operationLease = new Mock<IWorkspaceOperationLease>();
         var gate = new Mock<IWorkspaceOperationGate>();
@@ -546,7 +586,7 @@ public sealed class TransactionServiceTests : IDisposable
         SetupPreview(session, transaction, gate, operationLease);
         _resolver.Setup(item => item.ResolveDocument(selector)).Returns(SelectorResolveResult<Document>.Resolved(document));
         _resolver.Setup(item => item.CreateDocumentReference(document)).Returns((DocumentReference?)null);
-        SetupPreviewSuccess(expected, diff: null);
+        SetupRejectedResult(expected, WorkspaceErrorCodes.DocumentNotFound);
 
         var result = await _target.PreviewAsync(
             null,
@@ -558,6 +598,11 @@ public sealed class TransactionServiceTests : IDisposable
             TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
+        _diffBuilder.Verify(item => item.CreateChangeSummaryAsync(
+            It.IsAny<Solution>(),
+            It.IsAny<Solution>(),
+            It.IsAny<IWorkspaceResolver>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

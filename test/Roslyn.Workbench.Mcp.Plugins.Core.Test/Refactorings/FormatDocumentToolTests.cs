@@ -90,6 +90,47 @@ public sealed class FormatDocumentToolTests
         result.Outcome.Should().Be(PluginExecutionOutcome.NoChange);
     }
 
+    [Theory]
+    [InlineData(-1, 1)]
+    [InlineData(0, -1)]
+    [InlineData(11, 1)]
+    [InlineData(10, 2)]
+    [InlineData(int.MaxValue, 1)]
+    public async Task GIVEN_RangeIsOutsideDocument_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequestResult(int start, int length)
+    {
+        using var document = RoslynTestFactory.CreateDocument("class C {}", "Sample.cs");
+        var contextMocks = MutationContextMockHelper.Create();
+        var request = new FormatDocumentRequest
+        {
+            ExpectedSnapshot = new SnapshotPrecondition(),
+            Document = new DocumentSelector(),
+            Range = new TextSpanSelector
+            {
+                Start = start,
+                Length = length,
+            },
+        };
+
+        var target = new FormatDocumentTool();
+
+        contextMocks.RequestResolver
+            .Setup(item => item.ResolveDocument<MutationCandidate>(request.Document, contextMocks.MutationContext.Object))
+            .Returns(ToolResolutionResult<Document, MutationCandidate>.Resolved(document.Document));
+
+        contextMocks.RequestResolver
+            .Setup(item => item.ValidateSnapshot<MutationCandidate>(contextMocks.MutationContext.Object, request.ExpectedSnapshot))
+            .Returns((PluginExecutionResult<MutationCandidate>?)null);
+
+        var result = await target.ExecuteAsync(request, contextMocks.MutationContext.Object, CancellationToken.None);
+
+        result.Outcome.Should().Be(PluginExecutionOutcome.Rejected);
+        result.Error.Should().BeEquivalentTo(new PluginExecutionError
+        {
+            Code = "InvalidRequest",
+            Message = "The range must identify a span within the selected document.",
+        });
+    }
+
     [Fact]
     public async Task GIVEN_RangeFormattingChangesDocument_WHEN_CallingExecuteAsync_THEN_ShouldReturnMutationCandidate()
     {

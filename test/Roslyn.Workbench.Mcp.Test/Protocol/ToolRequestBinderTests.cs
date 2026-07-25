@@ -114,6 +114,7 @@ public sealed class ToolRequestBinderTests
         AssertMissingRequiredArguments<StageCodeActionRequest>("Missing required tool arguments: 'actionId', 'expectedSnapshot'.");
         AssertMissingRequiredArguments<StageCodeFixRequest>("Missing required tool arguments: 'actionId', 'expectedSnapshot'.");
         AssertMissingRequiredArguments<StageFixAllRequest>("Missing required tool arguments: 'actionId', 'expectedSnapshot', 'scope'.");
+        AssertMissingRequiredArguments<TransactionHistoryRequest>("Missing required tool arguments: 'direction', 'expectedSnapshot'.");
     }
 
     [Fact]

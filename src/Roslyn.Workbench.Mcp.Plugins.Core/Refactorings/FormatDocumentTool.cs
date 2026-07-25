@@ -23,6 +23,7 @@ internal sealed class FormatDocumentTool : MutationToolHandler<FormatDocumentReq
         }
 
         var document = documentResolution.Value;
+        var originalText = await document.GetTextAsync(cancellationToken);
         Document? formattedDocument;
         if (request.Range is null)
         {
@@ -30,11 +31,17 @@ internal sealed class FormatDocumentTool : MutationToolHandler<FormatDocumentReq
         }
         else
         {
+            if (!WorkspaceContractValidator.IsWithinDocument(request.Range, originalText.Length))
+            {
+                return PluginExecutionResultFactory.Rejected<MutationCandidate>(
+                    "InvalidRequest",
+                    "The range must identify a span within the selected document.");
+            }
+
             var span = new TextSpan(request.Range.Start, request.Range.Length);
             formattedDocument = await Formatter.FormatAsync(document, span, cancellationToken: cancellationToken);
         }
 
-        var originalText = await document.GetTextAsync(cancellationToken);
         var formattedText = await formattedDocument.GetTextAsync(cancellationToken);
         if (originalText.ContentEquals(formattedText))
         {

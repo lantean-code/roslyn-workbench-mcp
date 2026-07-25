@@ -148,6 +148,47 @@ internal sealed class TransactionService : ITransactionService
             session.Workspace,
             session.Transaction.CurrentRevision);
 
+        var context = CreateContext(session);
+        DocumentReference? diffDocument = null;
+        if (includeDiff)
+        {
+            if (document is null)
+            {
+                return _resultFactory.Rejected<TransactionPreviewOutcome>(
+                    WorkspaceErrorCodes.InvalidRequest,
+                    "A document selector is required when includeDiff is true.",
+                    context: context);
+            }
+
+            var resolution = resolver.ResolveDocument(document);
+            if (!resolution.IsResolved)
+            {
+                var errorCode = resolution.Status == SelectorResolveStatus.Ambiguous
+                    ? WorkspaceErrorCodes.DocumentAmbiguous
+                    : WorkspaceErrorCodes.DocumentNotFound;
+
+                var message = resolution.Status == SelectorResolveStatus.Ambiguous
+                    ? "The document selector matched multiple results."
+                    : "The document selector did not match any result.";
+
+                return _resultFactory.Rejected<TransactionPreviewOutcome>(
+                    errorCode,
+                    message,
+                    RequiredAction.ResolveTargetAgain,
+                    context);
+            }
+
+            diffDocument = resolver.CreateDocumentReference(resolution.Value);
+            if (diffDocument is null)
+            {
+                return _resultFactory.Rejected<TransactionPreviewOutcome>(
+                    WorkspaceErrorCodes.DocumentNotFound,
+                    "The resolved document cannot be represented within this workspace.",
+                    RequiredAction.ResolveTargetAgain,
+                    context);
+            }
+        }
+
         var changes = await _diffBuilder.CreateChangeSummaryAsync(
             session.Transaction.BaselineSolution,
             session.Transaction.CurrentSolution,
@@ -157,22 +198,15 @@ internal sealed class TransactionService : ITransactionService
         var documents = changes.Added.Concat(changes.Modified).Concat(changes.Deleted).ToArray();
         DocumentDiff? diff = null;
 
-        if (includeDiff && document is not null)
+        if (diffDocument is not null)
         {
-            var resolution = resolver.ResolveDocument(document);
-            if (resolution.IsResolved)
-            {
-                var reference = resolver.CreateDocumentReference(resolution.Value);
-                diff = reference is null
-                    ? null
-                    : await _diffBuilder.CreateDocumentDiffAsync(
-                        session.Transaction.BaselineSolution,
-                        session.Transaction.CurrentSolution,
-                        reference,
-                        resolver,
-                        contextLines,
-                        cancellationToken);
-            }
+            diff = await _diffBuilder.CreateDocumentDiffAsync(
+                session.Transaction.BaselineSolution,
+                session.Transaction.CurrentSolution,
+                diffDocument,
+                resolver,
+                contextLines,
+                cancellationToken);
         }
 
         var outcome = new TransactionPreviewOutcome
@@ -181,8 +215,6 @@ internal sealed class TransactionService : ITransactionService
             Documents = documents,
             Diff = diff,
         };
-
-        var context = CreateContext(session);
 
         return _resultFactory.Succeeded(outcome, context);
     }

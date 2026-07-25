@@ -153,6 +153,40 @@ public sealed class SortUsingsToolTests
     }
 
     [Fact]
+    public async Task GIVEN_SystemFirstAndNamespaceOnlyStartsWithSystem_WHEN_CallingExecuteAsync_THEN_ShouldNotClassifyItAsSystemNamespace()
+    {
+        using var document = RoslynTestFactory.CreateDocument(
+            "using Systematic;\r\nusing Zebra;\r\nusing System.Text;\r\nusing global::System;\r\n",
+            "Sample.cs");
+
+        var contextMocks = MutationContextMockHelper.Create();
+        var request = new SortUsingsRequest
+        {
+            ExpectedSnapshot = new SnapshotPrecondition(),
+            Document = new DocumentSelector(),
+            SystemFirst = true,
+        };
+
+        var target = new SortUsingsTool();
+
+        contextMocks.RequestResolver
+            .Setup(item => item.ResolveDocument<MutationCandidate>(request.Document, contextMocks.MutationContext.Object))
+            .Returns(ToolResolutionResult<Document, MutationCandidate>.Resolved(document.Document));
+
+        contextMocks.RequestResolver
+            .Setup(item => item.ValidateSnapshot<MutationCandidate>(contextMocks.MutationContext.Object, request.ExpectedSnapshot))
+            .Returns((PluginExecutionResult<MutationCandidate>?)null);
+
+        var result = await target.ExecuteAsync(request, contextMocks.MutationContext.Object, CancellationToken.None);
+
+        var candidateDocument = result.Data!.CandidateSolution.GetDocument(document.Document.Id);
+        var candidateText = await candidateDocument!.GetTextAsync(CancellationToken.None);
+
+        candidateText.ToString().Should().Be(
+            "using global::System;\r\nusing System.Text;\r\nusing Systematic;\r\nusing Zebra;\r\n");
+    }
+
+    [Fact]
     public async Task GIVEN_UsingDirectiveHasNoName_WHEN_CallingExecuteAsync_THEN_ShouldSortUsingEmptyName()
     {
         using var document = RoslynTestFactory.CreateDocument("using Zeta;\r\nusing ;\r\n");

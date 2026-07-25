@@ -402,7 +402,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
 
         var document = documentResolution.Value;
         var sourceText = await document.GetTextAsync(cancellationToken);
-        if (selector.Start < 0 || selector.Length < 0 || selector.Start + selector.Length > sourceText.Length)
+        if (!WorkspaceContractValidator.IsWithinDocument(selector, sourceText.Length))
         {
             return SelectorResolveResult<ResolvedDocumentSpan>.NotFound();
         }

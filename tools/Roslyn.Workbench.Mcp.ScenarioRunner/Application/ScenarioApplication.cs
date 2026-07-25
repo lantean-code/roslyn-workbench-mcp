@@ -2119,13 +2119,19 @@ internal static class ScenarioApplication
 
         var structuredContent = result.StructuredContent
             ?? throw new InvalidDataException("workspace-open returned no structured content.");
-
-        return structuredContent
+        var workspace = structuredContent
             .GetProperty("data")
-            .GetProperty("workspace")
+            .GetProperty("workspace");
+        var workspaceId = workspace
             .GetProperty("workspaceId")
             .GetString()
             ?? throw new InvalidDataException("workspace-open returned no workspaceId.");
+        var workspaceEpoch = workspace
+            .GetProperty("workspaceEpoch")
+            .GetInt64();
+
+        host.RegisterWorkspace(workspaceId, workspaceEpoch);
+        return workspaceId;
     }
 
     private static async Task CloseWorkspaceAsync(ScenarioHost host, string workspaceId)

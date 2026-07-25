@@ -15,6 +15,7 @@ internal sealed class ScenarioHost : IAsyncDisposable
     private readonly Process _process;
     private readonly StringBuilder _standardError = new();
     private readonly object _terminationLock = new();
+    private readonly Dictionary<string, long> _workspaceEpochs = new(StringComparer.Ordinal);
     private McpClient? _client;
     private int? _exitCode;
     private long _lastCancellationRequestId;
@@ -27,6 +28,19 @@ internal sealed class ScenarioHost : IAsyncDisposable
     }
 
     public int ProcessId => _process.Id;
+
+    public long GetWorkspaceEpoch(string workspaceId)
+    {
+        return _workspaceEpochs.TryGetValue(workspaceId, out var workspaceEpoch)
+            ? workspaceEpoch
+            : throw new InvalidOperationException(
+                $"Workspace '{workspaceId}' has no recorded epoch.");
+    }
+
+    public void RegisterWorkspace(string workspaceId, long workspaceEpoch)
+    {
+        _workspaceEpochs[workspaceId] = workspaceEpoch;
+    }
 
     public static async Task<ScenarioHost> StartAsync(
         string hostPath,

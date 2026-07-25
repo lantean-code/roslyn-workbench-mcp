@@ -42,14 +42,14 @@ public sealed class CodeActionTokenStagerTests
         if (stageCodeFix)
         {
             result = await _target.StageCodeFixAsync(
-                new StageCodeFixRequest { ActionId = "ActionId" },
+                new StageCodeFixRequest { ExpectedSnapshot = new SnapshotPrecondition(), ActionId = "ActionId" },
                 _context.Object,
                 CancellationToken.None);
         }
         else
         {
             result = await _target.StageCodeActionAsync(
-                new StageCodeActionRequest { ActionId = "ActionId" },
+                new StageCodeActionRequest { ExpectedSnapshot = new SnapshotPrecondition(), ActionId = "ActionId" },
                 _context.Object,
                 CancellationToken.None);
         }
@@ -86,8 +86,8 @@ public sealed class CodeActionTokenStagerTests
         var result = await _target.StageCodeActionAsync(
             new StageCodeActionRequest
             {
-                ActionId = "ActionId",
                 ExpectedSnapshot = expectedSnapshot,
+                ActionId = "ActionId",
             },
             _context.Object,
             CancellationToken.None);
@@ -108,14 +108,14 @@ public sealed class CodeActionTokenStagerTests
         _resolver
             .Setup(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
                 "ActionId",
-                null,
+                It.IsAny<SnapshotPrecondition>(),
                 DiscoveredActionKind.CodeFix,
                 _context.Object,
                 CancellationToken.None))
             .ReturnsAsync(CodeActionResolution<WorkspaceMutationCandidate>.Rejected(rejection));
 
         var result = await _target.StageCodeFixAsync(
-            new StageCodeFixRequest { ActionId = "ActionId" },
+            new StageCodeFixRequest { ExpectedSnapshot = new SnapshotPrecondition(), ActionId = "ActionId" },
             _context.Object,
             CancellationToken.None);
 
@@ -134,14 +134,14 @@ public sealed class CodeActionTokenStagerTests
         _resolver
             .Setup(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
                 "ActionId",
-                null,
+                It.IsAny<SnapshotPrecondition>(),
                 DiscoveredActionKind.Refactoring,
                 _context.Object,
                 CancellationToken.None))
             .ReturnsAsync(CreateResolution(action, roslyn.Document, CodeActionExecutionMode.Parameterised));
 
         var result = await _target.StageCodeActionAsync(
-            new StageCodeActionRequest { ActionId = "ActionId" },
+            new StageCodeActionRequest { ExpectedSnapshot = new SnapshotPrecondition(), ActionId = "ActionId" },
             _context.Object,
             CancellationToken.None);
 
@@ -161,7 +161,7 @@ public sealed class CodeActionTokenStagerTests
         _resolver
             .Setup(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
                 "ActionId",
-                null,
+                It.IsAny<SnapshotPrecondition>(),
                 DiscoveredActionKind.Refactoring,
                 _context.Object,
                 CancellationToken.None))
@@ -174,7 +174,7 @@ public sealed class CodeActionTokenStagerTests
                 "Unsupported action operation."));
 
         var result = await _target.StageCodeActionAsync(
-            new StageCodeActionRequest { ActionId = "ActionId" },
+            new StageCodeActionRequest { ExpectedSnapshot = new SnapshotPrecondition(), ActionId = "ActionId" },
             _context.Object,
             CancellationToken.None);
 

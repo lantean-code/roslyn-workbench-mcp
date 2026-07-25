@@ -25,13 +25,15 @@ internal sealed class ExtractMethodTool : CodeActionMutationToolHandler<ExtractM
             _ => (_methodTitle, _methodEquivalenceKey),
         };
 
-        return _selectionStager.StageReplayCodeActionAsync(new ReplayCodeActionRequest
+        var replayRequest = new ReplayCodeActionRequest
         {
             Location = request.Selection,
             ExpectedSnapshot = request.ExpectedSnapshot,
             ProviderId = _providerId,
             Title = title,
             EquivalenceKey = equivalenceKey,
-        }, context, cancellationToken);
+        };
+
+        return _selectionStager.StageReplayCodeActionAsync(replayRequest, context, cancellationToken);
     }
 }

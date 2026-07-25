@@ -47,7 +47,7 @@ public sealed class PluginConfigurationTests
     }
 
 #pragma warning disable CA1812 // Request fixture is consumed as closed generic registration metadata.
-    private sealed record Request : WorkspaceBoundRequest;
+    private sealed record Request : WorkspaceMutationRequest;
 #pragma warning restore CA1812
 
     private sealed record Response;

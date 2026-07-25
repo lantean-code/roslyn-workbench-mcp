@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 /// <summary>
 /// Requests promotion of a selected expression to a method parameter through Roslyn refactoring composition.
 /// </summary>
-internal sealed record IntroduceParameterRequest : WorkspaceBoundRequest
+internal sealed record IntroduceParameterRequest : WorkspaceMutationRequest
 {
     /// <summary>
     /// Gets the selected expression to promote.
@@ -18,10 +18,5 @@ internal sealed record IntroduceParameterRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the introduce-parameter strategy to stage.
     /// </summary>
-    public IntroduceParameterStrategy Strategy { get; init; }
-
-    /// <summary>
-    /// Gets the expected snapshot for the selected location.
-    /// </summary>
-    public SnapshotPrecondition? ExpectedSnapshot { get; init; }
+    public required IntroduceParameterStrategy Strategy { get; init; }
 }

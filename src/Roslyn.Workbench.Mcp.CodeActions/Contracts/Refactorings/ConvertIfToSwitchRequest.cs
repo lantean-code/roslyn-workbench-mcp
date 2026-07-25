@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 /// <summary>
 /// Requests conversion of a supported if-chain to a switch form through Roslyn refactoring composition.
 /// </summary>
-internal sealed record ConvertIfToSwitchRequest : WorkspaceBoundRequest
+internal sealed record ConvertIfToSwitchRequest : WorkspaceMutationRequest
 {
     /// <summary>
     /// Gets the selected if-chain to convert.
@@ -13,10 +13,5 @@ internal sealed record ConvertIfToSwitchRequest : WorkspaceBoundRequest
     /// <summary>
     /// Gets the target switch form to stage.
     /// </summary>
-    public ConvertIfToSwitchKind Kind { get; init; }
-
-    /// <summary>
-    /// Gets the expected snapshot for the selected location.
-    /// </summary>
-    public SnapshotPrecondition? ExpectedSnapshot { get; init; }
+    public required ConvertIfToSwitchKind Kind { get; init; }
 }

@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.Test.Tools;
@@ -15,7 +17,7 @@ public sealed class TransactionCommitToolTests
                 ServerOwnedToolTestData.GetWorkspaceId(includeWorkspace),
                 ServerOwnedToolTestData.GetWorkspaceAlias(includeWorkspace),
                 ServerOwnedToolTestData.GetWorkspacePath(includeWorkspace),
-                null,
+                It.IsAny<SnapshotPrecondition>(),
                 CancellationToken.None))
             .ReturnsAsync(WorkspaceOperationResult<TransactionCommitOutcome>.Succeeded(new TransactionCommitOutcome
             {
@@ -29,10 +31,13 @@ public sealed class TransactionCommitToolTests
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var target = new TransactionCommitTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
 
+        var arguments = ServerOwnedToolTestData.CreateWorkspaceArguments(includeWorkspace);
+        arguments["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition());
+
         var result = await ServerOwnedToolTestSupport.InvokeAsync(
             target,
             "transaction-commit",
-            ServerOwnedToolTestData.CreateWorkspaceArguments(includeWorkspace),
+            arguments,
             CancellationToken.None);
 
         result.IsError.Should().BeFalse();
@@ -43,7 +48,7 @@ public sealed class TransactionCommitToolTests
             ServerOwnedToolTestData.GetWorkspaceId(includeWorkspace),
             ServerOwnedToolTestData.GetWorkspaceAlias(includeWorkspace),
             ServerOwnedToolTestData.GetWorkspacePath(includeWorkspace),
-            null,
+            It.IsAny<SnapshotPrecondition>(),
             CancellationToken.None), Times.Once);
     }
 }

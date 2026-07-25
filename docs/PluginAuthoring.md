@@ -75,6 +75,8 @@ Fluent values override attribute values. Builders freeze when `Configure` return
 
 Handler implementation types may be non-public, but they must implement the appropriate non-generic handler marker through a closed generic handler contract and provide a public parameterless constructor. The generic configuration constraints therefore reject abstract handlers, handlers from the wrong family and handlers without public parameterless construction at compile time. Request and response contracts must be public. Runtime validation reports direct marker implementations, multiple or cross-family handler contracts, disposable handlers, MEF imports and invalid transport contracts as categorised errors. It accumulates all expected authoring diagnostics and atomically disables the plugin when any error exists; exceptions are reserved for unexpected loading, composition, construction or reflection failures. Declared instance or static state and disposable-valued fields publish categorised warnings because structural inspection cannot prove thread safety or resource ownership.
 
+Query request contracts derive from `WorkspaceBoundRequest`. Mutation request contracts derive from `WorkspaceMutationRequest`, which inherits the Workspace selector and adds the required `ExpectedSnapshot` precondition. The Host publishes that inherited precondition as a required, non-null input, so mutation plugins should not redeclare or weaken it. Before interpreting snapshot-sensitive selectors, handlers must use the request resolver's snapshot-aware methods or call `ValidateSnapshot` explicitly; Host then stages successful candidates through the transaction boundary.
+
 Preparation diagnostics use stable IDs for handler contracts, lifetime, composition, instance state, mutable members, static state, legacy registration, tool metadata, behaviour and duplicate tool names. Host adds distinct discovery, plugin-metadata, collision and materialisation IDs. `PluginLoad` is reserved for an unexpected exception crossing the load boundary.
 
 Runtime capabilities come only from `IQueryContext` or `IMutationContext`. Mutation handlers return a candidate solution and summary; Host stages the proposal through Workspace after the handler returns. Plugins do not receive Host dependency injection, MCP objects, file writers, workspace coordinators or Code Action services.
@@ -128,6 +130,7 @@ Host validates package metadata and compatibility before executing plugin code. 
 - Give the entry assembly a valid informational SemVer.
 - Place exactly one marked entry assembly in one immediate package directory.
 - Keep request and response contracts public and JSON serialisable.
+- Derive query requests from `WorkspaceBoundRequest` and mutation requests from `WorkspaceMutationRequest`.
 - Keep handlers thread-safe and non-disposable, with a public parameterless constructor.
 - Validate names against server-owned, Code Action and Plugins.Core tools.
 - Restart the stdio server and inspect `server-status` after deployment.

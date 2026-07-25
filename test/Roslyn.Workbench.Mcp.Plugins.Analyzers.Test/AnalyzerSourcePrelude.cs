@@ -51,13 +51,15 @@ internal static class AnalyzerSourcePrelude
 
             public abstract record WorkspaceBoundRequest;
 
+            public abstract record WorkspaceMutationRequest : WorkspaceBoundRequest;
+
             public interface IQueryToolHandler<TRequest, TResponse> : IQueryToolHandler
                 where TRequest : WorkspaceBoundRequest
             {
             }
 
             public interface IMutationToolHandler<TRequest> : IMutationToolHandler
-                where TRequest : WorkspaceBoundRequest
+                where TRequest : WorkspaceMutationRequest
             {
             }
 

@@ -72,7 +72,7 @@ internal sealed class ConflictRunner
         var commitStopwatch = Stopwatch.StartNew();
         var result = await _host.CallToolAsync(
             "transaction-commit",
-            CreateWorkspaceArguments(),
+            CreateMutationArguments(transactionRevision: 1),
             cancellationToken);
         commitStopwatch.Stop();
 
@@ -106,7 +106,7 @@ internal sealed class ConflictRunner
         var injectionTask = InjectWhenApplyingAsync(cancellationToken);
         var commitTask = _host.CallToolAsync(
             "transaction-commit",
-            CreateWorkspaceArguments(),
+            CreateMutationArguments(transactionRevision: 1),
             cancellationToken).AsTask();
 
         var externalMutation = await injectionTask;
@@ -275,6 +275,19 @@ internal sealed class ConflictRunner
                 ["workspaceId"] = _workspaceId,
             },
         };
+    }
+
+    private Dictionary<string, object?> CreateMutationArguments(int transactionRevision)
+    {
+        var arguments = CreateWorkspaceArguments();
+        arguments["expectedSnapshot"] = new Dictionary<string, object?>
+        {
+            ["workspaceId"] = _workspaceId,
+            ["workspaceEpoch"] = _host.GetWorkspaceEpoch(_workspaceId),
+            ["transactionRevision"] = transactionRevision,
+        };
+
+        return arguments;
     }
 
     private string ResolveRepositoryPath(string path)

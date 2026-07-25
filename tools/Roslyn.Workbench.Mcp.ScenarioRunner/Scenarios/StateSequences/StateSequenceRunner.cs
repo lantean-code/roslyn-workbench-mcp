@@ -415,7 +415,7 @@ internal sealed class StateSequenceRunner
             var undo = await InvokeRequiredAsync(
                 "history-undo",
                 "transaction-history",
-                CreateHistoryArguments("Undo"),
+                CreateHistoryArguments("Undo", transactionRevision: 2),
                 cancellationToken);
 
             steps.Add(undo);
@@ -428,7 +428,7 @@ internal sealed class StateSequenceRunner
             var redo = await InvokeRequiredAsync(
                 "history-redo",
                 "transaction-history",
-                CreateHistoryArguments("Redo"),
+                CreateHistoryArguments("Redo", transactionRevision: 1),
                 cancellationToken);
 
             steps.Add(redo);
@@ -441,7 +441,7 @@ internal sealed class StateSequenceRunner
             var commit = await InvokeRequiredAsync(
                 "transaction-commit",
                 "transaction-commit",
-                CreateWorkspaceArguments(),
+                CreateMutationArguments(transactionRevision: 2),
                 cancellationToken);
 
             steps.Add(commit);
@@ -515,7 +515,8 @@ internal sealed class StateSequenceRunner
         return ArgumentMaterializer.Materialize(
             arguments,
             _workspaceId,
-            _repositoryRoot);
+            _repositoryRoot,
+            _host.GetWorkspaceEpoch(_workspaceId));
     }
 
     private Dictionary<string, object?> CreateWorkspaceArguments()
@@ -531,10 +532,25 @@ internal sealed class StateSequenceRunner
         };
     }
 
-    private Dictionary<string, object?> CreateHistoryArguments(string direction)
+    private Dictionary<string, object?> CreateHistoryArguments(
+        string direction,
+        int transactionRevision)
+    {
+        var arguments = CreateMutationArguments(transactionRevision);
+        arguments["direction"] = direction;
+        return arguments;
+    }
+
+    private Dictionary<string, object?> CreateMutationArguments(int transactionRevision)
     {
         var arguments = CreateWorkspaceArguments();
-        arguments["direction"] = direction;
+        arguments["expectedSnapshot"] = new Dictionary<string, object?>
+        {
+            ["workspaceId"] = _workspaceId,
+            ["workspaceEpoch"] = _host.GetWorkspaceEpoch(_workspaceId),
+            ["transactionRevision"] = transactionRevision,
+        };
+
         return arguments;
     }
 

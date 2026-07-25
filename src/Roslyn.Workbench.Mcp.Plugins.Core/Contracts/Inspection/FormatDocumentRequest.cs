@@ -3,20 +3,15 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to format one document or a selected range.
 /// </summary>
-internal sealed record FormatDocumentRequest : WorkspaceBoundRequest
+internal sealed record FormatDocumentRequest : WorkspaceMutationRequest
 {
     /// <summary>
     /// Gets the document selector.
     /// </summary>
-    public DocumentSelector? Document { get; init; }
+    public required DocumentSelector Document { get; init; }
 
     /// <summary>
     /// Gets the optional range to format.
     /// </summary>
     public TextSpanSelector? Range { get; init; }
-
-    /// <summary>
-    /// Gets the expected snapshot for the selected document.
-    /// </summary>
-    public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 }

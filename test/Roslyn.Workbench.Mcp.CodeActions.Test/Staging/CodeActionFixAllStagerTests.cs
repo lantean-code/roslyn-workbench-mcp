@@ -185,7 +185,7 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
         _resolver
             .Setup(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
                 "ActionId",
-                null,
+                It.IsAny<SnapshotPrecondition>(),
                 DiscoveredActionKind.CodeFix,
                 _context.Object,
                 CancellationToken.None))
@@ -205,7 +205,7 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
         _resolver
             .Setup(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
                 "ActionId",
-                null,
+                It.IsAny<SnapshotPrecondition>(),
                 DiscoveredActionKind.CodeFix,
                 _context.Object,
                 CancellationToken.None))
@@ -509,7 +509,10 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
     }
 
     [Theory]
-    [InlineData(null, 3, false)]
+    [InlineData(null, 50, false)]
+    [InlineData(null, 51, true)]
+    [InlineData(-1, 0, false)]
+    [InlineData(-1, 1, true)]
     [InlineData(3, 3, false)]
     [InlineData(2, 3, true)]
     public async Task GIVEN_ChangeLimit_WHEN_StagingFixAll_THEN_ShouldEnforceMaximum(
@@ -599,6 +602,7 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
     {
         return new StageFixAllRequest
         {
+            ExpectedSnapshot = new SnapshotPrecondition(),
             ActionId = "ActionId",
             Scope = new ScopeSelector
             {
@@ -611,6 +615,7 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
     {
         return new StageFixAllRequest
         {
+            ExpectedSnapshot = new SnapshotPrecondition(),
             ActionId = "ActionId",
             Scope = new ScopeSelector
             {
@@ -624,6 +629,7 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
     {
         return new StageFixAllRequest
         {
+            ExpectedSnapshot = new SnapshotPrecondition(),
             ActionId = "ActionId",
             Scope = new ScopeSelector
             {

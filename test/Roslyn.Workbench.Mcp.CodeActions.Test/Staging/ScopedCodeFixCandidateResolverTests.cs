@@ -299,6 +299,7 @@ public sealed class ScopedCodeFixCandidateResolverTests : IDisposable
     {
         return new ScopedCodeFixRequest
         {
+            ExpectedSnapshot = new SnapshotPrecondition(),
             Scope = new ScopeSelector { Kind = ScopeKind.Solution },
             ProviderId = "ProviderId",
             DiagnosticIds = ["DiagnosticId"],

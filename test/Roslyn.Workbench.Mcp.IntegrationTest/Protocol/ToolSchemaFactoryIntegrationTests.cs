@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Reflection;
 using System.Text.Json;
 using Roslyn.Workbench.Mcp.CodeActions.Contracts;
+using Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 using Roslyn.Workbench.Mcp.Transaction.Contracts;
 
@@ -135,6 +136,86 @@ public sealed class ToolSchemaFactoryIntegrationTests
 
         targetSelectorProperties.Should().HaveCount(24);
         AssertRequiredNonNullableProperties(target, targetSelectorProperties);
+    }
+
+    [Fact]
+    [Trait("Category", "Contract")]
+    public void GIVEN_BuiltInMutationRequiredArguments_WHEN_ExportingInputSchemas_THEN_ShouldPublishRequiredNonNullableProperties()
+    {
+        var target = CreateTarget();
+        var requiredProperties = new[]
+        {
+            GetRequiredProperty<FormatDocumentRequest>(nameof(FormatDocumentRequest.Document)),
+            GetRequiredProperty<SortUsingsRequest>(nameof(SortUsingsRequest.Document)),
+            GetRequiredProperty<RenameSymbolRequest>(nameof(RenameSymbolRequest.Symbol)),
+            GetRequiredProperty<RenameSymbolRequest>(nameof(RenameSymbolRequest.NewName)),
+            GetRequiredProperty<StageCodeActionRequest>(nameof(StageCodeActionRequest.ActionId)),
+            GetRequiredProperty<StageCodeFixRequest>(nameof(StageCodeFixRequest.ActionId)),
+            GetRequiredProperty<StageFixAllRequest>(nameof(StageFixAllRequest.ActionId)),
+            GetRequiredProperty<AddAwaitRequest>(nameof(AddAwaitRequest.Kind)),
+            GetRequiredProperty<ConvertAnonymousTypeToClassRequest>(nameof(ConvertAnonymousTypeToClassRequest.Kind)),
+            GetRequiredProperty<ConvertForeachLinqRequest>(nameof(ConvertForeachLinqRequest.ConversionKind)),
+            GetRequiredProperty<ConvertIfToSwitchRequest>(nameof(ConvertIfToSwitchRequest.Kind)),
+            GetRequiredProperty<ConvertPropertyRequest>(nameof(ConvertPropertyRequest.Direction)),
+            GetRequiredProperty<ExtractMethodRequest>(nameof(ExtractMethodRequest.TargetKind)),
+            GetRequiredProperty<IntroduceParameterRequest>(nameof(IntroduceParameterRequest.Strategy)),
+            GetRequiredProperty<IntroduceVariableRequest>(nameof(IntroduceVariableRequest.Kind)),
+        };
+
+        requiredProperties.Should().HaveCount(15);
+        AssertRequiredNonNullableProperties(target, requiredProperties);
+    }
+
+    [Fact]
+    [Trait("Category", "Contract")]
+    public void GIVEN_BuiltInMutationRequests_WHEN_ExportingInputSchemas_THEN_ShouldInheritRequiredSnapshotPrecondition()
+    {
+        var target = CreateTarget();
+        var schemaMethod = typeof(ToolSchemaFactory).GetMethod(nameof(ToolSchemaFactory.CreateInputSchema))
+            ?? throw new InvalidOperationException("The input-schema factory method was not found.");
+
+        var requestAssemblies = new[]
+        {
+            typeof(TransactionCommitRequest).Assembly,
+            typeof(StageFixAllRequest).Assembly,
+            typeof(FormatDocumentRequest).Assembly,
+        };
+
+        var requestTypes = new List<Type>();
+        var visitedAssemblies = new HashSet<Assembly>();
+        foreach (var requestAssembly in requestAssemblies)
+        {
+            if (!visitedAssemblies.Add(requestAssembly))
+            {
+                continue;
+            }
+
+            foreach (var requestType in requestAssembly.GetTypes())
+            {
+                if (!requestType.IsAbstract
+                    && requestType.IsAssignableTo(typeof(WorkspaceMutationRequest)))
+                {
+                    requestTypes.Add(requestType);
+                }
+            }
+        }
+
+        requestTypes.Should().HaveCount(26);
+        foreach (var requestType in requestTypes)
+        {
+            var closedSchemaMethod = schemaMethod.MakeGenericMethod(requestType);
+            var publishedSchema = closedSchemaMethod.Invoke(target, null) is JsonElement schema
+                ? schema
+                : throw new InvalidOperationException("The input-schema factory did not return a JSON element.");
+
+            var requiredProperties = publishedSchema.GetProperty("required")
+                .EnumerateArray()
+                .Select(static item => item.GetString())
+                .ToArray();
+
+            requiredProperties.Should().Contain("expectedSnapshot");
+            AllowsNull(GetProperty(publishedSchema, "expectedSnapshot")).Should().BeFalse();
+        }
     }
 
     [Fact]

@@ -115,7 +115,7 @@ public sealed class CodeActionToolRegistryTests
     }
 
 #pragma warning disable CA1812 // Contract and handler fixtures are consumed as closed generic registration metadata.
-    private sealed record TestRequest : WorkspaceBoundRequest;
+    private sealed record TestRequest : WorkspaceMutationRequest;
 
     private sealed record TestResponse;
 

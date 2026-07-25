@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 
@@ -17,21 +18,37 @@ internal static class ToolRequestBinder
     {
         try
         {
-            var (requiredArgumentNames, requiredArgumentIndexes) = RequestMetadata<TRequest>.RequiredArguments;
-            var foundRequiredArguments = requiredArgumentNames.Length == 0
+            var metadata = RequestMetadata<TRequest>.Value;
+            var foundRequiredArguments = metadata.RequiredNames.Length == 0
                 ? null
-                : new bool[requiredArgumentNames.Length];
+                : new bool[metadata.RequiredNames.Length];
 
-            var buffer = SerializeArguments(arguments, requiredArgumentIndexes, foundRequiredArguments);
+            var foundEnumArguments = metadata.EnumArguments.Length == 0
+                ? null
+                : new bool[metadata.EnumArguments.Length];
+
+            var buffer = SerializeArguments(
+                arguments,
+                metadata.RequiredIndexes,
+                foundRequiredArguments,
+                metadata.EnumIndexes,
+                foundEnumArguments);
 
             if (foundRequiredArguments is not null
-                && TryCreateMissingArgumentsError(requiredArgumentNames, foundRequiredArguments, out errorMessage))
+                && TryCreateMissingArgumentsError(metadata.RequiredNames, foundRequiredArguments, out errorMessage))
             {
                 request = null;
                 return false;
             }
 
             request = Deserialize<TRequest>(buffer);
+            if (foundEnumArguments is not null
+                && TryCreateUndefinedEnumArgumentsError(request, metadata.EnumArguments, foundEnumArguments, out errorMessage))
+            {
+                request = null;
+                return false;
+            }
+
             errorMessage = null;
             return true;
         }
@@ -59,7 +76,9 @@ internal static class ToolRequestBinder
     private static ArrayBufferWriter<byte> SerializeArguments(
         IDictionary<string, JsonElement> arguments,
         Dictionary<string, int>? requiredArgumentIndexes,
-        bool[]? foundRequiredArguments)
+        bool[]? foundRequiredArguments,
+        Dictionary<string, int>? enumArgumentIndexes,
+        bool[]? foundEnumArguments)
     {
         var buffer = new ArrayBufferWriter<byte>();
 
@@ -72,14 +91,18 @@ internal static class ToolRequestBinder
                 writer.WritePropertyName(pair.Key);
                 pair.Value.WriteTo(writer);
 
-                if (requiredArgumentIndexes is null || foundRequiredArguments is null)
-                {
-                    continue;
-                }
-
-                if (requiredArgumentIndexes.TryGetValue(pair.Key, out var requiredArgumentIndex))
+                if (requiredArgumentIndexes is not null
+                    && foundRequiredArguments is not null
+                    && requiredArgumentIndexes.TryGetValue(pair.Key, out var requiredArgumentIndex))
                 {
                     foundRequiredArguments[requiredArgumentIndex] = true;
+                }
+
+                if (enumArgumentIndexes is not null
+                    && foundEnumArguments is not null
+                    && enumArgumentIndexes.TryGetValue(pair.Key, out var enumArgumentIndex))
+                {
+                    foundEnumArguments[enumArgumentIndex] = true;
                 }
             }
 
@@ -122,10 +145,93 @@ internal static class ToolRequestBinder
         return true;
     }
 
-    private static (string[] Names, Dictionary<string, int> Indexes) CreateRequiredArgumentMetadata(Type requestType)
+    private static bool TryCreateUndefinedEnumArgumentsError<TRequest>(
+        TRequest request,
+        EnumArgumentMetadata[] enumArguments,
+        bool[] foundEnumArguments,
+        [NotNullWhen(true)] out string? errorMessage)
+        where TRequest : class
+    {
+        List<string>? undefinedArguments = null;
+
+        for (var index = 0; index < enumArguments.Length; index++)
+        {
+            if (!foundEnumArguments[index])
+            {
+                continue;
+            }
+
+            var enumArgument = enumArguments[index];
+            var value = enumArgument.Getter(request);
+            if (value is null || IsDefinedEnumValue(enumArgument.Type, value))
+            {
+                continue;
+            }
+
+            undefinedArguments ??= [];
+            undefinedArguments.Add(enumArgument.Name);
+        }
+
+        if (undefinedArguments is null)
+        {
+            errorMessage = null;
+            return false;
+        }
+
+        var valueLabel = undefinedArguments.Count == 1
+            ? "value"
+            : "values";
+
+        var argumentLabel = undefinedArguments.Count == 1
+            ? "argument"
+            : "arguments";
+
+        var argumentNames = string.Join("', '", undefinedArguments);
+        errorMessage = $"Unsupported {valueLabel} for tool {argumentLabel}: '{argumentNames}'.";
+        return true;
+    }
+
+    private static bool IsDefinedEnumValue(Type enumType, object value)
+    {
+        if (Enum.IsDefined(enumType, value))
+        {
+            return true;
+        }
+
+        if (!enumType.IsDefined(typeof(FlagsAttribute), inherit: false))
+        {
+            return false;
+        }
+
+        var definedBits = 0UL;
+        foreach (var definedValue in Enum.GetValues(enumType))
+        {
+            definedBits |= ConvertEnumToUInt64(enumType, definedValue);
+        }
+
+        var valueBits = ConvertEnumToUInt64(enumType, value);
+        return (valueBits & ~definedBits) == 0;
+    }
+
+    private static ulong ConvertEnumToUInt64(Type enumType, object value)
+    {
+        var typeCode = Type.GetTypeCode(Enum.GetUnderlyingType(enumType));
+        if (typeCode is TypeCode.SByte
+            or TypeCode.Int16
+            or TypeCode.Int32
+            or TypeCode.Int64)
+        {
+            return unchecked((ulong)Convert.ToInt64(value, CultureInfo.InvariantCulture));
+        }
+
+        return Convert.ToUInt64(value, CultureInfo.InvariantCulture);
+    }
+
+    private static ToolRequestBindingMetadata CreateRequestMetadata(Type requestType)
     {
         var typeInfo = _serializerOptions.GetTypeInfo(requestType);
         var requiredArgumentNames = new List<string>();
+        var enumArguments = new List<EnumArgumentMetadata>();
 
         foreach (var property in typeInfo.Properties)
         {
@@ -133,18 +239,38 @@ internal static class ToolRequestBinder
             {
                 requiredArgumentNames.Add(property.Name);
             }
+
+            var propertyType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
+            if (propertyType.IsEnum && property.Get is not null)
+            {
+                enumArguments.Add(new EnumArgumentMetadata(property.Name, propertyType, property.Get));
+            }
         }
 
         requiredArgumentNames.Sort(StringComparer.Ordinal);
-        var names = requiredArgumentNames.ToArray();
-        var indexes = new Dictionary<string, int>(names.Length, StringComparer.OrdinalIgnoreCase);
+        enumArguments.Sort(static (left, right) => StringComparer.Ordinal.Compare(left.Name, right.Name));
 
-        for (var index = 0; index < names.Length; index++)
+        var requiredNames = requiredArgumentNames.ToArray();
+        var requiredIndexes = new Dictionary<string, int>(requiredNames.Length, StringComparer.OrdinalIgnoreCase);
+
+        for (var index = 0; index < requiredNames.Length; index++)
         {
-            indexes.Add(names[index], index);
+            requiredIndexes.Add(requiredNames[index], index);
         }
 
-        return (names, indexes);
+        var enumArgumentArray = enumArguments.ToArray();
+        var enumIndexes = new Dictionary<string, int>(enumArgumentArray.Length, StringComparer.OrdinalIgnoreCase);
+
+        for (var index = 0; index < enumArgumentArray.Length; index++)
+        {
+            enumIndexes.Add(enumArgumentArray[index].Name, index);
+        }
+
+        return new ToolRequestBindingMetadata(
+            requiredNames,
+            requiredIndexes,
+            enumArgumentArray,
+            enumIndexes);
     }
 
     private static JsonSerializerOptions CreateSerializerOptions()
@@ -162,7 +288,6 @@ internal static class ToolRequestBinder
     private static class RequestMetadata<TRequest>
         where TRequest : class
     {
-        public static (string[] Names, Dictionary<string, int> Indexes) RequiredArguments { get; } =
-            CreateRequiredArgumentMetadata(typeof(TRequest));
+        public static ToolRequestBindingMetadata Value { get; } = CreateRequestMetadata(typeof(TRequest));
     }
 }

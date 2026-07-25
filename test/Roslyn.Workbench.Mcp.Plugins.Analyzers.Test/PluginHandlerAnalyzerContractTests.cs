@@ -19,7 +19,7 @@ public sealed class PluginHandlerAnalyzerContractTests
     public async Task GIVEN_HandlerImplementsBothFamilies_WHEN_Analyzing_THEN_ShouldReportRwmcp005()
     {
         const string source = """
-            public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceBoundRequest;
+            public sealed record Request : Roslyn.Workbench.Mcp.Plugins.WorkspaceMutationRequest;
             public sealed record Response;
 
             public sealed class {|RWMCP005:Handler|} :

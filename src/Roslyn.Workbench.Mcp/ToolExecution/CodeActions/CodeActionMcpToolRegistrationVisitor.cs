@@ -21,7 +21,7 @@ internal sealed class CodeActionMcpToolRegistrationVisitor : ICodeActionToolRegi
 
     public bool VisitMutation<THandler, TRequest>(CodeActionMutationRegistration<THandler, TRequest> registration)
         where THandler : class, ICodeActionMutationToolHandler<TRequest>
-        where TRequest : WorkspaceBoundRequest
+        where TRequest : WorkspaceMutationRequest
     {
         _services.AddSingleton(registration);
         _services.AddSingleton<THandler>();

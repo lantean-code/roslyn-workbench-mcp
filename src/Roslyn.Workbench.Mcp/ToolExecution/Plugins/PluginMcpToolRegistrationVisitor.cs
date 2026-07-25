@@ -18,7 +18,7 @@ internal sealed class PluginMcpToolRegistrationVisitor : IPluginToolRegistration
     }
 
     public bool VisitMutation<TRequest>(PluginMutationRegistration<TRequest> registration)
-        where TRequest : WorkspaceBoundRequest
+        where TRequest : WorkspaceMutationRequest
     {
         _services.AddSingleton(registration);
         _services.AddSingleton<McpServerTool, PluginMutationMcpServerTool<TRequest>>();

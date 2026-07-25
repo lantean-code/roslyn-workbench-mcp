@@ -14,7 +14,10 @@ public sealed class PluginWorkspaceContainmentIntegrationTests
             fixture.ProjectPath,
             TestContext.Current.CancellationToken);
 
-        var request = new TestRequest();
+        var request = new TestRequest
+        {
+            ExpectedSnapshot = new SnapshotPrecondition(),
+        };
 
         await using var lease = workspace.CreateQueryContext(
             request,
@@ -51,7 +54,10 @@ public sealed class PluginWorkspaceContainmentIntegrationTests
             TestContext.Current.CancellationToken);
 
         var startResult = await workspace.StartTransactionAsync(TestContext.Current.CancellationToken);
-        var request = new TestRequest();
+        var request = new TestRequest
+        {
+            ExpectedSnapshot = new SnapshotPrecondition(),
+        };
 
         await using var lease = workspace.CreateMutationContext(
             request,
@@ -78,7 +84,7 @@ public sealed class PluginWorkspaceContainmentIntegrationTests
         containmentFailure.RequiredAction.Should().Be(RequiredAction.RollbackTransaction);
     }
 
-    private sealed record TestRequest : WorkspaceBoundRequest;
+    private sealed record TestRequest : WorkspaceMutationRequest;
 
     private sealed class TestResponse;
 

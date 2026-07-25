@@ -49,6 +49,7 @@ public sealed class LocationCodeFixStagerTests
         var action = async () => await _target.StageLocationCodeFixAsync(
             new LocationCodeFixRequest
             {
+                ExpectedSnapshot = new SnapshotPrecondition(),
                 Location = new LocationSelector(),
             },
             _context.Object,
@@ -69,6 +70,7 @@ public sealed class LocationCodeFixStagerTests
         var result = await _target.StageLocationCodeFixAsync(
             new LocationCodeFixRequest
             {
+                ExpectedSnapshot = new SnapshotPrecondition(),
                 Location = new LocationSelector(),
             },
             _context.Object,
@@ -89,8 +91,8 @@ public sealed class LocationCodeFixStagerTests
         var result = await _target.StageLocationCodeFixAsync(
             new LocationCodeFixRequest
             {
-                Location = new LocationSelector(),
                 ExpectedSnapshot = expectedSnapshot,
+                Location = new LocationSelector(),
             },
             _context.Object,
             CancellationToken.None);
@@ -105,6 +107,7 @@ public sealed class LocationCodeFixStagerTests
         var result = await _target.StageLocationCodeFixAsync(
             new LocationCodeFixRequest
             {
+                ExpectedSnapshot = new SnapshotPrecondition(),
                 Location = new LocationSelector(),
             },
             _context.Object,
@@ -537,6 +540,7 @@ public sealed class LocationCodeFixStagerTests
     {
         return new LocationCodeFixRequest
         {
+            ExpectedSnapshot = new SnapshotPrecondition(),
             Location = selector,
             DiagnosticIds = ["DiagnosticId"],
             ProviderId = "ProviderId",

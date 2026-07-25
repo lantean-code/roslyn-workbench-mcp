@@ -14,6 +14,7 @@ public sealed class SortUsingsToolTests
         var contextMocks = MutationContextMockHelper.Create();
         var request = new SortUsingsRequest
         {
+            ExpectedSnapshot = new SnapshotPrecondition(),
             Document = new DocumentSelector(),
         };
 
@@ -44,11 +45,8 @@ public sealed class SortUsingsToolTests
         var contextMocks = MutationContextMockHelper.Create();
         var request = new SortUsingsRequest
         {
+            ExpectedSnapshot = new SnapshotPrecondition(),
             Document = new DocumentSelector(),
-            ExpectedSnapshot = new SnapshotPrecondition
-            {
-                WorkspaceEpoch = 1,
-            },
         };
 
         var target = new SortUsingsTool();
@@ -73,6 +71,7 @@ public sealed class SortUsingsToolTests
         var contextMocks = MutationContextMockHelper.Create();
         var request = new SortUsingsRequest
         {
+            ExpectedSnapshot = new SnapshotPrecondition(),
             Document = new DocumentSelector(),
         };
 
@@ -103,6 +102,7 @@ public sealed class SortUsingsToolTests
         var contextMocks = MutationContextMockHelper.Create();
         var request = new SortUsingsRequest
         {
+            ExpectedSnapshot = new SnapshotPrecondition(),
             Document = new DocumentSelector(),
             SystemFirst = false,
         };
@@ -129,6 +129,7 @@ public sealed class SortUsingsToolTests
         var contextMocks = MutationContextMockHelper.Create();
         var request = new SortUsingsRequest
         {
+            ExpectedSnapshot = new SnapshotPrecondition(),
             Document = new DocumentSelector(),
             SystemFirst = true,
         };
@@ -158,6 +159,7 @@ public sealed class SortUsingsToolTests
         var contextMocks = MutationContextMockHelper.Create();
         var request = new SortUsingsRequest
         {
+            ExpectedSnapshot = new SnapshotPrecondition(),
             Document = new DocumentSelector(),
             SystemFirst = true,
         };

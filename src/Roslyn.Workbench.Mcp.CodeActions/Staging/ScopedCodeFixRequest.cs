@@ -13,7 +13,7 @@ internal sealed record ScopedCodeFixRequest
     /// <summary>
     /// Gets the expected workspace snapshot for the operation.
     /// </summary>
-    public SnapshotPrecondition? ExpectedSnapshot { get; init; }
+    public required SnapshotPrecondition ExpectedSnapshot { get; init; }
 
     /// <summary>
     /// Gets the diagnostic IDs that must be supported by the selected code fix.

@@ -88,7 +88,7 @@ internal sealed class CodeActionFixAllStager : ICodeActionFixAllStager
         }
 
         var limitRejection = await EnforceChangeLimitAsync(
-            request.MaxChanges,
+            request.EffectiveMaxChanges,
             context.CurrentSolution,
             application.CandidateSolution,
             cancellationToken);
@@ -291,7 +291,7 @@ internal sealed class CodeActionFixAllStager : ICodeActionFixAllStager
     }
 
     private async ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>?> EnforceChangeLimitAsync(
-        int? maxChanges,
+        int maxChanges,
         Solution originalSolution,
         Solution candidateSolution,
         CancellationToken cancellationToken)
@@ -301,7 +301,7 @@ internal sealed class CodeActionFixAllStager : ICodeActionFixAllStager
             candidateSolution,
             cancellationToken);
 
-        if (maxChanges is null || changedDocumentCount <= maxChanges.Value)
+        if (changedDocumentCount <= maxChanges)
         {
             return null;
         }
@@ -309,7 +309,7 @@ internal sealed class CodeActionFixAllStager : ICodeActionFixAllStager
         return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
         {
             Code = "FixAllLimitExceeded",
-            Message = $"The fix-all operation would change {changedDocumentCount} source documents, exceeding the limit of {maxChanges.Value}.",
+            Message = $"The fix-all operation would change {changedDocumentCount} source documents, exceeding the limit of {maxChanges}.",
         }, RequiredAction.NarrowRequest);
     }
 

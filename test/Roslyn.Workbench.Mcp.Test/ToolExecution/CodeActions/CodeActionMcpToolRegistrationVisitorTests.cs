@@ -98,7 +98,7 @@ public sealed class CodeActionMcpToolRegistrationVisitorTests
     }
 
 #pragma warning disable CA1812 // Contract and handler fixtures are activated indirectly by dependency injection.
-    private sealed record TestRequest : WorkspaceBoundRequest
+    private sealed record TestRequest : WorkspaceMutationRequest
     {
     }
 

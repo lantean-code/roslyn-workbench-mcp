@@ -159,7 +159,7 @@ internal sealed class CodeActionSelectionStager : ICodeActionSelectionStager
 
     public ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageSelectionAsync(
         LocationSelector selection,
-        SnapshotPrecondition? expectedSnapshot,
+        SnapshotPrecondition expectedSnapshot,
         CancellationToken cancellationToken,
         ICodeActionExecutionContext context,
         string providerId,

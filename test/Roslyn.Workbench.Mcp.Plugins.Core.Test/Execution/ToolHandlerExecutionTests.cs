@@ -10,7 +10,11 @@ public sealed class ToolHandlerExecutionTests
         using var cancellationTokenSource = new CancellationTokenSource();
         await cancellationTokenSource.CancelAsync();
 
-        var action = async () => await target.ExecuteAsync(new TestWorkspaceBoundRequest(), context.Object, cancellationTokenSource.Token);
+        var request = new TestWorkspaceBoundRequest
+        {
+            ExpectedSnapshot = new SnapshotPrecondition(),
+        };
+        var action = async () => await target.ExecuteAsync(request, context.Object, cancellationTokenSource.Token);
 
         await action.Should().ThrowAsync<OperationCanceledException>();
     }
@@ -23,12 +27,16 @@ public sealed class ToolHandlerExecutionTests
         using var cancellationTokenSource = new CancellationTokenSource();
         await cancellationTokenSource.CancelAsync();
 
-        var action = async () => await target.ExecuteAsync(new TestWorkspaceBoundRequest(), context.Object, cancellationTokenSource.Token);
+        var request = new TestWorkspaceBoundRequest
+        {
+            ExpectedSnapshot = new SnapshotPrecondition(),
+        };
+        var action = async () => await target.ExecuteAsync(request, context.Object, cancellationTokenSource.Token);
 
         await action.Should().ThrowAsync<OperationCanceledException>();
     }
 
-    private sealed record TestWorkspaceBoundRequest : WorkspaceBoundRequest;
+    private sealed record TestWorkspaceBoundRequest : WorkspaceMutationRequest;
 
     private sealed class TestQueryTool : QueryToolHandler<TestWorkspaceBoundRequest, string>
     {

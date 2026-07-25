@@ -32,7 +32,7 @@ public sealed class PluginMutationMcpServerToolTests
 
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
-        var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
+        var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateMutationArguments(), CancellationToken.None);
 
         result.IsError.Should().BeTrue();
         result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeFalse();
@@ -72,7 +72,7 @@ public sealed class PluginMutationMcpServerToolTests
 
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
-        var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
+        var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateMutationArguments(), CancellationToken.None);
 
         result.IsError.Should().BeTrue();
         result.StructuredContent!.Value.GetProperty("error").GetProperty("code").GetString().Should().Be("Rejected");
@@ -103,7 +103,7 @@ public sealed class PluginMutationMcpServerToolTests
 
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
-        var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
+        var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateMutationArguments(), CancellationToken.None);
 
         result.IsError.Should().BeFalse();
         result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeTrue();
@@ -142,7 +142,7 @@ public sealed class PluginMutationMcpServerToolTests
 
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
-        var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
+        var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateMutationArguments(), CancellationToken.None);
 
         result.IsError.Should().BeTrue();
         result.StructuredContent!.Value.GetProperty("error").GetProperty("code").GetString()
@@ -226,7 +226,7 @@ public sealed class PluginMutationMcpServerToolTests
 
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
-        var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
+        var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateMutationArguments(), CancellationToken.None);
 
         result.IsError.Should().BeFalse();
         result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeTrue();
@@ -280,7 +280,7 @@ public sealed class PluginMutationMcpServerToolTests
 
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
-        var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
+        var result = await target.InvokeArgumentsAsync(McpServerToolTestData.CreateMutationArguments(), CancellationToken.None);
 
         result.IsError.Should().BeTrue();
         result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeFalse();
@@ -311,7 +311,7 @@ public sealed class PluginMutationMcpServerToolTests
 
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
-        var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
+        var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateMutationArguments(), CancellationToken.None);
 
         await action.Should().ThrowAsync<InvalidOperationException>();
         contextFactory.Verify(item => item.DetectUnexpectedWorkspaceChange(context.Object), Times.Once);
@@ -343,7 +343,7 @@ public sealed class PluginMutationMcpServerToolTests
 
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
-        var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), cancellationSource.Token);
+        var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateMutationArguments(), cancellationSource.Token);
 
         await action.Should().ThrowAsync<OperationCanceledException>();
         operationLease.Verify(item => item.Dispose(), Times.Once);
@@ -385,7 +385,7 @@ public sealed class PluginMutationMcpServerToolTests
 
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
-        var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), CancellationToken.None);
+        var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateMutationArguments(), CancellationToken.None);
 
         await action.Should().ThrowAsync<InvalidOperationException>();
         operationLease.Verify(item => item.Dispose(), Times.Once);
@@ -429,7 +429,7 @@ public sealed class PluginMutationMcpServerToolTests
 
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
-        var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateArguments(), cancellationSource.Token);
+        var action = async () => await target.InvokeArgumentsAsync(McpServerToolTestData.CreateMutationArguments(), cancellationSource.Token);
 
         await action.Should().ThrowAsync<OperationCanceledException>();
         operationLease.Verify(item => item.Dispose(), Times.Once);
@@ -475,7 +475,7 @@ public sealed class PluginMutationMcpServerToolTests
     }
 
 #pragma warning disable CA1515 // Moq's dynamic proxy must access this closed-generic handler contract.
-    public sealed record TestMutationRequest : WorkspaceBoundRequest
+    public sealed record TestMutationRequest : WorkspaceMutationRequest
     {
         public string Name { get; init; } = string.Empty;
     }

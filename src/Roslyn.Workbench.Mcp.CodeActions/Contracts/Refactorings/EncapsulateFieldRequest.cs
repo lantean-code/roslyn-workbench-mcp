@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 /// <summary>
 /// Requests field encapsulation through Roslyn refactoring composition.
 /// </summary>
-internal sealed record EncapsulateFieldRequest : WorkspaceBoundRequest
+internal sealed record EncapsulateFieldRequest : WorkspaceMutationRequest
 {
     /// <summary>
     /// Gets the field to encapsulate.
@@ -14,9 +14,4 @@ internal sealed record EncapsulateFieldRequest : WorkspaceBoundRequest
     /// Gets a value indicating whether field references should be rewritten to use the generated property.
     /// </summary>
     public bool UpdateReferences { get; init; } = true;
-
-    /// <summary>
-    /// Gets the expected snapshot for the selected field symbol.
-    /// </summary>
-    public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 }

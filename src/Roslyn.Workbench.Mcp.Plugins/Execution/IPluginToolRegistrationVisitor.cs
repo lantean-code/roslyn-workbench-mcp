@@ -6,5 +6,5 @@ internal interface IPluginToolRegistrationVisitor<out TResult>
         where TRequest : WorkspaceBoundRequest;
 
     TResult VisitMutation<TRequest>(PluginMutationRegistration<TRequest> registration)
-        where TRequest : WorkspaceBoundRequest;
+        where TRequest : WorkspaceMutationRequest;
 }

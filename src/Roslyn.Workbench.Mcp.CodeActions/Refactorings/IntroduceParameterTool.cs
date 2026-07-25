@@ -33,7 +33,7 @@ internal sealed class IntroduceParameterTool : CodeActionMutationToolHandler<Int
             _ => [occurrenceIndex, 0],
         };
 
-        return _selectionStager.StageReplayCodeActionAsync(new ReplayCodeActionRequest
+        var replayRequest = new ReplayCodeActionRequest
         {
             Location = request.Selection,
             ExpectedSnapshot = request.ExpectedSnapshot,
@@ -41,6 +41,8 @@ internal sealed class IntroduceParameterTool : CodeActionMutationToolHandler<Int
             Title = title,
             EquivalenceKey = title,
             ActionPath = actionPath,
-        }, context, cancellationToken);
+        };
+
+        return _selectionStager.StageReplayCodeActionAsync(replayRequest, context, cancellationToken);
     }
 }

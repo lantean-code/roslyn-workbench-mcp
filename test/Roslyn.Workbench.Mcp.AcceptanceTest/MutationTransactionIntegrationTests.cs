@@ -22,6 +22,7 @@ public sealed class MutationTransactionIntegrationTests
                 new Dictionary<string, object?>
                 {
                     ["workspace"] = workspaceSelector,
+                    ["expectedSnapshot"] = workspace.CreateSnapshot(transactionRevision: 0),
                     ["summary"] = "Rename the acceptance fixture type.",
                     ["relativeDocumentPath"] = "Class1.cs",
                     ["searchText"] = "Class1",
@@ -73,6 +74,7 @@ public sealed class MutationTransactionIntegrationTests
                 new Dictionary<string, object?>
                 {
                     ["workspace"] = workspaceSelector,
+                    ["expectedSnapshot"] = workspace.CreateSnapshot(transactionRevision: 0),
                     ["summary"] = "Return the current immutable solution.",
                 },
                 TestContext.Current.CancellationToken);

@@ -5,24 +5,34 @@ namespace Roslyn.Workbench.Mcp.ScenarioRunner.Scenarios;
 internal static class ArgumentMaterializer
 {
     private const string _repositoryRootToken = "${repositoryRoot}";
+    private const string _workspaceEpochToken = "${workspaceEpoch}";
     private const string _workspaceIdToken = "${workspaceId}";
 
     public static IReadOnlyDictionary<string, object?> Materialize(
         JsonElement arguments,
         string workspaceId,
-        string repositoryRoot)
+        string repositoryRoot,
+        long workspaceEpoch)
     {
         if (arguments.ValueKind != JsonValueKind.Object)
         {
             throw new InvalidDataException("Tool arguments must be a JSON object.");
         }
 
-        var materialized = ConvertElement(arguments, workspaceId, repositoryRoot);
+        var materialized = ConvertElement(
+            arguments,
+            workspaceId,
+            repositoryRoot,
+            workspaceEpoch);
         return materialized as IReadOnlyDictionary<string, object?>
             ?? throw new InvalidOperationException("Materialising a JSON object did not produce a dictionary.");
     }
 
-    private static object? ConvertElement(JsonElement element, string workspaceId, string repositoryRoot)
+    private static object? ConvertElement(
+        JsonElement element,
+        string workspaceId,
+        string repositoryRoot,
+        long workspaceEpoch)
     {
         switch (element.ValueKind)
         {
@@ -30,7 +40,11 @@ internal static class ArgumentMaterializer
                 var values = new Dictionary<string, object?>();
                 foreach (var property in element.EnumerateObject())
                 {
-                    values[property.Name] = ConvertElement(property.Value, workspaceId, repositoryRoot);
+                    values[property.Name] = ConvertElement(
+                        property.Value,
+                        workspaceId,
+                        repositoryRoot,
+                        workspaceEpoch);
                 }
 
                 return values;
@@ -39,13 +53,20 @@ internal static class ArgumentMaterializer
                 var items = new List<object?>();
                 foreach (var item in element.EnumerateArray())
                 {
-                    items.Add(ConvertElement(item, workspaceId, repositoryRoot));
+                    items.Add(ConvertElement(
+                        item,
+                        workspaceId,
+                        repositoryRoot,
+                        workspaceEpoch));
                 }
 
                 return items;
 
             case JsonValueKind.String:
-                return ReplaceTokens(element.GetString() ?? string.Empty, workspaceId, repositoryRoot);
+                var value = element.GetString() ?? string.Empty;
+                return string.Equals(value, _workspaceEpochToken, StringComparison.Ordinal)
+                    ? workspaceEpoch
+                    : ReplaceTokens(value, workspaceId, repositoryRoot);
 
             case JsonValueKind.Number:
                 return element.TryGetInt64(out var integer) ? integer : element.GetDouble();

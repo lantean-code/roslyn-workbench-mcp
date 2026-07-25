@@ -5,14 +5,14 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts;
 /// <summary>
 /// Represents a request to stage a selected code fix across a broader scope.
 /// </summary>
-internal sealed record StageFixAllRequest : WorkspaceBoundRequest
+internal sealed record StageFixAllRequest : WorkspaceMutationRequest
 {
-    internal const int _defaultMaxChanges = 50;
+    private const int _defaultMaxChanges = 50;
 
     /// <summary>
     /// Gets the opaque action token.
     /// </summary>
-    public string ActionId { get; init; } = string.Empty;
+    public required string ActionId { get; init; }
 
     /// <summary>
     /// Gets the target scope for the fix-all operation.
@@ -25,8 +25,5 @@ internal sealed record StageFixAllRequest : WorkspaceBoundRequest
     [DefaultValue(_defaultMaxChanges)]
     public int? MaxChanges { get; init; } = _defaultMaxChanges;
 
-    /// <summary>
-    /// Gets the expected workspace snapshot.
-    /// </summary>
-    public SnapshotPrecondition? ExpectedSnapshot { get; init; }
+    internal int EffectiveMaxChanges => Math.Max(0, MaxChanges ?? _defaultMaxChanges);
 }

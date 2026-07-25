@@ -15,7 +15,7 @@ public sealed class HostValidMutationPlugin : IRoslynPlugin
         _ = configuration.AddMutationTool<Handler>();
     }
 
-    public sealed record Request : WorkspaceBoundRequest
+    public sealed record Request : WorkspaceMutationRequest
     {
         public string Summary { get; init; } = string.Empty;
 

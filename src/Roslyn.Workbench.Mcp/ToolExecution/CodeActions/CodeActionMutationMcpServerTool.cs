@@ -4,7 +4,7 @@ namespace Roslyn.Workbench.Mcp.ToolExecution.CodeActions;
 
 internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpServerToolBase<TRequest>
     where THandler : class, ICodeActionMutationToolHandler<TRequest>
-    where TRequest : WorkspaceBoundRequest
+    where TRequest : WorkspaceMutationRequest
 {
     private readonly CodeActionToolMetadata _metadata;
     private readonly THandler _handler;

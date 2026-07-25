@@ -3,17 +3,17 @@ namespace Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 /// <summary>
 /// Represents a request to rename a resolved symbol.
 /// </summary>
-internal sealed record RenameSymbolRequest : WorkspaceBoundRequest
+internal sealed record RenameSymbolRequest : WorkspaceMutationRequest
 {
     /// <summary>
     /// Gets the symbol selector.
     /// </summary>
-    public SymbolSelector? Symbol { get; init; }
+    public required SymbolSelector Symbol { get; init; }
 
     /// <summary>
     /// Gets the new symbol name.
     /// </summary>
-    public string NewName { get; init; } = string.Empty;
+    public required string NewName { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether overloads should also be renamed.
@@ -34,9 +34,4 @@ internal sealed record RenameSymbolRequest : WorkspaceBoundRequest
     /// Gets a value indicating whether the containing file should be renamed for type symbols.
     /// </summary>
     public bool RenameFile { get; init; }
-
-    /// <summary>
-    /// Gets the expected snapshot for the selected symbol.
-    /// </summary>
-    public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 }

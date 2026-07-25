@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 /// <summary>
 /// Requests one supported use-named-arguments refactoring through Roslyn refactoring composition.
 /// </summary>
-internal sealed record UseNamedArgumentsRequest : WorkspaceBoundRequest
+internal sealed record UseNamedArgumentsRequest : WorkspaceMutationRequest
 {
     /// <summary>
     /// Gets the selected argument location.
@@ -14,9 +14,4 @@ internal sealed record UseNamedArgumentsRequest : WorkspaceBoundRequest
     /// Gets a value indicating whether trailing arguments should also receive names.
     /// </summary>
     public bool IncludeTrailingArguments { get; init; }
-
-    /// <summary>
-    /// Gets the expected snapshot for the selected location.
-    /// </summary>
-    public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 }

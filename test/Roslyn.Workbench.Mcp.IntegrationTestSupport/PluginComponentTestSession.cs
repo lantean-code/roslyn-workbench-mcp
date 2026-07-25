@@ -25,7 +25,7 @@ internal sealed class PluginComponentTestSession
         string toolName,
         TRequest request,
         CancellationToken cancellationToken)
-        where TRequest : WorkspaceBoundRequest
+        where TRequest : WorkspaceMutationRequest
     {
         var tool = GetTool(toolName);
         return tool.Accept(new MutationVisitor<TRequest>(this, request, cancellationToken));
@@ -56,7 +56,7 @@ internal sealed class PluginComponentTestSession
         PluginMutationRegistration<TRequest> registration,
         TRequest request,
         CancellationToken cancellationToken)
-        where TRequest : WorkspaceBoundRequest
+        where TRequest : WorkspaceMutationRequest
     {
         await using var lease = _workspace.PluginContextFactory.CreateMutationContext(request, cancellationToken);
         if (lease.HasFailure)
@@ -133,7 +133,7 @@ internal sealed class PluginComponentTestSession
 
         public ValueTask<PluginExecutionResult<TExpectedResponse>> VisitMutation<TRequest>(
             PluginMutationRegistration<TRequest> registration)
-            where TRequest : WorkspaceBoundRequest
+            where TRequest : WorkspaceMutationRequest
         {
             throw new InvalidOperationException($"Tool '{registration.Tool.Metadata.Name}' is not a query tool.");
         }
@@ -141,7 +141,7 @@ internal sealed class PluginComponentTestSession
 
     private sealed class MutationVisitor<TExpectedRequest>
         : IPluginToolRegistrationVisitor<ValueTask<PluginExecutionResult<MutationData>>>
-        where TExpectedRequest : WorkspaceBoundRequest
+        where TExpectedRequest : WorkspaceMutationRequest
     {
         private readonly PluginComponentTestSession _session;
         private readonly TExpectedRequest _request;
@@ -166,7 +166,7 @@ internal sealed class PluginComponentTestSession
 
         public ValueTask<PluginExecutionResult<MutationData>> VisitMutation<TRequest>(
             PluginMutationRegistration<TRequest> registration)
-            where TRequest : WorkspaceBoundRequest
+            where TRequest : WorkspaceMutationRequest
         {
             if (registration is not PluginMutationRegistration<TExpectedRequest> typedRegistration)
             {

@@ -23,6 +23,13 @@ internal static class McpServerToolTestData
         return arguments;
     }
 
+    public static Dictionary<string, JsonElement> CreateMutationArguments()
+    {
+        var arguments = CreateArguments();
+        arguments["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition());
+        return arguments;
+    }
+
     public static Tool CreateProtocolTool(string name)
     {
         return new Tool
@@ -45,7 +52,7 @@ internal static class McpServerToolTestData
     public static PluginMutationRegistration<TRequest> CreatePluginMutationRegistration<TRequest>(
         IMutationToolHandler<TRequest> handler,
         string name)
-        where TRequest : WorkspaceBoundRequest
+        where TRequest : WorkspaceMutationRequest
     {
         return new PluginMutationRegistration<TRequest>(
             CreateRegisteredPluginTool(name, ToolKind.Mutation, typeof(TRequest), typeof(MutationData)),

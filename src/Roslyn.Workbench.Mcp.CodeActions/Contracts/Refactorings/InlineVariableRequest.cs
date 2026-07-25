@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 /// <summary>
 /// Requests inlining of a local variable through Roslyn refactoring composition.
 /// </summary>
-internal sealed record InlineVariableRequest : WorkspaceBoundRequest
+internal sealed record InlineVariableRequest : WorkspaceMutationRequest
 {
     /// <summary>
     /// Gets the symbol selector for the local variable to inline.
@@ -14,9 +14,4 @@ internal sealed record InlineVariableRequest : WorkspaceBoundRequest
     /// Gets a value indicating whether the declaration should be removed after inlining.
     /// </summary>
     public bool RemoveDeclaration { get; init; } = true;
-
-    /// <summary>
-    /// Gets the expected snapshot for the selected symbol.
-    /// </summary>
-    public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 }

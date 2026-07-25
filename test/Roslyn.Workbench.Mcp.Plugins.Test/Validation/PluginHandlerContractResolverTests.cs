@@ -114,7 +114,7 @@ public sealed class PluginHandlerContractResolverTests
     }
 
 #pragma warning disable CA1515 // These fixtures must be externally visible to exercise the valid public plugin-contract path.
-    public sealed record Request : WorkspaceBoundRequest;
+    public sealed record Request : WorkspaceMutationRequest;
 
     public sealed record SecondRequest : WorkspaceBoundRequest;
 

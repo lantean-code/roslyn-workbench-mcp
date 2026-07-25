@@ -46,6 +46,7 @@ public sealed class CodeActionSelectionStagerTests
         var action = async () => await _target.StageReplayCodeActionAsync(
             new ReplayCodeActionRequest
             {
+                ExpectedSnapshot = new SnapshotPrecondition(),
                 Location = new LocationSelector(),
             },
             _context.Object,
@@ -66,6 +67,7 @@ public sealed class CodeActionSelectionStagerTests
         var result = await _target.StageReplayCodeActionAsync(
             new ReplayCodeActionRequest
             {
+                ExpectedSnapshot = new SnapshotPrecondition(),
                 Location = new LocationSelector(),
             },
             _context.Object,
@@ -86,8 +88,8 @@ public sealed class CodeActionSelectionStagerTests
         var result = await _target.StageReplayCodeActionAsync(
             new ReplayCodeActionRequest
             {
-                Location = new LocationSelector(),
                 ExpectedSnapshot = expectedSnapshot,
+                Location = new LocationSelector(),
             },
             _context.Object,
             CancellationToken.None);
@@ -111,6 +113,7 @@ public sealed class CodeActionSelectionStagerTests
         var result = await _target.StageReplayCodeActionAsync(
             new ReplayCodeActionRequest
             {
+                ExpectedSnapshot = new SnapshotPrecondition(),
                 Location = selector,
             },
             _context.Object,
@@ -135,6 +138,7 @@ public sealed class CodeActionSelectionStagerTests
         var result = await _target.StageReplayCodeActionAsync(
             new ReplayCodeActionRequest
             {
+                ExpectedSnapshot = new SnapshotPrecondition(),
                 Location = selector,
             },
             _context.Object,
@@ -162,6 +166,7 @@ public sealed class CodeActionSelectionStagerTests
         var result = await _target.StageReplayCodeActionAsync(
             new ReplayCodeActionRequest
             {
+                ExpectedSnapshot = new SnapshotPrecondition(),
                 Location = selector,
                 ProviderId = "ProviderId",
             },
@@ -234,6 +239,7 @@ public sealed class CodeActionSelectionStagerTests
         var result = await _target.StageReplayCodeActionAsync(
             new ReplayCodeActionRequest
             {
+                ExpectedSnapshot = new SnapshotPrecondition(),
                 Location = selector,
             },
             _context.Object,
@@ -272,6 +278,7 @@ public sealed class CodeActionSelectionStagerTests
         var result = await _target.StageReplayCodeActionAsync(
             new ReplayCodeActionRequest
             {
+                ExpectedSnapshot = new SnapshotPrecondition(),
                 Location = selector,
             },
             _context.Object,
@@ -310,6 +317,7 @@ public sealed class CodeActionSelectionStagerTests
         var result = await _target.StageReplayCodeActionAsync(
             new ReplayCodeActionRequest
             {
+                ExpectedSnapshot = new SnapshotPrecondition(),
                 Location = selector,
                 ProviderId = "ProviderId",
             },
@@ -399,6 +407,7 @@ public sealed class CodeActionSelectionStagerTests
         var result = await _target.StageReplayCodeActionAsync(
             new ReplayCodeActionRequest
             {
+                ExpectedSnapshot = new SnapshotPrecondition(),
                 Location = selector,
                 ProviderId = "ProviderId",
             },
@@ -419,30 +428,35 @@ public sealed class CodeActionSelectionStagerTests
         {
             ReplayFilter.Title => new ReplayCodeActionRequest
             {
+                ExpectedSnapshot = new SnapshotPrecondition(),
                 Location = selector,
                 ProviderId = "ProviderId",
                 Title = "OtherTitle",
             },
             ReplayFilter.TitleStartsWith => new ReplayCodeActionRequest
             {
+                ExpectedSnapshot = new SnapshotPrecondition(),
                 Location = selector,
                 ProviderId = "ProviderId",
                 TitleStartsWith = "Other",
             },
             ReplayFilter.TitleDoesNotContain => new ReplayCodeActionRequest
             {
+                ExpectedSnapshot = new SnapshotPrecondition(),
                 Location = selector,
                 ProviderId = "ProviderId",
                 TitleDoesNotContain = "Title",
             },
             ReplayFilter.EquivalenceKey => new ReplayCodeActionRequest
             {
+                ExpectedSnapshot = new SnapshotPrecondition(),
                 Location = selector,
                 ProviderId = "ProviderId",
                 EquivalenceKey = "OtherEquivalenceKey",
             },
             _ => new ReplayCodeActionRequest
             {
+                ExpectedSnapshot = new SnapshotPrecondition(),
                 Location = selector,
                 ProviderId = "ProviderId",
                 ActionPath = [2],

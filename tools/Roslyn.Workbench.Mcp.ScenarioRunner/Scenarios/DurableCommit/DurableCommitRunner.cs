@@ -76,7 +76,7 @@ internal sealed class DurableCommitRunner
         DurableCommitPreparation preparation,
         CancellationToken cancellationToken)
     {
-        var workspaceArguments = CreateWorkspaceArguments();
+        var workspaceArguments = CreateMutationArguments(transactionRevision: 1);
         var before = _host.CaptureSnapshot();
         var commitStopwatch = Stopwatch.StartNew();
         var commitResult = await InvokeRequiredAsync(
@@ -121,6 +121,19 @@ internal sealed class DurableCommitRunner
         };
     }
 
+    private Dictionary<string, object?> CreateMutationArguments(int transactionRevision)
+    {
+        var arguments = CreateWorkspaceArguments();
+        arguments["expectedSnapshot"] = new Dictionary<string, object?>
+        {
+            ["workspaceId"] = _workspaceId,
+            ["workspaceEpoch"] = _host.GetWorkspaceEpoch(_workspaceId),
+            ["transactionRevision"] = transactionRevision,
+        };
+
+        return arguments;
+    }
+
     private async Task<CallToolResult> InvokeRequiredAsync(
         string tool,
         JsonElement argumentDefinition,
@@ -129,7 +142,8 @@ internal sealed class DurableCommitRunner
         var arguments = ArgumentMaterializer.Materialize(
             argumentDefinition,
             _workspaceId,
-            _repositoryRoot);
+            _repositoryRoot,
+            _host.GetWorkspaceEpoch(_workspaceId));
 
         return await InvokeRequiredAsync(tool, arguments, cancellationToken);
     }

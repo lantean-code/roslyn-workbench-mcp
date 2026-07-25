@@ -48,7 +48,7 @@ internal sealed class CodeActionTokenStager : ICodeActionTokenStager
 
     private async ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageAsync(
         string actionId,
-        SnapshotPrecondition? expectedSnapshot,
+        SnapshotPrecondition expectedSnapshot,
         DiscoveredActionKind expectedKind,
         ICodeActionExecutionContext context,
         CancellationToken cancellationToken)

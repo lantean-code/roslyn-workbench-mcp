@@ -22,7 +22,7 @@ public interface IMutationToolHandler
 /// not own disposable resources. Invocation-scoped services are available through the supplied mutation context.
 /// </remarks>
 public interface IMutationToolHandler<TRequest> : IMutationToolHandler
-    where TRequest : WorkspaceBoundRequest
+    where TRequest : WorkspaceMutationRequest
 {
     /// <summary>
     /// Executes the tool for the provided request.

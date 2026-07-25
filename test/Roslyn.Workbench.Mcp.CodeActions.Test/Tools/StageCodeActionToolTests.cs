@@ -8,6 +8,7 @@ public sealed class StageCodeActionToolTests
         var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var request = new StageCodeActionRequest
         {
+            ExpectedSnapshot = new SnapshotPrecondition(),
             ActionId = "ActionId",
         };
 

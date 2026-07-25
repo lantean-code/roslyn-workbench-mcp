@@ -76,7 +76,7 @@ internal sealed class CodeActionComponentTestSession
         TRequest request,
         CancellationToken cancellationToken)
         where THandler : class, ICodeActionMutationToolHandler<TRequest>
-        where TRequest : WorkspaceBoundRequest
+        where TRequest : WorkspaceMutationRequest
     {
         await using var lease = _workspace.CodeActionContextFactory.CreateMutationContext(request, cancellationToken);
         if (lease.HasFailure)

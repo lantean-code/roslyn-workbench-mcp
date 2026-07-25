@@ -45,7 +45,8 @@ internal sealed class ConcurrencyRunner
         var secondaryArguments = ArgumentMaterializer.Materialize(
             definition.SecondaryArguments,
             _secondaryWorkspaceId,
-            _repositoryRoot);
+            _repositoryRoot,
+            _host.GetWorkspaceEpoch(_secondaryWorkspaceId));
         for (var warmup = 0; warmup < warmupCount; warmup++)
         {
             _ = await InvokeRequiredAsync(
@@ -379,7 +380,8 @@ internal sealed class ConcurrencyRunner
         return ArgumentMaterializer.Materialize(
             scenario.Arguments,
             workspaceId,
-            _repositoryRoot);
+            _repositoryRoot,
+            _host.GetWorkspaceEpoch(workspaceId));
     }
 
     private static Dictionary<string, object?> CreateWorkspaceArguments(

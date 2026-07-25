@@ -67,7 +67,7 @@ internal sealed class PluginToolRegistrationMaterializer : IPluginToolRegistrati
     }
 
     private static IRegisteredPluginTool CreateMutationRegistration<TRequest>(RegisteredTool tool, object handler)
-        where TRequest : WorkspaceBoundRequest
+        where TRequest : WorkspaceMutationRequest
     {
         var mutationHandler = (IMutationToolHandler<TRequest>)handler;
         return new PluginMutationRegistration<TRequest>(tool, mutationHandler);

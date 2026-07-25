@@ -3,7 +3,7 @@ using Microsoft.Extensions.Options;
 namespace Roslyn.Workbench.Mcp.ToolExecution.Plugins;
 
 internal sealed class PluginMutationMcpServerTool<TRequest> : McpServerToolBase<TRequest>
-    where TRequest : WorkspaceBoundRequest
+    where TRequest : WorkspaceMutationRequest
 {
     private readonly RegisteredTool _tool;
     private readonly IMutationToolHandler<TRequest> _handler;

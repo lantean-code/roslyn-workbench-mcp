@@ -17,7 +17,7 @@ internal sealed class CodeActionToolRegistry : ICodeActionToolRegistry
 
     public void RegisterMutationTool<THandler, TRequest>(CodeActionToolMetadata metadata)
         where THandler : class, ICodeActionMutationToolHandler<TRequest>
-        where TRequest : WorkspaceBoundRequest
+        where TRequest : WorkspaceMutationRequest
     {
         Validate(metadata);
         _tools.Add(new CodeActionMutationRegistration<THandler, TRequest>(metadata));

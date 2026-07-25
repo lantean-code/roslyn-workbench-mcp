@@ -1,7 +1,7 @@
 namespace Roslyn.Workbench.Mcp.Plugins.Execution;
 
 internal sealed class PluginMutationRegistration<TRequest> : IRegisteredPluginTool
-    where TRequest : WorkspaceBoundRequest
+    where TRequest : WorkspaceMutationRequest
 {
     public PluginMutationRegistration(
         RegisteredTool tool,

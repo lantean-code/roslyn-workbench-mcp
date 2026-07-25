@@ -22,16 +22,6 @@ internal sealed class ConvertPropertyTool : CodeActionMutationToolHandler<Conver
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(ConvertPropertyRequest request, ICodeActionMutationContext context, CancellationToken cancellationToken)
     {
-        if (request.Direction is not ConvertPropertyDirection.ToFull
-            and not ConvertPropertyDirection.ToAutoWhenSafe)
-        {
-            var rejection = CodeActionExecutionResultFactory.Rejected<WorkspaceMutationCandidate>(
-                "InvalidRequest",
-                "The requested property conversion direction is not supported.");
-
-            return ValueTask.FromResult(rejection);
-        }
-
         if (request.Direction == ConvertPropertyDirection.ToFull)
         {
             return _selectionStager.StageSelectionAsync(

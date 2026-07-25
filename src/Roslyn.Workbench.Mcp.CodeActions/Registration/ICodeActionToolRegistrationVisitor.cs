@@ -8,5 +8,5 @@ internal interface ICodeActionToolRegistrationVisitor<out TResult>
 
     TResult VisitMutation<THandler, TRequest>(CodeActionMutationRegistration<THandler, TRequest> registration)
         where THandler : class, ICodeActionMutationToolHandler<TRequest>
-        where TRequest : WorkspaceBoundRequest;
+        where TRequest : WorkspaceMutationRequest;
 }

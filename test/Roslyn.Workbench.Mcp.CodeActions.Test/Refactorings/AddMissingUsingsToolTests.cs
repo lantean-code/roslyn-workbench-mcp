@@ -8,6 +8,7 @@ public sealed class AddMissingUsingsToolTests
         var context = new Mock<ICodeActionMutationContext>();
         var request = new AddMissingUsingsRequest
         {
+            ExpectedSnapshot = new SnapshotPrecondition(),
             PreferGlobalUsings = true,
             Scope = new ScopeSelector
             {
@@ -35,13 +36,13 @@ public sealed class AddMissingUsingsToolTests
         var context = new Mock<ICodeActionMutationContext>();
         var request = new AddMissingUsingsRequest
         {
-            Scope = new ScopeSelector
-            {
-                Kind = ScopeKind.Project,
-            },
             ExpectedSnapshot = new SnapshotPrecondition
             {
                 WorkspaceEpoch = 1,
+            },
+            Scope = new ScopeSelector
+            {
+                Kind = ScopeKind.Project,
             },
             PreferGlobalUsings = false,
         };

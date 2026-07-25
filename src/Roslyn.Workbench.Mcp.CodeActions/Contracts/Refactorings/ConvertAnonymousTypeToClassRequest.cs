@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 /// <summary>
 /// Requests one supported anonymous-type-to-named-type refactoring through Roslyn refactoring composition.
 /// </summary>
-internal sealed record ConvertAnonymousTypeToClassRequest : WorkspaceBoundRequest
+internal sealed record ConvertAnonymousTypeToClassRequest : WorkspaceMutationRequest
 {
     /// <summary>
     /// Gets the selected anonymous object creation to rewrite.
@@ -13,10 +13,5 @@ internal sealed record ConvertAnonymousTypeToClassRequest : WorkspaceBoundReques
     /// <summary>
     /// Gets the named-type variant to stage.
     /// </summary>
-    public ConvertAnonymousTypeToClassKind Kind { get; init; }
-
-    /// <summary>
-    /// Gets the expected snapshot for the selected location.
-    /// </summary>
-    public SnapshotPrecondition? ExpectedSnapshot { get; init; }
+    public required ConvertAnonymousTypeToClassKind Kind { get; init; }
 }

@@ -101,40 +101,4 @@ public sealed class ConvertPropertyToolTests
             context.Object,
             CancellationToken.None), Times.Once);
     }
-
-    [Fact]
-    public async Task GIVEN_UnsupportedDirection_WHEN_CallingExecuteAsync_THEN_ShouldReturnInvalidRequest()
-    {
-        var context = new Mock<ICodeActionMutationContext>();
-        var request = new ConvertPropertyRequest
-        {
-            Selection = new LocationSelector(),
-            Direction = (ConvertPropertyDirection)999,
-        };
-
-        var selectionStager = new Mock<ICodeActionSelectionStager>();
-        var locationFixStager = new Mock<ILocationCodeFixStager>();
-        var target = new ConvertPropertyTool(selectionStager.Object, locationFixStager.Object);
-
-        var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
-
-        result.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
-        result.Error!.Code.Should().Be("InvalidRequest");
-        selectionStager.Verify(item => item.StageSelectionAsync(
-            It.IsAny<LocationSelector>(),
-            It.IsAny<SnapshotPrecondition?>(),
-            It.IsAny<CancellationToken>(),
-            context.Object,
-            It.IsAny<string>(),
-            It.IsAny<string?>(),
-            It.IsAny<string?>(),
-            It.IsAny<string?>(),
-            It.IsAny<string?>(),
-            It.IsAny<IReadOnlyList<int>?>()), Times.Never);
-
-        locationFixStager.Verify(item => item.StageLocationCodeFixAsync(
-            It.IsAny<LocationCodeFixRequest>(),
-            context.Object,
-            It.IsAny<CancellationToken>()), Times.Never);
-    }
 }

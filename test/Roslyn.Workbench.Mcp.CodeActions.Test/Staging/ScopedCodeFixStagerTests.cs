@@ -214,6 +214,7 @@ public sealed class ScopedCodeFixStagerTests : IDisposable
         var result = await _target.StageScopedCodeFixAsync(
             new ScopedCodeFixRequest
             {
+                ExpectedSnapshot = new SnapshotPrecondition(),
                 Scope = new ScopeSelector
                 {
                     Kind = ScopeKind.Solution,
@@ -744,6 +745,7 @@ public sealed class ScopedCodeFixStagerTests : IDisposable
     {
         return new ScopedCodeFixRequest
         {
+            ExpectedSnapshot = new SnapshotPrecondition(),
             Scope = new ScopeSelector
             {
                 Kind = scopeKind,

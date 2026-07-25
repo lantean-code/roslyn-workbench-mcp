@@ -130,7 +130,7 @@ internal sealed class ToolInvocationRunner
         var measurements = new List<CancellationMeasurement>();
         for (var iteration = 1; iteration <= count; iteration++)
         {
-            var arguments = ArgumentMaterializer.Materialize(scenario.Arguments, _workspaceId, _repositoryRoot);
+            var arguments = Materialize(scenario.Arguments);
             var (requestId, invocation) = _host.StartCancellableToolCall(scenario.Tool, arguments, cancellationToken);
             var cancellationDelayTask = Task.Delay(cancellationDelay, cancellationToken);
             var completedTask = await Task.WhenAny(invocation, cancellationDelayTask);
@@ -204,7 +204,7 @@ internal sealed class ToolInvocationRunner
         ScenarioDefinition scenario,
         CancellationToken cancellationToken)
     {
-        var arguments = ArgumentMaterializer.Materialize(scenario.Arguments, _workspaceId, _repositoryRoot);
+        var arguments = Materialize(scenario.Arguments);
         var result = await _host.CallToolAsync(scenario.Tool, arguments, cancellationToken);
         ThrowIfScenarioFailed(scenario.Id, result);
 
@@ -235,8 +235,17 @@ internal sealed class ToolInvocationRunner
         JsonElement argumentDefinition,
         CancellationToken cancellationToken)
     {
-        var arguments = ArgumentMaterializer.Materialize(argumentDefinition, _workspaceId, _repositoryRoot);
+        var arguments = Materialize(argumentDefinition);
         await InvokeRequiredAsync(tool, arguments, cancellationToken);
+    }
+
+    private IReadOnlyDictionary<string, object?> Materialize(JsonElement arguments)
+    {
+        return ArgumentMaterializer.Materialize(
+            arguments,
+            _workspaceId,
+            _repositoryRoot,
+            _host.GetWorkspaceEpoch(_workspaceId));
     }
 
     private async Task InvokeRequiredAsync(

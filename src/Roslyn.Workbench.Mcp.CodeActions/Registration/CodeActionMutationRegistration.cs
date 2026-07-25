@@ -2,7 +2,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Registration;
 
 internal sealed class CodeActionMutationRegistration<THandler, TRequest> : IRegisteredCodeActionTool
     where THandler : class, ICodeActionMutationToolHandler<TRequest>
-    where TRequest : WorkspaceBoundRequest
+    where TRequest : WorkspaceMutationRequest
 {
     public CodeActionMutationRegistration(CodeActionToolMetadata metadata)
     {

@@ -8,6 +8,7 @@ public sealed class StageFixAllToolTests
         var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var request = new StageFixAllRequest
         {
+            ExpectedSnapshot = new SnapshotPrecondition(),
             ActionId = "ActionId",
             Scope = new ScopeSelector
             {

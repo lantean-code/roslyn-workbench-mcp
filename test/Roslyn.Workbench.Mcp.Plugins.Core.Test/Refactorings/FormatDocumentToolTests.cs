@@ -14,6 +14,7 @@ public sealed class FormatDocumentToolTests
         var contextMocks = MutationContextMockHelper.Create();
         var request = new FormatDocumentRequest
         {
+            ExpectedSnapshot = new SnapshotPrecondition(),
             Document = new DocumentSelector(),
         };
 
@@ -44,11 +45,8 @@ public sealed class FormatDocumentToolTests
         var contextMocks = MutationContextMockHelper.Create();
         var request = new FormatDocumentRequest
         {
+            ExpectedSnapshot = new SnapshotPrecondition(),
             Document = new DocumentSelector(),
-            ExpectedSnapshot = new SnapshotPrecondition
-            {
-                WorkspaceEpoch = 1,
-            },
         };
 
         var target = new FormatDocumentTool();
@@ -73,6 +71,7 @@ public sealed class FormatDocumentToolTests
         var contextMocks = MutationContextMockHelper.Create();
         var request = new FormatDocumentRequest
         {
+            ExpectedSnapshot = new SnapshotPrecondition(),
             Document = new DocumentSelector(),
         };
 
@@ -99,6 +98,7 @@ public sealed class FormatDocumentToolTests
         var contextMocks = MutationContextMockHelper.Create();
         var request = new FormatDocumentRequest
         {
+            ExpectedSnapshot = new SnapshotPrecondition(),
             Document = new DocumentSelector(),
             Range = new TextSpanSelector
             {

@@ -13,7 +13,7 @@ internal sealed record ReplayCodeActionRequest
     /// <summary>
     /// Gets the expected workspace snapshot for the operation.
     /// </summary>
-    public SnapshotPrecondition? ExpectedSnapshot { get; init; }
+    public required SnapshotPrecondition ExpectedSnapshot { get; init; }
 
     /// <summary>
     /// Gets the optional provider identity to require.

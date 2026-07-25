@@ -3,7 +3,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 /// <summary>
 /// Requests one supported add-import refactoring through Roslyn refactoring composition.
 /// </summary>
-internal sealed record AddImportRequest : WorkspaceBoundRequest
+internal sealed record AddImportRequest : WorkspaceMutationRequest
 {
     /// <summary>
     /// Gets the selected qualified type reference to rewrite.
@@ -14,9 +14,4 @@ internal sealed record AddImportRequest : WorkspaceBoundRequest
     /// Gets a value indicating whether all matching occurrences should also be simplified.
     /// </summary>
     public bool SimplifyAllOccurrences { get; init; }
-
-    /// <summary>
-    /// Gets the expected snapshot for the selected location.
-    /// </summary>
-    public SnapshotPrecondition? ExpectedSnapshot { get; init; }
 }

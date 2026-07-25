@@ -18,7 +18,7 @@ public sealed class TransactionHistoryToolTests
                 ServerOwnedToolTestData.GetWorkspaceAlias(includeWorkspace),
                 ServerOwnedToolTestData.GetWorkspacePath(includeWorkspace),
                 TransactionHistoryDirection.Undo,
-                null,
+                It.IsAny<SnapshotPrecondition>(),
                 CancellationToken.None))
             .ReturnsAsync(WorkspaceOperationResult<TransactionHistoryOutcome>.Succeeded(new TransactionHistoryOutcome
             {
@@ -32,6 +32,7 @@ public sealed class TransactionHistoryToolTests
         var target = new TransactionHistoryTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
         var arguments = ServerOwnedToolTestData.CreateWorkspaceArguments(includeWorkspace);
         arguments["direction"] = JsonSerializer.SerializeToElement(TransactionHistoryDirection.Undo);
+        arguments["expectedSnapshot"] = JsonSerializer.SerializeToElement(new SnapshotPrecondition());
 
         var result = await ServerOwnedToolTestSupport.InvokeAsync(
             target,
@@ -46,7 +47,7 @@ public sealed class TransactionHistoryToolTests
             ServerOwnedToolTestData.GetWorkspaceAlias(includeWorkspace),
             ServerOwnedToolTestData.GetWorkspacePath(includeWorkspace),
             TransactionHistoryDirection.Undo,
-            null,
+            It.IsAny<SnapshotPrecondition>(),
             CancellationToken.None), Times.Once);
     }
 }

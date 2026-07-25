@@ -1,13 +1,12 @@
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using Roslyn.Workbench.Mcp.ToolExecution;
 
 namespace Roslyn.Workbench.Mcp.Tools;
 
-internal abstract class ServerOwnedToolBase<TRequest, TResponse> : McpServerTool
+internal abstract class ServerOwnedToolBase<TRequest, TResponse> : McpServerToolBase<TRequest>
     where TRequest : class
 {
-    private readonly Tool _protocolTool;
-
     protected ServerOwnedToolBase(
         IOptions<StartupOptions> startupOptions,
         IMcpToolProtocolFactory protocolFactory,
@@ -17,58 +16,37 @@ internal abstract class ServerOwnedToolBase<TRequest, TResponse> : McpServerTool
         bool readOnly,
         bool destructive,
         string? resultSummary = null)
-    {
-        _protocolTool = protocolFactory.CreateServerOwnedTool<TRequest, TResponse>(
+        : base(protocolFactory.CreateServerOwnedTool<TRequest, TResponse>(
             name,
             title,
             description,
             readOnly,
             destructive,
             resultSummary,
-            startupOptions.Value.ToolOutputSchemaMode);
+            startupOptions.Value.ToolOutputSchemaMode))
+    {
     }
 
-    public override Tool ProtocolTool => _protocolTool;
+    protected abstract ValueTask<ToolResult<TResponse>> ExecuteAsync(
+        TRequest request,
+        CancellationToken cancellationToken);
 
-    public override IReadOnlyList<object> Metadata => [];
-
-    public override async ValueTask<CallToolResult> InvokeAsync(RequestContext<CallToolRequestParams> requestContext, CancellationToken cancellationToken)
+    protected override async ValueTask<CallToolResult> InvokeBoundRequestAsync(
+        TRequest request,
+        CancellationToken cancellationToken)
     {
-        using var totalPhase = WorkbenchPerformanceEventSource.Log.StartPhase(
-            ProtocolTool.Name,
-            WorkbenchPerformanceEventSource.ToolTotalPhase);
-
-        var arguments = requestContext.Params.Arguments ?? new Dictionary<string, JsonElement>(StringComparer.Ordinal);
-        TRequest request;
-        using (WorkbenchPerformanceEventSource.Log.StartPhase(
-            ProtocolTool.Name,
-            WorkbenchPerformanceEventSource.RequestBindingPhase))
-        {
-            request = ToolRequestBinder.Deserialize<TRequest>(arguments);
-        }
-
         ToolResult<TResponse> result;
-        using (WorkbenchPerformanceEventSource.Log.StartPhase(
-            ProtocolTool.Name,
-            WorkbenchPerformanceEventSource.HandlerExecutionPhase))
+        using (StartPhase(WorkbenchPerformanceEventSource.HandlerExecutionPhase))
         {
             result = await ExecuteAsync(request, cancellationToken);
         }
 
-        using (WorkbenchPerformanceEventSource.Log.StartPhase(
-            ProtocolTool.Name,
-            WorkbenchPerformanceEventSource.ResponseProjectionPhase))
+        using (StartPhase(WorkbenchPerformanceEventSource.ResponseProjectionPhase))
         {
-            return new CallToolResult
-            {
-                Content = [],
-                StructuredContent = SerializeResult(result),
-                IsError = result.Outcome.IsError(),
-            };
+            var content = SerializeResult(result);
+            return CreateStructuredResult(content, result.Outcome.IsError());
         }
     }
-
-    protected abstract ValueTask<ToolResult<TResponse>> ExecuteAsync(TRequest request, CancellationToken cancellationToken);
 
     private static JsonElement SerializeResult(ToolResult<TResponse> result)
     {

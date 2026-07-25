@@ -1,9 +1,8 @@
-using System.Text.Json;
 using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.ToolExecution.CodeActions;
 
-internal sealed class CodeActionQueryMcpServerTool<THandler, TRequest, TResponse> : McpServerToolBase
+internal sealed class CodeActionQueryMcpServerTool<THandler, TRequest, TResponse> : McpServerToolBase<TRequest>
     where THandler : class, ICodeActionQueryToolHandler<TRequest, TResponse>
     where TRequest : WorkspaceBoundRequest
 {
@@ -26,25 +25,9 @@ internal sealed class CodeActionQueryMcpServerTool<THandler, TRequest, TResponse
         _contextFactory = contextFactory;
     }
 
-    protected override async ValueTask<CallToolResult> InvokeCoreAsync(
-        IDictionary<string, JsonElement> arguments,
+    protected override async ValueTask<CallToolResult> InvokeBoundRequestAsync(
+        TRequest request,
         CancellationToken cancellationToken)
-    {
-        TRequest request;
-        using (StartPhase(WorkbenchPerformanceEventSource.RequestBindingPhase))
-        {
-            if (!TryBindRequest(arguments, out TRequest? boundRequest, out var rejection))
-            {
-                return rejection;
-            }
-
-            request = boundRequest;
-        }
-
-        return await InvokeBoundRequestAsync(request, cancellationToken);
-    }
-
-    private async ValueTask<CallToolResult> InvokeBoundRequestAsync(TRequest request, CancellationToken cancellationToken)
     {
         CodeActionQueryExecutionLease contextLease;
         using (StartPhase(WorkbenchPerformanceEventSource.ContextAcquisitionPhase))

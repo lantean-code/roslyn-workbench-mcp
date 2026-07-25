@@ -230,7 +230,32 @@ public sealed class PluginQueryMcpServerToolTests
         }, CancellationToken.None);
 
         result.IsError.Should().BeTrue();
+        result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeFalse();
+        result.StructuredContent.Value.GetProperty("error").GetProperty("code").GetString().Should().Be("InvalidRequest");
+        contextFactory.Verify(item => item.CreateQueryContext(
+            It.IsAny<WorkspaceBoundRequest>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+
+        handler.Verify(item => item.ExecuteAsync(
+            It.IsAny<TestQueryRequest>(),
+            It.IsAny<IQueryContext>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_RequiredArgumentIsMissing_WHEN_InvokingQuery_THEN_ShouldPublishNamedInvalidRequestWithoutAcquiringContext()
+    {
+        var handler = new Mock<IQueryToolHandler<TestQueryRequest, TestQueryResponse>>();
+        var contextFactory = new Mock<IToolExecutionContextFactory>();
+        var target = CreateTarget(handler.Object, contextFactory.Object);
+
+        var result = await target.InvokeArgumentsAsync(
+            new Dictionary<string, JsonElement>(),
+            CancellationToken.None);
+
+        result.IsError.Should().BeTrue();
         result.StructuredContent!.Value.GetProperty("error").GetProperty("code").GetString().Should().Be("InvalidRequest");
+        result.StructuredContent.Value.GetProperty("error").GetProperty("message").GetString().Should().Be("Missing required tool argument: 'name'.");
         contextFactory.Verify(item => item.CreateQueryContext(
             It.IsAny<WorkspaceBoundRequest>(),
             It.IsAny<CancellationToken>()), Times.Never);
@@ -276,7 +301,7 @@ public sealed class PluginQueryMcpServerToolTests
 #pragma warning disable CA1515 // Moq's dynamic proxy must access these closed-generic handler contracts.
     public sealed record TestQueryRequest : WorkspaceBoundRequest
     {
-        public string Name { get; init; } = string.Empty;
+        public required string Name { get; init; }
     }
 
     public sealed record TestQueryResponse

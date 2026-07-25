@@ -121,13 +121,13 @@ public sealed class ServerOwnedToolBaseTests
     }
 
     [Fact]
-    public async Task GIVEN_MalformedArguments_WHEN_InvokingTool_THEN_ShouldPropagateFailureWithoutCallingService()
+    public async Task GIVEN_MalformedArguments_WHEN_InvokingTool_THEN_ShouldPublishInvalidRequestWithoutCallingService()
     {
         var service = new Mock<IWorkspaceLifecycleService>();
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var target = new WorkspaceOpenTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);
 
-        var action = async () => await ServerOwnedToolTestSupport.InvokeAsync(
+        var result = await ServerOwnedToolTestSupport.InvokeAsync(
             target,
             "workspace-open",
             new Dictionary<string, JsonElement>
@@ -136,7 +136,9 @@ public sealed class ServerOwnedToolBaseTests
             },
             CancellationToken.None);
 
-        await action.Should().ThrowAsync<Exception>();
+        result.IsError.Should().BeTrue();
+        result.StructuredContent!.Value.GetProperty("ok").GetBoolean().Should().BeFalse();
+        result.StructuredContent.Value.GetProperty("error").GetProperty("code").GetString().Should().Be("InvalidRequest");
         service.Verify(item => item.OpenAsync(
             It.IsAny<string>(),
             It.IsAny<string?>(),

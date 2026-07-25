@@ -3,7 +3,8 @@ using System.Text.Json;
 
 namespace Roslyn.Workbench.Mcp.ToolExecution;
 
-internal abstract class McpServerToolBase : McpServerTool
+internal abstract class McpServerToolBase<TRequest> : McpServerTool
+    where TRequest : class
 {
     private readonly Tool _protocolTool;
 
@@ -31,7 +32,19 @@ internal abstract class McpServerToolBase : McpServerTool
         CancellationToken cancellationToken)
     {
         using var phase = StartPhase(WorkbenchPerformanceEventSource.ToolTotalPhase);
-        return await InvokeCoreAsync(arguments, cancellationToken);
+
+        TRequest request;
+        using (StartPhase(WorkbenchPerformanceEventSource.RequestBindingPhase))
+        {
+            if (!TryBindRequest(arguments, out var boundRequest, out var rejection))
+            {
+                return rejection;
+            }
+
+            request = boundRequest;
+        }
+
+        return await InvokeBoundRequestAsync(request, cancellationToken);
     }
 
     protected PerformanceTraceScope StartPhase(string phase)
@@ -39,36 +52,9 @@ internal abstract class McpServerToolBase : McpServerTool
         return WorkbenchPerformanceEventSource.Log.StartPhase(ProtocolTool.Name, phase);
     }
 
-    protected abstract ValueTask<CallToolResult> InvokeCoreAsync(
-        IDictionary<string, JsonElement> arguments,
+    protected abstract ValueTask<CallToolResult> InvokeBoundRequestAsync(
+        TRequest request,
         CancellationToken cancellationToken);
-
-    protected static bool TryBindRequest<TRequest>(
-        IDictionary<string, JsonElement> arguments,
-        [NotNullWhen(true)] out TRequest? request,
-        [NotNullWhen(false)] out CallToolResult? rejection)
-        where TRequest : class
-    {
-        try
-        {
-            request = ToolRequestBinder.Deserialize<TRequest>(arguments);
-            rejection = null;
-            return true;
-        }
-        catch (JsonException exception)
-        {
-            request = null;
-            var error = new ToolError
-            {
-                Code = "InvalidRequest",
-                Message = $"The tool arguments did not match the request contract. {exception.Message}",
-            };
-
-            var content = ToolResultEnvelopeSerializer.CreateFailure(error, requiredAction: null);
-            rejection = CreateStructuredResult(content, isError: true);
-            return false;
-        }
-    }
 
     protected static CallToolResult CreateStructuredResult(JsonElement content, bool isError)
     {
@@ -78,5 +64,32 @@ internal abstract class McpServerToolBase : McpServerTool
             StructuredContent = content,
             IsError = isError,
         };
+    }
+
+    private static bool TryBindRequest(
+        IDictionary<string, JsonElement> arguments,
+        [NotNullWhen(true)] out TRequest? request,
+        [NotNullWhen(false)] out CallToolResult? rejection)
+    {
+        if (!ToolRequestBinder.TryBind(arguments, out request, out var errorMessage))
+        {
+            rejection = CreateBindingRejection(errorMessage);
+            return false;
+        }
+
+        rejection = null;
+        return true;
+    }
+
+    private static CallToolResult CreateBindingRejection(string message)
+    {
+        var error = new ToolError
+        {
+            Code = "InvalidRequest",
+            Message = message,
+        };
+
+        var content = ToolResultEnvelopeSerializer.CreateFailure(error, requiredAction: null);
+        return CreateStructuredResult(content, isError: true);
     }
 }

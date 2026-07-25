@@ -9,39 +9,99 @@ public sealed class ToolRequestBinderTests
     [Fact]
     public void GIVEN_Arguments_WHEN_Binding_THEN_ShouldDeserializeWebNamedProperties()
     {
-        var result = ToolRequestBinder.Deserialize<TestRequest>(new Dictionary<string, JsonElement>
+        var result = ToolRequestBinder.TryBind<TestRequest>(
+            new Dictionary<string, JsonElement>
+            {
+                ["value"] = JsonSerializer.SerializeToElement("Value"),
+            },
+            out var request,
+            out var errorMessage);
+
+        result.Should().BeTrue();
+        request.Should().NotBeNull();
+        request.Value.Should().Be("Value");
+        errorMessage.Should().BeNull();
+    }
+
+    [Fact]
+    public void GIVEN_ConverterReturnsNull_WHEN_Binding_THEN_ShouldReturnContractError()
+    {
+        var result = ToolRequestBinder.TryBind<NullRequest>(
+            new Dictionary<string, JsonElement>(),
+            out var request,
+            out var errorMessage);
+
+        result.Should().BeFalse();
+        request.Should().BeNull();
+        errorMessage.Should().StartWith("The tool arguments did not match the request contract.");
+    }
+
+    [Fact]
+    public void GIVEN_ExplicitNullForNonNullableProperty_WHEN_Binding_THEN_ShouldReturnContractError()
+    {
+        var result = ToolRequestBinder.TryBind<TestRequest>(
+            new Dictionary<string, JsonElement>
+            {
+                ["value"] = JsonSerializer.SerializeToElement((string?)null),
+            },
+            out var request,
+            out var errorMessage);
+
+        result.Should().BeFalse();
+        request.Should().BeNull();
+        errorMessage.Should().StartWith("The tool arguments did not match the request contract.");
+    }
+
+    [Fact]
+    public void GIVEN_OneRequiredPropertyIsMissing_WHEN_ValidatingRequiredArguments_THEN_ShouldReturnNamedError()
+    {
+        var arguments = new Dictionary<string, JsonElement>
         {
-            ["value"] = JsonSerializer.SerializeToElement("Value"),
-        });
+            ["scope"] = JsonSerializer.SerializeToElement("Scope"),
+        };
 
-        result.Value.Should().Be("Value");
+        var result = ToolRequestBinder.TryBind<RequiredRequest>(
+            arguments,
+            out var request,
+            out var errorMessage);
+
+        result.Should().BeFalse();
+        request.Should().BeNull();
+        errorMessage.Should().Be("Missing required tool argument: 'name'.");
     }
 
     [Fact]
-    public void GIVEN_ConverterReturnsNull_WHEN_Binding_THEN_ShouldThrowJsonException()
+    public void GIVEN_MultipleRequiredPropertiesAreMissing_WHEN_ValidatingRequiredArguments_THEN_ShouldReturnOrderedNamedError()
     {
-        var action = () => ToolRequestBinder.Deserialize<NullRequest>(new Dictionary<string, JsonElement>());
+        var result = ToolRequestBinder.TryBind<RequiredRequest>(
+            new Dictionary<string, JsonElement>(),
+            out var request,
+            out var errorMessage);
 
-        action.Should().Throw<JsonException>();
+        result.Should().BeFalse();
+        request.Should().BeNull();
+        errorMessage.Should().Be("Missing required tool arguments: 'name', 'scope'.");
     }
 
     [Fact]
-    public void GIVEN_ExplicitNullForNonNullableProperty_WHEN_Binding_THEN_ShouldThrowJsonException()
+    public void GIVEN_RequiredPropertiesUseDifferentCasing_WHEN_ValidatingRequiredArguments_THEN_ShouldAcceptArguments()
     {
-        var action = () => ToolRequestBinder.Deserialize<TestRequest>(new Dictionary<string, JsonElement>
+        var arguments = new Dictionary<string, JsonElement>
         {
-            ["value"] = JsonSerializer.SerializeToElement((string?)null),
-        });
+            ["Name"] = JsonSerializer.SerializeToElement("Name"),
+            ["Scope"] = JsonSerializer.SerializeToElement("Scope"),
+        };
 
-        action.Should().Throw<JsonException>();
-    }
+        var result = ToolRequestBinder.TryBind<RequiredRequest>(
+            arguments,
+            out var request,
+            out var errorMessage);
 
-    [Fact]
-    public void GIVEN_RequiredPropertyIsMissing_WHEN_Binding_THEN_ShouldThrowJsonException()
-    {
-        var action = () => ToolRequestBinder.Deserialize<RequiredRequest>(new Dictionary<string, JsonElement>());
-
-        action.Should().Throw<JsonException>();
+        result.Should().BeTrue();
+        request.Should().NotBeNull();
+        request.Name.Should().Be("Name");
+        request.Scope.Should().Be("Scope");
+        errorMessage.Should().BeNull();
     }
 
     [SuppressMessage(
@@ -68,7 +128,9 @@ public sealed class ToolRequestBinderTests
         Justification = "System.Text.Json creates the request through the generic deserialisation path exercised by this test.")]
     private sealed record RequiredRequest
     {
-        public required string Value { get; init; }
+        public required string Name { get; init; }
+
+        public required string Scope { get; init; }
     }
 
     [SuppressMessage(

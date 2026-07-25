@@ -383,11 +383,11 @@ internal sealed class TransactionService : ITransactionService
             ?? session.Workspace.WorkspaceId;
     }
 
-    private static Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors.WorkspaceSelector? CreateWorkspaceSelector(string? workspaceId, string? alias, string? path)
+    private static WorkspaceSelector? CreateWorkspaceSelector(string? workspaceId, string? alias, string? path)
     {
         return workspaceId is null && alias is null && path is null
             ? null
-            : new Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors.WorkspaceSelector
+            : new WorkspaceSelector
             {
                 WorkspaceId = workspaceId,
                 Alias = alias,

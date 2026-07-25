@@ -7,6 +7,7 @@
   </Folder>
   <Folder Name="/Source/">
     <File Path="src/AGENTS.md" />
+    <Project Path="src/Roslyn.Workbench.Mcp.Abstractions/Roslyn.Workbench.Mcp.Abstractions.csproj" />
     <Project Path="src/Roslyn.Workbench.Mcp.CodeActions/Roslyn.Workbench.Mcp.CodeActions.csproj" />
     <Project Path="src/Roslyn.Workbench.Mcp.Plugins.Analyzers/Roslyn.Workbench.Mcp.Plugins.Analyzers.csproj" />
     <Project Path="src/Roslyn.Workbench.Mcp.Plugins.Core/Roslyn.Workbench.Mcp.Plugins.Core.csproj" />

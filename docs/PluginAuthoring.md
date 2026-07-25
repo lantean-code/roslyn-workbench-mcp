@@ -10,7 +10,7 @@ Add the public authoring package to the plugin project:
 dotnet add package Roslyn.Workbench.Mcp.Plugins
 ```
 
-The package supplies the plugin API and brings in the matching Workspace contracts transitively. Plugin projects should not add repository project references or a second direct Workspace package reference.
+The package supplies the plugin API and includes the matching `Roslyn.Workbench.Mcp.Abstractions` assembly. Plugin projects need only this package and should not add repository project references or a direct Workspace reference.
 
 The package also installs the C# plugin-authoring analyser automatically. Its `RWMCP001`–`RWMCP019` diagnostics appear during command-line builds and in IDEs that support NuGet-delivered Roslyn analysers. See [Plugin authoring diagnostics](https://github.com/lantean-code/roslyn-workbench-mcp/blob/main/docs/PluginAuthoringDiagnostics.md) for each rule and its remediation. Runtime validation remains authoritative when diagnostics are suppressed or a plugin was built without the analyser.
 
@@ -85,7 +85,7 @@ Runtime capabilities come only from `IQueryContext` or `IMutationContext`. Mutat
 
 The supported third-party API consists of plugin and tool attributes, configuration builders, handler contracts, execution contexts, execution results, mutation candidates, selector and result contracts, and the read-only analysis services exposed through `IToolExecutionServices`. Host composition, registration, execution leases, staging, result mapping and plugin-catalogue metadata are implementation details and are not public API.
 
-Plugin authors compile against these service contracts and do not construct their implementations. Host supplies the composed `IToolExecutionServices` instance for each execution context. General plugin analysis and request-resolution services are defined by the Plugins package; project-system metadata services and their result contracts are defined by the transitive Workspace dependency because Workspace owns solution hierarchy, project evaluation and snapshot-scoped project metadata.
+Plugin authors compile against these service contracts and do not construct their implementations. Host supplies the composed `IToolExecutionServices` instance for each execution context. General plugin analysis services are defined by the Plugins assembly. Workspace selectors, result models, resolver contracts and project-system metadata service contracts are supplied by the bundled Abstractions assembly; their Host implementations remain outside the supported plugin API.
 
 `IQueryContext` and `IMutationContext` expose the same immutable Roslyn solution snapshot and read-only resolution and analysis capabilities. `IMutationContext` does not expose a stager. Returning a `MutationCandidate` is the only supported way for a plugin to propose source changes; Host validates and stages that candidate through the active transaction.
 
@@ -107,7 +107,7 @@ plugins/
 
 The marked entry assembly may have any file name. Other DLLs in the same package are dependencies and must not contain `RoslynPluginAttribute`. Discovery is not recursive, and DLLs directly beneath the search root are ignored.
 
-Host creates one non-collectible `AssemblyLoadContext` and `AssemblyDependencyResolver` per valid external package. Plugins, Workspace, `System.Composition` and `Microsoft.CodeAnalysis*` identities are shared from the default context. Other managed and native dependencies resolve from the package, allowing separate plugins to carry different private dependency versions.
+Host creates one non-collectible `AssemblyLoadContext` and `AssemblyDependencyResolver` per valid external package. Plugins, Abstractions, `System.Composition` and `Microsoft.CodeAnalysis*` identities are shared from the default context. Other managed and native dependencies resolve from the package, allowing separate plugins to carry different private dependency versions.
 
 The bundled first-party tools are loaded with the Host rather than discovered from an external package directory. They use the same entry-point marker, validation and materialisation rules, and their tool names take precedence over external plugin names.
 
@@ -125,7 +125,7 @@ Host validates package metadata and compatibility before executing plugin code. 
 ## Deployment checklist
 
 - Target the same supported .NET runtime as the Host.
-- Reference the public Plugins NuGet package for compilation. It supplies the matching Workspace contracts transitively; do not package private copies of either assembly because Host supplies their runtime identity.
+- Reference the public Plugins NuGet package for compilation. It includes the matching Abstractions assembly; do not package private copies of either assembly in the deployed plugin because Host supplies their runtime identity.
 - Build with all default `RWMCP` diagnostics enabled and justify any deliberate suppression.
 - Give the entry assembly a valid informational SemVer.
 - Place exactly one marked entry assembly in one immediate package directory.

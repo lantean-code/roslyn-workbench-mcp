@@ -65,8 +65,8 @@ internal sealed class WorkspaceLoader : IWorkspaceLoader
             {
                 Id = "WorkspaceLoad",
                 Severity = args.Diagnostic.Kind == WorkspaceDiagnosticKind.Failure
-                    ? Contracts.Results.DiagnosticSeverity.Error
-                    : Contracts.Results.DiagnosticSeverity.Warning,
+                    ? Results.DiagnosticSeverity.Error
+                    : Results.DiagnosticSeverity.Warning,
                 Message = args.Diagnostic.Message,
             });
         });
@@ -117,7 +117,7 @@ internal sealed class WorkspaceLoader : IWorkspaceLoader
         return new DiagnosticInfo
         {
             Id = "WorkspaceLoad",
-            Severity = Contracts.Results.DiagnosticSeverity.Error,
+            Severity = Results.DiagnosticSeverity.Error,
             Message = message,
         };
     }

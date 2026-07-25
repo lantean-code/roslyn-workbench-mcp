@@ -13,19 +13,20 @@ The strategy keeps fast behavioural tests close to the assembly that owns the be
 The production dependency direction is:
 
 ```text
-Host -> CodeActions -> Workspace
-Host -> Plugins.Core -> Plugins -> Workspace
-Host -> Plugins -> Workspace
+Host -> CodeActions -> Workspace -> Abstractions
+Host -> Plugins.Core -> Plugins -> Workspace -> Abstractions
+Host -> Plugins -> Workspace -> Abstractions
 Host -> Workspace
 ```
 
 The test architecture must protect these additional rules:
 
+- Abstractions has no dependency on a production implementation assembly and uses only the minimal Roslyn Workspaces package required by its public signatures.
 - Workspace has no dependency on Plugins, CodeActions or MCP transport.
 - CodeActions is an internal tool system and has no dependency on Plugins or the MCP SDK.
 - Plugins is the public third-party extension system and has no dependency on CodeActions or the MCP SDK.
 - Host alone binds MCP requests, constructs MCP tools and publishes protocol results.
-- Contracts live with their owning production assembly; there is no shared Contracts production or test project.
+- Implementation contracts live with their owning production assembly. Abstractions is the deliberately narrow shared third-party authoring boundary rather than a general shared Contracts project.
 - Plugin and Code Action registrations preserve their closed generic request and response types through typed visitors.
 - Query contexts cannot stage mutations, and mutation handlers do not receive the final Workspace stager.
 - Code Action names are reserved before plugin discovery, and Code Actions are not reported as plugins.

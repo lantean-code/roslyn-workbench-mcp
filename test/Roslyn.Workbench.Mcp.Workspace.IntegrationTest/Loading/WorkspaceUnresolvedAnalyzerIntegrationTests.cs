@@ -55,7 +55,7 @@ public sealed class WorkspaceUnresolvedAnalyzerIntegrationTests
         project.AnalyzerReferences.Should().NotContain(item => item is UnresolvedAnalyzerReference);
         result.Diagnostics.Should().ContainSingle(item =>
             item.Id == "WorkspaceAnalyzerReferenceSkipped"
-            && item.Severity == Contracts.Results.DiagnosticSeverity.Warning
+            && item.Severity == Results.DiagnosticSeverity.Warning
             && item.Message.Contains("missing-analyzer.dll", StringComparison.Ordinal));
 
         var compilationResult = await project.GetCompilationAsync(cancellationToken);

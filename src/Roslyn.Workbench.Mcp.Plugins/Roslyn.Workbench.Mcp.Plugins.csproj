@@ -28,12 +28,17 @@
     <ProjectReference
       Include="..\Roslyn.Workbench.Mcp.Plugins.Analyzers\Roslyn.Workbench.Mcp.Plugins.Analyzers.csproj"
       ReferenceOutputAssembly="false" />
-    <ProjectReference Include="..\Roslyn.Workbench.Mcp.Workspace\Roslyn.Workbench.Mcp.Workspace.csproj" />
+    <ProjectReference
+      Include="..\Roslyn.Workbench.Mcp.Abstractions\Roslyn.Workbench.Mcp.Abstractions.csproj"
+      PrivateAssets="all" />
+    <ProjectReference
+      Include="..\Roslyn.Workbench.Mcp.Workspace\Roslyn.Workbench.Mcp.Workspace.csproj"
+      PrivateAssets="all" />
   </ItemGroup>
 
   <PropertyGroup>
     <TargetsForTfmSpecificContentInPackage>
-      $(TargetsForTfmSpecificContentInPackage);IncludePluginAnalyzersInPackage
+      $(TargetsForTfmSpecificContentInPackage);IncludePluginAnalyzersInPackage;IncludePluginAbstractionsInPackage
     </TargetsForTfmSpecificContentInPackage>
   </PropertyGroup>
 
@@ -49,6 +54,22 @@
     <ItemGroup>
       <TfmSpecificPackageFile Include="@(_PluginAnalyzerAssembly)">
         <PackagePath>analyzers/dotnet/cs</PackagePath>
+      </TfmSpecificPackageFile>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="IncludePluginAbstractionsInPackage">
+    <MSBuild
+      Projects="..\Roslyn.Workbench.Mcp.Abstractions\Roslyn.Workbench.Mcp.Abstractions.csproj"
+      Targets="GetTargetPath">
+      <Output
+        TaskParameter="TargetOutputs"
+        ItemName="_PluginAbstractionsAssembly" />
+    </MSBuild>
+
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="@(_PluginAbstractionsAssembly)">
+        <PackagePath>lib/$(TargetFramework)</PackagePath>
       </TfmSpecificPackageFile>
     </ItemGroup>
   </Target>

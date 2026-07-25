@@ -1,5 +1,5 @@
-using Roslyn.Workbench.Mcp.Workspace.Contracts.Caching;
-using Roslyn.Workbench.Mcp.Workspace.Contracts.Results;
+using Roslyn.Workbench.Mcp.Workspace.Caching;
+using Roslyn.Workbench.Mcp.Workspace.Results;
 
 namespace Roslyn.Workbench.Mcp.TestSupport;
 

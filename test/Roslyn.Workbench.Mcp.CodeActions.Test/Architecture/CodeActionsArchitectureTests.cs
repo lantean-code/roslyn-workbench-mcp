@@ -19,21 +19,29 @@ public sealed class CodeActionsArchitectureTests
     {
         var expectedReferences = new Dictionary<string, string[]>
         {
+            ["Roslyn.Workbench.Mcp.Abstractions"] = [],
             ["Roslyn.Workbench.Mcp.Plugins.Analyzers"] = [],
-            ["Roslyn.Workbench.Mcp.Workspace"] = [],
-            ["Roslyn.Workbench.Mcp.CodeActions"] = ["Roslyn.Workbench.Mcp.Workspace"],
+            ["Roslyn.Workbench.Mcp.Workspace"] = ["Roslyn.Workbench.Mcp.Abstractions"],
+            ["Roslyn.Workbench.Mcp.CodeActions"] =
+            [
+                "Roslyn.Workbench.Mcp.Abstractions",
+                "Roslyn.Workbench.Mcp.Workspace",
+            ],
             ["Roslyn.Workbench.Mcp.Plugins"] =
             [
                 "Roslyn.Workbench.Mcp.Plugins.Analyzers",
+                "Roslyn.Workbench.Mcp.Abstractions",
                 "Roslyn.Workbench.Mcp.Workspace",
             ],
             ["Roslyn.Workbench.Mcp.Plugins.Core"] =
             [
+                "Roslyn.Workbench.Mcp.Abstractions",
                 "Roslyn.Workbench.Mcp.Plugins",
                 "Roslyn.Workbench.Mcp.Workspace",
             ],
             ["Roslyn.Workbench.Mcp"] =
             [
+                "Roslyn.Workbench.Mcp.Abstractions",
                 "Roslyn.Workbench.Mcp.CodeActions",
                 "Roslyn.Workbench.Mcp.Plugins",
                 "Roslyn.Workbench.Mcp.Plugins.Core",
@@ -58,7 +66,9 @@ public sealed class CodeActionsArchitectureTests
         var projectReferences = ReadProjectNames(document, "ProjectReference");
         var packageReferences = ReadItemIncludes(document, "PackageReference");
 
-        projectReferences.Should().Equal("Roslyn.Workbench.Mcp.Workspace");
+        projectReferences.Should().Equal(
+            "Roslyn.Workbench.Mcp.Abstractions",
+            "Roslyn.Workbench.Mcp.Workspace");
         packageReferences.Should().NotContain("ModelContextProtocol");
     }
 

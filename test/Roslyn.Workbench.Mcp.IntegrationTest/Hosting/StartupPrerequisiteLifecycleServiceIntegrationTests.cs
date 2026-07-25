@@ -41,7 +41,7 @@ public sealed class StartupPrerequisiteLifecycleServiceIntegrationTests
         builder.Services.AddSingleton(stateDirectory.Object);
         builder.Services.AddSingleton(workspaceCommitRecoveryService.Object);
         builder.Services.AddHostedService<StartupPrerequisiteLifecycleService>();
-        builder.Services.AddSingleton<IHostedService>(transport.Object);
+        builder.Services.AddSingleton(transport.Object);
         using var host = builder.Build();
 
         await host.StartAsync(TestContext.Current.CancellationToken);

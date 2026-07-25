@@ -76,7 +76,7 @@ public sealed class WorkspaceTransactionIntegrationTests
         var result = await StageMutationAsync(target);
         var preview = await target.PreviewTransactionAsync(
             TestContext.Current.CancellationToken,
-            document: new Contracts.Selectors.DocumentSelector
+            document: new DocumentSelector
             {
                 Path = "Class1.cs",
             },
@@ -101,7 +101,7 @@ public sealed class WorkspaceTransactionIntegrationTests
         var undo = await target.MoveTransactionHistoryAsync(
             TransactionHistoryDirection.Undo,
             TestContext.Current.CancellationToken,
-            expectedSnapshot: new Contracts.Selectors.SnapshotPrecondition
+            expectedSnapshot: new SnapshotPrecondition
             {
                 WorkspaceId = preview.Context.WorkspaceId,
                 WorkspaceEpoch = preview.Context.WorkspaceEpoch!.Value,
@@ -111,7 +111,7 @@ public sealed class WorkspaceTransactionIntegrationTests
         var redo = await target.MoveTransactionHistoryAsync(
             TransactionHistoryDirection.Redo,
             TestContext.Current.CancellationToken,
-            expectedSnapshot: new Contracts.Selectors.SnapshotPrecondition
+            expectedSnapshot: new SnapshotPrecondition
             {
                 WorkspaceId = undo.Context.WorkspaceId,
                 WorkspaceEpoch = undo.Context.WorkspaceEpoch!.Value,
@@ -152,7 +152,7 @@ public sealed class WorkspaceTransactionIntegrationTests
 
         var commit = await target.CommitTransactionAsync(
             TestContext.Current.CancellationToken,
-            expectedSnapshot: new Contracts.Selectors.SnapshotPrecondition
+            expectedSnapshot: new SnapshotPrecondition
             {
                 WorkspaceId = preview.Context.WorkspaceId,
                 WorkspaceEpoch = preview.Context.WorkspaceEpoch!.Value,
@@ -212,7 +212,7 @@ public sealed class WorkspaceTransactionIntegrationTests
 
         var commit = await target.CommitTransactionAsync(
             TestContext.Current.CancellationToken,
-            expectedSnapshot: new Contracts.Selectors.SnapshotPrecondition
+            expectedSnapshot: new SnapshotPrecondition
             {
                 WorkspaceId = preview.Context.WorkspaceId,
                 WorkspaceEpoch = preview.Context.WorkspaceEpoch!.Value,
@@ -276,8 +276,8 @@ public sealed class WorkspaceTransactionIntegrationTests
                 document.Id,
                 sourceText.WithChanges(
                 [
-                    new Microsoft.CodeAnalysis.Text.TextChange(
-                        new Microsoft.CodeAnalysis.Text.TextSpan(sourceText.Length, 0),
+                    new TextChange(
+                        new TextSpan(sourceText.Length, 0),
                         Environment.NewLine + "public sealed class TransactionMarker { }" + Environment.NewLine),
                 ]));
         }

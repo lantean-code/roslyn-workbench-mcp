@@ -30,17 +30,6 @@ public sealed class PluginAnalyzerPackageIntegrationTests
         {
             await PackProjectAsync(
                 repositoryRoot,
-                "Roslyn.Workbench.Mcp.Workspace",
-                feedDirectory);
-
-            var workspacePackagePath = Path.Combine(
-                feedDirectory,
-                $"Roslyn.Workbench.Mcp.Workspace.{_packageVersion}.nupkg");
-
-            ValidateWorkspacePackageLayout(workspacePackagePath);
-
-            await PackProjectAsync(
-                repositoryRoot,
                 "Roslyn.Workbench.Mcp.Plugins",
                 feedDirectory);
 
@@ -111,6 +100,12 @@ public sealed class PluginAnalyzerPackageIntegrationTests
         archive.Entries.Should().ContainSingle(
             static entry => string.Equals(
                 entry.FullName,
+                "lib/net10.0/Roslyn.Workbench.Mcp.Abstractions.dll",
+                StringComparison.Ordinal));
+
+        archive.Entries.Should().ContainSingle(
+            static entry => string.Equals(
+                entry.FullName,
                 analyzerPath,
                 StringComparison.Ordinal));
 
@@ -144,19 +139,10 @@ public sealed class PluginAnalyzerPackageIntegrationTests
         var nuspec = XDocument.Load(nuspecStream);
         var dependencyIds = ReadDependencyIds(nuspec);
 
-        dependencyIds.Should().Contain("Roslyn.Workbench.Mcp.Workspace");
+        dependencyIds.Should().NotContain("Roslyn.Workbench.Mcp.Abstractions");
+        dependencyIds.Should().NotContain("Roslyn.Workbench.Mcp.Workspace");
         dependencyIds.Should().NotContain("Microsoft.CodeAnalysis.Analyzers");
         dependencyIds.Should().NotContain("Microsoft.CodeAnalysis.CSharp");
-    }
-
-    private static void ValidateWorkspacePackageLayout(string packagePath)
-    {
-        File.Exists(packagePath).Should().BeTrue();
-        using var archive = ZipFile.OpenRead(packagePath);
-
-        var readme = ReadTextEntry(archive, "README.md");
-        readme.Should().Contain("# Roslyn Workbench Workspace Support Package");
-        readme.Should().NotContain("# Third-Party Plugin Authoring");
     }
 
     private static string ReadTextEntry(ZipArchive archive, string path)
@@ -239,6 +225,8 @@ public sealed class PluginAnalyzerPackageIntegrationTests
             feedDirectory,
             "--source",
             _nuGetSource,
+            "--packages",
+            Path.Combine(consumerDirectory, "packages"),
             "-p:NuGetAudit=false",
         };
 
@@ -317,7 +305,7 @@ public sealed class PluginAnalyzerPackageIntegrationTests
     {
         return """
             using Roslyn.Workbench.Mcp.Plugins;
-            using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
+            using Roslyn.Workbench.Mcp.Workspace.Selectors;
 
             [RoslynPlugin("example.tools", "Example Tools", PluginApiVersions.V1)]
             public sealed class ExamplePlugin : IRoslynPlugin

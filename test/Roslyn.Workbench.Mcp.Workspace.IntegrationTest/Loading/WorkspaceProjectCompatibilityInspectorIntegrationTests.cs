@@ -80,7 +80,7 @@ public sealed class WorkspaceProjectCompatibilityInspectorIntegrationTests
             result.IsSdkStyle.Should().BeFalse();
             result.Diagnostics.Should().ContainSingle().Which.Should().Match<DiagnosticInfo>(diagnostic =>
                 diagnostic.Id == "WorkspaceLoad"
-                && diagnostic.Severity == Contracts.Results.DiagnosticSeverity.Error
+                && diagnostic.Severity == Results.DiagnosticSeverity.Error
                 && !string.IsNullOrWhiteSpace(diagnostic.Message));
         }
         finally

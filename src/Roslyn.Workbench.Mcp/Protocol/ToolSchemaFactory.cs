@@ -31,8 +31,8 @@ internal sealed class ToolSchemaFactory
             responseType,
             type => ToolSchemaBuilder.CreateDirectOutputSchema(
                 _schemaProvider.GetValueSchema(type),
-                _schemaProvider.GetValueSchema<Protocol.Results.ToolError>(),
-                _schemaProvider.GetValueSchema<Workspace.Contracts.Results.RequiredAction>()));
+                _schemaProvider.GetValueSchema<ToolError>(),
+                _schemaProvider.GetValueSchema<RequiredAction>()));
     }
 
     public JsonElement CreateOutputSchema(PublishedToolKind kind, Type responseType)
@@ -104,7 +104,7 @@ internal sealed class ToolSchemaFactory
         return ToolSchemaBuilder.CreateResponseSchema(
             successSchema,
             componentSchemas,
-            _schemaProvider.GetValueSchema<Protocol.Results.ToolError>(),
-            _schemaProvider.GetValueSchema<Workspace.Contracts.Results.RequiredAction>());
+            _schemaProvider.GetValueSchema<ToolError>(),
+            _schemaProvider.GetValueSchema<RequiredAction>());
     }
 }

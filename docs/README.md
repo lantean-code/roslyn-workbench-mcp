@@ -13,7 +13,7 @@ Roslyn Workbench is a local stdio MCP server that uses Roslyn to inspect C# work
 
 [Third-party plugin authoring](PluginAuthoring.md) describes the trusted in-process plugin API, package layout, validation and deployment rules. [Plugin authoring diagnostics](PluginAuthoringDiagnostics.md) documents the build-time guidance supplied by the Plugins package.
 
-The [Workspace support package](WorkspacePackage.md) is a transitive dependency of the author-facing Plugins package and is not normally installed directly.
+The author-facing Plugins package includes its minimal Abstractions assembly; plugin authors do not install or deploy the Workspace implementation.
 
 ## Documentation authority
 

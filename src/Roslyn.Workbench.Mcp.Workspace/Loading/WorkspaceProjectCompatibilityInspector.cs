@@ -26,7 +26,7 @@ internal sealed class WorkspaceProjectCompatibilityInspector : IWorkspaceProject
         return new DiagnosticInfo
         {
             Id = "WorkspaceLoad",
-            Severity = Contracts.Results.DiagnosticSeverity.Error,
+            Severity = Results.DiagnosticSeverity.Error,
             Message = message,
         };
     }

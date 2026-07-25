@@ -51,8 +51,7 @@ Publish and retain these immutable artifacts:
 
 - the MCP server as a .NET tool package;
 - standalone executable archives for every supported runtime identifier;
-- the Workspace contract/support library as a NuGet dependency;
-- the third-party Plugins library as the author-facing NuGet package;
+- the third-party Plugins library as the author-facing NuGet package, containing the Plugins and Abstractions assemblies plus the authoring analyser;
 - symbol packages where applicable;
 - checksums for downloadable standalone artifacts; and
 - release notes identifying the source tag and commit.
@@ -67,10 +66,9 @@ Before publishing:
 2. Confirm every artifact carries the GitVersion-derived release version.
 3. Install the generated .NET tool package from an isolated local package source and run a published-Host acceptance smoke test.
 4. Run each standalone executable on its target operating system without relying on repository build output.
-5. Publish the matching Workspace dependency to the staging feed before validating the Plugins package.
-6. Inspect the Plugins package's generated `.nuspec` and deliberately approve its direct dependency ranges.
-7. Install the Plugins package into a clean external sample plugin with no project references to this repository, then build and exercise that plugin against the packaged Host.
-8. Publish only the exact artifacts that passed validation, and retain them without rebuilding the same version.
+5. Inspect the Plugins package and generated `.nuspec`; verify that it contains the Plugins and Abstractions assemblies and analyser without publishing Workspace as an authoring dependency, then deliberately approve its direct dependency ranges.
+6. Install the Plugins package into a clean external sample plugin with no project references to this repository, then build and exercise that plugin against the packaged Host.
+7. Publish only the exact artifacts that passed validation, and retain them without rebuilding the same version.
 
 The Plugins package validation is the consumer-compatibility boundary. A repository lock file would constrain the dependency graph used to build the package, but it would not force downstream plugin projects to restore that graph.
 

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Minimal public abstractions shared by Roslyn Workbench MCP and third-party plugins.</Description>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Roslyn.Workbench.Mcp</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" />
+  </ItemGroup>
+
+</Project>

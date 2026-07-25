@@ -7,8 +7,8 @@ internal sealed class PluginAssemblyLoadContext : AssemblyLoadContext
 {
     private const string _codeAnalysisAssemblyPrefix = "Microsoft.CodeAnalysis";
     private const string _compositionAssemblyPrefix = "System.Composition";
+    private const string _abstractionsAssemblyName = "Roslyn.Workbench.Mcp.Abstractions";
     private const string _pluginsAssemblyName = "Roslyn.Workbench.Mcp.Plugins";
-    private const string _workspaceAssemblyName = "Roslyn.Workbench.Mcp.Workspace";
 
     private readonly string _packageDirectory;
     private readonly IPluginPackagePathPolicy _packagePathPolicy;
@@ -51,8 +51,8 @@ internal sealed class PluginAssemblyLoadContext : AssemblyLoadContext
 
     private static bool IsSharedAssembly(string? assemblyName)
     {
-        return string.Equals(assemblyName, _pluginsAssemblyName, StringComparison.Ordinal)
-            || string.Equals(assemblyName, _workspaceAssemblyName, StringComparison.Ordinal)
+        return string.Equals(assemblyName, _abstractionsAssemblyName, StringComparison.Ordinal)
+            || string.Equals(assemblyName, _pluginsAssemblyName, StringComparison.Ordinal)
             || assemblyName?.StartsWith(_codeAnalysisAssemblyPrefix, StringComparison.Ordinal) == true
             || assemblyName?.StartsWith(_compositionAssemblyPrefix, StringComparison.Ordinal) == true;
     }

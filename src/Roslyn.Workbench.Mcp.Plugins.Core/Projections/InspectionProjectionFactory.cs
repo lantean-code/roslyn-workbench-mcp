@@ -1,4 +1,4 @@
-using ContractDiagnosticSeverity = Roslyn.Workbench.Mcp.Workspace.Contracts.Results.DiagnosticSeverity;
+using ContractDiagnosticSeverity = Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticSeverity;
 using ContractProjectInfo = Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection.ProjectInfo;
 using ContractTypeInfo = Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection.TypeInfo;
 

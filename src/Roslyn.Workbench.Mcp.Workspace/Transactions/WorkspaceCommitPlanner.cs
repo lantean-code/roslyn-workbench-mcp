@@ -380,7 +380,7 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
             CommitId = context.CommitId,
             LoadedPath = context.LoadedPath,
             WorkspaceRoot = context.WorkspaceRoot,
-            State = Contracts.Results.RecoveryState.Prepared,
+            State = Results.RecoveryState.Prepared,
             Entries = context.Entries,
             CreatedDirectories = context.CreatedDirectories.OrderBy(path => path.Length).ToArray(),
         };

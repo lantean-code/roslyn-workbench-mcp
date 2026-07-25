@@ -1,5 +1,5 @@
 using Roslyn.Workbench.Mcp.Plugins;
-using Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors;
+using Roslyn.Workbench.Mcp.Workspace.Selectors;
 
 namespace Roslyn.Workbench.Mcp.PluginFixtures;
 

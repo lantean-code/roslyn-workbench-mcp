@@ -77,7 +77,7 @@ public sealed class CodeActionMcpToolRegistrationVisitorTests
     {
         services.AddSingleton(contextFactory);
         services.AddSingleton(protocolFactory);
-        services.AddSingleton<IOptions<StartupOptions>>(Options.Create(new StartupOptions()));
+        services.AddSingleton(Options.Create(new StartupOptions()));
     }
 
     private static ServiceProvider BuildValidatedProvider(IServiceCollection services)

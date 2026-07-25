@@ -1,4 +1,4 @@
-using Roslyn.Workbench.Mcp.Workspace.Contracts.Caching;
+using Roslyn.Workbench.Mcp.Workspace.Caching;
 
 namespace Roslyn.Workbench.Mcp.Plugins;
 

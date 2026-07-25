@@ -552,7 +552,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             diagnostics.Add(new DiagnosticInfo
             {
                 Id = "WorkspaceInstanceStatusUnavailable",
-                Severity = Contracts.Results.DiagnosticSeverity.Warning,
+                Severity = Results.DiagnosticSeverity.Warning,
                 Message = "Advisory workspace-instance status could not be published or queried. Treat this workspace as potentially in use: remain query-only, use it only when necessary, and expect query results to become stale. Coordinate mutation ownership before starting a transaction.",
             });
         }
@@ -562,7 +562,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             diagnostics.Add(new DiagnosticInfo
             {
                 Id = "WorkspaceInUse",
-                Severity = Contracts.Results.DiagnosticSeverity.Warning,
+                Severity = Results.DiagnosticSeverity.Warning,
                 Message = "Another Roslyn Workbench MCP instance has this workspace open. Treat this workspace as query-only, use it only when necessary, and expect query results to become stale. Coordinate mutation ownership before starting a transaction.",
             });
         }
@@ -572,7 +572,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             diagnostics.Add(new DiagnosticInfo
             {
                 Id = "WorkspaceInstanceStatusUnreadable",
-                Severity = Contracts.Results.DiagnosticSeverity.Warning,
+                Severity = Results.DiagnosticSeverity.Warning,
                 Message = "One or more live workspace-instance status files could not be read or validated. Treat this workspace as potentially in use: remain query-only, use it only when necessary, and expect query results to become stale. Coordinate mutation ownership before starting a transaction.",
             });
         }
@@ -592,7 +592,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
             new DiagnosticInfo
             {
                 Id = "WorkspaceOnWindowsFileSystemFromWsl",
-                Severity = Contracts.Results.DiagnosticSeverity.Warning,
+                Severity = Results.DiagnosticSeverity.Warning,
                 Message = "This workspace is being accessed from WSL through the Windows file system, which can substantially reduce workspace and query performance. For better performance, place the repository on the WSL file system or run Roslyn Workbench MCP directly on Windows.",
             },
         ];
@@ -638,11 +638,11 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
         return string.Equals(first, second, _workspacePathComparison.GetComparison(first));
     }
 
-    private static Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors.WorkspaceSelector? CreateWorkspaceSelector(string? workspaceId, string? alias, string? path)
+    private static WorkspaceSelector? CreateWorkspaceSelector(string? workspaceId, string? alias, string? path)
     {
         return workspaceId is null && alias is null && path is null
             ? null
-            : new Roslyn.Workbench.Mcp.Workspace.Contracts.Selectors.WorkspaceSelector
+            : new WorkspaceSelector
             {
                 WorkspaceId = workspaceId,
                 Alias = alias,

@@ -527,7 +527,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             It.Is<WorkspaceOpenOutcome>(outcome =>
                 outcome.LoadDiagnostics.Count == 1
                 && outcome.LoadDiagnostics[0].Id == "WorkspaceOnWindowsFileSystemFromWsl"
-                && outcome.LoadDiagnostics[0].Severity == global::Roslyn.Workbench.Mcp.Workspace.Contracts.Results.DiagnosticSeverity.Warning
+                && outcome.LoadDiagnostics[0].Severity == global::Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticSeverity.Warning
                 && outcome.LoadDiagnostics[0].Message.Contains("substantially reduce workspace and query performance", StringComparison.Ordinal)),
             It.IsAny<WorkspaceOperationContext>(),
             null,

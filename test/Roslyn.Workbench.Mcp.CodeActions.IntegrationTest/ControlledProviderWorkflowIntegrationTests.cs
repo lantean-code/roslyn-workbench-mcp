@@ -35,7 +35,7 @@ public sealed class ControlledProviderWorkflowIntegrationTests
             ExpectedSnapshot = snapshot,
         }, TestContext.Current.CancellationToken);
 
-        listed.Data.Actions.Should().OnlyContain(static action => !string.IsNullOrWhiteSpace(action.ActionId));
+        listed.Data.Actions.Should().OnlyContain(static action => action.ActionId != Guid.Empty);
         described.Outcome.Should().Be(CodeActionExecutionOutcome.Succeeded);
         described.Data!.Descriptor.Title.Should().Be("Change signature test refactoring");
         described.Data.Context.Kind.Should().Be(CodeActionDescriptorContextKind.SignaturePlan);

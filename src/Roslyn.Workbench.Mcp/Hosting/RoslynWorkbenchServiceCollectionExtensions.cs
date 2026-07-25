@@ -6,7 +6,6 @@ using Roslyn.Workbench.Mcp.ToolExecution.CodeActions;
 using Roslyn.Workbench.Mcp.ToolExecution.Plugins;
 
 using Roslyn.Workbench.Mcp.Workspace.Caching;
-using Roslyn.Workbench.Mcp.Workspace.Contracts.Caching;
 
 namespace Roslyn.Workbench.Mcp.Hosting;
 

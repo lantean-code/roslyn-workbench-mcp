@@ -4,6 +4,46 @@ namespace Roslyn.Workbench.Mcp.Plugins.Test.Architecture;
 
 public sealed class PluginPublicApiContractTests
 {
+    private static readonly string[] _expectedAbstractionsExportedTypes =
+    [
+        "Roslyn.Workbench.Mcp.Workspace.Caching.IQueryCache",
+        "Roslyn.Workbench.Mcp.Workspace.Projects.IProjectStructureService",
+        "Roslyn.Workbench.Mcp.Workspace.Projects.IProjectTargetFrameworkResolver",
+        "Roslyn.Workbench.Mcp.Workspace.Projects.ProjectTargetFrameworksResult",
+        "Roslyn.Workbench.Mcp.Workspace.Projects.SolutionFolderInfo",
+        "Roslyn.Workbench.Mcp.Workspace.Projects.SolutionHierarchyResult",
+        "Roslyn.Workbench.Mcp.Workspace.Resolution.IWorkspaceResolver",
+        "Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult`1",
+        "Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveStatus",
+        "Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchKind",
+        "Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchResult",
+        "Roslyn.Workbench.Mcp.Workspace.Results.ChangeSummary",
+        "Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticInfo",
+        "Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticSeverity",
+        "Roslyn.Workbench.Mcp.Workspace.Results.DiffSummary",
+        "Roslyn.Workbench.Mcp.Workspace.Results.DocumentChange",
+        "Roslyn.Workbench.Mcp.Workspace.Results.DocumentChangeKind",
+        "Roslyn.Workbench.Mcp.Workspace.Results.RequiredAction",
+        "Roslyn.Workbench.Mcp.Workspace.Results.WarningInfo",
+        "Roslyn.Workbench.Mcp.Workspace.Results.WorkspaceIdentity",
+        "Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentReference",
+        "Roslyn.Workbench.Mcp.Workspace.Selectors.DocumentSelector",
+        "Roslyn.Workbench.Mcp.Workspace.Selectors.LocationSelector",
+        "Roslyn.Workbench.Mcp.Workspace.Selectors.ProjectSelector",
+        "Roslyn.Workbench.Mcp.Workspace.Selectors.ResolvedLocation",
+        "Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeKind",
+        "Roslyn.Workbench.Mcp.Workspace.Selectors.ScopeSelector",
+        "Roslyn.Workbench.Mcp.Workspace.Selectors.SnapshotPrecondition",
+        "Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolReference",
+        "Roslyn.Workbench.Mcp.Workspace.Selectors.SymbolSelector",
+        "Roslyn.Workbench.Mcp.Workspace.Selectors.TextSelectionSelector",
+        "Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanRange",
+        "Roslyn.Workbench.Mcp.Workspace.Selectors.TextSpanSelector",
+        "Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceBoundRequest",
+        "Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceMutationRequest",
+        "Roslyn.Workbench.Mcp.Workspace.Selectors.WorkspaceSelector",
+    ];
+
     private static readonly string[] _expectedExportedTypes =
     [
         "Roslyn.Workbench.Mcp.Plugins.BoundedCollection`1",
@@ -55,8 +95,37 @@ public sealed class PluginPublicApiContractTests
 
     [Fact]
     [Trait("Category", "Contract")]
-    public void GIVEN_PluginsPublicApi_WHEN_InspectingWorkspaceTypes_THEN_ShouldExposeOnlyContractsProjectsAndResolution()
+    public void GIVEN_AbstractionsAssembly_WHEN_InspectingExportedTypes_THEN_ShouldMatchSupportedThirdPartySurface()
     {
+        var exportedTypes = typeof(WorkspaceBoundRequest).Assembly
+            .GetExportedTypes()
+            .Select(static type => type.FullName)
+            .OfType<string>()
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+        exportedTypes.Should().Equal(_expectedAbstractionsExportedTypes);
+    }
+
+    [Fact]
+    [Trait("Category", "Contract")]
+    public void GIVEN_AbstractionsAssembly_WHEN_InspectingProductDependencies_THEN_ShouldNotReferenceImplementations()
+    {
+        var productDependencies = typeof(WorkspaceBoundRequest).Assembly
+            .GetReferencedAssemblies()
+            .Select(static assembly => assembly.Name)
+            .OfType<string>()
+            .Where(static name => name.StartsWith("Roslyn.Workbench.Mcp", StringComparison.Ordinal))
+            .ToArray();
+
+        productDependencies.Should().BeEmpty();
+    }
+
+    [Fact]
+    [Trait("Category", "Contract")]
+    public void GIVEN_PluginsPublicApi_WHEN_InspectingWorkspaceTypes_THEN_ShouldExposeOnlyAbstractions()
+    {
+        var abstractionsAssembly = typeof(WorkspaceBoundRequest).Assembly;
         var workspaceTypes = typeof(IRoslynPlugin).Assembly
             .GetExportedTypes()
             .SelectMany(GetPublicSignatureTypes)
@@ -66,11 +135,8 @@ public sealed class PluginPublicApiContractTests
             .OrderBy(static type => type.FullName, StringComparer.Ordinal)
             .ToArray();
 
-        workspaceTypes.Should().OnlyContain(static type =>
-            type.Namespace != null
-            && (type.Namespace.StartsWith("Roslyn.Workbench.Mcp.Workspace.Contracts.", StringComparison.Ordinal)
-                || string.Equals(type.Namespace, "Roslyn.Workbench.Mcp.Workspace.Projects", StringComparison.Ordinal)
-                || string.Equals(type.Namespace, "Roslyn.Workbench.Mcp.Workspace.Resolution", StringComparison.Ordinal)));
+        workspaceTypes.Should().NotBeEmpty();
+        workspaceTypes.Should().OnlyContain(type => type.Assembly == abstractionsAssembly);
     }
 
     [Fact]

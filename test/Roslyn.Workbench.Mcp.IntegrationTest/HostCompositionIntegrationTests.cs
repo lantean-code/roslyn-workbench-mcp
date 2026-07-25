@@ -3,7 +3,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 using Roslyn.Workbench.Mcp.Workspace.Caching;
-using Roslyn.Workbench.Mcp.Workspace.Contracts.Caching;
 
 namespace Roslyn.Workbench.Mcp.Test;
 

@@ -1,6 +1,6 @@
 using System.Composition;
 using System.Reflection;
-using ContractDiagnosticSeverity = Roslyn.Workbench.Mcp.Workspace.Contracts.Results.DiagnosticSeverity;
+using ContractDiagnosticSeverity = Roslyn.Workbench.Mcp.Workspace.Results.DiagnosticSeverity;
 
 namespace Roslyn.Workbench.Mcp.Plugins.Validation;
 

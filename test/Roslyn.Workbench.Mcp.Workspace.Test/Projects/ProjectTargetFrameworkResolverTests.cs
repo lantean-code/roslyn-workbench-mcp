@@ -1,4 +1,4 @@
-using Roslyn.Workbench.Mcp.Workspace.Contracts.Caching;
+using Roslyn.Workbench.Mcp.Workspace.Caching;
 using Roslyn.Workbench.Mcp.Workspace.Projects.Caching;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test.Projects;
@@ -17,7 +17,7 @@ public sealed class ProjectTargetFrameworkResolverTests
         var cacheKey = new ProjectTargetFrameworkCacheKey(project.Solution, project.FilePath!);
 
         queryCache
-            .Setup(item => item.TryGet<ProjectTargetFrameworkCacheEntry>("WorkspaceId", cacheKey, out cacheEntry))
+            .Setup(item => item.TryGet("WorkspaceId", cacheKey, out cacheEntry))
             .Returns(true);
 
         var result = target.Resolve(
@@ -130,7 +130,7 @@ public sealed class ProjectTargetFrameworkResolverTests
         var cacheKey = new ProjectTargetFrameworkCacheKey(cachedProject.Solution, cachedProject.FilePath!);
 
         queryCache
-            .Setup(item => item.TryGet<ProjectTargetFrameworkCacheEntry>("WorkspaceId", cacheKey, out cacheEntry))
+            .Setup(item => item.TryGet("WorkspaceId", cacheKey, out cacheEntry))
             .Returns(true);
 
         projectStructureService
@@ -164,7 +164,7 @@ public sealed class ProjectTargetFrameworkResolverTests
         var cacheKey = new ProjectTargetFrameworkCacheKey(project.Solution, project.FilePath!);
 
         queryCache
-            .Setup(item => item.TryGet<ProjectTargetFrameworkCacheEntry>("WorkspaceId", cacheKey, out cacheEntry))
+            .Setup(item => item.TryGet("WorkspaceId", cacheKey, out cacheEntry))
             .Returns(true);
 
         var results = target.Resolve(

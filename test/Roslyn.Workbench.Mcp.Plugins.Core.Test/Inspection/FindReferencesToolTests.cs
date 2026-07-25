@@ -310,7 +310,7 @@ public sealed class FindReferencesToolTests
         inspectionContextService
             .Setup(item => item.ReadContextAsync(
                 It.IsAny<Document>(),
-                It.IsAny<Microsoft.CodeAnalysis.Text.TextSpan>(),
+                It.IsAny<TextSpan>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync("return holder.Current;");
 

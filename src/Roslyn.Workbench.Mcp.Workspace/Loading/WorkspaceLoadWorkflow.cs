@@ -114,7 +114,7 @@ internal sealed class WorkspaceLoadWorkflow : IWorkspaceLoadWorkflow
                 diagnostics.Add(new DiagnosticInfo
                 {
                     Id = "WorkspaceInputOutsideRoot",
-                    Severity = Contracts.Results.DiagnosticSeverity.Error,
+                    Severity = Results.DiagnosticSeverity.Error,
                     Message = $"Loaded workspace input '{outsideRootInput}' is outside the workspace root '{workspaceRoot}'.",
                 });
 
@@ -211,7 +211,7 @@ internal sealed class WorkspaceLoadWorkflow : IWorkspaceLoadWorkflow
         return new DiagnosticInfo
         {
             Id = "WorkspaceAnalyzerReferenceSkipped",
-            Severity = Contracts.Results.DiagnosticSeverity.Warning,
+            Severity = Results.DiagnosticSeverity.Warning,
             Message = $"Analyzer reference '{display}' was skipped from {owner} because it could not be resolved.",
         };
     }
@@ -221,7 +221,7 @@ internal sealed class WorkspaceLoadWorkflow : IWorkspaceLoadWorkflow
         return new DiagnosticInfo
         {
             Id = "WorkspaceProjectSkipped",
-            Severity = Contracts.Results.DiagnosticSeverity.Warning,
+            Severity = Results.DiagnosticSeverity.Warning,
             Message = $"Project '{project.Name}' was skipped because {reason}.",
         };
     }

@@ -8,7 +8,7 @@ internal static class WorkspaceInputEvaluationDiagnostics
             .Select(static failure => new DiagnosticInfo
             {
                 Id = "WorkspaceInputEvaluationFailed",
-                Severity = Contracts.Results.DiagnosticSeverity.Error,
+                Severity = Results.DiagnosticSeverity.Error,
                 Message = $"Could not evaluate inputs for '{failure.ProjectPath}': {failure.Message}",
             })
             .ToArray();

@@ -14,6 +14,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
     private readonly Mock<IFileStreamFactory> _streams = new();
     private readonly Mock<IPath> _path = new();
     private readonly Mock<IWorkspacePathComparison> _pathComparison = new();
+    private readonly Mock<IPhysicalPathContainment> _pathContainment = new();
 
     public WorkspaceInstanceStatusPublisherTests()
     {
@@ -29,6 +30,16 @@ public sealed class WorkspaceInstanceStatusPublisherTests
 
         _pathComparison.SetupGet(item => item.Comparison).Returns(StringComparison.Ordinal);
         _pathComparison.Setup(item => item.GetComparison(It.IsAny<string>())).Returns(StringComparison.Ordinal);
+        _pathContainment
+            .Setup(item => item.TryGetStrictlyContainedPath(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                out It.Ref<string>.IsAny))
+            .Returns((string _, string candidate, out string containedPath) =>
+            {
+                containedPath = candidate;
+                return true;
+            });
     }
 
     [Fact]
@@ -39,7 +50,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         _streams.Setup(item => item.New(It.IsAny<string>(), FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read))
             .Returns(new Mock<FileSystemStream>(stream, "/workspace/instance.json", false) { CallBase = true }.Object);
 
-        await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
+        await using var target = CreateTarget();
 
         var result = await target.OpenAsync("workspace", "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
         await target.UpdateAsync("workspace", WorkspaceLifecycleState.TransactionActive, 2, "commit", "Applying");
@@ -48,6 +59,36 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         Encoding.UTF8.GetString(stream.ToArray()).Should().Contain("\"transactionRevision\":2").And.Contain("\"commitPhase\":\"Applying\"");
         await target.CloseAsync("workspace");
         _file.Verify(item => item.Delete(It.Is<string>(path => path.EndsWith("-workspace.json", StringComparison.Ordinal))), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_InstanceDirectoryPhysicallyEscapesWorkspace_WHEN_Opening_THEN_ShouldReturnUnavailable()
+    {
+        _pathContainment
+            .Setup(item => item.TryGetStrictlyContainedPath(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                out It.Ref<string>.IsAny))
+            .Returns(false);
+
+        await using var target = CreateTarget();
+
+        var result = await target.OpenAsync(
+            "workspace",
+            "/workspace",
+            "/workspace/solution.slnx",
+            WorkspaceLifecycleState.Ready,
+            TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(WorkspaceInstanceStatusResult.Unavailable);
+        _directory.Verify(item => item.CreateDirectory(It.IsAny<string>()), Times.Never);
+        _streams.Verify(
+            item => item.New(
+                It.IsAny<string>(),
+                It.IsAny<FileMode>(),
+                It.IsAny<FileAccess>(),
+                It.IsAny<FileShare>()),
+            Times.Never);
     }
 
     [Fact]
@@ -61,7 +102,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         _streams.Setup(item => item.New(It.Is<string>(path => path != "/workspace/live.json"), FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read))
             .Returns(new Mock<FileSystemStream>(stream, "/workspace/instance.json", false) { CallBase = true }.Object);
 
-        await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
+        await using var target = CreateTarget();
 
         var result = await target.OpenAsync("workspace", "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
 
@@ -92,7 +133,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
             CommitPhase = "Applying",
         }, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
 
-        await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
+        await using var target = CreateTarget();
 
         var result = await target.GetOtherLiveInstancesAsync("/workspace", TestContext.Current.CancellationToken);
 
@@ -114,7 +155,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
     public async Task GIVEN_InstanceDirectoryDoesNotExist_WHEN_Querying_THEN_ShouldReturnNoInstances()
     {
         _directory.Setup(item => item.Exists(It.IsAny<string>())).Returns(false);
-        await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
+        await using var target = CreateTarget();
 
         var result = await target.GetOtherLiveInstancesAsync("/workspace", TestContext.Current.CancellationToken);
 
@@ -125,7 +166,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
     [Fact]
     public async Task GIVEN_WhitespaceWorkspaceRoot_WHEN_Querying_THEN_ShouldRejectTheRequest()
     {
-        await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
+        await using var target = CreateTarget();
 
         var act = async () => await target.GetOtherLiveInstancesAsync(" ", TestContext.Current.CancellationToken);
 
@@ -136,7 +177,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
     public async Task GIVEN_FileSystemIOException_WHEN_Opening_THEN_ShouldReportUnavailableStatus()
     {
         _directory.Setup(item => item.CreateDirectory(It.IsAny<string>())).Throws(new IOException());
-        await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
+        await using var target = CreateTarget();
 
         var result = await target.OpenAsync("workspace", "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
 
@@ -147,7 +188,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
     public async Task GIVEN_FileSystemAccessFailure_WHEN_Opening_THEN_ShouldReportUnavailableStatus()
     {
         _directory.Setup(item => item.CreateDirectory(It.IsAny<string>())).Throws(new UnauthorizedAccessException());
-        await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
+        await using var target = CreateTarget();
 
         var result = await target.OpenAsync("workspace", "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
 
@@ -158,7 +199,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
     public async Task GIVEN_FileSystemIOException_WHEN_Querying_THEN_ShouldReportUnavailableStatus()
     {
         _directory.Setup(item => item.Exists(It.IsAny<string>())).Throws(new IOException());
-        await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
+        await using var target = CreateTarget();
 
         var result = await target.GetOtherLiveInstancesAsync("/workspace", TestContext.Current.CancellationToken);
 
@@ -169,7 +210,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
     public async Task GIVEN_FileSystemAccessFailure_WHEN_Querying_THEN_ShouldReportUnavailableStatus()
     {
         _directory.Setup(item => item.Exists(It.IsAny<string>())).Throws(new UnauthorizedAccessException());
-        await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
+        await using var target = CreateTarget();
 
         var result = await target.GetOtherLiveInstancesAsync("/workspace", TestContext.Current.CancellationToken);
 
@@ -179,7 +220,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
     [Fact]
     public async Task GIVEN_UnknownWorkspace_WHEN_UpdatingAndClosing_THEN_ShouldDoNothing()
     {
-        await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
+        await using var target = CreateTarget();
 
         await target.UpdateAsync("workspace", WorkspaceLifecycleState.Ready, null, null, null);
         await target.CloseAsync("workspace");
@@ -202,7 +243,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         _streams.Setup(item => item.New(It.IsAny<string>(), FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read))
             .Returns(new Mock<FileSystemStream>(stream.Object, "/workspace/instance.json", false) { CallBase = true }.Object);
 
-        await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
+        await using var target = CreateTarget();
         await target.OpenAsync("workspace", "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
         stream.Setup(item => item.SetLength(0)).Throws(new IOException());
 
@@ -220,7 +261,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         _streams.Setup(item => item.New(It.IsAny<string>(), FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read))
             .Returns(new Mock<FileSystemStream>(stream, "/workspace/instance.json", false) { CallBase = true }.Object);
 
-        var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
+        var target = CreateTarget();
         await target.OpenAsync(
             "workspace",
             "/workspace",
@@ -252,7 +293,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         _streams.Setup(item => item.New(It.IsAny<string>(), FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read))
             .Returns(new Mock<FileSystemStream>(stream, "/workspace/instance.json", false) { CallBase = true }.Object);
 
-        await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
+        await using var target = CreateTarget();
         await target.OpenAsync(
             "workspace",
             "/workspace",
@@ -296,7 +337,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         _streams.Setup(item => item.New(It.IsAny<string>(), FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read))
             .Returns(new Mock<FileSystemStream>(stream.Object, "/workspace/instance.json", false) { CallBase = true }.Object);
 
-        await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
+        await using var target = CreateTarget();
         await target.OpenAsync("workspace", "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
         stream.Setup(item => item.SetLength(0)).Throws(new UnauthorizedAccessException());
 
@@ -315,7 +356,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
             .Returns(new Mock<FileSystemStream>(stream, "/workspace/instance.json", false) { CallBase = true }.Object);
 
         _file.Setup(item => item.Delete(It.IsAny<string>())).Throws(new IOException());
-        await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
+        await using var target = CreateTarget();
         await target.OpenAsync("workspace", "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
 
         await target.CloseAsync("workspace");
@@ -332,7 +373,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
             .Returns(new Mock<FileSystemStream>(stream, "/workspace/instance.json", false) { CallBase = true }.Object);
 
         _file.Setup(item => item.Delete(It.IsAny<string>())).Throws(new UnauthorizedAccessException());
-        await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
+        await using var target = CreateTarget();
         await target.OpenAsync("workspace", "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
 
         await target.CloseAsync("workspace");
@@ -348,7 +389,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
             .Returns((string path, FileMode _, FileAccess _, FileShare _) =>
                 new Mock<FileSystemStream>(new MemoryStream(), path, false) { CallBase = true }.Object);
 
-        var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
+        var target = CreateTarget();
         await target.OpenAsync("workspace-one", "/workspace", "/workspace/one.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
         await target.OpenAsync("workspace-two", "/workspace", "/workspace/two.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
 
@@ -364,7 +405,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         _streams.Setup(item => item.New(It.IsAny<string>(), FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read))
             .Returns(new Mock<FileSystemStream>(new MemoryStream(), "/workspace/instance.json", false) { CallBase = true }.Object);
 
-        await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
+        await using var target = CreateTarget();
 
         var opens = Enumerable.Range(0, 10)
             .Select(_ => target.OpenAsync(
@@ -405,7 +446,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         _streams.Setup(item => item.New(It.IsAny<string>(), FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read))
             .Returns(new Mock<FileSystemStream>(stream.Object, "/workspace/instance.json", false) { CallBase = true }.Object);
 
-        await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
+        await using var target = CreateTarget();
         await target.OpenAsync(
             "workspace",
             "/workspace",
@@ -429,7 +470,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
     public async Task GIVEN_DisposedPublisher_WHEN_OpeningWorkspace_THEN_ShouldNotCreateAHandle()
     {
         _directory.Setup(item => item.EnumerateFiles(It.IsAny<string>(), "*.json")).Returns([]);
-        var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
+        var target = CreateTarget();
         await target.DisposeAsync();
 
         var result = await target.OpenAsync(
@@ -467,7 +508,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
             .Returns(fileSystemStream.Object)
             .Returns(healthyStream.Object);
 
-        var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
+        var target = CreateTarget();
         await target.OpenAsync(
             "workspace",
             "/workspace",
@@ -498,7 +539,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         await cancellation.CancelAsync();
         _directory.Setup(item => item.Exists(It.IsAny<string>())).Returns(true);
         _directory.Setup(item => item.EnumerateFiles(It.IsAny<string>(), "*.json")).Returns(["/workspace/live.json"]);
-        await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
+        await using var target = CreateTarget();
 
         var act = async () => await target.GetOtherLiveInstancesAsync("/workspace", cancellation.Token);
 
@@ -524,7 +565,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
             SetupReadableStatus(path, JsonSerializer.Serialize(status, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
         }
 
-        await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
+        await using var target = CreateTarget();
 
         var result = await target.GetOtherLiveInstancesAsync("/workspace", TestContext.Current.CancellationToken);
 
@@ -540,7 +581,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         _directory.Setup(item => item.EnumerateFiles(It.IsAny<string>(), "*.json")).Returns([path]);
         _streams.Setup(item => item.New(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None)).Throws(new UnauthorizedAccessException());
         _streams.Setup(item => item.New(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete)).Throws(new IOException());
-        await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
+        await using var target = CreateTarget();
 
         var result = await target.GetOtherLiveInstancesAsync("/workspace", TestContext.Current.CancellationToken);
 
@@ -557,7 +598,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         _directory.Setup(item => item.EnumerateFiles(It.IsAny<string>(), "*.json")).Returns([path]);
         _streams.Setup(item => item.New(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None)).Throws(new IOException());
         _streams.Setup(item => item.New(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete)).Throws(new UnauthorizedAccessException());
-        await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
+        await using var target = CreateTarget();
 
         var result = await target.GetOtherLiveInstancesAsync("/workspace", TestContext.Current.CancellationToken);
 
@@ -575,7 +616,7 @@ public sealed class WorkspaceInstanceStatusPublisherTests
         _streams.Setup(item => item.New(It.IsAny<string>(), FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read))
             .Returns(new Mock<FileSystemStream>(statusStream, "/workspace/instance.json", false) { CallBase = true }.Object);
 
-        await using var target = new WorkspaceInstanceStatusPublisher(_fileSystem.Object, _pathComparison.Object);
+        await using var target = CreateTarget();
         await target.OpenAsync("workspace", "/workspace", "/workspace/solution.slnx", WorkspaceLifecycleState.Ready, TestContext.Current.CancellationToken);
         var status = JsonSerializer.Deserialize<WorkspaceInstanceStatus>(statusStream.ToArray(), new JsonSerializerOptions(JsonSerializerDefaults.Web));
         status.Should().NotBeNull();
@@ -601,6 +642,14 @@ public sealed class WorkspaceInstanceStatusPublisherTests
                 path,
                 false)
             { CallBase = true }.Object);
+    }
+
+    private WorkspaceInstanceStatusPublisher CreateTarget()
+    {
+        return new WorkspaceInstanceStatusPublisher(
+            _fileSystem.Object,
+            _pathComparison.Object,
+            _pathContainment.Object);
     }
 
     private static WorkspaceInstanceStatus CreateStatus(string instanceId, string workspaceRoot, int version)

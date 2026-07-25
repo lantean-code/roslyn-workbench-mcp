@@ -8,11 +8,16 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
 {
     private readonly IFileSystem _fileSystem;
     private readonly IWorkspacePathComparison _pathComparison;
+    private readonly IPhysicalPathContainment _pathContainment;
 
-    public WorkspaceCommitPlanner(IFileSystem fileSystem, IWorkspacePathComparison pathComparison)
+    public WorkspaceCommitPlanner(
+        IFileSystem fileSystem,
+        IWorkspacePathComparison pathComparison,
+        IPhysicalPathContainment pathContainment)
     {
         _fileSystem = fileSystem;
         _pathComparison = pathComparison;
+        _pathContainment = pathContainment;
     }
 
     public async ValueTask<WorkspaceCommitPlanResult> CreateAsync(
@@ -277,18 +282,19 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
         [NotNullWhen(false)] out string? errorMessage)
     {
         canonicalPath = null;
-        var targetPath = _fileSystem.Path.GetFullPath(path);
-        if (context.EntriesByTarget.Comparer.Equals(context.WorkspaceRoot, targetPath)
-            || !IsWithinBoundary(context.WorkspaceRoot, targetPath))
+        if (!_pathContainment.TryGetStrictlyContainedPath(
+            context.WorkspaceRoot,
+            path,
+            out var targetPath))
         {
-            errorMessage = $"The target '{targetPath}' is outside the workspace root.";
+            errorMessage = $"The target '{path}' is outside the workspace root.";
             return false;
         }
 
         var isSupported = context.BaselineDocumentPaths.Contains(targetPath);
         foreach (var projectRoot in context.ProjectRoots)
         {
-            if (IsWithinBoundary(projectRoot, targetPath))
+            if (_pathContainment.TryGetContainedPath(projectRoot, targetPath, out _))
             {
                 isSupported = true;
                 break;
@@ -314,14 +320,6 @@ internal sealed class WorkspaceCommitPlanner : IWorkspaceCommitPlanner
             context.CreatedDirectories.Add(directory);
             directory = _fileSystem.Path.GetDirectoryName(directory);
         }
-    }
-
-    private bool IsWithinBoundary(string root, string path)
-    {
-        var relativePath = _fileSystem.Path.GetRelativePath(root, path);
-        return relativePath != ".."
-            && !relativePath.StartsWith($"..{_fileSystem.Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-            && !_fileSystem.Path.IsPathRooted(relativePath);
     }
 
     private bool TryGetProjectRoots(

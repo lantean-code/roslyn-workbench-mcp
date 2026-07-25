@@ -6,16 +6,24 @@ namespace Roslyn.Workbench.Mcp.Workspace.Test.Transactions;
 public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
 {
     private readonly AdhocWorkspace _workspace;
-    private readonly Mock<IWorkspacePathComparison> _pathComparison;
+    private readonly Mock<IPhysicalPathContainment> _pathContainment;
     private readonly WorkspaceMutationCandidateValidator _target;
 
     public WorkspaceMutationCandidateValidatorTests()
     {
         _workspace = new AdhocWorkspace();
-        _pathComparison = new Mock<IWorkspacePathComparison>();
-        _pathComparison.SetupGet(item => item.Comparison).Returns(StringComparison.Ordinal);
-        _pathComparison.Setup(item => item.GetComparison(It.IsAny<string>())).Returns(StringComparison.Ordinal);
-        _target = new WorkspaceMutationCandidateValidator(_pathComparison.Object);
+        _pathContainment = new Mock<IPhysicalPathContainment>();
+        _pathContainment
+            .Setup(item => item.TryGetStrictlyContainedPath(It.IsAny<string>(), It.IsAny<string>(), out It.Ref<string>.IsAny))
+            .Returns((string root, string path, out string containedPath) =>
+            {
+                containedPath = path;
+                return Path.GetFullPath(path).StartsWith(
+                    Path.TrimEndingDirectorySeparator(Path.GetFullPath(root)) + Path.DirectorySeparatorChar,
+                    StringComparison.Ordinal);
+            });
+
+        _target = new WorkspaceMutationCandidateValidator(_pathContainment.Object);
     }
 
     [Fact]
@@ -163,7 +171,6 @@ public sealed class WorkspaceMutationCandidateValidatorTests : IDisposable
     [Fact]
     public void GIVEN_ValidCandidate_WHEN_Validating_THEN_ShouldAcceptIt()
     {
-        _pathComparison.Setup(item => item.GetComparison(It.IsAny<string>())).Returns(StringComparison.OrdinalIgnoreCase);
         var currentSolution = CreateSolution(documentPathDiffersByCase: true);
         var document = currentSolution.Projects.Single().Documents.Single();
         var candidateSolution = document.WithText(SourceText.From("class Updated { }")).Project.Solution;

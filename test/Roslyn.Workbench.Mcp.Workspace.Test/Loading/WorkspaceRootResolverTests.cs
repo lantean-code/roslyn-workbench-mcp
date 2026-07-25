@@ -9,6 +9,7 @@ public sealed class WorkspaceRootResolverTests
     private readonly Mock<IDirectory> _directory;
     private readonly Mock<IPath> _path;
     private readonly Mock<IWorkspacePathComparison> _pathComparison;
+    private readonly Mock<IPhysicalPathContainment> _pathContainment;
     private readonly WorkspaceRootResolver _target;
 
     public WorkspaceRootResolverTests()
@@ -18,6 +19,7 @@ public sealed class WorkspaceRootResolverTests
         _directory = new Mock<IDirectory>();
         _path = new Mock<IPath>();
         _pathComparison = new Mock<IWorkspacePathComparison>();
+        _pathContainment = new Mock<IPhysicalPathContainment>();
         _fileSystem.SetupGet(item => item.File).Returns(_file.Object);
         _fileSystem.SetupGet(item => item.Directory).Returns(_directory.Object);
         _fileSystem.SetupGet(item => item.Path).Returns(_path.Object);
@@ -31,7 +33,15 @@ public sealed class WorkspaceRootResolverTests
         _path.SetupGet(item => item.AltDirectorySeparatorChar).Returns(Path.AltDirectorySeparatorChar);
         _pathComparison.SetupGet(item => item.Comparison).Returns(StringComparison.Ordinal);
         _pathComparison.Setup(item => item.GetComparison(It.IsAny<string>())).Returns(StringComparison.Ordinal);
-        _target = new WorkspaceRootResolver(_fileSystem.Object, _pathComparison.Object);
+        _pathContainment
+            .Setup(item => item.TryGetContainedPath(It.IsAny<string>(), It.IsAny<string>(), out It.Ref<string>.IsAny))
+            .Returns((string root, string path, out string containedPath) =>
+            {
+                containedPath = path;
+                return Path.GetFullPath(path).StartsWith(Path.GetFullPath(root), StringComparison.Ordinal);
+            });
+
+        _target = new WorkspaceRootResolver(_fileSystem.Object, _pathComparison.Object, _pathContainment.Object);
     }
 
     [Theory]
@@ -172,8 +182,16 @@ public sealed class WorkspaceRootResolverTests
     [Fact]
     public void GIVEN_CaseInsensitiveMountedRoot_WHEN_PathCasingDiffers_THEN_ShouldReturnTrue()
     {
-        _pathComparison.Setup(item => item.GetComparison("/mnt/c/Users/Developer/Repository"))
-            .Returns(StringComparison.OrdinalIgnoreCase);
+        _pathContainment
+            .Setup(item => item.TryGetContainedPath(
+                "/mnt/c/Users/Developer/Repository",
+                "/mnt/c/users/developer/repository/src/Project.csproj",
+                out It.Ref<string>.IsAny))
+            .Returns((string _, string path, out string containedPath) =>
+            {
+                containedPath = path;
+                return true;
+            });
 
         var result = _target.Contains(
             "/mnt/c/Users/Developer/Repository",

@@ -10,6 +10,7 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
     private readonly Mock<IDirectory> _directory = new();
     private readonly Mock<IPath> _path = new();
     private readonly Mock<IWorkspacePathComparison> _pathComparison = new();
+    private readonly Mock<IPhysicalPathContainment> _pathContainment = new();
     private readonly WorkspaceCommitPlanner _target;
 
     public WorkspaceCommitPlannerTests()
@@ -25,7 +26,23 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
         _directory.Setup(item => item.Exists(It.IsAny<string>())).Returns(true);
         _pathComparison.SetupGet(item => item.Comparer).Returns(StringComparer.Ordinal);
         _pathComparison.Setup(item => item.GetComparer(It.IsAny<string>())).Returns(StringComparer.Ordinal);
-        _target = new WorkspaceCommitPlanner(_fileSystem.Object, _pathComparison.Object);
+        _pathContainment
+            .Setup(item => item.TryGetStrictlyContainedPath(It.IsAny<string>(), It.IsAny<string>(), out It.Ref<string>.IsAny))
+            .Returns((string root, string path, out string containedPath) =>
+            {
+                containedPath = Path.GetFullPath(path);
+                return IsContained(root, containedPath, allowRoot: false);
+            });
+
+        _pathContainment
+            .Setup(item => item.TryGetContainedPath(It.IsAny<string>(), It.IsAny<string>(), out It.Ref<string>.IsAny))
+            .Returns((string root, string path, out string containedPath) =>
+            {
+                containedPath = Path.GetFullPath(path);
+                return IsContained(root, containedPath, allowRoot: true);
+            });
+
+        _target = new WorkspaceCommitPlanner(_fileSystem.Object, _pathComparison.Object, _pathContainment.Object);
     }
 
     [Fact]
@@ -474,6 +491,20 @@ public sealed class WorkspaceCommitPlannerTests : IDisposable
     public void Dispose()
     {
         _workspace.Dispose();
+    }
+
+    private static bool IsContained(string root, string path, bool allowRoot)
+    {
+        var relativePath = Path.GetRelativePath(Path.GetFullPath(root), Path.GetFullPath(path));
+        if (Path.IsPathRooted(relativePath)
+            || relativePath == ".."
+            || relativePath.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+            || relativePath.StartsWith($"..{Path.AltDirectorySeparatorChar}", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        return allowRoot || relativePath != ".";
     }
 
     private static byte[] Encode(Encoding encoding, string text)

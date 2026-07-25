@@ -8,17 +8,20 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
     private readonly IAtomicFileWriter _atomicFileWriter;
     private readonly ICommitRecoveryStore _recoveryStore;
     private readonly IAtomicFileCommitter _fileCommitter;
+    private readonly IPhysicalPathContainment _pathContainment;
 
     public WorkspaceCommitWriter(
         IFileSystem fileSystem,
         IAtomicFileWriter atomicFileWriter,
         ICommitRecoveryStore recoveryStore,
-        IAtomicFileCommitter fileCommitter)
+        IAtomicFileCommitter fileCommitter,
+        IPhysicalPathContainment pathContainment)
     {
         _fileSystem = fileSystem;
         _atomicFileWriter = atomicFileWriter;
         _recoveryStore = recoveryStore;
         _fileCommitter = fileCommitter;
+        _pathContainment = pathContainment;
     }
 
     public async ValueTask<WorkspaceCommitValidationResult> RevalidateAsync(
@@ -27,7 +30,7 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
     {
         foreach (var entry in manifest.Entries)
         {
-            var validation = await RevalidateEntryAsync(entry, cancellationToken);
+            var validation = await RevalidateEntryAsync(manifest, entry, cancellationToken);
             if (!validation.IsValid)
             {
                 return validation;
@@ -41,12 +44,21 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
     {
         foreach (var directory in manifest.CreatedDirectories)
         {
+            if (!_pathContainment.TryGetStrictlyContainedPath(
+                manifest.WorkspaceRoot,
+                directory,
+                out _))
+            {
+                return WorkspaceCommitValidationResult.Invalid(
+                    $"The commit directory '{directory}' resolves outside the workspace root.");
+            }
+
             _fileSystem.Directory.CreateDirectory(directory);
         }
 
         foreach (var entry in manifest.Entries)
         {
-            var validation = await RevalidateEntryAsync(entry, CancellationToken.None);
+            var validation = await RevalidateEntryAsync(manifest, entry, CancellationToken.None);
             if (!validation.IsValid)
             {
                 return validation;
@@ -80,6 +92,14 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
         {
             foreach (var entry in manifest.Entries.Where(entry => entry.Operation == WorkspaceFileOperation.Delete))
             {
+                if (!_pathContainment.TryGetStrictlyContainedPath(
+                    manifest.WorkspaceRoot,
+                    entry.GetRequiredDeleteMarkerPath(),
+                    out _))
+                {
+                    return ValueTask.FromResult(false);
+                }
+
                 if (_fileSystem.File.Exists(entry.GetRequiredDeleteMarkerPath()))
                 {
                     _fileSystem.File.Delete(entry.GetRequiredDeleteMarkerPath());
@@ -105,6 +125,12 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
         {
             foreach (var entry in manifest.Entries.Reverse())
             {
+                if (!HasSafeRecoveryPaths(manifest, entry))
+                {
+                    conflict = true;
+                    continue;
+                }
+
                 var exists = _fileSystem.File.Exists(entry.TargetPath);
                 var currentHash = exists ? await HashFileAsync(entry.TargetPath, CancellationToken.None) : null;
                 if (entry.OriginalExists)
@@ -168,6 +194,15 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
 
             foreach (var directory in manifest.CreatedDirectories.OrderByDescending(path => path.Length))
             {
+                if (!_pathContainment.TryGetStrictlyContainedPath(
+                    manifest.WorkspaceRoot,
+                    directory,
+                    out _))
+                {
+                    conflict = true;
+                    continue;
+                }
+
                 if (_fileSystem.Directory.Exists(directory) && !_fileSystem.Directory.EnumerateFileSystemEntries(directory).Any())
                 {
                     _fileSystem.Directory.Delete(directory);
@@ -193,10 +228,17 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
     }
 
     private async ValueTask<WorkspaceCommitValidationResult> RevalidateEntryAsync(
+        WorkspaceCommitManifest manifest,
         WorkspaceCommitEntry entry,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        if (!HasSafeRecoveryPaths(manifest, entry))
+        {
+            return WorkspaceCommitValidationResult.Invalid(
+                $"The target '{entry.TargetPath}' resolves outside the workspace root.");
+        }
+
         if (entry.Operation == WorkspaceFileOperation.Delete
             && _fileSystem.File.Exists(entry.GetRequiredDeleteMarkerPath()))
         {
@@ -220,5 +262,22 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
         }
 
         return WorkspaceCommitValidationResult.Valid();
+    }
+
+    private bool HasSafeRecoveryPaths(WorkspaceCommitManifest manifest, WorkspaceCommitEntry entry)
+    {
+        if (!_pathContainment.TryGetStrictlyContainedPath(
+            manifest.WorkspaceRoot,
+            entry.TargetPath,
+            out _))
+        {
+            return false;
+        }
+
+        return entry.DeleteMarkerPath is null
+            || _pathContainment.TryGetStrictlyContainedPath(
+                manifest.WorkspaceRoot,
+                entry.DeleteMarkerPath,
+                out _);
     }
 }

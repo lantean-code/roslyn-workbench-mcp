@@ -17,6 +17,7 @@ public sealed class CommitRecoveryStoreTests
     private readonly Mock<IPath> _path;
     private readonly Mock<IAtomicFileWriter> _atomicFileWriter;
     private readonly Mock<IWorkspacePathComparison> _pathComparison;
+    private readonly Mock<IPhysicalPathContainment> _pathContainment;
     private readonly CommitRecoveryStore _target;
 
     public CommitRecoveryStoreTests()
@@ -27,6 +28,7 @@ public sealed class CommitRecoveryStoreTests
         _path = new Mock<IPath>();
         _atomicFileWriter = new Mock<IAtomicFileWriter>();
         _pathComparison = new Mock<IWorkspacePathComparison>();
+        _pathContainment = new Mock<IPhysicalPathContainment>();
         _fileSystem.SetupGet(item => item.File).Returns(_file.Object);
         _fileSystem.SetupGet(item => item.Directory).Returns(_directory.Object);
         _fileSystem.SetupGet(item => item.Path).Returns(_path.Object);
@@ -59,11 +61,34 @@ public sealed class CommitRecoveryStoreTests
         _pathComparison.SetupGet(item => item.Comparer).Returns(StringComparer.Ordinal);
         _pathComparison.Setup(item => item.GetComparison(It.IsAny<string>())).Returns(StringComparison.Ordinal);
         _pathComparison.Setup(item => item.GetComparer(It.IsAny<string>())).Returns(StringComparer.Ordinal);
+        _pathContainment
+            .Setup(item => item.TryGetContainedPath(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                out It.Ref<string>.IsAny))
+            .Returns((string root, string candidate, out string containedPath) =>
+            {
+                containedPath = candidate;
+                return IsContained(root, candidate, allowRoot: true);
+            });
+
+        _pathContainment
+            .Setup(item => item.TryGetStrictlyContainedPath(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                out It.Ref<string>.IsAny))
+            .Returns((string root, string candidate, out string containedPath) =>
+            {
+                containedPath = candidate;
+                return IsContained(root, candidate, allowRoot: false);
+            });
+
         _target = new CommitRecoveryStore(
             Options.Create(new WorkspaceOptions { StateDirectory = "StateDirectory" }),
             _fileSystem.Object,
             _atomicFileWriter.Object,
-            _pathComparison.Object);
+            _pathComparison.Object,
+            _pathContainment.Object);
     }
 
     [Fact]
@@ -76,6 +101,27 @@ public sealed class CommitRecoveryStoreTests
             It.IsAny<string>(),
             It.IsAny<string>(),
             It.IsAny<SearchOption>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_RecoveryDirectoryEntryPhysicallyEscapesRoot_WHEN_Reading_THEN_ShouldReturnConflictWithoutReadingIt()
+    {
+        var directory = _recoveryDirectory + "/CommitId";
+        _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
+        _directory.Setup(item => item.EnumerateDirectories(_recoveryDirectory)).Returns([directory]);
+        _pathContainment
+            .Setup(item => item.TryGetStrictlyContainedPath(
+                _recoveryDirectory,
+                directory,
+                out It.Ref<string>.IsAny))
+            .Returns(false);
+
+        var result = await _target.GetManifestsAsync(TestContext.Current.CancellationToken);
+
+        result.Should().ContainSingle().Which.State.Should().Be(RecoveryState.RecoveryConflict);
+        _file.Verify(
+            item => item.ReadAllTextAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
@@ -709,6 +755,20 @@ public sealed class CommitRecoveryStoreTests
             "deleteMarkerWrong" => manifest with { Entries = [CreateDeleteEntry("/Workspace/File.cs") with { DeleteMarkerPath = "/Workspace/Other.delete" }], },
             _ => throw new InvalidOperationException("Unknown scenario."),
         };
+    }
+
+    private static bool IsContained(string root, string path, bool allowRoot)
+    {
+        var relativePath = Path.GetRelativePath(Path.GetFullPath(root), Path.GetFullPath(path));
+        if (Path.IsPathRooted(relativePath)
+            || relativePath == ".."
+            || relativePath.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+            || relativePath.StartsWith($"..{Path.AltDirectorySeparatorChar}", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        return allowRoot || relativePath != ".";
     }
 
     private static WorkspaceCommitManifest CreateManifest()

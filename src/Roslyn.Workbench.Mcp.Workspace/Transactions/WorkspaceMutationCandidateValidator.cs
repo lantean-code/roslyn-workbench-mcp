@@ -2,11 +2,11 @@ namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
 internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCandidateValidator
 {
-    private readonly IWorkspacePathComparison _pathComparison;
+    private readonly IPhysicalPathContainment _pathContainment;
 
-    public WorkspaceMutationCandidateValidator(IWorkspacePathComparison pathComparison)
+    public WorkspaceMutationCandidateValidator(IPhysicalPathContainment pathContainment)
     {
-        _pathComparison = pathComparison;
+        _pathContainment = pathContainment;
     }
 
     public WorkspaceOperationError? Validate(Solution currentSolution, Solution candidateSolution)
@@ -120,7 +120,10 @@ internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCa
             {
                 var projectDirectory = Path.GetDirectoryName(project.FilePath ?? string.Empty);
                 if (string.IsNullOrWhiteSpace(projectDirectory)
-                    || !IsPathWithinDirectory(document.FilePath, projectDirectory))
+                    || !_pathContainment.TryGetStrictlyContainedPath(
+                        projectDirectory,
+                        document.FilePath,
+                        out _))
                 {
                     return CreateError("UnsupportedChange", "Mutation proposals must keep created source files within the owning project directory.");
                 }
@@ -128,18 +131,6 @@ internal sealed class WorkspaceMutationCandidateValidator : IWorkspaceMutationCa
         }
 
         return null;
-    }
-
-    private bool IsPathWithinDirectory(string candidatePath, string directoryPath)
-    {
-        var normalizedDirectory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(directoryPath));
-        var normalizedCandidate = Path.GetFullPath(candidatePath);
-        var directoryPrefix = normalizedDirectory + Path.DirectorySeparatorChar;
-        var altDirectoryPrefix = normalizedDirectory + Path.AltDirectorySeparatorChar;
-        var comparison = _pathComparison.GetComparison(normalizedDirectory);
-
-        return normalizedCandidate.StartsWith(directoryPrefix, comparison)
-            || normalizedCandidate.StartsWith(altDirectoryPrefix, comparison);
     }
 
     private static bool HasDifferentIdentity(Project currentProject, Project candidateProject)

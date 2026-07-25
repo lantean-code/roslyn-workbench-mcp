@@ -9,11 +9,13 @@ public sealed class ServerStatusRecoveryIntegrationTests
     {
         using var stateDirectory = TemporaryDirectory.Create("roslyn-workbench-mcp-status-tests");
         var fileSystem = new FileSystem();
+        var pathComparison = new WorkspacePathComparison();
         var recoveryStore = new CommitRecoveryStore(
             Options.Create(new WorkspaceOptions { StateDirectory = stateDirectory.DirectoryPath }),
             fileSystem,
             new AtomicFileWriter(fileSystem, new NativeAtomicFileCommitter()),
-            new WorkspacePathComparison());
+            pathComparison,
+            new PhysicalPathContainment(fileSystem, pathComparison));
 
         await recoveryStore.WriteStatusAsync(new RecoveryStatus
         {

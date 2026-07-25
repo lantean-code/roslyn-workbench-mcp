@@ -12,6 +12,7 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
     private readonly IFileSystem _fileSystem = new FileSystem();
     private readonly AtomicFileWriter _atomicWriter;
     private readonly IAtomicFileCommitter _fileCommitter;
+    private readonly IPhysicalPathContainment _pathContainment;
     private readonly CommitRecoveryStore _store;
     private readonly WorkspaceCommitWriter _writer;
 
@@ -21,13 +22,20 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
         Directory.CreateDirectory(_root);
         _fileCommitter = new NativeAtomicFileCommitter();
         _atomicWriter = new AtomicFileWriter(_fileSystem, _fileCommitter);
+        _pathContainment = CreatePathContainment(_fileSystem);
         _store = new CommitRecoveryStore(
             Options.Create(new WorkspaceOptions { StateDirectory = _stateDirectory }),
             _fileSystem,
             _atomicWriter,
-            new WorkspacePathComparison());
+            new WorkspacePathComparison(),
+            _pathContainment);
 
-        _writer = new WorkspaceCommitWriter(_fileSystem, _atomicWriter, _store, _fileCommitter);
+        _writer = new WorkspaceCommitWriter(
+            _fileSystem,
+            _atomicWriter,
+            _store,
+            _fileCommitter,
+            _pathContainment);
     }
 
     [Theory]
@@ -104,7 +112,12 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
                 return _atomicWriter.WriteAllBytesAsync(path, contents, cancellationToken);
             });
 
-        var writer = new WorkspaceCommitWriter(_fileSystem, faultingAtomicWriter.Object, _store, _fileCommitter);
+        var writer = new WorkspaceCommitWriter(
+            _fileSystem,
+            faultingAtomicWriter.Object,
+            _store,
+            _fileCommitter,
+            _pathContainment);
 
         var apply = async () => await writer.ApplyAsync(transaction.Manifest);
         await apply.Should().ThrowAsync<IOException>();
@@ -248,21 +261,37 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
         var fileSystem = new FileSystem();
         var fileCommitter = new NativeAtomicFileCommitter();
         var atomicWriter = new AtomicFileWriter(fileSystem, fileCommitter);
+        var pathContainment = CreatePathContainment(fileSystem);
         var store = new CommitRecoveryStore(
             Options.Create(new WorkspaceOptions { StateDirectory = _stateDirectory }),
             fileSystem,
             atomicWriter,
-            new WorkspacePathComparison());
+            new WorkspacePathComparison(),
+            pathContainment);
 
-        var writer = new WorkspaceCommitWriter(fileSystem, atomicWriter, store, fileCommitter);
+        var writer = new WorkspaceCommitWriter(
+            fileSystem,
+            atomicWriter,
+            store,
+            fileCommitter,
+            pathContainment);
+
         return new WorkspaceCommitRecoveryService(store, writer, CreateLockManager(fileSystem));
     }
 
     private static WorkspaceCommitLockManager CreateLockManager(IFileSystem fileSystem)
     {
+        var pathContainment = CreatePathContainment(fileSystem);
         return new WorkspaceCommitLockManager(
             fileSystem,
-            new FileStreamWorkspaceFileLockProvider());
+            new FileStreamWorkspaceFileLockProvider(),
+            pathContainment);
+    }
+
+    private static PhysicalPathContainment CreatePathContainment(IFileSystem fileSystem)
+    {
+        var pathComparison = new WorkspacePathComparison();
+        return new PhysicalPathContainment(fileSystem, pathComparison);
     }
 
     private string GetLockPath()

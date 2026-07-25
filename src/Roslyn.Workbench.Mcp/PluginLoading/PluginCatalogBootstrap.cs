@@ -11,7 +11,8 @@ internal sealed class PluginCatalogBootstrap : IPluginCatalogBootstrap
     {
         var fileSystem = new FileSystem();
         var pathComparison = new WorkspacePathComparison();
-        var packagePathPolicy = new PluginPackagePathPolicy(fileSystem, pathComparison);
+        var pathContainment = new PhysicalPathContainment(fileSystem, pathComparison);
+        var packagePathPolicy = new PluginPackagePathPolicy(pathComparison, pathContainment);
         var metadataReader = new PluginAssemblyMetadataReader(fileSystem);
 
         var handlerTypeInspector = new PluginHandlerTypeInspector();

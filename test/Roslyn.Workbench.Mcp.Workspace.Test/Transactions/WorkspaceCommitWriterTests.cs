@@ -12,6 +12,7 @@ public sealed class WorkspaceCommitWriterTests
     private readonly Mock<IAtomicFileWriter> _atomicWriter = new();
     private readonly Mock<ICommitRecoveryStore> _recoveryStore = new();
     private readonly Mock<IAtomicFileCommitter> _fileCommitter = new();
+    private readonly Mock<IPhysicalPathContainment> _pathContainment = new();
     private readonly WorkspaceCommitWriter _target;
 
     public WorkspaceCommitWriterTests()
@@ -20,7 +21,23 @@ public sealed class WorkspaceCommitWriterTests
         _fileSystem.SetupGet(item => item.Directory).Returns(_directory.Object);
         _fileSystem.SetupGet(item => item.Path).Returns(_path.Object);
         _path.Setup(item => item.GetDirectoryName(It.IsAny<string>())).Returns("/workspace");
-        _target = new WorkspaceCommitWriter(_fileSystem.Object, _atomicWriter.Object, _recoveryStore.Object, _fileCommitter.Object);
+        _pathContainment
+            .Setup(item => item.TryGetStrictlyContainedPath(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                out It.Ref<string>.IsAny))
+            .Returns((string _, string candidate, out string containedPath) =>
+            {
+                containedPath = candidate;
+                return true;
+            });
+
+        _target = new WorkspaceCommitWriter(
+            _fileSystem.Object,
+            _atomicWriter.Object,
+            _recoveryStore.Object,
+            _fileCommitter.Object,
+            _pathContainment.Object);
     }
 
     [Fact]
@@ -35,6 +52,30 @@ public sealed class WorkspaceCommitWriterTests
 
         result.IsValid.Should().BeTrue();
         result.ErrorMessage.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GIVEN_TargetPhysicallyEscapesWorkspace_WHEN_Revalidating_THEN_ShouldRejectCommit()
+    {
+        var manifest = CreateManifest(CreateEntry(
+            WorkspaceFileOperation.Create,
+            originalHash: null,
+            intendedHash: "INTENDED"));
+
+        _pathContainment
+            .Setup(item => item.TryGetStrictlyContainedPath(
+                manifest.WorkspaceRoot,
+                "/workspace/file.cs",
+                out It.Ref<string>.IsAny))
+            .Returns(false);
+
+        var result = await _target.RevalidateAsync(
+            manifest,
+            TestContext.Current.CancellationToken);
+
+        result.IsValid.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("outside the workspace root");
+        _file.Verify(item => item.Exists(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]

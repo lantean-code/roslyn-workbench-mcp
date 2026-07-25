@@ -4,11 +4,16 @@ internal sealed class WorkspaceRootResolver : IWorkspaceRootResolver
 {
     private readonly IFileSystem _fileSystem;
     private readonly IWorkspacePathComparison _pathComparison;
+    private readonly IPhysicalPathContainment _pathContainment;
 
-    public WorkspaceRootResolver(IFileSystem fileSystem, IWorkspacePathComparison pathComparison)
+    public WorkspaceRootResolver(
+        IFileSystem fileSystem,
+        IWorkspacePathComparison pathComparison,
+        IPhysicalPathContainment pathContainment)
     {
         _fileSystem = fileSystem;
         _pathComparison = pathComparison;
+        _pathContainment = pathContainment;
     }
 
     public string? Resolve(string loadedPath, string? requestedRoot)
@@ -57,18 +62,6 @@ internal sealed class WorkspaceRootResolver : IWorkspaceRootResolver
 
     public bool Contains(string workspaceRoot, string path)
     {
-        var canonicalWorkspaceRoot = Path.TrimEndingDirectorySeparator(_fileSystem.Path.GetFullPath(workspaceRoot));
-        var canonicalPath = _fileSystem.Path.GetFullPath(path);
-        var comparison = _pathComparison.GetComparison(canonicalWorkspaceRoot);
-        if (string.Equals(canonicalWorkspaceRoot, canonicalPath, comparison))
-        {
-            return true;
-        }
-
-        var rootPrefix = Path.EndsInDirectorySeparator(canonicalWorkspaceRoot)
-            ? canonicalWorkspaceRoot
-            : canonicalWorkspaceRoot + _fileSystem.Path.DirectorySeparatorChar;
-
-        return canonicalPath.StartsWith(rootPrefix, comparison);
+        return _pathContainment.TryGetContainedPath(workspaceRoot, path, out _);
     }
 }

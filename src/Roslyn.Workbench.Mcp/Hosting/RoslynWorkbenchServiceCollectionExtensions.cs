@@ -55,6 +55,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IWorkspaceOperationResultFactory, WorkspaceOperationResultFactory>();
         services.AddSingleton<IFileSystem, FileSystem>();
         services.AddSingleton<IWorkspacePathComparison, WorkspacePathComparison>();
+        services.AddSingleton<IPhysicalPathContainment, PhysicalPathContainment>();
         services.AddSingleton<IAtomicFileCommitter, NativeAtomicFileCommitter>();
         services.AddSingleton<IWorkspaceInstanceStatusPublisher, WorkspaceInstanceStatusPublisher>();
         services.AddSingleton<IAtomicFileWriter, AtomicFileWriter>();

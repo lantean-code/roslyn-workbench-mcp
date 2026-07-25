@@ -10,6 +10,7 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
     private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
     private readonly IFileSystem _fileSystem;
     private readonly IWorkspacePathComparison _pathComparison;
+    private readonly IPhysicalPathContainment _pathContainment;
     private readonly Dictionary<string, WorkspaceInstanceStatusHandle> _handles = new(StringComparer.Ordinal);
     private readonly Channel<WorkspaceInstanceStatusUpdate> _updates;
     private readonly Task _updateWorker;
@@ -22,10 +23,14 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
     private readonly string _instanceId = $"{Environment.ProcessId}-{Guid.NewGuid():n}";
     private bool _isDisposed;
 
-    public WorkspaceInstanceStatusPublisher(IFileSystem fileSystem, IWorkspacePathComparison pathComparison)
+    public WorkspaceInstanceStatusPublisher(
+        IFileSystem fileSystem,
+        IWorkspacePathComparison pathComparison,
+        IPhysicalPathContainment pathContainment)
     {
         _fileSystem = fileSystem;
         _pathComparison = pathComparison;
+        _pathContainment = pathContainment;
         _updates = Channel.CreateUnbounded<WorkspaceInstanceStatusUpdate>(new UnboundedChannelOptions
         {
             SingleReader = true,
@@ -51,13 +56,33 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
             }
 
             var canonicalWorkspaceRoot = _fileSystem.Path.GetFullPath(workspaceRoot);
-            var scan = await PrepareInstanceDirectoryAsync(canonicalWorkspaceRoot, cancellationToken);
+            if (!TryGetInstanceDirectory(canonicalWorkspaceRoot, out var instanceDirectory))
+            {
+                return WorkspaceInstanceStatusResult.Unavailable;
+            }
+
+            var scan = await PrepareInstanceDirectoryAsync(
+                canonicalWorkspaceRoot,
+                instanceDirectory,
+                cancellationToken);
+
+            if (!scan.IsAvailable)
+            {
+                return scan;
+            }
+
             if (_handles.ContainsKey(workspaceId))
             {
                 return WorkspaceInstanceStatusResult.Empty;
             }
 
-            var handle = CreateHandle(workspaceId, canonicalWorkspaceRoot, loadedPath, state);
+            var handle = CreateHandle(
+                workspaceId,
+                canonicalWorkspaceRoot,
+                loadedPath,
+                state,
+                instanceDirectory);
+
             _handles.Add(workspaceId, handle);
             await handle.PublishAsync();
             return scan;
@@ -84,7 +109,12 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         try
         {
             var canonicalWorkspaceRoot = _fileSystem.Path.GetFullPath(workspaceRoot);
-            return await ScanAsync(canonicalWorkspaceRoot, cancellationToken);
+            if (!TryGetInstanceDirectory(canonicalWorkspaceRoot, out var instanceDirectory))
+            {
+                return WorkspaceInstanceStatusResult.Unavailable;
+            }
+
+            return await ScanAsync(canonicalWorkspaceRoot, instanceDirectory, cancellationToken);
         }
         catch (IOException)
         {
@@ -276,20 +306,29 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
 
     private async ValueTask<WorkspaceInstanceStatusResult> PrepareInstanceDirectoryAsync(
         string canonicalWorkspaceRoot,
+        string instanceDirectory,
         CancellationToken cancellationToken)
     {
-        _fileSystem.Directory.CreateDirectory(GetInstanceDirectory(canonicalWorkspaceRoot));
-        return await ScanAsync(canonicalWorkspaceRoot, cancellationToken);
+        _fileSystem.Directory.CreateDirectory(instanceDirectory);
+        if (!_pathContainment.TryGetStrictlyContainedPath(
+            canonicalWorkspaceRoot,
+            instanceDirectory,
+            out instanceDirectory))
+        {
+            return WorkspaceInstanceStatusResult.Unavailable;
+        }
+
+        return await ScanAsync(canonicalWorkspaceRoot, instanceDirectory, cancellationToken);
     }
 
     private WorkspaceInstanceStatusHandle CreateHandle(
         string workspaceId,
         string canonicalWorkspaceRoot,
         string loadedPath,
-        WorkspaceLifecycleState state)
+        WorkspaceLifecycleState state,
+        string instanceDirectory)
     {
-        var directory = GetInstanceDirectory(canonicalWorkspaceRoot);
-        var filePath = _fileSystem.Path.Combine(directory, $"{_instanceId}-{workspaceId}.json");
+        var filePath = _fileSystem.Path.Combine(instanceDirectory, $"{_instanceId}-{workspaceId}.json");
         var stream = _fileSystem.FileStream.New(filePath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read);
         var status = new WorkspaceInstanceStatus
         {
@@ -304,10 +343,10 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
 
     private async ValueTask<WorkspaceInstanceStatusResult> ScanAsync(
         string canonicalWorkspaceRoot,
+        string instanceDirectory,
         CancellationToken cancellationToken)
     {
-        var directory = GetInstanceDirectory(canonicalWorkspaceRoot);
-        if (!_fileSystem.Directory.Exists(directory))
+        if (!_fileSystem.Directory.Exists(instanceDirectory))
         {
             return WorkspaceInstanceStatusResult.Empty;
         }
@@ -315,15 +354,25 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         var hasOtherLiveInstance = false;
         var hasUnreadableLiveInstance = false;
         var instances = new List<WorkspaceInstanceInfo>();
-        foreach (var path in _fileSystem.Directory.EnumerateFiles(directory, "*.json"))
+        foreach (var path in _fileSystem.Directory.EnumerateFiles(instanceDirectory, "*.json"))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (TryRemoveStaleInstance(path))
+            if (!_pathContainment.TryGetStrictlyContainedPath(
+                canonicalWorkspaceRoot,
+                path,
+                out var containedPath))
+            {
+                hasOtherLiveInstance = true;
+                hasUnreadableLiveInstance = true;
+                continue;
+            }
+
+            if (TryRemoveStaleInstance(containedPath))
             {
                 continue;
             }
 
-            var status = await TryReadStatusAsync(path, cancellationToken);
+            var status = await TryReadStatusAsync(containedPath, cancellationToken);
             if (status is not null && IsValidStatus(status, canonicalWorkspaceRoot))
             {
                 if (status.InstanceId == _instanceId)
@@ -412,11 +461,17 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
                 _pathComparison.GetComparison(canonicalWorkspaceRoot));
     }
 
-    private void TryDelete(string path)
+    private void TryDelete(string workspaceRoot, string path)
     {
         try
         {
-            _fileSystem.File.Delete(path);
+            if (_pathContainment.TryGetStrictlyContainedPath(
+                workspaceRoot,
+                path,
+                out var containedPath))
+            {
+                _fileSystem.File.Delete(containedPath);
+            }
         }
         catch (IOException)
         {
@@ -426,15 +481,26 @@ internal sealed class WorkspaceInstanceStatusPublisher : IWorkspaceInstanceStatu
         }
     }
 
-    private string GetInstanceDirectory(string workspaceRoot)
+    private bool TryGetInstanceDirectory(
+        string workspaceRoot,
+        [NotNullWhen(true)] out string? instanceDirectory)
     {
-        return _fileSystem.Path.Combine(workspaceRoot, ".vs", "roslyn-workbench-mcp", "instances");
+        var candidateDirectory = _fileSystem.Path.Combine(
+            workspaceRoot,
+            ".vs",
+            "roslyn-workbench-mcp",
+            "instances");
+
+        return _pathContainment.TryGetStrictlyContainedPath(
+            workspaceRoot,
+            candidateDirectory,
+            out instanceDirectory);
     }
 
     private void CloseHandle(WorkspaceInstanceStatusHandle handle)
     {
         handle.Dispose();
-        TryDelete(handle.Path);
+        TryDelete(handle.WorkspaceRoot, handle.Path);
     }
 
     private static WorkspaceInstanceInfo CreateInstanceInfo(WorkspaceInstanceStatus status)

@@ -16,17 +16,20 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
     private readonly IFileSystem _fileSystem;
     private readonly IAtomicFileWriter _atomicFileWriter;
     private readonly IWorkspacePathComparison _pathComparison;
+    private readonly IPhysicalPathContainment _pathContainment;
     private readonly string _recoveryDirectory;
 
     public CommitRecoveryStore(
         IOptions<WorkspaceOptions> options,
         IFileSystem fileSystem,
         IAtomicFileWriter atomicFileWriter,
-        IWorkspacePathComparison pathComparison)
+        IWorkspacePathComparison pathComparison,
+        IPhysicalPathContainment pathContainment)
     {
         _fileSystem = fileSystem;
         _atomicFileWriter = atomicFileWriter;
         _pathComparison = pathComparison;
+        _pathContainment = pathContainment;
         _recoveryDirectory = _fileSystem.Path.Combine(
             _fileSystem.Path.GetFullPath(options.Value.StateDirectory),
             _recoveryDirectoryName);
@@ -58,7 +61,16 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         foreach (var directory in _fileSystem.Directory.EnumerateDirectories(_recoveryDirectory))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var path = GetManifestPathInDirectory(directory);
+            if (!_pathContainment.TryGetStrictlyContainedPath(
+                _recoveryDirectory,
+                directory,
+                out var containedDirectory))
+            {
+                manifests.Add(CreateInvalidManifest(directory, loadedPath: null, workspaceRoot: null));
+                continue;
+            }
+
+            var path = GetManifestPathInDirectory(containedDirectory);
             if (!_fileSystem.File.Exists(path))
             {
                 continue;
@@ -68,26 +80,38 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
             {
                 var json = await _fileSystem.File.ReadAllTextAsync(path, cancellationToken);
                 var manifest = JsonSerializer.Deserialize<WorkspaceCommitManifest>(json, _serializerOptions);
-                if (manifest is not null && IsValidManifest(manifest, directory))
+                if (manifest is not null && IsValidManifest(manifest, containedDirectory))
                 {
                     manifests.Add(manifest);
                 }
                 else
                 {
-                    manifests.Add(CreateInvalidManifest(directory, manifest?.LoadedPath, manifest?.WorkspaceRoot));
+                    manifests.Add(CreateInvalidManifest(
+                        containedDirectory,
+                        manifest?.LoadedPath,
+                        manifest?.WorkspaceRoot));
                 }
             }
             catch (IOException)
             {
-                manifests.Add(CreateInvalidManifest(directory, loadedPath: null, workspaceRoot: null));
+                manifests.Add(CreateInvalidManifest(
+                    containedDirectory,
+                    loadedPath: null,
+                    workspaceRoot: null));
             }
             catch (UnauthorizedAccessException)
             {
-                manifests.Add(CreateInvalidManifest(directory, loadedPath: null, workspaceRoot: null));
+                manifests.Add(CreateInvalidManifest(
+                    containedDirectory,
+                    loadedPath: null,
+                    workspaceRoot: null));
             }
             catch (JsonException)
             {
-                manifests.Add(CreateInvalidManifest(directory, loadedPath: null, workspaceRoot: null));
+                manifests.Add(CreateInvalidManifest(
+                    containedDirectory,
+                    loadedPath: null,
+                    workspaceRoot: null));
             }
         }
 
@@ -125,7 +149,19 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         foreach (var path in _fileSystem.Directory.EnumerateFiles(_recoveryDirectory, "*.json", SearchOption.TopDirectoryOnly))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            statuses.Add(await ReadLegacyStatusAsync(path, cancellationToken));
+            if (_pathContainment.TryGetStrictlyContainedPath(
+                _recoveryDirectory,
+                path,
+                out var containedPath))
+            {
+                statuses.Add(await ReadLegacyStatusAsync(containedPath, cancellationToken));
+            }
+            else
+            {
+                statuses.Add(CreateLegacyStatus(
+                    _fileSystem.Path.GetFileNameWithoutExtension(path),
+                    legacy: null));
+            }
         }
 
         return statuses;
@@ -172,12 +208,21 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         foreach (var directory in _fileSystem.Directory.EnumerateDirectories(_recoveryDirectory))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (_fileSystem.File.Exists(GetManifestPathInDirectory(directory)))
+            if (!_pathContainment.TryGetStrictlyContainedPath(
+                _recoveryDirectory,
+                directory,
+                out var containedDirectory))
+            {
+                conflicts.Add(CreateInvalidOwnerStatus(directory, owner: null));
+                continue;
+            }
+
+            if (_fileSystem.File.Exists(GetManifestPathInDirectory(containedDirectory)))
             {
                 continue;
             }
 
-            var ownerPath = GetOwnerPathInDirectory(directory);
+            var ownerPath = GetOwnerPathInDirectory(containedDirectory);
             if (!_fileSystem.File.Exists(ownerPath))
             {
                 continue;
@@ -191,7 +236,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
                     && owner.Version == 2
                     && string.Equals(
                         owner.CommitId,
-                        _fileSystem.Path.GetFileName(directory),
+                        _fileSystem.Path.GetFileName(containedDirectory),
                         _pathComparison.Comparison)
                     && _fileSystem.Path.IsPathFullyQualified(owner.LoadedPath)
                     && _fileSystem.Path.IsPathFullyQualified(owner.WorkspaceRoot))
@@ -200,20 +245,20 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
                 }
                 else
                 {
-                    conflicts.Add(CreateInvalidOwnerStatus(directory, owner));
+                    conflicts.Add(CreateInvalidOwnerStatus(containedDirectory, owner));
                 }
             }
             catch (IOException)
             {
-                conflicts.Add(CreateInvalidOwnerStatus(directory, owner: null));
+                conflicts.Add(CreateInvalidOwnerStatus(containedDirectory, owner: null));
             }
             catch (UnauthorizedAccessException)
             {
-                conflicts.Add(CreateInvalidOwnerStatus(directory, owner: null));
+                conflicts.Add(CreateInvalidOwnerStatus(containedDirectory, owner: null));
             }
             catch (JsonException)
             {
-                conflicts.Add(CreateInvalidOwnerStatus(directory, owner: null));
+                conflicts.Add(CreateInvalidOwnerStatus(containedDirectory, owner: null));
             }
         }
 
@@ -287,13 +332,15 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
     private string GetCommitDirectory(string commitId)
     {
         ValidateCommitId(commitId);
-        return _fileSystem.Path.Combine(_recoveryDirectory, commitId);
+        var candidate = _fileSystem.Path.Combine(_recoveryDirectory, commitId);
+        return GetRequiredStrictlyContainedPath(_recoveryDirectory, candidate);
     }
 
     private string GetLegacyStatusPath(string commitId)
     {
         ValidateCommitId(commitId);
-        return _fileSystem.Path.Combine(_recoveryDirectory, $"{commitId}.json");
+        var candidate = _fileSystem.Path.Combine(_recoveryDirectory, $"{commitId}.json");
+        return GetRequiredStrictlyContainedPath(_recoveryDirectory, candidate);
     }
 
     private string GetManifestPath(string commitId)
@@ -340,7 +387,10 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
             || !string.Equals(manifest.CommitId, _fileSystem.Path.GetFileName(directory), _pathComparison.Comparison)
             || !_fileSystem.Path.IsPathFullyQualified(manifest.LoadedPath)
             || !_fileSystem.Path.IsPathFullyQualified(manifest.WorkspaceRoot)
-            || !IsWithinRoot(manifest.WorkspaceRoot, manifest.LoadedPath))
+            || !_pathContainment.TryGetContainedPath(
+                manifest.WorkspaceRoot,
+                manifest.LoadedPath,
+                out _))
         {
             return false;
         }
@@ -359,7 +409,10 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         {
             if (string.IsNullOrWhiteSpace(path)
                 || !_fileSystem.Path.IsPathFullyQualified(path)
-                || !IsStrictlyWithinRoot(manifest.WorkspaceRoot, path)
+                || !_pathContainment.TryGetStrictlyContainedPath(
+                    manifest.WorkspaceRoot,
+                    path,
+                    out _)
                 || !createdDirectories.Add(path))
             {
                 return false;
@@ -376,7 +429,10 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
     {
         if (string.IsNullOrWhiteSpace(entry.TargetPath)
             || !_fileSystem.Path.IsPathFullyQualified(entry.TargetPath)
-            || !IsStrictlyWithinRoot(manifest.WorkspaceRoot, entry.TargetPath)
+            || !_pathContainment.TryGetStrictlyContainedPath(
+                manifest.WorkspaceRoot,
+                entry.TargetPath,
+                out _)
             || !targets.Add(entry.TargetPath))
         {
             return false;
@@ -410,7 +466,10 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
     {
         if (string.IsNullOrWhiteSpace(entry.DeleteMarkerPath)
             || !_fileSystem.Path.IsPathFullyQualified(entry.DeleteMarkerPath)
-            || !IsStrictlyWithinRoot(manifest.WorkspaceRoot, entry.DeleteMarkerPath))
+            || !_pathContainment.TryGetStrictlyContainedPath(
+                manifest.WorkspaceRoot,
+                entry.DeleteMarkerPath,
+                out _))
         {
             return false;
         }
@@ -459,17 +518,21 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
 
         try
         {
-            var root = _fileSystem.Path.Combine(_recoveryDirectory, commitId);
-            var candidate = _fileSystem.Path.GetFullPath(_fileSystem.Path.Combine(root, relativePath));
-            var relative = _fileSystem.Path.GetRelativePath(root, candidate);
-            if (relative == ".."
-                || relative.StartsWith($"..{_fileSystem.Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                || _fileSystem.Path.IsPathRooted(relative))
+            var commitDirectory = _fileSystem.Path.Combine(_recoveryDirectory, commitId);
+            if (!_pathContainment.TryGetStrictlyContainedPath(
+                _recoveryDirectory,
+                commitDirectory,
+                out var root))
             {
                 return false;
             }
 
-            path = candidate;
+            var candidate = _fileSystem.Path.GetFullPath(_fileSystem.Path.Combine(root, relativePath));
+            if (!_pathContainment.TryGetStrictlyContainedPath(root, candidate, out path))
+            {
+                return false;
+            }
+
             return true;
         }
         catch (ArgumentException)
@@ -492,28 +555,6 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         };
     }
 
-    private bool IsWithinRoot(string root, string path)
-    {
-        var canonicalRoot = Path.TrimEndingDirectorySeparator(_fileSystem.Path.GetFullPath(root));
-        var canonicalPath = _fileSystem.Path.GetFullPath(path);
-        var comparison = _pathComparison.GetComparison(canonicalRoot);
-        if (string.Equals(canonicalRoot, canonicalPath, comparison))
-        {
-            return true;
-        }
-
-        return canonicalPath.StartsWith(canonicalRoot + _fileSystem.Path.DirectorySeparatorChar, comparison)
-            || canonicalPath.StartsWith(canonicalRoot + _fileSystem.Path.AltDirectorySeparatorChar, comparison);
-    }
-
-    private bool IsStrictlyWithinRoot(string root, string path)
-    {
-        var canonicalRoot = Path.TrimEndingDirectorySeparator(_fileSystem.Path.GetFullPath(root));
-        var canonicalPath = _fileSystem.Path.GetFullPath(path);
-        return IsWithinRoot(canonicalRoot, canonicalPath)
-            && !string.Equals(canonicalRoot, canonicalPath, _pathComparison.GetComparison(canonicalRoot));
-    }
-
     private void ValidateCommitId(string commitId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(commitId);
@@ -526,6 +567,20 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
     private bool HasValidCommitIdCharacters(string commitId)
     {
         return commitId.IndexOfAny(_fileSystem.Path.GetInvalidFileNameChars()) < 0;
+    }
+
+    private string GetRequiredStrictlyContainedPath(string rootDirectory, string candidatePath)
+    {
+        if (!_pathContainment.TryGetStrictlyContainedPath(
+            rootDirectory,
+            candidatePath,
+            out var containedPath))
+        {
+            throw new InvalidDataException(
+                $"The recovery path '{candidatePath}' resolves outside its recovery directory.");
+        }
+
+        return containedPath;
     }
 
     private async ValueTask WriteArtifactsAsync(WorkspaceCommitPlan plan, CancellationToken cancellationToken)

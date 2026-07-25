@@ -6,6 +6,7 @@ public sealed class WorkspaceCommitLockManagerTests
     private readonly Mock<IDirectory> _directory;
     private readonly Mock<IPath> _path;
     private readonly Mock<IWorkspaceFileLockProvider> _provider;
+    private readonly Mock<IPhysicalPathContainment> _pathContainment;
     private readonly WorkspaceCommitLockManager _target;
 
     public WorkspaceCommitLockManagerTests()
@@ -14,6 +15,7 @@ public sealed class WorkspaceCommitLockManagerTests
         _directory = new Mock<IDirectory>();
         _path = new Mock<IPath>();
         _provider = new Mock<IWorkspaceFileLockProvider>();
+        _pathContainment = new Mock<IPhysicalPathContainment>();
         _fileSystem.SetupGet(item => item.Directory).Returns(_directory.Object);
         _fileSystem.SetupGet(item => item.Path).Returns(_path.Object);
         _path.Setup(item => item.GetFullPath("Root")).Returns("Root");
@@ -23,7 +25,24 @@ public sealed class WorkspaceCommitLockManagerTests
         _path.Setup(item => item.Combine(It.IsAny<string>(), It.IsAny<string>()))
             .Returns((string first, string second) => $"{first}/{second}");
 
-        _target = new WorkspaceCommitLockManager(_fileSystem.Object, _provider.Object);
+        _path.Setup(item => item.GetDirectoryName(It.IsAny<string>()))
+            .Returns((string path) => path[..path.LastIndexOf('/')]);
+
+        _pathContainment
+            .Setup(item => item.TryGetStrictlyContainedPath(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                out It.Ref<string>.IsAny))
+            .Returns((string _, string candidate, out string containedPath) =>
+            {
+                containedPath = candidate;
+                return true;
+            });
+
+        _target = new WorkspaceCommitLockManager(
+            _fileSystem.Object,
+            _provider.Object,
+            _pathContainment.Object);
     }
 
     [Fact]
@@ -50,6 +69,24 @@ public sealed class WorkspaceCommitLockManagerTests
 
         result.Status.Should().Be(WorkspaceCommitLockAcquisitionStatus.Contended);
         result.Lock.Should().BeNull();
+    }
+
+    [Fact]
+    public void GIVEN_LockPathPhysicallyEscapesWorkspace_WHEN_Acquiring_THEN_ShouldReportFailure()
+    {
+        _pathContainment
+            .Setup(item => item.TryGetStrictlyContainedPath(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                out It.Ref<string>.IsAny))
+            .Returns(false);
+
+        var result = _target.Acquire("Root");
+
+        result.Status.Should().Be(WorkspaceCommitLockAcquisitionStatus.Failed);
+        result.ErrorMessage.Should().Contain("outside the workspace root");
+        _directory.Verify(item => item.CreateDirectory(It.IsAny<string>()), Times.Never);
+        _provider.Verify(item => item.TryAcquire(It.IsAny<string>()), Times.Never);
     }
 
     [Theory]

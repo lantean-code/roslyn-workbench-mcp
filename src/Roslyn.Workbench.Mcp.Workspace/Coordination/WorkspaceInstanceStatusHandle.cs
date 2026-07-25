@@ -10,6 +10,8 @@ internal sealed class WorkspaceInstanceStatusHandle : IDisposable
 
     public string Path { get; }
 
+    public string WorkspaceRoot => _status.WorkspaceRoot;
+
     public WorkspaceInstanceStatusHandle(
         string path,
         Stream stream,

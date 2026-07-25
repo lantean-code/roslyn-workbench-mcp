@@ -72,6 +72,7 @@ internal sealed class ToolInvocationRunner
                 ResponseBytes = observation.Bytes,
                 ResponseSha256 = observation.Sha256,
                 BoundedCollections = observation.BoundedCollections,
+                CodeActionTokens = observation.CodeActionTokens,
                 MutationStaged = observation.MutationStaged,
                 IsError = result.IsError == true,
             });

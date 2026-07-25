@@ -51,6 +51,7 @@ public sealed class AtomicFileWriterTests : IDisposable
             destinationPath,
             "Contents",
             Encoding.UTF8,
+            AtomicFileAccess.Default,
             TestContext.Current.CancellationToken);
 
         await action.Should().ThrowAsync<ArgumentException>();
@@ -64,6 +65,7 @@ public sealed class AtomicFileWriterTests : IDisposable
         var action = async () => await _target.WriteAllBytesAsync(
             destinationPath,
             new byte[] { 1 },
+            AtomicFileAccess.Default,
             TestContext.Current.CancellationToken);
 
         await action.Should().ThrowAsync<ArgumentException>();
@@ -79,6 +81,7 @@ public sealed class AtomicFileWriterTests : IDisposable
             _destinationPath,
             "Contents",
             Encoding.UTF8,
+            AtomicFileAccess.Default,
             cancellationSource.Token);
 
         await action.Should().ThrowAsync<OperationCanceledException>();
@@ -93,6 +96,7 @@ public sealed class AtomicFileWriterTests : IDisposable
         var action = async () => await _target.WriteAllBytesAsync(
             _destinationPath,
             new byte[] { 1 },
+            AtomicFileAccess.Default,
             TestContext.Current.CancellationToken);
 
         await action.Should().ThrowAsync<ArgumentException>();
@@ -107,6 +111,7 @@ public sealed class AtomicFileWriterTests : IDisposable
             _destinationPath,
             "Contents",
             encoding,
+            AtomicFileAccess.Default,
             TestContext.Current.CancellationToken);
 
         _memoryStream.ToArray().Should().Equal(encoding.GetBytes("Contents"));
@@ -128,26 +133,30 @@ public sealed class AtomicFileWriterTests : IDisposable
     {
         var contents = new byte[] { 0, 1, 255 };
 
-        await _target.WriteAllBytesAsync(_destinationPath, contents, TestContext.Current.CancellationToken);
+        await _target.WriteAllBytesAsync(
+            _destinationPath,
+            contents,
+            AtomicFileAccess.Default,
+            TestContext.Current.CancellationToken);
 
         _memoryStream.ToArray().Should().Equal(contents);
         _fileCommitter.Verify(item => item.Commit(It.IsAny<string>(), _destinationPath), Times.Once);
     }
 
     [Fact]
-    public async Task GIVEN_PrivateText_WHEN_Writing_THEN_ShouldUseOwnerOnlyUnixCreationMode()
+    public async Task GIVEN_OwnerOnlyText_WHEN_Writing_THEN_ShouldUseOwnerOnlyUnixCreationMode()
     {
-        var target = (IPrivateAtomicFileWriter)_target;
         UnixFileMode? expectedMode = null;
         if (!OperatingSystem.IsWindows())
         {
             expectedMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
         }
 
-        await target.WriteAllTextAsync(
+        await _target.WriteAllTextAsync(
             _destinationPath,
             "Contents",
             Encoding.UTF8,
+            AtomicFileAccess.OwnerOnly,
             TestContext.Current.CancellationToken);
 
         _fileStreamFactory.Verify(item => item.New(
@@ -157,14 +166,14 @@ public sealed class AtomicFileWriterTests : IDisposable
     }
 
     [Fact]
-    public async Task GIVEN_PrivateBytes_WHEN_Writing_THEN_ShouldWriteExactBytes()
+    public async Task GIVEN_OwnerOnlyBytes_WHEN_Writing_THEN_ShouldWriteExactBytes()
     {
-        var target = (IPrivateAtomicFileWriter)_target;
         var contents = new byte[] { 0, 1, 255 };
 
-        await target.WriteAllBytesAsync(
+        await _target.WriteAllBytesAsync(
             _destinationPath,
             contents,
+            AtomicFileAccess.OwnerOnly,
             TestContext.Current.CancellationToken);
 
         _memoryStream.ToArray().Should().Equal(contents);
@@ -193,6 +202,7 @@ public sealed class AtomicFileWriterTests : IDisposable
         var action = async () => await _target.WriteAllBytesAsync(
             _destinationPath,
             new byte[] { 1 },
+            AtomicFileAccess.Default,
             TestContext.Current.CancellationToken);
 
         var exception = await action.Should().ThrowAsync<InvalidOperationException>();
@@ -208,5 +218,20 @@ public sealed class AtomicFileWriterTests : IDisposable
         }
 
         _file.Verify(item => item.Delete(It.IsAny<string>()), expectedDeletes);
+    }
+
+    [Fact]
+    public async Task GIVEN_UnsupportedAccessPolicy_WHEN_Writing_THEN_ShouldThrowArgumentOutOfRangeException()
+    {
+        var action = async () => await _target.WriteAllBytesAsync(
+            _destinationPath,
+            new byte[] { 1 },
+            (AtomicFileAccess)int.MaxValue,
+            TestContext.Current.CancellationToken);
+
+        await action.Should().ThrowAsync<ArgumentOutOfRangeException>();
+        _fileStreamFactory.Verify(
+            item => item.New(It.IsAny<string>(), It.IsAny<FileStreamOptions>()),
+            Times.Never);
     }
 }

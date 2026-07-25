@@ -17,6 +17,7 @@ public sealed class CodeActionInfoFactoryTests
         var resolver = new Mock<IWorkspaceResolver>();
         var action = CreateAction(roslyn.Solution, DiscoveredActionKind.Refactoring);
         var descriptor = CreateDescriptor();
+        var actionId = "ActionId";
         var workspaceIdentity = new WorkspaceIdentity
         {
             WorkspaceId = "WorkspaceId",
@@ -35,7 +36,7 @@ public sealed class CodeActionInfoFactoryTests
         context.SetupGet(item => item.TransactionRevision).Returns(2);
         context.SetupGet(item => item.WorkspaceResolver).Returns(resolver.Object);
         tokenService
-            .Setup(item => item.Encode(It.Is<CodeActionTokenPayload>(payload =>
+            .Setup(item => item.TryEncode(It.Is<CodeActionTokenPayload>(payload =>
                 payload.Kind == "Refactoring"
                 && payload.ProviderId == "ProviderId"
                 && payload.Title == "Title"
@@ -49,8 +50,8 @@ public sealed class CodeActionInfoFactoryTests
                 && payload.DocumentPath == "DocumentPath"
                 && payload.ProjectId == roslyn.Document.Project.Id.Id.ToString()
                 && payload.Start == 3
-                && payload.Length == 4)))
-            .Returns("ActionId");
+                && payload.Length == 4), out actionId))
+            .Returns(true);
 
         var target = new CodeActionInfoFactory(
             tokenService.Object,
@@ -60,25 +61,35 @@ public sealed class CodeActionInfoFactoryTests
                 TokenLifetime = TimeSpan.FromMinutes(5),
             }));
 
-        var result = target.Create(action, context.Object, roslyn.Document, new TextSpan(3, 4), descriptor);
+        var created = target.TryCreate(
+            action,
+            context.Object,
+            roslyn.Document,
+            new TextSpan(3, 4),
+            descriptor,
+            out var result);
 
-        result.ActionId.Should().Be("ActionId");
-        result.WorkspaceId.Should().Be("WorkspaceId");
-        result.Title.Should().Be("Title");
-        result.ProviderId.Should().Be("ProviderId");
-        result.Kind.Should().Be("Refactoring");
-        result.EquivalenceKey.Should().Be("EquivalenceKey");
-        result.ActionPath.Should().Equal(1, 2);
-        result.DiagnosticIds.Should().Equal("DiagnosticId");
-        result.WorkspaceEpoch.Should().Be(1);
-        result.TransactionRevision.Should().Be(2);
-        result.ExpiresAt.Should().Be("2000-01-01T00:05:00.0000000+00:00");
-        result.ExecutionMode.Should().Be(CodeActionExecutionMode.Parameterised);
-        result.ExecutorTool.Should().Be("ExecutorTool");
-        result.DescribeTool.Should().Be("DescribeTool");
-        result.UnsupportedReasonCode.Should().Be("UnsupportedReasonCode");
-        result.Requirements.Should().Equal("Requirement");
-        tokenService.Verify(item => item.Encode(It.IsAny<CodeActionTokenPayload>()), Times.Once);
+        created.Should().BeTrue();
+        var info = result.Should().BeOfType<CodeActionInfo>().Which;
+        info.ActionId.Should().Be("ActionId");
+        info.WorkspaceId.Should().Be("WorkspaceId");
+        info.Title.Should().Be("Title");
+        info.ProviderId.Should().Be("ProviderId");
+        info.Kind.Should().Be("Refactoring");
+        info.EquivalenceKey.Should().Be("EquivalenceKey");
+        info.ActionPath.Should().Equal(1, 2);
+        info.DiagnosticIds.Should().Equal("DiagnosticId");
+        info.WorkspaceEpoch.Should().Be(1);
+        info.TransactionRevision.Should().Be(2);
+        info.ExpiresAt.Should().Be("2000-01-01T00:05:00.0000000+00:00");
+        info.ExecutionMode.Should().Be(CodeActionExecutionMode.Parameterised);
+        info.ExecutorTool.Should().Be("ExecutorTool");
+        info.DescribeTool.Should().Be("DescribeTool");
+        info.UnsupportedReasonCode.Should().Be("UnsupportedReasonCode");
+        info.Requirements.Should().Equal("Requirement");
+        tokenService.Verify(
+            item => item.TryEncode(It.IsAny<CodeActionTokenPayload>(), out It.Ref<string>.IsAny),
+            Times.Once);
     }
 
     [Fact]
@@ -94,6 +105,7 @@ public sealed class CodeActionInfoFactoryTests
         var context = new Mock<ICodeActionExecutionContext>();
         var resolver = new Mock<IWorkspaceResolver>();
         var action = CreateAction(workspace.CurrentSolution, DiscoveredActionKind.CodeFix);
+        var actionId = "ActionId";
         timeProvider
             .Setup(item => item.GetUtcNow())
             .Returns(new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.Zero));
@@ -108,11 +120,11 @@ public sealed class CodeActionInfoFactoryTests
         context.SetupGet(item => item.TransactionRevision).Returns(2);
         context.SetupGet(item => item.WorkspaceResolver).Returns(resolver.Object);
         tokenService
-            .Setup(item => item.Encode(It.Is<CodeActionTokenPayload>(payload =>
+            .Setup(item => item.TryEncode(It.Is<CodeActionTokenPayload>(payload =>
                 payload.Kind == "CodeFix"
                 && payload.DocumentPath == "NormalizedDocumentName"
-                && payload.ProjectId == document.Project.Id.Id.ToString())))
-            .Returns("ActionId");
+                && payload.ProjectId == document.Project.Id.Id.ToString()), out actionId))
+            .Returns(true);
 
         var target = new CodeActionInfoFactory(
             tokenService.Object,
@@ -122,10 +134,17 @@ public sealed class CodeActionInfoFactoryTests
                 TokenLifetime = TimeSpan.FromMinutes(5),
             }));
 
-        var result = target.Create(action, context.Object, document, new TextSpan(0, 1), new CodeActionDescriptorEntry());
+        var created = target.TryCreate(
+            action,
+            context.Object,
+            document,
+            new TextSpan(0, 1),
+            new CodeActionDescriptorEntry(),
+            out var result);
 
+        created.Should().BeTrue();
         document.FilePath.Should().BeNull();
-        result.Kind.Should().Be("CodeFix");
+        result.Should().BeOfType<CodeActionInfo>().Which.Kind.Should().Be("CodeFix");
         resolver.Verify(item => item.NormalizeDocumentPath("DocumentName.cs"), Times.Once);
     }
 
@@ -138,6 +157,7 @@ public sealed class CodeActionInfoFactoryTests
         var context = new Mock<ICodeActionExecutionContext>();
         var resolver = new Mock<IWorkspaceResolver>();
         var action = CreateAction(roslyn.Solution, DiscoveredActionKind.Refactoring);
+        var actionId = "ActionId";
 
         timeProvider
             .Setup(item => item.GetUtcNow())
@@ -154,7 +174,9 @@ public sealed class CodeActionInfoFactoryTests
         });
 
         context.SetupGet(item => item.WorkspaceResolver).Returns(resolver.Object);
-        tokenService.Setup(item => item.Encode(It.IsAny<CodeActionTokenPayload>())).Returns("ActionId");
+        tokenService
+            .Setup(item => item.TryEncode(It.IsAny<CodeActionTokenPayload>(), out actionId))
+            .Returns(true);
 
         var target = new CodeActionInfoFactory(
             tokenService.Object,
@@ -164,14 +186,63 @@ public sealed class CodeActionInfoFactoryTests
                 TokenLifetime = TimeSpan.FromDays(1),
             }));
 
-        var result = target.Create(
+        var created = target.TryCreate(
             action,
             context.Object,
             roslyn.Document,
             new TextSpan(0, 1),
-            new CodeActionDescriptorEntry());
+            new CodeActionDescriptorEntry(),
+            out var result);
 
-        result.ExpiresAt.Should().Be("2000-01-02T00:00:00.0000000+00:00");
+        created.Should().BeTrue();
+        result.Should().BeOfType<CodeActionInfo>().Which.ExpiresAt.Should().Be("2000-01-02T00:00:00.0000000+00:00");
+    }
+
+    [Fact]
+    public void GIVEN_TokenCannotBeEncoded_WHEN_CreatingInfo_THEN_ShouldNotPublishAction()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var tokenService = new Mock<ICodeActionTokenService>();
+        var timeProvider = new Mock<TimeProvider>();
+        var context = new Mock<ICodeActionExecutionContext>();
+        var resolver = new Mock<IWorkspaceResolver>();
+        var action = CreateAction(roslyn.Solution, DiscoveredActionKind.Refactoring);
+        var rejectedToken = string.Empty;
+
+        timeProvider
+            .Setup(item => item.GetUtcNow())
+            .Returns(new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.Zero));
+
+        resolver
+            .Setup(item => item.NormalizeDocumentPath(roslyn.Document.FilePath ?? roslyn.Document.Name))
+            .Returns("DocumentPath");
+
+        context.SetupGet(item => item.WorkspaceIdentity).Returns(new WorkspaceIdentity
+        {
+            WorkspaceId = "WorkspaceId",
+            WorkspaceEpoch = 1,
+        });
+
+        context.SetupGet(item => item.WorkspaceResolver).Returns(resolver.Object);
+        tokenService
+            .Setup(item => item.TryEncode(It.IsAny<CodeActionTokenPayload>(), out rejectedToken))
+            .Returns(false);
+
+        var target = new CodeActionInfoFactory(
+            tokenService.Object,
+            timeProvider.Object,
+            Options.Create(new CodeActionExecutionOptions()));
+
+        var result = target.TryCreate(
+            action,
+            context.Object,
+            roslyn.Document,
+            new TextSpan(0, 1),
+            new CodeActionDescriptorEntry(),
+            out var info);
+
+        result.Should().BeFalse();
+        info.Should().BeNull();
     }
 
     private static DiscoveredCodeAction CreateAction(Solution solution, DiscoveredActionKind kind)

@@ -130,7 +130,10 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
             actionInfos = new List<CodeActionInfo>();
             foreach (var action in visibleActions)
             {
-                actionInfos.Add(_infoFactory.Create(action, context, document, span, action.Descriptor));
+                if (_infoFactory.TryCreate(action, context, document, span, action.Descriptor, out var actionInfo))
+                {
+                    actionInfos.Add(actionInfo);
+                }
             }
         }
 

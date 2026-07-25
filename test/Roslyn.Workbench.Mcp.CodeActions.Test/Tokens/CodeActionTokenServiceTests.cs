@@ -13,10 +13,11 @@ public sealed class CodeActionTokenServiceTests
     public void GIVEN_EncodedPayload_WHEN_DecodingToken_THEN_ShouldPreserveEveryValue()
     {
         var payload = CreatePayload();
-        var token = _target.Encode(payload);
+        var encoded = _target.TryEncode(payload, out var token);
 
         var result = _target.TryDecode(token, out var decodedPayload);
 
+        encoded.Should().BeTrue();
         result.Should().BeTrue();
         decodedPayload.Should().BeEquivalentTo(payload);
     }
@@ -25,10 +26,11 @@ public sealed class CodeActionTokenServiceTests
     public void GIVEN_TokenFromAnotherServiceInstance_WHEN_Decoding_THEN_ShouldRejectToken()
     {
         var otherService = new CodeActionTokenService();
-        var token = otherService.Encode(CreatePayload());
+        var encoded = otherService.TryEncode(CreatePayload(), out var token);
 
         var result = _target.TryDecode(token, out var payload);
 
+        encoded.Should().BeTrue();
         result.Should().BeFalse();
         payload.Should().BeEquivalentTo(new CodeActionTokenPayload());
     }
@@ -63,13 +65,14 @@ public sealed class CodeActionTokenServiceTests
     [InlineData(false)]
     public void GIVEN_TamperedTokenPart_WHEN_Decoding_THEN_ShouldRejectToken(bool tamperPayload)
     {
-        var token = _target.Encode(CreatePayload());
+        var encoded = _target.TryEncode(CreatePayload(), out var token);
         var parts = token.Split('.');
         var partIndex = tamperPayload ? 0 : 1;
         parts[partIndex] = ReplaceFirstCharacter(parts[partIndex]);
 
         var result = _target.TryDecode(string.Join(".", parts), out var payload);
 
+        encoded.Should().BeTrue();
         result.Should().BeFalse();
         payload.Should().BeEquivalentTo(new CodeActionTokenPayload());
     }
@@ -77,14 +80,58 @@ public sealed class CodeActionTokenServiceTests
     [Fact]
     public void GIVEN_EncodedPayload_WHEN_InspectingTokenAlphabet_THEN_ShouldUseUnpaddedBase64Url()
     {
-        var token = _target.Encode(CreatePayload());
+        var encoded = _target.TryEncode(CreatePayload(), out var token);
 
         var parts = token.Split('.');
 
+        encoded.Should().BeTrue();
         parts.Should().HaveCount(2);
         parts.Should().OnlyContain(part => part.Length > 0);
         parts.SelectMany(static part => part).Should().OnlyContain(value => IsBase64UrlCharacter(value));
         token.Should().NotContainAny("+", "/", "=");
+    }
+
+    [Fact]
+    public void GIVEN_SignificantlySizedSupportedPayload_WHEN_EncodingAndDecoding_THEN_ShouldPreservePayload()
+    {
+        var payload = CreatePayload() with
+        {
+            Title = new string('A', 195_000),
+        };
+
+        var encoded = _target.TryEncode(payload, out var token);
+        var decoded = _target.TryDecode(token, out var decodedPayload);
+
+        encoded.Should().BeTrue();
+        token.Length.Should().BeGreaterThan(250 * 1024);
+        token.Length.Should().BeLessThanOrEqualTo(CodeActionTokenService.MaximumTokenLength);
+        decoded.Should().BeTrue();
+        decodedPayload.Should().BeEquivalentTo(payload);
+    }
+
+    [Fact]
+    public void GIVEN_PayloadWhoseTokenExceedsMaximum_WHEN_Encoding_THEN_ShouldRejectWithoutIssuingToken()
+    {
+        var payload = CreatePayload() with
+        {
+            Title = new string('A', 200_000),
+        };
+
+        var result = _target.TryEncode(payload, out var token);
+
+        result.Should().BeFalse();
+        token.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void GIVEN_TokenExceedsMaximum_WHEN_Decoding_THEN_ShouldRejectToken()
+    {
+        var token = new string('A', CodeActionTokenService.MaximumTokenLength + 1);
+
+        var result = _target.TryDecode(token, out var payload);
+
+        result.Should().BeFalse();
+        payload.Should().BeEquivalentTo(new CodeActionTokenPayload());
     }
 
     private static CodeActionTokenPayload CreatePayload()

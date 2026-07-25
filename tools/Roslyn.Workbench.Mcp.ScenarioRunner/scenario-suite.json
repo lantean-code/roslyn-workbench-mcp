@@ -156,7 +156,7 @@
         },
         {
           "id": "list-code-actions",
-          "description": "Discovers refactorings and code fixes at a stable declaration in the pinned source.",
+          "description": "Discovers refactorings and code fixes at a stable declaration and records real token sizes and projection cost.",
           "tool": "list-code-actions",
           "arguments": {
             "workspace": { "workspaceId": "${workspaceId}" },

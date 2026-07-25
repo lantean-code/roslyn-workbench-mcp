@@ -11,9 +11,11 @@ public sealed class CommitRecoveryStoreTests
 
     private readonly Mock<IFileSystem> _fileSystem;
     private readonly Mock<IFile> _file;
+    private readonly Mock<IFileInfoFactory> _fileInfoFactory;
+    private readonly Mock<IFileInfo> _fileInfo;
     private readonly Mock<IDirectory> _directory;
     private readonly Mock<IPath> _path;
-    private readonly Mock<IPrivateAtomicFileWriter> _atomicFileWriter;
+    private readonly Mock<IAtomicFileWriter> _atomicFileWriter;
     private readonly Mock<IWorkspacePathComparison> _pathComparison;
     private readonly Mock<IPhysicalPathContainment> _pathContainment;
     private readonly Mock<IWorkspaceStateDirectory> _stateDirectory;
@@ -24,16 +26,21 @@ public sealed class CommitRecoveryStoreTests
     {
         _fileSystem = new Mock<IFileSystem>();
         _file = new Mock<IFile>();
+        _fileInfoFactory = new Mock<IFileInfoFactory>();
+        _fileInfo = new Mock<IFileInfo>();
         _directory = new Mock<IDirectory>();
         _path = new Mock<IPath>();
-        _atomicFileWriter = new Mock<IPrivateAtomicFileWriter>();
+        _atomicFileWriter = new Mock<IAtomicFileWriter>();
         _pathComparison = new Mock<IWorkspacePathComparison>();
         _pathContainment = new Mock<IPhysicalPathContainment>();
         _stateDirectory = new Mock<IWorkspaceStateDirectory>();
         _stateDirectorySecurity = new Mock<IWorkspaceStateDirectorySecurity>();
         _fileSystem.SetupGet(item => item.File).Returns(_file.Object);
+        _fileSystem.SetupGet(item => item.FileInfo).Returns(_fileInfoFactory.Object);
         _fileSystem.SetupGet(item => item.Directory).Returns(_directory.Object);
         _fileSystem.SetupGet(item => item.Path).Returns(_path.Object);
+        _fileInfoFactory.Setup(item => item.New(It.IsAny<string>())).Returns(_fileInfo.Object);
+        _fileInfo.SetupGet(item => item.Length).Returns(0);
         _path.Setup(item => item.GetFullPath(It.IsAny<string>())).Returns((string path) => Path.GetFullPath(path));
         _path.Setup(item => item.GetRelativePath(It.IsAny<string>(), It.IsAny<string>()))
             .Returns((string root, string path) => Path.GetRelativePath(root, path));
@@ -148,6 +155,29 @@ public sealed class CommitRecoveryStoreTests
     }
 
     [Fact]
+    public async Task GIVEN_OversizedManifestFile_WHEN_Reading_THEN_ShouldReturnConflictWithoutReadingIt()
+    {
+        var directory = _recoveryDirectory + "/CommitId";
+        var manifestPath = directory + "/manifest.json";
+        var oversizedFile = new Mock<IFileInfo>();
+        oversizedFile
+            .SetupGet(item => item.Length)
+            .Returns(16_777_217);
+
+        _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
+        _directory.Setup(item => item.EnumerateDirectories(_recoveryDirectory)).Returns([directory]);
+        _file.Setup(item => item.Exists(manifestPath)).Returns(true);
+        _fileInfoFactory.Setup(item => item.New(manifestPath)).Returns(oversizedFile.Object);
+
+        var result = await _target.GetManifestsAsync(TestContext.Current.CancellationToken);
+
+        result.Should().ContainSingle().Which.State.Should().Be(RecoveryState.RecoveryConflict);
+        _file.Verify(
+            item => item.ReadAllTextAsync(manifestPath, It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task GIVEN_ValidAndUnreadableLegacyRecords_WHEN_ReadingStatuses_THEN_ShouldReturnConflictForEveryRecord()
     {
         var validPath = _recoveryDirectory + "/CommitId.json";
@@ -182,6 +212,30 @@ public sealed class CommitRecoveryStoreTests
     }
 
     [Fact]
+    public async Task GIVEN_OversizedLegacyStatus_WHEN_ReadingStatuses_THEN_ShouldReturnConflictWithoutReadingIt()
+    {
+        var path = _recoveryDirectory + "/CommitId.json";
+        var oversizedFile = new Mock<IFileInfo>();
+        oversizedFile
+            .SetupGet(item => item.Length)
+            .Returns(1_048_577);
+
+        _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
+        _directory
+            .Setup(item => item.EnumerateFiles(_recoveryDirectory, "*.json", SearchOption.TopDirectoryOnly))
+            .Returns([path]);
+
+        _fileInfoFactory.Setup(item => item.New(path)).Returns(oversizedFile.Object);
+
+        var result = await _target.GetStatusesAsync(TestContext.Current.CancellationToken);
+
+        result.Should().ContainSingle().Which.State.Should().Be(RecoveryState.RecoveryConflict);
+        _file.Verify(
+            item => item.ReadAllTextAsync(path, It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task GIVEN_CancelledToken_WHEN_ReadingStatuses_THEN_ShouldPropagateCancellation()
     {
         using var cancellationSource = new CancellationTokenSource();
@@ -211,6 +265,7 @@ public sealed class CommitRecoveryStoreTests
             _recoveryDirectory + "/CommitId.json",
             It.Is<string>(json => json.Contains("CommitId", StringComparison.Ordinal) && json.Contains("SolutionPath", StringComparison.Ordinal)),
             It.IsAny<Encoding>(),
+            AtomicFileAccess.OwnerOnly,
             TestContext.Current.CancellationToken), Times.Once);
     }
 
@@ -224,6 +279,26 @@ public sealed class CommitRecoveryStoreTests
 
         await action.Should().ThrowAsync<OperationCanceledException>();
         _stateDirectorySecurity.Verify(item => item.EnsureDirectory(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_OversizedLegacyStatus_WHEN_Writing_THEN_ShouldRejectBeforeWriting()
+    {
+        var status = new RecoveryStatus
+        {
+            CommitId = "CommitId",
+            Message = new string('A', 1_048_576),
+        };
+
+        var action = async () => await _target.WriteStatusAsync(status, TestContext.Current.CancellationToken);
+
+        await action.Should().ThrowAsync<InvalidDataException>();
+        _atomicFileWriter.Verify(item => item.WriteAllTextAsync(
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<Encoding>(),
+            It.IsAny<AtomicFileAccess>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Theory]
@@ -243,6 +318,7 @@ public sealed class CommitRecoveryStoreTests
             It.IsAny<string>(),
             It.IsAny<string>(),
             It.IsAny<Encoding>(),
+            It.IsAny<AtomicFileAccess>(),
             It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -257,13 +333,20 @@ public sealed class CommitRecoveryStoreTests
         });
 
         _atomicFileWriter.Setup(item => item.WriteAllTextAsync(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Encoding>(), It.IsAny<CancellationToken>()))
-            .Callback((string path, string _, Encoding _, CancellationToken _) => operations.Add(path))
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Encoding>(),
+                AtomicFileAccess.OwnerOnly,
+                It.IsAny<CancellationToken>()))
+            .Callback((string path, string _, Encoding _, AtomicFileAccess _, CancellationToken _) => operations.Add(path))
             .Returns(ValueTask.CompletedTask);
 
         _atomicFileWriter.Setup(item => item.WriteAllBytesAsync(
-                It.IsAny<string>(), It.IsAny<ReadOnlyMemory<byte>>(), It.IsAny<CancellationToken>()))
-            .Callback((string path, ReadOnlyMemory<byte> _, CancellationToken _) => operations.Add(path))
+                It.IsAny<string>(),
+                It.IsAny<ReadOnlyMemory<byte>>(),
+                AtomicFileAccess.OwnerOnly,
+                It.IsAny<CancellationToken>()))
+            .Callback((string path, ReadOnlyMemory<byte> _, AtomicFileAccess _, CancellationToken _) => operations.Add(path))
             .Returns(ValueTask.CompletedTask);
 
         await _target.PersistPlanAsync(plan, TestContext.Current.CancellationToken);
@@ -296,6 +379,7 @@ public sealed class CommitRecoveryStoreTests
             _recoveryDirectory + "/CommitId/manifest.json",
             It.Is<string>(json => json.Contains("CommitId", StringComparison.Ordinal)),
             It.IsAny<Encoding>(),
+            AtomicFileAccess.OwnerOnly,
             TestContext.Current.CancellationToken), Times.Once);
     }
 
@@ -310,6 +394,28 @@ public sealed class CommitRecoveryStoreTests
         var result = await _target.ReadArtifactAsync("CommitId", "staged/File.bin", TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
+    }
+
+    [Fact]
+    public async Task GIVEN_OversizedArtifact_WHEN_Reading_THEN_ShouldRejectBeforeAllocatingContents()
+    {
+        var path = _recoveryDirectory + "/CommitId/staged/File.bin";
+        var oversizedFile = new Mock<IFileInfo>();
+        oversizedFile
+            .SetupGet(item => item.Length)
+            .Returns(134_217_729);
+
+        _fileInfoFactory.Setup(item => item.New(path)).Returns(oversizedFile.Object);
+
+        var action = async () => await _target.ReadArtifactAsync(
+            "CommitId",
+            "staged/File.bin",
+            TestContext.Current.CancellationToken);
+
+        await action.Should().ThrowAsync<InvalidDataException>();
+        _file.Verify(
+            item => item.ReadAllBytesAsync(path, It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
@@ -548,6 +654,36 @@ public sealed class CommitRecoveryStoreTests
         var result = await _target.GetOrphanedCommitOwnersAsync(TestContext.Current.CancellationToken);
 
         result.Should().ContainSingle().Which.Should().BeEquivalentTo(owner);
+    }
+
+    [Fact]
+    public async Task GIVEN_OversizedOrphanOwner_WHEN_ReadingStatuses_THEN_ShouldReturnConflictWithoutReadingIt()
+    {
+        var directory = _recoveryDirectory + "/CommitId";
+        var ownerPath = directory + "/owner.json";
+        var oversizedFile = new Mock<IFileInfo>();
+        oversizedFile
+            .SetupGet(item => item.Length)
+            .Returns(1_048_577);
+
+        _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
+        _directory.Setup(item => item.EnumerateDirectories(_recoveryDirectory)).Returns([directory]);
+        _directory
+            .Setup(item => item.EnumerateFiles(_recoveryDirectory, "*.json", SearchOption.TopDirectoryOnly))
+            .Returns([]);
+
+        _file.Setup(item => item.Exists(directory + "/manifest.json")).Returns(false);
+        _file.Setup(item => item.Exists(ownerPath)).Returns(true);
+        _fileInfoFactory.Setup(item => item.New(ownerPath)).Returns(oversizedFile.Object);
+
+        var result = await _target.GetStatusesAsync(TestContext.Current.CancellationToken);
+
+        var status = result.Should().ContainSingle().Which;
+        status.State.Should().Be(RecoveryState.RecoveryConflict);
+        status.Message.Should().Be("The recovery owner record is malformed or unreadable.");
+        _file.Verify(
+            item => item.ReadAllTextAsync(ownerPath, It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]

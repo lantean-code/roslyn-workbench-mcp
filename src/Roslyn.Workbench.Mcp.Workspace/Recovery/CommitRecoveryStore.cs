@@ -6,12 +6,18 @@ namespace Roslyn.Workbench.Mcp.Workspace.Recovery;
 
 internal sealed class CommitRecoveryStore : ICommitRecoveryStore
 {
+    private const long _maximumOwnerBytes = 1024 * 1024;
+    private const long _maximumLegacyStatusBytes = 1024 * 1024;
+    private const long _maximumManifestBytes = 16 * 1024 * 1024;
+    private const long _maximumArtifactBytes = 128 * 1024 * 1024;
     private const string _manifestFileName = "manifest.json";
     private const string _ownerFileName = "owner.json";
+
     private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web);
     private static readonly Encoding _encoding = new UTF8Encoding(false);
+
     private readonly IFileSystem _fileSystem;
-    private readonly IPrivateAtomicFileWriter _atomicFileWriter;
+    private readonly IAtomicFileWriter _atomicFileWriter;
     private readonly IWorkspacePathComparison _pathComparison;
     private readonly IPhysicalPathContainment _pathContainment;
     private readonly IWorkspaceStateDirectorySecurity _stateDirectorySecurity;
@@ -19,7 +25,7 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
 
     public CommitRecoveryStore(
         IFileSystem fileSystem,
-        IPrivateAtomicFileWriter atomicFileWriter,
+        IAtomicFileWriter atomicFileWriter,
         IWorkspacePathComparison pathComparison,
         IPhysicalPathContainment pathContainment,
         IWorkspaceStateDirectory stateDirectory,
@@ -35,19 +41,38 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
 
     public async ValueTask PersistPlanAsync(WorkspaceCommitPlan plan, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var commitDirectory = GetCommitDirectory(plan.Manifest.CommitId);
+        var owner = CreateOwner(plan.Manifest);
+        var ownerJson = SerializeJson(
+            owner,
+            _maximumOwnerBytes,
+            "recovery owner record");
+
+        var manifestJson = SerializeJson(
+            plan.Manifest,
+            _maximumManifestBytes,
+            "recovery manifest");
+
+        ValidateArtifactSizes(plan);
+
         _stateDirectorySecurity.EnsureDirectory(commitDirectory);
-        await WriteOwnerAsync(plan.Manifest, cancellationToken);
+        await WriteJsonAsync(GetOwnerPath(plan.Manifest.CommitId), ownerJson, cancellationToken);
         await WriteArtifactsAsync(plan, cancellationToken);
-        await WriteManifestAsync(plan.Manifest, cancellationToken);
+        await WriteJsonAsync(GetManifestPath(plan.Manifest.CommitId), manifestJson, cancellationToken);
     }
 
     public ValueTask WriteManifestAsync(WorkspaceCommitManifest manifest, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var commitDirectory = GetCommitDirectory(manifest.CommitId);
+        var json = SerializeJson(
+            manifest,
+            _maximumManifestBytes,
+            "recovery manifest");
+
         _stateDirectorySecurity.EnsureDirectory(commitDirectory);
-        return WriteJsonAsync(GetManifestPath(manifest.CommitId), manifest, cancellationToken);
+        return WriteJsonAsync(GetManifestPath(manifest.CommitId), json, cancellationToken);
     }
 
     public async ValueTask<IReadOnlyList<WorkspaceCommitManifest>> GetManifestsAsync(CancellationToken cancellationToken)
@@ -80,6 +105,11 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
             {
                 _stateDirectorySecurity.ValidateDirectory(containedDirectory);
                 _stateDirectorySecurity.ValidateFile(path);
+                ValidateFileSize(
+                    path,
+                    _maximumManifestBytes,
+                    "recovery manifest");
+
                 var json = await _fileSystem.File.ReadAllTextAsync(path, cancellationToken);
                 var manifest = JsonSerializer.Deserialize<WorkspaceCommitManifest>(json, _serializerOptions);
                 if (manifest is not null && IsValidManifest(manifest, containedDirectory))
@@ -95,6 +125,13 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
                 }
             }
             catch (IOException)
+            {
+                manifests.Add(CreateInvalidManifest(
+                    containedDirectory,
+                    loadedPath: null,
+                    workspaceRoot: null));
+            }
+            catch (InvalidDataException)
             {
                 manifests.Add(CreateInvalidManifest(
                     containedDirectory,
@@ -173,13 +210,23 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
     {
         cancellationToken.ThrowIfCancellationRequested();
         var path = GetLegacyStatusPath(status.CommitId);
-        return WriteJsonAsync(path, status, cancellationToken);
+        var json = SerializeJson(
+            status,
+            _maximumLegacyStatusBytes,
+            "legacy recovery status");
+
+        return WriteJsonAsync(path, json, cancellationToken);
     }
 
     public async ValueTask<byte[]> ReadArtifactAsync(string commitId, string relativePath, CancellationToken cancellationToken)
     {
         var path = GetArtifactPath(commitId, relativePath);
         _stateDirectorySecurity.ValidateFile(path);
+        ValidateFileSize(
+            path,
+            _maximumArtifactBytes,
+            "recovery artifact");
+
         return await _fileSystem.File.ReadAllBytesAsync(path, cancellationToken);
     }
 
@@ -235,6 +282,11 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
             {
                 _stateDirectorySecurity.ValidateDirectory(containedDirectory);
                 _stateDirectorySecurity.ValidateFile(ownerPath);
+                ValidateFileSize(
+                    ownerPath,
+                    _maximumOwnerBytes,
+                    "recovery owner record");
+
                 var json = await _fileSystem.File.ReadAllTextAsync(ownerPath, cancellationToken);
                 var owner = JsonSerializer.Deserialize<WorkspaceCommitOwner>(json, _serializerOptions);
                 if (owner is not null
@@ -257,6 +309,10 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
             {
                 conflicts.Add(CreateInvalidOwnerStatus(containedDirectory, owner: null));
             }
+            catch (InvalidDataException)
+            {
+                conflicts.Add(CreateInvalidOwnerStatus(containedDirectory, owner: null));
+            }
             catch (UnauthorizedAccessException)
             {
                 conflicts.Add(CreateInvalidOwnerStatus(containedDirectory, owner: null));
@@ -276,11 +332,20 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
         try
         {
             _stateDirectorySecurity.ValidateFile(path);
+            ValidateFileSize(
+                path,
+                _maximumLegacyStatusBytes,
+                "legacy recovery status");
+
             var json = await _fileSystem.File.ReadAllTextAsync(path, cancellationToken);
             var legacy = JsonSerializer.Deserialize<RecoveryStatus>(json, _serializerOptions);
             return CreateLegacyStatus(commitId, legacy);
         }
         catch (IOException)
+        {
+            return CreateLegacyStatus(commitId, legacy: null);
+        }
+        catch (InvalidDataException)
         {
             return CreateLegacyStatus(commitId, legacy: null);
         }
@@ -599,28 +664,65 @@ internal sealed class CommitRecoveryStore : ICommitRecoveryStore
                 ?? throw new InvalidOperationException($"The recovery artifact '{path}' does not have a parent directory.");
 
             _stateDirectorySecurity.EnsureDirectory(artifactDirectory);
-            await _atomicFileWriter.WriteAllBytesAsync(path, artifact.Value, cancellationToken);
+            await _atomicFileWriter.WriteAllBytesAsync(
+                path,
+                artifact.Value,
+                AtomicFileAccess.OwnerOnly,
+                cancellationToken);
         }
     }
 
-    private ValueTask WriteJsonAsync<T>(string path, T value, CancellationToken cancellationToken)
+    private ValueTask WriteJsonAsync(string path, string json, CancellationToken cancellationToken)
     {
         return _atomicFileWriter.WriteAllTextAsync(
             path,
-            JsonSerializer.Serialize(value, _serializerOptions),
+            json,
             _encoding,
+            AtomicFileAccess.OwnerOnly,
             cancellationToken);
     }
 
-    private ValueTask WriteOwnerAsync(WorkspaceCommitManifest manifest, CancellationToken cancellationToken)
+    private void ValidateFileSize(string path, long maximumBytes, string description)
     {
-        var owner = new WorkspaceCommitOwner
+        var length = _fileSystem.FileInfo.New(path).Length;
+        if (length > maximumBytes)
+        {
+            throw new InvalidDataException(
+                $"The {description} '{path}' exceeds the supported maximum size.");
+        }
+    }
+
+    private static void ValidateArtifactSizes(WorkspaceCommitPlan plan)
+    {
+        foreach (var artifact in plan.Artifacts)
+        {
+            if (artifact.Value.Length > _maximumArtifactBytes)
+            {
+                throw new InvalidDataException(
+                    $"The recovery artifact '{artifact.Key}' exceeds the supported maximum size.");
+            }
+        }
+    }
+
+    private static string SerializeJson<T>(T value, long maximumBytes, string description)
+    {
+        var json = JsonSerializer.Serialize(value, _serializerOptions);
+        if (_encoding.GetByteCount(json) > maximumBytes)
+        {
+            throw new InvalidDataException(
+                $"The {description} exceeds the supported maximum size.");
+        }
+
+        return json;
+    }
+
+    private static WorkspaceCommitOwner CreateOwner(WorkspaceCommitManifest manifest)
+    {
+        return new WorkspaceCommitOwner
         {
             CommitId = manifest.CommitId,
             LoadedPath = manifest.LoadedPath,
             WorkspaceRoot = manifest.WorkspaceRoot,
         };
-
-        return WriteJsonAsync(GetOwnerPath(manifest.CommitId), owner, cancellationToken);
     }
 }

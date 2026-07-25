@@ -875,8 +875,8 @@ internal static class ResultWriter
         var builder = new StringBuilder()
             .AppendLine("# Roslyn Workbench performance summary")
             .AppendLine()
-            .AppendLine("| Repository | Size | Scenario | Tool | Warm-ups | First measured (ms) | Subsequent median (ms) | Median elapsed (ms) | P95 elapsed (ms) | Median host CPU (ms) | Max working set (MiB) | Response (KiB) | Exact response stable |")
-            .AppendLine("|---|---:|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|");
+            .AppendLine("| Repository | Size | Scenario | Tool | Warm-ups | First measured (ms) | Subsequent median (ms) | Median elapsed (ms) | P95 elapsed (ms) | Median host CPU (ms) | Max working set (MiB) | Response (KiB) | Max Code Action token (bytes) | Exact response stable |")
+            .AppendLine("|---|---:|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|");
 
         foreach (var result in results)
         {
@@ -884,6 +884,9 @@ internal static class ResultWriter
             var cpu = result.Measurements.Select(static item => item.HostCpuMilliseconds).Order().ToArray();
             var maxWorkingSet = result.Measurements.Max(static item => item.WorkingSetBytes);
             var responseBytes = result.Measurements.Max(static item => item.ResponseBytes);
+            var maximumCodeActionTokenBytes = result.Measurements
+                .Max(static item => item.CodeActionTokens?.MaximumBytes ?? 0);
+
             var firstMeasured = result.Measurements[0].ElapsedMilliseconds;
             var subsequent = result.Measurements
                 .Skip(1)
@@ -908,6 +911,7 @@ internal static class ResultWriter
                 .Append(" | ").Append(Percentile(cpu, 0.5).ToString("F2", CultureInfo.InvariantCulture))
                 .Append(" | ").Append((maxWorkingSet / 1024d / 1024d).ToString("F2", CultureInfo.InvariantCulture))
                 .Append(" | ").Append((responseBytes / 1024d).ToString("F2", CultureInfo.InvariantCulture))
+                .Append(" | ").Append(maximumCodeActionTokenBytes.ToString(CultureInfo.InvariantCulture))
                 .Append(" | ").Append(stableResponse ? "Yes" : "No")
                 .AppendLine(" |");
         }

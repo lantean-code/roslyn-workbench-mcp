@@ -160,8 +160,17 @@ public sealed class WorkspaceCommitWriterTests
 
         result.IsValid.Should().BeTrue();
         _directory.Verify(item => item.CreateDirectory("/workspace/new"), Times.Once);
-        _atomicWriter.Verify(item => item.WriteAllBytesAsync("/workspace/a.cs", It.Is<ReadOnlyMemory<byte>>(bytes => bytes.ToArray()[0] == 1), CancellationToken.None), Times.Once);
-        _atomicWriter.Verify(item => item.WriteAllBytesAsync("/workspace/b.cs", It.Is<ReadOnlyMemory<byte>>(bytes => bytes.ToArray()[0] == 2), CancellationToken.None), Times.Once);
+        _atomicWriter.Verify(item => item.WriteAllBytesAsync(
+            "/workspace/a.cs",
+            It.Is<ReadOnlyMemory<byte>>(bytes => bytes.ToArray()[0] == 1),
+            AtomicFileAccess.Default,
+            CancellationToken.None), Times.Once);
+
+        _atomicWriter.Verify(item => item.WriteAllBytesAsync(
+            "/workspace/b.cs",
+            It.Is<ReadOnlyMemory<byte>>(bytes => bytes.ToArray()[0] == 2),
+            AtomicFileAccess.Default,
+            CancellationToken.None), Times.Once);
         _fileCommitter.Verify(item => item.Move("/workspace/d.cs", "/workspace/d.cs.delete"), Times.Once);
     }
 
@@ -195,7 +204,11 @@ public sealed class WorkspaceCommitWriterTests
         result.IsValid.Should().BeFalse();
         result.ErrorMessage.Should().Contain(entry.TargetPath);
         _atomicWriter.Verify(
-            item => item.WriteAllBytesAsync(It.IsAny<string>(), It.IsAny<ReadOnlyMemory<byte>>(), It.IsAny<CancellationToken>()),
+            item => item.WriteAllBytesAsync(
+                It.IsAny<string>(),
+                It.IsAny<ReadOnlyMemory<byte>>(),
+                It.IsAny<AtomicFileAccess>(),
+                It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -220,7 +233,11 @@ public sealed class WorkspaceCommitWriterTests
         var result = await _target.RestoreAsync(manifest);
 
         result.Should().Be(RecoveryState.Restored);
-        _atomicWriter.Verify(item => item.WriteAllBytesAsync("/workspace/b.cs", It.IsAny<ReadOnlyMemory<byte>>(), CancellationToken.None), Times.Once);
+        _atomicWriter.Verify(item => item.WriteAllBytesAsync(
+            "/workspace/b.cs",
+            It.IsAny<ReadOnlyMemory<byte>>(),
+            AtomicFileAccess.Default,
+            CancellationToken.None), Times.Once);
         _file.Verify(item => item.Delete("/workspace/a.cs"), Times.Once);
         _directory.Verify(item => item.Delete("/workspace/new"), Times.Once);
     }

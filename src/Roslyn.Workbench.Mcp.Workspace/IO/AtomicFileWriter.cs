@@ -3,9 +3,9 @@ using System.Text;
 
 namespace Roslyn.Workbench.Mcp.Workspace.IO;
 
-internal sealed class AtomicFileWriter : IAtomicFileWriter, IPrivateAtomicFileWriter
+internal sealed class AtomicFileWriter : IAtomicFileWriter
 {
-    private const UnixFileMode _privateFileMode =
+    private const UnixFileMode _ownerOnlyFileMode =
         UnixFileMode.UserRead | UnixFileMode.UserWrite;
 
     private readonly IFileSystem _fileSystem;
@@ -21,6 +21,7 @@ internal sealed class AtomicFileWriter : IAtomicFileWriter, IPrivateAtomicFileWr
         string destinationPath,
         string contents,
         Encoding encoding,
+        AtomicFileAccess access,
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
@@ -29,40 +30,17 @@ internal sealed class AtomicFileWriter : IAtomicFileWriter, IPrivateAtomicFileWr
         await WriteAllBytesCoreAsync(
             destinationPath,
             encoding.GetBytes(contents),
-            privateFile: false,
+            access,
             cancellationToken);
     }
 
     public ValueTask WriteAllBytesAsync(
         string destinationPath,
         ReadOnlyMemory<byte> contents,
+        AtomicFileAccess access,
         CancellationToken cancellationToken)
     {
-        return WriteAllBytesCoreAsync(destinationPath, contents, privateFile: false, cancellationToken);
-    }
-
-    async ValueTask IPrivateAtomicFileWriter.WriteAllTextAsync(
-        string destinationPath,
-        string contents,
-        Encoding encoding,
-        CancellationToken cancellationToken)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
-        cancellationToken.ThrowIfCancellationRequested();
-
-        await WriteAllBytesCoreAsync(
-            destinationPath,
-            encoding.GetBytes(contents),
-            privateFile: true,
-            cancellationToken);
-    }
-
-    ValueTask IPrivateAtomicFileWriter.WriteAllBytesAsync(
-        string destinationPath,
-        ReadOnlyMemory<byte> contents,
-        CancellationToken cancellationToken)
-    {
-        return WriteAllBytesCoreAsync(destinationPath, contents, privateFile: true, cancellationToken);
+        return WriteAllBytesCoreAsync(destinationPath, contents, access, cancellationToken);
     }
 
     [SuppressMessage(
@@ -72,10 +50,15 @@ internal sealed class AtomicFileWriter : IAtomicFileWriter, IPrivateAtomicFileWr
     private async ValueTask WriteAllBytesCoreAsync(
         string destinationPath,
         ReadOnlyMemory<byte> contents,
-        bool privateFile,
+        AtomicFileAccess access,
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
+        if (access is not AtomicFileAccess.Default and not AtomicFileAccess.OwnerOnly)
+        {
+            throw new ArgumentOutOfRangeException(nameof(access), access, "The atomic file access policy is not supported.");
+        }
+
         cancellationToken.ThrowIfCancellationRequested();
 
         var directoryPath = _fileSystem.Path.GetDirectoryName(destinationPath)
@@ -95,9 +78,9 @@ internal sealed class AtomicFileWriter : IAtomicFileWriter, IPrivateAtomicFileWr
                 Share = FileShare.None,
             };
 
-            if (privateFile && !OperatingSystem.IsWindows())
+            if (access == AtomicFileAccess.OwnerOnly && !OperatingSystem.IsWindows())
             {
-                options.UnixCreateMode = _privateFileMode;
+                options.UnixCreateMode = _ownerOnlyFileMode;
             }
 
             await using (var stream = _fileSystem.FileStream.New(temporaryPath, options))

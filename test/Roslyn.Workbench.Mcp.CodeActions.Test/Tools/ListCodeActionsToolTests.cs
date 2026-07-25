@@ -192,6 +192,64 @@ public sealed class ListCodeActionsToolTests
             CancellationToken.None), Times.Never);
     }
 
+    [Fact]
+    public async Task GIVEN_VisibleActionCannotBeEncoded_WHEN_Executing_THEN_ShouldOmitAction()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var selector = new LocationSelector();
+        var location = await CreateLocationAsync(roslyn.Document);
+        var provider = new Mock<CodeRefactoringProvider>();
+        var descriptor = new CodeActionDescriptorEntry
+        {
+            IsVisible = true,
+        };
+
+        var action = CreateDiscoveredAction(
+            roslyn.Solution,
+            "Title",
+            "ProviderId",
+            equivalenceKey: null,
+            actionPath: [],
+            DiscoveredActionKind.Refactoring,
+            descriptor);
+
+        _workspaceResolver
+            .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
+            .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+
+        _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
+        _discoveryService.Setup(item => item.GetMatchingRefactoringProviders(null)).Returns([provider.Object]);
+        _discoveryService
+            .Setup(item => item.DiscoverRefactoringsAsync(
+                provider.Object,
+                roslyn.Document,
+                location.SourceSpan,
+                CancellationToken.None))
+            .ReturnsAsync([action]);
+
+        _infoFactory
+            .Setup(item => item.TryCreate(
+                action,
+                _context.Object,
+                roslyn.Document,
+                location.SourceSpan,
+                descriptor,
+                out It.Ref<CodeActionInfo?>.IsAny))
+            .Returns(false);
+
+        var result = await _target.ExecuteAsync(
+            new ListCodeActionsRequest
+            {
+                Location = selector,
+                IncludeCodeFixes = false,
+            },
+            _context.Object,
+            CancellationToken.None);
+
+        result.Outcome.Should().Be(CodeActionExecutionOutcome.Succeeded);
+        result.Data!.Actions.Should().BeEmpty();
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
@@ -251,15 +309,23 @@ public sealed class ListCodeActionsToolTests
         var orderedActions = new[] { earlier, firstPath, nestedFirstPath, secondPath, equivalence, laterProvider };
         foreach (var action in orderedActions)
         {
+            var info = new CodeActionInfo
+            {
+                ActionId = $"{action.ProviderId}:{action.Title}:{action.EquivalenceKey}:{string.Join('.', action.ActionPath)}",
+                Title = action.Title,
+                ProviderId = action.ProviderId,
+                ExpiresAt = "2000-01-01T00:00:00.0000000+00:00",
+            };
+
             _infoFactory
-                .Setup(item => item.Create(action, _context.Object, roslyn.Document, location.SourceSpan, visibleDescriptor))
-                .Returns(new CodeActionInfo
-                {
-                    ActionId = $"{action.ProviderId}:{action.Title}:{action.EquivalenceKey}:{string.Join('.', action.ActionPath)}",
-                    Title = action.Title,
-                    ProviderId = action.ProviderId,
-                    ExpiresAt = "2000-01-01T00:00:00.0000000+00:00",
-                });
+                .Setup(item => item.TryCreate(
+                    action,
+                    _context.Object,
+                    roslyn.Document,
+                    location.SourceSpan,
+                    visibleDescriptor,
+                    out info))
+                .Returns(true);
         }
 
         var result = await _target.ExecuteAsync(
@@ -279,12 +345,13 @@ public sealed class ListCodeActionsToolTests
             "FirstProvider:Title:EquivalenceKey:",
             "SecondProvider:Title::");
 
-        _infoFactory.Verify(item => item.Create(
+        _infoFactory.Verify(item => item.TryCreate(
             hidden,
             It.IsAny<ICodeActionExecutionContext>(),
             It.IsAny<Document>(),
             It.IsAny<TextSpan>(),
-            It.IsAny<CodeActionDescriptorEntry>()), Times.Never);
+            It.IsAny<CodeActionDescriptorEntry>(),
+            out It.Ref<CodeActionInfo?>.IsAny), Times.Never);
     }
 
     [Fact]

@@ -14,7 +14,11 @@ public sealed class AtomicFileWriterIntegrationTests
 
         try
         {
-            await target.WriteAllBytesAsync(destinationPath, expected, TestContext.Current.CancellationToken);
+            await target.WriteAllBytesAsync(
+                destinationPath,
+                expected,
+                AtomicFileAccess.Default,
+                TestContext.Current.CancellationToken);
 
             (await File.ReadAllBytesAsync(destinationPath, TestContext.Current.CancellationToken)).Should().Equal(expected);
             Directory.EnumerateFiles(directoryPath, "*.tmp").Should().BeEmpty();
@@ -36,7 +40,11 @@ public sealed class AtomicFileWriterIntegrationTests
 
         try
         {
-            await target.WriteAllBytesAsync(destinationPath, expected, TestContext.Current.CancellationToken);
+            await target.WriteAllBytesAsync(
+                destinationPath,
+                expected,
+                AtomicFileAccess.Default,
+                TestContext.Current.CancellationToken);
 
             (await File.ReadAllBytesAsync(destinationPath, TestContext.Current.CancellationToken)).Should().Equal(expected);
             Directory.EnumerateFiles(directoryPath, "*.tmp").Should().BeEmpty();
@@ -57,7 +65,7 @@ public sealed class AtomicFileWriterIntegrationTests
 
         var destinationPath = Path.Combine(directoryPath, "Status.json");
         Directory.CreateDirectory(directoryPath);
-        var target = (IPrivateAtomicFileWriter)new AtomicFileWriter(
+        var target = new AtomicFileWriter(
             new FileSystem(),
             new NativeAtomicFileCommitter());
 
@@ -66,6 +74,7 @@ public sealed class AtomicFileWriterIntegrationTests
             await target.WriteAllBytesAsync(
                 destinationPath,
                 new byte[] { 1 },
+                AtomicFileAccess.OwnerOnly,
                 TestContext.Current.CancellationToken);
 
             if (!OperatingSystem.IsWindows())
@@ -104,7 +113,11 @@ public sealed class AtomicFileWriterIntegrationTests
 
         try
         {
-            await target.WriteAllBytesAsync(destinationPath, expected, TestContext.Current.CancellationToken);
+            await target.WriteAllBytesAsync(
+                destinationPath,
+                expected,
+                AtomicFileAccess.Default,
+                TestContext.Current.CancellationToken);
 
             (await File.ReadAllBytesAsync(destinationPath, TestContext.Current.CancellationToken)).Should().Equal(expected);
             Directory.EnumerateFiles(directoryPath, "*.tmp").Should().BeEmpty();

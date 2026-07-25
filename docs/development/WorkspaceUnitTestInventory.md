@@ -55,7 +55,7 @@ The existing six Workspace unit tests were removed after review because they did
 | `TransactionCommitServiceTests` | 27 | Commit orchestration, target-drift conflicts, recovery failures, recovery-state persistence diagnostics, post-commit input-evaluation failure and cancellation: 100% line and branch |
 | `WorkspaceChangeDetectorTests` | 18 | Manifest creation, explicit project-input failures and comparison: 100% line and branch |
 | `WorkspaceInstanceStatusPublisherTests` | 24 | Serialised registration, update, close and disposal plus stale/live detection, availability, unreadable hints, filtering, ordering and cancellation: 100% line and branch |
-| `AtomicFileWriterTests` | 12 | 100% line and branch coverage of text, binary, commit and cleanup behaviour |
+| `AtomicFileWriterTests` | 13 | 100% line and branch coverage of text, binary, access-policy, commit and cleanup behaviour |
 | `WorkspaceRootResolverTests` | 14 | Explicit-root validation, Git-root discovery, fallback termination and containment alternatives: 100% line and branch |
 | `CommitRecoveryStoreTests` | 65 | 100% line and branch coverage through the injected path-comparison policy, explicit persisted-artifact validation and conservative malformed/unreadable recovery evidence handling |
 | `WorkspacePathComparisonTests` | 1 | Platform-default policy projection; opposite OS branch remains platform coverage |

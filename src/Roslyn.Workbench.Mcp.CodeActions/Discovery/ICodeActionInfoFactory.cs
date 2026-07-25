@@ -1,11 +1,14 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Roslyn.Workbench.Mcp.CodeActions.Discovery;
 
 internal interface ICodeActionInfoFactory
 {
-    CodeActionInfo Create(
+    bool TryCreate(
         DiscoveredCodeAction action,
         ICodeActionExecutionContext context,
         Document document,
         TextSpan span,
-        CodeActionDescriptorEntry descriptor);
+        CodeActionDescriptorEntry descriptor,
+        [NotNullWhen(true)] out CodeActionInfo? info);
 }

@@ -69,7 +69,11 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
                 case WorkspaceFileOperation.Create:
                 case WorkspaceFileOperation.Replace:
                     var contents = await _recoveryStore.ReadArtifactAsync(manifest.CommitId, entry.GetRequiredStagedPath(), CancellationToken.None);
-                    await _atomicFileWriter.WriteAllBytesAsync(entry.TargetPath, contents, CancellationToken.None);
+                    await _atomicFileWriter.WriteAllBytesAsync(
+                        entry.TargetPath,
+                        contents,
+                        AtomicFileAccess.Default,
+                        CancellationToken.None);
                     break;
                 case WorkspaceFileOperation.Delete:
                     if (_fileSystem.File.Exists(entry.GetRequiredDeleteMarkerPath()))
@@ -177,7 +181,11 @@ internal sealed class WorkspaceCommitWriter : IWorkspaceCommitWriter
                         ?? throw new InvalidOperationException($"The target '{entry.TargetPath}' does not have a parent directory.");
 
                     _fileSystem.Directory.CreateDirectory(targetDirectory);
-                    await _atomicFileWriter.WriteAllBytesAsync(entry.TargetPath, backup, CancellationToken.None);
+                    await _atomicFileWriter.WriteAllBytesAsync(
+                        entry.TargetPath,
+                        backup,
+                        AtomicFileAccess.Default,
+                        CancellationToken.None);
                 }
                 else if (exists)
                 {

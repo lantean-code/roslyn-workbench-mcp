@@ -108,8 +108,11 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
         var writes = 0;
         var faultingAtomicWriter = new Mock<IAtomicFileWriter>();
         faultingAtomicWriter.Setup(item => item.WriteAllBytesAsync(
-                It.IsAny<string>(), It.IsAny<ReadOnlyMemory<byte>>(), It.IsAny<CancellationToken>()))
-            .Returns((string path, ReadOnlyMemory<byte> contents, CancellationToken cancellationToken) =>
+                It.IsAny<string>(),
+                It.IsAny<ReadOnlyMemory<byte>>(),
+                It.IsAny<AtomicFileAccess>(),
+                It.IsAny<CancellationToken>()))
+            .Returns((string path, ReadOnlyMemory<byte> contents, AtomicFileAccess access, CancellationToken cancellationToken) =>
             {
                 writes++;
                 if (writes == 2)
@@ -117,7 +120,7 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
                     return ValueTask.FromException(new IOException("Injected second-target failure."));
                 }
 
-                return _atomicWriter.WriteAllBytesAsync(path, contents, cancellationToken);
+                return _atomicWriter.WriteAllBytesAsync(path, contents, access, cancellationToken);
             });
 
         var writer = new WorkspaceCommitWriter(

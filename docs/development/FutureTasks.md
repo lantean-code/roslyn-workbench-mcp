@@ -36,7 +36,7 @@ Implement the dependency-ordered batches defined by the [Pre-release Readiness A
 
 1. release documentation, backlog and package-facing documentation alignment — complete;
 2. supported-functionality and public-contract audit — complete;
-3. security, trust-boundary and dependency audit — audit complete; `PRR-F020` physical Workspace containment, `PRR-F021` trusted-workspace guidance and `PRR-F022` private recovery storage resolved; remediate open findings `PRR-F023`–`PRR-F024` in the recorded dependency order; and
+3. security, trust-boundary and dependency audit — complete; `PRR-F020` physical Workspace containment, `PRR-F021` trusted-workspace guidance, `PRR-F022` private recovery storage and `PRR-F024` bounded token and recovery input processing are resolved; and
 4. final product polish and release-readiness validation.
 
 Do not begin artifact publication until the audit has no unresolved release-blocking findings. Development records may remain under `docs/development`, but release-facing documentation and package content must describe only supported behaviour.
@@ -58,6 +58,8 @@ Publish and retain these immutable artifacts:
 - release notes identifying the source tag and commit.
 
 Release reproducibility is based on the tagged source, pinned .NET SDK, centrally managed exact direct dependency versions and retention of the artifacts produced by the release workflow. Do not adopt `packages.lock.json` files solely for release publication or GitHub Actions caching. Leave NuGet package caching disabled unless restore performance later becomes a measured problem that justifies revisiting the policy.
+
+GitHub and publication preparation own `PRR-F023`. Before public publishing, pin every reusable GitHub Action to a reviewed full commit SHA, configure an automated update path such as Dependabot, retain minimal workflow permissions, and use environment-protected OIDC or trusted publishing rather than long-lived publishing credentials.
 
 Before publishing:
 

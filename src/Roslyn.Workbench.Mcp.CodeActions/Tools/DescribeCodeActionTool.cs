@@ -40,14 +40,22 @@ internal sealed class DescribeCodeActionTool : CodeActionQueryToolHandler<Descri
             return resolvedAction.Rejection;
         }
 
+        if (!_infoFactory.TryCreate(
+            resolvedAction.Action,
+            context,
+            resolvedAction.Document,
+            resolvedAction.Span,
+            resolvedAction.Descriptor,
+            out var descriptor))
+        {
+            return Rejected<DescribeCodeActionData>(
+                "ActionUnavailable",
+                "The selected action cannot be represented by a supported action token.");
+        }
+
         var data = new DescribeCodeActionData
         {
-            Descriptor = _infoFactory.Create(
-                resolvedAction.Action,
-                context,
-                resolvedAction.Document,
-                resolvedAction.Span,
-                resolvedAction.Descriptor),
+            Descriptor = descriptor,
             Context = new CodeActionDescriptorContext
             {
                 Kind = resolvedAction.Descriptor.ContextKind,

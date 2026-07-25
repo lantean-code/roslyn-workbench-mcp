@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Discovery;
@@ -18,12 +19,13 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
         _tokenLifetime = options.Value.TokenLifetime;
     }
 
-    public CodeActionInfo Create(
+    public bool TryCreate(
         DiscoveredCodeAction action,
         ICodeActionExecutionContext context,
         Document document,
         TextSpan span,
-        CodeActionDescriptorEntry descriptor)
+        CodeActionDescriptorEntry descriptor,
+        [NotNullWhen(true)] out CodeActionInfo? info)
     {
         var expiresAt = _timeProvider.GetUtcNow().Add(_tokenLifetime);
         var expiresAtText = expiresAt.ToString("O");
@@ -45,9 +47,15 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
             Length = span.Length,
         };
 
-        return new CodeActionInfo
+        if (!_tokenService.TryEncode(payload, out var actionId))
         {
-            ActionId = _tokenService.Encode(payload),
+            info = null;
+            return false;
+        }
+
+        info = new CodeActionInfo
+        {
+            ActionId = actionId,
             WorkspaceId = context.WorkspaceIdentity.WorkspaceId,
             Title = action.Title,
             ProviderId = action.ProviderId,
@@ -64,5 +72,7 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
             UnsupportedReasonCode = descriptor.UnsupportedReasonCode,
             Requirements = descriptor.Requirements,
         };
+
+        return true;
     }
 }

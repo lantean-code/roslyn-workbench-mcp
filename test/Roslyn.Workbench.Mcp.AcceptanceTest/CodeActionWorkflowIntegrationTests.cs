@@ -2,6 +2,8 @@ namespace Roslyn.Workbench.Mcp.AcceptanceTest;
 
 public sealed class CodeActionWorkflowIntegrationTests
 {
+    private const int _maximumCodeActionTokenLength = 256 * 1024;
+
     [Fact]
     public async Task GIVEN_BuiltInCodeAction_WHEN_ListingStagingAndRollingBack_THEN_ShouldPreservePublicCodeActionBoundary()
     {
@@ -131,6 +133,71 @@ public sealed class CodeActionWorkflowIntegrationTests
 
             pluginIds.Should().Contain("roslyn.workbench.core");
             pluginIds.Should().NotContain("roslyn.workbench.codeactions");
+        }
+        catch
+        {
+            target.RetainRootOnFailure();
+            throw;
+        }
+    }
+
+    [Fact]
+    public async Task GIVEN_OversizedCodeActionToken_WHEN_Staging_THEN_ShouldRejectAndRemainResponsive()
+    {
+        await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
+            TestContext.Current.CancellationToken,
+            AcceptanceWorkspaceAsset.InspectionSample);
+
+        try
+        {
+            var projectPath = Path.Combine(target.WorkspaceRoot, "Sample.csproj");
+            var openResult = await target.CallToolAsync(
+                "workspace-open",
+                new Dictionary<string, object?>
+                {
+                    ["path"] = projectPath,
+                    ["workspaceRoot"] = target.WorkspaceRoot,
+                },
+                TestContext.Current.CancellationToken);
+
+            var workspace = AcceptanceWorkspaceIdentity.FromOpenResult(openResult);
+            var workspaceSelector = workspace.CreateSelector();
+            var snapshot = workspace.CreateSnapshot(transactionRevision: 0);
+
+            await target.CallToolAsync(
+                "transaction-start",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                },
+                TestContext.Current.CancellationToken);
+
+            var stageResult = await target.CallToolAsync(
+                "stage-code-action",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                    ["actionId"] = new string('A', _maximumCodeActionTokenLength + 1),
+                    ["expectedSnapshot"] = snapshot,
+                },
+                TestContext.Current.CancellationToken);
+
+            stageResult.IsError.Should().BeTrue();
+            AcceptanceProtocol.GetError(stageResult)
+                .GetProperty("code")
+                .GetString()
+                .Should()
+                .Be("ActionExpired");
+
+            var rollbackResult = await target.CallToolAsync(
+                "transaction-rollback",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                },
+                TestContext.Current.CancellationToken);
+
+            rollbackResult.IsError.Should().NotBeTrue();
         }
         catch
         {

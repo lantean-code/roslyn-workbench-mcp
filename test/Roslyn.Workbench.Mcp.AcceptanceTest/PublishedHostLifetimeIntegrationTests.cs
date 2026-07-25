@@ -18,7 +18,7 @@ public sealed class PublishedHostLifetimeIntegrationTests
         var workspaceRoot = Path.Combine(scenarioRoot, "workspace");
         var stateRoot = Path.Combine(scenarioRoot, "state");
         Directory.CreateDirectory(workspaceRoot);
-        Directory.CreateDirectory(stateRoot);
+        AcceptanceStateDirectory.Create(stateRoot);
 
         using var process = new Process
         {

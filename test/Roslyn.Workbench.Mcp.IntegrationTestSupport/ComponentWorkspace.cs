@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 using Roslyn.Workbench.Mcp.Configuration;
 using Roslyn.Workbench.Mcp.Workspace.Coordination;
+using Roslyn.Workbench.Mcp.Workspace.Recovery;
 
 namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
@@ -98,6 +99,7 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
                 ValidateScopes = true,
             });
 
+            serviceProvider.GetRequiredService<IWorkspaceStateDirectory>().Initialize();
             return new ComponentWorkspace(serviceProvider, stateDirectory, ownedStateDirectory);
         }
         catch

@@ -56,7 +56,7 @@ public static class WorkspaceAssetMaterializer
             var stateRoot = Path.Combine(scenarioDirectory.DirectoryPath, "state");
             CopyDirectory(templateRoot, workspaceRoot, overwrite: false, skipDeletionManifest: false);
             Directory.CreateDirectory(Path.Combine(workspaceRoot, ".git"));
-            Directory.CreateDirectory(stateRoot);
+            CreateStateDirectory(stateRoot);
             return new MaterializedWorkspaceAsset(scenarioDirectory, workspaceRoot, stateRoot);
         }
         catch
@@ -80,7 +80,7 @@ public static class WorkspaceAssetMaterializer
             CopyDirectory(profileRoot, workspaceRoot, overwrite: true, skipDeletionManifest: true);
             ApplyDeletionManifest(profileRoot, workspaceRoot);
             Directory.CreateDirectory(Path.Combine(workspaceRoot, ".git"));
-            Directory.CreateDirectory(stateRoot);
+            CreateStateDirectory(stateRoot);
             return new MaterializedWorkspaceAsset(scenarioDirectory, workspaceRoot, stateRoot);
         }
         catch
@@ -133,5 +133,18 @@ public static class WorkspaceAssetMaterializer
 
             CopyDirectory(sourceDirectory, Path.Combine(destinationRoot, Path.GetFileName(sourceDirectory)), overwrite, skipDeletionManifest);
         }
+    }
+
+    private static void CreateStateDirectory(string stateRoot)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            Directory.CreateDirectory(stateRoot);
+            return;
+        }
+
+        Directory.CreateDirectory(
+            stateRoot,
+            UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
     }
 }

@@ -13,6 +13,6 @@ public sealed class WorkspaceOptionsTests
         target.DefaultMaxResults.Should().Be(100);
         target.MaxTransactionRevisions.Should().Be(20);
         target.MaxLoadedWorkspaces.Should().Be(4);
-        target.StateDirectory.Should().Be(Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-state"));
+        target.StateDirectory.Should().Be(StateDirectoryDefaults.GetDefaultPath());
     }
 }

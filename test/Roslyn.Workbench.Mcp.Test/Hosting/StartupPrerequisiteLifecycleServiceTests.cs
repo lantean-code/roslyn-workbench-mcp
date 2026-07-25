@@ -11,13 +11,16 @@ public sealed class StartupPrerequisiteLifecycleServiceTests
             .Returns(new ComponentStatus());
 
         var workspaceCommitRecoveryService = new Mock<IWorkspaceCommitRecoveryService>();
+        var stateDirectory = new Mock<IWorkspaceStateDirectory>();
         var target = new StartupPrerequisiteLifecycleService(
             msBuildRegistrationService.Object,
+            stateDirectory.Object,
             workspaceCommitRecoveryService.Object);
 
         await target.StartingAsync(TestContext.Current.CancellationToken);
 
         msBuildRegistrationService.Verify(static service => service.EnsureRegistered(), Times.Once);
+        stateDirectory.Verify(service => service.Initialize(), Times.Once);
         workspaceCommitRecoveryService.Verify(
             service => service.RecoverAsync(TestContext.Current.CancellationToken),
             Times.Once);
@@ -27,9 +30,11 @@ public sealed class StartupPrerequisiteLifecycleServiceTests
     public async Task GIVEN_CancelledStartup_WHEN_StartingLifecycle_THEN_ShouldNotRunPrerequisites()
     {
         var msBuildRegistrationService = new Mock<IMsBuildRegistrationService>();
+        var stateDirectory = new Mock<IWorkspaceStateDirectory>();
         var workspaceCommitRecoveryService = new Mock<IWorkspaceCommitRecoveryService>();
         var target = new StartupPrerequisiteLifecycleService(
             msBuildRegistrationService.Object,
+            stateDirectory.Object,
             workspaceCommitRecoveryService.Object);
 
         using var cancellationTokenSource = new CancellationTokenSource();
@@ -39,6 +44,7 @@ public sealed class StartupPrerequisiteLifecycleServiceTests
 
         await action.Should().ThrowAsync<OperationCanceledException>();
         msBuildRegistrationService.Verify(static service => service.EnsureRegistered(), Times.Never);
+        stateDirectory.Verify(static service => service.Initialize(), Times.Never);
         workspaceCommitRecoveryService.Verify(
             static service => service.RecoverAsync(It.IsAny<CancellationToken>()),
             Times.Never);
@@ -48,9 +54,11 @@ public sealed class StartupPrerequisiteLifecycleServiceTests
     public async Task GIVEN_NoLifecycleWorkOutsideStartingPhase_WHEN_RunningOtherPhases_THEN_ShouldCompleteWithoutPrerequisites()
     {
         var msBuildRegistrationService = new Mock<IMsBuildRegistrationService>();
+        var stateDirectory = new Mock<IWorkspaceStateDirectory>();
         var workspaceCommitRecoveryService = new Mock<IWorkspaceCommitRecoveryService>();
         var target = new StartupPrerequisiteLifecycleService(
             msBuildRegistrationService.Object,
+            stateDirectory.Object,
             workspaceCommitRecoveryService.Object);
 
         await target.StartAsync(TestContext.Current.CancellationToken);
@@ -60,9 +68,9 @@ public sealed class StartupPrerequisiteLifecycleServiceTests
         await target.StoppedAsync(TestContext.Current.CancellationToken);
 
         msBuildRegistrationService.Verify(static service => service.EnsureRegistered(), Times.Never);
+        stateDirectory.Verify(static service => service.Initialize(), Times.Never);
         workspaceCommitRecoveryService.Verify(
             static service => service.RecoverAsync(It.IsAny<CancellationToken>()),
             Times.Never);
     }
-
 }

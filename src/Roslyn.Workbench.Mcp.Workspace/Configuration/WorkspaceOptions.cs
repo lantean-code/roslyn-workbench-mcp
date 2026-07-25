@@ -28,5 +28,5 @@ internal sealed class WorkspaceOptions
     /// <summary>
     /// Gets the state directory used for recovery records.
     /// </summary>
-    public string StateDirectory { get; set; } = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-state");
+    public string StateDirectory { get; set; } = StateDirectoryDefaults.GetDefaultPath();
 }

@@ -14,6 +14,7 @@ public sealed class StartupOptionsResolverTests
         "ROSLYN_WORKBENCH_MCP_MAX_CONCURRENT_QUERIES",
         "ROSLYN_WORKBENCH_MCP_TOOL_OUTPUT_SCHEMA_MODE",
         "ROSLYN_WORKBENCH_MCP_STATE_DIRECTORY",
+        "XDG_STATE_HOME",
     ];
 
     private readonly Mock<IWorkspacePathComparison> _pathComparison;
@@ -41,7 +42,32 @@ public sealed class StartupOptionsResolverTests
             result.Options.MaxTransactionRevisions.Should().Be(20);
             result.Options.MaxConcurrentQueries.Should().Be(2);
             result.Options.ToolOutputSchemaMode.Should().Be(ToolOutputSchemaMode.Omit);
-            result.Options.StateDirectory.Should().Be(Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-state"));
+            result.Options.StateDirectory.Should().Be(new StartupOptions().StateDirectory);
+            result.Warnings.Should().BeEmpty();
+        }
+        finally
+        {
+            RestoreEnvironment(previousValues);
+        }
+    }
+
+    [Fact]
+    public void GIVEN_AbsoluteXdgStateHomeOnLinux_WHEN_Resolving_THEN_ShouldUseItForDefaultStateDirectory()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        var previousValues = ClearEnvironment();
+
+        try
+        {
+            Environment.SetEnvironmentVariable("XDG_STATE_HOME", "/state-home");
+
+            var result = Resolve([]);
+
+            result.Options.StateDirectory.Should().Be("/state-home/roslyn-workbench-mcp");
             result.Warnings.Should().BeEmpty();
         }
         finally
@@ -422,7 +448,7 @@ public sealed class StartupOptionsResolverTests
         {
             var result = Resolve(["--state-directory=\0"]);
 
-            result.Options.StateDirectory.Should().Be(Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-state"));
+            result.Options.StateDirectory.Should().Be(new StartupOptions().StateDirectory);
             result.Warnings.Should().ContainSingle();
         }
         finally

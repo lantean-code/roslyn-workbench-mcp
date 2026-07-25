@@ -1,7 +1,5 @@
 using System.Text;
 using System.Text.Json;
-using Microsoft.Extensions.Options;
-using Roslyn.Workbench.Mcp.Workspace.Configuration;
 using Roslyn.Workbench.Mcp.Workspace.Recovery;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test.Recovery;
@@ -15,9 +13,11 @@ public sealed class CommitRecoveryStoreTests
     private readonly Mock<IFile> _file;
     private readonly Mock<IDirectory> _directory;
     private readonly Mock<IPath> _path;
-    private readonly Mock<IAtomicFileWriter> _atomicFileWriter;
+    private readonly Mock<IPrivateAtomicFileWriter> _atomicFileWriter;
     private readonly Mock<IWorkspacePathComparison> _pathComparison;
     private readonly Mock<IPhysicalPathContainment> _pathContainment;
+    private readonly Mock<IWorkspaceStateDirectory> _stateDirectory;
+    private readonly Mock<IWorkspaceStateDirectorySecurity> _stateDirectorySecurity;
     private readonly CommitRecoveryStore _target;
 
     public CommitRecoveryStoreTests()
@@ -26,14 +26,15 @@ public sealed class CommitRecoveryStoreTests
         _file = new Mock<IFile>();
         _directory = new Mock<IDirectory>();
         _path = new Mock<IPath>();
-        _atomicFileWriter = new Mock<IAtomicFileWriter>();
+        _atomicFileWriter = new Mock<IPrivateAtomicFileWriter>();
         _pathComparison = new Mock<IWorkspacePathComparison>();
         _pathContainment = new Mock<IPhysicalPathContainment>();
+        _stateDirectory = new Mock<IWorkspaceStateDirectory>();
+        _stateDirectorySecurity = new Mock<IWorkspaceStateDirectorySecurity>();
         _fileSystem.SetupGet(item => item.File).Returns(_file.Object);
         _fileSystem.SetupGet(item => item.Directory).Returns(_directory.Object);
         _fileSystem.SetupGet(item => item.Path).Returns(_path.Object);
         _path.Setup(item => item.GetFullPath(It.IsAny<string>())).Returns((string path) => Path.GetFullPath(path));
-        _path.Setup(item => item.GetFullPath("StateDirectory")).Returns("/State");
         _path.Setup(item => item.GetRelativePath(It.IsAny<string>(), It.IsAny<string>()))
             .Returns((string root, string path) => Path.GetRelativePath(root, path));
 
@@ -83,12 +84,14 @@ public sealed class CommitRecoveryStoreTests
                 return IsContained(root, candidate, allowRoot: false);
             });
 
+        _stateDirectory.SetupGet(item => item.RecoveryDirectory).Returns(_recoveryDirectory);
         _target = new CommitRecoveryStore(
-            Options.Create(new WorkspaceOptions { StateDirectory = "StateDirectory" }),
             _fileSystem.Object,
             _atomicFileWriter.Object,
             _pathComparison.Object,
-            _pathContainment.Object);
+            _pathContainment.Object,
+            _stateDirectory.Object,
+            _stateDirectorySecurity.Object);
     }
 
     [Fact]
@@ -115,6 +118,26 @@ public sealed class CommitRecoveryStoreTests
                 directory,
                 out It.Ref<string>.IsAny))
             .Returns(false);
+
+        var result = await _target.GetManifestsAsync(TestContext.Current.CancellationToken);
+
+        result.Should().ContainSingle().Which.State.Should().Be(RecoveryState.RecoveryConflict);
+        _file.Verify(
+            item => item.ReadAllTextAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_UnsafeManifestFile_WHEN_Reading_THEN_ShouldReturnConflictWithoutReadingIt()
+    {
+        var directory = _recoveryDirectory + "/CommitId";
+        var manifestPath = directory + "/manifest.json";
+        _directory.Setup(item => item.Exists(_recoveryDirectory)).Returns(true);
+        _directory.Setup(item => item.EnumerateDirectories(_recoveryDirectory)).Returns([directory]);
+        _file.Setup(item => item.Exists(manifestPath)).Returns(true);
+        _stateDirectorySecurity
+            .Setup(item => item.ValidateFile(manifestPath))
+            .Throws(new UnauthorizedAccessException());
 
         var result = await _target.GetManifestsAsync(TestContext.Current.CancellationToken);
 
@@ -184,7 +207,6 @@ public sealed class CommitRecoveryStoreTests
 
         await _target.WriteStatusAsync(status, TestContext.Current.CancellationToken);
 
-        _directory.Verify(item => item.CreateDirectory(_recoveryDirectory), Times.Once);
         _atomicFileWriter.Verify(item => item.WriteAllTextAsync(
             _recoveryDirectory + "/CommitId.json",
             It.Is<string>(json => json.Contains("CommitId", StringComparison.Ordinal) && json.Contains("SolutionPath", StringComparison.Ordinal)),
@@ -201,7 +223,7 @@ public sealed class CommitRecoveryStoreTests
         var action = async () => await _target.WriteStatusAsync(new RecoveryStatus(), cancellationSource.Token);
 
         await action.Should().ThrowAsync<OperationCanceledException>();
-        _directory.Verify(item => item.CreateDirectory(It.IsAny<string>()), Times.Never);
+        _stateDirectorySecurity.Verify(item => item.EnsureDirectory(It.IsAny<string>()), Times.Never);
     }
 
     [Theory]
@@ -216,7 +238,7 @@ public sealed class CommitRecoveryStoreTests
         var action = async () => await _target.WriteStatusAsync(status, TestContext.Current.CancellationToken);
 
         await action.Should().ThrowAsync<ArgumentException>();
-        _directory.Verify(item => item.CreateDirectory(It.IsAny<string>()), Times.Never);
+        _stateDirectorySecurity.Verify(item => item.EnsureDirectory(It.IsAny<string>()), Times.Never);
         _atomicFileWriter.Verify(item => item.WriteAllTextAsync(
             It.IsAny<string>(),
             It.IsAny<string>(),
@@ -251,8 +273,13 @@ public sealed class CommitRecoveryStoreTests
             _recoveryDirectory + "/CommitId/staged/File.bin",
             _recoveryDirectory + "/CommitId/manifest.json");
 
-        _directory.Verify(item => item.CreateDirectory(_recoveryDirectory + "/CommitId"), Times.AtLeastOnce);
-        _directory.Verify(item => item.CreateDirectory(_recoveryDirectory + "/CommitId/staged"), Times.Once);
+        _stateDirectorySecurity.Verify(
+            item => item.EnsureDirectory(_recoveryDirectory + "/CommitId"),
+            Times.AtLeastOnce);
+
+        _stateDirectorySecurity.Verify(
+            item => item.EnsureDirectory(_recoveryDirectory + "/CommitId/staged"),
+            Times.Once);
     }
 
     [Fact]
@@ -262,7 +289,9 @@ public sealed class CommitRecoveryStoreTests
 
         await _target.WriteManifestAsync(manifest, TestContext.Current.CancellationToken);
 
-        _directory.Verify(item => item.CreateDirectory(_recoveryDirectory + "/CommitId"), Times.Once);
+        _stateDirectorySecurity.Verify(
+            item => item.EnsureDirectory(_recoveryDirectory + "/CommitId"),
+            Times.Once);
         _atomicFileWriter.Verify(item => item.WriteAllTextAsync(
             _recoveryDirectory + "/CommitId/manifest.json",
             It.Is<string>(json => json.Contains("CommitId", StringComparison.Ordinal)),

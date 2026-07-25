@@ -3,8 +3,11 @@ using System.Text;
 
 namespace Roslyn.Workbench.Mcp.Workspace.IO;
 
-internal sealed class AtomicFileWriter : IAtomicFileWriter
+internal sealed class AtomicFileWriter : IAtomicFileWriter, IPrivateAtomicFileWriter
 {
+    private const UnixFileMode _privateFileMode =
+        UnixFileMode.UserRead | UnixFileMode.UserWrite;
+
     private readonly IFileSystem _fileSystem;
     private readonly IAtomicFileCommitter _fileCommitter;
 
@@ -23,16 +26,53 @@ internal sealed class AtomicFileWriter : IAtomicFileWriter
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
         cancellationToken.ThrowIfCancellationRequested();
 
-        await WriteAllBytesAsync(destinationPath, encoding.GetBytes(contents), cancellationToken);
+        await WriteAllBytesCoreAsync(
+            destinationPath,
+            encoding.GetBytes(contents),
+            privateFile: false,
+            cancellationToken);
+    }
+
+    public ValueTask WriteAllBytesAsync(
+        string destinationPath,
+        ReadOnlyMemory<byte> contents,
+        CancellationToken cancellationToken)
+    {
+        return WriteAllBytesCoreAsync(destinationPath, contents, privateFile: false, cancellationToken);
+    }
+
+    async ValueTask IPrivateAtomicFileWriter.WriteAllTextAsync(
+        string destinationPath,
+        string contents,
+        Encoding encoding,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        await WriteAllBytesCoreAsync(
+            destinationPath,
+            encoding.GetBytes(contents),
+            privateFile: true,
+            cancellationToken);
+    }
+
+    ValueTask IPrivateAtomicFileWriter.WriteAllBytesAsync(
+        string destinationPath,
+        ReadOnlyMemory<byte> contents,
+        CancellationToken cancellationToken)
+    {
+        return WriteAllBytesCoreAsync(destinationPath, contents, privateFile: true, cancellationToken);
     }
 
     [SuppressMessage(
         "Performance",
         "CA1849:Call async methods when in an async method",
         Justification = "FileStream.FlushAsync does not expose flushToDisk; the synchronous flush is required before the atomic commit to guarantee durable storage.")]
-    public async ValueTask WriteAllBytesAsync(
+    private async ValueTask WriteAllBytesCoreAsync(
         string destinationPath,
         ReadOnlyMemory<byte> contents,
+        bool privateFile,
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
@@ -54,6 +94,11 @@ internal sealed class AtomicFileWriter : IAtomicFileWriter
                 Options = FileOptions.Asynchronous | FileOptions.WriteThrough,
                 Share = FileShare.None,
             };
+
+            if (privateFile && !OperatingSystem.IsWindows())
+            {
+                options.UnixCreateMode = _privateFileMode;
+            }
 
             await using (var stream = _fileSystem.FileStream.New(temporaryPath, options))
             {

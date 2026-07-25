@@ -6,27 +6,6 @@ using ModelContextProtocol.Protocol;
 
 namespace Roslyn.Workbench.Mcp.AcceptanceTest;
 
-internal enum AcceptanceWorkspaceAsset
-{
-    SdkProject,
-    InspectionSample,
-    SolutionHierarchy,
-    MixedSolution,
-    MultiTargetLinked,
-    MalformedSdkProject,
-}
-
-internal enum AcceptancePluginAsset
-{
-    HostQuery,
-    HostQueryDuplicate,
-    HostMutation,
-    Invalid,
-    Throwing,
-}
-
-internal sealed record AcceptanceToolInvocation(RequestId RequestId, Task<CallToolResult> Completion);
-
 internal sealed class AcceptanceProcessFixture : IAsyncDisposable
 {
     private const string _pendingStateRootArgument = "{acceptance-state-root}";
@@ -80,7 +59,8 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         AcceptanceWorkspaceAsset workspaceAsset = AcceptanceWorkspaceAsset.SdkProject,
         IReadOnlyList<string>? additionalArguments = null,
         IReadOnlyList<AcceptancePluginAsset>? pluginAssets = null,
-        IReadOnlyDictionary<string, string?>? environmentVariables = null)
+        IReadOnlyDictionary<string, string?>? environmentVariables = null,
+        AcceptanceStateDirectoryPreparation stateDirectoryPreparation = AcceptanceStateDirectoryPreparation.Private)
     {
         var executablePath = PublishedHostExecutable.ResolveFromEnvironment();
         var arguments = new List<string>
@@ -102,6 +82,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
             workspaceAsset,
             pluginAssets,
             environmentVariables,
+            stateDirectoryPreparation,
             retainInitializationFailure: true,
             cancellationToken);
     }
@@ -117,6 +98,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
             workspaceAsset: null,
             pluginAssets: null,
             environmentVariables: null,
+            stateDirectoryPreparation: AcceptanceStateDirectoryPreparation.Private,
             retainInitializationFailure: false,
             cancellationToken);
     }
@@ -303,6 +285,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         AcceptanceWorkspaceAsset? workspaceAsset,
         IReadOnlyList<AcceptancePluginAsset>? pluginAssets,
         IReadOnlyDictionary<string, string?>? environmentVariables,
+        AcceptanceStateDirectoryPreparation stateDirectoryPreparation,
         bool retainInitializationFailure,
         CancellationToken cancellationToken)
     {
@@ -330,7 +313,7 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
             retainInitializationFailure);
 
         Directory.CreateDirectory(target.WorkspaceRoot);
-        Directory.CreateDirectory(target.StateRoot);
+        AcceptanceStateDirectory.Prepare(target.StateRoot, stateDirectoryPreparation);
 
         if (workspaceAsset is not null)
         {

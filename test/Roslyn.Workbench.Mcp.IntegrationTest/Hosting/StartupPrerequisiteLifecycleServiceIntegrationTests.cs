@@ -15,6 +15,11 @@ public sealed class StartupPrerequisiteLifecycleServiceIntegrationTests
             .Setup(static service => service.EnsureRegistered())
             .Returns(new ComponentStatus());
 
+        var stateDirectory = new Mock<IWorkspaceStateDirectory>(MockBehavior.Strict);
+        stateDirectory
+            .InSequence(sequence)
+            .Setup(static directory => directory.Initialize());
+
         var workspaceCommitRecoveryService = new Mock<IWorkspaceCommitRecoveryService>(MockBehavior.Strict);
         workspaceCommitRecoveryService
             .InSequence(sequence)
@@ -33,6 +38,7 @@ public sealed class StartupPrerequisiteLifecycleServiceIntegrationTests
 
         var builder = Host.CreateApplicationBuilder();
         builder.Services.AddSingleton(msBuildRegistrationService.Object);
+        builder.Services.AddSingleton(stateDirectory.Object);
         builder.Services.AddSingleton(workspaceCommitRecoveryService.Object);
         builder.Services.AddHostedService<StartupPrerequisiteLifecycleService>();
         builder.Services.AddSingleton<IHostedService>(transport.Object);

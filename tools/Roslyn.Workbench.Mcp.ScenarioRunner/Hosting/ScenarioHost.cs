@@ -22,12 +22,12 @@ internal sealed class ScenarioHost : IAsyncDisposable
     private bool _forcedTermination;
     private bool _isDisposed;
 
+    public int ProcessId => _process.Id;
+
     private ScenarioHost(Process process)
     {
         _process = process;
     }
-
-    public int ProcessId => _process.Id;
 
     public long GetWorkspaceEpoch(string workspaceId)
     {
@@ -40,52 +40,6 @@ internal sealed class ScenarioHost : IAsyncDisposable
     public void RegisterWorkspace(string workspaceId, long workspaceEpoch)
     {
         _workspaceEpochs[workspaceId] = workspaceEpoch;
-    }
-
-    public static async Task<ScenarioHost> StartAsync(
-        string hostPath,
-        string workingDirectory,
-        string stateDirectory,
-        CancellationToken cancellationToken)
-    {
-        Directory.CreateDirectory(stateDirectory);
-        var startInfo = CreateStartInfo(hostPath, workingDirectory, stateDirectory);
-        var process = new Process
-        {
-            StartInfo = startInfo,
-            EnableRaisingEvents = true,
-        };
-        var target = new ScenarioHost(process);
-        process.ErrorDataReceived += target.CaptureStandardError;
-
-        if (!process.Start())
-        {
-            process.Dispose();
-            throw new InvalidOperationException($"Unable to start Host '{hostPath}'.");
-        }
-
-        process.BeginErrorReadLine();
-        var transport = new StreamClientTransport(
-            process.StandardInput.BaseStream,
-            process.StandardOutput.BaseStream,
-            NullLoggerFactory.Instance);
-        using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeoutSource.CancelAfter(_initializationTimeout);
-
-        try
-        {
-            target._client = await McpClient.CreateAsync(
-                transport,
-                new McpClientOptions { InitializationTimeout = _initializationTimeout },
-                NullLoggerFactory.Instance,
-                timeoutSource.Token);
-            return target;
-        }
-        catch
-        {
-            await target.DisposeAsync();
-            throw;
-        }
     }
 
     public ValueTask<CallToolResult> CallToolAsync(
@@ -249,6 +203,68 @@ internal sealed class ScenarioHost : IAsyncDisposable
         }
     }
 
+    private void CaptureStandardError(object sender, DataReceivedEventArgs eventArgs)
+    {
+        if (eventArgs.Data is null)
+        {
+            return;
+        }
+
+        lock (_standardError)
+        {
+            _standardError.AppendLine(eventArgs.Data);
+        }
+    }
+
+    public static async Task<ScenarioHost> StartAsync(
+        string hostPath,
+        string workingDirectory,
+        string stateDirectory,
+        CancellationToken cancellationToken)
+    {
+        CreateStateDirectory(stateDirectory);
+        var startInfo = CreateStartInfo(hostPath, workingDirectory, stateDirectory);
+        var process = new Process
+        {
+            StartInfo = startInfo,
+            EnableRaisingEvents = true,
+        };
+
+        var target = new ScenarioHost(process);
+        process.ErrorDataReceived += target.CaptureStandardError;
+
+        if (!process.Start())
+        {
+            process.Dispose();
+            throw new InvalidOperationException($"Unable to start Host '{hostPath}'.");
+        }
+
+        process.BeginErrorReadLine();
+        var transport = new StreamClientTransport(
+            process.StandardInput.BaseStream,
+            process.StandardOutput.BaseStream,
+            NullLoggerFactory.Instance);
+
+        using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutSource.CancelAfter(_initializationTimeout);
+
+        try
+        {
+            target._client = await McpClient.CreateAsync(
+                transport,
+                new McpClientOptions { InitializationTimeout = _initializationTimeout },
+                NullLoggerFactory.Instance,
+                timeoutSource.Token);
+
+            return target;
+        }
+        catch
+        {
+            await target.DisposeAsync();
+            throw;
+        }
+    }
+
     private static ProcessStartInfo CreateStartInfo(
         string hostPath,
         string workingDirectory,
@@ -279,16 +295,16 @@ internal sealed class ScenarioHost : IAsyncDisposable
         return startInfo;
     }
 
-    private void CaptureStandardError(object sender, DataReceivedEventArgs eventArgs)
+    private static void CreateStateDirectory(string stateDirectory)
     {
-        if (eventArgs.Data is null)
+        if (OperatingSystem.IsWindows())
         {
+            Directory.CreateDirectory(stateDirectory);
             return;
         }
 
-        lock (_standardError)
-        {
-            _standardError.AppendLine(eventArgs.Data);
-        }
+        Directory.CreateDirectory(
+            stateDirectory,
+            UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
     }
 }

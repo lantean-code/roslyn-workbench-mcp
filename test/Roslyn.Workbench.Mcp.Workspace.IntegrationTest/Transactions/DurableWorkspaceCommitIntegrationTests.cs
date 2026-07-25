@@ -23,12 +23,20 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
         _fileCommitter = new NativeAtomicFileCommitter();
         _atomicWriter = new AtomicFileWriter(_fileSystem, _fileCommitter);
         _pathContainment = CreatePathContainment(_fileSystem);
-        _store = new CommitRecoveryStore(
+        var stateDirectorySecurity = new WorkspaceStateDirectorySecurity(_fileSystem);
+        var stateDirectory = new WorkspaceStateDirectory(
             Options.Create(new WorkspaceOptions { StateDirectory = _stateDirectory }),
+            _fileSystem,
+            stateDirectorySecurity);
+
+        stateDirectory.Initialize();
+        _store = new CommitRecoveryStore(
             _fileSystem,
             _atomicWriter,
             new WorkspacePathComparison(),
-            _pathContainment);
+            _pathContainment,
+            stateDirectory,
+            stateDirectorySecurity);
 
         _writer = new WorkspaceCommitWriter(
             _fileSystem,
@@ -156,8 +164,25 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
     public async Task GIVEN_MalformedManifest_WHEN_ReadingRecoveryStatus_THEN_ShouldExposeGlobalRecoveryConflict()
     {
         var directory = Path.Combine(_stateDirectory, "recovery", "malformed");
-        Directory.CreateDirectory(directory);
-        await File.WriteAllTextAsync(Path.Combine(directory, "manifest.json"), "{", TestContext.Current.CancellationToken);
+        if (OperatingSystem.IsWindows())
+        {
+            Directory.CreateDirectory(directory);
+        }
+        else
+        {
+            Directory.CreateDirectory(
+                directory,
+                UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
+
+        var manifestPath = Path.Combine(directory, "manifest.json");
+        await File.WriteAllTextAsync(manifestPath, "{", TestContext.Current.CancellationToken);
+        if (!OperatingSystem.IsWindows())
+        {
+            File.SetUnixFileMode(
+                manifestPath,
+                UnixFileMode.UserRead | UnixFileMode.UserWrite);
+        }
 
         var statuses = await _store.GetStatusesAsync(TestContext.Current.CancellationToken);
 
@@ -262,12 +287,20 @@ public sealed class DurableWorkspaceCommitIntegrationTests : IDisposable
         var fileCommitter = new NativeAtomicFileCommitter();
         var atomicWriter = new AtomicFileWriter(fileSystem, fileCommitter);
         var pathContainment = CreatePathContainment(fileSystem);
-        var store = new CommitRecoveryStore(
+        var stateDirectorySecurity = new WorkspaceStateDirectorySecurity(fileSystem);
+        var stateDirectory = new WorkspaceStateDirectory(
             Options.Create(new WorkspaceOptions { StateDirectory = _stateDirectory }),
+            fileSystem,
+            stateDirectorySecurity);
+
+        stateDirectory.Initialize();
+        var store = new CommitRecoveryStore(
             fileSystem,
             atomicWriter,
             new WorkspacePathComparison(),
-            pathContainment);
+            pathContainment,
+            stateDirectory,
+            stateDirectorySecurity);
 
         var writer = new WorkspaceCommitWriter(
             fileSystem,

@@ -3,13 +3,16 @@ namespace Roslyn.Workbench.Mcp.Hosting;
 internal sealed class StartupPrerequisiteLifecycleService : IHostedLifecycleService
 {
     private readonly IMsBuildRegistrationService _msBuildRegistrationService;
+    private readonly IWorkspaceStateDirectory _stateDirectory;
     private readonly IWorkspaceCommitRecoveryService _workspaceCommitRecoveryService;
 
     public StartupPrerequisiteLifecycleService(
         IMsBuildRegistrationService msBuildRegistrationService,
+        IWorkspaceStateDirectory stateDirectory,
         IWorkspaceCommitRecoveryService workspaceCommitRecoveryService)
     {
         _msBuildRegistrationService = msBuildRegistrationService;
+        _stateDirectory = stateDirectory;
         _workspaceCommitRecoveryService = workspaceCommitRecoveryService;
     }
 
@@ -17,6 +20,7 @@ internal sealed class StartupPrerequisiteLifecycleService : IHostedLifecycleServ
     {
         cancellationToken.ThrowIfCancellationRequested();
         _ = _msBuildRegistrationService.EnsureRegistered();
+        _stateDirectory.Initialize();
         await _workspaceCommitRecoveryService.RecoverAsync(cancellationToken);
     }
 

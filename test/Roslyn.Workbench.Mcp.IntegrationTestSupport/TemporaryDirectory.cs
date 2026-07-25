@@ -4,6 +4,9 @@ namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
 public sealed class TemporaryDirectory : IDisposable
 {
+    private const UnixFileMode _privateDirectoryMode =
+        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute;
+
     private int _isDisposed;
 
     private TemporaryDirectory(string directoryPath)
@@ -22,7 +25,15 @@ public sealed class TemporaryDirectory : IDisposable
             prefix,
             Guid.NewGuid().ToString("n"));
 
-        Directory.CreateDirectory(directoryPath);
+        if (OperatingSystem.IsWindows())
+        {
+            Directory.CreateDirectory(directoryPath);
+        }
+        else
+        {
+            Directory.CreateDirectory(directoryPath, _privateDirectoryMode);
+        }
+
         return new TemporaryDirectory(directoryPath);
     }
 

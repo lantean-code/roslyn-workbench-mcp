@@ -48,6 +48,39 @@ public sealed class AtomicFileWriterIntegrationTests
     }
 
     [Fact]
+    public async Task GIVEN_PrivateDestination_WHEN_WritingAtomically_THEN_ShouldCreateOwnerOnlyUnixFile()
+    {
+        var directoryPath = Path.Combine(
+            Path.GetTempPath(),
+            "roslyn-workbench-mcp-atomic-writer-tests",
+            Guid.NewGuid().ToString("n"));
+
+        var destinationPath = Path.Combine(directoryPath, "Status.json");
+        Directory.CreateDirectory(directoryPath);
+        var target = (IPrivateAtomicFileWriter)new AtomicFileWriter(
+            new FileSystem(),
+            new NativeAtomicFileCommitter());
+
+        try
+        {
+            await target.WriteAllBytesAsync(
+                destinationPath,
+                new byte[] { 1 },
+                TestContext.Current.CancellationToken);
+
+            if (!OperatingSystem.IsWindows())
+            {
+                File.GetUnixFileMode(destinationPath).Should().Be(
+                    UnixFileMode.UserRead | UnixFileMode.UserWrite);
+            }
+        }
+        finally
+        {
+            Directory.Delete(directoryPath, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task GIVEN_TemporaryPathExceedsWindowsMaxPath_WHEN_WritingAtomically_THEN_ShouldReplaceExactBytes()
     {
         var rootDirectoryPath = Path.Combine(

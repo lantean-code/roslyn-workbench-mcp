@@ -58,7 +58,11 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<IPhysicalPathContainment, PhysicalPathContainment>();
         services.AddSingleton<IAtomicFileCommitter, NativeAtomicFileCommitter>();
         services.AddSingleton<IWorkspaceInstanceStatusPublisher, WorkspaceInstanceStatusPublisher>();
-        services.AddSingleton<IAtomicFileWriter, AtomicFileWriter>();
+        services.AddSingleton<AtomicFileWriter>();
+        services.AddSingleton<IAtomicFileWriter>(static provider => provider.GetRequiredService<AtomicFileWriter>());
+        services.AddSingleton<IPrivateAtomicFileWriter>(static provider => provider.GetRequiredService<AtomicFileWriter>());
+        services.AddSingleton<IWorkspaceStateDirectorySecurity, WorkspaceStateDirectorySecurity>();
+        services.AddSingleton<IWorkspaceStateDirectory, WorkspaceStateDirectory>();
         services.AddSingleton<ICommitRecoveryStore, CommitRecoveryStore>();
         services.AddSingleton<IWorkspaceCommitPlanner, WorkspaceCommitPlanner>();
         services.AddSingleton<IWorkspaceFileLockProvider, FileStreamWorkspaceFileLockProvider>();

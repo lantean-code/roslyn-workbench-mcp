@@ -14,5 +14,5 @@ internal sealed class StartupOptions
 
     public ToolOutputSchemaMode ToolOutputSchemaMode { get; set; } = ToolOutputSchemaMode.Omit;
 
-    public string StateDirectory { get; set; } = Path.Combine(Path.GetTempPath(), "roslyn-workbench-mcp-state");
+    public string StateDirectory { get; set; } = StateDirectoryDefaults.GetDefaultPath();
 }

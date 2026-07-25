@@ -134,6 +134,43 @@ public sealed class AtomicFileWriterTests : IDisposable
         _fileCommitter.Verify(item => item.Commit(It.IsAny<string>(), _destinationPath), Times.Once);
     }
 
+    [Fact]
+    public async Task GIVEN_PrivateText_WHEN_Writing_THEN_ShouldUseOwnerOnlyUnixCreationMode()
+    {
+        var target = (IPrivateAtomicFileWriter)_target;
+        UnixFileMode? expectedMode = null;
+        if (!OperatingSystem.IsWindows())
+        {
+            expectedMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+        }
+
+        await target.WriteAllTextAsync(
+            _destinationPath,
+            "Contents",
+            Encoding.UTF8,
+            TestContext.Current.CancellationToken);
+
+        _fileStreamFactory.Verify(item => item.New(
+            It.IsAny<string>(),
+            It.Is<FileStreamOptions>(options => options.UnixCreateMode == expectedMode)),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_PrivateBytes_WHEN_Writing_THEN_ShouldWriteExactBytes()
+    {
+        var target = (IPrivateAtomicFileWriter)_target;
+        var contents = new byte[] { 0, 1, 255 };
+
+        await target.WriteAllBytesAsync(
+            _destinationPath,
+            contents,
+            TestContext.Current.CancellationToken);
+
+        _memoryStream.ToArray().Should().Equal(contents);
+        _fileCommitter.Verify(item => item.Commit(It.IsAny<string>(), _destinationPath), Times.Once);
+    }
+
     [Theory]
     [InlineData("missing")]
     [InlineData("delete")]

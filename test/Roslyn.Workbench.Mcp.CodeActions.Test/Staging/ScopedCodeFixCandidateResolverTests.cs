@@ -290,6 +290,7 @@ public sealed class ScopedCodeFixCandidateResolverTests : IDisposable
             {
                 ExecutionMode = CodeActionExecutionMode.Replay,
             },
+            TargetSpan = new TextSpan(0, 1),
             EquivalenceKey = equivalenceKey,
             DiagnosticIds = diagnosticIds,
         };

@@ -12,6 +12,8 @@ internal sealed record DiscoveredCodeAction
 
     public required CodeActionDescriptorEntry Descriptor { get; init; }
 
+    public required TextSpan TargetSpan { get; init; }
+
     public string? EquivalenceKey { get; init; }
 
     public IReadOnlyList<int> ActionPath { get; init; } = [];

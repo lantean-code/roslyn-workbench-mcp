@@ -197,6 +197,7 @@ public sealed class CodeActionReferenceStagerTests
             {
                 ExecutionMode = executionMode,
             },
+            TargetSpan = default,
             EquivalenceKey = "EquivalenceKey",
         };
 

@@ -187,7 +187,9 @@ internal sealed class CodeActionResolver : ICodeActionResolver
             if (!string.Equals(action.Title, recipe.Title, StringComparison.Ordinal)
                 || !string.Equals(action.EquivalenceKey, recipe.EquivalenceKey, StringComparison.Ordinal)
                 || !action.ActionPath.SequenceEqual(recipe.ActionPath)
-                || !action.DiagnosticIds.SequenceEqual(recipe.DiagnosticIds, StringComparer.Ordinal))
+                || !action.DiagnosticIds.SequenceEqual(recipe.DiagnosticIds, StringComparer.Ordinal)
+                || action.TargetSpan.Start != recipe.Start
+                || action.TargetSpan.Length != recipe.Length)
             {
                 continue;
             }

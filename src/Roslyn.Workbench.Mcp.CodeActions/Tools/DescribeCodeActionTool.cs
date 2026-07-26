@@ -40,11 +40,31 @@ internal sealed class DescribeCodeActionTool : CodeActionQueryToolHandler<Descri
             return resolvedAction.Rejection;
         }
 
+        var syntaxTree = await resolvedAction.Document.GetSyntaxTreeAsync(cancellationToken);
+        if (syntaxTree is null)
+        {
+            return Rejected<DescribeCodeActionData>(
+                "ActionUnavailable",
+                "The selected action location could not be resolved.",
+                RequiredAction.ResolveTargetAgain);
+        }
+
+        var sourceLocation = syntaxTree.GetLocation(resolvedAction.Span);
+        var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(sourceLocation);
+        if (resolvedLocation is null)
+        {
+            return Rejected<DescribeCodeActionData>(
+                "ActionUnavailable",
+                "The selected action location could not be resolved.",
+                RequiredAction.ResolveTargetAgain);
+        }
+
         var descriptor = _infoFactory.CreateFromReference(
             resolvedAction.Action,
             context,
             resolvedAction.Descriptor,
-            resolvedAction.Reference);
+            resolvedAction.Reference,
+            resolvedLocation);
 
         var data = new DescribeCodeActionData
         {

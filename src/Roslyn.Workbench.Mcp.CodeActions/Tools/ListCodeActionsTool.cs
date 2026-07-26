@@ -128,11 +128,28 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
             visibleActions.Sort(CompareActions);
 
             actionInfos = new List<CodeActionInfo>();
-            foreach (var action in visibleActions)
+            var syntaxTree = await document.GetSyntaxTreeAsync(cancellationToken);
+            if (syntaxTree is not null)
             {
-                if (_infoFactory.TryCreate(action, context, document, span, action.Descriptor, out var actionInfo))
+                foreach (var action in visibleActions)
                 {
-                    actionInfos.Add(actionInfo);
+                    var sourceLocation = syntaxTree.GetLocation(action.TargetSpan);
+                    var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(sourceLocation);
+                    if (resolvedLocation is null)
+                    {
+                        continue;
+                    }
+
+                    if (_infoFactory.TryCreate(
+                        action,
+                        context,
+                        document,
+                        resolvedLocation,
+                        action.Descriptor,
+                        out var actionInfo))
+                    {
+                        actionInfos.Add(actionInfo);
+                    }
                 }
             }
         }
@@ -209,6 +226,18 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
             }
         }
 
-        return left.ActionPath.Count.CompareTo(right.ActionPath.Count);
+        var pathLengthComparison = left.ActionPath.Count.CompareTo(right.ActionPath.Count);
+        if (pathLengthComparison != 0)
+        {
+            return pathLengthComparison;
+        }
+
+        var spanStartComparison = left.TargetSpan.Start.CompareTo(right.TargetSpan.Start);
+        if (spanStartComparison != 0)
+        {
+            return spanStartComparison;
+        }
+
+        return left.TargetSpan.Length.CompareTo(right.TargetSpan.Length);
     }
 }

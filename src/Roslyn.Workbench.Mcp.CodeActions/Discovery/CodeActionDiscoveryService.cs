@@ -80,7 +80,7 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         var context = new CodeRefactoringContext(document, span, action => rootActions.Add(action), cancellationToken);
         await provider.ComputeRefactoringsAsync(context);
 
-        return Flatten(rootActions, providerId, capability, DiscoveredActionKind.Refactoring, []);
+        return Flatten(rootActions, providerId, capability, DiscoveredActionKind.Refactoring, span, []);
     }
 
     public async ValueTask<IReadOnlyList<DiscoveredCodeAction>> DiscoverCodeFixesAsync(
@@ -122,7 +122,7 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
             return [];
         }
 
-        var registeredActions = new List<(CodeAction Action, ImmutableArray<Diagnostic> Diagnostics)>();
+        var registeredActions = new List<(CodeAction Action, ImmutableArray<Diagnostic> Diagnostics, TextSpan TargetSpan)>();
         foreach (var diagnosticSpan in orderedSpans)
         {
             var groupedDiagnostics = diagnosticsBySpan[diagnosticSpan].ToImmutableArray();
@@ -137,7 +137,7 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         }
 
         var discoveredActions = new List<DiscoveredCodeAction>();
-        foreach (var (action, actionDiagnostics) in registeredActions)
+        foreach (var (action, actionDiagnostics, targetSpan) in registeredActions)
         {
             var diagnosticIds = GetDistinctDiagnosticIds(actionDiagnostics);
             FlattenCore(
@@ -145,6 +145,7 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
                 providerId,
                 capability,
                 DiscoveredActionKind.CodeFix,
+                targetSpan,
                 diagnosticIds,
                 [0],
                 discoveredActions);
@@ -158,6 +159,7 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         string providerId,
         CodeActionProviderCapability capability,
         DiscoveredActionKind kind,
+        TextSpan targetSpan,
         IReadOnlyList<string> diagnosticIds)
     {
         var discovered = new List<DiscoveredCodeAction>();
@@ -166,7 +168,16 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         for (var index = 0; index < rootActions.Count; index++)
         {
             path.Add(index);
-            FlattenCore(rootActions[index], providerId, capability, kind, diagnosticIds, path, discovered);
+            FlattenCore(
+                rootActions[index],
+                providerId,
+                capability,
+                kind,
+                targetSpan,
+                diagnosticIds,
+                path,
+                discovered);
+
             path.RemoveAt(path.Count - 1);
         }
 
@@ -178,6 +189,7 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         string providerId,
         CodeActionProviderCapability capability,
         DiscoveredActionKind kind,
+        TextSpan targetSpan,
         IReadOnlyList<string> diagnosticIds,
         List<int> path,
         ICollection<DiscoveredCodeAction> discovered)
@@ -193,6 +205,7 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
                     providerId,
                     capability,
                     kind,
+                    targetSpan,
                     diagnosticIds,
                     path,
                     discovered);
@@ -216,6 +229,7 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
             ProviderId = providerId,
             Title = action.Title,
             Descriptor = descriptor,
+            TargetSpan = targetSpan,
             EquivalenceKey = action.EquivalenceKey,
             ActionPath = path.ToArray(),
             DiagnosticIds = diagnosticIds,
@@ -239,14 +253,14 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         Document document,
         TextSpan requestedSpan,
         ImmutableArray<Diagnostic> diagnostics,
-        List<(CodeAction Action, ImmutableArray<Diagnostic> Diagnostics)> discovered,
+        List<(CodeAction Action, ImmutableArray<Diagnostic> Diagnostics, TextSpan TargetSpan)> discovered,
         CancellationToken cancellationToken)
     {
         var context = new CodeFixContext(
             document,
             requestedSpan,
             diagnostics,
-            (action, actionDiagnostics) => discovered.Add((action, actionDiagnostics)),
+            (action, actionDiagnostics) => discovered.Add((action, actionDiagnostics, requestedSpan)),
             cancellationToken);
 
         await provider.RegisterCodeFixesAsync(context);

@@ -23,7 +23,7 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
         DiscoveredCodeAction action,
         ICodeActionExecutionContext context,
         Document document,
-        TextSpan span,
+        ResolvedLocation location,
         CodeActionDescriptorEntry descriptor,
         [NotNullWhen(true)] out CodeActionInfo? info)
     {
@@ -41,8 +41,8 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
             TransactionRevision = context.TransactionRevision,
             DocumentPath = context.WorkspaceResolver.NormalizeDocumentPath(document.FilePath ?? document.Name),
             ProjectId = document.Project.Id.Id.ToString(),
-            Start = span.Start,
-            Length = span.Length,
+            Start = action.TargetSpan.Start,
+            Length = action.TargetSpan.Length,
         };
 
         if (!_referenceStore.TryCreate(recipe, expiresAt, out var reference))
@@ -51,7 +51,7 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
             return false;
         }
 
-        info = CreateFromReference(action, context, descriptor, reference);
+        info = CreateFromReference(action, context, descriptor, reference, location);
         return true;
     }
 
@@ -59,7 +59,8 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
         DiscoveredCodeAction action,
         ICodeActionExecutionContext context,
         CodeActionDescriptorEntry descriptor,
-        CodeActionReference reference)
+        CodeActionReference reference,
+        ResolvedLocation location)
     {
         var info = new CodeActionInfo
         {
@@ -71,6 +72,7 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
             EquivalenceKey = action.EquivalenceKey,
             ActionPath = action.ActionPath,
             DiagnosticIds = action.DiagnosticIds,
+            Location = location,
             WorkspaceEpoch = context.WorkspaceIdentity.WorkspaceEpoch,
             TransactionRevision = context.TransactionRevision,
             ExpiresAt = reference.ExpiresAt.ToString("O"),

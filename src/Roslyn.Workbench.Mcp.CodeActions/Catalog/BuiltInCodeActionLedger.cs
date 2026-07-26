@@ -100,6 +100,48 @@ internal static class BuiltInCodeActionLedger
         },
         new()
         {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.AddObsoleteAttribute.CSharpAddObsoleteAttributeCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "add-obsolete-attribute",
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.AssignOutParameters.AssignOutParametersAboveReturnCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "assign-out-parameters",
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.AssignOutParameters.AssignOutParametersAtStartCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "assign-out-parameters",
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.DeclareAsNullable.CSharpDeclareAsNullableCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "declare-as-nullable",
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.FixIncorrectConstraint.CSharpFixIncorrectConstraintCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "fix-incorrect-constraint",
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.FixReturnType.CSharpFixReturnTypeCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "fix-return-type",
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.FullyQualify.CSharpFullyQualifyCodeFixProvider",
             Kind = BuiltInCodeActionFamilyKind.CodeFix,
             ExecutionMode = CodeActionExecutionMode.Replay,

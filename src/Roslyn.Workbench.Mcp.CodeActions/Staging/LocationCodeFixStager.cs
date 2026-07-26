@@ -117,7 +117,8 @@ internal sealed class LocationCodeFixStager : ILocationCodeFixStager
                 action.Title,
                 action.EquivalenceKey,
                 action.ActionPath,
-                action.DiagnosticIds);
+                action.DiagnosticIds,
+                action.TargetSpan);
 
             if (candidateIdentities.Add(identity))
             {

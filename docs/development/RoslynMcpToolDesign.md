@@ -69,18 +69,18 @@ The executable name is `roslyn-workbench-mcp`.
 
 ## Count and Scope
 
-The target surface contains **82 tools**:
+The target surface contains **98 tools**:
 
 | Group                                            | Tool count |
 | ------------------------------------------------ | ---------: |
 | Server and workspace context                     |          9 |
 | Semantic inspection and navigation               |         19 |
 | Analysis and architecture                        |         16 |
-| Specific refactorings, generation and formatting |         28 |
+| Specific refactorings, generation and formatting |         44 |
 | Roslyn code actions and transaction control      |         10 |
-| **Total**                                        |     **82** |
+| **Total**                                        |     **98** |
 
-The existing `JoshuaRamirez/RoslynMcpServer` registry has 41 tools. The target retains 40 of those operations, replaces `diagnose` with `workspace-status`, and adds 41 tools.
+The existing `JoshuaRamirez/RoslynMcpServer` registry has 41 tools. The target retains 40 of those operations, replaces `diagnose` with `workspace-status`, and adds 57 tools.
 
 The planned implementation source and dependency for each tool is recorded in [RoslynMcpToolImplementationMatrix.md](RoslynMcpToolImplementationMatrix.md).
 
@@ -222,7 +222,7 @@ To keep `tools/list` usable for agents, the default server configuration omits p
 | `analyze-async` | New | Identify supported async antipatterns such as async methods without `await` and unawaited task-returning invocations. |
 | `analyze-disposables` | New | Identify candidate undisposed local `IDisposable` or `IAsyncDisposable` values. This is advisory only. |
 
-### Specific Refactorings, Generation and Formatting (36)
+### Specific Refactorings, Generation and Formatting (44)
 
 Each successful operation stages one new transaction revision and returns a bounded preview. The operation does not write to disk.
 
@@ -256,8 +256,13 @@ Each successful operation stages one new transaction revision and returns a boun
 | `add-conditional-interpolation-parentheses` | New | Stage the validated compiler code fix that parenthesises a conditional interpolation expression. |
 | `add-explicit-cast` | New | Stage the validated compiler code fix that adds a required explicit cast. |
 | `add-inheritdoc` | New | Stage the validated compiler code fix that adds an inheritdoc XML comment. |
+| `add-obsolete-attribute` | New | Stage the validated compiler code fix that adds an `Obsolete` attribute to an affected declaration. |
 | `add-null-checks` | Existing | Stage the supported Roslyn parameter null-check refactoring at the selected parameter location. |
 | `add-missing-usings` | Existing | Stage import additions. |
+| `assign-out-parameters` | New | Stage the applicable validated Roslyn fix for unassigned `out` parameters, preferring assignment at method start and falling back to assignment above the return. |
+| `declare-as-nullable` | New | Stage the validated compiler code fix that makes the affected declaration nullable. |
+| `fix-incorrect-constraint` | New | Stage the validated compiler code fix for an invalid `enum` or `delegate` generic constraint. |
+| `fix-return-type` | New | Stage the validated compiler code fix that changes a return type to match the returned expression. |
 | `remove-in-keyword` | New | Stage the validated compiler code fix that removes an invalid `in` argument modifier. |
 | `remove-new-modifier` | New | Stage the validated compiler code fix that removes an unnecessary `new` modifier. |
 | `remove-unused-usings` | Existing | Stage import removal. |
@@ -272,7 +277,7 @@ Each successful operation stages one new transaction revision and returns a boun
 
 | Tool | Status | Purpose |
 | --- | --- | --- |
-| `list-code-actions` | New | List applicable installed Roslyn refactorings and code fixes at a position or range, but only for the built-in families that this server build has explicitly audited. Each returned action carries execution metadata describing whether it is replayable, parameterised or unsupported. |
+| `list-code-actions` | New | List applicable installed Roslyn refactorings and code fixes at a position or range, but only for the built-in families that this server build has explicitly audited. Each returned action carries its precise target location and execution metadata describing whether it is replayable, parameterised or unsupported; its opaque reference replays against that precise target rather than the broader discovery range. |
 | `describe-code-action` | New | Revalidate one discovered action and return its descriptor plus any preflight context needed before a dedicated executor tool can run. |
 | `stage-code-action` | New | Revalidate and stage a selected replayable refactoring action into the active transaction. Parameterised actions are rejected and must use a dedicated executor when one lands. |
 | `stage-code-fix` | New | Revalidate a diagnostic and stage a selected code fix into the active transaction. |

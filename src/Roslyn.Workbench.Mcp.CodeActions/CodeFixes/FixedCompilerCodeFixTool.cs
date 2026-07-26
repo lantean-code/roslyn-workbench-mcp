@@ -6,16 +6,24 @@ internal abstract class FixedCompilerCodeFixTool : CodeActionMutationToolHandler
 {
     private readonly ILocationCodeFixStager _locationFixStager;
     private readonly string _providerId;
-    private readonly string _diagnosticId;
+    private readonly IReadOnlyList<string> _diagnosticIds;
 
     protected FixedCompilerCodeFixTool(
         ILocationCodeFixStager locationFixStager,
         string providerId,
         string diagnosticId)
+        : this(locationFixStager, providerId, [diagnosticId])
+    {
+    }
+
+    protected FixedCompilerCodeFixTool(
+        ILocationCodeFixStager locationFixStager,
+        string providerId,
+        IReadOnlyList<string> diagnosticIds)
     {
         _locationFixStager = locationFixStager;
         _providerId = providerId;
-        _diagnosticId = diagnosticId;
+        _diagnosticIds = diagnosticIds;
     }
 
     protected override ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> ExecuteCoreAsync(
@@ -27,7 +35,7 @@ internal abstract class FixedCompilerCodeFixTool : CodeActionMutationToolHandler
         {
             Location = request.Location,
             ExpectedSnapshot = request.ExpectedSnapshot,
-            DiagnosticIds = [_diagnosticId],
+            DiagnosticIds = _diagnosticIds,
             ProviderId = _providerId,
         };
 

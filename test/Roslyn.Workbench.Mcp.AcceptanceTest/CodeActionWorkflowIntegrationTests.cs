@@ -1,7 +1,13 @@
+using System.Text.Json;
+
 namespace Roslyn.Workbench.Mcp.AcceptanceTest;
 
 public sealed class CodeActionWorkflowIntegrationTests
 {
+    private const string _declareAsNullableProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.DeclareAsNullable.CSharpDeclareAsNullableCodeFixProvider";
+
+    private static readonly string[] _nullableReturnDiagnosticIds = ["CS8603"];
+
     [Fact]
     public async Task GIVEN_BuiltInCodeAction_WHEN_ListingStagingAndRollingBack_THEN_ShouldPreservePublicCodeActionBoundary()
     {
@@ -86,6 +92,9 @@ public sealed class CodeActionWorkflowIntegrationTests
             var describedAction = AcceptanceProtocol.GetSuccessData(describeResult).GetProperty("descriptor");
             describedAction.GetProperty("actionId").GetGuid().Should().Be(actionId);
             describedAction.GetProperty("expiresAt").GetString().Should().Be(action.GetProperty("expiresAt").GetString());
+            var describedLocation = describedAction.GetProperty("location");
+            var listedLocation = action.GetProperty("location");
+            describedLocation.GetRawText().Should().Be(listedLocation.GetRawText());
 
             var stageResult = await target.CallToolAsync(
                 "stage-code-action",
@@ -174,6 +183,113 @@ public sealed class CodeActionWorkflowIntegrationTests
     }
 
     [Fact]
+    public async Task GIVEN_BroadRangeContainsEquivalentCodeFixes_WHEN_ListingAndStagingByReference_THEN_ShouldTargetEachPreciseLocation()
+    {
+        await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
+            TestContext.Current.CancellationToken,
+            AcceptanceWorkspaceAsset.InspectionSample);
+
+        try
+        {
+            const string documentPath = "CandidateCodeFixes.cs";
+            var projectPath = Path.Combine(target.WorkspaceRoot, "Sample.csproj");
+            var sourceText = await File.ReadAllTextAsync(
+                Path.Combine(target.WorkspaceRoot, documentPath),
+                TestContext.Current.CancellationToken);
+
+            var locations = new AcceptanceLocationSelectorFactory(target.WorkspaceRoot);
+            var broadLocation = locations.CreateSelection(
+                documentPath,
+                "internal static string DeclareAsNullable()",
+                "internal static void DeclareLocalAsNullable()");
+
+            var firstMethodStart = sourceText.IndexOf("DeclareAsNullable", StringComparison.Ordinal);
+            var firstNullStart = sourceText.IndexOf(
+                "return null;",
+                firstMethodStart,
+                StringComparison.Ordinal) + "return ".Length;
+
+            var secondMethodStart = sourceText.IndexOf("DeclareSecondAsNullable", StringComparison.Ordinal);
+            var secondNullStart = sourceText.IndexOf(
+                "return null;",
+                secondMethodStart,
+                StringComparison.Ordinal) + "return ".Length;
+
+            var openResult = await target.CallToolAsync(
+                "workspace-open",
+                new Dictionary<string, object?>
+                {
+                    ["path"] = projectPath,
+                    ["workspaceRoot"] = target.WorkspaceRoot,
+                },
+                TestContext.Current.CancellationToken);
+
+            var workspace = AcceptanceWorkspaceIdentity.FromOpenResult(openResult);
+            var workspaceSelector = workspace.CreateSelector();
+            var snapshot = workspace.CreateSnapshot(transactionRevision: 0);
+            await StartTransactionAsync(target, workspaceSelector);
+
+            var listResult = await target.CallToolAsync(
+                "list-code-actions",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                    ["location"] = broadLocation,
+                    ["expectedSnapshot"] = snapshot,
+                    ["includeRefactorings"] = false,
+                    ["includeCodeFixes"] = true,
+                    ["diagnosticIds"] = _nullableReturnDiagnosticIds,
+                },
+                TestContext.Current.CancellationToken);
+
+            listResult.IsError.Should().NotBeTrue();
+            var actions = new List<JsonElement>();
+            var listedActions = AcceptanceProtocol.GetSuccessData(listResult).GetProperty("actions");
+            foreach (var action in listedActions.EnumerateArray())
+            {
+                var providerId = action.GetProperty("providerId").GetString();
+                if (providerId == _declareAsNullableProviderId)
+                {
+                    actions.Add(action);
+                }
+            }
+
+            actions.Should().HaveCount(2);
+            var actionStarts = new List<int>();
+            foreach (var action in actions)
+            {
+                var location = action.GetProperty("location");
+                var span = location.GetProperty("span");
+                actionStarts.Add(span.GetProperty("start").GetInt32());
+            }
+
+            actionStarts.Should().Equal(firstNullStart, secondNullStart);
+
+            await AssertStagesExpectedCodeFixAsync(
+                target,
+                workspace,
+                workspaceSelector,
+                actions[0],
+                documentPath,
+                "internal static string? DeclareAsNullable()");
+
+            await StartTransactionAsync(target, workspaceSelector);
+            await AssertStagesExpectedCodeFixAsync(
+                target,
+                workspace,
+                workspaceSelector,
+                actions[1],
+                documentPath,
+                "internal static string? DeclareSecondAsNullable()");
+        }
+        catch
+        {
+            target.RetainRootOnFailure();
+            throw;
+        }
+    }
+
+    [Fact]
     public async Task GIVEN_UnknownCodeActionReference_WHEN_Staging_THEN_ShouldRejectAndRemainResponsive()
     {
         await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
@@ -236,5 +352,73 @@ public sealed class CodeActionWorkflowIntegrationTests
             target.RetainRootOnFailure();
             throw;
         }
+    }
+
+    private static async Task AssertStagesExpectedCodeFixAsync(
+        AcceptanceProcessFixture target,
+        AcceptanceWorkspaceIdentity workspace,
+        IReadOnlyDictionary<string, object?> workspaceSelector,
+        JsonElement action,
+        string documentPath,
+        string expectedChangedText)
+    {
+        var stageResult = await target.CallToolAsync(
+            "stage-code-fix",
+            new Dictionary<string, object?>
+            {
+                ["workspace"] = workspaceSelector,
+                ["actionId"] = action.GetProperty("actionId").GetGuid(),
+                ["expectedSnapshot"] = workspace.CreateSnapshot(transactionRevision: 0),
+            },
+            TestContext.Current.CancellationToken);
+
+        stageResult.IsError.Should().NotBeTrue();
+        var previewResult = await target.CallToolAsync(
+            "transaction-preview",
+            new Dictionary<string, object?>
+            {
+                ["workspace"] = workspaceSelector,
+                ["document"] = AcceptanceLocationSelectorFactory.CreateDocument(documentPath),
+                ["includeDiff"] = true,
+            },
+            TestContext.Current.CancellationToken);
+
+        previewResult.IsError.Should().NotBeTrue();
+        var diffLines = new List<string?>();
+        var preview = AcceptanceProtocol.GetSuccessData(previewResult);
+        var hunks = preview.GetProperty("diff").GetProperty("hunks");
+        foreach (var hunk in hunks.EnumerateArray())
+        {
+            foreach (var line in hunk.GetProperty("lines").EnumerateArray())
+            {
+                diffLines.Add(line.GetString());
+            }
+        }
+
+        diffLines.Should().Contain(line => line != null && line.Contains(expectedChangedText, StringComparison.Ordinal));
+        var rollbackResult = await target.CallToolAsync(
+            "transaction-rollback",
+            new Dictionary<string, object?>
+            {
+                ["workspace"] = workspaceSelector,
+            },
+            TestContext.Current.CancellationToken);
+
+        rollbackResult.IsError.Should().NotBeTrue();
+    }
+
+    private static async Task StartTransactionAsync(
+        AcceptanceProcessFixture target,
+        IReadOnlyDictionary<string, object?> workspaceSelector)
+    {
+        var startResult = await target.CallToolAsync(
+            "transaction-start",
+            new Dictionary<string, object?>
+            {
+                ["workspace"] = workspaceSelector,
+            },
+            TestContext.Current.CancellationToken);
+
+        startResult.IsError.Should().NotBeTrue();
     }
 }

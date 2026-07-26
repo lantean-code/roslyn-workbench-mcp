@@ -798,6 +798,7 @@ public sealed class ScopedCodeFixStagerTests : IDisposable
             {
                 ExecutionMode = CodeActionExecutionMode.Replay,
             },
+            TargetSpan = new TextSpan(0, 1),
             EquivalenceKey = equivalenceKey,
             DiagnosticIds = diagnosticIds,
         };

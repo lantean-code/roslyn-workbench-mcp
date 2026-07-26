@@ -254,6 +254,7 @@ public sealed class CodeActionResolverTests : IDisposable
     [InlineData(ActionIdentityMismatch.EquivalenceKey)]
     [InlineData(ActionIdentityMismatch.ActionPath)]
     [InlineData(ActionIdentityMismatch.DiagnosticIds)]
+    [InlineData(ActionIdentityMismatch.TargetSpan)]
     public async Task GIVEN_RediscoveredActionIdentityDoesNotMatch_WHEN_ResolvingAction_THEN_ShouldRejectAmbiguousAction(
         ActionIdentityMismatch mismatch)
     {
@@ -263,6 +264,7 @@ public sealed class CodeActionResolverTests : IDisposable
             ActionIdentityMismatch.EquivalenceKey => _matchingAction with { EquivalenceKey = "OtherEquivalenceKey" },
             ActionIdentityMismatch.ActionPath => _matchingAction with { ActionPath = [2] },
             ActionIdentityMismatch.DiagnosticIds => _matchingAction with { DiagnosticIds = ["OtherDiagnosticId"] },
+            ActionIdentityMismatch.TargetSpan => _matchingAction with { TargetSpan = new TextSpan(4, 4) },
             _ => _matchingAction,
         };
 
@@ -448,6 +450,7 @@ public sealed class CodeActionResolverTests : IDisposable
             ProviderId = "ProviderId",
             Title = "Title",
             Descriptor = _visibleDescriptor,
+            TargetSpan = new TextSpan(3, 4),
             EquivalenceKey = "EquivalenceKey",
             ActionPath = [1],
             DiagnosticIds = ["DiagnosticId"],
@@ -475,6 +478,7 @@ public sealed class CodeActionResolverTests : IDisposable
         EquivalenceKey,
         ActionPath,
         DiagnosticIds,
+        TargetSpan,
     }
 #pragma warning restore CA1515
 }

@@ -154,7 +154,7 @@ internal static class BuiltInCodeActionAuditHarness
 
             if (TryGetSupportedApplyChangesOperation(operations, out var applyChanges))
             {
-                var (changedDocumentCount, expectedChangeFound, unexpectedChangeRemoved) = await InspectChangedSourceDocumentsAsync(
+                var (changedDocumentCount, expectedChangeFound, unexpectedChangeRemoved, changedSource) = await InspectChangedSourceDocumentsAsync(
                     queryContext.CurrentSolution,
                     applyChanges!.ChangedSolution,
                     auditCase);
@@ -177,7 +177,8 @@ internal static class BuiltInCodeActionAuditHarness
                     FailureMessage = BuildMutationFailureMessage(
                         changedDocumentCount,
                         expectedChangeFound,
-                        unexpectedChangeRemoved),
+                        unexpectedChangeRemoved,
+                        changedSource),
                 };
             }
 
@@ -342,14 +343,17 @@ internal static class BuiltInCodeActionAuditHarness
         });
     }
 
-    private static async Task<(int ChangedDocumentCount, bool ExpectedChangeFound, bool UnexpectedChangeRemoved)> InspectChangedSourceDocumentsAsync(
+    private static async Task<(int ChangedDocumentCount, bool ExpectedChangeFound, bool UnexpectedChangeRemoved, string? ChangedSource)> InspectChangedSourceDocumentsAsync(
         Solution before,
         Solution after,
         BuiltInCodeActionAuditCase auditCase)
     {
         var count = 0;
-        var expectedChangeFound = string.IsNullOrWhiteSpace(auditCase.ExpectedChangedText);
-        var unexpectedChangeRemoved = string.IsNullOrWhiteSpace(auditCase.UnexpectedChangedText);
+        var expectedChangedText = auditCase.ExpectedChangedText?.ReplaceLineEndings("\n");
+        var unexpectedChangedText = auditCase.UnexpectedChangedText?.ReplaceLineEndings("\n");
+        var expectedChangeFound = string.IsNullOrWhiteSpace(expectedChangedText);
+        var unexpectedChangeRemoved = string.IsNullOrWhiteSpace(unexpectedChangedText);
+        string? changedSource = null;
 
         foreach (var document in before.Projects.SelectMany(static project => project.Documents))
         {
@@ -366,21 +370,24 @@ internal static class BuiltInCodeActionAuditHarness
                 count++;
 
                 var updatedSource = updatedText.ToString();
-                if (!string.IsNullOrWhiteSpace(auditCase.ExpectedChangedText)
-                    && updatedSource.Contains(auditCase.ExpectedChangedText, StringComparison.Ordinal))
+                var normalizedUpdatedSource = updatedSource.ReplaceLineEndings("\n");
+                changedSource ??= updatedSource;
+
+                if (!string.IsNullOrWhiteSpace(expectedChangedText)
+                    && normalizedUpdatedSource.Contains(expectedChangedText, StringComparison.Ordinal))
                 {
                     expectedChangeFound = true;
                 }
 
-                if (!string.IsNullOrWhiteSpace(auditCase.UnexpectedChangedText)
-                    && !updatedSource.Contains(auditCase.UnexpectedChangedText, StringComparison.Ordinal))
+                if (!string.IsNullOrWhiteSpace(unexpectedChangedText)
+                    && !normalizedUpdatedSource.Contains(unexpectedChangedText, StringComparison.Ordinal))
                 {
                     unexpectedChangeRemoved = true;
                 }
             }
         }
 
-        return (count, expectedChangeFound, unexpectedChangeRemoved);
+        return (count, expectedChangeFound, unexpectedChangeRemoved, changedSource);
     }
 
     private static bool TryGetSupportedApplyChangesOperation(
@@ -451,7 +458,8 @@ internal static class BuiltInCodeActionAuditHarness
     private static string? BuildMutationFailureMessage(
         int changedDocumentCount,
         bool expectedChangeFound,
-        bool unexpectedChangeRemoved)
+        bool unexpectedChangeRemoved,
+        string? changedSource)
     {
         if (changedDocumentCount == 0)
         {
@@ -460,7 +468,7 @@ internal static class BuiltInCodeActionAuditHarness
 
         if (!expectedChangeFound)
         {
-            return "The matched action did not produce the expected source text.";
+            return $"The matched action did not produce the expected source text. Changed source:{Environment.NewLine}{changedSource}";
         }
 
         if (!unexpectedChangeRemoved)

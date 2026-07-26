@@ -79,7 +79,8 @@ public sealed class DescribeCodeActionToolTests
             It.IsAny<DiscoveredCodeAction>(),
             It.IsAny<ICodeActionExecutionContext>(),
             It.IsAny<CodeActionDescriptorEntry>(),
-            It.IsAny<CodeActionReference>()), Times.Never);
+            It.IsAny<CodeActionReference>(),
+            It.IsAny<ResolvedLocation>()), Times.Never);
     }
 
     [Fact]
@@ -90,6 +91,7 @@ public sealed class DescribeCodeActionToolTests
         var resolver = new Mock<ICodeActionResolver>();
         var infoFactory = new Mock<ICodeActionInfoFactory>();
         var context = new Mock<ICodeActionQueryContext>();
+        var workspaceResolver = new Mock<IWorkspaceResolver>();
         var action = CreateDiscoveredAction(roslyn.Solution);
         var descriptor = new CodeActionDescriptorEntry
         {
@@ -109,6 +111,7 @@ public sealed class DescribeCodeActionToolTests
             Title = "Title",
             ProviderId = "ProviderId",
             ExpiresAt = "2000-01-01T00:00:00.0000000+00:00",
+            Location = SelectorTestFactory.CreateResolvedLocation("Code.cs", 1, 2),
         };
 
         providerCatalog.SetupGet(item => item.Status).Returns(new CodeActionProviderCatalogStatus
@@ -116,6 +119,11 @@ public sealed class DescribeCodeActionToolTests
             IsAvailable = true,
         });
 
+        workspaceResolver
+            .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
+            .Returns(info.Location);
+
+        context.SetupGet(item => item.WorkspaceResolver).Returns(workspaceResolver.Object);
         resolver
             .Setup(item => item.ResolveActionAsync<DescribeCodeActionData>(
                 Guid.Empty,
@@ -134,7 +142,8 @@ public sealed class DescribeCodeActionToolTests
                 action,
                 context.Object,
                 descriptor,
-                reference))
+                reference,
+                info.Location))
             .Returns(info);
 
         var target = new DescribeCodeActionTool(providerCatalog.Object, resolver.Object, infoFactory.Object);
@@ -155,7 +164,61 @@ public sealed class DescribeCodeActionToolTests
             action,
             context.Object,
             descriptor,
-            reference), Times.Once);
+            reference,
+            info.Location), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_ActionLocationCannotBeProjected_WHEN_Executing_THEN_ShouldRejectWithoutCreatingInfo()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var providerCatalog = new Mock<ICodeActionProviderCatalog>();
+        var resolver = new Mock<ICodeActionResolver>();
+        var infoFactory = new Mock<ICodeActionInfoFactory>();
+        var context = new Mock<ICodeActionQueryContext>();
+        var workspaceResolver = new Mock<IWorkspaceResolver>();
+        var action = CreateDiscoveredAction(roslyn.Solution);
+        var reference = new CodeActionReference(
+            Guid.Empty,
+            new CodeActionReplayRecipe(),
+            new DateTimeOffset(2000, 1, 1, 0, 5, 0, TimeSpan.Zero));
+
+        providerCatalog.SetupGet(item => item.Status).Returns(new CodeActionProviderCatalogStatus
+        {
+            IsAvailable = true,
+        });
+
+        context.SetupGet(item => item.WorkspaceResolver).Returns(workspaceResolver.Object);
+        resolver
+            .Setup(item => item.ResolveActionAsync<DescribeCodeActionData>(
+                Guid.Empty,
+                null,
+                null,
+                context.Object,
+                CancellationToken.None))
+            .ReturnsAsync(CodeActionResolution.Resolved<DescribeCodeActionData>(
+                action,
+                roslyn.Document,
+                new TextSpan(1, 2),
+                reference));
+
+        var target = new DescribeCodeActionTool(providerCatalog.Object, resolver.Object, infoFactory.Object);
+        var result = await target.ExecuteAsync(
+            new DescribeCodeActionRequest
+            {
+                ActionId = Guid.Empty,
+            },
+            context.Object,
+            CancellationToken.None);
+
+        result.Error!.Code.Should().Be("ActionUnavailable");
+        result.RequiredAction.Should().Be(RequiredAction.ResolveTargetAgain);
+        infoFactory.Verify(item => item.CreateFromReference(
+            It.IsAny<DiscoveredCodeAction>(),
+            It.IsAny<ICodeActionExecutionContext>(),
+            It.IsAny<CodeActionDescriptorEntry>(),
+            It.IsAny<CodeActionReference>(),
+            It.IsAny<ResolvedLocation>()), Times.Never);
     }
 
     private static DiscoveredCodeAction CreateDiscoveredAction(Solution solution)
@@ -167,6 +230,7 @@ public sealed class DescribeCodeActionToolTests
             ProviderId = "ProviderId",
             Title = "Title",
             Descriptor = new CodeActionDescriptorEntry(),
+            TargetSpan = new TextSpan(1, 2),
             EquivalenceKey = "EquivalenceKey",
         };
     }

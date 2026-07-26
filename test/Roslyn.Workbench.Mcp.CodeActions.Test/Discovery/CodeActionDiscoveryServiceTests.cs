@@ -205,6 +205,7 @@ public sealed class CodeActionDiscoveryServiceTests
             item.Kind == DiscoveredActionKind.Refactoring
             && item.ProviderId == providerId
             && item.Descriptor == _descriptor
+            && item.TargetSpan == new TextSpan(0, 1)
             && item.DiagnosticIds.Count == 0);
 
         _descriptorRegistry.Verify(item => item.ResolveActionDependentDescriptor(
@@ -315,6 +316,7 @@ public sealed class CodeActionDiscoveryServiceTests
             TestContext.Current.CancellationToken);
 
         result.Select(item => item.Title).Should().Equal("Title0", "Title2");
+        result.Select(item => item.TargetSpan).Should().Equal(new TextSpan(0, 1), new TextSpan(2, 1));
         result[0].DiagnosticIds.Should().Equal("FirstDiagnostic", "SecondDiagnostic");
         result[1].DiagnosticIds.Should().Equal("FirstDiagnostic");
         result.Should().OnlyContain(item =>

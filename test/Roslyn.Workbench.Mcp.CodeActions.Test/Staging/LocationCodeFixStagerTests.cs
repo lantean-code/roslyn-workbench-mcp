@@ -331,15 +331,18 @@ public sealed class LocationCodeFixStagerTests
     }
 
     [Fact]
-    public async Task GIVEN_MultipleDistinctActionsMatch_WHEN_StagingLocationFix_THEN_ShouldRejectAmbiguousSelection()
+    public async Task GIVEN_EquivalentActionsTargetDifferentSpans_WHEN_StagingLocationFix_THEN_ShouldRejectAmbiguousSelection()
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
         var selector = new LocationSelector();
         var location = await CreateLocationAsync(roslyn.Document);
         var provider = new Mock<CodeFixProvider>();
         IReadOnlyList<Diagnostic> diagnostics = [CreateDiagnostic(location)];
-        var firstAction = CreateDiscoveredAction(roslyn.Solution, "FirstTitle", "FirstEquivalenceKey", [1], ["DiagnosticId"]);
-        var secondAction = CreateDiscoveredAction(roslyn.Solution, "SecondTitle", "SecondEquivalenceKey", [2], ["DiagnosticId"]);
+        var firstAction = CreateDiscoveredAction(roslyn.Solution, "Title", "EquivalenceKey", [1], ["DiagnosticId"]);
+        var secondAction = firstAction with
+        {
+            TargetSpan = new TextSpan(2, 1),
+        };
         var request = CreateRequest(selector) with
         {
             Title = null,
@@ -569,6 +572,7 @@ public sealed class LocationCodeFixStagerTests
                 IsVisible = isVisible,
                 ExecutionMode = executionMode,
             },
+            TargetSpan = new TextSpan(0, 1),
             EquivalenceKey = equivalenceKey,
             ActionPath = actionPath,
             DiagnosticIds = diagnosticIds,

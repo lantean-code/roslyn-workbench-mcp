@@ -20,50 +20,163 @@ internal static class CodeActionAcceptanceCases
     {
         const string documentPath = "CandidateCodeFixes.cs";
 
-        cases.Add(CreateTargetCase(
+        cases.Add(CreateCompilerCodeFixCase(
             "add-anonymous-type-member-name",
+            "CS0746",
             "location",
             locations.CreateLocation(documentPath, "value + 1"),
             documentPath));
 
-        cases.Add(CreateTargetCase(
+        cases.Add(CreateCompilerCodeFixCase(
             "add-conditional-interpolation-parentheses",
+            "CS8361",
             "location",
             locations.CreateLocation(documentPath, "enabled ? \"enabled\" : \"disabled\""),
             documentPath));
 
-        cases.Add(CreateTargetCase(
+        cases.Add(CreateCompilerCodeFixCase(
             "add-explicit-cast",
+            "CS0266",
             "location",
             locations.CreateLocation(documentPath, "value;", occurrenceIndex: 0),
             documentPath));
 
-        cases.Add(CreateTargetCase(
+        cases.Add(CreateCompilerCodeFixCase(
             "add-inheritdoc",
+            "CS1591",
             "location",
             locations.CreateLocation(documentPath, "DocumentedMember", occurrenceIndex: 1),
             documentPath));
 
-        cases.Add(CreateTargetCase(
+        cases.Add(CreateCompilerCodeFixCase(
+            "add-obsolete-attribute",
+            "CS0612",
+            "location",
+            locations.CreateLocation(documentPath, "CandidateObsoleteBase", occurrenceIndex: 1),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "add-obsolete-attribute",
+            "CS0618",
+            "location",
+            locations.CreateLocation(documentPath, "CandidateObsoleteMessageBase", occurrenceIndex: 1),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "add-obsolete-attribute",
+            "CS0672",
+            "location",
+            locations.CreateLocation(documentPath, "override void ObsoleteOverride()"),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "add-obsolete-attribute",
+            "CS1062",
+            "location",
+            locations.CreateLocation(documentPath, "{ 1 }", occurrenceIndex: 1),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "add-obsolete-attribute",
+            "CS1064",
+            "location",
+            locations.CreateLocation(documentPath, "{ 1 }", occurrenceIndex: 0),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "assign-out-parameters",
+            "CS0177",
+            "location",
+            locations.CreateLocation(documentPath, "return 'a';", occurrenceIndex: 1),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "declare-as-nullable",
+            "CS8603",
+            "location",
+            locations.CreateLocation(documentPath, "null"),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "declare-as-nullable",
+            "CS8600",
+            "location",
+            locations.CreateLocation(documentPath, "string value = null;"),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "declare-as-nullable",
+            "CS8625",
+            "location",
+            locations.CreateLocation(documentPath, "AcceptNullableValue(null)"),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "declare-as-nullable",
+            "CS8618",
+            "location",
+            locations.CreateLocation(documentPath, "Value { get; }"),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "fix-incorrect-constraint",
+            "CS9010",
+            "location",
+            locations.CreateLocation(documentPath, "enum"),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "fix-incorrect-constraint",
+            "CS9011",
+            "location",
+            locations.CreateLocation(documentPath, "delegate"),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "fix-return-type",
+            "CS0127",
+            "location",
+            locations.CreateLocation(documentPath, "return 1;"),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "fix-return-type",
+            "CS1997",
+            "location",
+            locations.CreateLocation(documentPath, "return 1;", occurrenceIndex: 1),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "fix-return-type",
+            "CS0201",
+            "location",
+            locations.CreateLocation(documentPath, "=> 1;"),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
             "remove-in-keyword",
+            "CS1615",
             "location",
             locations.CreateLocation(documentPath, "in value"),
             documentPath));
 
-        cases.Add(CreateTargetCase(
+        cases.Add(CreateCompilerCodeFixCase(
             "remove-new-modifier",
+            "CS0109",
             "location",
             locations.CreateLocation(documentPath, "internal new void RemoveNewModifier"),
             documentPath));
 
-        cases.Add(CreateTargetCase(
+        cases.Add(CreateCompilerCodeFixCase(
             "replace-default-literal",
+            "CS8505",
             "location",
             locations.CreateLocation(documentPath, "default"),
             documentPath));
 
-        cases.Add(CreateTargetCase(
+        cases.Add(CreateCompilerCodeFixCase(
             "use-explicit-type-for-const",
+            "CS0822",
             "location",
             locations.CreateLocation(documentPath, "const var"),
             documentPath));
@@ -479,6 +592,25 @@ internal static class CodeActionAcceptanceCases
         }
 
         return new CodeActionAcceptanceCase(toolName, arguments, expectedDocumentPaths);
+    }
+
+    private static CodeActionAcceptanceCase CreateCompilerCodeFixCase(
+        string toolName,
+        string diagnosticId,
+        string targetName,
+        Dictionary<string, object?> target,
+        string expectedDocumentPath)
+    {
+        var arguments = new Dictionary<string, object?>
+        {
+            [targetName] = target,
+        };
+
+        return new CodeActionAcceptanceCase(
+            toolName,
+            arguments,
+            [expectedDocumentPath],
+            diagnosticId);
     }
 
     private static Dictionary<string, object?> CreateDocumentScope(string documentPath)

@@ -8,6 +8,8 @@ add-import
 add-inheritdoc
 add-missing-usings
 add-null-checks
+add-obsolete-attribute
+assign-out-parameters
 convert-anonymous-type-to-class
 convert-anonymous-type-to-tuple
 convert-auto-property-to-full-property
@@ -25,8 +27,11 @@ convert-property
 convert-to-interpolated-string
 convert-to-record
 convert-try-cast-to-direct-cast
+declare-as-nullable
 encapsulate-field
 extract-method
+fix-incorrect-constraint
+fix-return-type
 generate-comparison-operators
 implement-interface
 inline-variable

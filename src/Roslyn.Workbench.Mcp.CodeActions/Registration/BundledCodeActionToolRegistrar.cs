@@ -43,11 +43,41 @@ internal static class BundledCodeActionToolRegistrar
                 "Add Inheritdoc",
                 "Adds an inheritdoc XML comment to an undocumented inherited member through Roslyn code-fix composition."));
 
+        registry.RegisterMutationTool<AddObsoleteAttributeTool, FixedCompilerCodeFixRequest>(
+            CreateMutationMetadata(
+                "add-obsolete-attribute",
+                "Add Obsolete Attribute",
+                "Adds an Obsolete attribute to a declaration that uses or overrides an obsolete API through Roslyn code-fix composition."));
+
         registry.RegisterMutationTool<AddMissingUsingsTool, AddMissingUsingsRequest>(
             CreateMutationMetadata(
                 "add-missing-usings",
                 "Add Missing Usings",
                 "Adds missing using directives across a selected scope through Roslyn code-fix composition."));
+
+        registry.RegisterMutationTool<AssignOutParametersTool, FixedCompilerCodeFixRequest>(
+            CreateMutationMetadata(
+                "assign-out-parameters",
+                "Assign Out Parameters",
+                "Assigns unassigned out parameters at the earliest deterministic location through Roslyn code-fix composition."));
+
+        registry.RegisterMutationTool<DeclareAsNullableTool, FixedCompilerCodeFixRequest>(
+            CreateMutationMetadata(
+                "declare-as-nullable",
+                "Declare As Nullable",
+                "Makes the declaration associated with a nullability compiler warning nullable through Roslyn code-fix composition."));
+
+        registry.RegisterMutationTool<FixIncorrectConstraintTool, FixedCompilerCodeFixRequest>(
+            CreateMutationMetadata(
+                "fix-incorrect-constraint",
+                "Fix Incorrect Constraint",
+                "Replaces an invalid enum or delegate generic constraint with its supported constraint form through Roslyn code-fix composition."));
+
+        registry.RegisterMutationTool<FixReturnTypeTool, FixedCompilerCodeFixRequest>(
+            CreateMutationMetadata(
+                "fix-return-type",
+                "Fix Return Type",
+                "Changes a void or task-like return type to match the returned expression through Roslyn code-fix composition."));
 
         registry.RegisterMutationTool<RemoveInKeywordTool, FixedCompilerCodeFixRequest>(
             CreateMutationMetadata(

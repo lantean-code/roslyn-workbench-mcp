@@ -8,7 +8,7 @@ internal interface ICodeActionInfoFactory
         DiscoveredCodeAction action,
         ICodeActionExecutionContext context,
         Document document,
-        TextSpan span,
+        ResolvedLocation location,
         CodeActionDescriptorEntry descriptor,
         [NotNullWhen(true)] out CodeActionInfo? info);
 
@@ -16,5 +16,6 @@ internal interface ICodeActionInfoFactory
         DiscoveredCodeAction action,
         ICodeActionExecutionContext context,
         CodeActionDescriptorEntry descriptor,
-        CodeActionReference reference);
+        CodeActionReference reference,
+        ResolvedLocation location);
 }

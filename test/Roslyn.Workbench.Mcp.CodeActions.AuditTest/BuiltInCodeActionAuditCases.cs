@@ -371,11 +371,192 @@ internal static class BuiltInCodeActionAuditCases
         },
     ];
 
+    private static readonly IReadOnlyList<BuiltInCodeActionAuditCase> _additionalValidatedCodeFixCompatibilityCases =
+    [
+        new()
+        {
+            ToolName = "add-obsolete-attribute",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.AddObsoleteAttribute.CSharpAddObsoleteAttributeCodeFixProvider",
+            SourceNote = "CandidateObsoleteDerived inherits an obsolete base type",
+            ExpectedDiagnosticId = "CS0612",
+            ExpectedChangedText = "[System.Obsolete]\ninternal sealed class CandidateObsoleteDerived",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "CandidateObsoleteBase", occurrenceIndex: 1),
+        },
+        new()
+        {
+            ToolName = "add-obsolete-attribute",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.AddObsoleteAttribute.CSharpAddObsoleteAttributeCodeFixProvider",
+            SourceNote = "CandidateObsoleteMessageDerived inherits an obsolete base type with a message",
+            ExpectedDiagnosticId = "CS0618",
+            ExpectedChangedText = "[System.Obsolete]\ninternal sealed class CandidateObsoleteMessageDerived",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "CandidateObsoleteMessageBase", occurrenceIndex: 1),
+        },
+        new()
+        {
+            ToolName = "add-obsolete-attribute",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.AddObsoleteAttribute.CSharpAddObsoleteAttributeCodeFixProvider",
+            SourceNote = "CandidateObsoleteOverrideDerived overrides an obsolete method",
+            ExpectedDiagnosticId = "CS0672",
+            ExpectedChangedText = "[System.Obsolete]\n    internal override void ObsoleteOverride()",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "override void ObsoleteOverride()"),
+        },
+        new()
+        {
+            ToolName = "add-obsolete-attribute",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.AddObsoleteAttribute.CSharpAddObsoleteAttributeCodeFixProvider",
+            SourceNote = "CreateObsoleteMessageCollection invokes an obsolete collection Add method with a message",
+            ExpectedDiagnosticId = "CS1062",
+            ExpectedChangedText = "[System.Obsolete]\n    internal static void CreateObsoleteMessageCollection()",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "{ 1 }", occurrenceIndex: 1),
+        },
+        new()
+        {
+            ToolName = "add-obsolete-attribute",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.AddObsoleteAttribute.CSharpAddObsoleteAttributeCodeFixProvider",
+            SourceNote = "CreateObsoleteCollection invokes an obsolete collection Add method without a message",
+            ExpectedDiagnosticId = "CS1064",
+            ExpectedChangedText = "[System.Obsolete]\n    internal static void CreateObsoleteCollection()",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "{ 1 }", occurrenceIndex: 0),
+        },
+        new()
+        {
+            ToolName = "assign-out-parameters",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.AssignOutParameters.AssignOutParametersAboveReturnCodeFixProvider",
+            SourceNote = "AssignOutParameterAboveReturn leaves an out parameter unassigned",
+            ExpectedDiagnosticId = "CS0177",
+            ExpectedChangedText = "value = 0;",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "return 'a';", occurrenceIndex: 0),
+        },
+        new()
+        {
+            ToolName = "assign-out-parameters",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.AssignOutParameters.AssignOutParametersAtStartCodeFixProvider",
+            SourceNote = "AssignOutParameterAtStart assigns an out parameter on only one path",
+            ExpectedDiagnosticId = "CS0177",
+            ExpectedChangedText = "value = 0;",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "return 'a';", occurrenceIndex: 1),
+        },
+        new()
+        {
+            ToolName = "declare-as-nullable",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.DeclareAsNullable.CSharpDeclareAsNullableCodeFixProvider",
+            SourceNote = "DeclareAsNullable returns null from a non-nullable method",
+            ExpectedDiagnosticId = "CS8603",
+            ExpectedChangedText = "internal static string? DeclareAsNullable()",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "null"),
+        },
+        new()
+        {
+            ToolName = "declare-as-nullable",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.DeclareAsNullable.CSharpDeclareAsNullableCodeFixProvider",
+            SourceNote = "DeclareLocalAsNullable converts a possibly null value to a non-nullable local",
+            ExpectedDiagnosticId = "CS8600",
+            ExpectedChangedText = "string? value = null;",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "string value = null;"),
+        },
+        new()
+        {
+            ToolName = "declare-as-nullable",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.DeclareAsNullable.CSharpDeclareAsNullableCodeFixProvider",
+            SourceNote = "DeclareParameterAsNullable passes null to a non-nullable parameter",
+            ExpectedDiagnosticId = "CS8625",
+            ExpectedChangedText = "AcceptNullableValue(string? value)",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "AcceptNullableValue(null)", occurrenceIndex: 0),
+        },
+        new()
+        {
+            ToolName = "declare-as-nullable",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.DeclareAsNullable.CSharpDeclareAsNullableCodeFixProvider",
+            SourceNote = "CandidateUninitializedNullable leaves a non-nullable property uninitialized",
+            ExpectedDiagnosticId = "CS8618",
+            ExpectedChangedText = "internal string? Value { get; }",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "Value { get; }"),
+        },
+        new()
+        {
+            ToolName = "fix-incorrect-constraint",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.FixIncorrectConstraint.CSharpFixIncorrectConstraintCodeFixProvider",
+            SourceNote = "CandidateEnumConstraint uses the invalid enum constraint keyword",
+            ExpectedDiagnosticId = "CS9010",
+            ExpectedChangedText = "where T : struct, System.Enum",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "enum"),
+        },
+        new()
+        {
+            ToolName = "fix-incorrect-constraint",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.FixIncorrectConstraint.CSharpFixIncorrectConstraintCodeFixProvider",
+            SourceNote = "CandidateDelegateConstraint uses the invalid delegate constraint keyword",
+            ExpectedDiagnosticId = "CS9011",
+            ExpectedChangedText = "where T : System.Delegate",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "delegate"),
+        },
+        new()
+        {
+            ToolName = "fix-return-type",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.FixReturnType.CSharpFixReturnTypeCodeFixProvider",
+            SourceNote = "FixReturnType returns an integer from a void method",
+            ExpectedDiagnosticId = "CS0127",
+            ExpectedChangedText = "internal static int FixReturnType()",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "return 1;"),
+        },
+        new()
+        {
+            ToolName = "fix-return-type",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.FixReturnType.CSharpFixReturnTypeCodeFixProvider",
+            SourceNote = "FixAsyncReturnType returns an integer from an async Task method",
+            ExpectedDiagnosticId = "CS1997",
+            ExpectedChangedText = "internal static async System.Threading.Tasks.Task<int> FixAsyncReturnType()",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "return 1;", occurrenceIndex: 1),
+        },
+        new()
+        {
+            ToolName = "fix-return-type",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.FixReturnType.CSharpFixReturnTypeCodeFixProvider",
+            SourceNote = "FixExpressionBodyReturnType uses an integer expression for a void expression body",
+            ExpectedDiagnosticId = "CS0201",
+            ExpectedChangedText = "internal static int FixExpressionBodyReturnType() => 1;",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "=> 1;"),
+        },
+    ];
+
     public static IReadOnlyList<BuiltInCodeActionAuditCase> CandidateCompatibilityCases { get; } = CreateCandidateCompatibilityCases();
 
     public static IReadOnlyList<BuiltInCodeActionAuditCase> SupportedCompatibilityCases { get; } =
     [
         .. _validatedCodeFixCompatibilityCases,
+        .. _additionalValidatedCodeFixCompatibilityCases,
         new()
         {
             ToolName = "add-constructor-parameters",

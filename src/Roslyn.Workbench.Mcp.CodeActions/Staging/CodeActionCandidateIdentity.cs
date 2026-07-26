@@ -4,6 +4,7 @@ internal sealed class CodeActionCandidateIdentity : IEquatable<CodeActionCandida
 {
     private readonly int[] _actionPath;
     private readonly string[] _diagnosticIds;
+    private readonly TextSpan? _targetSpan;
 
     private string ProviderId { get; }
 
@@ -16,13 +17,15 @@ internal sealed class CodeActionCandidateIdentity : IEquatable<CodeActionCandida
         string title,
         string? equivalenceKey,
         IReadOnlyList<int>? actionPath = null,
-        IReadOnlyList<string>? diagnosticIds = null)
+        IReadOnlyList<string>? diagnosticIds = null,
+        TextSpan? targetSpan = null)
     {
         ProviderId = providerId;
         Title = title;
         EquivalenceKey = equivalenceKey;
         _actionPath = actionPath?.ToArray() ?? [];
         _diagnosticIds = diagnosticIds?.OrderBy(static id => id, StringComparer.Ordinal).ToArray() ?? [];
+        _targetSpan = targetSpan;
     }
 
     public bool Equals(CodeActionCandidateIdentity? other)
@@ -32,7 +35,8 @@ internal sealed class CodeActionCandidateIdentity : IEquatable<CodeActionCandida
             && string.Equals(Title, other.Title, StringComparison.Ordinal)
             && string.Equals(EquivalenceKey, other.EquivalenceKey, StringComparison.Ordinal)
             && _actionPath.SequenceEqual(other._actionPath)
-            && _diagnosticIds.SequenceEqual(other._diagnosticIds, StringComparer.Ordinal);
+            && _diagnosticIds.SequenceEqual(other._diagnosticIds, StringComparer.Ordinal)
+            && _targetSpan == other._targetSpan;
     }
 
     public override bool Equals(object? obj)
@@ -58,6 +62,7 @@ internal sealed class CodeActionCandidateIdentity : IEquatable<CodeActionCandida
             hashCode.Add(diagnosticId, StringComparer.Ordinal);
         }
 
+        hashCode.Add(_targetSpan);
         return hashCode.ToHashCode();
     }
 }

@@ -22,7 +22,7 @@ public sealed class DedicatedCodeActionToolIntegrationTests
 
             foreach (var testCase in testCases)
             {
-                await StartTransactionAsync(target, workspaceSelector, testCase.ToolName);
+                await StartTransactionAsync(target, workspaceSelector, testCase.DisplayName);
 
                 var arguments = CreateArguments(testCase, workspace, workspaceSelector);
                 var mutationResult = await target.CallToolAsync(
@@ -30,12 +30,12 @@ public sealed class DedicatedCodeActionToolIntegrationTests
                     arguments,
                     TestContext.Current.CancellationToken);
 
-                AssertSuccessfulMutation(mutationResult, testCase.ToolName);
+                AssertSuccessfulMutation(mutationResult, testCase.DisplayName);
 
                 var previewResult = await PreviewAsync(target, workspaceSelector);
                 AssertExpectedPreview(previewResult, testCase);
 
-                await RollbackAsync(target, workspaceSelector, testCase.ToolName);
+                await RollbackAsync(target, workspaceSelector, testCase.DisplayName);
                 await AssertDocumentsRestoredAsync(
                     target.WorkspaceRoot,
                     testCase,
@@ -52,13 +52,41 @@ public sealed class DedicatedCodeActionToolIntegrationTests
     private static void AssertCompleteCoverage(IReadOnlyList<CodeActionAcceptanceCase> testCases)
     {
         var manifestToolNames = CodeActionAcceptanceManifest.LoadToolNames();
+        var acceptanceCaseNames = testCases
+            .Select(static testCase => testCase.DisplayName)
+            .ToArray();
+
         var acceptanceToolNames = testCases
             .Select(static testCase => testCase.ToolName)
+            .Distinct(StringComparer.Ordinal)
             .OrderBy(static toolName => toolName, StringComparer.Ordinal)
             .ToArray();
 
-        acceptanceToolNames.Should().OnlyHaveUniqueItems();
+        acceptanceCaseNames.Should().OnlyHaveUniqueItems();
         acceptanceToolNames.Should().Equal(manifestToolNames);
+        AssertMultiDiagnosticCoverage(testCases);
+    }
+
+    private static void AssertMultiDiagnosticCoverage(
+        IReadOnlyList<CodeActionAcceptanceCase> testCases)
+    {
+        var expectedDiagnosticIdsByTool = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal)
+        {
+            ["add-obsolete-attribute"] = ["CS0612", "CS0618", "CS0672", "CS1062", "CS1064"],
+            ["declare-as-nullable"] = ["CS8600", "CS8603", "CS8618", "CS8625"],
+            ["fix-incorrect-constraint"] = ["CS9010", "CS9011"],
+            ["fix-return-type"] = ["CS0127", "CS0201", "CS1997"],
+        };
+
+        foreach (var (toolName, expectedDiagnosticIds) in expectedDiagnosticIdsByTool)
+        {
+            var actualDiagnosticIds = testCases
+                .Where(testCase => testCase.ToolName == toolName)
+                .Select(static testCase => testCase.DiagnosticId)
+                .ToArray();
+
+            actualDiagnosticIds.Should().BeEquivalentTo(expectedDiagnosticIds, toolName);
+        }
     }
 
     private static async Task AssertPublishedAsync(
@@ -67,9 +95,13 @@ public sealed class DedicatedCodeActionToolIntegrationTests
     {
         var tools = await target.ListToolsAsync(TestContext.Current.CancellationToken);
 
-        foreach (var testCase in testCases)
+        var toolNames = testCases
+            .Select(static testCase => testCase.ToolName)
+            .Distinct(StringComparer.Ordinal);
+
+        foreach (var toolName in toolNames)
         {
-            tools.Should().ContainSingle(tool => tool.Name == testCase.ToolName);
+            tools.Should().ContainSingle(tool => tool.Name == toolName);
         }
 
         tools.Should().NotContain(static tool => tool.Name == "sort-usings");
@@ -185,7 +217,7 @@ public sealed class DedicatedCodeActionToolIntegrationTests
         ModelContextProtocol.Protocol.CallToolResult previewResult,
         CodeActionAcceptanceCase testCase)
     {
-        previewResult.IsError.Should().NotBeTrue(testCase.ToolName);
+        previewResult.IsError.Should().NotBeTrue(testCase.DisplayName);
 
         var actualDocumentPaths = AcceptanceProtocol.GetSuccessData(previewResult)
             .GetProperty("documents")
@@ -193,7 +225,7 @@ public sealed class DedicatedCodeActionToolIntegrationTests
             .Select(static change => change.GetProperty("document").GetProperty("path").GetString())
             .ToArray();
 
-        actualDocumentPaths.Should().BeEquivalentTo(testCase.ExpectedDocumentPaths, testCase.ToolName);
+        actualDocumentPaths.Should().BeEquivalentTo(testCase.ExpectedDocumentPaths, testCase.DisplayName);
     }
 
     private static async Task RollbackAsync(
@@ -222,7 +254,7 @@ public sealed class DedicatedCodeActionToolIntegrationTests
             var fullPath = Path.Combine(workspaceRoot, documentPath);
             if (!originalDocuments.TryGetValue(documentPath, out var originalBytes))
             {
-                File.Exists(fullPath).Should().BeFalse(testCase.ToolName);
+                File.Exists(fullPath).Should().BeFalse(testCase.DisplayName);
                 continue;
             }
 
@@ -230,7 +262,7 @@ public sealed class DedicatedCodeActionToolIntegrationTests
                 fullPath,
                 TestContext.Current.CancellationToken);
 
-            currentBytes.Should().Equal(originalBytes, testCase.ToolName);
+            currentBytes.Should().Equal(originalBytes, testCase.DisplayName);
         }
     }
 }

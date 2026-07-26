@@ -20,6 +20,7 @@ public sealed class CodeActionInfoFactoryTests
         var resolver = new Mock<IWorkspaceResolver>();
         var action = CreateAction(roslyn.Solution, DiscoveredActionKind.Refactoring);
         var descriptor = CreateDescriptor();
+        var resolvedLocation = SelectorTestFactory.CreateResolvedLocation("Code.cs", 3, 4);
         var expiresAt = _utcNow.AddMinutes(5);
         var workspaceIdentity = new WorkspaceIdentity
         {
@@ -68,7 +69,7 @@ public sealed class CodeActionInfoFactoryTests
             action,
             context.Object,
             roslyn.Document,
-            new TextSpan(3, 4),
+            resolvedLocation,
             descriptor,
             out var result);
 
@@ -82,6 +83,7 @@ public sealed class CodeActionInfoFactoryTests
         info.EquivalenceKey.Should().Be("EquivalenceKey");
         info.ActionPath.Should().Equal(1, 2);
         info.DiagnosticIds.Should().Equal("DiagnosticId");
+        info.Location.Should().BeSameAs(resolvedLocation);
         info.WorkspaceEpoch.Should().Be(1);
         info.TransactionRevision.Should().Be(2);
         info.ExpiresAt.Should().Be("2000-01-01T00:05:00.0000000+00:00");
@@ -105,6 +107,7 @@ public sealed class CodeActionInfoFactoryTests
         var context = new Mock<ICodeActionExecutionContext>();
         var resolver = new Mock<IWorkspaceResolver>();
         var action = CreateAction(workspace.CurrentSolution, DiscoveredActionKind.CodeFix);
+        var resolvedLocation = SelectorTestFactory.CreateResolvedLocation("DocumentName.cs", 3, 4);
         var expiresAt = _utcNow.AddMinutes(5);
         CodeActionReference? reference = new(_actionId, new CodeActionReplayRecipe(), expiresAt);
 
@@ -140,7 +143,7 @@ public sealed class CodeActionInfoFactoryTests
             action,
             context.Object,
             document,
-            new TextSpan(0, 1),
+            resolvedLocation,
             new CodeActionDescriptorEntry(),
             out var result);
 
@@ -159,6 +162,7 @@ public sealed class CodeActionInfoFactoryTests
         var context = new Mock<ICodeActionExecutionContext>();
         var resolver = new Mock<IWorkspaceResolver>();
         var action = CreateAction(roslyn.Solution, DiscoveredActionKind.Refactoring);
+        var resolvedLocation = SelectorTestFactory.CreateResolvedLocation("Code.cs", 3, 4);
         var expiresAt = _utcNow.AddDays(1);
         CodeActionReference? reference = new(_actionId, new CodeActionReplayRecipe(), expiresAt);
 
@@ -193,7 +197,7 @@ public sealed class CodeActionInfoFactoryTests
             action,
             context.Object,
             roslyn.Document,
-            new TextSpan(0, 1),
+            resolvedLocation,
             new CodeActionDescriptorEntry(),
             out var result);
 
@@ -210,6 +214,7 @@ public sealed class CodeActionInfoFactoryTests
         var context = new Mock<ICodeActionExecutionContext>();
         var resolver = new Mock<IWorkspaceResolver>();
         var action = CreateAction(roslyn.Solution, DiscoveredActionKind.Refactoring);
+        var resolvedLocation = SelectorTestFactory.CreateResolvedLocation("Code.cs", 3, 4);
         CodeActionReference? rejectedReference = null;
 
         timeProvider.Setup(item => item.GetUtcNow()).Returns(_utcNow);
@@ -240,7 +245,7 @@ public sealed class CodeActionInfoFactoryTests
             action,
             context.Object,
             roslyn.Document,
-            new TextSpan(0, 1),
+            resolvedLocation,
             new CodeActionDescriptorEntry(),
             out var info);
 
@@ -256,6 +261,7 @@ public sealed class CodeActionInfoFactoryTests
         var timeProvider = new Mock<TimeProvider>();
         var context = new Mock<ICodeActionExecutionContext>();
         var action = CreateAction(roslyn.Solution, DiscoveredActionKind.Refactoring);
+        var resolvedLocation = SelectorTestFactory.CreateResolvedLocation("Code.cs", 3, 4);
         var reference = new CodeActionReference(
             _actionId,
             new CodeActionReplayRecipe(),
@@ -276,10 +282,12 @@ public sealed class CodeActionInfoFactoryTests
             action,
             context.Object,
             new CodeActionDescriptorEntry(),
-            reference);
+            reference,
+            resolvedLocation);
 
         result.ActionId.Should().Be(_actionId);
         result.ExpiresAt.Should().Be("2000-01-01T00:05:00.0000000+00:00");
+        result.Location.Should().BeSameAs(resolvedLocation);
         referenceStore.Verify(
             item => item.TryCreate(
                 It.IsAny<CodeActionReplayRecipe>(),
@@ -297,6 +305,7 @@ public sealed class CodeActionInfoFactoryTests
             ProviderId = "ProviderId",
             Title = "Title",
             Descriptor = new CodeActionDescriptorEntry(),
+            TargetSpan = new TextSpan(3, 4),
             EquivalenceKey = "EquivalenceKey",
             ActionPath = [1, 2],
             DiagnosticIds = ["DiagnosticId"],

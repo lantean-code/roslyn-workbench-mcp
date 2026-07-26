@@ -483,6 +483,7 @@ public sealed class CodeActionSelectionStagerTests
                 IsVisible = isVisible,
                 ExecutionMode = executionMode,
             },
+            TargetSpan = new TextSpan(0, 1),
             EquivalenceKey = equivalenceKey,
             ActionPath = actionPath,
         };

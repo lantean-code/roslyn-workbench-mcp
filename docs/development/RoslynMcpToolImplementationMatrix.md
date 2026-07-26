@@ -98,8 +98,13 @@ This matrix records the planned implementation source for every public tool. It 
 | `add-conditional-interpolation-parentheses` | Dedicated wrapper over validated compiler diagnostic and MEF code-fix selection | Complete |
 | `add-explicit-cast` | Dedicated wrapper over validated compiler diagnostic and MEF code-fix selection | Complete |
 | `add-inheritdoc` | Dedicated wrapper over validated compiler diagnostic and MEF code-fix selection | Complete |
+| `add-obsolete-attribute` | Dedicated wrapper over the validated obsolete-API compiler diagnostics and MEF code-fix selection | Complete |
 | `add-null-checks` | Host wrapper over deterministic MEF refactoring replay | Batch 4 |
 | `add-missing-usings` | Host wrapper over deterministic MEF code-fix selection | Batch 2 |
+| `assign-out-parameters` | Dedicated wrapper over both validated unassigned-out-parameter providers with deterministic fallback | Complete |
+| `declare-as-nullable` | Dedicated wrapper over validated nullable compiler diagnostics and MEF code-fix selection | Complete |
+| `fix-incorrect-constraint` | Dedicated wrapper over validated enum and delegate constraint diagnostics and MEF code-fix selection | Complete |
+| `fix-return-type` | Dedicated wrapper over validated return-type compiler diagnostics and MEF code-fix selection | Complete |
 | `remove-in-keyword` | Dedicated wrapper over validated compiler diagnostic and MEF code-fix selection | Complete |
 | `remove-new-modifier` | Dedicated wrapper over validated compiler diagnostic and MEF code-fix selection | Complete |
 | `remove-unused-usings` | Host wrapper over deterministic MEF code-fix selection | Batch 2 |
@@ -128,7 +133,7 @@ This matrix records the planned implementation source for every public tool. It 
 ## Stage 7 Batch 2 split
 
 - Replay-backed or deterministic scoped-codefix wrappers that currently land: `add-missing-usings`, `remove-unused-usings`, `inline-variable`, `convert-to-interpolated-string`, `extract-method`, `introduce-parameter`, `encapsulate-field`, `convert-foreach-linq`, `introduce-variable`.
-- `list-code-actions` now uses a closed audited allowlist for built-in Roslyn families. Any family that does not yet have an approved dedicated execution path or validated replay rule is hidden from discovery by default rather than surfaced optimistically.
+- `list-code-actions` now uses a closed audited allowlist for built-in Roslyn families. Any family that does not yet have an approved dedicated execution path or validated replay rule is hidden from discovery by default rather than surfaced optimistically. Discovery retains each action's precise target span, publishes it as a resolved location and stores it in the opaque replay recipe, so a broad query can return otherwise-identical fixes at multiple locations without making GUID-based staging ambiguous.
 - `stage-code-action` remains replay-only. Parameterised actions must describe themselves first and are rejected by generic replay.
 
 ## Roslyn-source backlog status

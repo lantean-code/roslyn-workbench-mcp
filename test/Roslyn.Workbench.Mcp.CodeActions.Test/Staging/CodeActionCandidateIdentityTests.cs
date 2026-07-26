@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.CodeAnalysis.Text;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Test.Staging;
 
@@ -35,6 +36,7 @@ public sealed class CodeActionCandidateIdentityTests
     [InlineData(CandidateDifference.EquivalenceKey)]
     [InlineData(CandidateDifference.ActionPath)]
     [InlineData(CandidateDifference.DiagnosticIds)]
+    [InlineData(CandidateDifference.TargetSpan)]
     public void GIVEN_IdentityValueDiffers_WHEN_ComparingIdentities_THEN_ShouldNotBeEqual(CandidateDifference difference)
     {
         var first = new CodeActionCandidateIdentity(
@@ -50,7 +52,8 @@ public sealed class CodeActionCandidateIdentityTests
             CandidateDifference.Title => new CodeActionCandidateIdentity("ProviderId", "OtherTitle", "EquivalenceKey", [1], ["DiagnosticId"]),
             CandidateDifference.EquivalenceKey => new CodeActionCandidateIdentity("ProviderId", "Title", "OtherEquivalenceKey", [1], ["DiagnosticId"]),
             CandidateDifference.ActionPath => new CodeActionCandidateIdentity("ProviderId", "Title", "EquivalenceKey", [2], ["DiagnosticId"]),
-            _ => new CodeActionCandidateIdentity("ProviderId", "Title", "EquivalenceKey", [1], ["OtherDiagnosticId"]),
+            CandidateDifference.DiagnosticIds => new CodeActionCandidateIdentity("ProviderId", "Title", "EquivalenceKey", [1], ["OtherDiagnosticId"]),
+            _ => new CodeActionCandidateIdentity("ProviderId", "Title", "EquivalenceKey", [1], ["DiagnosticId"], new TextSpan(1, 1)),
         };
 
         var equals = first.Equals(second);
@@ -109,6 +112,7 @@ public sealed class CodeActionCandidateIdentityTests
         EquivalenceKey,
         ActionPath,
         DiagnosticIds,
+        TargetSpan,
     }
 #pragma warning restore CA1515
 }

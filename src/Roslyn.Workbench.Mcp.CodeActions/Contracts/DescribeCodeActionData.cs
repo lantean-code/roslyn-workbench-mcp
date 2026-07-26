@@ -8,7 +8,7 @@ internal sealed record DescribeCodeActionData
     /// <summary>
     /// Gets the discovered action descriptor.
     /// </summary>
-    public CodeActionInfo Descriptor { get; init; } = new();
+    public required CodeActionInfo Descriptor { get; init; }
 
     /// <summary>
     /// Gets the dynamic preflight context for the action.

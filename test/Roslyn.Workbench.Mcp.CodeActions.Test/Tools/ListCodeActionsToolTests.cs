@@ -32,6 +32,10 @@ public sealed class ListCodeActionsToolTests
             .Setup(item => item.ValidateSnapshot(It.IsAny<SnapshotPrecondition?>()))
             .Returns(SnapshotMatchResult.Matched());
 
+        _workspaceResolver
+            .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
+            .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, "Code.cs"));
+
         _context.SetupGet(item => item.WorkspaceResolver).Returns(_workspaceResolver.Object);
         _target = new ListCodeActionsTool(
             _providerCatalog.Object,
@@ -232,7 +236,7 @@ public sealed class ListCodeActionsToolTests
                 action,
                 _context.Object,
                 roslyn.Document,
-                location.SourceSpan,
+                It.IsAny<ResolvedLocation>(),
                 descriptor,
                 out It.Ref<CodeActionInfo?>.IsAny))
             .Returns(false);
@@ -248,6 +252,102 @@ public sealed class ListCodeActionsToolTests
 
         result.Outcome.Should().Be(CodeActionExecutionOutcome.Succeeded);
         result.Data!.Actions.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GIVEN_BroadLocationContainsEquivalentActions_WHEN_Executing_THEN_ShouldProjectEachPreciseTargetLocation()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { int Value; }");
+        var selector = new LocationSelector();
+        var requestedLocation = await CreateLocationAsync(roslyn.Document, new TextSpan(0, 10));
+        var provider = new Mock<CodeRefactoringProvider>();
+        var descriptor = new CodeActionDescriptorEntry
+        {
+            IsVisible = true,
+        };
+
+        var firstAction = CreateDiscoveredAction(
+            roslyn.Solution,
+            "Title",
+            "ProviderId",
+            "EquivalenceKey",
+            [0],
+            DiscoveredActionKind.Refactoring,
+            descriptor,
+            new TextSpan(2, 1));
+
+        var secondAction = CreateDiscoveredAction(
+            roslyn.Solution,
+            "Title",
+            "ProviderId",
+            "EquivalenceKey",
+            [0],
+            DiscoveredActionKind.Refactoring,
+            descriptor,
+            new TextSpan(5, 2));
+
+        var middleAction = secondAction with
+        {
+            TargetSpan = new TextSpan(5, 1),
+        };
+
+        var firstInfo = CreateInfo(firstAction, "11111111-1111-1111-1111-111111111111");
+        var middleInfo = CreateInfo(middleAction, "22222222-2222-2222-2222-222222222222");
+        var secondInfo = CreateInfo(secondAction, "33333333-3333-3333-3333-333333333333");
+        _workspaceResolver
+            .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
+            .ReturnsAsync(SelectorResolveResult.Resolved(requestedLocation));
+
+        _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
+        _discoveryService.Setup(item => item.GetMatchingRefactoringProviders(null)).Returns([provider.Object]);
+        _discoveryService
+            .Setup(item => item.DiscoverRefactoringsAsync(
+                provider.Object,
+                roslyn.Document,
+                requestedLocation.SourceSpan,
+                CancellationToken.None))
+            .ReturnsAsync([secondAction, firstAction, middleAction]);
+
+        _infoFactory
+            .Setup(item => item.TryCreate(
+                firstAction,
+                _context.Object,
+                roslyn.Document,
+                It.Is<ResolvedLocation>(location => HasSpan(location, 2, 1)),
+                descriptor,
+                out firstInfo))
+            .Returns(true);
+
+        _infoFactory
+            .Setup(item => item.TryCreate(
+                middleAction,
+                _context.Object,
+                roslyn.Document,
+                It.Is<ResolvedLocation>(location => HasSpan(location, 5, 1)),
+                descriptor,
+                out middleInfo))
+            .Returns(true);
+
+        _infoFactory
+            .Setup(item => item.TryCreate(
+                secondAction,
+                _context.Object,
+                roslyn.Document,
+                It.Is<ResolvedLocation>(location => HasSpan(location, 5, 2)),
+                descriptor,
+                out secondInfo))
+            .Returns(true);
+
+        var result = await _target.ExecuteAsync(
+            new ListCodeActionsRequest
+            {
+                Location = selector,
+                IncludeCodeFixes = false,
+            },
+            _context.Object,
+            CancellationToken.None);
+
+        result.Data!.Actions.Should().Equal(firstInfo, middleInfo, secondInfo);
     }
 
     [Theory]
@@ -326,6 +426,7 @@ public sealed class ListCodeActionsToolTests
                 Title = action.Title,
                 ProviderId = action.ProviderId,
                 ExpiresAt = "2000-01-01T00:00:00.0000000+00:00",
+                Location = SelectorTestFactory.CreateResolvedLocation("Code.cs", action.TargetSpan.Start, action.TargetSpan.Length),
             };
 
             _infoFactory
@@ -333,7 +434,7 @@ public sealed class ListCodeActionsToolTests
                     action,
                     _context.Object,
                     roslyn.Document,
-                    location.SourceSpan,
+                    It.IsAny<ResolvedLocation>(),
                     visibleDescriptor,
                     out info))
                 .Returns(true);
@@ -354,7 +455,7 @@ public sealed class ListCodeActionsToolTests
             hidden,
             It.IsAny<ICodeActionExecutionContext>(),
             It.IsAny<Document>(),
-            It.IsAny<TextSpan>(),
+            It.IsAny<ResolvedLocation>(),
             It.IsAny<CodeActionDescriptorEntry>(),
             out It.Ref<CodeActionInfo?>.IsAny), Times.Never);
     }
@@ -466,7 +567,8 @@ public sealed class ListCodeActionsToolTests
         string? equivalenceKey,
         IReadOnlyList<int> actionPath,
         DiscoveredActionKind kind,
-        CodeActionDescriptorEntry descriptor)
+        CodeActionDescriptorEntry descriptor,
+        TextSpan? targetSpan = null)
     {
         return new DiscoveredCodeAction
         {
@@ -475,14 +577,36 @@ public sealed class ListCodeActionsToolTests
             ProviderId = providerId,
             Title = title,
             Descriptor = descriptor,
+            TargetSpan = targetSpan ?? new TextSpan(0, 1),
             EquivalenceKey = equivalenceKey,
             ActionPath = actionPath,
         };
     }
 
-    private static async Task<Location> CreateLocationAsync(Document document)
+    private static CodeActionInfo CreateInfo(DiscoveredCodeAction action, string actionId)
+    {
+        return new CodeActionInfo
+        {
+            ActionId = new Guid(actionId),
+            Title = action.Title,
+            ProviderId = action.ProviderId,
+            Location = SelectorTestFactory.CreateResolvedLocation(
+                "Code.cs",
+                action.TargetSpan.Start,
+                action.TargetSpan.Length),
+        };
+    }
+
+    private static bool HasSpan(ResolvedLocation location, int start, int length)
+    {
+        return location.Span is not null
+            && location.Span.Start == start
+            && location.Span.Length == length;
+    }
+
+    private static async Task<Location> CreateLocationAsync(Document document, TextSpan? span = null)
     {
         var syntaxTree = await document.GetSyntaxTreeAsync();
-        return syntaxTree!.GetLocation(new TextSpan(0, 1));
+        return syntaxTree!.GetLocation(span ?? new TextSpan(0, 1));
     }
 }

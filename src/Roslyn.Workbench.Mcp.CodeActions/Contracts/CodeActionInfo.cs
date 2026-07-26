@@ -46,6 +46,11 @@ internal sealed record CodeActionInfo
     public IReadOnlyList<string> DiagnosticIds { get; init; } = [];
 
     /// <summary>
+    /// Gets the precise source location to which the action applies.
+    /// </summary>
+    public required ResolvedLocation Location { get; init; }
+
+    /// <summary>
     /// Gets the workspace epoch for which the action is valid.
     /// </summary>
     public long WorkspaceEpoch { get; init; }

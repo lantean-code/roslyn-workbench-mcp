@@ -652,6 +652,7 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
             {
                 ExecutionMode = CodeActionExecutionMode.Replay,
             },
+            TargetSpan = new TextSpan(0, 1),
             EquivalenceKey = "EquivalenceKey",
             ActionPath = [1],
             DiagnosticIds = ["DiagnosticId"],

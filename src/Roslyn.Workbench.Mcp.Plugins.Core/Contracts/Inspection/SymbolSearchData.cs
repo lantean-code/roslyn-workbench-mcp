@@ -8,5 +8,5 @@ internal sealed record SymbolSearchData
     /// <summary>
     /// Gets the returned symbols.
     /// </summary>
-    public BoundedCollection<SymbolReference> Symbols { get; init; } = BoundedCollection<SymbolReference>.Empty();
+    public BoundedCollection<SymbolReference> Symbols { get; init; } = BoundedCollection.Empty<SymbolReference>();
 }

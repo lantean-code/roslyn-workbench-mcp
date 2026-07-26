@@ -8,5 +8,5 @@ internal sealed record DiagnosticsData
     /// <summary>
     /// Gets the returned diagnostics.
     /// </summary>
-    public BoundedCollection<DiagnosticInfo> Diagnostics { get; init; } = BoundedCollection<DiagnosticInfo>.Empty();
+    public BoundedCollection<DiagnosticInfo> Diagnostics { get; init; } = BoundedCollection.Empty<DiagnosticInfo>();
 }

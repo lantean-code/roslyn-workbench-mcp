@@ -97,7 +97,7 @@ internal sealed class MefHostExportProviderCompatibilityAdapter : IMefHostExport
             values.Add(typedValue);
         }
 
-        return MefHostExportReadResult<T>.Success(values);
+        return MefHostExportReadResult.Success(values);
     }
 
     private static bool IsExportMethod(MethodInfo method)
@@ -130,6 +130,6 @@ internal sealed class MefHostExportProviderCompatibilityAdapter : IMefHostExport
 
     private static MefHostExportReadResult<T> Failure<T>(string error)
     {
-        return MefHostExportReadResult<T>.Failure(error);
+        return MefHostExportReadResult.Failure<T>(error);
     }
 }

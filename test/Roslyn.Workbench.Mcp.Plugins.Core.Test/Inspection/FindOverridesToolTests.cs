@@ -7,7 +7,7 @@ public sealed class FindOverridesToolTests
     {
         var target = new FindOverridesTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<OverrideSearchData>.Rejected(new PluginExecutionError
+        var expected = PluginExecutionResult.Rejected<OverrideSearchData>(new PluginExecutionError
         {
             Code = "SymbolNotFound",
             Message = "SymbolNotFound",
@@ -19,7 +19,7 @@ public sealed class FindOverridesToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, OverrideSearchData>.Rejected(expected));
+            .ReturnsAsync(ToolResolutionResult.Rejected<ISymbol, OverrideSearchData>(expected));
 
         var result = await target.ExecuteAsync(new FindOverridesRequest
         {
@@ -51,7 +51,7 @@ public sealed class FindOverridesToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, OverrideSearchData>.Resolved(symbol));
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, OverrideSearchData>(symbol));
 
         var result = await target.ExecuteAsync(new FindOverridesRequest
         {
@@ -86,7 +86,7 @@ public sealed class FindOverridesToolTests
             null,
             TestContext.Current.CancellationToken);
 
-        var expected = PluginExecutionResult<OverrideSearchData>.Rejected(new PluginExecutionError
+        var expected = PluginExecutionResult.Rejected<OverrideSearchData>(new PluginExecutionError
         {
             Code = "ProjectNotFound",
             Message = "ProjectNotFound",
@@ -98,13 +98,13 @@ public sealed class FindOverridesToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, OverrideSearchData>.Resolved(symbol));
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, OverrideSearchData>(symbol));
 
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveProjects<OverrideSearchData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Project>, OverrideSearchData>.Rejected(expected));
+            .Returns(ToolResolutionResult.Rejected<IReadOnlyList<Project>, OverrideSearchData>(expected));
 
         var result = await target.ExecuteAsync(new FindOverridesRequest
         {
@@ -178,13 +178,13 @@ public sealed class FindOverridesToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, OverrideSearchData>.Resolved(symbol));
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, OverrideSearchData>(symbol));
 
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveProjects<OverrideSearchData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Project>, OverrideSearchData>.Resolved([project]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Project>, OverrideSearchData>([project]));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))

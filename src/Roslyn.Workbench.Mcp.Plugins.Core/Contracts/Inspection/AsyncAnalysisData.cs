@@ -8,5 +8,5 @@ internal sealed record AsyncAnalysisData
     /// <summary>
     /// Gets the returned findings.
     /// </summary>
-    public BoundedCollection<AsyncFinding> Findings { get; init; } = BoundedCollection<AsyncFinding>.Empty();
+    public BoundedCollection<AsyncFinding> Findings { get; init; } = BoundedCollection.Empty<AsyncFinding>();
 }

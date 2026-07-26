@@ -60,6 +60,6 @@ internal sealed class GetSymbolInfoTool : QueryToolHandler<GetSymbolInfoRequest,
             Declarations = orderedDeclarations,
         };
 
-        return PluginExecutionResult<SymbolInfoData>.Success(data);
+        return PluginExecutionResult.Success(data);
     }
 }

@@ -8,5 +8,5 @@ internal sealed record DisposableAnalysisData
     /// <summary>
     /// Gets the returned findings.
     /// </summary>
-    public BoundedCollection<DisposableFinding> Findings { get; init; } = BoundedCollection<DisposableFinding>.Empty();
+    public BoundedCollection<DisposableFinding> Findings { get; init; } = BoundedCollection.Empty<DisposableFinding>();
 }

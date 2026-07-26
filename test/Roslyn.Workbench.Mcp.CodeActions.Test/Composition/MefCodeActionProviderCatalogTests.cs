@@ -34,7 +34,7 @@ public sealed class MefCodeActionProviderCatalogTests
     {
         IReadOnlyList<string> exports = ["Export"];
 
-        var result = MefHostExportReadResult<string>.Success(exports);
+        var result = MefHostExportReadResult.Success(exports);
 
         result.IsSuccessful.Should().BeTrue();
         result.Exports.Should().BeSameAs(exports);
@@ -44,7 +44,7 @@ public sealed class MefCodeActionProviderCatalogTests
     [Fact]
     public void GIVEN_FailedExportReadResult_WHEN_ReadingState_THEN_ShouldExposeErrorWithoutExports()
     {
-        var result = MefHostExportReadResult<string>.Failure("Error");
+        var result = MefHostExportReadResult.Failure<string>("Error");
 
         result.IsSuccessful.Should().BeFalse();
         result.Exports.Should().BeEmpty();

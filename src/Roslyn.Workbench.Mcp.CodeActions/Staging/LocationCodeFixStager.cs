@@ -138,7 +138,7 @@ internal sealed class LocationCodeFixStager : ILocationCodeFixStager
                 Message = "The requested code fix could not be selected uniquely.",
             };
 
-            return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(error, RequiredAction.ResolveTargetAgain);
+            return CodeActionExecutionResult.Rejected<WorkspaceMutationCandidate>(error, RequiredAction.ResolveTargetAgain);
         }
 
         var candidate = distinctCandidates[0];
@@ -160,7 +160,7 @@ internal sealed class LocationCodeFixStager : ILocationCodeFixStager
                 Summary = candidate.Title,
             };
 
-            return CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(mutationCandidate);
+            return CodeActionExecutionResult.Success(mutationCandidate);
         }
 
         return Rejected<WorkspaceMutationCandidate>("CodeFixUnavailable", "The selected action is not replayable in this server build.", RequiredAction.ResolveTargetAgain);

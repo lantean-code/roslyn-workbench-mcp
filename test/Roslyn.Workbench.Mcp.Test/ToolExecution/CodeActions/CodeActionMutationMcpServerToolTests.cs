@@ -103,7 +103,7 @@ public sealed class CodeActionMutationMcpServerToolTests
 
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestMutationRequest>(), context.Object, CancellationToken.None))
-            .ReturnsAsync(CodeActionExecutionResult<WorkspaceMutationCandidate>.NoChange());
+            .ReturnsAsync(CodeActionExecutionResult.NoChange<WorkspaceMutationCandidate>());
 
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
@@ -156,7 +156,7 @@ public sealed class CodeActionMutationMcpServerToolTests
 
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestMutationRequest>(), context.Object, CancellationToken.None))
-            .ReturnsAsync(CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(
+            .ReturnsAsync(CodeActionExecutionResult.Success(
                 proposal,
                 diagnostics: [diagnostic],
                 warnings: [warning]));
@@ -178,7 +178,7 @@ public sealed class CodeActionMutationMcpServerToolTests
                 It.Is<IReadOnlyList<DiagnosticInfo>>(diagnostics => diagnostics.SequenceEqual(new[] { diagnostic })),
                 It.Is<IReadOnlyList<WarningInfo>>(warnings => warnings.SequenceEqual(new[] { warning })),
                 CancellationToken.None))
-            .ReturnsAsync(WorkspaceOperationResult<MutationStagingOutcome>.Succeeded(stagingOutcome));
+            .ReturnsAsync(WorkspaceOperationResult.Succeeded(stagingOutcome));
 
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
@@ -217,7 +217,7 @@ public sealed class CodeActionMutationMcpServerToolTests
 
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestReferencedMutationRequest>(), context.Object, CancellationToken.None))
-            .ReturnsAsync(CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(
+            .ReturnsAsync(CodeActionExecutionResult.Success(
                 MutationCandidateTestData.CreateWorkspaceCandidate()));
 
         var stagingOutcome = new MutationStagingOutcome
@@ -234,7 +234,7 @@ public sealed class CodeActionMutationMcpServerToolTests
                 It.IsAny<IReadOnlyList<DiagnosticInfo>>(),
                 It.IsAny<IReadOnlyList<WarningInfo>>(),
                 CancellationToken.None))
-            .ReturnsAsync(WorkspaceOperationResult<MutationStagingOutcome>.Succeeded(stagingOutcome));
+            .ReturnsAsync(WorkspaceOperationResult.Succeeded(stagingOutcome));
 
         var target = CreateTarget(handler.Object, contextFactory.Object);
         var arguments = McpServerToolTestData.CreateMutationArguments();
@@ -266,7 +266,7 @@ public sealed class CodeActionMutationMcpServerToolTests
 
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestMutationRequest>(), context.Object, CancellationToken.None))
-            .ReturnsAsync(CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(candidate));
+            .ReturnsAsync(CodeActionExecutionResult.Success(candidate));
 
         var stagingError = new WorkspaceOperationError
         {
@@ -282,7 +282,7 @@ public sealed class CodeActionMutationMcpServerToolTests
                 It.IsAny<IReadOnlyList<DiagnosticInfo>>(),
                 It.IsAny<IReadOnlyList<WarningInfo>>(),
                 CancellationToken.None))
-            .ReturnsAsync(WorkspaceOperationResult<MutationStagingOutcome>.Rejected(stagingError));
+            .ReturnsAsync(WorkspaceOperationResult.Rejected<MutationStagingOutcome>(stagingError));
 
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
@@ -310,7 +310,7 @@ public sealed class CodeActionMutationMcpServerToolTests
 
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestReferencedMutationRequest>(), context.Object, CancellationToken.None))
-            .ReturnsAsync(CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(
+            .ReturnsAsync(CodeActionExecutionResult.Success(
                 MutationCandidateTestData.CreateWorkspaceCandidate()));
 
         var stagingError = new WorkspaceOperationError
@@ -327,7 +327,7 @@ public sealed class CodeActionMutationMcpServerToolTests
                 It.IsAny<IReadOnlyList<DiagnosticInfo>>(),
                 It.IsAny<IReadOnlyList<WarningInfo>>(),
                 CancellationToken.None))
-            .ReturnsAsync(WorkspaceOperationResult<MutationStagingOutcome>.Rejected(stagingError));
+            .ReturnsAsync(WorkspaceOperationResult.Rejected<MutationStagingOutcome>(stagingError));
 
         var target = CreateTarget(handler.Object, contextFactory.Object);
         var arguments = McpServerToolTestData.CreateMutationArguments();
@@ -406,7 +406,7 @@ public sealed class CodeActionMutationMcpServerToolTests
 
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestMutationRequest>(), context.Object, CancellationToken.None))
-            .ReturnsAsync(CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate()));
+            .ReturnsAsync(CodeActionExecutionResult.Success(MutationCandidateTestData.CreateWorkspaceCandidate()));
 
         stager
             .Setup(item => item.StageAsync(
@@ -442,7 +442,7 @@ public sealed class CodeActionMutationMcpServerToolTests
 
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestMutationRequest>(), context.Object, cancellationSource.Token))
-            .ReturnsAsync(CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate()));
+            .ReturnsAsync(CodeActionExecutionResult.Success(MutationCandidateTestData.CreateWorkspaceCandidate()));
 
         stager
             .Setup(item => item.StageAsync(
@@ -514,9 +514,9 @@ public sealed class CodeActionMutationMcpServerToolTests
 
         return outcomeName switch
         {
-            "Rejected" => CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(error, RequiredAction.Retry),
-            "Conflict" => CodeActionExecutionResult<WorkspaceMutationCandidate>.Conflict(error, RequiredAction.Retry),
-            "Faulted" => CodeActionExecutionResult<WorkspaceMutationCandidate>.Faulted(error, RequiredAction.Retry),
+            "Rejected" => CodeActionExecutionResult.Rejected<WorkspaceMutationCandidate>(error, RequiredAction.Retry),
+            "Conflict" => CodeActionExecutionResult.Conflict<WorkspaceMutationCandidate>(error, RequiredAction.Retry),
+            "Faulted" => CodeActionExecutionResult.Faulted<WorkspaceMutationCandidate>(error, RequiredAction.Retry),
             _ => throw new InvalidOperationException($"Outcome '{outcomeName}' is not a failure outcome."),
         };
     }

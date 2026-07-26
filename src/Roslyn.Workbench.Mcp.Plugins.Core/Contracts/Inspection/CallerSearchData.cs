@@ -13,5 +13,5 @@ internal sealed record CallerSearchData
     /// <summary>
     /// Gets the returned caller information.
     /// </summary>
-    public BoundedCollection<CallerInfo> Callers { get; init; } = BoundedCollection<CallerInfo>.Empty();
+    public BoundedCollection<CallerInfo> Callers { get; init; } = BoundedCollection.Empty<CallerInfo>();
 }

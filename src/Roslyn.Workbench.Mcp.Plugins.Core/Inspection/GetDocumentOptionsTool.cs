@@ -34,6 +34,6 @@ internal sealed class GetDocumentOptionsTool : QueryToolHandler<GetDocumentOptio
             AnalyzerConfig = await InspectionProjectionFactory.CreateAnalyzerConfigInfoAsync(document, cancellationToken),
         };
 
-        return PluginExecutionResult<DocumentOptionsData>.Success(data);
+        return PluginExecutionResult.Success(data);
     }
 }

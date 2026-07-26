@@ -7,7 +7,7 @@ public sealed class GetTestImpactToolTests
     {
         var target = new GetTestImpactTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<TestImpactData>.Rejected(new PluginExecutionError
+        var expected = PluginExecutionResult.Rejected<TestImpactData>(new PluginExecutionError
         {
             Code = "SymbolNotFound",
             Message = "SymbolNotFound",
@@ -25,7 +25,7 @@ public sealed class GetTestImpactToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, TestImpactData>.Rejected(expected));
+            .ReturnsAsync(ToolResolutionResult.Rejected<ISymbol, TestImpactData>(expected));
 
         var result = await target.ExecuteAsync(new GetTestImpactRequest
         {
@@ -54,7 +54,7 @@ public sealed class GetTestImpactToolTests
             "Formatter",
             TestContext.Current.CancellationToken);
 
-        var expected = PluginExecutionResult<TestImpactData>.Rejected(new PluginExecutionError
+        var expected = PluginExecutionResult.Rejected<TestImpactData>(new PluginExecutionError
         {
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
@@ -70,13 +70,13 @@ public sealed class GetTestImpactToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, TestImpactData>.Resolved(symbol));
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, TestImpactData>(symbol));
 
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<TestImpactData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, TestImpactData>.Rejected(expected));
+            .Returns(ToolResolutionResult.Rejected<IReadOnlyList<Document>, TestImpactData>(expected));
 
         var result = await target.ExecuteAsync(new GetTestImpactRequest
         {
@@ -159,13 +159,13 @@ public sealed class GetTestImpactToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, TestImpactData>.Resolved(symbol));
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, TestImpactData>(symbol));
 
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<TestImpactData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, TestImpactData>.Resolved(documents));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, TestImpactData>(documents));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))

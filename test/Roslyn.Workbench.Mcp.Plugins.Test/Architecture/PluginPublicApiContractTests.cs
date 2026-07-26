@@ -13,6 +13,7 @@ public sealed class PluginPublicApiContractTests
         "Roslyn.Workbench.Mcp.Workspace.Projects.SolutionFolderInfo",
         "Roslyn.Workbench.Mcp.Workspace.Projects.SolutionHierarchyResult",
         "Roslyn.Workbench.Mcp.Workspace.Resolution.IWorkspaceResolver",
+        "Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult",
         "Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveResult`1",
         "Roslyn.Workbench.Mcp.Workspace.Resolution.SelectorResolveStatus",
         "Roslyn.Workbench.Mcp.Workspace.Resolution.SnapshotMatchKind",
@@ -46,6 +47,7 @@ public sealed class PluginPublicApiContractTests
 
     private static readonly string[] _expectedExportedTypes =
     [
+        "Roslyn.Workbench.Mcp.Plugins.BoundedCollection",
         "Roslyn.Workbench.Mcp.Plugins.BoundedCollection`1",
         "Roslyn.Workbench.Mcp.Plugins.IMutationContext",
         "Roslyn.Workbench.Mcp.Plugins.IMutationToolHandler",
@@ -63,6 +65,7 @@ public sealed class PluginPublicApiContractTests
         "Roslyn.Workbench.Mcp.Plugins.PluginExecutionError",
         "Roslyn.Workbench.Mcp.Plugins.PluginExecutionOutcome",
         "Roslyn.Workbench.Mcp.Plugins.PluginExecutionOutcomeExtensions",
+        "Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult",
         "Roslyn.Workbench.Mcp.Plugins.PluginExecutionResult`1",
         "Roslyn.Workbench.Mcp.Plugins.QueryToolConfigurationBuilder",
         "Roslyn.Workbench.Mcp.Plugins.RoslynPluginAttribute",
@@ -75,6 +78,7 @@ public sealed class PluginPublicApiContractTests
         "Roslyn.Workbench.Mcp.Plugins.Services.IInspectionContextService",
         "Roslyn.Workbench.Mcp.Plugins.Services.IToolRequestResolver",
         "Roslyn.Workbench.Mcp.Plugins.Services.TestImpactInfo",
+        "Roslyn.Workbench.Mcp.Plugins.Services.ToolResolutionResult",
         "Roslyn.Workbench.Mcp.Plugins.Services.ToolResolutionResult`2",
         "Roslyn.Workbench.Mcp.Plugins.ToolConfigurationBuilder`1",
     ];
@@ -178,6 +182,29 @@ public sealed class PluginPublicApiContractTests
 
         publicConstructors.Should().BeEmpty();
         publicSetters.Should().BeEmpty();
+    }
+
+    [Fact]
+    [Trait("Category", "Contract")]
+    public void GIVEN_PublicGenericResults_WHEN_InspectingStaticMembers_THEN_ShouldUseNonGenericCompanions()
+    {
+        var genericResultTypes = new[]
+        {
+            typeof(BoundedCollection<>),
+            typeof(PluginExecutionResult<>),
+            typeof(SelectorResolveResult<>),
+            typeof(ToolResolutionResult<,>),
+        };
+
+        foreach (var genericResultType in genericResultTypes)
+        {
+            var publicStaticMethods = genericResultType.GetMethods(
+                    BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
+                .Where(static method => !method.IsSpecialName)
+                .ToArray();
+
+            publicStaticMethods.Should().BeEmpty();
+        }
     }
 
     private static IEnumerable<Type> GetPublicSignatureTypes(Type type)

@@ -5,7 +5,7 @@ public sealed class ConvertPropertyToolTests
     [Fact]
     public async Task GIVEN_ToFullDirection_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithFullPropertyProvider()
     {
-        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
+        var expected = CodeActionExecutionResult.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new ConvertPropertyRequest
         {
@@ -54,7 +54,7 @@ public sealed class ConvertPropertyToolTests
     [Fact]
     public async Task GIVEN_ToAutoWhenSafeDirection_WHEN_CallingExecuteAsync_THEN_ShouldStageLocationCodeFixWithAutoPropertyProvider()
     {
-        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
+        var expected = CodeActionExecutionResult.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new ConvertPropertyRequest
         {

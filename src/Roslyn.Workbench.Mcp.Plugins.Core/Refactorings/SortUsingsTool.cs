@@ -20,7 +20,7 @@ internal sealed class SortUsingsTool : MutationToolHandler<SortUsingsRequest>
         var document = documentResolution.Value;
         if (await document.GetSyntaxRootAsync(cancellationToken) is not CompilationUnitSyntax root)
         {
-            return PluginExecutionResultFactory.Rejected<MutationCandidate>("InvalidRequest", "Sort usings requires a compilation unit root.");
+            return PluginExecutionResult.Rejected<MutationCandidate>("InvalidRequest", "Sort usings requires a compilation unit root.");
         }
 
         var orderedUsings = root.Usings
@@ -31,7 +31,7 @@ internal sealed class SortUsingsTool : MutationToolHandler<SortUsingsRequest>
 
         if (root.Usings.SequenceEqual(orderedUsings))
         {
-            return PluginExecutionResult<MutationCandidate>.NoChange();
+            return PluginExecutionResult.NoChange<MutationCandidate>();
         }
 
         var updatedRoot = root.WithUsings(SyntaxFactory.List(orderedUsings));
@@ -43,7 +43,7 @@ internal sealed class SortUsingsTool : MutationToolHandler<SortUsingsRequest>
             Summary = $"Sort using directives in '{document.Name}'.",
         };
 
-        return PluginExecutionResult<MutationCandidate>.Success(candidate);
+        return PluginExecutionResult.Success(candidate);
     }
 
     private static bool IsSystemUsing(UsingDirectiveSyntax usingDirective)

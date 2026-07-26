@@ -7,7 +7,7 @@ public sealed class GetSymbolDependentsToolTests
     {
         var target = new GetSymbolDependentsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<SymbolDependentsData>.Rejected(new PluginExecutionError
+        var expected = PluginExecutionResult.Rejected<SymbolDependentsData>(new PluginExecutionError
         {
             Code = "SymbolNotFound",
             Message = "SymbolNotFound",
@@ -19,7 +19,7 @@ public sealed class GetSymbolDependentsToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, SymbolDependentsData>.Rejected(expected));
+            .ReturnsAsync(ToolResolutionResult.Rejected<ISymbol, SymbolDependentsData>(expected));
 
         var result = await target.ExecuteAsync(new GetSymbolDependentsRequest
         {
@@ -52,7 +52,7 @@ public sealed class GetSymbolDependentsToolTests
             "Formatter",
             TestContext.Current.CancellationToken);
 
-        var expected = PluginExecutionResult<SymbolDependentsData>.Rejected(new PluginExecutionError
+        var expected = PluginExecutionResult.Rejected<SymbolDependentsData>(new PluginExecutionError
         {
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
@@ -64,13 +64,13 @@ public sealed class GetSymbolDependentsToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, SymbolDependentsData>.Resolved(symbol));
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, SymbolDependentsData>(symbol));
 
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<SymbolDependentsData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, SymbolDependentsData>.Rejected(expected));
+            .Returns(ToolResolutionResult.Rejected<IReadOnlyList<Document>, SymbolDependentsData>(expected));
 
         var result = await target.ExecuteAsync(new GetSymbolDependentsRequest
         {
@@ -162,13 +162,13 @@ public sealed class GetSymbolDependentsToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, SymbolDependentsData>.Resolved(symbol));
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, SymbolDependentsData>(symbol));
 
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<SymbolDependentsData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, SymbolDependentsData>.Resolved(documents));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, SymbolDependentsData>(documents));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))

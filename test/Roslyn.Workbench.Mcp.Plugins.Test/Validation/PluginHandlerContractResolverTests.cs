@@ -135,7 +135,7 @@ public sealed class PluginHandlerContractResolverTests
         public ValueTask<PluginExecutionResult<Response>> ExecuteAsync(Request request, IQueryContext context, CancellationToken cancellationToken)
         {
             var response = new Response();
-            var result = PluginExecutionResult<Response>.Success(response);
+            var result = PluginExecutionResult.Success(response);
             return ValueTask.FromResult(result);
         }
     }
@@ -144,7 +144,7 @@ public sealed class PluginHandlerContractResolverTests
     {
         public ValueTask<PluginExecutionResult<MutationCandidate>> ExecuteAsync(Request request, IMutationContext context, CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(PluginExecutionResult<MutationCandidate>.NoChange());
+            return ValueTask.FromResult(PluginExecutionResult.NoChange<MutationCandidate>());
         }
     }
 
@@ -152,7 +152,7 @@ public sealed class PluginHandlerContractResolverTests
     {
         public ValueTask<PluginExecutionResult<string>> ExecuteAsync(Request request, IQueryContext context, CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(PluginExecutionResult<string>.Success("Response"));
+            return ValueTask.FromResult(PluginExecutionResult.Success("Response"));
         }
     }
 
@@ -163,7 +163,7 @@ public sealed class PluginHandlerContractResolverTests
             IQueryContext context,
             CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(PluginExecutionResult<IReadOnlyList<Response>>.Success([]));
+            return ValueTask.FromResult(PluginExecutionResult.Success<IReadOnlyList<Response>>([]));
         }
     }
 
@@ -181,7 +181,7 @@ public sealed class PluginHandlerContractResolverTests
             CancellationToken cancellationToken)
         {
             var response = new Response();
-            var result = PluginExecutionResult<Response>.Success(response);
+            var result = PluginExecutionResult.Success(response);
             return ValueTask.FromResult(result);
         }
 
@@ -190,7 +190,7 @@ public sealed class PluginHandlerContractResolverTests
             IMutationContext context,
             CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(PluginExecutionResult<MutationCandidate>.NoChange());
+            return ValueTask.FromResult(PluginExecutionResult.NoChange<MutationCandidate>());
         }
     }
 
@@ -201,14 +201,14 @@ public sealed class PluginHandlerContractResolverTests
         public ValueTask<PluginExecutionResult<Response>> ExecuteAsync(Request request, IQueryContext context, CancellationToken cancellationToken)
         {
             var response = new Response();
-            var result = PluginExecutionResult<Response>.Success(response);
+            var result = PluginExecutionResult.Success(response);
             return ValueTask.FromResult(result);
         }
 
         public ValueTask<PluginExecutionResult<Response>> ExecuteAsync(SecondRequest request, IQueryContext context, CancellationToken cancellationToken)
         {
             var response = new Response();
-            var result = PluginExecutionResult<Response>.Success(response);
+            var result = PluginExecutionResult.Success(response);
             return ValueTask.FromResult(result);
         }
     }
@@ -218,7 +218,7 @@ public sealed class PluginHandlerContractResolverTests
         public ValueTask<PluginExecutionResult<Response>> ExecuteAsync(PrivateRequest request, IQueryContext context, CancellationToken cancellationToken)
         {
             var response = new Response();
-            var result = PluginExecutionResult<Response>.Success(response);
+            var result = PluginExecutionResult.Success(response);
             return ValueTask.FromResult(result);
         }
     }
@@ -230,7 +230,7 @@ public sealed class PluginHandlerContractResolverTests
             IQueryContext context,
             CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(PluginExecutionResult<IReadOnlyList<PrivateResponse>>.Success([]));
+            return ValueTask.FromResult(PluginExecutionResult.Success<IReadOnlyList<PrivateResponse>>([]));
         }
     }
 
@@ -241,7 +241,7 @@ public sealed class PluginHandlerContractResolverTests
             IQueryContext context,
             CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(PluginExecutionResult<PrivateResponse[]>.Success([]));
+            return ValueTask.FromResult(PluginExecutionResult.Success<PrivateResponse[]>([]));
         }
     }
 #pragma warning restore CA1812

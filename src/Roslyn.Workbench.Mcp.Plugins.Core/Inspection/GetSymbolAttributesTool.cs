@@ -48,10 +48,10 @@ internal sealed class GetSymbolAttributesTool : QueryToolHandler<GetSymbolAttrib
         var data = new SymbolAttributesData
         {
             Symbol = symbolReference,
-            Attributes = BoundedCollection<AttributeInfo>.CreatePrebounded(attributes, discoveredAttributes.Count),
+            Attributes = BoundedCollection.CreatePrebounded(attributes, discoveredAttributes.Count),
         };
 
-        return PluginExecutionResult<SymbolAttributesData>.Success(data);
+        return PluginExecutionResult.Success(data);
     }
 
     private static AttributeInfo CreateAttributeInfo(AttributeData attributeData, bool inherited)

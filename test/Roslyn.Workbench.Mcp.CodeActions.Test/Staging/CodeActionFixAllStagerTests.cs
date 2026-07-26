@@ -150,7 +150,7 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
     public async Task GIVEN_SnapshotDoesNotMatch_WHEN_StagingFixAll_THEN_ShouldReturnConflict()
     {
         var expectedSnapshot = new SnapshotPrecondition();
-        var rejection = CodeActionExecutionResult<WorkspaceMutationCandidate>.Conflict(
+        var rejection = CodeActionExecutionResult.Conflict<WorkspaceMutationCandidate>(
             new CodeActionExecutionError
             {
                 Code = "SnapshotMismatch",
@@ -164,7 +164,7 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
                 DiscoveredActionKind.CodeFix,
                 _context.Object,
                 CancellationToken.None))
-            .ReturnsAsync(CodeActionResolution<WorkspaceMutationCandidate>.Rejected(rejection));
+            .ReturnsAsync(CodeActionResolution.Rejected(rejection));
 
         var result = await _target.StageFixAllAsync(
             CreateRequest(ScopeKind.Solution) with
@@ -189,7 +189,7 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
                 DiscoveredActionKind.CodeFix,
                 _context.Object,
                 CancellationToken.None))
-            .ReturnsAsync(CodeActionResolution<WorkspaceMutationCandidate>.Rejected(rejection));
+            .ReturnsAsync(CodeActionResolution.Rejected(rejection));
 
         var result = await _target.StageFixAllAsync(
             CreateRequest(ScopeKind.Solution),
@@ -209,7 +209,7 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
                 DiscoveredActionKind.CodeFix,
                 _context.Object,
                 CancellationToken.None))
-            .ReturnsAsync(CodeActionResolution<WorkspaceMutationCandidate>.Rejected(
+            .ReturnsAsync(CodeActionResolution.Rejected(
                 CreateRejection(),
                 CodeActionResolutionFailureKind.ProviderUnavailable));
 
@@ -660,7 +660,7 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
 
     private CodeActionResolution<WorkspaceMutationCandidate> CreateResolution()
     {
-        return CodeActionResolution<WorkspaceMutationCandidate>.Resolved(
+        return CodeActionResolution.Resolved<WorkspaceMutationCandidate>(
             _discoveredAction,
             _roslyn.Document,
             new TextSpan(0, 1),
@@ -678,7 +678,7 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
             Message = "Message",
         };
 
-        return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(error);
+        return CodeActionExecutionResult.Rejected<WorkspaceMutationCandidate>(error);
     }
 
     private static CodeActionScopeResolution CreateScopeRejection()

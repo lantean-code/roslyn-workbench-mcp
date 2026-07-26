@@ -18,13 +18,13 @@ internal sealed class RenameSymbolTool : MutationToolHandler<RenameSymbolRequest
 
         if (string.IsNullOrWhiteSpace(request.NewName))
         {
-            return PluginExecutionResultFactory.Rejected<MutationCandidate>("InvalidRequest", "A newName value is required.");
+            return PluginExecutionResult.Rejected<MutationCandidate>("InvalidRequest", "A newName value is required.");
         }
 
         var symbol = symbolResolution.Value;
         if (string.Equals(symbol.Name, request.NewName, StringComparison.Ordinal))
         {
-            return PluginExecutionResult<MutationCandidate>.NoChange();
+            return PluginExecutionResult.NoChange<MutationCandidate>();
         }
 
         var options = new SymbolRenameOptions(
@@ -36,7 +36,7 @@ internal sealed class RenameSymbolTool : MutationToolHandler<RenameSymbolRequest
         var candidateSolution = await Renamer.RenameSymbolAsync(context.CurrentSolution, symbol, options, request.NewName, cancellationToken);
         if (ReferenceEquals(candidateSolution, context.CurrentSolution))
         {
-            return PluginExecutionResult<MutationCandidate>.NoChange();
+            return PluginExecutionResult.NoChange<MutationCandidate>();
         }
 
         var candidate = new MutationCandidate
@@ -45,6 +45,6 @@ internal sealed class RenameSymbolTool : MutationToolHandler<RenameSymbolRequest
             Summary = $"Rename '{symbol.Name}' to '{request.NewName}'.",
         };
 
-        return PluginExecutionResult<MutationCandidate>.Success(candidate);
+        return PluginExecutionResult.Success(candidate);
     }
 }

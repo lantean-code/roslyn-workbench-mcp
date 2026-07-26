@@ -38,7 +38,7 @@ public sealed class FindDependencyCyclesToolTests
         var target = new FindDependencyCyclesTool();
         var queryContextMocks = QueryContextMockHelper.Create();
         var dependencyAnalysisService = new Mock<IDependencyAnalysisService>();
-        var expected = PluginExecutionResult<DependencyCyclesData>.Rejected(new PluginExecutionError
+        var expected = PluginExecutionResult.Rejected<DependencyCyclesData>(new PluginExecutionError
         {
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
@@ -56,7 +56,7 @@ public sealed class FindDependencyCyclesToolTests
             .Setup(item => item.ResolveDocuments<DependencyCyclesData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DependencyCyclesData>.Rejected(expected));
+            .Returns(ToolResolutionResult.Rejected<IReadOnlyList<Document>, DependencyCyclesData>(expected));
 
         var result = await target.ExecuteAsync(new FindDependencyCyclesRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -72,7 +72,7 @@ public sealed class FindDependencyCyclesToolTests
         var target = new FindDependencyCyclesTool();
         var queryContextMocks = QueryContextMockHelper.Create();
         var dependencyAnalysisService = new Mock<IDependencyAnalysisService>();
-        var expected = PluginExecutionResult<DependencyCyclesData>.Rejected(new PluginExecutionError
+        var expected = PluginExecutionResult.Rejected<DependencyCyclesData>(new PluginExecutionError
         {
             Code = "ProjectNotFound",
             Message = "ProjectNotFound",
@@ -90,13 +90,13 @@ public sealed class FindDependencyCyclesToolTests
             .Setup(item => item.ResolveDocuments<DependencyCyclesData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DependencyCyclesData>.Resolved([document.Document]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, DependencyCyclesData>([document.Document]));
 
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveProjects<DependencyCyclesData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Project>, DependencyCyclesData>.Rejected(expected));
+            .Returns(ToolResolutionResult.Rejected<IReadOnlyList<Project>, DependencyCyclesData>(expected));
 
         var result = await target.ExecuteAsync(new FindDependencyCyclesRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -162,13 +162,13 @@ public sealed class FindDependencyCyclesToolTests
             .Setup(item => item.ResolveDocuments<DependencyCyclesData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DependencyCyclesData>.Resolved([document.Document]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, DependencyCyclesData>([document.Document]));
 
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveProjects<DependencyCyclesData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Project>, DependencyCyclesData>.Resolved([document.Document.Project!]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Project>, DependencyCyclesData>([document.Document.Project!]));
 
         dependencyAnalysisService
             .Setup(item => item.FindCyclesAsync(

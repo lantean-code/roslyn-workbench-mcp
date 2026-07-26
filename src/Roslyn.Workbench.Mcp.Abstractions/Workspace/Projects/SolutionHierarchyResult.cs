@@ -61,6 +61,8 @@ public sealed record SolutionHierarchyResult
     /// <returns>The failed result.</returns>
     public static SolutionHierarchyResult Failed(string errorMessage)
     {
+        ArgumentNullException.ThrowIfNull(errorMessage);
+
         return new SolutionHierarchyResult(
             folders: [],
             new Dictionary<string, string?>(StringComparer.Ordinal),

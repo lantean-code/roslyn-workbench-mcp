@@ -131,7 +131,7 @@ public sealed class CodeActionSelectionStagerTests
         var location = await CreateLocationAsync(otherRoslyn.Document);
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
-            .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+            .ReturnsAsync(SelectorResolveResult.Resolved(location));
 
         _context.SetupGet(item => item.CurrentSolution).Returns(currentRoslyn.Solution);
 
@@ -156,7 +156,7 @@ public sealed class CodeActionSelectionStagerTests
         var location = await CreateLocationAsync(roslyn.Document);
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
-            .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+            .ReturnsAsync(SelectorResolveResult.Resolved(location));
 
         _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
         _discoveryService
@@ -192,7 +192,7 @@ public sealed class CodeActionSelectionStagerTests
         var request = CreateMismatchingRequest(selector, filter);
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
-            .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+            .ReturnsAsync(SelectorResolveResult.Resolved(location));
 
         _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
         _discoveryService
@@ -225,7 +225,7 @@ public sealed class CodeActionSelectionStagerTests
 
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
-            .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+            .ReturnsAsync(SelectorResolveResult.Resolved(location));
 
         _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
         _discoveryService
@@ -260,7 +260,7 @@ public sealed class CodeActionSelectionStagerTests
         var secondAction = CreateDiscoveredAction(roslyn.Solution, "SecondTitle", "SecondEquivalenceKey", [2]);
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
-            .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+            .ReturnsAsync(SelectorResolveResult.Resolved(location));
 
         _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
         _discoveryService
@@ -303,7 +303,7 @@ public sealed class CodeActionSelectionStagerTests
         var action = CreateDiscoveredAction(roslyn.Solution, "Title", "EquivalenceKey", [], executionMode);
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
-            .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+            .ReturnsAsync(SelectorResolveResult.Resolved(location));
 
         _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
         _discoveryService
@@ -342,7 +342,7 @@ public sealed class CodeActionSelectionStagerTests
         var action = CreateDiscoveredAction(roslyn.Solution, "Title", "EquivalenceKey", [1]);
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
-            .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+            .ReturnsAsync(SelectorResolveResult.Resolved(location));
 
         _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
         _discoveryService
@@ -389,7 +389,7 @@ public sealed class CodeActionSelectionStagerTests
         var secondAction = CreateDiscoveredAction(roslyn.Solution, "Title", "EquivalenceKey", [1]);
         _workspaceResolver
             .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
-            .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+            .ReturnsAsync(SelectorResolveResult.Resolved(location));
 
         _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
         _discoveryService

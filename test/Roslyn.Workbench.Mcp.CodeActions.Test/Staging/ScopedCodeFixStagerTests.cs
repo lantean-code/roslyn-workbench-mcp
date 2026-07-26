@@ -818,7 +818,7 @@ public sealed class ScopedCodeFixStagerTests : IDisposable
             Message = "Message",
         };
 
-        return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(error);
+        return CodeActionExecutionResult.Rejected<WorkspaceMutationCandidate>(error);
     }
 
     private static CodeActionScopeResolution CreateScopeRejection()

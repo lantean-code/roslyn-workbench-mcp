@@ -5,7 +5,7 @@ public sealed class AddAwaitToolTests
     [Fact]
     public async Task GIVEN_AwaitKind_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithAwaitActionPath()
     {
-        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
+        var expected = CodeActionExecutionResult.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new AddAwaitRequest
         {
@@ -53,7 +53,7 @@ public sealed class AddAwaitToolTests
     [Fact]
     public async Task GIVEN_AwaitConfigureAwaitFalseKind_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithConfigureAwaitActionPath()
     {
-        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
+        var expected = CodeActionExecutionResult.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new AddAwaitRequest
         {

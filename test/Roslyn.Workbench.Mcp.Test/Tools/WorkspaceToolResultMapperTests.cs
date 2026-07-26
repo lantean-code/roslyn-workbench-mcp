@@ -69,14 +69,14 @@ public sealed class WorkspaceToolResultMapperTests
         {
             var data = new TestSource { Value = "Value" };
 
-            return WorkspaceOperationResult<TestSource>.Succeeded(data, context, diagnostics, warnings);
+            return WorkspaceOperationResult.Succeeded(data, context, diagnostics, warnings);
         }
 
         if (status == WorkspaceOperationStatus.NoChange)
         {
             var data = includeData ? new TestSource { Value = "Value" } : null;
 
-            return WorkspaceOperationResult<TestSource>.NoChange(data, context, diagnostics, warnings);
+            return WorkspaceOperationResult.NoChange(data, context, diagnostics, warnings);
         }
 
         var error = new WorkspaceOperationError
@@ -88,9 +88,9 @@ public sealed class WorkspaceToolResultMapperTests
 
         return status switch
         {
-            WorkspaceOperationStatus.Rejected => WorkspaceOperationResult<TestSource>.Rejected(error, context, diagnostics, warnings),
-            WorkspaceOperationStatus.Conflict => WorkspaceOperationResult<TestSource>.Conflict(error, context, diagnostics, warnings),
-            WorkspaceOperationStatus.Faulted => WorkspaceOperationResult<TestSource>.Faulted(error, context, diagnostics, warnings),
+            WorkspaceOperationStatus.Rejected => WorkspaceOperationResult.Rejected<TestSource>(error, context, diagnostics, warnings),
+            WorkspaceOperationStatus.Conflict => WorkspaceOperationResult.Conflict<TestSource>(error, context, diagnostics, warnings),
+            WorkspaceOperationStatus.Faulted => WorkspaceOperationResult.Faulted<TestSource>(error, context, diagnostics, warnings),
             _ => throw new ArgumentOutOfRangeException(nameof(status), status, "A supported workspace status is required."),
         };
     }

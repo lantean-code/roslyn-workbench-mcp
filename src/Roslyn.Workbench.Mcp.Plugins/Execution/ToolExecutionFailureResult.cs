@@ -59,17 +59,17 @@ internal sealed record ToolExecutionFailureResult
     {
         return Outcome switch
         {
-            PluginExecutionOutcome.Rejected => PluginExecutionResult<TResponse>.Rejected(
+            PluginExecutionOutcome.Rejected => PluginExecutionResult.Rejected<TResponse>(
                 Error,
                 RequiredAction,
                 Diagnostics,
                 Warnings),
-            PluginExecutionOutcome.Conflict => PluginExecutionResult<TResponse>.Conflict(
+            PluginExecutionOutcome.Conflict => PluginExecutionResult.Conflict<TResponse>(
                 Error,
                 RequiredAction,
                 Diagnostics,
                 Warnings),
-            PluginExecutionOutcome.Faulted => PluginExecutionResult<TResponse>.Faulted(
+            PluginExecutionOutcome.Faulted => PluginExecutionResult.Faulted<TResponse>(
                 Error,
                 RequiredAction,
                 Diagnostics,

@@ -22,22 +22,22 @@ internal static class PluginWorkspaceResultMapper
         return result.Status switch
         {
             WorkspaceOperationStatus.Succeeded when result.HasData => MapSuccess(result, result.Data),
-            WorkspaceOperationStatus.Rejected when result.HasError => PluginExecutionResult<MutationData>.Rejected(
+            WorkspaceOperationStatus.Rejected when result.HasError => PluginExecutionResult.Rejected<MutationData>(
                 MapError(result.Error),
                 result.Error.RequiredAction,
                 result.Diagnostics,
                 result.Warnings),
-            WorkspaceOperationStatus.Conflict when result.HasError => PluginExecutionResult<MutationData>.Conflict(
+            WorkspaceOperationStatus.Conflict when result.HasError => PluginExecutionResult.Conflict<MutationData>(
                 MapError(result.Error),
                 result.Error.RequiredAction,
                 result.Diagnostics,
                 result.Warnings),
-            WorkspaceOperationStatus.Faulted when result.HasError => PluginExecutionResult<MutationData>.Faulted(
+            WorkspaceOperationStatus.Faulted when result.HasError => PluginExecutionResult.Faulted<MutationData>(
                 MapError(result.Error),
                 result.Error.RequiredAction,
                 result.Diagnostics,
                 result.Warnings),
-            WorkspaceOperationStatus.NoChange => PluginExecutionResult<MutationData>.NoChange(
+            WorkspaceOperationStatus.NoChange => PluginExecutionResult.NoChange<MutationData>(
                 diagnostics: result.Diagnostics,
                 warnings: result.Warnings),
             _ => throw new InvalidOperationException($"Unsupported workspace operation status '{result.Status}'."),
@@ -56,7 +56,7 @@ internal static class PluginWorkspaceResultMapper
             Preview = outcome.Preview,
         };
 
-        return PluginExecutionResult<MutationData>.Success(
+        return PluginExecutionResult.Success(
             data,
             outcome.Changes,
             result.Diagnostics,

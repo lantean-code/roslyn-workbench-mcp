@@ -13,5 +13,5 @@ internal sealed record ReferenceSearchData
     /// <summary>
     /// Gets the returned references.
     /// </summary>
-    public BoundedCollection<ReferenceLocation> References { get; init; } = BoundedCollection<ReferenceLocation>.Empty();
+    public BoundedCollection<ReferenceLocation> References { get; init; } = BoundedCollection.Empty<ReferenceLocation>();
 }

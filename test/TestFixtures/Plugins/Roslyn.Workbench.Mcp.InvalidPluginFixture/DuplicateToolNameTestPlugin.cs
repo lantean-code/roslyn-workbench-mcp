@@ -38,7 +38,7 @@ public sealed class DuplicateToolNameTestPlugin : IRoslynPlugin
                 Value = string.Empty,
             };
 
-            var result = PluginExecutionResult<Response>.Success(response);
+            var result = PluginExecutionResult.Success(response);
             return ValueTask.FromResult(result);
         }
     }

@@ -7,7 +7,7 @@ public sealed class GetPartialDeclarationsToolTests
     {
         var target = new GetPartialDeclarationsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<PartialDeclarationsData>.Rejected(new PluginExecutionError
+        var expected = PluginExecutionResult.Rejected<PartialDeclarationsData>(new PluginExecutionError
         {
             Code = "SymbolNotFound",
             Message = "SymbolNotFound",
@@ -19,7 +19,7 @@ public sealed class GetPartialDeclarationsToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, PartialDeclarationsData>.Rejected(expected));
+            .ReturnsAsync(ToolResolutionResult.Rejected<ISymbol, PartialDeclarationsData>(expected));
 
         var result = await target.ExecuteAsync(new GetPartialDeclarationsRequest
         {
@@ -87,7 +87,7 @@ public sealed class GetPartialDeclarationsToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, PartialDeclarationsData>.Resolved(symbol));
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, PartialDeclarationsData>(symbol));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))

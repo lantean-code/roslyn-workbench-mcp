@@ -15,7 +15,7 @@ internal sealed class FindOverloadsTool : QueryToolHandler<FindOverloadsRequest,
 
         if (symbolResolution.Value is not IMethodSymbol methodSymbol)
         {
-            return PluginExecutionResultFactory.Rejected<OverloadSearchData>("InvalidRequest", "Find overloads requires a method or constructor symbol.");
+            return PluginExecutionResult.Rejected<OverloadSearchData>("InvalidRequest", "Find overloads requires a method or constructor symbol.");
         }
 
         var overloads = new List<IMethodSymbol>();
@@ -70,10 +70,10 @@ internal sealed class FindOverloadsTool : QueryToolHandler<FindOverloadsRequest,
         var data = new OverloadSearchData
         {
             Symbol = symbolReference,
-            Overloads = BoundedCollection<CallableSignature>.CreatePrebounded(signatures, distinctOverloads.Count),
+            Overloads = BoundedCollection.CreatePrebounded(signatures, distinctOverloads.Count),
         };
 
-        return PluginExecutionResult<OverloadSearchData>.Success(data);
+        return PluginExecutionResult.Success(data);
     }
 
     private static CallableSignature CreateCallableSignature(IMethodSymbol methodSymbol)

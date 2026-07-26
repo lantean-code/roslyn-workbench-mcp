@@ -99,7 +99,7 @@ public sealed class CodeActionWorkspaceResultMapperTests
                 },
             };
 
-            return WorkspaceOperationResult<MutationStagingOutcome>.Succeeded(
+            return WorkspaceOperationResult.Succeeded(
                 data,
                 diagnostics: diagnostics,
                 warnings: warnings);
@@ -107,7 +107,7 @@ public sealed class CodeActionWorkspaceResultMapperTests
 
         if (status == WorkspaceOperationStatus.NoChange)
         {
-            return WorkspaceOperationResult<MutationStagingOutcome>.NoChange(
+            return WorkspaceOperationResult.NoChange<MutationStagingOutcome>(
                 diagnostics: diagnostics,
                 warnings: warnings);
         }
@@ -116,15 +116,15 @@ public sealed class CodeActionWorkspaceResultMapperTests
 
         return status switch
         {
-            WorkspaceOperationStatus.Rejected => WorkspaceOperationResult<MutationStagingOutcome>.Rejected(
+            WorkspaceOperationStatus.Rejected => WorkspaceOperationResult.Rejected<MutationStagingOutcome>(
                 error,
                 diagnostics: diagnostics,
                 warnings: warnings),
-            WorkspaceOperationStatus.Conflict => WorkspaceOperationResult<MutationStagingOutcome>.Conflict(
+            WorkspaceOperationStatus.Conflict => WorkspaceOperationResult.Conflict<MutationStagingOutcome>(
                 error,
                 diagnostics: diagnostics,
                 warnings: warnings),
-            WorkspaceOperationStatus.Faulted => WorkspaceOperationResult<MutationStagingOutcome>.Faulted(
+            WorkspaceOperationStatus.Faulted => WorkspaceOperationResult.Faulted<MutationStagingOutcome>(
                 error,
                 diagnostics: diagnostics,
                 warnings: warnings),

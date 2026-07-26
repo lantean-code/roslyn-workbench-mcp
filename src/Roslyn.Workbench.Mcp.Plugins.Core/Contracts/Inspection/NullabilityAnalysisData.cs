@@ -8,5 +8,5 @@ internal sealed record NullabilityAnalysisData
     /// <summary>
     /// Gets the returned findings.
     /// </summary>
-    public BoundedCollection<NullabilityFinding> Findings { get; init; } = BoundedCollection<NullabilityFinding>.Empty();
+    public BoundedCollection<NullabilityFinding> Findings { get; init; } = BoundedCollection.Empty<NullabilityFinding>();
 }

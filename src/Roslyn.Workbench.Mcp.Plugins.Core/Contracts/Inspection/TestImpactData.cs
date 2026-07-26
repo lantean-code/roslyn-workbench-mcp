@@ -13,5 +13,5 @@ internal sealed record TestImpactData
     /// <summary>
     /// Gets the returned impacted tests.
     /// </summary>
-    public BoundedCollection<TestImpactInfo> Tests { get; init; } = BoundedCollection<TestImpactInfo>.Empty();
+    public BoundedCollection<TestImpactInfo> Tests { get; init; } = BoundedCollection.Empty<TestImpactInfo>();
 }

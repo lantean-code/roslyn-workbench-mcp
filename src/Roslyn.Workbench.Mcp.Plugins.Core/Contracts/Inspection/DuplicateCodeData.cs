@@ -8,5 +8,5 @@ internal sealed record DuplicateCodeData
     /// <summary>
     /// Gets the returned duplicate groups.
     /// </summary>
-    public BoundedCollection<DuplicateCodeGroup> Groups { get; init; } = BoundedCollection<DuplicateCodeGroup>.Empty();
+    public BoundedCollection<DuplicateCodeGroup> Groups { get; init; } = BoundedCollection.Empty<DuplicateCodeGroup>();
 }

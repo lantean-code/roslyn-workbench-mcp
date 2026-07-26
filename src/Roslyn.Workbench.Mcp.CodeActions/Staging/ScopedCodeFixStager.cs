@@ -94,18 +94,24 @@ internal sealed class ScopedCodeFixStager : IScopedCodeFixStager
 
         if (request.MaxChanges is int maxChanges && changedDocumentCount > maxChanges)
         {
-            return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
+            var error = new CodeActionExecutionError
             {
                 Code = "FixAllLimitExceeded",
                 Message = $"The fix-all operation would change {changedDocumentCount} source documents, exceeding the limit of {maxChanges}.",
-            }, RequiredAction.NarrowRequest);
+            };
+
+            return CodeActionExecutionResult.Rejected<WorkspaceMutationCandidate>(
+                error,
+                RequiredAction.NarrowRequest);
         }
 
-        return CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(new WorkspaceMutationCandidate
+        var mutationCandidate = new WorkspaceMutationCandidate
         {
             CandidateSolution = application.CandidateSolution,
             Summary = candidate.Title,
-        });
+        };
+
+        return CodeActionExecutionResult.Success(mutationCandidate);
     }
 
     private ValueTask<CodeActionApplyResult> ApplyCandidateAsync(
@@ -403,7 +409,7 @@ internal sealed class ScopedCodeFixStager : IScopedCodeFixStager
             return Rejected<WorkspaceMutationCandidate>(code, resolution.Message);
         }
 
-        return CodeActionExecutionResult<WorkspaceMutationCandidate>.NoChange();
+        return CodeActionExecutionResult.NoChange<WorkspaceMutationCandidate>();
     }
 
     private CodeActionExecutionResult<WorkspaceMutationCandidate>? RejectedIfUnavailable()

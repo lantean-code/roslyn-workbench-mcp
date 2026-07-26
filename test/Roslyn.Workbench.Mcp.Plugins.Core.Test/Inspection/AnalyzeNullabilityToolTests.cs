@@ -9,7 +9,7 @@ public sealed class AnalyzeNullabilityToolTests
     {
         var target = new AnalyzeNullabilityTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<NullabilityAnalysisData>.Conflict(new PluginExecutionError
+        var expected = PluginExecutionResult.Conflict<NullabilityAnalysisData>(new PluginExecutionError
         {
             Code = "SnapshotMismatch",
             Message = "SnapshotMismatch",
@@ -48,7 +48,7 @@ public sealed class AnalyzeNullabilityToolTests
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(SelectorResolveResult<Location>.NotFound());
+            .ReturnsAsync(SelectorResolveResult.NotFound<Location>());
 
         var result = await target.ExecuteAsync(new AnalyzeNullabilityRequest
         {
@@ -79,7 +79,7 @@ public sealed class AnalyzeNullabilityToolTests
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(SelectorResolveResult<Location>.Ambiguous());
+            .ReturnsAsync(SelectorResolveResult.Ambiguous<Location>());
 
         var result = await target.ExecuteAsync(new AnalyzeNullabilityRequest
         {
@@ -129,7 +129,7 @@ public sealed class AnalyzeNullabilityToolTests
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(SelectorResolveResult<Location>.Resolved(selectedLocation));
+            .ReturnsAsync(SelectorResolveResult.Resolved(selectedLocation));
 
         var result = await target.ExecuteAsync(new AnalyzeNullabilityRequest
         {
@@ -193,7 +193,7 @@ public sealed class AnalyzeNullabilityToolTests
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(SelectorResolveResult<Location>.Resolved(selectedLocation));
+            .ReturnsAsync(SelectorResolveResult.Resolved(selectedLocation));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.Is<Location>(location =>
@@ -234,7 +234,7 @@ public sealed class AnalyzeNullabilityToolTests
     {
         var target = new AnalyzeNullabilityTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<NullabilityAnalysisData>.Rejected(new PluginExecutionError
+        var expected = PluginExecutionResult.Rejected<NullabilityAnalysisData>(new PluginExecutionError
         {
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
@@ -244,7 +244,7 @@ public sealed class AnalyzeNullabilityToolTests
             .Setup(item => item.ResolveDocuments<NullabilityAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, NullabilityAnalysisData>.Rejected(expected));
+            .Returns(ToolResolutionResult.Rejected<IReadOnlyList<Document>, NullabilityAnalysisData>(expected));
 
         var result = await target.ExecuteAsync(new AnalyzeNullabilityRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -319,7 +319,7 @@ public sealed class AnalyzeNullabilityToolTests
             .Setup(item => item.ResolveDocuments<NullabilityAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, NullabilityAnalysisData>.Resolved(documents));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, NullabilityAnalysisData>(documents));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.Is<Location>(location =>
@@ -391,7 +391,7 @@ public sealed class AnalyzeNullabilityToolTests
             .Setup(item => item.ResolveDocuments<NullabilityAnalysisData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, NullabilityAnalysisData>.Resolved([document.Document]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, NullabilityAnalysisData>([document.Document]));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.Is<Location>(location =>

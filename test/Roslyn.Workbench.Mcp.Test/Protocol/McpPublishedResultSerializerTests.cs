@@ -5,7 +5,7 @@ public sealed class McpPublishedResultSerializerTests
     [Fact]
     public void GIVEN_QueryScalarPayload_WHEN_Serializing_THEN_ShouldThrowInvalidOperationException()
     {
-        var result = PluginExecutionResult<string>.Success("Value");
+        var result = PluginExecutionResult.Success("Value");
 
         var action = () => McpPublishedResultSerializer.SerializePluginQuery(result);
 

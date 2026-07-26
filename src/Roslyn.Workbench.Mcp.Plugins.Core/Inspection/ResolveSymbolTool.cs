@@ -14,7 +14,7 @@ internal sealed class ResolveSymbolTool : QueryToolHandler<ResolveSymbolRequest,
         var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(request.Location, cancellationToken);
         if (!locationResolution.IsResolved)
         {
-            return PluginExecutionResultFactory.RejectedFromStatus<ResolveSymbolData>(locationResolution.Status, "Location", "location");
+            return SelectorRejectionFactory.Create<ResolveSymbolData>(locationResolution.Status, "Location", "location");
         }
 
         var symbolResolution = await context.WorkspaceResolver.ResolveSymbolAsync(new SymbolSelector
@@ -24,7 +24,7 @@ internal sealed class ResolveSymbolTool : QueryToolHandler<ResolveSymbolRequest,
 
         if (!symbolResolution.IsResolved)
         {
-            return PluginExecutionResultFactory.RejectedFromStatus<ResolveSymbolData>(symbolResolution.Status, "Symbol", "symbol");
+            return SelectorRejectionFactory.Create<ResolveSymbolData>(symbolResolution.Status, "Symbol", "symbol");
         }
 
         var symbol = symbolResolution.Value;
@@ -62,6 +62,6 @@ internal sealed class ResolveSymbolTool : QueryToolHandler<ResolveSymbolRequest,
             Declarations = orderedDeclarations,
         };
 
-        return PluginExecutionResult<ResolveSymbolData>.Success(data);
+        return PluginExecutionResult.Success(data);
     }
 }

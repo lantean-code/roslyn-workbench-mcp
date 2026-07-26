@@ -80,9 +80,9 @@ internal sealed class FindCallersTool : QueryToolHandler<FindCallersRequest, Cal
         var data = new CallerSearchData
         {
             Symbol = symbolReference,
-            Callers = BoundedCollection<CallerInfo>.CreatePrebounded(callers, orderedCallers.Length),
+            Callers = BoundedCollection.CreatePrebounded(callers, orderedCallers.Length),
         };
 
-        return PluginExecutionResult<CallerSearchData>.Success(data);
+        return PluginExecutionResult.Success(data);
     }
 }

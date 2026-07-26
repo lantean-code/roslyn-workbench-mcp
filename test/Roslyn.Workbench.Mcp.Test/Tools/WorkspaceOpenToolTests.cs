@@ -12,7 +12,7 @@ public sealed class WorkspaceOpenToolTests
         var service = new Mock<IWorkspaceLifecycleService>();
         service
             .Setup(item => item.OpenAsync("/workspace/Sample.csproj", "Alias", "/workspace", CancellationToken.None))
-            .ReturnsAsync(WorkspaceOperationResult<WorkspaceOpenOutcome>.Succeeded(new WorkspaceOpenOutcome
+            .ReturnsAsync(WorkspaceOperationResult.Succeeded(new WorkspaceOpenOutcome
             {
                 Workspace = new WorkspaceIdentity
                 {

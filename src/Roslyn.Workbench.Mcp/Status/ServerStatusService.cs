@@ -76,7 +76,7 @@ internal sealed class ServerStatusService : IServerStatusService
             Recovery = recovery,
         };
 
-        return ToolResult<ServerStatusData>.Succeeded(status);
+        return ToolResult.Succeeded(status);
     }
 
     private ServerConfiguration GetConfiguration()

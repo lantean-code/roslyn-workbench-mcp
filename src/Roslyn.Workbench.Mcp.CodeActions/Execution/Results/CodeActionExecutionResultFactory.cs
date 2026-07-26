@@ -7,22 +7,36 @@ internal static class CodeActionExecutionResultFactory
         SnapshotPrecondition? expectedSnapshot)
     {
         var result = resolver.ValidateSnapshot(expectedSnapshot);
-        return result.Kind == SnapshotMatchKind.Matched
-            ? null
-            : CodeActionExecutionResult<T>.Conflict(new CodeActionExecutionError
-            {
-                Code = "SnapshotMismatch",
-                Message = "The request snapshot does not match the current workspace snapshot.",
-            }, RequiredAction.ResolveTargetAgain);
+        if (result.Kind == SnapshotMatchKind.Matched)
+        {
+            return null;
+        }
+
+        var error = new CodeActionExecutionError
+        {
+            Code = "SnapshotMismatch",
+            Message = "The request snapshot does not match the current workspace snapshot.",
+        };
+
+        return CodeActionExecutionResult.Conflict<T>(error, RequiredAction.ResolveTargetAgain);
     }
 
-    public static CodeActionExecutionResult<T> RejectFromStatus<T>(SelectorResolveStatus status, string targetCode, string targetDisplayName)
+    public static CodeActionExecutionResult<T> RejectFromStatus<T>(
+        SelectorResolveStatus status,
+        string targetCode,
+        string targetDisplayName)
     {
-        return status switch
+        var (code, message) = status switch
         {
-            SelectorResolveStatus.Ambiguous => Rejected<T>($"{targetCode}Ambiguous", $"The {targetDisplayName} selector matched multiple results.", RequiredAction.ResolveTargetAgain),
-            _ => Rejected<T>($"{targetCode}NotFound", $"The {targetDisplayName} selector did not match any result.", RequiredAction.ResolveTargetAgain),
+            SelectorResolveStatus.Ambiguous => (
+                $"{targetCode}Ambiguous",
+                $"The {targetDisplayName} selector matched multiple results."),
+            _ => (
+                $"{targetCode}NotFound",
+                $"The {targetDisplayName} selector did not match any result."),
         };
+
+        return Rejected<T>(code, message, RequiredAction.ResolveTargetAgain);
     }
 
     public static CodeActionExecutionResult<T> Rejected<T>(
@@ -30,11 +44,13 @@ internal static class CodeActionExecutionResultFactory
         string message,
         RequiredAction? requiredAction = null)
     {
-        return CodeActionExecutionResult<T>.Rejected(new CodeActionExecutionError
+        var error = new CodeActionExecutionError
         {
             Code = code,
             Message = message,
-        }, requiredAction);
+        };
+
+        return CodeActionExecutionResult.Rejected<T>(error, requiredAction);
     }
 
     public static CodeActionExecutionResult<T> Rejected<T>(CodeActionApplyFailure failure)
@@ -52,11 +68,13 @@ internal static class CodeActionExecutionResultFactory
 
     public static CodeActionExecutionResult<WorkspaceMutationCandidate> FixAllUnavailable(string message)
     {
-        return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
+        var error = new CodeActionExecutionError
         {
             Code = "FixAllUnavailable",
             Message = message,
-        });
+        };
+
+        return CodeActionExecutionResult.Rejected<WorkspaceMutationCandidate>(error);
     }
 
     public static CodeActionExecutionResult<T> CodeActionsUnavailable<T>()
@@ -66,10 +84,12 @@ internal static class CodeActionExecutionResultFactory
 
     public static CodeActionExecutionResult<T> ActionExpired<T>()
     {
-        return CodeActionExecutionResult<T>.Rejected(new CodeActionExecutionError
+        var error = new CodeActionExecutionError
         {
             Code = "ActionExpired",
             Message = "The requested action reference is no longer valid.",
-        }, RequiredAction.ResolveTargetAgain);
+        };
+
+        return CodeActionExecutionResult.Rejected<T>(error, RequiredAction.ResolveTargetAgain);
     }
 }

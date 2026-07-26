@@ -26,7 +26,7 @@ public sealed class FindDuplicateCodeToolTests
     {
         var target = new FindDuplicateCodeTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<DuplicateCodeData>.Rejected(new PluginExecutionError
+        var expected = PluginExecutionResult.Rejected<DuplicateCodeData>(new PluginExecutionError
         {
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
@@ -36,7 +36,7 @@ public sealed class FindDuplicateCodeToolTests
             .Setup(item => item.ResolveDocuments<DuplicateCodeData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DuplicateCodeData>.Rejected(expected));
+            .Returns(ToolResolutionResult.Rejected<IReadOnlyList<Document>, DuplicateCodeData>(expected));
 
         var result = await target.ExecuteAsync(new FindDuplicateCodeRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -75,7 +75,7 @@ public sealed class FindDuplicateCodeToolTests
             .Setup(item => item.ResolveDocuments<DuplicateCodeData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DuplicateCodeData>.Resolved([unsupportedDocument.Document, supportedDocument.Document]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, DuplicateCodeData>([unsupportedDocument.Document, supportedDocument.Document]));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
@@ -123,7 +123,7 @@ public sealed class FindDuplicateCodeToolTests
             .Setup(item => item.ResolveDocuments<DuplicateCodeData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DuplicateCodeData>.Resolved([document.Document]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, DuplicateCodeData>([document.Document]));
 
         var result = await target.ExecuteAsync(new FindDuplicateCodeRequest
         {
@@ -165,7 +165,7 @@ public sealed class FindDuplicateCodeToolTests
             .Setup(item => item.ResolveDocuments<DuplicateCodeData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DuplicateCodeData>.Resolved([document.Document]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, DuplicateCodeData>([document.Document]));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
@@ -242,7 +242,7 @@ public sealed class FindDuplicateCodeToolTests
             .Setup(item => item.ResolveDocuments<DuplicateCodeData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DuplicateCodeData>.Resolved([document.Document]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, DuplicateCodeData>([document.Document]));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
@@ -309,7 +309,7 @@ public sealed class FindDuplicateCodeToolTests
             .Setup(item => item.ResolveDocuments<DuplicateCodeData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DuplicateCodeData>.Resolved([document.Document]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, DuplicateCodeData>([document.Document]));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))

@@ -42,7 +42,7 @@ public sealed class ToolHandlerExecutionTests
     {
         protected override ValueTask<PluginExecutionResult<string>> ExecuteCoreAsync(TestWorkspaceBoundRequest request, IQueryContext context, CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(PluginExecutionResult<string>.Success("Value"));
+            return ValueTask.FromResult(PluginExecutionResult.Success("Value"));
         }
     }
 
@@ -50,7 +50,7 @@ public sealed class ToolHandlerExecutionTests
     {
         protected override ValueTask<PluginExecutionResult<MutationCandidate>> ExecuteCoreAsync(TestWorkspaceBoundRequest request, IMutationContext context, CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(PluginExecutionResult<MutationCandidate>.Success(MutationCandidateTestData.CreatePluginCandidate()));
+            return ValueTask.FromResult(PluginExecutionResult.Success(MutationCandidateTestData.CreatePluginCandidate()));
         }
     }
 }

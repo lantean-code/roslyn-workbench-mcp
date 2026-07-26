@@ -746,21 +746,21 @@ public sealed class TransactionCommitServiceTests : IDisposable
         if (status == WorkspaceOperationStatus.Succeeded)
         {
             var outcome = new TransactionCommitOutcome();
-            return WorkspaceOperationResult<TransactionCommitOutcome>.Succeeded(outcome);
+            return WorkspaceOperationResult.Succeeded(outcome);
         }
 
         if (status == WorkspaceOperationStatus.NoChange)
         {
-            return WorkspaceOperationResult<TransactionCommitOutcome>.NoChange();
+            return WorkspaceOperationResult.NoChange<TransactionCommitOutcome>();
         }
 
         var error = new WorkspaceOperationError { Code = "Code", Message = "Message" };
 
         return status switch
         {
-            WorkspaceOperationStatus.Rejected => WorkspaceOperationResult<TransactionCommitOutcome>.Rejected(error),
-            WorkspaceOperationStatus.Conflict => WorkspaceOperationResult<TransactionCommitOutcome>.Conflict(error),
-            WorkspaceOperationStatus.Faulted => WorkspaceOperationResult<TransactionCommitOutcome>.Faulted(error),
+            WorkspaceOperationStatus.Rejected => WorkspaceOperationResult.Rejected<TransactionCommitOutcome>(error),
+            WorkspaceOperationStatus.Conflict => WorkspaceOperationResult.Conflict<TransactionCommitOutcome>(error),
+            WorkspaceOperationStatus.Faulted => WorkspaceOperationResult.Faulted<TransactionCommitOutcome>(error),
             _ => throw new ArgumentOutOfRangeException(nameof(status), status, "A supported workspace status is required."),
         };
     }

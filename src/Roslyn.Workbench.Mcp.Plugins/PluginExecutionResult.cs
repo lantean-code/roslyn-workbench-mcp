@@ -2,7 +2,6 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Roslyn.Workbench.Mcp.Plugins;
 
-#pragma warning disable CA1000 // Outcome factories belong with the generic result contract so plugin authors cannot construct inconsistent states accidentally.
 /// <summary>
 /// Represents the normalized outcome returned by a plugin handler before host mapping.
 /// </summary>
@@ -56,7 +55,7 @@ public sealed record PluginExecutionResult<TResponse>
     [MemberNotNullWhen(true, nameof(Error))]
     public bool HasError => Outcome.IsError();
 
-    private PluginExecutionResult(
+    internal PluginExecutionResult(
         PluginExecutionOutcome outcome,
         TResponse? data,
         ChangeSummary? changes,
@@ -65,6 +64,19 @@ public sealed record PluginExecutionResult<TResponse>
         IReadOnlyList<DiagnosticInfo> diagnostics,
         IReadOnlyList<WarningInfo> warnings)
     {
+        if (outcome == PluginExecutionOutcome.Succeeded)
+        {
+            ArgumentNullException.ThrowIfNull(data);
+        }
+
+        if (outcome.IsError())
+        {
+            ArgumentNullException.ThrowIfNull(error);
+        }
+
+        ArgumentNullException.ThrowIfNull(diagnostics);
+        ArgumentNullException.ThrowIfNull(warnings);
+
         Outcome = outcome;
         Data = data;
         Changes = changes;
@@ -73,21 +85,30 @@ public sealed record PluginExecutionResult<TResponse>
         Diagnostics = diagnostics;
         Warnings = warnings;
     }
+}
 
+/// <summary>
+/// Creates normalized plugin execution results.
+/// </summary>
+public static class PluginExecutionResult
+{
     /// <summary>
     /// Creates a successful plugin execution result.
     /// </summary>
+    /// <typeparam name="TResponse">The successful response payload type.</typeparam>
     /// <param name="data">The successful response payload.</param>
     /// <param name="changes">The optional change summary.</param>
     /// <param name="diagnostics">The diagnostics emitted by the handler.</param>
     /// <param name="warnings">The warnings emitted by the handler.</param>
     /// <returns>The normalized result.</returns>
-    public static PluginExecutionResult<TResponse> Success(
+    public static PluginExecutionResult<TResponse> Success<TResponse>(
         TResponse data,
         ChangeSummary? changes = null,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
     {
+        ArgumentNullException.ThrowIfNull(data);
+
         return new PluginExecutionResult<TResponse>(
             PluginExecutionOutcome.Succeeded,
             data,
@@ -101,11 +122,12 @@ public sealed record PluginExecutionResult<TResponse>
     /// <summary>
     /// Creates a no-change plugin execution result.
     /// </summary>
+    /// <typeparam name="TResponse">The response payload type.</typeparam>
     /// <param name="data">The optional response payload.</param>
     /// <param name="diagnostics">The diagnostics emitted by the handler.</param>
     /// <param name="warnings">The warnings emitted by the handler.</param>
     /// <returns>The normalized result.</returns>
-    public static PluginExecutionResult<TResponse> NoChange(
+    public static PluginExecutionResult<TResponse> NoChange<TResponse>(
         TResponse? data = default,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
@@ -123,18 +145,19 @@ public sealed record PluginExecutionResult<TResponse>
     /// <summary>
     /// Creates a rejected plugin execution result.
     /// </summary>
+    /// <typeparam name="TResponse">The response payload type.</typeparam>
     /// <param name="error">The structured error payload.</param>
     /// <param name="requiredAction">The optional continuation hint.</param>
     /// <param name="diagnostics">The diagnostics emitted by the handler.</param>
     /// <param name="warnings">The warnings emitted by the handler.</param>
     /// <returns>The normalized result.</returns>
-    public static PluginExecutionResult<TResponse> Rejected(
+    public static PluginExecutionResult<TResponse> Rejected<TResponse>(
         PluginExecutionError error,
         RequiredAction? requiredAction = null,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
     {
-        return CreateFailure(
+        return CreateFailure<TResponse>(
             PluginExecutionOutcome.Rejected,
             error,
             requiredAction,
@@ -145,18 +168,19 @@ public sealed record PluginExecutionResult<TResponse>
     /// <summary>
     /// Creates a conflict plugin execution result.
     /// </summary>
+    /// <typeparam name="TResponse">The response payload type.</typeparam>
     /// <param name="error">The structured error payload.</param>
     /// <param name="requiredAction">The optional continuation hint.</param>
     /// <param name="diagnostics">The diagnostics emitted by the handler.</param>
     /// <param name="warnings">The warnings emitted by the handler.</param>
     /// <returns>The normalized result.</returns>
-    public static PluginExecutionResult<TResponse> Conflict(
+    public static PluginExecutionResult<TResponse> Conflict<TResponse>(
         PluginExecutionError error,
         RequiredAction? requiredAction = null,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
     {
-        return CreateFailure(
+        return CreateFailure<TResponse>(
             PluginExecutionOutcome.Conflict,
             error,
             requiredAction,
@@ -167,18 +191,19 @@ public sealed record PluginExecutionResult<TResponse>
     /// <summary>
     /// Creates a faulted plugin execution result.
     /// </summary>
+    /// <typeparam name="TResponse">The response payload type.</typeparam>
     /// <param name="error">The structured error payload.</param>
     /// <param name="requiredAction">The optional continuation hint.</param>
     /// <param name="diagnostics">The diagnostics emitted by the handler.</param>
     /// <param name="warnings">The warnings emitted by the handler.</param>
     /// <returns>The normalized result.</returns>
-    public static PluginExecutionResult<TResponse> Faulted(
+    public static PluginExecutionResult<TResponse> Faulted<TResponse>(
         PluginExecutionError error,
         RequiredAction? requiredAction = null,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
     {
-        return CreateFailure(
+        return CreateFailure<TResponse>(
             PluginExecutionOutcome.Faulted,
             error,
             requiredAction,
@@ -186,7 +211,21 @@ public sealed record PluginExecutionResult<TResponse>
             warnings);
     }
 
-    private static PluginExecutionResult<TResponse> CreateFailure(
+    internal static PluginExecutionResult<TResponse> Rejected<TResponse>(
+        string code,
+        string message,
+        RequiredAction? requiredAction = null)
+    {
+        var error = new PluginExecutionError
+        {
+            Code = code,
+            Message = message,
+        };
+
+        return Rejected<TResponse>(error, requiredAction);
+    }
+
+    private static PluginExecutionResult<TResponse> CreateFailure<TResponse>(
         PluginExecutionOutcome outcome,
         PluginExecutionError error,
         RequiredAction? requiredAction,
@@ -203,4 +242,3 @@ public sealed record PluginExecutionResult<TResponse>
             warnings ?? []);
     }
 }
-#pragma warning restore CA1000

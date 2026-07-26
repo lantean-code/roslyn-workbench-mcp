@@ -5,7 +5,7 @@ public sealed class UseNamedArgumentsToolTests
     [Fact]
     public async Task GIVEN_UseNamedArgumentsRequestWithoutTrailingArguments_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithoutTrailingArgumentsTitle()
     {
-        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
+        var expected = CodeActionExecutionResult.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new UseNamedArgumentsRequest
         {
@@ -54,7 +54,7 @@ public sealed class UseNamedArgumentsToolTests
     [Fact]
     public async Task GIVEN_UseNamedArgumentsRequestWithTrailingArguments_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithTrailingArgumentsTitle()
     {
-        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
+        var expected = CodeActionExecutionResult.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new UseNamedArgumentsRequest
         {

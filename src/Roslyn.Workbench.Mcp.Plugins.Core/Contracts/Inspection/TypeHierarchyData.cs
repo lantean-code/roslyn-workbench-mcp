@@ -13,12 +13,12 @@ internal sealed record TypeHierarchyData
     /// <summary>
     /// Gets the ordered base types.
     /// </summary>
-    public BoundedCollection<SymbolReference> BaseTypes { get; init; } = BoundedCollection<SymbolReference>.Empty();
+    public BoundedCollection<SymbolReference> BaseTypes { get; init; } = BoundedCollection.Empty<SymbolReference>();
 
     /// <summary>
     /// Gets the implemented interfaces.
     /// </summary>
-    public BoundedCollection<SymbolReference> Interfaces { get; init; } = BoundedCollection<SymbolReference>.Empty();
+    public BoundedCollection<SymbolReference> Interfaces { get; init; } = BoundedCollection.Empty<SymbolReference>();
 
     /// <summary>
     /// Gets the optional derived types.

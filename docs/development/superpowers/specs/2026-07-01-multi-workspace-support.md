@@ -353,7 +353,7 @@ After deserialising the request in `ToolExecutor`, pass it to the context factor
 If multiple workspaces are loaded and a request omits `workspace`, reject before invoking plugin code:
 
 ```csharp
-ToolResult<TData>.Rejected(
+ToolResult.Rejected<TData>(
     new ToolError
     {
         Code = "WorkspaceSelectorRequired",
@@ -400,7 +400,7 @@ Before starting a transaction:
 if (hostSnapshot.TransactionOwnerWorkspaceId is not null
     && !StringComparer.Ordinal.Equals(hostSnapshot.TransactionOwnerWorkspaceId, selectedWorkspaceId))
 {
-    return ToolResult<TransactionStartData>.Rejected(...);
+    return ToolResult.Rejected<TransactionStartData>(...);
 }
 ```
 

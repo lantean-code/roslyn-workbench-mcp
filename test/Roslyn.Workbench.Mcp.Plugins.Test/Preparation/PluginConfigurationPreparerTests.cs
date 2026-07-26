@@ -264,7 +264,7 @@ public sealed class PluginConfigurationPreparerTests
             CancellationToken cancellationToken)
         {
             var response = new Response();
-            var result = PluginExecutionResult<Response>.Success(response);
+            var result = PluginExecutionResult.Success(response);
             return ValueTask.FromResult(result);
         }
     }
@@ -277,7 +277,7 @@ public sealed class PluginConfigurationPreparerTests
             IMutationContext context,
             CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(PluginExecutionResult<MutationCandidate>.NoChange());
+            return ValueTask.FromResult(PluginExecutionResult.NoChange<MutationCandidate>());
         }
     }
 
@@ -289,7 +289,7 @@ public sealed class PluginConfigurationPreparerTests
             CancellationToken cancellationToken)
         {
             var response = new Response();
-            var result = PluginExecutionResult<Response>.Success(response);
+            var result = PluginExecutionResult.Success(response);
             return ValueTask.FromResult(result);
         }
     }
@@ -303,7 +303,7 @@ public sealed class PluginConfigurationPreparerTests
             CancellationToken cancellationToken)
         {
             var response = new Response();
-            var result = PluginExecutionResult<Response>.Success(response);
+            var result = PluginExecutionResult.Success(response);
             return ValueTask.FromResult(result);
         }
     }

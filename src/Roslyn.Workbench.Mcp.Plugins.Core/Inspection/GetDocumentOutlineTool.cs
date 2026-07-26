@@ -36,6 +36,6 @@ internal sealed class GetDocumentOutlineTool : QueryToolHandler<GetDocumentOutli
             Root = root,
         };
 
-        return PluginExecutionResult<DocumentOutlineData>.Success(data);
+        return PluginExecutionResult.Success(data);
     }
 }

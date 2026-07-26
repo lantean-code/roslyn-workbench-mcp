@@ -27,7 +27,7 @@ public sealed class GetTypeHierarchyToolTests
     {
         var target = new GetTypeHierarchyTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<TypeHierarchyData>.Rejected(new PluginExecutionError
+        var expected = PluginExecutionResult.Rejected<TypeHierarchyData>(new PluginExecutionError
         {
             Code = "SymbolNotFound",
             Message = "SymbolNotFound",
@@ -39,7 +39,7 @@ public sealed class GetTypeHierarchyToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, TypeHierarchyData>.Rejected(expected));
+            .ReturnsAsync(ToolResolutionResult.Rejected<ISymbol, TypeHierarchyData>(expected));
 
         var result = await target.ExecuteAsync(new GetTypeHierarchyRequest
         {
@@ -77,7 +77,7 @@ public sealed class GetTypeHierarchyToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, TypeHierarchyData>.Resolved(symbol));
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, TypeHierarchyData>(symbol));
 
         var result = await target.ExecuteAsync(new GetTypeHierarchyRequest
         {
@@ -143,7 +143,7 @@ public sealed class GetTypeHierarchyToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, TypeHierarchyData>.Resolved(symbol));
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, TypeHierarchyData>(symbol));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
@@ -233,7 +233,7 @@ public sealed class GetTypeHierarchyToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, TypeHierarchyData>.Resolved(symbol));
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, TypeHierarchyData>(symbol));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
@@ -319,7 +319,7 @@ public sealed class GetTypeHierarchyToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, TypeHierarchyData>.Resolved(symbol));
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, TypeHierarchyData>(symbol));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))

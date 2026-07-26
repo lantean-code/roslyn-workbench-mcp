@@ -32,7 +32,7 @@ public sealed class ValidMutationTestPlugin : IRoslynPlugin
                 Summary = request.Summary,
             };
 
-            var result = PluginExecutionResult<MutationCandidate>.Success(candidate);
+            var result = PluginExecutionResult.Success(candidate);
             return ValueTask.FromResult(result);
         }
     }

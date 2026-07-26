@@ -18,17 +18,17 @@ internal sealed record ProjectDetailsData
     /// <summary>
     /// Gets the direct project references.
     /// </summary>
-    public BoundedCollection<ProjectReferenceInfo> ProjectReferences { get; init; } = BoundedCollection<ProjectReferenceInfo>.Empty();
+    public BoundedCollection<ProjectReferenceInfo> ProjectReferences { get; init; } = BoundedCollection.Empty<ProjectReferenceInfo>();
 
     /// <summary>
     /// Gets the metadata references.
     /// </summary>
-    public BoundedCollection<MetadataReferenceInfo> MetadataReferences { get; init; } = BoundedCollection<MetadataReferenceInfo>.Empty();
+    public BoundedCollection<MetadataReferenceInfo> MetadataReferences { get; init; } = BoundedCollection.Empty<MetadataReferenceInfo>();
 
     /// <summary>
     /// Gets the analyzer references.
     /// </summary>
-    public BoundedCollection<AnalyzerInfo> Analyzers { get; init; } = BoundedCollection<AnalyzerInfo>.Empty();
+    public BoundedCollection<AnalyzerInfo> Analyzers { get; init; } = BoundedCollection.Empty<AnalyzerInfo>();
 
     /// <summary>
     /// Gets the compilation options.

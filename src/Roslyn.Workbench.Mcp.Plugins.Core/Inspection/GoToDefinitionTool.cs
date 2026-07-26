@@ -52,6 +52,6 @@ internal sealed class GoToDefinitionTool : QueryToolHandler<GoToDefinitionReques
             Definitions = definitions,
         };
 
-        return PluginExecutionResult<DefinitionData>.Success(data);
+        return PluginExecutionResult.Success(data);
     }
 }

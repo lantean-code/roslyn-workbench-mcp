@@ -131,12 +131,12 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
             var syntaxTree = await resolution.Value.Document.GetSyntaxTreeAsync(cancellationToken);
             if (syntaxTree is null)
             {
-                return SelectorResolveResult<Location>.NotFound();
+                return SelectorResolveResult.NotFound<Location>();
             }
 
             var location = syntaxTree.GetLocation(resolution.Value.Span);
 
-            return SelectorResolveResult<Location>.Resolved(location);
+            return SelectorResolveResult.Resolved(location);
         }
 
         return CreateUnresolvedResult<Location>(resolution.Status);
@@ -147,9 +147,9 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         var matches = _solution.Projects.Where(project => MatchesProjectSelector(project, selector)).ToArray();
         return matches.Length switch
         {
-            1 => SelectorResolveResult<Project>.Resolved(matches[0]),
-            > 1 => SelectorResolveResult<Project>.Ambiguous(),
-            _ => SelectorResolveResult<Project>.NotFound(),
+            1 => SelectorResolveResult.Resolved(matches[0]),
+            > 1 => SelectorResolveResult.Ambiguous<Project>(),
+            _ => SelectorResolveResult.NotFound<Project>(),
         };
     }
 
@@ -174,7 +174,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
 
         if (selector.Location is null)
         {
-            return SelectorResolveResult<ISymbol>.NotFound();
+            return SelectorResolveResult.NotFound<ISymbol>();
         }
 
         var locationResolution = await ResolveDocumentSpanAsync(selector.Location, project, cancellationToken);
@@ -187,13 +187,13 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
         if (semanticModel is null)
         {
-            return SelectorResolveResult<ISymbol>.NotFound();
+            return SelectorResolveResult.NotFound<ISymbol>();
         }
 
         var symbol = await SymbolFinder.FindSymbolAtPositionAsync(semanticModel, locationResolution.Value.Span.Start, _solution.Workspace, cancellationToken);
         if (symbol is not null && IsSymbolInProjectScope(symbol, project, semanticModel.Compilation))
         {
-            return SelectorResolveResult<ISymbol>.Resolved(symbol);
+            return SelectorResolveResult.Resolved(symbol);
         }
 
         var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
@@ -209,10 +209,10 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
 
         if (symbol is null)
         {
-            return SelectorResolveResult<ISymbol>.NotFound();
+            return SelectorResolveResult.NotFound<ISymbol>();
         }
 
-        return SelectorResolveResult<ISymbol>.Resolved(symbol);
+        return SelectorResolveResult.Resolved(symbol);
     }
 
     private SelectorResolveResult<Document> ResolveDocument(DocumentSelector selector, Project? project)
@@ -227,7 +227,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
 
             if (project is not null && project.Id != projectResolution.Value.Id)
             {
-                return SelectorResolveResult<Document>.NotFound();
+                return SelectorResolveResult.NotFound<Document>();
             }
 
             project = projectResolution.Value;
@@ -254,18 +254,18 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
 
             if (matchesById.Count == 1)
             {
-                return SelectorResolveResult<Document>.Resolved(matchesById[0]);
+                return SelectorResolveResult.Resolved(matchesById[0]);
             }
 
             if (matchesById.Count > 1)
             {
-                return SelectorResolveResult<Document>.Ambiguous();
+                return SelectorResolveResult.Ambiguous<Document>();
             }
         }
 
         if (string.IsNullOrWhiteSpace(selector.Path))
         {
-            return SelectorResolveResult<Document>.NotFound();
+            return SelectorResolveResult.NotFound<Document>();
         }
 
         var normalizedPath = NormalizeDocumentPath(selector.Path);
@@ -284,9 +284,9 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
 
         return matches.Count switch
         {
-            1 => SelectorResolveResult<Document>.Resolved(matches[0]),
-            > 1 => SelectorResolveResult<Document>.Ambiguous(),
-            _ => SelectorResolveResult<Document>.NotFound(),
+            1 => SelectorResolveResult.Resolved(matches[0]),
+            > 1 => SelectorResolveResult.Ambiguous<Document>(),
+            _ => SelectorResolveResult.NotFound<Document>(),
         };
     }
 
@@ -324,7 +324,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
             return ResolveTextSelectionAsync(selector.Selection, project, cancellationToken);
         }
 
-        return ValueTask.FromResult(SelectorResolveResult<ResolvedDocumentSpan>.NotFound());
+        return ValueTask.FromResult(SelectorResolveResult.NotFound<ResolvedDocumentSpan>());
     }
 
     private async ValueTask<SelectorResolveResult<ResolvedDocumentSpan>> ResolveTextSelectionAsync(
@@ -334,7 +334,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
     {
         if (selector.Document is null || string.IsNullOrEmpty(selector.SelectedText))
         {
-            return SelectorResolveResult<ResolvedDocumentSpan>.NotFound();
+            return SelectorResolveResult.NotFound<ResolvedDocumentSpan>();
         }
 
         var documentResolution = ResolveDocument(selector.Document, project);
@@ -373,15 +373,15 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
                 Span = new TextSpan(matches[0], selector.SelectedText.Length),
             };
 
-            return SelectorResolveResult<ResolvedDocumentSpan>.Resolved(resolvedSpan);
+            return SelectorResolveResult.Resolved(resolvedSpan);
         }
 
         if (matches.Count > 1)
         {
-            return SelectorResolveResult<ResolvedDocumentSpan>.Ambiguous();
+            return SelectorResolveResult.Ambiguous<ResolvedDocumentSpan>();
         }
 
-        return SelectorResolveResult<ResolvedDocumentSpan>.NotFound();
+        return SelectorResolveResult.NotFound<ResolvedDocumentSpan>();
     }
 
     private async ValueTask<SelectorResolveResult<ResolvedDocumentSpan>> ResolveTextSpanAsync(
@@ -391,7 +391,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
     {
         if (selector.Document is null)
         {
-            return SelectorResolveResult<ResolvedDocumentSpan>.NotFound();
+            return SelectorResolveResult.NotFound<ResolvedDocumentSpan>();
         }
 
         var documentResolution = ResolveDocument(selector.Document, project);
@@ -404,7 +404,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
         var sourceText = await document.GetTextAsync(cancellationToken);
         if (!WorkspaceContractValidator.IsWithinDocument(selector, sourceText.Length))
         {
-            return SelectorResolveResult<ResolvedDocumentSpan>.NotFound();
+            return SelectorResolveResult.NotFound<ResolvedDocumentSpan>();
         }
 
         var resolvedSpan = new ResolvedDocumentSpan
@@ -413,7 +413,7 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
             Span = new TextSpan(selector.Start, selector.Length),
         };
 
-        return SelectorResolveResult<ResolvedDocumentSpan>.Resolved(resolvedSpan);
+        return SelectorResolveResult.Resolved(resolvedSpan);
     }
 
     private async ValueTask<SelectorResolveResult<ISymbol>> ResolveSymbolByDocumentationCommentIdAsync(
@@ -456,9 +456,9 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
 
         return distinctMatches.Length switch
         {
-            1 => SelectorResolveResult<ISymbol>.Resolved(distinctMatches[0]),
-            > 1 => SelectorResolveResult<ISymbol>.Ambiguous(),
-            _ => SelectorResolveResult<ISymbol>.NotFound(),
+            1 => SelectorResolveResult.Resolved(distinctMatches[0]),
+            > 1 => SelectorResolveResult.Ambiguous<ISymbol>(),
+            _ => SelectorResolveResult.NotFound<ISymbol>(),
         };
     }
 
@@ -484,10 +484,10 @@ internal sealed class WorkspaceResolver : IWorkspaceResolver
     {
         if (status == SelectorResolveStatus.Ambiguous)
         {
-            return SelectorResolveResult<T>.Ambiguous();
+            return SelectorResolveResult.Ambiguous<T>();
         }
 
-        return SelectorResolveResult<T>.NotFound();
+        return SelectorResolveResult.NotFound<T>();
     }
 
     private static bool MatchesTargetFramework(Project project, string? targetFramework)

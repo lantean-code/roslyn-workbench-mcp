@@ -29,9 +29,9 @@ internal sealed class GetTestImpactTool : QueryToolHandler<GetTestImpactRequest,
         var data = new TestImpactData
         {
             Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
-            Tests = BoundedCollection<TestImpactInfo>.CreatePrebounded(impactedTests, hasMore),
+            Tests = BoundedCollection.CreatePrebounded(impactedTests, hasMore),
         };
 
-        return PluginExecutionResult<TestImpactData>.Success(data);
+        return PluginExecutionResult.Success(data);
     }
 }

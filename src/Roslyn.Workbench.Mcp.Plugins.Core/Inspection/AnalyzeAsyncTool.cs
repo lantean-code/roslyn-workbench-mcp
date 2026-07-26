@@ -106,12 +106,12 @@ internal sealed class AnalyzeAsyncTool : QueryToolHandler<AnalyzeAsyncRequest, A
 
         var data = new AsyncAnalysisData
         {
-            Findings = BoundedCollection<AsyncFinding>.CreatePrebounded(
+            Findings = BoundedCollection.CreatePrebounded(
                 orderedFindings,
                 hasMore),
         };
 
-        return PluginExecutionResult<AsyncAnalysisData>.Success(data);
+        return PluginExecutionResult.Success(data);
     }
 
     private static bool IsAwaited(IOperation operation)

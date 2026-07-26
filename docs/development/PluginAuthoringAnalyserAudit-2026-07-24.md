@@ -151,7 +151,7 @@ Do not add diagnostics for:
 - final merged tool metadata, because fluent configuration can override attributes and runtime preparation already evaluates the authoritative result;
 - JSON serialisability or complete MCP schema support, because the actual serializer/schema provider must remain authoritative;
 - curated collection-limit values, `DefaultValueAttribute` use or deterministic ordering based on naming conventions;
-- whether items passed to `BoundedCollection<TItem>.CreatePrebounded` were limited before expensive work, because that requires semantic knowledge across service and Roslyn API boundaries;
+- whether items passed to `BoundedCollection.CreatePrebounded<TItem>` were limited before expensive work, because that requires semantic knowledge across service and Roslyn API boundaries;
 - whether a mutation candidate was derived from the invocation snapshot, because Host candidate validation is the enforceable boundary;
 - direct marker, construction and request-base errors already emitted by generic constraints at the registration call;
 - repository coding style, LINQ choices or source-governance rules unrelated to the public plugin contract; or

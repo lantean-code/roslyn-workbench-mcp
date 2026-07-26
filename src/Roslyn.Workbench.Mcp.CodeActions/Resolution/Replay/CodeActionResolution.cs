@@ -25,7 +25,7 @@ internal sealed record CodeActionResolution<T>
     [MemberNotNullWhen(false, nameof(Reference))]
     public bool HasRejection => Rejection is not null;
 
-    private CodeActionResolution(
+    internal CodeActionResolution(
         CodeActionExecutionResult<T>? rejection,
         CodeActionResolutionFailureKind failureKind,
         DiscoveredCodeAction? action,
@@ -42,8 +42,11 @@ internal sealed record CodeActionResolution<T>
         Span = span;
         Reference = reference;
     }
+}
 
-    public static CodeActionResolution<T> Resolved(
+internal static class CodeActionResolution
+{
+    public static CodeActionResolution<T> Resolved<T>(
         DiscoveredCodeAction action,
         Document document,
         TextSpan span,
@@ -59,7 +62,7 @@ internal sealed record CodeActionResolution<T>
             reference);
     }
 
-    public static CodeActionResolution<T> Rejected(
+    public static CodeActionResolution<T> Rejected<T>(
         CodeActionExecutionResult<T> rejection,
         CodeActionResolutionFailureKind failureKind = CodeActionResolutionFailureKind.None)
     {

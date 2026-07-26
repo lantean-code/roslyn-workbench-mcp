@@ -5,7 +5,7 @@ public sealed class StageCodeFixToolTests
     [Fact]
     public async Task GIVEN_MutationContextReturnsResult_WHEN_CallingExecuteAsync_THEN_ShouldReturnMutationContextResult()
     {
-        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
+        var expected = CodeActionExecutionResult.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var request = new StageCodeFixRequest
         {
             ExpectedSnapshot = new SnapshotPrecondition(),

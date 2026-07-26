@@ -7,7 +7,7 @@ public sealed class GetDocumentOptionsToolTests
     {
         var target = new GetDocumentOptionsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<DocumentOptionsData>.Rejected(new PluginExecutionError
+        var expected = PluginExecutionResult.Rejected<DocumentOptionsData>(new PluginExecutionError
         {
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
@@ -17,7 +17,7 @@ public sealed class GetDocumentOptionsToolTests
             .Setup(item => item.ResolveDocument<DocumentOptionsData>(
                 It.IsAny<DocumentSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<Document, DocumentOptionsData>.Rejected(expected));
+            .Returns(ToolResolutionResult.Rejected<Document, DocumentOptionsData>(expected));
 
         var result = await target.ExecuteAsync(new GetDocumentOptionsRequest
         {
@@ -44,7 +44,7 @@ public sealed class GetDocumentOptionsToolTests
             .Setup(item => item.ResolveDocument<DocumentOptionsData>(
                 It.IsAny<DocumentSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<Document, DocumentOptionsData>.Resolved(document.Document));
+            .Returns(ToolResolutionResult.Resolved<Document, DocumentOptionsData>(document.Document));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateDocumentReference(It.IsAny<Document>()))
@@ -80,7 +80,7 @@ public sealed class GetDocumentOptionsToolTests
             .Setup(item => item.ResolveDocument<DocumentOptionsData>(
                 It.IsAny<DocumentSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<Document, DocumentOptionsData>.Resolved(document.Document));
+            .Returns(ToolResolutionResult.Resolved<Document, DocumentOptionsData>(document.Document));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateDocumentReference(It.IsAny<Document>()))

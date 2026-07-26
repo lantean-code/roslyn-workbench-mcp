@@ -147,12 +147,12 @@ internal sealed class FindReferencesTool : QueryToolHandler<FindReferencesReques
         var data = new ReferenceSearchData
         {
             Symbol = symbolReference,
-            References = BoundedCollection<ContractReferenceLocation>.CreatePrebounded(
+            References = BoundedCollection.CreatePrebounded(
                 references,
                 pendingReferences.Count),
         };
 
-        return PluginExecutionResult<ReferenceSearchData>.Success(data);
+        return PluginExecutionResult.Success(data);
     }
 
     private static async Task<ImmutableArray<ReferencedSymbol>> GetReferencedSymbolsAsync(

@@ -33,14 +33,14 @@ public sealed class McpServerToolBaseTests
             .Setup(item => item.CreateQueryContext(
                 It.Is<TestRequest>(request => request.Name == string.Empty),
                 CancellationToken.None))
-            .Returns(ToolExecutionContextLease<IQueryContext>.Acquired(context.Object));
+            .Returns(ToolExecutionContextLease.Acquired(context.Object));
 
         handler
             .Setup(item => item.ExecuteAsync(
                 It.Is<TestRequest>(request => request.Name == string.Empty),
                 context.Object,
                 CancellationToken.None))
-            .ReturnsAsync(PluginExecutionResult<TestResponse>.Success(new TestResponse
+            .ReturnsAsync(PluginExecutionResult.Success(new TestResponse
             {
                 Value = "Value",
             }));

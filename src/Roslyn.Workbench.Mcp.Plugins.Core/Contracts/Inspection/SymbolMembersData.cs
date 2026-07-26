@@ -13,5 +13,5 @@ internal sealed record SymbolMembersData
     /// <summary>
     /// Gets the resolved members.
     /// </summary>
-    public BoundedCollection<SymbolReference> Members { get; init; } = BoundedCollection<SymbolReference>.Empty();
+    public BoundedCollection<SymbolReference> Members { get; init; } = BoundedCollection.Empty<SymbolReference>();
 }

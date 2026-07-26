@@ -10,7 +10,7 @@ public sealed class GetDiagnosticsToolTests
     {
         var target = new GetDiagnosticsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<DiagnosticsData>.Rejected(new PluginExecutionError
+        var expected = PluginExecutionResult.Rejected<DiagnosticsData>(new PluginExecutionError
         {
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
@@ -20,7 +20,7 @@ public sealed class GetDiagnosticsToolTests
             .Setup(item => item.ResolveDocuments<DiagnosticsData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DiagnosticsData>.Rejected(expected));
+            .Returns(ToolResolutionResult.Rejected<IReadOnlyList<Document>, DiagnosticsData>(expected));
 
         var result = await target.ExecuteAsync(new GetDiagnosticsRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -47,7 +47,7 @@ public sealed class GetDiagnosticsToolTests
             .Setup(item => item.ResolveDocuments<DiagnosticsData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DiagnosticsData>.Resolved([document.Document]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, DiagnosticsData>([document.Document]));
 
         var result = await target.ExecuteAsync(new GetDiagnosticsRequest
         {
@@ -110,7 +110,7 @@ public sealed class GetDiagnosticsToolTests
             .Setup(item => item.ResolveDocuments<DiagnosticsData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DiagnosticsData>.Resolved([document.Workspace.CurrentSolution.Projects.Single().Documents.Single()]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, DiagnosticsData>([document.Workspace.CurrentSolution.Projects.Single().Documents.Single()]));
 
         var result = await target.ExecuteAsync(new GetDiagnosticsRequest
         {
@@ -188,7 +188,7 @@ public sealed class GetDiagnosticsToolTests
             .Setup(item => item.ResolveDocuments<DiagnosticsData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DiagnosticsData>.Resolved([currentDocument]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, DiagnosticsData>([currentDocument]));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
@@ -240,7 +240,7 @@ public sealed class GetDiagnosticsToolTests
             .Setup(item => item.ResolveDocuments<DiagnosticsData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DiagnosticsData>.Resolved([document.Document]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, DiagnosticsData>([document.Document]));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
@@ -280,7 +280,7 @@ public sealed class GetDiagnosticsToolTests
             .Setup(item => item.ResolveDocuments<DiagnosticsData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DiagnosticsData>.Resolved([document.Document]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, DiagnosticsData>([document.Document]));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
@@ -325,7 +325,7 @@ public sealed class GetDiagnosticsToolTests
             .Setup(item => item.ResolveDocuments<DiagnosticsData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DiagnosticsData>.Resolved([document.Document]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, DiagnosticsData>([document.Document]));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
@@ -430,7 +430,7 @@ public sealed class GetDiagnosticsToolTests
             .Setup(item => item.ResolveDocuments<DiagnosticsData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DiagnosticsData>.Resolved([selectedDocument]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, DiagnosticsData>([selectedDocument]));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))

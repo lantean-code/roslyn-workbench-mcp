@@ -79,7 +79,7 @@ internal sealed class PluginMutationMcpServerTool<TRequest> : McpServerToolBase<
 
         if (!proposalResult.IsSucceeded)
         {
-            var noChange = PluginExecutionResult<MutationData>.NoChange(
+            var noChange = PluginExecutionResult.NoChange<MutationData>(
                 diagnostics: proposalResult.Diagnostics,
                 warnings: proposalResult.Warnings);
 

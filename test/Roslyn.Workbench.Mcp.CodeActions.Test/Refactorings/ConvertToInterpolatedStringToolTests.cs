@@ -7,7 +7,7 @@ public sealed class ConvertToInterpolatedStringToolTests
     [Fact]
     public async Task GIVEN_SnapshotValidationReturnsRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnSnapshotRejection()
     {
-        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Conflict(new CodeActionExecutionError
+        var expected = CodeActionExecutionResult.Conflict<WorkspaceMutationCandidate>(new CodeActionExecutionError
         {
             Code = "SnapshotMismatch",
             Message = "The request snapshot does not match the current workspace snapshot.",
@@ -72,7 +72,7 @@ public sealed class ConvertToInterpolatedStringToolTests
 
         workspaceResolver
             .Setup(item => item.ResolveLocationAsync(request.Selection, CancellationToken.None))
-            .ReturnsAsync(SelectorResolveResult<Location>.NotFound());
+            .ReturnsAsync(SelectorResolveResult.NotFound<Location>());
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
@@ -85,7 +85,7 @@ public sealed class ConvertToInterpolatedStringToolTests
     [Fact]
     public async Task GIVEN_LocationResolutionIsResolved_WHEN_CallingExecuteAsync_THEN_ShouldStageReplayCodeAction()
     {
-        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
+        var expected = CodeActionExecutionResult.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var workspaceResolver = new Mock<IWorkspaceResolver>();
         var context = new Mock<ICodeActionMutationContext>();
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
@@ -113,7 +113,7 @@ public sealed class ConvertToInterpolatedStringToolTests
 
         workspaceResolver
             .Setup(item => item.ResolveLocationAsync(request.Selection, CancellationToken.None))
-            .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+            .ReturnsAsync(SelectorResolveResult.Resolved(location));
 
         selectionStager
             .Setup(item => item.StageReplayCodeActionAsync(

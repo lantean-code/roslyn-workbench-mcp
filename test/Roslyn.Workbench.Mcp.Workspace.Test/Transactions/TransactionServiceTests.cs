@@ -546,11 +546,11 @@ public sealed class TransactionServiceTests : IDisposable
         SelectorResolveResult<Document> resolution;
         if (status == SelectorResolveStatus.Ambiguous)
         {
-            resolution = SelectorResolveResult<Document>.Ambiguous();
+            resolution = SelectorResolveResult.Ambiguous<Document>();
         }
         else
         {
-            resolution = SelectorResolveResult<Document>.NotFound();
+            resolution = SelectorResolveResult.NotFound<Document>();
         }
 
         _resolver.Setup(item => item.ResolveDocument(selector)).Returns(resolution);
@@ -584,7 +584,7 @@ public sealed class TransactionServiceTests : IDisposable
         var selector = new DocumentSelector { DocumentId = "DocumentId" };
         var expected = CreateResult<TransactionPreviewOutcome>();
         SetupPreview(session, transaction, gate, operationLease);
-        _resolver.Setup(item => item.ResolveDocument(selector)).Returns(SelectorResolveResult<Document>.Resolved(document));
+        _resolver.Setup(item => item.ResolveDocument(selector)).Returns(SelectorResolveResult.Resolved(document));
         _resolver.Setup(item => item.CreateDocumentReference(document)).Returns((DocumentReference?)null);
         SetupRejectedResult(expected, WorkspaceErrorCodes.DocumentNotFound);
 
@@ -623,7 +623,7 @@ public sealed class TransactionServiceTests : IDisposable
         var diff = new DocumentDiff { Document = reference };
         var expected = CreateResult<TransactionPreviewOutcome>();
         SetupPreview(session, transaction, gate, operationLease);
-        _resolver.Setup(item => item.ResolveDocument(selector)).Returns(SelectorResolveResult<Document>.Resolved(document));
+        _resolver.Setup(item => item.ResolveDocument(selector)).Returns(SelectorResolveResult.Resolved(document));
         _resolver.Setup(item => item.CreateDocumentReference(document)).Returns(reference);
         _diffBuilder.Setup(item => item.CreateDocumentDiffAsync(
             transaction.BaselineSolution,
@@ -1260,6 +1260,6 @@ public sealed class TransactionServiceTests : IDisposable
 
     private static WorkspaceOperationResult<TOutcome> CreateResult<TOutcome>()
     {
-        return WorkspaceOperationResult<TOutcome>.NoChange();
+        return WorkspaceOperationResult.NoChange<TOutcome>();
     }
 }

@@ -48,6 +48,8 @@ public sealed record ProjectTargetFrameworksResult
     /// <returns>The failed result.</returns>
     public static ProjectTargetFrameworksResult Failed(string errorMessage)
     {
+        ArgumentNullException.ThrowIfNull(errorMessage);
+
         return new ProjectTargetFrameworksResult(targetFrameworks: [], errorMessage);
     }
 }

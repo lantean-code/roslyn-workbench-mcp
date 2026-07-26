@@ -75,10 +75,10 @@ internal sealed class GetCodeMetricsTool : QueryToolHandler<GetCodeMetricsReques
 
         var data = new CodeMetricsData
         {
-            Metrics = BoundedCollection<MetricInfo>.CreatePrebounded(metrics, orderedCandidates.Count),
+            Metrics = BoundedCollection.CreatePrebounded(metrics, orderedCandidates.Count),
         };
 
-        return PluginExecutionResult<CodeMetricsData>.Success(data);
+        return PluginExecutionResult.Success(data);
     }
 
     private static void AddMetricCandidates(ISymbol symbol, bool includeChildren, ICollection<MetricCandidate> candidates)

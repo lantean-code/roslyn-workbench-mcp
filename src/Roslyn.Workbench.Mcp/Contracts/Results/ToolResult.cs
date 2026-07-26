@@ -1,5 +1,3 @@
-using Roslyn.Workbench.Mcp.Protocol.Validation;
-
 namespace Roslyn.Workbench.Mcp.Protocol.Results;
 
 /// <summary>
@@ -57,7 +55,13 @@ internal sealed record ToolResult<TData>
     /// Gets the optional continuation hint for the caller.
     /// </summary>
     public RequiredAction? RequiredAction { get; init; }
+}
 
+/// <summary>
+/// Creates structured tool result envelopes.
+/// </summary>
+internal static class ToolResult
+{
     /// <summary>
     /// Creates a successful tool result.
     /// </summary>
@@ -69,7 +73,7 @@ internal sealed record ToolResult<TData>
     /// <param name="diagnostics">The diagnostics emitted by the tool.</param>
     /// <param name="warnings">The warnings emitted by the tool.</param>
     /// <returns>A successful tool result.</returns>
-    public static ToolResult<TData> Succeeded(
+    public static ToolResult<TData> Succeeded<TData>(
         TData data,
         string? workspaceId = null,
         long? workspaceEpoch = null,
@@ -101,7 +105,7 @@ internal sealed record ToolResult<TData>
     /// <param name="diagnostics">The diagnostics emitted by the tool.</param>
     /// <param name="warnings">The warnings emitted by the tool.</param>
     /// <returns>A no-change tool result.</returns>
-    public static ToolResult<TData> NoChange(
+    public static ToolResult<TData> NoChange<TData>(
         string? workspaceId = null,
         long? workspaceEpoch = null,
         int? transactionRevision = null,
@@ -132,7 +136,7 @@ internal sealed record ToolResult<TData>
     /// <param name="diagnostics">The diagnostics emitted by the tool.</param>
     /// <param name="warnings">The warnings emitted by the tool.</param>
     /// <returns>A rejected tool result.</returns>
-    public static ToolResult<TData> Rejected(
+    public static ToolResult<TData> Rejected<TData>(
         ToolError error,
         RequiredAction? requiredAction = null,
         string? workspaceId = null,
@@ -165,7 +169,7 @@ internal sealed record ToolResult<TData>
     /// <param name="diagnostics">The diagnostics emitted by the tool.</param>
     /// <param name="warnings">The warnings emitted by the tool.</param>
     /// <returns>A conflicted tool result.</returns>
-    public static ToolResult<TData> Conflict(
+    public static ToolResult<TData> Conflict<TData>(
         ToolError error,
         RequiredAction? requiredAction = null,
         string? workspaceId = null,
@@ -198,7 +202,7 @@ internal sealed record ToolResult<TData>
     /// <param name="diagnostics">The diagnostics emitted by the tool.</param>
     /// <param name="warnings">The warnings emitted by the tool.</param>
     /// <returns>A faulted tool result.</returns>
-    public static ToolResult<TData> Faulted(
+    public static ToolResult<TData> Faulted<TData>(
         ToolError error,
         RequiredAction? requiredAction = null,
         string? workspaceId = null,
@@ -218,14 +222,5 @@ internal sealed record ToolResult<TData>
             Error = error,
             RequiredAction = requiredAction,
         };
-    }
-
-    /// <summary>
-    /// Validates the envelope shape against the shared contract invariants.
-    /// </summary>
-    /// <returns>The validation errors, if any.</returns>
-    public IReadOnlyList<string> Validate()
-    {
-        return ContractValidator.Validate(this);
     }
 }

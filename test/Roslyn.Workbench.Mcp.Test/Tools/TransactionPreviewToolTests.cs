@@ -21,7 +21,7 @@ public sealed class TransactionPreviewToolTests
                 true,
                 2,
                 CancellationToken.None))
-            .ReturnsAsync(WorkspaceOperationResult<TransactionPreviewOutcome>.Succeeded(new TransactionPreviewOutcome
+            .ReturnsAsync(WorkspaceOperationResult.Succeeded(new TransactionPreviewOutcome
             {
                 Transaction = new TransactionInfo
                 {

@@ -52,7 +52,7 @@ public sealed class HostValidQueryPlugin : IRoslynPlugin
                     ?? string.Empty,
             };
 
-            var result = PluginExecutionResult<Response>.Success(response);
+            var result = PluginExecutionResult.Success(response);
             return result;
         }
     }

@@ -20,7 +20,7 @@ public sealed class TransactionHistoryToolTests
                 TransactionHistoryDirection.Undo,
                 It.IsAny<SnapshotPrecondition>(),
                 CancellationToken.None))
-            .ReturnsAsync(WorkspaceOperationResult<TransactionHistoryOutcome>.Succeeded(new TransactionHistoryOutcome
+            .ReturnsAsync(WorkspaceOperationResult.Succeeded(new TransactionHistoryOutcome
             {
                 Transaction = new TransactionInfo
                 {

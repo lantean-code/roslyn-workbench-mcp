@@ -7,7 +7,7 @@ public sealed class GetCodeMetricsToolTests
     {
         var target = new GetCodeMetricsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<CodeMetricsData>.Rejected(new PluginExecutionError
+        var expected = PluginExecutionResult.Rejected<CodeMetricsData>(new PluginExecutionError
         {
             Code = "SymbolNotFound",
             Message = "SymbolNotFound",
@@ -19,7 +19,7 @@ public sealed class GetCodeMetricsToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, CodeMetricsData>.Rejected(expected));
+            .ReturnsAsync(ToolResolutionResult.Rejected<ISymbol, CodeMetricsData>(expected));
 
         var result = await target.ExecuteAsync(new GetCodeMetricsRequest
         {
@@ -49,7 +49,7 @@ public sealed class GetCodeMetricsToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, CodeMetricsData>.Resolved(metadataSymbol));
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, CodeMetricsData>(metadataSymbol));
 
         var result = await target.ExecuteAsync(new GetCodeMetricsRequest
         {
@@ -120,7 +120,7 @@ public sealed class GetCodeMetricsToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, CodeMetricsData>.Resolved(symbol));
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, CodeMetricsData>(symbol));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
@@ -154,7 +154,7 @@ public sealed class GetCodeMetricsToolTests
     {
         var target = new GetCodeMetricsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<CodeMetricsData>.Rejected(new PluginExecutionError
+        var expected = PluginExecutionResult.Rejected<CodeMetricsData>(new PluginExecutionError
         {
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
@@ -164,7 +164,7 @@ public sealed class GetCodeMetricsToolTests
             .Setup(item => item.ResolveDocuments<CodeMetricsData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, CodeMetricsData>.Rejected(expected));
+            .Returns(ToolResolutionResult.Rejected<IReadOnlyList<Document>, CodeMetricsData>(expected));
 
         var result = await target.ExecuteAsync(new GetCodeMetricsRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -187,7 +187,7 @@ public sealed class GetCodeMetricsToolTests
             .Setup(item => item.ResolveDocuments<CodeMetricsData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, CodeMetricsData>.Resolved([document.Document]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, CodeMetricsData>([document.Document]));
 
         var result = await target.ExecuteAsync(new GetCodeMetricsRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -280,7 +280,7 @@ public sealed class GetCodeMetricsToolTests
             .Setup(item => item.ResolveDocuments<CodeMetricsData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, CodeMetricsData>.Resolved([solution.GetDocument("B.cs"), solution.GetDocument("A.cs"), unsupportedDocument.Document]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, CodeMetricsData>([solution.GetDocument("B.cs"), solution.GetDocument("A.cs"), unsupportedDocument.Document]));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
@@ -372,7 +372,7 @@ public sealed class GetCodeMetricsToolTests
             .Setup(item => item.ResolveDocuments<CodeMetricsData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, CodeMetricsData>.Resolved([document.Document]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, CodeMetricsData>([document.Document]));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))

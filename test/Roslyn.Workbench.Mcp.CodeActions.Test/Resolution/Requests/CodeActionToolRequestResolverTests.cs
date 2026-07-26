@@ -44,7 +44,7 @@ public sealed class CodeActionToolRequestResolverTests
         var symbol = new Mock<ISymbol>();
         _workspaceResolver
             .Setup(item => item.ResolveSymbolAsync(selector, TestContext.Current.CancellationToken))
-            .ReturnsAsync(SelectorResolveResult<ISymbol>.Resolved(symbol.Object));
+            .ReturnsAsync(SelectorResolveResult.Resolved(symbol.Object));
 
         var result = await _target.ResolveSymbolAsync<TestResponse>(
             selector,

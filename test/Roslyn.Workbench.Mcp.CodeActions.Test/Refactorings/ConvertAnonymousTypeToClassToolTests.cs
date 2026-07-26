@@ -5,7 +5,7 @@ public sealed class ConvertAnonymousTypeToClassToolTests
     [Fact]
     public async Task GIVEN_ClassKind_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithClassTitle()
     {
-        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
+        var expected = CodeActionExecutionResult.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new ConvertAnonymousTypeToClassRequest
         {
@@ -53,7 +53,7 @@ public sealed class ConvertAnonymousTypeToClassToolTests
     [Fact]
     public async Task GIVEN_RecordKind_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithRecordTitle()
     {
-        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
+        var expected = CodeActionExecutionResult.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new ConvertAnonymousTypeToClassRequest
         {

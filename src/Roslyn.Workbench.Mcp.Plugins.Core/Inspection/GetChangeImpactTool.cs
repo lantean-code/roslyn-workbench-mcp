@@ -126,12 +126,12 @@ internal sealed class GetChangeImpactTool : QueryToolHandler<GetChangeImpactRequ
         {
             Symbol = context.WorkspaceResolver.CreateSymbolReference(symbol),
             Impact = impact,
-            Locations = BoundedCollection<ContractReferenceLocation>.CreatePrebounded(
+            Locations = BoundedCollection.CreatePrebounded(
                 locations,
                 pendingReferences.Count),
         };
 
-        return PluginExecutionResult<ChangeImpactData>.Success(data);
+        return PluginExecutionResult.Success(data);
     }
 
     private static bool IsPublicSurface(ISymbol symbol)

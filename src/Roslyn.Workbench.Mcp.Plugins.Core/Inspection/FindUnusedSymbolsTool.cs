@@ -95,12 +95,12 @@ internal sealed class FindUnusedSymbolsTool : QueryToolHandler<FindUnusedSymbols
 
         var data = new UnusedSymbolsData
         {
-            Candidates = BoundedCollection<UnusedSymbolCandidate>.CreatePrebounded(
+            Candidates = BoundedCollection.CreatePrebounded(
                 candidates,
                 hasMore),
         };
 
-        return PluginExecutionResult<UnusedSymbolsData>.Success(data);
+        return PluginExecutionResult.Success(data);
     }
 
     private static bool IsUnusedDiagnosticId(string diagnosticId)

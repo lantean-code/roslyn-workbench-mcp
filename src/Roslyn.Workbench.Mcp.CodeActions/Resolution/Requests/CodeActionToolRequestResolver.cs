@@ -31,7 +31,7 @@ internal sealed class CodeActionToolRequestResolver : ICodeActionToolRequestReso
                 "Location",
                 "location");
 
-            return CodeActionToolResolutionResult<CodeActionSourceSelection, TResponse>.Rejected(rejection);
+            return CodeActionToolResolutionResult.Rejected<CodeActionSourceSelection, TResponse>(rejection);
         }
 
         var document = context.CurrentSolution.GetDocument(resolution.Value.SourceTree);
@@ -42,7 +42,7 @@ internal sealed class CodeActionToolRequestResolver : ICodeActionToolRequestReso
                 "The location selector did not resolve to a source document.",
                 RequiredAction.ResolveTargetAgain);
 
-            return CodeActionToolResolutionResult<CodeActionSourceSelection, TResponse>.Rejected(rejection);
+            return CodeActionToolResolutionResult.Rejected<CodeActionSourceSelection, TResponse>(rejection);
         }
 
         var selection = new CodeActionSourceSelection
@@ -51,7 +51,7 @@ internal sealed class CodeActionToolRequestResolver : ICodeActionToolRequestReso
             Span = resolution.Value.SourceSpan,
         };
 
-        return CodeActionToolResolutionResult<CodeActionSourceSelection, TResponse>.Resolved(selection);
+        return CodeActionToolResolutionResult.Resolved<CodeActionSourceSelection, TResponse>(selection);
     }
 
     public async ValueTask<CodeActionToolResolutionResult<ISymbol, TResponse>> ResolveSymbolAsync<TResponse>(
@@ -65,7 +65,7 @@ internal sealed class CodeActionToolRequestResolver : ICodeActionToolRequestReso
             var snapshotRejection = ValidateSnapshot<TResponse>(context, expectedSnapshot);
             if (snapshotRejection is not null)
             {
-                return CodeActionToolResolutionResult<ISymbol, TResponse>.Rejected(snapshotRejection);
+                return CodeActionToolResolutionResult.Rejected<ISymbol, TResponse>(snapshotRejection);
             }
         }
 
@@ -77,10 +77,10 @@ internal sealed class CodeActionToolRequestResolver : ICodeActionToolRequestReso
                 "Symbol",
                 "symbol");
 
-            return CodeActionToolResolutionResult<ISymbol, TResponse>.Rejected(rejection);
+            return CodeActionToolResolutionResult.Rejected<ISymbol, TResponse>(rejection);
         }
 
-        return CodeActionToolResolutionResult<ISymbol, TResponse>.Resolved(resolution.Value);
+        return CodeActionToolResolutionResult.Resolved<ISymbol, TResponse>(resolution.Value);
     }
 
     public CodeActionScopeResolution ResolveScope(

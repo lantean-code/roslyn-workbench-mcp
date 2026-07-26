@@ -19,12 +19,12 @@ internal sealed class AnalyzeNullabilityTool : QueryToolHandler<AnalyzeNullabili
             var locationResolution = await context.WorkspaceResolver.ResolveLocationAsync(request.Location, cancellationToken);
             if (locationResolution.Status != SelectorResolveStatus.Resolved)
             {
-                return PluginExecutionResultFactory.RejectedFromStatus<NullabilityAnalysisData>(locationResolution.Status, "Location", "location");
+                return SelectorRejectionFactory.Create<NullabilityAnalysisData>(locationResolution.Status, "Location", "location");
             }
 
             if (locationResolution.Value is null || context.CurrentSolution.GetDocument(locationResolution.Value.SourceTree) is not { } document)
             {
-                return PluginExecutionResultFactory.Rejected<NullabilityAnalysisData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain);
+                return PluginExecutionResult.Rejected<NullabilityAnalysisData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain);
             }
 
             documents = [document];
@@ -73,11 +73,11 @@ internal sealed class AnalyzeNullabilityTool : QueryToolHandler<AnalyzeNullabili
 
         var data = new NullabilityAnalysisData
         {
-            Findings = BoundedCollection<NullabilityFinding>.CreatePrebounded(
+            Findings = BoundedCollection.CreatePrebounded(
                 findings,
                 applicableDiagnostics.Count),
         };
 
-        return PluginExecutionResult<NullabilityAnalysisData>.Success(data);
+        return PluginExecutionResult.Success(data);
     }
 }

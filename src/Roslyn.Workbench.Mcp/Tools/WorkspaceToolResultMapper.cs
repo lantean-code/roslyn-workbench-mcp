@@ -12,7 +12,7 @@ internal static class WorkspaceToolResultMapper
         {
             case WorkspaceOperationStatus.Succeeded when result.HasData:
                 var mappedData = mapData(result.Data);
-                return ToolResult<TTarget>.Succeeded(
+                return ToolResult.Succeeded(
                     mappedData,
                     workspaceId: workspaceId,
                     workspaceEpoch: workspaceEpoch,
@@ -22,7 +22,7 @@ internal static class WorkspaceToolResultMapper
 
             case WorkspaceOperationStatus.Rejected when result.HasError:
                 var rejectedError = MapError(result.Error);
-                return ToolResult<TTarget>.Rejected(
+                return ToolResult.Rejected<TTarget>(
                     rejectedError,
                     result.Error.RequiredAction,
                     workspaceId: workspaceId,
@@ -33,7 +33,7 @@ internal static class WorkspaceToolResultMapper
 
             case WorkspaceOperationStatus.Conflict when result.HasError:
                 var conflictError = MapError(result.Error);
-                return ToolResult<TTarget>.Conflict(
+                return ToolResult.Conflict<TTarget>(
                     conflictError,
                     result.Error.RequiredAction,
                     workspaceId: workspaceId,
@@ -44,7 +44,7 @@ internal static class WorkspaceToolResultMapper
 
             case WorkspaceOperationStatus.Faulted when result.HasError:
                 var faultError = MapError(result.Error);
-                return ToolResult<TTarget>.Faulted(
+                return ToolResult.Faulted<TTarget>(
                     faultError,
                     result.Error.RequiredAction,
                     workspaceId: workspaceId,
@@ -60,7 +60,7 @@ internal static class WorkspaceToolResultMapper
                     noChangeData = mapData(result.Data);
                 }
 
-                return ToolResult<TTarget>.NoChange(
+                return ToolResult.NoChange(
                     workspaceId: workspaceId,
                     workspaceEpoch: workspaceEpoch,
                     transactionRevision: transactionRevision,

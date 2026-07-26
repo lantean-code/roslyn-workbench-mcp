@@ -3,6 +3,24 @@ namespace Roslyn.Workbench.Mcp.Plugins.Test;
 public sealed class PluginExecutionResultTests
 {
     [Fact]
+    public void GIVEN_NullData_WHEN_CreatingSuccessfulResult_THEN_ShouldRejectInvalidInvariant()
+    {
+        var action = () => PluginExecutionResult.Success<Response?>(data: null);
+
+        action.Should().Throw<ArgumentNullException>()
+            .WithParameterName("data");
+    }
+
+    [Fact]
+    public void GIVEN_NullError_WHEN_CreatingRejectedResult_THEN_ShouldRejectInvalidInvariant()
+    {
+        var action = () => PluginExecutionResult.Rejected<Response>(error: null!);
+
+        action.Should().Throw<ArgumentNullException>()
+            .WithParameterName("error");
+    }
+
+    [Fact]
     public void GIVEN_ConflictMetadata_WHEN_CreatingResult_THEN_ShouldPreserveFailureInvariant()
     {
         var diagnostics = new[] { new DiagnosticInfo() };
@@ -13,7 +31,7 @@ public sealed class PluginExecutionResultTests
             Message = "Message",
         };
 
-        var result = PluginExecutionResult<Response>.Conflict(
+        var result = PluginExecutionResult.Conflict<Response>(
             error,
             RequiredAction.Retry,
             diagnostics,
@@ -37,7 +55,7 @@ public sealed class PluginExecutionResultTests
             Message = "Message",
         };
 
-        var result = PluginExecutionResult<Response>.Faulted(
+        var result = PluginExecutionResult.Faulted<Response>(
             error,
             RequiredAction.Retry,
             diagnostics,

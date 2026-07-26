@@ -16,7 +16,7 @@ public sealed class TransactionStartToolTests
                 ServerOwnedToolTestData.GetWorkspaceAlias(includeWorkspace),
                 ServerOwnedToolTestData.GetWorkspacePath(includeWorkspace),
                 CancellationToken.None))
-            .ReturnsAsync(WorkspaceOperationResult<TransactionStartOutcome>.Succeeded(new TransactionStartOutcome
+            .ReturnsAsync(WorkspaceOperationResult.Succeeded(new TransactionStartOutcome
             {
                 Transaction = new TransactionInfo
                 {

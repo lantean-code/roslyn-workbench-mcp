@@ -13,7 +13,7 @@ public sealed class CodeActionExecutionResultTests
             Message = "Message",
         };
 
-        var result = CodeActionExecutionResult<Response>.Faulted(
+        var result = CodeActionExecutionResult.Faulted<Response>(
             error,
             RequiredAction.Retry,
             diagnostics,

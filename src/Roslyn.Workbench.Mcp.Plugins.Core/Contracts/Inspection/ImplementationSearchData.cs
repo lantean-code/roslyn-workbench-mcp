@@ -13,5 +13,5 @@ internal sealed record ImplementationSearchData
     /// <summary>
     /// Gets the resolved implementations.
     /// </summary>
-    public BoundedCollection<SymbolReference> Implementations { get; init; } = BoundedCollection<SymbolReference>.Empty();
+    public BoundedCollection<SymbolReference> Implementations { get; init; } = BoundedCollection.Empty<SymbolReference>();
 }

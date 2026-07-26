@@ -58,12 +58,12 @@ internal sealed class GetDiagnosticsTool : QueryToolHandler<GetDiagnosticsReques
 
         var data = new DiagnosticsData
         {
-            Diagnostics = BoundedCollection<DiagnosticInfo>.CreatePrebounded(
+            Diagnostics = BoundedCollection.CreatePrebounded(
                 projectedDiagnostics,
                 filteredDiagnostics.Count),
         };
 
-        return PluginExecutionResult<DiagnosticsData>.Success(data);
+        return PluginExecutionResult.Success(data);
     }
 
     private static async ValueTask<IReadOnlyList<Diagnostic>> GetProjectDiagnosticsAsync(Project project, ImmutableHashSet<DocumentId> selectedDocumentIds, bool restrictToSelectedDocuments, CancellationToken cancellationToken)

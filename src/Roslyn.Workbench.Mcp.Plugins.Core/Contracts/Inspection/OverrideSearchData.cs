@@ -13,5 +13,5 @@ internal sealed record OverrideSearchData
     /// <summary>
     /// Gets the returned overrides.
     /// </summary>
-    public BoundedCollection<SymbolReference> Overrides { get; init; } = BoundedCollection<SymbolReference>.Empty();
+    public BoundedCollection<SymbolReference> Overrides { get; init; } = BoundedCollection.Empty<SymbolReference>();
 }

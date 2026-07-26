@@ -9,7 +9,7 @@ public sealed class AnalyzeDataFlowToolTests
     {
         var target = new AnalyzeDataFlowTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<DataFlowAnalysisData>.Conflict(new PluginExecutionError
+        var expected = PluginExecutionResult.Conflict<DataFlowAnalysisData>(new PluginExecutionError
         {
             Code = "SnapshotMismatch",
             Message = "SnapshotMismatch",
@@ -50,7 +50,7 @@ public sealed class AnalyzeDataFlowToolTests
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(SelectorResolveResult<Location>.NotFound());
+            .ReturnsAsync(SelectorResolveResult.NotFound<Location>());
 
         var result = await target.ExecuteAsync(new AnalyzeDataFlowRequest
         {
@@ -82,7 +82,7 @@ public sealed class AnalyzeDataFlowToolTests
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(SelectorResolveResult<Location>.Ambiguous());
+            .ReturnsAsync(SelectorResolveResult.Ambiguous<Location>());
 
         var result = await target.ExecuteAsync(new AnalyzeDataFlowRequest
         {
@@ -133,7 +133,7 @@ public sealed class AnalyzeDataFlowToolTests
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(SelectorResolveResult<Location>.Resolved(selectedLocation));
+            .ReturnsAsync(SelectorResolveResult.Resolved(selectedLocation));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.Is<Location>(item => item.SourceSpan == selectedLocation.SourceSpan)))
@@ -189,7 +189,7 @@ public sealed class AnalyzeDataFlowToolTests
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(SelectorResolveResult<Location>.Resolved(selectedLocation));
+            .ReturnsAsync(SelectorResolveResult.Resolved(selectedLocation));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.Is<Location>(item => item.SourceSpan == selectedLocation.SourceSpan)))
@@ -243,7 +243,7 @@ public sealed class AnalyzeDataFlowToolTests
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(SelectorResolveResult<Location>.Resolved(selectedLocation));
+            .ReturnsAsync(SelectorResolveResult.Resolved(selectedLocation));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.Is<Location>(item => item.SourceSpan == selectedLocation.SourceSpan)))
@@ -296,7 +296,7 @@ public sealed class AnalyzeDataFlowToolTests
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(SelectorResolveResult<Location>.Resolved(selectedLocation));
+            .ReturnsAsync(SelectorResolveResult.Resolved(selectedLocation));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.Is<Location>(item => item.SourceSpan == selectedLocation.SourceSpan)))

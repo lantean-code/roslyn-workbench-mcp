@@ -26,7 +26,7 @@ public sealed class MoveTypeToFileToolTests
     [Fact]
     public async Task GIVEN_SymbolResolutionHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
-        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
+        var expected = CodeActionExecutionResult.Rejected<WorkspaceMutationCandidate>(new CodeActionExecutionError
         {
             Code = "SymbolNotFound",
             Message = "The symbol selector did not match any result.",
@@ -40,7 +40,7 @@ public sealed class MoveTypeToFileToolTests
 
         workspaceResolver
             .Setup(item => item.ResolveSymbolAsync(request.Type!, CancellationToken.None))
-            .ReturnsAsync(SelectorResolveResult<ISymbol>.NotFound());
+            .ReturnsAsync(SelectorResolveResult.NotFound<ISymbol>());
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
@@ -61,7 +61,7 @@ public sealed class MoveTypeToFileToolTests
 
         workspaceResolver
             .Setup(item => item.ResolveSymbolAsync(request.Type!, CancellationToken.None))
-            .ReturnsAsync(SelectorResolveResult<ISymbol>.Resolved(symbol.Object));
+            .ReturnsAsync(SelectorResolveResult.Resolved(symbol.Object));
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
@@ -84,7 +84,7 @@ public sealed class MoveTypeToFileToolTests
 
         workspaceResolver
             .Setup(item => item.ResolveSymbolAsync(request.Type!, CancellationToken.None))
-            .ReturnsAsync(SelectorResolveResult<ISymbol>.Resolved(type.Object));
+            .ReturnsAsync(SelectorResolveResult.Resolved<ISymbol>(type.Object));
 
         var result = await target.ExecuteAsync(request, context.Object, CancellationToken.None);
 
@@ -108,7 +108,7 @@ public sealed class MoveTypeToFileToolTests
 
         workspaceResolver
             .Setup(item => item.ResolveSymbolAsync(request.Type!, CancellationToken.None))
-            .ReturnsAsync(SelectorResolveResult<ISymbol>.Resolved(type.Object));
+            .ReturnsAsync(SelectorResolveResult.Resolved<ISymbol>(type.Object));
 
         workspaceResolver
             .Setup(item => item.CreateResolvedLocation(location))
@@ -125,7 +125,7 @@ public sealed class MoveTypeToFileToolTests
     [Fact]
     public async Task GIVEN_TypeSourceLocationCanBeProjected_WHEN_CallingExecuteAsync_THEN_ShouldStageReplayCodeAction()
     {
-        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
+        var expected = CodeActionExecutionResult.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var workspaceResolver = new Mock<IWorkspaceResolver>();
         var context = CreateContext(workspaceResolver);
         var request = CreateRequest();
@@ -137,7 +137,7 @@ public sealed class MoveTypeToFileToolTests
 
         workspaceResolver
             .Setup(item => item.ResolveSymbolAsync(request.Type!, CancellationToken.None))
-            .ReturnsAsync(SelectorResolveResult<ISymbol>.Resolved(type.Object));
+            .ReturnsAsync(SelectorResolveResult.Resolved<ISymbol>(type.Object));
 
         workspaceResolver
             .Setup(item => item.CreateResolvedLocation(location))

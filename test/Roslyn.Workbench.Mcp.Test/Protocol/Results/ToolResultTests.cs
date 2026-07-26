@@ -8,7 +8,7 @@ public sealed class ToolResultTests
     [Fact]
     public void GIVEN_SucceededResult_WHEN_SerializedAndDeserialized_THEN_ShouldRoundTripCoreState()
     {
-        var result = ToolResult<WorkspaceStatusData>.Succeeded(
+        var result = ToolResult.Succeeded(
             new WorkspaceStatusData
             {
                 State = WorkspaceLifecycleState.Ready,
@@ -52,7 +52,7 @@ public sealed class ToolResultTests
     [Fact]
     public void GIVEN_RejectedResult_WHEN_CreatedWithWorkspaceIdentity_THEN_ShouldExposeWorkspaceIdentity()
     {
-        var result = ToolResult<WorkspaceStatusData>.Rejected(
+        var result = ToolResult.Rejected<WorkspaceStatusData>(
             new ToolError
             {
                 Code = "Code",
@@ -68,7 +68,7 @@ public sealed class ToolResultTests
     [Fact]
     public void GIVEN_NoChangeResult_WHEN_Validated_THEN_ShouldHaveNoValidationErrors()
     {
-        var result = ToolResult<WorkspaceStatusData>.NoChange(workspaceEpoch: 42);
+        var result = ToolResult.NoChange<WorkspaceStatusData>(workspaceEpoch: 42);
 
         var errors = ContractValidator.Validate(result);
 
@@ -138,7 +138,7 @@ public sealed class ToolResultTests
             Outcome = ToolOutcome.Succeeded,
         };
 
-        var errors = result.Validate();
+        var errors = ContractValidator.Validate(result);
 
         errors.Should().ContainSingle().Which.Should().Contain("Data");
     }
@@ -157,7 +157,7 @@ public sealed class ToolResultTests
             },
         };
 
-        var errors = result.Validate();
+        var errors = ContractValidator.Validate(result);
 
         errors.Should().HaveCount(2);
         errors.Should().Contain(error => error.Contains("Changes"));
@@ -178,7 +178,7 @@ public sealed class ToolResultTests
             Changes = new ChangeSummary(),
         };
 
-        var errors = result.Validate();
+        var errors = ContractValidator.Validate(result);
 
         errors.Should().HaveCount(3);
         errors.Should().Contain(error => error.Contains("requires Error"));
@@ -195,7 +195,7 @@ public sealed class ToolResultTests
             Message = "Message",
         };
 
-        var result = ToolResult<WorkspaceStatusData>.Conflict(error, RequiredAction.Retry);
+        var result = ToolResult.Conflict<WorkspaceStatusData>(error, RequiredAction.Retry);
 
         result.Outcome.Should().Be(ToolOutcome.Conflict);
         result.Error.Should().BeSameAs(error);
@@ -210,7 +210,7 @@ public sealed class ToolResultTests
             Message = "Message",
         };
 
-        var result = ToolResult<WorkspaceStatusData>.Faulted(error, RequiredAction.Retry);
+        var result = ToolResult.Faulted<WorkspaceStatusData>(error, RequiredAction.Retry);
 
         result.Outcome.Should().Be(ToolOutcome.Faulted);
         result.Error.Should().BeSameAs(error);

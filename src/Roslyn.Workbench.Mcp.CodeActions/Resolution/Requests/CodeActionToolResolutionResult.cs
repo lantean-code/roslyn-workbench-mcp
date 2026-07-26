@@ -12,20 +12,23 @@ internal sealed record CodeActionToolResolutionResult<TValue, TResponse>
     [MemberNotNullWhen(false, nameof(Value))]
     public bool HasRejection => Rejection is not null;
 
-    private CodeActionToolResolutionResult(
+    internal CodeActionToolResolutionResult(
         TValue? value,
         CodeActionExecutionResult<TResponse>? rejection)
     {
         Value = value;
         Rejection = rejection;
     }
+}
 
-    public static CodeActionToolResolutionResult<TValue, TResponse> Resolved(TValue value)
+internal static class CodeActionToolResolutionResult
+{
+    public static CodeActionToolResolutionResult<TValue, TResponse> Resolved<TValue, TResponse>(TValue value)
     {
         return new CodeActionToolResolutionResult<TValue, TResponse>(value, rejection: null);
     }
 
-    public static CodeActionToolResolutionResult<TValue, TResponse> Rejected(
+    public static CodeActionToolResolutionResult<TValue, TResponse> Rejected<TValue, TResponse>(
         CodeActionExecutionResult<TResponse> rejection)
     {
         return new CodeActionToolResolutionResult<TValue, TResponse>(value: default, rejection);

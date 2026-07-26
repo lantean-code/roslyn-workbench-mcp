@@ -13,5 +13,5 @@ internal sealed record PartialDeclarationsData
     /// <summary>
     /// Gets the resolved declarations.
     /// </summary>
-    public BoundedCollection<ResolvedLocation> Declarations { get; init; } = BoundedCollection<ResolvedLocation>.Empty();
+    public BoundedCollection<ResolvedLocation> Declarations { get; init; } = BoundedCollection.Empty<ResolvedLocation>();
 }

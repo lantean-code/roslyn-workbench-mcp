@@ -7,7 +7,7 @@ public sealed class GetApiSurfaceToolTests
     {
         var target = new GetApiSurfaceTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<ApiSurfaceData>.Rejected(new PluginExecutionError
+        var expected = PluginExecutionResult.Rejected<ApiSurfaceData>(new PluginExecutionError
         {
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
@@ -17,7 +17,7 @@ public sealed class GetApiSurfaceToolTests
             .Setup(item => item.ResolveDocuments<ApiSurfaceData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, ApiSurfaceData>.Rejected(expected));
+            .Returns(ToolResolutionResult.Rejected<IReadOnlyList<Document>, ApiSurfaceData>(expected));
 
         var result = await target.ExecuteAsync(new GetApiSurfaceRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -38,7 +38,7 @@ public sealed class GetApiSurfaceToolTests
             .Setup(item => item.ResolveDocuments<ApiSurfaceData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, ApiSurfaceData>.Resolved([]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, ApiSurfaceData>([]));
 
         var result = await target.ExecuteAsync(new GetApiSurfaceRequest
         {
@@ -69,7 +69,7 @@ public sealed class GetApiSurfaceToolTests
             .Setup(item => item.ResolveDocuments<ApiSurfaceData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, ApiSurfaceData>.Resolved([unsupportedDocument.Document]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, ApiSurfaceData>([unsupportedDocument.Document]));
 
         var result = await target.ExecuteAsync(new GetApiSurfaceRequest(), queryContextMocks.QueryContext.Object, TestContext.Current.CancellationToken);
 
@@ -138,7 +138,7 @@ public sealed class GetApiSurfaceToolTests
             .Setup(item => item.ResolveDocuments<ApiSurfaceData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, ApiSurfaceData>.Resolved([document.Document]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, ApiSurfaceData>([document.Document]));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
@@ -192,7 +192,7 @@ public sealed class GetApiSurfaceToolTests
             .Setup(item => item.ResolveDocuments<ApiSurfaceData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, ApiSurfaceData>.Resolved([document.Document]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, ApiSurfaceData>([document.Document]));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
@@ -251,7 +251,7 @@ public sealed class GetApiSurfaceToolTests
             .Setup(item => item.ResolveDocuments<ApiSurfaceData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, ApiSurfaceData>.Resolved([document.Document]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, ApiSurfaceData>([document.Document]));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
@@ -297,7 +297,7 @@ public sealed class GetApiSurfaceToolTests
             .Setup(item => item.ResolveDocuments<ApiSurfaceData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, ApiSurfaceData>.Resolved([document.Document]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, ApiSurfaceData>([document.Document]));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
@@ -334,7 +334,7 @@ public sealed class GetApiSurfaceToolTests
             .Setup(item => item.ResolveDocuments<ApiSurfaceData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, ApiSurfaceData>.Resolved([document.Document]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, ApiSurfaceData>([document.Document]));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))

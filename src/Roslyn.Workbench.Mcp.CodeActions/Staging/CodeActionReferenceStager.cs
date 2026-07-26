@@ -73,7 +73,7 @@ internal sealed class CodeActionReferenceStager : ICodeActionReferenceStager
                 Message = "The selected action requires dedicated tool parameters and cannot be replayed generically.",
             };
 
-            return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(error);
+            return CodeActionExecutionResult.Rejected<WorkspaceMutationCandidate>(error);
         }
 
         var application = await _evaluator.EvaluateAsync(
@@ -92,7 +92,7 @@ internal sealed class CodeActionReferenceStager : ICodeActionReferenceStager
             Summary = resolvedAction.Action.Title,
         };
 
-        return CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(candidate);
+        return CodeActionExecutionResult.Success(candidate);
     }
 
     private CodeActionExecutionResult<WorkspaceMutationCandidate>? RejectedIfUnavailable()

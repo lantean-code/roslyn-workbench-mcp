@@ -8,7 +8,7 @@ internal sealed class WorkspaceOperationResultFactory : IWorkspaceOperationResul
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
     {
-        return WorkspaceOperationResult<TOutcome>.Succeeded(
+        return WorkspaceOperationResult.Succeeded(
             data,
             context ?? new WorkspaceOperationContext(),
             diagnostics ?? [],
@@ -32,7 +32,7 @@ internal sealed class WorkspaceOperationResultFactory : IWorkspaceOperationResul
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
     {
-        return WorkspaceOperationResult<TOutcome>.Rejected(
+        return WorkspaceOperationResult.Rejected<TOutcome>(
             error,
             context ?? new WorkspaceOperationContext(),
             diagnostics ?? [],
@@ -56,7 +56,7 @@ internal sealed class WorkspaceOperationResultFactory : IWorkspaceOperationResul
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
     {
-        return WorkspaceOperationResult<TOutcome>.Conflict(
+        return WorkspaceOperationResult.Conflict<TOutcome>(
             error,
             context ?? new WorkspaceOperationContext(),
             diagnostics ?? [],
@@ -73,7 +73,7 @@ internal sealed class WorkspaceOperationResultFactory : IWorkspaceOperationResul
     {
         var error = CreateError(code, message, requiredAction);
 
-        return WorkspaceOperationResult<TOutcome>.Faulted(
+        return WorkspaceOperationResult.Faulted<TOutcome>(
             error,
             context ?? new WorkspaceOperationContext(),
             diagnostics ?? [],
@@ -86,7 +86,7 @@ internal sealed class WorkspaceOperationResultFactory : IWorkspaceOperationResul
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
     {
-        return WorkspaceOperationResult<TOutcome>.NoChange(
+        return WorkspaceOperationResult.NoChange(
             data,
             context ?? new WorkspaceOperationContext(),
             diagnostics ?? [],

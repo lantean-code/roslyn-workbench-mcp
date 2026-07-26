@@ -90,17 +90,17 @@ internal sealed class CodeActionComponentTestSession
         {
             return proposal.Outcome switch
             {
-                CodeActionExecutionOutcome.Rejected => CodeActionExecutionResult<MutationData>.Rejected(
+                CodeActionExecutionOutcome.Rejected => CodeActionExecutionResult.Rejected<MutationData>(
                     proposal.Error,
                     proposal.RequiredAction,
                     proposal.Diagnostics,
                     proposal.Warnings),
-                CodeActionExecutionOutcome.Conflict => CodeActionExecutionResult<MutationData>.Conflict(
+                CodeActionExecutionOutcome.Conflict => CodeActionExecutionResult.Conflict<MutationData>(
                     proposal.Error,
                     proposal.RequiredAction,
                     proposal.Diagnostics,
                     proposal.Warnings),
-                CodeActionExecutionOutcome.Faulted => CodeActionExecutionResult<MutationData>.Faulted(
+                CodeActionExecutionOutcome.Faulted => CodeActionExecutionResult.Faulted<MutationData>(
                     proposal.Error,
                     proposal.RequiredAction,
                     proposal.Diagnostics,
@@ -111,7 +111,7 @@ internal sealed class CodeActionComponentTestSession
 
         if (!proposal.IsSucceeded)
         {
-            return CodeActionExecutionResult<MutationData>.NoChange(
+            return CodeActionExecutionResult.NoChange<MutationData>(
                 diagnostics: proposal.Diagnostics,
                 warnings: proposal.Warnings);
         }
@@ -128,13 +128,13 @@ internal sealed class CodeActionComponentTestSession
     {
         return failure.Outcome switch
         {
-            CodeActionExecutionOutcome.Rejected => CodeActionExecutionResult<TData>.Rejected(
+            CodeActionExecutionOutcome.Rejected => CodeActionExecutionResult.Rejected<TData>(
                 failure.Error,
                 failure.RequiredAction),
-            CodeActionExecutionOutcome.Conflict => CodeActionExecutionResult<TData>.Conflict(
+            CodeActionExecutionOutcome.Conflict => CodeActionExecutionResult.Conflict<TData>(
                 failure.Error,
                 failure.RequiredAction),
-            CodeActionExecutionOutcome.Faulted => CodeActionExecutionResult<TData>.Faulted(
+            CodeActionExecutionOutcome.Faulted => CodeActionExecutionResult.Faulted<TData>(
                 failure.Error,
                 failure.RequiredAction),
             _ => throw new InvalidOperationException($"Outcome '{failure.Outcome}' is not a failure outcome."),

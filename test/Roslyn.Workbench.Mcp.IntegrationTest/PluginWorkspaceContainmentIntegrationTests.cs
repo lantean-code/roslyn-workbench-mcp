@@ -114,7 +114,7 @@ public sealed class PluginWorkspaceContainmentIntegrationTests
             }
 
             var response = new TestResponse();
-            var result = PluginExecutionResult<TestResponse>.Success(response);
+            var result = PluginExecutionResult.Success(response);
             return ValueTask.FromResult(result);
         }
     }
@@ -144,7 +144,7 @@ public sealed class PluginWorkspaceContainmentIntegrationTests
                 throw new InvalidOperationException("The test plugin could not mutate the live Roslyn Workspace.");
             }
 
-            var result = PluginExecutionResult<MutationCandidate>.NoChange();
+            var result = PluginExecutionResult.NoChange<MutationCandidate>();
             return ValueTask.FromResult(result);
         }
     }

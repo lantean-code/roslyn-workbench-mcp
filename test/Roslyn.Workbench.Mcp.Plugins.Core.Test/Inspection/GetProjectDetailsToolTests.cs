@@ -9,7 +9,7 @@ public sealed class GetProjectDetailsToolTests
     {
         var target = new GetProjectDetailsTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<ProjectDetailsData>.Rejected(new PluginExecutionError
+        var expected = PluginExecutionResult.Rejected<ProjectDetailsData>(new PluginExecutionError
         {
             Code = "ProjectNotFound",
             Message = "ProjectNotFound",
@@ -19,7 +19,7 @@ public sealed class GetProjectDetailsToolTests
             .Setup(item => item.ResolveProject<ProjectDetailsData>(
                 It.IsAny<ProjectSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<Project, ProjectDetailsData>.Rejected(expected));
+            .Returns(ToolResolutionResult.Rejected<Project, ProjectDetailsData>(expected));
 
         var result = await target.ExecuteAsync(new GetProjectDetailsRequest
         {
@@ -45,7 +45,7 @@ public sealed class GetProjectDetailsToolTests
             .Setup(item => item.ResolveProject<ProjectDetailsData>(
                 It.IsAny<ProjectSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<Project, ProjectDetailsData>.Resolved(project));
+            .Returns(ToolResolutionResult.Resolved<Project, ProjectDetailsData>(project));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.NormalizeProjectPath(It.IsAny<string>()))
@@ -187,7 +187,7 @@ public sealed class GetProjectDetailsToolTests
             .Setup(item => item.ResolveProject<ProjectDetailsData>(
                 It.IsAny<ProjectSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<Project, ProjectDetailsData>.Resolved(mainProject));
+            .Returns(ToolResolutionResult.Resolved<Project, ProjectDetailsData>(mainProject));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.NormalizeProjectPath(It.IsAny<string>()))
@@ -277,7 +277,7 @@ public sealed class GetProjectDetailsToolTests
             .Setup(item => item.ResolveProject<ProjectDetailsData>(
                 It.IsAny<ProjectSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<Project, ProjectDetailsData>.Resolved(project));
+            .Returns(ToolResolutionResult.Resolved<Project, ProjectDetailsData>(project));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.NormalizeDocumentPath(It.IsAny<string>()))
@@ -335,7 +335,7 @@ public sealed class GetProjectDetailsToolTests
             .Setup(item => item.ResolveProject<ProjectDetailsData>(
                 It.IsAny<ProjectSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<Project, ProjectDetailsData>.Resolved(project));
+            .Returns(ToolResolutionResult.Resolved<Project, ProjectDetailsData>(project));
 
         queryContextMocks.ProjectTargetFrameworkResolver
             .Setup(item => item.Resolve("WorkspaceId", project, It.IsAny<CancellationToken>()))

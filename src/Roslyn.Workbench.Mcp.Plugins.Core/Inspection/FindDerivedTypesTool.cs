@@ -9,7 +9,7 @@ internal sealed class FindDerivedTypesTool : QueryToolHandler<FindDerivedTypesRe
     {
         if (request.MaxDepth < 1)
         {
-            return PluginExecutionResultFactory.Rejected<DerivedTypesData>("InvalidRequest", "MaxDepth must be at least 1.");
+            return PluginExecutionResult.Rejected<DerivedTypesData>("InvalidRequest", "MaxDepth must be at least 1.");
         }
 
         var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<DerivedTypesData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken);
@@ -20,7 +20,7 @@ internal sealed class FindDerivedTypesTool : QueryToolHandler<FindDerivedTypesRe
 
         if (symbolResolution.Value is not INamedTypeSymbol namedType)
         {
-            return PluginExecutionResultFactory.Rejected<DerivedTypesData>("InvalidRequest", "Find derived types requires a named type symbol.");
+            return PluginExecutionResult.Rejected<DerivedTypesData>("InvalidRequest", "Find derived types requires a named type symbol.");
         }
 
         var scopeResolution = context.ToolExecutionServices.RequestResolver.ResolveProjects<DerivedTypesData>(request.Scope, context);
@@ -68,10 +68,10 @@ internal sealed class FindDerivedTypesTool : QueryToolHandler<FindDerivedTypesRe
         var data = new DerivedTypesData
         {
             BaseType = baseType,
-            DerivedTypes = BoundedCollection<TypeHierarchyNode>.CreatePrebounded(derivedTypes, projectedTypes.Count),
+            DerivedTypes = BoundedCollection.CreatePrebounded(derivedTypes, projectedTypes.Count),
         };
 
-        return PluginExecutionResult<DerivedTypesData>.Success(data);
+        return PluginExecutionResult.Success(data);
     }
 
     private static async ValueTask<IReadOnlyList<INamedTypeSymbol>> FindDerivedTypeSymbolsAsync(INamedTypeSymbol root, Solution solution, IImmutableSet<Project> projects, CancellationToken cancellationToken)

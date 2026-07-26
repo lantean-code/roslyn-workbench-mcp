@@ -134,7 +134,7 @@ internal sealed class CodeActionSelectionStager : ICodeActionSelectionStager
                 Message = "The requested refactoring could not be selected uniquely.",
             };
 
-            return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(error, RequiredAction.ResolveTargetAgain);
+            return CodeActionExecutionResult.Rejected<WorkspaceMutationCandidate>(error, RequiredAction.ResolveTargetAgain);
         }
 
         var candidate = distinctCandidates[0];
@@ -151,7 +151,7 @@ internal sealed class CodeActionSelectionStager : ICodeActionSelectionStager
                 Message = "The selected action requires dedicated tool parameters and cannot be replayed generically.",
             };
 
-            return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(error);
+            return CodeActionExecutionResult.Rejected<WorkspaceMutationCandidate>(error);
         }
 
         return Rejected<WorkspaceMutationCandidate>("CodeActionUnavailable", "The selected action is not replayable in this server build.", RequiredAction.ResolveTargetAgain);
@@ -204,7 +204,7 @@ internal sealed class CodeActionSelectionStager : ICodeActionSelectionStager
             Summary = summary,
         };
 
-        return CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(candidate);
+        return CodeActionExecutionResult.Success(candidate);
     }
 
     private CodeActionExecutionResult<WorkspaceMutationCandidate>? RejectedIfUnavailable()

@@ -77,7 +77,7 @@ public sealed class CodeActionQueryMcpServerToolTests
                 It.Is<TestQueryRequest>(request => request.Name == "Name"),
                 context.Object,
                 CancellationToken.None))
-            .ReturnsAsync(CodeActionExecutionResult<TestQueryResponse>.Success(new TestQueryResponse
+            .ReturnsAsync(CodeActionExecutionResult.Success(new TestQueryResponse
             {
                 Value = "Value",
             }));
@@ -109,7 +109,7 @@ public sealed class CodeActionQueryMcpServerToolTests
 
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestQueryRequest>(), context.Object, CancellationToken.None))
-            .ReturnsAsync(CodeActionExecutionResult<TestQueryResponse>.NoChange());
+            .ReturnsAsync(CodeActionExecutionResult.NoChange<TestQueryResponse>());
 
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
@@ -243,9 +243,9 @@ public sealed class CodeActionQueryMcpServerToolTests
 
         return outcomeName switch
         {
-            "Rejected" => CodeActionExecutionResult<TestQueryResponse>.Rejected(error, RequiredAction.Retry),
-            "Conflict" => CodeActionExecutionResult<TestQueryResponse>.Conflict(error, RequiredAction.Retry),
-            "Faulted" => CodeActionExecutionResult<TestQueryResponse>.Faulted(error, RequiredAction.Retry),
+            "Rejected" => CodeActionExecutionResult.Rejected<TestQueryResponse>(error, RequiredAction.Retry),
+            "Conflict" => CodeActionExecutionResult.Conflict<TestQueryResponse>(error, RequiredAction.Retry),
+            "Faulted" => CodeActionExecutionResult.Faulted<TestQueryResponse>(error, RequiredAction.Retry),
             _ => throw new InvalidOperationException($"Outcome '{outcomeName}' is not a failure outcome."),
         };
     }

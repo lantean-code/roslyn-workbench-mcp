@@ -2,7 +2,6 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Resolution;
 
-#pragma warning disable CA1000 // Resolution factories belong with the generic result contract and encode its valid states.
 /// <summary>
 /// Represents the outcome of resolving a selector against the current workspace snapshot.
 /// </summary>
@@ -26,18 +25,31 @@ public sealed record SelectorResolveResult<T>
     [MemberNotNullWhen(true, nameof(Value))]
     public bool IsResolved => Status == SelectorResolveStatus.Resolved && Value is not null;
 
-    private SelectorResolveResult(SelectorResolveStatus status, T? value)
+    internal SelectorResolveResult(SelectorResolveStatus status, T? value)
     {
+        if (status == SelectorResolveStatus.Resolved)
+        {
+            ArgumentNullException.ThrowIfNull(value);
+        }
+
         Status = status;
         Value = value;
     }
+}
 
+/// <summary>
+/// Creates selector resolution results.
+/// </summary>
+public static class SelectorResolveResult
+{
     /// <summary>
     /// Creates a resolved outcome.
     /// </summary>
+    /// <typeparam name="T">The resolved value type.</typeparam>
     /// <param name="value">The resolved value.</param>
     /// <returns>The resolution result.</returns>
-    public static SelectorResolveResult<T> Resolved(T value)
+    public static SelectorResolveResult<T> Resolved<T>(T value)
+        where T : class
     {
         ArgumentNullException.ThrowIfNull(value);
 
@@ -47,8 +59,10 @@ public sealed record SelectorResolveResult<T>
     /// <summary>
     /// Creates a not-found outcome.
     /// </summary>
+    /// <typeparam name="T">The resolved value type.</typeparam>
     /// <returns>The resolution result.</returns>
-    public static SelectorResolveResult<T> NotFound()
+    public static SelectorResolveResult<T> NotFound<T>()
+        where T : class
     {
         return new SelectorResolveResult<T>(SelectorResolveStatus.NotFound, value: null);
     }
@@ -56,10 +70,11 @@ public sealed record SelectorResolveResult<T>
     /// <summary>
     /// Creates an ambiguous outcome.
     /// </summary>
+    /// <typeparam name="T">The resolved value type.</typeparam>
     /// <returns>The resolution result.</returns>
-    public static SelectorResolveResult<T> Ambiguous()
+    public static SelectorResolveResult<T> Ambiguous<T>()
+        where T : class
     {
         return new SelectorResolveResult<T>(SelectorResolveStatus.Ambiguous, value: null);
     }
 }
-#pragma warning restore CA1000

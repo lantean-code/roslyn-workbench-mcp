@@ -54,7 +54,7 @@ public sealed class PluginHandlerTypeInspectorTests
         public ValueTask<PluginExecutionResult<Response>> ExecuteAsync(Request request, IQueryContext context, CancellationToken cancellationToken)
         {
             var response = new Response();
-            var result = PluginExecutionResult<Response>.Success(response);
+            var result = PluginExecutionResult.Success(response);
             return ValueTask.FromResult(result);
         }
     }
@@ -64,7 +64,7 @@ public sealed class PluginHandlerTypeInspectorTests
         public ValueTask<PluginExecutionResult<Response>> ExecuteAsync(Request request, IQueryContext context, CancellationToken cancellationToken)
         {
             var response = new Response();
-            var result = PluginExecutionResult<Response>.Success(response);
+            var result = PluginExecutionResult.Success(response);
             return ValueTask.FromResult(result);
         }
 
@@ -78,7 +78,7 @@ public sealed class PluginHandlerTypeInspectorTests
         public ValueTask<PluginExecutionResult<Response>> ExecuteAsync(Request request, IQueryContext context, CancellationToken cancellationToken)
         {
             var response = new Response();
-            var result = PluginExecutionResult<Response>.Success(response);
+            var result = PluginExecutionResult.Success(response);
             return ValueTask.FromResult(result);
         }
 
@@ -96,7 +96,7 @@ public sealed class PluginHandlerTypeInspectorTests
         public ValueTask<PluginExecutionResult<Response>> ExecuteAsync(Request request, IQueryContext context, CancellationToken cancellationToken)
         {
             var response = new Response();
-            var result = PluginExecutionResult<Response>.Success(response);
+            var result = PluginExecutionResult.Success(response);
             return ValueTask.FromResult(result);
         }
     }
@@ -112,7 +112,7 @@ public sealed class PluginHandlerTypeInspectorTests
             CancellationToken cancellationToken)
         {
             var response = new Response();
-            var result = PluginExecutionResult<Response>.Success(response);
+            var result = PluginExecutionResult.Success(response);
             return ValueTask.FromResult(result);
         }
 
@@ -131,7 +131,7 @@ public sealed class PluginHandlerTypeInspectorTests
         public ValueTask<PluginExecutionResult<Response>> ExecuteAsync(Request request, IQueryContext context, CancellationToken cancellationToken)
         {
             var response = new Response();
-            var result = PluginExecutionResult<Response>.Success(response);
+            var result = PluginExecutionResult.Success(response);
             return ValueTask.FromResult(result);
         }
     }
@@ -147,7 +147,7 @@ public sealed class PluginHandlerTypeInspectorTests
         public ValueTask<PluginExecutionResult<Response>> ExecuteAsync(Request request, IQueryContext context, CancellationToken cancellationToken)
         {
             var response = new Response();
-            var result = PluginExecutionResult<Response>.Success(response);
+            var result = PluginExecutionResult.Success(response);
             return ValueTask.FromResult(result);
         }
     }

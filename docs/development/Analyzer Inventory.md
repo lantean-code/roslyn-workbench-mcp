@@ -51,7 +51,7 @@ There are no active diagnostics in the solution-wide `latest-all` baseline.
 
 | Diagnostic | Baseline | Resolution |
 | --- | --: | --- |
-| `CA1000` | 15 | Retained cohesive static factories on generic result and bounded-collection contracts with source-local rationale; internalising Host-only result types removed the remaining findings |
+| `CA1000` | 15 | Moved generic outcome and bounded-collection factories to non-generic companion types, updated call sites, and removed the suppressions |
 | `CA1001` | 1 | Made the owning test class disposable and disposed its reusable memory stream |
 | `CA1002` | 1 | Suppressed for test and plugin-fixture builds because the mutable `List<T>` contract is an intentional negative contract-inspection scenario |
 | `CA1014` | 23 | Suppressed solution-wide because the repository does not promise CLS compliance and Microsoft classifies this legacy rule as excluded from `latest-all` |

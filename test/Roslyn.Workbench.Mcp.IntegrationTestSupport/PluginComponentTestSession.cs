@@ -77,20 +77,20 @@ internal sealed class PluginComponentTestSession
 
         return proposal.Outcome switch
         {
-            PluginExecutionOutcome.NoChange => PluginExecutionResult<MutationData>.NoChange(
+            PluginExecutionOutcome.NoChange => PluginExecutionResult.NoChange<MutationData>(
                 diagnostics: proposal.Diagnostics,
                 warnings: proposal.Warnings),
-            PluginExecutionOutcome.Rejected when proposal.HasError => PluginExecutionResult<MutationData>.Rejected(
+            PluginExecutionOutcome.Rejected when proposal.HasError => PluginExecutionResult.Rejected<MutationData>(
                 proposal.Error,
                 proposal.RequiredAction,
                 proposal.Diagnostics,
                 proposal.Warnings),
-            PluginExecutionOutcome.Conflict when proposal.HasError => PluginExecutionResult<MutationData>.Conflict(
+            PluginExecutionOutcome.Conflict when proposal.HasError => PluginExecutionResult.Conflict<MutationData>(
                 proposal.Error,
                 proposal.RequiredAction,
                 proposal.Diagnostics,
                 proposal.Warnings),
-            PluginExecutionOutcome.Faulted when proposal.HasError => PluginExecutionResult<MutationData>.Faulted(
+            PluginExecutionOutcome.Faulted when proposal.HasError => PluginExecutionResult.Faulted<MutationData>(
                 proposal.Error,
                 proposal.RequiredAction,
                 proposal.Diagnostics,

@@ -122,7 +122,7 @@ public sealed class LoadedPluginPreparerTests
             CancellationToken cancellationToken)
         {
             var response = new Response();
-            var result = PluginExecutionResult<Response>.Success(response);
+            var result = PluginExecutionResult.Success(response);
             return ValueTask.FromResult(result);
         }
     }

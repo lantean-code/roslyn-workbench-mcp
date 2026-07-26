@@ -77,7 +77,7 @@ public sealed class CodeActionScopeResolverTests
         var workspaceResolver = new Mock<IWorkspaceResolver>();
         workspaceResolver
             .Setup(item => item.ResolveDocument(selector))
-            .Returns(SelectorResolveResult<Document>.Resolved(roslyn.Document));
+            .Returns(SelectorResolveResult.Resolved(roslyn.Document));
 
         var result = _target.Resolve(
             new ScopeSelector
@@ -143,7 +143,7 @@ public sealed class CodeActionScopeResolverTests
         var workspaceResolver = new Mock<IWorkspaceResolver>();
         workspaceResolver
             .Setup(item => item.ResolveProject(selector))
-            .Returns(SelectorResolveResult<Project>.Resolved(roslyn.Document.Project));
+            .Returns(SelectorResolveResult.Resolved(roslyn.Document.Project));
 
         var result = _target.Resolve(
             new ScopeSelector
@@ -215,7 +215,7 @@ public sealed class CodeActionScopeResolverTests
         var workspaceResolver = new Mock<IWorkspaceResolver>();
         workspaceResolver
             .Setup(item => item.ResolveProject(selector))
-            .Returns(SelectorResolveResult<Project>.Resolved(roslyn.Document.Project));
+            .Returns(SelectorResolveResult.Resolved(roslyn.Document.Project));
 
         var result = _target.Resolve(
             new ScopeSelector
@@ -242,11 +242,11 @@ public sealed class CodeActionScopeResolverTests
         var workspaceResolver = new Mock<IWorkspaceResolver>();
         workspaceResolver
             .Setup(item => item.ResolveProject(firstSelector))
-            .Returns(SelectorResolveResult<Project>.Resolved(firstProject));
+            .Returns(SelectorResolveResult.Resolved(firstProject));
 
         workspaceResolver
             .Setup(item => item.ResolveProject(secondSelector))
-            .Returns(SelectorResolveResult<Project>.Resolved(secondProject));
+            .Returns(SelectorResolveResult.Resolved(secondProject));
 
         var result = _target.Resolve(
             new ScopeSelector

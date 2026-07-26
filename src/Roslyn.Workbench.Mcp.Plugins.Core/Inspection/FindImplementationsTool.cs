@@ -49,11 +49,11 @@ internal sealed class FindImplementationsTool : QueryToolHandler<FindImplementat
         var data = new ImplementationSearchData
         {
             Symbol = symbolReference,
-            Implementations = BoundedCollection<SymbolReference>.CreatePrebounded(
+            Implementations = BoundedCollection.CreatePrebounded(
                 implementations,
                 projectedImplementations.Count),
         };
 
-        return PluginExecutionResult<ImplementationSearchData>.Success(data);
+        return PluginExecutionResult.Success(data);
     }
 }

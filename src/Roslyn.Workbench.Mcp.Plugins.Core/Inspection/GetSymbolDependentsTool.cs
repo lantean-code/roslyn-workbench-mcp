@@ -68,9 +68,9 @@ internal sealed class GetSymbolDependentsTool : QueryToolHandler<GetSymbolDepend
         var data = new SymbolDependentsData
         {
             Symbol = symbolReference,
-            Dependents = BoundedCollection<SymbolReference>.CreatePrebounded(projectedDependents, dependents.Count),
+            Dependents = BoundedCollection.CreatePrebounded(projectedDependents, dependents.Count),
         };
 
-        return PluginExecutionResult<SymbolDependentsData>.Success(data);
+        return PluginExecutionResult.Success(data);
     }
 }

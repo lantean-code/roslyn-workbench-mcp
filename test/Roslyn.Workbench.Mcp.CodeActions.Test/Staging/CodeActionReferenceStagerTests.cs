@@ -99,7 +99,7 @@ public sealed class CodeActionReferenceStagerTests
     [Fact]
     public async Task GIVEN_ResolutionIsRejected_WHEN_StagingCodeFix_THEN_ShouldReturnResolutionRejection()
     {
-        var rejection = CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(new CodeActionExecutionError
+        var rejection = CodeActionExecutionResult.Rejected<WorkspaceMutationCandidate>(new CodeActionExecutionError
         {
             Code = "ErrorCode",
             Message = "Message",
@@ -112,7 +112,7 @@ public sealed class CodeActionReferenceStagerTests
                 DiscoveredActionKind.CodeFix,
                 _context.Object,
                 CancellationToken.None))
-            .ReturnsAsync(CodeActionResolution<WorkspaceMutationCandidate>.Rejected(rejection));
+            .ReturnsAsync(CodeActionResolution.Rejected(rejection));
 
         var result = await _target.StageCodeFixAsync(
             new StageCodeFixRequest { ExpectedSnapshot = new SnapshotPrecondition(), ActionId = Guid.Empty },
@@ -200,7 +200,7 @@ public sealed class CodeActionReferenceStagerTests
             EquivalenceKey = "EquivalenceKey",
         };
 
-        return CodeActionResolution<WorkspaceMutationCandidate>.Resolved(
+        return CodeActionResolution.Resolved<WorkspaceMutationCandidate>(
             discoveredAction,
             document,
             default,

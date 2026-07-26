@@ -136,7 +136,7 @@ Forward the token to cancellable Roslyn, I/O and asynchronous APIs, or call `Thr
 
 A query publishes a raw array, list, set, dictionary, enumerable or asynchronous collection either as its response or through a public response property.
 
-Apply a curated limit before constructing the response and publish the result through `BoundedCollection<TItem>.CreatePrebounded`. Include `TotalCount` only when the complete count is already available cheaply.
+Apply a curated limit before constructing the response and publish the result through `BoundedCollection.CreatePrebounded<TItem>`. Include `TotalCount` only when the complete count is already available cheaply.
 
 This diagnostic validates the published contract shape. It cannot prove that collection discovery stopped at the limit or that the chosen limit and ordering are appropriate.
 

@@ -27,7 +27,7 @@ internal sealed class GetApiSurfaceTool : QueryToolHandler<GetApiSurfaceRequest,
         var threshold = ParseMinimumAccessibility(request.MinimumAccessibility);
         if (threshold is null)
         {
-            return PluginExecutionResultFactory.Rejected<ApiSurfaceData>("InvalidRequest", "Minimum accessibility must be Public, Protected, or Internal.");
+            return PluginExecutionResult.Rejected<ApiSurfaceData>("InvalidRequest", "Minimum accessibility must be Public, Protected, or Internal.");
         }
 
         var maxResults = request.EffectiveSymbolsLimit;
@@ -96,10 +96,10 @@ internal sealed class GetApiSurfaceTool : QueryToolHandler<GetApiSurfaceRequest,
 
         var data = new ApiSurfaceData
         {
-            Symbols = BoundedCollection<ApiSymbolInfo>.CreatePrebounded(symbols, orderedSymbols.Count),
+            Symbols = BoundedCollection.CreatePrebounded(symbols, orderedSymbols.Count),
         };
 
-        return PluginExecutionResult<ApiSurfaceData>.Success(data);
+        return PluginExecutionResult.Success(data);
     }
 
     private static AccessibilityThreshold? ParseMinimumAccessibility(string value)

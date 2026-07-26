@@ -16,7 +16,7 @@ public sealed class WorkspaceListToolTests
 
         workspaceLifecycleService
             .Setup(service => service.ListAsync(CancellationToken.None))
-            .ReturnsAsync(WorkspaceOperationResult<WorkspaceListOutcome>.Succeeded(new WorkspaceListOutcome
+            .ReturnsAsync(WorkspaceOperationResult.Succeeded(new WorkspaceListOutcome
             {
                 Workspaces =
                     [

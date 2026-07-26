@@ -13,5 +13,5 @@ internal sealed record SymbolDependenciesData
     /// <summary>
     /// Gets the returned direct dependencies.
     /// </summary>
-    public BoundedCollection<DependencyInfo> Dependencies { get; init; } = BoundedCollection<DependencyInfo>.Empty();
+    public BoundedCollection<DependencyInfo> Dependencies { get; init; } = BoundedCollection.Empty<DependencyInfo>();
 }

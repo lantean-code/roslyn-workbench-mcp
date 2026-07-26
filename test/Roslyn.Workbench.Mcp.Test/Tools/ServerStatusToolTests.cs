@@ -11,7 +11,7 @@ public sealed class ServerStatusToolTests
         var service = new Mock<IServerStatusService>();
         service
             .Setup(item => item.GetStatusAsync(StatusDetailLevel.Full, CancellationToken.None))
-            .ReturnsAsync(ToolResult<ServerStatusData>.Succeeded(new ServerStatusData
+            .ReturnsAsync(ToolResult.Succeeded(new ServerStatusData
             {
                 ToolCount = 5,
             }));

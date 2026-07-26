@@ -61,10 +61,10 @@ internal sealed class GetSymbolDependenciesTool : QueryToolHandler<GetSymbolDepe
         var data = new SymbolDependenciesData
         {
             Symbol = symbolReference,
-            Dependencies = BoundedCollection<DependencyInfo>.CreatePrebounded(projectedDependencies, dependencies.Count),
+            Dependencies = BoundedCollection.CreatePrebounded(projectedDependencies, dependencies.Count),
         };
 
-        return PluginExecutionResult<SymbolDependenciesData>.Success(data);
+        return PluginExecutionResult.Success(data);
     }
 
     private static void AddSignatureDependencies(ISymbol symbol, ISet<ISymbol> dependencies)

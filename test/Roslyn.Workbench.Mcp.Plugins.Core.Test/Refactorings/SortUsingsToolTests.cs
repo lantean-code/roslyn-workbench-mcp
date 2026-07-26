@@ -5,7 +5,7 @@ public sealed class SortUsingsToolTests
     [Fact]
     public async Task GIVEN_ResolveDocumentHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
-        var expected = PluginExecutionResult<MutationCandidate>.Rejected(new PluginExecutionError
+        var expected = PluginExecutionResult.Rejected<MutationCandidate>(new PluginExecutionError
         {
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
@@ -22,7 +22,7 @@ public sealed class SortUsingsToolTests
 
         contextMocks.RequestResolver
             .Setup(item => item.ResolveDocument<MutationCandidate>(request.Document, contextMocks.MutationContext.Object))
-            .Returns(ToolResolutionResult<Document, MutationCandidate>.Rejected(expected));
+            .Returns(ToolResolutionResult.Rejected<Document, MutationCandidate>(expected));
 
         var result = await target.ExecuteAsync(request, contextMocks.MutationContext.Object, CancellationToken.None);
 
@@ -36,7 +36,7 @@ public sealed class SortUsingsToolTests
     public async Task GIVEN_ValidateSnapshotHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
         using var document = RoslynTestFactory.CreateDocument("using System;");
-        var expected = PluginExecutionResult<MutationCandidate>.Conflict(new PluginExecutionError
+        var expected = PluginExecutionResult.Conflict<MutationCandidate>(new PluginExecutionError
         {
             Code = "SnapshotMismatch",
             Message = "SnapshotMismatch",
@@ -53,7 +53,7 @@ public sealed class SortUsingsToolTests
 
         contextMocks.RequestResolver
             .Setup(item => item.ResolveDocument<MutationCandidate>(request.Document, contextMocks.MutationContext.Object))
-            .Returns(ToolResolutionResult<Document, MutationCandidate>.Resolved(document.Document));
+            .Returns(ToolResolutionResult.Resolved<Document, MutationCandidate>(document.Document));
 
         contextMocks.RequestResolver
             .Setup(item => item.ValidateSnapshot<MutationCandidate>(contextMocks.MutationContext.Object, request.ExpectedSnapshot))
@@ -79,7 +79,7 @@ public sealed class SortUsingsToolTests
 
         contextMocks.RequestResolver
             .Setup(item => item.ResolveDocument<MutationCandidate>(request.Document, contextMocks.MutationContext.Object))
-            .Returns(ToolResolutionResult<Document, MutationCandidate>.Resolved(document.Document));
+            .Returns(ToolResolutionResult.Resolved<Document, MutationCandidate>(document.Document));
 
         contextMocks.RequestResolver
             .Setup(item => item.ValidateSnapshot<MutationCandidate>(contextMocks.MutationContext.Object, request.ExpectedSnapshot))
@@ -111,7 +111,7 @@ public sealed class SortUsingsToolTests
 
         contextMocks.RequestResolver
             .Setup(item => item.ResolveDocument<MutationCandidate>(request.Document, contextMocks.MutationContext.Object))
-            .Returns(ToolResolutionResult<Document, MutationCandidate>.Resolved(document.Document));
+            .Returns(ToolResolutionResult.Resolved<Document, MutationCandidate>(document.Document));
 
         contextMocks.RequestResolver
             .Setup(item => item.ValidateSnapshot<MutationCandidate>(contextMocks.MutationContext.Object, request.ExpectedSnapshot))
@@ -138,7 +138,7 @@ public sealed class SortUsingsToolTests
 
         contextMocks.RequestResolver
             .Setup(item => item.ResolveDocument<MutationCandidate>(request.Document, contextMocks.MutationContext.Object))
-            .Returns(ToolResolutionResult<Document, MutationCandidate>.Resolved(document.Document));
+            .Returns(ToolResolutionResult.Resolved<Document, MutationCandidate>(document.Document));
 
         contextMocks.RequestResolver
             .Setup(item => item.ValidateSnapshot<MutationCandidate>(contextMocks.MutationContext.Object, request.ExpectedSnapshot))
@@ -171,7 +171,7 @@ public sealed class SortUsingsToolTests
 
         contextMocks.RequestResolver
             .Setup(item => item.ResolveDocument<MutationCandidate>(request.Document, contextMocks.MutationContext.Object))
-            .Returns(ToolResolutionResult<Document, MutationCandidate>.Resolved(document.Document));
+            .Returns(ToolResolutionResult.Resolved<Document, MutationCandidate>(document.Document));
 
         contextMocks.RequestResolver
             .Setup(item => item.ValidateSnapshot<MutationCandidate>(contextMocks.MutationContext.Object, request.ExpectedSnapshot))
@@ -202,7 +202,7 @@ public sealed class SortUsingsToolTests
 
         contextMocks.RequestResolver
             .Setup(item => item.ResolveDocument<MutationCandidate>(request.Document, contextMocks.MutationContext.Object))
-            .Returns(ToolResolutionResult<Document, MutationCandidate>.Resolved(document.Document));
+            .Returns(ToolResolutionResult.Resolved<Document, MutationCandidate>(document.Document));
 
         contextMocks.RequestResolver
             .Setup(item => item.ValidateSnapshot<MutationCandidate>(contextMocks.MutationContext.Object, request.ExpectedSnapshot))

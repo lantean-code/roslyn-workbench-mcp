@@ -13,5 +13,5 @@ internal sealed record SymbolDependentsData
     /// <summary>
     /// Gets the returned direct dependents.
     /// </summary>
-    public BoundedCollection<SymbolReference> Dependents { get; init; } = BoundedCollection<SymbolReference>.Empty();
+    public BoundedCollection<SymbolReference> Dependents { get; init; } = BoundedCollection.Empty<SymbolReference>();
 }

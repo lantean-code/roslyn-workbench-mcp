@@ -37,7 +37,7 @@ public sealed class UnsupportedApiVersionTestPlugin : IRoslynPlugin
                 Value = string.Empty,
             };
 
-            var result = PluginExecutionResult<Response>.Success(response);
+            var result = PluginExecutionResult.Success(response);
             return ValueTask.FromResult(result);
         }
     }

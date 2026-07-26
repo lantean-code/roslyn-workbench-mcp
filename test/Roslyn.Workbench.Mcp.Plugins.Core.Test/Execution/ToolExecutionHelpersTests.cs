@@ -28,14 +28,14 @@ public sealed class ToolExecutionHelpersTests
     [Fact]
     public void GIVEN_ResolutionResult_WHEN_CheckingHasRejection_THEN_ShouldReflectStoredOutcome()
     {
-        var rejection = PluginExecutionResult<object>.Rejected(new PluginExecutionError
+        var rejection = PluginExecutionResult.Rejected<object>(new PluginExecutionError
         {
             Code = "Code",
             Message = "Message",
         });
 
-        var rejected = ToolResolutionResult<string, object>.Rejected(rejection);
-        var resolved = ToolResolutionResult<string, object>.Resolved("Value");
+        var rejected = ToolResolutionResult.Rejected<string, object>(rejection);
+        var resolved = ToolResolutionResult.Resolved<string, object>("Value");
 
         rejected.HasRejection.Should().BeTrue();
         rejected.Rejection.Should().NotBeNull();

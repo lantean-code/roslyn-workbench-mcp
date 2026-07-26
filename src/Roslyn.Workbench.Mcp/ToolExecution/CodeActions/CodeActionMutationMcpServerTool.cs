@@ -69,7 +69,7 @@ internal sealed class CodeActionMutationMcpServerTool<THandler, TRequest> : McpS
 
         if (!proposalResult.IsSucceeded)
         {
-            var noChange = CodeActionExecutionResult<MutationData>.NoChange(
+            var noChange = CodeActionExecutionResult.NoChange<MutationData>(
                 diagnostics: proposalResult.Diagnostics,
                 warnings: proposalResult.Warnings);
 

@@ -35,7 +35,7 @@ public sealed class WorkspaceDiffServiceTests : IDisposable
         var solution = _workspace.CurrentSolution;
         var reference = new DocumentReference { DocumentId = "DocumentId" };
         _resolver.Setup(item => item.ResolveDocument(It.Is<DocumentSelector>(selector => selector.DocumentId == "DocumentId")))
-            .Returns(SelectorResolveResult<Document>.NotFound());
+            .Returns(SelectorResolveResult.NotFound<Document>());
 
         var result = await _target.CreateDocumentDiffAsync(
             solution,

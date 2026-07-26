@@ -5,7 +5,7 @@ public sealed class ConvertAutoPropertyToFullPropertyToolTests
     [Fact]
     public async Task GIVEN_ConvertAutoPropertyToFullPropertyRequest_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithFullPropertyProvider()
     {
-        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
+        var expected = CodeActionExecutionResult.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new ConvertAutoPropertyToFullPropertyRequest
         {

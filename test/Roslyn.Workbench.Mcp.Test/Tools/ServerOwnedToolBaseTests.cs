@@ -74,9 +74,9 @@ public sealed class ServerOwnedToolBaseTests
 
         var serviceResult = status switch
         {
-            WorkspaceOperationStatus.Rejected => WorkspaceOperationResult<WorkspaceListOutcome>.Rejected(error),
-            WorkspaceOperationStatus.Conflict => WorkspaceOperationResult<WorkspaceListOutcome>.Conflict(error),
-            WorkspaceOperationStatus.Faulted => WorkspaceOperationResult<WorkspaceListOutcome>.Faulted(error),
+            WorkspaceOperationStatus.Rejected => WorkspaceOperationResult.Rejected<WorkspaceListOutcome>(error),
+            WorkspaceOperationStatus.Conflict => WorkspaceOperationResult.Conflict<WorkspaceListOutcome>(error),
+            WorkspaceOperationStatus.Faulted => WorkspaceOperationResult.Faulted<WorkspaceListOutcome>(error),
             _ => throw new ArgumentOutOfRangeException(nameof(statusName), statusName, "A failure status is required."),
         };
 
@@ -152,7 +152,7 @@ public sealed class ServerOwnedToolBaseTests
         var service = new Mock<IWorkspaceLifecycleService>();
         service
             .Setup(item => item.ListAsync(CancellationToken.None))
-            .ReturnsAsync(WorkspaceOperationResult<WorkspaceListOutcome>.Succeeded(new WorkspaceListOutcome()));
+            .ReturnsAsync(WorkspaceOperationResult.Succeeded(new WorkspaceListOutcome()));
 
         var protocolFactory = McpToolProtocolFactoryMockFactory.Create();
         var target = new WorkspaceListTool(Options.Create(new StartupOptions()), protocolFactory.Object, service.Object);

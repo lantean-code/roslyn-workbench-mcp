@@ -45,7 +45,7 @@ public sealed class GetControlFlowGraphToolTests
     {
         var target = new GetControlFlowGraphTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<ControlFlowGraphData>.Rejected(new PluginExecutionError
+        var expected = PluginExecutionResult.Rejected<ControlFlowGraphData>(new PluginExecutionError
         {
             Code = "SymbolNotFound",
             Message = "SymbolNotFound",
@@ -57,7 +57,7 @@ public sealed class GetControlFlowGraphToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, ControlFlowGraphData>.Rejected(expected));
+            .ReturnsAsync(ToolResolutionResult.Rejected<ISymbol, ControlFlowGraphData>(expected));
 
         var result = await target.ExecuteAsync(new GetControlFlowGraphRequest
         {
@@ -87,7 +87,7 @@ public sealed class GetControlFlowGraphToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, ControlFlowGraphData>.Resolved(metadataSymbol));
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, ControlFlowGraphData>(metadataSymbol));
 
         var result = await target.ExecuteAsync(new GetControlFlowGraphRequest
         {
@@ -124,7 +124,7 @@ public sealed class GetControlFlowGraphToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, ControlFlowGraphData>.Resolved(symbol));
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, ControlFlowGraphData>(symbol));
 
         var result = await target.ExecuteAsync(new GetControlFlowGraphRequest
         {
@@ -157,7 +157,7 @@ public sealed class GetControlFlowGraphToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, ControlFlowGraphData>.Resolved(symbol));
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, ControlFlowGraphData>(symbol));
 
         var result = await target.ExecuteAsync(new GetControlFlowGraphRequest
         {
@@ -215,7 +215,7 @@ public sealed class GetControlFlowGraphToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, ControlFlowGraphData>.Resolved(symbol));
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, ControlFlowGraphData>(symbol));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
@@ -272,7 +272,7 @@ public sealed class GetControlFlowGraphToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, ControlFlowGraphData>.Resolved(symbol));
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, ControlFlowGraphData>(symbol));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
@@ -294,7 +294,7 @@ public sealed class GetControlFlowGraphToolTests
     {
         var target = new GetControlFlowGraphTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<ControlFlowGraphData>.Rejected(new PluginExecutionError
+        var expected = PluginExecutionResult.Rejected<ControlFlowGraphData>(new PluginExecutionError
         {
             Code = "SnapshotConflict",
             Message = "SnapshotConflict",
@@ -328,7 +328,7 @@ public sealed class GetControlFlowGraphToolTests
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(SelectorResolveResult<Location>.NotFound());
+            .ReturnsAsync(SelectorResolveResult.NotFound<Location>());
 
         var result = await target.ExecuteAsync(new GetControlFlowGraphRequest
         {
@@ -367,7 +367,7 @@ public sealed class GetControlFlowGraphToolTests
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+            .ReturnsAsync(SelectorResolveResult.Resolved(location));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
@@ -410,7 +410,7 @@ public sealed class GetControlFlowGraphToolTests
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+            .ReturnsAsync(SelectorResolveResult.Resolved(location));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
@@ -456,7 +456,7 @@ public sealed class GetControlFlowGraphToolTests
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+            .ReturnsAsync(SelectorResolveResult.Resolved(location));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
@@ -516,7 +516,7 @@ public sealed class GetControlFlowGraphToolTests
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.ResolveLocationAsync(It.IsAny<LocationSelector>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(SelectorResolveResult<Location>.Resolved(location));
+            .ReturnsAsync(SelectorResolveResult.Resolved(location));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))

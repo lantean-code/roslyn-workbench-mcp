@@ -57,7 +57,7 @@ public sealed class PluginConfigurationTests
         public ValueTask<PluginExecutionResult<Response>> ExecuteAsync(Request request, IQueryContext context, CancellationToken cancellationToken)
         {
             var response = new Response();
-            var result = PluginExecutionResult<Response>.Success(response);
+            var result = PluginExecutionResult.Success(response);
             return ValueTask.FromResult(result);
         }
     }
@@ -66,7 +66,7 @@ public sealed class PluginConfigurationTests
     {
         public ValueTask<PluginExecutionResult<MutationCandidate>> ExecuteAsync(Request request, IMutationContext context, CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(PluginExecutionResult<MutationCandidate>.NoChange());
+            return ValueTask.FromResult(PluginExecutionResult.NoChange<MutationCandidate>());
         }
     }
 }

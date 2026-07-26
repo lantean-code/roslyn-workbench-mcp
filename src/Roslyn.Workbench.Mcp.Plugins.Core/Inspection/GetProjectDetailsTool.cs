@@ -20,7 +20,10 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
 
         if (!targetFrameworks.IsSucceeded)
         {
-            var rejection = PluginExecutionResultFactory.ProjectStructureUnavailable<ProjectDetailsData>(targetFrameworks.ErrorMessage);
+            var rejection = PluginExecutionResult.Rejected<ProjectDetailsData>(
+                "ProjectStructureUnavailable",
+                targetFrameworks.ErrorMessage,
+                RequiredAction.Retry);
             return ValueTask.FromResult(rejection);
         }
 
@@ -61,7 +64,7 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
             CompilationOptions = InspectionProjectionFactory.CreateCompilationOptionsInfo(project.CompilationOptions),
         };
 
-        var result = PluginExecutionResult<ProjectDetailsData>.Success(projectDetails);
+        var result = PluginExecutionResult.Success(projectDetails);
         return ValueTask.FromResult(result);
     }
 
@@ -93,13 +96,13 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
 
             if (documents.Count == maxResults)
             {
-                return BoundedCollection<DocumentReference>.CreatePrebounded(documents, hasMore: true);
+                return BoundedCollection.CreatePrebounded(documents, hasMore: true);
             }
 
             documents.Add(documentReference);
         }
 
-        return BoundedCollection<DocumentReference>.CreatePrebounded(documents, hasMore: false);
+        return BoundedCollection.CreatePrebounded(documents, hasMore: false);
     }
 
     private static BoundedCollection<ProjectReferenceInfo> CreateProjectReferences(
@@ -131,13 +134,13 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
             cancellationToken.ThrowIfCancellationRequested();
             if (projectReferences.Count == maxResults)
             {
-                return BoundedCollection<ProjectReferenceInfo>.CreatePrebounded(projectReferences, candidates.Count);
+                return BoundedCollection.CreatePrebounded(projectReferences, candidates.Count);
             }
 
             projectReferences.Add(InspectionProjectionFactory.CreateProjectReferenceInfo(candidate.Project, workspaceResolver));
         }
 
-        return BoundedCollection<ProjectReferenceInfo>.CreatePrebounded(projectReferences, candidates.Count);
+        return BoundedCollection.CreatePrebounded(projectReferences, candidates.Count);
     }
 
     private static BoundedCollection<MetadataReferenceInfo> CreateMetadataReferences(
@@ -165,13 +168,13 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
             cancellationToken.ThrowIfCancellationRequested();
             if (metadataReferences.Count == maxResults)
             {
-                return BoundedCollection<MetadataReferenceInfo>.CreatePrebounded(metadataReferences, candidates.Count);
+                return BoundedCollection.CreatePrebounded(metadataReferences, candidates.Count);
             }
 
             metadataReferences.Add(InspectionProjectionFactory.CreateMetadataReferenceInfo(candidate.Reference));
         }
 
-        return BoundedCollection<MetadataReferenceInfo>.CreatePrebounded(metadataReferences, candidates.Count);
+        return BoundedCollection.CreatePrebounded(metadataReferences, candidates.Count);
     }
 
     private static BoundedCollection<AnalyzerInfo> CreateAnalyzers(
@@ -199,12 +202,12 @@ internal sealed class GetProjectDetailsTool : QueryToolHandler<GetProjectDetails
             cancellationToken.ThrowIfCancellationRequested();
             if (analyzers.Count == maxResults)
             {
-                return BoundedCollection<AnalyzerInfo>.CreatePrebounded(analyzers, candidates.Count);
+                return BoundedCollection.CreatePrebounded(analyzers, candidates.Count);
             }
 
             analyzers.Add(InspectionProjectionFactory.CreateAnalyzerInfo(candidate.Reference));
         }
 
-        return BoundedCollection<AnalyzerInfo>.CreatePrebounded(analyzers, candidates.Count);
+        return BoundedCollection.CreatePrebounded(analyzers, candidates.Count);
     }
 }

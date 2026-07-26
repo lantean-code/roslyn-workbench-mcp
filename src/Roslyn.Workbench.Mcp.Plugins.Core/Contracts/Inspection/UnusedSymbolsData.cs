@@ -8,5 +8,5 @@ internal sealed record UnusedSymbolsData
     /// <summary>
     /// Gets the returned unused symbol candidates.
     /// </summary>
-    public BoundedCollection<UnusedSymbolCandidate> Candidates { get; init; } = BoundedCollection<UnusedSymbolCandidate>.Empty();
+    public BoundedCollection<UnusedSymbolCandidate> Candidates { get; init; } = BoundedCollection.Empty<UnusedSymbolCandidate>();
 }

@@ -17,7 +17,7 @@ public sealed class PluginQueryMcpServerToolTests
             .Setup(item => item.CreateQueryContext(
                 It.Is<TestQueryRequest>(request => request.Name == "Name"),
                 CancellationToken.None))
-            .Returns(ToolExecutionContextLease<IQueryContext>.Rejected(failure, lease: operationLease.Object));
+            .Returns(ToolExecutionContextLease.Rejected<IQueryContext>(failure, lease: operationLease.Object));
 
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
@@ -50,14 +50,14 @@ public sealed class PluginQueryMcpServerToolTests
                     && request.Workspace != null
                     && request.Workspace.WorkspaceId == "WorkspaceId"),
                 CancellationToken.None))
-            .Returns(ToolExecutionContextLease<IQueryContext>.Acquired(context.Object, operationLease.Object));
+            .Returns(ToolExecutionContextLease.Acquired(context.Object, operationLease.Object));
 
         handler
             .Setup(item => item.ExecuteAsync(
                 It.Is<TestQueryRequest>(request => request.Name == "Name"),
                 context.Object,
                 CancellationToken.None))
-            .ReturnsAsync(PluginExecutionResult<TestQueryResponse>.Success(new TestQueryResponse
+            .ReturnsAsync(PluginExecutionResult.Success(new TestQueryResponse
             {
                 Value = "Value",
             }));
@@ -89,11 +89,11 @@ public sealed class PluginQueryMcpServerToolTests
         var context = new Mock<IQueryContext>();
         contextFactory
             .Setup(item => item.CreateQueryContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
-            .Returns(ToolExecutionContextLease<IQueryContext>.Acquired(context.Object));
+            .Returns(ToolExecutionContextLease.Acquired(context.Object));
 
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestQueryRequest>(), context.Object, CancellationToken.None))
-            .ReturnsAsync(PluginExecutionResult<TestQueryResponse>.NoChange());
+            .ReturnsAsync(PluginExecutionResult.NoChange<TestQueryResponse>());
 
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
@@ -115,14 +115,14 @@ public sealed class PluginQueryMcpServerToolTests
             "WorkspaceOutOfDate");
         contextFactory
             .Setup(item => item.CreateQueryContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
-            .Returns(ToolExecutionContextLease<IQueryContext>.Acquired(context.Object));
+            .Returns(ToolExecutionContextLease.Acquired(context.Object));
         contextFactory
             .Setup(item => item.DetectUnexpectedWorkspaceChange(context.Object))
             .Returns(failure);
 
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestQueryRequest>(), context.Object, CancellationToken.None))
-            .ReturnsAsync(PluginExecutionResult<TestQueryResponse>.Success(new TestQueryResponse
+            .ReturnsAsync(PluginExecutionResult.Success(new TestQueryResponse
             {
                 Value = "Value",
             }));
@@ -150,7 +150,7 @@ public sealed class PluginQueryMcpServerToolTests
         var context = new Mock<IQueryContext>();
         contextFactory
             .Setup(item => item.CreateQueryContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
-            .Returns(ToolExecutionContextLease<IQueryContext>.Acquired(context.Object));
+            .Returns(ToolExecutionContextLease.Acquired(context.Object));
 
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestQueryRequest>(), context.Object, CancellationToken.None))
@@ -176,7 +176,7 @@ public sealed class PluginQueryMcpServerToolTests
         operationLease.Setup(item => item.DisposeAsync()).Returns(ValueTask.CompletedTask);
         contextFactory
             .Setup(item => item.CreateQueryContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
-            .Returns(ToolExecutionContextLease<IQueryContext>.Acquired(context.Object, operationLease.Object));
+            .Returns(ToolExecutionContextLease.Acquired(context.Object, operationLease.Object));
 
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestQueryRequest>(), context.Object, CancellationToken.None))
@@ -203,7 +203,7 @@ public sealed class PluginQueryMcpServerToolTests
         await cancellationSource.CancelAsync();
         contextFactory
             .Setup(item => item.CreateQueryContext(It.IsAny<WorkspaceBoundRequest>(), cancellationSource.Token))
-            .Returns(ToolExecutionContextLease<IQueryContext>.Acquired(context.Object, operationLease.Object));
+            .Returns(ToolExecutionContextLease.Acquired(context.Object, operationLease.Object));
 
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestQueryRequest>(), context.Object, cancellationSource.Token))
@@ -276,9 +276,9 @@ public sealed class PluginQueryMcpServerToolTests
 
         return outcome switch
         {
-            PluginExecutionOutcome.Rejected => PluginExecutionResult<TestQueryResponse>.Rejected(error, RequiredAction.Retry),
-            PluginExecutionOutcome.Conflict => PluginExecutionResult<TestQueryResponse>.Conflict(error, RequiredAction.Retry),
-            PluginExecutionOutcome.Faulted => PluginExecutionResult<TestQueryResponse>.Faulted(error, RequiredAction.Retry),
+            PluginExecutionOutcome.Rejected => PluginExecutionResult.Rejected<TestQueryResponse>(error, RequiredAction.Retry),
+            PluginExecutionOutcome.Conflict => PluginExecutionResult.Conflict<TestQueryResponse>(error, RequiredAction.Retry),
+            PluginExecutionOutcome.Faulted => PluginExecutionResult.Faulted<TestQueryResponse>(error, RequiredAction.Retry),
             _ => throw new InvalidOperationException($"Outcome '{outcome}' is not a failure outcome."),
         };
     }

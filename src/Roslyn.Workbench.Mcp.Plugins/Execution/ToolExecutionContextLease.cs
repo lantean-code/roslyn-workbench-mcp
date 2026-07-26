@@ -11,7 +11,7 @@ internal sealed class ToolExecutionContextLease<TContext> : IAsyncDisposable
 {
     private readonly IAsyncDisposable? _lease;
 
-    private ToolExecutionContextLease(TContext? context, ToolExecutionFailureResult? shortCircuitResult, IAsyncDisposable? lease)
+    internal ToolExecutionContextLease(TContext? context, ToolExecutionFailureResult? shortCircuitResult, IAsyncDisposable? lease)
     {
         Context = context;
         ShortCircuitResult = shortCircuitResult;
@@ -35,13 +35,25 @@ internal sealed class ToolExecutionContextLease<TContext> : IAsyncDisposable
     [MemberNotNullWhen(false, nameof(Context))]
     public bool HasShortCircuitResult => ShortCircuitResult is not null;
 
+    /// <inheritdoc />
+    public ValueTask DisposeAsync()
+    {
+        return _lease is null ? ValueTask.CompletedTask : _lease.DisposeAsync();
+    }
+}
+
+internal static class ToolExecutionContextLease
+{
     /// <summary>
     /// Creates a successful leased context.
     /// </summary>
     /// <param name="context">The leased execution context.</param>
     /// <param name="lease">The lease to dispose when execution completes.</param>
     /// <returns>The leased execution context.</returns>
-    public static ToolExecutionContextLease<TContext> Acquired(TContext context, IAsyncDisposable? lease = null)
+    public static ToolExecutionContextLease<TContext> Acquired<TContext>(
+        TContext context,
+        IAsyncDisposable? lease = null)
+        where TContext : class, IToolExecutionContext
     {
         return new ToolExecutionContextLease<TContext>(context, null, lease);
     }
@@ -53,17 +65,12 @@ internal sealed class ToolExecutionContextLease<TContext> : IAsyncDisposable
     /// <param name="context">The optional execution context.</param>
     /// <param name="lease">The lease to dispose when execution completes.</param>
     /// <returns>The short-circuit context lease.</returns>
-    public static ToolExecutionContextLease<TContext> Rejected(
+    public static ToolExecutionContextLease<TContext> Rejected<TContext>(
         ToolExecutionFailureResult result,
         TContext? context = null,
         IAsyncDisposable? lease = null)
+        where TContext : class, IToolExecutionContext
     {
         return new ToolExecutionContextLease<TContext>(context, result, lease);
-    }
-
-    /// <inheritdoc />
-    public ValueTask DisposeAsync()
-    {
-        return _lease is null ? ValueTask.CompletedTask : _lease.DisposeAsync();
     }
 }

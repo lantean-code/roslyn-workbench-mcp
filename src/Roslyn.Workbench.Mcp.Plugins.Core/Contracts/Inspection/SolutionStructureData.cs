@@ -13,10 +13,10 @@ internal sealed record SolutionStructureData
     /// <summary>
     /// Gets the solution folders.
     /// </summary>
-    public BoundedCollection<SolutionFolderInfo> Folders { get; init; } = BoundedCollection<SolutionFolderInfo>.Empty();
+    public BoundedCollection<SolutionFolderInfo> Folders { get; init; } = BoundedCollection.Empty<SolutionFolderInfo>();
 
     /// <summary>
     /// Gets the project structure projections.
     /// </summary>
-    public BoundedCollection<ProjectStructureInfo> Projects { get; init; } = BoundedCollection<ProjectStructureInfo>.Empty();
+    public BoundedCollection<ProjectStructureInfo> Projects { get; init; } = BoundedCollection.Empty<ProjectStructureInfo>();
 }

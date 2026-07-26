@@ -8,10 +8,10 @@ internal sealed record DependencyGraphData
     /// <summary>
     /// Gets the returned graph nodes.
     /// </summary>
-    public BoundedCollection<GraphNode> Nodes { get; init; } = BoundedCollection<GraphNode>.Empty();
+    public BoundedCollection<GraphNode> Nodes { get; init; } = BoundedCollection.Empty<GraphNode>();
 
     /// <summary>
     /// Gets the returned graph edges.
     /// </summary>
-    public BoundedCollection<GraphEdge> Edges { get; init; } = BoundedCollection<GraphEdge>.Empty();
+    public BoundedCollection<GraphEdge> Edges { get; init; } = BoundedCollection.Empty<GraphEdge>();
 }

@@ -45,7 +45,7 @@ public sealed class CodeActionResolverTests : IDisposable
 
         _workspaceResolver
             .Setup(item => item.ResolveDocument(It.IsAny<DocumentSelector>()))
-            .Returns(SelectorResolveResult<Document>.Resolved(_roslyn.Document));
+            .Returns(SelectorResolveResult.Resolved(_roslyn.Document));
 
         _context.SetupGet(item => item.WorkspaceResolver).Returns(_workspaceResolver.Object);
         _context.SetupGet(item => item.WorkspaceIdentity).Returns(new WorkspaceIdentity

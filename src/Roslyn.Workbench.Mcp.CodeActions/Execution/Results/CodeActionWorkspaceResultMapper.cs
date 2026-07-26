@@ -18,22 +18,22 @@ internal static class CodeActionWorkspaceResultMapper
         return result.Status switch
         {
             WorkspaceOperationStatus.Succeeded when result.HasData => MapSuccess(result, result.Data),
-            WorkspaceOperationStatus.Rejected when result.HasError => CodeActionExecutionResult<MutationData>.Rejected(
+            WorkspaceOperationStatus.Rejected when result.HasError => CodeActionExecutionResult.Rejected<MutationData>(
                 MapError(result.Error),
                 result.Error.RequiredAction,
                 result.Diagnostics,
                 result.Warnings),
-            WorkspaceOperationStatus.Conflict when result.HasError => CodeActionExecutionResult<MutationData>.Conflict(
+            WorkspaceOperationStatus.Conflict when result.HasError => CodeActionExecutionResult.Conflict<MutationData>(
                 MapError(result.Error),
                 result.Error.RequiredAction,
                 result.Diagnostics,
                 result.Warnings),
-            WorkspaceOperationStatus.Faulted when result.HasError => CodeActionExecutionResult<MutationData>.Faulted(
+            WorkspaceOperationStatus.Faulted when result.HasError => CodeActionExecutionResult.Faulted<MutationData>(
                 MapError(result.Error),
                 result.Error.RequiredAction,
                 result.Diagnostics,
                 result.Warnings),
-            WorkspaceOperationStatus.NoChange => CodeActionExecutionResult<MutationData>.NoChange(
+            WorkspaceOperationStatus.NoChange => CodeActionExecutionResult.NoChange<MutationData>(
                 diagnostics: result.Diagnostics,
                 warnings: result.Warnings),
             _ => throw new InvalidOperationException($"Unsupported workspace operation status '{result.Status}'."),
@@ -52,7 +52,7 @@ internal static class CodeActionWorkspaceResultMapper
             Preview = outcome.Preview,
         };
 
-        return CodeActionExecutionResult<MutationData>.Success(
+        return CodeActionExecutionResult.Success(
             data,
             outcome.Changes,
             result.Diagnostics,

@@ -16,7 +16,7 @@ public sealed class WorkspaceCloseToolTests
                 ServerOwnedToolTestData.GetWorkspaceAlias(includeWorkspace),
                 ServerOwnedToolTestData.GetWorkspacePath(includeWorkspace),
                 CancellationToken.None))
-            .ReturnsAsync(WorkspaceOperationResult<WorkspaceCloseOutcome>.Succeeded(new WorkspaceCloseOutcome
+            .ReturnsAsync(WorkspaceOperationResult.Succeeded(new WorkspaceCloseOutcome
             {
                 ClosedPath = "/workspace/Sample.csproj",
             }));

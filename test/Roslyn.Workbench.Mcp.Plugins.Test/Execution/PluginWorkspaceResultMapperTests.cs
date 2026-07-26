@@ -63,21 +63,21 @@ public sealed class PluginWorkspaceResultMapperTests
                 Preview = new MutationPreview(),
             };
 
-            return WorkspaceOperationResult<MutationStagingOutcome>.Succeeded(data);
+            return WorkspaceOperationResult.Succeeded(data);
         }
 
         if (status == WorkspaceOperationStatus.NoChange)
         {
-            return WorkspaceOperationResult<MutationStagingOutcome>.NoChange();
+            return WorkspaceOperationResult.NoChange<MutationStagingOutcome>();
         }
 
         var error = CreateError();
 
         return status switch
         {
-            WorkspaceOperationStatus.Rejected => WorkspaceOperationResult<MutationStagingOutcome>.Rejected(error),
-            WorkspaceOperationStatus.Conflict => WorkspaceOperationResult<MutationStagingOutcome>.Conflict(error),
-            WorkspaceOperationStatus.Faulted => WorkspaceOperationResult<MutationStagingOutcome>.Faulted(error),
+            WorkspaceOperationStatus.Rejected => WorkspaceOperationResult.Rejected<MutationStagingOutcome>(error),
+            WorkspaceOperationStatus.Conflict => WorkspaceOperationResult.Conflict<MutationStagingOutcome>(error),
+            WorkspaceOperationStatus.Faulted => WorkspaceOperationResult.Faulted<MutationStagingOutcome>(error),
             _ => throw new ArgumentOutOfRangeException(nameof(status), status, "A supported workspace status is required."),
         };
     }

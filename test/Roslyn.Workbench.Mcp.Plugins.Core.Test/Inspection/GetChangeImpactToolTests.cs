@@ -10,7 +10,7 @@ public sealed class GetChangeImpactToolTests
     {
         var target = new GetChangeImpactTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<ChangeImpactData>.Rejected(new PluginExecutionError
+        var expected = PluginExecutionResult.Rejected<ChangeImpactData>(new PluginExecutionError
         {
             Code = "SymbolNotFound",
             Message = "SymbolNotFound",
@@ -22,7 +22,7 @@ public sealed class GetChangeImpactToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, ChangeImpactData>.Rejected(expected));
+            .ReturnsAsync(ToolResolutionResult.Rejected<ISymbol, ChangeImpactData>(expected));
 
         var result = await target.ExecuteAsync(new GetChangeImpactRequest
         {
@@ -52,7 +52,7 @@ public sealed class GetChangeImpactToolTests
             null,
             TestContext.Current.CancellationToken);
 
-        var expected = PluginExecutionResult<ChangeImpactData>.Rejected(new PluginExecutionError
+        var expected = PluginExecutionResult.Rejected<ChangeImpactData>(new PluginExecutionError
         {
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
@@ -64,13 +64,13 @@ public sealed class GetChangeImpactToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, ChangeImpactData>.Resolved(symbol));
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, ChangeImpactData>(symbol));
 
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<ChangeImpactData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, ChangeImpactData>.Rejected(expected));
+            .Returns(ToolResolutionResult.Rejected<IReadOnlyList<Document>, ChangeImpactData>(expected));
 
         var result = await target.ExecuteAsync(new GetChangeImpactRequest
         {
@@ -100,7 +100,7 @@ public sealed class GetChangeImpactToolTests
             null,
             TestContext.Current.CancellationToken);
 
-        var expected = PluginExecutionResult<ChangeImpactData>.Rejected(new PluginExecutionError
+        var expected = PluginExecutionResult.Rejected<ChangeImpactData>(new PluginExecutionError
         {
             Code = "ProjectNotFound",
             Message = "ProjectNotFound",
@@ -112,19 +112,19 @@ public sealed class GetChangeImpactToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, ChangeImpactData>.Resolved(symbol));
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, ChangeImpactData>(symbol));
 
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<ChangeImpactData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, ChangeImpactData>.Resolved([document.Document]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, ChangeImpactData>([document.Document]));
 
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveProjects<ChangeImpactData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Project>, ChangeImpactData>.Rejected(expected));
+            .Returns(ToolResolutionResult.Rejected<IReadOnlyList<Project>, ChangeImpactData>(expected));
 
         var result = await target.ExecuteAsync(new GetChangeImpactRequest
         {
@@ -212,19 +212,19 @@ public sealed class GetChangeImpactToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, ChangeImpactData>.Resolved(symbol));
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, ChangeImpactData>(symbol));
 
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<ChangeImpactData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, ChangeImpactData>.Resolved([document]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, ChangeImpactData>([document]));
 
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveProjects<ChangeImpactData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Project>, ChangeImpactData>.Resolved([project]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Project>, ChangeImpactData>([project]));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
@@ -357,20 +357,20 @@ public sealed class GetChangeImpactToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, ChangeImpactData>.Resolved(interfaceSymbol))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, ChangeImpactData>.Resolved(privateMethod));
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, ChangeImpactData>(interfaceSymbol))
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, ChangeImpactData>(privateMethod));
 
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<ChangeImpactData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, ChangeImpactData>.Resolved([document]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, ChangeImpactData>([document]));
 
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveProjects<ChangeImpactData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Project>, ChangeImpactData>.Resolved([project]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Project>, ChangeImpactData>([project]));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))

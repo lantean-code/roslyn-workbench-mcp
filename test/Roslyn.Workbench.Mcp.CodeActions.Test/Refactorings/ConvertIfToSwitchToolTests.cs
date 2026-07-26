@@ -5,7 +5,7 @@ public sealed class ConvertIfToSwitchToolTests
     [Fact]
     public async Task GIVEN_StatementKind_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithSwitchStatementTitle()
     {
-        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
+        var expected = CodeActionExecutionResult.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new ConvertIfToSwitchRequest
         {
@@ -53,7 +53,7 @@ public sealed class ConvertIfToSwitchToolTests
     [Fact]
     public async Task GIVEN_ExpressionKind_WHEN_CallingExecuteAsync_THEN_ShouldStageReplaySelectionWithSwitchExpressionTitle()
     {
-        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
+        var expected = CodeActionExecutionResult.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var context = new Mock<ICodeActionMutationContext>();
         var request = new ConvertIfToSwitchRequest
         {

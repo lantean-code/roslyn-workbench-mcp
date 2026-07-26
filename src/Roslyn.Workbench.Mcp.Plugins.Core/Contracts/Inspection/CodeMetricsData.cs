@@ -8,5 +8,5 @@ internal sealed record CodeMetricsData
     /// <summary>
     /// Gets the returned metric rows.
     /// </summary>
-    public BoundedCollection<MetricInfo> Metrics { get; init; } = BoundedCollection<MetricInfo>.Empty();
+    public BoundedCollection<MetricInfo> Metrics { get; init; } = BoundedCollection.Empty<MetricInfo>();
 }

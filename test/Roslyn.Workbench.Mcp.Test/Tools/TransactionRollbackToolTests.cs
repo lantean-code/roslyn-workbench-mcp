@@ -16,7 +16,7 @@ public sealed class TransactionRollbackToolTests
                 ServerOwnedToolTestData.GetWorkspaceAlias(includeWorkspace),
                 ServerOwnedToolTestData.GetWorkspacePath(includeWorkspace),
                 CancellationToken.None))
-            .ReturnsAsync(WorkspaceOperationResult<TransactionRollbackOutcome>.Succeeded(new TransactionRollbackOutcome
+            .ReturnsAsync(WorkspaceOperationResult.Succeeded(new TransactionRollbackOutcome
             {
                 State = TransactionRollbackState.Ready,
             }));

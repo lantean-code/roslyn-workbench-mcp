@@ -16,7 +16,7 @@ public sealed class WorkspaceReloadToolTests
                 ServerOwnedToolTestData.GetWorkspaceAlias(includeWorkspace),
                 ServerOwnedToolTestData.GetWorkspacePath(includeWorkspace),
                 CancellationToken.None))
-            .ReturnsAsync(WorkspaceOperationResult<WorkspaceReloadOutcome>.Succeeded(new WorkspaceReloadOutcome
+            .ReturnsAsync(WorkspaceOperationResult.Succeeded(new WorkspaceReloadOutcome
             {
                 Workspace = new WorkspaceIdentity
                 {

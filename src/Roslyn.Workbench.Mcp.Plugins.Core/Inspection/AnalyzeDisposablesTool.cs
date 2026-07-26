@@ -83,12 +83,12 @@ internal sealed class AnalyzeDisposablesTool : QueryToolHandler<AnalyzeDisposabl
 
         var data = new DisposableAnalysisData
         {
-            Findings = BoundedCollection<DisposableFinding>.CreatePrebounded(
+            Findings = BoundedCollection.CreatePrebounded(
                 orderedFindings,
                 hasMore),
         };
 
-        return PluginExecutionResult<DisposableAnalysisData>.Success(data);
+        return PluginExecutionResult.Success(data);
     }
 
     private static bool ImplementsDisposable(ITypeSymbol type, INamedTypeSymbol? disposable, INamedTypeSymbol? asyncDisposable)

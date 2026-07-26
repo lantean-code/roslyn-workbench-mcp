@@ -22,7 +22,7 @@ internal sealed class WorkspaceOperationResult<TOutcome>
     [MemberNotNullWhen(true, nameof(Error))]
     public bool HasError => Error is not null;
 
-    private WorkspaceOperationResult(
+    internal WorkspaceOperationResult(
         WorkspaceOperationStatus status,
         WorkspaceOperationContext context,
         TOutcome? data,
@@ -37,8 +37,11 @@ internal sealed class WorkspaceOperationResult<TOutcome>
         Diagnostics = diagnostics;
         Warnings = warnings;
     }
+}
 
-    internal static WorkspaceOperationResult<TOutcome> Succeeded(
+internal static class WorkspaceOperationResult
+{
+    internal static WorkspaceOperationResult<TOutcome> Succeeded<TOutcome>(
         TOutcome data,
         WorkspaceOperationContext? context = null,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
@@ -53,7 +56,7 @@ internal sealed class WorkspaceOperationResult<TOutcome>
             warnings ?? []);
     }
 
-    internal static WorkspaceOperationResult<TOutcome> NoChange(
+    internal static WorkspaceOperationResult<TOutcome> NoChange<TOutcome>(
         TOutcome? data = default,
         WorkspaceOperationContext? context = null,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
@@ -68,34 +71,34 @@ internal sealed class WorkspaceOperationResult<TOutcome>
             warnings ?? []);
     }
 
-    internal static WorkspaceOperationResult<TOutcome> Rejected(
+    internal static WorkspaceOperationResult<TOutcome> Rejected<TOutcome>(
         WorkspaceOperationError error,
         WorkspaceOperationContext? context = null,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
     {
-        return Failed(WorkspaceOperationStatus.Rejected, error, context, diagnostics, warnings);
+        return Failed<TOutcome>(WorkspaceOperationStatus.Rejected, error, context, diagnostics, warnings);
     }
 
-    internal static WorkspaceOperationResult<TOutcome> Conflict(
+    internal static WorkspaceOperationResult<TOutcome> Conflict<TOutcome>(
         WorkspaceOperationError error,
         WorkspaceOperationContext? context = null,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
     {
-        return Failed(WorkspaceOperationStatus.Conflict, error, context, diagnostics, warnings);
+        return Failed<TOutcome>(WorkspaceOperationStatus.Conflict, error, context, diagnostics, warnings);
     }
 
-    internal static WorkspaceOperationResult<TOutcome> Faulted(
+    internal static WorkspaceOperationResult<TOutcome> Faulted<TOutcome>(
         WorkspaceOperationError error,
         WorkspaceOperationContext? context = null,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
     {
-        return Failed(WorkspaceOperationStatus.Faulted, error, context, diagnostics, warnings);
+        return Failed<TOutcome>(WorkspaceOperationStatus.Faulted, error, context, diagnostics, warnings);
     }
 
-    private static WorkspaceOperationResult<TOutcome> Failed(
+    private static WorkspaceOperationResult<TOutcome> Failed<TOutcome>(
         WorkspaceOperationStatus status,
         WorkspaceOperationError error,
         WorkspaceOperationContext? context,

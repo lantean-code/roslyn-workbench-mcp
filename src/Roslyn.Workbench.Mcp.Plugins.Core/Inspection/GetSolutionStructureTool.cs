@@ -17,7 +17,10 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
 
         if (!hierarchy.IsSucceeded)
         {
-            return PluginExecutionResultFactory.ProjectStructureUnavailable<SolutionStructureData>(hierarchy.ErrorMessage);
+            return PluginExecutionResult.Rejected<SolutionStructureData>(
+                "ProjectStructureUnavailable",
+                hierarchy.ErrorMessage,
+                RequiredAction.Retry);
         }
 
         var folders = new List<SolutionFolderInfo>();
@@ -70,7 +73,10 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
 
                 if (!targetFrameworks.IsSucceeded)
                 {
-                    return PluginExecutionResultFactory.ProjectStructureUnavailable<SolutionStructureData>(targetFrameworks.ErrorMessage);
+                    return PluginExecutionResult.Rejected<SolutionStructureData>(
+                        "ProjectStructureUnavailable",
+                        targetFrameworks.ErrorMessage,
+                        RequiredAction.Retry);
                 }
 
                 var projectPath = context.WorkspaceResolver.NormalizeProjectPath(project.FilePath ?? project.Name);
@@ -135,10 +141,10 @@ internal sealed class GetSolutionStructureTool : QueryToolHandler<GetSolutionStr
         var data = new SolutionStructureData
         {
             SolutionPath = context.WorkspaceIdentity.LoadedPath,
-            Folders = BoundedCollection<SolutionFolderInfo>.CreatePrebounded(folders, hierarchy.Folders.Count),
-            Projects = BoundedCollection<ProjectStructureInfo>.CreatePrebounded(projectStructures, context.CurrentSolution.ProjectIds.Count),
+            Folders = BoundedCollection.CreatePrebounded(folders, hierarchy.Folders.Count),
+            Projects = BoundedCollection.CreatePrebounded(projectStructures, context.CurrentSolution.ProjectIds.Count),
         };
 
-        return PluginExecutionResult<SolutionStructureData>.Success(data);
+        return PluginExecutionResult.Success(data);
     }
 }

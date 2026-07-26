@@ -66,7 +66,7 @@ Workspace has 27 internal candidates:
 | `TransactionCommitService` | 1 | Remove the internal selection guard. |
 | `WorkspaceCommitLockAcquisition` | 1 | Remove the internal ownership guard while retaining its validated state factories. |
 
-`SelectorResolveResult<T>.Resolved` remains a public Workspace contract factory, so its single guard remains.
+`SelectorResolveResult.Resolved<T>` remains a public Workspace contract factory, so its single guard remains.
 
 ### Code Actions
 
@@ -82,7 +82,7 @@ Remove five internal adapter guards from the two closed registrations, `PluginWo
 
 ### Plugins.Core
 
-Remove four guards from the internal query/mutation base handlers and `ToolExecutionHelpers`. Retain the two public `BoundedCollection<TItem>` factory guards and the public `BundledCorePlugin.Register` boundary guard.
+Remove four guards from the internal query/mutation base handlers and `ToolExecutionHelpers`. Retain the two public `BoundedCollection` companion factory guards and the public `BundledCorePlugin.Register` boundary guard.
 
 ## Remediation Strategy
 

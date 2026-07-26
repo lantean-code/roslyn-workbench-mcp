@@ -142,7 +142,7 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
             Actions = actionInfos,
         };
 
-        return CodeActionExecutionResult<CodeActionListData>.Success(data);
+        return CodeActionExecutionResult.Success(data);
     }
 
     private static List<string> GetEffectiveDiagnosticIds(

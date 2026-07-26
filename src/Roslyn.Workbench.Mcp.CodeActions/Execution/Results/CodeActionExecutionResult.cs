@@ -24,7 +24,7 @@ internal sealed record CodeActionExecutionResult<TData>
     [MemberNotNullWhen(true, nameof(Error))]
     public bool HasError => Outcome.IsError();
 
-    private CodeActionExecutionResult(
+    internal CodeActionExecutionResult(
         CodeActionExecutionOutcome outcome,
         TData? data,
         ChangeSummary? changes,
@@ -41,8 +41,11 @@ internal sealed record CodeActionExecutionResult<TData>
         Diagnostics = diagnostics;
         Warnings = warnings;
     }
+}
 
-    public static CodeActionExecutionResult<TData> Success(
+internal static class CodeActionExecutionResult
+{
+    public static CodeActionExecutionResult<TData> Success<TData>(
         TData data,
         ChangeSummary? changes = null,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
@@ -58,7 +61,7 @@ internal sealed record CodeActionExecutionResult<TData>
             warnings ?? []);
     }
 
-    public static CodeActionExecutionResult<TData> NoChange(
+    public static CodeActionExecutionResult<TData> NoChange<TData>(
         TData? data = default,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
@@ -73,13 +76,13 @@ internal sealed record CodeActionExecutionResult<TData>
             warnings ?? []);
     }
 
-    public static CodeActionExecutionResult<TData> Rejected(
+    public static CodeActionExecutionResult<TData> Rejected<TData>(
         CodeActionExecutionError error,
         RequiredAction? requiredAction = null,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
     {
-        return CreateFailure(
+        return CreateFailure<TData>(
             CodeActionExecutionOutcome.Rejected,
             error,
             requiredAction,
@@ -87,13 +90,13 @@ internal sealed record CodeActionExecutionResult<TData>
             warnings);
     }
 
-    public static CodeActionExecutionResult<TData> Conflict(
+    public static CodeActionExecutionResult<TData> Conflict<TData>(
         CodeActionExecutionError error,
         RequiredAction? requiredAction = null,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
     {
-        return CreateFailure(
+        return CreateFailure<TData>(
             CodeActionExecutionOutcome.Conflict,
             error,
             requiredAction,
@@ -101,13 +104,13 @@ internal sealed record CodeActionExecutionResult<TData>
             warnings);
     }
 
-    public static CodeActionExecutionResult<TData> Faulted(
+    public static CodeActionExecutionResult<TData> Faulted<TData>(
         CodeActionExecutionError error,
         RequiredAction? requiredAction = null,
         IReadOnlyList<DiagnosticInfo>? diagnostics = null,
         IReadOnlyList<WarningInfo>? warnings = null)
     {
-        return CreateFailure(
+        return CreateFailure<TData>(
             CodeActionExecutionOutcome.Faulted,
             error,
             requiredAction,
@@ -115,7 +118,7 @@ internal sealed record CodeActionExecutionResult<TData>
             warnings);
     }
 
-    private static CodeActionExecutionResult<TData> CreateFailure(
+    private static CodeActionExecutionResult<TData> CreateFailure<TData>(
         CodeActionExecutionOutcome outcome,
         CodeActionExecutionError error,
         RequiredAction? requiredAction,

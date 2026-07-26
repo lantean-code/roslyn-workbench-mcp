@@ -16,12 +16,12 @@ public static class SelectorTestFactory
     {
         if (status == SelectorResolveStatus.NotFound)
         {
-            return SelectorResolveResult<T>.NotFound();
+            return SelectorResolveResult.NotFound<T>();
         }
 
         if (status == SelectorResolveStatus.Ambiguous)
         {
-            return SelectorResolveResult<T>.Ambiguous();
+            return SelectorResolveResult.Ambiguous<T>();
         }
 
         throw new ArgumentOutOfRangeException(nameof(status), status, "An unresolved selector status is required.");

@@ -312,7 +312,7 @@ internal sealed class CodeActionFixAllStager : ICodeActionFixAllStager
             Message = $"The fix-all operation would change {changedDocumentCount} source documents, exceeding the limit of {maxChanges}.",
         };
 
-        return CodeActionExecutionResult<WorkspaceMutationCandidate>.Rejected(error, RequiredAction.NarrowRequest);
+        return CodeActionExecutionResult.Rejected<WorkspaceMutationCandidate>(error, RequiredAction.NarrowRequest);
     }
 
     private static CodeActionExecutionResult<WorkspaceMutationCandidate> CreateSuccess(
@@ -325,7 +325,7 @@ internal sealed class CodeActionFixAllStager : ICodeActionFixAllStager
             Summary = $"Fix all: {action.Title}",
         };
 
-        return CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(candidate);
+        return CodeActionExecutionResult.Success(candidate);
     }
 
     private static CodeActionApplyResult ProjectNotFound()

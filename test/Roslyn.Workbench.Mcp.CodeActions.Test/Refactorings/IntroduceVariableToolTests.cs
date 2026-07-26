@@ -18,7 +18,7 @@ public sealed class IntroduceVariableToolTests
         string titleStartsWith,
         string? titleDoesNotContain)
     {
-        var expected = CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
+        var expected = CodeActionExecutionResult.Success(MutationCandidateTestData.CreateWorkspaceCandidate());
         var context = new Mock<ICodeActionMutationContext>();
         var kind = (IntroduceVariableKind)kindValue;
         var request = new IntroduceVariableRequest

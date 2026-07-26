@@ -13,5 +13,5 @@ internal sealed record DerivedTypesData
     /// <summary>
     /// Gets the resolved derived types.
     /// </summary>
-    public BoundedCollection<TypeHierarchyNode> DerivedTypes { get; init; } = BoundedCollection<TypeHierarchyNode>.Empty();
+    public BoundedCollection<TypeHierarchyNode> DerivedTypes { get; init; } = BoundedCollection.Empty<TypeHierarchyNode>();
 }

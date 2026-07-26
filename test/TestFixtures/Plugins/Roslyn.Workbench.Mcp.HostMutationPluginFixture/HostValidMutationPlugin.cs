@@ -38,13 +38,13 @@ public sealed class HostValidMutationPlugin : IRoslynPlugin
             var candidateSolution = context.CurrentSolution;
             if (string.IsNullOrWhiteSpace(request.RelativeDocumentPath))
             {
-                return PluginExecutionResult<MutationCandidate>.NoChange();
+                return PluginExecutionResult.NoChange<MutationCandidate>();
             }
 
             var document = FindDocument(candidateSolution, request.RelativeDocumentPath);
             if (document is null)
             {
-                return PluginExecutionResult<MutationCandidate>.Rejected(
+                return PluginExecutionResult.Rejected<MutationCandidate>(
                     new PluginExecutionError
                     {
                         Code = "DocumentNotFound",
@@ -57,7 +57,7 @@ public sealed class HostValidMutationPlugin : IRoslynPlugin
             var searchText = request.SearchText ?? string.Empty;
             if (!currentText.Contains(searchText, StringComparison.Ordinal))
             {
-                return PluginExecutionResult<MutationCandidate>.Rejected(
+                return PluginExecutionResult.Rejected<MutationCandidate>(
                     new PluginExecutionError
                     {
                         Code = "TextNotFound",
@@ -76,7 +76,7 @@ public sealed class HostValidMutationPlugin : IRoslynPlugin
                 Summary = request.Summary,
             };
 
-            var result = PluginExecutionResult<MutationCandidate>.Success(candidate);
+            var result = PluginExecutionResult.Success(candidate);
             return result;
         }
 

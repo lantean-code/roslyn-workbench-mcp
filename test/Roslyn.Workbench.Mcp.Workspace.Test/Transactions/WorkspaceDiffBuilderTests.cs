@@ -113,7 +113,7 @@ public sealed class WorkspaceDiffBuilderTests : IDisposable
         var documentReference = new DocumentReference { DocumentId = Guid.NewGuid().ToString() };
         _resolver
             .Setup(item => item.ResolveDocument(It.Is<DocumentSelector>(selector => selector.DocumentId == documentReference.DocumentId)))
-            .Returns(SelectorResolveResult<Document>.NotFound());
+            .Returns(SelectorResolveResult.NotFound<Document>());
 
         var result = await WorkspaceDiffBuilder.CreateDocumentDiffAsync(
             solution,
@@ -133,7 +133,7 @@ public sealed class WorkspaceDiffBuilderTests : IDisposable
         var document = solution.Projects.Single().Documents.Single();
         var documentReference = CreateDocumentReference(document);
         _resolver.Setup(item => item.ResolveDocument(It.IsAny<DocumentSelector>()))
-            .Returns(SelectorResolveResult<Document>.Resolved(document));
+            .Returns(SelectorResolveResult.Resolved(document));
 
         _resolver.Setup(item => item.CreateDocumentReference(document)).Returns(documentReference);
 
@@ -168,7 +168,7 @@ public sealed class WorkspaceDiffBuilderTests : IDisposable
                 selector.DocumentId == expectedReference.DocumentId
                 && selector.Project != null
                 && selector.Project.ProjectId == expectedReference.ProjectId)))
-            .Returns(SelectorResolveResult<Document>.Resolved(currentDocument));
+            .Returns(SelectorResolveResult.Resolved(currentDocument));
 
         _resolver.Setup(item => item.CreateDocumentReference(currentDocument)).Returns(expectedReference);
 
@@ -201,7 +201,7 @@ public sealed class WorkspaceDiffBuilderTests : IDisposable
         var currentSolution = baselineSolution.RemoveDocument(baselineDocument.Id);
         _resolver
             .Setup(item => item.ResolveDocument(It.Is<DocumentSelector>(selector => selector.DocumentId == documentReference.DocumentId)))
-            .Returns(SelectorResolveResult<Document>.NotFound());
+            .Returns(SelectorResolveResult.NotFound<Document>());
 
         _resolver.Setup(item => item.CreateDocumentReference(baselineDocument)).Returns(expectedReference);
 
@@ -238,7 +238,7 @@ public sealed class WorkspaceDiffBuilderTests : IDisposable
         var currentDocument = currentSolution.GetDocument(baselineDocument.Id)!;
         var documentReference = CreateDocumentReference(currentDocument);
         _resolver.Setup(item => item.ResolveDocument(It.IsAny<DocumentSelector>()))
-            .Returns(SelectorResolveResult<Document>.Resolved(currentDocument));
+            .Returns(SelectorResolveResult.Resolved(currentDocument));
 
         _resolver.Setup(item => item.CreateDocumentReference(currentDocument)).Returns(documentReference);
 
@@ -262,7 +262,7 @@ public sealed class WorkspaceDiffBuilderTests : IDisposable
         var currentDocument = currentSolution.GetDocument(document.Id)!;
         var documentReference = CreateDocumentReference(currentDocument);
         _resolver.Setup(item => item.ResolveDocument(It.IsAny<DocumentSelector>()))
-            .Returns(SelectorResolveResult<Document>.Resolved(currentDocument));
+            .Returns(SelectorResolveResult.Resolved(currentDocument));
 
         _resolver.Setup(item => item.CreateDocumentReference(currentDocument)).Returns(documentReference);
 
@@ -295,7 +295,7 @@ public sealed class WorkspaceDiffBuilderTests : IDisposable
         var currentDocument = currentSolution.GetDocument(document.Id)!;
         var documentReference = CreateDocumentReference(currentDocument);
         _resolver.Setup(item => item.ResolveDocument(It.IsAny<DocumentSelector>()))
-            .Returns(SelectorResolveResult<Document>.Resolved(currentDocument));
+            .Returns(SelectorResolveResult.Resolved(currentDocument));
 
         _resolver.Setup(item => item.CreateDocumentReference(currentDocument)).Returns(documentReference);
 
@@ -321,7 +321,7 @@ public sealed class WorkspaceDiffBuilderTests : IDisposable
         var currentDocument = currentSolution.GetDocument(document.Id)!;
         var documentReference = CreateDocumentReference(currentDocument);
         _resolver.Setup(item => item.ResolveDocument(It.IsAny<DocumentSelector>()))
-            .Returns(SelectorResolveResult<Document>.Resolved(currentDocument));
+            .Returns(SelectorResolveResult.Resolved(currentDocument));
 
         _resolver.Setup(item => item.CreateDocumentReference(currentDocument)).Returns(documentReference);
 

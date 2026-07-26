@@ -9,7 +9,7 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
     {
         if (request.MaxDepth < 1)
         {
-            return PluginExecutionResultFactory.Rejected<TypeHierarchyData>("InvalidRequest", "MaxDepth must be at least 1.");
+            return PluginExecutionResult.Rejected<TypeHierarchyData>("InvalidRequest", "MaxDepth must be at least 1.");
         }
 
         var symbolResolution = await context.ToolExecutionServices.RequestResolver.ResolveSymbolAsync<TypeHierarchyData>(request.Symbol, request.ExpectedSnapshot, context, cancellationToken);
@@ -20,7 +20,7 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
 
         if (symbolResolution.Value is not INamedTypeSymbol namedType)
         {
-            return PluginExecutionResultFactory.Rejected<TypeHierarchyData>("InvalidRequest", "Get type hierarchy requires a named type symbol.");
+            return PluginExecutionResult.Rejected<TypeHierarchyData>("InvalidRequest", "Get type hierarchy requires a named type symbol.");
         }
 
         var baseTypes = new List<SymbolReference>();
@@ -74,7 +74,7 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
                 projectedTypes.Add(typeNode);
             }
 
-            derivedTypes = BoundedCollection<TypeHierarchyNode>.CreatePrebounded(projectedTypes, typeReferences.Count);
+            derivedTypes = BoundedCollection.CreatePrebounded(projectedTypes, typeReferences.Count);
         }
 
         var orderedInterfaces = namedType.AllInterfaces
@@ -95,12 +95,12 @@ internal sealed class GetTypeHierarchyTool : QueryToolHandler<GetTypeHierarchyRe
         var data = new TypeHierarchyData
         {
             Type = type,
-            BaseTypes = BoundedCollection<SymbolReference>.CreatePrebounded(baseTypes, baseTypeCount),
-            Interfaces = BoundedCollection<SymbolReference>.CreatePrebounded(interfaces, namedType.AllInterfaces.Length),
+            BaseTypes = BoundedCollection.CreatePrebounded(baseTypes, baseTypeCount),
+            Interfaces = BoundedCollection.CreatePrebounded(interfaces, namedType.AllInterfaces.Length),
             DerivedTypes = derivedTypes,
         };
 
-        return PluginExecutionResult<TypeHierarchyData>.Success(data);
+        return PluginExecutionResult.Success(data);
     }
 
     private static async ValueTask<IReadOnlyList<INamedTypeSymbol>> FindDerivedTypeSymbolsAsync(INamedTypeSymbol root, Solution solution, IImmutableSet<Project> projects, CancellationToken cancellationToken)

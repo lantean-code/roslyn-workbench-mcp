@@ -2,15 +2,13 @@ using System.Text.Json.Serialization;
 
 namespace Roslyn.Workbench.Mcp.Plugins;
 
-#pragma warning disable CA1000, CA1711 // The bounded-collection wire contract uses cohesive generic factories and accurately describes its collection payload.
+#pragma warning disable CA1711 // The bounded-collection wire contract accurately describes its collection payload.
 /// <summary>
 /// Represents a bounded collection result published to tool consumers.
 /// </summary>
 /// <typeparam name="TItem">The collection item type.</typeparam>
 public sealed record BoundedCollection<TItem>
 {
-    private static readonly BoundedCollection<TItem> _empty = new(Array.Empty<TItem>(), hasMore: false, totalCount: 0);
-
     /// <summary>
     /// Gets the returned items.
     /// </summary>
@@ -27,29 +25,44 @@ public sealed record BoundedCollection<TItem>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public int? TotalCount { get; }
 
-    private BoundedCollection(IReadOnlyList<TItem> items, bool hasMore, int? totalCount)
+    internal BoundedCollection(IReadOnlyList<TItem> items, bool hasMore, int? totalCount)
     {
+        ArgumentNullException.ThrowIfNull(items);
+
+        if (totalCount is not null)
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(totalCount.Value, items.Count);
+        }
+
         Items = items;
         HasMore = hasMore;
         TotalCount = totalCount;
     }
+}
 
+/// <summary>
+/// Creates bounded collection results.
+/// </summary>
+public static class BoundedCollection
+{
     /// <summary>
     /// Gets the shared empty bounded collection for the current item type.
     /// </summary>
+    /// <typeparam name="TItem">The collection item type.</typeparam>
     /// <returns>The shared empty bounded collection.</returns>
-    public static BoundedCollection<TItem> Empty()
+    public static BoundedCollection<TItem> Empty<TItem>()
     {
-        return _empty;
+        return Cache<TItem>.Empty;
     }
 
     /// <summary>
     /// Creates a bounded collection from items that have already been limited by the caller.
     /// </summary>
+    /// <typeparam name="TItem">The collection item type.</typeparam>
     /// <param name="items">The already-limited items to publish.</param>
     /// <param name="hasMore">Whether additional items were available.</param>
     /// <returns>The prebounded collection projection.</returns>
-    public static BoundedCollection<TItem> CreatePrebounded(
+    public static BoundedCollection<TItem> CreatePrebounded<TItem>(
         IReadOnlyList<TItem> items,
         bool hasMore)
     {
@@ -57,7 +70,7 @@ public sealed record BoundedCollection<TItem>
 
         if (items.Count == 0 && !hasMore)
         {
-            return Empty();
+            return Empty<TItem>();
         }
 
         return new BoundedCollection<TItem>(items, hasMore, hasMore ? null : items.Count);
@@ -66,10 +79,11 @@ public sealed record BoundedCollection<TItem>
     /// <summary>
     /// Creates a bounded collection with an authoritative complete result count.
     /// </summary>
+    /// <typeparam name="TItem">The collection item type.</typeparam>
     /// <param name="items">The already-limited items to publish.</param>
     /// <param name="totalCount">The complete result count before the response bound was applied.</param>
     /// <returns>The prebounded collection projection with its complete result count.</returns>
-    public static BoundedCollection<TItem> CreatePrebounded(
+    public static BoundedCollection<TItem> CreatePrebounded<TItem>(
         IReadOnlyList<TItem> items,
         int totalCount)
     {
@@ -78,10 +92,15 @@ public sealed record BoundedCollection<TItem>
 
         if (totalCount == 0)
         {
-            return Empty();
+            return Empty<TItem>();
         }
 
         return new BoundedCollection<TItem>(items, totalCount > items.Count, totalCount);
     }
+
+    private static class Cache<TItem>
+    {
+        public static BoundedCollection<TItem> Empty { get; } = new(Array.Empty<TItem>(), hasMore: false, totalCount: 0);
+    }
 }
-#pragma warning restore CA1000, CA1711
+#pragma warning restore CA1711

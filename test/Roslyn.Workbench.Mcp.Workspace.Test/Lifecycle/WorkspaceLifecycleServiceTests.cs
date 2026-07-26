@@ -1531,7 +1531,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
 
     private static WorkspaceOperationResult<TOutcome> CreateResult<TOutcome>()
     {
-        return WorkspaceOperationResult<TOutcome>.NoChange();
+        return WorkspaceOperationResult.NoChange<TOutcome>();
     }
 }
 #pragma warning restore CA1861

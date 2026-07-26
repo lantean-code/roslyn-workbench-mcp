@@ -18,5 +18,5 @@ internal sealed record ChangeImpactData
     /// <summary>
     /// Gets the returned supporting source locations.
     /// </summary>
-    public BoundedCollection<ReferenceLocation> Locations { get; init; } = BoundedCollection<ReferenceLocation>.Empty();
+    public BoundedCollection<ReferenceLocation> Locations { get; init; } = BoundedCollection.Empty<ReferenceLocation>();
 }

@@ -13,5 +13,5 @@ internal sealed record SymbolAttributesData
     /// <summary>
     /// Gets the resolved attributes.
     /// </summary>
-    public BoundedCollection<AttributeInfo> Attributes { get; init; } = BoundedCollection<AttributeInfo>.Empty();
+    public BoundedCollection<AttributeInfo> Attributes { get; init; } = BoundedCollection.Empty<AttributeInfo>();
 }

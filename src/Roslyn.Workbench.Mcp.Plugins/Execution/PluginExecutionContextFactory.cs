@@ -46,13 +46,13 @@ internal sealed class PluginExecutionContextFactory : IToolExecutionContextFacto
                 ? null
                 : new PluginQueryContext(workspaceLease.Context, _toolExecutionServices);
 
-            return ToolExecutionContextLease<IQueryContext>.Rejected(
+            return ToolExecutionContextLease.Rejected<IQueryContext>(
                 PluginWorkspaceResultMapper.MapFailure(workspaceLease.Failure),
                 context,
                 workspaceLease);
         }
 
-        return ToolExecutionContextLease<IQueryContext>.Acquired(
+        return ToolExecutionContextLease.Acquired<IQueryContext>(
             new PluginQueryContext(workspaceLease.Context, _toolExecutionServices),
             workspaceLease);
     }

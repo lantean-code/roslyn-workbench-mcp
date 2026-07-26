@@ -7,7 +7,7 @@ internal sealed class FindDependencyCyclesTool : QueryToolHandler<FindDependency
     {
         if (!context.ToolExecutionServices.DependencyAnalysisService.IsSupportedCycleGranularity(request.Granularity))
         {
-            return PluginExecutionResultFactory.Rejected<DependencyCyclesData>("InvalidRequest", "Granularity must be Project, Namespace, or Type.");
+            return PluginExecutionResult.Rejected<DependencyCyclesData>("InvalidRequest", "Granularity must be Project, Namespace, or Type.");
         }
 
         var documents = context.ToolExecutionServices.RequestResolver.ResolveDocuments<DependencyCyclesData>(request.Scope, context);
@@ -32,9 +32,9 @@ internal sealed class FindDependencyCyclesTool : QueryToolHandler<FindDependency
 
         var data = new DependencyCyclesData
         {
-            Cycles = BoundedCollection<DependencyCycle>.CreatePrebounded(cycles, totalCount),
+            Cycles = BoundedCollection.CreatePrebounded(cycles, totalCount),
         };
 
-        return PluginExecutionResult<DependencyCyclesData>.Success(data);
+        return PluginExecutionResult.Success(data);
     }
 }

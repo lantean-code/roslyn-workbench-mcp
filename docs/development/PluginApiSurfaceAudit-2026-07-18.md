@@ -15,7 +15,7 @@ The supported surface is grouped as follows:
 | Entry and metadata | `IRoslynPlugin`, `RoslynPluginAttribute`, `RoslynToolAttribute`, `PluginApiVersions` |
 | Configuration | `IPluginConfiguration`, `ToolConfigurationBuilder<TBuilder>`, `QueryToolConfigurationBuilder`, `MutationToolConfigurationBuilder` |
 | Handlers and contexts | query and mutation handler interfaces, `IToolExecutionContext`, `IQueryContext`, `IMutationContext` |
-| Execution results | `PluginExecutionResult<TResponse>`, `PluginExecutionOutcome`, `PluginExecutionError`, `MutationCandidate` |
+| Execution results | `PluginExecutionResult<TResponse>`, `PluginExecutionResult`, `PluginExecutionOutcome`, `PluginExecutionError`, `MutationCandidate` |
 | Query helpers | `IToolExecutionServices`, request resolution, compiler diagnostics, inspection, project structure and dependency analysis contracts and their result models |
 | Transitive Workspace surface | selector, result and resolution contracts only |
 

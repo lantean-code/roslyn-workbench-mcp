@@ -65,7 +65,7 @@ internal sealed class CodeActionResolver : ICodeActionResolver
                 RequiredAction.ResolveTargetAgain));
         }
 
-        return CodeActionResolution<T>.Resolved(
+        return CodeActionResolution.Resolved<T>(
             action,
             referenceResolution.Context.Document,
             referenceResolution.Context.Span,
@@ -207,7 +207,7 @@ internal sealed class CodeActionResolver : ICodeActionResolver
         CodeActionExecutionResult<T> rejection,
         CodeActionResolutionFailureKind failureKind = CodeActionResolutionFailureKind.None)
     {
-        return CodeActionResolution<T>.Rejected(rejection, failureKind);
+        return CodeActionResolution.Rejected(rejection, failureKind);
     }
 
     private static CodeActionExecutionResult<T> ActionAmbiguous<T>()

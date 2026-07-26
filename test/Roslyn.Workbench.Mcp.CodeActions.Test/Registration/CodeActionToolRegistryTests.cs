@@ -127,7 +127,7 @@ public sealed class CodeActionToolRegistryTests
             CancellationToken cancellationToken)
         {
             var response = new TestResponse();
-            var result = CodeActionExecutionResult<TestResponse>.Success(response);
+            var result = CodeActionExecutionResult.Success(response);
             return ValueTask.FromResult(result);
         }
     }
@@ -139,7 +139,7 @@ public sealed class CodeActionToolRegistryTests
             ICodeActionMutationContext context,
             CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(CodeActionExecutionResult<WorkspaceMutationCandidate>.Success(MutationCandidateTestData.CreateWorkspaceCandidate()));
+            return ValueTask.FromResult(CodeActionExecutionResult.Success(MutationCandidateTestData.CreateWorkspaceCandidate()));
         }
     }
 #pragma warning restore CA1812

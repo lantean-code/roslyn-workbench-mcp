@@ -43,7 +43,7 @@ public sealed class DescribeCodeActionToolTests
         var infoFactory = new Mock<ICodeActionInfoFactory>();
         var context = new Mock<ICodeActionQueryContext>();
         var expectedSnapshot = new SnapshotPrecondition();
-        var rejection = CodeActionExecutionResult<DescribeCodeActionData>.Rejected(new CodeActionExecutionError
+        var rejection = CodeActionExecutionResult.Rejected<DescribeCodeActionData>(new CodeActionExecutionError
         {
             Code = "ErrorCode",
             Message = "Message",
@@ -61,7 +61,7 @@ public sealed class DescribeCodeActionToolTests
                 null,
                 context.Object,
                 CancellationToken.None))
-            .ReturnsAsync(CodeActionResolution<DescribeCodeActionData>.Rejected(rejection));
+            .ReturnsAsync(CodeActionResolution.Rejected(rejection));
 
         var target = new DescribeCodeActionTool(providerCatalog.Object, resolver.Object, infoFactory.Object);
 
@@ -123,7 +123,7 @@ public sealed class DescribeCodeActionToolTests
                 null,
                 context.Object,
                 CancellationToken.None))
-            .ReturnsAsync(CodeActionResolution<DescribeCodeActionData>.Resolved(
+            .ReturnsAsync(CodeActionResolution.Resolved<DescribeCodeActionData>(
                 action,
                 roslyn.Document,
                 new TextSpan(1, 2),

@@ -94,7 +94,7 @@ public sealed class GetDependencyGraphToolTests
         var target = new GetDependencyGraphTool();
         var queryContextMocks = QueryContextMockHelper.Create();
         var dependencyAnalysisService = new Mock<IDependencyAnalysisService>();
-        var expected = PluginExecutionResult<DependencyGraphData>.Rejected(new PluginExecutionError
+        var expected = PluginExecutionResult.Rejected<DependencyGraphData>(new PluginExecutionError
         {
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
@@ -112,7 +112,7 @@ public sealed class GetDependencyGraphToolTests
             .Setup(item => item.ResolveDocuments<DependencyGraphData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DependencyGraphData>.Rejected(expected));
+            .Returns(ToolResolutionResult.Rejected<IReadOnlyList<Document>, DependencyGraphData>(expected));
 
         var result = await target.ExecuteAsync(new GetDependencyGraphRequest
         {
@@ -130,7 +130,7 @@ public sealed class GetDependencyGraphToolTests
         var target = new GetDependencyGraphTool();
         var queryContextMocks = QueryContextMockHelper.Create();
         var dependencyAnalysisService = new Mock<IDependencyAnalysisService>();
-        var expected = PluginExecutionResult<DependencyGraphData>.Rejected(new PluginExecutionError
+        var expected = PluginExecutionResult.Rejected<DependencyGraphData>(new PluginExecutionError
         {
             Code = "ProjectNotFound",
             Message = "ProjectNotFound",
@@ -148,13 +148,13 @@ public sealed class GetDependencyGraphToolTests
             .Setup(item => item.ResolveDocuments<DependencyGraphData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DependencyGraphData>.Resolved([document.Document]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, DependencyGraphData>([document.Document]));
 
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveProjects<DependencyGraphData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Project>, DependencyGraphData>.Rejected(expected));
+            .Returns(ToolResolutionResult.Rejected<IReadOnlyList<Project>, DependencyGraphData>(expected));
 
         var result = await target.ExecuteAsync(new GetDependencyGraphRequest
         {
@@ -239,13 +239,13 @@ public sealed class GetDependencyGraphToolTests
             .Setup(item => item.ResolveDocuments<DependencyGraphData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, DependencyGraphData>.Resolved([document.Document]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, DependencyGraphData>([document.Document]));
 
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveProjects<DependencyGraphData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Project>, DependencyGraphData>.Resolved([project]));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Project>, DependencyGraphData>([project]));
 
         dependencyAnalysisService
             .Setup(item => item.BuildGraphAsync(

@@ -7,7 +7,7 @@ internal sealed class FindDuplicateCodeTool : QueryToolHandler<FindDuplicateCode
     {
         if (request.MinimumStatements < 1)
         {
-            return PluginExecutionResultFactory.Rejected<DuplicateCodeData>("InvalidRequest", "MinimumStatements must be at least 1.");
+            return PluginExecutionResult.Rejected<DuplicateCodeData>("InvalidRequest", "MinimumStatements must be at least 1.");
         }
 
         var documents = context.ToolExecutionServices.RequestResolver.ResolveDocuments<DuplicateCodeData>(request.Scope, context);
@@ -25,10 +25,10 @@ internal sealed class FindDuplicateCodeTool : QueryToolHandler<FindDuplicateCode
 
         var data = new DuplicateCodeData
         {
-            Groups = BoundedCollection<DuplicateCodeGroup>.CreatePrebounded(groups, totalCount),
+            Groups = BoundedCollection.CreatePrebounded(groups, totalCount),
         };
 
-        return PluginExecutionResult<DuplicateCodeData>.Success(data);
+        return PluginExecutionResult.Success(data);
     }
 
     private static async ValueTask<(IReadOnlyList<DuplicateCodeGroup> Groups, int TotalCount)> FindDuplicateGroupsAsync(

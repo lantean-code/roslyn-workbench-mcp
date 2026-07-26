@@ -20,7 +20,7 @@ public sealed class WorkspaceStatusToolTests
                 ServerOwnedToolTestData.GetWorkspacePath(includeWorkspace),
                 StatusDetailLevel.Full,
                 CancellationToken.None))
-            .ReturnsAsync(WorkspaceOperationResult<WorkspaceStatusOutcome>.Succeeded(new WorkspaceStatusOutcome
+            .ReturnsAsync(WorkspaceOperationResult.Succeeded(new WorkspaceStatusOutcome
             {
                 State = WorkspaceLifecycleState.Ready,
                 Workspace = new WorkspaceIdentity
@@ -107,7 +107,7 @@ public sealed class WorkspaceStatusToolTests
                 null,
                 StatusDetailLevel.Full,
                 CancellationToken.None))
-            .ReturnsAsync(WorkspaceOperationResult<WorkspaceStatusOutcome>.Succeeded(new WorkspaceStatusOutcome
+            .ReturnsAsync(WorkspaceOperationResult.Succeeded(new WorkspaceStatusOutcome
             {
                 State = WorkspaceLifecycleState.WorkspaceOutOfDate,
                 ReloadRequired = true,

@@ -42,9 +42,9 @@ internal sealed class GetPartialDeclarationsTool : QueryToolHandler<GetPartialDe
         var data = new PartialDeclarationsData
         {
             Symbol = symbolReference,
-            Declarations = BoundedCollection<ResolvedLocation>.CreatePrebounded(declarations, resolvedLocations.Count),
+            Declarations = BoundedCollection.CreatePrebounded(declarations, resolvedLocations.Count),
         };
 
-        return PluginExecutionResult<PartialDeclarationsData>.Success(data);
+        return PluginExecutionResult.Success(data);
     }
 }

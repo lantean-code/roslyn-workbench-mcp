@@ -62,7 +62,7 @@ public sealed class PluginMutationMcpServerToolTests
                 It.Is<TestMutationRequest>(request => request.Name == "Name"),
                 context.Object,
                 CancellationToken.None))
-            .ReturnsAsync(PluginExecutionResult<MutationCandidate>.Rejected(
+            .ReturnsAsync(PluginExecutionResult.Rejected<MutationCandidate>(
                 new PluginExecutionError
                 {
                     Code = "Rejected",
@@ -99,7 +99,7 @@ public sealed class PluginMutationMcpServerToolTests
 
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestMutationRequest>(), context.Object, CancellationToken.None))
-            .ReturnsAsync(PluginExecutionResult<MutationCandidate>.NoChange());
+            .ReturnsAsync(PluginExecutionResult.NoChange<MutationCandidate>());
 
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
@@ -138,7 +138,7 @@ public sealed class PluginMutationMcpServerToolTests
 
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestMutationRequest>(), context.Object, CancellationToken.None))
-            .ReturnsAsync(PluginExecutionResult<MutationCandidate>.NoChange());
+            .ReturnsAsync(PluginExecutionResult.NoChange<MutationCandidate>());
 
         var target = CreateTarget(handler.Object, contextFactory.Object);
 
@@ -199,7 +199,7 @@ public sealed class PluginMutationMcpServerToolTests
 
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestMutationRequest>(), context.Object, CancellationToken.None))
-            .ReturnsAsync(PluginExecutionResult<MutationCandidate>.Success(
+            .ReturnsAsync(PluginExecutionResult.Success(
                 proposal,
                 diagnostics: [diagnostic],
                 warnings: [handlerWarning]));
@@ -214,7 +214,7 @@ public sealed class PluginMutationMcpServerToolTests
                 It.Is<IReadOnlyList<DiagnosticInfo>>(diagnostics => diagnostics.SequenceEqual(new[] { diagnostic })),
                 It.Is<IReadOnlyList<WarningInfo>>(warnings => warnings.SequenceEqual(new[] { handlerWarning })),
                 CancellationToken.None))
-            .ReturnsAsync(WorkspaceOperationResult<MutationStagingOutcome>.Succeeded(new MutationStagingOutcome
+            .ReturnsAsync(WorkspaceOperationResult.Succeeded(new MutationStagingOutcome
             {
                 Operation = "test-mutation",
                 Summary = "StagedSummary",
@@ -258,7 +258,7 @@ public sealed class PluginMutationMcpServerToolTests
 
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestMutationRequest>(), context.Object, CancellationToken.None))
-            .ReturnsAsync(PluginExecutionResult<MutationCandidate>.Success(new MutationCandidate
+            .ReturnsAsync(PluginExecutionResult.Success(new MutationCandidate
             {
                 CandidateSolution = MutationCandidateTestData.Solution,
                 Summary = "Summary",
@@ -271,7 +271,7 @@ public sealed class PluginMutationMcpServerToolTests
                 It.IsAny<IReadOnlyList<DiagnosticInfo>>(),
                 It.IsAny<IReadOnlyList<WarningInfo>>(),
                 CancellationToken.None))
-            .ReturnsAsync(WorkspaceOperationResult<MutationStagingOutcome>.Rejected(new WorkspaceOperationError
+            .ReturnsAsync(WorkspaceOperationResult.Rejected<MutationStagingOutcome>(new WorkspaceOperationError
             {
                 Code = "RevisionCapacityReached",
                 Message = "Message",
@@ -368,7 +368,7 @@ public sealed class PluginMutationMcpServerToolTests
 
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestMutationRequest>(), context.Object, CancellationToken.None))
-            .ReturnsAsync(PluginExecutionResult<MutationCandidate>.Success(new MutationCandidate
+            .ReturnsAsync(PluginExecutionResult.Success(new MutationCandidate
             {
                 CandidateSolution = MutationCandidateTestData.Solution,
                 Summary = "Summary",
@@ -412,7 +412,7 @@ public sealed class PluginMutationMcpServerToolTests
 
         handler
             .Setup(item => item.ExecuteAsync(It.IsAny<TestMutationRequest>(), context.Object, cancellationSource.Token))
-            .ReturnsAsync(PluginExecutionResult<MutationCandidate>.Success(new MutationCandidate
+            .ReturnsAsync(PluginExecutionResult.Success(new MutationCandidate
             {
                 CandidateSolution = MutationCandidateTestData.Solution,
                 Summary = "Summary",

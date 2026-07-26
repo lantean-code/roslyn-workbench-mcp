@@ -13,5 +13,5 @@ internal sealed record CalleeSearchData
     /// <summary>
     /// Gets the returned callees.
     /// </summary>
-    public BoundedCollection<SymbolReference> Callees { get; init; } = BoundedCollection<SymbolReference>.Empty();
+    public BoundedCollection<SymbolReference> Callees { get; init; } = BoundedCollection.Empty<SymbolReference>();
 }

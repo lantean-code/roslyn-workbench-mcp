@@ -8,5 +8,5 @@ internal sealed record DependencyCyclesData
     /// <summary>
     /// Gets the returned cycles.
     /// </summary>
-    public BoundedCollection<DependencyCycle> Cycles { get; init; } = BoundedCollection<DependencyCycle>.Empty();
+    public BoundedCollection<DependencyCycle> Cycles { get; init; } = BoundedCollection.Empty<DependencyCycle>();
 }

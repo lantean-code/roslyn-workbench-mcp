@@ -19,7 +19,7 @@ public sealed class TransactionCommitToolTests
                 ServerOwnedToolTestData.GetWorkspacePath(includeWorkspace),
                 It.IsAny<SnapshotPrecondition>(),
                 CancellationToken.None))
-            .ReturnsAsync(WorkspaceOperationResult<TransactionCommitOutcome>.Succeeded(new TransactionCommitOutcome
+            .ReturnsAsync(WorkspaceOperationResult.Succeeded(new TransactionCommitOutcome
             {
                 Committed = true,
                 Transaction = new TransactionInfo

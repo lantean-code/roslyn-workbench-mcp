@@ -10,7 +10,7 @@ public sealed class FindCallersToolTests
     {
         var target = new FindCallersTool();
         var queryContextMocks = QueryContextMockHelper.Create();
-        var expected = PluginExecutionResult<CallerSearchData>.Rejected(new PluginExecutionError
+        var expected = PluginExecutionResult.Rejected<CallerSearchData>(new PluginExecutionError
         {
             Code = "SymbolNotFound",
             Message = "SymbolNotFound",
@@ -22,7 +22,7 @@ public sealed class FindCallersToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, CallerSearchData>.Rejected(expected));
+            .ReturnsAsync(ToolResolutionResult.Rejected<ISymbol, CallerSearchData>(expected));
 
         var result = await target.ExecuteAsync(new FindCallersRequest
         {
@@ -67,7 +67,7 @@ public sealed class FindCallersToolTests
             null,
             TestContext.Current.CancellationToken);
 
-        var expected = PluginExecutionResult<CallerSearchData>.Rejected(new PluginExecutionError
+        var expected = PluginExecutionResult.Rejected<CallerSearchData>(new PluginExecutionError
         {
             Code = "DocumentNotFound",
             Message = "DocumentNotFound",
@@ -83,13 +83,13 @@ public sealed class FindCallersToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, CallerSearchData>.Resolved(symbol));
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, CallerSearchData>(symbol));
 
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<CallerSearchData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, CallerSearchData>.Rejected(expected));
+            .Returns(ToolResolutionResult.Rejected<IReadOnlyList<Document>, CallerSearchData>(expected));
 
         var result = await target.ExecuteAsync(new FindCallersRequest
         {
@@ -175,13 +175,13 @@ public sealed class FindCallersToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, CallerSearchData>.Resolved(symbol));
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, CallerSearchData>(symbol));
 
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<CallerSearchData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, CallerSearchData>.Resolved(solution.Solution.Projects.Single().Documents.ToArray()));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, CallerSearchData>(solution.Solution.Projects.Single().Documents.ToArray()));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))
@@ -303,13 +303,13 @@ public sealed class FindCallersToolTests
                 It.IsAny<SnapshotPrecondition?>(),
                 queryContextMocks.QueryContext.Object,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, CallerSearchData>.Resolved(symbol));
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, CallerSearchData>(symbol));
 
         queryContextMocks.RequestResolver
             .Setup(item => item.ResolveDocuments<CallerSearchData>(
                 It.IsAny<ScopeSelector?>(),
                 queryContextMocks.QueryContext.Object))
-            .Returns(ToolResolutionResult<IReadOnlyList<Document>, CallerSearchData>.Resolved(solution.Solution.Projects.Single().Documents.ToArray()));
+            .Returns(ToolResolutionResult.Resolved<IReadOnlyList<Document>, CallerSearchData>(solution.Solution.Projects.Single().Documents.ToArray()));
 
         queryContextMocks.WorkspaceResolver
             .Setup(item => item.CreateSymbolReference(It.IsAny<ISymbol>()))

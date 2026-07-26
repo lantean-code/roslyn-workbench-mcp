@@ -56,6 +56,6 @@ internal sealed class DescribeCodeActionTool : CodeActionQueryToolHandler<Descri
             },
         };
 
-        return CodeActionExecutionResult<DescribeCodeActionData>.Success(data);
+        return CodeActionExecutionResult.Success(data);
     }
 }

@@ -346,7 +346,7 @@ public sealed class PluginAnalyzerPackageIntegrationTests
                         Value = request.Value,
                     };
 
-                    var executionResult = PluginExecutionResult<ExampleQueryData>.Success(data);
+                    var executionResult = PluginExecutionResult.Success<ExampleQueryData>(data);
                     var result = ValueTask.FromResult(executionResult);
                     return result;
                 }

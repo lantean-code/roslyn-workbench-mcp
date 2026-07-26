@@ -5,7 +5,7 @@ public sealed class RenameSymbolToolTests
     [Fact]
     public async Task GIVEN_ResolveSymbolHasRejection_WHEN_CallingExecuteAsync_THEN_ShouldReturnRejectionResult()
     {
-        var expected = PluginExecutionResult<MutationCandidate>.Rejected(new PluginExecutionError
+        var expected = PluginExecutionResult.Rejected<MutationCandidate>(new PluginExecutionError
         {
             Code = "SymbolNotFound",
             Message = "SymbolNotFound",
@@ -27,7 +27,7 @@ public sealed class RenameSymbolToolTests
                 request.ExpectedSnapshot,
                 contextMocks.MutationContext.Object,
                 CancellationToken.None))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, MutationCandidate>.Rejected(expected));
+            .ReturnsAsync(ToolResolutionResult.Rejected<ISymbol, MutationCandidate>(expected));
 
         var result = await target.ExecuteAsync(request, contextMocks.MutationContext.Object, CancellationToken.None);
 
@@ -55,7 +55,7 @@ public sealed class RenameSymbolToolTests
                 request.ExpectedSnapshot,
                 contextMocks.MutationContext.Object,
                 CancellationToken.None))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, MutationCandidate>.Resolved(symbol.Object));
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, MutationCandidate>(symbol.Object));
 
         var result = await target.ExecuteAsync(request, contextMocks.MutationContext.Object, CancellationToken.None);
 
@@ -93,7 +93,7 @@ public sealed class RenameSymbolToolTests
                 request.ExpectedSnapshot,
                 contextMocks.MutationContext.Object,
                 CancellationToken.None))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, MutationCandidate>.Resolved(symbol.Object));
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, MutationCandidate>(symbol.Object));
 
         var result = await target.ExecuteAsync(request, contextMocks.MutationContext.Object, CancellationToken.None);
 
@@ -133,7 +133,7 @@ public sealed class RenameSymbolToolTests
                 request.ExpectedSnapshot,
                 contextMocks.MutationContext.Object,
                 CancellationToken.None))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, MutationCandidate>.Resolved(symbol));
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, MutationCandidate>(symbol));
 
         var result = await target.ExecuteAsync(request, contextMocks.MutationContext.Object, CancellationToken.None);
 
@@ -184,7 +184,7 @@ public sealed class RenameSymbolToolTests
                 request.ExpectedSnapshot,
                 contextMocks.MutationContext.Object,
                 CancellationToken.None))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, MutationCandidate>.Resolved(symbol));
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, MutationCandidate>(symbol));
 
         var result = await target.ExecuteAsync(request, contextMocks.MutationContext.Object, CancellationToken.None);
 
@@ -233,7 +233,7 @@ public sealed class RenameSymbolToolTests
                 request.ExpectedSnapshot,
                 contextMocks.MutationContext.Object,
                 CancellationToken.None))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, MutationCandidate>.Resolved(symbol));
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, MutationCandidate>(symbol));
 
         var result = await target.ExecuteAsync(request, contextMocks.MutationContext.Object, CancellationToken.None);
 
@@ -285,7 +285,7 @@ public sealed class RenameSymbolToolTests
                 request.ExpectedSnapshot,
                 contextMocks.MutationContext.Object,
                 CancellationToken.None))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, MutationCandidate>.Resolved(symbol));
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, MutationCandidate>(symbol));
 
         var result = await target.ExecuteAsync(request, contextMocks.MutationContext.Object, CancellationToken.None);
 
@@ -339,7 +339,7 @@ public sealed class RenameSymbolToolTests
                 request.ExpectedSnapshot,
                 contextMocks.MutationContext.Object,
                 CancellationToken.None))
-            .ReturnsAsync(ToolResolutionResult<ISymbol, MutationCandidate>.Resolved(symbol));
+            .ReturnsAsync(ToolResolutionResult.Resolved<ISymbol, MutationCandidate>(symbol));
 
         var result = await target.ExecuteAsync(request, contextMocks.MutationContext.Object, CancellationToken.None);
 

@@ -53,7 +53,7 @@ public sealed class CodeActionExecutionLeaseTests
                 diagnostics,
                 warnings,
                 TestContext.Current.CancellationToken))
-            .ReturnsAsync(WorkspaceOperationResult<MutationStagingOutcome>.Succeeded(new MutationStagingOutcome
+            .ReturnsAsync(WorkspaceOperationResult.Succeeded(new MutationStagingOutcome
             {
                 Operation = "Operation",
                 Summary = "Summary",

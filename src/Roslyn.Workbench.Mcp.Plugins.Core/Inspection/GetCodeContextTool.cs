@@ -40,7 +40,7 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
             Diagnostics = diagnostics,
         };
 
-        return PluginExecutionResult<CodeContextData>.Success(data);
+        return PluginExecutionResult.Success(data);
     }
 
     private static List<SymbolReference> GetEnclosingSymbols(SemanticModel semanticModel, SyntaxNode node, IQueryContext context)
@@ -92,13 +92,18 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
         var snapshotRejection = context.ToolExecutionServices.RequestResolver.ValidateSnapshot<CodeContextData>(context, expectedSnapshot);
         if (snapshotRejection is not null)
         {
-            return ToolResolutionResult<ResolvedCodeContext, CodeContextData>.Rejected(snapshotRejection);
+            return ToolResolutionResult.Rejected<ResolvedCodeContext, CodeContextData>(snapshotRejection);
         }
 
         var location = await context.WorkspaceResolver.ResolveLocationAsync(selector, cancellationToken);
         if (!location.IsResolved)
         {
-            return ToolResolutionResult<ResolvedCodeContext, CodeContextData>.Rejected(PluginExecutionResultFactory.RejectedFromStatus<CodeContextData>(location.Status, "Location", "location"));
+            var rejection = SelectorRejectionFactory.Create<CodeContextData>(
+                location.Status,
+                "Location",
+                "location");
+
+            return ToolResolutionResult.Rejected<ResolvedCodeContext, CodeContextData>(rejection);
         }
 
         var sourceLocation = location.Value;
@@ -109,14 +114,18 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
         var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(sourceLocation);
         if (document is null || resolvedLocation?.Document?.Path is null)
         {
-            return ToolResolutionResult<ResolvedCodeContext, CodeContextData>.Rejected(PluginExecutionResultFactory.Rejected<CodeContextData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
+            var rejection = CreateLocationNotFoundRejection();
+
+            return ToolResolutionResult.Rejected<ResolvedCodeContext, CodeContextData>(rejection);
         }
 
         var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
         if (syntaxRoot is null || semanticModel is null)
         {
-            return ToolResolutionResult<ResolvedCodeContext, CodeContextData>.Rejected(PluginExecutionResultFactory.Rejected<CodeContextData>("LocationNotFound", "The location selector did not resolve to a source document.", RequiredAction.ResolveTargetAgain));
+            var rejection = CreateLocationNotFoundRejection();
+
+            return ToolResolutionResult.Rejected<ResolvedCodeContext, CodeContextData>(rejection);
         }
 
         var node = syntaxRoot.FindNode(sourceLocation.SourceSpan, getInnermostNodeForTie: true);
@@ -127,7 +136,15 @@ internal sealed class GetCodeContextTool : QueryToolHandler<GetCodeContextReques
             resolvedLocation,
             semanticModel);
 
-        return ToolResolutionResult<ResolvedCodeContext, CodeContextData>.Resolved(codeContext);
+        return ToolResolutionResult.Resolved<ResolvedCodeContext, CodeContextData>(codeContext);
+    }
+
+    private static PluginExecutionResult<CodeContextData> CreateLocationNotFoundRejection()
+    {
+        return PluginExecutionResult.Rejected<CodeContextData>(
+            "LocationNotFound",
+            "The location selector did not resolve to a source document.",
+            RequiredAction.ResolveTargetAgain);
     }
 
     private sealed record ResolvedCodeContext

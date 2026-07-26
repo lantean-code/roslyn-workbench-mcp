@@ -29,6 +29,12 @@ internal sealed record BuiltInCodeActionAuditCase
 
     public IReadOnlyList<int> ActionPath { get; init; } = [];
 
+    public string? ExpectedDiagnosticId { get; init; }
+
+    public string? ExpectedChangedText { get; init; }
+
+    public string? UnexpectedChangedText { get; init; }
+
     public BuiltInCodeActionRuntimeAuditOutcome ExpectedRuntimeOutcome { get; init; }
 
     public Func<InspectionSampleFixture> FixtureFactory { get; init; } = InspectionSampleFixture.Create;
@@ -266,6 +272,101 @@ internal static class BuiltInCodeActionAuditCases
         .Where(_replayMetadataByProviderId.ContainsKey)
         .Select(static providerId => _replayMetadataByProviderId[providerId])
         .ToArray();
+
+    private static readonly IReadOnlyList<BuiltInCodeActionAuditCase> _runnableCandidateCompatibilityCases =
+    [
+        new()
+        {
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.AddAnonymousTypeMemberName.CSharpAddAnonymousTypeMemberNameCodeFixProvider",
+            SourceNote = "CandidateCodeFixes.CreateAnonymousMember invalid anonymous member declarator",
+            ExpectedDiagnosticId = "CS0746",
+            ExpectedChangedText = " = value + 1",
+            UnexpectedChangedText = "new { value + 1 }",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "value + 1"),
+        },
+        new()
+        {
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.AddExplicitCast.CSharpAddExplicitCastCodeFixProvider",
+            SourceNote = "CandidateCodeFixes.AddExplicitCast implicit long-to-int conversion",
+            ExpectedDiagnosticId = "CS0266",
+            ExpectedChangedText = "return (int)value;",
+            UnexpectedChangedText = "return value;",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "value;", 0),
+        },
+        new()
+        {
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.AddInheritdoc.AddInheritdocCodeFixProvider",
+            SourceNote = "CandidateDerived.DocumentedMember undocumented override",
+            ExpectedDiagnosticId = "CS1591",
+            ExpectedChangedText = "/// <inheritdoc/>",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "DocumentedMember", 1),
+        },
+        new()
+        {
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.RemoveNewModifier.RemoveNewModifierCodeFixProvider",
+            SourceNote = "CandidateNewModifier.RemoveNewModifier unnecessary new modifier",
+            ExpectedDiagnosticId = "CS0109",
+            ExpectedChangedText = "internal void RemoveNewModifier()",
+            UnexpectedChangedText = "internal new void RemoveNewModifier()",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "internal new void RemoveNewModifier"),
+        },
+        new()
+        {
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.ConditionalExpressionInStringInterpolation.CSharpAddParenthesesAroundConditionalExpressionInInterpolatedStringCodeFixProvider",
+            SourceNote = "CandidateCodeFixes.FormatConditional unparenthesised conditional interpolation",
+            ExpectedDiagnosticId = "CS8361",
+            ExpectedChangedText = "{(enabled ? \"enabled\" : \"disabled\")}",
+            UnexpectedChangedText = "{enabled ? \"enabled\" : \"disabled\"}",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "enabled ? \"enabled\" : \"disabled\""),
+        },
+        new()
+        {
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.RemoveInKeyword.RemoveInKeywordCodeFixProvider",
+            SourceNote = "CandidateCodeFixes.RemoveInKeyword invalid in argument",
+            ExpectedDiagnosticId = "CS1615",
+            ExpectedChangedText = "AcceptValue(value);",
+            UnexpectedChangedText = "AcceptValue(in value);",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "in value"),
+        },
+        new()
+        {
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.ReplaceDefaultLiteral.CSharpReplaceDefaultLiteralCodeFixProvider",
+            SourceNote = "CandidateCodeFixes.ReplaceDefaultLiteral invalid default pattern",
+            ExpectedDiagnosticId = "CS8505",
+            ExpectedChangedText = "value is 0",
+            UnexpectedChangedText = "value is default",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "default"),
+        },
+        new()
+        {
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.UseExplicitTypeForConst.UseExplicitTypeForConstCodeFixProvider",
+            SourceNote = "CandidateCodeFixes.UseExplicitTypeForConst invalid const var declaration",
+            ExpectedDiagnosticId = "CS0822",
+            ExpectedChangedText = "const int value = 1;",
+            UnexpectedChangedText = "const var value = 1;",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "const var"),
+        },
+    ];
+
+    public static IReadOnlyList<BuiltInCodeActionAuditCase> CandidateCompatibilityCases { get; } = CreateCandidateCompatibilityCases();
+
+    public static IReadOnlyList<BuiltInCodeActionAuditCase> RunnableCandidateCompatibilityCases { get; } = _runnableCandidateCompatibilityCases;
 
     public static IReadOnlyList<BuiltInCodeActionAuditCase> SupportedCompatibilityCases { get; } =
     [
@@ -787,5 +888,36 @@ internal static class BuiltInCodeActionAuditCases
             ProviderId = providerId,
             Title = title,
         };
+    }
+
+    private static List<BuiltInCodeActionAuditCase> CreateCandidateCompatibilityCases()
+    {
+        var runnableCasesByProviderId = _runnableCandidateCompatibilityCases.ToDictionary(
+            static auditCase => auditCase.ProviderId,
+            StringComparer.Ordinal);
+
+        var candidates = new List<BuiltInCodeActionAuditCase>();
+        foreach (var family in BuiltInCodeActionLedger.Families)
+        {
+            if (family.Kind != BuiltInCodeActionFamilyKind.CodeFix
+                || family.AuditStatus != BuiltInCodeActionAuditStatus.PendingReplayValidation)
+            {
+                continue;
+            }
+
+            if (runnableCasesByProviderId.TryGetValue(family.ProviderId, out var runnableCase))
+            {
+                candidates.Add(runnableCase);
+                continue;
+            }
+
+            candidates.Add(new BuiltInCodeActionAuditCase
+            {
+                Kind = BuiltInCodeActionAuditKind.CodeFix,
+                ProviderId = family.ProviderId,
+            });
+        }
+
+        return candidates;
     }
 }

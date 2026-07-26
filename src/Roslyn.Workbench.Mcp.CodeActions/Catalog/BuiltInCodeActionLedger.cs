@@ -363,9 +363,8 @@ internal static class BuiltInCodeActionLedger
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.AddMissingImports.CSharpAddMissingImportsRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.ImpossibleUnderCurrentRules,
-            HideReason = BuiltInCodeActionHideReason.ImpossibleUnderCurrentRules,
-            State = BuiltInCodeActionSupportState.HiddenImpossibleUnderCurrentRules,
+            AuditStatus = BuiltInCodeActionAuditStatus.CoveredByDedicatedTool,
+            State = BuiltInCodeActionSupportState.Hidden,
         },
         new()
         {
@@ -510,118 +509,165 @@ internal static class BuiltInCodeActionLedger
         },
         new()
         {
+            ProviderId = "Microsoft.CodeAnalysis.AddConstructorParametersFromMembers.AddConstructorParametersFromMembersCodeRefactoringProvider",
+            AuditStatus = BuiltInCodeActionAuditStatus.PendingReplayValidation,
+            State = BuiltInCodeActionSupportState.Hidden,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.GenerateComparisonOperators.GenerateComparisonOperatorsCodeRefactoringProvider",
+            AuditStatus = BuiltInCodeActionAuditStatus.PendingReplayValidation,
+            State = BuiltInCodeActionSupportState.Hidden,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.GenerateEqualsAndGetHashCodeFromMembers.GenerateEqualsAndGetHashCodeFromMembersCodeRefactoringProvider",
+            AuditStatus = BuiltInCodeActionAuditStatus.RequiresActionLevelClassification,
+            State = BuiltInCodeActionSupportState.Hidden,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.GenerateOverrides.GenerateOverridesCodeRefactoringProvider",
+            AuditStatus = BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation,
+            State = BuiltInCodeActionSupportState.Hidden,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.ImplementInterface.ImplementInterfaceCodeRefactoringProvider",
+            AuditStatus = BuiltInCodeActionAuditStatus.PendingReplayValidation,
+            State = BuiltInCodeActionSupportState.Hidden,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.MoveToNamespace.MoveToNamespaceCodeActionProvider",
+            AuditStatus = BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation,
+            State = BuiltInCodeActionSupportState.Hidden,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.OrganizeImports.OrganizeImportsCodeRefactoringProvider",
+            AuditStatus = BuiltInCodeActionAuditStatus.PendingReplayValidation,
+            State = BuiltInCodeActionSupportState.Hidden,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.PreferFrameworkType.PreferFrameworkTypeCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            AuditStatus = BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation,
+            State = BuiltInCodeActionSupportState.Hidden,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.ReplaceMethodWithProperty.ReplaceMethodWithPropertyCodeRefactoringProvider",
+            AuditStatus = BuiltInCodeActionAuditStatus.PendingReplayValidation,
+            State = BuiltInCodeActionSupportState.Hidden,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.ReplacePropertyWithMethods.ReplacePropertyWithMethodsCodeRefactoringProvider",
+            AuditStatus = BuiltInCodeActionAuditStatus.PendingReplayValidation,
+            State = BuiltInCodeActionSupportState.Hidden,
+        },
+        new()
+        {
             ProviderId = "Microsoft.CodeAnalysis.ChangeSignature.ChangeSignatureCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.ImpossibleUnderCurrentRules,
-            HideReason = BuiltInCodeActionHideReason.ImpossibleUnderCurrentRules,
-            State = BuiltInCodeActionSupportState.HiddenImpossibleUnderCurrentRules,
+            AuditStatus = BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation,
+            State = BuiltInCodeActionSupportState.Hidden,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.ExtractInterface.ExtractInterfaceCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.ImpossibleUnderCurrentRules,
-            HideReason = BuiltInCodeActionHideReason.ImpossibleUnderCurrentRules,
-            State = BuiltInCodeActionSupportState.HiddenImpossibleUnderCurrentRules,
+            AuditStatus = BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation,
+            State = BuiltInCodeActionSupportState.Hidden,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.ExtractClass.CSharpExtractClassCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.ImpossibleUnderCurrentRules,
-            HideReason = BuiltInCodeActionHideReason.ImpossibleUnderCurrentRules,
-            State = BuiltInCodeActionSupportState.HiddenImpossibleUnderCurrentRules,
+            AuditStatus = BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation,
+            State = BuiltInCodeActionSupportState.Hidden,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.GenerateConstructors.CSharpGenerateConstructorsCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.ImpossibleUnderCurrentRules,
-            HideReason = BuiltInCodeActionHideReason.ImpossibleUnderCurrentRules,
-            State = BuiltInCodeActionSupportState.HiddenImpossibleUnderCurrentRules,
+            AuditStatus = BuiltInCodeActionAuditStatus.RequiresActionLevelClassification,
+            State = BuiltInCodeActionSupportState.Hidden,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.MoveStaticMembers.CSharpMoveStaticMembersRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.ImpossibleUnderCurrentRules,
-            HideReason = BuiltInCodeActionHideReason.ImpossibleUnderCurrentRules,
-            State = BuiltInCodeActionSupportState.HiddenImpossibleUnderCurrentRules,
+            AuditStatus = BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation,
+            State = BuiltInCodeActionSupportState.Hidden,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.PullMemberUp.CSharpPullMemberUpCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.ImpossibleUnderCurrentRules,
-            HideReason = BuiltInCodeActionHideReason.ImpossibleUnderCurrentRules,
-            State = BuiltInCodeActionSupportState.HiddenImpossibleUnderCurrentRules,
+            AuditStatus = BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation,
+            State = BuiltInCodeActionSupportState.Hidden,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.AddMissingReference.CSharpAddMissingReferenceCodeFixProvider",
             Kind = BuiltInCodeActionFamilyKind.CodeFix,
-            AuditStatus = BuiltInCodeActionAuditStatus.ImpossibleUnderCurrentRules,
-            HideReason = BuiltInCodeActionHideReason.ImpossibleUnderCurrentRules,
-            State = BuiltInCodeActionSupportState.HiddenImpossibleUnderCurrentRules,
+            AuditStatus = BuiltInCodeActionAuditStatus.Excluded,
+            State = BuiltInCodeActionSupportState.Hidden,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.AddPackage.CSharpAddSpecificPackageCodeFixProvider",
             Kind = BuiltInCodeActionFamilyKind.CodeFix,
-            AuditStatus = BuiltInCodeActionAuditStatus.ImpossibleUnderCurrentRules,
-            HideReason = BuiltInCodeActionHideReason.ImpossibleUnderCurrentRules,
-            State = BuiltInCodeActionSupportState.HiddenImpossibleUnderCurrentRules,
+            AuditStatus = BuiltInCodeActionAuditStatus.Excluded,
+            State = BuiltInCodeActionSupportState.Hidden,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.GenerateType.GenerateTypeCodeFixProvider",
             Kind = BuiltInCodeActionFamilyKind.CodeFix,
-            AuditStatus = BuiltInCodeActionAuditStatus.ImpossibleUnderCurrentRules,
-            HideReason = BuiltInCodeActionHideReason.ImpossibleUnderCurrentRules,
-            State = BuiltInCodeActionSupportState.HiddenImpossibleUnderCurrentRules,
+            AuditStatus = BuiltInCodeActionAuditStatus.RequiresActionLevelClassification,
+            State = BuiltInCodeActionSupportState.Hidden,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.EmbeddedLanguages.CSharpJsonDetectionCodeFixProvider",
             Kind = BuiltInCodeActionFamilyKind.CodeFix,
-            AuditStatus = BuiltInCodeActionAuditStatus.ImpossibleUnderCurrentRules,
-            HideReason = BuiltInCodeActionHideReason.ImpossibleUnderCurrentRules,
-            State = BuiltInCodeActionSupportState.HiddenImpossibleUnderCurrentRules,
+            AuditStatus = BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation,
+            State = BuiltInCodeActionSupportState.Hidden,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.SimplifyThisOrMe.CSharpSimplifyThisOrMeCodeFixProvider",
             Kind = BuiltInCodeActionFamilyKind.CodeFix,
-            AuditStatus = BuiltInCodeActionAuditStatus.ImpossibleUnderCurrentRules,
-            HideReason = BuiltInCodeActionHideReason.ImpossibleUnderCurrentRules,
-            State = BuiltInCodeActionSupportState.HiddenImpossibleUnderCurrentRules,
+            AuditStatus = BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation,
+            State = BuiltInCodeActionSupportState.Hidden,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.SimplifyTypeNames.SimplifyTypeNamesCodeFixProvider",
             Kind = BuiltInCodeActionFamilyKind.CodeFix,
-            AuditStatus = BuiltInCodeActionAuditStatus.ImpossibleUnderCurrentRules,
-            HideReason = BuiltInCodeActionHideReason.ImpossibleUnderCurrentRules,
-            State = BuiltInCodeActionSupportState.HiddenImpossibleUnderCurrentRules,
+            AuditStatus = BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation,
+            State = BuiltInCodeActionSupportState.Hidden,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.UsePatternMatching.CSharpIsAndCastCheckWithoutNameCodeFixProvider",
             Kind = BuiltInCodeActionFamilyKind.CodeFix,
-            AuditStatus = BuiltInCodeActionAuditStatus.ImpossibleUnderCurrentRules,
-            HideReason = BuiltInCodeActionHideReason.ImpossibleUnderCurrentRules,
-            State = BuiltInCodeActionSupportState.HiddenImpossibleUnderCurrentRules,
+            AuditStatus = BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation,
+            State = BuiltInCodeActionSupportState.Hidden,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.Copilot.CSharpCopilotCodeFixProvider",
             Kind = BuiltInCodeActionFamilyKind.CodeFix,
-            AuditStatus = BuiltInCodeActionAuditStatus.ImpossibleUnderCurrentRules,
-            HideReason = BuiltInCodeActionHideReason.ImpossibleUnderCurrentRules,
-            State = BuiltInCodeActionSupportState.HiddenImpossibleUnderCurrentRules,
+            AuditStatus = BuiltInCodeActionAuditStatus.Excluded,
+            State = BuiltInCodeActionSupportState.Hidden,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.Copilot.CSharpImplementNotImplementedExceptionFixProvider",
             Kind = BuiltInCodeActionFamilyKind.CodeFix,
-            AuditStatus = BuiltInCodeActionAuditStatus.ImpossibleUnderCurrentRules,
-            HideReason = BuiltInCodeActionHideReason.ImpossibleUnderCurrentRules,
-            State = BuiltInCodeActionSupportState.HiddenImpossibleUnderCurrentRules,
+            AuditStatus = BuiltInCodeActionAuditStatus.Excluded,
+            State = BuiltInCodeActionSupportState.Hidden,
         },
+        .. CreateAssessedCodeFixFamilies(),
     ];
 
     public static IReadOnlyList<BuiltInCodeActionFamily> Families => _families;
@@ -646,5 +692,22 @@ internal static class BuiltInCodeActionLedger
 
         family = _families.FirstOrDefault(candidate => string.Equals(candidate.ProviderId, providerId, StringComparison.Ordinal));
         return family is not null;
+    }
+
+    private static List<BuiltInCodeActionFamily> CreateAssessedCodeFixFamilies()
+    {
+        var families = new List<BuiltInCodeActionFamily>();
+        foreach (var providerId in BuiltInCodeFixProviderAssessment.ProviderIds)
+        {
+            families.Add(new BuiltInCodeActionFamily
+            {
+                ProviderId = providerId,
+                Kind = BuiltInCodeActionFamilyKind.CodeFix,
+                AuditStatus = BuiltInCodeFixProviderAssessment.GetAuditStatus(providerId),
+                State = BuiltInCodeActionSupportState.Hidden,
+            });
+        }
+
+        return families;
     }
 }

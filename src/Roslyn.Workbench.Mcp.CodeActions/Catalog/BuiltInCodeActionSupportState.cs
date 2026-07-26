@@ -4,5 +4,5 @@ internal enum BuiltInCodeActionSupportState
 {
     SupportedReplay,
     SupportedParameterised,
-    HiddenImpossibleUnderCurrentRules,
+    Hidden,
 }

@@ -139,27 +139,24 @@ Upgrade the acceptance client, remove the short forced-cleanup fallback and make
 
 Source: [IntegrationTestingStage2Results.md](IntegrationTestingStage2Results.md)
 
-### Reconsider mutation families blocked by Roslyn APIs
+### Resolve unavailable Code Action families after the availability reassessment
 
-**Status:** Conditional
+**Status:** Started
 
-**Trigger:** Roslyn exposes a supported non-IDE-only API or diagnostics path for one of the listed families.
+The 2026-07-26 audit found that the previous “blocked by Roslyn APIs” classification combined ready replay providers, mixed providers, public-API implementation opportunities, high-complexity custom refactorings and intentional product exclusions. The runtime-backed inventory guard then found and classified 151 additional composed C# code-fix providers that the source-based audit had not assessed.
 
-The following aspirational families are deliberately not planned against the current public Roslyn surface:
+Complete the follow-up work in dependency order:
 
-- `move-type-to-namespace`;
-- `convert-to-async`;
-- `convert-to-pattern-matching`;
-- `generate-constructor`;
-- `generate-tostring`;
-- `extract-interface`;
-- `extract-base-class`;
-- `change-signature`;
-- `generate-equals-hashcode`;
-- `generate-overrides`; and
-- `implement-interface`.
+1. Complete — add a provider-inventory check over the actual composed C# runtime providers, including language-neutral Core providers. The pinned composition currently contains 81 refactoring providers and 169 code-fix providers.
+2. Complete — classify the 151 newly inventoried providers as 47 compiler-backed replay candidates, 94 requiring built-in diagnostic support, eight covered by existing tools and two excluded project-setting mutations. No additional option-backed providers were found.
+3. Started — the audit suite now tracks all 47 compiler-backed code-fix candidates and executes the first eight local fixtures. Validate the remaining compiler-backed candidates and the six known ordinary refactoring candidates, then make promotion decisions per proven fixture.
+4. Decide whether to add bounded built-in analyser activation and diagnostic mapping for the 94 IDE-diagnostic providers.
+5. Add production action-level capability classification, then validate the safe leaves of `GenerateConstructorFromMembers`, `GenerateEqualsAndGetHashCodeFromMembers` and `GenerateType`.
+6. Design the high-value public-API simplification workflow before considering custom generation and solution-wide semantic refactorings.
 
-Sources: [RoslynMcpToolDesign.md](RoslynMcpToolDesign.md#current-execution-surface-note-2026-07-02), [RoslynMcpToolContracts.md](RoslynMcpToolContracts.md#current-execution-surface-note-2026-07-02), [RoslynMcpToolImplementationMatrix.md](RoslynMcpToolImplementationMatrix.md)
+Keep project/package mutation, editor rename tracking and Copilot-backed providers excluded. Keep move-to-namespace, pull-member-up, move-static-members, extraction, change-signature and convert-to-async outside the pre-v1 critical path unless product priority changes.
+
+Source: [RoslynCodeActionAvailabilityAudit-2026-07-26.md](RoslynCodeActionAvailabilityAudit-2026-07-26.md)
 
 ### Support additional MEF plugin module assemblies
 

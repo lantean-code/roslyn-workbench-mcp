@@ -17,6 +17,8 @@ internal sealed record BuiltInCodeActionAuditProbe
 
     public IReadOnlyList<string> CandidateTitles { get; init; } = [];
 
+    public IReadOnlyList<string> DiagnosticIds { get; init; } = [];
+
     public string? FailureMessage { get; init; }
 }
 
@@ -81,20 +83,30 @@ internal static class BuiltInCodeActionAuditHarness
         if (auditCase.Kind == BuiltInCodeActionAuditKind.CodeFix)
         {
             codeFixDiagnostics = await GetDocumentDiagnosticsAsync(document, resolution.Value.SourceSpan, TestContext.Current.CancellationToken);
+
+            var provider = providerCatalog.CodeFixProviders.Single(
+                candidate => string.Equals(GetProviderId(candidate), auditCase.ProviderId, StringComparison.Ordinal));
+
             discovered = await DiscoverCodeFixesAsync(
-                providerCatalog.CodeFixProviders.Single(candidate => string.Equals(GetProviderId(candidate), auditCase.ProviderId, StringComparison.Ordinal)),
+                provider,
                 document,
                 codeFixDiagnostics,
                 TestContext.Current.CancellationToken);
         }
         else
         {
+            var provider = providerCatalog.RefactoringProviders.Single(
+                candidate => string.Equals(GetProviderId(candidate), auditCase.ProviderId, StringComparison.Ordinal));
+
             discovered = await DiscoverRefactoringsAsync(
-                providerCatalog.RefactoringProviders.Single(candidate => string.Equals(GetProviderId(candidate), auditCase.ProviderId, StringComparison.Ordinal)),
+                provider,
                 document,
                 resolution.Value.SourceSpan,
                 TestContext.Current.CancellationToken);
         }
+
+        var candidateTitles = GetCandidateTitles(discovered);
+        var diagnosticIds = GetDiagnosticIds(codeFixDiagnostics);
 
         var matching = discovered
             .Where(action => MatchesTitle(auditCase, action.Title))
@@ -123,30 +135,49 @@ internal static class BuiltInCodeActionAuditHarness
                 RuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.NotOffered,
                 MatchingActionCount = 0,
                 IsVisibleInList = IsVisible(visibilityResult, auditCase),
-                CandidateTitles = discovered.Select(static action => action.Title).Distinct(StringComparer.Ordinal).OrderBy(static title => title, StringComparer.Ordinal).ToArray(),
+                CandidateTitles = candidateTitles,
+                DiagnosticIds = diagnosticIds,
                 FailureMessage = auditCase.Kind == BuiltInCodeActionAuditKind.CodeFix
-                    ? BuildCodeFixDiagnosticMessage(codeFixDiagnostics)
+                    ? BuildCodeFixDiagnosticMessage(diagnosticIds)
                     : null,
             };
         }
 
         try
         {
-            var operations = await matching[0].Action.GetOperationsAsync(queryContext.CurrentSolution, new Progress<CodeAnalysisProgress>(), TestContext.Current.CancellationToken);
+            var action = matching[0].Action;
+            var progress = new Progress<CodeAnalysisProgress>();
+            var operations = await action.GetOperationsAsync(
+                queryContext.CurrentSolution,
+                progress,
+                TestContext.Current.CancellationToken);
+
             if (TryGetSupportedApplyChangesOperation(operations, out var applyChanges))
             {
-                var changedDocumentCount = await CountChangedSourceDocumentsAsync(queryContext.CurrentSolution, applyChanges!.ChangedSolution);
+                var (changedDocumentCount, expectedChangeFound, unexpectedChangeRemoved) = await InspectChangedSourceDocumentsAsync(
+                    queryContext.CurrentSolution,
+                    applyChanges!.ChangedSolution,
+                    auditCase);
+
+                var isExpectedMutation = changedDocumentCount > 0
+                    && expectedChangeFound
+                    && unexpectedChangeRemoved;
+
                 return new BuiltInCodeActionAuditProbe
                 {
                     LocationStatus = resolution.Status,
                     VisibilityOutcome = visibilityResult.Outcome,
-                    RuntimeOutcome = changedDocumentCount > 0
+                    RuntimeOutcome = isExpectedMutation
                         ? BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable
                         : BuiltInCodeActionRuntimeAuditOutcome.OfferedButNotReplayable,
                     MatchingActionCount = matching.Length,
                     IsVisibleInList = IsVisible(visibilityResult, auditCase),
-                    CandidateTitles = discovered.Select(static action => action.Title).Distinct(StringComparer.Ordinal).OrderBy(static title => title, StringComparer.Ordinal).ToArray(),
-                    FailureMessage = changedDocumentCount > 0 ? null : "The matched action did not change any source documents.",
+                    CandidateTitles = candidateTitles,
+                    DiagnosticIds = diagnosticIds,
+                    FailureMessage = BuildMutationFailureMessage(
+                        changedDocumentCount,
+                        expectedChangeFound,
+                        unexpectedChangeRemoved),
                 };
             }
 
@@ -157,7 +188,8 @@ internal static class BuiltInCodeActionAuditHarness
                 RuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedButNotReplayable,
                 MatchingActionCount = matching.Length,
                 IsVisibleInList = IsVisible(visibilityResult, auditCase),
-                CandidateTitles = discovered.Select(static action => action.Title).Distinct(StringComparer.Ordinal).OrderBy(static title => title, StringComparer.Ordinal).ToArray(),
+                CandidateTitles = candidateTitles,
+                DiagnosticIds = diagnosticIds,
                 FailureMessage = "The matched action produced unsupported operations.",
             };
         }
@@ -174,7 +206,8 @@ internal static class BuiltInCodeActionAuditHarness
                 RuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedButNotReplayable,
                 MatchingActionCount = matching.Length,
                 IsVisibleInList = IsVisible(visibilityResult, auditCase),
-                CandidateTitles = discovered.Select(static action => action.Title).Distinct(StringComparer.Ordinal).OrderBy(static title => title, StringComparer.Ordinal).ToArray(),
+                CandidateTitles = candidateTitles,
+                DiagnosticIds = diagnosticIds,
                 FailureMessage = exception.Message,
             };
         }
@@ -309,9 +342,14 @@ internal static class BuiltInCodeActionAuditHarness
         });
     }
 
-    private static async Task<int> CountChangedSourceDocumentsAsync(Solution before, Solution after)
+    private static async Task<(int ChangedDocumentCount, bool ExpectedChangeFound, bool UnexpectedChangeRemoved)> InspectChangedSourceDocumentsAsync(
+        Solution before,
+        Solution after,
+        BuiltInCodeActionAuditCase auditCase)
     {
         var count = 0;
+        var expectedChangeFound = string.IsNullOrWhiteSpace(auditCase.ExpectedChangedText);
+        var unexpectedChangeRemoved = string.IsNullOrWhiteSpace(auditCase.UnexpectedChangedText);
 
         foreach (var document in before.Projects.SelectMany(static project => project.Documents))
         {
@@ -326,10 +364,23 @@ internal static class BuiltInCodeActionAuditHarness
             if (!originalText.ContentEquals(updatedText))
             {
                 count++;
+
+                var updatedSource = updatedText.ToString();
+                if (!string.IsNullOrWhiteSpace(auditCase.ExpectedChangedText)
+                    && updatedSource.Contains(auditCase.ExpectedChangedText, StringComparison.Ordinal))
+                {
+                    expectedChangeFound = true;
+                }
+
+                if (!string.IsNullOrWhiteSpace(auditCase.UnexpectedChangedText)
+                    && !updatedSource.Contains(auditCase.UnexpectedChangedText, StringComparison.Ordinal))
+                {
+                    unexpectedChangeRemoved = true;
+                }
             }
         }
 
-        return count;
+        return (count, expectedChangeFound, unexpectedChangeRemoved);
     }
 
     private static bool TryGetSupportedApplyChangesOperation(
@@ -387,14 +438,55 @@ internal static class BuiltInCodeActionAuditHarness
         return true;
     }
 
-    private static string? BuildCodeFixDiagnosticMessage(ImmutableArray<Diagnostic> diagnostics)
+    private static string? BuildCodeFixDiagnosticMessage(string[] diagnosticIds)
     {
-        if (diagnostics.IsDefaultOrEmpty)
+        if (diagnosticIds.Length == 0)
         {
             return "No diagnostics intersected the requested span.";
         }
 
-        return "Diagnostics: " + string.Join(", ", diagnostics.Select(static diagnostic => diagnostic.Id).Distinct(StringComparer.Ordinal).OrderBy(static id => id, StringComparer.Ordinal));
+        return "Diagnostics: " + string.Join(", ", diagnosticIds);
+    }
+
+    private static string? BuildMutationFailureMessage(
+        int changedDocumentCount,
+        bool expectedChangeFound,
+        bool unexpectedChangeRemoved)
+    {
+        if (changedDocumentCount == 0)
+        {
+            return "The matched action did not change any source documents.";
+        }
+
+        if (!expectedChangeFound)
+        {
+            return "The matched action did not produce the expected source text.";
+        }
+
+        if (!unexpectedChangeRemoved)
+        {
+            return "The matched action retained source text that should have been removed.";
+        }
+
+        return null;
+    }
+
+    private static string[] GetDiagnosticIds(ImmutableArray<Diagnostic> diagnostics)
+    {
+        return diagnostics
+            .Select(static diagnostic => diagnostic.Id)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(static diagnosticId => diagnosticId, StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    private static string[] GetCandidateTitles(IReadOnlyList<DiscoveredAuditCodeAction> discovered)
+    {
+        return discovered
+            .Select(static action => action.Title)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(static title => title, StringComparer.Ordinal)
+            .ToArray();
     }
 
     private static string GetProviderId(object provider)

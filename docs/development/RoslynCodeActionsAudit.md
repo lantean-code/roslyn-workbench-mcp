@@ -1,5 +1,7 @@
 # Roslyn Code Actions Audit
 
+> **Completeness reassessment (2026-07-26):** This document records the historical Stage 7 decision for the source folders audited at that time. [RoslynCodeActionAvailabilityAudit-2026-07-26.md](RoslynCodeActionAvailabilityAudit-2026-07-26.md) supersedes its repository-wide completeness claim after finding language-neutral C# providers outside that scope and distinguishing replayable, mixed, custom and deliberately excluded families. The production ledger remains authoritative for current visibility.
+
 ## Purpose
 
 This document records the final Stage 7 state for Roslyn MEF code actions.
@@ -167,15 +169,14 @@ These families remain hidden because the current server model cannot support the
 | `CopilotImplementNotImplementedException` code fix | External Copilot-dependent flow. |
 | `CopilotSuggestions` code fix | External Copilot-dependent flow. |
 
-## Completion Status
+## Historical Completion Status
 
-Stage 7 is complete in repository terms:
+Stage 7 was complete for the C#-specific source scope recorded above:
 
-- every built-in C# `ExportCodeRefactoringProvider` family has a final production state
-- every built-in C# `ExportCodeFixProvider` family has a final production state
+- every provider found by that audit had a production state
 - the ledger is authoritative for discovery and wrapper visibility
 - the compatibility matrix protects supported providers against Roslyn changes
 
-Broad provider discovery is no longer part of the recurring test suite. It is an explicit maintenance activity when upgrading Roslyn or evaluating a new provider family. Any resulting decision must update the ledger to either supported or impossible under current rules.
+The 2026-07-26 reassessment found that this scope did not include language-neutral Core providers exported for C#. Broad provider inventory must therefore include the actual composed runtime providers, not only C#-specific source folders. Any resulting decision must update the ledger with an explicit disposition.
 
-Ad-hoc source-vs-ledger regex scripts may still report parse artefacts around already-ledgered providers such as `AddImport`, `FullyQualify`, and `GenerateType`, but there is no remaining real built-in C# family backlog.
+Ad-hoc source-vs-ledger regex scripts can still report parse artefacts, so the corrected maintenance check must enumerate composed provider types and distinguish runtime Features providers from editor-host-only providers.

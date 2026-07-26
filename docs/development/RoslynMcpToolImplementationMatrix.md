@@ -1,6 +1,8 @@
 # Roslyn MCP Server - Tool Implementation Matrix
 
 > **Engineering record:** This matrix records implementation planning and historical capability decisions. It is not the release inventory for a running server. MCP `tools/list` is authoritative for the current process; see [Tool discovery](../ToolDiscovery.md).
+>
+> **Availability reassessment:** The unavailable mutation classifications below are superseded by [RoslynCodeActionAvailabilityAudit-2026-07-26.md](RoslynCodeActionAvailabilityAudit-2026-07-26.md). Several families are replay candidates or mixed providers rather than blocked by the public Roslyn surface.
 
 ## Purpose
 

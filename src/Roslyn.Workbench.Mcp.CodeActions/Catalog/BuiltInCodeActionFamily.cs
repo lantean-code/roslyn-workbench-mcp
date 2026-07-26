@@ -10,9 +10,7 @@ internal sealed record BuiltInCodeActionFamily
 
     public BuiltInCodeActionSupportState State { get; init; }
 
-    public BuiltInCodeActionAuditStatus AuditStatus { get; init; } = BuiltInCodeActionAuditStatus.ImpossibleUnderCurrentRules;
-
-    public BuiltInCodeActionHideReason HideReason { get; init; }
+    public BuiltInCodeActionAuditStatus AuditStatus { get; init; }
 
     public string? ExecutorTool { get; init; }
 

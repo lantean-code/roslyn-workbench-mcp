@@ -9,11 +9,75 @@ internal static class BundledCodeActionToolRegistrar
     public static void RegisterAll(ICodeActionToolRegistry registry)
     {
         RegisterInfrastructureTools(registry);
+        RegisterCodeFixTools(registry);
         RegisterAddTools(registry);
         RegisterConvertTools(registry);
         RegisterExtractAndIntroduceTools(registry);
         RegisterInvertAndMoveTools(registry);
         RegisterRemainingRefactoringTools(registry);
+    }
+
+    private static void RegisterCodeFixTools(ICodeActionToolRegistry registry)
+    {
+        registry.RegisterMutationTool<AddAnonymousTypeMemberNameTool, FixedCompilerCodeFixRequest>(
+            CreateMutationMetadata(
+                "add-anonymous-type-member-name",
+                "Add Anonymous Type Member Name",
+                "Adds a generated member name to an invalid anonymous-type member declarator through Roslyn code-fix composition."));
+
+        registry.RegisterMutationTool<AddConditionalInterpolationParenthesesTool, FixedCompilerCodeFixRequest>(
+            CreateMutationMetadata(
+                "add-conditional-interpolation-parentheses",
+                "Add Conditional Interpolation Parentheses",
+                "Parenthesises a conditional expression used in an interpolated string through Roslyn code-fix composition."));
+
+        registry.RegisterMutationTool<AddExplicitCastTool, FixedCompilerCodeFixRequest>(
+            CreateMutationMetadata(
+                "add-explicit-cast",
+                "Add Explicit Cast",
+                "Adds the explicit cast required by an invalid implicit conversion through Roslyn code-fix composition."));
+
+        registry.RegisterMutationTool<AddInheritdocTool, FixedCompilerCodeFixRequest>(
+            CreateMutationMetadata(
+                "add-inheritdoc",
+                "Add Inheritdoc",
+                "Adds an inheritdoc XML comment to an undocumented inherited member through Roslyn code-fix composition."));
+
+        registry.RegisterMutationTool<AddMissingUsingsTool, AddMissingUsingsRequest>(
+            CreateMutationMetadata(
+                "add-missing-usings",
+                "Add Missing Usings",
+                "Adds missing using directives across a selected scope through Roslyn code-fix composition."));
+
+        registry.RegisterMutationTool<RemoveInKeywordTool, FixedCompilerCodeFixRequest>(
+            CreateMutationMetadata(
+                "remove-in-keyword",
+                "Remove In Keyword",
+                "Removes an invalid in argument modifier through Roslyn code-fix composition."));
+
+        registry.RegisterMutationTool<RemoveNewModifierTool, FixedCompilerCodeFixRequest>(
+            CreateMutationMetadata(
+                "remove-new-modifier",
+                "Remove New Modifier",
+                "Removes a new modifier that does not hide an accessible inherited member through Roslyn code-fix composition."));
+
+        registry.RegisterMutationTool<RemoveUnusedUsingsTool, RemoveUnusedUsingsRequest>(
+            CreateMutationMetadata(
+                "remove-unused-usings",
+                "Remove Unused Usings",
+                "Removes unused using directives across a selected scope through Roslyn code-fix composition."));
+
+        registry.RegisterMutationTool<ReplaceDefaultLiteralTool, FixedCompilerCodeFixRequest>(
+            CreateMutationMetadata(
+                "replace-default-literal",
+                "Replace Default Literal",
+                "Replaces an invalid default literal with the corresponding typed default value through Roslyn code-fix composition."));
+
+        registry.RegisterMutationTool<UseExplicitTypeForConstTool, FixedCompilerCodeFixRequest>(
+            CreateMutationMetadata(
+                "use-explicit-type-for-const",
+                "Use Explicit Type For Const",
+                "Replaces var with the inferred explicit type in a constant declaration through Roslyn code-fix composition."));
     }
 
     private static void RegisterInfrastructureTools(ICodeActionToolRegistry registry)
@@ -68,12 +132,6 @@ internal static class BundledCodeActionToolRegistrar
                 "add-import",
                 "Add Import",
                 "Adds a supported using directive through Roslyn refactoring composition."));
-
-        registry.RegisterMutationTool<AddMissingUsingsTool, AddMissingUsingsRequest>(
-            CreateMutationMetadata(
-                "add-missing-usings",
-                "Add Missing Usings",
-                "Adds missing using directives across a selected scope through Roslyn code-fix composition."));
 
         registry.RegisterMutationTool<AddNullChecksTool, LocationRefactoringRequest>(
             CreateMutationMetadata(
@@ -272,12 +330,6 @@ internal static class BundledCodeActionToolRegistrar
                 "name-tuple-element",
                 "Name Tuple Element",
                 "Adds a supported tuple element name through Roslyn refactoring composition."));
-
-        registry.RegisterMutationTool<RemoveUnusedUsingsTool, RemoveUnusedUsingsRequest>(
-            CreateMutationMetadata(
-                "remove-unused-usings",
-                "Remove Unused Usings",
-                "Removes unused using directives across a selected scope through Roslyn code-fix composition."));
 
         registry.RegisterMutationTool<ReplaceConditionalWithStatementsTool, LocationRefactoringRequest>(
             CreateMutationMetadata(

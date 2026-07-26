@@ -1,4 +1,4 @@
-namespace Roslyn.Workbench.Mcp.CodeActions.Catalog;
+namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 
 internal static class BuiltInCodeFixProviderAssessment
 {
@@ -54,6 +54,18 @@ internal static class BuiltInCodeFixProviderAssessment
         "Microsoft.CodeAnalysis.CSharp.UseExplicitArrayInExpressionTree.CSharpUseExplicitArrayInExpressionTreeCodeFixProvider",
         "Microsoft.CodeAnalysis.CSharp.UseExplicitTypeForConst.UseExplicitTypeForConstCodeFixProvider",
         "Microsoft.CodeAnalysis.CSharp.UseInterpolatedVerbatimString.CSharpUseInterpolatedVerbatimStringCodeFixProvider",
+    };
+
+    private static readonly HashSet<string> _validatedSupportedProviderIds = new(StringComparer.Ordinal)
+    {
+        "Microsoft.CodeAnalysis.CSharp.AddAnonymousTypeMemberName.CSharpAddAnonymousTypeMemberNameCodeFixProvider",
+        "Microsoft.CodeAnalysis.CSharp.CodeFixes.AddExplicitCast.CSharpAddExplicitCastCodeFixProvider",
+        "Microsoft.CodeAnalysis.CSharp.CodeFixes.AddInheritdoc.AddInheritdocCodeFixProvider",
+        "Microsoft.CodeAnalysis.CSharp.CodeFixes.RemoveNewModifier.RemoveNewModifierCodeFixProvider",
+        "Microsoft.CodeAnalysis.CSharp.ConditionalExpressionInStringInterpolation.CSharpAddParenthesesAroundConditionalExpressionInInterpolatedStringCodeFixProvider",
+        "Microsoft.CodeAnalysis.CSharp.RemoveInKeyword.RemoveInKeywordCodeFixProvider",
+        "Microsoft.CodeAnalysis.CSharp.ReplaceDefaultLiteral.CSharpReplaceDefaultLiteralCodeFixProvider",
+        "Microsoft.CodeAnalysis.CSharp.UseExplicitTypeForConst.UseExplicitTypeForConstCodeFixProvider",
     };
 
     private static readonly HashSet<string> _coveredProviderIds = new(StringComparer.Ordinal)
@@ -231,6 +243,11 @@ internal static class BuiltInCodeFixProviderAssessment
 
     internal static BuiltInCodeActionAuditStatus GetAuditStatus(string providerId)
     {
+        if (_validatedSupportedProviderIds.Contains(providerId))
+        {
+            return BuiltInCodeActionAuditStatus.ValidatedSupported;
+        }
+
         if (_excludedProviderIds.Contains(providerId))
         {
             return BuiltInCodeActionAuditStatus.Excluded;

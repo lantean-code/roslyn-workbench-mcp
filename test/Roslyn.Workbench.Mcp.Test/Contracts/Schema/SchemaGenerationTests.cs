@@ -290,6 +290,8 @@ public sealed class SchemaGenerationTests
             .Where(static type =>
                 type.Namespace is "Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection"
                 or "Roslyn.Workbench.Mcp.CodeActions.Contracts"
+                or "Roslyn.Workbench.Mcp.CodeActions.Contracts.CodeFixes"
+                or "Roslyn.Workbench.Mcp.CodeActions.Contracts.Conversions"
                 or "Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings"
                 or "Roslyn.Workbench.Mcp.Transaction.Contracts")
             .ToArray();
@@ -316,6 +318,24 @@ public sealed class SchemaGenerationTests
 
         scopeProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
         preferGlobalUsingsProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        snapshotProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        outputSchema.GetRawText().Should().Contain("transaction");
+        outputSchema.GetRawText().Should().Contain("preview");
+    }
+
+    [Fact]
+    public void GIVEN_FixedCompilerCodeFixRequest_WHEN_GeneratingToolSchema_THEN_ShouldPublishLocationAndSnapshotProperties()
+    {
+        var method = typeof(ContractSchemaTestTools).GetMethod(nameof(ContractSchemaTestTools.AddExplicitCast), BindingFlags.Public | BindingFlags.Static);
+
+        var tool = McpServerTool.Create(method!);
+        var requestProperties = tool.ProtocolTool.InputSchema.GetProperty("properties").GetProperty("request").GetProperty("properties");
+        var outputSchema = tool.ProtocolTool.OutputSchema!.Value;
+
+        requestProperties.TryGetProperty("location", out var locationProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("expectedSnapshot", out var snapshotProperty).Should().BeTrue();
+
+        locationProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
         snapshotProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
         outputSchema.GetRawText().Should().Contain("transaction");
         outputSchema.GetRawText().Should().Contain("preview");

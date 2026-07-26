@@ -15,9 +15,13 @@ public sealed class BundledCodeActionCatalogTests
 
         var expected =
             """
+            add-anonymous-type-member-name|Add Anonymous Type Member Name|Adds a generated member name to an invalid anonymous-type member declarator through Roslyn code-fix composition.|Mutation|FixedCompilerCodeFixRequest|MutationData|True|<null>
             add-await|Add Await|Stages one supported add-await refactoring through Roslyn refactoring composition.|Mutation|AddAwaitRequest|MutationData|True|<null>
+            add-conditional-interpolation-parentheses|Add Conditional Interpolation Parentheses|Parenthesises a conditional expression used in an interpolated string through Roslyn code-fix composition.|Mutation|FixedCompilerCodeFixRequest|MutationData|True|<null>
             add-debugger-display|Add Debugger Display|Adds a DebuggerDisplay attribute through Roslyn refactoring composition.|Mutation|LocationRefactoringRequest|MutationData|True|<null>
+            add-explicit-cast|Add Explicit Cast|Adds the explicit cast required by an invalid implicit conversion through Roslyn code-fix composition.|Mutation|FixedCompilerCodeFixRequest|MutationData|True|<null>
             add-import|Add Import|Adds a supported using directive through Roslyn refactoring composition.|Mutation|AddImportRequest|MutationData|True|<null>
+            add-inheritdoc|Add Inheritdoc|Adds an inheritdoc XML comment to an undocumented inherited member through Roslyn code-fix composition.|Mutation|FixedCompilerCodeFixRequest|MutationData|True|<null>
             add-missing-usings|Add Missing Usings|Adds missing using directives across a selected scope through Roslyn code-fix composition.|Mutation|AddMissingUsingsRequest|MutationData|True|<null>
             add-null-checks|Add Null Checks|Stages the supported Roslyn parameter null-check refactoring at the selected parameter location.|Mutation|LocationRefactoringRequest|MutationData|True|<null>
             convert-anonymous-type-to-class|Convert Anonymous Type To Class|Converts a supported anonymous type to a generated class or record through Roslyn refactoring composition.|Mutation|ConvertAnonymousTypeToClassRequest|MutationData|True|<null>
@@ -52,14 +56,18 @@ public sealed class BundledCodeActionCatalogTests
             move-declaration-near-reference|Move Declaration Near Reference|Moves a supported local declaration nearer to its first use through Roslyn refactoring composition.|Mutation|LocationRefactoringRequest|MutationData|True|<null>
             move-type-to-file|Move Type To File|Moves one selected type into its own Roslyn-chosen file within the current project.|Mutation|MoveTypeToFileRequest|MutationData|True|<null>
             name-tuple-element|Name Tuple Element|Adds a supported tuple element name through Roslyn refactoring composition.|Mutation|LocationRefactoringRequest|MutationData|True|<null>
+            remove-in-keyword|Remove In Keyword|Removes an invalid in argument modifier through Roslyn code-fix composition.|Mutation|FixedCompilerCodeFixRequest|MutationData|True|<null>
+            remove-new-modifier|Remove New Modifier|Removes a new modifier that does not hide an accessible inherited member through Roslyn code-fix composition.|Mutation|FixedCompilerCodeFixRequest|MutationData|True|<null>
             remove-unused-usings|Remove Unused Usings|Removes unused using directives across a selected scope through Roslyn code-fix composition.|Mutation|RemoveUnusedUsingsRequest|MutationData|True|<null>
             replace-conditional-with-statements|Replace Conditional With Statements|Rewrites a supported conditional expression into statements through Roslyn refactoring composition.|Mutation|LocationRefactoringRequest|MutationData|True|<null>
+            replace-default-literal|Replace Default Literal|Replaces an invalid default literal with the corresponding typed default value through Roslyn code-fix composition.|Mutation|FixedCompilerCodeFixRequest|MutationData|True|<null>
             replace-doc-comment-text-with-tag|Replace Doc Comment Text With Tag|Replaces supported XML doc comment text with a documentation tag through Roslyn refactoring composition.|Mutation|LocationRefactoringRequest|MutationData|True|<null>
             reverse-for-statement|Reverse For Statement|Reverses a supported for-statement loop through Roslyn refactoring composition.|Mutation|LocationRefactoringRequest|MutationData|True|<null>
             stage-code-action|Stage Code Action|Revalidates and stages one selected refactoring action into the active transaction.|Mutation|StageCodeActionRequest|MutationData|True|<null>
             stage-code-fix|Stage Code Fix|Revalidates and stages one selected code fix into the active transaction.|Mutation|StageCodeFixRequest|MutationData|True|<null>
             stage-fix-all|Stage Fix All|Revalidates one selected code fix and stages its fix-all variant into the active transaction.|Mutation|StageFixAllRequest|MutationData|True|<null>
             use-explicit-type|Use Explicit Type|Converts a supported declaration to an explicit type through Roslyn refactoring composition.|Mutation|LocationRefactoringRequest|MutationData|True|<null>
+            use-explicit-type-for-const|Use Explicit Type For Const|Replaces var with the inferred explicit type in a constant declaration through Roslyn code-fix composition.|Mutation|FixedCompilerCodeFixRequest|MutationData|True|<null>
             use-implicit-type|Use Implicit Type|Converts a supported declaration to an implicit type through Roslyn refactoring composition.|Mutation|LocationRefactoringRequest|MutationData|True|<null>
             use-named-arguments|Use Named Arguments|Adds a supported argument name through Roslyn refactoring composition.|Mutation|UseNamedArgumentsRequest|MutationData|True|<null>
             use-recursive-patterns|Use Recursive Patterns|Converts a supported pattern expression to recursive patterns through Roslyn refactoring composition.|Mutation|LocationRefactoringRequest|MutationData|True|<null>
@@ -69,28 +77,33 @@ public sealed class BundledCodeActionCatalogTests
     }
 
     [Fact]
-    public void GIVEN_BuiltInLedger_WHEN_CreatingCatalog_THEN_ShouldPublishExactlyTheVisibleDedicatedTools()
+    public void GIVEN_SupportedBuiltInLedger_WHEN_CreatingCatalog_THEN_ShouldPublishEveryDedicatedTool()
     {
-        var dedicatedFamilies = BuiltInCodeActionLedger.Families
+        var expectedDedicatedToolNames = BuiltInCodeActionLedger.Families
             .Where(static family => !string.IsNullOrWhiteSpace(family.ToolName))
-            .GroupBy(static family => family.ToolName ?? string.Empty, StringComparer.Ordinal)
+            .Select(static family => family.ToolName!)
+            .Distinct(StringComparer.Ordinal)
             .ToArray();
 
         var toolNames = BundledCodeActionCatalog.Create()
             .Select(static tool => tool.Metadata.Name)
             .ToArray();
 
-        var visibleToolNames = dedicatedFamilies
-            .Where(static group => group.Any(static family => family.IsDedicatedToolVisible))
-            .Select(static group => group.Key);
+        var infrastructureToolNames = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "list-code-actions",
+            "describe-code-action",
+            "stage-code-action",
+            "stage-code-fix",
+            "stage-fix-all",
+        };
 
-        var hiddenToolNames = dedicatedFamilies
-            .Where(static group => group.All(static family => !family.IsDedicatedToolVisible))
-            .Select(static group => group.Key);
+        var actualDedicatedToolNames = toolNames
+            .Where(toolName => !infrastructureToolNames.Contains(toolName))
+            .ToArray();
 
         toolNames.Should().OnlyHaveUniqueItems();
-        toolNames.Should().Contain(visibleToolNames);
-        toolNames.Intersect(hiddenToolNames, StringComparer.Ordinal).Should().BeEmpty();
+        actualDedicatedToolNames.Should().BeEquivalentTo(expectedDedicatedToolNames);
     }
 
     [Theory]
@@ -104,6 +117,8 @@ public sealed class BundledCodeActionCatalogTests
         var tools = BundledCodeActionCatalog.Create();
 
         tools.Should().ContainSingle(tool => tool.Metadata.Name == toolName);
-        BuiltInCodeActionLedger.IsDedicatedTool(toolName).Should().BeFalse();
+        BuiltInCodeActionLedger.Families
+            .Should()
+            .NotContain(family => family.ToolName == toolName);
     }
 }

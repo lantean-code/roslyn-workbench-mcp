@@ -219,7 +219,7 @@ To keep `tools/list` usable for agents, the default server configuration omits p
 | `analyze-async` | New | Identify supported async antipatterns such as async methods without `await` and unawaited task-returning invocations. |
 | `analyze-disposables` | New | Identify candidate undisposed local `IDisposable` or `IAsyncDisposable` values. This is advisory only. |
 
-### Specific Refactorings, Generation and Formatting (28)
+### Specific Refactorings, Generation and Formatting (36)
 
 Each successful operation stages one new transaction revision and returns a bounded preview. The operation does not write to disk.
 
@@ -247,11 +247,19 @@ Each successful operation stages one new transaction revision and returns a boun
 | `generate-overrides` | Existing | Not planned for this server while the Roslyn implementation still depends on internal generation APIs. This action family remains hidden from descriptor-based discovery unless a supported public API path becomes available. |
 | `generate-tostring` | Existing | Not planned for this server while no supported public Roslyn generation seam has been identified for this workflow in the current build. |
 | `implement-interface` | Existing | Not planned for this server while the required Roslyn feature service remains internal-only. This action family remains hidden from descriptor-based discovery unless a supported public API path becomes available. |
+| `add-anonymous-type-member-name` | New | Stage the validated compiler code fix that names an invalid anonymous-type member declarator. |
+| `add-conditional-interpolation-parentheses` | New | Stage the validated compiler code fix that parenthesises a conditional interpolation expression. |
+| `add-explicit-cast` | New | Stage the validated compiler code fix that adds a required explicit cast. |
+| `add-inheritdoc` | New | Stage the validated compiler code fix that adds an inheritdoc XML comment. |
 | `add-null-checks` | Existing | Stage the supported Roslyn parameter null-check refactoring at the selected parameter location. |
 | `add-missing-usings` | Existing | Stage import additions. |
+| `remove-in-keyword` | New | Stage the validated compiler code fix that removes an invalid `in` argument modifier. |
+| `remove-new-modifier` | New | Stage the validated compiler code fix that removes an unnecessary `new` modifier. |
 | `remove-unused-usings` | Existing | Stage import removal. |
+| `replace-default-literal` | New | Stage the validated compiler code fix that replaces an invalid default literal with its typed value. |
 | `sort-usings` | Existing | Stage import ordering. |
 | `format-document` | Existing | Stage document formatting using the loaded workspace options. |
+| `use-explicit-type-for-const` | New | Stage the validated compiler code fix that replaces `var` in a constant declaration. |
 
 ### Roslyn Code Actions and Transaction Control (10)
 

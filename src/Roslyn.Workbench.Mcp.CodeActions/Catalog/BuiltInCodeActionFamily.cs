@@ -8,21 +8,8 @@ internal sealed record BuiltInCodeActionFamily
 
     public BuiltInCodeActionFamilyKind Kind { get; init; } = BuiltInCodeActionFamilyKind.Refactoring;
 
-    public BuiltInCodeActionSupportState State { get; init; }
-
-    public BuiltInCodeActionAuditStatus AuditStatus { get; init; }
+    public required CodeActionExecutionMode ExecutionMode { get; init; }
 
     public string? ExecutorTool { get; init; }
 
-    public CodeActionExecutionMode ExecutionMode =>
-        State switch
-        {
-            BuiltInCodeActionSupportState.SupportedReplay => CodeActionExecutionMode.Replay,
-            BuiltInCodeActionSupportState.SupportedParameterised => CodeActionExecutionMode.Parameterised,
-            _ => CodeActionExecutionMode.Unsupported,
-        };
-
-    public bool IsVisible => State is BuiltInCodeActionSupportState.SupportedReplay or BuiltInCodeActionSupportState.SupportedParameterised;
-
-    public bool IsDedicatedToolVisible => !string.IsNullOrWhiteSpace(ToolName) && IsVisible;
 }

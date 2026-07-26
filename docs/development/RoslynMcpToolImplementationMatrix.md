@@ -92,11 +92,19 @@ This matrix records the planned implementation source for every public tool. It 
 | `generate-overrides` | MEF refactoring provider plus internal generation APIs | Not planned with current public Roslyn APIs |
 | `generate-tostring` | No supported public Roslyn generation seam identified in the current build | Not planned with current public Roslyn APIs |
 | `implement-interface` | MEF code-fix/refactoring provider plus internal Roslyn feature service wrapper | Not planned with current public Roslyn APIs |
+| `add-anonymous-type-member-name` | Dedicated wrapper over validated compiler diagnostic and MEF code-fix selection | Complete |
+| `add-conditional-interpolation-parentheses` | Dedicated wrapper over validated compiler diagnostic and MEF code-fix selection | Complete |
+| `add-explicit-cast` | Dedicated wrapper over validated compiler diagnostic and MEF code-fix selection | Complete |
+| `add-inheritdoc` | Dedicated wrapper over validated compiler diagnostic and MEF code-fix selection | Complete |
 | `add-null-checks` | Host wrapper over deterministic MEF refactoring replay | Batch 4 |
 | `add-missing-usings` | Host wrapper over deterministic MEF code-fix selection | Batch 2 |
+| `remove-in-keyword` | Dedicated wrapper over validated compiler diagnostic and MEF code-fix selection | Complete |
+| `remove-new-modifier` | Dedicated wrapper over validated compiler diagnostic and MEF code-fix selection | Complete |
 | `remove-unused-usings` | Host wrapper over deterministic MEF code-fix selection | Batch 2 |
+| `replace-default-literal` | Dedicated wrapper over validated compiler diagnostic and MEF code-fix selection | Complete |
 | `sort-usings` | Public formatter/syntax transformation | Core |
 | `format-document` | Public `Formatter` APIs | Core |
+| `use-explicit-type-for-const` | Dedicated wrapper over validated compiler diagnostic and MEF code-fix selection | Complete |
 
 ## Code Actions and Transaction Control
 

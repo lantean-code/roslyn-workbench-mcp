@@ -3,6 +3,125 @@ namespace Roslyn.Workbench.Mcp.AcceptanceTest;
 public sealed class CodeActionWorkflowIntegrationTests
 {
     [Fact]
+    public async Task GIVEN_FixedCompilerCodeFixTools_WHEN_PublishingAndStagingRepresentative_THEN_ShouldExposeCatalogueAndPreserveRollback()
+    {
+        await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
+            TestContext.Current.CancellationToken,
+            AcceptanceWorkspaceAsset.InspectionSample);
+
+        try
+        {
+            var expectedToolNames = new[]
+            {
+                "add-anonymous-type-member-name",
+                "add-conditional-interpolation-parentheses",
+                "add-explicit-cast",
+                "add-inheritdoc",
+                "remove-in-keyword",
+                "remove-new-modifier",
+                "replace-default-literal",
+                "use-explicit-type-for-const",
+            };
+
+            var tools = await target.ListToolsAsync(TestContext.Current.CancellationToken);
+            foreach (var toolName in expectedToolNames)
+            {
+                tools.Should().ContainSingle(tool => tool.Name == toolName);
+            }
+
+            var projectPath = Path.Combine(target.WorkspaceRoot, "Sample.csproj");
+            var documentPath = Path.Combine(target.WorkspaceRoot, "CandidateCodeFixes.cs");
+            var originalBytes = await File.ReadAllBytesAsync(documentPath, TestContext.Current.CancellationToken);
+            var sourceText = await File.ReadAllTextAsync(documentPath, TestContext.Current.CancellationToken);
+            var returnStatementStart = sourceText.IndexOf("return value;", StringComparison.Ordinal);
+            returnStatementStart.Should().BeGreaterThanOrEqualTo(0);
+
+            var diagnosticStart = returnStatementStart + "return ".Length;
+            var openResult = await target.CallToolAsync(
+                "workspace-open",
+                new Dictionary<string, object?>
+                {
+                    ["path"] = projectPath,
+                    ["workspaceRoot"] = target.WorkspaceRoot,
+                },
+                TestContext.Current.CancellationToken);
+
+            var workspace = AcceptanceWorkspaceIdentity.FromOpenResult(openResult);
+            var workspaceSelector = workspace.CreateSelector();
+            var snapshot = workspace.CreateSnapshot(transactionRevision: 0);
+
+            var startResult = await target.CallToolAsync(
+                "transaction-start",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                },
+                TestContext.Current.CancellationToken);
+
+            startResult.IsError.Should().NotBeTrue();
+
+            var mutationResult = await target.CallToolAsync(
+                "add-explicit-cast",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                    ["location"] = new Dictionary<string, object?>
+                    {
+                        ["span"] = new Dictionary<string, object?>
+                        {
+                            ["document"] = new Dictionary<string, object?>
+                            {
+                                ["path"] = "CandidateCodeFixes.cs",
+                            },
+                            ["start"] = diagnosticStart,
+                            ["length"] = "value".Length,
+                        },
+                    },
+                    ["expectedSnapshot"] = snapshot,
+                },
+                TestContext.Current.CancellationToken);
+
+            mutationResult.IsError.Should().NotBeTrue();
+            var mutation = AcceptanceProtocol.GetSuccessData(mutationResult);
+            mutation.GetProperty("staged").GetBoolean().Should().BeTrue();
+            mutation.GetProperty("summary").GetString().Should().NotBeNullOrWhiteSpace();
+            mutation.GetProperty("transaction").GetProperty("revision").GetInt32().Should().Be(1);
+
+            var previewResult = await target.CallToolAsync(
+                "transaction-preview",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                },
+                TestContext.Current.CancellationToken);
+
+            previewResult.IsError.Should().NotBeTrue();
+            AcceptanceProtocol.GetSuccessData(previewResult)
+                .GetProperty("documents")
+                .EnumerateArray()
+                .Should()
+                .ContainSingle(change => change.GetProperty("document").GetProperty("path").GetString() == "CandidateCodeFixes.cs");
+
+            var rollbackResult = await target.CallToolAsync(
+                "transaction-rollback",
+                new Dictionary<string, object?>
+                {
+                    ["workspace"] = workspaceSelector,
+                },
+                TestContext.Current.CancellationToken);
+
+            rollbackResult.IsError.Should().NotBeTrue();
+            var currentBytes = await File.ReadAllBytesAsync(documentPath, TestContext.Current.CancellationToken);
+            currentBytes.Should().Equal(originalBytes);
+        }
+        catch
+        {
+            target.RetainRootOnFailure();
+            throw;
+        }
+    }
+
+    [Fact]
     public async Task GIVEN_BuiltInCodeAction_WHEN_ListingStagingAndRollingBack_THEN_ShouldPreservePublicCodeActionBoundary()
     {
         await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(

@@ -18,26 +18,44 @@ public sealed class BuiltInCodeActionInventoryTests
             .OrderBy(static providerId => providerId, StringComparer.Ordinal)
             .ToArray();
 
-        var ledgerRefactoringProviderIds = BuiltInCodeActionLedger.Families
+        var supportedRefactoringProviderIds = BuiltInCodeActionLedger.Families
             .Where(static family => family.Kind == BuiltInCodeActionFamilyKind.Refactoring)
             .Select(static family => family.ProviderId)
+            .ToArray();
+
+        var assessedRefactoringProviderIds = BuiltInCodeActionProviderAssessment.Entries
+            .Where(static entry => entry.Kind == BuiltInCodeActionFamilyKind.Refactoring)
+            .Select(static entry => entry.ProviderId);
+
+        var trackedRefactoringProviderIds = supportedRefactoringProviderIds
+            .Concat(assessedRefactoringProviderIds)
             .OrderBy(static providerId => providerId, StringComparer.Ordinal)
             .ToArray();
 
-        AssertMatchingInventory(composedRefactoringProviderIds, ledgerRefactoringProviderIds);
+        AssertMatchingInventory(composedRefactoringProviderIds, trackedRefactoringProviderIds);
 
         var composedCodeFixProviderIds = target.CodeFixProviders
             .Select(static provider => provider.GetType().ToString())
             .OrderBy(static providerId => providerId, StringComparer.Ordinal)
             .ToArray();
 
-        var ledgerCodeFixProviderIds = BuiltInCodeActionLedger.Families
+        var supportedCodeFixProviderIds = BuiltInCodeActionLedger.Families
             .Where(static family => family.Kind == BuiltInCodeActionFamilyKind.CodeFix)
             .Select(static family => family.ProviderId)
+            .ToArray();
+
+        var additionalAssessedCodeFixProviderIds = BuiltInCodeActionProviderAssessment.Entries
+            .Where(static entry => entry.Kind == BuiltInCodeActionFamilyKind.CodeFix)
+            .Select(static entry => entry.ProviderId);
+
+        var trackedCodeFixProviderIds = supportedCodeFixProviderIds
+            .Concat(BuiltInCodeFixProviderAssessment.ProviderIds)
+            .Concat(additionalAssessedCodeFixProviderIds)
+            .Distinct(StringComparer.Ordinal)
             .OrderBy(static providerId => providerId, StringComparer.Ordinal)
             .ToArray();
 
-        AssertMatchingInventory(composedCodeFixProviderIds, ledgerCodeFixProviderIds);
+        AssertMatchingInventory(composedCodeFixProviderIds, trackedCodeFixProviderIds);
 
         BuiltInCodeActionLedger.Families
             .Select(static family => family.ProviderId)
@@ -46,32 +64,55 @@ public sealed class BuiltInCodeActionInventoryTests
 
         BuiltInCodeActionLedger.Families
             .Should()
-            .NotContain(static family => family.AuditStatus == BuiltInCodeActionAuditStatus.Unclassified);
+            .OnlyContain(static family =>
+                family.ExecutionMode == CodeActionExecutionMode.Replay
+                || family.ExecutionMode == CodeActionExecutionMode.Parameterised);
+
+        var supportedProviderIds = BuiltInCodeActionLedger.Families
+            .Select(static family => family.ProviderId)
+            .ToHashSet(StringComparer.Ordinal);
+
+        var additionalAssessedProviderIds = BuiltInCodeActionProviderAssessment.Entries
+            .Select(static entry => entry.ProviderId)
+            .ToArray();
+
+        additionalAssessedProviderIds.Should().OnlyHaveUniqueItems();
+        additionalAssessedProviderIds
+            .Intersect(supportedProviderIds, StringComparer.Ordinal)
+            .Should()
+            .BeEmpty();
 
         AssertAssessedCodeFixClassifications(target.CodeFixProviders);
     }
 
     private static void AssertAssessedCodeFixClassifications(IReadOnlyList<CodeFixProvider> composedProviders)
     {
-        var assessedProviderIds = BuiltInCodeFixProviderAssessment.ProviderIds.ToHashSet(StringComparer.Ordinal);
-        var assessedFamilies = BuiltInCodeActionLedger.Families
-            .Where(family => assessedProviderIds.Contains(family.ProviderId))
+        var assessments = BuiltInCodeFixProviderAssessment.ProviderIds
+            .Select(static providerId => new
+            {
+                ProviderId = providerId,
+                Status = BuiltInCodeFixProviderAssessment.GetAuditStatus(providerId),
+            })
             .ToArray();
 
-        var pendingReplayValidationCount = assessedFamilies.Count(
-            static family => family.AuditStatus == BuiltInCodeActionAuditStatus.PendingReplayValidation);
+        var pendingReplayValidationCount = assessments.Count(
+            static assessment => assessment.Status == BuiltInCodeActionAuditStatus.PendingReplayValidation);
 
-        var requiresBuiltInDiagnosticSupportCount = assessedFamilies.Count(
-            static family => family.AuditStatus == BuiltInCodeActionAuditStatus.RequiresBuiltInDiagnosticSupport);
+        var validatedSupportedCount = assessments.Count(
+            static assessment => assessment.Status == BuiltInCodeActionAuditStatus.ValidatedSupported);
 
-        var coveredByDedicatedToolCount = assessedFamilies.Count(
-            static family => family.AuditStatus == BuiltInCodeActionAuditStatus.CoveredByDedicatedTool);
+        var requiresBuiltInDiagnosticSupportCount = assessments.Count(
+            static assessment => assessment.Status == BuiltInCodeActionAuditStatus.RequiresBuiltInDiagnosticSupport);
 
-        var excludedCount = assessedFamilies.Count(
-            static family => family.AuditStatus == BuiltInCodeActionAuditStatus.Excluded);
+        var coveredByDedicatedToolCount = assessments.Count(
+            static assessment => assessment.Status == BuiltInCodeActionAuditStatus.CoveredByDedicatedTool);
 
-        assessedFamilies.Should().HaveCount(151);
-        pendingReplayValidationCount.Should().Be(47);
+        var excludedCount = assessments.Count(
+            static assessment => assessment.Status == BuiltInCodeActionAuditStatus.Excluded);
+
+        assessments.Should().HaveCount(151);
+        pendingReplayValidationCount.Should().Be(39);
+        validatedSupportedCount.Should().Be(8);
         requiresBuiltInDiagnosticSupportCount.Should().Be(94);
         coveredByDedicatedToolCount.Should().Be(8);
         excludedCount.Should().Be(2);
@@ -80,17 +121,27 @@ public sealed class BuiltInCodeActionInventoryTests
             static provider => provider.GetType().ToString(),
             StringComparer.Ordinal);
 
-        foreach (var family in assessedFamilies)
+        foreach (var assessment in assessments)
         {
-            var provider = providersById[family.ProviderId];
-            if (family.AuditStatus == BuiltInCodeActionAuditStatus.PendingReplayValidation)
+            var provider = providersById[assessment.ProviderId];
+            if (assessment.Status is BuiltInCodeActionAuditStatus.PendingReplayValidation
+                or BuiltInCodeActionAuditStatus.ValidatedSupported)
             {
                 provider.FixableDiagnosticIds
                     .Should()
                     .Contain(static diagnosticId => diagnosticId.StartsWith("CS", StringComparison.Ordinal));
             }
 
-            if (family.AuditStatus == BuiltInCodeActionAuditStatus.RequiresBuiltInDiagnosticSupport)
+            if (assessment.Status == BuiltInCodeActionAuditStatus.ValidatedSupported)
+            {
+                var family = BuiltInCodeActionLedger.Families.Single(
+                    candidate => candidate.ProviderId == assessment.ProviderId);
+
+                family.ExecutionMode.Should().Be(CodeActionExecutionMode.Replay);
+                family.ToolName.Should().NotBeNullOrWhiteSpace();
+            }
+
+            if (assessment.Status == BuiltInCodeActionAuditStatus.RequiresBuiltInDiagnosticSupport)
             {
                 provider.FixableDiagnosticIds
                     .Should()

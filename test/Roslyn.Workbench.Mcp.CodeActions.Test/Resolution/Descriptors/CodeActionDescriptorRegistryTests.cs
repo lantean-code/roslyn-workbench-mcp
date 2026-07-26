@@ -22,6 +22,7 @@ public sealed class CodeActionDescriptorRegistryTests
     [InlineData("")]
     [InlineData(" ")]
     [InlineData("Roslyn.Workbench.Mcp.IntegrationTestSupport.TestRefactoringProvider")]
+    [InlineData("Microsoft.CodeAnalysis.CSharp.CodeRefactorings.AddMissingImports.CSharpAddMissingImportsRefactoringProvider")]
     [InlineData("Unknown.Provider")]
     public void GIVEN_UnauditedProvider_WHEN_GettingCapability_THEN_ShouldExcludeProvider(string providerId)
     {
@@ -109,25 +110,12 @@ public sealed class CodeActionDescriptorRegistryTests
         result.Descriptor.ContextKind.Should().Be(CodeActionDescriptorContextKind.None);
     }
 
-    [Fact]
-    public void GIVEN_HiddenLedgerFamily_WHEN_GettingCapability_THEN_ShouldExcludeProvider()
-    {
-        var target = new CodeActionDescriptorRegistry();
-
-        var result = target.GetProviderCapability("Microsoft.CodeAnalysis.CSharp.CodeRefactorings.AddMissingImports.CSharpAddMissingImportsRefactoringProvider");
-
-        result.ShouldDiscover.Should().BeFalse();
-        result.Descriptor.IsVisible.Should().BeFalse();
-        result.Descriptor.ExecutionMode.Should().Be(CodeActionExecutionMode.Unsupported);
-        result.Descriptor.ContextKind.Should().Be(CodeActionDescriptorContextKind.Unsupported);
-    }
-
     public static TheoryData<string> GetVisibleReplayFamilies()
     {
         var data = new TheoryData<string>();
         foreach (var family in BuiltInCodeActionLedger.Families)
         {
-            if (family.State != BuiltInCodeActionSupportState.SupportedReplay
+            if (family.ExecutionMode != CodeActionExecutionMode.Replay
                 || string.IsNullOrWhiteSpace(family.ProviderId))
             {
                 continue;

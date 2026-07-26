@@ -1,7 +1,7 @@
 namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 
 [Trait("Category", "Audit")]
-public sealed class ReplayRefactoringToolsTests
+public sealed class DedicatedCodeActionToolsTests
 {
     public static TheoryData<string> ReplayMutationCaseNames
     {
@@ -30,6 +30,14 @@ public sealed class ReplayRefactoringToolsTests
         {
             return new Dictionary<string, ReplayMutationCaseDefinition>(StringComparer.Ordinal)
             {
+                { "add-anonymous-type-member-name", new(static (fixture, open) => CreateCodeFixRequest(fixture.GetLocationInDocument("CandidateCodeFixes.cs", "value + 1"), open), "CandidateCodeFixes.cs") },
+                { "add-conditional-interpolation-parentheses", new(static (fixture, open) => CreateCodeFixRequest(fixture.GetLocationInDocument("CandidateCodeFixes.cs", "enabled ? \"enabled\" : \"disabled\""), open), "CandidateCodeFixes.cs") },
+                { "add-explicit-cast", new(static (fixture, open) => CreateCodeFixRequest(fixture.GetLocationInDocument("CandidateCodeFixes.cs", "value;", 0), open), "CandidateCodeFixes.cs") },
+                { "add-inheritdoc", new(static (fixture, open) => CreateCodeFixRequest(fixture.GetLocationInDocument("CandidateCodeFixes.cs", "DocumentedMember", 1), open), "CandidateCodeFixes.cs") },
+                { "remove-in-keyword", new(static (fixture, open) => CreateCodeFixRequest(fixture.GetLocationInDocument("CandidateCodeFixes.cs", "in value"), open), "CandidateCodeFixes.cs") },
+                { "remove-new-modifier", new(static (fixture, open) => CreateCodeFixRequest(fixture.GetLocationInDocument("CandidateCodeFixes.cs", "internal new void RemoveNewModifier"), open), "CandidateCodeFixes.cs") },
+                { "replace-default-literal", new(static (fixture, open) => CreateCodeFixRequest(fixture.GetLocationInDocument("CandidateCodeFixes.cs", "default"), open), "CandidateCodeFixes.cs") },
+                { "use-explicit-type-for-const", new(static (fixture, open) => CreateCodeFixRequest(fixture.GetLocationInDocument("CandidateCodeFixes.cs", "const var"), open), "CandidateCodeFixes.cs") },
                 { "convert-between-regular-and-verbatim-interpolated-string", new(static (fixture, open) => CreateLocationRequest(fixture.GetLocation("$\"C:\\\\temp\\\\{value}\""), open), "Formatting.cs") },
                 { "convert-between-regular-and-verbatim-string", new(static (fixture, open) => CreateLocationRequest(fixture.GetLocation("\"C:\\\\temp\\\\logs\""), open), "Formatting.cs") },
                 { "convert-foreach-to-for", new(static (fixture, open) => CreateLocationRequest(fixture.GetLocation("foreach (var value in values)"), open), "Formatting.cs") },
@@ -146,6 +154,17 @@ public sealed class ReplayRefactoringToolsTests
         return new LocationRefactoringRequest
         {
             Selection = selection,
+            ExpectedSnapshot = CreateSnapshot(openResult),
+        };
+    }
+
+    private static FixedCompilerCodeFixRequest CreateCodeFixRequest(
+        LocationSelector location,
+        WorkspaceOperationResult<WorkspaceOpenOutcome> openResult)
+    {
+        return new FixedCompilerCodeFixRequest
+        {
+            Location = location,
             ExpectedSnapshot = CreateSnapshot(openResult),
         };
     }
@@ -277,6 +296,14 @@ public sealed class ReplayRefactoringToolsTests
         var cancellationToken = TestContext.Current.CancellationToken;
         var result = (toolName, request) switch
         {
+            ("add-anonymous-type-member-name", FixedCompilerCodeFixRequest typed) => await session.ExecuteMutationAsync<AddAnonymousTypeMemberNameTool, FixedCompilerCodeFixRequest>(toolName, typed, cancellationToken),
+            ("add-conditional-interpolation-parentheses", FixedCompilerCodeFixRequest typed) => await session.ExecuteMutationAsync<AddConditionalInterpolationParenthesesTool, FixedCompilerCodeFixRequest>(toolName, typed, cancellationToken),
+            ("add-explicit-cast", FixedCompilerCodeFixRequest typed) => await session.ExecuteMutationAsync<AddExplicitCastTool, FixedCompilerCodeFixRequest>(toolName, typed, cancellationToken),
+            ("add-inheritdoc", FixedCompilerCodeFixRequest typed) => await session.ExecuteMutationAsync<AddInheritdocTool, FixedCompilerCodeFixRequest>(toolName, typed, cancellationToken),
+            ("remove-in-keyword", FixedCompilerCodeFixRequest typed) => await session.ExecuteMutationAsync<RemoveInKeywordTool, FixedCompilerCodeFixRequest>(toolName, typed, cancellationToken),
+            ("remove-new-modifier", FixedCompilerCodeFixRequest typed) => await session.ExecuteMutationAsync<RemoveNewModifierTool, FixedCompilerCodeFixRequest>(toolName, typed, cancellationToken),
+            ("replace-default-literal", FixedCompilerCodeFixRequest typed) => await session.ExecuteMutationAsync<ReplaceDefaultLiteralTool, FixedCompilerCodeFixRequest>(toolName, typed, cancellationToken),
+            ("use-explicit-type-for-const", FixedCompilerCodeFixRequest typed) => await session.ExecuteMutationAsync<UseExplicitTypeForConstTool, FixedCompilerCodeFixRequest>(toolName, typed, cancellationToken),
             ("convert-between-regular-and-verbatim-interpolated-string", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<ConvertBetweenRegularAndVerbatimInterpolatedStringTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
             ("convert-between-regular-and-verbatim-string", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<ConvertBetweenRegularAndVerbatimStringTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
             ("convert-foreach-to-for", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<ConvertForEachToForTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),

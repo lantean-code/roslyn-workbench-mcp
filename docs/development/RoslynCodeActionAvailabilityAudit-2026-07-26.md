@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This audit reassesses every built-in Code Action family that is hidden by the production ledger, every C# provider present in the Roslyn 5.6 runtime assemblies but absent from that ledger, and the aspirational mutation families previously described as blocked by Roslyn APIs.
+This audit reassesses every C# provider present in the Roslyn 5.6 runtime assemblies but absent from the supported production ledger, together with the aspirational mutation families previously described as blocked by Roslyn APIs.
 
 The audit distinguishes between a limitation of the current Workbench discovery model, a Roslyn provider that can already be replayed, a workflow that can be implemented using other public Roslyn APIs, a workflow that would require a substantial custom semantic transformation, and a workflow that should remain outside the product boundary.
 
@@ -26,7 +26,7 @@ The previous audit covered C#-specific source folders but did not include langua
 
 The P0 implementation subsequently compared the ledger with the providers produced by the server's real MEF composition. That check found 81 C# refactoring providers and 169 C# code-fix providers, 250 providers in total. Refactoring coverage matched the expanded ledger, but 151 additional code-fix providers had never been assessed because the source scan and historical compatibility cases covered only a curated subset.
 
-The ledger now records all 250 composed providers. The audit test compares the exact provider identities and kinds with the ledger, rejects duplicates and rejects entries without a disposition, so a future Roslyn package change cannot silently add or remove a provider.
+The production ledger now records only supported providers. Development-only assessment data records pending, excluded and otherwise unsupported providers in the audit project. The audit test compares the union of both sets with all 250 composed providers and rejects missing or duplicate identities, so a future Roslyn package change cannot silently add or remove a provider.
 
 The 151 newly discovered code-fix providers have now also been classified. Their runtime metadata identifies 50 providers accepting at least one compiler diagnostic and 101 accepting only built-in `IDE` diagnostics. A scan of every `CodeActionWithOptions` subtype in the loaded Features assemblies found no option-backed action associated with these 151 providers. The final dispositions are 47 compiler-backed replay candidates, 94 providers requiring general built-in diagnostic support, eight providers covered by existing tools and two project-system exclusions.
 
@@ -48,11 +48,11 @@ The classifications below therefore cover the complete composed runtime inventor
 
 ## Summary
 
-The composed runtime contains 73 visible providers and 177 hidden providers. The hidden providers now divide as follows:
+The composed runtime contains 81 visible providers and 169 hidden providers. The hidden providers now divide as follows:
 
 | Outcome | Count | Release interpretation |
 | --- | ---: | --- |
-| Replay candidate | 53 | Six refactorings and 47 compiler-backed code fixes require compatibility validation rather than a new transformation. |
+| Replay candidate | 45 | Six refactorings and 39 compiler-backed code fixes require compatibility validation rather than a new transformation. |
 | Built-in diagnostic support required | 94 | The actions are composed, but general discovery does not currently run and map Roslyn's built-in IDE analysers. |
 | Mixed provider | 3 | Safe built-in branches exist, but production needs action-level capability classification or a dedicated explicit-input wrapper. |
 | Existing coverage | 9 | Keep the duplicate provider hidden and retain the current tool. |
@@ -65,7 +65,7 @@ The composed runtime contains 73 visible providers and 177 hidden providers. The
 
 ### Compiler-backed replay candidates
 
-Forty-seven providers consume compiler diagnostics already available from `Compilation.GetDiagnostics`. They remain hidden as `PendingReplayValidation`; compiler diagnostic availability establishes reachability but does not prove deterministic action selection or staging.
+Forty-seven providers consume compiler diagnostics already available from `Compilation.GetDiagnostics`. Eight local fixes have now passed deterministic action selection and transaction-staging validation and are published as dedicated tools. The remaining 39 are tracked as `PendingReplayValidation` only by the development audit; their absence from the production ledger keeps them hidden. Compiler diagnostic availability establishes reachability but does not by itself prove deterministic action selection or staging.
 
 The smaller, local correction group includes anonymous-member naming, obsolete attributes, out-parameter assignment, explicit casts, `inheritdoc`, nullable declarations, constraint and return-type repair, base-member modifiers, iterator repair, required members, asynchronous statements, record keyword placement, interpolated-condition parentheses, conflict-marker resolution, documentation nodes, static/member/type modifier repair, unused local-function removal, default literals, explicit expression-tree arrays, explicit const types and interpolated-verbatim strings.
 
@@ -206,7 +206,7 @@ The prior trigger “wait until Roslyn exposes a supported API” is therefore v
 
 **Status:** Complete.
 
-The runtime-backed audit now enumerates the actual composed C# providers for the pinned Roslyn version and requires every provider to have an explicit ledger disposition. It includes language-neutral Core providers and excludes editor-host providers that are not part of the runtime composition.
+The runtime-backed audit now enumerates the actual composed C# providers for the pinned Roslyn version and requires every provider to be either supported by the production ledger or classified in development-only assessment data. It includes language-neutral Core providers and excludes editor-host providers that are not part of the runtime composition.
 
 ### P1 — Assess the code-fix inventory
 
@@ -220,7 +220,7 @@ The 151 providers are classified as 47 compiler-backed replay candidates, 94 req
 
 Test `AddConstructorParametersFromMembers`, `GenerateComparisonOperators`, `ImplementInterface`, `OrganizeImports`, `ReplaceMethodWithProperty` and `ReplacePropertyWithMethods` together with a first batch of local compiler-backed code fixes. Promotion decisions can be made per fixture without coupling their implementations.
 
-`CandidateCompatibilityCases` now permanently tracks all 47 compiler-backed code-fix candidates. Eight local fixtures currently execute against the real pinned MEF composition and prove the expected compiler diagnostic, a single matching action, a supported `ApplyChangesOperation`, the expected source mutation and continued production hiding. They cover anonymous-member naming, explicit casts, `inheritdoc`, unnecessary `new`, conditional interpolation parentheses, invalid `in` arguments, default-literal replacement and explicit const types. A candidate moves to the supported compatibility suite only when its fixture is approved for production promotion; staging, preview and rollback coverage then runs through the public production path rather than a test-only visibility bypass.
+`CandidateCompatibilityCases` permanently tracks the 39 compiler-backed code-fix candidates that remain pending. The first eight local fixtures now live in the supported compatibility suite and are published as dedicated tools: anonymous-member naming, explicit casts, `inheritdoc`, unnecessary `new`, conditional interpolation parentheses, invalid `in` arguments, default-literal replacement and explicit const types. Each passes the real pinned MEF composition, expected compiler diagnostic, deterministic action selection, supported `ApplyChangesOperation`, expected source mutation, dedicated handler, transaction staging and preview path.
 
 ### P2b — Add built-in diagnostic support
 
@@ -244,6 +244,6 @@ Keep move-to-namespace, pull-member-up, move-static-members, extract-interface, 
 
 ## Pre-Release Decision
 
-P0 and P1 are complete. The full runtime provider inventory now has an evidence-backed disposition. Release scope can be selected from the 53 replay candidates without first building general IDE diagnostic support; the 94 IDE-diagnostic providers form a separate infrastructure decision rather than an accidental pre-release commitment. Public-API and custom semantic implementations can remain future functionality without weakening the current supported surface.
+P0 and P1 are complete. The full runtime provider inventory now has an evidence-backed disposition, and eight of the original 53 replay candidates are published as dedicated tools. Further release scope can be selected from the 45 remaining replay candidates without first building general IDE diagnostic support; the 94 IDE-diagnostic providers form a separate infrastructure decision rather than an accidental pre-release commitment. Public-API and custom semantic implementations can remain future functionality without weakening the current supported surface.
 
 No unavailable family should be promoted solely from source inspection. The existing support rule remains valid: a controlled fixture must prove that Roslyn offers the action, Workbench selects it deterministically, staging succeeds and the public surface exposes it intentionally.

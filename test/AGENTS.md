@@ -109,6 +109,7 @@ Cross-project test ownership and execution-path policy are defined in `../docs/d
 - If the change is docs-only or markdown-only and does not affect behaviour, test execution is optional unless explicitly requested.
 - Do not run `Roslyn.Workbench.Mcp.AcceptanceTest` automatically during per-turn validation, even when the affected code participates in published-host scenarios.
 - Run acceptance tests only when the user explicitly requests them. Otherwise report the non-acceptance validation that was completed without treating the omitted acceptance suite as a validation gap.
+- Adding or changing acceptance tests is an explicit requirement to run the complete acceptance suite through its repository script before finishing the change.
 - When contributing PR summaries or PR bodies, describe testing in terms of the coverage added or updated by the change, not just the commands executed.
 
 ## Anti-smell rules

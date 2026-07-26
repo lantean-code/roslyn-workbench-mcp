@@ -71,11 +71,11 @@ internal sealed class CodeActionDescriptorRegistry : ICodeActionDescriptorRegist
         var capabilities = new Dictionary<string, CodeActionProviderCapability>(StringComparer.Ordinal);
         foreach (var family in BuiltInCodeActionLedger.Families)
         {
-            var descriptor = family.State switch
+            var descriptor = family.ExecutionMode switch
             {
-                BuiltInCodeActionSupportState.SupportedReplay => _replayDescriptor,
-                BuiltInCodeActionSupportState.SupportedParameterised => Parameterised(family.ExecutorTool, CodeActionDescriptorContextKind.None),
-                _ => _hiddenDescriptor,
+                CodeActionExecutionMode.Replay => _replayDescriptor,
+                CodeActionExecutionMode.Parameterised => Parameterised(family.ExecutorTool, CodeActionDescriptorContextKind.None),
+                _ => throw new InvalidOperationException($"Unsupported built-in Code Action execution mode '{family.ExecutionMode}'."),
             };
 
             capabilities.Add(family.ProviderId, new CodeActionProviderCapability

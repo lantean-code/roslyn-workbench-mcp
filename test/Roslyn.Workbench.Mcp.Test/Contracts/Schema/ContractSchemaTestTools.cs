@@ -158,6 +158,14 @@ internal static class ContractSchemaTestTools
         return new CallToolResult();
     }
 
+    [McpServerTool(Name = "add-explicit-cast", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<MutationData>))]
+    public static CallToolResult AddExplicitCast(FixedCompilerCodeFixRequest request)
+    {
+        _ = request;
+
+        return new CallToolResult();
+    }
+
     [McpServerTool(Name = "add-debugger-display", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<MutationData>))]
     public static CallToolResult AddDebuggerDisplay(LocationRefactoringRequest request)
     {

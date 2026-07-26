@@ -1,8 +1,7 @@
-namespace Roslyn.Workbench.Mcp.CodeActions.Catalog;
+namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 
 internal enum BuiltInCodeActionAuditStatus
 {
-    Unclassified,
     ValidatedSupported,
     PendingReplayValidation,
     RequiresBuiltInDiagnosticSupport,

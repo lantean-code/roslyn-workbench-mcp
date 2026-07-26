@@ -259,7 +259,7 @@ internal static class BuiltInCodeActionAuditCases
         _replayMetadata.ToDictionary(static item => item.ProviderId, StringComparer.Ordinal);
 
     public static IReadOnlyList<string> VisibleDedicatedToolNames { get; } = BuiltInCodeActionLedger.Families
-        .Where(static family => family.IsDedicatedToolVisible)
+        .Where(static family => !string.IsNullOrWhiteSpace(family.ToolName))
         .Select(static family => family.ToolName!)
         .Distinct(StringComparer.Ordinal)
         .OrderBy(static toolName => toolName, StringComparer.Ordinal)
@@ -267,16 +267,16 @@ internal static class BuiltInCodeActionAuditCases
 
     public static IReadOnlyList<BuiltInCodeActionAuditCase> VisibleReplayFamilies { get; } = BuiltInCodeActionLedger.Families
         .Where(static family => family.ExecutionMode == CodeActionExecutionMode.Replay)
-        .Where(static family => family.IsVisible)
         .Select(static family => family.ProviderId)
         .Where(_replayMetadataByProviderId.ContainsKey)
         .Select(static providerId => _replayMetadataByProviderId[providerId])
         .ToArray();
 
-    private static readonly IReadOnlyList<BuiltInCodeActionAuditCase> _runnableCandidateCompatibilityCases =
+    private static readonly IReadOnlyList<BuiltInCodeActionAuditCase> _validatedCodeFixCompatibilityCases =
     [
         new()
         {
+            ToolName = "add-anonymous-type-member-name",
             Kind = BuiltInCodeActionAuditKind.CodeFix,
             ProviderId = "Microsoft.CodeAnalysis.CSharp.AddAnonymousTypeMemberName.CSharpAddAnonymousTypeMemberNameCodeFixProvider",
             SourceNote = "CandidateCodeFixes.CreateAnonymousMember invalid anonymous member declarator",
@@ -288,6 +288,7 @@ internal static class BuiltInCodeActionAuditCases
         },
         new()
         {
+            ToolName = "add-explicit-cast",
             Kind = BuiltInCodeActionAuditKind.CodeFix,
             ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.AddExplicitCast.CSharpAddExplicitCastCodeFixProvider",
             SourceNote = "CandidateCodeFixes.AddExplicitCast implicit long-to-int conversion",
@@ -299,6 +300,7 @@ internal static class BuiltInCodeActionAuditCases
         },
         new()
         {
+            ToolName = "add-inheritdoc",
             Kind = BuiltInCodeActionAuditKind.CodeFix,
             ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.AddInheritdoc.AddInheritdocCodeFixProvider",
             SourceNote = "CandidateDerived.DocumentedMember undocumented override",
@@ -309,6 +311,7 @@ internal static class BuiltInCodeActionAuditCases
         },
         new()
         {
+            ToolName = "remove-new-modifier",
             Kind = BuiltInCodeActionAuditKind.CodeFix,
             ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.RemoveNewModifier.RemoveNewModifierCodeFixProvider",
             SourceNote = "CandidateNewModifier.RemoveNewModifier unnecessary new modifier",
@@ -320,6 +323,7 @@ internal static class BuiltInCodeActionAuditCases
         },
         new()
         {
+            ToolName = "add-conditional-interpolation-parentheses",
             Kind = BuiltInCodeActionAuditKind.CodeFix,
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ConditionalExpressionInStringInterpolation.CSharpAddParenthesesAroundConditionalExpressionInInterpolatedStringCodeFixProvider",
             SourceNote = "CandidateCodeFixes.FormatConditional unparenthesised conditional interpolation",
@@ -331,6 +335,7 @@ internal static class BuiltInCodeActionAuditCases
         },
         new()
         {
+            ToolName = "remove-in-keyword",
             Kind = BuiltInCodeActionAuditKind.CodeFix,
             ProviderId = "Microsoft.CodeAnalysis.CSharp.RemoveInKeyword.RemoveInKeywordCodeFixProvider",
             SourceNote = "CandidateCodeFixes.RemoveInKeyword invalid in argument",
@@ -342,6 +347,7 @@ internal static class BuiltInCodeActionAuditCases
         },
         new()
         {
+            ToolName = "replace-default-literal",
             Kind = BuiltInCodeActionAuditKind.CodeFix,
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ReplaceDefaultLiteral.CSharpReplaceDefaultLiteralCodeFixProvider",
             SourceNote = "CandidateCodeFixes.ReplaceDefaultLiteral invalid default pattern",
@@ -353,6 +359,7 @@ internal static class BuiltInCodeActionAuditCases
         },
         new()
         {
+            ToolName = "use-explicit-type-for-const",
             Kind = BuiltInCodeActionAuditKind.CodeFix,
             ProviderId = "Microsoft.CodeAnalysis.CSharp.UseExplicitTypeForConst.UseExplicitTypeForConstCodeFixProvider",
             SourceNote = "CandidateCodeFixes.UseExplicitTypeForConst invalid const var declaration",
@@ -366,10 +373,9 @@ internal static class BuiltInCodeActionAuditCases
 
     public static IReadOnlyList<BuiltInCodeActionAuditCase> CandidateCompatibilityCases { get; } = CreateCandidateCompatibilityCases();
 
-    public static IReadOnlyList<BuiltInCodeActionAuditCase> RunnableCandidateCompatibilityCases { get; } = _runnableCandidateCompatibilityCases;
-
     public static IReadOnlyList<BuiltInCodeActionAuditCase> SupportedCompatibilityCases { get; } =
     [
+        .. _validatedCodeFixCompatibilityCases,
         new()
         {
             ToolName = "convert-between-regular-and-verbatim-interpolated-string",
@@ -892,29 +898,19 @@ internal static class BuiltInCodeActionAuditCases
 
     private static List<BuiltInCodeActionAuditCase> CreateCandidateCompatibilityCases()
     {
-        var runnableCasesByProviderId = _runnableCandidateCompatibilityCases.ToDictionary(
-            static auditCase => auditCase.ProviderId,
-            StringComparer.Ordinal);
-
         var candidates = new List<BuiltInCodeActionAuditCase>();
-        foreach (var family in BuiltInCodeActionLedger.Families)
+        foreach (var providerId in BuiltInCodeFixProviderAssessment.ProviderIds)
         {
-            if (family.Kind != BuiltInCodeActionFamilyKind.CodeFix
-                || family.AuditStatus != BuiltInCodeActionAuditStatus.PendingReplayValidation)
+            var auditStatus = BuiltInCodeFixProviderAssessment.GetAuditStatus(providerId);
+            if (auditStatus != BuiltInCodeActionAuditStatus.PendingReplayValidation)
             {
-                continue;
-            }
-
-            if (runnableCasesByProviderId.TryGetValue(family.ProviderId, out var runnableCase))
-            {
-                candidates.Add(runnableCase);
                 continue;
             }
 
             candidates.Add(new BuiltInCodeActionAuditCase
             {
                 Kind = BuiltInCodeActionAuditKind.CodeFix,
-                ProviderId = family.ProviderId,
+                ProviderId = providerId,
             });
         }
 

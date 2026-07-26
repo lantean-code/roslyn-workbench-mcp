@@ -1,5 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
-
 namespace Roslyn.Workbench.Mcp.CodeActions.Catalog;
 
 internal static class BuiltInCodeActionLedger
@@ -10,121 +8,153 @@ internal static class BuiltInCodeActionLedger
         {
             ProviderId = "Microsoft.CodeAnalysis.CodeRefactorings.ExtractMethod.ExtractMethodCodeRefactoringProvider",
             ToolName = "extract-method",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.IntroduceParameter.CSharpIntroduceParameterCodeRefactoringProvider",
             ToolName = "introduce-parameter",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.InlineTemporary.CSharpInlineTemporaryCodeRefactoringProvider",
             ToolName = "inline-variable",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.EncapsulateField.EncapsulateFieldRefactoringProvider",
             ToolName = "encapsulate-field",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertLinq.ConvertForEachToLinqQuery.CSharpConvertForEachToLinqQueryProvider",
             ToolName = "convert-foreach-linq",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertLinq.CSharpConvertLinqQueryToForEachProvider",
             ToolName = "convert-foreach-linq",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.IntroduceVariable.IntroduceVariableCodeRefactoringProvider",
             ToolName = "introduce-variable",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.IntroduceVariable.CSharpIntroduceLocalForExpressionCodeRefactoringProvider",
             ToolName = "introduce-variable",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.ConvertToInterpolatedString.ConvertRegularStringToInterpolatedStringRefactoringProvider",
             ToolName = "convert-to-interpolated-string",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertToInterpolatedString.CSharpConvertConcatenationToInterpolatedStringRefactoringProvider",
             ToolName = "convert-to-interpolated-string",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertToInterpolatedString.CSharpConvertPlaceholderToInterpolatedStringRefactoringProvider",
             ToolName = "convert-to-interpolated-string",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.AddImport.CSharpAddImportCodeFixProvider",
             Kind = BuiltInCodeActionFamilyKind.CodeFix,
             ToolName = "add-missing-usings",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.AddAnonymousTypeMemberName.CSharpAddAnonymousTypeMemberNameCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "add-anonymous-type-member-name",
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.AddExplicitCast.CSharpAddExplicitCastCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "add-explicit-cast",
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.AddInheritdoc.AddInheritdocCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "add-inheritdoc",
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.FullyQualify.CSharpFullyQualifyCodeFixProvider",
             Kind = BuiltInCodeActionFamilyKind.CodeFix,
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertProgram.ConvertToProgramMainCodeFixProvider",
             Kind = BuiltInCodeActionFamilyKind.CodeFix,
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertProgram.ConvertToTopLevelStatementsCodeFixProvider",
             Kind = BuiltInCodeActionFamilyKind.CodeFix,
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.RemoveNewModifier.RemoveNewModifierCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "remove-new-modifier",
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.ConditionalExpressionInStringInterpolation.CSharpAddParenthesesAroundConditionalExpressionInInterpolatedStringCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "add-conditional-interpolation-parentheses",
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.RemoveInKeyword.RemoveInKeywordCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "remove-in-keyword",
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.RemoveUnusedVariable.CSharpRemoveUnusedVariableCodeFixProvider",
             Kind = BuiltInCodeActionFamilyKind.CodeFix,
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.ReplaceDefaultLiteral.CSharpReplaceDefaultLiteralCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "replace-default-literal",
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.SpellCheck.CSharpSpellCheckCodeFixProvider",
             Kind = BuiltInCodeActionFamilyKind.CodeFix,
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
@@ -132,582 +162,327 @@ internal static class BuiltInCodeActionLedger
             Kind = BuiltInCodeActionFamilyKind.CodeFix,
             ToolName = "convert-property",
             ExecutorTool = "convert-property",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedParameterised,
+            ExecutionMode = CodeActionExecutionMode.Parameterised,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.UseExplicitTypeForConst.UseExplicitTypeForConstCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "use-explicit-type-for-const",
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.RemoveUnnecessaryImports.CSharpRemoveUnnecessaryImportsCodeFixProvider",
             Kind = BuiltInCodeActionFamilyKind.CodeFix,
             ToolName = "remove-unused-usings",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertAnonymousType.CSharpConvertAnonymousTypeToClassCodeRefactoringProvider",
             ToolName = "convert-anonymous-type-to-class",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertAnonymousType.CSharpConvertAnonymousTypeToTupleCodeRefactoringProvider",
             ToolName = "convert-anonymous-type-to-tuple",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertAutoPropertyToFullProperty.CSharpConvertAutoPropertyToFullPropertyCodeRefactoringProvider",
             ToolName = "convert-auto-property-to-full-property",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertCast.CSharpConvertDirectCastToTryCastCodeRefactoringProvider",
             ToolName = "convert-direct-cast-to-try-cast",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.ConvertLocalFunctionToMethod.CSharpConvertLocalFunctionToMethodCodeRefactoringProvider",
             ToolName = "convert-local-function-to-method",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertPrimaryToRegularConstructor.ConvertPrimaryToRegularConstructorCodeRefactoringProvider",
             ToolName = "convert-primary-to-regular-constructor",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertToRecord.CSharpConvertToRecordRefactoringProvider",
             ToolName = "convert-to-record",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertCast.CSharpConvertTryCastToDirectCastCodeRefactoringProvider",
             ToolName = "convert-try-cast-to-direct-cast",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.InvertConditional.CSharpInvertConditionalCodeRefactoringProvider",
             ToolName = "invert-conditional",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.InvertIf.CSharpInvertIfCodeRefactoringProvider",
             ToolName = "invert-if",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.MoveDeclarationNearReference.CSharpMoveDeclarationNearReferenceCodeRefactoringProvider",
             ToolName = "move-declaration-near-reference",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CodeRefactorings.MoveType.MoveTypeCodeRefactoringProvider",
             ToolName = "move-type-to-file",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.NameTupleElement.CSharpNameTupleElementCodeRefactoringProvider",
             ToolName = "name-tuple-element",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ReplaceDocCommentTextWithTag.CSharpReplaceDocCommentTextWithTagCodeRefactoringProvider",
             ToolName = "replace-doc-comment-text-with-tag",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.AddDebuggerDisplay.CSharpAddDebuggerDisplayCodeRefactoringProvider",
             ToolName = "add-debugger-display",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.AddImport.CSharpAddImportCodeRefactoringProvider",
             ToolName = "add-import",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.AddAwait.CSharpAddAwaitCodeRefactoringProvider",
             ToolName = "add-await",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertBetweenRegularAndVerbatimString.ConvertBetweenRegularAndVerbatimInterpolatedStringCodeRefactoringProvider",
             ToolName = "convert-between-regular-and-verbatim-interpolated-string",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertBetweenRegularAndVerbatimString.ConvertBetweenRegularAndVerbatimStringCodeRefactoringProvider",
             ToolName = "convert-between-regular-and-verbatim-string",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertForEachToFor.CSharpConvertForEachToForCodeRefactoringProvider",
             ToolName = "convert-foreach-to-for",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertForToForEach.CSharpConvertForToForEachCodeRefactoringProvider",
             ToolName = "convert-for-to-foreach",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertIfToSwitch.CSharpConvertIfToSwitchCodeRefactoringProvider",
             ToolName = "convert-if-to-switch",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.InvertLogical.CSharpInvertLogicalCodeRefactoringProvider",
             ToolName = "invert-logical",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.IntroduceUsingStatement.CSharpIntroduceUsingStatementCodeRefactoringProvider",
             ToolName = "introduce-using-statement",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.MakeLocalFunctionStatic.MakeLocalFunctionStaticCodeRefactoringProvider",
             ToolName = "make-local-function-static",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ReplaceConditionalWithStatements.CSharpReplaceConditionalWithStatementsCodeRefactoringProvider",
             ToolName = "replace-conditional-with-statements",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ReverseForStatement.CSharpReverseForStatementCodeRefactoringProvider",
             ToolName = "reverse-for-statement",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.UseExplicitType.UseExplicitTypeCodeRefactoringProvider",
             ToolName = "use-explicit-type",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.UseImplicitType.UseImplicitTypeCodeRefactoringProvider",
             ToolName = "use-implicit-type",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.UseNamedArguments.CSharpUseNamedArgumentsCodeRefactoringProvider",
             ToolName = "use-named-arguments",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.UseRecursivePatterns.UseRecursivePatternsCodeRefactoringProvider",
             ToolName = "use-recursive-patterns",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
-        },
-        new()
-        {
-            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.AddMissingImports.CSharpAddMissingImportsRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.CoveredByDedicatedTool,
-            State = BuiltInCodeActionSupportState.Hidden,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertNumericLiteral.CSharpConvertNumericLiteralCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertTupleToStruct.CSharpConvertTupleToStructCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ImplementInterface.CSharpImplementExplicitlyCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ImplementInterface.CSharpImplementImplicitlyCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.InitializeParameter.CSharpInitializeMemberFromParameterCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.InlineMethod.CSharpInlineMethodRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.AddFileBanner.CSharpAddFileBannerCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.EnableNullable.EnableNullableCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.SyncNamespace.CSharpSyncNamespaceCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertNamespace.ConvertNamespaceCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertProgram.ConvertToProgramMainCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertProgram.ConvertToTopLevelStatementsCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertToExtension.ConvertToExtensionCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertToRawString.ConvertStringToRawStringCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.InitializeParameter.CSharpAddParameterCheckCodeRefactoringProvider",
             ToolName = "add-null-checks",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.InitializeParameter.CSharpInitializeMemberFromPrimaryConstructorParameterCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.Wrapping.CSharpWrappingCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.SplitOrMergeIfStatements.CSharpMergeConsecutiveIfStatementsCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.SplitOrMergeIfStatements.CSharpMergeNestedIfStatementsCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.SplitOrMergeIfStatements.CSharpSplitIntoConsecutiveIfStatementsCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.SplitOrMergeIfStatements.CSharpSplitIntoNestedIfStatementsCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.UseExpressionBody.UseExpressionBodyCodeRefactoringProvider",
             ToolName = "convert-expression-body",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.UseExpressionBodyForLambda.UseExpressionBodyForLambdaCodeRefactoringProvider",
             ToolName = "convert-expression-body",
-            AuditStatus = BuiltInCodeActionAuditStatus.ValidatedSupported,
-            State = BuiltInCodeActionSupportState.SupportedReplay,
+            ExecutionMode = CodeActionExecutionMode.Replay,
         },
-        new()
-        {
-            ProviderId = "Microsoft.CodeAnalysis.AddConstructorParametersFromMembers.AddConstructorParametersFromMembersCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.PendingReplayValidation,
-            State = BuiltInCodeActionSupportState.Hidden,
-        },
-        new()
-        {
-            ProviderId = "Microsoft.CodeAnalysis.GenerateComparisonOperators.GenerateComparisonOperatorsCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.PendingReplayValidation,
-            State = BuiltInCodeActionSupportState.Hidden,
-        },
-        new()
-        {
-            ProviderId = "Microsoft.CodeAnalysis.GenerateEqualsAndGetHashCodeFromMembers.GenerateEqualsAndGetHashCodeFromMembersCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.RequiresActionLevelClassification,
-            State = BuiltInCodeActionSupportState.Hidden,
-        },
-        new()
-        {
-            ProviderId = "Microsoft.CodeAnalysis.GenerateOverrides.GenerateOverridesCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation,
-            State = BuiltInCodeActionSupportState.Hidden,
-        },
-        new()
-        {
-            ProviderId = "Microsoft.CodeAnalysis.ImplementInterface.ImplementInterfaceCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.PendingReplayValidation,
-            State = BuiltInCodeActionSupportState.Hidden,
-        },
-        new()
-        {
-            ProviderId = "Microsoft.CodeAnalysis.MoveToNamespace.MoveToNamespaceCodeActionProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation,
-            State = BuiltInCodeActionSupportState.Hidden,
-        },
-        new()
-        {
-            ProviderId = "Microsoft.CodeAnalysis.OrganizeImports.OrganizeImportsCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.PendingReplayValidation,
-            State = BuiltInCodeActionSupportState.Hidden,
-        },
-        new()
-        {
-            ProviderId = "Microsoft.CodeAnalysis.PreferFrameworkType.PreferFrameworkTypeCodeFixProvider",
-            Kind = BuiltInCodeActionFamilyKind.CodeFix,
-            AuditStatus = BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation,
-            State = BuiltInCodeActionSupportState.Hidden,
-        },
-        new()
-        {
-            ProviderId = "Microsoft.CodeAnalysis.ReplaceMethodWithProperty.ReplaceMethodWithPropertyCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.PendingReplayValidation,
-            State = BuiltInCodeActionSupportState.Hidden,
-        },
-        new()
-        {
-            ProviderId = "Microsoft.CodeAnalysis.ReplacePropertyWithMethods.ReplacePropertyWithMethodsCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.PendingReplayValidation,
-            State = BuiltInCodeActionSupportState.Hidden,
-        },
-        new()
-        {
-            ProviderId = "Microsoft.CodeAnalysis.ChangeSignature.ChangeSignatureCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation,
-            State = BuiltInCodeActionSupportState.Hidden,
-        },
-        new()
-        {
-            ProviderId = "Microsoft.CodeAnalysis.ExtractInterface.ExtractInterfaceCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation,
-            State = BuiltInCodeActionSupportState.Hidden,
-        },
-        new()
-        {
-            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.ExtractClass.CSharpExtractClassCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation,
-            State = BuiltInCodeActionSupportState.Hidden,
-        },
-        new()
-        {
-            ProviderId = "Microsoft.CodeAnalysis.CSharp.GenerateConstructors.CSharpGenerateConstructorsCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.RequiresActionLevelClassification,
-            State = BuiltInCodeActionSupportState.Hidden,
-        },
-        new()
-        {
-            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.MoveStaticMembers.CSharpMoveStaticMembersRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation,
-            State = BuiltInCodeActionSupportState.Hidden,
-        },
-        new()
-        {
-            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeRefactorings.PullMemberUp.CSharpPullMemberUpCodeRefactoringProvider",
-            AuditStatus = BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation,
-            State = BuiltInCodeActionSupportState.Hidden,
-        },
-        new()
-        {
-            ProviderId = "Microsoft.CodeAnalysis.CSharp.AddMissingReference.CSharpAddMissingReferenceCodeFixProvider",
-            Kind = BuiltInCodeActionFamilyKind.CodeFix,
-            AuditStatus = BuiltInCodeActionAuditStatus.Excluded,
-            State = BuiltInCodeActionSupportState.Hidden,
-        },
-        new()
-        {
-            ProviderId = "Microsoft.CodeAnalysis.CSharp.AddPackage.CSharpAddSpecificPackageCodeFixProvider",
-            Kind = BuiltInCodeActionFamilyKind.CodeFix,
-            AuditStatus = BuiltInCodeActionAuditStatus.Excluded,
-            State = BuiltInCodeActionSupportState.Hidden,
-        },
-        new()
-        {
-            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.GenerateType.GenerateTypeCodeFixProvider",
-            Kind = BuiltInCodeActionFamilyKind.CodeFix,
-            AuditStatus = BuiltInCodeActionAuditStatus.RequiresActionLevelClassification,
-            State = BuiltInCodeActionSupportState.Hidden,
-        },
-        new()
-        {
-            ProviderId = "Microsoft.CodeAnalysis.CSharp.EmbeddedLanguages.CSharpJsonDetectionCodeFixProvider",
-            Kind = BuiltInCodeActionFamilyKind.CodeFix,
-            AuditStatus = BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation,
-            State = BuiltInCodeActionSupportState.Hidden,
-        },
-        new()
-        {
-            ProviderId = "Microsoft.CodeAnalysis.CSharp.SimplifyThisOrMe.CSharpSimplifyThisOrMeCodeFixProvider",
-            Kind = BuiltInCodeActionFamilyKind.CodeFix,
-            AuditStatus = BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation,
-            State = BuiltInCodeActionSupportState.Hidden,
-        },
-        new()
-        {
-            ProviderId = "Microsoft.CodeAnalysis.CSharp.SimplifyTypeNames.SimplifyTypeNamesCodeFixProvider",
-            Kind = BuiltInCodeActionFamilyKind.CodeFix,
-            AuditStatus = BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation,
-            State = BuiltInCodeActionSupportState.Hidden,
-        },
-        new()
-        {
-            ProviderId = "Microsoft.CodeAnalysis.CSharp.UsePatternMatching.CSharpIsAndCastCheckWithoutNameCodeFixProvider",
-            Kind = BuiltInCodeActionFamilyKind.CodeFix,
-            AuditStatus = BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation,
-            State = BuiltInCodeActionSupportState.Hidden,
-        },
-        new()
-        {
-            ProviderId = "Microsoft.CodeAnalysis.CSharp.Copilot.CSharpCopilotCodeFixProvider",
-            Kind = BuiltInCodeActionFamilyKind.CodeFix,
-            AuditStatus = BuiltInCodeActionAuditStatus.Excluded,
-            State = BuiltInCodeActionSupportState.Hidden,
-        },
-        new()
-        {
-            ProviderId = "Microsoft.CodeAnalysis.CSharp.Copilot.CSharpImplementNotImplementedExceptionFixProvider",
-            Kind = BuiltInCodeActionFamilyKind.CodeFix,
-            AuditStatus = BuiltInCodeActionAuditStatus.Excluded,
-            State = BuiltInCodeActionSupportState.Hidden,
-        },
-        .. CreateAssessedCodeFixFamilies(),
     ];
 
     public static IReadOnlyList<BuiltInCodeActionFamily> Families => _families;
-
-    public static bool IsDedicatedTool(string toolName)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(toolName);
-
-        return _families.Any(family => string.Equals(family.ToolName, toolName, StringComparison.Ordinal));
-    }
-
-    public static bool IsDedicatedToolVisible(string toolName)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(toolName);
-
-        return _families.Any(family => family.IsDedicatedToolVisible && string.Equals(family.ToolName, toolName, StringComparison.Ordinal));
-    }
-
-    public static bool TryGetFamily(string providerId, [NotNullWhen(true)] out BuiltInCodeActionFamily? family)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(providerId);
-
-        family = _families.FirstOrDefault(candidate => string.Equals(candidate.ProviderId, providerId, StringComparison.Ordinal));
-        return family is not null;
-    }
-
-    private static List<BuiltInCodeActionFamily> CreateAssessedCodeFixFamilies()
-    {
-        var families = new List<BuiltInCodeActionFamily>();
-        foreach (var providerId in BuiltInCodeFixProviderAssessment.ProviderIds)
-        {
-            families.Add(new BuiltInCodeActionFamily
-            {
-                ProviderId = providerId,
-                Kind = BuiltInCodeActionFamilyKind.CodeFix,
-                AuditStatus = BuiltInCodeFixProviderAssessment.GetAuditStatus(providerId),
-                State = BuiltInCodeActionSupportState.Hidden,
-            });
-        }
-
-        return families;
-    }
 }

@@ -149,7 +149,7 @@ Complete the follow-up work in dependency order:
 
 1. Complete — add a provider-inventory check over the actual composed C# runtime providers, including language-neutral Core providers. The pinned composition currently contains 81 refactoring providers and 169 code-fix providers.
 2. Complete — classify the 151 newly inventoried providers as 47 compiler-backed replay candidates, 94 requiring built-in diagnostic support, eight covered by existing tools and two excluded project-setting mutations. No additional option-backed providers were found.
-3. Started — the audit suite now tracks all 47 compiler-backed code-fix candidates and executes the first eight local fixtures. Validate the remaining compiler-backed candidates and the six known ordinary refactoring candidates, then make promotion decisions per proven fixture.
+3. Started — eight local compiler-backed code fixes are now validated, published as dedicated tools and covered through real transaction staging and preview. Validate the remaining 39 compiler-backed candidates and the six known ordinary refactoring candidates, then make promotion decisions per proven fixture.
 4. Decide whether to add bounded built-in analyser activation and diagnostic mapping for the 94 IDE-diagnostic providers.
 5. Add production action-level capability classification, then validate the safe leaves of `GenerateConstructorFromMembers`, `GenerateEqualsAndGetHashCodeFromMembers` and `GenerateType`.
 6. Design the high-value public-API simplification workflow before considering custom generation and solution-wide semantic refactorings.

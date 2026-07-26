@@ -98,7 +98,7 @@ public sealed class ToolSchemaFactoryIntegrationTests
             .Where(IsTargetSelectorProperty)
             .ToArray();
 
-        targetSelectorProperties.Should().HaveCount(20);
+        targetSelectorProperties.Should().HaveCount(21);
         AssertRequiredNonNullableProperties(target, targetSelectorProperties);
     }
 
@@ -201,7 +201,7 @@ public sealed class ToolSchemaFactoryIntegrationTests
             }
         }
 
-        requestTypes.Should().HaveCount(26);
+        requestTypes.Should().HaveCount(27);
         foreach (var requestType in requestTypes)
         {
             var closedSchemaMethod = schemaMethod.MakeGenericMethod(requestType);

@@ -1,4 +1,6 @@
+using Roslyn.Workbench.Mcp.CodeActions.CodeFixes;
 using Roslyn.Workbench.Mcp.CodeActions.Contracts;
+using Roslyn.Workbench.Mcp.CodeActions.Contracts.CodeFixes;
 using Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 using Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 

@@ -1,4 +1,4 @@
-namespace Roslyn.Workbench.Mcp.CodeActions.Test.Refactorings;
+namespace Roslyn.Workbench.Mcp.CodeActions.Test.Conversions;
 
 public sealed class ConvertPropertyToolTests
 {

@@ -1,4 +1,4 @@
-namespace Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
+namespace Roslyn.Workbench.Mcp.CodeActions.Contracts.CodeFixes;
 
 /// <summary>
 /// Requests removal of unused using directives across a selected scope.

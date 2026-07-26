@@ -1,4 +1,4 @@
-namespace Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
+namespace Roslyn.Workbench.Mcp.CodeActions.Contracts.Conversions;
 
 /// <summary>
 /// Requests one future Roslyn-backed property conversion at a selected property declaration.

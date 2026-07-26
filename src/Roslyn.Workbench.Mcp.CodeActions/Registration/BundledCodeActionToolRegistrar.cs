@@ -1,3 +1,5 @@
+using Roslyn.Workbench.Mcp.CodeActions.Contracts.CodeFixes;
+using Roslyn.Workbench.Mcp.CodeActions.Contracts.Conversions;
 using Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Registration;

@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Reflection;
 using System.Text.Json;
 using Roslyn.Workbench.Mcp.CodeActions.Contracts;
+using Roslyn.Workbench.Mcp.CodeActions.Contracts.Conversions;
 using Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 using Roslyn.Workbench.Mcp.Plugins.Core.Contracts.Inspection;
 using Roslyn.Workbench.Mcp.Transaction.Contracts;

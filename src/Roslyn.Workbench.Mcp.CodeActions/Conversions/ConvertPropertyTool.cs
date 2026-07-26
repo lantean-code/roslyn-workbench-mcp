@@ -1,6 +1,6 @@
-using Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
+using Roslyn.Workbench.Mcp.CodeActions.Contracts.Conversions;
 
-namespace Roslyn.Workbench.Mcp.CodeActions.Refactorings;
+namespace Roslyn.Workbench.Mcp.CodeActions.Conversions;
 
 internal sealed class ConvertPropertyTool : CodeActionMutationToolHandler<ConvertPropertyRequest>
 {

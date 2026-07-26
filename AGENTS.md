@@ -46,6 +46,7 @@
 - Run tests:
   - Run the affected non-acceptance test projects, or use the preferred fast-loop command defined in `./test/AGENTS.md`.
   - Do not run the acceptance-test project automatically as part of per-turn validation. Run acceptance tests only when the user explicitly requests them.
+  - Do not run the external-repository scenario runner automatically for ordinary development. When scenario-runner code or a checked-in scenario definition is changed, run every affected scenario through the platform wrapper before finishing; shared runner changes require representative coverage of every affected scenario family or repository.
 - After each behavior-affecting set of changes:
   - Run the relevant non-acceptance tests, applying the WSL-specific artifacts path above when required.
   - Behavior-affecting includes edits to production code, test code, project/package/build configuration, tool contracts, plugin registration, or other runtime-impacting assets.

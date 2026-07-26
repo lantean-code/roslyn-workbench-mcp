@@ -378,6 +378,82 @@ internal static class BuiltInCodeActionAuditCases
         .. _validatedCodeFixCompatibilityCases,
         new()
         {
+            ToolName = "add-constructor-parameters",
+            ProviderId = "Microsoft.CodeAnalysis.AddConstructorParametersFromMembers.AddConstructorParametersFromMembersCodeRefactoringProvider",
+            Title = "Add parameters to 'ConstructorParameterCandidate()'",
+            SourceNote = "ConstructorParameterCandidate selected fields",
+            ExpectedChangedText = "ConstructorParameterCandidate(int count, string name)",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetSelectionInDocument(
+                "CandidateRefactorings.cs",
+                "private readonly int _count;\r\n    private readonly string _name;"),
+        },
+        new()
+        {
+            ToolName = "generate-comparison-operators",
+            ProviderId = "Microsoft.CodeAnalysis.GenerateComparisonOperators.GenerateComparisonOperatorsCodeRefactoringProvider",
+            Title = "Generate comparison operators",
+            SourceNote = "ComparisonOperatorCandidate type header",
+            ExpectedChangedText = "operator <",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetCursorInDocument(
+                "CandidateRefactorings.cs",
+                "ComparisonOperatorCandidate"),
+        },
+        new()
+        {
+            ToolName = "implement-interface",
+            ProviderId = "Microsoft.CodeAnalysis.ImplementInterface.ImplementInterfaceCodeRefactoringProvider",
+            Title = "Implement interface",
+            SourceNote = "InterfaceImplementationCandidate empty body",
+            ExpectedChangedText = "public string Format(int value)",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetCursorInDocument(
+                "CandidateRefactorings.cs",
+                "InterfaceImplementationCandidate",
+                0,
+                "InterfaceImplementationCandidate : ICandidateFormatter\r\n{\r\n".Length),
+        },
+        new()
+        {
+            ToolName = "organize-imports",
+            ProviderId = "Microsoft.CodeAnalysis.OrganizeImports.OrganizeImportsCodeRefactoringProvider",
+            Title = "Sort Usings",
+            SourceNote = "CandidateRefactorings unsorted using directives",
+            ExpectedChangedText = "using System;\r\nusing System.Text;",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetCursorInDocument(
+                "CandidateRefactorings.cs",
+                "using System.Text;"),
+        },
+        new()
+        {
+            ToolName = "replace-method-with-property",
+            ProviderId = "Microsoft.CodeAnalysis.ReplaceMethodWithProperty.ReplaceMethodWithPropertyCodeRefactoringProvider",
+            Title = "Replace 'GetValue' and 'SetValue' with property",
+            SourceNote = "MethodPropertyCandidate getter and setter methods",
+            ExpectedChangedText = "public int Value",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetCursorInDocument(
+                "CandidateRefactorings.cs",
+                "GetValue"),
+        },
+        new()
+        {
+            ToolName = "replace-property-with-methods",
+            ProviderId = "Microsoft.CodeAnalysis.ReplacePropertyWithMethods.ReplacePropertyWithMethodsCodeRefactoringProvider",
+            Title = "Replace 'Value' with methods",
+            SourceNote = "PropertyMethodCandidate property",
+            ExpectedChangedText = "public int GetValue()",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetCursorInDocument(
+                "CandidateRefactorings.cs",
+                "public int Value { get; set; }",
+                0,
+                "public int ".Length),
+        },
+        new()
+        {
             ToolName = "convert-between-regular-and-verbatim-interpolated-string",
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertBetweenRegularAndVerbatimString.ConvertBetweenRegularAndVerbatimInterpolatedStringCodeRefactoringProvider",
             Title = "Convert to verbatim string",

@@ -54,7 +54,6 @@ The following mutation families are not planned for implementation in this serve
 - `change-signature`
 - `generate-equals-hashcode`
 - `generate-overrides`
-- `implement-interface`
 
 Some of the deferred or not-planned mutation families above already have planned request and result shapes in this document because they remain part of the aspirational end-state catalogue. They are omitted from the registered tool surface in the current build.
 
@@ -133,11 +132,15 @@ The existing registry contains the following 41 tools.
 | `generate-equals-hashcode` | Generate equality members | Retain |
 | `generate-overrides` | Generate base-member overrides | Retain |
 | `generate-tostring` | Generate `ToString` | Retain |
-| `implement-interface` | Generate interface members | Retain |
+| `add-constructor-parameters` | Add selected members to an eligible constructor | Add |
+| `generate-comparison-operators` | Generate operators for a comparable type | Add |
+| `implement-interface` | Generate missing interface members | Retain with validated replay contract |
 | `add-null-checks` | Generate parameter guards | Retain |
 | `add-missing-usings` | Resolve and add imports | Retain |
 | `remove-unused-usings` | Remove unused imports | Retain |
-| `sort-usings` | Sort imports | Retain |
+| `organize-imports` | Sort imports through Roslyn and configured document options | Add as the sole import-ordering tool |
+| `replace-method-with-property` | Replace an eligible getter or getter/setter pair with a property | Add |
+| `replace-property-with-methods` | Replace an eligible property with methods | Add |
 | `format-document` | Format a document | Retain |
 | `find-references` | Resolve references across the solution | Retain |
 | `find-callers` | Find callers of a method | Retain |
@@ -246,7 +249,9 @@ Each successful operation stages one new transaction revision and returns a boun
 | `generate-equals-hashcode` | Existing | Not planned for this server while the required Roslyn feature service remains internal-only. This action family remains hidden from descriptor-based discovery unless a supported public API path becomes available. |
 | `generate-overrides` | Existing | Not planned for this server while the Roslyn implementation still depends on internal generation APIs. This action family remains hidden from descriptor-based discovery unless a supported public API path becomes available. |
 | `generate-tostring` | Existing | Not planned for this server while no supported public Roslyn generation seam has been identified for this workflow in the current build. |
-| `implement-interface` | Existing | Not planned for this server while the required Roslyn feature service remains internal-only. This action family remains hidden from descriptor-based discovery unless a supported public API path becomes available. |
+| `add-constructor-parameters` | New | Stage required or optional constructor-parameter generation for selected members through validated Roslyn replay. |
+| `generate-comparison-operators` | New | Stage comparison-operator generation for an eligible comparable type through validated Roslyn replay. |
+| `implement-interface` | Existing | Stage missing-interface-member generation through validated Roslyn replay. |
 | `add-anonymous-type-member-name` | New | Stage the validated compiler code fix that names an invalid anonymous-type member declarator. |
 | `add-conditional-interpolation-parentheses` | New | Stage the validated compiler code fix that parenthesises a conditional interpolation expression. |
 | `add-explicit-cast` | New | Stage the validated compiler code fix that adds a required explicit cast. |
@@ -256,8 +261,10 @@ Each successful operation stages one new transaction revision and returns a boun
 | `remove-in-keyword` | New | Stage the validated compiler code fix that removes an invalid `in` argument modifier. |
 | `remove-new-modifier` | New | Stage the validated compiler code fix that removes an unnecessary `new` modifier. |
 | `remove-unused-usings` | Existing | Stage import removal. |
+| `organize-imports` | New | Stage Roslyn import ordering using the document's configured options as the sole import-ordering tool. |
 | `replace-default-literal` | New | Stage the validated compiler code fix that replaces an invalid default literal with its typed value. |
-| `sort-usings` | Existing | Stage import ordering. |
+| `replace-method-with-property` | New | Stage replacement of an eligible getter or getter/setter pair with a property through validated Roslyn replay. |
+| `replace-property-with-methods` | New | Stage replacement of an eligible property with methods through validated Roslyn replay. |
 | `format-document` | Existing | Stage document formatting using the loaded workspace options. |
 | `use-explicit-type-for-const` | New | Stage the validated compiler code fix that replaces `var` in a constant declaration. |
 

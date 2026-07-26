@@ -95,7 +95,6 @@ The 2026-07-18 coverage-focused round is complete. A fresh `Roslyn.Workbench.Mcp
 | `GetDocumentOptionsTool` | The Host supports C# SDK-style projects. C# options and the missing-language-services fallback are covered; a non-null non-C# `ParseOptions` instance cannot enter the supported tool flow and is approved as an out-of-scope defensive projection. |
 | `GetOperationTreeTool` | Missing syntax-root or semantic-model paths cannot occur after resolving a source location in a supported C# document, and a successful internal resolution structurally contains both values. The guards are approved external-boundary defences. |
 | `RenameSymbolTool` | For a valid source symbol, Roslyn's renamer returns a candidate `Solution`; the reference-equal no-change result cannot be produced through the supported API flow. The guard remains as defensive handling for future Roslyn behaviour and is approved without a fake symbol or test hook. |
-| `SortUsingsTool` | Roslyn supplies a `NameSyntax` node even for a parsed missing name; the existing malformed `using ;` test proves that recovery shape. A null `UsingDirectiveSyntax.Name` cannot be produced by supported parsing or factory creation, so the fallback remains an approved defensive guard. |
 
 No reachable case from the previous nine-entry partial-branch inventory remains open. Raw condition coverage can report compiler-lowered nullable and ordering fallback alternatives; those are not separate supported behaviours and must not be forced through reflection, fake Roslyn runtime objects or production test hooks.
 
@@ -134,7 +133,6 @@ The same 2026-07-18 report was audited across every `*Tool.cs` file. The table r
 | `RenameSymbolTool` | 2 | 5/6 | Resolution, name validation and successful rename are covered. Roslyn does not return the original `Solution` reference for a valid source rename; the no-change arm is retained for future Roslyn behaviour. Approved defensive. |
 | `ResolveSymbolTool` | 0 | 12/14 | Snapshot/location/symbol failures, source selectors/declarations and metadata fallback are covered. Remaining alternatives require a retained resolved source location without document/span ordering fields. Approved defensive. |
 | `SearchSymbolsTool` | 0 | 41/44 | Query and metadata-name modes, kind/accessibility/namespace filters, global namespace, missing projections, ordering and bounds are covered. Remaining alternatives are the post-validation missing-pattern invariant and a null containing namespace that Roslyn symbols do not expose. Approved defensive. |
-| `SortUsingsTool` | 0 | 17/20 | Validation, no-change, normal/system-first ordering, aliases and malformed missing-name syntax are covered. Roslyn still supplies a missing `NameSyntax` node for `using ;`; a null name and associated ordering fallback cannot be produced by parsing or factory creation. Approved defensive. |
 
 The comprehensive ledger contains no untested supported tool behaviour known from the fresh report. Future production changes must add behaviour-focused coverage, and Roslyn/MSBuild upgrades should rerun this ledger before comparing performance results.
 

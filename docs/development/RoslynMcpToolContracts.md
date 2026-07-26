@@ -6,7 +6,7 @@
 
 ## Purpose
 
-This document defines the MCP metadata, request contracts and structured output shapes for all 81 planned tools. It is the contract source for plugin authors, the server tool adapter and generated JSON Schemas. It supersedes the request shapes in `JoshuaRamirez/RoslynMcpServer`; retained tool names preserve their intent, but use the safer workspace, selector and transaction model defined by this project.
+This document defines the MCP metadata, request contracts and structured output shapes for the planned tools. It is the contract source for plugin authors, the server tool adapter and generated JSON Schemas. It supersedes the request shapes in `JoshuaRamirez/RoslynMcpServer`; retained tool names preserve their intent, but use the safer workspace, selector and transaction model defined by this project.
 
 ## Current Execution Surface Note (2026-07-02)
 
@@ -43,7 +43,6 @@ The following mutation families are not planned for implementation in this serve
 - `change-signature`
 - `generate-equals-hashcode`
 - `generate-overrides`
-- `implement-interface`
 
 Where those deferred or not-planned tools still appear below, their request and response shapes should not be read as evidence that the current build publishes them through `tools/list`.
 
@@ -228,7 +227,7 @@ Contract ownership follows the production boundary: Workspace owns selector, sna
 | `analyze-async` | New | Q | **Analyze Async**. Identifies supported async antipatterns using syntax and operation analysis. | `scope?: ScopeSelector = Solution`, `findingsLimit?: int`. | `AsyncAnalysisData { findings: BoundedCollection<AsyncFinding { kind: string, symbol?: SymbolReference, location?: ResolvedLocation, message: string }> }` |
 | `analyze-disposables` | New | Q | **Analyze Disposables**. Identifies candidate undisposed local `IDisposable` or `IAsyncDisposable` values. Findings are advisory. | `scope?: ScopeSelector = Solution`, `findingsLimit?: int`. | `DisposableAnalysisData { findings: BoundedCollection<DisposableFinding { kind: string, symbol?: SymbolReference, type?: TypeInfo, location?: ResolvedLocation, message: string }> }` |
 
-## Specific Refactorings, Generation and Formatting (36)
+## Specific Refactorings, Generation and Formatting (39)
 
 Every tool in this group requires `TransactionActive`, acquires the exclusive workspace operation lease and returns `MutationData` on success:
 
@@ -265,7 +264,9 @@ Structural tools explicitly state that the target SDK-style project must include
 | `generate-equals-hashcode` | Existing | M | **Generate Equals And GetHashCode**. Not planned for this server while the required Roslyn feature service remains internal-only. This action family is omitted from `list-code-actions` unless a supported public API path becomes available. | `type: SymbolSelector`, `members: SymbolSelector[]`, `implementEquatable?: boolean = false`. |
 | `generate-overrides` | Existing | M | **Generate Overrides**. Not planned for this server while the Roslyn implementation still depends on internal generation APIs. This action family is omitted from `list-code-actions` unless a supported public API path becomes available. | `type: SymbolSelector`, `members: SymbolSelector[]`. |
 | `generate-tostring` | Existing | M | **Generate ToString**. Not planned for this server while no supported public Roslyn generation seam has been identified for this workflow in the current build. | `type: SymbolSelector`, `members: SymbolSelector[]`, `format?: string`. |
-| `implement-interface` | Existing | M | **Implement Interface**. Not planned for this server while the required Roslyn feature service remains internal-only. This action family is omitted from `list-code-actions` unless a supported public API path becomes available. | `type: SymbolSelector`, `interface: SymbolSelector`, `members?: SymbolSelector[]`, `explicitImplementation?: boolean = false`. |
+| `add-constructor-parameters` | New | M | **Add Constructor Parameters**. Adds required or optional constructor parameters for selected fields or properties through the validated Roslyn refactoring provider. The selection must identify members for one eligible constructor. | `members: LocationSelector`, `kind: Required \| Optional`, `expectedSnapshot: SnapshotPrecondition`. |
+| `generate-comparison-operators` | New | M | **Generate Comparison Operators**. Generates missing comparison operators for an eligible comparable type through the validated Roslyn refactoring provider. | `selection: LocationSelector`, `expectedSnapshot: SnapshotPrecondition`. |
+| `implement-interface` | Existing | M | **Implement Interface**. Implements missing members for one eligible interface through the validated Roslyn refactoring provider. | `selection: LocationSelector`, `expectedSnapshot: SnapshotPrecondition`. |
 | `add-anonymous-type-member-name` | New | M | **Add Anonymous Type Member Name**. Adds a generated member name to an invalid anonymous-type member declarator through the validated Roslyn code-fix provider. | `location: LocationSelector`, `expectedSnapshot: SnapshotPrecondition`. |
 | `add-conditional-interpolation-parentheses` | New | M | **Add Conditional Interpolation Parentheses**. Parenthesises a conditional expression used in an interpolated string through the validated Roslyn code-fix provider. | `location: LocationSelector`, `expectedSnapshot: SnapshotPrecondition`. |
 | `add-explicit-cast` | New | M | **Add Explicit Cast**. Adds the explicit cast required by an invalid implicit conversion through the validated Roslyn code-fix provider. | `location: LocationSelector`, `expectedSnapshot: SnapshotPrecondition`. |
@@ -275,8 +276,10 @@ Structural tools explicitly state that the target SDK-style project must include
 | `remove-in-keyword` | New | M | **Remove In Keyword**. Removes an invalid `in` argument modifier through the validated Roslyn code-fix provider. | `location: LocationSelector`, `expectedSnapshot: SnapshotPrecondition`. |
 | `remove-new-modifier` | New | M | **Remove New Modifier**. Removes a `new` modifier that does not hide an accessible inherited member through the validated Roslyn code-fix provider. | `location: LocationSelector`, `expectedSnapshot: SnapshotPrecondition`. |
 | `remove-unused-usings` | Existing | M | **Remove Unused Usings**. Removes unused import directives. | `scope: ScopeSelector`. |
+| `organize-imports` | New | M | **Organize Imports**. Sorts compilation-unit and namespace imports in one document through Roslyn using the document's configured import-order options. It handles extern aliases, global, static and aliased imports, grouping, trivia and preprocessor safety. This is the sole import-ordering tool. | `document: DocumentSelector`, `expectedSnapshot: SnapshotPrecondition`. |
 | `replace-default-literal` | New | M | **Replace Default Literal**. Replaces an invalid default literal with its corresponding typed default value through the validated Roslyn code-fix provider. | `location: LocationSelector`, `expectedSnapshot: SnapshotPrecondition`. |
-| `sort-usings` | Existing | M | **Sort Usings**. Orders import directives using the loaded workspace options. | `document: DocumentSelector`, `systemFirst?: boolean`. |
+| `replace-method-with-property` | New | M | **Replace Method With Property**. Replaces an eligible getter, or a matching getter and setter, with a property through the validated Roslyn refactoring provider. | `method: LocationSelector`, `kind: GetterOnly \| GetterAndSetter`, `expectedSnapshot: SnapshotPrecondition`. |
+| `replace-property-with-methods` | New | M | **Replace Property With Methods**. Replaces an eligible property and its references with getter and setter methods through the validated Roslyn refactoring provider. | `selection: LocationSelector`, `expectedSnapshot: SnapshotPrecondition`. |
 | `format-document` | Existing | M | **Format Document**. Formats one source document using loaded workspace options. | `document: DocumentSelector`, `range?: TextSpanSelector`. |
 | `use-explicit-type-for-const` | New | M | **Use Explicit Type For Const**. Replaces `var` with the inferred explicit type in a constant declaration through the validated Roslyn code-fix provider. | `location: LocationSelector`, `expectedSnapshot: SnapshotPrecondition`. |
 

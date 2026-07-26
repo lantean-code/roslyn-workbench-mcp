@@ -242,12 +242,12 @@ Target capability groups:
 4. `SelectorAndSnapshotIntegrationTests`
    - ambiguity, stale snapshots, metadata symbols, and bounded results
 5. `MutationPipelineIntegrationTests`
-   - rename, sort-usings, and format-document through registration, binding, resolution, staging, and preview
+   - rename and format-document through plugin registration, binding, resolution, staging, and preview, with organize-imports covered through the Code Action transaction path
 
 For the three normal refactoring tools:
 
 - strengthen the existing batch mutation workflow to assert the resulting preview content and transaction revisions
-- remove `FormatDocumentToolIntegrationTests`, `RenameSymbolToolIntegrationTests`, and `SortUsingsToolIntegrationTests` once the strengthened workflow covers their unique assertions
+- remove `FormatDocumentToolIntegrationTests` and `RenameSymbolToolIntegrationTests` once the strengthened workflow covers their unique assertions
 
 For inspection tools:
 

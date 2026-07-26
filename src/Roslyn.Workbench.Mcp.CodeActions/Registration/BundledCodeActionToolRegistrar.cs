@@ -115,6 +115,12 @@ internal static class BundledCodeActionToolRegistrar
 
     private static void RegisterAddTools(ICodeActionToolRegistry registry)
     {
+        registry.RegisterMutationTool<AddConstructorParametersTool, AddConstructorParametersRequest>(
+            CreateMutationMetadata(
+                "add-constructor-parameters",
+                "Add Constructor Parameters",
+                "Adds required or optional constructor parameters for selected fields or properties through Roslyn refactoring composition."));
+
         registry.RegisterMutationTool<AddAwaitTool, AddAwaitRequest>(
             CreateMutationMetadata(
                 "add-await",
@@ -325,17 +331,47 @@ internal static class BundledCodeActionToolRegistrar
 
     private static void RegisterRemainingRefactoringTools(ICodeActionToolRegistry registry)
     {
+        registry.RegisterMutationTool<GenerateComparisonOperatorsTool, LocationRefactoringRequest>(
+            CreateMutationMetadata(
+                "generate-comparison-operators",
+                "Generate Comparison Operators",
+                "Generates missing comparison operators for an eligible comparable type through Roslyn refactoring composition."));
+
+        registry.RegisterMutationTool<ImplementInterfaceTool, LocationRefactoringRequest>(
+            CreateMutationMetadata(
+                "implement-interface",
+                "Implement Interface",
+                "Implements missing members for one eligible interface through Roslyn refactoring composition."));
+
         registry.RegisterMutationTool<NameTupleElementTool, LocationRefactoringRequest>(
             CreateMutationMetadata(
                 "name-tuple-element",
                 "Name Tuple Element",
                 "Adds a supported tuple element name through Roslyn refactoring composition."));
 
+        registry.RegisterMutationTool<OrganizeImportsTool, OrganizeImportsRequest>(
+            CreateMutationMetadata(
+                "organize-imports",
+                "Organize Imports",
+                "Sorts imports in one document through Roslyn composition and the document's configured import-order options."));
+
         registry.RegisterMutationTool<ReplaceConditionalWithStatementsTool, LocationRefactoringRequest>(
             CreateMutationMetadata(
                 "replace-conditional-with-statements",
                 "Replace Conditional With Statements",
                 "Rewrites a supported conditional expression into statements through Roslyn refactoring composition."));
+
+        registry.RegisterMutationTool<ReplaceMethodWithPropertyTool, ReplaceMethodWithPropertyRequest>(
+            CreateMutationMetadata(
+                "replace-method-with-property",
+                "Replace Method With Property",
+                "Replaces an eligible getter, or matching getter and setter, with a property through Roslyn refactoring composition."));
+
+        registry.RegisterMutationTool<ReplacePropertyWithMethodsTool, LocationRefactoringRequest>(
+            CreateMutationMetadata(
+                "replace-property-with-methods",
+                "Replace Property With Methods",
+                "Replaces an eligible property and its references with getter and setter methods through Roslyn refactoring composition."));
 
         registry.RegisterMutationTool<ReplaceDocCommentTextWithTagTool, LocationRefactoringRequest>(
             CreateMutationMetadata(

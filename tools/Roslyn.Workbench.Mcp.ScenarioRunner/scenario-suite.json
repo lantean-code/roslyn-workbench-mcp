@@ -198,9 +198,9 @@
           }
         },
         {
-          "id": "sort-usings",
-          "description": "Stages using-directive ordering through the mutation transaction path.",
-          "tool": "sort-usings",
+          "id": "organize-imports",
+          "description": "Stages Roslyn import ordering through the mutation transaction path.",
+          "tool": "organize-imports",
           "setup": [
             {
               "tool": "transaction-start",
@@ -217,9 +217,9 @@
             "workspace": { "workspaceId": "${workspaceId}" },
             "expectedSnapshot": { "workspaceId": "${workspaceId}", "workspaceEpoch": "${workspaceEpoch}", "transactionRevision": 0 },
             "document": {
-              "path": "test/GuardClauses.UnitTests/GuardAgainstOutOfRangeForEnum.cs"
-            },
-            "systemFirst": true
+              "path": "src/GuardClauses/GuardAgainstExpressionExtensions.cs",
+              "project": { "name": "GuardClauses(net8.0)" }
+            }
           }
         },
         {

@@ -23,17 +23,6 @@ public sealed class MutationPipelineIntegrationTests
                 ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(openResult, startResult.Data!.Transaction.Revision),
             }, TestContext.Current.CancellationToken);
 
-        var sortUsings = await session.ExecuteMutationAsync(
-            "sort-usings",
-            new SortUsingsRequest
-            {
-                Document = new DocumentSelector
-                {
-                    Path = "Usings.cs",
-                },
-                ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(openResult, rename.Data!.Transaction!.Revision),
-            }, TestContext.Current.CancellationToken);
-
         var formatDocument = await session.ExecuteMutationAsync(
             "format-document",
             new FormatDocumentRequest
@@ -42,7 +31,7 @@ public sealed class MutationPipelineIntegrationTests
                 {
                     Path = "Usings.cs",
                 },
-                ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(openResult, sortUsings.Data!.Transaction!.Revision),
+                ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(openResult, rename.Data!.Transaction!.Revision),
             }, TestContext.Current.CancellationToken);
 
         var transactionPreview = await coordinator.PreviewTransactionAsync(TestContext.Current.CancellationToken);
@@ -63,9 +52,8 @@ public sealed class MutationPipelineIntegrationTests
             includeDiff: true);
 
         rename.Data!.Transaction!.Revision.Should().Be(1);
-        sortUsings.Data!.Transaction!.Revision.Should().Be(2);
-        formatDocument.Data!.Transaction!.Revision.Should().Be(3);
-        transactionPreview.Data!.Transaction!.Revision.Should().Be(3);
+        formatDocument.Data!.Transaction!.Revision.Should().Be(2);
+        transactionPreview.Data!.Transaction!.Revision.Should().Be(2);
         transactionPreview.Data.Documents.Should().Contain(static change => change.Document!.Path == "Formatting.cs");
         transactionPreview.Data.Documents.Should().Contain(static change => change.Document!.Path == "Usings.cs");
         string.Join(Environment.NewLine, usingsPreview.Data!.Diff!.Hunks.SelectMany(static hunk => hunk.Lines)).Should().Contain("public static string BuildText()");

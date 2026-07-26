@@ -54,7 +54,7 @@ public sealed class BundledCorePluginTests
             .Where(static tool => tool.Tool.Metadata.Behavior.Destructive)
             .Select(static tool => tool.Tool.Metadata.Name)
             .Should()
-            .BeEquivalentTo("rename-symbol", "sort-usings", "format-document");
+            .BeEquivalentTo("rename-symbol", "format-document");
     }
 
     private static readonly IReadOnlyDictionary<string, string> ExpectedDescriptions = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -98,7 +98,6 @@ public sealed class BundledCorePluginTests
         ["get-api-surface"] = "Returns exported API symbols for a selected scope.",
         ["get-test-impact"] = "Returns likely impacted tests for a resolved symbol.",
         ["rename-symbol"] = "Stages a symbol rename across the effective solution.",
-        ["sort-usings"] = "Stages an ordered set of using directives for one document.",
         ["format-document"] = "Stages Roslyn formatting for one document or one selected range.",
     };
 }

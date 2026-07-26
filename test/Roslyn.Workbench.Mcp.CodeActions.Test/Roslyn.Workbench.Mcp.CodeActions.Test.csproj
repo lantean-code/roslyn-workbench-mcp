@@ -24,4 +24,11 @@
     <PackageReference Include="coverlet.collector" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="..\TestAssets\CodeActionAcceptanceToolNames.txt">
+      <Link>TestAssets\CodeActionAcceptanceToolNames.txt</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

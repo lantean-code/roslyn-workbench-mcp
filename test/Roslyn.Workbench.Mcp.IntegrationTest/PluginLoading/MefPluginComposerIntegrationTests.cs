@@ -13,7 +13,7 @@ public sealed class MefPluginComposerIntegrationTests
 
         result.Succeeded.Should().BeTrue();
         result.Error.Should().BeNull();
-        configuration.Definitions.Should().HaveCount(41);
+        configuration.Definitions.Should().HaveCount(40);
     }
 
     [Fact]

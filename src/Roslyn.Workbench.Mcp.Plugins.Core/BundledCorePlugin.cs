@@ -56,7 +56,6 @@ public sealed class BundledCorePlugin : IRoslynPlugin
         _ = configuration.AddQueryTool<GetApiSurfaceTool>();
         _ = configuration.AddQueryTool<GetTestImpactTool>();
         _ = configuration.AddMutationTool<RenameSymbolTool>();
-        _ = configuration.AddMutationTool<SortUsingsTool>();
         _ = configuration.AddMutationTool<FormatDocumentTool>();
     }
 }

@@ -18,6 +18,7 @@ public sealed class BundledCodeActionCatalogTests
             add-anonymous-type-member-name|Add Anonymous Type Member Name|Adds a generated member name to an invalid anonymous-type member declarator through Roslyn code-fix composition.|Mutation|FixedCompilerCodeFixRequest|MutationData|True|<null>
             add-await|Add Await|Stages one supported add-await refactoring through Roslyn refactoring composition.|Mutation|AddAwaitRequest|MutationData|True|<null>
             add-conditional-interpolation-parentheses|Add Conditional Interpolation Parentheses|Parenthesises a conditional expression used in an interpolated string through Roslyn code-fix composition.|Mutation|FixedCompilerCodeFixRequest|MutationData|True|<null>
+            add-constructor-parameters|Add Constructor Parameters|Adds required or optional constructor parameters for selected fields or properties through Roslyn refactoring composition.|Mutation|AddConstructorParametersRequest|MutationData|True|<null>
             add-debugger-display|Add Debugger Display|Adds a DebuggerDisplay attribute through Roslyn refactoring composition.|Mutation|LocationRefactoringRequest|MutationData|True|<null>
             add-explicit-cast|Add Explicit Cast|Adds the explicit cast required by an invalid implicit conversion through Roslyn code-fix composition.|Mutation|FixedCompilerCodeFixRequest|MutationData|True|<null>
             add-import|Add Import|Adds a supported using directive through Roslyn refactoring composition.|Mutation|AddImportRequest|MutationData|True|<null>
@@ -44,6 +45,8 @@ public sealed class BundledCodeActionCatalogTests
             describe-code-action|Describe Code Action|Revalidates one discovered code action and returns its execution descriptor and preflight context.|Query|DescribeCodeActionRequest|DescribeCodeActionData|False|<null>
             encapsulate-field|Encapsulate Field|Encapsulates one field through Roslyn refactoring composition.|Mutation|EncapsulateFieldRequest|MutationData|True|<null>
             extract-method|Extract Method|Extracts a selected statement or expression block through Roslyn refactoring composition.|Mutation|ExtractMethodRequest|MutationData|True|<null>
+            generate-comparison-operators|Generate Comparison Operators|Generates missing comparison operators for an eligible comparable type through Roslyn refactoring composition.|Mutation|LocationRefactoringRequest|MutationData|True|<null>
+            implement-interface|Implement Interface|Implements missing members for one eligible interface through Roslyn refactoring composition.|Mutation|LocationRefactoringRequest|MutationData|True|<null>
             inline-variable|Inline Variable|Inlines a local variable through Roslyn refactoring composition.|Mutation|InlineVariableRequest|MutationData|True|<null>
             introduce-parameter|Introduce Parameter|Promotes a selected expression to a parameter through Roslyn refactoring composition.|Mutation|IntroduceParameterRequest|MutationData|True|<null>
             introduce-using-statement|Introduce Using Statement|Introduces a supported using statement or declaration through Roslyn refactoring composition.|Mutation|LocationRefactoringRequest|MutationData|True|<null>
@@ -56,12 +59,15 @@ public sealed class BundledCodeActionCatalogTests
             move-declaration-near-reference|Move Declaration Near Reference|Moves a supported local declaration nearer to its first use through Roslyn refactoring composition.|Mutation|LocationRefactoringRequest|MutationData|True|<null>
             move-type-to-file|Move Type To File|Moves one selected type into its own Roslyn-chosen file within the current project.|Mutation|MoveTypeToFileRequest|MutationData|True|<null>
             name-tuple-element|Name Tuple Element|Adds a supported tuple element name through Roslyn refactoring composition.|Mutation|LocationRefactoringRequest|MutationData|True|<null>
+            organize-imports|Organize Imports|Sorts imports in one document through Roslyn composition and the document's configured import-order options.|Mutation|OrganizeImportsRequest|MutationData|True|<null>
             remove-in-keyword|Remove In Keyword|Removes an invalid in argument modifier through Roslyn code-fix composition.|Mutation|FixedCompilerCodeFixRequest|MutationData|True|<null>
             remove-new-modifier|Remove New Modifier|Removes a new modifier that does not hide an accessible inherited member through Roslyn code-fix composition.|Mutation|FixedCompilerCodeFixRequest|MutationData|True|<null>
             remove-unused-usings|Remove Unused Usings|Removes unused using directives across a selected scope through Roslyn code-fix composition.|Mutation|RemoveUnusedUsingsRequest|MutationData|True|<null>
             replace-conditional-with-statements|Replace Conditional With Statements|Rewrites a supported conditional expression into statements through Roslyn refactoring composition.|Mutation|LocationRefactoringRequest|MutationData|True|<null>
             replace-default-literal|Replace Default Literal|Replaces an invalid default literal with the corresponding typed default value through Roslyn code-fix composition.|Mutation|FixedCompilerCodeFixRequest|MutationData|True|<null>
             replace-doc-comment-text-with-tag|Replace Doc Comment Text With Tag|Replaces supported XML doc comment text with a documentation tag through Roslyn refactoring composition.|Mutation|LocationRefactoringRequest|MutationData|True|<null>
+            replace-method-with-property|Replace Method With Property|Replaces an eligible getter, or matching getter and setter, with a property through Roslyn refactoring composition.|Mutation|ReplaceMethodWithPropertyRequest|MutationData|True|<null>
+            replace-property-with-methods|Replace Property With Methods|Replaces an eligible property and its references with getter and setter methods through Roslyn refactoring composition.|Mutation|LocationRefactoringRequest|MutationData|True|<null>
             reverse-for-statement|Reverse For Statement|Reverses a supported for-statement loop through Roslyn refactoring composition.|Mutation|LocationRefactoringRequest|MutationData|True|<null>
             stage-code-action|Stage Code Action|Revalidates and stages one selected refactoring action into the active transaction.|Mutation|StageCodeActionRequest|MutationData|True|<null>
             stage-code-fix|Stage Code Fix|Revalidates and stages one selected code fix into the active transaction.|Mutation|StageCodeFixRequest|MutationData|True|<null>
@@ -106,6 +112,23 @@ public sealed class BundledCodeActionCatalogTests
         actualDedicatedToolNames.Should().BeEquivalentTo(expectedDedicatedToolNames);
     }
 
+    [Fact]
+    [Trait("Category", "Contract")]
+    public void GIVEN_DedicatedCodeActionCatalog_WHEN_CheckingAcceptanceManifest_THEN_ShouldRequireCoverageForEveryTool()
+    {
+        var expectedDedicatedToolNames = BuiltInCodeActionLedger.Families
+            .Where(static family => !string.IsNullOrWhiteSpace(family.ToolName))
+            .Select(static family => family.ToolName!)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(static toolName => toolName, StringComparer.Ordinal)
+            .ToArray();
+
+        var acceptanceToolNames = LoadAcceptanceToolNames();
+
+        acceptanceToolNames.Should().OnlyHaveUniqueItems();
+        acceptanceToolNames.Should().Equal(expectedDedicatedToolNames);
+    }
+
     [Theory]
     [InlineData("list-code-actions")]
     [InlineData("describe-code-action")]
@@ -120,5 +143,17 @@ public sealed class BundledCodeActionCatalogTests
         BuiltInCodeActionLedger.Families
             .Should()
             .NotContain(family => family.ToolName == toolName);
+    }
+
+    private static string[] LoadAcceptanceToolNames()
+    {
+        var path = Path.Combine(
+            AppContext.BaseDirectory,
+            "TestAssets",
+            "CodeActionAcceptanceToolNames.txt");
+
+        return File.ReadAllLines(path)
+            .Where(static line => !string.IsNullOrWhiteSpace(line))
+            .ToArray();
     }
 }

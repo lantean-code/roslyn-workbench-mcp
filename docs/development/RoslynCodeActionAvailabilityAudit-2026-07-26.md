@@ -6,7 +6,7 @@ This audit reassesses every C# provider present in the Roslyn 5.6 runtime assemb
 
 The audit distinguishes between a limitation of the current Workbench discovery model, a Roslyn provider that can already be replayed, a workflow that can be implemented using other public Roslyn APIs, a workflow that would require a substantial custom semantic transformation, and a workflow that should remain outside the product boundary.
 
-This is an availability and planning audit only. It does not promote providers, add tools or change production behaviour.
+This began as an availability and planning audit. It now also records the compatibility evidence and promotion status of the low-risk providers implemented from its findings.
 
 ## Evidence and Scope
 
@@ -48,11 +48,11 @@ The classifications below therefore cover the complete composed runtime inventor
 
 ## Summary
 
-The composed runtime contains 81 visible providers and 169 hidden providers. The hidden providers now divide as follows:
+The composed runtime contains 87 visible providers and 163 hidden providers. The hidden providers now divide as follows:
 
 | Outcome | Count | Release interpretation |
 | --- | ---: | --- |
-| Replay candidate | 45 | Six refactorings and 39 compiler-backed code fixes require compatibility validation rather than a new transformation. |
+| Replay candidate | 39 | The remaining compiler-backed code fixes require compatibility validation rather than a new transformation. |
 | Built-in diagnostic support required | 94 | The actions are composed, but general discovery does not currently run and map Roslyn's built-in IDE analysers. |
 | Mixed provider | 3 | Safe built-in branches exist, but production needs action-level capability classification or a dedicated explicit-input wrapper. |
 | Existing coverage | 9 | Keep the duplicate provider hidden and retain the current tool. |
@@ -105,20 +105,24 @@ The configured `CSharpFileHeaderCodeFixProvider` remains in this group rather th
 
 The loaded Features assemblies contain ten `CodeActionWithOptions` implementations, all belonging to the previously classified change-signature, extraction, member-selection, generate-type, move-static-members and move-to-namespace families. None belongs to the 151 newly inventoried code-fix providers. No additional action-level-classification dependency was found in this set.
 
-## Replay Candidates Omitted from the Ledger
+## Validated Ordinary Replay Providers
 
 These providers are present in the exact 5.6 runtime assemblies, emit ordinary Code Actions in Roslyn source and do not require Workbench to reproduce their transformations.
 
-| Family | Current Roslyn route | Complexity | Recommendation |
-| --- | --- | ---: | --- |
-| `AddConstructorParametersFromMembers` | Selected members produce ordinary actions that add required or optional constructor parameters. | Low | Add a controlled fixture and promote if discovery, deterministic selection and staging succeed. |
-| `GenerateComparisonOperators` | Registers ordinary generation actions, including nested alternatives. | Low | Validate and promote through replay. |
-| `ImplementInterface` | The language-neutral provider obtains the C# implementation service and registers its returned ordinary actions. | Low | Validate and promote. This is the missing-members workflow; the existing C# explicit/implicit providers only change the style of members that already exist. |
-| `OrganizeImports` | Registers an ordinary syntax-editing action and supports broader import shapes than the current top-level `sort-usings` implementation. | Low | Validate through replay, then decide whether it replaces, supplements or remains hidden behind `sort-usings` to avoid duplicate public concepts. |
-| `ReplaceMethodWithProperty` | Registers ordinary replacement actions. | Low | Validate and promote through replay. |
-| `ReplacePropertyWithMethods` | Registers an ordinary replacement action. | Low | Validate and promote through replay. |
+| Family | Current Roslyn route | Published tool |
+| --- | --- | --- |
+| `AddConstructorParametersFromMembers` | Selected members produce ordinary actions that add required or optional constructor parameters. | `add-constructor-parameters` |
+| `GenerateComparisonOperators` | Registers an ordinary generation action for an eligible comparable type. | `generate-comparison-operators` |
+| `ImplementInterface` | The language-neutral provider obtains the C# implementation service and registers its returned ordinary actions. This is the missing-members workflow; the existing C# explicit/implicit providers only change the style of members that already exist. | `implement-interface` |
+| `OrganizeImports` | Registers an ordinary syntax-editing action and uses the document's configured import-order options. | `organize-imports` |
+| `ReplaceMethodWithProperty` | Registers ordinary getter-only and getter-with-setter replacement actions. | `replace-method-with-property` |
+| `ReplacePropertyWithMethods` | Registers an ordinary replacement action. | `replace-property-with-methods` |
 
-These providers should remain hidden until their compatibility fixtures pass. Source inspection establishes feasibility, not compatibility with the exact Workbench MEF composition, selector and transaction pipeline.
+All six providers passed controlled compatibility fixtures against the exact Workbench MEF composition, deterministic action selection and the transaction staging and preview pipeline. Their dedicated tool contracts now make alternative selection explicit where Roslyn offers more than one action.
+
+`organize-imports` replaces the narrower `sort-usings` contract. It uses Roslyn's document-scoped provider and configured import ordering, covers compilation-unit and namespace imports, handles extern aliases and import categories, and preserves Roslyn's safety behaviour around trivia and preprocessor directives. `add-import` inserts one selected import, `add-missing-usings` resolves missing imports across a scope and `remove-unused-usings` removes unused imports; these remain separate semantic operations and are not replacements for import ordering.
+
+Validation completed with 508 Code Actions unit and contract tests, 123 runtime-provider audit tests, 53 Host integration tests and 48 published-host acceptance tests. The acceptance suite includes a catalogue-locked matrix for all 57 dedicated Code Action tools. It verifies that every tool is published, then independently stages, previews and rolls back a successful invocation against the controlled workspace while proving that changed files are restored and newly created files are absent after rollback. The migrated GuardClauses scenario also staged and rolled back `organize-imports` successfully across one warm-up and five stable measured invocations; validation confirmed normal Host shutdown, the pinned commit, no tracked repository changes and no leaked recovery or Workspace state. Evidence: `artifacts/performance/results/20260726-161411-guardclauses-04e89a52ef5b473f83a59f4ead3f886f`.
 
 ## Mixed Providers Incorrectly Classified as Entirely Impossible
 
@@ -196,7 +200,7 @@ These should not be labelled “waiting for a public Roslyn API”. They are una
 | `change-signature` | Custom solution-wide semantic implementation. | Very high; defer. |
 | `generate-equals-hashcode` | Mixed provider with a replayable explicit-selection branch. | Reassess early after action-level capability support. |
 | `generate-overrides` | Dedicated custom generator over public symbol/editing APIs. | Moderate; feasible after lower-risk batches. |
-| `implement-interface` | Existing ordinary MEF provider omitted from the ledger. | Validate and promote through the current replay pipeline. |
+| `implement-interface` | Existing ordinary MEF provider omitted from the original ledger. | Complete; validated and published through the current replay pipeline. |
 
 The prior trigger “wait until Roslyn exposes a supported API” is therefore valid only for choosing whether to avoid owning the high-complexity implementations. It is not a technical prerequisite for most of the catalogue.
 
@@ -216,9 +220,9 @@ The 151 providers are classified as 47 compiler-backed replay candidates, 94 req
 
 ### P2a — Validate ordinary replay candidates
 
-**Status:** Started.
+**Status:** Complete.
 
-Test `AddConstructorParametersFromMembers`, `GenerateComparisonOperators`, `ImplementInterface`, `OrganizeImports`, `ReplaceMethodWithProperty` and `ReplacePropertyWithMethods` together with a first batch of local compiler-backed code fixes. Promotion decisions can be made per fixture without coupling their implementations.
+`AddConstructorParametersFromMembers`, `GenerateComparisonOperators`, `ImplementInterface`, `OrganizeImports`, `ReplaceMethodWithProperty` and `ReplacePropertyWithMethods` now live in the supported compatibility suite and are published as dedicated tools. Each fixture proves provider discovery, deterministic action selection, the expected source mutation and transaction staging and preview.
 
 `CandidateCompatibilityCases` permanently tracks the 39 compiler-backed code-fix candidates that remain pending. The first eight local fixtures now live in the supported compatibility suite and are published as dedicated tools: anonymous-member naming, explicit casts, `inheritdoc`, unnecessary `new`, conditional interpolation parentheses, invalid `in` arguments, default-literal replacement and explicit const types. Each passes the real pinned MEF composition, expected compiler diagnostic, deterministic action selection, supported `ApplyChangesOperation`, expected source mutation, dedicated handler, transaction staging and preview path.
 
@@ -244,6 +248,6 @@ Keep move-to-namespace, pull-member-up, move-static-members, extract-interface, 
 
 ## Pre-Release Decision
 
-P0 and P1 are complete. The full runtime provider inventory now has an evidence-backed disposition, and eight of the original 53 replay candidates are published as dedicated tools. Further release scope can be selected from the 45 remaining replay candidates without first building general IDE diagnostic support; the 94 IDE-diagnostic providers form a separate infrastructure decision rather than an accidental pre-release commitment. Public-API and custom semantic implementations can remain future functionality without weakening the current supported surface.
+P0, P1 and P2a are complete. The full runtime provider inventory now has an evidence-backed disposition, and fourteen of the original 53 replay candidates are published as dedicated tools. Further release scope can be selected from the 39 remaining compiler-backed replay candidates without first building general IDE diagnostic support; the 94 IDE-diagnostic providers form a separate infrastructure decision rather than an accidental pre-release commitment. Public-API and custom semantic implementations can remain future functionality without weakening the current supported surface.
 
 No unavailable family should be promoted solely from source inspection. The existing support rule remains valid: a controlled fixture must prove that Roslyn offers the action, Workbench selects it deterministically, staging succeeds and the public surface exposes it intentionally.

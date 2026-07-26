@@ -110,7 +110,7 @@ public sealed class ToolRequestBinderTests
     public void GIVEN_BuiltInMutationRequiredArgumentsAreMissing_WHEN_Binding_THEN_ShouldReturnNamedErrors()
     {
         AssertMissingRequiredArguments<FormatDocumentRequest>("Missing required tool arguments: 'document', 'expectedSnapshot'.");
-        AssertMissingRequiredArguments<SortUsingsRequest>("Missing required tool arguments: 'document', 'expectedSnapshot'.");
+        AssertMissingRequiredArguments<OrganizeImportsRequest>("Missing required tool arguments: 'document', 'expectedSnapshot'.");
         AssertMissingRequiredArguments<RenameSymbolRequest>("Missing required tool arguments: 'expectedSnapshot', 'newName', 'symbol'.");
         AssertMissingRequiredArguments<StageCodeActionRequest>("Missing required tool arguments: 'actionId', 'expectedSnapshot'.");
         AssertMissingRequiredArguments<StageCodeFixRequest>("Missing required tool arguments: 'actionId', 'expectedSnapshot'.");

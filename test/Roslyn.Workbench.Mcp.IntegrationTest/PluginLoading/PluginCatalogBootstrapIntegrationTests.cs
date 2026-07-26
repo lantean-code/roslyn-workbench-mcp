@@ -9,7 +9,7 @@ public sealed class PluginCatalogBootstrapIntegrationTests
 
         var result = target.Load(new StartupOptions(), [typeof(BundledCorePlugin).Assembly]);
 
-        result.Tools.Should().HaveCount(41);
+        result.Tools.Should().HaveCount(40);
         result.Plugins.Should().ContainSingle(plugin => plugin.PluginId == "roslyn.workbench.core" && plugin.Enabled);
     }
 }

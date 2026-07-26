@@ -59,7 +59,7 @@ BenchmarkDotNet is deliberately not part of this end-to-end runner. Use it later
 
 The checked-in `scenario-suite.json` defines exact commits and curated requests for:
 
-- `guardclauses` — small; includes Code Action discovery and the three bundled refactoring scenarios;
+- `guardclauses` — small; includes Code Action discovery, two bundled mutation scenarios and the Roslyn-backed `organize-imports` scenario;
 - `serilog` — medium; and
 - `efcore` — large.
 

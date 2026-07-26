@@ -91,7 +91,9 @@ This matrix records the planned implementation source for every public tool. It 
 | `generate-equals-hashcode` | MEF refactoring provider plus internal Roslyn feature service wrapper | Not planned with current public Roslyn APIs |
 | `generate-overrides` | MEF refactoring provider plus internal generation APIs | Not planned with current public Roslyn APIs |
 | `generate-tostring` | No supported public Roslyn generation seam identified in the current build | Not planned with current public Roslyn APIs |
-| `implement-interface` | MEF code-fix/refactoring provider plus internal Roslyn feature service wrapper | Not planned with current public Roslyn APIs |
+| `add-constructor-parameters` | Dedicated wrapper over validated MEF refactoring replay | Complete |
+| `generate-comparison-operators` | Dedicated wrapper over validated MEF refactoring replay | Complete |
+| `implement-interface` | Dedicated wrapper over validated MEF refactoring replay | Complete |
 | `add-anonymous-type-member-name` | Dedicated wrapper over validated compiler diagnostic and MEF code-fix selection | Complete |
 | `add-conditional-interpolation-parentheses` | Dedicated wrapper over validated compiler diagnostic and MEF code-fix selection | Complete |
 | `add-explicit-cast` | Dedicated wrapper over validated compiler diagnostic and MEF code-fix selection | Complete |
@@ -101,8 +103,10 @@ This matrix records the planned implementation source for every public tool. It 
 | `remove-in-keyword` | Dedicated wrapper over validated compiler diagnostic and MEF code-fix selection | Complete |
 | `remove-new-modifier` | Dedicated wrapper over validated compiler diagnostic and MEF code-fix selection | Complete |
 | `remove-unused-usings` | Host wrapper over deterministic MEF code-fix selection | Batch 2 |
+| `organize-imports` | Dedicated wrapper over validated MEF refactoring replay and configured import options | Complete |
 | `replace-default-literal` | Dedicated wrapper over validated compiler diagnostic and MEF code-fix selection | Complete |
-| `sort-usings` | Public formatter/syntax transformation | Core |
+| `replace-method-with-property` | Dedicated wrapper over validated MEF refactoring replay | Complete |
+| `replace-property-with-methods` | Dedicated wrapper over validated MEF refactoring replay | Complete |
 | `format-document` | Public `Formatter` APIs | Core |
 | `use-explicit-type-for-const` | Dedicated wrapper over validated compiler diagnostic and MEF code-fix selection | Complete |
 

@@ -30,6 +30,17 @@ public sealed class DedicatedCodeActionToolsTests
         {
             return new Dictionary<string, ReplayMutationCaseDefinition>(StringComparer.Ordinal)
             {
+                {
+                    "add-constructor-parameters",
+                    new(
+                        static (fixture, open) => CreateAddConstructorParametersRequest(
+                            fixture.GetSelectionInDocument(
+                                "CandidateRefactorings.cs",
+                                "private readonly int _count;\r\n    private readonly string _name;"),
+                            open,
+                            AddConstructorParametersKind.Required),
+                        "CandidateRefactorings.cs")
+                },
                 { "add-anonymous-type-member-name", new(static (fixture, open) => CreateCodeFixRequest(fixture.GetLocationInDocument("CandidateCodeFixes.cs", "value + 1"), open), "CandidateCodeFixes.cs") },
                 { "add-conditional-interpolation-parentheses", new(static (fixture, open) => CreateCodeFixRequest(fixture.GetLocationInDocument("CandidateCodeFixes.cs", "enabled ? \"enabled\" : \"disabled\""), open), "CandidateCodeFixes.cs") },
                 { "add-explicit-cast", new(static (fixture, open) => CreateCodeFixRequest(fixture.GetLocationInDocument("CandidateCodeFixes.cs", "value;", 0), open), "CandidateCodeFixes.cs") },
@@ -67,9 +78,62 @@ public sealed class DedicatedCodeActionToolsTests
                 { "add-import", new(static (fixture, open) => CreateAddImportRequest(fixture.GetCursor("System.Net.Http.HttpClient"), open, simplifyAllOccurrences: false), "Formatting.cs") },
                 { "add-null-checks", new(static (fixture, open) => CreateLocationRequest(fixture.GetCursorInDocument("AddParameterCheck.cs", "object value"), open), "AddParameterCheck.cs") },
                 { "convert-if-to-switch", new(static (fixture, open) => CreateConvertIfToSwitchRequest(fixture.GetLocation("if (value == 0)"), open, ConvertIfToSwitchKind.Statement), "Formatting.cs") },
+                {
+                    "generate-comparison-operators",
+                    new(
+                        static (fixture, open) => CreateLocationRequest(
+                            fixture.GetCursorInDocument(
+                                "CandidateRefactorings.cs",
+                                "ComparisonOperatorCandidate"),
+                            open),
+                        "CandidateRefactorings.cs")
+                },
+                {
+                    "implement-interface",
+                    new(
+                        static (fixture, open) => CreateLocationRequest(
+                            fixture.GetCursorInDocument(
+                                "CandidateRefactorings.cs",
+                                "InterfaceImplementationCandidate",
+                                0,
+                                "InterfaceImplementationCandidate : ICandidateFormatter\r\n{\r\n".Length),
+                            open),
+                        "CandidateRefactorings.cs")
+                },
                 { "invert-logical", new(static (fixture, open) => CreateLocationRequest(fixture.GetLocation("&&"), open), "Formatting.cs") },
                 { "introduce-using-statement", new(static (fixture, open) => CreateLocationRequest(fixture.GetSelection("var stream = new MemoryStream();"), open), "Formatting.cs") },
+                {
+                    "organize-imports",
+                    new(
+                        static (_, open) => CreateOrganizeImportsRequest(
+                            "CandidateRefactorings.cs",
+                            open),
+                        "CandidateRefactorings.cs")
+                },
                 { "replace-conditional-with-statements", new(static (fixture, open) => CreateLocationRequest(fixture.GetLocation("value = enabled ? 1 : 2;"), open), "Formatting.cs") },
+                {
+                    "replace-method-with-property",
+                    new(
+                        static (fixture, open) => CreateReplaceMethodWithPropertyRequest(
+                            fixture.GetCursorInDocument(
+                                "CandidateRefactorings.cs",
+                                "GetValue"),
+                            open,
+                            ReplaceMethodWithPropertyKind.GetterAndSetter),
+                        "CandidateRefactorings.cs")
+                },
+                {
+                    "replace-property-with-methods",
+                    new(
+                        static (fixture, open) => CreateLocationRequest(
+                            fixture.GetCursorInDocument(
+                                "CandidateRefactorings.cs",
+                                "public int Value { get; set; }",
+                                0,
+                                "public int ".Length),
+                            open),
+                        "CandidateRefactorings.cs")
+                },
             };
         }
     }
@@ -165,6 +229,46 @@ public sealed class DedicatedCodeActionToolsTests
         return new FixedCompilerCodeFixRequest
         {
             Location = location,
+            ExpectedSnapshot = CreateSnapshot(openResult),
+        };
+    }
+
+    private static AddConstructorParametersRequest CreateAddConstructorParametersRequest(
+        LocationSelector members,
+        WorkspaceOperationResult<WorkspaceOpenOutcome> openResult,
+        AddConstructorParametersKind kind)
+    {
+        return new AddConstructorParametersRequest
+        {
+            Members = members,
+            Kind = kind,
+            ExpectedSnapshot = CreateSnapshot(openResult),
+        };
+    }
+
+    private static OrganizeImportsRequest CreateOrganizeImportsRequest(
+        string documentPath,
+        WorkspaceOperationResult<WorkspaceOpenOutcome> openResult)
+    {
+        return new OrganizeImportsRequest
+        {
+            Document = new DocumentSelector
+            {
+                Path = documentPath,
+            },
+            ExpectedSnapshot = CreateSnapshot(openResult),
+        };
+    }
+
+    private static ReplaceMethodWithPropertyRequest CreateReplaceMethodWithPropertyRequest(
+        LocationSelector method,
+        WorkspaceOperationResult<WorkspaceOpenOutcome> openResult,
+        ReplaceMethodWithPropertyKind kind)
+    {
+        return new ReplaceMethodWithPropertyRequest
+        {
+            Method = method,
+            Kind = kind,
             ExpectedSnapshot = CreateSnapshot(openResult),
         };
     }
@@ -297,6 +401,7 @@ public sealed class DedicatedCodeActionToolsTests
         var result = (toolName, request) switch
         {
             ("add-anonymous-type-member-name", FixedCompilerCodeFixRequest typed) => await session.ExecuteMutationAsync<AddAnonymousTypeMemberNameTool, FixedCompilerCodeFixRequest>(toolName, typed, cancellationToken),
+            ("add-constructor-parameters", AddConstructorParametersRequest typed) => await session.ExecuteMutationAsync<AddConstructorParametersTool, AddConstructorParametersRequest>(toolName, typed, cancellationToken),
             ("add-conditional-interpolation-parentheses", FixedCompilerCodeFixRequest typed) => await session.ExecuteMutationAsync<AddConditionalInterpolationParenthesesTool, FixedCompilerCodeFixRequest>(toolName, typed, cancellationToken),
             ("add-explicit-cast", FixedCompilerCodeFixRequest typed) => await session.ExecuteMutationAsync<AddExplicitCastTool, FixedCompilerCodeFixRequest>(toolName, typed, cancellationToken),
             ("add-inheritdoc", FixedCompilerCodeFixRequest typed) => await session.ExecuteMutationAsync<AddInheritdocTool, FixedCompilerCodeFixRequest>(toolName, typed, cancellationToken),
@@ -333,9 +438,14 @@ public sealed class DedicatedCodeActionToolsTests
             ("add-import", AddImportRequest typed) => await session.ExecuteMutationAsync<AddImportTool, AddImportRequest>(toolName, typed, cancellationToken),
             ("add-null-checks", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<AddNullChecksTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
             ("convert-if-to-switch", ConvertIfToSwitchRequest typed) => await session.ExecuteMutationAsync<ConvertIfToSwitchTool, ConvertIfToSwitchRequest>(toolName, typed, cancellationToken),
+            ("generate-comparison-operators", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<GenerateComparisonOperatorsTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
+            ("implement-interface", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<ImplementInterfaceTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
             ("invert-logical", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<InvertLogicalTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
             ("introduce-using-statement", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<IntroduceUsingStatementTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
+            ("organize-imports", OrganizeImportsRequest typed) => await session.ExecuteMutationAsync<OrganizeImportsTool, OrganizeImportsRequest>(toolName, typed, cancellationToken),
             ("replace-conditional-with-statements", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<ReplaceConditionalWithStatementsTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
+            ("replace-method-with-property", ReplaceMethodWithPropertyRequest typed) => await session.ExecuteMutationAsync<ReplaceMethodWithPropertyTool, ReplaceMethodWithPropertyRequest>(toolName, typed, cancellationToken),
+            ("replace-property-with-methods", LocationRefactoringRequest typed) => await session.ExecuteMutationAsync<ReplacePropertyWithMethodsTool, LocationRefactoringRequest>(toolName, typed, cancellationToken),
             ("move-type-to-file", MoveTypeToFileRequest typed) => await session.ExecuteMutationAsync<MoveTypeToFileTool, MoveTypeToFileRequest>(toolName, typed, cancellationToken),
             ("convert-property", ConvertPropertyRequest typed) => await session.ExecuteMutationAsync<ConvertPropertyTool, ConvertPropertyRequest>(toolName, typed, cancellationToken),
             _ => throw new InvalidOperationException($"Replay case '{toolName}' does not have a typed component handler mapping."),

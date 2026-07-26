@@ -482,6 +482,42 @@ internal static class BuiltInCodeActionLedger
             ToolName = "convert-expression-body",
             ExecutionMode = CodeActionExecutionMode.Replay,
         },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.AddConstructorParametersFromMembers.AddConstructorParametersFromMembersCodeRefactoringProvider",
+            ToolName = "add-constructor-parameters",
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.GenerateComparisonOperators.GenerateComparisonOperatorsCodeRefactoringProvider",
+            ToolName = "generate-comparison-operators",
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.ImplementInterface.ImplementInterfaceCodeRefactoringProvider",
+            ToolName = "implement-interface",
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.OrganizeImports.OrganizeImportsCodeRefactoringProvider",
+            ToolName = "organize-imports",
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.ReplaceMethodWithProperty.ReplaceMethodWithPropertyCodeRefactoringProvider",
+            ToolName = "replace-method-with-property",
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.ReplacePropertyWithMethods.ReplacePropertyWithMethodsCodeRefactoringProvider",
+            ToolName = "replace-property-with-methods",
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
     ];
 
     public static IReadOnlyList<BuiltInCodeActionFamily> Families => _families;

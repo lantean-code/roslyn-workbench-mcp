@@ -9,14 +9,6 @@ internal static class BuiltInCodeActionProviderAssessment
             BuiltInCodeActionAuditStatus.CoveredByDedicatedTool),
 
         CreateRefactoring(
-            "Microsoft.CodeAnalysis.AddConstructorParametersFromMembers.AddConstructorParametersFromMembersCodeRefactoringProvider",
-            BuiltInCodeActionAuditStatus.PendingReplayValidation),
-
-        CreateRefactoring(
-            "Microsoft.CodeAnalysis.GenerateComparisonOperators.GenerateComparisonOperatorsCodeRefactoringProvider",
-            BuiltInCodeActionAuditStatus.PendingReplayValidation),
-
-        CreateRefactoring(
             "Microsoft.CodeAnalysis.GenerateEqualsAndGetHashCodeFromMembers.GenerateEqualsAndGetHashCodeFromMembersCodeRefactoringProvider",
             BuiltInCodeActionAuditStatus.RequiresActionLevelClassification),
 
@@ -25,28 +17,12 @@ internal static class BuiltInCodeActionProviderAssessment
             BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation),
 
         CreateRefactoring(
-            "Microsoft.CodeAnalysis.ImplementInterface.ImplementInterfaceCodeRefactoringProvider",
-            BuiltInCodeActionAuditStatus.PendingReplayValidation),
-
-        CreateRefactoring(
             "Microsoft.CodeAnalysis.MoveToNamespace.MoveToNamespaceCodeActionProvider",
             BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation),
-
-        CreateRefactoring(
-            "Microsoft.CodeAnalysis.OrganizeImports.OrganizeImportsCodeRefactoringProvider",
-            BuiltInCodeActionAuditStatus.PendingReplayValidation),
 
         CreateCodeFix(
             "Microsoft.CodeAnalysis.PreferFrameworkType.PreferFrameworkTypeCodeFixProvider",
             BuiltInCodeActionAuditStatus.RequiresDedicatedImplementation),
-
-        CreateRefactoring(
-            "Microsoft.CodeAnalysis.ReplaceMethodWithProperty.ReplaceMethodWithPropertyCodeRefactoringProvider",
-            BuiltInCodeActionAuditStatus.PendingReplayValidation),
-
-        CreateRefactoring(
-            "Microsoft.CodeAnalysis.ReplacePropertyWithMethods.ReplacePropertyWithMethodsCodeRefactoringProvider",
-            BuiltInCodeActionAuditStatus.PendingReplayValidation),
 
         CreateRefactoring(
             "Microsoft.CodeAnalysis.ChangeSignature.ChangeSignatureCodeRefactoringProvider",

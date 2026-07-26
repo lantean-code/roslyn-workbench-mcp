@@ -98,7 +98,7 @@ public sealed class ToolSchemaFactoryIntegrationTests
             .Where(IsTargetSelectorProperty)
             .ToArray();
 
-        targetSelectorProperties.Should().HaveCount(21);
+        targetSelectorProperties.Should().HaveCount(23);
         AssertRequiredNonNullableProperties(target, targetSelectorProperties);
     }
 
@@ -147,12 +147,13 @@ public sealed class ToolSchemaFactoryIntegrationTests
         var requiredProperties = new[]
         {
             GetRequiredProperty<FormatDocumentRequest>(nameof(FormatDocumentRequest.Document)),
-            GetRequiredProperty<SortUsingsRequest>(nameof(SortUsingsRequest.Document)),
+            GetRequiredProperty<OrganizeImportsRequest>(nameof(OrganizeImportsRequest.Document)),
             GetRequiredProperty<RenameSymbolRequest>(nameof(RenameSymbolRequest.Symbol)),
             GetRequiredProperty<RenameSymbolRequest>(nameof(RenameSymbolRequest.NewName)),
             GetRequiredProperty<StageCodeActionRequest>(nameof(StageCodeActionRequest.ActionId)),
             GetRequiredProperty<StageCodeFixRequest>(nameof(StageCodeFixRequest.ActionId)),
             GetRequiredProperty<StageFixAllRequest>(nameof(StageFixAllRequest.ActionId)),
+            GetRequiredProperty<AddConstructorParametersRequest>(nameof(AddConstructorParametersRequest.Kind)),
             GetRequiredProperty<AddAwaitRequest>(nameof(AddAwaitRequest.Kind)),
             GetRequiredProperty<ConvertAnonymousTypeToClassRequest>(nameof(ConvertAnonymousTypeToClassRequest.Kind)),
             GetRequiredProperty<ConvertForeachLinqRequest>(nameof(ConvertForeachLinqRequest.ConversionKind)),
@@ -161,9 +162,10 @@ public sealed class ToolSchemaFactoryIntegrationTests
             GetRequiredProperty<ExtractMethodRequest>(nameof(ExtractMethodRequest.TargetKind)),
             GetRequiredProperty<IntroduceParameterRequest>(nameof(IntroduceParameterRequest.Strategy)),
             GetRequiredProperty<IntroduceVariableRequest>(nameof(IntroduceVariableRequest.Kind)),
+            GetRequiredProperty<ReplaceMethodWithPropertyRequest>(nameof(ReplaceMethodWithPropertyRequest.Kind)),
         };
 
-        requiredProperties.Should().HaveCount(15);
+        requiredProperties.Should().HaveCount(17);
         AssertRequiredNonNullableProperties(target, requiredProperties);
     }
 
@@ -201,7 +203,7 @@ public sealed class ToolSchemaFactoryIntegrationTests
             }
         }
 
-        requestTypes.Should().HaveCount(27);
+        requestTypes.Should().HaveCount(29);
         foreach (var requestType in requestTypes)
         {
             var closedSchemaMethod = schemaMethod.MakeGenericMethod(requestType);

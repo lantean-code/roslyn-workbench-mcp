@@ -84,10 +84,31 @@ internal static class CodeActionAcceptanceCases
             documentPath));
 
         cases.Add(CreateCompilerCodeFixCase(
+            "add-yield",
+            "CS0029",
+            "location",
+            locations.CreateLocation(documentPath, "return \"value\";"),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "add-yield",
+            "CS0266",
+            "location",
+            locations.CreateLocation(documentPath, "return new object();"),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
             "assign-out-parameters",
             "CS0177",
             "location",
             locations.CreateLocation(documentPath, "return 'a';", occurrenceIndex: 1),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "change-iterator-return-type",
+            "CS1624",
+            "location",
+            locations.CreateLocation(documentPath, "ChangeIteratorReturnType"),
             documentPath));
 
         cases.Add(CreateCompilerCodeFixCase(
@@ -154,6 +175,27 @@ internal static class CodeActionAcceptanceCases
             documentPath));
 
         cases.Add(CreateCompilerCodeFixCase(
+            "hide-base-member",
+            "CS0108",
+            "location",
+            locations.CreateLocation(documentPath, "HiddenMember", occurrenceIndex: 1),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "make-member-required",
+            "CS8618",
+            "location",
+            locations.CreateLocation(documentPath, "RequiredValue"),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "order-modifiers",
+            "CS0267",
+            "location",
+            locations.CreateLocation(documentPath, "partial public"),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
             "remove-in-keyword",
             "CS1615",
             "location",
@@ -168,10 +210,31 @@ internal static class CodeActionAcceptanceCases
             documentPath));
 
         cases.Add(CreateCompilerCodeFixCase(
+            "remove-unused-local-function",
+            "CS8321",
+            "location",
+            locations.CreateLocation(documentPath, "UnusedLocalFunction"),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
             "replace-default-literal",
             "CS8505",
             "location",
             locations.CreateLocation(documentPath, "default"),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "transpose-record-keyword",
+            "CS9012",
+            "location",
+            locations.CreateLocation(documentPath, "record"),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "use-explicit-array-in-expression-tree",
+            "CS9226",
+            "location",
+            locations.CreateLocation(documentPath, "Format()", occurrenceIndex: 0),
             documentPath));
 
         cases.Add(CreateCompilerCodeFixCase(

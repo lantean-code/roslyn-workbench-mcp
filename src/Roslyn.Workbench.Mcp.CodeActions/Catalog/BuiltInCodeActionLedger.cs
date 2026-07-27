@@ -107,6 +107,13 @@ internal static class BuiltInCodeActionLedger
         },
         new()
         {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.Iterator.CSharpAddYieldCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "add-yield",
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.AssignOutParameters.AssignOutParametersAboveReturnCodeFixProvider",
             Kind = BuiltInCodeActionFamilyKind.CodeFix,
             ToolName = "assign-out-parameters",
@@ -128,6 +135,13 @@ internal static class BuiltInCodeActionLedger
         },
         new()
         {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.Iterator.CSharpChangeToIEnumerableCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "change-iterator-return-type",
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.FixIncorrectConstraint.CSharpFixIncorrectConstraintCodeFixProvider",
             Kind = BuiltInCodeActionFamilyKind.CodeFix,
             ToolName = "fix-incorrect-constraint",
@@ -138,6 +152,13 @@ internal static class BuiltInCodeActionLedger
             ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.FixReturnType.CSharpFixReturnTypeCodeFixProvider",
             Kind = BuiltInCodeActionFamilyKind.CodeFix,
             ToolName = "fix-return-type",
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.HideBase.HideBaseCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "hide-base-member",
             ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
@@ -156,6 +177,20 @@ internal static class BuiltInCodeActionLedger
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ConvertProgram.ConvertToTopLevelStatementsCodeFixProvider",
             Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.MakeMemberRequired.CSharpMakeMemberRequiredCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "make-member-required",
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.OrderModifiers.CSharpOrderModifiersCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "order-modifiers",
             ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
@@ -187,6 +222,13 @@ internal static class BuiltInCodeActionLedger
         },
         new()
         {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.RemoveUnusedLocalFunction.CSharpRemoveUnusedLocalFunctionCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "remove-unused-local-function",
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.ReplaceDefaultLiteral.CSharpReplaceDefaultLiteralCodeFixProvider",
             Kind = BuiltInCodeActionFamilyKind.CodeFix,
             ToolName = "replace-default-literal",
@@ -196,6 +238,13 @@ internal static class BuiltInCodeActionLedger
         {
             ProviderId = "Microsoft.CodeAnalysis.CSharp.SpellCheck.CSharpSpellCheckCodeFixProvider",
             Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.TransposeRecordKeyword.CSharpTransposeRecordKeywordCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "transpose-record-keyword",
             ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()
@@ -211,6 +260,13 @@ internal static class BuiltInCodeActionLedger
             ProviderId = "Microsoft.CodeAnalysis.CSharp.UseExplicitTypeForConst.UseExplicitTypeForConstCodeFixProvider",
             Kind = BuiltInCodeActionFamilyKind.CodeFix,
             ToolName = "use-explicit-type-for-const",
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.UseExplicitArrayInExpressionTree.CSharpUseExplicitArrayInExpressionTreeCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "use-explicit-array-in-expression-tree",
             ExecutionMode = CodeActionExecutionMode.Replay,
         },
         new()

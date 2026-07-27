@@ -551,12 +551,121 @@ internal static class BuiltInCodeActionAuditCases
         },
     ];
 
+    private static readonly IReadOnlyList<BuiltInCodeActionAuditCase> _promotedCodeFixCompatibilityCases =
+    [
+        new()
+        {
+            ToolName = "hide-base-member",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.HideBase.HideBaseCodeFixProvider",
+            SourceNote = "CandidateHideBaseDerived.HiddenMember hides an inherited member without the new modifier",
+            ExpectedDiagnosticId = "CS0108",
+            ExpectedChangedText = "internal new void HiddenMember()",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "HiddenMember", occurrenceIndex: 1),
+        },
+        new()
+        {
+            ToolName = "add-yield",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.Iterator.CSharpAddYieldCodeFixProvider",
+            SourceNote = "AddYieldForImplicitConversion returns a value convertible to the iterator element type",
+            ExpectedDiagnosticId = "CS0029",
+            ExpectedChangedText = "yield return \"value\";",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "return \"value\";"),
+        },
+        new()
+        {
+            ToolName = "add-yield",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.Iterator.CSharpAddYieldCodeFixProvider",
+            SourceNote = "AddYieldForExplicitConversion returns a value requiring an explicit conversion to the iterator type",
+            ExpectedDiagnosticId = "CS0266",
+            ExpectedChangedText = "yield return new object();",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "return new object();"),
+        },
+        new()
+        {
+            ToolName = "change-iterator-return-type",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.Iterator.CSharpChangeToIEnumerableCodeFixProvider",
+            SourceNote = "ChangeIteratorReturnType uses yield with a non-iterator return type",
+            ExpectedDiagnosticId = "CS1624",
+            ExpectedChangedText = "System.Collections.Generic.IEnumerable<object> ChangeIteratorReturnType()",
+            UnexpectedChangedText = "object ChangeIteratorReturnType()",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "ChangeIteratorReturnType"),
+        },
+        new()
+        {
+            ToolName = "make-member-required",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.MakeMemberRequired.CSharpMakeMemberRequiredCodeFixProvider",
+            SourceNote = "CandidateRequiredMember.RequiredValue is an uninitialised settable non-nullable property",
+            ExpectedDiagnosticId = "CS8618",
+            ExpectedChangedText = "internal required string RequiredValue",
+            UnexpectedChangedText = "internal string RequiredValue",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "RequiredValue"),
+        },
+        new()
+        {
+            ToolName = "transpose-record-keyword",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.TransposeRecordKeyword.CSharpTransposeRecordKeywordCodeFixProvider",
+            SourceNote = "CandidateRecordKeyword places struct before the record keyword",
+            ExpectedDiagnosticId = "CS9012",
+            ExpectedChangedText = "internal record struct CandidateRecordKeyword",
+            UnexpectedChangedText = "internal struct record CandidateRecordKeyword",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "record"),
+        },
+        new()
+        {
+            ToolName = "order-modifiers",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.OrderModifiers.CSharpOrderModifiersCodeFixProvider",
+            SourceNote = "CandidateModifierOrder places partial before its accessibility modifier",
+            ExpectedDiagnosticId = "CS0267",
+            ExpectedChangedText = "public partial class CandidateModifierOrder",
+            UnexpectedChangedText = "partial public class CandidateModifierOrder",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "partial public"),
+        },
+        new()
+        {
+            ToolName = "remove-unused-local-function",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.RemoveUnusedLocalFunction.CSharpRemoveUnusedLocalFunctionCodeFixProvider",
+            SourceNote = "CandidateUnusedLocalFunction declares an unreferenced local function",
+            ExpectedDiagnosticId = "CS8321",
+            UnexpectedChangedText = "static void UnusedLocalFunction()",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "UnusedLocalFunction"),
+        },
+        new()
+        {
+            ToolName = "use-explicit-array-in-expression-tree",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.UseExplicitArrayInExpressionTree.CSharpUseExplicitArrayInExpressionTreeCodeFixProvider",
+            SourceNote = "CandidateExplicitArray uses an expanded non-array params collection in an expression tree",
+            ExpectedDiagnosticId = "CS9226",
+            ExpectedChangedText = "Format(System.Array.Empty<char>())",
+            UnexpectedChangedText = "Format()",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCodeFixes.cs", "Format()", occurrenceIndex: 0),
+        },
+    ];
+
     public static IReadOnlyList<BuiltInCodeActionAuditCase> CandidateCompatibilityCases { get; } = CreateCandidateCompatibilityCases();
 
     public static IReadOnlyList<BuiltInCodeActionAuditCase> SupportedCompatibilityCases { get; } =
     [
         .. _validatedCodeFixCompatibilityCases,
         .. _additionalValidatedCodeFixCompatibilityCases,
+        .. _promotedCodeFixCompatibilityCases,
         new()
         {
             ToolName = "add-constructor-parameters",
@@ -1160,6 +1269,11 @@ internal static class BuiltInCodeActionAuditCases
         {
             var auditStatus = BuiltInCodeFixProviderAssessment.GetAuditStatus(providerId);
             if (auditStatus != BuiltInCodeActionAuditStatus.PendingReplayValidation)
+            {
+                continue;
+            }
+
+            if (candidates.Any(candidate => candidate.ProviderId == providerId))
             {
                 continue;
             }

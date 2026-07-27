@@ -49,6 +49,12 @@ internal static class BundledCodeActionToolRegistrar
                 "Add Obsolete Attribute",
                 "Adds an Obsolete attribute to a declaration that uses or overrides an obsolete API through Roslyn code-fix composition."));
 
+        registry.RegisterMutationTool<AddYieldTool, FixedCompilerCodeFixRequest>(
+            CreateMutationMetadata(
+                "add-yield",
+                "Add Yield",
+                "Replaces an invalid iterator return statement with a yield return statement through Roslyn code-fix composition."));
+
         registry.RegisterMutationTool<AddMissingUsingsTool, AddMissingUsingsRequest>(
             CreateMutationMetadata(
                 "add-missing-usings",
@@ -67,6 +73,12 @@ internal static class BundledCodeActionToolRegistrar
                 "Declare As Nullable",
                 "Makes the declaration associated with a nullability compiler warning nullable through Roslyn code-fix composition."));
 
+        registry.RegisterMutationTool<ChangeIteratorReturnTypeTool, FixedCompilerCodeFixRequest>(
+            CreateMutationMetadata(
+                "change-iterator-return-type",
+                "Change Iterator Return Type",
+                "Changes an invalid iterator return type to IEnumerable of its yielded value type through Roslyn code-fix composition."));
+
         registry.RegisterMutationTool<FixIncorrectConstraintTool, FixedCompilerCodeFixRequest>(
             CreateMutationMetadata(
                 "fix-incorrect-constraint",
@@ -78,6 +90,24 @@ internal static class BundledCodeActionToolRegistrar
                 "fix-return-type",
                 "Fix Return Type",
                 "Changes a void or task-like return type to match the returned expression through Roslyn code-fix composition."));
+
+        registry.RegisterMutationTool<HideBaseMemberTool, FixedCompilerCodeFixRequest>(
+            CreateMutationMetadata(
+                "hide-base-member",
+                "Hide Base Member",
+                "Adds the new modifier when a member is intended to hide an inherited member through Roslyn code-fix composition."));
+
+        registry.RegisterMutationTool<MakeMemberRequiredTool, FixedCompilerCodeFixRequest>(
+            CreateMutationMetadata(
+                "make-member-required",
+                "Make Member Required",
+                "Adds the required modifier to an uninitialised settable non-nullable member through Roslyn code-fix composition."));
+
+        registry.RegisterMutationTool<OrderModifiersTool, FixedCompilerCodeFixRequest>(
+            CreateMutationMetadata(
+                "order-modifiers",
+                "Order Modifiers",
+                "Reorders declaration modifiers into a valid sequence through Roslyn code-fix composition."));
 
         registry.RegisterMutationTool<RemoveInKeywordTool, FixedCompilerCodeFixRequest>(
             CreateMutationMetadata(
@@ -97,11 +127,29 @@ internal static class BundledCodeActionToolRegistrar
                 "Remove Unused Usings",
                 "Removes unused using directives across a selected scope through Roslyn code-fix composition."));
 
+        registry.RegisterMutationTool<RemoveUnusedLocalFunctionTool, FixedCompilerCodeFixRequest>(
+            CreateMutationMetadata(
+                "remove-unused-local-function",
+                "Remove Unused Local Function",
+                "Removes an unreferenced local function through Roslyn code-fix composition."));
+
         registry.RegisterMutationTool<ReplaceDefaultLiteralTool, FixedCompilerCodeFixRequest>(
             CreateMutationMetadata(
                 "replace-default-literal",
                 "Replace Default Literal",
                 "Replaces an invalid default literal with the corresponding typed default value through Roslyn code-fix composition."));
+
+        registry.RegisterMutationTool<TransposeRecordKeywordTool, FixedCompilerCodeFixRequest>(
+            CreateMutationMetadata(
+                "transpose-record-keyword",
+                "Transpose Record Keyword",
+                "Moves the record keyword into the valid position for a record struct declaration through Roslyn code-fix composition."));
+
+        registry.RegisterMutationTool<UseExplicitArrayInExpressionTreeTool, FixedCompilerCodeFixRequest>(
+            CreateMutationMetadata(
+                "use-explicit-array-in-expression-tree",
+                "Use Explicit Array In Expression Tree",
+                "Wraps expanded params arguments in an explicit array when used in an expression tree through Roslyn code-fix composition."));
 
         registry.RegisterMutationTool<UseExplicitTypeForConstTool, FixedCompilerCodeFixRequest>(
             CreateMutationMetadata(

@@ -111,8 +111,8 @@ public sealed class BuiltInCodeActionInventoryTests
             static assessment => assessment.Status == BuiltInCodeActionAuditStatus.Excluded);
 
         assessments.Should().HaveCount(151);
-        pendingReplayValidationCount.Should().Be(33);
-        validatedSupportedCount.Should().Be(14);
+        pendingReplayValidationCount.Should().Be(25);
+        validatedSupportedCount.Should().Be(22);
         requiresBuiltInDiagnosticSupportCount.Should().Be(94);
         coveredByDedicatedToolCount.Should().Be(8);
         excludedCount.Should().Be(2);

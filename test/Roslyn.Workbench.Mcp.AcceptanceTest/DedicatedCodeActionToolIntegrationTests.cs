@@ -73,6 +73,7 @@ public sealed class DedicatedCodeActionToolIntegrationTests
         var expectedDiagnosticIdsByTool = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal)
         {
             ["add-obsolete-attribute"] = ["CS0612", "CS0618", "CS0672", "CS1062", "CS1064"],
+            ["add-yield"] = ["CS0029", "CS0266"],
             ["declare-as-nullable"] = ["CS8600", "CS8603", "CS8618", "CS8625"],
             ["fix-incorrect-constraint"] = ["CS9010", "CS9011"],
             ["fix-return-type"] = ["CS0127", "CS0201", "CS1997"],

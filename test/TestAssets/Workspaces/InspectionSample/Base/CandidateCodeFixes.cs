@@ -213,3 +213,76 @@ internal sealed class CandidateNewModifier
     {
     }
 }
+
+internal class CandidateHideBaseBase
+{
+    internal void HiddenMember()
+    {
+    }
+}
+
+internal sealed class CandidateHideBaseDerived : CandidateHideBaseBase
+{
+    internal void HiddenMember()
+    {
+    }
+}
+
+internal static class CandidateIteratorCodeFixes
+{
+    internal static System.Collections.Generic.IEnumerable<object> AddYieldForImplicitConversion()
+    {
+        return "value";
+    }
+
+    internal static System.Collections.Generic.IEnumerable<object> AddYieldForExplicitConversion()
+    {
+        return new object();
+    }
+
+    internal static object ChangeIteratorReturnType()
+    {
+        yield return 0;
+    }
+}
+
+internal sealed class CandidateRequiredMember
+{
+    internal string RequiredValue { get; set; }
+}
+
+internal struct record CandidateRecordKeyword
+{
+}
+
+internal static class CandidateUnusedLocalFunction
+{
+    internal static void RemoveUnusedLocalFunction()
+    {
+        static void UnusedLocalFunction()
+        {
+        }
+    }
+}
+
+partial public class CandidateModifierOrder
+{
+}
+
+internal static class CandidateExplicitArray
+{
+    internal static System.Linq.Expressions.Expression<System.Func<string>> CreateExpression()
+    {
+        return () => Format();
+    }
+
+    private static string Format(params char[] characters)
+    {
+        return new string(characters);
+    }
+
+    private static string Format(params System.ReadOnlySpan<char> characters)
+    {
+        return new string(characters);
+    }
+}

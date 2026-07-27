@@ -14,8 +14,9 @@ public sealed class BuiltInCodeActionCandidateCompatibilityTests
 
         var candidateProviderIds = BuiltInCodeActionAuditCases.CandidateCompatibilityCases
             .Select(static auditCase => auditCase.ProviderId)
+            .Distinct(StringComparer.Ordinal)
             .ToArray();
 
-        candidateProviderIds.Should().Equal(expectedProviderIds);
+        candidateProviderIds.Should().BeEquivalentTo(expectedProviderIds);
     }
 }

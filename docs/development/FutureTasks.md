@@ -1,6 +1,6 @@
 # Future Tasks
 
-Date: 2026-07-23
+Date: 2026-07-27
 
 ## Purpose
 
@@ -149,7 +149,7 @@ Complete the follow-up work in dependency order:
 
 1. Complete — add a provider-inventory check over the actual composed C# runtime providers, including language-neutral Core providers. The pinned composition currently contains 81 refactoring providers and 169 code-fix providers.
 2. Complete — classify the 151 newly inventoried providers as 47 compiler-backed replay candidates, 94 requiring built-in diagnostic support, eight covered by existing tools and two excluded project-setting mutations. No additional option-backed providers were found.
-3. Started — fourteen compiler-backed code-fix providers are now published through thirteen dedicated tools, alongside six validated ordinary refactorings. Diagnostic-specific validation is complete for the current multi-diagnostic tools: all fourteen advertised IDs have independent replay and published-host acceptance evidence, and precise locations proved sufficient without a separate diagnostic-ID request property. Broad `list-code-actions` queries now return the precise location for every action and bind each opaque reference to that target, allowing otherwise-identical fixes at different occurrences to be staged independently by GUID. Apply the same promotion gate to all future multi-diagnostic Code Actions. Then validate the remaining 33 compiler-backed candidates and make promotion decisions per proven fixture. `organize-imports` has replaced the narrower `sort-usings`; the distinct add-import, add-missing-usings and remove-unused-usings operations remain published.
+3. Started — twenty-two compiler-backed code-fix providers are now published through twenty-one dedicated tools, alongside six validated ordinary refactorings. Diagnostic-specific validation is complete for the current multi-diagnostic tools: all sixteen advertised IDs have independent replay and published-host acceptance evidence, and precise locations proved sufficient without a separate diagnostic-ID request property. Broad `list-code-actions` queries now return the precise location for every action and bind each opaque reference to that target, allowing otherwise-identical fixes at different occurrences to be staged independently by GUID. Apply the same promotion gate to all future multi-diagnostic Code Actions. The remaining 25 compiler-backed candidates still require compatibility fixtures. `organize-imports` has replaced the narrower `sort-usings`; the distinct add-import, add-missing-usings and remove-unused-usings operations remain published.
 4. Decide whether to add bounded built-in analyser activation and diagnostic mapping for the 94 IDE-diagnostic providers.
 5. Add production action-level capability classification, then validate the safe leaves of `GenerateConstructorFromMembers`, `GenerateEqualsAndGetHashCodeFromMembers` and `GenerateType`.
 6. Design the high-value public-API simplification workflow before considering custom generation and solution-wide semantic refactorings.
@@ -157,6 +157,24 @@ Complete the follow-up work in dependency order:
 Keep project/package mutation, editor rename tracking and Copilot-backed providers excluded. Keep move-to-namespace, pull-member-up, move-static-members, extraction, change-signature and convert-to-async outside the pre-v1 critical path unless product priority changes.
 
 Source: [RoslynCodeActionAvailabilityAudit-2026-07-26.md](RoslynCodeActionAvailabilityAudit-2026-07-26.md)
+
+### Reassess the published Code Action tool surface
+
+**Status:** Conditional
+
+**Trigger:** The planned pre-v1 Code Action availability audit and promotion work is complete, and the resulting catalogue creates a measured context-cost or discoverability problem.
+
+Do not consolidate the published Code Action tools while the supported action inventory and its request shapes are still changing. The 2026-07-27 published-Host acceptance baseline contains 126 tools and a 207,165-byte UTF-8 `tools/list` result. Its 75 Code Action tools account for 123,338 bytes; the 70 dedicated Code Action tools account for 117,555 bytes; and the twenty `FixedCompilerCodeFixTool` derivatives account for 33,437 bytes. These values measure the MCP result payload, not the model-context representation chosen by a particular client.
+
+When the trigger occurs:
+
+1. Re-run the catalogue-size acceptance measurement against the completed supported inventory.
+2. Classify actions by execution and request shape. Keep parameterised actions dedicated where their inputs genuinely differ; treat code-fix, refactoring and conversion families as discovery metadata rather than automatic tool boundaries.
+3. Produce a temporary publication-filter prototype that retains all internal implementations but advertises only the proposed reduced Code Action surface.
+4. Compare the current and filtered publications in fresh, otherwise identical Codex tasks using the same minimal prompt. Use a small number of paired runs only as a directional estimate because model behaviour and context accounting are not deterministic enough for statistical significance.
+5. Consolidate only when the client-visible saving is consistently material or the reduced surface demonstrably improves discovery. Do not change the server-owned or plugin tool surfaces as part of this decision.
+
+Source: [PublishedToolCatalogueSizeIntegrationTests.cs](../../test/Roslyn.Workbench.Mcp.AcceptanceTest/PublishedToolCatalogueSizeIntegrationTests.cs)
 
 ### Support additional MEF plugin module assemblies
 

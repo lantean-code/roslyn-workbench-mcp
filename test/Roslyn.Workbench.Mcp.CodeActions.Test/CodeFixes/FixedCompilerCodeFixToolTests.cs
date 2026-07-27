@@ -47,6 +47,14 @@ public sealed class FixedCompilerCodeFixToolTests
                 "Microsoft.CodeAnalysis.CSharp.AddObsoleteAttribute.CSharpAddObsoleteAttributeCodeFixProvider",
                 ["CS0612", "CS0618", "CS0672", "CS1062", "CS1064"]),
             (
+                new AddYieldTool(locationFixStager.Object),
+                "Microsoft.CodeAnalysis.CSharp.CodeFixes.Iterator.CSharpAddYieldCodeFixProvider",
+                ["CS0029", "CS0266"]),
+            (
+                new ChangeIteratorReturnTypeTool(locationFixStager.Object),
+                "Microsoft.CodeAnalysis.CSharp.CodeFixes.Iterator.CSharpChangeToIEnumerableCodeFixProvider",
+                ["CS1624"]),
+            (
                 new DeclareAsNullableTool(locationFixStager.Object),
                 "Microsoft.CodeAnalysis.CSharp.CodeFixes.DeclareAsNullable.CSharpDeclareAsNullableCodeFixProvider",
                 ["CS8603", "CS8600", "CS8625", "CS8618"]),
@@ -59,6 +67,18 @@ public sealed class FixedCompilerCodeFixToolTests
                 "Microsoft.CodeAnalysis.CSharp.CodeFixes.FixReturnType.CSharpFixReturnTypeCodeFixProvider",
                 ["CS0127", "CS1997", "CS0201"]),
             (
+                new HideBaseMemberTool(locationFixStager.Object),
+                "Microsoft.CodeAnalysis.CSharp.CodeFixes.HideBase.HideBaseCodeFixProvider",
+                ["CS0108"]),
+            (
+                new MakeMemberRequiredTool(locationFixStager.Object),
+                "Microsoft.CodeAnalysis.CSharp.CodeFixes.MakeMemberRequired.CSharpMakeMemberRequiredCodeFixProvider",
+                ["CS8618"]),
+            (
+                new OrderModifiersTool(locationFixStager.Object),
+                "Microsoft.CodeAnalysis.CSharp.OrderModifiers.CSharpOrderModifiersCodeFixProvider",
+                ["CS0267"]),
+            (
                 new RemoveInKeywordTool(locationFixStager.Object),
                 "Microsoft.CodeAnalysis.CSharp.RemoveInKeyword.RemoveInKeywordCodeFixProvider",
                 ["CS1615"]),
@@ -67,9 +87,21 @@ public sealed class FixedCompilerCodeFixToolTests
                 "Microsoft.CodeAnalysis.CSharp.CodeFixes.RemoveNewModifier.RemoveNewModifierCodeFixProvider",
                 ["CS0109"]),
             (
+                new RemoveUnusedLocalFunctionTool(locationFixStager.Object),
+                "Microsoft.CodeAnalysis.CSharp.RemoveUnusedLocalFunction.CSharpRemoveUnusedLocalFunctionCodeFixProvider",
+                ["CS8321"]),
+            (
                 new ReplaceDefaultLiteralTool(locationFixStager.Object),
                 "Microsoft.CodeAnalysis.CSharp.ReplaceDefaultLiteral.CSharpReplaceDefaultLiteralCodeFixProvider",
                 ["CS8505"]),
+            (
+                new TransposeRecordKeywordTool(locationFixStager.Object),
+                "Microsoft.CodeAnalysis.CSharp.CodeFixes.TransposeRecordKeyword.CSharpTransposeRecordKeywordCodeFixProvider",
+                ["CS9012"]),
+            (
+                new UseExplicitArrayInExpressionTreeTool(locationFixStager.Object),
+                "Microsoft.CodeAnalysis.CSharp.UseExplicitArrayInExpressionTree.CSharpUseExplicitArrayInExpressionTreeCodeFixProvider",
+                ["CS9226"]),
             (
                 new UseExplicitTypeForConstTool(locationFixStager.Object),
                 "Microsoft.CodeAnalysis.CSharp.UseExplicitTypeForConst.UseExplicitTypeForConstCodeFixProvider",

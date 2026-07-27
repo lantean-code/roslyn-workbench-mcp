@@ -9,7 +9,9 @@ add-inheritdoc
 add-missing-usings
 add-null-checks
 add-obsolete-attribute
+add-yield
 assign-out-parameters
+change-iterator-return-type
 convert-anonymous-type-to-class
 convert-anonymous-type-to-tuple
 convert-auto-property-to-full-property
@@ -33,6 +35,7 @@ extract-method
 fix-incorrect-constraint
 fix-return-type
 generate-comparison-operators
+hide-base-member
 implement-interface
 inline-variable
 introduce-parameter
@@ -42,12 +45,15 @@ invert-conditional
 invert-if
 invert-logical
 make-local-function-static
+make-member-required
 move-declaration-near-reference
 move-type-to-file
 name-tuple-element
+order-modifiers
 organize-imports
 remove-in-keyword
 remove-new-modifier
+remove-unused-local-function
 remove-unused-usings
 replace-conditional-with-statements
 replace-default-literal
@@ -55,6 +61,8 @@ replace-doc-comment-text-with-tag
 replace-method-with-property
 replace-property-with-methods
 reverse-for-statement
+transpose-record-keyword
+use-explicit-array-in-expression-tree
 use-explicit-type
 use-explicit-type-for-const
 use-implicit-type

@@ -16,15 +16,26 @@ internal sealed record CodeActionAcceptanceCase
         string toolName,
         IReadOnlyDictionary<string, object?> arguments,
         IReadOnlyList<string> expectedDocumentPaths,
-        string? diagnosticId = null)
+        string? diagnosticId = null,
+        string? variant = null)
     {
         ToolName = toolName;
-        DisplayName = string.IsNullOrWhiteSpace(diagnosticId)
-            ? toolName
-            : $"{toolName}/{diagnosticId}";
+        DisplayName = CreateDisplayName(toolName, diagnosticId, variant);
 
         DiagnosticId = diagnosticId;
         Arguments = arguments;
         ExpectedDocumentPaths = expectedDocumentPaths;
+    }
+
+    private static string CreateDisplayName(string toolName, string? diagnosticId, string? variant)
+    {
+        if (string.IsNullOrWhiteSpace(diagnosticId))
+        {
+            return toolName;
+        }
+
+        return string.IsNullOrWhiteSpace(variant)
+            ? $"{toolName}/{diagnosticId}"
+            : $"{toolName}/{diagnosticId}/{variant}";
     }
 }

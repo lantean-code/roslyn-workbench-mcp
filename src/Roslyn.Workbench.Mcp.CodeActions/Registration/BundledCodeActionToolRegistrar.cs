@@ -31,6 +31,12 @@ internal static class BundledCodeActionToolRegistrar
                 "Add Conditional Interpolation Parentheses",
                 "Parenthesises a conditional expression used in an interpolated string through Roslyn code-fix composition."));
 
+        registry.RegisterMutationTool<AddDocumentationCommentNodesTool, FixedCompilerCodeFixRequest>(
+            CreateMutationMetadata(
+                "add-documentation-comment-nodes",
+                "Add Documentation Comment Nodes",
+                "Adds missing parameter documentation nodes to an existing XML documentation comment through Roslyn code-fix composition."));
+
         registry.RegisterMutationTool<AddExplicitCastTool, FixedCompilerCodeFixRequest>(
             CreateMutationMetadata(
                 "add-explicit-cast",
@@ -73,6 +79,12 @@ internal static class BundledCodeActionToolRegistrar
                 "Declare As Nullable",
                 "Makes the declaration associated with a nullability compiler warning nullable through Roslyn code-fix composition."));
 
+        registry.RegisterMutationTool<DisambiguateSameVariableTool, FixedCompilerCodeFixRequest>(
+            CreateMutationMetadata(
+                "disambiguate-same-variable",
+                "Disambiguate Same Variable",
+                "Qualifies a member when an assignment or comparison incorrectly uses the same variable on both sides through Roslyn code-fix composition."));
+
         registry.RegisterMutationTool<ChangeIteratorReturnTypeTool, FixedCompilerCodeFixRequest>(
             CreateMutationMetadata(
                 "change-iterator-return-type",
@@ -103,17 +115,65 @@ internal static class BundledCodeActionToolRegistrar
                 "Make Member Required",
                 "Adds the required modifier to an uninitialised settable non-nullable member through Roslyn code-fix composition."));
 
+        registry.RegisterMutationTool<MakeMemberStaticTool, FixedCompilerCodeFixRequest>(
+            CreateMutationMetadata(
+                "make-member-static",
+                "Make Member Static",
+                "Adds the static modifier to an invalid instance member declared in a static type through Roslyn code-fix composition."));
+
+        registry.RegisterMutationTool<MakeMethodAsynchronousTool, MakeMethodAsynchronousRequest>(
+            CreateMutationMetadata(
+                "make-method-asynchronous",
+                "Make Method Asynchronous",
+                "Makes a method or anonymous function asynchronous using the explicitly selected return strategy through Roslyn code-fix composition."));
+
+        registry.RegisterMutationTool<MakeRefStructTool, FixedCompilerCodeFixRequest>(
+            CreateMutationMetadata(
+                "make-ref-struct",
+                "Make Ref Struct",
+                "Adds the ref modifier to a struct that contains a ref-like field through Roslyn code-fix composition."));
+
+        registry.RegisterMutationTool<MakeStatementAsynchronousTool, FixedCompilerCodeFixRequest>(
+            CreateMutationMetadata(
+                "make-statement-asynchronous",
+                "Make Statement Asynchronous",
+                "Adds await to a foreach or using statement that consumes an asynchronous resource through Roslyn code-fix composition."));
+
+        registry.RegisterMutationTool<MakeTypeAbstractTool, FixedCompilerCodeFixRequest>(
+            CreateMutationMetadata(
+                "make-type-abstract",
+                "Make Type Abstract",
+                "Adds the abstract modifier to a type that declares an abstract member through Roslyn code-fix composition."));
+
+        registry.RegisterMutationTool<MakeTypePartialTool, FixedCompilerCodeFixRequest>(
+            CreateMutationMetadata(
+                "make-type-partial",
+                "Make Type Partial",
+                "Adds the partial modifier to a type whose other declaration is partial through Roslyn code-fix composition."));
+
         registry.RegisterMutationTool<OrderModifiersTool, FixedCompilerCodeFixRequest>(
             CreateMutationMetadata(
                 "order-modifiers",
                 "Order Modifiers",
                 "Reorders declaration modifiers into a valid sequence through Roslyn code-fix composition."));
 
+        registry.RegisterMutationTool<PassCapturedVariablesAsArgumentsTool, FixedCompilerCodeFixRequest>(
+            CreateMutationMetadata(
+                "pass-captured-variables-as-arguments",
+                "Pass Captured Variables As Arguments",
+                "Passes captured variables as arguments to an invalid static local function through Roslyn code-fix composition."));
+
         registry.RegisterMutationTool<RemoveInKeywordTool, FixedCompilerCodeFixRequest>(
             CreateMutationMetadata(
                 "remove-in-keyword",
                 "Remove In Keyword",
                 "Removes an invalid in argument modifier through Roslyn code-fix composition."));
+
+        registry.RegisterMutationTool<RemoveDocumentationCommentNodeTool, FixedCompilerCodeFixRequest>(
+            CreateMutationMetadata(
+                "remove-documentation-comment-node",
+                "Remove Documentation Comment Node",
+                "Removes a duplicate or unmatched parameter documentation node through Roslyn code-fix composition."));
 
         registry.RegisterMutationTool<RemoveNewModifierTool, FixedCompilerCodeFixRequest>(
             CreateMutationMetadata(
@@ -145,6 +205,12 @@ internal static class BundledCodeActionToolRegistrar
                 "Transpose Record Keyword",
                 "Moves the record keyword into the valid position for a record struct declaration through Roslyn code-fix composition."));
 
+        registry.RegisterMutationTool<UnsealClassTool, FixedCompilerCodeFixRequest>(
+            CreateMutationMetadata(
+                "unseal-class",
+                "Unseal Class",
+                "Removes the sealed modifier from a base class that is inherited through Roslyn code-fix composition."));
+
         registry.RegisterMutationTool<UseExplicitArrayInExpressionTreeTool, FixedCompilerCodeFixRequest>(
             CreateMutationMetadata(
                 "use-explicit-array-in-expression-tree",
@@ -156,6 +222,12 @@ internal static class BundledCodeActionToolRegistrar
                 "use-explicit-type-for-const",
                 "Use Explicit Type For Const",
                 "Replaces var with the inferred explicit type in a constant declaration through Roslyn code-fix composition."));
+
+        registry.RegisterMutationTool<UseInterpolatedVerbatimStringTool, FixedCompilerCodeFixRequest>(
+            CreateMutationMetadata(
+                "use-interpolated-verbatim-string",
+                "Use Interpolated Verbatim String",
+                "Corrects the prefix order of an interpolated verbatim string for the configured language version through Roslyn code-fix composition."));
     }
 
     private static void RegisterInfrastructureTools(ICodeActionToolRegistry registry)

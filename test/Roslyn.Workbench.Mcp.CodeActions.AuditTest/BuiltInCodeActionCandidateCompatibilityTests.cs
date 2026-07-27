@@ -9,7 +9,7 @@ public sealed class BuiltInCodeActionCandidateCompatibilityTests
         var expectedProviderIds = BuiltInCodeFixProviderAssessment.ProviderIds
             .Where(static providerId =>
                 BuiltInCodeFixProviderAssessment.GetAuditStatus(providerId)
-                    == BuiltInCodeActionAuditStatus.PendingReplayValidation)
+                    is BuiltInCodeActionAuditStatus.PendingReplayValidation)
             .ToArray();
 
         var candidateProviderIds = BuiltInCodeActionAuditCases.CandidateCompatibilityCases
@@ -19,4 +19,5 @@ public sealed class BuiltInCodeActionCandidateCompatibilityTests
 
         candidateProviderIds.Should().BeEquivalentTo(expectedProviderIds);
     }
+
 }

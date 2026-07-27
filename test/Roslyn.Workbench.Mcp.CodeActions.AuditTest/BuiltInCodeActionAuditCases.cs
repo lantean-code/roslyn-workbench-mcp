@@ -659,6 +659,275 @@ internal static class BuiltInCodeActionAuditCases
         },
     ];
 
+    private static readonly IReadOnlyList<BuiltInCodeActionAuditCase> _promotedBatchOneCodeFixCompatibilityCases =
+    [
+        new()
+        {
+            ToolName = "make-statement-asynchronous",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.MakeStatementAsynchronous.CSharpMakeStatementAsynchronousCodeFixProvider",
+            SourceNote = "CandidateStatementAsynchronous synchronously enumerates an asynchronous sequence",
+            ExpectedDiagnosticId = "CS8414",
+            ExpectedChangedText = "await foreach (var value in values)",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument(
+                "CandidateLocalCodeFixes.cs",
+                "values",
+                occurrenceIndex: 1),
+        },
+        new()
+        {
+            ToolName = "make-statement-asynchronous",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.MakeStatementAsynchronous.CSharpMakeStatementAsynchronousCodeFixProvider",
+            SourceNote = "CandidateStatementAsynchronous synchronously disposes an asynchronous disposable",
+            ExpectedDiagnosticId = "CS8418",
+            ExpectedChangedText = "await using (resource)",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateLocalCodeFixes.cs", "using (resource)"),
+        },
+        new()
+        {
+            ToolName = "disambiguate-same-variable",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.DisambiguateSameVariable.CSharpDisambiguateSameVariableCodeFixProvider",
+            SourceNote = "CandidateSameVariable assigns a parameter to itself instead of the matching property",
+            ExpectedDiagnosticId = "CS1717",
+            ExpectedChangedText = "Value = value;",
+            UnexpectedChangedText = "value = value;",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateLocalCodeFixes.cs", "value = value"),
+        },
+        new()
+        {
+            ToolName = "disambiguate-same-variable",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.DisambiguateSameVariable.CSharpDisambiguateSameVariableCodeFixProvider",
+            SourceNote = "CandidateSameVariable compares a parameter with itself instead of the matching property",
+            ExpectedDiagnosticId = "CS1718",
+            ExpectedChangedText = "Value == value",
+            UnexpectedChangedText = "value == value",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateLocalCodeFixes.cs", "value == value"),
+        },
+        new()
+        {
+            ToolName = "add-documentation-comment-nodes",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.DocumentationComments.CSharpAddDocCommentNodesCodeFixProvider",
+            SourceNote = "CandidateDocumentationComments omits one parameter node from an existing parameter list",
+            ExpectedDiagnosticId = "CS1573",
+            ExpectedChangedText = "<param name=\"missing\"></param>",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateLocalCodeFixes.cs", "int missing"),
+        },
+        new()
+        {
+            ToolName = "remove-documentation-comment-node",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.DocumentationComments.CSharpRemoveDocCommentNodeCodeFixProvider",
+            SourceNote = "CandidateDocumentationComments contains a duplicate parameter node",
+            ExpectedDiagnosticId = "CS1571",
+            UnexpectedChangedText = "<param name=\"value\">The duplicate value.</param>",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument(
+                "CandidateLocalCodeFixes.cs",
+                "<param name=\"value\">The duplicate value.</param>"),
+        },
+        new()
+        {
+            ToolName = "remove-documentation-comment-node",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.DocumentationComments.CSharpRemoveDocCommentNodeCodeFixProvider",
+            SourceNote = "CandidateDocumentationComments contains an unmatched parameter node",
+            ExpectedDiagnosticId = "CS1572",
+            UnexpectedChangedText = "<param name=\"missing\">The missing value.</param>",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument(
+                "CandidateLocalCodeFixes.cs",
+                "<param name=\"missing\">The missing value.</param>"),
+        },
+        new()
+        {
+            ToolName = "remove-documentation-comment-node",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.DocumentationComments.CSharpRemoveDocCommentNodeCodeFixProvider",
+            SourceNote = "CandidateDuplicateTypeParameter contains a duplicate type-parameter node",
+            ExpectedDiagnosticId = "CS1710",
+            UnexpectedChangedText = "<typeparam name=\"T\">The duplicate value type.</typeparam>",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument(
+                "CandidateLocalCodeFixes.cs",
+                "<typeparam name=\"T\">The duplicate value type.</typeparam>"),
+        },
+        new()
+        {
+            ToolName = "pass-captured-variables-as-arguments",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.MakeLocalFunctionStatic.PassInCapturedVariablesAsArgumentsCodeFixProvider",
+            SourceNote = "CandidateCapturedLocalFunction captures a parameter from a static local function",
+            ExpectedDiagnosticId = "CS8421",
+            ExpectedChangedText = "static void LocalFunction(int captured)",
+            UnexpectedChangedText = "static void LocalFunction()",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateLocalCodeFixes.cs", "_ = captured;"),
+        },
+        new()
+        {
+            ToolName = "make-member-static",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.MakeMemberStatic.CSharpMakeMemberStaticCodeFixProvider",
+            SourceNote = "CandidateStaticType declares an instance method in a static type",
+            ExpectedDiagnosticId = "CS0708",
+            ExpectedChangedText = "internal static void MakeMemberStatic()",
+            UnexpectedChangedText = "internal void MakeMemberStatic()",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateLocalCodeFixes.cs", "MakeMemberStatic"),
+        },
+        new()
+        {
+            ToolName = "make-method-asynchronous",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.MakeMethodAsynchronous.CSharpMakeMethodAsynchronousCodeFixProvider",
+            SourceNote = "CandidateMethodAsynchronous awaits in a value-returning synchronous method",
+            ExpectedDiagnosticId = "CS4032",
+            ExpectedChangedText = "ReturnValueAsync()",
+            UnexpectedChangedText = "ReturnValue()",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument(
+                "CandidateLocalCodeFixes.cs",
+                "await System.Threading.Tasks.Task.Yield();",
+                occurrenceIndex: 1),
+        },
+        new()
+        {
+            ToolName = "make-method-asynchronous",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.MakeMethodAsynchronous.CSharpMakeMethodAsynchronousCodeFixProvider",
+            Title = "Make method async",
+            SourceNote = "CandidateMethodAsynchronous converts a void method to a task-returning async method",
+            ExpectedDiagnosticId = "CS4033",
+            ExpectedChangedText = "ReturnVoidAsync()",
+            UnexpectedChangedText = "ReturnVoid()",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument(
+                "CandidateLocalCodeFixes.cs",
+                "await System.Threading.Tasks.Task.Yield();",
+                occurrenceIndex: 2),
+        },
+        new()
+        {
+            ToolName = "make-method-asynchronous",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.MakeMethodAsynchronous.CSharpMakeMethodAsynchronousCodeFixProvider",
+            Title = "Make method async (stay void)",
+            SourceNote = "CandidateMethodAsynchronous retains void while making the method asynchronous",
+            ExpectedDiagnosticId = "CS4033",
+            ExpectedChangedText = "internal static async void ReturnVoid()",
+            UnexpectedChangedText = "internal static void ReturnVoid()",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument(
+                "CandidateLocalCodeFixes.cs",
+                "await System.Threading.Tasks.Task.Yield();",
+                occurrenceIndex: 2),
+        },
+        new()
+        {
+            ToolName = "make-method-asynchronous",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.MakeMethodAsynchronous.CSharpMakeMethodAsynchronousCodeFixProvider",
+            SourceNote = "CandidateMethodAsynchronous awaits in a synchronous anonymous function",
+            ExpectedDiagnosticId = "CS4034",
+            ExpectedChangedText = "System.Action action = async () =>",
+            UnexpectedChangedText = "System.Action action = () =>",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument(
+                "CandidateLocalCodeFixes.cs",
+                "await System.Threading.Tasks.Task.Yield();",
+                occurrenceIndex: 3),
+        },
+        new()
+        {
+            ToolName = "make-method-asynchronous",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.MakeMethodAsynchronous.CSharpMakeMethodAsynchronousCodeFixProvider",
+            SourceNote = "CandidateCSharp4 parses await as an identifier before async language support",
+            ExpectedDiagnosticId = "CS0246",
+            ExpectedChangedText = "MakeMethodAsynchronousAsync(Task operation)",
+            UnexpectedChangedText = "MakeMethodAsynchronous(Task operation)",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            FixtureFactory = static () => InspectionSampleFixture.Create(InspectionSampleProfile.CSharp4),
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCSharp4.cs", "await"),
+        },
+        new()
+        {
+            ToolName = "make-ref-struct",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.MakeRefStruct.MakeRefStructCodeFixProvider",
+            SourceNote = "CandidateRefStruct stores a span in a non-ref struct",
+            ExpectedDiagnosticId = "CS8345",
+            ExpectedChangedText = "internal ref struct CandidateRefStruct",
+            UnexpectedChangedText = "internal struct CandidateRefStruct",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateLocalCodeFixes.cs", "System.Span<int>"),
+        },
+        new()
+        {
+            ToolName = "make-type-abstract",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.MakeTypeAbstract.CSharpMakeTypeAbstractCodeFixProvider",
+            SourceNote = "CandidateAbstractType declares an abstract member in a non-abstract type",
+            ExpectedDiagnosticId = "CS0513",
+            ExpectedChangedText = "internal abstract class CandidateAbstractType",
+            UnexpectedChangedText = "internal class CandidateAbstractType",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateLocalCodeFixes.cs", "RequiredMember"),
+        },
+        new()
+        {
+            ToolName = "make-type-partial",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.MakeTypePartial.CSharpMakeTypePartialCodeFixProvider",
+            SourceNote = "CandidatePartialType has one declaration without the partial modifier",
+            ExpectedDiagnosticId = "CS0260",
+            ExpectedChangedText = "internal partial class CandidatePartialType",
+            UnexpectedChangedText = "internal class CandidatePartialType",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument(
+                "CandidateLocalCodeFixes.cs",
+                "CandidatePartialType",
+                occurrenceIndex: 1),
+        },
+        new()
+        {
+            ToolName = "unseal-class",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.UnsealClass.CSharpUnsealClassCodeFixProvider",
+            SourceNote = "CandidateSealedDerived inherits from a sealed base type",
+            ExpectedDiagnosticId = "CS0509",
+            ExpectedChangedText = "internal class CandidateSealedBase",
+            UnexpectedChangedText = "internal sealed class CandidateSealedBase",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            LocationFactory = static fixture => fixture.GetLocationInDocument(
+                "CandidateLocalCodeFixes.cs",
+                "CandidateSealedBase",
+                occurrenceIndex: 1),
+        },
+        new()
+        {
+            ToolName = "use-interpolated-verbatim-string",
+            Kind = BuiltInCodeActionAuditKind.CodeFix,
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.UseInterpolatedVerbatimString.CSharpUseInterpolatedVerbatimStringCodeFixProvider",
+            SourceNote = "CandidateCSharp73 uses the C# 8 interpolated-verbatim prefix order",
+            ExpectedDiagnosticId = "CS8401",
+            ExpectedChangedText = "return $@\"{value}\";",
+            UnexpectedChangedText = "return @$\"{value}\";",
+            ExpectedRuntimeOutcome = BuiltInCodeActionRuntimeAuditOutcome.OfferedAndReplayable,
+            FixtureFactory = static () => InspectionSampleFixture.Create(InspectionSampleProfile.CSharp73),
+            LocationFactory = static fixture => fixture.GetLocationInDocument("CandidateCSharp73.cs", "@$\"{value}\""),
+        },
+    ];
+
     public static IReadOnlyList<BuiltInCodeActionAuditCase> CandidateCompatibilityCases { get; } = CreateCandidateCompatibilityCases();
 
     public static IReadOnlyList<BuiltInCodeActionAuditCase> SupportedCompatibilityCases { get; } =
@@ -666,6 +935,7 @@ internal static class BuiltInCodeActionAuditCases
         .. _validatedCodeFixCompatibilityCases,
         .. _additionalValidatedCodeFixCompatibilityCases,
         .. _promotedCodeFixCompatibilityCases,
+        .. _promotedBatchOneCodeFixCompatibilityCases,
         new()
         {
             ToolName = "add-constructor-parameters",
@@ -1268,7 +1538,7 @@ internal static class BuiltInCodeActionAuditCases
         foreach (var providerId in BuiltInCodeFixProviderAssessment.ProviderIds)
         {
             var auditStatus = BuiltInCodeFixProviderAssessment.GetAuditStatus(providerId);
-            if (auditStatus != BuiltInCodeActionAuditStatus.PendingReplayValidation)
+            if (auditStatus is not BuiltInCodeActionAuditStatus.PendingReplayValidation)
             {
                 continue;
             }

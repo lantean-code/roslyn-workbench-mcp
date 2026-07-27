@@ -7,15 +7,17 @@ public sealed class BuiltInCodeActionRefactoringCompatibilityTests
     [MemberData(nameof(GetSupportedRefactoringProviderIds))]
     public async Task GIVEN_SupportedRefactoring_WHEN_ProbingRuntime_THEN_ShouldRemainVisibleAndReplayable(
         string providerId,
-        string? diagnosticId)
+        string? diagnosticId,
+        string? title)
     {
         await BuiltInCodeActionCompatibilityAssertion.VerifyAsync(
             providerId,
             diagnosticId,
+            title,
             requireSingleMatchingAction: false);
     }
 
-    public static TheoryData<string, string?> GetSupportedRefactoringProviderIds()
+    public static TheoryData<string, string?, string?> GetSupportedRefactoringProviderIds()
     {
         return BuiltInCodeActionCompatibilityAssertion.GetProviderIds(BuiltInCodeActionAuditKind.Refactoring);
     }
@@ -28,15 +30,17 @@ public sealed class BuiltInCodeActionCodeFixCompatibilityTests
     [MemberData(nameof(GetSupportedCodeFixProviderIds))]
     public async Task GIVEN_SupportedCodeFix_WHEN_ProbingRuntime_THEN_ShouldRemainVisibleAndReplayable(
         string providerId,
-        string? diagnosticId)
+        string? diagnosticId,
+        string? title)
     {
         await BuiltInCodeActionCompatibilityAssertion.VerifyAsync(
             providerId,
             diagnosticId,
+            title,
             requireSingleMatchingAction: true);
     }
 
-    public static TheoryData<string, string?> GetSupportedCodeFixProviderIds()
+    public static TheoryData<string, string?, string?> GetSupportedCodeFixProviderIds()
     {
         return BuiltInCodeActionCompatibilityAssertion.GetProviderIds(BuiltInCodeActionAuditKind.CodeFix);
     }
@@ -44,13 +48,13 @@ public sealed class BuiltInCodeActionCodeFixCompatibilityTests
 
 internal static class BuiltInCodeActionCompatibilityAssertion
 {
-    internal static TheoryData<string, string?> GetProviderIds(BuiltInCodeActionAuditKind kind)
+    internal static TheoryData<string, string?, string?> GetProviderIds(BuiltInCodeActionAuditKind kind)
     {
-        var data = new TheoryData<string, string?>();
+        var data = new TheoryData<string, string?, string?>();
 
         foreach (var auditCase in BuiltInCodeActionAuditCases.SupportedCompatibilityCases.Where(item => item.Kind == kind))
         {
-            data.Add(auditCase.ProviderId, auditCase.ExpectedDiagnosticId);
+            data.Add(auditCase.ProviderId, auditCase.ExpectedDiagnosticId, auditCase.Title);
         }
 
         return data;
@@ -59,11 +63,13 @@ internal static class BuiltInCodeActionCompatibilityAssertion
     internal static async Task VerifyAsync(
         string providerId,
         string? diagnosticId,
+        string? title,
         bool requireSingleMatchingAction)
     {
         var auditCase = BuiltInCodeActionAuditCases.SupportedCompatibilityCases.Single(
             item => item.ProviderId == providerId
-                && item.ExpectedDiagnosticId == diagnosticId);
+                && item.ExpectedDiagnosticId == diagnosticId
+                && item.Title == title);
 
         var probe = await BuiltInCodeActionAuditHarness.ProbeAsync(auditCase);
 

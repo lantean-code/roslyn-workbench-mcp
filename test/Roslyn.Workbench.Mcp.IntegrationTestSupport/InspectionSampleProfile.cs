@@ -6,6 +6,8 @@ public enum InspectionSampleProfile
     NullableDisabled,
     AutoProperties,
     BlockScopedNamespaces,
+    CSharp4,
+    CSharp73,
     TopLevelToProgramMainRefactoring,
     ProgramMainToTopLevelRefactoring,
     TopLevelToProgramMainCodeFix,

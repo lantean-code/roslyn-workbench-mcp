@@ -2,6 +2,9 @@ namespace Roslyn.Workbench.Mcp.AcceptanceTest;
 
 internal static class CodeActionAcceptanceCases
 {
+    private const int _returnTaskStrategy = 0;
+    private const int _stayVoidStrategy = 1;
+
     public static IReadOnlyList<CodeActionAcceptanceCase> Create(string workspaceRoot)
     {
         var locations = new AcceptanceLocationSelectorFactory(workspaceRoot);
@@ -12,6 +15,40 @@ internal static class CodeActionAcceptanceCases
         AddCustomWorkflowCases(cases, locations);
 
         return cases;
+    }
+
+    public static IReadOnlyList<CodeActionAcceptanceCase> CreateCSharp4(string workspaceRoot)
+    {
+        const string documentPath = "CandidateCSharp4.cs";
+
+        var locations = new AcceptanceLocationSelectorFactory(workspaceRoot);
+        return
+        [
+            CreateCompilerCodeFixCase(
+                "make-method-asynchronous",
+                "CS0246",
+                "location",
+                locations.CreateLocation(documentPath, "await"),
+                documentPath,
+                "ReturnTask",
+                ("strategy", _returnTaskStrategy)),
+        ];
+    }
+
+    public static IReadOnlyList<CodeActionAcceptanceCase> CreateCSharp73(string workspaceRoot)
+    {
+        const string documentPath = "CandidateCSharp73.cs";
+
+        var locations = new AcceptanceLocationSelectorFactory(workspaceRoot);
+        return
+        [
+            CreateCompilerCodeFixCase(
+                "use-interpolated-verbatim-string",
+                "CS8401",
+                "location",
+                locations.CreateLocation(documentPath, "@$\"{value}\""),
+                documentPath),
+        ];
     }
 
     private static void AddCompilerCodeFixCases(
@@ -242,6 +279,161 @@ internal static class CodeActionAcceptanceCases
             "CS0822",
             "location",
             locations.CreateLocation(documentPath, "const var"),
+            documentPath));
+
+        AddPromotedCompilerCodeFixCases(cases, locations);
+    }
+
+    private static void AddPromotedCompilerCodeFixCases(
+        List<CodeActionAcceptanceCase> cases,
+        AcceptanceLocationSelectorFactory locations)
+    {
+        const string documentPath = "CandidateLocalCodeFixes.cs";
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "make-statement-asynchronous",
+            "CS8414",
+            "location",
+            locations.CreateLocation(documentPath, "values", occurrenceIndex: 1),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "make-statement-asynchronous",
+            "CS8418",
+            "location",
+            locations.CreateLocation(documentPath, "using (resource)"),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "disambiguate-same-variable",
+            "CS1717",
+            "location",
+            locations.CreateLocation(documentPath, "value = value"),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "disambiguate-same-variable",
+            "CS1718",
+            "location",
+            locations.CreateLocation(documentPath, "value == value"),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "add-documentation-comment-nodes",
+            "CS1573",
+            "location",
+            locations.CreateLocation(documentPath, "int missing"),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "remove-documentation-comment-node",
+            "CS1571",
+            "location",
+            locations.CreateLocation(documentPath, "<param name=\"value\">The duplicate value.</param>"),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "remove-documentation-comment-node",
+            "CS1572",
+            "location",
+            locations.CreateLocation(documentPath, "<param name=\"missing\">The missing value.</param>"),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "remove-documentation-comment-node",
+            "CS1710",
+            "location",
+            locations.CreateLocation(documentPath, "<typeparam name=\"T\">The duplicate value type.</typeparam>"),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "pass-captured-variables-as-arguments",
+            "CS8421",
+            "location",
+            locations.CreateLocation(documentPath, "_ = captured;"),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "make-member-static",
+            "CS0708",
+            "location",
+            locations.CreateLocation(documentPath, "MakeMemberStatic"),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "make-method-asynchronous",
+            "CS4032",
+            "location",
+            locations.CreateLocation(
+                documentPath,
+                "await System.Threading.Tasks.Task.Yield();",
+                occurrenceIndex: 1),
+            documentPath,
+            "ReturnTask",
+            ("strategy", _returnTaskStrategy)));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "make-method-asynchronous",
+            "CS4033",
+            "location",
+            locations.CreateLocation(
+                documentPath,
+                "await System.Threading.Tasks.Task.Yield();",
+                occurrenceIndex: 2),
+            documentPath,
+            "ReturnTask",
+            ("strategy", _returnTaskStrategy)));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "make-method-asynchronous",
+            "CS4033",
+            "location",
+            locations.CreateLocation(
+                documentPath,
+                "await System.Threading.Tasks.Task.Yield();",
+                occurrenceIndex: 2),
+            documentPath,
+            "StayVoid",
+            ("strategy", _stayVoidStrategy)));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "make-method-asynchronous",
+            "CS4034",
+            "location",
+            locations.CreateLocation(
+                documentPath,
+                "await System.Threading.Tasks.Task.Yield();",
+                occurrenceIndex: 3),
+            documentPath,
+            "ReturnTask",
+            ("strategy", _returnTaskStrategy)));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "make-ref-struct",
+            "CS8345",
+            "location",
+            locations.CreateLocation(documentPath, "System.Span<int>"),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "make-type-abstract",
+            "CS0513",
+            "location",
+            locations.CreateLocation(documentPath, "RequiredMember"),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "make-type-partial",
+            "CS0260",
+            "location",
+            locations.CreateLocation(documentPath, "CandidatePartialType", occurrenceIndex: 1),
+            documentPath));
+
+        cases.Add(CreateCompilerCodeFixCase(
+            "unseal-class",
+            "CS0509",
+            "location",
+            locations.CreateLocation(documentPath, "CandidateSealedBase", occurrenceIndex: 1),
             documentPath));
     }
 
@@ -662,18 +854,26 @@ internal static class CodeActionAcceptanceCases
         string diagnosticId,
         string targetName,
         Dictionary<string, object?> target,
-        string expectedDocumentPath)
+        string expectedDocumentPath,
+        string? variant = null,
+        params (string Name, object? Value)[] additionalArguments)
     {
         var arguments = new Dictionary<string, object?>
         {
             [targetName] = target,
         };
 
+        foreach (var (name, value) in additionalArguments)
+        {
+            arguments.Add(name, value);
+        }
+
         return new CodeActionAcceptanceCase(
             toolName,
             arguments,
             [expectedDocumentPath],
-            diagnosticId);
+            diagnosticId,
+            variant);
     }
 
     private static Dictionary<string, object?> CreateDocumentScope(string documentPath)

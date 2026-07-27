@@ -111,8 +111,8 @@ public sealed class BuiltInCodeActionInventoryTests
             static assessment => assessment.Status == BuiltInCodeActionAuditStatus.Excluded);
 
         assessments.Should().HaveCount(151);
-        pendingReplayValidationCount.Should().Be(25);
-        validatedSupportedCount.Should().Be(22);
+        pendingReplayValidationCount.Should().Be(13);
+        validatedSupportedCount.Should().Be(34);
         requiresBuiltInDiagnosticSupportCount.Should().Be(94);
         coveredByDedicatedToolCount.Should().Be(8);
         excludedCount.Should().Be(2);
@@ -137,7 +137,9 @@ public sealed class BuiltInCodeActionInventoryTests
                 var family = BuiltInCodeActionLedger.Families.Single(
                     candidate => candidate.ProviderId == assessment.ProviderId);
 
-                family.ExecutionMode.Should().Be(CodeActionExecutionMode.Replay);
+                family.ExecutionMode.Should().BeOneOf(
+                    CodeActionExecutionMode.Replay,
+                    CodeActionExecutionMode.Parameterised);
                 family.ToolName.Should().NotBeNullOrWhiteSpace();
             }
 

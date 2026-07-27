@@ -616,6 +616,90 @@ internal static class BuiltInCodeActionLedger
             ToolName = "replace-property-with-methods",
             ExecutionMode = CodeActionExecutionMode.Replay,
         },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.CodeFixes.MakeStatementAsynchronous.CSharpMakeStatementAsynchronousCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "make-statement-asynchronous",
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.DisambiguateSameVariable.CSharpDisambiguateSameVariableCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "disambiguate-same-variable",
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.DocumentationComments.CSharpAddDocCommentNodesCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "add-documentation-comment-nodes",
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.DocumentationComments.CSharpRemoveDocCommentNodeCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "remove-documentation-comment-node",
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.MakeLocalFunctionStatic.PassInCapturedVariablesAsArgumentsCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "pass-captured-variables-as-arguments",
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.MakeMemberStatic.CSharpMakeMemberStaticCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "make-member-static",
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.MakeMethodAsynchronous.CSharpMakeMethodAsynchronousCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "make-method-asynchronous",
+            ExecutionMode = CodeActionExecutionMode.Parameterised,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.MakeRefStruct.MakeRefStructCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "make-ref-struct",
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.MakeTypeAbstract.CSharpMakeTypeAbstractCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "make-type-abstract",
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.MakeTypePartial.CSharpMakeTypePartialCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "make-type-partial",
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.UnsealClass.CSharpUnsealClassCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "unseal-class",
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
+        new()
+        {
+            ProviderId = "Microsoft.CodeAnalysis.CSharp.UseInterpolatedVerbatimString.CSharpUseInterpolatedVerbatimStringCodeFixProvider",
+            Kind = BuiltInCodeActionFamilyKind.CodeFix,
+            ToolName = "use-interpolated-verbatim-string",
+            ExecutionMode = CodeActionExecutionMode.Replay,
+        },
     ];
 
     public static IReadOnlyList<BuiltInCodeActionFamily> Families => _families;

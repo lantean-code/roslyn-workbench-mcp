@@ -43,6 +43,14 @@
       <Link>TestAssets\Workspaces\InspectionSample\Base\%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="..\TestAssets\Workspaces\InspectionSample\Profiles\CSharp4\**\*">
+      <Link>TestAssets\Workspaces\InspectionSample\Profiles\CSharp4\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\TestAssets\Workspaces\InspectionSample\Profiles\CSharp73\**\*">
+      <Link>TestAssets\Workspaces\InspectionSample\Profiles\CSharp73\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="..\TestAssets\Workspaces\SolutionHierarchy\**\*">
       <Link>TestAssets\Workspaces\SolutionHierarchy\%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

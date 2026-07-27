@@ -189,7 +189,11 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
     public string CopyWorkspaceAsset(AcceptanceWorkspaceAsset workspaceAsset, string directoryName)
     {
         var destinationDirectory = Path.Combine(ScenarioRoot, "workspaces", directoryName);
-        CopyDirectory(GetWorkspaceAssetPath(workspaceAsset), destinationDirectory);
+        foreach (var sourceDirectory in GetWorkspaceAssetPaths(workspaceAsset))
+        {
+            CopyDirectory(sourceDirectory, destinationDirectory, overwrite: true);
+        }
+
         return destinationDirectory;
     }
 
@@ -317,9 +321,10 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
 
         if (workspaceAsset is not null)
         {
-            CopyDirectory(
-                GetWorkspaceAssetPath(workspaceAsset.Value),
-                target.WorkspaceRoot);
+            foreach (var sourceDirectory in GetWorkspaceAssetPaths(workspaceAsset.Value))
+            {
+                CopyDirectory(sourceDirectory, target.WorkspaceRoot, overwrite: true);
+            }
         }
 
         if (pluginAssets is not null)
@@ -385,20 +390,32 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         }
     }
 
-    private static string GetWorkspaceAssetPath(AcceptanceWorkspaceAsset workspaceAsset)
+    private static string[] GetWorkspaceAssetPaths(AcceptanceWorkspaceAsset workspaceAsset)
     {
-        var assetDirectory = workspaceAsset switch
+        string[] assetDirectories = workspaceAsset switch
         {
-            AcceptanceWorkspaceAsset.SdkProject => "SdkProject",
-            AcceptanceWorkspaceAsset.InspectionSample => Path.Combine("InspectionSample", "Base"),
-            AcceptanceWorkspaceAsset.SolutionHierarchy => "SolutionHierarchy",
-            AcceptanceWorkspaceAsset.MixedSolution => Path.Combine("CompatibilitySamples", "MixedSolution"),
-            AcceptanceWorkspaceAsset.MultiTargetLinked => "MultiTargetLinked",
-            AcceptanceWorkspaceAsset.MalformedSdkProject => Path.Combine("CompatibilitySamples", "MalformedSdkProject"),
+            AcceptanceWorkspaceAsset.SdkProject => ["SdkProject"],
+            AcceptanceWorkspaceAsset.InspectionSample => [Path.Combine("InspectionSample", "Base")],
+            AcceptanceWorkspaceAsset.InspectionSampleCSharp4 =>
+            [
+                Path.Combine("InspectionSample", "Base"),
+                Path.Combine("InspectionSample", "Profiles", "CSharp4"),
+            ],
+            AcceptanceWorkspaceAsset.InspectionSampleCSharp73 =>
+            [
+                Path.Combine("InspectionSample", "Base"),
+                Path.Combine("InspectionSample", "Profiles", "CSharp73"),
+            ],
+            AcceptanceWorkspaceAsset.SolutionHierarchy => ["SolutionHierarchy"],
+            AcceptanceWorkspaceAsset.MixedSolution => [Path.Combine("CompatibilitySamples", "MixedSolution")],
+            AcceptanceWorkspaceAsset.MultiTargetLinked => ["MultiTargetLinked"],
+            AcceptanceWorkspaceAsset.MalformedSdkProject => [Path.Combine("CompatibilitySamples", "MalformedSdkProject")],
             _ => throw new ArgumentOutOfRangeException(nameof(workspaceAsset), workspaceAsset, "Unknown acceptance workspace asset."),
         };
 
-        return Path.Combine(AppContext.BaseDirectory, "TestAssets", "Workspaces", assetDirectory);
+        return assetDirectories
+            .Select(assetDirectory => Path.Combine(AppContext.BaseDirectory, "TestAssets", "Workspaces", assetDirectory))
+            .ToArray();
     }
 
     private static string GetPluginAssetPath(AcceptancePluginAsset pluginAsset)
@@ -438,14 +455,14 @@ internal sealed class AcceptanceProcessFixture : IAsyncDisposable
         return timeoutSource;
     }
 
-    private static void CopyDirectory(string sourceDirectory, string destinationDirectory)
+    private static void CopyDirectory(string sourceDirectory, string destinationDirectory, bool overwrite = false)
     {
         foreach (var sourcePath in Directory.EnumerateFiles(sourceDirectory, "*", SearchOption.AllDirectories))
         {
             var relativePath = Path.GetRelativePath(sourceDirectory, sourcePath);
             var destinationPath = Path.Combine(destinationDirectory, relativePath);
             Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
-            File.Copy(sourcePath, destinationPath);
+            File.Copy(sourcePath, destinationPath, overwrite);
         }
     }
 

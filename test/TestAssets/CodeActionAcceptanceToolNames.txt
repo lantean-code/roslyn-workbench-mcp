@@ -3,6 +3,7 @@ add-await
 add-conditional-interpolation-parentheses
 add-constructor-parameters
 add-debugger-display
+add-documentation-comment-nodes
 add-explicit-cast
 add-import
 add-inheritdoc
@@ -30,6 +31,7 @@ convert-to-interpolated-string
 convert-to-record
 convert-try-cast-to-direct-cast
 declare-as-nullable
+disambiguate-same-variable
 encapsulate-field
 extract-method
 fix-incorrect-constraint
@@ -46,11 +48,19 @@ invert-if
 invert-logical
 make-local-function-static
 make-member-required
+make-member-static
+make-method-asynchronous
+make-ref-struct
+make-statement-asynchronous
+make-type-abstract
+make-type-partial
 move-declaration-near-reference
 move-type-to-file
 name-tuple-element
 order-modifiers
 organize-imports
+pass-captured-variables-as-arguments
+remove-documentation-comment-node
 remove-in-keyword
 remove-new-modifier
 remove-unused-local-function
@@ -62,9 +72,11 @@ replace-method-with-property
 replace-property-with-methods
 reverse-for-statement
 transpose-record-keyword
+unseal-class
 use-explicit-array-in-expression-tree
 use-explicit-type
 use-explicit-type-for-const
 use-implicit-type
+use-interpolated-verbatim-string
 use-named-arguments
 use-recursive-patterns

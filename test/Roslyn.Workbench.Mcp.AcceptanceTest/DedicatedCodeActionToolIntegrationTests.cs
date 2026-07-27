@@ -5,14 +5,38 @@ public sealed class DedicatedCodeActionToolIntegrationTests
     [Fact]
     public async Task GIVEN_PublishedDedicatedCodeActionTools_WHEN_ExecutingEveryAcceptanceCase_THEN_ShouldStagePreviewAndRollback()
     {
+        var completedCases = new List<CodeActionAcceptanceCase>();
+
+        await ExecuteWorkspaceCasesAsync(
+            AcceptanceWorkspaceAsset.InspectionSample,
+            CodeActionAcceptanceCases.Create,
+            completedCases);
+
+        await ExecuteWorkspaceCasesAsync(
+            AcceptanceWorkspaceAsset.InspectionSampleCSharp4,
+            CodeActionAcceptanceCases.CreateCSharp4,
+            completedCases);
+
+        await ExecuteWorkspaceCasesAsync(
+            AcceptanceWorkspaceAsset.InspectionSampleCSharp73,
+            CodeActionAcceptanceCases.CreateCSharp73,
+            completedCases);
+
+        AssertCompleteCoverage(completedCases);
+    }
+
+    private static async Task ExecuteWorkspaceCasesAsync(
+        AcceptanceWorkspaceAsset workspaceAsset,
+        Func<string, IReadOnlyList<CodeActionAcceptanceCase>> createCases,
+        List<CodeActionAcceptanceCase> completedCases)
+    {
         await using var target = await AcceptanceProcessFixture.StartPublishedHostAsync(
             TestContext.Current.CancellationToken,
-            AcceptanceWorkspaceAsset.InspectionSample);
+            workspaceAsset);
 
         try
         {
-            var testCases = CodeActionAcceptanceCases.Create(target.WorkspaceRoot);
-            AssertCompleteCoverage(testCases);
+            var testCases = createCases(target.WorkspaceRoot);
             await AssertPublishedAsync(target, testCases);
 
             var projectPath = Path.Combine(target.WorkspaceRoot, "Sample.csproj");
@@ -40,6 +64,8 @@ public sealed class DedicatedCodeActionToolIntegrationTests
                     target.WorkspaceRoot,
                     testCase,
                     originalDocuments);
+
+                completedCases.Add(testCase);
             }
         }
         catch
@@ -75,8 +101,12 @@ public sealed class DedicatedCodeActionToolIntegrationTests
             ["add-obsolete-attribute"] = ["CS0612", "CS0618", "CS0672", "CS1062", "CS1064"],
             ["add-yield"] = ["CS0029", "CS0266"],
             ["declare-as-nullable"] = ["CS8600", "CS8603", "CS8618", "CS8625"],
+            ["disambiguate-same-variable"] = ["CS1717", "CS1718"],
             ["fix-incorrect-constraint"] = ["CS9010", "CS9011"],
             ["fix-return-type"] = ["CS0127", "CS0201", "CS1997"],
+            ["make-method-asynchronous"] = ["CS0246", "CS4032", "CS4033", "CS4033", "CS4034"],
+            ["make-statement-asynchronous"] = ["CS8414", "CS8418"],
+            ["remove-documentation-comment-node"] = ["CS1571", "CS1572", "CS1710"],
         };
 
         foreach (var (toolName, expectedDiagnosticIds) in expectedDiagnosticIdsByTool)

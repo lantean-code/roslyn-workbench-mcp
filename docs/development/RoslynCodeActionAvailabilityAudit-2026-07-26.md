@@ -8,6 +8,8 @@ The audit distinguishes between a limitation of the current Workbench discovery 
 
 This began as an availability and planning audit. It now also records the compatibility evidence and promotion status of the low-risk providers implemented from its findings.
 
+The exhaustive provider-by-provider execution classification is recorded in [Roslyn Code Action Source Analysis — 2026-07-27](RoslynCodeActionSourceAnalysis-2026-07-27.md).
+
 ## Evidence and Scope
 
 The repository references `Microsoft.CodeAnalysis.Features` and `Microsoft.CodeAnalysis.CSharp.Features` 5.6.0. Their NuGet metadata and SourceLink information identify Roslyn commit [`c0573ed0a7dc3e3b4d2e70da47f97cc51a35524f`](https://github.com/dotnet/roslyn/tree/c0573ed0a7dc3e3b4d2e70da47f97cc51a35524f).

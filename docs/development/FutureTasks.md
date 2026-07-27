@@ -41,6 +41,16 @@ Implement the dependency-ordered batches defined by the [Pre-release Readiness A
 
 Do not begin artifact publication until the audit has no unresolved release-blocking findings. Development records may remain under `docs/development`, but release-facing documentation and package content must describe only supported behaviour.
 
+### Rebuild Code Actions around generic discovery and replay
+
+**Status:** Started
+
+Replace the positive supported-provider ledger and dedicated Code Action tool surface with generic Roslyn discovery, an exception-based runtime policy, built-in diagnostic activation, document and selection discovery, concise agent-facing results, prepared Fix All references and one unified staging path.
+
+Implement the dependency-ordered batches in the [Code Action Architecture Plan](CodeActionArchitecturePlan-2026-07-27.md). Preserve MEF composition, replay recipes, operation validation and Workspace transaction staging while removing dedicated ordinary replay tools, descriptor execution modes and alternative Code Action stagers. Keep Workbench-owned semantic transformations in Plugins.Core.
+
+Complete the accompanying documentation cleanup so release documentation describes only `list-code-actions`, `prepare-fix-all` and `stage-code-action`, and no active document presents the superseded positive catalogue as current behaviour.
+
 ### Prepare and publish the v1 release artifacts
 
 **Status:** Not started
@@ -138,43 +148,6 @@ Source: [IntegrationTestingImplementationPlan.md](IntegrationTestingImplementati
 Upgrade the acceptance client, remove the short forced-cleanup fallback and make ordinary fixture disposal prove graceful Host shutdown. Retain the direct stdin-EOF acceptance case as explicit protocol-lifetime coverage.
 
 Source: [IntegrationTestingStage2Results.md](IntegrationTestingStage2Results.md)
-
-### Resolve unavailable Code Action families after the availability reassessment
-
-**Status:** Started
-
-The 2026-07-26 audit found that the previous “blocked by Roslyn APIs” classification combined ready replay providers, mixed providers, public-API implementation opportunities, high-complexity custom refactorings and intentional product exclusions. The runtime-backed inventory guard then found and classified 151 additional composed C# code-fix providers that the source-based audit had not assessed.
-
-Complete the follow-up work in dependency order:
-
-1. Complete — add a provider-inventory check over the actual composed C# runtime providers, including language-neutral Core providers. The pinned composition currently contains 81 refactoring providers and 169 code-fix providers.
-2. Complete — classify the 151 newly inventoried providers as 47 compiler-backed replay candidates, 94 requiring built-in diagnostic support, eight covered by existing tools and two excluded project-setting mutations. No additional option-backed providers were found.
-3. Started — thirty-four compiler-backed code-fix providers are now published through thirty-three dedicated tools, alongside six validated ordinary refactorings. Diagnostic-specific validation is complete for all 27 advertised IDs across the current multi-diagnostic tools, with independent replay and published-host acceptance evidence. Precise locations provide occurrence disambiguation, while `make-method-asynchronous` requires an explicit `ReturnTask` or `StayVoid` strategy for its two `CS4033` actions. Broad `list-code-actions` queries return the precise location for every action and bind each opaque reference to that target, allowing otherwise-identical fixes at different occurrences to be staged independently by GUID. Apply the same promotion gate to all future multi-diagnostic Code Actions. Thirteen compiler-backed candidates still require compatibility fixtures. `organize-imports` has replaced the narrower `sort-usings`; the distinct add-import, add-missing-usings and remove-unused-usings operations remain published.
-4. Decide whether to add bounded built-in analyser activation and diagnostic mapping for the 94 IDE-diagnostic providers.
-5. Add production action-level capability classification, then validate the safe leaves of `GenerateConstructorFromMembers`, `GenerateEqualsAndGetHashCodeFromMembers` and `GenerateType`.
-6. Design the high-value public-API simplification workflow before considering custom generation and solution-wide semantic refactorings.
-
-Keep project/package mutation, editor rename tracking and Copilot-backed providers excluded. Keep move-to-namespace, pull-member-up, move-static-members, extraction, change-signature and convert-to-async outside the pre-v1 critical path unless product priority changes.
-
-Source: [RoslynCodeActionAvailabilityAudit-2026-07-26.md](RoslynCodeActionAvailabilityAudit-2026-07-26.md)
-
-### Reassess the published Code Action tool surface
-
-**Status:** Conditional
-
-**Trigger:** The planned pre-v1 Code Action availability audit and promotion work is complete, and the resulting catalogue creates a measured context-cost or discoverability problem.
-
-Do not consolidate the published Code Action tools while the supported action inventory and its request shapes are still changing. The 2026-07-27 published-Host acceptance baseline contains 138 tools and a 227,417-byte UTF-8 `tools/list` result. Its 87 Code Action tools account for 143,590 bytes; the 82 dedicated Code Action tools account for 137,807 bytes; and the 31 `FixedCompilerCodeFixTool` derivatives account for 51,947 bytes. These values measure the MCP result payload, not the model-context representation chosen by a particular client.
-
-When the trigger occurs:
-
-1. Re-run the catalogue-size acceptance measurement against the completed supported inventory.
-2. Classify actions by execution and request shape. Keep parameterised actions dedicated where their inputs genuinely differ; treat code-fix, refactoring and conversion families as discovery metadata rather than automatic tool boundaries.
-3. Produce a temporary publication-filter prototype that retains all internal implementations but advertises only the proposed reduced Code Action surface.
-4. Compare the current and filtered publications in fresh, otherwise identical Codex tasks using the same minimal prompt. Use a small number of paired runs only as a directional estimate because model behaviour and context accounting are not deterministic enough for statistical significance.
-5. Consolidate only when the client-visible saving is consistently material or the reduced surface demonstrably improves discovery. Do not change the server-owned or plugin tool surfaces as part of this decision.
-
-Source: [PublishedToolCatalogueSizeIntegrationTests.cs](../../test/Roslyn.Workbench.Mcp.AcceptanceTest/PublishedToolCatalogueSizeIntegrationTests.cs)
 
 ### Support additional MEF plugin module assemblies
 

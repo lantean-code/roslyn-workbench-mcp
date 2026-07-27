@@ -310,7 +310,7 @@ Consolidate or remove:
 The production ledger remains authoritative:
 
 - supported entries are protected by the compatibility matrix
-- impossible entries and their reasons remain documented in `RoslynCodeActionsAudit.md`
+- exceptional providers and their reasons remain documented in `RoslynCodeActionSourceAnalysis-2026-07-27.md`
 - broad provider rediscovery is a deliberate maintenance activity during Roslyn upgrades, not a recurring test
 
 Success criteria:

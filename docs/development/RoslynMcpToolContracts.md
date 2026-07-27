@@ -2,7 +2,7 @@
 
 > **Engineering record:** This catalogue guided contract implementation and includes aspirational or historical entries. It is not the release inventory for a running server. MCP `tools/list` is authoritative for the current process; see [Tool discovery](../ToolDiscovery.md).
 >
-> **Availability reassessment:** The “not planned while Roslyn APIs are unavailable” decisions below are superseded by [RoslynCodeActionAvailabilityAudit-2026-07-26.md](RoslynCodeActionAvailabilityAudit-2026-07-26.md), which distinguishes replay candidates, mixed providers, public-API implementations, custom semantic implementations and intentional exclusions.
+> **Code Action reassessment:** The “not planned while Roslyn APIs are unavailable” decisions below are superseded by the [Code Action Architecture Plan](CodeActionArchitecturePlan-2026-07-27.md). The supporting provider evidence is retained in the [Roslyn Code Action Source Analysis](RoslynCodeActionSourceAnalysis-2026-07-27.md).
 
 ## Purpose
 

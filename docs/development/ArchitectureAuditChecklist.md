@@ -30,7 +30,7 @@ Host -> Plugins -> Workspace
 
 The former production Contracts project has been removed. Contracts now live with their owner: Code Actions in CodeActions, inspection DTOs in Plugins.Core, Workspace domain models in Workspace, plugin metadata/results in Plugins, and MCP protocol/lifecycle contracts in Host.
 
-The CodeActions follow-up is complete in [CodeActionsArchitectureValidation.md](CodeActionsArchitectureValidation.md). The remaining Host work is maintained, in implementation order, in [HostArchitectureValidation.md](HostArchitectureValidation.md).
+The completed CodeActions follow-up record has been superseded by the [Code Action Architecture Plan](CodeActionArchitecturePlan-2026-07-27.md), which is the sole active authority for the replacement architecture. The remaining Host work is maintained, in implementation order, in [HostArchitectureValidation.md](HostArchitectureValidation.md).
 
 ## P1: High Priority
 

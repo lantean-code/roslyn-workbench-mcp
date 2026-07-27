@@ -15,7 +15,7 @@ The initial inventory identified these actionable inconsistencies:
 - the root README contains a development-only `Next` note about nullable Code Action selections;
 - the Plugins package README links to a diagnostics document that is not included in the package and does not use a durable public URL;
 - the Workspace support package uses the Plugins authoring guide as its package README even though it is not the author-facing package;
-- the Code Action audit workflow still watches the former release-document location instead of `docs/development/RoslynCodeActionsAudit.md`;
+- the Code Action audit workflow watched a superseded audit document rather than the retained source analysis and active architecture plan;
 - the public platform-support text describes macOS release validation before that validation workflow exists;
 - `FutureTasks.md` retained completed acceptance and analyser work despite its active-backlog policy; and
 - no final public API compatibility, security or release-polish review has been recorded for the release candidate.

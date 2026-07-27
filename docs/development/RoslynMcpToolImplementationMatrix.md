@@ -2,7 +2,7 @@
 
 > **Engineering record:** This matrix records implementation planning and historical capability decisions. It is not the release inventory for a running server. MCP `tools/list` is authoritative for the current process; see [Tool discovery](../ToolDiscovery.md).
 >
-> **Availability reassessment:** The unavailable mutation classifications below are superseded by [RoslynCodeActionAvailabilityAudit-2026-07-26.md](RoslynCodeActionAvailabilityAudit-2026-07-26.md). Several families are replay candidates or mixed providers rather than blocked by the public Roslyn surface.
+> **Code Action reassessment:** The unavailable mutation classifications below are superseded by the [Code Action Architecture Plan](CodeActionArchitecturePlan-2026-07-27.md). The supporting provider evidence is retained in the [Roslyn Code Action Source Analysis](RoslynCodeActionSourceAnalysis-2026-07-27.md).
 
 ## Purpose
 
@@ -143,7 +143,7 @@ The Stage 7 Roslyn MEF catalogue audit is complete.
 - The authoritative ledger now covers the built-in C# `ExportCodeRefactoringProvider` and `ExportCodeFixProvider` families from the checked-out Roslyn source.
 - Final completion-wave replay promotions include: `AddFileBanner`, `EnableNullable`, `SyncNamespace`, `ConvertNamespace`, `ConvertToProgramMain` refactoring, `ConvertToTopLevelStatements` refactoring, `ConvertToExtension`, `ConvertToRawString`, `AddParameterCheck`, `InitializeMemberFromPrimaryConstructorParameter`, `Wrapping`, `FullyQualify` code fix, `ConvertToProgramMain` code fix, `ConvertToTopLevelStatements` code fix, `RemoveUnusedVariable` code fix, and `SpellCheck` code fix.
 - Families that remain hidden are hidden intentionally in the ledger because they require `CodeActionWithOptions`, internal-only Roslyn services, external Copilot/package/reference flows, paste-tracking host state, or IDE-only diagnostics that are not available through the server’s public diagnostics path.
-- There is no remaining built-in C# family backlog; refer to [RoslynCodeActionsAudit.md](./RoslynCodeActionsAudit.md) for the final classification rationale.
+- The historical positive-ledger backlog has been superseded; refer to the [Roslyn Code Action Source Analysis](RoslynCodeActionSourceAnalysis-2026-07-27.md) for the exhaustive provider classification and the [Code Action Architecture Plan](CodeActionArchitecturePlan-2026-07-27.md) for the replacement runtime model.
 
 ## Provider Rule
 

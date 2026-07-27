@@ -1,6 +1,6 @@
 # Code Action Architecture Plan — 2026-07-27
 
-Status: Proposed implementation authority
+Status: Approved implementation authority
 
 ## Purpose
 
@@ -436,7 +436,7 @@ Removal must be reference-driven. Do not delete a shared stager or request contr
 
 ## Implementation Batches
 
-Implement and review the batches one at a time in dependency order. Resolve architectural questions and review findings within the active batch before beginning the next batch. Do not overlap batches merely to accelerate the migration; any necessary dependency-safe exception must be recorded in this plan before work begins.
+Implement and review the batches one at a time in dependency order. Resolve architectural questions and review findings within the active batch before beginning the next batch. Do not overlap batches merely to accelerate the migration; any necessary dependency-safe exception must be recorded in this plan before work begins. If a batch number is requested but the previous one is not complete, do not proceed; call it out.
 
 ### Completion checklist rule
 
@@ -452,12 +452,12 @@ Every batch has an exit checklist. A checkbox must remain unchecked while work i
 
 Completion checklist:
 
-- [ ] This plan has been reviewed and approved as the sole active Code Action architecture authority.
-- [ ] `FutureTasks.md` contains one active migration item and no superseded Code Action promotion or tool-surface task.
-- [ ] The linked source-analysis document retains the exact source authority, material discoveries, exclusion rationale and exhaustive provider classification.
-- [ ] Every superseded document listed for removal has been deleted.
-- [ ] All active documentation links resolve and no active backlog or design document points to a deleted Code Action audit.
-- [ ] Changed Markdown complies with repository formatting and CRLF requirements.
+- [x] This plan has been reviewed and approved as the sole active Code Action architecture authority.
+- [x] `FutureTasks.md` contains one active migration item and no superseded Code Action promotion or tool-surface task.
+- [x] The linked source-analysis document retains the exact source authority, material discoveries, exclusion rationale and exhaustive provider classification.
+- [x] Every superseded document listed for removal has been deleted.
+- [x] All active documentation links resolve and no active backlog or design document points to a deleted Code Action audit.
+- [x] Changed Markdown complies with repository formatting and CRLF requirements.
 
 This batch changes documentation only and precedes code changes.
 

@@ -1,8 +1,10 @@
+using System.Collections.Frozen;
+
 namespace Roslyn.Workbench.Mcp.CodeActions.Composition;
 
 internal interface ICodeActionProviderSelection
 {
-    IReadOnlyList<CodeRefactoringProvider> RefactoringProviders { get; }
+    FrozenDictionary<string, CodeRefactoringProvider> RefactoringProviders { get; }
 
-    IReadOnlyList<CodeFixProvider> CodeFixProviders { get; }
+    FrozenDictionary<string, CodeFixProvider> CodeFixProviders { get; }
 }

@@ -118,7 +118,8 @@ The request shape is:
 | `Kinds` | Required | `CodeFixes`, `Refactorings` or `All`; no inferred default. |
 | `DiagnosticIds` | Optional | Narrows Code Fix discovery and analyser activation to requested diagnostic IDs. |
 | `Limit` | Optional with published curated default | Bounds returned action leaves. |
-| `ExpectedSnapshot` | Required through the Workspace-bound request contract | Rejects discovery against an unexpected Workspace or transaction revision. |
+
+Discovery always runs against the current solution held by the query execution lease. Each returned opaque reference records that actual Workspace epoch and transaction revision for later staging revalidation; the query does not accept a snapshot precondition.
 
 The response is a bounded collection. Each action contains only:
 
@@ -516,15 +517,15 @@ This batch must complete before the large ordinary Code Fix inventory can become
 
 Completion checklist:
 
-- [ ] The published request uses required `Document`, optional `Range`, required `Kinds`, optional diagnostic IDs, a curated limit and the expected snapshot.
-- [ ] Document, selection and caret semantics are implemented and independently tested.
-- [ ] Provider and leaf policy is applied before references or response items are created.
-- [ ] Every returned action has an opaque ID, title, kind and precise location; Code Fixes also have concise diagnostic ID and message context.
-- [ ] The response omits provider identity, CLR type, equivalence key, action path, execution mode, executor tool and other internal replay metadata.
-- [ ] Collection bounds and metadata use the repository's bounded-collection conventions and publish their curated defaults.
-- [ ] Replay recipes contain the strengthened diagnostic and location identity required for document discovery.
-- [ ] Unit, real-composition and published-schema tests pass, with no unexplained loss of currently intended generic discovery behaviour.
-- [ ] The affected build, formatting and `latest-all` analyser validation are green.
+- [x] The published request uses required `Document`, optional `Range`, required `Kinds`, optional diagnostic IDs and a curated limit, and discovery runs against the current query snapshot.
+- [x] Document, selection and caret semantics are implemented and independently tested.
+- [x] Provider and leaf policy is applied before references or response items are created.
+- [x] Every returned action has an opaque ID, title, kind and precise location; Code Fixes also have concise diagnostic ID and message context.
+- [x] The response omits provider identity, CLR type, equivalence key, action path, execution mode, executor tool and other internal replay metadata.
+- [x] Collection bounds and metadata use the repository's bounded-collection conventions and publish their curated defaults.
+- [x] Replay recipes contain the strengthened diagnostic and location identity required for document discovery.
+- [x] Unit, real-composition and published-schema tests pass, with no unexplained loss of currently intended generic discovery behaviour.
+- [x] The affected build, formatting and `latest-all` analyser validation are green.
 
 This batch may temporarily coexist with the old dedicated tools, but the new generic list result must not advertise those executor tools.
 

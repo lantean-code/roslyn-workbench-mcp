@@ -216,7 +216,7 @@ public sealed class CodeActionDiagnosticSourcesIntegrationTests
     {
         var policy = new CodeActionPolicy();
         var providerSelection = new CodeActionProviderSelection(composition, policy);
-        foreach (var provider in providerSelection.CodeFixProviders)
+        foreach (var provider in providerSelection.CodeFixProviders.Values)
         {
             if (!provider.FixableDiagnosticIds.Contains(diagnosticId, StringComparer.Ordinal))
             {

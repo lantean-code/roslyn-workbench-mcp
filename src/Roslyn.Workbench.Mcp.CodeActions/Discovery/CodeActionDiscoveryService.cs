@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Globalization;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Discovery;
 
@@ -20,45 +21,57 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
 
     public IReadOnlyList<CodeRefactoringProvider> GetMatchingRefactoringProviders(string? providerId)
     {
-        var matchingProviders = new List<CodeRefactoringProvider>();
-        foreach (var provider in _providerSelection.RefactoringProviders)
+        if (!string.IsNullOrWhiteSpace(providerId))
         {
-            if (IsMatchingDiscoverableProvider(GetProviderId(provider), providerId))
+            if (_providerSelection.RefactoringProviders.TryGetValue(providerId, out var provider)
+                && IsDiscoverableProvider(providerId))
+            {
+                return [provider];
+            }
+
+            return [];
+        }
+
+        var matchingProviders = new List<CodeRefactoringProvider>();
+        foreach (var (candidateProviderId, provider) in _providerSelection.RefactoringProviders)
+        {
+            if (IsDiscoverableProvider(candidateProviderId))
             {
                 matchingProviders.Add(provider);
             }
         }
 
-        matchingProviders.Sort(CompareProviderIds);
         return matchingProviders;
     }
 
     public IReadOnlyList<CodeFixProvider> GetMatchingCodeFixProviders(string? providerId)
     {
-        var matchingProviders = new List<CodeFixProvider>();
-        foreach (var provider in _providerSelection.CodeFixProviders)
+        if (!string.IsNullOrWhiteSpace(providerId))
         {
-            if (IsMatchingDiscoverableProvider(GetProviderId(provider), providerId))
+            if (_providerSelection.CodeFixProviders.TryGetValue(providerId, out var provider)
+                && IsDiscoverableProvider(providerId))
+            {
+                return [provider];
+            }
+
+            return [];
+        }
+
+        var matchingProviders = new List<CodeFixProvider>();
+        foreach (var (candidateProviderId, provider) in _providerSelection.CodeFixProviders)
+        {
+            if (IsDiscoverableProvider(candidateProviderId))
             {
                 matchingProviders.Add(provider);
             }
         }
 
-        matchingProviders.Sort(CompareProviderIds);
         return matchingProviders;
     }
 
     public CodeFixProvider? FindCodeFixProvider(string providerId)
     {
-        foreach (var provider in _providerSelection.CodeFixProviders)
-        {
-            if (string.Equals(GetProviderId(provider), providerId, StringComparison.Ordinal))
-            {
-                return provider;
-            }
-        }
-
-        return null;
+        return _providerSelection.CodeFixProviders.GetValueOrDefault(providerId);
     }
 
     public string GetProviderId(CodeFixProvider provider)
@@ -85,16 +98,19 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         }
 
         var capability = _descriptorRegistry.GetProviderCapability(providerId);
-        if (!capability.ShouldDiscover)
-        {
-            return [];
-        }
-
         var rootActions = new List<CodeAction>();
         var context = new CodeRefactoringContext(document, span, action => rootActions.Add(action), cancellationToken);
         await provider.ComputeRefactoringsAsync(context);
 
-        return Flatten(rootActions, providerId, capability, DiscoveredActionKind.Refactoring, span, []);
+        return Flatten(
+            rootActions,
+            providerId,
+            capability,
+            DiscoveredActionKind.Refactoring,
+            span,
+            diagnosticIds: [],
+            diagnostics: [],
+            fixAllScopes: []);
     }
 
     public async ValueTask<IReadOnlyList<DiscoveredCodeAction>> DiscoverCodeFixesAsync(
@@ -111,11 +127,6 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         }
 
         var capability = _descriptorRegistry.GetProviderCapability(providerId);
-        if (!capability.ShouldDiscover)
-        {
-            return [];
-        }
-
         var diagnosticsBySpan = new Dictionary<TextSpan, List<Diagnostic>>();
         var orderedSpans = new List<TextSpan>();
         var fixableDiagnosticIds = provider.FixableDiagnosticIds;
@@ -157,9 +168,17 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         }
 
         var discoveredActions = new List<DiscoveredCodeAction>();
+        var fixAllScopes = GetFixAllScopes(provider);
         foreach (var (action, actionDiagnostics, targetSpan) in registeredActions)
         {
             var diagnosticIds = GetDistinctDiagnosticIds(actionDiagnostics);
+            var diagnosticIdentities = GetDiagnosticIdentities(actionDiagnostics);
+            IReadOnlyList<CodeActionFixAllScope> actionFixAllScopes = [];
+            if (!string.IsNullOrWhiteSpace(action.EquivalenceKey))
+            {
+                actionFixAllScopes = fixAllScopes;
+            }
+
             FlattenCore(
                 action,
                 providerId,
@@ -167,6 +186,8 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
                 DiscoveredActionKind.CodeFix,
                 targetSpan,
                 diagnosticIds,
+                diagnosticIdentities,
+                actionFixAllScopes,
                 [0],
                 discoveredActions);
         }
@@ -180,7 +201,9 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         CodeActionProviderCapability capability,
         DiscoveredActionKind kind,
         TextSpan targetSpan,
-        IReadOnlyList<string> diagnosticIds)
+        IReadOnlyList<string> diagnosticIds,
+        IReadOnlyList<CodeActionDiagnosticIdentity> diagnostics,
+        IReadOnlyList<CodeActionFixAllScope> fixAllScopes)
     {
         var discovered = new List<DiscoveredCodeAction>();
         var path = new List<int>();
@@ -195,6 +218,8 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
                 kind,
                 targetSpan,
                 diagnosticIds,
+                diagnostics,
+                fixAllScopes,
                 path,
                 discovered);
 
@@ -211,6 +236,8 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         DiscoveredActionKind kind,
         TextSpan targetSpan,
         IReadOnlyList<string> diagnosticIds,
+        IReadOnlyList<CodeActionDiagnosticIdentity> diagnostics,
+        IReadOnlyList<CodeActionFixAllScope> fixAllScopes,
         List<int> path,
         ICollection<DiscoveredCodeAction> discovered)
     {
@@ -227,6 +254,8 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
                     kind,
                     targetSpan,
                     diagnosticIds,
+                    diagnostics,
+                    fixAllScopes,
                     path,
                     discovered);
 
@@ -259,18 +288,14 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
             EquivalenceKey = action.EquivalenceKey,
             ActionPath = path.ToArray(),
             DiagnosticIds = diagnosticIds,
+            Diagnostics = diagnostics,
+            FixAllScopes = fixAllScopes,
         });
     }
 
-    private bool IsMatchingDiscoverableProvider(string providerId, string? requestedProviderId)
+    private bool IsDiscoverableProvider(string providerId)
     {
-        if (!string.IsNullOrWhiteSpace(requestedProviderId)
-            && !string.Equals(providerId, requestedProviderId, StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        return _descriptorRegistry.GetProviderCapability(providerId).ShouldDiscover;
+        return _policy.EvaluateProvider(providerId).IsAllowed;
     }
 
     private static async Task RegisterCodeFixesAsync(
@@ -289,20 +314,6 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
             cancellationToken);
 
         await provider.RegisterCodeFixesAsync(context);
-    }
-
-    private static int CompareProviderIds(CodeRefactoringProvider left, CodeRefactoringProvider right)
-    {
-        return StringComparer.Ordinal.Compare(
-            CodeActionProviderIdentity.GetId(left),
-            CodeActionProviderIdentity.GetId(right));
-    }
-
-    private static int CompareProviderIds(CodeFixProvider left, CodeFixProvider right)
-    {
-        return StringComparer.Ordinal.Compare(
-            CodeActionProviderIdentity.GetId(left),
-            CodeActionProviderIdentity.GetId(right));
     }
 
     private static bool IsFixableDiagnostic(ImmutableArray<string> fixableDiagnosticIds, string diagnosticId)
@@ -331,6 +342,59 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         }
 
         return diagnosticIds;
+    }
+
+    private static List<CodeActionDiagnosticIdentity> GetDiagnosticIdentities(ImmutableArray<Diagnostic> diagnostics)
+    {
+        var identities = new List<CodeActionDiagnosticIdentity>();
+        var seenIdentities = new HashSet<(string Id, string Message, int Start, int Length)>();
+        foreach (var diagnostic in diagnostics)
+        {
+            var span = diagnostic.Location.SourceSpan;
+            var message = diagnostic.GetMessage(CultureInfo.InvariantCulture);
+            if (!seenIdentities.Add((diagnostic.Id, message, span.Start, span.Length)))
+            {
+                continue;
+            }
+
+            identities.Add(new CodeActionDiagnosticIdentity
+            {
+                Id = diagnostic.Id,
+                Message = message,
+                Start = span.Start,
+                Length = span.Length,
+            });
+        }
+
+        return identities;
+    }
+
+    private static List<CodeActionFixAllScope> GetFixAllScopes(CodeFixProvider provider)
+    {
+        var fixAllProvider = provider.GetFixAllProvider();
+        if (fixAllProvider is null)
+        {
+            return [];
+        }
+
+        var scopes = new List<CodeActionFixAllScope>();
+        foreach (var scope in fixAllProvider.GetSupportedFixAllScopes())
+        {
+            var projectedScope = scope switch
+            {
+                FixAllScope.Document => CodeActionFixAllScope.Document,
+                FixAllScope.Project => CodeActionFixAllScope.Project,
+                FixAllScope.Solution => CodeActionFixAllScope.Solution,
+                _ => (CodeActionFixAllScope?)null,
+            };
+
+            if (projectedScope is not null && !scopes.Contains(projectedScope.Value))
+            {
+                scopes.Add(projectedScope.Value);
+            }
+        }
+
+        return scopes;
     }
 
 }

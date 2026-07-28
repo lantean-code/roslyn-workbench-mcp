@@ -242,7 +242,7 @@ internal static class BundledCodeActionToolRegistrar
             CreateMetadata(
                 "list-code-actions",
                 "List Code Actions",
-                "Lists applicable code actions and code fixes at a target location."));
+                "Lists bounded Roslyn code fixes and refactorings for a document, selection or caret."));
 
         registry.RegisterMutationTool<StageCodeActionTool, StageCodeActionRequest>(
             CreateMutationMetadata(

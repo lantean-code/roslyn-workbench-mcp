@@ -36,30 +36,29 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
             return CodeActionsUnavailable<CodeActionListData>();
         }
 
-        var snapshotRejection = _requestResolver.ValidateSnapshot<CodeActionListData>(
-            context,
-            request.ExpectedSnapshot);
-
-        if (snapshotRejection is not null)
+        if (request.Limit is < 0)
         {
-            return snapshotRejection;
+            return Rejected<CodeActionListData>(
+                "InvalidRequest",
+                "Limit must be zero or greater when provided.");
         }
 
-        var locationResolution = await _requestResolver.ResolveLocationAsync<CodeActionListData>(
-            request.Location,
+        var selectionResolution = await _requestResolver.ResolveDocumentSelectionAsync<CodeActionListData>(
+            request.Document,
+            request.Range,
             context,
             cancellationToken);
 
-        if (locationResolution.HasRejection)
+        if (selectionResolution.HasRejection)
         {
-            return locationResolution.Rejection;
+            return selectionResolution.Rejection;
         }
 
-        var document = locationResolution.Value.Document;
-        var span = locationResolution.Value.Span;
+        var document = selectionResolution.Value.Document;
+        var span = selectionResolution.Value.Span;
         var discovered = new List<DiscoveredCodeAction>();
         IReadOnlyList<string> diagnosticWarnings = [];
-        if (request.IncludeRefactorings)
+        if (IncludesRefactorings(request.Kinds))
         {
             using (WorkbenchPerformanceEventSource.Log.StartPhase(
                 _toolName,
@@ -75,7 +74,7 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
             }
         }
 
-        if (request.IncludeCodeFixes)
+        if (IncludesCodeFixes(request.Kinds))
         {
             var codeFixProviders = _discoveryService.GetMatchingCodeFixProviders(providerId: null);
             if (codeFixProviders.Count > 0)
@@ -90,7 +89,7 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
                     {
                         var diagnosticCollection = await _diagnosticService.CollectDocumentDiagnosticsAsync(
                             document,
-                            span,
+                            request.Range is null ? null : span,
                             effectiveDiagnosticIds,
                             cancellationToken);
 
@@ -113,33 +112,28 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
             }
         }
 
-        List<CodeActionInfo> actionInfos;
+        List<CodeActionListItem> actionItems;
+        var totalCount = 0;
         using (WorkbenchPerformanceEventSource.Log.StartPhase(
             _toolName,
             WorkbenchPerformanceEventSource.CodeActionProjectionPhase))
         {
-            var visibleActions = new List<DiscoveredCodeAction>();
-            foreach (var action in discovered)
-            {
-                if (!action.Descriptor.IsVisible)
-                {
-                    continue;
-                }
-
-                visibleActions.Add(action);
-            }
-
-            visibleActions.Sort(CompareActions);
-
-            actionInfos = new List<CodeActionInfo>();
+            discovered.Sort(CompareActions);
+            actionItems = new List<CodeActionListItem>(Math.Min(discovered.Count, request.EffectiveLimit));
             var syntaxTree = await document.GetSyntaxTreeAsync(cancellationToken);
             if (syntaxTree is not null)
             {
-                foreach (var action in visibleActions)
+                foreach (var action in discovered)
                 {
                     var sourceLocation = syntaxTree.GetLocation(action.TargetSpan);
                     var resolvedLocation = context.WorkspaceResolver.CreateResolvedLocation(sourceLocation);
                     if (resolvedLocation is null)
+                    {
+                        continue;
+                    }
+
+                    totalCount++;
+                    if (actionItems.Count == request.EffectiveLimit)
                     {
                         continue;
                     }
@@ -149,10 +143,9 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
                         context,
                         document,
                         resolvedLocation,
-                        action.Descriptor,
-                        out var actionInfo))
+                        out var actionItem))
                     {
-                        actionInfos.Add(actionInfo);
+                        actionItems.Add(actionItem);
                     }
                 }
             }
@@ -160,7 +153,10 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
 
         var data = new CodeActionListData
         {
-            Actions = actionInfos,
+            Actions = actionItems,
+            ReturnedCount = actionItems.Count,
+            HasMore = totalCount > actionItems.Count,
+            TotalCount = totalCount,
         };
 
         var warnings = new List<WarningInfo>(diagnosticWarnings.Count);
@@ -174,6 +170,16 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
         }
 
         return CodeActionExecutionResult.Success(data, warnings: warnings);
+    }
+
+    private static bool IncludesCodeFixes(CodeActionKindSelection kinds)
+    {
+        return kinds is CodeActionKindSelection.CodeFixes or CodeActionKindSelection.All;
+    }
+
+    private static bool IncludesRefactorings(CodeActionKindSelection kinds)
+    {
+        return kinds is CodeActionKindSelection.Refactorings or CodeActionKindSelection.All;
     }
 
     private static List<string> GetEffectiveDiagnosticIds(

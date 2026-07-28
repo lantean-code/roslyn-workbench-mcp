@@ -1,10 +1,12 @@
+using System.Collections.Frozen;
+
 namespace Roslyn.Workbench.Mcp.CodeActions.Composition;
 
 internal sealed class CodeActionProviderSelection : ICodeActionProviderSelection
 {
-    public IReadOnlyList<CodeRefactoringProvider> RefactoringProviders { get; }
+    public FrozenDictionary<string, CodeRefactoringProvider> RefactoringProviders { get; }
 
-    public IReadOnlyList<CodeFixProvider> CodeFixProviders { get; }
+    public FrozenDictionary<string, CodeFixProvider> CodeFixProviders { get; }
 
     public CodeActionProviderSelection(
         ICodeActionComposition composition,
@@ -21,23 +23,29 @@ internal sealed class CodeActionProviderSelection : ICodeActionProviderSelection
             CodeActionProviderIdentity.GetId);
     }
 
-    private static List<TProvider> SelectEligibleProviders<TProvider>(
+    private static FrozenDictionary<string, TProvider> SelectEligibleProviders<TProvider>(
         IReadOnlyList<TProvider> providers,
         ICodeActionPolicy policy,
         Func<TProvider, string> getProviderId)
         where TProvider : class
     {
-        var eligibleProviders = new List<TProvider>(providers.Count);
+        var eligibleProviders = new Dictionary<string, TProvider>(providers.Count, StringComparer.Ordinal);
         foreach (var provider in providers)
         {
             var providerId = getProviderId(provider);
             var decision = policy.EvaluateProvider(providerId);
-            if (decision.IsAllowed)
+            if (!decision.IsAllowed)
             {
-                eligibleProviders.Add(provider);
+                continue;
+            }
+
+            if (!eligibleProviders.TryAdd(providerId, provider))
+            {
+                throw new InvalidOperationException(
+                    $"Code Action composition contains multiple eligible providers with ID '{providerId}'.");
             }
         }
 
-        return eligibleProviders;
+        return eligibleProviders.ToFrozenDictionary(StringComparer.Ordinal);
     }
 }

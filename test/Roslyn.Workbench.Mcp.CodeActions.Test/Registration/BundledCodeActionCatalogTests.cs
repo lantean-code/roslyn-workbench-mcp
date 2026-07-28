@@ -64,7 +64,7 @@ public sealed class BundledCodeActionCatalogTests
             invert-conditional|Invert Conditional|Inverts a supported conditional expression through Roslyn refactoring composition.|Mutation|LocationRefactoringRequest|MutationData|True|<null>
             invert-if|Invert If|Inverts a supported if statement through Roslyn refactoring composition.|Mutation|LocationRefactoringRequest|MutationData|True|<null>
             invert-logical|Invert Logical|Inverts a supported logical expression through Roslyn refactoring composition.|Mutation|LocationRefactoringRequest|MutationData|True|<null>
-            list-code-actions|List Code Actions|Lists applicable code actions and code fixes at a target location.|Query|ListCodeActionsRequest|CodeActionListData|False|<null>
+            list-code-actions|List Code Actions|Lists bounded Roslyn code fixes and refactorings for a document, selection or caret.|Query|ListCodeActionsRequest|CodeActionListData|False|<null>
             make-local-function-static|Make Local Function Static|Marks a supported local function as static through Roslyn refactoring composition.|Mutation|LocationRefactoringRequest|MutationData|True|<null>
             make-member-required|Make Member Required|Adds the required modifier to an uninitialised settable non-nullable member through Roslyn code-fix composition.|Mutation|FixedCompilerCodeFixRequest|MutationData|True|<null>
             make-member-static|Make Member Static|Adds the static modifier to an invalid instance member declared in a static type through Roslyn code-fix composition.|Mutation|FixedCompilerCodeFixRequest|MutationData|True|<null>

@@ -54,6 +54,51 @@ internal sealed class CodeActionToolRequestResolver : ICodeActionToolRequestReso
         return CodeActionToolResolutionResult.Resolved<CodeActionSourceSelection, TResponse>(selection);
     }
 
+    public async ValueTask<CodeActionToolResolutionResult<CodeActionSourceSelection, TResponse>> ResolveDocumentSelectionAsync<TResponse>(
+        DocumentSelector selector,
+        TextSpanRange? range,
+        ICodeActionExecutionContext context,
+        CancellationToken cancellationToken)
+    {
+        var resolution = context.WorkspaceResolver.ResolveDocument(selector);
+        if (!resolution.IsResolved)
+        {
+            var rejection = CodeActionExecutionResultFactory.RejectFromStatus<TResponse>(
+                resolution.Status,
+                "Document",
+                "document");
+
+            return CodeActionToolResolutionResult.Rejected<CodeActionSourceSelection, TResponse>(rejection);
+        }
+
+        var document = resolution.Value;
+        var text = await document.GetTextAsync(cancellationToken);
+        if (range is not null
+            && (range.Start < 0
+                || range.Length < 0
+                || range.Start > text.Length
+                || range.Length > text.Length - range.Start))
+        {
+            var rejection = CodeActionExecutionResultFactory.Rejected<TResponse>(
+                "InvalidRange",
+                "Range must identify a valid UTF-16 span within the selected document.");
+
+            return CodeActionToolResolutionResult.Rejected<CodeActionSourceSelection, TResponse>(rejection);
+        }
+
+        var span = range is null
+            ? new TextSpan(0, text.Length)
+            : new TextSpan(range.Start, range.Length);
+
+        var selection = new CodeActionSourceSelection
+        {
+            Document = document,
+            Span = span,
+        };
+
+        return CodeActionToolResolutionResult.Resolved<CodeActionSourceSelection, TResponse>(selection);
+    }
+
     public async ValueTask<CodeActionToolResolutionResult<ISymbol, TResponse>> ResolveSymbolAsync<TResponse>(
         SymbolSelector selector,
         SnapshotPrecondition? expectedSnapshot,

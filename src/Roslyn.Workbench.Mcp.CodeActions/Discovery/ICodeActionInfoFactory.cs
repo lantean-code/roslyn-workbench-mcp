@@ -9,8 +9,7 @@ internal interface ICodeActionInfoFactory
         ICodeActionExecutionContext context,
         Document document,
         ResolvedLocation location,
-        CodeActionDescriptorEntry descriptor,
-        [NotNullWhen(true)] out CodeActionInfo? info);
+        [NotNullWhen(true)] out CodeActionListItem? item);
 
     CodeActionInfo CreateFromReference(
         DiscoveredCodeAction action,

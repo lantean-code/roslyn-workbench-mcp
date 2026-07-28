@@ -4,48 +4,59 @@ using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Test.Discovery;
 
-#pragma warning disable CA1861 // Fresh mutable arrays keep each recipe scenario isolated from other tests.
 public sealed class CodeActionInfoFactoryTests
 {
     private static readonly Guid _actionId = new("11111111-1111-1111-1111-111111111111");
+    private static readonly int[] _actionPath = [1, 2];
+    private static readonly string[] _diagnosticIds = ["DiagnosticId"];
     private static readonly DateTimeOffset _utcNow = new(2000, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
     [Fact]
-    public void GIVEN_RefactoringAndSourceDocument_WHEN_CreatingInfo_THEN_ShouldStoreReplayRecipeAndDescriptorMetadata()
+    public void GIVEN_CodeFixAndSourceDocument_WHEN_CreatingItem_THEN_ShouldStoreStrongRecipeAndReturnConciseProjection()
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
         var referenceStore = new Mock<ICodeActionReferenceStore>();
         var timeProvider = new Mock<TimeProvider>();
         var context = new Mock<ICodeActionExecutionContext>();
         var resolver = new Mock<IWorkspaceResolver>();
-        var action = CreateAction(roslyn.Solution, DiscoveredActionKind.Refactoring);
-        var descriptor = CreateDescriptor();
-        var resolvedLocation = SelectorTestFactory.CreateResolvedLocation("Code.cs", 3, 4);
-        var expiresAt = _utcNow.AddMinutes(5);
-        var workspaceIdentity = new WorkspaceIdentity
+        var diagnostic = new CodeActionDiagnosticIdentity
         {
-            WorkspaceId = "WorkspaceId",
-            WorkspaceEpoch = 1,
+            Id = "DiagnosticId",
+            Message = "Diagnostic message.",
+            Start = 3,
+            Length = 4,
         };
 
+        var action = CreateAction(roslyn.Solution, DiscoveredActionKind.CodeFix) with
+        {
+            Diagnostics = [diagnostic],
+            FixAllScopes = [CodeActionFixAllScope.Document, CodeActionFixAllScope.Project],
+        };
+
+        var resolvedLocation = SelectorTestFactory.CreateResolvedLocation("Code.cs", 3, 4);
+        var expiresAt = _utcNow.AddMinutes(5);
         CodeActionReference? reference = new(_actionId, new CodeActionReplayRecipe(), expiresAt);
         timeProvider.Setup(item => item.GetUtcNow()).Returns(_utcNow);
         resolver
             .Setup(item => item.NormalizeDocumentPath(roslyn.Document.FilePath ?? roslyn.Document.Name))
             .Returns("DocumentPath");
-
-        context.SetupGet(item => item.WorkspaceIdentity).Returns(workspaceIdentity);
+        context.SetupGet(item => item.WorkspaceIdentity).Returns(new WorkspaceIdentity
+        {
+            WorkspaceId = "WorkspaceId",
+            WorkspaceEpoch = 1,
+        });
         context.SetupGet(item => item.TransactionRevision).Returns(2);
         context.SetupGet(item => item.WorkspaceResolver).Returns(resolver.Object);
         referenceStore
             .Setup(item => item.TryCreate(
                 It.Is<CodeActionReplayRecipe>(recipe =>
-                    recipe.Kind == DiscoveredActionKind.Refactoring
+                    recipe.Kind == DiscoveredActionKind.CodeFix
                     && recipe.ProviderId == "ProviderId"
                     && recipe.Title == "Title"
                     && recipe.EquivalenceKey == "EquivalenceKey"
-                    && recipe.ActionPath.SequenceEqual(new[] { 1, 2 })
-                    && recipe.DiagnosticIds.SequenceEqual(new[] { "DiagnosticId" })
+                    && recipe.ActionPath.SequenceEqual(_actionPath)
+                    && recipe.DiagnosticIds.SequenceEqual(_diagnosticIds)
+                    && recipe.Diagnostics.SequenceEqual(new[] { diagnostic })
                     && recipe.WorkspaceId == "WorkspaceId"
                     && recipe.WorkspaceEpoch == 1
                     && recipe.TransactionRevision == 2
@@ -57,45 +68,40 @@ public sealed class CodeActionInfoFactoryTests
                 out reference))
             .Returns(true);
 
-        var target = new CodeActionInfoFactory(
-            referenceStore.Object,
-            timeProvider.Object,
-            Options.Create(new CodeActionExecutionOptions
-            {
-                ReferenceLifetime = TimeSpan.FromMinutes(5),
-            }));
+        var target = CreateTarget(referenceStore, timeProvider, TimeSpan.FromMinutes(5));
 
         var created = target.TryCreate(
             action,
             context.Object,
             roslyn.Document,
             resolvedLocation,
-            descriptor,
             out var result);
 
         created.Should().BeTrue();
-        var info = result.Should().BeOfType<CodeActionInfo>().Which;
-        info.ActionId.Should().Be(_actionId);
-        info.WorkspaceId.Should().Be("WorkspaceId");
-        info.Title.Should().Be("Title");
-        info.ProviderId.Should().Be("ProviderId");
-        info.Kind.Should().Be("Refactoring");
-        info.EquivalenceKey.Should().Be("EquivalenceKey");
-        info.ActionPath.Should().Equal(1, 2);
-        info.DiagnosticIds.Should().Equal("DiagnosticId");
-        info.Location.Should().BeSameAs(resolvedLocation);
-        info.WorkspaceEpoch.Should().Be(1);
-        info.TransactionRevision.Should().Be(2);
-        info.ExpiresAt.Should().Be("2000-01-01T00:05:00.0000000+00:00");
-        info.ExecutionMode.Should().Be(CodeActionExecutionMode.Parameterised);
-        info.ExecutorTool.Should().Be("ExecutorTool");
-        info.DescribeTool.Should().Be("DescribeTool");
-        info.UnsupportedReasonCode.Should().Be("UnsupportedReasonCode");
-        info.Requirements.Should().Equal("Requirement");
+        var item = result.Should().BeOfType<CodeActionListItem>().Which;
+        item.ActionId.Should().Be(_actionId);
+        item.Title.Should().Be("Title");
+        item.Kind.Should().Be(CodeActionKind.CodeFix);
+        item.Location.Should().BeEquivalentTo(new CodeActionLocation
+        {
+            Document = resolvedLocation.Document!,
+            Span = resolvedLocation.Span!,
+            Line = resolvedLocation.Line,
+            Column = resolvedLocation.Column,
+        });
+        item.Diagnostics.Should().NotBeNull();
+        item.Diagnostics!.Should().ContainSingle()
+            .Which.Should().BeEquivalentTo(new CodeActionDiagnosticContext
+            {
+                Id = "DiagnosticId",
+                Message = "Diagnostic message.",
+            });
+        item.FixAllScopes.Should().NotBeNull();
+        item.FixAllScopes!.Should().Equal(CodeActionFixAllScope.Document, CodeActionFixAllScope.Project);
     }
 
     [Fact]
-    public void GIVEN_CodeFixDocumentHasNoFilePath_WHEN_CreatingInfo_THEN_ShouldNormalizeDocumentName()
+    public void GIVEN_DocumentHasNoFilePath_WHEN_CreatingItem_THEN_ShouldNormalizeDocumentName()
     {
         using var workspace = new AdhocWorkspace();
         var project = workspace.CurrentSolution.AddProject("ProjectName", "AssemblyName", LanguageNames.CSharp);
@@ -106,128 +112,52 @@ public sealed class CodeActionInfoFactoryTests
         var timeProvider = new Mock<TimeProvider>();
         var context = new Mock<ICodeActionExecutionContext>();
         var resolver = new Mock<IWorkspaceResolver>();
-        var action = CreateAction(workspace.CurrentSolution, DiscoveredActionKind.CodeFix);
-        var resolvedLocation = SelectorTestFactory.CreateResolvedLocation("DocumentName.cs", 3, 4);
+        var action = CreateAction(workspace.CurrentSolution, DiscoveredActionKind.Refactoring);
         var expiresAt = _utcNow.AddMinutes(5);
         CodeActionReference? reference = new(_actionId, new CodeActionReplayRecipe(), expiresAt);
 
         timeProvider.Setup(item => item.GetUtcNow()).Returns(_utcNow);
         resolver.Setup(item => item.NormalizeDocumentPath("DocumentName.cs")).Returns("NormalizedDocumentName");
-        context.SetupGet(item => item.WorkspaceIdentity).Returns(new WorkspaceIdentity
-        {
-            WorkspaceId = "WorkspaceId",
-            WorkspaceEpoch = 1,
-        });
-
-        context.SetupGet(item => item.TransactionRevision).Returns(2);
+        context.SetupGet(item => item.WorkspaceIdentity).Returns(new WorkspaceIdentity());
         context.SetupGet(item => item.WorkspaceResolver).Returns(resolver.Object);
         referenceStore
             .Setup(item => item.TryCreate(
-                It.Is<CodeActionReplayRecipe>(recipe =>
-                    recipe.Kind == DiscoveredActionKind.CodeFix
-                    && recipe.DocumentPath == "NormalizedDocumentName"
-                    && recipe.ProjectId == document.Project.Id.Id.ToString()),
+                It.Is<CodeActionReplayRecipe>(recipe => recipe.DocumentPath == "NormalizedDocumentName"),
                 expiresAt,
                 out reference))
             .Returns(true);
 
-        var target = new CodeActionInfoFactory(
-            referenceStore.Object,
-            timeProvider.Object,
-            Options.Create(new CodeActionExecutionOptions
-            {
-                ReferenceLifetime = TimeSpan.FromMinutes(5),
-            }));
+        var target = CreateTarget(referenceStore, timeProvider, TimeSpan.FromMinutes(5));
 
         var created = target.TryCreate(
             action,
             context.Object,
             document,
-            resolvedLocation,
-            new CodeActionDescriptorEntry(),
+            SelectorTestFactory.CreateResolvedLocation("DocumentName.cs", 3, 4),
             out var result);
 
         created.Should().BeTrue();
-        document.FilePath.Should().BeNull();
-        result.Should().BeOfType<CodeActionInfo>().Which.Kind.Should().Be("CodeFix");
+        var item = result.Should().BeOfType<CodeActionListItem>().Which;
+        item.Kind.Should().Be(CodeActionKind.Refactoring);
+        item.Diagnostics.Should().BeNull();
+        item.FixAllScopes.Should().BeNull();
         resolver.Verify(item => item.NormalizeDocumentPath("DocumentName.cs"), Times.Once);
     }
 
     [Fact]
-    public void GIVEN_MaximumSupportedReferenceLifetime_WHEN_CreatingInfo_THEN_ShouldCalculateExpiry()
+    public void GIVEN_ReferenceCannotBeStored_WHEN_CreatingItem_THEN_ShouldNotPublishAction()
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
         var referenceStore = new Mock<ICodeActionReferenceStore>();
         var timeProvider = new Mock<TimeProvider>();
         var context = new Mock<ICodeActionExecutionContext>();
         var resolver = new Mock<IWorkspaceResolver>();
-        var action = CreateAction(roslyn.Solution, DiscoveredActionKind.Refactoring);
-        var resolvedLocation = SelectorTestFactory.CreateResolvedLocation("Code.cs", 3, 4);
-        var expiresAt = _utcNow.AddDays(1);
-        CodeActionReference? reference = new(_actionId, new CodeActionReplayRecipe(), expiresAt);
-
-        timeProvider.Setup(item => item.GetUtcNow()).Returns(_utcNow);
-        resolver
-            .Setup(item => item.NormalizeDocumentPath(roslyn.Document.FilePath ?? roslyn.Document.Name))
-            .Returns("DocumentPath");
-
-        context.SetupGet(item => item.WorkspaceIdentity).Returns(new WorkspaceIdentity
-        {
-            WorkspaceId = "WorkspaceId",
-            WorkspaceEpoch = 1,
-        });
-
-        context.SetupGet(item => item.WorkspaceResolver).Returns(resolver.Object);
-        referenceStore
-            .Setup(item => item.TryCreate(
-                It.IsAny<CodeActionReplayRecipe>(),
-                expiresAt,
-                out reference))
-            .Returns(true);
-
-        var target = new CodeActionInfoFactory(
-            referenceStore.Object,
-            timeProvider.Object,
-            Options.Create(new CodeActionExecutionOptions
-            {
-                ReferenceLifetime = TimeSpan.FromDays(1),
-            }));
-
-        var created = target.TryCreate(
-            action,
-            context.Object,
-            roslyn.Document,
-            resolvedLocation,
-            new CodeActionDescriptorEntry(),
-            out var result);
-
-        created.Should().BeTrue();
-        result.Should().BeOfType<CodeActionInfo>().Which.ExpiresAt.Should().Be("2000-01-02T00:00:00.0000000+00:00");
-    }
-
-    [Fact]
-    public void GIVEN_ReferenceCannotBeStored_WHEN_CreatingInfo_THEN_ShouldNotPublishAction()
-    {
-        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
-        var referenceStore = new Mock<ICodeActionReferenceStore>();
-        var timeProvider = new Mock<TimeProvider>();
-        var context = new Mock<ICodeActionExecutionContext>();
-        var resolver = new Mock<IWorkspaceResolver>();
-        var action = CreateAction(roslyn.Solution, DiscoveredActionKind.Refactoring);
-        var resolvedLocation = SelectorTestFactory.CreateResolvedLocation("Code.cs", 3, 4);
         CodeActionReference? rejectedReference = null;
-
         timeProvider.Setup(item => item.GetUtcNow()).Returns(_utcNow);
         resolver
             .Setup(item => item.NormalizeDocumentPath(roslyn.Document.FilePath ?? roslyn.Document.Name))
             .Returns("DocumentPath");
-
-        context.SetupGet(item => item.WorkspaceIdentity).Returns(new WorkspaceIdentity
-        {
-            WorkspaceId = "WorkspaceId",
-            WorkspaceEpoch = 1,
-        });
-
+        context.SetupGet(item => item.WorkspaceIdentity).Returns(new WorkspaceIdentity());
         context.SetupGet(item => item.WorkspaceResolver).Returns(resolver.Object);
         referenceStore
             .Setup(item => item.TryCreate(
@@ -236,25 +166,44 @@ public sealed class CodeActionInfoFactoryTests
                 out rejectedReference))
             .Returns(false);
 
-        var target = new CodeActionInfoFactory(
-            referenceStore.Object,
-            timeProvider.Object,
-            Options.Create(new CodeActionExecutionOptions()));
+        var target = CreateTarget(referenceStore, timeProvider, TimeSpan.FromMinutes(5));
 
-        var result = target.TryCreate(
-            action,
+        var created = target.TryCreate(
+            CreateAction(roslyn.Solution, DiscoveredActionKind.Refactoring),
             context.Object,
             roslyn.Document,
-            resolvedLocation,
-            new CodeActionDescriptorEntry(),
-            out var info);
+            SelectorTestFactory.CreateResolvedLocation("Code.cs", 3, 4),
+            out var result);
 
-        result.Should().BeFalse();
-        info.Should().BeNull();
+        created.Should().BeFalse();
+        result.Should().BeNull();
     }
 
     [Fact]
-    public void GIVEN_ExistingReference_WHEN_CreatingDescriptor_THEN_ShouldPreserveReferenceIdentityAndExpiry()
+    public void GIVEN_ResolvedLocationIsIncomplete_WHEN_CreatingItem_THEN_ShouldNotStoreReference()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var referenceStore = new Mock<ICodeActionReferenceStore>();
+        var timeProvider = new Mock<TimeProvider>();
+        var target = CreateTarget(referenceStore, timeProvider, TimeSpan.FromMinutes(5));
+
+        var created = target.TryCreate(
+            CreateAction(roslyn.Solution, DiscoveredActionKind.Refactoring),
+            new Mock<ICodeActionExecutionContext>().Object,
+            roslyn.Document,
+            new ResolvedLocation(),
+            out var result);
+
+        created.Should().BeFalse();
+        result.Should().BeNull();
+        referenceStore.Verify(item => item.TryCreate(
+            It.IsAny<CodeActionReplayRecipe>(),
+            It.IsAny<DateTimeOffset>(),
+            out It.Ref<CodeActionReference?>.IsAny), Times.Never);
+    }
+
+    [Fact]
+    public void GIVEN_ExistingReference_WHEN_CreatingLegacyDescriptor_THEN_ShouldPreserveTemporaryDescriptorMetadata()
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
         var referenceStore = new Mock<ICodeActionReferenceStore>();
@@ -266,34 +215,43 @@ public sealed class CodeActionInfoFactoryTests
             _actionId,
             new CodeActionReplayRecipe(),
             _utcNow.AddMinutes(5));
-
         context.SetupGet(item => item.WorkspaceIdentity).Returns(new WorkspaceIdentity
         {
             WorkspaceId = "WorkspaceId",
             WorkspaceEpoch = 1,
         });
 
-        var target = new CodeActionInfoFactory(
-            referenceStore.Object,
-            timeProvider.Object,
-            Options.Create(new CodeActionExecutionOptions()));
+        var target = CreateTarget(referenceStore, timeProvider, TimeSpan.FromMinutes(5));
 
         var result = target.CreateFromReference(
             action,
             context.Object,
-            new CodeActionDescriptorEntry(),
+            new CodeActionDescriptorEntry
+            {
+                ExecutionMode = CodeActionExecutionMode.Parameterised,
+                ExecutorTool = "ExecutorTool",
+            },
             reference,
             resolvedLocation);
 
         result.ActionId.Should().Be(_actionId);
         result.ExpiresAt.Should().Be("2000-01-01T00:05:00.0000000+00:00");
+        result.ExecutorTool.Should().Be("ExecutorTool");
         result.Location.Should().BeSameAs(resolvedLocation);
-        referenceStore.Verify(
-            item => item.TryCreate(
-                It.IsAny<CodeActionReplayRecipe>(),
-                It.IsAny<DateTimeOffset>(),
-                out It.Ref<CodeActionReference?>.IsAny),
-            Times.Never);
+    }
+
+    private static CodeActionInfoFactory CreateTarget(
+        Mock<ICodeActionReferenceStore> referenceStore,
+        Mock<TimeProvider> timeProvider,
+        TimeSpan referenceLifetime)
+    {
+        return new CodeActionInfoFactory(
+            referenceStore.Object,
+            timeProvider.Object,
+            Options.Create(new CodeActionExecutionOptions
+            {
+                ReferenceLifetime = referenceLifetime,
+            }));
     }
 
     private static DiscoveredCodeAction CreateAction(Solution solution, DiscoveredActionKind kind)
@@ -311,17 +269,4 @@ public sealed class CodeActionInfoFactoryTests
             DiagnosticIds = ["DiagnosticId"],
         };
     }
-
-    private static CodeActionDescriptorEntry CreateDescriptor()
-    {
-        return new CodeActionDescriptorEntry
-        {
-            ExecutionMode = CodeActionExecutionMode.Parameterised,
-            ExecutorTool = "ExecutorTool",
-            DescribeTool = "DescribeTool",
-            UnsupportedReasonCode = "UnsupportedReasonCode",
-            Requirements = ["Requirement"],
-        };
-    }
 }
-#pragma warning restore CA1861

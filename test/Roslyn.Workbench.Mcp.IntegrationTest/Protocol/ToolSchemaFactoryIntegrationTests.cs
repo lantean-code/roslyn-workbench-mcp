@@ -153,6 +153,8 @@ public sealed class ToolSchemaFactoryIntegrationTests
             GetRequiredProperty<StageCodeActionRequest>(nameof(StageCodeActionRequest.ActionId)),
             GetRequiredProperty<StageCodeFixRequest>(nameof(StageCodeFixRequest.ActionId)),
             GetRequiredProperty<StageFixAllRequest>(nameof(StageFixAllRequest.ActionId)),
+            GetRequiredProperty<StageFixAllRequest>(nameof(StageFixAllRequest.Scope)),
+            GetRequiredProperty<TransactionHistoryRequest>(nameof(TransactionHistoryRequest.Direction)),
             GetRequiredProperty<AddConstructorParametersRequest>(nameof(AddConstructorParametersRequest.Kind)),
             GetRequiredProperty<AddAwaitRequest>(nameof(AddAwaitRequest.Kind)),
             GetRequiredProperty<ConvertAnonymousTypeToClassRequest>(nameof(ConvertAnonymousTypeToClassRequest.Kind)),
@@ -165,7 +167,7 @@ public sealed class ToolSchemaFactoryIntegrationTests
             GetRequiredProperty<ReplaceMethodWithPropertyRequest>(nameof(ReplaceMethodWithPropertyRequest.Kind)),
         };
 
-        requiredProperties.Should().HaveCount(17);
+        requiredProperties.Should().HaveCount(19);
         AssertRequiredNonNullableProperties(target, requiredProperties);
     }
 
@@ -203,7 +205,7 @@ public sealed class ToolSchemaFactoryIntegrationTests
             }
         }
 
-        requestTypes.Should().HaveCount(29);
+        requestTypes.Should().HaveCount(30);
         foreach (var requestType in requestTypes)
         {
             var closedSchemaMethod = schemaMethod.MakeGenericMethod(requestType);
@@ -248,7 +250,7 @@ public sealed class ToolSchemaFactoryIntegrationTests
             .Where(IsLimitProperty)
             .ToArray();
 
-        limitProperties.Should().HaveCount(46);
+        limitProperties.Should().HaveCount(47);
         foreach (var limitProperty in limitProperties)
         {
             var declaringType = limitProperty.DeclaringType

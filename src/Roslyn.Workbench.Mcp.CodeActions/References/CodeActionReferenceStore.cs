@@ -65,11 +65,17 @@ internal sealed class CodeActionReferenceStore : ICodeActionReferenceStore
             + (recipe.WorkspaceId?.Length ?? 0)
             + recipe.DocumentPath.Length
             + recipe.ProjectId.Length
-            + recipe.ActionPath.Count;
+            + recipe.ActionPath.Count
+            + recipe.Diagnostics.Count;
 
         foreach (var diagnosticId in recipe.DiagnosticIds)
         {
             size += diagnosticId.Length;
+        }
+
+        foreach (var diagnostic in recipe.Diagnostics)
+        {
+            size += diagnostic.Id.Length + diagnostic.Message.Length;
         }
 
         return size;

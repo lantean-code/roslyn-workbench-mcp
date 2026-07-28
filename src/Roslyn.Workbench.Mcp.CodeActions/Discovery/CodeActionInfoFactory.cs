@@ -24,9 +24,14 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
         ICodeActionExecutionContext context,
         Document document,
         ResolvedLocation location,
-        CodeActionDescriptorEntry descriptor,
-        [NotNullWhen(true)] out CodeActionInfo? info)
+        [NotNullWhen(true)] out CodeActionListItem? item)
     {
+        if (location.Document is null || location.Span is null)
+        {
+            item = null;
+            return false;
+        }
+
         var expiresAt = _timeProvider.GetUtcNow().Add(_referenceLifetime);
         var recipe = new CodeActionReplayRecipe
         {
@@ -36,6 +41,7 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
             EquivalenceKey = action.EquivalenceKey,
             ActionPath = action.ActionPath.ToArray(),
             DiagnosticIds = action.DiagnosticIds.ToArray(),
+            Diagnostics = action.Diagnostics.ToArray(),
             WorkspaceId = context.WorkspaceIdentity.WorkspaceId,
             WorkspaceEpoch = context.WorkspaceIdentity.WorkspaceEpoch,
             TransactionRevision = context.TransactionRevision,
@@ -47,11 +53,32 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
 
         if (!_referenceStore.TryCreate(recipe, expiresAt, out var reference))
         {
-            info = null;
+            item = null;
             return false;
         }
 
-        info = CreateFromReference(action, context, descriptor, reference, location);
+        item = new CodeActionListItem
+        {
+            ActionId = reference.ActionId,
+            Title = action.Title,
+            Kind = action.Kind == DiscoveredActionKind.Refactoring
+                ? CodeActionKind.Refactoring
+                : CodeActionKind.CodeFix,
+            Location = new CodeActionLocation
+            {
+                Document = location.Document,
+                Span = location.Span,
+                Line = location.Line,
+                Column = location.Column,
+            },
+            Diagnostics = action.Kind == DiscoveredActionKind.CodeFix
+                ? CreateDiagnosticContexts(action.Diagnostics)
+                : null,
+            FixAllScopes = action.FixAllScopes.Count == 0
+                ? null
+                : action.FixAllScopes,
+        };
+
         return true;
     }
 
@@ -84,5 +111,21 @@ internal sealed class CodeActionInfoFactory : ICodeActionInfoFactory
         };
 
         return info;
+    }
+
+    private static List<CodeActionDiagnosticContext> CreateDiagnosticContexts(
+        IReadOnlyList<CodeActionDiagnosticIdentity> diagnostics)
+    {
+        var contexts = new List<CodeActionDiagnosticContext>(diagnostics.Count);
+        foreach (var diagnostic in diagnostics)
+        {
+            contexts.Add(new CodeActionDiagnosticContext
+            {
+                Id = diagnostic.Id,
+                Message = diagnostic.Message,
+            });
+        }
+
+        return contexts;
     }
 }

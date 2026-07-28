@@ -14,6 +14,8 @@ internal sealed record CodeActionReplayRecipe
 
     public IReadOnlyList<string> DiagnosticIds { get; init; } = [];
 
+    public IReadOnlyList<CodeActionDiagnosticIdentity> Diagnostics { get; init; } = [];
+
     public string? WorkspaceId { get; init; }
 
     public long WorkspaceEpoch { get; init; }

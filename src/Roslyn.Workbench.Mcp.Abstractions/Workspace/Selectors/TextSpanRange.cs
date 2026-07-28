@@ -1,7 +1,7 @@
 namespace Roslyn.Workbench.Mcp.Workspace.Selectors;
 
 /// <summary>
-/// Represents a zero-based UTF-16 text span in a response model.
+/// Represents a zero-based UTF-16 text span in a request or response model.
 /// </summary>
 public sealed record TextSpanRange
 {

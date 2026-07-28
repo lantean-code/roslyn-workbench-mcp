@@ -1,7 +1,9 @@
+using System.Text.Json.Serialization;
+
 namespace Roslyn.Workbench.Mcp.CodeActions.Contracts;
 
 /// <summary>
-/// Represents the minimal default descriptor returned when listing code actions.
+/// Represents one discovered code action.
 /// </summary>
 internal sealed record CodeActionListItem
 {
@@ -16,32 +18,24 @@ internal sealed record CodeActionListItem
     public string Title { get; init; } = string.Empty;
 
     /// <summary>
-    /// Gets the stable provider identity.
+    /// Gets the action kind.
     /// </summary>
-    public string ProviderId { get; init; } = string.Empty;
+    public CodeActionKind Kind { get; init; }
 
     /// <summary>
-    /// Gets the optional action kind.
+    /// Gets the precise source location to which the action applies.
     /// </summary>
-    public string? Kind { get; init; }
+    public required CodeActionLocation Location { get; init; }
 
     /// <summary>
-    /// Gets the execution mode for the discovered action.
+    /// Gets concise diagnostic context for a code fix.
     /// </summary>
-    public CodeActionExecutionMode? ExecutionMode { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<CodeActionDiagnosticContext>? Diagnostics { get; init; }
 
     /// <summary>
-    /// Gets the dedicated executor tool name when the action is parameterised.
+    /// Gets the supported Fix All scopes for a code fix.
     /// </summary>
-    public string? ExecutorTool { get; init; }
-
-    /// <summary>
-    /// Gets the descriptor query tool name when the action supports preflight description.
-    /// </summary>
-    public string? DescribeTool { get; init; }
-
-    /// <summary>
-    /// Gets the structured reason code when the action cannot be executed.
-    /// </summary>
-    public string? UnsupportedReasonCode { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<CodeActionFixAllScope>? FixAllScopes { get; init; }
 }

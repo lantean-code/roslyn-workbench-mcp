@@ -1,33 +1,39 @@
+using System.ComponentModel;
+
 namespace Roslyn.Workbench.Mcp.CodeActions.Contracts;
 
 /// <summary>
-/// Represents a request to list applicable code actions at a location.
+/// Represents a request to list applicable code actions for a document.
 /// </summary>
 internal sealed record ListCodeActionsRequest : WorkspaceBoundRequest
 {
-    /// <summary>
-    /// Gets the target location.
-    /// </summary>
-    public required LocationSelector Location { get; init; }
+    private const int _defaultLimit = 50;
 
     /// <summary>
-    /// Gets the expected workspace snapshot.
+    /// Gets the target document.
     /// </summary>
-    public SnapshotPrecondition? ExpectedSnapshot { get; init; }
+    public required DocumentSelector Document { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether refactorings should be included.
+    /// Gets the optional selection or caret range. An omitted range selects the complete document.
     /// </summary>
-    public bool IncludeRefactorings { get; init; } = true;
+    public TextSpanRange? Range { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether code fixes should be included.
+    /// Gets the kinds of actions to discover.
     /// </summary>
-    public bool IncludeCodeFixes { get; init; } = true;
+    public required CodeActionKindSelection Kinds { get; init; }
 
     /// <summary>
     /// Gets the optional diagnostic identifier filter for code fixes.
     /// </summary>
     public IReadOnlyList<string>? DiagnosticIds { get; init; }
 
+    /// <summary>
+    /// Gets the maximum number of action leaves to return.
+    /// </summary>
+    [DefaultValue(_defaultLimit)]
+    public int? Limit { get; init; } = _defaultLimit;
+
+    internal int EffectiveLimit => Math.Max(0, Limit ?? _defaultLimit);
 }

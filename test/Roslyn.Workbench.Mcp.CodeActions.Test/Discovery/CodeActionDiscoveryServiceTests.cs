@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CodeRefactorings;
@@ -24,8 +25,12 @@ public sealed class CodeActionDiscoveryServiceTests
             ExecutionMode = CodeActionExecutionMode.Replay,
         };
 
-        _providerSelection.SetupGet(item => item.RefactoringProviders).Returns([]);
-        _providerSelection.SetupGet(item => item.CodeFixProviders).Returns([]);
+        _providerSelection
+            .SetupGet(item => item.RefactoringProviders)
+            .Returns(FrozenDictionary<string, CodeRefactoringProvider>.Empty);
+        _providerSelection
+            .SetupGet(item => item.CodeFixProviders)
+            .Returns(FrozenDictionary<string, CodeFixProvider>.Empty);
         _policy
             .Setup(item => item.EvaluateProvider(It.IsAny<string>()))
             .Returns(CodeActionPolicyDecision.Allowed());
@@ -50,7 +55,9 @@ public sealed class CodeActionDiscoveryServiceTests
     {
         var provider = new Mock<CodeRefactoringProvider>();
         var providerId = _target.GetProviderId(provider.Object);
-        _providerSelection.SetupGet(item => item.RefactoringProviders).Returns([provider.Object]);
+        _providerSelection
+            .SetupGet(item => item.RefactoringProviders)
+            .Returns(CreateProviderSelection((providerId, provider.Object)));
 
         var result = _target.GetMatchingRefactoringProviders(matches ? providerId : "ProviderId");
 
@@ -68,7 +75,10 @@ public sealed class CodeActionDiscoveryServiceTests
     public void GIVEN_RefactoringProvider_WHEN_GettingAllMatchingProviders_THEN_ShouldReturnProvider()
     {
         var provider = new Mock<CodeRefactoringProvider>();
-        _providerSelection.SetupGet(item => item.RefactoringProviders).Returns([provider.Object]);
+        var providerId = _target.GetProviderId(provider.Object);
+        _providerSelection
+            .SetupGet(item => item.RefactoringProviders)
+            .Returns(CreateProviderSelection((providerId, provider.Object)));
 
         var result = _target.GetMatchingRefactoringProviders(providerId: null);
 
@@ -80,7 +90,11 @@ public sealed class CodeActionDiscoveryServiceTests
     {
         var firstProvider = new Mock<CodeRefactoringProvider>();
         var secondProvider = new Mock<CodeRefactoringProvider>();
-        _providerSelection.SetupGet(item => item.RefactoringProviders).Returns([firstProvider.Object, secondProvider.Object]);
+        _providerSelection
+            .SetupGet(item => item.RefactoringProviders)
+            .Returns(CreateProviderSelection(
+                ("FirstProviderId", firstProvider.Object),
+                ("SecondProviderId", secondProvider.Object)));
 
         var result = _target.GetMatchingRefactoringProviders(providerId: null);
 
@@ -88,11 +102,30 @@ public sealed class CodeActionDiscoveryServiceTests
     }
 
     [Fact]
-    public void GIVEN_ProviderHasHiddenCapability_WHEN_GettingMatchingProviders_THEN_ShouldExcludeProvider()
+    public void GIVEN_RequestedRefactoringProviderIsExcludedByPolicy_WHEN_GettingMatchingProviders_THEN_ShouldReturnNoProviders()
     {
         var provider = new Mock<CodeRefactoringProvider>();
         var providerId = _target.GetProviderId(provider.Object);
-        _providerSelection.SetupGet(item => item.RefactoringProviders).Returns([provider.Object]);
+        _providerSelection
+            .SetupGet(item => item.RefactoringProviders)
+            .Returns(CreateProviderSelection((providerId, provider.Object)));
+        _policy
+            .Setup(item => item.EvaluateProvider(providerId))
+            .Returns(CodeActionPolicyDecision.Excluded("ReasonCode"));
+
+        var result = _target.GetMatchingRefactoringProviders(providerId);
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void GIVEN_ProviderHasLegacyHiddenCapability_WHEN_GettingMatchingProviders_THEN_ShouldRemainDiscoverable()
+    {
+        var provider = new Mock<CodeRefactoringProvider>();
+        var providerId = _target.GetProviderId(provider.Object);
+        _providerSelection
+            .SetupGet(item => item.RefactoringProviders)
+            .Returns(CreateProviderSelection((providerId, provider.Object)));
         _descriptorRegistry
             .Setup(item => item.GetProviderCapability(providerId))
             .Returns(new CodeActionProviderCapability
@@ -106,7 +139,7 @@ public sealed class CodeActionDiscoveryServiceTests
 
         var result = _target.GetMatchingRefactoringProviders(providerId: null);
 
-        result.Should().BeEmpty();
+        result.Should().ContainSingle().Which.Should().BeSameAs(provider.Object);
     }
 
     [Theory]
@@ -116,7 +149,10 @@ public sealed class CodeActionDiscoveryServiceTests
     public void GIVEN_CodeFixProvider_WHEN_GettingAllMatchingProviders_THEN_ShouldReturnProvider(string? providerId)
     {
         var provider = new Mock<CodeFixProvider>();
-        _providerSelection.SetupGet(item => item.CodeFixProviders).Returns([provider.Object]);
+        var actualProviderId = _target.GetProviderId(provider.Object);
+        _providerSelection
+            .SetupGet(item => item.CodeFixProviders)
+            .Returns(CreateProviderSelection((actualProviderId, provider.Object)));
 
         var result = _target.GetMatchingCodeFixProviders(providerId);
 
@@ -128,11 +164,32 @@ public sealed class CodeActionDiscoveryServiceTests
     {
         var firstProvider = new Mock<CodeFixProvider>();
         var secondProvider = new Mock<CodeFixProvider>();
-        _providerSelection.SetupGet(item => item.CodeFixProviders).Returns([firstProvider.Object, secondProvider.Object]);
+        _providerSelection
+            .SetupGet(item => item.CodeFixProviders)
+            .Returns(CreateProviderSelection(
+                ("FirstProviderId", firstProvider.Object),
+                ("SecondProviderId", secondProvider.Object)));
 
         var result = _target.GetMatchingCodeFixProviders(providerId: null);
 
         result.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void GIVEN_CodeFixProviderIsExcludedByPolicy_WHEN_GettingAllMatchingProviders_THEN_ShouldOmitProvider()
+    {
+        var provider = new Mock<CodeFixProvider>();
+        var providerId = _target.GetProviderId(provider.Object);
+        _providerSelection
+            .SetupGet(item => item.CodeFixProviders)
+            .Returns(CreateProviderSelection((providerId, provider.Object)));
+        _policy
+            .Setup(item => item.EvaluateProvider(providerId))
+            .Returns(CodeActionPolicyDecision.Excluded("ReasonCode"));
+
+        var result = _target.GetMatchingCodeFixProviders(providerId: null);
+
+        result.Should().BeEmpty();
     }
 
     [Theory]
@@ -142,7 +199,9 @@ public sealed class CodeActionDiscoveryServiceTests
     {
         var provider = new Mock<CodeFixProvider>();
         var providerId = _target.GetProviderId(provider.Object);
-        _providerSelection.SetupGet(item => item.CodeFixProviders).Returns([provider.Object]);
+        _providerSelection
+            .SetupGet(item => item.CodeFixProviders)
+            .Returns(CreateProviderSelection((providerId, provider.Object)));
 
         var result = _target.GetMatchingCodeFixProviders(matches ? providerId : "ProviderId");
 
@@ -163,7 +222,9 @@ public sealed class CodeActionDiscoveryServiceTests
     {
         var provider = new Mock<CodeFixProvider>();
         var providerId = _target.GetProviderId(provider.Object);
-        _providerSelection.SetupGet(item => item.CodeFixProviders).Returns([provider.Object]);
+        _providerSelection
+            .SetupGet(item => item.CodeFixProviders)
+            .Returns(CreateProviderSelection((providerId, provider.Object)));
 
         var result = _target.FindCodeFixProvider(matches ? providerId : "ProviderId");
 
@@ -223,7 +284,7 @@ public sealed class CodeActionDiscoveryServiceTests
     }
 
     [Fact]
-    public async Task GIVEN_RefactoringProviderHasHiddenCapability_WHEN_DiscoveringRefactorings_THEN_ShouldNotInvokeProvider()
+    public async Task GIVEN_RefactoringProviderHasLegacyHiddenCapability_WHEN_DiscoveringRefactorings_THEN_ShouldInvokeProvider()
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
         var provider = new Mock<CodeRefactoringProvider>();
@@ -243,7 +304,7 @@ public sealed class CodeActionDiscoveryServiceTests
             TestContext.Current.CancellationToken);
 
         result.Should().BeEmpty();
-        provider.Verify(item => item.ComputeRefactoringsAsync(It.IsAny<CodeRefactoringContext>()), Times.Never);
+        provider.Verify(item => item.ComputeRefactoringsAsync(It.IsAny<CodeRefactoringContext>()), Times.Once);
     }
 
     [Fact]
@@ -267,7 +328,7 @@ public sealed class CodeActionDiscoveryServiceTests
     }
 
     [Fact]
-    public async Task GIVEN_CodeFixProviderHasHiddenCapability_WHEN_DiscoveringCodeFixes_THEN_ShouldNotInspectDiagnosticsOrInvokeProvider()
+    public async Task GIVEN_CodeFixProviderHasLegacyHiddenCapability_WHEN_DiscoveringCodeFixes_THEN_ShouldInspectDiagnostics()
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
         var provider = new Mock<CodeFixProvider>();
@@ -287,7 +348,7 @@ public sealed class CodeActionDiscoveryServiceTests
             TestContext.Current.CancellationToken);
 
         result.Should().BeEmpty();
-        provider.VerifyGet(item => item.FixableDiagnosticIds, Times.Never);
+        provider.VerifyGet(item => item.FixableDiagnosticIds, Times.Once);
         provider.Verify(item => item.RegisterCodeFixesAsync(It.IsAny<CodeFixContext>()), Times.Never);
     }
 
@@ -303,7 +364,12 @@ public sealed class CodeActionDiscoveryServiceTests
         var thirdDiagnostic = RoslynTestFactory.CreateDiagnostic("FirstDiagnostic", requiredSyntaxTree, 2, 1);
         var ignoredDiagnostic = RoslynTestFactory.CreateDiagnostic("IgnoredDiagnostic", requiredSyntaxTree, 4, 1);
         var provider = new Mock<CodeFixProvider>();
+        var fixAllProvider = new Mock<FixAllProvider>();
         provider.SetupGet(item => item.FixableDiagnosticIds).Returns(["FirstDiagnostic", "SecondDiagnostic"]);
+        provider.Setup(item => item.GetFixAllProvider()).Returns(fixAllProvider.Object);
+        fixAllProvider
+            .Setup(item => item.GetSupportedFixAllScopes())
+            .Returns([FixAllScope.Document, FixAllScope.Document, FixAllScope.Project, FixAllScope.Solution, FixAllScope.ContainingType]);
         provider.Setup(item => item.RegisterCodeFixesAsync(It.IsAny<CodeFixContext>()))
             .Returns((CodeFixContext context) =>
             {
@@ -327,6 +393,30 @@ public sealed class CodeActionDiscoveryServiceTests
         result.Select(item => item.TargetSpan).Should().Equal(new TextSpan(0, 1), new TextSpan(2, 1));
         result[0].DiagnosticIds.Should().Equal("FirstDiagnostic", "SecondDiagnostic");
         result[1].DiagnosticIds.Should().Equal("FirstDiagnostic");
+        result[0].Diagnostics.Should().BeEquivalentTo(
+        [
+            new CodeActionDiagnosticIdentity
+            {
+                Id = "FirstDiagnostic",
+                Message = "Message",
+                Start = 0,
+                Length = 1,
+            },
+            new CodeActionDiagnosticIdentity
+            {
+                Id = "SecondDiagnostic",
+                Message = "Message",
+                Start = 0,
+                Length = 1,
+            },
+        ]);
+        result.Should().OnlyContain(item =>
+            item.FixAllScopes.SequenceEqual(new[]
+            {
+                CodeActionFixAllScope.Document,
+                CodeActionFixAllScope.Project,
+                CodeActionFixAllScope.Solution,
+            }));
         result.Should().OnlyContain(item =>
             item.Kind == DiscoveredActionKind.CodeFix
             && item.ProviderId == providerId
@@ -338,6 +428,37 @@ public sealed class CodeActionDiscoveryServiceTests
 
         provider.Verify(item => item.RegisterCodeFixesAsync(
             It.Is<CodeFixContext>(context => context.Span == new TextSpan(2, 1) && context.Diagnostics.Length == 1)), Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_CodeFixHasNoEquivalenceKey_WHEN_DiscoveringCodeFixes_THEN_ShouldNotAdvertiseFixAll()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var syntaxTree = await roslyn.Document.GetSyntaxTreeAsync(TestContext.Current.CancellationToken);
+        var requiredSyntaxTree = syntaxTree ?? throw new InvalidOperationException("The test document has no syntax tree.");
+        var diagnostic = RoslynTestFactory.CreateDiagnostic("DiagnosticId", requiredSyntaxTree, 0, 1);
+        var provider = new Mock<CodeFixProvider>();
+        var fixAllProvider = new Mock<FixAllProvider>();
+        provider.SetupGet(item => item.FixableDiagnosticIds).Returns(["DiagnosticId"]);
+        provider.Setup(item => item.GetFixAllProvider()).Returns(fixAllProvider.Object);
+        fixAllProvider
+            .Setup(item => item.GetSupportedFixAllScopes())
+            .Returns([FixAllScope.Document]);
+        provider.Setup(item => item.RegisterCodeFixesAsync(It.IsAny<CodeFixContext>()))
+            .Returns((CodeFixContext context) =>
+            {
+                var action = CodeAction.Create("Title", _ => Task.FromResult(roslyn.Document));
+                context.RegisterCodeFix(action, context.Diagnostics);
+                return Task.CompletedTask;
+            });
+
+        var result = await _target.DiscoverCodeFixesAsync(
+            provider.Object,
+            roslyn.Document,
+            [diagnostic],
+            TestContext.Current.CancellationToken);
+
+        result.Should().ContainSingle().Which.FixAllScopes.Should().BeEmpty();
     }
 
     [Fact]
@@ -446,6 +567,19 @@ public sealed class CodeActionDiscoveryServiceTests
         _descriptorRegistry.Verify(
             item => item.ResolveActionDependentDescriptor(It.IsAny<CodeAction>(), It.IsAny<string>(), It.IsAny<string>()),
             Times.Never);
+    }
+
+    private static FrozenDictionary<string, TProvider> CreateProviderSelection<TProvider>(
+        params (string ProviderId, TProvider Provider)[] providers)
+        where TProvider : class
+    {
+        var providerDictionary = new Dictionary<string, TProvider>(providers.Length, StringComparer.Ordinal);
+        foreach (var (providerId, provider) in providers)
+        {
+            providerDictionary.Add(providerId, provider);
+        }
+
+        return providerDictionary.ToFrozenDictionary(StringComparer.Ordinal);
     }
 }
 #pragma warning restore CA1861

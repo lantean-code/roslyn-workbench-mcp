@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Reflection;
 using System.Text.Json;
 
@@ -143,34 +144,75 @@ public sealed class SchemaGenerationTests
         var method = typeof(ContractSchemaTestTools).GetMethod(nameof(ContractSchemaTestTools.ListCodeActions), BindingFlags.Public | BindingFlags.Static);
 
         var tool = McpServerTool.Create(method!);
-        var requestProperties = tool.ProtocolTool.InputSchema.GetProperty("properties").GetProperty("request").GetProperty("properties");
+        var requestSchema = tool.ProtocolTool.InputSchema.GetProperty("properties").GetProperty("request");
+        var requestProperties = requestSchema.GetProperty("properties");
 
-        requestProperties.TryGetProperty("location", out var locationProperty).Should().BeTrue();
-        requestProperties.TryGetProperty("expectedSnapshot", out var snapshotProperty).Should().BeTrue();
-        requestProperties.TryGetProperty("workspace", out var workspaceProperty).Should().BeTrue();
-        requestProperties.TryGetProperty("includeRefactorings", out var refactoringsProperty).Should().BeTrue();
-        requestProperties.TryGetProperty("includeCodeFixes", out var codeFixesProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("document", out var documentProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("range", out var rangeProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("kinds", out var kindsProperty).Should().BeTrue();
         requestProperties.TryGetProperty("diagnosticIds", out var diagnosticIdsProperty).Should().BeTrue();
-        locationProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
-        snapshotProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
-        workspaceProperty.GetRawText().Should().Contain("workspaceId");
-        refactoringsProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
-        codeFixesProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        requestProperties.TryGetProperty("limit", out var limitProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("workspace", out var workspaceProperty).Should().BeTrue();
+        requestProperties.TryGetProperty("expectedSnapshot", out _).Should().BeFalse();
+        requestProperties.TryGetProperty("location", out _).Should().BeFalse();
+        requestProperties.TryGetProperty("includeRefactorings", out _).Should().BeFalse();
+        requestProperties.TryGetProperty("includeCodeFixes", out _).Should().BeFalse();
+        documentProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        rangeProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        kindsProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        kindsProperty.GetRawText().Should().Contain("CodeFixes");
+        kindsProperty.GetRawText().Should().Contain("Refactorings");
+        kindsProperty.GetRawText().Should().Contain("All");
         diagnosticIdsProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
+        var limitDefault = typeof(ListCodeActionsRequest)
+            .GetProperty(nameof(ListCodeActionsRequest.Limit))!
+            .GetCustomAttribute<DefaultValueAttribute>();
+
+        limitDefault.Should().NotBeNull();
+        limitDefault!.Value.Should().Be(50);
+        workspaceProperty.GetRawText().Should().Contain("workspaceId");
+        requestSchema.GetProperty("required").EnumerateArray()
+            .Select(static item => item.GetString())
+            .Should().Contain(["document", "kinds"]);
     }
 
     [Fact]
-    public void GIVEN_ListCodeActionsOutput_WHEN_GeneratingToolSchema_THEN_ShouldPublishDescriptorMetadata()
+    public void GIVEN_ListCodeActionsOutput_WHEN_GeneratingToolSchema_THEN_ShouldPublishConciseBoundedActions()
     {
         var method = typeof(ContractSchemaTestTools).GetMethod(nameof(ContractSchemaTestTools.ListCodeActions), BindingFlags.Public | BindingFlags.Static);
 
         var tool = McpServerTool.Create(method!);
         var outputSchema = tool.ProtocolTool.OutputSchema!.Value;
 
-        outputSchema.GetRawText().Should().Contain("executionMode");
-        outputSchema.GetRawText().Should().Contain("executorTool");
-        outputSchema.GetRawText().Should().Contain("describeTool");
-        outputSchema.GetRawText().Should().Contain("unsupportedReasonCode");
+        var dataSchema = outputSchema.GetProperty("properties").GetProperty("data");
+        var dataText = dataSchema.GetRawText();
+        var actionText = dataSchema
+            .GetProperty("properties")
+            .GetProperty("actions")
+            .GetProperty("items")
+            .GetRawText();
+
+        dataText.Should().Contain("returnedCount");
+        dataText.Should().Contain("hasMore");
+        dataText.Should().Contain("totalCount");
+        actionText.Should().Contain("actionId");
+        actionText.Should().Contain("title");
+        actionText.Should().Contain("kind");
+        actionText.Should().Contain("location");
+        actionText.Should().Contain("diagnostics");
+        actionText.Should().Contain("fixAllScopes");
+        actionText.Should().NotContain("providerId");
+        actionText.Should().NotContain("equivalenceKey");
+        actionText.Should().NotContain("actionPath");
+        actionText.Should().NotContain("workspaceId");
+        actionText.Should().NotContain("workspaceEpoch");
+        actionText.Should().NotContain("transactionRevision");
+        actionText.Should().NotContain("expiresAt");
+        actionText.Should().NotContain("executionMode");
+        actionText.Should().NotContain("executorTool");
+        actionText.Should().NotContain("describeTool");
+        actionText.Should().NotContain("unsupportedReasonCode");
+        actionText.Should().NotContain("requirements");
     }
 
     [Fact]

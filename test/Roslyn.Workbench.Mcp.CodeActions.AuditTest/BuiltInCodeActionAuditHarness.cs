@@ -44,13 +44,10 @@ internal static class BuiltInCodeActionAuditHarness
             composition);
 
         var session = new CodeActionComponentTestSession(coordinator);
-        var openResult = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         var location = auditCase.LocationFactory(fixture);
         await using var queryLease = coordinator.CodeActionContextFactory.CreateQueryContext(
-            new ListCodeActionsRequest
-            {
-                Location = location,
-            },
+            CreateListRequest(location, auditCase.Kind),
             TestContext.Current.CancellationToken);
 
         var queryContext = queryLease.Context!;
@@ -114,16 +111,7 @@ internal static class BuiltInCodeActionAuditHarness
             .ToArray();
 
         var visibilityResult = await session.ListAsync(
-            new ListCodeActionsRequest
-            {
-                Location = location,
-                IncludeCodeFixes = auditCase.Kind == BuiltInCodeActionAuditKind.CodeFix,
-                IncludeRefactorings = auditCase.Kind == BuiltInCodeActionAuditKind.Refactoring,
-                ExpectedSnapshot = new SnapshotPrecondition
-                {
-                    WorkspaceEpoch = openResult.Context.WorkspaceEpoch!.Value,
-                },
-            },
+            CreateListRequest(location, auditCase.Kind),
             TestContext.Current.CancellationToken);
 
         if (matching.Length == 0)
@@ -426,8 +414,33 @@ internal static class BuiltInCodeActionAuditHarness
     private static bool IsVisible(CodeActionExecutionResult<CodeActionListData> result, BuiltInCodeActionAuditCase auditCase)
     {
         return result.Data?.Actions.Any(action =>
-            string.Equals(action.ProviderId, auditCase.ProviderId, StringComparison.Ordinal)
+            action.Kind == (auditCase.Kind == BuiltInCodeActionAuditKind.CodeFix
+                ? CodeActionKind.CodeFix
+                : CodeActionKind.Refactoring)
             && MatchesTitle(auditCase, action.Title)) == true;
+    }
+
+    private static ListCodeActionsRequest CreateListRequest(
+        LocationSelector location,
+        BuiltInCodeActionAuditKind kind)
+    {
+        var span = location.Span
+            ?? throw new InvalidOperationException("The audit location must be span-backed.");
+        var document = span.Document
+            ?? throw new InvalidOperationException("The audit location must identify a document.");
+
+        return new ListCodeActionsRequest
+        {
+            Document = document,
+            Range = new TextSpanRange
+            {
+                Start = span.Start,
+                Length = span.Length,
+            },
+            Kinds = kind == BuiltInCodeActionAuditKind.CodeFix
+                ? CodeActionKindSelection.CodeFixes
+                : CodeActionKindSelection.Refactorings,
+        };
     }
 
     private static bool MatchesTitle(BuiltInCodeActionAuditCase auditCase, string title)

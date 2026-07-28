@@ -19,4 +19,8 @@ internal sealed record DiscoveredCodeAction
     public IReadOnlyList<int> ActionPath { get; init; } = [];
 
     public IReadOnlyList<string> DiagnosticIds { get; init; } = [];
+
+    public IReadOnlyList<CodeActionDiagnosticIdentity> Diagnostics { get; init; } = [];
+
+    public IReadOnlyList<CodeActionFixAllScope> FixAllScopes { get; init; } = [];
 }

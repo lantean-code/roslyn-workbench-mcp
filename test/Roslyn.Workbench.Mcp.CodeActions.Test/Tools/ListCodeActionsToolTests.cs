@@ -7,6 +7,9 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Tools;
 
 public sealed class ListCodeActionsToolTests
 {
+    private static readonly string[] _firstDiagnosticIds = ["DIAG001"];
+    private static readonly string[] _secondDiagnosticIds = ["DIAG002"];
+
     private readonly Mock<ICodeActionComposition> _composition;
     private readonly Mock<ICodeActionDiscoveryService> _discoveryService;
     private readonly Mock<ICodeActionDiagnosticService> _diagnosticService;
@@ -23,17 +26,13 @@ public sealed class ListCodeActionsToolTests
         _infoFactory = new Mock<ICodeActionInfoFactory>();
         _context = new Mock<ICodeActionQueryContext>();
         _workspaceResolver = new Mock<IWorkspaceResolver>();
+
         _composition.SetupGet(item => item.Status).Returns(CodeActionCompositionStatus.Available());
-
-        _workspaceResolver
-            .Setup(item => item.ValidateSnapshot(It.IsAny<SnapshotPrecondition?>()))
-            .Returns(SnapshotMatchResult.Matched());
-
         _workspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
             .Returns<Location>(item => SelectorTestFactory.CreateResolvedLocation(item, "Code.cs"));
-
         _context.SetupGet(item => item.WorkspaceResolver).Returns(_workspaceResolver.Object);
+
         _target = new ListCodeActionsTool(
             _composition.Object,
             _discoveryService.Object,
@@ -43,563 +42,163 @@ public sealed class ListCodeActionsToolTests
     }
 
     [Fact]
-    public async Task GIVEN_CodeActionsAreUnavailable_WHEN_Executing_THEN_ShouldRejectBeforeValidatingSnapshot()
+    public async Task GIVEN_CodeActionsAreUnavailable_WHEN_Executing_THEN_ShouldRejectBeforeResolvingDocument()
     {
         _composition.SetupGet(item => item.Status).Returns(CodeActionCompositionStatus.Unavailable("Unavailable."));
 
         var result = await _target.ExecuteAsync(
-            new ListCodeActionsRequest
-            {
-                Location = new LocationSelector(),
-            },
+            CreateRequest(),
             _context.Object,
-            CancellationToken.None);
+            TestContext.Current.CancellationToken);
 
         result.Error!.Code.Should().Be("CodeActionsUnavailable");
-        _workspaceResolver.Verify(item => item.ValidateSnapshot(It.IsAny<SnapshotPrecondition?>()), Times.Never);
+        _workspaceResolver.Verify(item => item.ResolveDocument(It.IsAny<DocumentSelector>()), Times.Never);
     }
 
     [Fact]
-    public async Task GIVEN_SnapshotDoesNotMatch_WHEN_Executing_THEN_ShouldReturnConflict()
+    public async Task GIVEN_NegativeLimit_WHEN_Executing_THEN_ShouldRejectBeforeResolvingDocument()
     {
-        var expectedSnapshot = new SnapshotPrecondition();
-        _workspaceResolver
-            .Setup(item => item.ValidateSnapshot(expectedSnapshot))
-            .Returns(SnapshotMatchResult.TransactionRevisionMismatch());
-
         var result = await _target.ExecuteAsync(
-            new ListCodeActionsRequest
-            {
-                Location = new LocationSelector(),
-                ExpectedSnapshot = expectedSnapshot,
-            },
+            CreateRequest(limit: -1),
             _context.Object,
-            CancellationToken.None);
+            TestContext.Current.CancellationToken);
 
-        result.Outcome.Should().Be(CodeActionExecutionOutcome.Conflict);
-        result.Error!.Code.Should().Be("SnapshotMismatch");
+        result.Error!.Code.Should().Be("InvalidRequest");
+        result.Error.Message.Should().Be("Limit must be zero or greater when provided.");
+        _workspaceResolver.Verify(item => item.ResolveDocument(It.IsAny<DocumentSelector>()), Times.Never);
+    }
+
+    [Fact]
+    public void GIVEN_LimitIsNull_WHEN_GettingEffectiveLimit_THEN_ShouldUsePublishedDefault()
+    {
+        var request = CreateRequest(limit: null);
+
+        request.EffectiveLimit.Should().Be(50);
     }
 
     [Theory]
-    [InlineData(SelectorResolveStatus.NotFound, "LocationNotFound")]
-    [InlineData(SelectorResolveStatus.Ambiguous, "LocationAmbiguous")]
-    public async Task GIVEN_LocationDoesNotResolve_WHEN_Executing_THEN_ShouldReturnResolutionRejection(
+    [InlineData(SelectorResolveStatus.NotFound, "DocumentNotFound")]
+    [InlineData(SelectorResolveStatus.Ambiguous, "DocumentAmbiguous")]
+    public async Task GIVEN_DocumentDoesNotResolve_WHEN_Executing_THEN_ShouldReturnResolutionRejection(
         SelectorResolveStatus status,
         string expectedCode)
     {
-        var selector = new LocationSelector();
+        var selector = new DocumentSelector { Path = "Code.cs" };
         _workspaceResolver
-            .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
-            .ReturnsAsync(SelectorTestFactory.CreateUnresolvedResult<Location>(status));
+            .Setup(item => item.ResolveDocument(selector))
+            .Returns(SelectorTestFactory.CreateUnresolvedResult<Document>(status));
 
         var result = await _target.ExecuteAsync(
-            new ListCodeActionsRequest
-            {
-                Location = selector,
-            },
+            CreateRequest(document: selector),
             _context.Object,
-            CancellationToken.None);
+            TestContext.Current.CancellationToken);
 
         result.Error!.Code.Should().Be(expectedCode);
     }
 
     [Fact]
-    public async Task GIVEN_LocationIsNotOwnedByCurrentSolution_WHEN_Executing_THEN_ShouldRejectLocation()
+    public async Task GIVEN_RangeIsOutsideDocument_WHEN_Executing_THEN_ShouldRejectRange()
     {
-        using var currentRoslyn = RoslynTestFactory.CreateDocument("class C { }");
-        using var otherRoslyn = RoslynTestFactory.CreateDocument("class D { }");
-        var selector = new LocationSelector();
-        var location = await CreateLocationAsync(otherRoslyn.Document);
-        _workspaceResolver
-            .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
-            .ReturnsAsync(SelectorResolveResult.Resolved(location));
-
-        _context.SetupGet(item => item.CurrentSolution).Returns(currentRoslyn.Solution);
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var selector = SetupDocument(roslyn.Document);
 
         var result = await _target.ExecuteAsync(
-            new ListCodeActionsRequest
-            {
-                Location = selector,
-            },
+            CreateRequest(
+                document: selector,
+                range: new TextSpanRange { Start = 0, Length = 100 }),
             _context.Object,
-            CancellationToken.None);
+            TestContext.Current.CancellationToken);
 
-        result.Error!.Code.Should().Be("LocationNotFound");
+        result.Error!.Code.Should().Be("InvalidRange");
         _discoveryService.Verify(item => item.GetMatchingRefactoringProviders(It.IsAny<string?>()), Times.Never);
     }
 
     [Fact]
-    public async Task GIVEN_AllActionFamiliesAreExcluded_WHEN_Executing_THEN_ShouldReturnEmptyListWithoutDiscovery()
+    public async Task GIVEN_DocumentModeRequestsAllKinds_WHEN_Executing_THEN_ShouldUseCompleteDocumentAndUnscopedDiagnostics()
     {
-        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
-        var selector = new LocationSelector();
-        var location = await CreateLocationAsync(roslyn.Document);
-        _workspaceResolver
-            .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
-            .ReturnsAsync(SelectorResolveResult.Resolved(location));
-
-        _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
-
-        var result = await _target.ExecuteAsync(
-            new ListCodeActionsRequest
-            {
-                Location = selector,
-                IncludeRefactorings = false,
-                IncludeCodeFixes = false,
-            },
-            _context.Object,
-            CancellationToken.None);
-
-        result.Outcome.Should().Be(CodeActionExecutionOutcome.Succeeded);
-        result.Data!.Actions.Should().BeEmpty();
-        _diagnosticService.Verify(item => item.CollectDocumentDiagnosticsAsync(
-            It.IsAny<Document>(),
-            It.IsAny<TextSpan?>(),
-            It.IsAny<IReadOnlyList<string>?>(),
-            It.IsAny<CancellationToken>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task GIVEN_NoProvidersMatchIncludedFamilies_WHEN_Executing_THEN_ShouldReturnEmptyList()
-    {
-        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
-        var selector = new LocationSelector();
-        var location = await CreateLocationAsync(roslyn.Document);
-        var diagnosticIds = new[] { "DiagnosticId" };
-        _workspaceResolver
-            .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
-            .ReturnsAsync(SelectorResolveResult.Resolved(location));
-
-        _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
-        _discoveryService.Setup(item => item.GetMatchingRefactoringProviders(null)).Returns([]);
-        _discoveryService.Setup(item => item.GetMatchingCodeFixProviders(null)).Returns([]);
-        var result = await _target.ExecuteAsync(
-            new ListCodeActionsRequest
-            {
-                Location = selector,
-                DiagnosticIds = diagnosticIds,
-            },
-            _context.Object,
-            CancellationToken.None);
-
-        result.Data!.Actions.Should().BeEmpty();
-        _diagnosticService.Verify(item => item.CollectDocumentDiagnosticsAsync(
-            roslyn.Document,
-            location.SourceSpan,
-            diagnosticIds,
-            CancellationToken.None), Times.Never);
-    }
-
-    [Fact]
-    public async Task GIVEN_VisibleActionCannotBeEncoded_WHEN_Executing_THEN_ShouldOmitAction()
-    {
-        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
-        var selector = new LocationSelector();
-        var location = await CreateLocationAsync(roslyn.Document);
-        var provider = new Mock<CodeRefactoringProvider>();
-        var descriptor = new CodeActionDescriptorEntry
-        {
-            IsVisible = true,
-        };
-
-        var action = CreateDiscoveredAction(
-            roslyn.Solution,
-            "Title",
-            "ProviderId",
-            equivalenceKey: null,
-            actionPath: [],
-            DiscoveredActionKind.Refactoring,
-            descriptor);
-
-        _workspaceResolver
-            .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
-            .ReturnsAsync(SelectorResolveResult.Resolved(location));
-
-        _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
-        _discoveryService.Setup(item => item.GetMatchingRefactoringProviders(null)).Returns([provider.Object]);
-        _discoveryService
-            .Setup(item => item.DiscoverRefactoringsAsync(
-                provider.Object,
-                roslyn.Document,
-                location.SourceSpan,
-                CancellationToken.None))
-            .ReturnsAsync([action]);
-
-        _infoFactory
-            .Setup(item => item.TryCreate(
-                action,
-                _context.Object,
-                roslyn.Document,
-                It.IsAny<ResolvedLocation>(),
-                descriptor,
-                out It.Ref<CodeActionInfo?>.IsAny))
-            .Returns(false);
-
-        var result = await _target.ExecuteAsync(
-            new ListCodeActionsRequest
-            {
-                Location = selector,
-                IncludeCodeFixes = false,
-            },
-            _context.Object,
-            CancellationToken.None);
-
-        result.Outcome.Should().Be(CodeActionExecutionOutcome.Succeeded);
-        result.Data!.Actions.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task GIVEN_BroadLocationContainsEquivalentActions_WHEN_Executing_THEN_ShouldProjectEachPreciseTargetLocation()
-    {
-        using var roslyn = RoslynTestFactory.CreateDocument("class C { int Value; }");
-        var selector = new LocationSelector();
-        var requestedLocation = await CreateLocationAsync(roslyn.Document, new TextSpan(0, 10));
-        var provider = new Mock<CodeRefactoringProvider>();
-        var descriptor = new CodeActionDescriptorEntry
-        {
-            IsVisible = true,
-        };
-
-        var firstAction = CreateDiscoveredAction(
-            roslyn.Solution,
-            "Title",
-            "ProviderId",
-            "EquivalenceKey",
-            [0],
-            DiscoveredActionKind.Refactoring,
-            descriptor,
-            new TextSpan(2, 1));
-
-        var secondAction = CreateDiscoveredAction(
-            roslyn.Solution,
-            "Title",
-            "ProviderId",
-            "EquivalenceKey",
-            [0],
-            DiscoveredActionKind.Refactoring,
-            descriptor,
-            new TextSpan(5, 2));
-
-        var middleAction = secondAction with
-        {
-            TargetSpan = new TextSpan(5, 1),
-        };
-
-        var firstInfo = CreateInfo(firstAction, "11111111-1111-1111-1111-111111111111");
-        var middleInfo = CreateInfo(middleAction, "22222222-2222-2222-2222-222222222222");
-        var secondInfo = CreateInfo(secondAction, "33333333-3333-3333-3333-333333333333");
-        _workspaceResolver
-            .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
-            .ReturnsAsync(SelectorResolveResult.Resolved(requestedLocation));
-
-        _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
-        _discoveryService.Setup(item => item.GetMatchingRefactoringProviders(null)).Returns([provider.Object]);
-        _discoveryService
-            .Setup(item => item.DiscoverRefactoringsAsync(
-                provider.Object,
-                roslyn.Document,
-                requestedLocation.SourceSpan,
-                CancellationToken.None))
-            .ReturnsAsync([secondAction, firstAction, middleAction]);
-
-        _infoFactory
-            .Setup(item => item.TryCreate(
-                firstAction,
-                _context.Object,
-                roslyn.Document,
-                It.Is<ResolvedLocation>(location => HasSpan(location, 2, 1)),
-                descriptor,
-                out firstInfo))
-            .Returns(true);
-
-        _infoFactory
-            .Setup(item => item.TryCreate(
-                middleAction,
-                _context.Object,
-                roslyn.Document,
-                It.Is<ResolvedLocation>(location => HasSpan(location, 5, 1)),
-                descriptor,
-                out middleInfo))
-            .Returns(true);
-
-        _infoFactory
-            .Setup(item => item.TryCreate(
-                secondAction,
-                _context.Object,
-                roslyn.Document,
-                It.Is<ResolvedLocation>(location => HasSpan(location, 5, 2)),
-                descriptor,
-                out secondInfo))
-            .Returns(true);
-
-        var result = await _target.ExecuteAsync(
-            new ListCodeActionsRequest
-            {
-                Location = selector,
-                IncludeCodeFixes = false,
-            },
-            _context.Object,
-            CancellationToken.None);
-
-        result.Data!.Actions.Should().Equal(firstInfo, middleInfo, secondInfo);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task GIVEN_VisibleActionsFromBothFamilies_WHEN_ExecutingWithoutEffectiveDiagnosticFilter_THEN_ShouldClassifyOrderAndCreateInfo(
-        bool useNullFilter)
-    {
-        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
-        var selector = new LocationSelector();
-        var location = await CreateLocationAsync(roslyn.Document);
+        const string source = "class C { int value; }";
+        using var roslyn = RoslynTestFactory.CreateDocument(source);
+        var selector = SetupDocument(roslyn.Document);
         var refactoringProvider = new Mock<CodeRefactoringProvider>();
         var codeFixProvider = new Mock<CodeFixProvider>();
-        codeFixProvider
-            .SetupGet(item => item.FixableDiagnosticIds)
-            .Returns(["DiagnosticId"]);
+        codeFixProvider.SetupGet(item => item.FixableDiagnosticIds).Returns(["DIAG001"]);
+        var refactoring = CreateAction(roslyn.Solution, "Refactoring", DiscoveredActionKind.Refactoring, new TextSpan(0, source.Length));
+        var codeFix = CreateAction(roslyn.Solution, "Code fix", DiscoveredActionKind.CodeFix, new TextSpan(10, 5));
+        var refactoringItem = CreateItem("Refactoring", CodeActionKind.Refactoring, 0, source.Length);
+        var codeFixItem = CreateItem("Code fix", CodeActionKind.CodeFix, 10, 5);
+        var diagnosticCollection = new CodeActionDiagnosticCollection([], []);
 
-        IReadOnlyList<Diagnostic> diagnostics = [];
-        var visibleDescriptor = new CodeActionDescriptorEntry
-        {
-            IsVisible = true,
-        };
-
-        var hiddenDescriptor = new CodeActionDescriptorEntry
-        {
-            IsVisible = false,
-        };
-
-        var earlier = CreateDiscoveredAction(roslyn.Solution, "EarlierTitle", "SecondProvider", null, [], DiscoveredActionKind.CodeFix, visibleDescriptor);
-        var firstPath = CreateDiscoveredAction(roslyn.Solution, "Title", "FirstProvider", null, [1], DiscoveredActionKind.CodeFix, visibleDescriptor);
-        var nestedFirstPath = CreateDiscoveredAction(roslyn.Solution, "Title", "FirstProvider", null, [1, 0], DiscoveredActionKind.CodeFix, visibleDescriptor);
-        var secondPath = CreateDiscoveredAction(roslyn.Solution, "Title", "FirstProvider", null, [2], DiscoveredActionKind.Refactoring, visibleDescriptor);
-        var equivalence = CreateDiscoveredAction(roslyn.Solution, "Title", "FirstProvider", "EquivalenceKey", [], DiscoveredActionKind.CodeFix, visibleDescriptor);
-        var laterProvider = CreateDiscoveredAction(roslyn.Solution, "Title", "SecondProvider", null, [], DiscoveredActionKind.Refactoring, visibleDescriptor);
-        var hidden = CreateDiscoveredAction(roslyn.Solution, "HiddenTitle", "ProviderId", null, [], DiscoveredActionKind.Refactoring, hiddenDescriptor);
-        _workspaceResolver
-            .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
-            .ReturnsAsync(SelectorResolveResult.Resolved(location));
-
-        _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
         _discoveryService.Setup(item => item.GetMatchingRefactoringProviders(null)).Returns([refactoringProvider.Object]);
         _discoveryService.Setup(item => item.GetMatchingCodeFixProviders(null)).Returns([codeFixProvider.Object]);
         _discoveryService
-            .Setup(item => item.DiscoverRefactoringsAsync(refactoringProvider.Object, roslyn.Document, location.SourceSpan, CancellationToken.None))
-            .ReturnsAsync([laterProvider, secondPath, hidden]);
-
+            .Setup(item => item.DiscoverRefactoringsAsync(
+                refactoringProvider.Object,
+                roslyn.Document,
+                new TextSpan(0, source.Length),
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync([refactoring]);
         _diagnosticService
             .Setup(item => item.CollectDocumentDiagnosticsAsync(
                 roslyn.Document,
-                location.SourceSpan,
-                It.Is<IReadOnlyList<string>>(diagnosticIds => diagnosticIds.Count == 1 && diagnosticIds[0] == "DiagnosticId"),
-                CancellationToken.None))
-            .ReturnsAsync(new CodeActionDiagnosticCollection(diagnostics, []));
-
-        _discoveryService
-            .Setup(item => item.DiscoverCodeFixesAsync(codeFixProvider.Object, roslyn.Document, diagnostics, CancellationToken.None))
-            .ReturnsAsync([equivalence, earlier, nestedFirstPath, firstPath]);
-
-        var orderedActions = new[] { earlier, firstPath, nestedFirstPath, secondPath, equivalence, laterProvider };
-        Guid[] actionIds =
-        [
-            new("11111111-1111-1111-1111-111111111111"),
-            new("22222222-2222-2222-2222-222222222222"),
-            new("33333333-3333-3333-3333-333333333333"),
-            new("44444444-4444-4444-4444-444444444444"),
-            new("55555555-5555-5555-5555-555555555555"),
-            new("66666666-6666-6666-6666-666666666666"),
-        ];
-
-        for (var index = 0; index < orderedActions.Length; index++)
-        {
-            var action = orderedActions[index];
-            var info = new CodeActionInfo
-            {
-                ActionId = actionIds[index],
-                Title = action.Title,
-                ProviderId = action.ProviderId,
-                ExpiresAt = "2000-01-01T00:00:00.0000000+00:00",
-                Location = SelectorTestFactory.CreateResolvedLocation("Code.cs", action.TargetSpan.Start, action.TargetSpan.Length),
-            };
-
-            _infoFactory
-                .Setup(item => item.TryCreate(
-                    action,
-                    _context.Object,
-                    roslyn.Document,
-                    It.IsAny<ResolvedLocation>(),
-                    visibleDescriptor,
-                    out info))
-                .Returns(true);
-        }
-
-        var result = await _target.ExecuteAsync(
-            new ListCodeActionsRequest
-            {
-                Location = selector,
-                DiagnosticIds = useNullFilter ? null : [],
-            },
-            _context.Object,
-            CancellationToken.None);
-
-        result.Data!.Actions.Select(item => item.ActionId).Should().Equal(actionIds);
-
-        _infoFactory.Verify(item => item.TryCreate(
-            hidden,
-            It.IsAny<ICodeActionExecutionContext>(),
-            It.IsAny<Document>(),
-            It.IsAny<ResolvedLocation>(),
-            It.IsAny<CodeActionDescriptorEntry>(),
-            out It.Ref<CodeActionInfo?>.IsAny), Times.Never);
-    }
-
-    [Fact]
-    public async Task GIVEN_DiagnosticFilter_WHEN_Executing_THEN_ShouldCollectOnlyDistinctFixableDiagnosticsInFilter()
-    {
-        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
-        var selector = new LocationSelector();
-        var location = await CreateLocationAsync(roslyn.Document);
-        var firstProvider = new Mock<CodeFixProvider>();
-        firstProvider
-            .SetupGet(item => item.FixableDiagnosticIds)
-            .Returns(["FirstId", "SharedId"]);
-
-        var secondProvider = new Mock<CodeFixProvider>();
-        secondProvider
-            .SetupGet(item => item.FixableDiagnosticIds)
-            .Returns(["SharedId", "SecondId"]);
-
-        IReadOnlyList<Diagnostic> diagnostics = [];
-        _workspaceResolver
-            .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
-            .ReturnsAsync(SelectorResolveResult.Resolved(location));
-
-        _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
-        _discoveryService
-            .Setup(item => item.GetMatchingCodeFixProviders(null))
-            .Returns([firstProvider.Object, secondProvider.Object]);
-
-        _diagnosticService
-            .Setup(item => item.CollectDocumentDiagnosticsAsync(
-                roslyn.Document,
-                location.SourceSpan,
-                It.Is<IReadOnlyList<string>>(diagnosticIds =>
-                    diagnosticIds.Count == 2
-                    && diagnosticIds[0] == "SharedId"
-                    && diagnosticIds[1] == "SecondId"),
-                CancellationToken.None))
-            .ReturnsAsync(new CodeActionDiagnosticCollection(diagnostics, []));
-
-        _discoveryService
-            .Setup(item => item.DiscoverCodeFixesAsync(firstProvider.Object, roslyn.Document, diagnostics, CancellationToken.None))
-            .ReturnsAsync([]);
-
-        _discoveryService
-            .Setup(item => item.DiscoverCodeFixesAsync(secondProvider.Object, roslyn.Document, diagnostics, CancellationToken.None))
-            .ReturnsAsync([]);
-
-        var result = await _target.ExecuteAsync(
-            new ListCodeActionsRequest
-            {
-                Location = selector,
-                IncludeRefactorings = false,
-                DiagnosticIds = ["SharedId", "SecondId", "UnknownId"],
-            },
-            _context.Object,
-            CancellationToken.None);
-
-        result.Outcome.Should().Be(CodeActionExecutionOutcome.Succeeded);
-        _discoveryService.Verify(item => item.DiscoverCodeFixesAsync(
-            It.IsAny<CodeFixProvider>(),
-            roslyn.Document,
-            diagnostics,
-            CancellationToken.None), Times.Exactly(2));
-    }
-
-    [Fact]
-    public async Task GIVEN_DiagnosticCollectionWarning_WHEN_Executing_THEN_ShouldReturnBoundedComponentWarning()
-    {
-        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
-        var selector = new LocationSelector();
-        var location = await CreateLocationAsync(roslyn.Document);
-        var codeFixProvider = new Mock<CodeFixProvider>();
-        codeFixProvider
-            .SetupGet(item => item.FixableDiagnosticIds)
-            .Returns(["FixableId"]);
-
-        _workspaceResolver
-            .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
-            .ReturnsAsync(SelectorResolveResult.Resolved(location));
-
-        _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
-        _discoveryService
-            .Setup(item => item.GetMatchingCodeFixProviders(null))
-            .Returns([codeFixProvider.Object]);
-
-        _diagnosticService
-            .Setup(item => item.CollectDocumentDiagnosticsAsync(
-                roslyn.Document,
-                location.SourceSpan,
-                It.IsAny<IReadOnlyList<string>>(),
-                CancellationToken.None))
-            .ReturnsAsync(new CodeActionDiagnosticCollection([], ["Diagnostic warning."]));
-
+                null,
+                It.Is<IReadOnlyList<string>>(ids => ids.SequenceEqual(_firstDiagnosticIds)),
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(diagnosticCollection);
         _discoveryService
             .Setup(item => item.DiscoverCodeFixesAsync(
                 codeFixProvider.Object,
                 roslyn.Document,
-                It.IsAny<IReadOnlyList<Diagnostic>>(),
-                CancellationToken.None))
+                diagnosticCollection.Diagnostics,
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync([codeFix]);
+        SetupProjection(refactoring, roslyn.Document, refactoringItem);
+        SetupProjection(codeFix, roslyn.Document, codeFixItem);
+
+        var result = await _target.ExecuteAsync(
+            CreateRequest(document: selector),
+            _context.Object,
+            TestContext.Current.CancellationToken);
+
+        result.Data!.Actions.Should().Equal(codeFixItem, refactoringItem);
+        result.Data.ReturnedCount.Should().Be(2);
+        result.Data.HasMore.Should().BeFalse();
+        result.Data.TotalCount.Should().Be(2);
+    }
+
+    [Theory]
+    [InlineData(3, 4)]
+    [InlineData(3, 0)]
+    public async Task GIVEN_ExplicitRange_WHEN_DiscoveringRefactorings_THEN_ShouldPreserveSelectionOrCaret(
+        int start,
+        int length)
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var selector = SetupDocument(roslyn.Document);
+        var provider = new Mock<CodeRefactoringProvider>();
+        var span = new TextSpan(start, length);
+        _discoveryService.Setup(item => item.GetMatchingRefactoringProviders(null)).Returns([provider.Object]);
+        _discoveryService
+            .Setup(item => item.DiscoverRefactoringsAsync(
+                provider.Object,
+                roslyn.Document,
+                span,
+                TestContext.Current.CancellationToken))
             .ReturnsAsync([]);
 
         var result = await _target.ExecuteAsync(
-            new ListCodeActionsRequest
-            {
-                Location = selector,
-                IncludeRefactorings = false,
-            },
+            CreateRequest(
+                CodeActionKindSelection.Refactorings,
+                selector,
+                new TextSpanRange { Start = start, Length = length }),
             _context.Object,
-            CancellationToken.None);
+            TestContext.Current.CancellationToken);
 
         result.Outcome.Should().Be(CodeActionExecutionOutcome.Succeeded);
-        result.Warnings.Should().ContainSingle().Which.Should().BeEquivalentTo(new WarningInfo
-        {
-            Code = "CodeActionDiagnosticWarning",
-            Message = "Diagnostic warning.",
-        });
-    }
-
-    [Fact]
-    public async Task GIVEN_NoFixableDiagnosticMatchesFilter_WHEN_Executing_THEN_ShouldSkipDiagnosticCollection()
-    {
-        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
-        var selector = new LocationSelector();
-        var location = await CreateLocationAsync(roslyn.Document);
-        var codeFixProvider = new Mock<CodeFixProvider>();
-        codeFixProvider
-            .SetupGet(item => item.FixableDiagnosticIds)
-            .Returns(["FixableId"]);
-
-        _workspaceResolver
-            .Setup(item => item.ResolveLocationAsync(selector, CancellationToken.None))
-            .ReturnsAsync(SelectorResolveResult.Resolved(location));
-
-        _context.SetupGet(item => item.CurrentSolution).Returns(roslyn.Solution);
-        _discoveryService.Setup(item => item.GetMatchingCodeFixProviders(null)).Returns([codeFixProvider.Object]);
-
-        var result = await _target.ExecuteAsync(
-            new ListCodeActionsRequest
-            {
-                Location = selector,
-                IncludeRefactorings = false,
-                DiagnosticIds = ["OtherId"],
-            },
-            _context.Object,
-            CancellationToken.None);
-
-        result.Outcome.Should().Be(CodeActionExecutionOutcome.Succeeded);
-        result.Data!.Actions.Should().BeEmpty();
+        _discoveryService.Verify(item => item.DiscoverRefactoringsAsync(
+            provider.Object,
+            roslyn.Document,
+            span,
+            TestContext.Current.CancellationToken), Times.Once);
         _diagnosticService.Verify(item => item.CollectDocumentDiagnosticsAsync(
             It.IsAny<Document>(),
             It.IsAny<TextSpan?>(),
@@ -607,53 +206,200 @@ public sealed class ListCodeActionsToolTests
             It.IsAny<CancellationToken>()), Times.Never);
     }
 
-    private static DiscoveredCodeAction CreateDiscoveredAction(
+    [Fact]
+    public async Task GIVEN_SelectionModeRequestsCodeFixes_WHEN_Executing_THEN_ShouldScopeDiagnosticsToExactRange()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var selector = SetupDocument(roslyn.Document);
+        var provider = new Mock<CodeFixProvider>();
+        var span = new TextSpan(2, 3);
+        provider.SetupGet(item => item.FixableDiagnosticIds).Returns(["DIAG001", "DIAG002"]);
+        _discoveryService.Setup(item => item.GetMatchingCodeFixProviders(null)).Returns([provider.Object]);
+        _diagnosticService
+            .Setup(item => item.CollectDocumentDiagnosticsAsync(
+                roslyn.Document,
+                span,
+                It.Is<IReadOnlyList<string>>(ids => ids.SequenceEqual(_secondDiagnosticIds)),
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync(new CodeActionDiagnosticCollection([], ["Warning"]));
+        _discoveryService
+            .Setup(item => item.DiscoverCodeFixesAsync(
+                provider.Object,
+                roslyn.Document,
+                It.IsAny<IReadOnlyList<Diagnostic>>(),
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync([]);
+
+        var result = await _target.ExecuteAsync(
+            CreateRequest(
+                CodeActionKindSelection.CodeFixes,
+                selector,
+                new TextSpanRange { Start = 2, Length = 3 },
+                diagnosticIds: ["DIAG002"]),
+            _context.Object,
+            TestContext.Current.CancellationToken);
+
+        result.Data!.Actions.Should().BeEmpty();
+        result.Warnings.Should().ContainSingle().Which.Message.Should().Be("Warning");
+        _discoveryService.Verify(item => item.GetMatchingRefactoringProviders(It.IsAny<string?>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_ActionsExceedLimit_WHEN_Executing_THEN_ShouldPublishBoundedMetadataAndCreateOnlyReturnedReferences()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var selector = SetupDocument(roslyn.Document);
+        var provider = new Mock<CodeRefactoringProvider>();
+        var first = CreateAction(roslyn.Solution, "A", DiscoveredActionKind.Refactoring, new TextSpan(0, 1));
+        var second = CreateAction(roslyn.Solution, "B", DiscoveredActionKind.Refactoring, new TextSpan(1, 1));
+        var firstItem = CreateItem("A", CodeActionKind.Refactoring, 0, 1);
+        _discoveryService.Setup(item => item.GetMatchingRefactoringProviders(null)).Returns([provider.Object]);
+        _discoveryService
+            .Setup(item => item.DiscoverRefactoringsAsync(
+                provider.Object,
+                roslyn.Document,
+                It.IsAny<TextSpan>(),
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync([second, first]);
+        SetupProjection(first, roslyn.Document, firstItem);
+
+        var result = await _target.ExecuteAsync(
+            CreateRequest(CodeActionKindSelection.Refactorings, selector, limit: 1),
+            _context.Object,
+            TestContext.Current.CancellationToken);
+
+        result.Data!.Actions.Should().ContainSingle().Which.Should().BeSameAs(firstItem);
+        result.Data.ReturnedCount.Should().Be(1);
+        result.Data.HasMore.Should().BeTrue();
+        result.Data.TotalCount.Should().Be(2);
+        _infoFactory.Verify(item => item.TryCreate(
+            second,
+            It.IsAny<ICodeActionExecutionContext>(),
+            It.IsAny<Document>(),
+            It.IsAny<ResolvedLocation>(),
+            out It.Ref<CodeActionListItem?>.IsAny), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_ActionLocationCannotBeProjected_WHEN_Executing_THEN_ShouldOmitActionAndReference()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var selector = SetupDocument(roslyn.Document);
+        var provider = new Mock<CodeRefactoringProvider>();
+        var action = CreateAction(roslyn.Solution, "Title", DiscoveredActionKind.Refactoring, new TextSpan(0, 1));
+        _discoveryService.Setup(item => item.GetMatchingRefactoringProviders(null)).Returns([provider.Object]);
+        _discoveryService
+            .Setup(item => item.DiscoverRefactoringsAsync(
+                provider.Object,
+                roslyn.Document,
+                It.IsAny<TextSpan>(),
+                TestContext.Current.CancellationToken))
+            .ReturnsAsync([action]);
+        _workspaceResolver
+            .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
+            .Returns((ResolvedLocation?)null);
+
+        var result = await _target.ExecuteAsync(
+            CreateRequest(CodeActionKindSelection.Refactorings, selector),
+            _context.Object,
+            TestContext.Current.CancellationToken);
+
+        result.Data!.Actions.Should().BeEmpty();
+        result.Data.TotalCount.Should().Be(0);
+        _infoFactory.Verify(item => item.TryCreate(
+            It.IsAny<DiscoveredCodeAction>(),
+            It.IsAny<ICodeActionExecutionContext>(),
+            It.IsAny<Document>(),
+            It.IsAny<ResolvedLocation>(),
+            out It.Ref<CodeActionListItem?>.IsAny), Times.Never);
+    }
+
+    private DocumentSelector SetupDocument(Document document)
+    {
+        var selector = new DocumentSelector { Path = "Code.cs" };
+        _workspaceResolver
+            .Setup(item => item.ResolveDocument(selector))
+            .Returns(SelectorResolveResult.Resolved(document));
+
+        return selector;
+    }
+
+    private void SetupProjection(
+        DiscoveredCodeAction action,
+        Document document,
+        CodeActionListItem item)
+    {
+        CodeActionListItem? projectedItem = item;
+        _infoFactory
+            .Setup(factory => factory.TryCreate(
+                action,
+                _context.Object,
+                document,
+                It.Is<ResolvedLocation>(location =>
+                    location.Span!.Start == action.TargetSpan.Start
+                    && location.Span.Length == action.TargetSpan.Length),
+                out projectedItem))
+            .Returns(true);
+    }
+
+    private static ListCodeActionsRequest CreateRequest(
+        CodeActionKindSelection kinds = CodeActionKindSelection.All,
+        DocumentSelector? document = null,
+        TextSpanRange? range = null,
+        IReadOnlyList<string>? diagnosticIds = null,
+        int? limit = 50)
+    {
+        return new ListCodeActionsRequest
+        {
+            Document = document ?? new DocumentSelector { Path = "Code.cs" },
+            Range = range,
+            Kinds = kinds,
+            DiagnosticIds = diagnosticIds,
+            Limit = limit,
+        };
+    }
+
+    private static DiscoveredCodeAction CreateAction(
         Solution solution,
         string title,
-        string providerId,
-        string? equivalenceKey,
-        IReadOnlyList<int> actionPath,
         DiscoveredActionKind kind,
-        CodeActionDescriptorEntry descriptor,
-        TextSpan? targetSpan = null)
+        TextSpan targetSpan)
     {
         return new DiscoveredCodeAction
         {
-            Action = CodeAction.Create(title, _ => Task.FromResult(solution), equivalenceKey),
+            Action = CodeAction.Create(title, _ => Task.FromResult(solution), title),
             Kind = kind,
-            ProviderId = providerId,
+            ProviderId = "ProviderId",
             Title = title,
-            Descriptor = descriptor,
-            TargetSpan = targetSpan ?? new TextSpan(0, 1),
-            EquivalenceKey = equivalenceKey,
-            ActionPath = actionPath,
+            Descriptor = new CodeActionDescriptorEntry(),
+            TargetSpan = targetSpan,
+            EquivalenceKey = title,
         };
     }
 
-    private static CodeActionInfo CreateInfo(DiscoveredCodeAction action, string actionId)
+    private static CodeActionListItem CreateItem(
+        string title,
+        CodeActionKind kind,
+        int start,
+        int length)
     {
-        return new CodeActionInfo
+        return new CodeActionListItem
         {
-            ActionId = new Guid(actionId),
-            Title = action.Title,
-            ProviderId = action.ProviderId,
-            Location = SelectorTestFactory.CreateResolvedLocation(
-                "Code.cs",
-                action.TargetSpan.Start,
-                action.TargetSpan.Length),
+            ActionId = Guid.NewGuid(),
+            Title = title,
+            Kind = kind,
+            Location = new CodeActionLocation
+            {
+                Document = new DocumentReference
+                {
+                    Path = "Code.cs",
+                },
+                Span = new TextSpanRange
+                {
+                    Start = start,
+                    Length = length,
+                },
+            },
         };
-    }
-
-    private static bool HasSpan(ResolvedLocation location, int start, int length)
-    {
-        return location.Span is not null
-            && location.Span.Start == start
-            && location.Span.Length == length;
-    }
-
-    private static async Task<Location> CreateLocationAsync(Document document, TextSpan? span = null)
-    {
-        var syntaxTree = await document.GetSyntaxTreeAsync();
-        return syntaxTree!.GetLocation(span ?? new TextSpan(0, 1));
     }
 }

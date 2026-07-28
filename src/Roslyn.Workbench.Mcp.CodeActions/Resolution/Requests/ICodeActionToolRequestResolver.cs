@@ -11,6 +11,12 @@ internal interface ICodeActionToolRequestResolver
         ICodeActionExecutionContext context,
         CancellationToken cancellationToken);
 
+    ValueTask<CodeActionToolResolutionResult<CodeActionSourceSelection, TResponse>> ResolveDocumentSelectionAsync<TResponse>(
+        DocumentSelector selector,
+        TextSpanRange? range,
+        ICodeActionExecutionContext context,
+        CancellationToken cancellationToken);
+
     ValueTask<CodeActionToolResolutionResult<ISymbol, TResponse>> ResolveSymbolAsync<TResponse>(
         SymbolSelector selector,
         SnapshotPrecondition? expectedSnapshot,

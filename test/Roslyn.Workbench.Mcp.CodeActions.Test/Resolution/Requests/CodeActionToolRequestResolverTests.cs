@@ -1,3 +1,5 @@
+using Microsoft.CodeAnalysis.Text;
+
 namespace Roslyn.Workbench.Mcp.CodeActions.Test.Resolution.Requests;
 
 public sealed class CodeActionToolRequestResolverTests
@@ -79,6 +81,72 @@ public sealed class CodeActionToolRequestResolverTests
         result.HasRejection.Should().BeTrue();
         result.Rejection!.Error!.Code.Should().Be(expectedCode);
         result.Rejection.RequiredAction.Should().Be(RequiredAction.ResolveTargetAgain);
+    }
+
+    [Fact]
+    public async Task GIVEN_DocumentWithoutRange_WHEN_ResolvingSelection_THEN_ShouldReturnCompleteDocumentSpan()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var selector = new DocumentSelector { Path = "Code.cs" };
+        _workspaceResolver
+            .Setup(item => item.ResolveDocument(selector))
+            .Returns(SelectorResolveResult.Resolved(roslyn.Document));
+
+        var result = await _target.ResolveDocumentSelectionAsync<TestResponse>(
+            selector,
+            range: null,
+            _context.Object,
+            TestContext.Current.CancellationToken);
+
+        result.HasRejection.Should().BeFalse();
+        var selection = result.Value ?? throw new InvalidOperationException("The document selection was not resolved.");
+        selection.Document.Should().BeSameAs(roslyn.Document);
+        selection.Span.Should().Be(new TextSpan(0, 11));
+    }
+
+    [Fact]
+    public async Task GIVEN_DocumentWithRange_WHEN_ResolvingSelection_THEN_ShouldReturnExactSpan()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var selector = new DocumentSelector { Path = "Code.cs" };
+        _workspaceResolver
+            .Setup(item => item.ResolveDocument(selector))
+            .Returns(SelectorResolveResult.Resolved(roslyn.Document));
+
+        var result = await _target.ResolveDocumentSelectionAsync<TestResponse>(
+            selector,
+            new TextSpanRange { Start = 2, Length = 3 },
+            _context.Object,
+            TestContext.Current.CancellationToken);
+
+        result.HasRejection.Should().BeFalse();
+        var selection = result.Value ?? throw new InvalidOperationException("The document selection was not resolved.");
+        selection.Span.Should().Be(new TextSpan(2, 3));
+    }
+
+    [Theory]
+    [InlineData(-1, 0)]
+    [InlineData(0, -1)]
+    [InlineData(12, 0)]
+    [InlineData(10, 2)]
+    public async Task GIVEN_InvalidRange_WHEN_ResolvingDocumentSelection_THEN_ShouldRejectRange(
+        int start,
+        int length)
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var selector = new DocumentSelector { Path = "Code.cs" };
+        _workspaceResolver
+            .Setup(item => item.ResolveDocument(selector))
+            .Returns(SelectorResolveResult.Resolved(roslyn.Document));
+
+        var result = await _target.ResolveDocumentSelectionAsync<TestResponse>(
+            selector,
+            new TextSpanRange { Start = start, Length = length },
+            _context.Object,
+            TestContext.Current.CancellationToken);
+
+        result.HasRejection.Should().BeTrue();
+        result.Rejection!.Error!.Code.Should().Be("InvalidRange");
     }
 
     [Fact]

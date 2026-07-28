@@ -165,6 +165,7 @@ internal sealed class WorkspaceExecutionContextFactory : IWorkspaceExecutionCont
         return new WorkspaceExecutionContext(
             session.CurrentSolution,
             session.Workspace,
+            session.CurrentSnapshotIdentity,
             session.Transaction?.CurrentRevision,
             _options.DefaultMaxResults,
             resolver);

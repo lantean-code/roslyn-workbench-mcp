@@ -366,6 +366,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         result.Failure.Should().BeNull();
         result.Context!.CurrentSolution.Should().BeSameAs(_workspace.CurrentSolution);
         result.Context.WorkspaceIdentity.Should().BeSameAs(session.Workspace);
+        result.Context.SnapshotIdentity.Should().Be(session.CurrentSnapshotIdentity);
         result.Context.TransactionRevision.Should().Be(1);
         result.Context.DefaultMaxResults.Should().Be(25);
         result.Context.WorkspaceResolver.Should().BeSameAs(_resolver.Object);
@@ -498,7 +499,22 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
         gate.Setup(item => item.TryAcquireExclusive()).Returns(new Mock<IWorkspaceOperationLease>().Object);
         var transaction = new WorkspaceTransaction
         {
+            TransactionId = new WorkspaceTransactionId(1),
+            BaselineSnapshotId = new WorkspaceSnapshotId(1),
             BaselineSolution = _workspace.CurrentSolution,
+            Revisions =
+            [
+                new WorkspaceTransactionRevision
+                {
+                    SnapshotId = new WorkspaceSnapshotId(2),
+                    Solution = _workspace.CurrentSolution,
+                },
+                new WorkspaceTransactionRevision
+                {
+                    SnapshotId = new WorkspaceSnapshotId(3),
+                    Solution = _workspace.CurrentSolution,
+                },
+            ],
             CurrentRevision = 2,
             MaxRevisions = 2,
         };
@@ -620,6 +636,7 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
     {
         return new WorkspaceSessionSnapshot
         {
+            CommittedSnapshotId = new WorkspaceSnapshotId(1),
             State = state,
             Workspace = new WorkspaceIdentity
             {
@@ -633,7 +650,17 @@ public sealed class WorkspaceExecutionContextFactoryTests : IDisposable
             Transaction = hasTransaction
                 ? transaction ?? new WorkspaceTransaction
                 {
+                    TransactionId = new WorkspaceTransactionId(1),
+                    BaselineSnapshotId = new WorkspaceSnapshotId(1),
                     BaselineSolution = _workspace.CurrentSolution,
+                    Revisions =
+                    [
+                        new WorkspaceTransactionRevision
+                        {
+                            SnapshotId = new WorkspaceSnapshotId(2),
+                            Solution = _workspace.CurrentSolution,
+                        },
+                    ],
                     CurrentRevision = 1,
                     MaxRevisions = 2,
                 }

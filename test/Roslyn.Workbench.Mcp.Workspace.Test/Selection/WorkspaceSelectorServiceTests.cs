@@ -353,6 +353,7 @@ public sealed class WorkspaceSelectorServiceTests
     {
         return new WorkspaceSessionSnapshot
         {
+            CommittedSnapshotId = new WorkspaceSnapshotId(1),
             State = WorkspaceLifecycleState.Ready,
             Workspace = new WorkspaceIdentity
             {

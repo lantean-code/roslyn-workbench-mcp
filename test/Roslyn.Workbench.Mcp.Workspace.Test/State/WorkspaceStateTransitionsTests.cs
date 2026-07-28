@@ -55,6 +55,7 @@ public sealed class WorkspaceStateTransitionsTests
     {
         return new WorkspaceSessionSnapshot
         {
+            CommittedSnapshotId = new WorkspaceSnapshotId(1),
             State = state,
             Workspace = new WorkspaceIdentity
             {

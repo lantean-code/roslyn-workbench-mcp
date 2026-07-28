@@ -92,4 +92,15 @@ internal static class CodeActionExecutionResultFactory
 
         return CodeActionExecutionResult.Rejected<T>(error, RequiredAction.ResolveTargetAgain);
     }
+
+    public static CodeActionExecutionResult<T> SnapshotMismatch<T>()
+    {
+        var error = new CodeActionExecutionError
+        {
+            Code = "SnapshotMismatch",
+            Message = "The action reference does not belong to the current workspace snapshot.",
+        };
+
+        return CodeActionExecutionResult.Conflict<T>(error, RequiredAction.ResolveTargetAgain);
+    }
 }

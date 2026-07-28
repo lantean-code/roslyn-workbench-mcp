@@ -16,11 +16,7 @@ internal sealed record CodeActionReplayRecipe
 
     public IReadOnlyList<CodeActionDiagnosticIdentity> Diagnostics { get; init; } = [];
 
-    public string? WorkspaceId { get; init; }
-
-    public long WorkspaceEpoch { get; init; }
-
-    public int? TransactionRevision { get; init; }
+    public WorkspaceSnapshotIdentity SnapshotIdentity { get; init; }
 
     public string DocumentPath { get; init; } = string.Empty;
 

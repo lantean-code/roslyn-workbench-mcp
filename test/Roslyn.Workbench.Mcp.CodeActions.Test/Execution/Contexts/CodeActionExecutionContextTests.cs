@@ -13,6 +13,7 @@ public sealed class CodeActionExecutionContextTests
 
         target.CurrentSolution.Should().BeSameAs(roslyn.Solution);
         target.WorkspaceIdentity.Should().BeSameAs(workspaceContext.WorkspaceIdentity);
+        target.SnapshotIdentity.Should().Be(workspaceContext.SnapshotIdentity);
         target.TransactionRevision.Should().Be(2);
         target.DefaultMaxResults.Should().Be(100);
         target.WorkspaceResolver.Should().BeSameAs(resolver.Object);
@@ -30,6 +31,7 @@ public sealed class CodeActionExecutionContextTests
 
         target.CurrentSolution.Should().BeSameAs(roslyn.Solution);
         target.WorkspaceIdentity.Should().BeSameAs(workspaceContext.WorkspaceIdentity);
+        target.SnapshotIdentity.Should().Be(workspaceContext.SnapshotIdentity);
         target.TransactionRevision.Should().Be(2);
         target.DefaultMaxResults.Should().Be(100);
         target.WorkspaceResolver.Should().BeSameAs(resolver.Object);
@@ -47,6 +49,11 @@ public sealed class CodeActionExecutionContextTests
                 WorkspaceId = "WorkspaceId",
                 WorkspaceEpoch = 1,
             },
+            new WorkspaceSnapshotIdentity(
+                "WorkspaceId",
+                1,
+                new WorkspaceSnapshotId(1),
+                new WorkspaceTransactionId(1)),
             transactionRevision: 2,
             defaultMaxResults: 100,
             resolver);

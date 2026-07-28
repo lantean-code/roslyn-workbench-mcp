@@ -46,6 +46,7 @@ public sealed class CodeActionInfoFactoryTests
             WorkspaceEpoch = 1,
         });
         context.SetupGet(item => item.TransactionRevision).Returns(2);
+        context.SetupGet(item => item.SnapshotIdentity).Returns(CreateSnapshotIdentity());
         context.SetupGet(item => item.WorkspaceResolver).Returns(resolver.Object);
         referenceStore
             .Setup(item => item.TryCreate(
@@ -57,9 +58,7 @@ public sealed class CodeActionInfoFactoryTests
                     && recipe.ActionPath.SequenceEqual(_actionPath)
                     && recipe.DiagnosticIds.SequenceEqual(_diagnosticIds)
                     && recipe.Diagnostics.SequenceEqual(new[] { diagnostic })
-                    && recipe.WorkspaceId == "WorkspaceId"
-                    && recipe.WorkspaceEpoch == 1
-                    && recipe.TransactionRevision == 2
+                    && recipe.SnapshotIdentity == CreateSnapshotIdentity()
                     && recipe.DocumentPath == "DocumentPath"
                     && recipe.ProjectId == roslyn.Document.Project.Id.Id.ToString()
                     && recipe.Start == 3
@@ -252,6 +251,15 @@ public sealed class CodeActionInfoFactoryTests
             {
                 ReferenceLifetime = referenceLifetime,
             }));
+    }
+
+    private static WorkspaceSnapshotIdentity CreateSnapshotIdentity()
+    {
+        return new WorkspaceSnapshotIdentity(
+            "WorkspaceId",
+            1,
+            new WorkspaceSnapshotId(2),
+            new WorkspaceTransactionId(1));
     }
 
     private static DiscoveredCodeAction CreateAction(Solution solution, DiscoveredActionKind kind)

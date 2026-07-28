@@ -84,6 +84,8 @@ internal sealed class TransactionService : ITransactionService
 
         var transaction = new WorkspaceTransaction
         {
+            TransactionId = _sessionStore.AllocateWorkspaceTransactionId(),
+            BaselineSnapshotId = session.CommittedSnapshotId,
             BaselineSolution = session.CurrentSolution,
             CurrentRevision = 0,
             MaxRevisions = _options.MaxTransactionRevisions,

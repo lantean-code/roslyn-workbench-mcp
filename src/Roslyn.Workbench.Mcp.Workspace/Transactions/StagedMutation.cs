@@ -9,4 +9,6 @@ internal sealed record StagedMutation
     public required WorkspaceTransactionRevision Revision { get; init; }
 
     public required ChangeSummary Changes { get; init; }
+
+    public IReadOnlyList<WorkspaceSnapshotId> DiscardedSnapshotIds { get; init; } = [];
 }

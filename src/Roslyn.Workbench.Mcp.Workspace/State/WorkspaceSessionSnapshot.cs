@@ -2,6 +2,8 @@ namespace Roslyn.Workbench.Mcp.Workspace.State;
 
 internal sealed record WorkspaceSessionSnapshot
 {
+    public required WorkspaceSnapshotId CommittedSnapshotId { get; init; }
+
     public required WorkspaceLifecycleState State { get; init; }
 
     public required WorkspaceIdentity Workspace { get; init; }
@@ -21,4 +23,10 @@ internal sealed record WorkspaceSessionSnapshot
     public int DocumentCount { get; init; }
 
     public IReadOnlyList<DiagnosticInfo> LoadDiagnostics { get; init; } = [];
+
+    public WorkspaceSnapshotIdentity CurrentSnapshotIdentity => new(
+        Workspace.WorkspaceId,
+        Workspace.WorkspaceEpoch,
+        Transaction?.CurrentSnapshotId ?? CommittedSnapshotId,
+        Transaction?.TransactionId);
 }

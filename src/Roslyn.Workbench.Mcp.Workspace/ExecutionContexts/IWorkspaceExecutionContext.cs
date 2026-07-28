@@ -6,6 +6,8 @@ internal interface IWorkspaceExecutionContext
 
     WorkspaceIdentity WorkspaceIdentity { get; }
 
+    WorkspaceSnapshotIdentity SnapshotIdentity { get; }
+
     int? TransactionRevision { get; }
 
     int DefaultMaxResults { get; }

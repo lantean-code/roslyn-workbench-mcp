@@ -36,7 +36,26 @@ internal sealed class CodeActionResolver : ICodeActionResolver
             return RejectedResolution(snapshotRejection);
         }
 
-        var referenceResolution = ResolveReferenceContext(actionId, context);
+        if (!_referenceStore.TryGet(actionId, out var reference))
+        {
+            return RejectedResolution(
+                CodeActionExecutionResultFactory.ActionExpired<T>(),
+                CodeActionResolutionFailureKind.InvalidReference);
+        }
+
+        if (!MatchesWorkspaceInstance(reference.Recipe.SnapshotIdentity, context.SnapshotIdentity))
+        {
+            return RejectedResolution(
+                CodeActionExecutionResultFactory.ActionExpired<T>(),
+                CodeActionResolutionFailureKind.InvalidReference);
+        }
+
+        if (reference.Recipe.SnapshotIdentity != context.SnapshotIdentity)
+        {
+            return RejectedResolution(CodeActionExecutionResultFactory.SnapshotMismatch<T>());
+        }
+
+        var referenceResolution = ResolveReferenceContext(reference, context);
         if (!referenceResolution.IsResolved)
         {
             return RejectedResolution(
@@ -74,16 +93,10 @@ internal sealed class CodeActionResolver : ICodeActionResolver
             referenceResolution.Context.Reference);
     }
 
-    private CodeActionReferenceContextResolution ResolveReferenceContext(
-        Guid actionId,
+    private static CodeActionReferenceContextResolution ResolveReferenceContext(
+        CodeActionReference reference,
         ICodeActionExecutionContext context)
     {
-        if (!_referenceStore.TryGet(actionId, out var reference)
-            || !MatchesWorkspace(reference.Recipe, context))
-        {
-            return CodeActionReferenceContextResolution.Unresolved();
-        }
-
         var recipe = reference.Recipe;
         ProjectSelector? project = null;
         if (!string.IsNullOrWhiteSpace(recipe.ProjectId))
@@ -117,13 +130,12 @@ internal sealed class CodeActionResolver : ICodeActionResolver
         return CodeActionReferenceContextResolution.Resolved(referenceContext);
     }
 
-    private static bool MatchesWorkspace(
-        CodeActionReplayRecipe recipe,
-        ICodeActionExecutionContext context)
+    private static bool MatchesWorkspaceInstance(
+        WorkspaceSnapshotIdentity referenceIdentity,
+        WorkspaceSnapshotIdentity contextIdentity)
     {
-        return string.Equals(recipe.WorkspaceId, context.WorkspaceIdentity.WorkspaceId, StringComparison.Ordinal)
-            && recipe.WorkspaceEpoch == context.WorkspaceIdentity.WorkspaceEpoch
-            && recipe.TransactionRevision == context.TransactionRevision;
+        return string.Equals(referenceIdentity.WorkspaceId, contextIdentity.WorkspaceId, StringComparison.Ordinal)
+            && referenceIdentity.WorkspaceEpoch == contextIdentity.WorkspaceEpoch;
     }
 
     private async ValueTask<CodeActionRediscovery> RediscoverActionsAsync(

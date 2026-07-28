@@ -2,6 +2,10 @@ namespace Roslyn.Workbench.Mcp.Workspace.Transactions;
 
 internal sealed record WorkspaceTransaction
 {
+    public required WorkspaceTransactionId TransactionId { get; init; }
+
+    public required WorkspaceSnapshotId BaselineSnapshotId { get; init; }
+
     public required Solution BaselineSolution { get; init; }
 
     public IReadOnlyList<WorkspaceTransactionRevision> Revisions { get; init; } = [];
@@ -14,17 +18,32 @@ internal sealed record WorkspaceTransaction
         ? BaselineSolution
         : Revisions[CurrentRevision - 1].Solution;
 
-    public WorkspaceTransaction Append(WorkspaceTransactionRevision revision)
+    public WorkspaceSnapshotId CurrentSnapshotId => CurrentRevision == 0
+        ? BaselineSnapshotId
+        : Revisions[CurrentRevision - 1].SnapshotId;
+
+    public WorkspaceTransactionAppendResult Append(WorkspaceTransactionRevision revision)
     {
+        var discardedSnapshotIds = Revisions
+            .Skip(CurrentRevision)
+            .Select(static item => item.SnapshotId)
+            .ToArray();
+
         var revisions = Revisions
             .Take(CurrentRevision)
             .Append(revision)
             .ToArray();
 
-        return this with
+        var transaction = this with
         {
             Revisions = revisions,
             CurrentRevision = revisions.Length,
+        };
+
+        return new WorkspaceTransactionAppendResult
+        {
+            Transaction = transaction,
+            DiscardedSnapshotIds = discardedSnapshotIds,
         };
     }
 

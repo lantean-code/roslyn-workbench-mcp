@@ -112,7 +112,11 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<ICodeActionBuiltInAnalyzerIndex, CodeActionBuiltInAnalyzerIndex>();
         services.AddSingleton<ICodeActionDiagnosticService, CodeActionDiagnosticService>();
         services.AddSingleton<ICodeActionDescriptorRegistry, CodeActionDescriptorRegistry>();
-        services.AddSingleton<ICodeActionReferenceStore, CodeActionReferenceStore>();
+        services.AddSingleton<CodeActionReferenceStore>();
+        services.AddSingleton<ICodeActionReferenceStore>(
+            static provider => provider.GetRequiredService<CodeActionReferenceStore>());
+        services.AddSingleton<IWorkspaceSnapshotLifecycleObserver>(
+            static provider => provider.GetRequiredService<CodeActionReferenceStore>());
         services.AddSingleton<ICodeActionInfoFactory, CodeActionInfoFactory>();
         services.AddSingleton<IMefHostExportProviderCompatibilityAdapter, MefHostExportProviderCompatibilityAdapter>();
         services.AddSingleton<ICodeActionPolicy, CodeActionPolicy>();

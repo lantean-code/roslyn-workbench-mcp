@@ -234,6 +234,11 @@ public sealed class PluginExecutionContextFactoryTests
                 WorkspaceId = "WorkspaceId",
                 WorkspaceEpoch = 1,
             },
+            new WorkspaceSnapshotIdentity(
+                "WorkspaceId",
+                1,
+                new WorkspaceSnapshotId(1),
+                transactionId: null),
             transactionRevision: null,
             defaultMaxResults: 100,
             new Mock<IWorkspaceResolver>().Object);

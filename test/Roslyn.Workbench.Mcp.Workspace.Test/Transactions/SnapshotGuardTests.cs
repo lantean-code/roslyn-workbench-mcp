@@ -112,6 +112,7 @@ public sealed class SnapshotGuardTests : IDisposable
     {
         return new WorkspaceSessionSnapshot
         {
+            CommittedSnapshotId = new WorkspaceSnapshotId(1),
             State = WorkspaceLifecycleState.TransactionActive,
             Workspace = new WorkspaceIdentity
             {
@@ -131,6 +132,8 @@ public sealed class SnapshotGuardTests : IDisposable
     {
         return new WorkspaceTransaction
         {
+            TransactionId = new WorkspaceTransactionId(1),
+            BaselineSnapshotId = new WorkspaceSnapshotId(1),
             BaselineSolution = _workspace.CurrentSolution,
             CurrentRevision = 1,
         };

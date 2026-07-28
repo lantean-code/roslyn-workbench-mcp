@@ -493,6 +493,7 @@ internal sealed class WorkspaceLifecycleService : IWorkspaceLifecycleService
 
         return new WorkspaceSessionSnapshot
         {
+            CommittedSnapshotId = _sessionStore.AllocateWorkspaceSnapshotId(),
             State = WorkspaceLifecycleState.Ready,
             Workspace = workspaceIdentity,
             LoadedWorkspace = workspace,

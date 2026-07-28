@@ -119,7 +119,7 @@ The request shape is:
 | `DiagnosticIds` | Optional | Narrows Code Fix discovery and analyser activation to requested diagnostic IDs. |
 | `Limit` | Optional with published curated default | Bounds returned action leaves. |
 
-Discovery always runs against the current solution held by the query execution lease. Each returned opaque reference records that actual Workspace epoch and transaction revision for later staging revalidation; the query does not accept a snapshot precondition.
+Discovery always runs against the current solution held by the query execution lease. Each returned opaque reference records that actual immutable Workspace snapshot identity for later staging revalidation; the query does not accept a snapshot precondition.
 
 The response is a bounded collection. Each action contains only:
 
@@ -337,8 +337,7 @@ A single-action recipe records:
 
 - provider identity;
 - Code Fix or refactoring kind;
-- Workspace ID and epoch;
-- transaction revision;
+- immutable Workspace snapshot identity, including Workspace ID and epoch, stable snapshot ID and optional transaction ID;
 - project and document identity;
 - precise target span;
 - associated diagnostic identities, including diagnostic locations;
@@ -579,22 +578,22 @@ This batch creates the final single-action path before Fix All is migrated.
 
 Completion checklist:
 
-- [ ] Replay recipes use an immutable snapshot identity that cannot collide when a discarded branch's positional revision number is reused.
-- [ ] Snapshot and transaction identities are distinct strongly typed, process-local, monotonically allocated `long` values with an invalid default; replay identity does not depend on `Guid`, Roslyn `Solution.Version` or positional revision.
-- [ ] `WorkspaceTransaction`, `WorkspaceTransactionRevision` and Workspace session state carry the transaction, staged-revision and committed-snapshot identities required by replay.
-- [ ] Public transaction revision values remain positional `int` values and retain their existing contract semantics.
-- [ ] Appending after undo reports the stable identities removed from the redo branch.
-- [ ] References for reachable non-current revisions remain cached, are rejected while non-current and become usable again when undo or redo restores the exact revision.
-- [ ] Staging after undo actively removes references for the discarded redo branch before replacement revisions are exposed.
-- [ ] Transaction start, commit and rollback actively remove every reference that can no longer become valid in the resulting lifecycle state.
-- [ ] Workspace unload, reload, replacement and epoch change actively remove references for the superseded Workspace instance.
-- [ ] Successful consumption, absolute expiry and bounded capacity remain enforced, and every removal path also clears lifecycle-index state.
-- [ ] Reference creation and invalidation are race-safe under concurrent discovery and Workspace lifecycle changes.
-- [ ] Workspace publishes lifecycle invalidation without depending on Code Actions, and Code Actions retains ownership of replay-reference storage and eviction.
-- [ ] Lifecycle storage and eviction are reference-kind-independent, and Batch 5 explicitly adopts the same path for prepared Fix All references.
-- [ ] Focused unit and integration tests cover reachable-history retention, irreversible eviction, revision-number reuse, expiry, capacity and concurrency.
-- [ ] Repeated discovery followed by branch, transaction and Workspace invalidation leaves neither stale cache entries nor growing lifecycle-index state.
-- [ ] The affected build, non-acceptance tests, formatting and `latest-all` analyser validation are green.
+- [x] Replay recipes use an immutable snapshot identity that cannot collide when a discarded branch's positional revision number is reused.
+- [x] Snapshot and transaction identities are distinct strongly typed, process-local, monotonically allocated `long` values with an invalid default; replay identity does not depend on `Guid`, Roslyn `Solution.Version` or positional revision.
+- [x] `WorkspaceTransaction`, `WorkspaceTransactionRevision` and Workspace session state carry the transaction, staged-revision and committed-snapshot identities required by replay.
+- [x] Public transaction revision values remain positional `int` values and retain their existing contract semantics.
+- [x] Appending after undo reports the stable identities removed from the redo branch.
+- [x] References for reachable non-current revisions remain cached, are rejected while non-current and become usable again when undo or redo restores the exact revision.
+- [x] Staging after undo actively removes references for the discarded redo branch before replacement revisions are exposed.
+- [x] Transaction start, commit and rollback actively remove every reference that can no longer become valid in the resulting lifecycle state.
+- [x] Workspace unload, reload, replacement and epoch change actively remove references for the superseded Workspace instance.
+- [x] Successful consumption, absolute expiry and bounded capacity remain enforced, and every removal path also clears lifecycle-index state.
+- [x] Reference creation and invalidation are race-safe under concurrent discovery and Workspace lifecycle changes.
+- [x] Workspace publishes lifecycle invalidation without depending on Code Actions, and Code Actions retains ownership of replay-reference storage and eviction.
+- [x] Lifecycle storage and eviction are reference-kind-independent, and Batch 5 explicitly adopts the same path for prepared Fix All references.
+- [x] Focused unit and integration tests cover reachable-history retention, irreversible eviction, revision-number reuse, expiry, capacity and concurrency.
+- [x] Repeated discovery followed by branch, transaction and Workspace invalidation leaves neither stale cache entries nor growing lifecycle-index state.
+- [x] The affected build, non-acceptance tests, formatting and `latest-all` analyser validation are green.
 
 This batch closes replay-cache lifecycle and memory-pressure gaps before Fix All adds another reference kind. Batch 7 retains responsibility for end-to-end workflow and performance evidence.
 

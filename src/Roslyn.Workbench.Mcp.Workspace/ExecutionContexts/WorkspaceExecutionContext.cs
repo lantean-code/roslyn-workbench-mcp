@@ -5,12 +5,14 @@ internal sealed class WorkspaceExecutionContext : IWorkspaceExecutionContext
     public WorkspaceExecutionContext(
         Solution currentSolution,
         WorkspaceIdentity workspaceIdentity,
+        WorkspaceSnapshotIdentity snapshotIdentity,
         int? transactionRevision,
         int defaultMaxResults,
         IWorkspaceResolver workspaceResolver)
     {
         CurrentSolution = currentSolution;
         WorkspaceIdentity = workspaceIdentity;
+        SnapshotIdentity = snapshotIdentity;
         TransactionRevision = transactionRevision;
         DefaultMaxResults = defaultMaxResults;
         WorkspaceResolver = workspaceResolver;
@@ -19,6 +21,8 @@ internal sealed class WorkspaceExecutionContext : IWorkspaceExecutionContext
     public Solution CurrentSolution { get; }
 
     public WorkspaceIdentity WorkspaceIdentity { get; }
+
+    public WorkspaceSnapshotIdentity SnapshotIdentity { get; }
 
     public int? TransactionRevision { get; }
 

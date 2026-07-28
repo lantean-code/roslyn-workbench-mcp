@@ -1,5 +1,7 @@
 using Roslyn.Workbench.Mcp.CodeActions.Composition;
 using Roslyn.Workbench.Mcp.CodeActions.References;
+using Roslyn.Workbench.Mcp.Workspace.Results;
+using Roslyn.Workbench.Mcp.Workspace.Transactions;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 
@@ -91,6 +93,190 @@ public sealed class ControlledProviderWorkflowIntegrationTests
         result.Outcome.Should().Be(CodeActionExecutionOutcome.Succeeded);
         result.Data!.Summary.Should().Be("Fix all: Apply test code fix");
         result.Data.Transaction!.Revision.Should().Be(1);
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_ReachableHistoryAndRedoBranch_WHEN_UndoingAndRestaging_THEN_ShouldRestoreAndActivelyEvictReferences()
+    {
+        using var fixture = InspectionSampleFixture.Create();
+        await using var coordinator = BundledComponentWorkspaceFactory.CreateTestCodeActionWorkspace(_composition);
+        var session = new CodeActionComponentTestSession(coordinator);
+        var open = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        await coordinator.StartTransactionAsync(TestContext.Current.CancellationToken);
+        var referenceStore = coordinator.GetRequiredService<ICodeActionReferenceStore>();
+
+        var firstListing = await ListActionsAsync(session, fixture.GetLocation("StateHolder"), includeCodeFixes: false);
+        var firstActionId = firstListing.Data!.Actions.Single(static action => action.Title == "Apply test refactoring").ActionId;
+        var retainedListing = await ListActionsAsync(session, fixture.GetLocation("StateHolder"), includeCodeFixes: false);
+        var retainedActionId = retainedListing.Data!.Actions.Single(static action => action.Title == "Apply test refactoring").ActionId;
+
+        await session.StageCodeActionAsync(new StageCodeActionRequest
+        {
+            ActionId = firstActionId,
+            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0),
+        }, TestContext.Current.CancellationToken);
+
+        var redoBranchListing = await ListActionsAsync(session, fixture.GetLocation("unused"), includeRefactorings: false);
+        var redoBranchActionId = redoBranchListing.Data!.Actions.Single(static action => action.Title == "Apply test code fix").ActionId;
+        var nonCurrentResult = await session.StageCodeActionAsync(new StageCodeActionRequest
+        {
+            ActionId = retainedActionId,
+            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 1),
+        }, TestContext.Current.CancellationToken);
+
+        nonCurrentResult.Outcome.Should().Be(CodeActionExecutionOutcome.Conflict);
+        nonCurrentResult.Error!.Code.Should().Be("SnapshotMismatch");
+        referenceStore.TryGet(retainedActionId, out _).Should().BeTrue();
+        referenceStore.TryGet(redoBranchActionId, out _).Should().BeTrue();
+
+        await coordinator.MoveTransactionHistoryAsync(
+            TransactionHistoryDirection.Undo,
+            TestContext.Current.CancellationToken);
+
+        var restoredResult = await session.StageCodeActionAsync(new StageCodeActionRequest
+        {
+            ActionId = retainedActionId,
+            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0),
+        }, TestContext.Current.CancellationToken);
+
+        restoredResult.Outcome.Should().Be(CodeActionExecutionOutcome.Succeeded);
+        referenceStore.TryGet(redoBranchActionId, out _).Should().BeFalse();
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_UnconsumedTransactionReference_WHEN_RollingBack_THEN_ShouldActivelyEvictReference()
+    {
+        using var fixture = InspectionSampleFixture.Create();
+        await using var coordinator = BundledComponentWorkspaceFactory.CreateTestCodeActionWorkspace(_composition);
+        var session = new CodeActionComponentTestSession(coordinator);
+        await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        await coordinator.StartTransactionAsync(TestContext.Current.CancellationToken);
+        var referenceStore = coordinator.GetRequiredService<ICodeActionReferenceStore>();
+
+        var listing = await ListActionsAsync(session, fixture.GetLocation("StateHolder"), includeCodeFixes: false);
+        var actionId = listing.Data!.Actions.Single(static action => action.Title == "Apply test refactoring").ActionId;
+
+        await coordinator.RollbackTransactionAsync(TestContext.Current.CancellationToken);
+
+        referenceStore.TryGet(actionId, out _).Should().BeFalse();
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_UnconsumedTransactionReference_WHEN_Committing_THEN_ShouldActivelyEvictReference()
+    {
+        using var fixture = InspectionSampleFixture.Create();
+        await using var coordinator = BundledComponentWorkspaceFactory.CreateTestCodeActionWorkspace(_composition);
+        var session = new CodeActionComponentTestSession(coordinator);
+        var open = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        await coordinator.StartTransactionAsync(TestContext.Current.CancellationToken);
+        var referenceStore = coordinator.GetRequiredService<ICodeActionReferenceStore>();
+
+        var firstListing = await ListActionsAsync(session, fixture.GetLocation("StateHolder"), includeCodeFixes: false);
+        var stagedActionId = firstListing.Data!.Actions.Single(static action => action.Title == "Apply test refactoring").ActionId;
+        var retainedListing = await ListActionsAsync(session, fixture.GetLocation("StateHolder"), includeCodeFixes: false);
+        var retainedActionId = retainedListing.Data!.Actions.Single(static action => action.Title == "Apply test refactoring").ActionId;
+
+        await session.StageCodeActionAsync(new StageCodeActionRequest
+        {
+            ActionId = stagedActionId,
+            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0),
+        }, TestContext.Current.CancellationToken);
+
+        referenceStore.TryGet(retainedActionId, out _).Should().BeTrue();
+
+        await coordinator.CommitTransactionAsync(
+            TestContext.Current.CancellationToken,
+            expectedSnapshot: BundledComponentWorkspaceFactory.CreateSnapshot(open, 1));
+
+        referenceStore.TryGet(retainedActionId, out _).Should().BeFalse();
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_ReferenceForReachableRevision_WHEN_UndoingAndRedoing_THEN_ShouldRejectThenRestoreReference()
+    {
+        using var fixture = InspectionSampleFixture.Create();
+        await using var coordinator = BundledComponentWorkspaceFactory.CreateTestCodeActionWorkspace(_composition);
+        var session = new CodeActionComponentTestSession(coordinator);
+        var open = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        await coordinator.StartTransactionAsync(TestContext.Current.CancellationToken);
+        var referenceStore = coordinator.GetRequiredService<ICodeActionReferenceStore>();
+
+        var refactorings = await ListActionsAsync(session, fixture.GetLocation("StateHolder"), includeCodeFixes: false);
+        await session.StageCodeActionAsync(new StageCodeActionRequest
+        {
+            ActionId = refactorings.Data!.Actions.Single(static action => action.Title == "Apply test refactoring").ActionId,
+            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0),
+        }, TestContext.Current.CancellationToken);
+
+        var codeFixes = await ListActionsAsync(session, fixture.GetLocation("unused"), includeRefactorings: false);
+        var revisionOneActionId = codeFixes.Data!.Actions.Single(static action => action.Title == "Apply test code fix").ActionId;
+
+        await coordinator.MoveTransactionHistoryAsync(
+            TransactionHistoryDirection.Undo,
+            TestContext.Current.CancellationToken);
+
+        var nonCurrentResult = await session.StageCodeActionAsync(new StageCodeActionRequest
+        {
+            ActionId = revisionOneActionId,
+            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0),
+        }, TestContext.Current.CancellationToken);
+
+        nonCurrentResult.Outcome.Should().Be(CodeActionExecutionOutcome.Conflict);
+        nonCurrentResult.Error!.Code.Should().Be("SnapshotMismatch");
+        referenceStore.TryGet(revisionOneActionId, out _).Should().BeTrue();
+
+        await coordinator.MoveTransactionHistoryAsync(
+            TransactionHistoryDirection.Redo,
+            TestContext.Current.CancellationToken);
+
+        var restoredResult = await session.StageCodeActionAsync(new StageCodeActionRequest
+        {
+            ActionId = revisionOneActionId,
+            ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 1),
+        }, TestContext.Current.CancellationToken);
+
+        restoredResult.Outcome.Should().Be(CodeActionExecutionOutcome.Succeeded);
+        restoredResult.Data!.Transaction!.Revision.Should().Be(2);
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_CommittedSnapshotReference_WHEN_StartingTransaction_THEN_ShouldActivelyEvictReference()
+    {
+        using var fixture = InspectionSampleFixture.Create();
+        await using var coordinator = BundledComponentWorkspaceFactory.CreateTestCodeActionWorkspace(_composition);
+        var session = new CodeActionComponentTestSession(coordinator);
+        await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        var referenceStore = coordinator.GetRequiredService<ICodeActionReferenceStore>();
+
+        var listing = await ListActionsAsync(session, fixture.GetLocation("StateHolder"), includeCodeFixes: false);
+        var actionId = listing.Data!.Actions.Single(static action => action.Title == "Apply test refactoring").ActionId;
+
+        await coordinator.StartTransactionAsync(TestContext.Current.CancellationToken);
+
+        referenceStore.TryGet(actionId, out _).Should().BeFalse();
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GIVEN_CommittedSnapshotReference_WHEN_UnloadingWorkspace_THEN_ShouldActivelyEvictReference()
+    {
+        using var fixture = InspectionSampleFixture.Create();
+        await using var coordinator = BundledComponentWorkspaceFactory.CreateTestCodeActionWorkspace(_composition);
+        var session = new CodeActionComponentTestSession(coordinator);
+        await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
+        var referenceStore = coordinator.GetRequiredService<ICodeActionReferenceStore>();
+
+        var listing = await ListActionsAsync(session, fixture.GetLocation("StateHolder"), includeCodeFixes: false);
+        var actionId = listing.Data!.Actions.Single(static action => action.Title == "Apply test refactoring").ActionId;
+
+        await coordinator.CloseAsync(TestContext.Current.CancellationToken);
+
+        referenceStore.TryGet(actionId, out _).Should().BeFalse();
     }
 
     private static async Task<CodeActionExecutionResult<CodeActionListData>> ListActionsAsync(

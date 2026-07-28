@@ -47,6 +47,9 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         _recoveryStore = new Mock<ICommitRecoveryStore>();
         _instanceStatusPublisher = new Mock<IWorkspaceInstanceStatusPublisher>();
         _sessionStore.Setup(item => item.AllocateWorkspaceId()).Returns("WorkspaceId");
+        _sessionStore
+            .Setup(item => item.AllocateWorkspaceSnapshotId())
+            .Returns(new WorkspaceSnapshotId(17));
         _instanceStatusPublisher
             .Setup(item => item.OpenAsync(
                 It.IsAny<string>(),
@@ -443,6 +446,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
             It.Is<WorkspaceSessionSnapshot>(session =>
                 session.Workspace.Alias == "Alias"
                 && session.Workspace.WorkspaceRoot == "/workspace"
+                && session.CommittedSnapshotId == new WorkspaceSnapshotId(17)
                 && session.OperationGate is WorkspaceOperationGate),
             It.IsAny<Func<WorkspaceHostSnapshot, WorkspaceOperationError?>>()), Times.Once);
     }
@@ -1202,7 +1206,8 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
         _sessionStore.Verify(item => item.ReplaceSession(It.Is<WorkspaceSessionSnapshot>(replacement =>
             replacement.LoadedWorkspace == newWorkspace.Object
             && replacement.OperationGate == gate.Object
-            && replacement.Workspace.Alias == "Alias")), Times.Once);
+            && replacement.Workspace.Alias == "Alias"
+            && replacement.CommittedSnapshotId == new WorkspaceSnapshotId(17))), Times.Once);
     }
 
     [Fact]
@@ -1460,6 +1465,7 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
 
         return new WorkspaceSessionSnapshot
         {
+            CommittedSnapshotId = new WorkspaceSnapshotId(1),
             State = transaction is null ? WorkspaceLifecycleState.Ready : WorkspaceLifecycleState.TransactionActive,
             Workspace = new WorkspaceIdentity
             {
@@ -1492,6 +1498,8 @@ public sealed class WorkspaceLifecycleServiceTests : IDisposable
     {
         return new WorkspaceTransaction
         {
+            TransactionId = new WorkspaceTransactionId(1),
+            BaselineSnapshotId = new WorkspaceSnapshotId(1),
             BaselineSolution = _workspace.CurrentSolution,
             MaxRevisions = 3,
         };

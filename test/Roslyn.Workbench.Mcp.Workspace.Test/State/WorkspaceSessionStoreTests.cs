@@ -2,19 +2,23 @@ using Roslyn.Workbench.Mcp.Workspace.Caching;
 
 namespace Roslyn.Workbench.Mcp.Workspace.Test.State;
 
-public sealed class WorkspaceSessionStoreTests
+public sealed class WorkspaceSessionStoreTests : IDisposable
 {
+    private readonly AdhocWorkspace _workspace;
+    private readonly Mock<IWorkspaceSnapshotLifecycleObserver> _lifecycleObserver;
     private readonly Mock<IWorkspaceQueryCache> _queryCache;
 
     public WorkspaceSessionStoreTests()
     {
+        _workspace = new AdhocWorkspace();
+        _lifecycleObserver = new Mock<IWorkspaceSnapshotLifecycleObserver>();
         _queryCache = new Mock<IWorkspaceQueryCache>();
     }
 
     [Fact]
     public void GIVEN_NewStore_WHEN_ReadingSnapshot_THEN_ShouldReturnEmptySnapshotWithoutOwner()
     {
-        var target = new WorkspaceSessionStore(_queryCache.Object);
+        var target = CreateStore();
 
         var result = target.ReadSnapshot();
 
@@ -25,7 +29,7 @@ public sealed class WorkspaceSessionStoreTests
     [Fact]
     public void GIVEN_NewStore_WHEN_AllocatingWorkspaceIds_THEN_ShouldReturnMonotonicallyIncreasingIds()
     {
-        var target = new WorkspaceSessionStore(_queryCache.Object);
+        var target = CreateStore();
 
         var first = target.AllocateWorkspaceId();
         var second = target.AllocateWorkspaceId();
@@ -37,7 +41,7 @@ public sealed class WorkspaceSessionStoreTests
     [Fact]
     public void GIVEN_NewStore_WHEN_AllocatingWorkspaceEpochs_THEN_ShouldReturnMonotonicallyIncreasingEpochs()
     {
-        var target = new WorkspaceSessionStore(_queryCache.Object);
+        var target = CreateStore();
 
         var first = target.AllocateWorkspaceEpoch();
         var second = target.AllocateWorkspaceEpoch();
@@ -47,9 +51,62 @@ public sealed class WorkspaceSessionStoreTests
     }
 
     [Fact]
+    public void GIVEN_NewStore_WHEN_AllocatingSnapshotAndTransactionIds_THEN_ShouldReturnDistinctMonotonicIds()
+    {
+        var target = CreateStore();
+
+        var firstSnapshot = target.AllocateWorkspaceSnapshotId();
+        var secondSnapshot = target.AllocateWorkspaceSnapshotId();
+        var firstTransaction = target.AllocateWorkspaceTransactionId();
+        var secondTransaction = target.AllocateWorkspaceTransactionId();
+
+        firstSnapshot.Value.Should().Be(1);
+        secondSnapshot.Value.Should().Be(2);
+        firstTransaction.Value.Should().Be(1);
+        secondTransaction.Value.Should().Be(2);
+    }
+
+    [Fact]
+    public void GIVEN_SnapshotAndTransactionIdentityTypes_WHEN_UsingInvalidValues_THEN_ShouldReserveDefaultAndRejectNonPositiveValues()
+    {
+        default(WorkspaceSnapshotId).Value.Should().Be(0);
+        default(WorkspaceTransactionId).Value.Should().Be(0);
+
+        var zeroSnapshotAction = () => new WorkspaceSnapshotId(0);
+        var negativeSnapshotAction = () => new WorkspaceSnapshotId(-1);
+        var zeroTransactionAction = () => new WorkspaceTransactionId(0);
+        var negativeTransactionAction = () => new WorkspaceTransactionId(-1);
+
+        zeroSnapshotAction.Should().Throw<ArgumentOutOfRangeException>();
+        negativeSnapshotAction.Should().Throw<ArgumentOutOfRangeException>();
+        zeroTransactionAction.Should().Throw<ArgumentOutOfRangeException>();
+        negativeTransactionAction.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void GIVEN_ConcurrentCallers_WHEN_AllocatingSnapshotAndTransactionIds_THEN_ShouldReturnUniqueIds()
+    {
+        const int allocationCount = 100;
+        var target = CreateStore();
+        var snapshotIds = new long[allocationCount];
+        var transactionIds = new long[allocationCount];
+
+        Parallel.For(0, allocationCount, index =>
+        {
+            snapshotIds[index] = target.AllocateWorkspaceSnapshotId().Value;
+            transactionIds[index] = target.AllocateWorkspaceTransactionId().Value;
+        });
+
+        snapshotIds.Should().OnlyHaveUniqueItems();
+        transactionIds.Should().OnlyHaveUniqueItems();
+        snapshotIds.Should().BeEquivalentTo(Enumerable.Range(1, allocationCount).Select(value => (long)value));
+        transactionIds.Should().BeEquivalentTo(Enumerable.Range(1, allocationCount).Select(value => (long)value));
+    }
+
+    [Fact]
     public void GIVEN_ValidationFailure_WHEN_AddingWorkspace_THEN_ShouldReturnErrorWithoutMutatingSnapshot()
     {
-        var target = new WorkspaceSessionStore(_queryCache.Object);
+        var target = CreateStore();
         var session = CreateSession("WorkspaceId", "Alias");
         var error = new WorkspaceOperationError
         {
@@ -70,7 +127,7 @@ public sealed class WorkspaceSessionStoreTests
     [Fact]
     public void GIVEN_ValidSession_WHEN_AddingAndReadingWorkspace_THEN_ShouldReturnAddedSession()
     {
-        var target = new WorkspaceSessionStore(_queryCache.Object);
+        var target = CreateStore();
         var session = CreateSession("WorkspaceId", "Alias");
         var validate = new Mock<Func<WorkspaceHostSnapshot, WorkspaceOperationError?>>();
         validate.Setup(item => item(It.IsAny<WorkspaceHostSnapshot>())).Returns((WorkspaceOperationError?)null);
@@ -109,6 +166,9 @@ public sealed class WorkspaceSessionStoreTests
         target.ReadSnapshot().Workspaces.Should().BeEmpty();
         target.ReadSnapshot().TransactionOwnerWorkspaceId.Should().BeNull();
         _queryCache.Verify(item => item.InvalidateWorkspace("WorkspaceId"), Times.Once);
+        _lifecycleObserver.Verify(
+            item => item.InvalidateWorkspace("WorkspaceId", 1),
+            Times.Once);
     }
 
     [Fact]
@@ -126,6 +186,9 @@ public sealed class WorkspaceSessionStoreTests
         target.ReadSnapshot().TransactionOwnerWorkspaceId.Should().Be("FirstWorkspaceId");
         target.ReadSession("FirstWorkspaceId").Should().BeSameAs(firstSession);
         _queryCache.Verify(item => item.InvalidateWorkspace("SecondWorkspaceId"), Times.Once);
+        _lifecycleObserver.Verify(
+            item => item.InvalidateWorkspace("SecondWorkspaceId", 1),
+            Times.Once);
     }
 
     [Fact]
@@ -192,6 +255,45 @@ public sealed class WorkspaceSessionStoreTests
     }
 
     [Fact]
+    public void GIVEN_ReadySession_WHEN_BecomingOutOfDate_THEN_ShouldInvalidateCurrentSnapshot()
+    {
+        var session = CreateSession("WorkspaceId", "Alias");
+        var target = CreateStoreWithSession(session);
+        var replacement = session with
+        {
+            State = WorkspaceLifecycleState.WorkspaceOutOfDate,
+        };
+
+        target.ReplaceSession(replacement);
+
+        _lifecycleObserver.Verify(
+            item => item.InvalidateSnapshots(It.Is<IReadOnlyList<WorkspaceSnapshotIdentity>>(snapshots =>
+                snapshots.SequenceEqual(new[] { session.CurrentSnapshotIdentity }))),
+            Times.Once);
+    }
+
+    [Fact]
+    public void GIVEN_ActiveTransaction_WHEN_BecomingConflicted_THEN_ShouldInvalidateTransaction()
+    {
+        var transaction = CreateTransaction();
+        var session = CreateSession("WorkspaceId", "Alias", transaction: transaction);
+        var target = CreateStoreWithSession(session);
+        var replacement = session with
+        {
+            State = WorkspaceLifecycleState.TransactionConflicted,
+        };
+
+        target.ReplaceSession(replacement);
+
+        _lifecycleObserver.Verify(
+            item => item.InvalidateTransaction(
+                "WorkspaceId",
+                1,
+                transaction.TransactionId),
+            Times.Once);
+    }
+
+    [Fact]
     public void GIVEN_PreviousSnapshot_WHEN_StoreChanges_THEN_ShouldRemainUnchanged()
     {
         var firstSession = CreateSession("FirstWorkspaceId", "FirstAlias");
@@ -206,11 +308,318 @@ public sealed class WorkspaceSessionStoreTests
         target.ReadSnapshot().Workspaces.Should().HaveCount(2);
     }
 
+    [Fact]
+    public void GIVEN_CommittedSession_WHEN_StartingTransaction_THEN_ShouldInvalidatePreviousCommittedSnapshot()
+    {
+        var session = CreateSession("WorkspaceId", "Alias");
+        var target = CreateStoreWithSession(session);
+        var transaction = CreateTransaction() with
+        {
+            Revisions = [],
+        };
+
+        var replacement = session with
+        {
+            State = WorkspaceLifecycleState.TransactionActive,
+            Transaction = transaction,
+        };
+
+        target.ReplaceSessionAndSetTransactionOwner(replacement, "WorkspaceId");
+
+        _lifecycleObserver.Verify(
+            item => item.InvalidateSnapshots(It.Is<IReadOnlyList<WorkspaceSnapshotIdentity>>(snapshots =>
+                snapshots.SequenceEqual(new[] { session.CurrentSnapshotIdentity }))),
+            Times.Once);
+        _lifecycleObserver.Verify(
+            item => item.InvalidateTransaction(
+                It.IsAny<string>(),
+                It.IsAny<long>(),
+                It.IsAny<WorkspaceTransactionId>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public void GIVEN_UnchangedSolution_WHEN_StartingTransaction_THEN_ShouldRetainWorkspaceQueryCache()
+    {
+        var session = CreateSession("WorkspaceId", "Alias");
+        var target = CreateStoreWithSession(session);
+        var transaction = CreateTransaction() with
+        {
+            Revisions = [],
+        };
+
+        var replacement = session with
+        {
+            State = WorkspaceLifecycleState.TransactionActive,
+            Transaction = transaction,
+            CurrentSolution = transaction.CurrentSolution,
+        };
+
+        target.ReplaceSessionAndSetTransactionOwner(replacement, "WorkspaceId");
+
+        _queryCache.Verify(
+            item => item.InvalidateWorkspace(It.IsAny<string>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public void GIVEN_ActiveTransaction_WHEN_CommittingOrRollingBack_THEN_ShouldInvalidateTransaction()
+    {
+        var transaction = CreateTransaction();
+        var session = CreateSession("WorkspaceId", "Alias", transaction: transaction);
+        var target = CreateStoreWithSession(session);
+        var replacement = session with
+        {
+            State = WorkspaceLifecycleState.Ready,
+            Transaction = null,
+            CommittedSnapshotId = new WorkspaceSnapshotId(2),
+        };
+
+        target.ReplaceSessionAndSetTransactionOwner(replacement, null);
+
+        _lifecycleObserver.Verify(
+            item => item.InvalidateTransaction(
+                "WorkspaceId",
+                1,
+                transaction.TransactionId),
+            Times.Once);
+    }
+
+    [Fact]
+    public void GIVEN_UnchangedSolution_WHEN_CommittingTransaction_THEN_ShouldRetainWorkspaceQueryCache()
+    {
+        var changedSolution = _workspace.CurrentSolution
+            .AddProject("Project", "Project", LanguageNames.CSharp)
+            .Solution;
+        var transaction = CreateTransaction(
+            currentRevision: 1,
+            firstRevisionSolution: changedSolution);
+
+        var session = CreateSession("WorkspaceId", "Alias", transaction: transaction);
+        var target = CreateStoreWithSession(session);
+        var replacement = session with
+        {
+            State = WorkspaceLifecycleState.Ready,
+            Transaction = null,
+            CommittedSnapshotId = new WorkspaceSnapshotId(2),
+        };
+
+        target.ReplaceSessionAndSetTransactionOwner(replacement, null);
+
+        _queryCache.Verify(
+            item => item.InvalidateWorkspace(It.IsAny<string>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public void GIVEN_DifferentSolution_WHEN_StagingTransactionRevision_THEN_ShouldInvalidateWorkspaceQueryCache()
+    {
+        var transaction = CreateTransaction() with
+        {
+            Revisions = [],
+        };
+
+        var session = CreateSession("WorkspaceId", "Alias", transaction: transaction);
+        var target = CreateStoreWithSession(session);
+        var changedSolution = _workspace.CurrentSolution
+            .AddProject("Project", "Project", LanguageNames.CSharp)
+            .Solution;
+
+        var appendResult = transaction.Append(new WorkspaceTransactionRevision
+        {
+            SnapshotId = new WorkspaceSnapshotId(2),
+            Solution = changedSolution,
+        });
+
+        target.ReplaceSessionAfterStaging(
+            session with
+            {
+                Transaction = appendResult.Transaction,
+                CurrentSolution = appendResult.Transaction.CurrentSolution,
+            },
+            appendResult.DiscardedSnapshotIds);
+
+        _queryCache.Verify(
+            item => item.InvalidateWorkspace("WorkspaceId"),
+            Times.Once);
+    }
+
+    [Theory]
+    [InlineData(TransactionHistoryDirection.Undo, 2)]
+    [InlineData(TransactionHistoryDirection.Redo, 1)]
+    public void GIVEN_DifferentReachableSolution_WHEN_MovingTransactionHistory_THEN_ShouldInvalidateWorkspaceQueryCache(
+        TransactionHistoryDirection direction,
+        int currentRevision)
+    {
+        var firstRevisionSolution = _workspace.CurrentSolution
+            .AddProject("FirstProject", "FirstProject", LanguageNames.CSharp)
+            .Solution;
+        var secondRevisionSolution = firstRevisionSolution
+            .AddProject("SecondProject", "SecondProject", LanguageNames.CSharp)
+            .Solution;
+
+        var transaction = CreateTransaction(
+            currentRevision,
+            firstRevisionSolution: firstRevisionSolution,
+            secondRevisionSolution: secondRevisionSolution);
+
+        var session = CreateSession("WorkspaceId", "Alias", transaction: transaction);
+        var target = CreateStoreWithSession(session);
+        var movedTransaction = transaction.MoveHistory(direction);
+
+        target.ReplaceSession(session with
+        {
+            Transaction = movedTransaction,
+            CurrentSolution = movedTransaction!.CurrentSolution,
+        });
+
+        _queryCache.Verify(
+            item => item.InvalidateWorkspace("WorkspaceId"),
+            Times.Once);
+    }
+
+    [Fact]
+    public void GIVEN_DifferentSolution_WHEN_RollingBackTransaction_THEN_ShouldInvalidateWorkspaceQueryCache()
+    {
+        var baselineSolution = _workspace.CurrentSolution;
+        var changedSolution = baselineSolution
+            .AddProject("Project", "Project", LanguageNames.CSharp)
+            .Solution;
+        var transaction = CreateTransaction(
+            currentRevision: 1,
+            baselineSolution: baselineSolution,
+            firstRevisionSolution: changedSolution);
+
+        var session = CreateSession("WorkspaceId", "Alias", transaction: transaction);
+        var target = CreateStoreWithSession(session);
+        var replacement = session with
+        {
+            State = WorkspaceLifecycleState.Ready,
+            Transaction = null,
+            CurrentSolution = baselineSolution,
+        };
+
+        target.ReplaceSessionAndSetTransactionOwner(replacement, null);
+
+        _queryCache.Verify(
+            item => item.InvalidateWorkspace("WorkspaceId"),
+            Times.Once);
+    }
+
+    [Fact]
+    public void GIVEN_ReachableTransactionHistory_WHEN_MovingCurrentRevision_THEN_ShouldNotInvalidateReferences()
+    {
+        var transaction = CreateTransaction(currentRevision: 2);
+        var session = CreateSession("WorkspaceId", "Alias", transaction: transaction);
+        var target = CreateStoreWithSession(session);
+        var movedTransaction = transaction.MoveHistory(TransactionHistoryDirection.Undo);
+        var replacement = session with
+        {
+            Transaction = movedTransaction,
+        };
+
+        target.ReplaceSession(replacement);
+
+        _lifecycleObserver.Verify(
+            item => item.InvalidateSnapshots(It.IsAny<IReadOnlyList<WorkspaceSnapshotIdentity>>()),
+            Times.Never);
+        _lifecycleObserver.Verify(
+            item => item.InvalidateTransaction(
+                It.IsAny<string>(),
+                It.IsAny<long>(),
+                It.IsAny<WorkspaceTransactionId>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public void GIVEN_DiscardedRedoBranch_WHEN_ReplacingAfterStaging_THEN_ShouldInvalidateDiscardedSnapshots()
+    {
+        var transaction = CreateTransaction(currentRevision: 1);
+        var session = CreateSession("WorkspaceId", "Alias", transaction: transaction);
+        var target = CreateStoreWithSession(session);
+        var replacementTransaction = transaction with
+        {
+            Revisions =
+            [
+                transaction.Revisions[0],
+                new WorkspaceTransactionRevision
+                {
+                    SnapshotId = new WorkspaceSnapshotId(4),
+                    Solution = _workspace.CurrentSolution,
+                },
+            ],
+            CurrentRevision = 2,
+        };
+
+        target.ReplaceSessionAfterStaging(
+            session with { Transaction = replacementTransaction },
+            [new WorkspaceSnapshotId(3)]);
+
+        var expectedIdentity = new WorkspaceSnapshotIdentity(
+            "WorkspaceId",
+            1,
+            new WorkspaceSnapshotId(3),
+            transaction.TransactionId);
+
+        _lifecycleObserver.Verify(
+            item => item.InvalidateSnapshots(It.Is<IReadOnlyList<WorkspaceSnapshotIdentity>>(snapshots =>
+                snapshots.SequenceEqual(new[] { expectedIdentity }))),
+            Times.Once);
+    }
+
+    [Fact]
+    public void GIVEN_NewWorkspaceEpoch_WHEN_ReplacingSession_THEN_ShouldInvalidateSupersededInstance()
+    {
+        var session = CreateSession("WorkspaceId", "Alias");
+        var target = CreateStoreWithSession(session);
+        var replacement = CreateSession(
+            "WorkspaceId",
+            "Alias",
+            workspaceEpoch: 2,
+            committedSnapshotId: 2);
+
+        target.ReplaceSession(replacement);
+
+        _lifecycleObserver.Verify(
+            item => item.InvalidateWorkspace("WorkspaceId", 1),
+            Times.Once);
+    }
+
+    [Fact]
+    public void GIVEN_NewWorkspaceEpoch_WHEN_ReplacingSession_THEN_ShouldInvalidateWorkspaceQueryCache()
+    {
+        var session = CreateSession("WorkspaceId", "Alias");
+        var target = CreateStoreWithSession(session);
+        var replacement = CreateSession(
+            "WorkspaceId",
+            "Alias",
+            workspaceEpoch: 2,
+            committedSnapshotId: 2);
+
+        target.ReplaceSession(replacement);
+
+        _queryCache.Verify(
+            item => item.InvalidateWorkspace("WorkspaceId"),
+            Times.Once);
+    }
+
     private WorkspaceSessionStore CreateStoreWithSession(WorkspaceSessionSnapshot session)
     {
-        var target = new WorkspaceSessionStore(_queryCache.Object);
+        var target = CreateStore();
         AddSession(target, session);
         return target;
+    }
+
+    public void Dispose()
+    {
+        _workspace.Dispose();
+    }
+
+    private WorkspaceSessionStore CreateStore()
+    {
+        return new WorkspaceSessionStore(
+            _queryCache.Object,
+            [_lifecycleObserver.Object]);
     }
 
     private static void AddSession(WorkspaceSessionStore target, WorkspaceSessionSnapshot session)
@@ -220,21 +629,65 @@ public sealed class WorkspaceSessionStoreTests
         target.TryAddWorkspace(session, validate.Object).Should().BeNull();
     }
 
-    private static WorkspaceSessionSnapshot CreateSession(string workspaceId, string alias, Solution? solution = null)
+    private WorkspaceSessionSnapshot CreateSession(
+        string workspaceId,
+        string alias,
+        Solution? solution = null,
+        long workspaceEpoch = 1,
+        long committedSnapshotId = 1,
+        WorkspaceTransaction? transaction = null)
     {
         return new WorkspaceSessionSnapshot
         {
-            State = WorkspaceLifecycleState.Ready,
+            CommittedSnapshotId = new WorkspaceSnapshotId(committedSnapshotId),
+            State = transaction is null
+                ? WorkspaceLifecycleState.Ready
+                : WorkspaceLifecycleState.TransactionActive,
             Workspace = new WorkspaceIdentity
             {
                 WorkspaceId = workspaceId,
                 Alias = alias,
+                WorkspaceEpoch = workspaceEpoch,
                 LoadedPath = "LoadedPath",
             },
             LoadedWorkspace = null!,
-            CurrentSolution = solution!,
+            CurrentSolution = transaction?.CurrentSolution ?? solution ?? _workspace.CurrentSolution,
+            Transaction = transaction,
             InputManifest = null!,
             OperationGate = null!,
+        };
+    }
+
+    private WorkspaceTransaction CreateTransaction(
+        int currentRevision = 0,
+        Solution? baselineSolution = null,
+        Solution? firstRevisionSolution = null,
+        Solution? secondRevisionSolution = null)
+    {
+        baselineSolution ??= _workspace.CurrentSolution;
+        firstRevisionSolution ??= baselineSolution;
+        secondRevisionSolution ??= firstRevisionSolution;
+
+        return new WorkspaceTransaction
+        {
+            TransactionId = new WorkspaceTransactionId(1),
+            BaselineSnapshotId = new WorkspaceSnapshotId(1),
+            BaselineSolution = baselineSolution,
+            Revisions =
+            [
+                new WorkspaceTransactionRevision
+                {
+                    SnapshotId = new WorkspaceSnapshotId(2),
+                    Solution = firstRevisionSolution,
+                },
+                new WorkspaceTransactionRevision
+                {
+                    SnapshotId = new WorkspaceSnapshotId(3),
+                    Solution = secondRevisionSolution,
+                },
+            ],
+            CurrentRevision = currentRevision,
+            MaxRevisions = 3,
         };
     }
 }

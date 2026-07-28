@@ -24,6 +24,9 @@ public sealed class MutationStagingServiceTests : IDisposable
         _instanceStatusPublisher = new Mock<IWorkspaceInstanceStatusPublisher>();
         _candidateValidator = new Mock<IWorkspaceMutationCandidateValidator>();
         _linkedDocumentChangeMerger = new Mock<ILinkedDocumentChangeMerger>();
+        _sessionStore
+            .Setup(item => item.AllocateWorkspaceSnapshotId())
+            .Returns(new WorkspaceSnapshotId(3));
         _linkedDocumentChangeMerger
             .Setup(item => item.MergeAsync(
                 It.IsAny<Solution>(),
@@ -244,7 +247,14 @@ public sealed class MutationStagingServiceTests : IDisposable
         var candidateSolution = document.WithText(SourceText.From("class Updated { }")).Project.Solution;
         var transaction = CreateTransaction(currentSolution) with
         {
-            Revisions = [new WorkspaceTransactionRevision { Solution = currentSolution }],
+            Revisions =
+            [
+                new WorkspaceTransactionRevision
+                {
+                    SnapshotId = new WorkspaceSnapshotId(2),
+                    Solution = currentSolution,
+                },
+            ],
             CurrentRevision = 0,
             MaxRevisions = 3,
         };
@@ -288,11 +298,15 @@ public sealed class MutationStagingServiceTests : IDisposable
             TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
-        _sessionStore.Verify(item => item.ReplaceSession(It.Is<WorkspaceSessionSnapshot>(replacement =>
-            replacement.CurrentSolution == candidateSolution
-            && replacement.Transaction != null
-            && replacement.Transaction.CurrentRevision == 1
-            && replacement.Transaction.Revisions.Count == 1)), Times.Once);
+        _sessionStore.Verify(item => item.ReplaceSessionAfterStaging(
+            It.Is<WorkspaceSessionSnapshot>(replacement =>
+                replacement.CurrentSolution == candidateSolution
+                && replacement.Transaction != null
+                && replacement.Transaction.CurrentRevision == 1
+                && replacement.Transaction.Revisions.Count == 1
+                && replacement.Transaction.CurrentSnapshotId == new WorkspaceSnapshotId(3)),
+            It.Is<IReadOnlyList<WorkspaceSnapshotId>>(snapshotIds =>
+                snapshotIds.SequenceEqual(new[] { new WorkspaceSnapshotId(2) }))), Times.Once);
     }
 
     public void Dispose()
@@ -370,6 +384,7 @@ public sealed class MutationStagingServiceTests : IDisposable
     {
         return new WorkspaceSessionSnapshot
         {
+            CommittedSnapshotId = new WorkspaceSnapshotId(1),
             State = WorkspaceLifecycleState.TransactionActive,
             Workspace = new WorkspaceIdentity
             {
@@ -388,6 +403,8 @@ public sealed class MutationStagingServiceTests : IDisposable
     {
         return new WorkspaceTransaction
         {
+            TransactionId = new WorkspaceTransactionId(1),
+            BaselineSnapshotId = new WorkspaceSnapshotId(1),
             BaselineSolution = solution,
             CurrentRevision = 0,
             MaxRevisions = 3,

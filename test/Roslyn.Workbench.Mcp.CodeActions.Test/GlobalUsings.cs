@@ -32,5 +32,6 @@ global using Roslyn.Workbench.Mcp.Workspace.Operations;
 global using Roslyn.Workbench.Mcp.Workspace.Resolution;
 global using Roslyn.Workbench.Mcp.Workspace.Results;
 global using Roslyn.Workbench.Mcp.Workspace.Selectors;
+global using Roslyn.Workbench.Mcp.Workspace.State;
 global using Roslyn.Workbench.Mcp.Workspace.Transactions;
 global using Xunit;

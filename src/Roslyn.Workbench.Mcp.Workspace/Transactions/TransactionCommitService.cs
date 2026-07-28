@@ -352,6 +352,7 @@ internal sealed class TransactionCommitService : ITransactionCommitService
 
         var committedSession = session with
         {
+            CommittedSnapshotId = _sessionStore.AllocateWorkspaceSnapshotId(),
             Transaction = null,
             CurrentSolution = transaction.CurrentSolution,
             InputManifest = inputManifest,

@@ -23,6 +23,10 @@ public sealed class TransactionCommitServiceTests : IDisposable
 
     public TransactionCommitServiceTests()
     {
+        _sessionStore
+            .Setup(item => item.AllocateWorkspaceSnapshotId())
+            .Returns(new WorkspaceSnapshotId(3));
+
         _target = new TransactionCommitService(
             _sessionStore.Object,
             _changeDetector.Object,
@@ -225,7 +229,12 @@ public sealed class TransactionCommitServiceTests : IDisposable
         _recoveryStore.Verify(item => item.WriteManifestAsync(It.Is<WorkspaceCommitManifest>(value => value.State == RecoveryState.Committed), CancellationToken.None), Times.Once);
         _commitWriter.Verify(item => item.CompleteAsync(It.Is<WorkspaceCommitManifest>(value => value.State == RecoveryState.Committed)), Times.Once);
         _sessionStore.Verify(item => item.ReplaceSessionAndSetTransactionOwner(
-            It.Is<WorkspaceSessionSnapshot>(value => value.Transaction == null && value.CurrentSolution == transaction.CurrentSolution && value.InputManifest == inputManifest), null), Times.Once);
+            It.Is<WorkspaceSessionSnapshot>(value =>
+                value.Transaction == null
+                && value.CommittedSnapshotId == new WorkspaceSnapshotId(3)
+                && value.CurrentSolution == transaction.CurrentSolution
+                && value.InputManifest == inputManifest),
+            null), Times.Once);
 
         _recoveryStore.Verify(item => item.DeleteStatus(It.IsAny<string>()), Times.Once);
         commitLock.Verify(item => item.Dispose(), Times.Once);
@@ -696,14 +705,24 @@ public sealed class TransactionCommitServiceTests : IDisposable
         var current = baseline.AddProject("Project", "Project", LanguageNames.CSharp).Solution;
         var transaction = new WorkspaceTransaction
         {
+            TransactionId = new WorkspaceTransactionId(1),
+            BaselineSnapshotId = new WorkspaceSnapshotId(1),
             BaselineSolution = baseline,
-            Revisions = [new WorkspaceTransactionRevision { Solution = current }],
+            Revisions =
+            [
+                new WorkspaceTransactionRevision
+                {
+                    SnapshotId = new WorkspaceSnapshotId(2),
+                    Solution = current,
+                },
+            ],
             CurrentRevision = 1,
             MaxRevisions = 3,
         };
 
         return new WorkspaceSessionSnapshot
         {
+            CommittedSnapshotId = new WorkspaceSnapshotId(1),
             State = WorkspaceLifecycleState.TransactionActive,
             Workspace = new WorkspaceIdentity
             {

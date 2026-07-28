@@ -3,7 +3,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 using Roslyn.Workbench.Mcp.CodeActions.Discovery;
+using Roslyn.Workbench.Mcp.CodeActions.References;
 using Roslyn.Workbench.Mcp.Workspace.Caching;
+using Roslyn.Workbench.Mcp.Workspace.State;
 
 namespace Roslyn.Workbench.Mcp.Test;
 
@@ -91,6 +93,8 @@ public sealed class HostCompositionIntegrationTests
         var codeActionCatalogSnapshot = host.Services.GetRequiredService<CodeActionCatalogSnapshot>();
         var toolExecutionServices = host.Services.GetRequiredService<IToolExecutionServices>();
         var workspaceQueryCache = host.Services.GetRequiredService<IWorkspaceQueryCache>();
+        var referenceStore = host.Services.GetRequiredService<ICodeActionReferenceStore>();
+        var lifecycleObservers = host.Services.GetServices<IWorkspaceSnapshotLifecycleObserver>().ToArray();
         var mcpTools = host.Services.GetServices<McpServerTool>().ToArray();
         var cachedValue = new object();
 
@@ -111,6 +115,7 @@ public sealed class HostCompositionIntegrationTests
         host.Services.GetRequiredService<ICodeActionPolicy>().Should().BeOfType<CodeActionPolicy>();
         host.Services.GetRequiredService<ICodeActionProviderSelection>().Should().BeOfType<CodeActionProviderSelection>();
         host.Services.GetRequiredService<ICodeActionBuiltInAnalyzerIndex>().Should().BeOfType<CodeActionBuiltInAnalyzerIndex>();
+        lifecycleObservers.Should().ContainSingle().Which.Should().BeSameAs(referenceStore);
         host.Services.GetRequiredService<IMsBuildWorkspaceFactory>().Should().BeOfType<HostConfiguredMsBuildWorkspaceFactory>();
         host.Services.GetRequiredService<IToolExecutionContextFactory>().Should().BeOfType<PluginExecutionContextFactory>();
         host.Services.GetRequiredService<ICodeActionExecutionContextFactory>().Should().BeOfType<CodeActionExecutionContextFactory>();

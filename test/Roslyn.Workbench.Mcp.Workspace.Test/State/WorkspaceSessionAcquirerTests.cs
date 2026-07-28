@@ -180,6 +180,7 @@ public sealed class WorkspaceSessionAcquirerTests : IDisposable
         var workspace = new Mock<ILoadedWorkspace>();
         return new WorkspaceSessionSnapshot
         {
+            CommittedSnapshotId = new WorkspaceSnapshotId(1),
             State = WorkspaceLifecycleState.Ready,
             Workspace = new WorkspaceIdentity
             {

@@ -55,6 +55,7 @@ public sealed class CodeActionResolverTests : IDisposable
         });
 
         _context.SetupGet(item => item.TransactionRevision).Returns(2);
+        _context.SetupGet(item => item.SnapshotIdentity).Returns(CreateSnapshotIdentity());
         _discoveryService
             .Setup(item => item.FindRefactoringProvider("ProviderId"))
             .Returns(_refactoringProvider.Object);
@@ -130,16 +131,28 @@ public sealed class CodeActionResolverTests : IDisposable
     [Theory]
     [InlineData(WorkspaceMismatch.WorkspaceId)]
     [InlineData(WorkspaceMismatch.WorkspaceEpoch)]
-    [InlineData(WorkspaceMismatch.TransactionRevision)]
     public async Task GIVEN_ReferenceWorkspaceDoesNotMatch_WHEN_ResolvingAction_THEN_ShouldReturnExpiredAction(
         WorkspaceMismatch mismatch)
     {
         var recipe = CreateRecipe();
         recipe = mismatch switch
         {
-            WorkspaceMismatch.WorkspaceId => recipe with { WorkspaceId = "OtherWorkspaceId" },
-            WorkspaceMismatch.WorkspaceEpoch => recipe with { WorkspaceEpoch = 2 },
-            WorkspaceMismatch.TransactionRevision => recipe with { TransactionRevision = 3 },
+            WorkspaceMismatch.WorkspaceId => recipe with
+            {
+                SnapshotIdentity = new WorkspaceSnapshotIdentity(
+                    "OtherWorkspaceId",
+                    1,
+                    new WorkspaceSnapshotId(2),
+                    new WorkspaceTransactionId(1)),
+            },
+            WorkspaceMismatch.WorkspaceEpoch => recipe with
+            {
+                SnapshotIdentity = new WorkspaceSnapshotIdentity(
+                    "WorkspaceId",
+                    2,
+                    new WorkspaceSnapshotId(2),
+                    new WorkspaceTransactionId(1)),
+            },
             _ => recipe,
         };
 
@@ -150,6 +163,35 @@ public sealed class CodeActionResolverTests : IDisposable
         AssertExpired(result);
         result.FailureKind.Should().Be(CodeActionResolutionFailureKind.InvalidReference);
         _workspaceResolver.Verify(item => item.ResolveDocument(It.IsAny<DocumentSelector>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_ReferenceSnapshotIsNotCurrent_WHEN_ResolvingAction_THEN_ShouldReturnRetainedSnapshotConflict()
+    {
+        var recipe = CreateRecipe() with
+        {
+            SnapshotIdentity = new WorkspaceSnapshotIdentity(
+                "WorkspaceId",
+                1,
+                new WorkspaceSnapshotId(3),
+                new WorkspaceTransactionId(1)),
+        };
+
+        SetupReference(recipe);
+
+        var result = await ResolveAsync();
+
+        result.Rejection!.Outcome.Should().Be(CodeActionExecutionOutcome.Conflict);
+        result.Rejection.Error!.Code.Should().Be("SnapshotMismatch");
+        result.FailureKind.Should().Be(CodeActionResolutionFailureKind.None);
+        _workspaceResolver.Verify(item => item.ResolveDocument(It.IsAny<DocumentSelector>()), Times.Never);
+
+        _context.SetupGet(item => item.SnapshotIdentity).Returns(recipe.SnapshotIdentity);
+
+        var restoredResult = await ResolveAsync();
+
+        restoredResult.HasRejection.Should().BeFalse();
+        restoredResult.Reference.Should().NotBeNull();
     }
 
     [Theory]
@@ -444,9 +486,7 @@ public sealed class CodeActionResolverTests : IDisposable
                     Length = 4,
                 },
             ],
-            WorkspaceId = "WorkspaceId",
-            WorkspaceEpoch = 1,
-            TransactionRevision = 2,
+            SnapshotIdentity = CreateSnapshotIdentity(),
             DocumentPath = "DocumentPath",
             ProjectId = "ProjectId",
             Start = 3,
@@ -480,6 +520,15 @@ public sealed class CodeActionResolverTests : IDisposable
         };
     }
 
+    private static WorkspaceSnapshotIdentity CreateSnapshotIdentity()
+    {
+        return new WorkspaceSnapshotIdentity(
+            "WorkspaceId",
+            1,
+            new WorkspaceSnapshotId(2),
+            new WorkspaceTransactionId(1));
+    }
+
     private static void AssertExpired(CodeActionResolution<object> result)
     {
         result.Rejection!.Error!.Code.Should().Be("ActionExpired");
@@ -492,7 +541,6 @@ public sealed class CodeActionResolverTests : IDisposable
     {
         WorkspaceId,
         WorkspaceEpoch,
-        TransactionRevision,
     }
 
     public enum ActionIdentityMismatch

@@ -25,6 +25,9 @@ public sealed class TransactionServiceTests : IDisposable
     {
         _workspace = new AdhocWorkspace();
         _sessionStore = new Mock<IWorkspaceSessionStore>();
+        _sessionStore
+            .Setup(item => item.AllocateWorkspaceTransactionId())
+            .Returns(new WorkspaceTransactionId(7));
         _sessionAcquirer = new Mock<IWorkspaceSessionAcquirer>();
         SetupWorkspaceRequiredAcquisitions();
         _stateTransitions = new Mock<IWorkspaceStateTransitions>();
@@ -318,7 +321,11 @@ public sealed class TransactionServiceTests : IDisposable
 
         result.Should().BeSameAs(expected);
         _sessionStore.Verify(item => item.ReplaceSessionAndSetTransactionOwner(
-            It.Is<WorkspaceSessionSnapshot>(updated => updated.Transaction != null && updated.Transaction.MaxRevisions == 5),
+            It.Is<WorkspaceSessionSnapshot>(updated =>
+                updated.Transaction != null
+                && updated.Transaction.TransactionId == new WorkspaceTransactionId(7)
+                && updated.Transaction.BaselineSnapshotId == session.CommittedSnapshotId
+                && updated.Transaction.MaxRevisions == 5),
             "WorkspaceId"), Times.Once);
     }
 
@@ -1206,6 +1213,7 @@ public sealed class TransactionServiceTests : IDisposable
     {
         return new WorkspaceSessionSnapshot
         {
+            CommittedSnapshotId = new WorkspaceSnapshotId(1),
             State = transaction is null ? WorkspaceLifecycleState.Ready : WorkspaceLifecycleState.TransactionActive,
             Workspace = new WorkspaceIdentity
             {
@@ -1227,6 +1235,8 @@ public sealed class TransactionServiceTests : IDisposable
         var document = _workspace.AddDocument(project.Id, "Document.cs", SourceText.From("class C { }"));
         return new WorkspaceTransaction
         {
+            TransactionId = new WorkspaceTransactionId(1),
+            BaselineSnapshotId = new WorkspaceSnapshotId(1),
             BaselineSolution = document.Project.Solution,
             CurrentRevision = 0,
             MaxRevisions = 5,
@@ -1237,7 +1247,11 @@ public sealed class TransactionServiceTests : IDisposable
     {
         var transaction = CreateTransaction();
         var revisions = Enumerable.Range(1, revisionCount)
-            .Select(_ => new WorkspaceTransactionRevision { Solution = transaction.BaselineSolution })
+            .Select(index => new WorkspaceTransactionRevision
+            {
+                SnapshotId = new WorkspaceSnapshotId(index),
+                Solution = transaction.BaselineSolution,
+            })
             .ToArray();
 
         return transaction with

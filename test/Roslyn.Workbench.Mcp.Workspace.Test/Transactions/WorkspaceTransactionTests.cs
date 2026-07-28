@@ -11,14 +11,16 @@ public sealed class WorkspaceTransactionTests : IDisposable
         var firstSolution = baselineSolution.AddProject("First", "First", LanguageNames.CSharp).Solution;
         var redoSolution = firstSolution.AddProject("Redo", "Redo", LanguageNames.CSharp).Solution;
         var appendedSolution = firstSolution.AddProject("Appended", "Appended", LanguageNames.CSharp).Solution;
-        var appendedRevision = CreateRevision(appendedSolution);
+        var appendedRevision = CreateRevision(appendedSolution, 3);
         var target = new WorkspaceTransaction
         {
+            TransactionId = new WorkspaceTransactionId(1),
+            BaselineSnapshotId = new WorkspaceSnapshotId(1),
             BaselineSolution = baselineSolution,
             Revisions =
             [
-                CreateRevision(firstSolution),
-                CreateRevision(redoSolution),
+                CreateRevision(firstSolution, 1),
+                CreateRevision(redoSolution, 2),
             ],
             CurrentRevision = 1,
             MaxRevisions = 3,
@@ -26,9 +28,10 @@ public sealed class WorkspaceTransactionTests : IDisposable
 
         var result = target.Append(appendedRevision);
 
-        result.CurrentRevision.Should().Be(2);
-        result.Revisions.Should().Equal(target.Revisions[0], appendedRevision);
-        result.CurrentSolution.Should().BeSameAs(appendedSolution);
+        result.Transaction.CurrentRevision.Should().Be(2);
+        result.Transaction.Revisions.Should().Equal(target.Revisions[0], appendedRevision);
+        result.Transaction.CurrentSolution.Should().BeSameAs(appendedSolution);
+        result.DiscardedSnapshotIds.Should().Equal(new WorkspaceSnapshotId(2));
     }
 
     [Theory]
@@ -43,6 +46,8 @@ public sealed class WorkspaceTransactionTests : IDisposable
     {
         var target = new WorkspaceTransaction
         {
+            TransactionId = new WorkspaceTransactionId(1),
+            BaselineSnapshotId = new WorkspaceSnapshotId(1),
             BaselineSolution = _workspace.CurrentSolution,
             Revisions = [CreateRevision(_workspace.CurrentSolution)],
             CurrentRevision = currentRevision,
@@ -70,6 +75,8 @@ public sealed class WorkspaceTransactionTests : IDisposable
         var baselineSolution = workspace.CurrentSolution;
         var target = new WorkspaceTransaction
         {
+            TransactionId = new WorkspaceTransactionId(1),
+            BaselineSnapshotId = new WorkspaceSnapshotId(1),
             BaselineSolution = baselineSolution,
             CurrentRevision = 0,
         };
@@ -77,6 +84,7 @@ public sealed class WorkspaceTransactionTests : IDisposable
         var result = target.CurrentSolution;
 
         result.Should().BeSameAs(baselineSolution);
+        target.CurrentSnapshotId.Should().Be(new WorkspaceSnapshotId(1));
     }
 
     [Fact]
@@ -88,11 +96,13 @@ public sealed class WorkspaceTransactionTests : IDisposable
         var secondSolution = firstSolution.AddProject("SecondProject", "SecondProject", LanguageNames.CSharp).Solution;
         var target = new WorkspaceTransaction
         {
+            TransactionId = new WorkspaceTransactionId(1),
+            BaselineSnapshotId = new WorkspaceSnapshotId(1),
             BaselineSolution = baselineSolution,
             Revisions =
             [
-                CreateRevision(firstSolution),
-                CreateRevision(secondSolution),
+                CreateRevision(firstSolution, 2),
+                CreateRevision(secondSolution, 3),
             ],
             CurrentRevision = 2,
         };
@@ -100,6 +110,7 @@ public sealed class WorkspaceTransactionTests : IDisposable
         var result = target.CurrentSolution;
 
         result.Should().BeSameAs(secondSolution);
+        target.CurrentSnapshotId.Should().Be(new WorkspaceSnapshotId(3));
     }
 
     [Fact]
@@ -107,6 +118,8 @@ public sealed class WorkspaceTransactionTests : IDisposable
     {
         var target = new WorkspaceTransaction
         {
+            TransactionId = new WorkspaceTransactionId(1),
+            BaselineSnapshotId = new WorkspaceSnapshotId(1),
             BaselineSolution = _workspace.CurrentSolution,
             CurrentRevision = 0,
             MaxRevisions = 3,
@@ -130,6 +143,8 @@ public sealed class WorkspaceTransactionTests : IDisposable
     {
         var target = new WorkspaceTransaction
         {
+            TransactionId = new WorkspaceTransactionId(1),
+            BaselineSnapshotId = new WorkspaceSnapshotId(1),
             BaselineSolution = _workspace.CurrentSolution,
             Revisions = [CreateRevision(_workspace.CurrentSolution), CreateRevision(_workspace.CurrentSolution)],
             CurrentRevision = 1,
@@ -153,6 +168,8 @@ public sealed class WorkspaceTransactionTests : IDisposable
     {
         var target = new WorkspaceTransaction
         {
+            TransactionId = new WorkspaceTransactionId(1),
+            BaselineSnapshotId = new WorkspaceSnapshotId(1),
             BaselineSolution = _workspace.CurrentSolution,
             Revisions = [CreateRevision(_workspace.CurrentSolution), CreateRevision(_workspace.CurrentSolution)],
             CurrentRevision = 2,
@@ -173,6 +190,8 @@ public sealed class WorkspaceTransactionTests : IDisposable
     {
         var target = new WorkspaceTransaction
         {
+            TransactionId = new WorkspaceTransactionId(1),
+            BaselineSnapshotId = new WorkspaceSnapshotId(1),
             BaselineSolution = _workspace.CurrentSolution,
             Revisions =
             [
@@ -197,6 +216,8 @@ public sealed class WorkspaceTransactionTests : IDisposable
     {
         var target = new WorkspaceTransaction
         {
+            TransactionId = new WorkspaceTransactionId(1),
+            BaselineSnapshotId = new WorkspaceSnapshotId(1),
             BaselineSolution = _workspace.CurrentSolution,
             Revisions = [CreateRevision(_workspace.CurrentSolution)],
             CurrentRevision = 1,
@@ -216,10 +237,13 @@ public sealed class WorkspaceTransactionTests : IDisposable
         _workspace.Dispose();
     }
 
-    private static WorkspaceTransactionRevision CreateRevision(Solution solution)
+    private static WorkspaceTransactionRevision CreateRevision(
+        Solution solution,
+        long snapshotId = 1)
     {
         return new WorkspaceTransactionRevision
         {
+            SnapshotId = new WorkspaceSnapshotId(snapshotId),
             Solution = solution,
         };
     }

@@ -109,6 +109,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
     public static void AddCodeActionServices(this IServiceCollection services)
     {
         services.AddSingleton<ICodeActionAnalyzerActivator, CodeActionAnalyzerActivator>();
+        services.AddSingleton<ICodeActionBuiltInAnalyzerIndex, CodeActionBuiltInAnalyzerIndex>();
         services.AddSingleton<ICodeActionDiagnosticService, CodeActionDiagnosticService>();
         services.AddSingleton<ICodeActionDescriptorRegistry, CodeActionDescriptorRegistry>();
         services.AddSingleton<ICodeActionReferenceStore, CodeActionReferenceStore>();

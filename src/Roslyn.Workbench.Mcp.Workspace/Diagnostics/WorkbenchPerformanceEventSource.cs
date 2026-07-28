@@ -7,6 +7,7 @@ internal sealed class WorkbenchPerformanceEventSource : EventSource
 {
     public const string ProviderName = "Roslyn-Workbench-Mcp";
     public const string CandidateProjectionPhase = "candidate-projection";
+    public const string BuiltInAnalyzerActivationPhase = "built-in-analyzer-activation";
     public const string CodeActionProjectionPhase = "code-action-projection";
     public const string CodeFixDiscoveryPhase = "code-fix-discovery";
     public const string CommitApplicationPhase = "commit-application";

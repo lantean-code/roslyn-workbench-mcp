@@ -49,10 +49,7 @@ public sealed class ServerStatusRecoveryIntegrationTests
         var codeActionComposition = new Mock<ICodeActionComposition>();
         codeActionComposition
             .SetupGet(item => item.Status)
-            .Returns(new CodeActionCompositionStatus
-            {
-                IsAvailable = true,
-            });
+            .Returns(CodeActionCompositionStatus.Available());
 
         var service = new ServerStatusService(
             Options.Create(options),

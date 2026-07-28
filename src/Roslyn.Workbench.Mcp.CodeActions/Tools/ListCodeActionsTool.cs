@@ -58,6 +58,7 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
         var document = locationResolution.Value.Document;
         var span = locationResolution.Value.Span;
         var discovered = new List<DiscoveredCodeAction>();
+        IReadOnlyList<string> diagnosticWarnings = [];
         if (request.IncludeRefactorings)
         {
             using (WorkbenchPerformanceEventSource.Log.StartPhase(
@@ -87,11 +88,14 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
                         _toolName,
                         WorkbenchPerformanceEventSource.DiagnosticCollectionPhase))
                     {
-                        diagnostics = await _diagnosticService.GetDocumentDiagnosticsAsync(
+                        var diagnosticCollection = await _diagnosticService.CollectDocumentDiagnosticsAsync(
                             document,
                             span,
                             effectiveDiagnosticIds,
                             cancellationToken);
+
+                        diagnostics = diagnosticCollection.Diagnostics;
+                        diagnosticWarnings = diagnosticCollection.Warnings;
                     }
 
                     using (WorkbenchPerformanceEventSource.Log.StartPhase(
@@ -159,7 +163,17 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
             Actions = actionInfos,
         };
 
-        return CodeActionExecutionResult.Success(data);
+        var warnings = new List<WarningInfo>(diagnosticWarnings.Count);
+        foreach (var warning in diagnosticWarnings)
+        {
+            warnings.Add(new WarningInfo
+            {
+                Code = "CodeActionDiagnosticWarning",
+                Message = warning,
+            });
+        }
+
+        return CodeActionExecutionResult.Success(data, warnings: warnings);
     }
 
     private static List<string> GetEffectiveDiagnosticIds(

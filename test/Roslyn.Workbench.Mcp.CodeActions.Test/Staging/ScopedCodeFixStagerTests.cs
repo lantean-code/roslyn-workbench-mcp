@@ -57,10 +57,7 @@ public sealed class ScopedCodeFixStagerTests : IDisposable
             DiagnosticIds = ["DiagnosticId"],
         };
 
-        _composition.SetupGet(item => item.Status).Returns(new CodeActionCompositionStatus
-        {
-            IsAvailable = true,
-        });
+        _composition.SetupGet(item => item.Status).Returns(CodeActionCompositionStatus.Available());
 
         _workspaceResolver
             .Setup(item => item.ValidateSnapshot(It.IsAny<SnapshotPrecondition?>()))
@@ -174,10 +171,7 @@ public sealed class ScopedCodeFixStagerTests : IDisposable
     [Fact]
     public async Task GIVEN_CodeActionsAreUnavailable_WHEN_StagingScopedFix_THEN_ShouldRejectWithoutResolvingScope()
     {
-        _composition.SetupGet(item => item.Status).Returns(new CodeActionCompositionStatus
-        {
-            IsAvailable = false,
-        });
+        _composition.SetupGet(item => item.Status).Returns(CodeActionCompositionStatus.Unavailable("Unavailable."));
 
         var result = await _target.StageScopedCodeFixAsync(
             CreateRequest(ScopeKind.Solution),

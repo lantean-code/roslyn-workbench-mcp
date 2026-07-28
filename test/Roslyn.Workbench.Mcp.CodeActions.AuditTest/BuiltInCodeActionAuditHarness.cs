@@ -85,7 +85,7 @@ internal static class BuiltInCodeActionAuditHarness
             codeFixDiagnostics = await GetDocumentDiagnosticsAsync(document, resolution.Value.SourceSpan, TestContext.Current.CancellationToken);
 
             var provider = composition.CodeFixProviders.Single(
-                candidate => string.Equals(GetProviderId(candidate), auditCase.ProviderId, StringComparison.Ordinal));
+                candidate => string.Equals(CodeActionProviderIdentity.GetId(candidate), auditCase.ProviderId, StringComparison.Ordinal));
 
             discovered = await DiscoverCodeFixesAsync(
                 provider,
@@ -96,7 +96,7 @@ internal static class BuiltInCodeActionAuditHarness
         else
         {
             var provider = composition.RefactoringProviders.Single(
-                candidate => string.Equals(GetProviderId(candidate), auditCase.ProviderId, StringComparison.Ordinal));
+                candidate => string.Equals(CodeActionProviderIdentity.GetId(candidate), auditCase.ProviderId, StringComparison.Ordinal));
 
             discovered = await DiscoverRefactoringsAsync(
                 provider,
@@ -224,7 +224,7 @@ internal static class BuiltInCodeActionAuditHarness
         var context = new CodeRefactoringContext(document, span, action => rootActions.Add(action), cancellationToken);
         await provider.ComputeRefactoringsAsync(context);
 
-        return Flatten(rootActions, GetProviderId(provider));
+        return Flatten(rootActions, CodeActionProviderIdentity.GetId(provider));
     }
 
     private static async Task<IReadOnlyList<DiscoveredAuditCodeAction>> DiscoverCodeFixesAsync(
@@ -255,7 +255,7 @@ internal static class BuiltInCodeActionAuditHarness
         }
 
         return discovered
-            .SelectMany(entry => Flatten([entry.Action], GetProviderId(provider)))
+            .SelectMany(entry => Flatten([entry.Action], CodeActionProviderIdentity.GetId(provider)))
             .ToArray();
     }
 
@@ -495,12 +495,6 @@ internal static class BuiltInCodeActionAuditHarness
             .Distinct(StringComparer.Ordinal)
             .OrderBy(static title => title, StringComparer.Ordinal)
             .ToArray();
-    }
-
-    private static string GetProviderId(object provider)
-    {
-        var providerType = provider.GetType();
-        return providerType.FullName ?? providerType.Name;
     }
 
     private sealed record DiscoveredAuditCodeAction

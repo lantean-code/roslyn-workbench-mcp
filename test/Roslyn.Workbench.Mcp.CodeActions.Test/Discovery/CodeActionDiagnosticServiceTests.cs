@@ -7,12 +7,23 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Discovery;
 public sealed class CodeActionDiagnosticServiceTests
 {
     private readonly Mock<ICodeActionAnalyzerActivator> _analyzerActivator;
+    private readonly Mock<ICodeActionBuiltInAnalyzerIndex> _builtInAnalyzerIndex;
     private readonly CodeActionDiagnosticService _target;
 
     public CodeActionDiagnosticServiceTests()
     {
         _analyzerActivator = new Mock<ICodeActionAnalyzerActivator>();
-        _target = new CodeActionDiagnosticService(_analyzerActivator.Object);
+        _builtInAnalyzerIndex = new Mock<ICodeActionBuiltInAnalyzerIndex>();
+        _builtInAnalyzerIndex
+            .SetupGet(item => item.Warnings)
+            .Returns([]);
+        _builtInAnalyzerIndex
+            .Setup(item => item.GetAnalyzers(It.IsAny<IReadOnlySet<string>>()))
+            .Returns([]);
+
+        _target = new CodeActionDiagnosticService(
+            _analyzerActivator.Object,
+            _builtInAnalyzerIndex.Object);
     }
 
     [Theory]
@@ -208,6 +219,214 @@ public sealed class CodeActionDiagnosticServiceTests
         result.Should().ContainSingle(item => item.Id == "MATCH001");
         matchingAnalyzer.Verify(item => item.Initialize(It.IsAny<AnalysisContext>()), Times.Once);
         unrelatedAnalyzer.Verify(item => item.Initialize(It.IsAny<AnalysisContext>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_BuiltInAnalyzerSupportsRequestedDiagnostic_WHEN_CollectingDiagnostics_THEN_ShouldJoinBuiltInSource()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class Sample { }");
+        var analyzer = CreateSourceAnalyzer(
+        [
+            ("IDE9000", new TextSpan(0, 1)),
+        ]);
+
+        _builtInAnalyzerIndex
+            .Setup(item => item.GetAnalyzers(
+                It.Is<IReadOnlySet<string>>(ids => ids.Count == 1 && ids.Contains("IDE9000"))))
+            .Returns([analyzer.Object]);
+
+        var result = await _target.CollectDocumentDiagnosticsAsync(
+            roslyn.Document,
+            span: null,
+            ["IDE9000"],
+            TestContext.Current.CancellationToken);
+
+        result.Diagnostics.Should().ContainSingle(item => item.Id == "IDE9000");
+        result.Warnings.Should().BeEmpty();
+        _builtInAnalyzerIndex.Verify(
+            item => item.GetAnalyzers(It.IsAny<IReadOnlySet<string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GIVEN_DuplicateDiagnosticsFromAnalyzer_WHEN_CollectingDiagnostics_THEN_ShouldDeduplicateByStableIdentity()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class Sample { }");
+        var descriptor = CreateDescriptor("DUPLICATE001");
+        var analyzer = new Mock<DiagnosticAnalyzer>();
+        analyzer
+            .SetupGet(item => item.SupportedDiagnostics)
+            .Returns([descriptor]);
+
+        analyzer
+            .Setup(item => item.Initialize(It.IsAny<AnalysisContext>()))
+            .Callback<AnalysisContext>(context =>
+            {
+                context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
+                context.RegisterSyntaxTreeAction(syntaxTreeContext =>
+                {
+                    var diagnostic = Diagnostic.Create(
+                        descriptor,
+                        syntaxTreeContext.Tree.GetLocation(new TextSpan(0, 1)),
+                        properties: ImmutableDictionary<string, string?>.Empty.Add("Key", "Value"));
+
+                    syntaxTreeContext.ReportDiagnostic(diagnostic);
+                    syntaxTreeContext.ReportDiagnostic(diagnostic);
+                    syntaxTreeContext.ReportDiagnostic(Diagnostic.Create(
+                        descriptor,
+                        syntaxTreeContext.Tree.GetLocation(new TextSpan(0, 1)),
+                        properties: ImmutableDictionary<string, string?>.Empty.Add("Key", "OtherValue")));
+                });
+            });
+
+        _builtInAnalyzerIndex
+            .Setup(item => item.GetAnalyzers(It.IsAny<IReadOnlySet<string>>()))
+            .Returns([analyzer.Object]);
+
+        var result = await _target.CollectDocumentDiagnosticsAsync(
+            roslyn.Document,
+            span: null,
+            ["DUPLICATE001"],
+            TestContext.Current.CancellationToken);
+
+        result.Diagnostics.Should().HaveCount(2);
+        result.Diagnostics.Should().OnlyContain(item => item.Id == "DUPLICATE001");
+    }
+
+    [Fact]
+    public async Task GIVEN_BuiltInAnalyzerFails_WHEN_CollectingCompilerDiagnostics_THEN_ShouldRetainCompilerDiagnosticAndReportWarning()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class Sample { MissingType Value; }");
+        var descriptor = CreateDescriptor("IDE9001");
+        var analyzer = new Mock<DiagnosticAnalyzer>();
+        analyzer
+            .SetupGet(item => item.SupportedDiagnostics)
+            .Returns([descriptor]);
+        analyzer
+            .Setup(item => item.Initialize(It.IsAny<AnalysisContext>()))
+            .Throws(new InvalidOperationException("Analyzer failure."));
+
+        _builtInAnalyzerIndex
+            .Setup(item => item.GetAnalyzers(It.IsAny<IReadOnlySet<string>>()))
+            .Returns([analyzer.Object]);
+
+        var result = await _target.CollectDocumentDiagnosticsAsync(
+            roslyn.Document,
+            span: null,
+            ["CS0246", "IDE9001"],
+            TestContext.Current.CancellationToken);
+
+        result.Diagnostics.Should().ContainSingle(item => item.Id == "CS0246");
+        result.Warnings.Should().ContainSingle(item =>
+            item.Contains(
+                "failed during diagnostic collection (InvalidOperationException)",
+                StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task GIVEN_ProjectAnalyzerReferenceFails_WHEN_CollectingCompilerDiagnostics_THEN_ShouldRetainCompilerDiagnosticAndReportWarning()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class Sample { MissingType Value; }");
+        var analyzerReference = CreateAnalyzerReference();
+        analyzerReference
+            .Setup(item => item.GetAnalyzers(LanguageNames.CSharp))
+            .Throws(new InvalidOperationException("Analyzer reference failure."));
+
+        var updatedSolution = roslyn.Solution.AddAnalyzerReference(
+            roslyn.Document.Project.Id,
+            analyzerReference.Object);
+
+        roslyn.Workspace.TryApplyChanges(updatedSolution).Should().BeTrue();
+        var document = roslyn.Workspace.CurrentSolution.GetDocument(roslyn.Document.Id)
+            ?? throw new InvalidOperationException("The updated test document could not be resolved.");
+
+        var result = await _target.CollectDocumentDiagnosticsAsync(
+            document,
+            span: null,
+            ["CS0246"],
+            TestContext.Current.CancellationToken);
+
+        result.Diagnostics.Should().ContainSingle(item => item.Id == "CS0246");
+        result.Warnings.Should().ContainSingle(item =>
+            item.Contains("failed while loading project analyzers", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task GIVEN_ProjectAnalyzerMetadataFails_WHEN_CollectingCompilerDiagnostics_THEN_ShouldRetainCompilerDiagnosticAndReportWarning()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class Sample { MissingType Value; }");
+        var analyzer = new Mock<DiagnosticAnalyzer>();
+        analyzer
+            .SetupGet(item => item.SupportedDiagnostics)
+            .Throws(new InvalidOperationException("Analyzer metadata failure."));
+
+        var analyzerReference = CreateAnalyzerReference(analyzer.Object);
+        var updatedSolution = roslyn.Solution.AddAnalyzerReference(
+            roslyn.Document.Project.Id,
+            analyzerReference.Object);
+
+        roslyn.Workspace.TryApplyChanges(updatedSolution).Should().BeTrue();
+        var document = roslyn.Workspace.CurrentSolution.GetDocument(roslyn.Document.Id)
+            ?? throw new InvalidOperationException("The updated test document could not be resolved.");
+
+        var result = await _target.CollectDocumentDiagnosticsAsync(
+            document,
+            span: null,
+            ["CS0246", "ANALYZER001"],
+            TestContext.Current.CancellationToken);
+
+        result.Diagnostics.Should().ContainSingle(item => item.Id == "CS0246");
+        result.Warnings.Should().ContainSingle(item =>
+            item.Contains("failed while reading supported diagnostics", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("true", "warning", true)]
+    [InlineData("false", "warning", false)]
+    [InlineData("true", "none", false)]
+    public async Task GIVEN_EditorConfigOptions_WHEN_CollectingProjectAnalyzerDiagnostics_THEN_ShouldRespectOptionAndSeverity(
+        string enabled,
+        string severity,
+        bool expected)
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class Sample { }");
+        var analyzer = new ConfigurableAnalyzer();
+        var analyzerReference = CreateAnalyzerReference(analyzer);
+        var project = roslyn.Document.Project;
+        var analyzerConfigId = DocumentId.CreateNewId(project.Id, ".editorconfig");
+        var editorConfig = $"""
+            root = true
+
+            [*.cs]
+            workbench_test_enabled = {enabled}
+            dotnet_diagnostic.CONFIG001.severity = {severity}
+            """;
+
+        var updatedSolution = roslyn.Solution
+            .AddAnalyzerReference(project.Id, analyzerReference.Object)
+            .AddAnalyzerConfigDocument(
+                analyzerConfigId,
+                ".editorconfig",
+                SourceText.From(editorConfig),
+                filePath: "/workspace/Project/.editorconfig");
+
+        roslyn.Workspace.TryApplyChanges(updatedSolution).Should().BeTrue();
+        var document = roslyn.Workspace.CurrentSolution.GetDocument(roslyn.Document.Id)
+            ?? throw new InvalidOperationException("The updated test document could not be resolved.");
+
+        var result = await _target.GetDocumentDiagnosticsAsync(
+            document,
+            ["CONFIG001"],
+            TestContext.Current.CancellationToken);
+
+        if (expected)
+        {
+            result.Should().ContainSingle(item => item.Id == "CONFIG001");
+        }
+        else
+        {
+            result.Should().BeEmpty();
+        }
     }
 
     [Fact]
@@ -544,4 +763,32 @@ public sealed class CodeActionDiagnosticServiceTests
             Microsoft.CodeAnalysis.DiagnosticSeverity.Warning,
             isEnabledByDefault: true);
     }
+
+#pragma warning disable RS1001 // The configurable analyser is supplied directly as unit-test data rather than exported.
+    private sealed class ConfigurableAnalyzer : DiagnosticAnalyzer
+    {
+        private static readonly DiagnosticDescriptor _descriptor = CreateDescriptor("CONFIG001");
+
+        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = [_descriptor];
+
+        public override void Initialize(AnalysisContext context)
+        {
+            context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
+            context.EnableConcurrentExecution();
+            context.RegisterSyntaxTreeAction(static syntaxTreeContext =>
+            {
+                var options = syntaxTreeContext.Options.AnalyzerConfigOptionsProvider.GetOptions(syntaxTreeContext.Tree);
+                if (!options.TryGetValue("workbench_test_enabled", out var enabled)
+                    || !string.Equals(enabled, "true", StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+
+                syntaxTreeContext.ReportDiagnostic(Diagnostic.Create(
+                    _descriptor,
+                    syntaxTreeContext.Tree.GetLocation(new TextSpan(0, 1))));
+            });
+        }
+    }
+#pragma warning restore RS1001
 }

@@ -5,7 +5,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 public sealed class MefCodeActionCompositionIntegrationTests
 {
     [Fact]
-    public void GIVEN_TestProviderAssembly_WHEN_ComposingCatalog_THEN_ShouldReturnTypedProvidersAndHostServices()
+    public void GIVEN_TestProviderAssembly_WHEN_ComposingProviders_THEN_ShouldReturnTypedProvidersAndHostServices()
     {
         var target = CodeActionCompositionFactory.Create(new CodeActionCompositionOptions
         {

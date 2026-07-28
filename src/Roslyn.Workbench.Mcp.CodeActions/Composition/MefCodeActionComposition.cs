@@ -39,7 +39,7 @@ internal sealed class MefCodeActionComposition : ICodeActionComposition
         Assembly[] assemblies;
         try
         {
-            assemblies = ResolveAssemblies(options);
+            assemblies = CodeActionAssemblyResolver.Resolve(options).ToArray();
         }
         catch (Exception exception)
         {
@@ -96,19 +96,6 @@ internal sealed class MefCodeActionComposition : ICodeActionComposition
         return Available(hostServices, refactorings, codeFixes);
     }
 
-    private static Assembly[] ResolveAssemblies(CodeActionCompositionOptions options)
-    {
-        var assemblies = new List<Assembly>(MefHostServices.DefaultAssemblies);
-        if (options.IncludeBuiltInAssemblies)
-        {
-            assemblies.Add(Assembly.Load("Microsoft.CodeAnalysis.Features"));
-            assemblies.Add(Assembly.Load("Microsoft.CodeAnalysis.CSharp.Features"));
-        }
-
-        assemblies.AddRange(options.AdditionalAssemblies);
-        return assemblies.Distinct(CodeActionAssemblyIdentityComparer.Instance).ToArray();
-    }
-
     private static bool IsCSharpProvider(object provider)
     {
         var type = provider.GetType();
@@ -127,33 +114,17 @@ internal sealed class MefCodeActionComposition : ICodeActionComposition
         CodeRefactoringProvider[] refactorings,
         CodeFixProvider[] codeFixes)
     {
-        return new CodeActionCompositionState
-        {
-            Status = new CodeActionCompositionStatus
-            {
-                IsAvailable = true,
-                Version = typeof(Microsoft.CodeAnalysis.Workspace).Assembly.GetName().Version?.ToString(),
-                Message = $"Composed {refactorings.Length} refactoring providers and {codeFixes.Length} code-fix providers.",
-            },
-            WorkspaceHostServices = hostServices,
-            RefactoringProviders = refactorings,
-            CodeFixProviders = codeFixes,
-        };
+        return CodeActionCompositionState.Available(
+            hostServices,
+            refactorings,
+            codeFixes,
+            typeof(Microsoft.CodeAnalysis.Workspace).Assembly.GetName().Version?.ToString(),
+            $"Composed {refactorings.Length} refactoring providers and {codeFixes.Length} code-fix providers.");
     }
 
     private static CodeActionCompositionState Unavailable(string message)
     {
-        return new CodeActionCompositionState
-        {
-            Status = new CodeActionCompositionStatus
-            {
-                IsAvailable = false,
-                Message = message,
-            },
-            WorkspaceHostServices = null,
-            RefactoringProviders = [],
-            CodeFixProviders = [],
-        };
+        return CodeActionCompositionState.Unavailable(message);
     }
 
     private static string StageFailure(string stage, Exception exception)

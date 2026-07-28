@@ -16,10 +16,7 @@ public sealed class CodeActionReferenceStagerTests
         _resolver = new Mock<ICodeActionResolver>();
         _evaluator = new Mock<ICodeActionEvaluator>();
         _context = new Mock<ICodeActionExecutionContext>();
-        _composition.SetupGet(item => item.Status).Returns(new CodeActionCompositionStatus
-        {
-            IsAvailable = true,
-        });
+        _composition.SetupGet(item => item.Status).Returns(CodeActionCompositionStatus.Available());
 
         _target = new CodeActionReferenceStager(
             _composition.Object,
@@ -33,10 +30,7 @@ public sealed class CodeActionReferenceStagerTests
     public async Task GIVEN_CodeActionsAreUnavailable_WHEN_StagingReference_THEN_ShouldRejectWithoutResolvingAction(
         bool stageCodeFix)
     {
-        _composition.SetupGet(item => item.Status).Returns(new CodeActionCompositionStatus
-        {
-            IsAvailable = false,
-        });
+        _composition.SetupGet(item => item.Status).Returns(CodeActionCompositionStatus.Unavailable("Unavailable."));
 
         CodeActionExecutionResult<WorkspaceMutationCandidate> result;
         if (stageCodeFix)

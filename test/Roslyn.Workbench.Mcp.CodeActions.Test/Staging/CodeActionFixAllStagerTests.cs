@@ -42,10 +42,7 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
             "FixAllEquivalenceKey");
 
         _discoveredAction = CreateDiscoveredAction(_roslyn.Solution);
-        _composition.SetupGet(item => item.Status).Returns(new CodeActionCompositionStatus
-        {
-            IsAvailable = true,
-        });
+        _composition.SetupGet(item => item.Status).Returns(CodeActionCompositionStatus.Available());
 
         _context.SetupGet(item => item.WorkspaceResolver).Returns(_workspaceResolver.Object);
         _context.SetupGet(item => item.CurrentSolution).Returns(_roslyn.Solution);
@@ -127,10 +124,7 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
     [Fact]
     public async Task GIVEN_CodeActionsAreUnavailable_WHEN_StagingFixAll_THEN_ShouldRejectWithoutResolvingAction()
     {
-        _composition.SetupGet(item => item.Status).Returns(new CodeActionCompositionStatus
-        {
-            IsAvailable = false,
-        });
+        _composition.SetupGet(item => item.Status).Returns(CodeActionCompositionStatus.Unavailable("Unavailable."));
 
         var result = await _target.StageFixAllAsync(
             CreateRequest(ScopeKind.Solution),

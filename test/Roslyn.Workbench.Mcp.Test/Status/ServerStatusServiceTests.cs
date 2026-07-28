@@ -21,10 +21,7 @@ public sealed class ServerStatusServiceTests
 
         _codeActionComposition
             .SetupGet(item => item.Status)
-            .Returns(new CodeActionCompositionStatus
-            {
-                IsAvailable = true,
-            });
+            .Returns(CodeActionCompositionStatus.Available());
     }
 
     [Fact]
@@ -90,11 +87,7 @@ public sealed class ServerStatusServiceTests
     {
         _codeActionComposition
             .SetupGet(item => item.Status)
-            .Returns(new CodeActionCompositionStatus
-            {
-                IsAvailable = false,
-                Message = "Code-action composition is unavailable.",
-            });
+            .Returns(CodeActionCompositionStatus.Unavailable("Code-action composition is unavailable."));
 
         var target = CreateTarget(new StartupOptions(), new PluginCatalogSnapshot());
 

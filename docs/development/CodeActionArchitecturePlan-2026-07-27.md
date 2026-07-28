@@ -493,13 +493,13 @@ This batch is the dependency for diagnostic activation and generic discovery.
 
 Completion checklist:
 
-- [ ] Compiler, project-supplied and Roslyn built-in diagnostic sources are implemented behind one coherent discovery boundary.
-- [ ] The built-in diagnostic-to-analyser index is immutable, process-cached and derived from the pinned runtime except for any explicitly justified compatibility mapping.
-- [ ] Document and selection diagnostic collection use the agreed scope and stable de-duplication identity.
-- [ ] `.editorconfig` options, severity, cancellation and individual optional-analyser failures have verified behaviour.
-- [ ] Real-composition tests prove at least one compiler, project-analyser and built-in `IDE` diagnostic reaches its Code Fix provider.
-- [ ] Activation and diagnostic-collection measurements are recorded separately from provider discovery.
-- [ ] The affected build, non-acceptance tests, formatting and `latest-all` analyser validation are green.
+- [x] Compiler, project-supplied and Roslyn built-in diagnostic sources are implemented behind one coherent discovery boundary.
+- [x] The built-in diagnostic-to-analyser index is immutable, process-cached and derived from the pinned runtime except for any explicitly justified compatibility mapping.
+- [x] Document and selection diagnostic collection use the agreed scope and stable de-duplication identity.
+- [x] `.editorconfig` options, severity, cancellation and individual optional-analyser failures have verified behaviour.
+- [x] Real-composition tests prove at least one compiler, project-analyser and built-in `IDE` diagnostic reaches its Code Fix provider.
+- [x] Activation and diagnostic-collection measurements are recorded separately from provider discovery.
+- [x] The affected build, non-acceptance tests, formatting and `latest-all` analyser validation are green.
 
 This batch must complete before the large ordinary Code Fix inventory can become visible.
 
@@ -580,7 +580,7 @@ Completion checklist:
 3. Move any approved Workbench-owned operation to Plugins.Core.
 4. Remove `stage-code-fix`, `stage-fix-all` and `describe-code-action`.
 5. Remove the positive ledger, descriptor registry, execution-mode metadata and unused request contracts.
-6. Remove obsolete selection, location, scoped and Fix All stagers after their final consumers are gone.
+6. Remove obsolete selection, location, scoped and Fix All stagers after their final consumers are gone. Remove their `AnalyzerTypeName` compatibility path, reduce `ICodeActionAnalyzerActivator` to exact `Type` activation for the built-in analyser index and remove the direct activator dependency from `CodeActionDiagnosticService`.
 7. Reduce Host registration, reserved-name and status logic to the three orchestration tools and Code Action component status.
 8. Verify no ordinary provider requires a dedicated MCP registration.
 
@@ -590,7 +590,7 @@ Completion checklist:
 - [ ] Every approved Workbench-owned transformation has moved to Plugins.Core with an appropriate contract, or has an explicit deferred decision.
 - [ ] `describe-code-action`, `stage-code-fix`, `stage-fix-all` and all ordinary dedicated replay tools are absent from Host registration and published metadata.
 - [ ] The positive ledger, descriptor registry, execution-mode metadata and unused dedicated request contracts have been removed.
-- [ ] Selection, location, scoped and Fix All stagers have been removed after their final consumers were migrated.
+- [ ] Selection, location, scoped and Fix All stagers and their `AnalyzerTypeName` compatibility path have been removed after their final consumers were migrated; `ICodeActionAnalyzerActivator` exposes only exact `Type` activation and `CodeActionDiagnosticService` no longer depends on it directly.
 - [ ] Host reserved-name, collision, status and DI composition logic reflects exactly the three orchestration tools.
 - [ ] Source and test searches find no dead dedicated registrations or ordinary provider requiring a dedicated MCP tool.
 - [ ] The affected build, non-acceptance tests, formatting and `latest-all` analyser validation are green.

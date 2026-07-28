@@ -2,6 +2,12 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Discovery;
 
 internal interface ICodeActionDiagnosticService
 {
+    Task<CodeActionDiagnosticCollection> CollectDocumentDiagnosticsAsync(
+        Document document,
+        TextSpan? span,
+        IReadOnlyList<string>? diagnosticIds,
+        CancellationToken cancellationToken);
+
     Task<IReadOnlyList<Diagnostic>> GetDocumentDiagnosticsAsync(
         Document document,
         TextSpan span,

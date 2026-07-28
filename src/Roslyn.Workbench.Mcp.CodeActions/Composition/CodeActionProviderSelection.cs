@@ -10,19 +10,27 @@ internal sealed class CodeActionProviderSelection : ICodeActionProviderSelection
         ICodeActionComposition composition,
         ICodeActionPolicy policy)
     {
-        RefactoringProviders = SelectEligibleProviders(composition.RefactoringProviders, policy);
-        CodeFixProviders = SelectEligibleProviders(composition.CodeFixProviders, policy);
+        RefactoringProviders = SelectEligibleProviders(
+            composition.RefactoringProviders,
+            policy,
+            CodeActionProviderIdentity.GetId);
+
+        CodeFixProviders = SelectEligibleProviders(
+            composition.CodeFixProviders,
+            policy,
+            CodeActionProviderIdentity.GetId);
     }
 
     private static List<TProvider> SelectEligibleProviders<TProvider>(
         IReadOnlyList<TProvider> providers,
-        ICodeActionPolicy policy)
+        ICodeActionPolicy policy,
+        Func<TProvider, string> getProviderId)
         where TProvider : class
     {
         var eligibleProviders = new List<TProvider>(providers.Count);
         foreach (var provider in providers)
         {
-            var providerId = provider.GetType().ToString();
+            var providerId = getProviderId(provider);
             var decision = policy.EvaluateProvider(providerId);
             if (decision.IsAllowed)
             {

@@ -22,10 +22,7 @@ public sealed class LocationCodeFixStagerTests
         _diagnosticService = new Mock<ICodeActionDiagnosticService>();
         _context = new Mock<ICodeActionExecutionContext>();
         _workspaceResolver = new Mock<IWorkspaceResolver>();
-        _composition.SetupGet(item => item.Status).Returns(new CodeActionCompositionStatus
-        {
-            IsAvailable = true,
-        });
+        _composition.SetupGet(item => item.Status).Returns(CodeActionCompositionStatus.Available());
 
         _workspaceResolver
             .Setup(item => item.ValidateSnapshot(It.IsAny<SnapshotPrecondition?>()))
@@ -62,10 +59,7 @@ public sealed class LocationCodeFixStagerTests
     [Fact]
     public async Task GIVEN_CodeActionsAreUnavailable_WHEN_StagingLocationFix_THEN_ShouldRejectWithoutResolvingLocation()
     {
-        _composition.SetupGet(item => item.Status).Returns(new CodeActionCompositionStatus
-        {
-            IsAvailable = false,
-        });
+        _composition.SetupGet(item => item.Status).Returns(CodeActionCompositionStatus.Unavailable("Unavailable."));
 
         var result = await _target.StageLocationCodeFixAsync(
             new LocationCodeFixRequest

@@ -14,7 +14,7 @@ public sealed class BuiltInCodeActionInventoryTests
         target.Status.IsAvailable.Should().BeTrue(target.Status.Message);
 
         var composedRefactoringProviderIds = target.RefactoringProviders
-            .Select(static provider => provider.GetType().ToString())
+            .Select(CodeActionProviderIdentity.GetId)
             .OrderBy(static providerId => providerId, StringComparer.Ordinal)
             .ToArray();
 
@@ -35,7 +35,7 @@ public sealed class BuiltInCodeActionInventoryTests
         AssertMatchingInventory(composedRefactoringProviderIds, trackedRefactoringProviderIds);
 
         var composedCodeFixProviderIds = target.CodeFixProviders
-            .Select(static provider => provider.GetType().ToString())
+            .Select(CodeActionProviderIdentity.GetId)
             .OrderBy(static providerId => providerId, StringComparer.Ordinal)
             .ToArray();
 
@@ -118,7 +118,7 @@ public sealed class BuiltInCodeActionInventoryTests
         excludedCount.Should().Be(2);
 
         var providersById = composedProviders.ToDictionary(
-            static provider => provider.GetType().ToString(),
+            CodeActionProviderIdentity.GetId,
             StringComparer.Ordinal);
 
         foreach (var assessment in assessments)

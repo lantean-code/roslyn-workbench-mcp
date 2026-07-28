@@ -11,10 +11,7 @@ public sealed class DescribeCodeActionToolTests
         var resolver = new Mock<ICodeActionResolver>();
         var infoFactory = new Mock<ICodeActionInfoFactory>();
         var context = new Mock<ICodeActionQueryContext>();
-        composition.SetupGet(item => item.Status).Returns(new CodeActionCompositionStatus
-        {
-            IsAvailable = false,
-        });
+        composition.SetupGet(item => item.Status).Returns(CodeActionCompositionStatus.Unavailable("Unavailable."));
 
         var target = new DescribeCodeActionTool(composition.Object, resolver.Object, infoFactory.Object);
 
@@ -49,10 +46,7 @@ public sealed class DescribeCodeActionToolTests
             Message = "Message",
         });
 
-        composition.SetupGet(item => item.Status).Returns(new CodeActionCompositionStatus
-        {
-            IsAvailable = true,
-        });
+        composition.SetupGet(item => item.Status).Returns(CodeActionCompositionStatus.Available());
 
         resolver
             .Setup(item => item.ResolveActionAsync<DescribeCodeActionData>(
@@ -114,10 +108,7 @@ public sealed class DescribeCodeActionToolTests
             Location = SelectorTestFactory.CreateResolvedLocation("Code.cs", 1, 2),
         };
 
-        composition.SetupGet(item => item.Status).Returns(new CodeActionCompositionStatus
-        {
-            IsAvailable = true,
-        });
+        composition.SetupGet(item => item.Status).Returns(CodeActionCompositionStatus.Available());
 
         workspaceResolver
             .Setup(item => item.CreateResolvedLocation(It.IsAny<Location>()))
@@ -183,10 +174,7 @@ public sealed class DescribeCodeActionToolTests
             new CodeActionReplayRecipe(),
             new DateTimeOffset(2000, 1, 1, 0, 5, 0, TimeSpan.Zero));
 
-        composition.SetupGet(item => item.Status).Returns(new CodeActionCompositionStatus
-        {
-            IsAvailable = true,
-        });
+        composition.SetupGet(item => item.Status).Returns(CodeActionCompositionStatus.Available());
 
         context.SetupGet(item => item.WorkspaceResolver).Returns(workspaceResolver.Object);
         resolver

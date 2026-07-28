@@ -24,6 +24,24 @@ public sealed class CodeActionAnalyzerActivatorTests
     }
 
     [Fact]
+    public void GIVEN_AnalyzerType_WHEN_ActivatingByType_THEN_ShouldCreateAnalyzer()
+    {
+        var result = _target.Activate(typeof(AvailableAnalyzer));
+
+        result.Status.Should().Be(CodeActionAnalyzerActivationStatus.Available);
+        result.Analyzer.Should().BeOfType<AvailableAnalyzer>();
+    }
+
+    [Fact]
+    public void GIVEN_NonAnalyzerType_WHEN_ActivatingByType_THEN_ShouldReportIncompatibleType()
+    {
+        var result = _target.Activate(typeof(CodeActionAnalyzerActivatorTests));
+
+        result.Status.Should().Be(CodeActionAnalyzerActivationStatus.IncompatibleType);
+        result.Analyzer.Should().BeNull();
+    }
+
+    [Fact]
     public void GIVEN_LoadedNonAnalyzerType_WHEN_Activating_THEN_ShouldReportIncompatibleType()
     {
         var result = _target.Activate(GetTypeName(typeof(CodeActionAnalyzerActivatorTests)));
@@ -67,7 +85,7 @@ public sealed class CodeActionAnalyzerActivatorTests
     }
 
 #pragma warning disable CA1812 // Analyzer fixtures are activated or deliberately rejected through reflection.
-#pragma warning disable RS1001
+#pragma warning disable RS1001 // Private analyser fixtures are resolved explicitly by type name rather than exported.
     private sealed class AvailableAnalyzer : DiagnosticAnalyzer
     {
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = [];

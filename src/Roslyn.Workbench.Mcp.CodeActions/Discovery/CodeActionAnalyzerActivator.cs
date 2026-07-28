@@ -17,6 +17,16 @@ internal sealed class CodeActionAnalyzerActivator : ICodeActionAnalyzerActivator
         return CreateAnalyzer(typeResolution.AnalyzerType);
     }
 
+    public CodeActionAnalyzerActivationResult Activate(Type analyzerType)
+    {
+        if (!typeof(DiagnosticAnalyzer).IsAssignableFrom(analyzerType))
+        {
+            return CodeActionAnalyzerActivationResult.IncompatibleType();
+        }
+
+        return CreateAnalyzer(analyzerType);
+    }
+
     private static AnalyzerTypeResolution ResolveAnalyzerType(string analyzerTypeName)
     {
         var inspectionFailed = false;

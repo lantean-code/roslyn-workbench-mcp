@@ -8,7 +8,9 @@ internal interface ICodeActionDiscoveryService
 
     CodeFixProvider? FindCodeFixProvider(string providerId);
 
-    string GetProviderId(object provider);
+    string GetProviderId(CodeFixProvider provider);
+
+    string GetProviderId(CodeRefactoringProvider provider);
 
     ValueTask<IReadOnlyList<DiscoveredCodeAction>> DiscoverRefactoringsAsync(
         CodeRefactoringProvider provider,

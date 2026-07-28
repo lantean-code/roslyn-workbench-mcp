@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
+using Roslyn.Workbench.Mcp.CodeActions.Discovery;
 using Roslyn.Workbench.Mcp.Workspace.Caching;
 
 namespace Roslyn.Workbench.Mcp.Test;
@@ -79,6 +80,9 @@ public sealed class HostCompositionIntegrationTests
         var codeActionProviderSelectionRegistration = builder.Services.Single(
             static descriptor => descriptor.ServiceType == typeof(ICodeActionProviderSelection));
 
+        var builtInAnalyzerIndexRegistration = builder.Services.Single(
+            static descriptor => descriptor.ServiceType == typeof(ICodeActionBuiltInAnalyzerIndex));
+
         var workspaceFactoryRegistration = builder.Services.Single(
             static descriptor => descriptor.ServiceType == typeof(IMsBuildWorkspaceFactory));
 
@@ -106,6 +110,7 @@ public sealed class HostCompositionIntegrationTests
         host.Services.GetRequiredService<ICodeActionComposition>().Should().BeOfType<MefCodeActionComposition>();
         host.Services.GetRequiredService<ICodeActionPolicy>().Should().BeOfType<CodeActionPolicy>();
         host.Services.GetRequiredService<ICodeActionProviderSelection>().Should().BeOfType<CodeActionProviderSelection>();
+        host.Services.GetRequiredService<ICodeActionBuiltInAnalyzerIndex>().Should().BeOfType<CodeActionBuiltInAnalyzerIndex>();
         host.Services.GetRequiredService<IMsBuildWorkspaceFactory>().Should().BeOfType<HostConfiguredMsBuildWorkspaceFactory>();
         host.Services.GetRequiredService<IToolExecutionContextFactory>().Should().BeOfType<PluginExecutionContextFactory>();
         host.Services.GetRequiredService<ICodeActionExecutionContextFactory>().Should().BeOfType<CodeActionExecutionContextFactory>();
@@ -114,6 +119,7 @@ public sealed class HostCompositionIntegrationTests
         codeActionCompositionRegistration.ImplementationType.Should().Be<MefCodeActionComposition>();
         codeActionPolicyRegistration.ImplementationType.Should().Be<CodeActionPolicy>();
         codeActionProviderSelectionRegistration.ImplementationType.Should().Be<CodeActionProviderSelection>();
+        builtInAnalyzerIndexRegistration.ImplementationType.Should().Be<CodeActionBuiltInAnalyzerIndex>();
         workspaceFactoryRegistration.ImplementationType.Should().Be<HostConfiguredMsBuildWorkspaceFactory>();
 
         mcpTools.Should().HaveCount(pluginCatalogSnapshot.Tools.Count + codeActionCatalogSnapshot.Tools.Count + 11);

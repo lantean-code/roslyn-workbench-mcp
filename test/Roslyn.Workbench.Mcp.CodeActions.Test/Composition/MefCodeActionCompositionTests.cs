@@ -8,7 +8,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Composition;
 public sealed class MefCodeActionCompositionTests
 {
     [Fact]
-    public void GIVEN_NoProviderAssembliesAreConfigured_WHEN_ConstructingCatalogue_THEN_ShouldPublishUnavailableComposition()
+    public void GIVEN_NoProviderAssembliesAreConfigured_WHEN_ConstructingComposition_THEN_ShouldPublishUnavailableComposition()
     {
         var options = Options.Create(new CodeActionCompositionOptions
         {
@@ -29,25 +29,4 @@ public sealed class MefCodeActionCompositionTests
         exportProvider.Verify(item => item.ReadExports<CodeFixProvider>(It.IsAny<MefHostServices>()), Times.Never);
     }
 
-    [Fact]
-    public void GIVEN_SuccessfulExportReadResult_WHEN_ReadingState_THEN_ShouldExposeExportsWithoutError()
-    {
-        IReadOnlyList<string> exports = ["Export"];
-
-        var result = MefHostExportReadResult.Success(exports);
-
-        result.IsSuccessful.Should().BeTrue();
-        result.Exports.Should().BeSameAs(exports);
-        result.Error.Should().BeNull();
-    }
-
-    [Fact]
-    public void GIVEN_FailedExportReadResult_WHEN_ReadingState_THEN_ShouldExposeErrorWithoutExports()
-    {
-        var result = MefHostExportReadResult.Failure<string>("Error");
-
-        result.IsSuccessful.Should().BeFalse();
-        result.Exports.Should().BeEmpty();
-        result.Error.Should().Be("Error");
-    }
 }

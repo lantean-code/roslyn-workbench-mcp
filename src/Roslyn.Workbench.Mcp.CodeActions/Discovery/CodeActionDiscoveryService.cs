@@ -23,7 +23,7 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         var matchingProviders = new List<CodeRefactoringProvider>();
         foreach (var provider in _providerSelection.RefactoringProviders)
         {
-            if (IsMatchingDiscoverableProvider(provider, providerId))
+            if (IsMatchingDiscoverableProvider(GetProviderId(provider), providerId))
             {
                 matchingProviders.Add(provider);
             }
@@ -38,7 +38,7 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         var matchingProviders = new List<CodeFixProvider>();
         foreach (var provider in _providerSelection.CodeFixProviders)
         {
-            if (IsMatchingDiscoverableProvider(provider, providerId))
+            if (IsMatchingDiscoverableProvider(GetProviderId(provider), providerId))
             {
                 matchingProviders.Add(provider);
             }
@@ -61,9 +61,14 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         return null;
     }
 
-    public string GetProviderId(object provider)
+    public string GetProviderId(CodeFixProvider provider)
     {
-        return provider.GetType().ToString();
+        return CodeActionProviderIdentity.GetId(provider);
+    }
+
+    public string GetProviderId(CodeRefactoringProvider provider)
+    {
+        return CodeActionProviderIdentity.GetId(provider);
     }
 
     public async ValueTask<IReadOnlyList<DiscoveredCodeAction>> DiscoverRefactoringsAsync(
@@ -257,9 +262,8 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         });
     }
 
-    private bool IsMatchingDiscoverableProvider(object provider, string? requestedProviderId)
+    private bool IsMatchingDiscoverableProvider(string providerId, string? requestedProviderId)
     {
-        var providerId = GetProviderId(provider);
         if (!string.IsNullOrWhiteSpace(requestedProviderId)
             && !string.Equals(providerId, requestedProviderId, StringComparison.Ordinal))
         {
@@ -289,12 +293,16 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
 
     private static int CompareProviderIds(CodeRefactoringProvider left, CodeRefactoringProvider right)
     {
-        return StringComparer.Ordinal.Compare(left.GetType().ToString(), right.GetType().ToString());
+        return StringComparer.Ordinal.Compare(
+            CodeActionProviderIdentity.GetId(left),
+            CodeActionProviderIdentity.GetId(right));
     }
 
     private static int CompareProviderIds(CodeFixProvider left, CodeFixProvider right)
     {
-        return StringComparer.Ordinal.Compare(left.GetType().ToString(), right.GetType().ToString());
+        return StringComparer.Ordinal.Compare(
+            CodeActionProviderIdentity.GetId(left),
+            CodeActionProviderIdentity.GetId(right));
     }
 
     private static bool IsFixableDiagnostic(ImmutableArray<string> fixableDiagnosticIds, string diagnosticId)

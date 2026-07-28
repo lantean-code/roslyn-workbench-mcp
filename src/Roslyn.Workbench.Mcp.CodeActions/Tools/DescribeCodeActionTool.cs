@@ -4,16 +4,16 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Tools;
 
 internal sealed class DescribeCodeActionTool : CodeActionQueryToolHandler<DescribeCodeActionRequest, DescribeCodeActionData>
 {
-    private readonly ICodeActionProviderCatalog _providerCatalog;
+    private readonly ICodeActionComposition _composition;
     private readonly ICodeActionResolver _resolver;
     private readonly ICodeActionInfoFactory _infoFactory;
 
     public DescribeCodeActionTool(
-        ICodeActionProviderCatalog providerCatalog,
+        ICodeActionComposition composition,
         ICodeActionResolver resolver,
         ICodeActionInfoFactory infoFactory)
     {
-        _providerCatalog = providerCatalog;
+        _composition = composition;
         _resolver = resolver;
         _infoFactory = infoFactory;
     }
@@ -23,7 +23,7 @@ internal sealed class DescribeCodeActionTool : CodeActionQueryToolHandler<Descri
         ICodeActionQueryContext context,
         CancellationToken cancellationToken)
     {
-        if (!_providerCatalog.Status.IsAvailable)
+        if (!_composition.Status.IsAvailable)
         {
             return CodeActionsUnavailable<DescribeCodeActionData>();
         }

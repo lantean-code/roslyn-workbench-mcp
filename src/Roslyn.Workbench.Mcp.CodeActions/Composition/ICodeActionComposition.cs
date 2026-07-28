@@ -1,8 +1,8 @@
 namespace Roslyn.Workbench.Mcp.CodeActions.Composition;
 
-internal interface ICodeActionProviderCatalog
+internal interface ICodeActionComposition
 {
-    CodeActionProviderCatalogStatus Status { get; }
+    CodeActionCompositionStatus Status { get; }
 
     HostServices? WorkspaceHostServices { get; }
 

@@ -70,7 +70,7 @@ All four Host adapter families now have focused unit evidence without moving MCP
 | Mutation staging | `MutationPipelineIntegrationTests` | Rename, formatting, using changes, preview and transaction staging |
 | Controlled code actions | `ControlledProviderWorkflowIntegrationTests` | List, describe, stage, fix-all, token and snapshot workflows |
 | Built-in code actions | `BuiltInCodeActionStagingIntegrationTests` | Representative built-in provider staging |
-| Code-action composition | `MefCodeActionProviderCatalogIntegrationTests` | Provider catalogue composition and discovery |
+| Code-action composition | `MefCodeActionCompositionIntegrationTests` | Provider composition and discovery |
 | Host composition | `HostCompositionIntegrationTests` | Configuration projection, dependency injection and MCP tool registration |
 | Plugin package discovery | `PluginPackageDiscoveryIntegrationTests`, `PluginAssemblyMetadataReaderIntegrationTests`, `PluginAssemblyLoadContextIntegrationTests`, `MefPluginComposerIntegrationTests` | Fixture assembly loading, PE metadata, private dependency routing, MEF composition, collisions and failure isolation |
 | MCP protocol and published workflows | `PublishedHostProtocolIntegrationTests`, `WorkspaceWorkflowIntegrationTests`, `ExternalPluginWorkflowIntegrationTests`, `CodeActionWorkflowIntegrationTests` | Real stdio initialisation, catalogue/schema publication, query, plugin mutation, Code Action mutation and external plugin invocation |

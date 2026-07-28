@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Test.Composition;
 
-public sealed class MefCodeActionProviderCatalogTests
+public sealed class MefCodeActionCompositionTests
 {
     [Fact]
     public void GIVEN_NoProviderAssembliesAreConfigured_WHEN_ConstructingCatalogue_THEN_ShouldPublishUnavailableComposition()
@@ -17,7 +17,7 @@ public sealed class MefCodeActionProviderCatalogTests
 
         var exportProvider = new Mock<IMefHostExportProviderCompatibilityAdapter>();
 
-        var target = new MefCodeActionProviderCatalog(options, exportProvider.Object);
+        var target = new MefCodeActionComposition(options, exportProvider.Object);
 
         target.Status.IsAvailable.Should().BeFalse();
         target.Status.Version.Should().BeNull();

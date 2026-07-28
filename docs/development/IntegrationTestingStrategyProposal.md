@@ -296,7 +296,7 @@ Read-only Plugins.Core scenarios should share one immutable opened fixture at co
 
 | Current area | Decision | Required evidence after migration |
 | --- | --- | --- |
-| MEF provider catalogue | keep and share | one composed catalogue per fixture lifetime with deterministic disposal |
+| MEF provider composition | keep and share | one composition per fixture lifetime with deterministic disposal |
 | controlled provider workflow | consolidate | list/describe/stage and fix-all through real Roslyn services; token tamper/expiry/staleness remain unit tests |
 | built-in staging | keep one representative | proof that a supported bundled provider is discoverable and its proposal reaches Workspace staging |
 
@@ -318,7 +318,7 @@ Split independent provider families into separate classes after fixture isolatio
 
 - retain supported built-in provider compatibility and replay-family cases;
 - move repository source-policy scans to fast governance coverage;
-- share an immutable provider catalogue and template fixture where safe;
+- share an immutable provider composition and template fixture where safe;
 - split provider families into independently schedulable classes or CI shards;
 - cap audit parallelism based on measured memory rather than allowing unbounded Roslyn compilations.
 

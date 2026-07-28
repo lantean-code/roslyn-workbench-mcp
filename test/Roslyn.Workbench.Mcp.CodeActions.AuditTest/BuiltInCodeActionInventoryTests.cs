@@ -6,7 +6,7 @@ public sealed class BuiltInCodeActionInventoryTests
     [Fact]
     public void GIVEN_PinnedBuiltInComposition_WHEN_ComparingProvidersWithLedger_THEN_ShouldHaveExplicitDispositionForEveryProvider()
     {
-        var target = CodeActionProviderCatalogFactory.Create(new CodeActionCompositionOptions
+        var target = CodeActionCompositionFactory.Create(new CodeActionCompositionOptions
         {
             IncludeBuiltInAssemblies = true,
         });

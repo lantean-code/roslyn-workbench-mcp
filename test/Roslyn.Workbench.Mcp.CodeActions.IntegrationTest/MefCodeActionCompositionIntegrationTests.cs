@@ -2,12 +2,12 @@ using Roslyn.Workbench.Mcp.CodeActions.Composition;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 
-public sealed class MefCodeActionProviderCatalogIntegrationTests
+public sealed class MefCodeActionCompositionIntegrationTests
 {
     [Fact]
     public void GIVEN_TestProviderAssembly_WHEN_ComposingCatalog_THEN_ShouldReturnTypedProvidersAndHostServices()
     {
-        var target = CodeActionProviderCatalogFactory.Create(new CodeActionCompositionOptions
+        var target = CodeActionCompositionFactory.Create(new CodeActionCompositionOptions
         {
             IncludeBuiltInAssemblies = false,
             AdditionalAssemblies =

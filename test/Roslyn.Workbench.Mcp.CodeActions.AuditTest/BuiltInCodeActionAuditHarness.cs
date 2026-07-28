@@ -31,7 +31,7 @@ internal static class BuiltInCodeActionAuditHarness
     public static async Task<BuiltInCodeActionAuditProbe> ProbeAsync(BuiltInCodeActionAuditCase auditCase)
     {
         using var fixture = auditCase.FixtureFactory();
-        var providerCatalog = CodeActionProviderCatalogFactory.Create(new CodeActionCompositionOptions
+        var composition = CodeActionCompositionFactory.Create(new CodeActionCompositionOptions
         {
             IncludeBuiltInAssemblies = true,
         });
@@ -41,7 +41,7 @@ internal static class BuiltInCodeActionAuditHarness
             {
                 Boundary = ComponentWorkspaceBoundary.CodeActions,
             },
-            providerCatalog);
+            composition);
 
         var session = new CodeActionComponentTestSession(coordinator);
         var openResult = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
@@ -84,7 +84,7 @@ internal static class BuiltInCodeActionAuditHarness
         {
             codeFixDiagnostics = await GetDocumentDiagnosticsAsync(document, resolution.Value.SourceSpan, TestContext.Current.CancellationToken);
 
-            var provider = providerCatalog.CodeFixProviders.Single(
+            var provider = composition.CodeFixProviders.Single(
                 candidate => string.Equals(GetProviderId(candidate), auditCase.ProviderId, StringComparison.Ordinal));
 
             discovered = await DiscoverCodeFixesAsync(
@@ -95,7 +95,7 @@ internal static class BuiltInCodeActionAuditHarness
         }
         else
         {
-            var provider = providerCatalog.RefactoringProviders.Single(
+            var provider = composition.RefactoringProviders.Single(
                 candidate => string.Equals(GetProviderId(candidate), auditCase.ProviderId, StringComparison.Ordinal));
 
             discovered = await DiscoverRefactoringsAsync(

@@ -4,21 +4,24 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Discovery;
 
 internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
 {
-    private readonly ICodeActionProviderCatalog _providerCatalog;
+    private readonly ICodeActionProviderSelection _providerSelection;
     private readonly ICodeActionDescriptorRegistry _descriptorRegistry;
+    private readonly ICodeActionPolicy _policy;
 
     public CodeActionDiscoveryService(
-        ICodeActionProviderCatalog providerCatalog,
-        ICodeActionDescriptorRegistry descriptorRegistry)
+        ICodeActionProviderSelection providerSelection,
+        ICodeActionDescriptorRegistry descriptorRegistry,
+        ICodeActionPolicy policy)
     {
-        _providerCatalog = providerCatalog;
+        _providerSelection = providerSelection;
         _descriptorRegistry = descriptorRegistry;
+        _policy = policy;
     }
 
     public IReadOnlyList<CodeRefactoringProvider> GetMatchingRefactoringProviders(string? providerId)
     {
         var matchingProviders = new List<CodeRefactoringProvider>();
-        foreach (var provider in _providerCatalog.RefactoringProviders)
+        foreach (var provider in _providerSelection.RefactoringProviders)
         {
             if (IsMatchingDiscoverableProvider(provider, providerId))
             {
@@ -33,7 +36,7 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
     public IReadOnlyList<CodeFixProvider> GetMatchingCodeFixProviders(string? providerId)
     {
         var matchingProviders = new List<CodeFixProvider>();
-        foreach (var provider in _providerCatalog.CodeFixProviders)
+        foreach (var provider in _providerSelection.CodeFixProviders)
         {
             if (IsMatchingDiscoverableProvider(provider, providerId))
             {
@@ -47,7 +50,7 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
 
     public CodeFixProvider? FindCodeFixProvider(string providerId)
     {
-        foreach (var provider in _providerCatalog.CodeFixProviders)
+        foreach (var provider in _providerSelection.CodeFixProviders)
         {
             if (string.Equals(GetProviderId(provider), providerId, StringComparison.Ordinal))
             {
@@ -70,6 +73,12 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         CancellationToken cancellationToken)
     {
         var providerId = GetProviderId(provider);
+        var policyDecision = _policy.EvaluateProvider(providerId);
+        if (!policyDecision.IsAllowed)
+        {
+            return [];
+        }
+
         var capability = _descriptorRegistry.GetProviderCapability(providerId);
         if (!capability.ShouldDiscover)
         {
@@ -90,6 +99,12 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         CancellationToken cancellationToken)
     {
         var providerId = GetProviderId(provider);
+        var policyDecision = _policy.EvaluateProvider(providerId);
+        if (!policyDecision.IsAllowed)
+        {
+            return [];
+        }
+
         var capability = _descriptorRegistry.GetProviderCapability(providerId);
         if (!capability.ShouldDiscover)
         {
@@ -213,6 +228,12 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
                 path.RemoveAt(path.Count - 1);
             }
 
+            return;
+        }
+
+        var policyDecision = _policy.EvaluateAction(providerId, action);
+        if (!policyDecision.IsAllowed)
+        {
             return;
         }
 

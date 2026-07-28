@@ -7,7 +7,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Tools;
 
 public sealed class ListCodeActionsToolTests
 {
-    private readonly Mock<ICodeActionProviderCatalog> _providerCatalog;
+    private readonly Mock<ICodeActionComposition> _composition;
     private readonly Mock<ICodeActionDiscoveryService> _discoveryService;
     private readonly Mock<ICodeActionDiagnosticService> _diagnosticService;
     private readonly Mock<ICodeActionInfoFactory> _infoFactory;
@@ -17,13 +17,13 @@ public sealed class ListCodeActionsToolTests
 
     public ListCodeActionsToolTests()
     {
-        _providerCatalog = new Mock<ICodeActionProviderCatalog>();
+        _composition = new Mock<ICodeActionComposition>();
         _discoveryService = new Mock<ICodeActionDiscoveryService>();
         _diagnosticService = new Mock<ICodeActionDiagnosticService>();
         _infoFactory = new Mock<ICodeActionInfoFactory>();
         _context = new Mock<ICodeActionQueryContext>();
         _workspaceResolver = new Mock<IWorkspaceResolver>();
-        _providerCatalog.SetupGet(item => item.Status).Returns(new CodeActionProviderCatalogStatus
+        _composition.SetupGet(item => item.Status).Returns(new CodeActionCompositionStatus
         {
             IsAvailable = true,
         });
@@ -38,7 +38,7 @@ public sealed class ListCodeActionsToolTests
 
         _context.SetupGet(item => item.WorkspaceResolver).Returns(_workspaceResolver.Object);
         _target = new ListCodeActionsTool(
-            _providerCatalog.Object,
+            _composition.Object,
             _discoveryService.Object,
             _diagnosticService.Object,
             _infoFactory.Object,
@@ -48,7 +48,7 @@ public sealed class ListCodeActionsToolTests
     [Fact]
     public async Task GIVEN_CodeActionsAreUnavailable_WHEN_Executing_THEN_ShouldRejectBeforeValidatingSnapshot()
     {
-        _providerCatalog.SetupGet(item => item.Status).Returns(new CodeActionProviderCatalogStatus
+        _composition.SetupGet(item => item.Status).Returns(new CodeActionCompositionStatus
         {
             IsAvailable = false,
         });

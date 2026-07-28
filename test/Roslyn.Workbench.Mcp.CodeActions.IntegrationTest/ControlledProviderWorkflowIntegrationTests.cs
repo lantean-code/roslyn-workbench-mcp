@@ -4,13 +4,13 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 
 public sealed class ControlledProviderWorkflowIntegrationTests
 {
-    private static readonly ICodeActionProviderCatalog _providerCatalog = BundledComponentWorkspaceFactory.CreateTestCodeActionProviderCatalog();
+    private static readonly ICodeActionComposition _composition = BundledComponentWorkspaceFactory.CreateTestCodeActionComposition();
 
     [Fact]
-    public async Task GIVEN_ControlledProviderActions_WHEN_ListingDescribingAndStagingParameterisedAction_THEN_ShouldPreserveWorkflowContracts()
+    public async Task GIVEN_ControlledProviderHasOptionBackedActions_WHEN_ListingActions_THEN_ShouldOmitOptionBackedLeaves()
     {
         using var fixture = InspectionSampleFixture.Create();
-        await using var coordinator = BundledComponentWorkspaceFactory.CreateTestCodeActionWorkspace(_providerCatalog);
+        await using var coordinator = BundledComponentWorkspaceFactory.CreateTestCodeActionWorkspace(_composition);
         var session = new CodeActionComponentTestSession(coordinator);
         var open = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         await coordinator.StartTransactionAsync(TestContext.Current.CancellationToken);
@@ -22,32 +22,17 @@ public sealed class ControlledProviderWorkflowIntegrationTests
             ExpectedSnapshot = snapshot,
         }, TestContext.Current.CancellationToken);
 
-        var parameterisedAction = listed.Data!.Actions.Single(static action => action.Title == "Change signature test refactoring");
-        var described = await session.DescribeAsync(new DescribeCodeActionRequest
-        {
-            ActionId = parameterisedAction.ActionId,
-            ExpectedSnapshot = snapshot,
-        }, TestContext.Current.CancellationToken);
-
-        var staged = await session.StageCodeActionAsync(new StageCodeActionRequest
-        {
-            ActionId = parameterisedAction.ActionId,
-            ExpectedSnapshot = snapshot,
-        }, TestContext.Current.CancellationToken);
-
+        listed.Data!.Actions.Should().ContainSingle(static action => action.Title == "Apply test refactoring");
+        listed.Data.Actions.Should().NotContain(static action => action.Title == "Change signature test refactoring");
+        listed.Data.Actions.Should().NotContain(static action => action.Title == "Option gathering test refactoring");
         listed.Data.Actions.Should().OnlyContain(static action => action.ActionId != Guid.Empty);
-        described.Outcome.Should().Be(CodeActionExecutionOutcome.Succeeded);
-        described.Data!.Descriptor.Title.Should().Be("Change signature test refactoring");
-        described.Data.Context.Kind.Should().Be(CodeActionDescriptorContextKind.SignaturePlan);
-        staged.Outcome.Should().Be(CodeActionExecutionOutcome.Rejected);
-        staged.Error!.Code.Should().Be("ActionRequiresParameters");
     }
 
     [Fact]
     public async Task GIVEN_ControlledRefactoringAndCodeFix_WHEN_StagingBoth_THEN_ShouldAdvanceRevisionsAndPreviewChanges()
     {
         using var fixture = InspectionSampleFixture.Create();
-        await using var coordinator = BundledComponentWorkspaceFactory.CreateTestCodeActionWorkspace(_providerCatalog);
+        await using var coordinator = BundledComponentWorkspaceFactory.CreateTestCodeActionWorkspace(_composition);
         var session = new CodeActionComponentTestSession(coordinator);
         var open = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         await coordinator.StartTransactionAsync(TestContext.Current.CancellationToken);
@@ -78,7 +63,7 @@ public sealed class ControlledProviderWorkflowIntegrationTests
     public async Task GIVEN_ControlledCodeFix_WHEN_StagingSolutionFixAll_THEN_ShouldStageSolutionScope()
     {
         using var fixture = InspectionSampleFixture.Create();
-        await using var coordinator = BundledComponentWorkspaceFactory.CreateTestCodeActionWorkspace(_providerCatalog);
+        await using var coordinator = BundledComponentWorkspaceFactory.CreateTestCodeActionWorkspace(_composition);
         var session = new CodeActionComponentTestSession(coordinator);
         var open = await coordinator.OpenAsync(fixture.ProjectPath, TestContext.Current.CancellationToken);
         await coordinator.StartTransactionAsync(TestContext.Current.CancellationToken);

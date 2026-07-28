@@ -36,7 +36,7 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
 
     internal static ComponentWorkspace Create(
         ComponentWorkspaceOptions? options = null,
-        ICodeActionProviderCatalog? codeActionProviderCatalog = null,
+        ICodeActionComposition? codeActionComposition = null,
         CodeActionDescriptorOverride? descriptorOverride = null)
     {
         options ??= new ComponentWorkspaceOptions();
@@ -75,16 +75,16 @@ internal sealed class ComponentWorkspace : IAsyncDisposable
                 services.AddCodeActionServices();
             }
 
-            codeActionProviderCatalog ??= options.Boundary == ComponentWorkspaceBoundary.CodeActions
+            codeActionComposition ??= options.Boundary == ComponentWorkspaceBoundary.CodeActions
                 ? null
-                : CodeActionProviderCatalogFactory.Create(new CodeActionCompositionOptions
+                : CodeActionCompositionFactory.Create(new CodeActionCompositionOptions
                 {
                     IncludeBuiltInAssemblies = false,
                 });
 
-            if (codeActionProviderCatalog is not null)
+            if (codeActionComposition is not null)
             {
-                services.AddSingleton(codeActionProviderCatalog);
+                services.AddSingleton(codeActionComposition);
             }
 
             if (descriptorOverride is not null)

@@ -4,16 +4,16 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Staging;
 
 internal sealed class CodeActionReferenceStager : ICodeActionReferenceStager
 {
-    private readonly ICodeActionProviderCatalog _providerCatalog;
+    private readonly ICodeActionComposition _composition;
     private readonly ICodeActionResolver _resolver;
     private readonly ICodeActionEvaluator _evaluator;
 
     public CodeActionReferenceStager(
-        ICodeActionProviderCatalog providerCatalog,
+        ICodeActionComposition composition,
         ICodeActionResolver resolver,
         ICodeActionEvaluator evaluator)
     {
-        _providerCatalog = providerCatalog;
+        _composition = composition;
         _resolver = resolver;
         _evaluator = evaluator;
     }
@@ -97,7 +97,7 @@ internal sealed class CodeActionReferenceStager : ICodeActionReferenceStager
 
     private CodeActionExecutionResult<WorkspaceMutationCandidate>? RejectedIfUnavailable()
     {
-        return _providerCatalog.Status.IsAvailable
+        return _composition.Status.IsAvailable
             ? null
             : Rejected<WorkspaceMutationCandidate>("CodeActionsUnavailable", "Code-action composition is unavailable.");
     }

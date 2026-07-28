@@ -484,7 +484,7 @@ Do not count integration tests toward unit line/branch coverage.
 
 #### Keep
 
-- [x] Real MEF provider catalogue composition.
+- [x] Real MEF provider composition.
 - [x] Controlled-provider list/describe/stage workflow.
 - [x] Controlled fix-all across a real solution.
 - [x] One representative supported bundled action reaching Workspace staging.
@@ -497,7 +497,7 @@ Do not count integration tests toward unit line/branch coverage.
 
 #### Restructure
 
-- [x] Compose an immutable provider catalogue once at the narrowest safe fixture scope.
+- [x] Compose an immutable provider composition once at the narrowest safe fixture scope.
 - [x] Split independent provider families into separate classes.
 - [x] Never run mutations concurrently against the same Workspace.
 

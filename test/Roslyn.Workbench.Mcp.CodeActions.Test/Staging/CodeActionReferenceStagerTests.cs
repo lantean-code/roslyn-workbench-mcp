@@ -4,7 +4,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Staging;
 
 public sealed class CodeActionReferenceStagerTests
 {
-    private readonly Mock<ICodeActionProviderCatalog> _providerCatalog;
+    private readonly Mock<ICodeActionComposition> _composition;
     private readonly Mock<ICodeActionResolver> _resolver;
     private readonly Mock<ICodeActionEvaluator> _evaluator;
     private readonly Mock<ICodeActionExecutionContext> _context;
@@ -12,17 +12,17 @@ public sealed class CodeActionReferenceStagerTests
 
     public CodeActionReferenceStagerTests()
     {
-        _providerCatalog = new Mock<ICodeActionProviderCatalog>();
+        _composition = new Mock<ICodeActionComposition>();
         _resolver = new Mock<ICodeActionResolver>();
         _evaluator = new Mock<ICodeActionEvaluator>();
         _context = new Mock<ICodeActionExecutionContext>();
-        _providerCatalog.SetupGet(item => item.Status).Returns(new CodeActionProviderCatalogStatus
+        _composition.SetupGet(item => item.Status).Returns(new CodeActionCompositionStatus
         {
             IsAvailable = true,
         });
 
         _target = new CodeActionReferenceStager(
-            _providerCatalog.Object,
+            _composition.Object,
             _resolver.Object,
             _evaluator.Object);
     }
@@ -33,7 +33,7 @@ public sealed class CodeActionReferenceStagerTests
     public async Task GIVEN_CodeActionsAreUnavailable_WHEN_StagingReference_THEN_ShouldRejectWithoutResolvingAction(
         bool stageCodeFix)
     {
-        _providerCatalog.SetupGet(item => item.Status).Returns(new CodeActionProviderCatalogStatus
+        _composition.SetupGet(item => item.Status).Returns(new CodeActionCompositionStatus
         {
             IsAvailable = false,
         });

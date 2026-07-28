@@ -4,20 +4,20 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Staging;
 
 internal sealed class LocationCodeFixStager : ILocationCodeFixStager
 {
-    private readonly ICodeActionProviderCatalog _providerCatalog;
+    private readonly ICodeActionComposition _composition;
     private readonly ICodeActionDiscoveryService _discoveryService;
     private readonly ICodeActionEvaluator _evaluator;
     private readonly ICodeActionDiagnosticService _diagnosticService;
     private readonly ICodeActionToolRequestResolver _requestResolver;
 
     public LocationCodeFixStager(
-        ICodeActionProviderCatalog providerCatalog,
+        ICodeActionComposition composition,
         ICodeActionDiscoveryService discoveryService,
         ICodeActionEvaluator evaluator,
         ICodeActionDiagnosticService diagnosticService,
         ICodeActionToolRequestResolver requestResolver)
     {
-        _providerCatalog = providerCatalog;
+        _composition = composition;
         _discoveryService = discoveryService;
         _evaluator = evaluator;
         _diagnosticService = diagnosticService;
@@ -169,7 +169,7 @@ internal sealed class LocationCodeFixStager : ILocationCodeFixStager
 
     private CodeActionExecutionResult<WorkspaceMutationCandidate>? RejectedIfUnavailable()
     {
-        return _providerCatalog.Status.IsAvailable
+        return _composition.Status.IsAvailable
             ? null
             : Rejected<WorkspaceMutationCandidate>("CodeActionsUnavailable", "Code-action composition is unavailable.");
     }

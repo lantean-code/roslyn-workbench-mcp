@@ -13,17 +13,17 @@ internal static class BundledComponentWorkspaceFactory
 
     internal static ComponentWorkspace CreateBuiltInCodeActionWorkspace()
     {
-        var providerCatalog = CodeActionProviderCatalogFactory.Create(new CodeActionCompositionOptions
+        var composition = CodeActionCompositionFactory.Create(new CodeActionCompositionOptions
         {
             IncludeBuiltInAssemblies = true,
         });
 
-        return CreateCodeActionWorkspace(providerCatalog);
+        return CreateCodeActionWorkspace(composition);
     }
 
-    internal static ICodeActionProviderCatalog CreateTestCodeActionProviderCatalog()
+    internal static ICodeActionComposition CreateTestCodeActionComposition()
     {
-        return CodeActionProviderCatalogFactory.Create(new CodeActionCompositionOptions
+        return CodeActionCompositionFactory.Create(new CodeActionCompositionOptions
         {
             IncludeBuiltInAssemblies = false,
             AdditionalAssemblies =
@@ -33,13 +33,13 @@ internal static class BundledComponentWorkspaceFactory
         });
     }
 
-    internal static ComponentWorkspace CreateTestCodeActionWorkspace(ICodeActionProviderCatalog providerCatalog)
+    internal static ComponentWorkspace CreateTestCodeActionWorkspace(ICodeActionComposition composition)
     {
-        return CreateCodeActionWorkspace(providerCatalog, ControlledCodeActionDescriptorClassifier.Classify);
+        return CreateCodeActionWorkspace(composition, ControlledCodeActionDescriptorClassifier.Classify);
     }
 
     private static ComponentWorkspace CreateCodeActionWorkspace(
-        ICodeActionProviderCatalog providerCatalog,
+        ICodeActionComposition composition,
         CodeActionDescriptorOverride? descriptorOverride = null)
     {
         return ComponentWorkspace.Create(
@@ -47,7 +47,7 @@ internal static class BundledComponentWorkspaceFactory
             {
                 Boundary = ComponentWorkspaceBoundary.CodeActions,
             },
-            providerCatalog,
+            composition,
             descriptorOverride);
     }
 

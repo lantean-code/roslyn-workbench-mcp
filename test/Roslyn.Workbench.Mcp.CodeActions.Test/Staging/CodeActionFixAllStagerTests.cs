@@ -6,7 +6,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Staging;
 
 public sealed class CodeActionFixAllStagerTests : IDisposable
 {
-    private readonly Mock<ICodeActionProviderCatalog> _providerCatalog;
+    private readonly Mock<ICodeActionComposition> _composition;
     private readonly Mock<ICodeActionDiscoveryService> _discoveryService;
     private readonly Mock<ICodeActionResolver> _resolver;
     private readonly Mock<ICodeActionEvaluator> _evaluator;
@@ -24,7 +24,7 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
 
     public CodeActionFixAllStagerTests()
     {
-        _providerCatalog = new Mock<ICodeActionProviderCatalog>();
+        _composition = new Mock<ICodeActionComposition>();
         _discoveryService = new Mock<ICodeActionDiscoveryService>();
         _resolver = new Mock<ICodeActionResolver>();
         _evaluator = new Mock<ICodeActionEvaluator>();
@@ -42,7 +42,7 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
             "FixAllEquivalenceKey");
 
         _discoveredAction = CreateDiscoveredAction(_roslyn.Solution);
-        _providerCatalog.SetupGet(item => item.Status).Returns(new CodeActionProviderCatalogStatus
+        _composition.SetupGet(item => item.Status).Returns(new CodeActionCompositionStatus
         {
             IsAvailable = true,
         });
@@ -100,7 +100,7 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
             .ReturnsAsync(0);
 
         _target = new CodeActionFixAllStager(
-            _providerCatalog.Object,
+            _composition.Object,
             _discoveryService.Object,
             _resolver.Object,
             _evaluator.Object,
@@ -121,13 +121,13 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
             cancellationSource.Token);
 
         await action.Should().ThrowAsync<OperationCanceledException>();
-        _providerCatalog.VerifyGet(item => item.Status, Times.Never);
+        _composition.VerifyGet(item => item.Status, Times.Never);
     }
 
     [Fact]
     public async Task GIVEN_CodeActionsAreUnavailable_WHEN_StagingFixAll_THEN_ShouldRejectWithoutResolvingAction()
     {
-        _providerCatalog.SetupGet(item => item.Status).Returns(new CodeActionProviderCatalogStatus
+        _composition.SetupGet(item => item.Status).Returns(new CodeActionCompositionStatus
         {
             IsAvailable = false,
         });

@@ -4,7 +4,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Staging;
 
 internal sealed class ScopedCodeFixStager : IScopedCodeFixStager
 {
-    private readonly ICodeActionProviderCatalog _providerCatalog;
+    private readonly ICodeActionComposition _composition;
     private readonly ICodeActionDiscoveryService _discoveryService;
     private readonly ICodeActionEvaluator _evaluator;
     private readonly IFixAllActionFactory _fixAllActionFactory;
@@ -14,7 +14,7 @@ internal sealed class ScopedCodeFixStager : IScopedCodeFixStager
     private readonly ICodeActionSolutionChangeCounter _solutionChangeCounter;
 
     public ScopedCodeFixStager(
-        ICodeActionProviderCatalog providerCatalog,
+        ICodeActionComposition composition,
         ICodeActionDiscoveryService discoveryService,
         ICodeActionEvaluator evaluator,
         IFixAllActionFactory fixAllActionFactory,
@@ -23,7 +23,7 @@ internal sealed class ScopedCodeFixStager : IScopedCodeFixStager
         ICodeActionToolRequestResolver requestResolver,
         ICodeActionSolutionChangeCounter solutionChangeCounter)
     {
-        _providerCatalog = providerCatalog;
+        _composition = composition;
         _discoveryService = discoveryService;
         _evaluator = evaluator;
         _fixAllActionFactory = fixAllActionFactory;
@@ -414,7 +414,7 @@ internal sealed class ScopedCodeFixStager : IScopedCodeFixStager
 
     private CodeActionExecutionResult<WorkspaceMutationCandidate>? RejectedIfUnavailable()
     {
-        return _providerCatalog.Status.IsAvailable
+        return _composition.Status.IsAvailable
             ? null
             : Rejected<WorkspaceMutationCandidate>("CodeActionsUnavailable", "Code-action composition is unavailable.");
     }

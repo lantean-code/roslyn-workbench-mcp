@@ -1,6 +1,6 @@
 namespace Roslyn.Workbench.Mcp.CodeActions.Composition;
 
-internal sealed record CodeActionProviderCatalogStatus
+internal sealed record CodeActionCompositionStatus
 {
     public bool IsAvailable { get; init; }
 

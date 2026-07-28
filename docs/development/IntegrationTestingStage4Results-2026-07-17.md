@@ -94,7 +94,7 @@ The retained cases cover one real MEF composition with typed controlled provider
 
 The three real MEF checks were consolidated into one composition flow that asserts host services and typed refactoring/code-fix exports. Token tampering, expiry, action staleness and snapshot mismatch cases were removed because focused token, resolution and selector unit suites own those branches. The fix-all theory was narrowed from document, project and solution repetitions to one real solution-wide flow; scope mapping remains unit-tested.
 
-Controlled-provider tests share one immutable provider catalogue at class scope. xUnit serialises methods in the class, while every test retains an independent mutable Workspace and coordinator.
+Controlled-provider tests share one immutable provider composition at class scope. xUnit serialises methods in the class, while every test retains an independent mutable Workspace and coordinator.
 
 The retained component workflows now use typed Code Action requests through `CodeActionComponentTestSession`. They no longer construct MCP server tools, bind JSON arguments or deserialize published envelopes. Published transport behaviour remains covered by Stage 3 acceptance tests.
 

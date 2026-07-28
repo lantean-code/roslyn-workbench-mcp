@@ -101,8 +101,8 @@ All 15 runs passed without failed or skipped tests. The four normal integration-
 | 6 | 1.244 s | `ControlledProviderWorkflowIntegrationTests.GIVEN_ControlledCodeFix_WHEN_StagingFixAllAtSupportedScope_THEN_ShouldStageRequestedScope(scopeKind: Document)` |
 | 7 | 1.223 s | `ControlledProviderWorkflowIntegrationTests.GIVEN_ControlledProviderActions_WHEN_ListingDescribingAndStagingParameterisedAction_THEN_ShouldPreserveWorkflowContracts` |
 | 8 | 0.798 s | `ControlledProviderWorkflowIntegrationTests.GIVEN_StaleSnapshot_WHEN_ListingControlledActions_THEN_ShouldRejectSnapshotMismatch` |
-| 9 | 0.527 s | `MefCodeActionProviderCatalogIntegrationTests.GIVEN_RoslynMefHost_WHEN_ReadingExportsThroughCompatibilityAdapter_THEN_ShouldReturnTypedProviders` |
-| 10 | 0.086 s | `MefCodeActionProviderCatalogIntegrationTests.GIVEN_TestProviderAssembly_WHEN_CreatingCatalog_THEN_ShouldReportAvailableStatus` |
+| 9 | 0.527 s | `MefCodeActionCompositionIntegrationTests.GIVEN_RoslynMefHost_WHEN_ReadingExportsThroughCompatibilityAdapter_THEN_ShouldReturnTypedProviders` |
+| 10 | 0.086 s | `MefCodeActionCompositionIntegrationTests.GIVEN_TestProviderAssembly_WHEN_CreatingCatalog_THEN_ShouldReportAvailableStatus` |
 
 ### Host Integration
 

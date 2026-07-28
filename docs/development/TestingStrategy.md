@@ -71,7 +71,7 @@ Integration tests are capability-focused. A production tool does not need a same
 
 ### Audit
 
-Audit tests govern the supported built-in Roslyn provider catalogue and replay families. They are compatibility checks, not source-governance checks, unit branch coverage or general integration tests. Source-governance checks live in the fast architecture suite. Compatibility audits run outside the default development loop.
+Audit tests govern the composed built-in Roslyn provider inventory and replay families. They are compatibility checks, not source-governance checks, unit branch coverage or general integration tests. Source-governance checks live in the fast architecture suite. Compatibility audits run outside the default development loop.
 
 ## Execution-Path Coverage
 

@@ -43,7 +43,7 @@ MCP `tools/list` remains authoritative for the enabled tool inventory. Acceptanc
 | Unit | Branch behaviour, validation, result invariants and isolated failure mapping | Packaging, MSBuild, filesystem or MCP transport |
 | Contract | JSON, schemas, defaults, annotations, public plugin API and exported surface | End-to-end execution |
 | Component integration | Real Roslyn, MSBuild, filesystem, plugin composition, transaction services and native locks | Published executable composition and stdio mapping |
-| Code Action audit | Supported provider catalogue, classification and replay compatibility | General Host lifecycle or release packaging |
+| Code Action audit | Composed provider inventory, classification and replay compatibility | General Host lifecycle or release packaging |
 | Published-Host acceptance | Release artifact, startup, stdio, public MCP workflow, composition and cleanup | Repository-scale performance or exhaustive handler branches |
 | Scenario runner | Release-scale correctness, destructive recovery, platform behaviour and performance trends | Fast deterministic pull-request regression coverage |
 

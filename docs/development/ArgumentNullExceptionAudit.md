@@ -70,7 +70,7 @@ Workspace has 27 internal candidates:
 
 ### Code Actions
 
-All 10 guards are internal catalogue, handler, composition, mapping or resolution checks. Remove them from registrations, base handlers, `CodeActionToolRegistry`, `CodeActionWorkspaceResultMapper`, `MefCodeActionProviderCatalog` and `CodeActionDescriptorRegistry`.
+All 10 guards are internal catalogue, handler, composition, mapping or resolution checks. Remove them from registrations, base handlers, `CodeActionToolRegistry`, `CodeActionWorkspaceResultMapper`, `MefCodeActionComposition` and `CodeActionDescriptorRegistry`.
 
 ### Plugins
 

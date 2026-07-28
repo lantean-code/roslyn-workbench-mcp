@@ -472,13 +472,13 @@ This batch changes documentation only and precedes code changes.
 
 Completion checklist:
 
-- [ ] All provider-catalogue composition types, consumers, tests and documentation use the approved composition terminology.
-- [ ] `ICodeActionPolicy` supports provider and action-leaf decisions without introducing a positive supported-provider list.
-- [ ] Every initial provider exclusion and generic option-backed rejection has focused unit coverage.
-- [ ] Eligible providers are partitioned once after composition and excluded providers are not invoked.
-- [ ] Composition remains non-throwing for supported external compatibility failures and continues to publish component status.
-- [ ] Current behaviour intended to remain available during migration has no unexplained regression.
-- [ ] The affected build, non-acceptance tests, formatting and `latest-all` analyser validation are green.
+- [x] All provider-catalogue composition types, consumers, tests and documentation use the approved composition terminology.
+- [x] `ICodeActionPolicy` supports provider and action-leaf decisions without introducing a positive supported-provider list.
+- [x] Every initial provider exclusion and generic option-backed rejection has focused unit coverage.
+- [x] Eligible providers are partitioned once after composition and excluded providers are not invoked.
+- [x] Composition remains non-throwing for supported external compatibility failures and continues to publish component status.
+- [x] Current behaviour intended to remain available during migration has no unexplained regression.
+- [x] The affected build, non-acceptance tests, formatting and `latest-all` analyser validation are green.
 
 This batch is the dependency for diagnostic activation and generic discovery.
 

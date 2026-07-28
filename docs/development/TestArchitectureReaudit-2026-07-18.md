@@ -40,7 +40,7 @@ Every component class name identifies a real boundary; the table records the con
 | Plugins.Core | `SolutionHierarchyServiceIntegrationTests`, `ProjectTargetFrameworkServiceIntegrationTests` | Real solution persistence and MSBuild target-framework evaluation |
 | Plugins.Core | `MutationPipelineIntegrationTests` | Bundled Roslyn mutation proposals staged through a real Workspace transaction |
 | CodeActions | `ControlledProviderWorkflowIntegrationTests`, `BuiltInCodeActionStagingIntegrationTests` | Controlled and representative bundled providers across discovery, replay, fix-all and staging |
-| CodeActions | `MefCodeActionProviderCatalogIntegrationTests` | Real MEF provider composition |
+| CodeActions | `MefCodeActionCompositionIntegrationTests` | Real MEF provider composition |
 | Host | `HostCompositionIntegrationTests`, `HostToolCompositionIntegrationTests` | Production DI graph and all four typed Host adapter families without transport emulation |
 | Host | `PluginPackageDiscoveryIntegrationTests`, `PluginCatalogBootstrapIntegrationTests` | Real package enumeration, bundled catalogue materialisation, collisions and failure isolation |
 | Host | `PluginAssemblyMetadataReaderIntegrationTests`, `PluginAssemblyLoadContextIntegrationTests` | Real PE metadata and shared/private managed and unmanaged dependency routing |

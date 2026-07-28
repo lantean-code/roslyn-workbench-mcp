@@ -6,20 +6,20 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
 {
     private const string _toolName = "list-code-actions";
 
-    private readonly ICodeActionProviderCatalog _providerCatalog;
+    private readonly ICodeActionComposition _composition;
     private readonly ICodeActionDiscoveryService _discoveryService;
     private readonly ICodeActionDiagnosticService _diagnosticService;
     private readonly ICodeActionInfoFactory _infoFactory;
     private readonly ICodeActionToolRequestResolver _requestResolver;
 
     public ListCodeActionsTool(
-        ICodeActionProviderCatalog providerCatalog,
+        ICodeActionComposition composition,
         ICodeActionDiscoveryService discoveryService,
         ICodeActionDiagnosticService diagnosticService,
         ICodeActionInfoFactory infoFactory,
         ICodeActionToolRequestResolver requestResolver)
     {
-        _providerCatalog = providerCatalog;
+        _composition = composition;
         _discoveryService = discoveryService;
         _diagnosticService = diagnosticService;
         _infoFactory = infoFactory;
@@ -31,7 +31,7 @@ internal sealed class ListCodeActionsTool : CodeActionQueryToolHandler<ListCodeA
         ICodeActionQueryContext context,
         CancellationToken cancellationToken)
     {
-        if (!_providerCatalog.Status.IsAvailable)
+        if (!_composition.Status.IsAvailable)
         {
             return CodeActionsUnavailable<CodeActionListData>();
         }

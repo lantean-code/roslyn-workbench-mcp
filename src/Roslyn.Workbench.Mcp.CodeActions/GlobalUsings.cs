@@ -18,6 +18,7 @@ global using Roslyn.Workbench.Mcp.CodeActions.Execution.Contexts;
 global using Roslyn.Workbench.Mcp.CodeActions.Execution.FixAll;
 global using Roslyn.Workbench.Mcp.CodeActions.Execution.Handlers;
 global using Roslyn.Workbench.Mcp.CodeActions.Execution.Results;
+global using Roslyn.Workbench.Mcp.CodeActions.Policy;
 global using Roslyn.Workbench.Mcp.CodeActions.Refactorings;
 global using Roslyn.Workbench.Mcp.CodeActions.References;
 global using Roslyn.Workbench.Mcp.CodeActions.Registration;

@@ -12,7 +12,7 @@ internal sealed class ServerStatusService : IServerStatusService
     private readonly PluginCatalogSnapshot _pluginCatalogSnapshot;
     private readonly CodeActionCatalogSnapshot _codeActionCatalogSnapshot;
     private readonly IMsBuildRegistrationService _msBuildRegistrationService;
-    private readonly ICodeActionProviderCatalog _codeActionProviderCatalog;
+    private readonly ICodeActionComposition _codeActionComposition;
     private readonly ICommitRecoveryStore _recoveryStore;
     private readonly int _toolCount;
     private ServerConfiguration? _configuration;
@@ -23,7 +23,7 @@ internal sealed class ServerStatusService : IServerStatusService
         PluginCatalogSnapshot pluginCatalogSnapshot,
         CodeActionCatalogSnapshot codeActionCatalogSnapshot,
         IMsBuildRegistrationService msBuildRegistrationService,
-        ICodeActionProviderCatalog codeActionProviderCatalog,
+        ICodeActionComposition codeActionComposition,
         ICommitRecoveryStore recoveryStore)
     {
         _startupOptions = startupOptions.Value;
@@ -31,7 +31,7 @@ internal sealed class ServerStatusService : IServerStatusService
         _pluginCatalogSnapshot = pluginCatalogSnapshot;
         _codeActionCatalogSnapshot = codeActionCatalogSnapshot;
         _msBuildRegistrationService = msBuildRegistrationService;
-        _codeActionProviderCatalog = codeActionProviderCatalog;
+        _codeActionComposition = codeActionComposition;
         _recoveryStore = recoveryStore;
         _toolCount = _pluginCatalogSnapshot.Tools.Count
             + _codeActionCatalogSnapshot.Tools.Count
@@ -58,9 +58,9 @@ internal sealed class ServerStatusService : IServerStatusService
 
         var codeActions = new ComponentStatus
         {
-            IsAvailable = _codeActionProviderCatalog.Status.IsAvailable,
-            Version = _codeActionProviderCatalog.Status.Version,
-            Message = _codeActionProviderCatalog.Status.Message,
+            IsAvailable = _codeActionComposition.Status.IsAvailable,
+            Version = _codeActionComposition.Status.Version,
+            Message = _codeActionComposition.Status.Message,
         };
 
         var status = new ServerStatusData

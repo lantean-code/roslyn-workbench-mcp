@@ -4,11 +4,11 @@ using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Composition;
 
-internal sealed class MefCodeActionProviderCatalog : ICodeActionProviderCatalog
+internal sealed class MefCodeActionComposition : ICodeActionComposition
 {
-    private readonly CodeActionProviderCatalogComposition _composition;
+    private readonly CodeActionCompositionState _composition;
 
-    public CodeActionProviderCatalogStatus Status => _composition.Status;
+    public CodeActionCompositionStatus Status => _composition.Status;
 
     public HostServices? WorkspaceHostServices => _composition.WorkspaceHostServices;
 
@@ -16,7 +16,7 @@ internal sealed class MefCodeActionProviderCatalog : ICodeActionProviderCatalog
 
     public IReadOnlyList<CodeFixProvider> CodeFixProviders => _composition.CodeFixProviders;
 
-    public MefCodeActionProviderCatalog(
+    public MefCodeActionComposition(
         IOptions<CodeActionCompositionOptions> options,
         IMefHostExportProviderCompatibilityAdapter exportProvider)
     {
@@ -27,7 +27,7 @@ internal sealed class MefCodeActionProviderCatalog : ICodeActionProviderCatalog
         "Design",
         "CA1031:Do not catch general exception types",
         Justification = "Code Action assemblies and providers are external startup inputs; composition failures must disable only the Code Action component and remain visible through component status.")]
-    private static CodeActionProviderCatalogComposition Compose(
+    private static CodeActionCompositionState Compose(
         CodeActionCompositionOptions options,
         IMefHostExportProviderCompatibilityAdapter exportProvider)
     {
@@ -122,14 +122,14 @@ internal sealed class MefCodeActionProviderCatalog : ICodeActionProviderCatalog
         return refactoring is not null && refactoring.Languages.Contains(LanguageNames.CSharp, StringComparer.Ordinal);
     }
 
-    private static CodeActionProviderCatalogComposition Available(
+    private static CodeActionCompositionState Available(
         HostServices hostServices,
         CodeRefactoringProvider[] refactorings,
         CodeFixProvider[] codeFixes)
     {
-        return new CodeActionProviderCatalogComposition
+        return new CodeActionCompositionState
         {
-            Status = new CodeActionProviderCatalogStatus
+            Status = new CodeActionCompositionStatus
             {
                 IsAvailable = true,
                 Version = typeof(Microsoft.CodeAnalysis.Workspace).Assembly.GetName().Version?.ToString(),
@@ -141,11 +141,11 @@ internal sealed class MefCodeActionProviderCatalog : ICodeActionProviderCatalog
         };
     }
 
-    private static CodeActionProviderCatalogComposition Unavailable(string message)
+    private static CodeActionCompositionState Unavailable(string message)
     {
-        return new CodeActionProviderCatalogComposition
+        return new CodeActionCompositionState
         {
-            Status = new CodeActionProviderCatalogStatus
+            Status = new CodeActionCompositionStatus
             {
                 IsAvailable = false,
                 Message = message,

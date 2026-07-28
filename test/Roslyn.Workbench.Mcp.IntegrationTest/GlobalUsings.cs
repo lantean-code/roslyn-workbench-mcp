@@ -7,6 +7,7 @@ global using Roslyn.Workbench.Mcp.CodeActions.Composition;
 global using Roslyn.Workbench.Mcp.CodeActions.Configuration;
 global using Roslyn.Workbench.Mcp.CodeActions.Execution.Contexts;
 global using Roslyn.Workbench.Mcp.CodeActions.Execution.Results;
+global using Roslyn.Workbench.Mcp.CodeActions.Policy;
 global using Roslyn.Workbench.Mcp.Configuration;
 global using Roslyn.Workbench.Mcp.Hosting;
 global using Roslyn.Workbench.Mcp.IntegrationTestSupport;

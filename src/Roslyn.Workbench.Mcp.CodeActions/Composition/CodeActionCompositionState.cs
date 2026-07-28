@@ -1,8 +1,8 @@
 namespace Roslyn.Workbench.Mcp.CodeActions.Composition;
 
-internal sealed record CodeActionProviderCatalogComposition
+internal sealed record CodeActionCompositionState
 {
-    public required CodeActionProviderCatalogStatus Status { get; init; }
+    public required CodeActionCompositionStatus Status { get; init; }
 
     public HostServices? WorkspaceHostServices { get; init; }
 

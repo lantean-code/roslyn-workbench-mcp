@@ -7,16 +7,16 @@ public sealed class DescribeCodeActionToolTests
     [Fact]
     public async Task GIVEN_CodeActionsAreUnavailable_WHEN_Executing_THEN_ShouldRejectWithoutResolvingAction()
     {
-        var providerCatalog = new Mock<ICodeActionProviderCatalog>();
+        var composition = new Mock<ICodeActionComposition>();
         var resolver = new Mock<ICodeActionResolver>();
         var infoFactory = new Mock<ICodeActionInfoFactory>();
         var context = new Mock<ICodeActionQueryContext>();
-        providerCatalog.SetupGet(item => item.Status).Returns(new CodeActionProviderCatalogStatus
+        composition.SetupGet(item => item.Status).Returns(new CodeActionCompositionStatus
         {
             IsAvailable = false,
         });
 
-        var target = new DescribeCodeActionTool(providerCatalog.Object, resolver.Object, infoFactory.Object);
+        var target = new DescribeCodeActionTool(composition.Object, resolver.Object, infoFactory.Object);
 
         var result = await target.ExecuteAsync(
             new DescribeCodeActionRequest
@@ -38,7 +38,7 @@ public sealed class DescribeCodeActionToolTests
     [Fact]
     public async Task GIVEN_ActionResolutionIsRejected_WHEN_Executing_THEN_ShouldReturnRejectionWithoutCreatingInfo()
     {
-        var providerCatalog = new Mock<ICodeActionProviderCatalog>();
+        var composition = new Mock<ICodeActionComposition>();
         var resolver = new Mock<ICodeActionResolver>();
         var infoFactory = new Mock<ICodeActionInfoFactory>();
         var context = new Mock<ICodeActionQueryContext>();
@@ -49,7 +49,7 @@ public sealed class DescribeCodeActionToolTests
             Message = "Message",
         });
 
-        providerCatalog.SetupGet(item => item.Status).Returns(new CodeActionProviderCatalogStatus
+        composition.SetupGet(item => item.Status).Returns(new CodeActionCompositionStatus
         {
             IsAvailable = true,
         });
@@ -63,7 +63,7 @@ public sealed class DescribeCodeActionToolTests
                 CancellationToken.None))
             .ReturnsAsync(CodeActionResolution.Rejected(rejection));
 
-        var target = new DescribeCodeActionTool(providerCatalog.Object, resolver.Object, infoFactory.Object);
+        var target = new DescribeCodeActionTool(composition.Object, resolver.Object, infoFactory.Object);
 
         var result = await target.ExecuteAsync(
             new DescribeCodeActionRequest
@@ -87,7 +87,7 @@ public sealed class DescribeCodeActionToolTests
     public async Task GIVEN_ActionResolves_WHEN_Executing_THEN_ShouldReturnDescriptorWithOriginalReferenceAndContext()
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
-        var providerCatalog = new Mock<ICodeActionProviderCatalog>();
+        var composition = new Mock<ICodeActionComposition>();
         var resolver = new Mock<ICodeActionResolver>();
         var infoFactory = new Mock<ICodeActionInfoFactory>();
         var context = new Mock<ICodeActionQueryContext>();
@@ -114,7 +114,7 @@ public sealed class DescribeCodeActionToolTests
             Location = SelectorTestFactory.CreateResolvedLocation("Code.cs", 1, 2),
         };
 
-        providerCatalog.SetupGet(item => item.Status).Returns(new CodeActionProviderCatalogStatus
+        composition.SetupGet(item => item.Status).Returns(new CodeActionCompositionStatus
         {
             IsAvailable = true,
         });
@@ -146,7 +146,7 @@ public sealed class DescribeCodeActionToolTests
                 info.Location))
             .Returns(info);
 
-        var target = new DescribeCodeActionTool(providerCatalog.Object, resolver.Object, infoFactory.Object);
+        var target = new DescribeCodeActionTool(composition.Object, resolver.Object, infoFactory.Object);
 
         var result = await target.ExecuteAsync(
             new DescribeCodeActionRequest
@@ -172,7 +172,7 @@ public sealed class DescribeCodeActionToolTests
     public async Task GIVEN_ActionLocationCannotBeProjected_WHEN_Executing_THEN_ShouldRejectWithoutCreatingInfo()
     {
         using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
-        var providerCatalog = new Mock<ICodeActionProviderCatalog>();
+        var composition = new Mock<ICodeActionComposition>();
         var resolver = new Mock<ICodeActionResolver>();
         var infoFactory = new Mock<ICodeActionInfoFactory>();
         var context = new Mock<ICodeActionQueryContext>();
@@ -183,7 +183,7 @@ public sealed class DescribeCodeActionToolTests
             new CodeActionReplayRecipe(),
             new DateTimeOffset(2000, 1, 1, 0, 5, 0, TimeSpan.Zero));
 
-        providerCatalog.SetupGet(item => item.Status).Returns(new CodeActionProviderCatalogStatus
+        composition.SetupGet(item => item.Status).Returns(new CodeActionCompositionStatus
         {
             IsAvailable = true,
         });
@@ -202,7 +202,7 @@ public sealed class DescribeCodeActionToolTests
                 new TextSpan(1, 2),
                 reference));
 
-        var target = new DescribeCodeActionTool(providerCatalog.Object, resolver.Object, infoFactory.Object);
+        var target = new DescribeCodeActionTool(composition.Object, resolver.Object, infoFactory.Object);
         var result = await target.ExecuteAsync(
             new DescribeCodeActionRequest
             {

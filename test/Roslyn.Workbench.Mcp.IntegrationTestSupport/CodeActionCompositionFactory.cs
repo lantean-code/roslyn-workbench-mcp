@@ -2,11 +2,11 @@ using Microsoft.Extensions.Options;
 
 namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
-internal static class CodeActionProviderCatalogFactory
+internal static class CodeActionCompositionFactory
 {
-    public static ICodeActionProviderCatalog Create(CodeActionCompositionOptions options)
+    public static ICodeActionComposition Create(CodeActionCompositionOptions options)
     {
-        return new MefCodeActionProviderCatalog(
+        return new MefCodeActionComposition(
             Options.Create(options),
             new MefHostExportProviderCompatibilityAdapter());
     }

@@ -6,7 +6,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Staging;
 
 public sealed class ScopedCodeFixStagerTests : IDisposable
 {
-    private readonly Mock<ICodeActionProviderCatalog> _providerCatalog;
+    private readonly Mock<ICodeActionComposition> _composition;
     private readonly Mock<ICodeActionDiscoveryService> _discoveryService;
     private readonly Mock<ICodeActionEvaluator> _evaluator;
     private readonly Mock<IFixAllActionFactory> _fixAllActionFactory;
@@ -27,7 +27,7 @@ public sealed class ScopedCodeFixStagerTests : IDisposable
 
     public ScopedCodeFixStagerTests()
     {
-        _providerCatalog = new Mock<ICodeActionProviderCatalog>();
+        _composition = new Mock<ICodeActionComposition>();
         _discoveryService = new Mock<ICodeActionDiscoveryService>();
         _evaluator = new Mock<ICodeActionEvaluator>();
         _fixAllActionFactory = new Mock<IFixAllActionFactory>();
@@ -57,7 +57,7 @@ public sealed class ScopedCodeFixStagerTests : IDisposable
             DiagnosticIds = ["DiagnosticId"],
         };
 
-        _providerCatalog.SetupGet(item => item.Status).Returns(new CodeActionProviderCatalogStatus
+        _composition.SetupGet(item => item.Status).Returns(new CodeActionCompositionStatus
         {
             IsAvailable = true,
         });
@@ -146,7 +146,7 @@ public sealed class ScopedCodeFixStagerTests : IDisposable
             .ReturnsAsync(0);
 
         _target = new ScopedCodeFixStager(
-            _providerCatalog.Object,
+            _composition.Object,
             _discoveryService.Object,
             _evaluator.Object,
             _fixAllActionFactory.Object,
@@ -168,13 +168,13 @@ public sealed class ScopedCodeFixStagerTests : IDisposable
             cancellationSource.Token);
 
         await action.Should().ThrowAsync<OperationCanceledException>();
-        _providerCatalog.VerifyGet(item => item.Status, Times.Never);
+        _composition.VerifyGet(item => item.Status, Times.Never);
     }
 
     [Fact]
     public async Task GIVEN_CodeActionsAreUnavailable_WHEN_StagingScopedFix_THEN_ShouldRejectWithoutResolvingScope()
     {
-        _providerCatalog.SetupGet(item => item.Status).Returns(new CodeActionProviderCatalogStatus
+        _composition.SetupGet(item => item.Status).Returns(new CodeActionCompositionStatus
         {
             IsAvailable = false,
         });

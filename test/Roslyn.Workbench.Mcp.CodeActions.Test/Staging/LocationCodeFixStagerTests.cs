@@ -6,7 +6,7 @@ namespace Roslyn.Workbench.Mcp.CodeActions.Test.Staging;
 
 public sealed class LocationCodeFixStagerTests
 {
-    private readonly Mock<ICodeActionProviderCatalog> _providerCatalog;
+    private readonly Mock<ICodeActionComposition> _composition;
     private readonly Mock<ICodeActionDiscoveryService> _discoveryService;
     private readonly Mock<ICodeActionEvaluator> _evaluator;
     private readonly Mock<ICodeActionDiagnosticService> _diagnosticService;
@@ -16,13 +16,13 @@ public sealed class LocationCodeFixStagerTests
 
     public LocationCodeFixStagerTests()
     {
-        _providerCatalog = new Mock<ICodeActionProviderCatalog>();
+        _composition = new Mock<ICodeActionComposition>();
         _discoveryService = new Mock<ICodeActionDiscoveryService>();
         _evaluator = new Mock<ICodeActionEvaluator>();
         _diagnosticService = new Mock<ICodeActionDiagnosticService>();
         _context = new Mock<ICodeActionExecutionContext>();
         _workspaceResolver = new Mock<IWorkspaceResolver>();
-        _providerCatalog.SetupGet(item => item.Status).Returns(new CodeActionProviderCatalogStatus
+        _composition.SetupGet(item => item.Status).Returns(new CodeActionCompositionStatus
         {
             IsAvailable = true,
         });
@@ -33,7 +33,7 @@ public sealed class LocationCodeFixStagerTests
 
         _context.SetupGet(item => item.WorkspaceResolver).Returns(_workspaceResolver.Object);
         _target = new LocationCodeFixStager(
-            _providerCatalog.Object,
+            _composition.Object,
             _discoveryService.Object,
             _evaluator.Object,
             _diagnosticService.Object,
@@ -56,13 +56,13 @@ public sealed class LocationCodeFixStagerTests
             cancellationSource.Token);
 
         await action.Should().ThrowAsync<OperationCanceledException>();
-        _providerCatalog.VerifyGet(item => item.Status, Times.Never);
+        _composition.VerifyGet(item => item.Status, Times.Never);
     }
 
     [Fact]
     public async Task GIVEN_CodeActionsAreUnavailable_WHEN_StagingLocationFix_THEN_ShouldRejectWithoutResolvingLocation()
     {
-        _providerCatalog.SetupGet(item => item.Status).Returns(new CodeActionProviderCatalogStatus
+        _composition.SetupGet(item => item.Status).Returns(new CodeActionCompositionStatus
         {
             IsAvailable = false,
         });

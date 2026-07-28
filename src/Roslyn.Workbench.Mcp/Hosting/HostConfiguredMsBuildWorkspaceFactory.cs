@@ -4,16 +4,16 @@ namespace Roslyn.Workbench.Mcp.Hosting;
 
 internal sealed class HostConfiguredMsBuildWorkspaceFactory : IMsBuildWorkspaceFactory
 {
-    private readonly ICodeActionProviderCatalog _providerCatalog;
+    private readonly ICodeActionComposition _composition;
 
-    public HostConfiguredMsBuildWorkspaceFactory(ICodeActionProviderCatalog providerCatalog)
+    public HostConfiguredMsBuildWorkspaceFactory(ICodeActionComposition composition)
     {
-        _providerCatalog = providerCatalog;
+        _composition = composition;
     }
 
     public MSBuildWorkspace Create()
     {
-        var hostServices = _providerCatalog.WorkspaceHostServices;
+        var hostServices = _composition.WorkspaceHostServices;
         MSBuildWorkspace workspace;
         if (hostServices is null)
         {

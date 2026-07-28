@@ -86,9 +86,9 @@ The completed CodeActions follow-up record has been superseded by the [Code Acti
   - Workspace exposes only workspace-owned contexts, failures, mutation candidates and staging results.
 
 - [x] Rework Code Action provider composition into a container-validatable catalogue boundary. Files:
-  - `src/Roslyn.Workbench.Mcp.CodeActions/Composition/MefCodeActionProviderCatalog.cs`
+  - `src/Roslyn.Workbench.Mcp.CodeActions/Composition/MefCodeActionComposition.cs`
   - `src/Roslyn.Workbench.Mcp/HostConfiguredMsBuildWorkspaceFactory.cs` Notes:
-  - Code Actions owns an immutable MEF provider catalogue; Host bridges its optional Roslyn host services into Workspace creation through constructor-injected services.
+  - Code Actions owns an immutable MEF provider composition; Host bridges its optional Roslyn host services into Workspace creation through constructor-injected services.
   - Code Action tool registrations retain closed handler, request and response generic types without constructing handlers during catalogue creation. Host registers the handler and closed MCP adapter with DI, allowing constructor validation.
   - Query and mutation execution contexts contain only invocation-specific Workspace state. List and describe handlers own their orchestration and receive focused collaborators; mutation handlers receive replay, fix-all, scoped-fix or location-fix services directly through constructor injection. There are no aggregated query- or mutation-workflow façades.
 
@@ -166,7 +166,7 @@ The recommended order is now explicitly workspace-first. The plugin and host wor
 - [x] 1. Split `MefCodeActionService`.
 - [x] 2. Tighten `WorkspaceSelectionResult` into a stricter result shape.
 - [x] 3. Remove remaining plugin result leakage from workspace internals.
-- [x] 4. Replace `CodeActionRuntime` composition with a directly registered provider catalogue.
+- [x] 4. Replace `CodeActionRuntime` composition with a directly registered provider composition.
 - [x] 5. Sweep remaining workspace null-forgiving and invariant-by-convention cases.
 
 ### Phase 2: Plugin Boundary

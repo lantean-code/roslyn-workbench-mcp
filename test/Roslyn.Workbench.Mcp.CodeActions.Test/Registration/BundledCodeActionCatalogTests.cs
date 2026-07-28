@@ -90,8 +90,7 @@ public sealed class BundledCodeActionCatalogTests
             replace-method-with-property|Replace Method With Property|Replaces an eligible getter, or matching getter and setter, with a property through Roslyn refactoring composition.|Mutation|ReplaceMethodWithPropertyRequest|MutationData|True|<null>
             replace-property-with-methods|Replace Property With Methods|Replaces an eligible property and its references with getter and setter methods through Roslyn refactoring composition.|Mutation|LocationRefactoringRequest|MutationData|True|<null>
             reverse-for-statement|Reverse For Statement|Reverses a supported for-statement loop through Roslyn refactoring composition.|Mutation|LocationRefactoringRequest|MutationData|True|<null>
-            stage-code-action|Stage Code Action|Revalidates and stages one selected refactoring action into the active transaction.|Mutation|StageCodeActionRequest|MutationData|True|<null>
-            stage-code-fix|Stage Code Fix|Revalidates and stages one selected code fix into the active transaction.|Mutation|StageCodeFixRequest|MutationData|True|<null>
+            stage-code-action|Stage Code Action|Revalidates and stages one selected Code Fix or refactoring action into the active transaction.|Mutation|StageCodeActionRequest|MutationData|True|<null>
             stage-fix-all|Stage Fix All|Revalidates one selected code fix and stages its fix-all variant into the active transaction.|Mutation|StageFixAllRequest|MutationData|True|<null>
             transpose-record-keyword|Transpose Record Keyword|Moves the record keyword into the valid position for a record struct declaration through Roslyn code-fix composition.|Mutation|FixedCompilerCodeFixRequest|MutationData|True|<null>
             unseal-class|Unseal Class|Removes the sealed modifier from a base class that is inherited through Roslyn code-fix composition.|Mutation|FixedCompilerCodeFixRequest|MutationData|True|<null>
@@ -125,7 +124,6 @@ public sealed class BundledCodeActionCatalogTests
             "list-code-actions",
             "describe-code-action",
             "stage-code-action",
-            "stage-code-fix",
             "stage-fix-all",
         };
 
@@ -158,7 +156,6 @@ public sealed class BundledCodeActionCatalogTests
     [InlineData("list-code-actions")]
     [InlineData("describe-code-action")]
     [InlineData("stage-code-action")]
-    [InlineData("stage-code-fix")]
     [InlineData("stage-fix-all")]
     public void GIVEN_InfrastructureTool_WHEN_CreatingCatalog_THEN_ShouldPublishOutsideDedicatedLedger(string toolName)
     {

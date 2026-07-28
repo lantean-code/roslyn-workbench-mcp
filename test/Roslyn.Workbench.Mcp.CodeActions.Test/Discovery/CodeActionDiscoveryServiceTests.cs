@@ -71,6 +71,29 @@ public sealed class CodeActionDiscoveryServiceTests
         }
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void GIVEN_RefactoringProvider_WHEN_FindingProvider_THEN_ShouldReturnMatchingProvider(bool matches)
+    {
+        var provider = new Mock<CodeRefactoringProvider>();
+        var providerId = _target.GetProviderId(provider.Object);
+        _providerSelection
+            .SetupGet(item => item.RefactoringProviders)
+            .Returns(CreateProviderSelection((providerId, provider.Object)));
+
+        var result = _target.FindRefactoringProvider(matches ? providerId : "ProviderId");
+
+        if (matches)
+        {
+            result.Should().BeSameAs(provider.Object);
+        }
+        else
+        {
+            result.Should().BeNull();
+        }
+    }
+
     [Fact]
     public void GIVEN_RefactoringProvider_WHEN_GettingAllMatchingProviders_THEN_ShouldReturnProvider()
     {
@@ -567,6 +590,58 @@ public sealed class CodeActionDiscoveryServiceTests
         _descriptorRegistry.Verify(
             item => item.ResolveActionDependentDescriptor(It.IsAny<CodeAction>(), It.IsAny<string>(), It.IsAny<string>()),
             Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_CachedRefactoringRecipe_WHEN_Rediscovering_THEN_ShouldBypassPolicy()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var action = CodeAction.Create("Title", _ => Task.FromResult(roslyn.Document));
+        var provider = new Mock<CodeRefactoringProvider>();
+        provider.Setup(item => item.ComputeRefactoringsAsync(It.IsAny<CodeRefactoringContext>()))
+            .Returns((CodeRefactoringContext context) =>
+            {
+                context.RegisterRefactoring(action);
+                return Task.CompletedTask;
+            });
+
+        var result = await _target.RediscoverRefactoringsAsync(
+            provider.Object,
+            roslyn.Document,
+            new TextSpan(0, 1),
+            TestContext.Current.CancellationToken);
+
+        result.Should().ContainSingle().Which.Action.Should().BeSameAs(action);
+        _policy.Verify(item => item.EvaluateProvider(It.IsAny<string>()), Times.Never);
+        _policy.Verify(item => item.EvaluateAction(It.IsAny<string>(), It.IsAny<CodeAction>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GIVEN_CachedCodeFixRecipe_WHEN_Rediscovering_THEN_ShouldBypassPolicy()
+    {
+        using var roslyn = RoslynTestFactory.CreateDocument("class C { }");
+        var syntaxTree = await roslyn.Document.GetSyntaxTreeAsync(TestContext.Current.CancellationToken);
+        var requiredSyntaxTree = syntaxTree ?? throw new InvalidOperationException("The test document has no syntax tree.");
+        var diagnostic = RoslynTestFactory.CreateDiagnostic("DiagnosticId", requiredSyntaxTree, 0, 1);
+        var action = CodeAction.Create("Title", _ => Task.FromResult(roslyn.Document));
+        var provider = new Mock<CodeFixProvider>();
+        provider.SetupGet(item => item.FixableDiagnosticIds).Returns(["DiagnosticId"]);
+        provider.Setup(item => item.RegisterCodeFixesAsync(It.IsAny<CodeFixContext>()))
+            .Returns((CodeFixContext context) =>
+            {
+                context.RegisterCodeFix(action, context.Diagnostics);
+                return Task.CompletedTask;
+            });
+
+        var result = await _target.RediscoverCodeFixesAsync(
+            provider.Object,
+            roslyn.Document,
+            [diagnostic],
+            TestContext.Current.CancellationToken);
+
+        result.Should().ContainSingle().Which.Action.Should().BeSameAs(action);
+        _policy.Verify(item => item.EvaluateProvider(It.IsAny<string>()), Times.Never);
+        _policy.Verify(item => item.EvaluateAction(It.IsAny<string>(), It.IsAny<CodeAction>()), Times.Never);
     }
 
     private static FrozenDictionary<string, TProvider> CreateProviderSelection<TProvider>(

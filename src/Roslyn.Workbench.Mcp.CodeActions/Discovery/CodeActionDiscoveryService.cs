@@ -69,6 +69,11 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         return matchingProviders;
     }
 
+    public CodeRefactoringProvider? FindRefactoringProvider(string providerId)
+    {
+        return _providerSelection.RefactoringProviders.GetValueOrDefault(providerId);
+    }
+
     public CodeFixProvider? FindCodeFixProvider(string providerId)
     {
         return _providerSelection.CodeFixProviders.GetValueOrDefault(providerId);
@@ -90,9 +95,65 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         TextSpan span,
         CancellationToken cancellationToken)
     {
+        return await DiscoverRefactoringsCoreAsync(
+            provider,
+            document,
+            span,
+            enforcePolicy: true,
+            cancellationToken);
+    }
+
+    public async ValueTask<IReadOnlyList<DiscoveredCodeAction>> DiscoverCodeFixesAsync(
+        CodeFixProvider provider,
+        Document document,
+        IReadOnlyList<Diagnostic> diagnostics,
+        CancellationToken cancellationToken)
+    {
+        return await DiscoverCodeFixesCoreAsync(
+            provider,
+            document,
+            diagnostics,
+            enforcePolicy: true,
+            cancellationToken);
+    }
+
+    public async ValueTask<IReadOnlyList<DiscoveredCodeAction>> RediscoverRefactoringsAsync(
+        CodeRefactoringProvider provider,
+        Document document,
+        TextSpan span,
+        CancellationToken cancellationToken)
+    {
+        return await DiscoverRefactoringsCoreAsync(
+            provider,
+            document,
+            span,
+            enforcePolicy: false,
+            cancellationToken);
+    }
+
+    public async ValueTask<IReadOnlyList<DiscoveredCodeAction>> RediscoverCodeFixesAsync(
+        CodeFixProvider provider,
+        Document document,
+        IReadOnlyList<Diagnostic> diagnostics,
+        CancellationToken cancellationToken)
+    {
+        return await DiscoverCodeFixesCoreAsync(
+            provider,
+            document,
+            diagnostics,
+            enforcePolicy: false,
+            cancellationToken);
+    }
+
+    private async ValueTask<IReadOnlyList<DiscoveredCodeAction>> DiscoverRefactoringsCoreAsync(
+        CodeRefactoringProvider provider,
+        Document document,
+        TextSpan span,
+        bool enforcePolicy,
+        CancellationToken cancellationToken)
+    {
         var providerId = GetProviderId(provider);
-        var policyDecision = _policy.EvaluateProvider(providerId);
-        if (!policyDecision.IsAllowed)
+        if (enforcePolicy && !_policy.EvaluateProvider(providerId).IsAllowed)
         {
             return [];
         }
@@ -110,18 +171,19 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
             span,
             diagnosticIds: [],
             diagnostics: [],
-            fixAllScopes: []);
+            fixAllScopes: [],
+            enforcePolicy);
     }
 
-    public async ValueTask<IReadOnlyList<DiscoveredCodeAction>> DiscoverCodeFixesAsync(
+    private async ValueTask<IReadOnlyList<DiscoveredCodeAction>> DiscoverCodeFixesCoreAsync(
         CodeFixProvider provider,
         Document document,
         IReadOnlyList<Diagnostic> diagnostics,
+        bool enforcePolicy,
         CancellationToken cancellationToken)
     {
         var providerId = GetProviderId(provider);
-        var policyDecision = _policy.EvaluateProvider(providerId);
-        if (!policyDecision.IsAllowed)
+        if (enforcePolicy && !_policy.EvaluateProvider(providerId).IsAllowed)
         {
             return [];
         }
@@ -189,7 +251,8 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
                 diagnosticIdentities,
                 actionFixAllScopes,
                 [0],
-                discoveredActions);
+                discoveredActions,
+                enforcePolicy);
         }
 
         return discoveredActions;
@@ -203,7 +266,8 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         TextSpan targetSpan,
         IReadOnlyList<string> diagnosticIds,
         IReadOnlyList<CodeActionDiagnosticIdentity> diagnostics,
-        IReadOnlyList<CodeActionFixAllScope> fixAllScopes)
+        IReadOnlyList<CodeActionFixAllScope> fixAllScopes,
+        bool enforcePolicy)
     {
         var discovered = new List<DiscoveredCodeAction>();
         var path = new List<int>();
@@ -221,7 +285,8 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
                 diagnostics,
                 fixAllScopes,
                 path,
-                discovered);
+                discovered,
+                enforcePolicy);
 
             path.RemoveAt(path.Count - 1);
         }
@@ -239,7 +304,8 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
         IReadOnlyList<CodeActionDiagnosticIdentity> diagnostics,
         IReadOnlyList<CodeActionFixAllScope> fixAllScopes,
         List<int> path,
-        ICollection<DiscoveredCodeAction> discovered)
+        ICollection<DiscoveredCodeAction> discovered,
+        bool enforcePolicy)
     {
         var nested = action.NestedActions;
         if (!nested.IsDefaultOrEmpty)
@@ -257,7 +323,8 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
                     diagnostics,
                     fixAllScopes,
                     path,
-                    discovered);
+                    discovered,
+                    enforcePolicy);
 
                 path.RemoveAt(path.Count - 1);
             }
@@ -265,8 +332,7 @@ internal sealed class CodeActionDiscoveryService : ICodeActionDiscoveryService
             return;
         }
 
-        var policyDecision = _policy.EvaluateAction(providerId, action);
-        if (!policyDecision.IsAllowed)
+        if (enforcePolicy && !_policy.EvaluateAction(providerId, action).IsAllowed)
         {
             return;
         }

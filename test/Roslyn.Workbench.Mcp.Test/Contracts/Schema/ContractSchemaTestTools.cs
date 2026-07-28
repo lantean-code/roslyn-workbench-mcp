@@ -126,14 +126,6 @@ internal static class ContractSchemaTestTools
         return new CallToolResult();
     }
 
-    [McpServerTool(Name = "stage-code-fix", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<MutationData>))]
-    public static CallToolResult StageCodeFix(StageCodeFixRequest request)
-    {
-        _ = request;
-
-        return new CallToolResult();
-    }
-
     [McpServerTool(Name = "stage-fix-all", UseStructuredContent = true, OutputSchemaType = typeof(ToolResult<MutationData>))]
     public static CallToolResult StageFixAll(StageFixAllRequest request)
     {

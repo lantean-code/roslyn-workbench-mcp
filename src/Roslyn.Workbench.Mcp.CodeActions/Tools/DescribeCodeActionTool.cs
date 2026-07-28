@@ -31,7 +31,6 @@ internal sealed class DescribeCodeActionTool : CodeActionQueryToolHandler<Descri
         var resolvedAction = await _resolver.ResolveActionAsync<DescribeCodeActionData>(
             request.ActionId,
             request.ExpectedSnapshot,
-            expectedKind: null,
             context,
             cancellationToken);
 

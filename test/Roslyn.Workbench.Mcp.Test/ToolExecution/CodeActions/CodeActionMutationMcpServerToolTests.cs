@@ -340,6 +340,46 @@ public sealed class CodeActionMutationMcpServerToolTests
     }
 
     [Fact]
+    public async Task GIVEN_CodeActionReferenceAndNoChangeStaging_WHEN_InvokingMutation_THEN_ShouldRetainReference()
+    {
+        var actionId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        var handler = new Mock<ICodeActionMutationToolHandler<TestReferencedMutationRequest>>();
+        var contextFactory = new Mock<ICodeActionExecutionContextFactory>();
+        var context = new Mock<ICodeActionMutationContext>();
+        var stager = new Mock<IWorkspaceMutationStager>();
+        var workspaceLease = WorkspaceMutationExecutionLease.Acquired(
+            new Mock<IWorkspaceExecutionContext>().Object,
+            stager.Object);
+
+        contextFactory
+            .Setup(item => item.CreateMutationContext(It.IsAny<WorkspaceBoundRequest>(), CancellationToken.None))
+            .Returns(CodeActionMutationExecutionLease.Acquired(workspaceLease, context.Object));
+
+        handler
+            .Setup(item => item.ExecuteAsync(It.IsAny<TestReferencedMutationRequest>(), context.Object, CancellationToken.None))
+            .ReturnsAsync(CodeActionExecutionResult.Success(
+                MutationCandidateTestData.CreateWorkspaceCandidate()));
+
+        stager
+            .Setup(item => item.StageAsync(
+                It.IsAny<string>(),
+                It.IsAny<WorkspaceMutationCandidate>(),
+                It.IsAny<IReadOnlyList<DiagnosticInfo>>(),
+                It.IsAny<IReadOnlyList<WarningInfo>>(),
+                CancellationToken.None))
+            .ReturnsAsync(WorkspaceOperationResult.NoChange<MutationStagingOutcome>());
+
+        var target = CreateTarget(handler.Object, contextFactory.Object);
+        var arguments = McpServerToolTestData.CreateMutationArguments();
+        arguments["actionId"] = JsonSerializer.SerializeToElement(actionId);
+
+        var result = await target.InvokeArgumentsAsync(arguments, CancellationToken.None);
+
+        result.IsError.Should().BeFalse();
+        _referenceStore.Verify(item => item.Remove(It.IsAny<Guid>()), Times.Never);
+    }
+
+    [Fact]
     public async Task GIVEN_HandlerThrows_WHEN_InvokingMutation_THEN_ShouldPropagateFailureAndDisposeLease()
     {
         var handler = new Mock<ICodeActionMutationToolHandler<TestMutationRequest>>();

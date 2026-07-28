@@ -48,6 +48,11 @@ internal sealed class CodeActionFixAllStager : ICodeActionFixAllStager
             return MapResolutionRejection(resolution.FailureKind, resolution.Rejection);
         }
 
+        if (resolution.Action.Kind != DiscoveredActionKind.CodeFix)
+        {
+            return FixAllUnavailable("The selected action is not a Code Fix.");
+        }
+
         var provider = _discoveryService.FindCodeFixProvider(resolution.Action.ProviderId);
         if (provider is null)
         {
@@ -111,7 +116,6 @@ internal sealed class CodeActionFixAllStager : ICodeActionFixAllStager
         return _resolver.ResolveActionAsync<WorkspaceMutationCandidate>(
             request.ActionId,
             request.ExpectedSnapshot,
-            DiscoveredActionKind.CodeFix,
             context,
             cancellationToken);
     }

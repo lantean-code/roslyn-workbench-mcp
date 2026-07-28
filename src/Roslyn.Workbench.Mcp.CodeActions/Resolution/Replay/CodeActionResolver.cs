@@ -24,7 +24,6 @@ internal sealed class CodeActionResolver : ICodeActionResolver
     public async ValueTask<CodeActionResolution<T>> ResolveActionAsync<T>(
         Guid actionId,
         SnapshotPrecondition? expectedSnapshot,
-        DiscoveredActionKind? expectedKind,
         ICodeActionExecutionContext context,
         CancellationToken cancellationToken)
     {
@@ -37,10 +36,12 @@ internal sealed class CodeActionResolver : ICodeActionResolver
             return RejectedResolution(snapshotRejection);
         }
 
-        var referenceResolution = ResolveReferenceContext(actionId, expectedKind, context);
+        var referenceResolution = ResolveReferenceContext(actionId, context);
         if (!referenceResolution.IsResolved)
         {
-            return RejectedResolution(CodeActionExecutionResultFactory.ActionExpired<T>());
+            return RejectedResolution(
+                CodeActionExecutionResultFactory.ActionExpired<T>(),
+                CodeActionResolutionFailureKind.InvalidReference);
         }
 
         var rediscovery = await RediscoverActionsAsync(referenceResolution.Context, cancellationToken);
@@ -54,15 +55,16 @@ internal sealed class CodeActionResolver : ICodeActionResolver
         var action = SelectUniqueAction(rediscovery.Actions, referenceResolution.Context.Reference.Recipe);
         if (action is null)
         {
-            return RejectedResolution(ActionAmbiguous<T>());
+            return RejectedResolution(
+                ActionAmbiguous<T>(),
+                CodeActionResolutionFailureKind.InvalidReference);
         }
 
         if (!action.Descriptor.IsVisible)
         {
-            return RejectedResolution(CodeActionExecutionResultFactory.Rejected<T>(
-                "ActionUnavailable",
-                "The selected action is not available in this server build.",
-                RequiredAction.ResolveTargetAgain));
+            return RejectedResolution(
+                ActionUnavailable<T>(),
+                CodeActionResolutionFailureKind.InvalidReference);
         }
 
         return CodeActionResolution.Resolved<T>(
@@ -74,11 +76,9 @@ internal sealed class CodeActionResolver : ICodeActionResolver
 
     private CodeActionReferenceContextResolution ResolveReferenceContext(
         Guid actionId,
-        DiscoveredActionKind? expectedKind,
         ICodeActionExecutionContext context)
     {
         if (!_referenceStore.TryGet(actionId, out var reference)
-            || expectedKind is not null && reference.Recipe.Kind != expectedKind.Value
             || !MatchesWorkspace(reference.Recipe, context))
         {
             return CodeActionReferenceContextResolution.Unresolved();
@@ -133,14 +133,14 @@ internal sealed class CodeActionResolver : ICodeActionResolver
         var recipe = referenceContext.Reference.Recipe;
         if (recipe.Kind == DiscoveredActionKind.Refactoring)
         {
-            var providers = _discoveryService.GetMatchingRefactoringProviders(recipe.ProviderId);
-            if (providers.Count != 1)
+            var provider = _discoveryService.FindRefactoringProvider(recipe.ProviderId);
+            if (provider is null)
             {
                 return new CodeActionRediscovery();
             }
 
-            var refactorings = await _discoveryService.DiscoverRefactoringsAsync(
-                providers[0],
+            var refactorings = await _discoveryService.RediscoverRefactoringsAsync(
+                provider,
                 referenceContext.Document,
                 referenceContext.Span,
                 cancellationToken);
@@ -152,8 +152,8 @@ internal sealed class CodeActionResolver : ICodeActionResolver
             };
         }
 
-        var codeFixProviders = _discoveryService.GetMatchingCodeFixProviders(recipe.ProviderId);
-        if (codeFixProviders.Count != 1)
+        var codeFixProvider = _discoveryService.FindCodeFixProvider(recipe.ProviderId);
+        if (codeFixProvider is null)
         {
             return new CodeActionRediscovery();
         }
@@ -164,8 +164,8 @@ internal sealed class CodeActionResolver : ICodeActionResolver
             recipe.DiagnosticIds,
             cancellationToken);
 
-        var codeFixes = await _discoveryService.DiscoverCodeFixesAsync(
-            codeFixProviders[0],
+        var codeFixes = await _discoveryService.RediscoverCodeFixesAsync(
+            codeFixProvider,
             referenceContext.Document,
             diagnostics,
             cancellationToken);
@@ -184,12 +184,15 @@ internal sealed class CodeActionResolver : ICodeActionResolver
         DiscoveredCodeAction? matchingAction = null;
         foreach (var action in actions)
         {
-            if (!string.Equals(action.Title, recipe.Title, StringComparison.Ordinal)
+            if (action.Kind != recipe.Kind
+                || !string.Equals(action.ProviderId, recipe.ProviderId, StringComparison.Ordinal)
                 || !string.Equals(action.EquivalenceKey, recipe.EquivalenceKey, StringComparison.Ordinal)
                 || !action.ActionPath.SequenceEqual(recipe.ActionPath)
                 || !action.DiagnosticIds.SequenceEqual(recipe.DiagnosticIds, StringComparer.Ordinal)
+                || !action.Diagnostics.SequenceEqual(recipe.Diagnostics)
                 || action.TargetSpan.Start != recipe.Start
-                || action.TargetSpan.Length != recipe.Length)
+                || action.TargetSpan.Length != recipe.Length
+                || !string.Equals(action.Title, recipe.Title, StringComparison.Ordinal))
             {
                 continue;
             }
@@ -217,6 +220,14 @@ internal sealed class CodeActionResolver : ICodeActionResolver
         return CodeActionExecutionResultFactory.Rejected<T>(
             "ActionAmbiguous",
             "The requested action could not be reproduced uniquely.",
+            RequiredAction.ResolveTargetAgain);
+    }
+
+    private static CodeActionExecutionResult<T> ActionUnavailable<T>()
+    {
+        return CodeActionExecutionResultFactory.Rejected<T>(
+            "ActionUnavailable",
+            "The selected action is not available in this server build.",
             RequiredAction.ResolveTargetAgain);
     }
 

@@ -257,24 +257,6 @@ public sealed class SchemaGenerationTests
     }
 
     [Fact]
-    public void GIVEN_StageCodeFixRequest_WHEN_GeneratingToolSchema_THEN_ShouldPublishActionReferenceAndSnapshotProperties()
-    {
-        var method = typeof(ContractSchemaTestTools).GetMethod(nameof(ContractSchemaTestTools.StageCodeFix), BindingFlags.Public | BindingFlags.Static);
-
-        var tool = McpServerTool.Create(method!);
-        var requestProperties = tool.ProtocolTool.InputSchema.GetProperty("properties").GetProperty("request").GetProperty("properties");
-        var outputSchema = tool.ProtocolTool.OutputSchema!.Value;
-
-        requestProperties.TryGetProperty("actionId", out var actionIdProperty).Should().BeTrue();
-        requestProperties.TryGetProperty("expectedSnapshot", out var snapshotProperty).Should().BeTrue();
-
-        actionIdProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
-        snapshotProperty.ValueKind.Should().NotBe(JsonValueKind.Undefined);
-        outputSchema.GetRawText().Should().Contain("transaction");
-        outputSchema.GetRawText().Should().Contain("preview");
-    }
-
-    [Fact]
     public void GIVEN_StageFixAllRequest_WHEN_GeneratingToolSchema_THEN_ShouldPublishActionScopeAndLimitProperties()
     {
         var method = typeof(ContractSchemaTestTools).GetMethod(nameof(ContractSchemaTestTools.StageFixAll), BindingFlags.Public | BindingFlags.Static);

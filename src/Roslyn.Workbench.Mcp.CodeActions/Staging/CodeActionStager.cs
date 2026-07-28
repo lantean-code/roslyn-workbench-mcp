@@ -2,23 +2,26 @@ using static Roslyn.Workbench.Mcp.CodeActions.Execution.Results.CodeActionExecut
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Staging;
 
-internal sealed class CodeActionReferenceStager : ICodeActionReferenceStager
+internal sealed class CodeActionStager : ICodeActionStager
 {
     private readonly ICodeActionComposition _composition;
     private readonly ICodeActionResolver _resolver;
     private readonly ICodeActionEvaluator _evaluator;
+    private readonly ICodeActionReferenceStore _referenceStore;
 
-    public CodeActionReferenceStager(
+    public CodeActionStager(
         ICodeActionComposition composition,
         ICodeActionResolver resolver,
-        ICodeActionEvaluator evaluator)
+        ICodeActionEvaluator evaluator,
+        ICodeActionReferenceStore referenceStore)
     {
         _composition = composition;
         _resolver = resolver;
         _evaluator = evaluator;
+        _referenceStore = referenceStore;
     }
 
-    public ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageCodeActionAsync(
+    public async ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageAsync(
         StageCodeActionRequest request,
         ICodeActionExecutionContext context,
         CancellationToken cancellationToken)
@@ -26,42 +29,22 @@ internal sealed class CodeActionReferenceStager : ICodeActionReferenceStager
         var runtimeRejection = RejectedIfUnavailable();
         if (runtimeRejection is not null)
         {
-            return ValueTask.FromResult(runtimeRejection);
+            return runtimeRejection;
         }
 
-        return StageAsync(request.ActionId, request.ExpectedSnapshot, DiscoveredActionKind.Refactoring, context, cancellationToken);
-    }
-
-    public ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageCodeFixAsync(
-        StageCodeFixRequest request,
-        ICodeActionExecutionContext context,
-        CancellationToken cancellationToken)
-    {
-        var runtimeRejection = RejectedIfUnavailable();
-        if (runtimeRejection is not null)
-        {
-            return ValueTask.FromResult(runtimeRejection);
-        }
-
-        return StageAsync(request.ActionId, request.ExpectedSnapshot, DiscoveredActionKind.CodeFix, context, cancellationToken);
-    }
-
-    private async ValueTask<CodeActionExecutionResult<WorkspaceMutationCandidate>> StageAsync(
-        Guid actionId,
-        SnapshotPrecondition expectedSnapshot,
-        DiscoveredActionKind expectedKind,
-        ICodeActionExecutionContext context,
-        CancellationToken cancellationToken)
-    {
         var resolvedAction = await _resolver.ResolveActionAsync<WorkspaceMutationCandidate>(
-            actionId,
-            expectedSnapshot,
-            expectedKind,
+            request.ActionId,
+            request.ExpectedSnapshot,
             context,
             cancellationToken);
 
         if (resolvedAction.HasRejection)
         {
+            if (resolvedAction.FailureKind != CodeActionResolutionFailureKind.None)
+            {
+                _referenceStore.Remove(request.ActionId);
+            }
+
             return resolvedAction.Rejection;
         }
 

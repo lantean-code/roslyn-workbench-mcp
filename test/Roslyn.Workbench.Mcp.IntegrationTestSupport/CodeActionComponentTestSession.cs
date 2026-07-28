@@ -3,6 +3,7 @@ using Roslyn.Workbench.Mcp.CodeActions.Contracts;
 using Roslyn.Workbench.Mcp.CodeActions.Contracts.CodeFixes;
 using Roslyn.Workbench.Mcp.CodeActions.Contracts.Refactorings;
 using Roslyn.Workbench.Mcp.CodeActions.Refactorings;
+using Roslyn.Workbench.Mcp.CodeActions.References;
 
 namespace Roslyn.Workbench.Mcp.IntegrationTestSupport;
 
@@ -34,13 +35,6 @@ internal sealed class CodeActionComponentTestSession
         CancellationToken cancellationToken)
     {
         return ExecuteMutationAsync<StageCodeActionTool, StageCodeActionRequest>("stage-code-action", request, cancellationToken);
-    }
-
-    internal ValueTask<CodeActionExecutionResult<MutationData>> StageCodeFixAsync(
-        StageCodeFixRequest request,
-        CancellationToken cancellationToken)
-    {
-        return ExecuteMutationAsync<StageCodeFixTool, StageCodeFixRequest>("stage-code-fix", request, cancellationToken);
     }
 
     internal ValueTask<CodeActionExecutionResult<MutationData>> StageFixAllAsync(
@@ -118,12 +112,19 @@ internal sealed class CodeActionComponentTestSession
                 warnings: proposal.Warnings);
         }
 
-        return await lease.StageAsync(
+        var result = await lease.StageAsync(
             operationName,
             proposal.Data,
             proposal.Diagnostics,
             proposal.Warnings,
             cancellationToken);
+
+        if (result.IsSucceeded && request is ICodeActionReferenceRequest referenceRequest)
+        {
+            _workspace.GetRequiredService<ICodeActionReferenceStore>().Remove(referenceRequest.ActionId);
+        }
+
+        return result;
     }
 
     private static CodeActionExecutionResult<TData> MapFailure<TData>(CodeActionExecutionFailure failure)

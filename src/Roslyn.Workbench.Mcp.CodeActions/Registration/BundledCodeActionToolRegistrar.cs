@@ -248,13 +248,7 @@ internal static class BundledCodeActionToolRegistrar
             CreateMutationMetadata(
                 "stage-code-action",
                 "Stage Code Action",
-                "Revalidates and stages one selected refactoring action into the active transaction."));
-
-        registry.RegisterMutationTool<StageCodeFixTool, StageCodeFixRequest>(
-            CreateMutationMetadata(
-                "stage-code-fix",
-                "Stage Code Fix",
-                "Revalidates and stages one selected code fix into the active transaction."));
+                "Revalidates and stages one selected Code Fix or refactoring action into the active transaction."));
 
         registry.RegisterMutationTool<StageFixAllTool, StageFixAllRequest>(
             CreateMutationMetadata(

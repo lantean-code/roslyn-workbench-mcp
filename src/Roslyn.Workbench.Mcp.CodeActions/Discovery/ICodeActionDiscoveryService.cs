@@ -6,6 +6,8 @@ internal interface ICodeActionDiscoveryService
 
     IReadOnlyList<CodeFixProvider> GetMatchingCodeFixProviders(string? providerId);
 
+    CodeRefactoringProvider? FindRefactoringProvider(string providerId);
+
     CodeFixProvider? FindCodeFixProvider(string providerId);
 
     string GetProviderId(CodeFixProvider provider);
@@ -19,6 +21,18 @@ internal interface ICodeActionDiscoveryService
         CancellationToken cancellationToken);
 
     ValueTask<IReadOnlyList<DiscoveredCodeAction>> DiscoverCodeFixesAsync(
+        CodeFixProvider provider,
+        Document document,
+        IReadOnlyList<Diagnostic> diagnostics,
+        CancellationToken cancellationToken);
+
+    ValueTask<IReadOnlyList<DiscoveredCodeAction>> RediscoverRefactoringsAsync(
+        CodeRefactoringProvider provider,
+        Document document,
+        TextSpan span,
+        CancellationToken cancellationToken);
+
+    ValueTask<IReadOnlyList<DiscoveredCodeAction>> RediscoverCodeFixesAsync(
         CodeFixProvider provider,
         Document document,
         IReadOnlyList<Diagnostic> diagnostics,

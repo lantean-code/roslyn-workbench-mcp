@@ -123,7 +123,7 @@ internal static class RoslynWorkbenchServiceCollectionExtensions
         services.AddSingleton<ICodeActionEvaluator, CodeActionEvaluator>();
         services.AddSingleton<IFixAllActionFactory, FixAllActionFactory>();
         services.AddSingleton<ICodeActionSolutionChangeCounter, CodeActionSolutionChangeCounter>();
-        services.AddSingleton<ICodeActionReferenceStager, CodeActionReferenceStager>();
+        services.AddSingleton<ICodeActionStager, CodeActionStager>();
         services.AddSingleton<ICodeActionSelectionStager, CodeActionSelectionStager>();
         services.AddSingleton<ICodeActionScopeResolver, CodeActionScopeResolver>();
         services.AddSingleton<ICodeActionToolRequestResolver, CodeActionToolRequestResolver>();

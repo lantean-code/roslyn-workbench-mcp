@@ -1,7 +1,7 @@
 namespace Roslyn.Workbench.Mcp.CodeActions.Contracts;
 
 /// <summary>
-/// Represents a request to stage a selected refactoring action.
+/// Represents a request to stage a selected Code Fix or refactoring action.
 /// </summary>
 internal sealed record StageCodeActionRequest : WorkspaceMutationRequest, ICodeActionReferenceRequest
 {

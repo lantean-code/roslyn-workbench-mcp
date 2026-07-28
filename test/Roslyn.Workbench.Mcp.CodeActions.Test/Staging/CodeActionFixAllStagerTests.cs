@@ -51,7 +51,6 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
             .Setup(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
                 It.IsAny<Guid>(),
                 It.IsAny<SnapshotPrecondition?>(),
-                DiscoveredActionKind.CodeFix,
                 _context.Object,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateResolution());
@@ -135,7 +134,6 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
         _resolver.Verify(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
             It.IsAny<Guid>(),
             It.IsAny<SnapshotPrecondition?>(),
-            It.IsAny<DiscoveredActionKind?>(),
             It.IsAny<ICodeActionExecutionContext>(),
             It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -155,7 +153,6 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
             .Setup(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
                 Guid.Empty,
                 expectedSnapshot,
-                DiscoveredActionKind.CodeFix,
                 _context.Object,
                 CancellationToken.None))
             .ReturnsAsync(CodeActionResolution.Rejected(rejection));
@@ -180,7 +177,6 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
             .Setup(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
                 Guid.Empty,
                 It.IsAny<SnapshotPrecondition>(),
-                DiscoveredActionKind.CodeFix,
                 _context.Object,
                 CancellationToken.None))
             .ReturnsAsync(CodeActionResolution.Rejected(rejection));
@@ -200,7 +196,6 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
             .Setup(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
                 Guid.Empty,
                 It.IsAny<SnapshotPrecondition>(),
-                DiscoveredActionKind.CodeFix,
                 _context.Object,
                 CancellationToken.None))
             .ReturnsAsync(CodeActionResolution.Rejected(
@@ -213,6 +208,29 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
             CancellationToken.None);
 
         result.Error!.Code.Should().Be("FixAllUnavailable");
+    }
+
+    [Fact]
+    public async Task GIVEN_ResolvedActionIsRefactoring_WHEN_StagingFixAll_THEN_ShouldRejectFixAll()
+    {
+        _resolver
+            .Setup(item => item.ResolveActionAsync<WorkspaceMutationCandidate>(
+                Guid.Empty,
+                It.IsAny<SnapshotPrecondition>(),
+                _context.Object,
+                CancellationToken.None))
+            .ReturnsAsync(CreateResolution(_discoveredAction with
+            {
+                Kind = DiscoveredActionKind.Refactoring,
+            }));
+
+        var result = await _target.StageFixAllAsync(
+            CreateRequest(ScopeKind.Solution),
+            _context.Object,
+            CancellationToken.None);
+
+        result.Error!.Code.Should().Be("FixAllUnavailable");
+        _discoveryService.Verify(item => item.FindCodeFixProvider(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -653,10 +671,11 @@ public sealed class CodeActionFixAllStagerTests : IDisposable
         };
     }
 
-    private CodeActionResolution<WorkspaceMutationCandidate> CreateResolution()
+    private CodeActionResolution<WorkspaceMutationCandidate> CreateResolution(
+        DiscoveredCodeAction? action = null)
     {
         return CodeActionResolution.Resolved<WorkspaceMutationCandidate>(
-            _discoveredAction,
+            action ?? _discoveredAction,
             _roslyn.Document,
             new TextSpan(0, 1),
             new CodeActionReference(

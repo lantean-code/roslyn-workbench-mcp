@@ -27,7 +27,6 @@ public sealed class DescribeCodeActionToolTests
         resolver.Verify(item => item.ResolveActionAsync<DescribeCodeActionData>(
             It.IsAny<Guid>(),
             It.IsAny<SnapshotPrecondition?>(),
-            It.IsAny<DiscoveredActionKind?>(),
             It.IsAny<ICodeActionExecutionContext>(),
             It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -52,7 +51,6 @@ public sealed class DescribeCodeActionToolTests
             .Setup(item => item.ResolveActionAsync<DescribeCodeActionData>(
                 Guid.Empty,
                 expectedSnapshot,
-                null,
                 context.Object,
                 CancellationToken.None))
             .ReturnsAsync(CodeActionResolution.Rejected(rejection));
@@ -119,7 +117,6 @@ public sealed class DescribeCodeActionToolTests
             .Setup(item => item.ResolveActionAsync<DescribeCodeActionData>(
                 Guid.Empty,
                 null,
-                null,
                 context.Object,
                 CancellationToken.None))
             .ReturnsAsync(CodeActionResolution.Resolved<DescribeCodeActionData>(
@@ -180,7 +177,6 @@ public sealed class DescribeCodeActionToolTests
         resolver
             .Setup(item => item.ResolveActionAsync<DescribeCodeActionData>(
                 Guid.Empty,
-                null,
                 null,
                 context.Object,
                 CancellationToken.None))

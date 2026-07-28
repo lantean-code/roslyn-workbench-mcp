@@ -1,4 +1,5 @@
 using Roslyn.Workbench.Mcp.CodeActions.Composition;
+using Roslyn.Workbench.Mcp.CodeActions.References;
 
 namespace Roslyn.Workbench.Mcp.CodeActions.Test;
 
@@ -35,16 +36,24 @@ public sealed class ControlledProviderWorkflowIntegrationTests
         await coordinator.StartTransactionAsync(TestContext.Current.CancellationToken);
 
         var refactorings = await ListActionsAsync(session, fixture.GetLocation("StateHolder"), includeCodeFixes: false);
+        var refactoringActionId = refactorings.Data!.Actions
+            .Single(static action => action.Title == "Apply test refactoring")
+            .ActionId;
+
         var stagedRefactoring = await session.StageCodeActionAsync(new StageCodeActionRequest
         {
-            ActionId = refactorings.Data!.Actions.Single(static action => action.Title == "Apply test refactoring").ActionId,
+            ActionId = refactoringActionId,
             ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 0),
         }, TestContext.Current.CancellationToken);
 
         var codeFixes = await ListActionsAsync(session, fixture.GetLocation("unused"), includeRefactorings: false);
-        var stagedCodeFix = await session.StageCodeFixAsync(new StageCodeFixRequest
+        var codeFixActionId = codeFixes.Data!.Actions
+            .Single(static action => action.Title == "Apply test code fix")
+            .ActionId;
+
+        var stagedCodeFix = await session.StageCodeActionAsync(new StageCodeActionRequest
         {
-            ActionId = codeFixes.Data!.Actions.Single(static action => action.Title == "Apply test code fix").ActionId,
+            ActionId = codeFixActionId,
             ExpectedSnapshot = BundledComponentWorkspaceFactory.CreateSnapshot(open, 1),
         }, TestContext.Current.CancellationToken);
 
@@ -54,6 +63,9 @@ public sealed class ControlledProviderWorkflowIntegrationTests
         stagedCodeFix.Data!.Transaction!.Revision.Should().Be(2);
         preview.Data!.Transaction!.Revision.Should().Be(2);
         preview.Data.Documents.Should().ContainSingle(static change => change.Document!.Path == "Formatting.cs");
+        var referenceStore = coordinator.GetRequiredService<ICodeActionReferenceStore>();
+        referenceStore.TryGet(refactoringActionId, out _).Should().BeFalse();
+        referenceStore.TryGet(codeFixActionId, out _).Should().BeFalse();
     }
 
     [Fact]

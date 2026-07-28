@@ -151,7 +151,6 @@ public sealed class ToolSchemaFactoryIntegrationTests
             GetRequiredProperty<RenameSymbolRequest>(nameof(RenameSymbolRequest.Symbol)),
             GetRequiredProperty<RenameSymbolRequest>(nameof(RenameSymbolRequest.NewName)),
             GetRequiredProperty<StageCodeActionRequest>(nameof(StageCodeActionRequest.ActionId)),
-            GetRequiredProperty<StageCodeFixRequest>(nameof(StageCodeFixRequest.ActionId)),
             GetRequiredProperty<StageFixAllRequest>(nameof(StageFixAllRequest.ActionId)),
             GetRequiredProperty<StageFixAllRequest>(nameof(StageFixAllRequest.Scope)),
             GetRequiredProperty<TransactionHistoryRequest>(nameof(TransactionHistoryRequest.Direction)),
@@ -167,7 +166,7 @@ public sealed class ToolSchemaFactoryIntegrationTests
             GetRequiredProperty<ReplaceMethodWithPropertyRequest>(nameof(ReplaceMethodWithPropertyRequest.Kind)),
         };
 
-        requiredProperties.Should().HaveCount(19);
+        requiredProperties.Should().HaveCount(18);
         AssertRequiredNonNullableProperties(target, requiredProperties);
     }
 
@@ -205,7 +204,7 @@ public sealed class ToolSchemaFactoryIntegrationTests
             }
         }
 
-        requestTypes.Should().HaveCount(30);
+        requestTypes.Should().HaveCount(29);
         foreach (var requestType in requestTypes)
         {
             var closedSchemaMethod = schemaMethod.MakeGenericMethod(requestType);

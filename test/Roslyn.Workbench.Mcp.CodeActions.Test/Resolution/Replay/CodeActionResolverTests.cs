@@ -56,11 +56,11 @@ public sealed class CodeActionResolverTests : IDisposable
 
         _context.SetupGet(item => item.TransactionRevision).Returns(2);
         _discoveryService
-            .Setup(item => item.GetMatchingRefactoringProviders("ProviderId"))
-            .Returns([_refactoringProvider.Object]);
+            .Setup(item => item.FindRefactoringProvider("ProviderId"))
+            .Returns(_refactoringProvider.Object);
 
         _discoveryService
-            .Setup(item => item.DiscoverRefactoringsAsync(
+            .Setup(item => item.RediscoverRefactoringsAsync(
                 _refactoringProvider.Object,
                 _roslyn.Document,
                 new TextSpan(3, 4),
@@ -85,7 +85,6 @@ public sealed class CodeActionResolverTests : IDisposable
         var action = async () => await _target.ResolveActionAsync<object>(
             _actionId,
             expectedSnapshot: null,
-            expectedKind: null,
             _context.Object,
             cancellationSource.Token);
 
@@ -104,7 +103,6 @@ public sealed class CodeActionResolverTests : IDisposable
         var result = await _target.ResolveActionAsync<object>(
             _actionId,
             expectedSnapshot,
-            expectedKind: null,
             _context.Object,
             CancellationToken.None);
 
@@ -122,18 +120,11 @@ public sealed class CodeActionResolverTests : IDisposable
         CodeActionReference? reference = null;
         _referenceStore.Setup(item => item.TryGet(_actionId, out reference)).Returns(false);
 
-        var result = await ResolveAsync(DiscoveredActionKind.CodeFix);
+        var result = await ResolveAsync();
 
         AssertExpired(result);
+        result.FailureKind.Should().Be(CodeActionResolutionFailureKind.InvalidReference);
         _workspaceResolver.Verify(item => item.ResolveDocument(It.IsAny<DocumentSelector>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task GIVEN_ReferenceKindDoesNotMatchExpectedKind_WHEN_ResolvingAction_THEN_ShouldReturnExpiredAction()
-    {
-        var result = await ResolveAsync(DiscoveredActionKind.CodeFix);
-
-        AssertExpired(result);
     }
 
     [Theory]
@@ -157,6 +148,7 @@ public sealed class CodeActionResolverTests : IDisposable
         var result = await ResolveAsync();
 
         AssertExpired(result);
+        result.FailureKind.Should().Be(CodeActionResolutionFailureKind.InvalidReference);
         _workspaceResolver.Verify(item => item.ResolveDocument(It.IsAny<DocumentSelector>()), Times.Never);
     }
 
@@ -176,6 +168,7 @@ public sealed class CodeActionResolverTests : IDisposable
         var result = await ResolveAsync();
 
         AssertExpired(result);
+        result.FailureKind.Should().Be(CodeActionResolutionFailureKind.InvalidReference);
     }
 
     [Fact]
@@ -203,27 +196,18 @@ public sealed class CodeActionResolverTests : IDisposable
             && selector.Project == null)), Times.Once);
     }
 
-    [Theory]
-    [InlineData(0)]
-    [InlineData(2)]
-    public async Task GIVEN_RefactoringProviderIsNotUnique_WHEN_ResolvingAction_THEN_ShouldReportUnavailableProvider(
-        int providerCount)
+    [Fact]
+    public async Task GIVEN_RefactoringProviderIsUnavailable_WHEN_ResolvingAction_THEN_ShouldReportUnavailableProvider()
     {
-        var firstProvider = new Mock<CodeRefactoringProvider>();
-        var secondProvider = new Mock<CodeRefactoringProvider>();
-        IReadOnlyList<CodeRefactoringProvider> providers = providerCount == 0
-            ? []
-            : [firstProvider.Object, secondProvider.Object];
-
         _discoveryService
-            .Setup(item => item.GetMatchingRefactoringProviders("ProviderId"))
-            .Returns(providers);
+            .Setup(item => item.FindRefactoringProvider("ProviderId"))
+            .Returns((CodeRefactoringProvider?)null);
 
         var result = await ResolveAsync();
 
         result.Rejection!.Error!.Code.Should().Be("ActionAmbiguous");
         result.FailureKind.Should().Be(CodeActionResolutionFailureKind.ProviderUnavailable);
-        _discoveryService.Verify(item => item.DiscoverRefactoringsAsync(
+        _discoveryService.Verify(item => item.RediscoverRefactoringsAsync(
             It.IsAny<CodeRefactoringProvider>(),
             It.IsAny<Document>(),
             It.IsAny<TextSpan>(),
@@ -231,14 +215,14 @@ public sealed class CodeActionResolverTests : IDisposable
     }
 
     [Fact]
-    public async Task GIVEN_CodeFixProviderIsNotUnique_WHEN_ResolvingAction_THEN_ShouldReportUnavailableProvider()
+    public async Task GIVEN_CodeFixProviderIsUnavailable_WHEN_ResolvingAction_THEN_ShouldReportUnavailableProvider()
     {
         SetupReference(CreateRecipe() with { Kind = DiscoveredActionKind.CodeFix });
         _discoveryService
-            .Setup(item => item.GetMatchingCodeFixProviders("ProviderId"))
-            .Returns([]);
+            .Setup(item => item.FindCodeFixProvider("ProviderId"))
+            .Returns((CodeFixProvider?)null);
 
-        var result = await ResolveAsync(DiscoveredActionKind.CodeFix);
+        var result = await ResolveAsync();
 
         result.Rejection!.Error!.Code.Should().Be("ActionAmbiguous");
         result.FailureKind.Should().Be(CodeActionResolutionFailureKind.ProviderUnavailable);
@@ -254,6 +238,9 @@ public sealed class CodeActionResolverTests : IDisposable
     [InlineData(ActionIdentityMismatch.EquivalenceKey)]
     [InlineData(ActionIdentityMismatch.ActionPath)]
     [InlineData(ActionIdentityMismatch.DiagnosticIds)]
+    [InlineData(ActionIdentityMismatch.Diagnostics)]
+    [InlineData(ActionIdentityMismatch.Kind)]
+    [InlineData(ActionIdentityMismatch.ProviderId)]
     [InlineData(ActionIdentityMismatch.TargetSpan)]
     public async Task GIVEN_RediscoveredActionIdentityDoesNotMatch_WHEN_ResolvingAction_THEN_ShouldRejectAmbiguousAction(
         ActionIdentityMismatch mismatch)
@@ -264,12 +251,27 @@ public sealed class CodeActionResolverTests : IDisposable
             ActionIdentityMismatch.EquivalenceKey => _matchingAction with { EquivalenceKey = "OtherEquivalenceKey" },
             ActionIdentityMismatch.ActionPath => _matchingAction with { ActionPath = [2] },
             ActionIdentityMismatch.DiagnosticIds => _matchingAction with { DiagnosticIds = ["OtherDiagnosticId"] },
+            ActionIdentityMismatch.Diagnostics => _matchingAction with
+            {
+                Diagnostics =
+                [
+                    new CodeActionDiagnosticIdentity
+                    {
+                        Id = "DiagnosticId",
+                        Message = "OtherMessage",
+                        Start = 3,
+                        Length = 4,
+                    },
+                ],
+            },
+            ActionIdentityMismatch.Kind => _matchingAction with { Kind = DiscoveredActionKind.CodeFix },
+            ActionIdentityMismatch.ProviderId => _matchingAction with { ProviderId = "OtherProviderId" },
             ActionIdentityMismatch.TargetSpan => _matchingAction with { TargetSpan = new TextSpan(4, 4) },
             _ => _matchingAction,
         };
 
         _discoveryService
-            .Setup(item => item.DiscoverRefactoringsAsync(
+            .Setup(item => item.RediscoverRefactoringsAsync(
                 _refactoringProvider.Object,
                 _roslyn.Document,
                 new TextSpan(3, 4),
@@ -279,14 +281,14 @@ public sealed class CodeActionResolverTests : IDisposable
         var result = await ResolveAsync();
 
         result.Rejection!.Error!.Code.Should().Be("ActionAmbiguous");
-        result.FailureKind.Should().Be(CodeActionResolutionFailureKind.None);
+        result.FailureKind.Should().Be(CodeActionResolutionFailureKind.InvalidReference);
     }
 
     [Fact]
     public async Task GIVEN_MultipleRediscoveredActionsMatch_WHEN_ResolvingAction_THEN_ShouldRejectAmbiguousAction()
     {
         _discoveryService
-            .Setup(item => item.DiscoverRefactoringsAsync(
+            .Setup(item => item.RediscoverRefactoringsAsync(
                 _refactoringProvider.Object,
                 _roslyn.Document,
                 new TextSpan(3, 4),
@@ -296,6 +298,7 @@ public sealed class CodeActionResolverTests : IDisposable
         var result = await ResolveAsync();
 
         result.Rejection!.Error!.Code.Should().Be("ActionAmbiguous");
+        result.FailureKind.Should().Be(CodeActionResolutionFailureKind.InvalidReference);
     }
 
     [Fact]
@@ -310,7 +313,7 @@ public sealed class CodeActionResolverTests : IDisposable
         };
 
         _discoveryService
-            .Setup(item => item.DiscoverRefactoringsAsync(
+            .Setup(item => item.RediscoverRefactoringsAsync(
                 _refactoringProvider.Object,
                 _roslyn.Document,
                 new TextSpan(3, 4),
@@ -321,12 +324,13 @@ public sealed class CodeActionResolverTests : IDisposable
 
         result.Rejection!.Error!.Code.Should().Be("ActionUnavailable");
         result.Rejection.RequiredAction.Should().Be(RequiredAction.ResolveTargetAgain);
+        result.FailureKind.Should().Be(CodeActionResolutionFailureKind.InvalidReference);
     }
 
     [Fact]
     public async Task GIVEN_RefactoringIsRediscoveredUniquely_WHEN_ResolvingAction_THEN_ShouldReturnResolvedAction()
     {
-        var result = await ResolveAsync(expectedKind: null);
+        var result = await ResolveAsync();
 
         result.HasRejection.Should().BeFalse();
         result.Action.Should().BeSameAs(_matchingAction);
@@ -335,7 +339,7 @@ public sealed class CodeActionResolverTests : IDisposable
         result.Span.Should().Be(new TextSpan(3, 4));
         result.Reference.Should().NotBeNull();
         result.Reference.ActionId.Should().Be(_actionId);
-        _discoveryService.Verify(item => item.DiscoverRefactoringsAsync(
+        _discoveryService.Verify(item => item.RediscoverRefactoringsAsync(
             _refactoringProvider.Object,
             _roslyn.Document,
             new TextSpan(3, 4),
@@ -355,10 +359,11 @@ public sealed class CodeActionResolverTests : IDisposable
                 isEnabledByDefault: true),
             Location.None)];
 
+        var codeFixAction = _matchingAction with { Kind = DiscoveredActionKind.CodeFix };
         SetupReference(CreateRecipe() with { Kind = DiscoveredActionKind.CodeFix });
         _discoveryService
-            .Setup(item => item.GetMatchingCodeFixProviders("ProviderId"))
-            .Returns([_codeFixProvider.Object]);
+            .Setup(item => item.FindCodeFixProvider("ProviderId"))
+            .Returns(_codeFixProvider.Object);
 
         _diagnosticService
             .Setup(item => item.GetDocumentDiagnosticsAsync(
@@ -369,24 +374,24 @@ public sealed class CodeActionResolverTests : IDisposable
             .ReturnsAsync(diagnostics);
 
         _discoveryService
-            .Setup(item => item.DiscoverCodeFixesAsync(
+            .Setup(item => item.RediscoverCodeFixesAsync(
                 _codeFixProvider.Object,
                 _roslyn.Document,
                 diagnostics,
                 CancellationToken.None))
-            .ReturnsAsync([_matchingAction]);
+            .ReturnsAsync([codeFixAction]);
 
-        var result = await ResolveAsync(DiscoveredActionKind.CodeFix);
+        var result = await ResolveAsync();
 
         result.HasRejection.Should().BeFalse();
-        result.Action.Should().BeSameAs(_matchingAction);
+        result.Action.Should().BeSameAs(codeFixAction);
         _diagnosticService.Verify(item => item.GetDocumentDiagnosticsAsync(
             _roslyn.Document,
             new TextSpan(3, 4),
             It.Is<IReadOnlyList<string>>(ids => ids.SequenceEqual(new[] { "DiagnosticId" })),
             CancellationToken.None), Times.Once);
 
-        _discoveryService.Verify(item => item.DiscoverCodeFixesAsync(
+        _discoveryService.Verify(item => item.RediscoverCodeFixesAsync(
             _codeFixProvider.Object,
             _roslyn.Document,
             diagnostics,
@@ -398,13 +403,11 @@ public sealed class CodeActionResolverTests : IDisposable
         _roslyn.Dispose();
     }
 
-    private ValueTask<CodeActionResolution<object>> ResolveAsync(
-        DiscoveredActionKind? expectedKind = DiscoveredActionKind.Refactoring)
+    private ValueTask<CodeActionResolution<object>> ResolveAsync()
     {
         return _target.ResolveActionAsync<object>(
             _actionId,
             expectedSnapshot: null,
-            expectedKind,
             _context.Object,
             CancellationToken.None);
     }
@@ -431,6 +434,16 @@ public sealed class CodeActionResolverTests : IDisposable
             EquivalenceKey = "EquivalenceKey",
             ActionPath = [1],
             DiagnosticIds = ["DiagnosticId"],
+            Diagnostics =
+            [
+                new CodeActionDiagnosticIdentity
+                {
+                    Id = "DiagnosticId",
+                    Message = "Message",
+                    Start = 3,
+                    Length = 4,
+                },
+            ],
             WorkspaceId = "WorkspaceId",
             WorkspaceEpoch = 1,
             TransactionRevision = 2,
@@ -454,6 +467,16 @@ public sealed class CodeActionResolverTests : IDisposable
             EquivalenceKey = "EquivalenceKey",
             ActionPath = [1],
             DiagnosticIds = ["DiagnosticId"],
+            Diagnostics =
+            [
+                new CodeActionDiagnosticIdentity
+                {
+                    Id = "DiagnosticId",
+                    Message = "Message",
+                    Start = 3,
+                    Length = 4,
+                },
+            ],
         };
     }
 
@@ -461,7 +484,7 @@ public sealed class CodeActionResolverTests : IDisposable
     {
         result.Rejection!.Error!.Code.Should().Be("ActionExpired");
         result.Rejection.RequiredAction.Should().Be(RequiredAction.ResolveTargetAgain);
-        result.FailureKind.Should().Be(CodeActionResolutionFailureKind.None);
+        result.FailureKind.Should().Be(CodeActionResolutionFailureKind.InvalidReference);
     }
 
 #pragma warning disable CA1515 // These enums are part of public xUnit theory method signatures.
@@ -478,6 +501,9 @@ public sealed class CodeActionResolverTests : IDisposable
         EquivalenceKey,
         ActionPath,
         DiagnosticIds,
+        Diagnostics,
+        Kind,
+        ProviderId,
         TargetSpan,
     }
 #pragma warning restore CA1515

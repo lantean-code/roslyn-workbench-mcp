@@ -4,4 +4,5 @@ internal enum CodeActionResolutionFailureKind
 {
     None,
     ProviderUnavailable,
+    InvalidReference,
 }

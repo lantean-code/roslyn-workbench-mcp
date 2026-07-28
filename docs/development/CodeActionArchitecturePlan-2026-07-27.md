@@ -75,12 +75,13 @@ Provider is the stable inventory unit because concrete action titles, nesting an
 6. Runtime support is allow-by-default for ordinary composed action leaves. A production exclusion policy records only unsupported providers and leaves.
 7. Provider composition, runtime exclusion policy and development inventory are separate concepts.
 8. `ICodeActionProviderCatalog` becomes `ICodeActionComposition`; `MefCodeActionProviderCatalog` becomes `MefCodeActionComposition`.
-9. Provider-level exclusions are evaluated once following composition and rechecked when a stored action is replayed.
-10. Leaf-level exclusions are evaluated after nested actions are flattened and again after staging rediscovery.
+9. Provider-level exclusions are evaluated for initial discovery; the resulting process-local references cannot outlive the static provider composition and policy that approved them.
+10. Leaf-level exclusions are evaluated after nested actions are flattened during initial discovery; staging requires an exact rediscovery identity match and relies on operation and Workspace validation for the recreated action.
 11. A stored reference contains a replay recipe, never a Roslyn `CodeAction` object.
 12. One `CodeActionStager` handles ordinary Code Fixes, refactorings and prepared Fix All references.
 13. Fix All has separate read-only preparation because the caller must be able to understand scope and impact before staging.
 14. Workbench-owned transformations such as rename and formatting remain Plugins.Core mutation tools. Future custom semantic implementations belong there as well.
+15. Replay-reference lifetime follows reachable Workspace transaction history: undo and redo do not evict references for revisions that remain reachable, while irreversible lifecycle transitions actively evict references that can never become current again.
 
 ## Target Runtime Flow
 
@@ -97,7 +98,6 @@ MEF Code Action composition
 opaque action reference
     -> snapshot and reference validation
     -> exact action rediscovery
-    -> policy revalidation
     -> Roslyn operation evaluation
     -> Workspace mutation candidate validation
     -> transaction staging
@@ -227,7 +227,7 @@ CodeActionPolicyDecision EvaluateAction(
     CodeAction action);
 ```
 
-Provider decisions are used to partition the composed provider sets once at startup. Staging performs the same provider lookup again before rediscovery. Leaf decisions run after nested actions are flattened and again after rediscovery.
+Provider decisions are used to partition the composed provider sets once at startup and are applied during initial discovery. Replay references are process-local and therefore cannot outlive that static composition or policy. Leaf decisions run after nested actions are flattened during initial discovery; replay bypasses policy filtering and instead requires exactly one leaf matching the complete stored identity before operation and Workspace validation.
 
 `CodeActionExclusions` contains only exact provider or internal action-type identities that require special treatment. Internal reason codes support tests, diagnostics and logs but are not projected into ordinary list results.
 
@@ -358,7 +358,13 @@ A prepared Fix All recipe additionally records:
 
 Reference resolution must not use title as the primary selector. Rediscovery must match exactly one leaf by provider, kind, location, diagnostics, equivalence key and action path, with title retained only as a consistency check. Zero matches reject as expired or unavailable; multiple matches reject as ambiguous. Both instruct the caller to list again.
 
-References are bound to the transaction revision at which they were created. A successful stage increments the transaction revision, naturally invalidating other references created against the previous revision. The successfully used reference is also removed immediately to release cache capacity.
+References are bound to an immutable snapshot identity, not merely to a reusable transaction revision number. That identity must distinguish the committed Workspace snapshot, the transaction instance and the stable identity of each revision within that transaction. Use strongly typed internal identifiers backed by process-local monotonically increasing `long` values; global `Guid` identity is unnecessary because replay references cannot outlive the process. Allocate identifiers through a shared thread-safe allocator and reserve the default value as invalid. Do not derive replay identity from Roslyn `Solution.Version`, because replay lifecycle identity is owned by Workbench.
+
+The displayed transaction revision remains positional `int` transaction information used by `TransactionInfo` and `SnapshotPrecondition`; it is not replaced by, or exposed as, the internal identity. A positional revision is insufficient as a replay identity because staging after undo can discard a redo branch and reuse its revision number.
+
+Undo and redo make different retained revisions current, so references for every reachable revision remain cached and become usable only while their exact snapshot identity is current. A successful stage removes the consumed reference immediately but does not evict references for earlier reachable revisions. Staging after undo actively evicts references for the discarded redo branch before any positional revision numbers can be reused.
+
+Transaction start, commit and rollback actively evict references that cannot participate in the resulting lifecycle state. Workspace unload, reload, replacement and epoch change actively evict every reference owned by the superseded Workspace instance. Absolute expiry and bounded cache capacity remain fallback protections rather than the primary mechanism for reclaiming references known to be permanently stale.
 
 ## Unified Staging
 
@@ -381,9 +387,8 @@ StageCodeActionTool
 2. Validate the request snapshot.
 3. Resolve and validate the opaque reference.
 4. Dispatch to the resolver for its internal reference kind.
-5. Reapply provider and leaf policy.
-6. Evaluate Roslyn operations into a candidate solution.
-7. Return a `WorkspaceMutationCandidate` to the existing mutation execution lease.
+5. Evaluate Roslyn operations into a candidate solution.
+6. Return a `WorkspaceMutationCandidate` to the existing mutation execution lease.
 
 The Workspace layer remains responsible for candidate validation, linked-document merging, transaction revision creation, preview data and commit/rollback behaviour.
 
@@ -422,7 +427,7 @@ Existing dedicated Code Action tools require a migration classification:
 | `BundledCodeActionToolRegistrar` | Reduce to the three callable handlers. |
 | `CodeActionDiscoveryService` | Retain and adapt for policy, built-in diagnostics and document mode. |
 | `CodeActionInfoFactory` | Retain responsibility but replace the verbose descriptor projection with the concise response and stronger recipe. |
-| `CodeActionReferenceStore` | Retain bounded cache ownership and add explicit successful-consumption behaviour. |
+| `CodeActionReferenceStore` | Retain bounded cache ownership; add explicit successful-consumption, reachable-revision retention and active lifecycle eviction. |
 | `CodeActionResolver` | Retain as the basis of single-action resolution. |
 | `CodeActionReferenceStager` | Replace with the unified `CodeActionStager`. |
 | `CodeActionFixAllStager` | Split preparation from prepared-action resolution; remove as a stager. |
@@ -532,7 +537,7 @@ This batch may temporarily coexist with the old dedicated tools, but the new gen
 ### Batch 4 — Unify single-action staging
 
 1. Remove caller-supplied expected-kind branching.
-2. Adapt `CodeActionResolver` to the stronger recipe and policy revalidation.
+2. Adapt `CodeActionResolver` to the stronger recipe and process-local replay invariant.
 3. Replace `CodeActionReferenceStager` with `CodeActionStager`.
 4. Route both Code Fix and refactoring references through `stage-code-action`.
 5. Remove references after successful staging.
@@ -541,16 +546,57 @@ This batch may temporarily coexist with the old dedicated tools, but the new gen
 
 Completion checklist:
 
-- [ ] `stage-code-action` is the only single-action Code Action mutation entry point.
-- [ ] One `CodeActionStager` handles both Code Fix and refactoring references without a caller-supplied expected kind.
-- [ ] Rediscovery requires exactly one matching leaf using the strengthened internal recipe identity.
-- [ ] Provider and leaf policy is re-evaluated immediately before operation evaluation.
-- [ ] Successful staging removes the consumed reference; retryable failures retain it and invalid references are rejected consistently.
-- [ ] Stale, expired, ambiguous, excluded, unsupported-operation, no-change and successful paths have focused coverage.
-- [ ] Workspace candidate validation, linked-document handling, transaction revisions, preview and commit/rollback responsibilities remain owned by Workspace.
-- [ ] The affected build, non-acceptance tests, formatting and `latest-all` analyser validation are green.
+- [x] `stage-code-action` is the only single-action Code Action mutation entry point.
+- [x] One `CodeActionStager` handles both Code Fix and refactoring references without a caller-supplied expected kind.
+- [x] Rediscovery requires exactly one matching leaf using the strengthened internal recipe identity.
+- [x] Replay references cannot outlive the static process composition and policy that approved them; replay bypasses duplicate policy evaluation.
+- [x] Successful staging removes the consumed reference; retryable failures retain it and invalid references are rejected consistently.
+- [x] Stale, expired, ambiguous, excluded, unsupported-operation, no-change and successful paths have focused coverage.
+- [x] Workspace candidate validation, linked-document handling, transaction revisions, preview and commit/rollback responsibilities remain owned by Workspace.
+- [x] The affected build, non-acceptance tests, formatting and `latest-all` analyser validation are green.
 
 This batch creates the final single-action path before Fix All is migrated.
+
+### Batch 4A — Add replay-reference lifecycle and active eviction
+
+1. Define strongly typed internal `WorkspaceSnapshotId` and `WorkspaceTransactionId` values, or equivalently named types with the same separation of concerns, backed by process-local monotonically increasing `long` values. Allocate them through a shared thread-safe allocator, reserve zero/default as invalid and do not use `Guid`, Roslyn `Solution.Version` or the positional transaction revision as replay identity.
+2. Add a stable transaction identity to `WorkspaceTransaction`, add a stable snapshot or revision identity to `WorkspaceTransactionRevision`, and carry a committed snapshot identity in the Workspace session state. Assign a new transaction identity when a transaction starts and a new snapshot identity whenever initial load, reload, Workspace replacement, staging or durable commit establishes a new snapshot.
+3. Keep `WorkspaceTransaction.CurrentRevision`, `TransactionInfo.Revision` and `SnapshotPrecondition.TransactionRevision` as positional `int` values. Preserve the stable identity of each retained revision when undo or redo changes which positional revision is current.
+4. Record the immutable replay snapshot identity in single-action recipes and require an exact match with the current Workspace execution context before rediscovery.
+5. Change `WorkspaceTransaction.Append` or its staging caller to report the stable identities of revisions discarded by `Take(CurrentRevision)` so lifecycle eviction does not have to infer which redo branch was removed.
+6. Extend the bounded reference store with lifecycle indexes sufficient to evict by Workspace instance, transaction and discarded revision branch without scanning unrelated references.
+7. Keep references for all revisions that remain reachable through undo or redo. A reference for a non-current revision must be rejected for staging while that revision is not current and must become usable again if undo or redo restores its exact snapshot identity.
+8. When staging after undo truncates the redo branch, actively evict every reference owned by the discarded revision identities before a new branch can reuse their positional revision numbers.
+9. On successful transaction commit or rollback, actively evict every reference owned by that transaction. On transaction start, evict references whose previous non-transaction snapshot identity is no longer stageable in the new lifecycle context.
+10. On Workspace unload, reload, replacement or epoch change, actively evict every reference owned by the superseded Workspace instance.
+11. Keep immediate successful-consumption removal, absolute expiry and bounded cache capacity. Expiry, capacity eviction and explicit lifecycle eviction must also remove lifecycle-index entries so the indexes cannot retain recipes or identifiers after the cache entry is gone.
+12. Make cache entry creation, lifecycle registration and invalidation race-safe so an entry cannot survive an invalidation that overlaps its creation, and so eviction callbacks cannot remove a newer registration for a reused structural identity.
+13. Publish lifecycle changes through a neutral Workspace-owned notification or invalidation abstraction. The Workspace transaction layer must not depend on Code Action types, while the Code Action reference store remains responsible for translating lifecycle events into reference eviction.
+14. Keep lifecycle storage and indexing independent of replay-reference kind, and require Batch 5 to store prepared Fix All references through the same path rather than introducing a second cache-lifetime model.
+15. Add focused unit and integration coverage for transaction start, multiple staged revisions, non-current rejection, undo restoration, redo restoration, branch truncation, positional revision-number reuse, commit, rollback, Workspace reload, Workspace unload, expiry, capacity eviction and lifecycle/creation races.
+16. Retain the process-local composition invariant and prove active lifecycle eviction does not weaken exact rediscovery, operation evaluation or Workspace mutation validation.
+17. Demonstrate that permanently stale cache entries and their lifecycle indexes are removed immediately rather than waiting for access, absolute expiry or capacity pressure, including under repeated discovery and lifecycle churn.
+
+Completion checklist:
+
+- [ ] Replay recipes use an immutable snapshot identity that cannot collide when a discarded branch's positional revision number is reused.
+- [ ] Snapshot and transaction identities are distinct strongly typed, process-local, monotonically allocated `long` values with an invalid default; replay identity does not depend on `Guid`, Roslyn `Solution.Version` or positional revision.
+- [ ] `WorkspaceTransaction`, `WorkspaceTransactionRevision` and Workspace session state carry the transaction, staged-revision and committed-snapshot identities required by replay.
+- [ ] Public transaction revision values remain positional `int` values and retain their existing contract semantics.
+- [ ] Appending after undo reports the stable identities removed from the redo branch.
+- [ ] References for reachable non-current revisions remain cached, are rejected while non-current and become usable again when undo or redo restores the exact revision.
+- [ ] Staging after undo actively removes references for the discarded redo branch before replacement revisions are exposed.
+- [ ] Transaction start, commit and rollback actively remove every reference that can no longer become valid in the resulting lifecycle state.
+- [ ] Workspace unload, reload, replacement and epoch change actively remove references for the superseded Workspace instance.
+- [ ] Successful consumption, absolute expiry and bounded capacity remain enforced, and every removal path also clears lifecycle-index state.
+- [ ] Reference creation and invalidation are race-safe under concurrent discovery and Workspace lifecycle changes.
+- [ ] Workspace publishes lifecycle invalidation without depending on Code Actions, and Code Actions retains ownership of replay-reference storage and eviction.
+- [ ] Lifecycle storage and eviction are reference-kind-independent, and Batch 5 explicitly adopts the same path for prepared Fix All references.
+- [ ] Focused unit and integration tests cover reachable-history retention, irreversible eviction, revision-number reuse, expiry, capacity and concurrency.
+- [ ] Repeated discovery followed by branch, transaction and Workspace invalidation leaves neither stale cache entries nor growing lifecycle-index state.
+- [ ] The affected build, non-acceptance tests, formatting and `latest-all` analyser validation are green.
+
+This batch closes replay-cache lifecycle and memory-pressure gaps before Fix All adds another reference kind. Batch 7 retains responsibility for end-to-end workflow and performance evidence.
 
 ### Batch 5 — Add Fix All preparation
 
@@ -559,7 +605,7 @@ This batch creates the final single-action path before Fix All is migrated.
 3. Construct and evaluate the Fix All action without changing transaction state.
 4. Enforce maximum changed-document limits.
 5. Return concise impact totals and a bounded affected-document list.
-6. Store a prepared Fix All recipe.
+6. Store a prepared Fix All recipe through the Batch 4A reference lifecycle and eviction path.
 7. Add `PreparedFixAllResolver` and route its recreated action through `CodeActionStager`.
 8. Prove preparation is read-only and staging, preview and rollback use the standard Workspace transaction path.
 
@@ -570,7 +616,8 @@ Completion checklist:
 - [ ] Changed-document and affected-document limits are enforced with published curated defaults.
 - [ ] The response contains only the prepared action ID, accepted scope, authoritative impact totals and bounded affected-document identities.
 - [ ] Prepared Fix All recipes contain enough identity to recreate the same operation without retaining a Roslyn action or candidate solution.
-- [ ] `PreparedFixAllResolver` recreates the action and routes it through the same policy, evaluator and `CodeActionStager` path as a single action.
+- [ ] Prepared Fix All references use the same immutable snapshot identity, reachable-history retention and active eviction path as single-action references.
+- [ ] `PreparedFixAllResolver` recreates the action and routes it through the same evaluator and `CodeActionStager` path as a single action.
 - [ ] Unit and integration coverage prove preparation, staging, preview, rollback, expiry, stale scope and unsupported Fix All behaviour.
 - [ ] The affected build, non-acceptance tests, formatting and `latest-all` analyser validation are green.
 
@@ -604,7 +651,7 @@ Completion checklist:
 4. Rebuild acceptance around the published architecture: exactly three tool contracts; document, selection and caret discovery; concise results; compiler, built-in diagnostic and refactoring staging; reference identity and failure cases; Fix All preparation and staging; transaction behaviour; exclusion enforcement; durable create-and-replace commit; and separation from Plugins.
 5. Rewrite `DurableMutationIntegrationTests` to discover and stage its Code Action through the orchestration tools while retaining its existing durability evidence.
 6. Retain `PublishedToolCatalogueSizeIntegrationTests`, but measure the three-tool surface and the concise orchestration responses.
-7. Add a focused scenario-runner Code Action workflow that captures an action reference from discovery, injects it into staging and rediscovers after every transaction revision; do not add a general-purpose JSONPath or workflow scripting language.
+7. Add a focused scenario-runner Code Action workflow that captures an action reference from discovery, injects it into staging, rediscovers when an action for the new current revision is required and can retain references when testing undo or redo restoration; do not add a general-purpose JSONPath or workflow scripting language.
 8. Migrate every affected scenario from direct dedicated-tool invocation while retaining ordinary rollback, durable commit, crash recovery, multi-revision and response-size evidence.
 9. Add document Code Fix discovery on small, medium and large repositories, cold and warm built-in analyser activation, `prepare-fix-all` impact measurement and prepared Fix All staging on a realistic project, with discovery, preparation and staging timed separately.
 10. Run the complete acceptance suite on WSL and Windows, then run representative affected scenario families and repositories through both platform wrappers because shared acceptance and scenario infrastructure is changing.
@@ -618,7 +665,7 @@ Completion checklist:
 - [ ] Published-host acceptance covers the complete architecture-focused case list in the Validation Strategy, including durable create-and-replace commit and separation from Plugins.
 - [ ] Acceptance proves that only the three orchestration tools are published and `PublishedToolCatalogueSizeIntegrationTests` records the resulting `tools/list` and response sizes.
 - [ ] The complete acceptance suite has passed on both WSL and Windows because the acceptance workflows changed.
-- [ ] The scenario runner can select a discovered action deterministically, capture its opaque reference, inject it into staging and rediscover after every transaction revision.
+- [ ] The scenario runner can select a discovered action deterministically, capture its opaque reference, inject it into staging, rediscover for a new current revision and retain references when exercising undo or redo restoration.
 - [ ] Every affected external-repository scenario has passed through both platform wrappers with representative coverage of each affected repository and scenario family; unaffected scenarios are not run merely for ceremony.
 - [ ] Performance measurements for small, medium and large document discovery, cold and warm built-in diagnostics, replay staging and Fix All preparation and staging are recorded with any production remediation decision.
 - [ ] The full normal build, affected non-acceptance tests, formatting and `latest-all` analyser validation are green.
@@ -656,6 +703,8 @@ Batch 7 intentionally changes both the acceptance architecture and shared scenar
 - Nested action flattening and mixed-provider leaf filtering.
 - Concise response projection and collection bounds.
 - Single and prepared Fix All replay recipe construction, expiry and successful consumption.
+- Immutable replay snapshot identity, reachable-revision retention and active lifecycle eviction.
+- Branch truncation, positional revision-number reuse and reference-store lifecycle-index cleanup.
 - Exact rediscovery, zero-match and ambiguous-match handling.
 - Operation shape validation and known wrapping exception.
 - Unified staging result mapping.
@@ -701,7 +750,7 @@ The scenario runner needs a focused Code Action workflow facility rather than a 
 2. Select one returned action deterministically by title, location and optional diagnostic ID.
 3. Capture its opaque `ActionId`.
 4. Inject that value into `stage-code-action`.
-5. Rediscover after every transaction revision because references are bound to the revision in which they were created.
+5. Rediscover after staging when the next action must target the new current revision; retain captured references when a scenario intentionally exercises undo or redo restoration of a reachable revision.
 
 Retained scenario evidence must cover selection-refactoring discovery; ordinary staging and rollback; create-and-replace durable commit; crash recovery involving a Code Action; multi-revision interaction; and reference and response sizes. New scenario evidence must cover document Code Fix discovery on small, medium and large repositories; cold and warm built-in analyser activation; `prepare-fix-all` impact measurement; and prepared Fix All staging on a realistic project. Scenarios are workflow and performance evidence, not a provider-by-provider compatibility matrix.
 
@@ -758,10 +807,12 @@ Search terms include `Code Action catalogue`, `BuiltInCodeActionLedger`, `dedica
 | Risk | Mitigation |
 | --- | --- |
 | An unknown ordinary provider becomes visible after a Roslyn upgrade. | The Host pins Roslyn; the exact composition snapshot fails on provider additions or removals and forces an audit before the upgraded build is released. |
-| A mixed provider exposes an unsafe leaf. | Structural option-backed rejection, exact mixed-provider action exclusions, repeated staging policy and final operation and Workspace validation. |
+| A mixed provider exposes an unsafe leaf. | Structural option-backed rejection and exact mixed-provider action exclusions prevent reference creation; exact replay identity plus final operation and Workspace validation protect staging. |
 | Document discovery becomes slow or noisy. | Required kind, diagnostic filters, curated bounds, document-only analyser scope, phased measurements and no syntax-position probing. |
 | Built-in analyser activation depends on internal Roslyn construction. | Isolate it in one compatibility adapter, record typed activation failures and cover the pinned runtime with real integration tests. |
 | Dynamic leaf ordering makes replay ambiguous. | Store exact location, diagnostic identity, equivalence key and action path; require one rediscovered match and reject ambiguity. |
+| Replay recipes accumulate after their snapshots become permanently unreachable. | Index references by immutable Workspace, transaction and revision identity; retain reachable undo/redo history and actively evict discarded branches and completed or superseded lifecycle scopes. |
+| A discarded redo branch reuses a positional revision number and revives an unrelated reference. | Give transactions and revisions stable non-reusable identities and require the complete immutable snapshot identity during resolution. |
 | Fix All preparation consumes excessive memory or CPU. | Require one explicit scope, enforce changed-document bounds, return bounded affected documents and store only a replay recipe. |
 | Removing dedicated tools loses useful aggregate behaviour. | Classify every handler before deletion and move genuine Workbench-owned aggregation to Plugins.Core only with an explicit contract and evidence. |
 | Old documentation continues to direct agents or maintainers to removed paths. | Delete superseded audits, update all active cross-references and run repository-wide terminology searches before completion. |
@@ -775,6 +826,7 @@ The migration is complete when:
 - compiler, project and built-in diagnostics participate in bounded discovery;
 - document, selection and caret requests produce concise, precise and independently stageable results;
 - one CodeAction-specific stager handles single and prepared Fix All references;
+- replay references follow reachable transaction history and are actively evicted when their branch, transaction or Workspace instance becomes permanently unreachable;
 - the positive provider ledger, descriptor execution modes, dedicated replay tools and alternative Code Action stagers have been removed;
 - Workbench-owned transformations are clearly separated into Plugins.Core;
 - provider snapshot, compatibility, unit, integration, acceptance and affected scenario evidence is green;
